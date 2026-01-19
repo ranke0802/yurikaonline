@@ -15,12 +15,29 @@ export class InputHandler {
             const key = e.key.toLowerCase();
             this.keys[key] = true;
 
-            // Handle actions immediately or pass to callback
-            if (['j', 'h', 'u', 'i', 'tab', 'enter'].includes(key)) {
+            // Tab키 브라우저 포커스 이동 방지
+            if (key === 'tab') {
+                e.preventDefault();
+            }
+
+            // Handle Shift + B (가방)
+            if (e.shiftKey && key === 'b') {
+                if (this.onAction) this.onAction('shift-b');
+                return;
+            }
+
+            // Handle Shift + I (내 정보)
+            if (e.shiftKey && key === 'i') {
+                if (this.onAction) this.onAction('shift-i');
+                return;
+            }
+
+            // Handle actions (Skills)
+            if (['j', 'h', 'u', 'i'].includes(key)) {
                 if (this.onAction) this.onAction(key);
             }
 
-            // Prevent scrolling with arrows
+            // Prevent scrolling
             if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) {
                 e.preventDefault();
             }
