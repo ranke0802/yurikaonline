@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>유리카 온라인 (Yurica Online)</title>
+    <link rel="stylesheet" href="src/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Nanum+Gothic:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Game Canvas -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- UI Overlay -->
+        <div id="ui-layer">
+            <!-- Top Bar: HP/MP/Portrait -->
+            <div class="top-bar">
+                <div class="portrait-container">
+                    <div class="portrait"></div>
+                </div>
+                <div class="stats-container">
+                    <div class="stat-row">
+                        <span class="stat-label">HP</span>
+                        <div class="bar-bg hp-bg">
+                            <div class="bar-fill hp-fill"></div>
+                            <div class="heart-icons">❤️❤️❤️❤️💔</div>
+                        </div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">MP</span>
+                        <div class="bar-bg mp-bg">
+                            <div class="bar-fill mp-fill"></div>
+                            <div class="star-icons">⭐⭐⭐🌑🌑</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="top-right-icons">
+                    <div class="icon-btn settings-btn">⚙️</div>
+                    <div class="icon-btn favorites-btn">⭐</div>
+                </div>
+            </div>
+
+            <!-- Quest List (Left) -->
+            <div class="quest-list-panel">
+                <h3>Quest List <span>⭐</span></h3>
+                <ul>
+                    <li>📜 마을 입구로 가기</li>
+                    <li>🪶 꽃 5송이 모으기</li>
+                </ul>
+            </div>
+
+            <!-- Chat Window (Right) -->
+            <div class="chat-window">
+                <div class="chat-header">
+                    <span>💬</span>
+                    <div class="chat-controls">
+                        <span>_</span><span>▢</span><span>✕</span>
+                    </div>
+                </div>
+                <div class="chat-messages">
+                    <div class="message incoming">환영합니다! 유리카 온라인에 오신 것을 환영해요! ✨</div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" placeholder="메시지를 입력하세요...">
+                    <button class="send-btn">➔</button>
+                </div>
+            </div>
+
+            <!-- Joystick (Bottom Left) -->
+            <div id="joystick-container">
+                <div id="joystick-base">
+                    <div id="joystick-stick">
+                        <div class="paw-icon">🐾</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skill & Action Buttons (Bottom Right) -->
+            <div class="action-buttons">
+                <div class="skill-row top-skills">
+                    <div class="skill-btn skill-u" data-key="u">
+                        <div class="inner-icon">🔥</div>
+                        <span class="key-hint">U</span>
+                    </div>
+                    <div class="skill-btn skill-i" data-key="i">
+                        <div class="inner-icon">🛡️</div>
+                        <span class="key-hint">I</span>
+                    </div>
+                </div>
+                <div class="skill-row bottom-skills">
+                    <div class="skill-btn skill-h" data-key="h">
+                        <div class="inner-icon">🪄</div>
+                        <span class="key-hint">H</span>
+                    </div>
+                    <div class="attack-btn" data-key="j">
+                        <div class="inner-icon">⚔️</div>
+                        <span class="key-hint">J</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Utility Buttons (Bottom Bottom) -->
+            <div class="utility-bar">
+                <div class="inventory-trigger" data-key="tab">
+                    <div class="bag-icon">🎒</div>
+                    <span>가방 (TAB)</span>
+                </div>
+                <div class="status-trigger" data-key="enter">
+                    <div class="char-icon">👤</div>
+                    <span>내 정보 (ENTER)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Popups -->
+        <div id="popup-overlay" class="hidden">
+            <!-- Inventory Popup -->
+            <div id="inventory-popup" class="game-popup hidden">
+                <div class="popup-header">
+                    <h2>가방 (Inventory)</h2>
+                    <button class="close-popup">✕</button>
+                </div>
+                <div class="inventory-grid">
+                    <div class="grid-item"></div>
+                    <div class="grid-item"></div>
+                    <div class="grid-item"></div>
+                    <div class="grid-item"></div>
+                    <div class="grid-item"></div>
+                    <div class="grid-item"></div>
+                    <div class="grid-item"></div>
+                    <div class="grid-item"></div>
+                    <div class="grid-item"></div>
+                </div>
+            </div>
+
+            <!-- Status Popup -->
+            <div id="status-popup" class="game-popup hidden">
+                <div class="popup-header">
+                    <h2>캐릭터 정보</h2>
+                    <button class="close-popup">✕</button>
+                </div>
+                <div class="status-content">
+                    <div class="status-portrait"></div>
+                    <div class="status-details">
+                        <p><strong>이름:</strong> 유리카</p>
+                        <p><strong>직업:</strong> 초보 마법사</p>
+                        <p><strong>레벨:</strong> 1</p>
+                        <p><strong>경험치:</strong> 0%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Touch Feedback -->
+        <div id="touch-pointer" class="hidden"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="src/js/main.js"></script>
+</body>
+</html>
