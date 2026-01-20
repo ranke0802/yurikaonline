@@ -664,7 +664,6 @@ html {
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
     -ms-user-select: none !important;
-    -webkit-touch-callout: none !important;
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -705,7 +704,7 @@ html {
     transform: scale(0.95);
 }
 
-/* Mobile Responsiveness (Galaxy S23 etc) - v0.4 Layout */
+/* Mobile Responsiveness (Galaxy S23 etc) - v0.6 Layout */
 @media screen and (max-width: 900px) {
     .top-bar {
         top: 10px;
@@ -715,34 +714,42 @@ html {
         z-index: 100;
     }
 
-    /* Left Side UI: Quests then Chat */
-    .quest-list-panel {
-        top: 65px;
+    /* Left Side UI: Vertical stacking */
+    .left-ui-container {
+        position: absolute;
+        top: 60px;
         left: 10px;
-        width: 120px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
         transform: scale(0.75);
         transform-origin: top left;
+        z-index: 90;
+        pointer-events: none;
+    }
+
+    .quest-list-panel,
+    .chat-window {
+        position: relative !important;
+        top: 0 !important;
+        left: 0 !important;
+        pointer-events: auto !important;
+    }
+
+    .quest-list-panel {
+        width: 140px;
         background: rgba(255, 255, 255, 0.75);
         border-radius: 12px;
-        z-index: 90;
     }
 
     .chat-window {
-        position: absolute;
-        top: 135px;
-        /* Below Quests */
-        left: 10px;
-        width: 170px;
+        width: 180px;
         height: 110px;
-        font-size: 10px;
         background: rgba(255, 255, 255, 0.5);
         border-radius: 10px;
-        transform: scale(0.75);
-        transform-origin: top left;
-        z-index: 80;
     }
 
-    /* Right Side UI: Minimap with menu */
+    /* Right Side UI: Minimap */
     #minimap-container {
         top: 10px;
         right: 10px;
@@ -752,6 +759,8 @@ html {
         z-index: 110;
         background: #1e272e;
         overflow: hidden;
+        transform: scale(0.95);
+        transform-origin: top right;
     }
 
     #minimapCanvas {
@@ -761,41 +770,37 @@ html {
         display: block;
     }
 
-    .menu-btn {
-        padding: 8px 0;
-        font-size: 16px;
-    }
-
-    /* Joystick & Buttons: Higher to clear OS System Bar */
+    /* Joystick & Buttons: 1.5x larger and moved up */
     #joystick-container {
-        left: 35px;
-        bottom: 85px;
-        transform: scale(0.7);
+        left: 50px;
+        bottom: 115px;
+        transform: scale(1.05);
+        /* 1.5x of 0.7 */
         transform-origin: bottom left;
     }
 
     .action-buttons {
-        right: 25px;
-        bottom: 75px;
-        transform: scale(0.6);
+        right: 40px;
+        bottom: 105px;
+        transform: scale(0.9);
+        /* 1.5x of 0.6 */
         transform-origin: bottom right;
     }
 }
 
 @media screen and (max-height: 500px) {
-
-    .quest-list-panel,
-    .chat-window {
+    .left-ui-container {
         display: none;
     }
 
     .top-bar,
     #minimap-container {
-        transform: scale(0.65);
+        transform: scale(0.6);
     }
 
     #joystick-container,
     .action-buttons {
         bottom: 40px;
+        transform: scale(0.8);
     }
 }
