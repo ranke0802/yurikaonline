@@ -196,13 +196,13 @@ export default class Monster {
         }
     }
 
-    takeDamage(amount, triggerFlash = true) {
+    takeDamage(amount, triggerFlash = true, isCrit = false) {
         if (this.isDead) return;
         this.hp = Math.max(0, this.hp - amount);
         if (triggerFlash) this.hitTimer = 0.2;
 
         if (amount > 0 && window.game) {
-            window.game.addDamageText(this.x, this.y - 40, Math.floor(amount));
+            window.game.addDamageText(this.x, this.y - 40, Math.floor(amount), isCrit ? '#ff9f43' : '#ff4757', isCrit);
         }
 
         if (this.hp <= 0) {

@@ -26,28 +26,33 @@ export default class Player {
         this.exp = 0;
         this.level = 1;
         this.maxExp = 100;
-        this.hp = 100;
-        this.maxHp = 100;
-        this.mp = 100;
-        this.maxMp = 100;
+        this.hp = 20;
+        this.maxHp = 20;
+        this.mp = 30;
+        this.maxMp = 30;
 
         // RPG Stats
         this.statPoints = 0;
-        this.skillPoints = 0;   // Added Skill Points
-        this.skillLevels = {    // Added Skill Levels
+        this.skillPoints = 0;
+        this.skillLevels = {
             laser: 1,
             missile: 1,
             fireball: 1,
             shield: 1
         };
-        this.vitality = 5;      // Increases Max HP
-        this.intelligence = 5;  // Increases Magic Damage
-        this.wisdom = 5;        // Increases Max MP
-        this.tenacity = 5;      // Increases Health Recovery/Defense
+        this.vitality = 5;
+        this.intelligence = 5;
+        this.wisdom = 5;
+        this.agility = 5;
 
         // Derived Stats
         this.attackPower = 10;
         this.attackSpeed = 1.0;
+        this.critRate = 0.1;
+        this.moveSpeedMult = 1.0;
+
+        // MP Recovery Timer
+        this.stillTimer = 0;
 
         // Inventory system (16 slots grid in UI usually)
         this.inventory = new Array(16).fill(null);
@@ -74,30 +79,45 @@ export default class Player {
 
     takeDamage(amount) {
         let finalDamage = amount;
+        let manaDamage = 0;
 
         if (this.shieldTimer > 0) {
-            // Shield: 80% reduction, hits MP instead
-            const reducedDmg = amount * 0.2;
-            if (this.mp >= reducedDmg) {
-                this.mp -= reducedDmg;
-                finalDamage = 0;
+            // Shield logic: 30% + 10% per level (max 80%)
+            const shieldLv = this.skillLevels.shield || 1;
+            const reduction = Math.min(0.8, 0.3 + (shieldLv - 1) * 0.1);
+
+            manaDamage = amount * reduction;
+            finalDamage = amount * (1.0 - reduction);
+
+            if (this.mp >= manaDamage) {
+                this.mp -= manaDamage;
             } else {
                 const soaked = this.mp;
                 this.mp = 0;
-                finalDamage = reducedDmg - soaked;
+                // Remaining mana damage hits HP? Or just the rest of reduction fails?
+                // Standard RPG: if mana runs out, the rest hits HP.
+                // User didn't specify, I'll follow typical logic.
+                finalDamage += (manaDamage - soaked);
             }
         }
 
         this.hp = Math.max(0, this.hp - finalDamage);
 
+        if (manaDamage > 0) {
+            // Show mana damage in blue if shield is active
+            if (window.game) {
+                window.game.addDamageText(this.x, this.y - 20, `-${Math.round(manaDamage)}`, '#48dbfb');
+            }
+        }
+
         if (finalDamage > 0) {
             this.triggerAction(`-${Math.round(finalDamage)}`);
-        } else if (this.shieldTimer > 0) {
-            this.triggerAction('BLOCKED!');
         }
 
         if (this.hp <= 0) {
+            // Respawn
             this.hp = this.maxHp;
+            this.mp = this.maxMp;
             this.x = 1000;
             this.y = 1000;
             this.triggerAction('RESPAWN');
@@ -222,13 +242,14 @@ export default class Player {
     }
 
     refreshStats() {
-        this.maxHp = 100 + (this.vitality * 10) + (this.level * 5);
-        this.maxMp = 50 + (this.wisdom * 10) + (this.level * 2);
-        this.attackPower = 5 + (this.intelligence * 2) + (this.level * 1);
+        this.maxHp = 20 + (this.vitality * 10);
+        this.maxMp = 30 + (this.wisdom * 10);
+        this.attackPower = 5 + (this.intelligence * 1) + (this.level * 1);
 
-        const speedBonus = (this.intelligence + this.wisdom) * 0.005;
-        this.attackSpeed = 1.0 + speedBonus;
-        this.baseAttackDelay = Math.max(0.2, 0.6 - (speedBonus * 0.4));
+        // Agility: 1 AGI = +5% Speed, +10% Attack Speed, +2% Crit
+        this.moveSpeedMult = 1.0 + (this.agility * 0.05);
+        this.attackSpeed = 1.0 + (this.agility * 0.10);
+        this.critRate = 0.1 + (this.agility * 0.02);
 
         if (window.game?.ui) {
             window.game.ui.updateStatusPopup();
@@ -249,7 +270,7 @@ export default class Player {
         this.level++;
         this.exp -= this.maxExp;
         this.maxExp = Math.floor(this.maxExp * 1.5);
-        this.statPoints += 5; // Grant stat points
+        this.statPoints += 3; // Grant 3 stat points (requested)
         this.skillPoints += 1; // Grant skill points (1 per level)
 
         this.refreshStats();
@@ -258,7 +279,7 @@ export default class Player {
 
         this.triggerAction('LEVEL UP!!');
         if (window.game?.ui) {
-            window.game.ui.logSystemMessage(`축하합니다! 레벨 ${this.level}이 되었습니다! (스탯 +5, 스킬 +1)`);
+            window.game.ui.logSystemMessage(`축하합니다! 레벨 ${this.level}이 되었습니다! (스탯 +3, 스킬 +1)`);
         }
     }
 
@@ -295,7 +316,7 @@ export default class Player {
         if (statName === 'vitality') this.vitality++;
         else if (statName === 'intelligence') this.intelligence++;
         else if (statName === 'wisdom') this.wisdom++;
-        else if (statName === 'tenacity') this.tenacity++;
+        else if (statName === 'agility') this.agility++;
         else return false;
 
         this.statPoints--;
@@ -317,8 +338,11 @@ export default class Player {
     }
 
     triggerAction(actionName) {
-        this.actionFdbk = actionName;
-        this.actionTimer = 1.0;
+        // Requested: Filter out 'ATTACK' text but keep motion
+        if (actionName !== 'ATTACK') {
+            this.actionFdbk = actionName;
+            this.actionTimer = 1.0;
+        }
 
         const isCombatAction = actionName.toUpperCase().includes('ATTACK') ||
             actionName.toUpperCase().includes('SKILL') ||
@@ -341,7 +365,8 @@ export default class Player {
         }
 
         if (this.attackCooldown > 0) {
-            this.attackCooldown -= dt;
+            // Speed up cooldown based on attackSpeed
+            this.attackCooldown -= dt * this.attackSpeed;
         }
 
         if (this.shieldTimer > 0) {
@@ -415,9 +440,13 @@ export default class Player {
             }
 
             const speedMult = (this.isRunning || this.turnGraceTimer > 0) ? 1.3 : 1.0;
-            this.x += vx * this.speed * speedMult * dt;
-            this.y += vy * this.speed * speedMult * dt;
+            const finalSpeed = this.speed * this.moveSpeedMult * speedMult;
+            this.x += vx * finalSpeed * dt;
+            this.y += vy * finalSpeed * dt;
             this.isMoving = true;
+
+            // Reset standing timer
+            this.stillTimer = 0;
 
             // Map to 4-way sprite
             if (this.facingDir === 0 || this.facingDir === 1 || this.facingDir === 7) this.direction = 0; // Back
@@ -429,6 +458,15 @@ export default class Player {
             this.moveTimer = 0;
             this.isRunning = false;
             this.turnGraceTimer = 0;
+
+            // Standing still logic: For every 10 WIS, gain +1 MP/s after 3s
+            this.stillTimer += dt;
+            if (this.stillTimer >= 3.0) {
+                const regenBonus = Math.floor(this.wisdom / 10);
+                if (regenBonus > 0) {
+                    this.mp = Math.min(this.maxMp, this.mp + regenBonus * dt);
+                }
+            }
         }
 
         if (this.isMoving) {

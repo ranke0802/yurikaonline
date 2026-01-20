@@ -113,7 +113,7 @@ export class UIManager {
         document.getElementById('val-vitality').textContent = p.vitality;
         document.getElementById('val-intelligence').textContent = p.intelligence;
         document.getElementById('val-wisdom').textContent = p.wisdom;
-        document.getElementById('val-tenacity').textContent = p.tenacity;
+        document.getElementById('val-agility').textContent = p.agility;
 
         // Derived
         document.getElementById('val-hp-range').textContent = `${Math.floor(p.hp)}/${p.maxHp}`;

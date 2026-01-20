@@ -88,20 +88,33 @@ export class Projectile {
 
     hit(monster, monsters) {
         if (this.type === 'fireball' && monsters) {
-            const aoeRadius = 160; // Approx 4 slimes wide (80px * 2 radius)
+            const aoeRadius = this.radius || 100;
             monsters.forEach(m => {
                 if (m.isDead) return;
                 const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
                 if (dist < aoeRadius) {
-                    m.takeDamage(this.damage);
-                    m.applyEffect('burn', this.burnDuration, Math.floor(this.damage * 0.15)); // 15% dmg per tick
+                    let finalDmg = this.damage;
+                    let isCrit = false;
+                    if (this.critRate && Math.random() < this.critRate) {
+                        finalDmg *= 2;
+                        isCrit = true;
+                    }
+                    m.takeDamage(finalDmg, true, isCrit);
+                    m.applyEffect('burn', this.burnDuration, Math.floor(finalDmg * 0.15));
                 }
             });
         } else {
-            monster.takeDamage(this.damage);
+            // Already calculated damage in some cases (missile), or use critRate
+            let finalDmg = this.damage;
+            let isCrit = this.isCrit || false;
+            if (!this.isCrit && this.critRate && Math.random() < this.critRate) {
+                finalDmg *= 2;
+                isCrit = true;
+            }
+            monster.takeDamage(finalDmg, true, isCrit);
 
             if (this.type === 'fireball') {
-                monster.applyEffect('burn', this.burnDuration, Math.floor(this.damage * 0.15));
+                monster.applyEffect('burn', this.burnDuration, Math.floor(finalDmg * 0.15));
             }
         }
 

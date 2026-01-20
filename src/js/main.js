@@ -72,12 +72,15 @@ class Game {
                     }
                     break;
                 case 'k': // Shield
-                    if (player.useMana(20)) {
+                    const shieldLv = player.skillLevels.shield || 1;
+                    const shieldCost = 20;
+                    if (player.useMana(shieldCost)) {
+                        const duration = 60 + (shieldLv - 1) * 20; // 60s + 20s/lv
                         player.triggerAction('SKILL: 마나쉴드');
-                        player.shieldTimer = 180; // 3 minutes
+                        player.shieldTimer = duration;
                         player.isShieldActive = true;
-                        this.ui.logSystemMessage('SKILL: 마나쉴드 - 방어막이 3분간 지속됩니다.');
-                        player.attackCooldown = 2.0;
+                        this.ui.logSystemMessage(`SKILL: 마나쉴드 - 방어막이 ${duration}초간 지속됩니다.`);
+                        player.attackCooldown = 1.0;
                     }
                     break;
             }
@@ -102,9 +105,9 @@ class Game {
         requestAnimationFrame((time) => this.loop(time));
     }
 
-    addDamageText(x, y, amount, color = '#ff4757') {
+    addDamageText(x, y, amount, color = '#ff4757', isCrit = false) {
         this.floatingTexts.push({
-            x, y, text: amount, color, timer: 1.0, currentY: y
+            x, y, text: amount, color, timer: 1.2, currentY: y, isCrit: isCrit
         });
     }
 
@@ -120,8 +123,9 @@ class Game {
         const player = this.localPlayer;
         player.triggerAction('ATTACK');
 
-        // Skill Level 1: 1 mana, Level 2: 2 mana, etc.
-        player.recoverMana(player.skillLevels.laser || 1);
+        // Initial mana recovery: 2, +1 per level
+        const laserLv = player.skillLevels.laser || 1;
+        player.recoverMana(1 + laserLv);
 
         let range = 600;
         let vx = 0, vy = 0;
@@ -158,7 +162,10 @@ class Game {
                 const distToLine = Math.sqrt((m.x - projX) ** 2 + (m.y - projY) ** 2);
 
                 if (distToLine < 50) {
-                    m.takeDamage(player.attackPower);
+                    let damage = player.attackPower;
+                    let isCrit = Math.random() < player.critRate;
+                    if (isCrit) damage *= 2;
+                    m.takeDamage(damage, isCrit);
                 }
             }
         });
@@ -189,11 +196,15 @@ class Game {
             // I'll update the mana check in onAction too.
 
             for (let i = 0; i < count; i++) {
-                // Slightly staggered spawn or offset
                 const offset = (i - (count - 1) / 2) * 20;
+                let damage = player.attackPower * 0.8; // 80% of base
+                let isCrit = Math.random() < player.critRate;
+                if (isCrit) damage *= 2;
+
                 this.projectiles.push(new Projectile(player.x + offset, player.y + offset, nearest, 'missile', {
                     speed: 500 + (Math.random() * 50),
-                    damage: player.attackPower
+                    damage: damage,
+                    isCrit: isCrit
                 }));
             }
         } else {
@@ -221,13 +232,17 @@ class Game {
         }
 
         const fireballLv = player.skillLevels.fireball || 1;
+        const baseDamage = player.attackPower * (1.0 + (fireballLv - 1) * 0.3);
+        const radius = 80 + (fireballLv - 1) * 40; // ~2 slimes to start, +1 slime/lv
+
         this.projectiles.push(new Projectile(player.x, player.y, null, 'fireball', {
             vx, vy,
             speed: speed,
-            damage: Math.floor(player.attackPower * (1.5 + (fireballLv - 1) * 0.2)),
-            radius: 25 + (fireballLv - 1) * 2,
+            damage: baseDamage,
+            radius: radius,
             lifeTime: 1.5,
-            burnDuration: 5.0 + (fireballLv - 1) // +1s per level
+            burnDuration: 5.0 + (fireballLv - 1),
+            critRate: player.critRate // Pass crit rate to projectile logic if needed
         }));
     }
 
@@ -342,12 +357,20 @@ class Game {
         this.floatingTexts.forEach(ft => {
             const sx = ft.x - this.camera.x;
             const sy = ft.currentY - this.camera.y;
-            this.ctx.globalAlpha = ft.timer;
-            this.ctx.fillStyle = ft.color;
-            this.ctx.font = 'bold 20px "Outfit", sans-serif';
+            this.ctx.globalAlpha = Math.min(1, ft.timer);
+
+            // Critical hits are larger
+            const fontSize = ft.isCrit ? 32 : 20;
+            this.ctx.font = `bold ${fontSize}px "Outfit", sans-serif`;
             this.ctx.textAlign = 'center';
+
+            this.ctx.strokeStyle = '#000000';
+            this.ctx.lineWidth = 3;
+            this.ctx.strokeText(ft.text, sx, sy);
+
+            this.ctx.fillStyle = ft.color;
             this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
-            this.ctx.shadowBlur = 4;
+            this.ctx.shadowBlur = ft.isCrit ? 10 : 4;
             this.ctx.fillText(ft.text, sx, sy);
         });
         this.ctx.restore();
