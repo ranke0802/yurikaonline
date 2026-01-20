@@ -112,7 +112,7 @@ class Game {
 
     performLaserAttack() {
         const player = this.localPlayer;
-        // Removed triggerAction('LASER!')
+        player.triggerAction('ATTACK');
         player.recoverMana(1);
 
         let range = 600;

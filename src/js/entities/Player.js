@@ -457,17 +457,43 @@ export default class Player {
             ctx.fill();
         });
 
-        // Draw Laser
+        // Draw Laser (Improved Impact)
         if (this.laserEffect) {
             ctx.save();
+            const lifeRatio = this.laserEffect.timer / 0.2;
+            const sx = this.laserEffect.x1 - camera.x;
+            const sy = this.laserEffect.y1 - camera.y;
+            const ex = this.laserEffect.x2 - camera.x;
+            const ey = this.laserEffect.y2 - camera.y;
+
+            // Outer thick glow
             ctx.strokeStyle = '#00ffff';
-            ctx.lineWidth = 4 * (this.laserEffect.timer / 0.2);
-            ctx.shadowBlur = 10;
+            ctx.lineWidth = 12 * lifeRatio;
+            ctx.shadowBlur = 20;
             ctx.shadowColor = '#00ffff';
+            ctx.globalAlpha = 0.4;
             ctx.beginPath();
-            ctx.moveTo(this.laserEffect.x1 - camera.x, this.laserEffect.y1 - camera.y);
-            ctx.lineTo(this.laserEffect.x2 - camera.x, this.laserEffect.y2 - camera.y);
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(ex, ey);
             ctx.stroke();
+
+            // Middle layer
+            ctx.globalAlpha = 0.8;
+            ctx.lineWidth = 6 * lifeRatio;
+            ctx.stroke();
+
+            // Inner white core
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2 * lifeRatio;
+            ctx.shadowBlur = 0;
+            ctx.stroke();
+
+            // Start point flash
+            ctx.fillStyle = '#00ffff';
+            ctx.beginPath();
+            ctx.arc(sx, sy, 10 * lifeRatio, 0, Math.PI * 2);
+            ctx.fill();
+
             ctx.restore();
         }
 
