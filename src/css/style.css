@@ -542,13 +542,14 @@ html {
 .skill-icon {
     width: 44px;
     height: 44px;
-    background: #fdfaf6;
+    background: #fff;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 24px;
-    border: 2px solid #ffd6a5;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     flex-shrink: 0;
 }
 

@@ -5,7 +5,7 @@ export default class Drop {
         this.type = type; // 'gold' or 'xp'
         this.amount = amount;
         this.timer = 0;
-        this.lifeTime = 5.0; // Seconds before it disappears
+        this.lifeTime = Infinity; // Seconds before it disappears
         this.radius = 15;
         this.isCollected = false;
 
@@ -15,8 +15,8 @@ export default class Drop {
     }
 
     update(dt, player) {
-        this.timer += dt;
-        if (this.timer > this.lifeTime) return true; // Mark for deletion
+        // this.timer += dt;
+        // if (this.timer > this.lifeTime) return true; // Mark for deletion
 
         this.offY = Math.sin(Date.now() * 0.005 + this.randomOffset) * 5;
 
@@ -25,8 +25,8 @@ export default class Drop {
         if (dist < 40) {
             this.isCollected = true;
             return true;
-        } else if (dist < 150) {
-            // Move towards player
+        } else if (dist < 300) {
+            // Move towards player (range increased from 150 to 300)
             const angle = Math.atan2(player.y - this.y, player.x - this.x);
             this.x += Math.cos(angle) * 200 * dt;
             this.y += Math.sin(angle) * 200 * dt;

@@ -149,9 +149,21 @@ export class Projectile {
         ctx.stroke();
 
         // Glow
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = this.color;
-        ctx.stroke();
         ctx.shadowBlur = 0;
+
+        // Draw Fireball AoE Range (Fixed)
+        if (this.type === 'fireball') {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(249, 115, 22, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(249, 115, 22, 0.1)';
+            ctx.fill();
+            ctx.restore();
+        }
     }
 }

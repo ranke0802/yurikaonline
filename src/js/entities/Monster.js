@@ -251,5 +251,13 @@ export default class Monster {
         const hpPercent = this.hp / this.maxHp;
         ctx.fillStyle = hpPercent > 0.3 ? '#4ade80' : '#ef4444';
         ctx.fillRect(screenX - 30, screenY - this.height / 2 - 12, 60 * hpPercent, 6);
+
+        // Status Effect Icons (Burn)
+        const burnEffect = this.statusEffects.find(e => e.type === 'burn');
+        if (burnEffect) {
+            ctx.font = '16px serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('🔥', screenX, screenY + this.height / 2 + 15);
+        }
     }
 }
