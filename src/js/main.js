@@ -30,15 +30,22 @@ class Game {
         // Bind input actions
         this.input.onAction = (action) => {
             const player = this.localPlayer;
-            if (player.attackCooldown > 0) return;
 
             switch (action) {
                 case 'shift-b':
                     this.ui.togglePopup('inventory-popup');
-                    break;
+                    return; // Early return to bypass cooldown check for UI
                 case 'shift-i':
                     this.ui.togglePopup('status-popup');
-                    break;
+                    return; // Early return to bypass cooldown check for UI
+                case 'fullscreen':
+                    this.ui.toggleFullscreen();
+                    return;
+            }
+
+            if (player.attackCooldown > 0) return;
+
+            switch (action) {
                 case 'j': // Basic Attack (Laser)
                     this.performLaserAttack();
                     player.attackCooldown = player.baseAttackDelay;

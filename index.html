@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>유리카 온라인 (Yurica Online)</title>
-    <link rel="stylesheet" href="src/css/style.css?v=0.2">
+    <link rel="stylesheet" href="src/css/style.css?v=0.3">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -58,6 +58,9 @@
                     <div class="minimap-header">Yurica Map</div>
                     <canvas id="minimapCanvas"></canvas>
                     <div class="minimap-footer">X: <span id="mini-pos-x">0</span> Y: <span id="mini-pos-y">0</span>
+                    </div>
+                    <div id="fullscreen-toggle" data-key="fullscreen">
+                        <span>📺 Fullscreen</span>
                     </div>
                 </div>
 
@@ -119,9 +122,6 @@
                     <div class="status-trigger" data-key="shift-i">
                         <div class="char-icon">👤</div>
                         <span>내 정보 (SHIFT+I)</span>
-                    </div>
-                    <div id="fullscreen-toggle">
-                        <span>📺 전체화면</span>
                     </div>
                 </div>
             </div>
@@ -213,7 +213,7 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="src/js/main.js?v=0.2"></script>
+    <script type="module" src="src/js/main.js?v=0.3"></script>
 </body>
 
 </html>

@@ -10,16 +10,6 @@ export class UIManager {
             btn.addEventListener('click', () => this.hideAllPopups());
         });
 
-        // Trigger buttons click handlers
-        const invTrigger = document.querySelector('.inventory-trigger');
-        if (invTrigger) invTrigger.addEventListener('click', () => this.togglePopup('inventory-popup'));
-
-        const statTrigger = document.querySelector('.status-trigger');
-        if (statTrigger) statTrigger.addEventListener('click', () => this.togglePopup('status-popup'));
-
-        const fsToggle = document.getElementById('fullscreen-toggle');
-        if (fsToggle) fsToggle.addEventListener('click', () => this.toggleFullscreen());
-
         // Chat send button
         const sendBtn = document.querySelector('.send-btn');
         if (sendBtn) sendBtn.addEventListener('click', () => this.sendMessage());

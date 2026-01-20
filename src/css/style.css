@@ -652,177 +652,133 @@ html {
     background: rgba(0, 0, 0, 0.2);
 }
 
-/* Fullscreen Toggle Style */
+/* UI Protection: Prevent selection/copy popups on mobile */
+#ui-layer,
+.skill-btn,
+.attack-btn,
+#joystick-container,
+.inventory-trigger,
+.status-trigger,
+#minimap-container {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* Fullscreen Toggle Style (Inside Minimap Container) */
 #fullscreen-toggle {
-    background: #a29bfe;
-    border: 4px solid #fff;
-    border-radius: 15px;
-    padding: 10px 15px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
+    background: rgba(162, 155, 254, 0.9);
+    padding: 6px 0;
+    text-align: center;
+    font-size: 11px;
     font-weight: bold;
     color: #fff;
     cursor: pointer;
-    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
-    font-size: 13px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    width: 100%;
 }
 
-/* Mobile Responsiveness (Galaxy S23 etc) - Much smaller and refined UX */
+#fullscreen-toggle:active {
+    background: #6c5ce7;
+}
+
+/* Mobile Responsiveness (Galaxy S23 etc) - Optimized v0.3 */
 @media screen and (max-width: 900px) {
 
-    /* Scale down the base UI elements */
+    /* Scale down everything 1.5x smaller for more visibility */
     .top-bar {
-        top: 10px;
-        left: 10px;
+        top: 8px;
+        left: 8px;
         padding: 4px 10px;
-        gap: 8px;
-        transform: scale(0.8);
+        transform: scale(0.7);
         transform-origin: top left;
     }
 
-    .portrait-container {
-        width: 32px;
-        height: 32px;
-    }
-
-    .bar-bg {
-        width: 70px;
-        height: 6px;
-    }
-
-    /* Quest & Chat: Make them much smaller or collapsible */
-    .quest-list-panel {
-        top: 60px;
-        left: 10px;
-        width: 110px;
-        padding: 8px;
-        font-size: 9px;
-        background: rgba(255, 255, 255, 0.7);
-        border-radius: 12px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        transform: scale(0.85);
-        transform-origin: top left;
-    }
-
-    .quest-list-panel h3 {
-        font-size: 11px;
-        margin-bottom: 4px;
-    }
-
+    /* Move Chat to clear joystick area */
     .chat-window {
         position: absolute;
-        bottom: 80px;
-        left: 10px;
+        top: 155px;
+        /* Moved up to middle-left */
+        left: 8px;
         width: 160px;
         height: 100px;
         font-size: 9px;
-        background: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.6);
         border-radius: 8px;
-        transform: scale(0.85);
-        transform-origin: bottom left;
-        pointer-events: none;
-        /* Let clicks pass through except input */
+        transform: scale(0.75);
+        transform-origin: top left;
     }
 
-    .chat-window * {
-        pointer-events: auto;
+    .quest-list-panel {
+        top: 60px;
+        left: 8px;
+        width: 110px;
+        transform: scale(0.75);
+        transform-origin: top left;
+        background: rgba(255, 255, 255, 0.6);
     }
 
-    .chat-messages {
-        padding: 5px;
-    }
-
-    /* Minimap: Compact */
+    /* Minimap: Compact and top-right */
     #minimap-container {
-        top: 10px;
-        right: 10px;
-        width: 90px;
-        border-width: 2px;
-        transform: scale(0.9);
-        transform-origin: top right;
-    }
-
-    .minimap-header {
-        font-size: 8px;
-        padding: 2px 0;
+        top: 8px;
+        right: 8px;
+        width: 100px;
+        transform: none;
     }
 
     #minimapCanvas {
-        width: 90px;
-        height: 90px;
+        width: 100px;
+        height: 100px;
     }
 
-    .minimap-footer {
-        font-size: 8px;
-        padding: 1px 0;
-    }
-
-    /* Joystick & Action Buttons: Thumb optimization */
+    /* Joystick & Buttons: Thumb-Friendly & Clear of Home Bar */
     #joystick-container {
-        left: 30px;
-        bottom: 30px;
+        left: 35px;
+        bottom: 85px;
+        /* Higher to avoid accidental OS swipes */
         transform: scale(0.7);
         transform-origin: bottom left;
     }
 
     .action-buttons {
-        right: 20px;
-        bottom: 20px;
+        right: 25px;
+        bottom: 75px;
         gap: 8px;
-        transform: scale(0.65);
+        transform: scale(0.6);
         transform-origin: bottom right;
     }
 
-    .attack-btn {
-        width: 100px;
-        height: 100px;
-    }
-
-    .skill-btn {
-        width: 65px;
-        height: 65px;
-    }
-
-    /* Utility Bar: Floating and clean */
+    /* Utility Bar: No labels, compact icons */
     .utility-bar {
-        bottom: 12px;
+        bottom: 25px;
         left: 50%;
-        transform: translateX(-50%) scale(0.8);
-        gap: 12px;
-        padding: 6px 15px;
-        background: rgba(255, 255, 255, 0.9);
-    }
-
-    .inventory-trigger,
-    .status-trigger {
-        padding: 5px;
+        transform: translateX(-50%) scale(0.75);
+        padding: 6px 12px;
+        gap: 15px;
+        background: rgba(255, 255, 255, 0.95);
+        border: 2px solid #fcebb6;
     }
 
     .inventory-trigger span,
     .status-trigger span {
         display: none;
     }
-
-    #fullscreen-toggle {
-        padding: 5px 10px;
-        font-size: 11px;
-    }
 }
 
 @media screen and (max-height: 500px) {
 
-    /* Critical space saving for landscape */
     .quest-list-panel,
     .chat-window {
         display: none;
     }
 
-    .top-bar {
-        transform: scale(0.7);
+    .top-bar,
+    #minimap-container {
+        transform: scale(0.65);
     }
 
-    #minimap-container {
-        transform: scale(0.7);
+    #joystick-container,
+    .action-buttons {
+        bottom: 45px;
     }
 }
