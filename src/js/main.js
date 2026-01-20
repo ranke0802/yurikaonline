@@ -39,23 +39,30 @@ class Game {
                 case 'shift-i':
                     this.ui.togglePopup('status-popup');
                     break;
-                case 'j': // Basic Attack
-                    player.triggerAction('ATTACK!');
-                    this.checkAttackHits();
+                case 'j': // Basic Attack (Laser)
+                    this.performLaserAttack();
                     player.attackCooldown = player.baseAttackDelay;
                     break;
                 case 'h': // Magic Missile (Homing)
-                    this.castMagicMissile();
-                    player.attackCooldown = 0.4;
+                    if (player.useMana(2)) {
+                        this.castMagicMissile();
+                        player.attackCooldown = 0.4;
+                    }
                     break;
                 case 'u': // Fireball (AoE)
-                    this.castFireball();
-                    player.attackCooldown = 0.8;
+                    if (player.useMana(5)) {
+                        this.castFireball();
+                        player.attackCooldown = 0.8;
+                    }
                     break;
                 case 'k': // Shield
-                    player.triggerAction('SHIELD!');
-                    this.ui.logSystemMessage('방어막을 생성했습니다!');
-                    player.attackCooldown = 1.5;
+                    if (player.useMana(20)) {
+                        player.triggerAction('SHIELD!');
+                        player.shieldTimer = 180; // 3 minutes
+                        player.isShieldActive = true;
+                        this.ui.logSystemMessage('방어막이 3분간 지속됩니다. (80% 피해 경감)');
+                        player.attackCooldown = 1.0;
+                    }
                     break;
             }
         };
@@ -87,6 +94,43 @@ class Game {
         if (this.camera) this.camera.resize(this.width, this.height);
     }
 
+    performLaserAttack() {
+        const player = this.localPlayer;
+        player.triggerAction('LASER!');
+        player.recoverMana(1); // Normal attack recovers 1 MP
+
+        let range = 600;
+        let vx = 0, vy = 0;
+        if (player.direction === 0) vy = -1;
+        else if (player.direction === 1) vy = 1;
+        else if (player.direction === 2) vx = -1;
+        else if (player.direction === 3) vx = 1;
+
+        const endX = player.x + vx * range;
+        const endY = player.y + vy * range;
+
+        // Visual
+        player.laserEffect = { x1: player.x, y1: player.y, x2: endX, y2: endY, timer: 0.2 };
+
+        // Hit Detection
+        this.monsters.forEach(m => {
+            if (m.isDead) return;
+            const dx = m.x - player.x;
+            const dy = m.y - player.y;
+            const dot = dx * vx + dy * vy;
+
+            if (dot > 0 && dot < range) {
+                const projX = player.x + vx * dot;
+                const projY = player.y + vy * dot;
+                const distToLine = Math.sqrt((m.x - projX) ** 2 + (m.y - projY) ** 2);
+
+                if (distToLine < 50) {
+                    m.takeDamage(player.attackPower);
+                }
+            }
+        });
+    }
+
     castMagicMissile() {
         const player = this.localPlayer;
         let nearest = null;
@@ -104,7 +148,7 @@ class Game {
             player.triggerAction('Skill: Missile!');
             this.projectiles.push(new Projectile(player.x, player.y, nearest, 'missile', {
                 speed: 500,
-                damage: 20
+                damage: player.attackPower
             }));
         } else {
             this.ui.logSystemMessage('대상을 찾을 수 없습니다.');
@@ -115,7 +159,6 @@ class Game {
         const player = this.localPlayer;
         player.triggerAction('Skill: Fireball!');
 
-        // Determine direction based on player.direction (0:Up, 1:Down, 2:Left, 3:Right)
         let vx = 0, vy = 0;
         const speed = 400;
         if (player.direction === 0) vy = -speed;
@@ -126,7 +169,7 @@ class Game {
         this.projectiles.push(new Projectile(player.x, player.y, null, 'fireball', {
             vx, vy,
             speed: speed,
-            damage: 40,
+            damage: Math.floor(player.attackPower * 1.5),
             radius: 25,
             lifeTime: 1.5
         }));

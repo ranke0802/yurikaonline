@@ -47,8 +47,58 @@ export default class Player {
         this.attackCooldown = 0;
         this.baseAttackDelay = 0.3;
 
+        // Shield & Status
+        this.shieldTimer = 0;
+        this.isShieldActive = false;
+        this.laserEffect = null; // { x1, y1, x2, y2, timer }
+
         this.init();
         this.refreshStats();
+    }
+
+    takeDamage(amount) {
+        let finalDamage = amount;
+
+        if (this.shieldTimer > 0) {
+            // Shield: 80% reduction, hits MP instead
+            const reducedDmg = amount * 0.2;
+            if (this.mp >= reducedDmg) {
+                this.mp -= reducedDmg;
+                finalDamage = 0;
+            } else {
+                const soaked = this.mp;
+                this.mp = 0;
+                finalDamage = reducedDmg - soaked;
+            }
+        }
+
+        this.hp = Math.max(0, this.hp - finalDamage);
+
+        if (finalDamage > 0) {
+            this.triggerAction(`-${Math.round(finalDamage)}`);
+        } else if (this.shieldTimer > 0) {
+            this.triggerAction('BLOCKED!');
+        }
+
+        if (this.hp <= 0) {
+            this.hp = this.maxHp;
+            this.x = 1000;
+            this.y = 1000;
+            this.triggerAction('RESPAWN');
+        }
+    }
+
+    useMana(amount) {
+        if (this.mp >= amount) {
+            this.mp -= amount;
+            return true;
+        }
+        if (window.game?.ui) window.game.ui.logSystemMessage('마나가 부족합니다!');
+        return false;
+    }
+
+    recoverMana(amount) {
+        this.mp = Math.min(this.maxMp, this.mp + amount);
     }
 
     async init() {
@@ -259,6 +309,19 @@ export default class Player {
             this.attackCooldown -= dt;
         }
 
+        if (this.shieldTimer > 0) {
+            this.shieldTimer -= dt;
+            if (this.shieldTimer <= 0) {
+                this.isShieldActive = false;
+                if (window.game?.ui) window.game.ui.logSystemMessage('방어막이 사라졌습니다.');
+            }
+        }
+
+        if (this.laserEffect) {
+            this.laserEffect.timer -= dt;
+            if (this.laserEffect.timer <= 0) this.laserEffect = null;
+        }
+
         if (this.isAttacking) {
             this.timer += dt;
             if (this.timer >= 0.08) {
@@ -310,9 +373,39 @@ export default class Player {
         if (!this.sprite) return;
         let screenX = Math.round(this.x - camera.x);
         let screenY = Math.round(this.y - camera.y);
+
+        // Draw Laser
+        if (this.laserEffect) {
+            ctx.save();
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 4 * (this.laserEffect.timer / 0.2);
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00ffff';
+            ctx.beginPath();
+            ctx.moveTo(this.laserEffect.x1 - camera.x, this.laserEffect.y1 - camera.y);
+            ctx.lineTo(this.laserEffect.x2 - camera.x, this.laserEffect.y2 - camera.y);
+            ctx.stroke();
+            ctx.restore();
+        }
+
         let row = this.isAttacking ? 4 : this.direction;
         let col = this.frame;
         this.sprite.draw(ctx, row, col, screenX - this.width / 2, screenY - this.height / 2, this.width, this.height, false);
+
+        // Draw Shield Visual
+        if (this.shieldTimer > 0) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(72, 219, 251, 0.6)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(screenX, screenY, this.width / 2 + 10, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(72, 219, 251, 0.1)';
+            ctx.fill();
+            ctx.restore();
+        }
 
         if (this.actionFdbk) {
             ctx.fillStyle = '#ffeb3b';

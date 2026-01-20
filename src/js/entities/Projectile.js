@@ -87,8 +87,12 @@ export class Projectile {
 
     hit(monster) {
         monster.takeDamage(this.damage);
+
+        if (this.type === 'fireball') {
+            monster.applyEffect('burn', 3.0, Math.floor(this.damage * 0.2)); // 20% of dmg as burn per tick
+        }
+
         this.isDead = true;
-        // Sparkle/Explosion effect could be added here
     }
 
     draw(ctx, camera) {

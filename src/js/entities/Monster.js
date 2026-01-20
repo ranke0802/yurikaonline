@@ -20,6 +20,8 @@ export default class Monster {
         this.hitTimer = 0;
         this.isDead = false;
 
+        this.statusEffects = []; // { type: 'burn', timer: 3.0, damage: 2 }
+
         this.init();
     }
 
@@ -151,12 +153,38 @@ export default class Monster {
         if (this.hitTimer > 0) {
             this.hitTimer -= dt;
         }
+
+        // Process Status Effects
+        this.statusEffects = this.statusEffects.filter(eff => {
+            eff.timer -= dt;
+            if (eff.type === 'burn') {
+                // Apply burn damage every second-ish
+                if (!eff.tickTimer) eff.tickTimer = 0;
+                eff.tickTimer += dt;
+                if (eff.tickTimer >= 0.5) {
+                    eff.tickTimer = 0;
+                    this.takeDamage(eff.damage, false); // false = don't trigger hit flash for DoT
+                }
+            }
+            return eff.timer > 0;
+        });
     }
 
-    takeDamage(amount) {
+    applyEffect(type, duration, damage) {
+        if (this.isDead) return;
+        const existing = this.statusEffects.find(e => e.type === type);
+        if (existing) {
+            existing.timer = duration; // Refresh duration
+            existing.damage = Math.max(existing.damage, damage);
+        } else {
+            this.statusEffects.push({ type, timer: duration, damage });
+        }
+    }
+
+    takeDamage(amount, triggerFlash = true) {
         if (this.isDead) return;
         this.hp = Math.max(0, this.hp - amount);
-        this.hitTimer = 0.2; // Flash red for 0.2s
+        if (triggerFlash) this.hitTimer = 0.2;
         if (this.hp <= 0) {
             this.isDead = true;
         }
