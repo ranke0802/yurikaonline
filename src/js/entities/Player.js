@@ -88,8 +88,8 @@ export default class Player {
 
         if (this.shieldTimer > 0) {
             const shieldLv = this.skillLevels.shield || 1;
-            // Reduction Ratio: Level 1 = 30%, Level 5 = 70%, max 80%
-            const reductionRatio = Math.min(0.8, 0.3 + (shieldLv - 1) * 0.1);
+            // Efficiency: Level 1 = 60%, Level 7 = 90%
+            const reductionRatio = Math.min(0.9, 0.6 + (shieldLv - 1) * 0.05);
 
             // 100% of HP damage is blocked. 
             // The MP cost is the "reduced" damage amount.

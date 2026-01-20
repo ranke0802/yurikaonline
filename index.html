@@ -73,11 +73,19 @@
                     </div>
 
                     <div class="minimap-menu">
-                        <div class="menu-btn inventory-trigger" data-key="shift-b" title="가방">🎒</div>
-                        <div class="menu-btn skill-trigger" data-key="shift-s" title="스킬">🌟</div>
-                        <div class="menu-btn status-trigger" data-key="shift-i" title="내 정보">👤</div>
+                        <div class="menu-btn inventory-trigger" data-key="shift-b" title="가방">
+                            <div class="menu-icon">🎒</div>
+                        </div>
+                        <div class="menu-btn skill-trigger" data-key="shift-s" title="스킬">
+                            <div class="menu-icon">📜</div>
+                        </div>
+                        <div class="menu-btn status-trigger" data-key="shift-i" title="내 정보">
+                            <div class="menu-icon">👤</div>
+                        </div>
                         <div class="menu-btn fullscreen-toggle" id="fullscreen-toggle" data-key="fullscreen"
-                            title="전체화면">📺</div>
+                            title="전체화면">
+                            <div class="menu-icon">�</div>
+                        </div>
                     </div>
                 </div>
 
@@ -97,7 +105,7 @@
                         <div class="chat-header">
                             <span>💬 Chat</span>
                             <div class="chat-controls">
-                                <span>_</span><span>▢</span><span>✕</span>
+                                <span class="minimize-btn">_</span>
                             </div>
                         </div>
                         <div class="chat-messages">
@@ -247,6 +255,8 @@
                             <div class="derived-row"><span>현재 MP:</span> <span id="val-mp-range">100/100</span></div>
                             <div class="derived-row"><span>공격력:</span> <span id="val-atk">10</span></div>
                             <div class="derived-row"><span>공격속도:</span> <span id="val-atk-spd">1.0</span></div>
+                            <div class="derived-row"><span>치명확률:</span> <span id="val-crit">10%</span></div>
+                            <div class="derived-row"><span>이동속도:</span> <span id="val-move-spd">100%</span></div>
                         </div>
                     </div>
                 </div>
@@ -307,7 +317,8 @@
                                     <span class="skill-name">매직 실드</span>
                                     <span class="skill-level">Lv.<span id="lvl-shield">1</span></span>
                                 </div>
-                                <p class="skill-desc">데미지 감소 및 마나 대체 소모. <br><small>레벨업: 효과 강화 (준비 중)</small></p>
+                                <p class="skill-desc">데미지 감소 및 마나 대체 소모. <br><small>레벨업: 마나 효율 증가 (60% ~ 90%)</small>
+                                </p>
                             </div>
                             <button class="skill-up-btn" data-skill="shield">+</button>
                         </div>

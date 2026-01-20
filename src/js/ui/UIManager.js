@@ -38,7 +38,7 @@ export class UIManager {
             laser: { name: '레이저 공격 (J)', desc: '기공을 모아 전방에 레이저를 발사합니다. 적중 시 마나를 회복합니다.' },
             missile: { name: '매직 미사일 (H)', desc: '유도 마나 탄환을 발사합니다. 레벨에 따라 발사 수가 증가합니다.' },
             fireball: { name: '파이어볼 (U)', desc: '강력한 화염구를 던집니다. 폭발 범위 내 적들에게 화상 피해를 입힙니다.' },
-            shield: { name: '마나 쉴드 (K)', desc: '마나의 결계를 생성하여 모든 피해를 마나로 100% 흡수합니다. 레벨에 따라 피해 흡수 효율(MP 소모량)이 대폭 강화됩니다. (Lv.1: 데미지의 70% 소모 ~ Lv.6: 데미지의 20% 소모)' }
+            shield: { name: '매직 실드 (K)', desc: '마나의 결계를 생성하여 모든 피해를 마나로 100% 흡수합니다. 레벨에 따라 피해 흡수 효율(MP 소모량)이 대폭 강화됩니다. (Lv.1: 데미지의 40% 소모 ~ Lv.7: 데미지의 10% 소모)' }
         };
 
         const keyToSkill = { 'j': 'laser', 'h': 'missile', 'u': 'fireball', 'k': 'shield' };
@@ -292,11 +292,15 @@ export class UIManager {
         const predMaxMp = 30 + (predWis * 10);
         const predAtk = 5 + (predInt * 1) + (p.level * 1);
         const predAtkSpd = 1.0 + (predAgi * 0.10);
+        const predCrit = 0.1 + (predAgi * 0.02);
+        const predMoveSpd = 100 + (predAgi * 5); // Base 100% + 5% per AGI
 
         document.getElementById('val-hp-range').textContent = `${Math.floor(p.hp)}/${predMaxHp}`;
         document.getElementById('val-mp-range').textContent = `${Math.floor(p.mp)}/${predMaxMp}`;
         document.getElementById('val-atk').textContent = predAtk;
         document.getElementById('val-atk-spd').textContent = predAtkSpd.toFixed(2);
+        document.getElementById('val-crit').textContent = `${(predCrit * 100).toFixed(0)}%`;
+        document.getElementById('val-move-spd').textContent = `${predMoveSpd}%`;
     }
 
     updateSkillPopup() {

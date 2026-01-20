@@ -968,32 +968,60 @@ html {
     pointer-events: none;
 }
 
-/* Minimap Menu Style (Integrated buttons) */
+/* Minimap Menu Style (Unified Premium Look) */
 .minimap-menu {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    background: rgba(44, 62, 80, 0.95);
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    grid-template-columns: repeat(4, 1fr);
+    background: rgba(255, 255, 255, 0.9);
+    border-top: 2px solid #ffd6a5;
 }
 
 .menu-btn {
     pointer-events: auto !important;
-    /* Keep container clickable */
-    padding: 10px 0;
+    padding: 8px 0;
     text-align: center;
-    font-size: 18px;
     cursor: pointer;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid #ffd6a5;
     transition: background 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-icon {
+    font-size: 20px;
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.1));
+    transition: transform 0.2s;
+}
+
+.menu-btn:hover .menu-icon {
+    transform: scale(1.2);
+}
+
+.menu-btn:active {
+    background: #ffd6a5;
+    transform: scale(0.95);
 }
 
 .menu-btn:last-child {
     border-right: none;
 }
 
-.menu-btn:active {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(0.95);
+.chat-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.minimize-btn {
+    cursor: pointer;
+    font-weight: bold;
+    color: #833471;
+    padding: 0 4px;
+    transition: opacity 0.2s;
+}
+
+.minimize-btn:hover {
+    opacity: 0.7;
 }
 
 /* Mobile Responsiveness (Galaxy S23 etc) - v0.7 Layout */
