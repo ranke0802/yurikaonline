@@ -668,76 +668,161 @@ html {
     font-size: 13px;
 }
 
-/* Mobile Responsiveness (Galaxy S23 etc) */
+/* Mobile Responsiveness (Galaxy S23 etc) - Much smaller and refined UX */
 @media screen and (max-width: 900px) {
-    #joystick-container {
-        left: 40px;
-        bottom: 40px;
+
+    /* Scale down the base UI elements */
+    .top-bar {
+        top: 10px;
+        left: 10px;
+        padding: 4px 10px;
+        gap: 8px;
+        transform: scale(0.8);
+        transform-origin: top left;
+    }
+
+    .portrait-container {
+        width: 32px;
+        height: 32px;
+    }
+
+    .bar-bg {
+        width: 70px;
+        height: 6px;
+    }
+
+    /* Quest & Chat: Make them much smaller or collapsible */
+    .quest-list-panel {
+        top: 60px;
+        left: 10px;
+        width: 110px;
+        padding: 8px;
+        font-size: 9px;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 12px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         transform: scale(0.85);
+        transform-origin: top left;
+    }
+
+    .quest-list-panel h3 {
+        font-size: 11px;
+        margin-bottom: 4px;
+    }
+
+    .chat-window {
+        position: absolute;
+        bottom: 80px;
+        left: 10px;
+        width: 160px;
+        height: 100px;
+        font-size: 9px;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 8px;
+        transform: scale(0.85);
+        transform-origin: bottom left;
+        pointer-events: none;
+        /* Let clicks pass through except input */
+    }
+
+    .chat-window * {
+        pointer-events: auto;
+    }
+
+    .chat-messages {
+        padding: 5px;
+    }
+
+    /* Minimap: Compact */
+    #minimap-container {
+        top: 10px;
+        right: 10px;
+        width: 90px;
+        border-width: 2px;
+        transform: scale(0.9);
+        transform-origin: top right;
+    }
+
+    .minimap-header {
+        font-size: 8px;
+        padding: 2px 0;
+    }
+
+    #minimapCanvas {
+        width: 90px;
+        height: 90px;
+    }
+
+    .minimap-footer {
+        font-size: 8px;
+        padding: 1px 0;
+    }
+
+    /* Joystick & Action Buttons: Thumb optimization */
+    #joystick-container {
+        left: 30px;
+        bottom: 30px;
+        transform: scale(0.7);
+        transform-origin: bottom left;
     }
 
     .action-buttons {
         right: 20px;
         bottom: 20px;
-        transform: scale(0.85);
+        gap: 8px;
+        transform: scale(0.65);
+        transform-origin: bottom right;
     }
 
-    .quest-list-panel {
-        top: 80px;
-        left: 10px;
-        width: 140px;
-        font-size: 10px;
-        padding: 10px;
+    .attack-btn {
+        width: 100px;
+        height: 100px;
     }
 
-    .chat-window {
-        bottom: 120px;
-        left: 10px;
-        width: 200px;
-        height: 140px;
-        opacity: 0.8;
+    .skill-btn {
+        width: 65px;
+        height: 65px;
     }
 
+    /* Utility Bar: Floating and clean */
     .utility-bar {
-        gap: 10px;
-        padding: 5px 15px;
-        bottom: 15px;
+        bottom: 12px;
+        left: 50%;
+        transform: translateX(-50%) scale(0.8);
+        gap: 12px;
+        padding: 6px 15px;
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .inventory-trigger,
+    .status-trigger {
+        padding: 5px;
     }
 
     .inventory-trigger span,
     .status-trigger span {
         display: none;
-        /* Icons only on mobile */
     }
 
-    #minimap-container {
-        width: 100px;
-        top: 10px;
-        right: 10px;
-    }
-
-    #minimapCanvas {
-        width: 100px;
-        height: 100px;
+    #fullscreen-toggle {
+        padding: 5px 10px;
+        font-size: 11px;
     }
 }
 
 @media screen and (max-height: 500px) {
 
-    /* Landscape mobile adjustments */
-    .quest-list-panel {
+    /* Critical space saving for landscape */
+    .quest-list-panel,
+    .chat-window {
         display: none;
     }
 
-    .chat-window {
-        width: 180px;
-        height: 100px;
-        bottom: 80px;
+    .top-bar {
+        transform: scale(0.7);
     }
 
-    .top-bar {
-        transform: scale(0.8);
-        top: 10px;
-        left: 10px;
+    #minimap-container {
+        transform: scale(0.7);
     }
 }
