@@ -12,6 +12,7 @@ export class Projectile {
         this.vy = options.vy || 0;
         this.isDead = false;
         this.lifeTime = options.lifeTime || 3.0; // Life in seconds
+        this.burnDuration = options.burnDuration || 5.0; // Default burn duration
 
         // Visuals
         this.color = type === 'missile' ? '#4f46e5' : '#f97316';
@@ -93,14 +94,14 @@ export class Projectile {
                 const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
                 if (dist < aoeRadius) {
                     m.takeDamage(this.damage);
-                    m.applyEffect('burn', 5.0, Math.floor(this.damage * 0.15)); // 5s burn, 15% dmg per tick
+                    m.applyEffect('burn', this.burnDuration, Math.floor(this.damage * 0.15)); // 15% dmg per tick
                 }
             });
         } else {
             monster.takeDamage(this.damage);
 
             if (this.type === 'fireball') {
-                monster.applyEffect('burn', 5.0, Math.floor(this.damage * 0.15));
+                monster.applyEffect('burn', this.burnDuration, Math.floor(this.damage * 0.15));
             }
         }
 

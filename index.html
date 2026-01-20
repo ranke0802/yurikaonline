@@ -53,6 +53,7 @@
 
                     <div class="minimap-menu">
                         <div class="menu-btn inventory-trigger" data-key="shift-b" title="가방">🎒</div>
+                        <div class="menu-btn skill-trigger" data-key="shift-s" title="스킬">🌟</div>
                         <div class="menu-btn status-trigger" data-key="shift-i" title="내 정보">👤</div>
                         <div class="menu-btn fullscreen-toggle" id="fullscreen-toggle" data-key="fullscreen"
                             title="전체화면">📺</div>
@@ -193,6 +194,69 @@
                             <div class="derived-row"><span>현재 MP:</span> <span id="val-mp-range">100/100</span></div>
                             <div class="derived-row"><span>공격력:</span> <span id="val-atk">10</span></div>
                             <div class="derived-row"><span>공격속도:</span> <span id="val-atk-spd">1.0</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skill Popup -->
+            <div id="skill-popup" class="game-popup hidden">
+                <div class="popup-header">
+                    <h2>스킬 트리 (Skill Tree)</h2>
+                    <button class="close-popup">✕</button>
+                </div>
+                <div class="skill-content-wrapper">
+                    <div class="skill-point-info">
+                        보유 스킬 포인트: <strong id="skill-points">0</strong>
+                    </div>
+                    <div class="skill-list">
+                        <!-- Skill Item: Laser -->
+                        <div class="skill-item">
+                            <div class="skill-icon">⚔️</div>
+                            <div class="skill-info">
+                                <div class="skill-name-row">
+                                    <span class="skill-name">일반 공격</span>
+                                    <span class="skill-level">Lv.<span id="lvl-laser">1</span></span>
+                                </div>
+                                <p class="skill-desc">관통형 레이저 공격. <br><small>레벨업: 공격 시 마나 회복량 +1</small></p>
+                            </div>
+                            <button class="skill-up-btn" data-skill="laser">+</button>
+                        </div>
+                        <!-- Skill Item: Missile -->
+                        <div class="skill-item">
+                            <div class="skill-icon">🪄</div>
+                            <div class="skill-info">
+                                <div class="skill-name-row">
+                                    <span class="skill-name">매직 미사일</span>
+                                    <span class="skill-level">Lv.<span id="lvl-missile">1</span></span>
+                                </div>
+                                <p class="skill-desc">유도 단일 공격. <br><small>레벨업: 미사일 개수 +1, 소모 마나 1.5배</small></p>
+                            </div>
+                            <button class="skill-up-btn" data-skill="missile">+</button>
+                        </div>
+                        <!-- Skill Item: Fireball -->
+                        <div class="skill-item">
+                            <div class="skill-icon">🔥</div>
+                            <div class="skill-info">
+                                <div class="skill-name-row">
+                                    <span class="skill-name">파이어볼</span>
+                                    <span class="skill-level">Lv.<span id="lvl-fireball">1</span></span>
+                                </div>
+                                <p class="skill-desc">광역 범위 도트 공격. <br><small>레벨업: 데미지 증가, 화상 지속시간 +1초</small></p>
+                            </div>
+                            <button class="skill-up-btn" data-skill="fireball">+</button>
+                        </div>
+                        <!-- Skill Item: Shield -->
+                        <div class="skill-item">
+                            <div class="skill-icon">🛡️</div>
+                            <div class="skill-info">
+                                <div class="skill-name-row">
+                                    <span class="skill-name">매직 실드</span>
+                                    <span class="skill-level">Lv.<span id="lvl-shield">1</span></span>
+                                </div>
+                                <p class="skill-desc">데미지 감소 및 마나 대체 소모. <br><small>레벨업: 효과 강화 (준비 중)</small></p>
+                            </div>
+                            <button class="skill-up-btn" data-skill="shield">+</button>
                         </div>
                     </div>
                 </div>

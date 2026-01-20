@@ -38,6 +38,19 @@ export class UIManager {
             btn.addEventListener('click', handleStatUp);
             btn.addEventListener('touchstart', handleStatUp, { passive: false });
         });
+
+        // Skill Up Buttons
+        document.querySelectorAll('.skill-up-btn').forEach(btn => {
+            const handleSkillUp = (e) => {
+                e.preventDefault();
+                const skill = btn.getAttribute('data-skill');
+                if (skill && this.game.localPlayer) {
+                    this.game.localPlayer.increaseSkill(skill);
+                }
+            };
+            btn.addEventListener('click', handleSkillUp);
+            btn.addEventListener('touchstart', handleSkillUp, { passive: false });
+        });
     }
 
     setPortrait(processedImage) {
@@ -71,6 +84,7 @@ export class UIManager {
             popup.classList.remove('hidden');
             if (id === 'status-popup') this.updateStatusPopup();
             if (id === 'inventory-popup') this.updateInventory();
+            if (id === 'skill-popup') this.updateSkillPopup();
         } else {
             this.overlay.classList.add('hidden');
         }
@@ -106,6 +120,24 @@ export class UIManager {
         document.getElementById('val-mp-range').textContent = `${Math.floor(p.mp)}/${p.maxMp}`;
         document.getElementById('val-atk').textContent = p.attackPower;
         document.getElementById('val-atk-spd').textContent = p.attackSpeed.toFixed(2);
+    }
+
+    updateSkillPopup() {
+        const p = this.game.localPlayer;
+        if (!p) return;
+
+        document.getElementById('skill-points').textContent = p.skillPoints;
+
+        // Update degrees
+        for (const [skillId, level] of Object.entries(p.skillLevels)) {
+            const levelEl = document.getElementById(`lvl-${skillId}`);
+            if (levelEl) levelEl.textContent = level;
+
+            const btn = document.querySelector(`.skill-up-btn[data-skill="${skillId}"]`);
+            if (btn) {
+                btn.disabled = p.skillPoints <= 0;
+            }
+        }
     }
 
     updateInventory() {

@@ -36,6 +36,9 @@ class Game {
                 case 'shift-b':
                     this.ui.togglePopup('inventory-popup');
                     return;
+                case 'shift-s':
+                    this.ui.togglePopup('skill-popup');
+                    return;
                 case 'shift-i':
                     this.ui.togglePopup('status-popup');
                     return;
@@ -52,15 +55,18 @@ class Game {
                     player.attackCooldown = player.baseAttackDelay;
                     break;
                 case 'h': // Magic Missile (Homing)
-                    if (player.useMana(2)) {
-                        this.ui.logSystemMessage('SKILL: 매직 미사일');
+                    const missileCount = player.skillLevels.missile || 1;
+                    const missileCost = Math.floor(2 * Math.pow(1.5, missileCount - 1));
+                    if (player.useMana(missileCost)) {
+                        this.ui.logSystemMessage(`SKILL: 매직 미사일 (Lv.${missileCount})`);
                         this.castMagicMissile();
                         player.attackCooldown = 0.8;
                     }
                     break;
                 case 'u': // Fireball (AoE)
-                    if (player.useMana(8)) { // 5 + 3 = 8
-                        this.ui.logSystemMessage('SKILL: 파이어볼');
+                    const fireballLv = player.skillLevels.fireball || 1;
+                    if (player.useMana(8)) { // Fixed cost for now
+                        this.ui.logSystemMessage(`SKILL: 파이어볼 (Lv.${fireballLv})`);
                         this.castFireball();
                         player.attackCooldown = 1.6;
                     }
@@ -113,7 +119,9 @@ class Game {
     performLaserAttack() {
         const player = this.localPlayer;
         player.triggerAction('ATTACK');
-        player.recoverMana(1);
+
+        // Skill Level 1: 1 mana, Level 2: 2 mana, etc.
+        player.recoverMana(player.skillLevels.laser || 1);
 
         let range = 600;
         let vx = 0, vy = 0;
@@ -171,10 +179,23 @@ class Game {
 
         if (nearest) {
             player.triggerAction('SKILL: 매직 미사일');
-            this.projectiles.push(new Projectile(player.x, player.y, nearest, 'missile', {
-                speed: 500,
-                damage: player.attackPower
-            }));
+
+            // Skill Level increases number of missiles
+            const count = player.skillLevels.missile || 1;
+            const manaCost = Math.floor(2 * Math.pow(1.5, count - 1));
+
+            // Note: Mana is already deducted in onAction before calling this, 
+            // but we need to ensure the cost is consistent. 
+            // I'll update the mana check in onAction too.
+
+            for (let i = 0; i < count; i++) {
+                // Slightly staggered spawn or offset
+                const offset = (i - (count - 1) / 2) * 20;
+                this.projectiles.push(new Projectile(player.x + offset, player.y + offset, nearest, 'missile', {
+                    speed: 500 + (Math.random() * 50),
+                    damage: player.attackPower
+                }));
+            }
         } else {
             this.ui.logSystemMessage('대상을 찾을 수 없습니다.');
         }
@@ -199,12 +220,14 @@ class Game {
             case 7: vx = -speed * diag; vy = -speed * diag; break;
         }
 
+        const fireballLv = player.skillLevels.fireball || 1;
         this.projectiles.push(new Projectile(player.x, player.y, null, 'fireball', {
             vx, vy,
             speed: speed,
-            damage: Math.floor(player.attackPower * 1.5),
-            radius: 25,
-            lifeTime: 1.5
+            damage: Math.floor(player.attackPower * (1.5 + (fireballLv - 1) * 0.2)),
+            radius: 25 + (fireballLv - 1) * 2,
+            lifeTime: 1.5,
+            burnDuration: 5.0 + (fireballLv - 1) // +1s per level
         }));
     }
 

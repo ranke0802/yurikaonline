@@ -39,6 +39,12 @@ export class InputHandler {
                 return;
             }
 
+            // Handle Shift + S (Skills) - using physical S key
+            if (e.shiftKey && code === 'KeyS') {
+                if (this.onAction) this.onAction('shift-s');
+                return;
+            }
+
             // Handle actions (Skills/Attack) - J, H, U, K
             if (['KeyJ', 'KeyH', 'KeyU', 'KeyK'].includes(code)) {
                 // If it's a key that could have a shift modifier, handle it carefully

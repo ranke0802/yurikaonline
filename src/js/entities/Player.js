@@ -33,6 +33,13 @@ export default class Player {
 
         // RPG Stats
         this.statPoints = 0;
+        this.skillPoints = 0;   // Added Skill Points
+        this.skillLevels = {    // Added Skill Levels
+            laser: 1,
+            missile: 1,
+            fireball: 1,
+            shield: 1
+        };
         this.vitality = 5;      // Increases Max HP
         this.intelligence = 5;  // Increases Magic Damage
         this.wisdom = 5;        // Increases Max MP
@@ -243,6 +250,7 @@ export default class Player {
         this.exp -= this.maxExp;
         this.maxExp = Math.floor(this.maxExp * 1.5);
         this.statPoints += 5; // Grant stat points
+        this.skillPoints += 1; // Grant skill points (1 per level)
 
         this.refreshStats();
         this.hp = this.maxHp;
@@ -250,7 +258,7 @@ export default class Player {
 
         this.triggerAction('LEVEL UP!!');
         if (window.game?.ui) {
-            window.game.ui.logSystemMessage(`축하합니다! 레벨 ${this.level}이 되었습니다! (스탯 포인트 +5)`);
+            window.game.ui.logSystemMessage(`축하합니다! 레벨 ${this.level}이 되었습니다! (스탯 +5, 스킬 +1)`);
         }
     }
 
@@ -292,6 +300,19 @@ export default class Player {
 
         this.statPoints--;
         this.refreshStats();
+        return true;
+    }
+
+    increaseSkill(skillId) {
+        if (this.skillPoints <= 0) return false;
+        if (!this.skillLevels.hasOwnProperty(skillId)) return false;
+
+        this.skillLevels[skillId]++;
+        this.skillPoints--;
+
+        if (window.game?.ui) {
+            window.game.ui.updateSkillPopup();
+        }
         return true;
     }
 
