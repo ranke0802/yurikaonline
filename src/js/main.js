@@ -104,6 +104,10 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.05', date: '2026-01-21', title: 'Monster AI Revamp',
+                logs: ['레벨별 선제공격 로직 적용 (Lv.1~3+)', '선제공격 인식 시 말풍선(!) 출력']
+            },
+            {
                 version: 'v1.04', date: '2026-01-21', title: 'System Pause & Fix',
                 logs: ['스킬/인벤토리 창 열기 시 게임 일시정지', '창 닫기 시 게임 재개 버그 수정']
             },
@@ -316,30 +320,37 @@ class Game {
             return !p.isDead;
         });
 
-        // Update monsters with Aggro Limit & Targeted Aggro
-        let aggroCount = 0;
-        const maxAggro = this.localPlayer.level + 1;
+        // Update monsters with Aggro Limit & Level-based AI
+        let proactiveAggroCount = 0;
+        const playerLv = this.localPlayer.level;
+        const maxProactive = playerLv; // Limit proactive aggro by level count
 
         this.monsters.forEach(monster => {
             const dist = Math.sqrt((this.localPlayer.x - monster.x) ** 2 + (this.localPlayer.y - monster.y) ** 2);
             const reflectsDamage = monster.hp < monster.maxHp;
             const isNear = dist < 400;
 
-            // Reactive Aggro: If the player specifically attacked THIS monster
-            // Proactive Aggro: If monster is just near and we haven't reached limit
+            let isAggro = false;
+
             if (reflectsDamage) {
-                monster.isAggro = true; // Always aggro if hurt
-            } else if (this.playerHasAttacked && isNear) {
-                if (aggroCount < maxAggro) {
-                    monster.isAggro = true;
-                    aggroCount++;
-                } else {
-                    monster.isAggro = false;
+                // Reactive Aggro: Always aggressive if hurt
+                isAggro = true;
+            } else if (isNear && proactiveAggroCount < maxProactive) {
+                // Proactive Aggro Logic
+                if (playerLv === 1) {
+                    isAggro = false; // Level 1: Never attacks first
+                } else if (playerLv === 2) {
+                    if (!monster.isBoss) {
+                        isAggro = true;
+                        proactiveAggroCount++;
+                    }
+                } else if (playerLv >= 3) {
+                    isAggro = true;
+                    proactiveAggroCount++;
                 }
-            } else {
-                monster.isAggro = false;
             }
 
+            monster.isAggro = isAggro;
             monster.update(dt);
         });
 

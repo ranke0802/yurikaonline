@@ -27,6 +27,8 @@ export default class Monster {
         this.vy = 0;
         this.moveTimer = 0;
 
+        this.isAggro = false;
+        this.isBoss = false;
         this.init();
     }
 
@@ -249,6 +251,20 @@ export default class Monster {
         }
 
         this.sprite.draw(ctx, 0, this.frame, screenX - this.width / 2, drawY - this.height / 2, this.width, this.height);
+
+        // Aggro Indicator (!)
+        if (this.isAggro && !this.isDead) {
+            ctx.save();
+            ctx.fillStyle = '#ff3f34';
+            ctx.font = 'bold 30px "Outfit", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 4;
+            // Add a small bounce to the exclamation mark
+            const bounce = Math.sin(Date.now() * 0.01) * 3;
+            ctx.fillText('!', screenX, screenY - this.height / 2 - 40 + bounce);
+            ctx.restore();
+        }
 
         // Name and HP Bar
         ctx.fillStyle = '#ffffff';
