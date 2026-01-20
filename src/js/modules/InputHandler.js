@@ -47,18 +47,15 @@ export class InputHandler {
 
             // Handle actions (Skills/Attack) - J, H, U, K
             if (['KeyJ', 'KeyH', 'KeyU', 'KeyK'].includes(code)) {
-                // If it's a key that could have a shift modifier, handle it carefully
-                // (Currently KeyI is used for Shift+I, but K is independent)
+                const actionMap = { 'KeyJ': 'j', 'KeyH': 'h', 'KeyU': 'u', 'KeyK': 'k' };
+                const action = actionMap[code];
+                this.keys[action] = true;
+                if (this.onAction) this.onAction(action);
+            }
 
-                // Pass the code directly or a simplified action name
-                // Let's pass the simple letter to keep main.js clean
-                const actionMap = {
-                    'KeyJ': 'j',
-                    'KeyH': 'h',
-                    'KeyU': 'u',
-                    'KeyK': 'k'
-                };
-                if (this.onAction) this.onAction(actionMap[code]);
+            // Automatically close popups if any movement key is pressed
+            if (['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code)) {
+                if (window.game?.ui) window.game.ui.hideAllPopups();
             }
 
             // Prevent scrolling for navigation keys
@@ -74,6 +71,11 @@ export class InputHandler {
             if (code === 'KeyS' || code === 'ArrowDown') this.keys['s'] = false;
             if (code === 'KeyA' || code === 'ArrowLeft') this.keys['a'] = false;
             if (code === 'KeyD' || code === 'ArrowRight') this.keys['d'] = false;
+
+            if (['KeyJ', 'KeyH', 'KeyU', 'KeyK'].includes(code)) {
+                const actionMap = { 'KeyJ': 'j', 'KeyH': 'h', 'KeyU': 'u', 'KeyK': 'k' };
+                this.keys[actionMap[code]] = false;
+            }
         });
     }
 
@@ -89,6 +91,7 @@ export class InputHandler {
         const handleStart = (e) => {
             e.preventDefault();
             this.joystick.active = true;
+            if (window.game?.ui) window.game.ui.hideAllPopups();
         };
 
         const handleMove = (e) => {
@@ -187,8 +190,24 @@ export class InputHandler {
         };
 
         uiButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => handleUiAction(e, btn));
-            btn.addEventListener('touchstart', (e) => handleUiAction(e, btn), { passive: false });
+            const key = btn.getAttribute('data-key');
+            if (!key) return;
+
+            const startAction = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.keys[key] = true;
+                if (this.onAction) this.onAction(key);
+            };
+
+            const endAction = (e) => {
+                this.keys[key] = false;
+            };
+
+            btn.addEventListener('mousedown', startAction);
+            btn.addEventListener('touchstart', startAction, { passive: false });
+            window.addEventListener('mouseup', endAction);
+            window.addEventListener('touchend', endAction);
         });
     }
 
