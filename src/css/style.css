@@ -1101,12 +1101,13 @@ html {
         display: block;
     }
 
-    /* Joystick & Buttons: 1.5x larger and moved up */
+    /* Joystick & Buttons: 1.5x larger and moved up with transparency */
     #joystick-container {
         left: 10px;
         bottom: 125px;
         transform: scale(1.25);
         transform-origin: bottom left;
+        opacity: 0.7;
     }
 
     .action-buttons {
@@ -1114,6 +1115,7 @@ html {
         bottom: 115px;
         transform: scale(1.1);
         transform-origin: bottom right;
+        opacity: 0.7;
     }
 }
 

@@ -104,6 +104,10 @@ class Game {
 
         this.updateHistory = [
             {
+                version: '1.06', date: '2026-01-21', title: 'QoL & AI Fix',
+                logs: ['공격 방향 표시(빨간색) 가독성 개선', '모바일 UI 반투명화(0.7)', '전투 중인 몬스터 합산하여 선제공격 제한']
+            },
+            {
                 version: 'v1.05', date: '2026-01-21', title: 'Monster AI Revamp',
                 logs: ['레벨별 선제공격 로직 적용 (Lv.1~3+)', '선제공격 인식 시 말풍선(!) 출력']
             },
@@ -320,10 +324,12 @@ class Game {
             return !p.isDead;
         });
 
-        // Update monsters with Aggro Limit & Level-based AI
-        let proactiveAggroCount = 0;
+        // Update monsters with Aggro Limit & Level-based AI (Revised: count total aggro)
         const playerLv = this.localPlayer.level;
-        const maxProactive = playerLv; // Limit proactive aggro by level count
+        const totalAggroLimit = playerLv;
+
+        // Count monsters that will definitely be aggro (already hit/hurt)
+        let currentAggroCount = this.monsters.filter(m => !m.isDead && m.hp < m.maxHp).length;
 
         this.monsters.forEach(monster => {
             const dist = Math.sqrt((this.localPlayer.x - monster.x) ** 2 + (this.localPlayer.y - monster.y) ** 2);
@@ -335,18 +341,18 @@ class Game {
             if (reflectsDamage) {
                 // Reactive Aggro: Always aggressive if hurt
                 isAggro = true;
-            } else if (isNear && proactiveAggroCount < maxProactive) {
+            } else if (isNear && currentAggroCount < totalAggroLimit) {
                 // Proactive Aggro Logic
                 if (playerLv === 1) {
                     isAggro = false; // Level 1: Never attacks first
                 } else if (playerLv === 2) {
                     if (!monster.isBoss) {
                         isAggro = true;
-                        proactiveAggroCount++;
+                        currentAggroCount++;
                     }
                 } else if (playerLv >= 3) {
                     isAggro = true;
-                    proactiveAggroCount++;
+                    currentAggroCount++;
                 }
             }
 

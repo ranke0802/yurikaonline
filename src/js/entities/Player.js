@@ -674,7 +674,7 @@ export default class Player {
         ctx.translate(ax, ay);
         ctx.rotate(angle);
 
-        ctx.fillStyle = 'rgba(255, 235, 59, 0.6)';
+        ctx.fillStyle = 'rgba(255, 68, 68, 0.7)';
         ctx.beginPath();
         ctx.moveTo(10, 0);
         ctx.lineTo(-5, -8);
