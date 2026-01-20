@@ -452,6 +452,7 @@ export class UIManager {
         this.showRewardModal(title, rewardText);
         this.updateQuestUI();
         this.updateStatusPopup();
+        this.isPaused = true;
     }
 
     showRewardModal(title, message) {
@@ -462,6 +463,12 @@ export class UIManager {
         if (titleEl) titleEl.textContent = title;
         if (msgEl) msgEl.textContent = message;
         if (modal) modal.classList.remove('hidden');
+    }
+
+    hideRewardModal() {
+        const modal = document.getElementById('reward-modal');
+        if (modal) modal.classList.add('hidden');
+        this.isPaused = false;
     }
 
     updateInventory() {
