@@ -107,6 +107,10 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.13', date: '2026-01-21', title: 'Balance & Description Fix',
+                logs: ['순발력(AGI) 스텟 효율 조정 (공격속도/이동속도/치명타 증가량 절반 하향)', '매직 실드 기본 피해 감소율 조정 (60% -> 40%)', '스킬 상세 설명 문구 최신화 및 오류 수정']
+            },
+            {
                 version: 'v1.12', date: '2026-01-21', title: 'Dynamic Skill Info',
                 logs: ['스킬 툴팁에 현재 레벨 기준 상세 수치 표시 기능 추가', '데미지, 소모량, 범위 등 실시간 스텟 반영']
             },

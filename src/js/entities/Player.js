@@ -97,8 +97,8 @@ export default class Player {
 
         if (this.shieldTimer > 0) {
             const shieldLv = this.skillLevels.shield || 1;
-            // Efficiency: Level 1 = 60%, Level 7 = 90%
-            const reductionRatio = Math.min(0.9, 0.6 + (shieldLv - 1) * 0.05);
+            // Efficiency: Level 1 = 40%, Level 11 = 90%
+            const reductionRatio = Math.min(0.9, 0.4 + (shieldLv - 1) * 0.05);
 
             // 100% of HP damage is blocked. 
             // The MP cost is the "reduced" damage amount.
@@ -287,10 +287,10 @@ export default class Player {
         this.maxMp = 30 + (this.wisdom * 10);
         this.attackPower = 5 + (this.intelligence * 1) + (this.level * 1);
 
-        // Agility: 1 AGI = +5% Speed, +10% Attack Speed, +2% Crit
-        this.moveSpeedMult = 1.0 + (this.agility * 0.05);
-        this.attackSpeed = 1.0 + (this.agility * 0.10);
-        this.critRate = 0.1 + (this.agility * 0.02);
+        // Agility: 1 AGI = +2.5% Speed, +5% Attack Speed, +1% Crit
+        this.moveSpeedMult = 1.0 + (this.agility * 0.025);
+        this.attackSpeed = 1.0 + (this.agility * 0.05);
+        this.critRate = 0.1 + (this.agility * 0.01);
 
         if (window.game?.ui) {
             window.game.ui.updateStatusPopup();

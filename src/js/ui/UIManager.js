@@ -38,8 +38,8 @@ export class UIManager {
         this.skillData = {
             laser: { name: '레이저 공격 (J)', desc: '관통형 기공파를 발사합니다. [데미지: 공격력의 100% / 레벨당 +20% 추가] [적중 시 마나 회복: 레벨당 +1]' },
             missile: { name: '매직 미사일 (H)', desc: '자동 추적 미사일을 발사합니다. [데미지: 공격력의 80%] [발사 수: 레벨당 +1개] [마나 소모: 1.5배씩 증가]' },
-            fireball: { name: '파이어볼 (U)', desc: '폭발하는 화염구를 던집니다. [직격 데미지: 공격력의 130% / 레벨당 +30% 추가] [화상: 5초 이상 지속 / 레벨당 +1초]' },
-            shield: { name: '매직 실드 (K)', desc: '마나의 결계를 생성하여 모든 피해를 마나로 100% 흡수합니다. 레벨에 따라 피해 흡수 효율(MP 소모량)이 대폭 강화됩니다. [효율: 데미지의 40% 소모(Lv.1) ~ 10% 소모(Lv.7)]' }
+            fireball: { name: '파이어볼 (U)', desc: '폭발하는 화염구를 던집니다. [직격 데미지: 공격력의 100% / 레벨당 +30% 추가] [화상: 5초 이상 지속 / 레벨당 +1초]' },
+            shield: { name: '매직 실드 (K)', desc: '마나의 결계를 생성하여 모든 피해를 마나로 100% 흡수합니다. 레벨에 따라 피해 흡수 효율(MP 소모량)이 대폭 강화됩니다. [효율: 데미지의 60% 소모(Lv.1) ~ 10% 소모(Lv.11)]' }
         };
 
         const keyToSkill = { 'j': 'laser', 'h': 'missile', 'u': 'fireball', 'k': 'shield' };
@@ -270,7 +270,7 @@ export class UIManager {
                 currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>데미지: ${fDmg} | 범위: ${fRad} | 화상: ${fBurn}초</div>`;
                 break;
             case 'shield':
-                const reduction = Math.min(0.9, 0.6 + (lv - 1) * 0.05);
+                const reduction = Math.min(0.9, 0.4 + (lv - 1) * 0.05);
                 const dur = 60 + (lv - 1) * 20;
                 currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>피해 흡수율: ${(reduction * 100).toFixed(0)}% | 지속시간: ${dur}초</div>`;
                 break;
@@ -369,9 +369,9 @@ export class UIManager {
         const predMaxHp = 20 + (predVit * 10);
         const predMaxMp = 30 + (predWis * 10);
         const predAtk = 5 + (predInt * 1) + (p.level * 1);
-        const predAtkSpd = 1.0 + (predAgi * 0.10);
-        const predCrit = 0.1 + (predAgi * 0.02);
-        const predMoveSpd = 100 + (predAgi * 5); // Base 100% + 5% per AGI
+        const predAtkSpd = 1.0 + (predAgi * 0.05);
+        const predCrit = 0.1 + (predAgi * 0.01);
+        const predMoveSpd = 100 + (predAgi * 2.5); // Base 100% + 2.5% per AGI
 
         document.getElementById('val-hp-range').textContent = `${Math.floor(p.hp)}/${predMaxHp}`;
         document.getElementById('val-mp-range').textContent = `${Math.floor(p.mp)}/${predMaxMp}`;
