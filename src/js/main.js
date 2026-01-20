@@ -207,7 +207,11 @@ class Game {
         this.ui.logSystemMessage(`${monster.name}을 처치했습니다!`);
         this.drops.push(new Drop(monster.x, monster.y, 'gold', 50));
         this.drops.push(new Drop(monster.x + 20, monster.y - 20, 'xp', 20));
-        // Bonus luck: chance for more items here
+
+        // Chance for HP Recovery drop
+        if (Math.random() > 0.5) {
+            this.drops.push(new Drop(monster.x - 20, monster.y + 10, 'hp', 30));
+        }
     }
 
     update(dt) {
@@ -238,11 +242,14 @@ class Game {
             return !monster.isDead || monster.hitTimer > 0;
         });
 
-        // Loop monster respawn for testing
-        if (this.monsters.length < 3) {
-            const mx = 500 + Math.random() * 1000;
-            const my = 500 + Math.random() * 1000;
-            this.monsters.push(new Monster(mx, my, '재생된 슬라임'));
+        // Spawning logic (Every 3 seconds, up to 10 monsters)
+        if (!this.spawnTimer) this.spawnTimer = 0;
+        this.spawnTimer -= dt;
+        if (this.spawnTimer <= 0 && this.monsters.length < 10) {
+            const mx = Math.random() * 2000;
+            const my = Math.random() * 2000;
+            this.monsters.push(new Monster(mx, my, '야생 슬라임'));
+            this.spawnTimer = 3.0; // Every 3 seconds
         }
 
         // Update drops
@@ -252,6 +259,9 @@ class Game {
                 if (drop.type === 'gold') {
                     this.localPlayer.addGold(drop.amount);
                     this.ui.logSystemMessage(`💰 ${drop.amount} Gold 획득! (현재: ${this.localPlayer.gold})`);
+                } else if (drop.type === 'hp') {
+                    this.localPlayer.hp = Math.min(this.localPlayer.maxHp, this.localPlayer.hp + drop.amount);
+                    this.ui.logSystemMessage(`💚 HP ${drop.amount} 회복!`);
                 } else {
                     this.localPlayer.addExp(drop.amount);
                     this.ui.logSystemMessage(`✨ ${drop.amount} Exp 획득!`);
@@ -266,6 +276,9 @@ class Game {
             this.ui.setPortrait(this.localPlayer.sprite.image);
             this.portraitInitialized = true;
         }
+
+        // Update Minimap
+        this.ui.updateMinimap(this.localPlayer, this.monsters, 2000, 2000);
     }
 
     draw() {

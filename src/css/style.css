@@ -612,14 +612,51 @@ html {
     box-shadow: 0 4px 0 #fcebb6;
 }
 
-@media screen and (max-width: 768px) {
-    #game-viewport {
-        border-radius: 0;
-    }
+/* Minimap Styles */
+#minimap-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 150px;
+    background: rgba(44, 62, 80, 0.85);
+    border: 3px solid #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    backdrop-filter: blur(5px);
+}
 
-    .chat-window {
-        top: auto;
-        bottom: 180px;
-        width: 220px;
-    }
+.minimap-header {
+    background: #2c3e50;
+    color: #ecf0f1;
+    font-size: 10px;
+    font-weight: bold;
+    text-align: center;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#minimapCanvas {
+    width: 150px;
+    height: 150px;
+    background: #1e272e;
+}
+
+.minimap-footer {
+    font-size: 9px;
+    color: #bdc3c7;
+    text-align: center;
+    padding: 2px 0;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 5px;
 }

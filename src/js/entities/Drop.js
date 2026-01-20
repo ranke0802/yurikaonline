@@ -46,6 +46,9 @@ export default class Drop {
         if (this.type === 'gold') {
             gradient.addColorStop(0, 'rgba(255, 215, 0, 0.8)');
             gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+        } else if (this.type === 'hp') {
+            gradient.addColorStop(0, 'rgba(74, 222, 128, 0.8)');
+            gradient.addColorStop(1, 'rgba(74, 222, 128, 0)');
         } else {
             gradient.addColorStop(0, 'rgba(0, 191, 255, 0.8)');
             gradient.addColorStop(1, 'rgba(0, 191, 255, 0)');
@@ -57,12 +60,18 @@ export default class Drop {
         ctx.fill();
 
         // Icon
-        ctx.fillStyle = this.type === 'gold' ? '#FFD700' : '#00BFFF';
+        if (this.type === 'gold') ctx.fillStyle = '#FFD700';
+        else if (this.type === 'hp') ctx.fillStyle = '#4ade80';
+        else ctx.fillStyle = '#00BFFF';
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
         ctx.beginPath();
         if (this.type === 'gold') {
             ctx.arc(screenX, screenY, 8, 0, Math.PI * 2);
+        } else if (this.type === 'hp') {
+            // Plus shape for HP
+            ctx.rect(screenX - 8, screenY - 3, 16, 6);
+            ctx.rect(screenX - 3, screenY - 8, 6, 16);
         } else {
             // Diamond shape for XP
             ctx.moveTo(screenX, screenY - 10);

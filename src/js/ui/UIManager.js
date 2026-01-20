@@ -130,6 +130,48 @@ export class UIManager {
         if (mpFill) mpFill.style.width = `${mp}%`;
     }
 
+    updateMinimap(player, monsters, mapWidth, mapHeight) {
+        const canvas = document.getElementById('minimapCanvas');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width = 150;
+        const h = canvas.height = 150;
+
+        // Draw Map BG
+        ctx.fillStyle = '#1e272e';
+        ctx.fillRect(0, 0, w, h);
+
+        // Scaling factors
+        const scaleX = w / mapWidth;
+        const scaleY = h / mapHeight;
+
+        // Draw Player
+        ctx.fillStyle = '#ffffff';
+        const px = player.x * scaleX;
+        const py = player.y * scaleY;
+        ctx.beginPath();
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw Monsters
+        ctx.fillStyle = '#ff3f34';
+        monsters.forEach(m => {
+            if (m.isDead) return;
+            const mx = m.x * scaleX;
+            const my = m.y * scaleY;
+            ctx.beginPath();
+            ctx.arc(mx, my, 2, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // Update footer
+        const posX = document.getElementById('mini-pos-x');
+        const posY = document.getElementById('mini-pos-y');
+        if (posX) posX.textContent = Math.round(player.x);
+        if (posY) posY.textContent = Math.round(player.y);
+    }
+
     sendMessage() {
         const input = document.querySelector('.chat-input-area input');
         const msgArea = document.querySelector('.chat-messages');

@@ -123,33 +123,47 @@ export default class Monster {
             this.frame = (this.frame + 1) % this.frameCount;
         }
 
-        // Simple wandering behavior
-        if (!this.moveTimer) this.moveTimer = 0;
-        if (!this.vx) this.vx = 0;
-        if (!this.vy) this.vy = 0;
+        this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
 
-        this.moveTimer -= dt;
-        if (this.moveTimer <= 0) {
-            // Pick a new direction every 2-4 seconds
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 30 + Math.random() * 40;
-            const isIdle = Math.random() > 0.6;
+        // --- AI Logic ---
+        if (!this.attackCooldown) this.attackCooldown = 0;
+        if (this.attackCooldown > 0) this.attackCooldown -= dt;
 
-            if (isIdle) {
-                this.vx = 0;
-                this.vy = 0;
-            } else {
+        const player = window.game?.localPlayer;
+        if (player) {
+            const dist = Math.sqrt((player.x - this.x) ** 2 + (player.y - this.y) ** 2);
+
+            // Detection Range (400px)
+            if (dist < 400 && dist > 50) {
+                const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                const speed = 100; // Chasing speed
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
+            } else if (dist <= 60) {
+                // Attack Range
+                this.vx = 0;
+                this.vy = 0;
+                if (this.attackCooldown <= 0) {
+                    player.takeDamage(5 + (Math.random() * 5)); // Base monster damage
+                    this.attackCooldown = 1.5; // Attack interval
+                    this.hitTimer = 0.1; // Slight recoiling effect
+                }
+            } else {
+                // Simple wandering behavior
+                if (!this.moveTimer) this.moveTimer = 0;
+                this.moveTimer -= dt;
+                if (this.moveTimer <= 0) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 30 + Math.random() * 40;
+                    this.vx = Math.cos(angle) * speed;
+                    this.vy = Math.sin(angle) * speed;
+                    this.moveTimer = 2 + Math.random() * 2;
+                }
             }
-            this.moveTimer = 2 + Math.random() * 2;
         }
 
         this.x += this.vx * dt;
         this.y += this.vy * dt;
-
-        // Bouncy height effect
-        this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
 
         if (this.hitTimer > 0) {
             this.hitTimer -= dt;
