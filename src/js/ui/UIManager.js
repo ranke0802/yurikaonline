@@ -614,26 +614,28 @@ export class UIManager {
                 document.exitFullscreen();
             }
         }
-        toggleUpdateHistory() {
-            const modal = document.getElementById('history-modal');
-            if (!modal) return;
+    }
 
-            const isHidden = modal.classList.contains('hidden');
-            if (isHidden) {
-                this.renderHistory();
-                modal.classList.remove('hidden');
-                this.isPaused = true;
-            } else {
-                modal.classList.add('hidden');
-                this.isPaused = false;
-            }
+    toggleUpdateHistory() {
+        const modal = document.getElementById('history-modal');
+        if (!modal) return;
+
+        const isHidden = modal.classList.contains('hidden');
+        if (isHidden) {
+            this.renderHistory();
+            modal.classList.remove('hidden');
+            this.isPaused = true;
+        } else {
+            modal.classList.add('hidden');
+            this.isPaused = false;
         }
+    }
 
-        renderHistory() {
-            const listEl = document.getElementById('history-list');
-            if (!listEl || !this.game.updateHistory) return;
+    renderHistory() {
+        const listEl = document.getElementById('history-list');
+        if (!listEl || !this.game.updateHistory) return;
 
-            listEl.innerHTML = this.game.updateHistory.map(item => `
+        listEl.innerHTML = this.game.updateHistory.map(item => `
             <div class="history-item">
                 <div class="history-v-row">
                     <span class="history-v">${item.version}</span>
@@ -645,5 +647,5 @@ export class UIManager {
                 </ul>
             </div>
         `).join('');
-        }
     }
+}
