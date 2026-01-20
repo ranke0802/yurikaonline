@@ -130,7 +130,10 @@ export default class Monster {
         if (this.attackCooldown > 0) this.attackCooldown -= dt;
 
         const player = window.game?.localPlayer;
-        if (player) {
+        const playerHasAttacked = window.game?.playerHasAttacked;
+        const reflectsDamage = this.hp < this.maxHp;
+
+        if (player && (playerHasAttacked || reflectsDamage)) {
             const dist = Math.sqrt((player.x - this.x) ** 2 + (player.y - this.y) ** 2);
 
             // Detection Range (400px)

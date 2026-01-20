@@ -12,6 +12,7 @@ class Game {
         this.viewport = document.getElementById('game-viewport');
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        this.playerHasAttacked = false; // Flag to check if player has ever attacked
 
         this.lastTime = 0;
         this.isLoading = true;
@@ -128,6 +129,7 @@ class Game {
     performLaserAttack() {
         const player = this.localPlayer;
         player.triggerAction('ATTACK');
+        this.playerHasAttacked = true;
 
         // Initial mana recovery: 1, +1 per level
         const laserLv = player.skillLevels.laser || 1;
@@ -192,6 +194,7 @@ class Game {
 
         if (nearest) {
             player.triggerAction('SKILL: 매직 미사일');
+            this.playerHasAttacked = true;
 
             // Skill Level increases number of missiles
             const count = player.skillLevels.missile || 1;
@@ -221,6 +224,7 @@ class Game {
     castFireball() {
         const player = this.localPlayer;
         player.triggerAction('SKILL: 파이어볼');
+        this.playerHasAttacked = true;
 
         let vx = 0, vy = 0;
         const speed = 400;
