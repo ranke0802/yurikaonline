@@ -33,8 +33,8 @@ class Game {
                 case 'h': // Skill 1
                 case 'u': // Skill 2
                 case 'i': // Skill 3
-                    console.log(`Action triggered: ${action}`);
-                    // Trigger visual feedback or player action here
+                    this.localPlayer.triggerAction('ATTACK!');
+                    this.ui.logSystemMessage('공격했습니다!');
                     break;
             }
         };

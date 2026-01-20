@@ -12,40 +12,62 @@ export class InputHandler {
 
     initKeyboard() {
         window.addEventListener('keydown', (e) => {
-            const key = e.key.toLowerCase();
-            this.keys[key] = true;
+            // Use e.code for physical key locations (Layout independent)
+            // This solves issues with Korean/English input modes and CapsLock
+            const code = e.code;
 
-            // Tab키 브라우저 포커스 이동 방지
-            if (key === 'tab') {
+            // Movement keys mapping
+            if (code === 'KeyW' || code === 'ArrowUp') this.keys['w'] = true;
+            if (code === 'KeyS' || code === 'ArrowDown') this.keys['s'] = true;
+            if (code === 'KeyA' || code === 'ArrowLeft') this.keys['a'] = true;
+            if (code === 'KeyD' || code === 'ArrowRight') this.keys['d'] = true;
+
+            // Tab prevention
+            if (code === 'Tab') {
                 e.preventDefault();
             }
 
-            // Handle Shift + B (가방)
-            if (e.shiftKey && key === 'b') {
+            // Handle Shift + B (Inventory) - using physical B key
+            if (e.shiftKey && code === 'KeyB') {
                 if (this.onAction) this.onAction('shift-b');
                 return;
             }
 
-            // Handle Shift + I (내 정보)
-            if (e.shiftKey && key === 'i') {
+            // Handle Shift + I (Status) - using physical I key
+            if (e.shiftKey && code === 'KeyI') {
                 if (this.onAction) this.onAction('shift-i');
                 return;
             }
 
-            // Handle actions (Skills)
-            if (['j', 'h', 'u', 'i'].includes(key)) {
-                if (this.onAction) this.onAction(key);
+            // Handle actions (Skills/Attack) - J, H, U, I
+            if (['KeyJ', 'KeyH', 'KeyU', 'KeyI'].includes(code)) {
+                // If it's KeyI but Shift is pressed, we already handled it above.
+                if (code === 'KeyI' && e.shiftKey) return;
+
+                // Pass the code directly or a simplified action name
+                // Let's pass the simple letter to keep main.js clean
+                const actionMap = {
+                    'KeyJ': 'j',
+                    'KeyH': 'h',
+                    'KeyU': 'u',
+                    'KeyI': 'i'
+                };
+                if (this.onAction) this.onAction(actionMap[code]);
             }
 
-            // Prevent scrolling
-            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) {
+            // Prevent scrolling for navigation keys
+            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(code)) {
                 e.preventDefault();
             }
         });
 
         window.addEventListener('keyup', (e) => {
-            const key = e.key.toLowerCase();
-            this.keys[key] = false;
+            const code = e.code;
+
+            if (code === 'KeyW' || code === 'ArrowUp') this.keys['w'] = false;
+            if (code === 'KeyS' || code === 'ArrowDown') this.keys['s'] = false;
+            if (code === 'KeyA' || code === 'ArrowLeft') this.keys['a'] = false;
+            if (code === 'KeyD' || code === 'ArrowRight') this.keys['d'] = false;
         });
     }
 
@@ -131,16 +153,14 @@ export class InputHandler {
             this.touchMovePos = { x, y };
 
             // Visual feedback
-            pointer.style.left = `${x}px`;
-            pointer.style.top = `${y}px`;
-            pointer.classList.remove('hidden');
-            pointer.style.animation = 'none';
-            pointer.offsetHeight; // trigger reflow
-            pointer.style.animation = null;
-
-            setTimeout(() => {
-                // pointer.classList.add('hidden');
-            }, 500);
+            if (pointer) {
+                pointer.style.left = `${x}px`;
+                pointer.style.top = `${y}px`;
+                pointer.classList.remove('hidden');
+                pointer.style.animation = 'none';
+                pointer.offsetHeight; // trigger reflow
+                pointer.style.animation = null;
+            }
         };
 
         canvas.addEventListener('mousedown', handleClick);
@@ -164,10 +184,10 @@ export class InputHandler {
         let moveY = 0;
 
         // Keyboard
-        if (this.keys['w'] || this.keys['arrowup']) moveY -= 1;
-        if (this.keys['s'] || this.keys['arrowdown']) moveY += 1;
-        if (this.keys['a'] || this.keys['arrowleft']) moveX -= 1;
-        if (this.keys['d'] || this.keys['arrowright']) moveX += 1;
+        if (this.keys['w']) moveY -= 1;
+        if (this.keys['s']) moveY += 1;
+        if (this.keys['a']) moveX -= 1;
+        if (this.keys['d']) moveX += 1;
 
         // Normalized keyboard movement
         if (moveX !== 0 || moveY !== 0) {

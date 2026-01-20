@@ -28,12 +28,13 @@ export class UIManager {
         portraits.forEach(p => {
             const canvas = document.createElement('canvas');
             // Sub-rect for a single frame (1st col, 1st row)
-            const sw = processedImage.width / 6;
-            const sh = processedImage.height / 5;
+            const sw = processedImage.width / 8; // 8 Cols
+            const sh = processedImage.height / 5; // 5 Rows
             canvas.width = sw;
             canvas.height = sh;
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(processedImage, 0, 0, sw, sh, 0, 0, sw, sh);
+            // Front is Row 1, so sy = sh
+            ctx.drawImage(processedImage, 0, sh, sw, sh, 0, 0, sw, sh);
 
             p.style.backgroundImage = `url(${canvas.toDataURL()})`;
             p.style.backgroundSize = 'contain';
@@ -81,6 +82,19 @@ export class UIManager {
             msgArea.appendChild(div);
             msgArea.scrollTop = msgArea.scrollHeight;
             input.value = '';
+        }
+    }
+
+    logSystemMessage(text) {
+        const msgArea = document.querySelector('.chat-messages');
+        if (msgArea) {
+            const div = document.createElement('div');
+            // Changed from Yellow to a lighter Gray/Silver for better readability but distinct from white
+            div.style.color = '#cccccc';
+            div.style.fontStyle = 'italic';
+            div.textContent = `[System] ${text}`;
+            msgArea.appendChild(div);
+            msgArea.scrollTop = msgArea.scrollHeight;
         }
     }
 }
