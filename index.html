@@ -140,16 +140,58 @@
             <!-- Status Popup -->
             <div id="status-popup" class="game-popup hidden">
                 <div class="popup-header">
-                    <h2>캐릭터 정보</h2>
+                    <h2>내 정보 (Status)</h2>
                     <button class="close-popup">✕</button>
                 </div>
-                <div class="status-content">
-                    <div class="status-portrait"></div>
-                    <div class="status-details">
-                        <p><strong>이름:</strong> 유리카</p>
-                        <p><strong>직업:</strong> 초보 마법사</p>
-                        <p><strong>레벨:</strong> 1</p>
-                        <p><strong>경험치:</strong> 0%</p>
+                <div class="status-content-wrapper">
+                    <div class="status-top">
+                        <div class="status-portrait"></div>
+                        <div class="status-basic-info">
+                            <p><strong>이름:</strong> 유리카</p>
+                            <p><strong>직업:</strong> 초보 마법사</p>
+                            <p><strong>레벨:</strong> <span id="stat-level">1</span></p>
+                            <div class="exp-bar-container">
+                                <span class="exp-label">EXP: <span id="stat-exp-text">0 / 100</span></span>
+                                <div class="exp-bar-bg">
+                                    <div class="exp-bar-fill" id="stat-exp-fill"></div>
+                                </div>
+                                <p class="exp-remaining">남은 경험치: <span id="stat-exp-remain">100</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="status-stats-grid">
+                        <div class="stat-main">
+                            <div class="stat-point-info">
+                                <span>보유 포인트: <strong id="stat-points">0</strong></span>
+                            </div>
+                            <div class="stat-row-ui">
+                                <label>❤️ 체력 (VIT)</label>
+                                <span id="val-vitality">5</span>
+                                <button class="stat-up-btn" data-stat="vitality">+</button>
+                            </div>
+                            <div class="stat-row-ui">
+                                <label>🧠 지력 (INT)</label>
+                                <span id="val-intelligence">5</span>
+                                <button class="stat-up-btn" data-stat="intelligence">+</button>
+                            </div>
+                            <div class="stat-row-ui">
+                                <label>✨ 지혜 (WIS)</label>
+                                <span id="val-wisdom">5</span>
+                                <button class="stat-up-btn" data-stat="wisdom">+</button>
+                            </div>
+                            <div class="stat-row-ui">
+                                <label>🛡️ 끈기 (TEN)</label>
+                                <span id="val-tenacity">5</span>
+                                <button class="stat-up-btn" data-stat="tenacity">+</button>
+                            </div>
+                        </div>
+                        <div class="stat-derived">
+                            <div class="derived-row"><span>현재 HP:</span> <span id="val-hp-range">100/100</span></div>
+                            <div class="derived-row"><span>현재 MP:</span> <span id="val-mp-range">100/100</span></div>
+                            <div class="derived-row"><span>공격력:</span> <span id="val-atk">10</span></div>
+                            <div class="derived-row"><span>공격속도:</span> <span id="val-atk-spd">1.0</span></div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -185,7 +185,7 @@ class Game {
             const shouldRemove = drop.update(dt, this.localPlayer);
             if (drop.isCollected) {
                 if (drop.type === 'gold') {
-                    this.localPlayer.gold += drop.amount;
+                    this.localPlayer.addGold(drop.amount);
                     this.ui.logSystemMessage(`💰 ${drop.amount} Gold 획득! (현재: ${this.localPlayer.gold})`);
                 } else {
                     this.localPlayer.addExp(drop.amount);

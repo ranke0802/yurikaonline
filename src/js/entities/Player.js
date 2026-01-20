@@ -29,11 +29,26 @@ export default class Player {
         this.mp = 100;
         this.maxMp = 100;
 
+        // RPG Stats
+        this.statPoints = 0;
+        this.vitality = 5;      // Increases Max HP
+        this.intelligence = 5;  // Increases Magic Damage
+        this.wisdom = 5;        // Increases Max MP
+        this.tenacity = 5;      // Increases Health Recovery/Defense
+
+        // Derived Stats
+        this.attackPower = 10;
+        this.attackSpeed = 1.0;
+
+        // Inventory system (16 slots grid in UI usually)
+        this.inventory = new Array(16).fill(null);
+
         // Cooldowns
         this.attackCooldown = 0;
-        this.baseAttackDelay = 0.3; // Requested 0.3s delay
+        this.baseAttackDelay = 0.3;
 
         this.init();
+        this.refreshStats();
     }
 
     async init() {
@@ -94,7 +109,6 @@ export default class Player {
     }
 
     processAndDrawFrame(img, ctx, destX, destY, destW, destH) {
-        // Static temp canvas to avoid allocation lag
         if (!this._tempCanvas) {
             this._tempCanvas = document.createElement('canvas');
             this._tempCtx = this._tempCanvas.getContext('2d', { willReadFrequently: true });
@@ -141,10 +155,27 @@ export default class Player {
         }
     }
 
+    refreshStats() {
+        this.maxHp = 100 + (this.vitality * 10) + (this.level * 5);
+        this.maxMp = 50 + (this.wisdom * 10) + (this.level * 2);
+        this.attackPower = 5 + (this.intelligence * 2) + (this.level * 1);
+
+        const speedBonus = (this.intelligence + this.wisdom) * 0.005;
+        this.attackSpeed = 1.0 + speedBonus;
+        this.baseAttackDelay = Math.max(0.1, 0.3 - (speedBonus * 0.2));
+
+        if (window.game?.ui) {
+            window.game.ui.updateStatusPopup();
+        }
+    }
+
     addExp(amount) {
         this.exp += amount;
         if (this.exp >= this.maxExp) {
             this.levelUp();
+        }
+        if (window.game?.ui) {
+            window.game.ui.updateStatusPopup();
         }
     }
 
@@ -152,14 +183,57 @@ export default class Player {
         this.level++;
         this.exp -= this.maxExp;
         this.maxExp = Math.floor(this.maxExp * 1.5);
-        this.maxHp += 20;
-        this.maxMp += 10;
+        this.statPoints += 5; // Grant stat points
+
+        this.refreshStats();
         this.hp = this.maxHp;
         this.mp = this.maxMp;
+
         this.triggerAction('LEVEL UP!!');
         if (window.game?.ui) {
-            window.game.ui.logSystemMessage(`축하합니다! 레벨 ${this.level}이 되었습니다!`);
+            window.game.ui.logSystemMessage(`축하합니다! 레벨 ${this.level}이 되었습니다! (스탯 포인트 +5)`);
         }
+    }
+
+    addGold(amount) {
+        this.gold += amount;
+        // Also ensure gold is in inventory as an item if we want to show it there
+        // For now, let's just make sure UI shows it in a specialized slot or logic
+        this.addToInventory({ id: 'gold', name: 'Gold', amount: amount, icon: '💰' });
+        if (window.game?.ui) window.game.ui.updateInventory();
+    }
+
+    addToInventory(item) {
+        // Simple stacking for gold
+        if (item.id === 'gold') {
+            const existing = this.inventory.find(slot => slot && slot.id === 'gold');
+            if (existing) {
+                existing.amount += item.amount;
+                return true;
+            }
+        }
+
+        // Find empty slot
+        const emptyIdx = this.inventory.findIndex(slot => slot === null);
+        if (emptyIdx !== -1) {
+            this.inventory[emptyIdx] = { ...item };
+            return true;
+        }
+        return false;
+    }
+
+    increaseStat(statName) {
+        if (this.statPoints <= 0) return false;
+
+        if (statName === 'vitality') this.vitality++;
+        else if (statName === 'intelligence') this.intelligence++;
+        else if (statName === 'wisdom') this.wisdom++;
+        else if (statName === 'tenacity') this.tenacity++;
+        else return false;
+
+        this.statPoints--;
+        this.refreshStats();
+        return true;
     }
 
     triggerAction(actionName) {
@@ -249,4 +323,5 @@ export default class Player {
         }
     }
 }
+
 
