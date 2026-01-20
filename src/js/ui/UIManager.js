@@ -330,6 +330,49 @@ export class UIManager {
         if (mpFill) mpFill.style.width = `${mp}%`;
         if (expFill) expFill.style.width = `${expPerc}%`;
         if (levelEl) levelEl.textContent = level;
+
+        // Update bar text
+        const p = this.game.localPlayer;
+        if (p) {
+            const hpc = document.getElementById('ui-hp-cur');
+            const hpm = document.getElementById('ui-hp-max');
+            const mpc = document.getElementById('ui-mp-cur');
+            const mpm = document.getElementById('ui-mp-max');
+            if (hpc) hpc.textContent = Math.floor(p.hp);
+            if (hpm) hpm.textContent = p.maxHp;
+            if (mpc) mpc.textContent = Math.floor(p.mp);
+            if (mpm) mpm.textContent = p.maxMp;
+        }
+
+        this.updateCooldowns();
+    }
+
+    updateCooldowns() {
+        const p = this.game.localPlayer;
+        if (!p) return;
+
+        // Cooldown keys: u, k, h, j
+        const skillKeys = ['u', 'k', 'h', 'j'];
+        skillKeys.forEach(key => {
+            const btn = document.querySelector(`[data-key="${key}"]`);
+            if (!btn) return;
+
+            const cdTime = p.skillCooldowns[key];
+            const maxCd = p.skillMaxCooldowns[key];
+            const overlay = btn.querySelector('.cooldown-overlay');
+            const timeText = btn.querySelector('.cooldown-time');
+
+            if (cdTime > 0) {
+                const perc = (cdTime / maxCd) * 100;
+                if (overlay) overlay.style.height = `${perc}%`;
+                if (timeText) timeText.textContent = cdTime.toFixed(1);
+                btn.classList.add('disabled');
+            } else {
+                if (overlay) overlay.style.height = '0%';
+                if (timeText) timeText.textContent = '';
+                btn.classList.remove('disabled');
+            }
+        });
     }
 
     updateMinimap(player, monsters, mapWidth, mapHeight) {

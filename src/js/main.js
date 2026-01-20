@@ -47,12 +47,13 @@ class Game {
                     return;
             }
 
-            if (player.attackCooldown > 0) return;
+            if (player.skillCooldowns[action] > 0) return;
 
             switch (action) {
                 case 'j': // Basic Attack (Laser)
                     this.performLaserAttack();
-                    player.attackCooldown = player.baseAttackDelay;
+                    player.skillCooldowns['j'] = 0.6 / player.attackSpeed;
+                    player.attackCooldown = player.skillCooldowns['j'];
                     break;
                 case 'h': // Magic Missile (Homing)
                     const missileCount = player.skillLevels.missile || 1;
@@ -60,27 +61,30 @@ class Game {
                     if (player.useMana(missileCost)) {
                         this.ui.logSystemMessage(`SKILL: 매직 미사일 (Lv.${missileCount})`);
                         this.castMagicMissile();
-                        player.attackCooldown = 0.8;
+                        player.skillCooldowns['h'] = 2.0;
+                        player.attackCooldown = 0.5;
                     }
                     break;
                 case 'u': // Fireball (AoE)
                     const fireballLv = player.skillLevels.fireball || 1;
-                    if (player.useMana(8)) { // Fixed cost for now
+                    if (player.useMana(8)) {
                         this.ui.logSystemMessage(`SKILL: 파이어볼 (Lv.${fireballLv})`);
                         this.castFireball();
-                        player.attackCooldown = 1.6;
+                        player.skillCooldowns['u'] = 5.0;
+                        player.attackCooldown = 0.8;
                     }
                     break;
                 case 'k': // Shield
                     const shieldLv = player.skillLevels.shield || 1;
                     const shieldCost = 20;
                     if (player.useMana(shieldCost)) {
-                        const duration = 60 + (shieldLv - 1) * 20; // 60s + 20s/lv
+                        const duration = 60 + (shieldLv - 1) * 20;
                         player.triggerAction('SKILL: 마나쉴드');
                         player.shieldTimer = duration;
                         player.isShieldActive = true;
                         this.ui.logSystemMessage(`SKILL: 마나쉴드 - 방어막이 ${duration}초간 지속됩니다.`);
-                        player.attackCooldown = 1.0;
+                        player.skillCooldowns['k'] = 10.0;
+                        player.attackCooldown = 0.5;
                     }
                     break;
             }

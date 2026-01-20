@@ -34,12 +34,16 @@
                             <span class="stat-label">HP</span>
                             <div class="bar-bg hp-bg">
                                 <div class="bar-fill hp-fill"></div>
+                                <div class="bar-text"><span id="ui-hp-cur">0</span> / <span id="ui-hp-max">0</span>
+                                </div>
                             </div>
                         </div>
                         <div class="stat-row">
                             <span class="stat-label">MP</span>
                             <div class="bar-bg mp-bg">
                                 <div class="bar-fill mp-fill"></div>
+                                <div class="bar-text"><span id="ui-mp-cur">0</span> / <span id="ui-mp-max">0</span>
+                                </div>
                             </div>
                         </div>
                         <div class="stat-row exp-row">
@@ -107,18 +111,30 @@
                 <div class="action-buttons">
                     <div class="skill-row top-skills">
                         <div class="skill-btn skill-u" data-key="u">
+                            <div class="shortcut-badge">U</div>
                             <div class="inner-icon">🔥</div>
+                            <div class="cooldown-overlay"></div>
+                            <div class="cooldown-time"></div>
                         </div>
                         <div class="skill-btn skill-k" data-key="k">
+                            <div class="shortcut-badge">K</div>
                             <div class="inner-icon">🛡️</div>
+                            <div class="cooldown-overlay"></div>
+                            <div class="cooldown-time"></div>
                         </div>
                     </div>
                     <div class="skill-row bottom-skills">
                         <div class="skill-btn skill-h" data-key="h">
+                            <div class="shortcut-badge">H</div>
                             <div class="inner-icon">🪄</div>
+                            <div class="cooldown-overlay"></div>
+                            <div class="cooldown-time"></div>
                         </div>
                         <div class="attack-btn" data-key="j">
+                            <div class="shortcut-badge">J</div>
                             <div class="inner-icon">⚔️</div>
+                            <div class="cooldown-overlay"></div>
+                            <div class="cooldown-time"></div>
                         </div>
                     </div>
                 </div>

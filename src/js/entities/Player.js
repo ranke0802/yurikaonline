@@ -60,6 +60,8 @@ export default class Player {
         // Cooldowns
         this.attackCooldown = 0;
         this.baseAttackDelay = 0.6;
+        this.skillCooldowns = { u: 0, k: 0, h: 0, j: 0 };
+        this.skillMaxCooldowns = { u: 5.0, k: 10.0, h: 2.0, j: 0.6 }; // Fireball, Shield, Missile, Attack
 
         // Shield & Status
         this.shieldTimer = 0;
@@ -81,40 +83,34 @@ export default class Player {
     }
 
     takeDamage(amount) {
-        let finalDamage = amount;
+        let finalHpDamage = amount;
         let manaDamage = 0;
 
         if (this.shieldTimer > 0) {
-            // Shield logic: 30% + 10% per level (max 80%)
             const shieldLv = this.skillLevels.shield || 1;
-            const reduction = Math.min(0.8, 0.3 + (shieldLv - 1) * 0.1);
+            const reductionRatio = Math.min(0.8, 0.3 + (shieldLv - 1) * 0.1);
 
-            manaDamage = amount * reduction;
-            finalDamage = amount * (1.0 - reduction);
+            manaDamage = amount * reductionRatio;
+            finalHpDamage = amount - manaDamage; // Explicitly subtract mana-soaked portion
 
             if (this.mp >= manaDamage) {
                 this.mp -= manaDamage;
             } else {
                 const soaked = this.mp;
                 this.mp = 0;
-                // Remaining mana damage hits HP? Or just the rest of reduction fails?
-                // Standard RPG: if mana runs out, the rest hits HP.
-                // User didn't specify, I'll follow typical logic.
-                finalDamage += (manaDamage - soaked);
+                finalHpDamage += (manaDamage - soaked); // Overflow to HP
+                manaDamage = soaked;
             }
         }
 
-        this.hp = Math.max(0, this.hp - finalDamage);
+        this.hp = Math.max(0, this.hp - finalHpDamage);
 
-        if (manaDamage > 0) {
-            // Show mana damage in blue if shield is active
-            if (window.game) {
-                window.game.addDamageText(this.x, this.y - 20, `-${Math.round(manaDamage)}`, '#48dbfb');
-            }
+        if (manaDamage > 0 && window.game) {
+            window.game.addDamageText(this.x, this.y - 20, `-${Math.round(manaDamage)}`, '#48dbfb');
         }
 
-        if (finalDamage > 0) {
-            this.triggerAction(`-${Math.round(finalDamage)}`);
+        if (finalHpDamage > 0) {
+            this.triggerAction(`-${Math.round(finalHpDamage)}`);
         }
 
         if (this.hp <= 0) {
@@ -388,6 +384,13 @@ export default class Player {
         if (this.attackCooldown > 0) {
             // Speed up cooldown based on attackSpeed
             this.attackCooldown -= dt * this.attackSpeed;
+        }
+
+        // Tick individual skill cooldowns
+        for (let key in this.skillCooldowns) {
+            if (this.skillCooldowns[key] > 0) {
+                this.skillCooldowns[key] -= dt;
+            }
         }
 
         if (this.shieldTimer > 0) {
