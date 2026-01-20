@@ -177,10 +177,7 @@ export default class Player {
         const finalCtx = finalCanvas.getContext('2d');
 
         this.sprite = new Sprite(finalCanvas, maxFrames, 5);
-        this.ready = true;
-
         this.frameCounts = { 1: 8, 0: 5, 2: 7, 3: 7, 4: 6 };
-
         const loadPromises = [];
 
         for (const [key, menu] of Object.entries(categories)) {
@@ -212,6 +209,7 @@ export default class Player {
         }
 
         await Promise.all(loadPromises);
+        this.ready = true;
     }
 
     processAndDrawFrame(img, ctx, destX, destY, destW, destH) {
@@ -409,6 +407,16 @@ export default class Player {
             if (this.laserEffect.timer <= 0) this.laserEffect = null;
         }
 
+        if (window.game?.ui) {
+            const expPerc = (this.exp / this.maxExp) * 100;
+            window.game.ui.updateStats(
+                (this.hp / this.maxHp) * 100,
+                (this.mp / this.maxMp) * 100,
+                this.level,
+                expPerc
+            );
+        }
+
         if (this.isAttacking) {
             this.timer += dt;
             if (this.timer >= 0.08) {
@@ -523,15 +531,7 @@ export default class Player {
             return p.life > 0;
         });
 
-        if (window.game?.ui) {
-            const expPerc = (this.exp / this.maxExp) * 100;
-            window.game.ui.updateStats(
-                (this.hp / this.maxHp) * 100,
-                (this.mp / this.maxMp) * 100,
-                this.level,
-                expPerc
-            );
-        }
+        // updateStats moved to top of update() to prevent skipping during animation
     }
 
     draw(ctx, camera) {

@@ -14,6 +14,8 @@ class Game {
         this.ctx = this.canvas.getContext('2d');
 
         this.lastTime = 0;
+        this.isLoading = true;
+        this.loadingProgress = 0;
 
         this.resize();
         window.addEventListener('resize', () => this.resize());
@@ -392,9 +394,37 @@ class Game {
         if (!this.lastTime) this.lastTime = time;
         const dt = (time - this.lastTime) / 1000;
         this.lastTime = time;
-        this.update(dt);
-        this.draw();
+
+        if (this.isLoading) {
+            this.updateLoading(dt);
+        } else {
+            this.update(dt);
+            this.draw();
+        }
         requestAnimationFrame((t) => this.loop(t));
+    }
+
+    updateLoading(dt) {
+        // Simple progress simulation based on player.ready
+        if (this.localPlayer.ready) {
+            this.loadingProgress = 100;
+            const fill = document.getElementById('loading-progress-fill');
+            if (fill) fill.style.width = '100%';
+
+            // Small delay before starting
+            setTimeout(() => {
+                const overlay = document.getElementById('loading-overlay');
+                if (overlay) overlay.style.display = 'none';
+                this.isLoading = false;
+            }, 500);
+        } else {
+            // Fake progress while waiting for images
+            if (this.loadingProgress < 90) {
+                this.loadingProgress += 30 * dt;
+            }
+            const fill = document.getElementById('loading-progress-fill');
+            if (fill) fill.style.width = `${this.loadingProgress}%`;
+        }
     }
 }
 
