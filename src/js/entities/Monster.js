@@ -46,7 +46,8 @@ export default class Monster {
 
         const loadPromises = frames.map((frameFile, i) => {
             const img = new Image();
-            img.src = `${path}/${frameFile}`;
+            const v = window.GAME_VERSION || Date.now();
+            img.src = `${path}/${frameFile}?v=${v}`;
             return new Promise((resolve) => {
                 img.onload = () => {
                     this.processAndDrawFrame(img, finalCtx, i * targetW, 0, targetW, targetH);

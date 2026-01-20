@@ -214,7 +214,8 @@ export default class Player {
 
             menu.frames.forEach((frameFile, i) => {
                 const img = new Image();
-                img.src = `${menu.path}/${frameFile}`;
+                const v = window.GAME_VERSION || Date.now();
+                img.src = `${menu.path}/${frameFile}?v=${v}`;
                 const p = new Promise((resolve) => {
                     img.onload = () => {
                         this.processAndDrawFrame(img, finalCtx, i * targetW, rowIndex * targetH, targetW, targetH);

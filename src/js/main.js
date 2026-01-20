@@ -107,6 +107,10 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.11', date: '2026-01-21', title: 'Cache Busting & Stability',
+                logs: ['자동 캐시 방지 시스템 도입 (새 버전 업데이트 시 자동 반영)', '이미지 및 스크립트 로딩 최적화', '전체적인 게임 버전 v1.11 업데이트']
+            },
+            {
                 version: 'v1.10', date: '2026-01-21', title: 'System Message & UI Restoration',
                 logs: ['경험치, 골드, 체력 회복 시 시스템 메시지 출력 복구', '퀘스트 보상 수령 시 전용 안내 모달 적용', '전체적인 UI 애니메이션 및 가독성 개선']
             },
