@@ -349,17 +349,46 @@ export class UIManager {
         const p = this.game.localPlayer;
         if (!p) return;
 
-        document.getElementById('skill-points').textContent = p.skillPoints;
+        const goldEl = document.getElementById('ui-skill-gold');
+        if (goldEl) goldEl.textContent = p.gold;
 
-        // Update degrees
+        // Update levels and costs
         for (const [skillId, level] of Object.entries(p.skillLevels)) {
             const levelEl = document.getElementById(`lvl-${skillId}`);
             if (levelEl) levelEl.textContent = level;
 
+            const costEl = document.querySelector(`.skill-cost[data-skill="${skillId}"]`);
+            if (costEl) {
+                costEl.textContent = p.getSkillUpgradeCost(skillId);
+            }
+
             const btn = document.querySelector(`.skill-up-btn[data-skill="${skillId}"]`);
             if (btn) {
-                btn.disabled = p.skillPoints <= 0;
+                const cost = p.getSkillUpgradeCost(skillId);
+                btn.disabled = p.gold < cost;
             }
+        }
+    }
+
+    updateQuestUI() {
+        const p = this.game.localPlayer;
+        if (!p) return;
+
+        const slimeCount = document.getElementById('quest-slime-count');
+        const slimeItem = document.getElementById('quest-slime');
+        const bossStatus = document.getElementById('quest-boss-status');
+        const bossItem = document.getElementById('quest-boss');
+
+        if (slimeCount) slimeCount.textContent = Math.min(10, p.questData.slimeKills);
+        if (p.questData.slimeQuestDone && slimeItem) {
+            slimeItem.style.textDecoration = 'line-through';
+            slimeItem.style.opacity = '0.5';
+        }
+
+        if (bossStatus) bossStatus.textContent = p.questData.bossKilled ? '완료' : '미완료';
+        if (p.questData.bossQuestDone && bossItem) {
+            bossItem.style.textDecoration = 'line-through';
+            bossItem.style.opacity = '0.5';
         }
     }
 

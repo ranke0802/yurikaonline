@@ -297,16 +297,49 @@ class Game {
             return !p.isDead;
         });
 
-        // Update monsters
+        // Update monsters with Aggro Limit
+        let aggroCount = 0;
+        const maxAggro = this.localPlayer.level + 1;
+
         this.monsters.forEach(monster => {
+            // Check if this monster is already aggro or wants to be aggro
+            const dist = Math.sqrt((this.localPlayer.x - monster.x) ** 2 + (this.localPlayer.y - monster.y) ** 2);
+            const reflectsDamage = monster.hp < monster.maxHp;
+            const isNear = dist < 400;
+
+            let canBeAggro = (this.playerHasAttacked || reflectsDamage) && isNear;
+
+            // If already at limit, newly approaching monsters stays peaceful
+            if (canBeAggro) {
+                if (aggroCount < maxAggro) {
+                    monster.isAggro = true;
+                    aggroCount++;
+                } else {
+                    monster.isAggro = false; // Stay peaceful due to limit
+                }
+            } else {
+                monster.isAggro = false;
+            }
+
             monster.update(dt);
         });
 
-        // Universal Kill/Loot Check (Covers Laser, Burn, and Projectiles)
+        // Quest Progress Check
+        this.checkQuests();
+
+        // Universal Kill/Loot Check
         this.monsters.forEach(m => {
             if (m.isDead && !m._looted) {
                 m._looted = true;
                 this.spawnLoot(m);
+
+                // Update Quest Progress
+                if (m.name.includes('슬라임')) {
+                    this.localPlayer.questData.slimeKills++;
+                }
+                if (m.isBoss) {
+                    this.localPlayer.questData.bossKilled = true;
+                }
             }
         });
 
@@ -322,7 +355,19 @@ class Game {
         if (this.spawnTimer <= 0 && this.monsters.length < 10) {
             const mx = Math.random() * 2000;
             const my = Math.random() * 2000;
-            this.monsters.push(new Monster(mx, my, '야생 슬라임'));
+
+            // Randomly spawn a "Big Slime" as a mini-boss occasionally
+            if (Math.random() < 0.1) {
+                const boss = new Monster(mx, my, '대왕 슬라임 (BOSS)');
+                boss.width = 150;
+                boss.height = 150;
+                boss.maxHp = 500;
+                boss.hp = 500;
+                boss.isBoss = true;
+                this.monsters.push(boss);
+            } else {
+                this.monsters.push(new Monster(mx, my, '야생 슬라임'));
+            }
             this.spawnTimer = 3.0; // Every 3 seconds
         }
 
@@ -360,6 +405,27 @@ class Game {
 
         // Update Minimap
         this.ui.updateMinimap(this.localPlayer, this.monsters, 2000, 2000);
+        this.ui.updateQuestUI();
+    }
+
+    checkQuests() {
+        const p = this.localPlayer;
+        if (!p) return;
+
+        // Slime Quest
+        if (!p.questData.slimeQuestDone && p.questData.slimeKills >= 10) {
+            p.questData.slimeQuestDone = true;
+            p.statPoints += 5;
+            this.ui.logSystemMessage('QUEST 완료: 슬라임 10마리 처치! (보상: 스텟 포인트 +5)');
+            this.ui.updateStatusPopup();
+        }
+
+        // Boss Quest
+        if (!p.questData.bossQuestDone && p.questData.bossKilled) {
+            p.questData.bossQuestDone = true;
+            p.addGold(1000);
+            this.ui.logSystemMessage('QUEST 완료: 보스 몬스터 처치! (보상: 1000 골드)');
+        }
     }
 
     draw() {

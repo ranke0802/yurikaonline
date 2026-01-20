@@ -33,7 +33,13 @@ export default class Player {
 
         // RPG Stats
         this.statPoints = 0;
-        this.skillPoints = 0;
+        this.gold = 0; // Ensure gold is initialized
+        this.questData = {
+            slimeKills: 0,
+            bossKilled: false,
+            slimeQuestDone: false,
+            bossQuestDone: false
+        };
         this.skillLevels = {
             laser: 1,
             missile: 1,
@@ -299,7 +305,6 @@ export default class Player {
         this.exp -= this.maxExp;
         this.maxExp = Math.floor(this.maxExp * 1.5);
         this.statPoints += 3; // Grant 3 stat points (requested)
-        this.skillPoints += 1; // Grant skill points (1 per level)
 
         this.refreshStats();
         this.hp = this.maxHp;
@@ -307,7 +312,7 @@ export default class Player {
 
         this.triggerAction('LEVEL UP!!');
         if (window.game?.ui) {
-            window.game.ui.logSystemMessage(`축하합니다! 레벨 ${this.level}이 되었습니다! (스탯 +3, 스킬 +1)`);
+            window.game.ui.logSystemMessage(`축하합니다! 레벨 ${this.level}이 되었습니다! (스탯 +3)`);
         }
     }
 
@@ -352,15 +357,30 @@ export default class Player {
         return true;
     }
 
+    getSkillUpgradeCost(skillId) {
+        const currentLv = this.skillLevels[skillId] || 1;
+        // Level 1 -> 2: 300
+        // Level 2 -> 3: 600
+        // Level 3 -> 4: 1200
+        return 300 * Math.pow(2, currentLv - 1);
+    }
+
     increaseSkill(skillId) {
-        if (this.skillPoints <= 0) return false;
         if (!this.skillLevels.hasOwnProperty(skillId)) return false;
 
+        const cost = this.getSkillUpgradeCost(skillId);
+        if (this.gold < cost) {
+            if (window.game?.ui) window.game.ui.logSystemMessage(`골드가 부족합니다! (필요: ${cost})`);
+            return false;
+        }
+
+        this.gold -= cost;
         this.skillLevels[skillId]++;
-        this.skillPoints--;
 
         if (window.game?.ui) {
+            window.game.ui.logSystemMessage(`${skillId} 스킬 레벨 업! (현재: ${this.skillLevels[skillId]})`);
             window.game.ui.updateSkillPopup();
+            window.game.ui.updateInventory(); // Update gold display in inventory if needed
         }
         return true;
     }

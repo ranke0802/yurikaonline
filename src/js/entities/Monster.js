@@ -140,13 +140,13 @@ export default class Monster {
         if (player) {
             const dist = Math.sqrt((player.x - this.x) ** 2 + (player.y - this.y) ** 2);
 
-            // 적대적 행위 (추격 및 공격)는 플레이어가 공격했거나 데미지를 입었을 때만
-            if ((playerHasAttacked || reflectsDamage) && dist < 400 && dist > 50) {
+            // 적대적 행위 (추격 및 공격)는 플레이어가 공격했거나 데미지를 입었을 때 + 공격 제한(isAggro)에 걸리지 않았을 때
+            if (this.isAggro && dist < 400 && dist > 50) {
                 const angle = Math.atan2(player.y - this.y, player.x - this.x);
                 const speed = 100;
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
-            } else if ((playerHasAttacked || reflectsDamage) && dist <= 60) {
+            } else if (this.isAggro && dist <= 60) {
                 this.vx = 0;
                 this.vy = 0;
                 if (this.attackCooldown <= 0) {
