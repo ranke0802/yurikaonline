@@ -7,7 +7,9 @@ export default class Player {
         this.width = 120;
         this.height = 120;
         this.speed = 220;
-        this.direction = 1; // 0:Up, 1:Down, 2:NW, 3:NE, 4:SW, 5:SE, 6:Right, 7:Left
+        this.direction = 1; // 0:Back, 1:Front, 2:Left, 3:Right (Sprite row index)
+        this.facingDir = 4; // 0:N, 1:NE, 2:E, 3:SE, 4:S, 5:SW, 6:W, 7:NW (Logic direction)
+
         this.frame = 0;
         this.isMoving = false;
         this.isAttacking = false;
@@ -45,12 +47,19 @@ export default class Player {
 
         // Cooldowns
         this.attackCooldown = 0;
-        this.baseAttackDelay = 0.3;
+        this.baseAttackDelay = 0.6;
 
         // Shield & Status
         this.shieldTimer = 0;
         this.isShieldActive = false;
         this.laserEffect = null; // { x1, y1, x2, y2, timer }
+
+        // Running Logic
+        this.moveTimer = 0;
+        this.isRunning = false;
+        this.prevFacingDir = -1;
+        this.runParticles = [];
+        this.turnGraceTimer = 0;
 
         this.init();
         this.refreshStats();
@@ -212,7 +221,7 @@ export default class Player {
 
         const speedBonus = (this.intelligence + this.wisdom) * 0.005;
         this.attackSpeed = 1.0 + speedBonus;
-        this.baseAttackDelay = Math.max(0.1, 0.3 - (speedBonus * 0.2));
+        this.baseAttackDelay = Math.max(0.2, 0.6 - (speedBonus * 0.4));
 
         if (window.game?.ui) {
             window.game.ui.updateStatusPopup();
@@ -290,7 +299,12 @@ export default class Player {
         this.actionFdbk = actionName;
         this.actionTimer = 1.0;
 
-        if (actionName.includes('ATTACK') || actionName.includes('Skill')) {
+        const isCombatAction = actionName.includes('ATTACK') ||
+            actionName.includes('Skill') ||
+            actionName.includes('LASER') ||
+            actionName.includes('SHIELD');
+
+        if (isCombatAction) {
             this.isAttacking = true;
             this.frame = 0;
             this.timer = 0;
@@ -340,29 +354,90 @@ export default class Player {
         const vy = move.y;
 
         if (vx !== 0 || vy !== 0) {
-            this.x += vx * this.speed * dt;
-            this.y += vy * this.speed * dt;
+            // 8-directional logic
+            const angle = Math.atan2(vy, vx) * (180 / Math.PI);
+            let snapAngle = Math.round(angle / 45) * 45;
+            if (snapAngle === -180) snapAngle = 180;
+
+            if (snapAngle === -90) this.facingDir = 0;
+            else if (snapAngle === -45) this.facingDir = 1;
+            else if (snapAngle === 0) this.facingDir = 2;
+            else if (snapAngle === 45) this.facingDir = 3;
+            else if (snapAngle === 90) this.facingDir = 4;
+            else if (snapAngle === 135) this.facingDir = 5;
+            else if (snapAngle === 180) this.facingDir = 6;
+            else if (snapAngle === -135) this.facingDir = 7;
+
+            // Running logic
+            if (this.facingDir === this.prevFacingDir) {
+                this.moveTimer += dt;
+                // If we were in grace and kept the direction, just snap back to running
+                if (this.turnGraceTimer > 0 && this.moveTimer >= 0.1) {
+                    this.isRunning = true;
+                    this.turnGraceTimer = 0;
+                }
+                if (this.moveTimer >= 1.0) {
+                    this.isRunning = true;
+                }
+            } else {
+                // If we were running, give 0.5s grace to keep speed
+                if (this.isRunning) {
+                    this.turnGraceTimer = 0.5;
+                }
+                this.moveTimer = 0;
+                this.isRunning = false;
+            }
+            this.prevFacingDir = this.facingDir;
+
+            if (this.turnGraceTimer > 0) {
+                this.turnGraceTimer -= dt;
+            }
+
+            const speedMult = (this.isRunning || this.turnGraceTimer > 0) ? 1.3 : 1.0;
+            this.x += vx * this.speed * speedMult * dt;
+            this.y += vy * this.speed * speedMult * dt;
             this.isMoving = true;
 
-            const angle = Math.atan2(vy, vx) * (180 / Math.PI);
-            if (angle > -135 && angle <= -45) this.direction = 0; // Back
-            else if (angle > 45 && angle <= 135) this.direction = 1; // Front
-            else if (angle > -45 && angle <= 45) this.direction = 3; // Right
-            else this.direction = 2; // Left
+            // Map to 4-way sprite
+            if (this.facingDir === 0 || this.facingDir === 1 || this.facingDir === 7) this.direction = 0; // Back
+            else if (this.facingDir === 4 || this.facingDir === 3 || this.facingDir === 5) this.direction = 1; // Front
+            else if (this.facingDir === 2) this.direction = 3; // Right
+            else if (this.facingDir === 6) this.direction = 2; // Left
         } else {
             this.isMoving = false;
+            this.moveTimer = 0;
+            this.isRunning = false;
+            this.turnGraceTimer = 0;
         }
 
         if (this.isMoving) {
             this.timer += dt;
             const maxF = this.frameCounts[this.direction] || 1;
-            if (this.timer >= this.frameSpeed) {
+            const currentFrameSpeed = (this.isRunning || this.turnGraceTimer > 0) ? this.frameSpeed * 0.7 : this.frameSpeed;
+            if (this.timer >= currentFrameSpeed) {
                 this.timer = 0;
                 this.frame = (this.frame + 1) % maxF;
             }
         } else {
             this.frame = 0;
         }
+
+        if (this.isRunning && this.isMoving) {
+            if (Math.random() < 0.3) {
+                this.runParticles.push({
+                    x: this.x + (Math.random() - 0.5) * 40,
+                    y: this.y + 30 + (Math.random() - 0.5) * 10,
+                    life: 0.5,
+                    size: 4 + Math.random() * 6
+                });
+            }
+        }
+
+        this.runParticles = this.runParticles.filter(p => {
+            p.life -= dt;
+            p.size += dt * 5;
+            return p.life > 0;
+        });
 
         if (window.game?.ui) {
             window.game.ui.updateStats((this.hp / this.maxHp) * 100, (this.mp / this.maxMp) * 100);
@@ -373,6 +448,14 @@ export default class Player {
         if (!this.sprite) return;
         let screenX = Math.round(this.x - camera.x);
         let screenY = Math.round(this.y - camera.y);
+
+        // Draw Run Particles
+        this.runParticles.forEach(p => {
+            ctx.fillStyle = `rgba(200, 200, 200, ${p.life * 1.5})`;
+            ctx.beginPath();
+            ctx.arc(p.x - camera.x, p.y - camera.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
 
         // Draw Laser
         if (this.laserEffect) {

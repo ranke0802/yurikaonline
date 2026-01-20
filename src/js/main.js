@@ -46,13 +46,13 @@ class Game {
                 case 'h': // Magic Missile (Homing)
                     if (player.useMana(2)) {
                         this.castMagicMissile();
-                        player.attackCooldown = 0.4;
+                        player.attackCooldown = 0.8;
                     }
                     break;
                 case 'u': // Fireball (AoE)
                     if (player.useMana(5)) {
                         this.castFireball();
-                        player.attackCooldown = 0.8;
+                        player.attackCooldown = 1.6;
                     }
                     break;
                 case 'k': // Shield
@@ -61,7 +61,7 @@ class Game {
                         player.shieldTimer = 180; // 3 minutes
                         player.isShieldActive = true;
                         this.ui.logSystemMessage('방어막이 3분간 지속됩니다. (80% 피해 경감)');
-                        player.attackCooldown = 1.0;
+                        player.attackCooldown = 2.0;
                     }
                     break;
             }
@@ -101,10 +101,19 @@ class Game {
 
         let range = 600;
         let vx = 0, vy = 0;
-        if (player.direction === 0) vy = -1;
-        else if (player.direction === 1) vy = 1;
-        else if (player.direction === 2) vx = -1;
-        else if (player.direction === 3) vx = 1;
+
+        // 0:N, 1:NE, 2:E, 3:SE, 4:S, 5:SW, 6:W, 7:NW
+        const diag = 0.707;
+        switch (player.facingDir) {
+            case 0: vx = 0; vy = -1; break;
+            case 1: vx = diag; vy = -diag; break;
+            case 2: vx = 1; vy = 0; break;
+            case 3: vx = diag; vy = diag; break;
+            case 4: vx = 0; vy = 1; break;
+            case 5: vx = -diag; vy = diag; break;
+            case 6: vx = -1; vy = 0; break;
+            case 7: vx = -diag; vy = -diag; break;
+        }
 
         const endX = player.x + vx * range;
         const endY = player.y + vy * range;
@@ -161,10 +170,18 @@ class Game {
 
         let vx = 0, vy = 0;
         const speed = 400;
-        if (player.direction === 0) vy = -speed;
-        else if (player.direction === 1) vy = speed;
-        else if (player.direction === 2) vx = -speed;
-        else if (player.direction === 3) vx = speed;
+        const diag = 0.707;
+
+        switch (player.facingDir) {
+            case 0: vx = 0; vy = -speed; break;
+            case 1: vx = speed * diag; vy = -speed * diag; break;
+            case 2: vx = speed; vy = 0; break;
+            case 3: vx = speed * diag; vy = speed * diag; break;
+            case 4: vx = 0; vy = speed; break;
+            case 5: vx = -speed * diag; vy = speed * diag; break;
+            case 6: vx = -speed; vy = 0; break;
+            case 7: vx = -speed * diag; vy = -speed * diag; break;
+        }
 
         this.projectiles.push(new Projectile(player.x, player.y, null, 'fireball', {
             vx, vy,
@@ -182,7 +199,6 @@ class Game {
             const dist = Math.sqrt((this.localPlayer.x - monster.x) ** 2 + (this.localPlayer.y - monster.y) ** 2);
             if (dist < attackRange) {
                 monster.takeDamage(10 + Math.floor(Math.random() * 10));
-                if (monster.isDead) this.spawnLoot(monster);
             }
         });
     }
@@ -200,19 +216,25 @@ class Game {
         // Update Projectiles
         this.projectiles = this.projectiles.filter(p => {
             p.update(dt, this.monsters);
-            // Check for kills by projectiles
-            this.monsters.forEach(m => {
-                if (m.isDead && !m._looted) {
-                    m._looted = true;
-                    this.spawnLoot(m);
-                }
-            });
             return !p.isDead;
         });
 
         // Update monsters
-        this.monsters = this.monsters.filter(monster => {
+        this.monsters.forEach(monster => {
             monster.update(dt);
+        });
+
+        // Universal Kill/Loot Check (Covers Laser, Burn, and Projectiles)
+        this.monsters.forEach(m => {
+            if (m.isDead && !m._looted) {
+                m._looted = true;
+                this.spawnLoot(m);
+            }
+        });
+
+        // Filter out dead and fully processed (looted) monsters
+        this.monsters = this.monsters.filter(monster => {
+            // Keep it if it's alive OR if it's still playing death animation/effect
             return !monster.isDead || monster.hitTimer > 0;
         });
 

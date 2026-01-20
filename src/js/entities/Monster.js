@@ -21,6 +21,7 @@ export default class Monster {
         this.isDead = false;
 
         this.statusEffects = []; // { type: 'burn', timer: 3.0, damage: 2 }
+        this._looted = false;
 
         this.init();
     }
