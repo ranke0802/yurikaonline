@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>유리카 온라인 (Yurica Online)</title>
-    <link rel="stylesheet" href="src/css/style.css?v=0.3">
+    <link rel="stylesheet" href="src/css/style.css?v=0.5">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -44,27 +44,31 @@
                     </div>
                 </div>
 
-                <!-- Quest List (Left) -->
-                <div class="quest-list-panel">
-                    <h3>Quest List ⭐</h3>
-                    <ul>
-                        <li>📜 마을 입구로 가기</li>
-                        <li>🪶 꽃 5송이 모으기</li>
-                    </ul>
-                </div>
-
-                <!-- Minimap (Top Right) -->
+                <!-- Minimap & Quick Menu (Top Right) -->
                 <div id="minimap-container">
                     <div class="minimap-header">Yurica Map</div>
                     <canvas id="minimapCanvas"></canvas>
                     <div class="minimap-footer">X: <span id="mini-pos-x">0</span> Y: <span id="mini-pos-y">0</span>
                     </div>
-                    <div id="fullscreen-toggle" data-key="fullscreen">
-                        <span>📺 Fullscreen</span>
+
+                    <div class="minimap-menu">
+                        <div class="menu-btn inventory-trigger" data-key="shift-b" title="가방">🎒</div>
+                        <div class="menu-btn status-trigger" data-key="shift-i" title="내 정보">👤</div>
+                        <div class="menu-btn fullscreen-toggle" id="fullscreen-toggle" data-key="fullscreen"
+                            title="전체화면">📺</div>
                     </div>
                 </div>
 
-                <!-- Chat Window (Right / Adjusted position) -->
+                <!-- Quest List (Left) -->
+                <div class="quest-list-panel">
+                    <h3>Quest List ⭐</h3>
+                    <ul>
+                        <li>� 마을 입구로 가기</li>
+                        <li>🪶 꽃 5송이 모으기</li>
+                    </ul>
+                </div>
+
+                <!-- Chat Window (Relocated under Quests on Mobile via CSS) -->
                 <div class="chat-window">
                     <div class="chat-header">
                         <span>💬 Chat</span>
@@ -73,7 +77,7 @@
                         </div>
                     </div>
                     <div class="chat-messages">
-                        <div class="message incoming">환영합니다! 유리카 온라인 v0.2 ✨</div>
+                        <div class="message incoming">환영합니다! 유리카 온라인 v0.5 ✨</div>
                     </div>
                     <div class="chat-input-area">
                         <input type="text" placeholder="메세지를 입력하세요...">
@@ -94,34 +98,18 @@
                     <div class="skill-row top-skills">
                         <div class="skill-btn skill-u" data-key="u">
                             <div class="inner-icon">🔥</div>
-                            <span class="key-hint">U</span>
                         </div>
                         <div class="skill-btn skill-k" data-key="k">
                             <div class="inner-icon">🛡️</div>
-                            <span class="key-hint">K</span>
                         </div>
                     </div>
                     <div class="skill-row bottom-skills">
                         <div class="skill-btn skill-h" data-key="h">
                             <div class="inner-icon">🪄</div>
-                            <span class="key-hint">H</span>
                         </div>
                         <div class="attack-btn" data-key="j">
                             <div class="inner-icon">⚔️</div>
-                            <span class="key-hint">J</span>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Utility Buttons (SHIFT shortcuts) -->
-                <div class="utility-bar">
-                    <div class="inventory-trigger" data-key="shift-b">
-                        <div class="bag-icon">🎒</div>
-                        <span>가방 (SHIFT+B)</span>
-                    </div>
-                    <div class="status-trigger" data-key="shift-i">
-                        <div class="char-icon">👤</div>
-                        <span>내 정보 (SHIFT+I)</span>
                     </div>
                 </div>
             </div>
@@ -213,7 +201,7 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="src/js/main.js?v=0.3"></script>
+    <script type="module" src="src/js/main.js?v=0.5"></script>
 </body>
 
 </html>

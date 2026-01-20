@@ -170,12 +170,19 @@ export class InputHandler {
             }
         });
 
-        // UI Action buttons
-        document.querySelectorAll('.skill-btn, .attack-btn, .inventory-trigger, .status-trigger').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const key = btn.getAttribute('data-key');
-                if (key && this.onAction) this.onAction(key);
-            });
+        // UI Action buttons (Add touchstart for mobile responsiveness)
+        const uiButtons = document.querySelectorAll('.skill-btn, .attack-btn, .inventory-trigger, .status-trigger, .fullscreen-toggle, .menu-btn');
+
+        const handleUiAction = (e, btn) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const key = btn.getAttribute('data-key');
+            if (key && this.onAction) this.onAction(key);
+        };
+
+        uiButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => handleUiAction(e, btn));
+            btn.addEventListener('touchstart', (e) => handleUiAction(e, btn), { passive: false });
         });
     }
 

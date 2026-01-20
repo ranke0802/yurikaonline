@@ -6,22 +6,37 @@ export class UIManager {
     }
 
     setupEventListeners() {
+        const handleClose = (e) => {
+            e.preventDefault();
+            this.hideAllPopups();
+        };
         document.querySelectorAll('.close-popup').forEach(btn => {
-            btn.addEventListener('click', () => this.hideAllPopups());
+            btn.addEventListener('click', handleClose);
+            btn.addEventListener('touchstart', handleClose, { passive: false });
         });
 
         // Chat send button
         const sendBtn = document.querySelector('.send-btn');
-        if (sendBtn) sendBtn.addEventListener('click', () => this.sendMessage());
+        const handleSend = (e) => {
+            e.preventDefault();
+            this.sendMessage();
+        };
+        if (sendBtn) {
+            sendBtn.addEventListener('click', handleSend);
+            sendBtn.addEventListener('touchstart', handleSend, { passive: false });
+        }
 
         // Stat Up Buttons
         document.querySelectorAll('.stat-up-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            const handleStatUp = (e) => {
+                e.preventDefault();
                 const stat = btn.getAttribute('data-stat');
                 if (stat && this.game.localPlayer) {
                     this.game.localPlayer.increaseStat(stat);
                 }
-            });
+            };
+            btn.addEventListener('click', handleStatUp);
+            btn.addEventListener('touchstart', handleStatUp, { passive: false });
         });
     }
 
