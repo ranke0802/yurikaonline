@@ -176,34 +176,42 @@
                             </div>
                             <div class="stat-row-ui">
                                 <label>❤️ 체력 (VIT)</label>
-                                <span id="val-vitality">5</span>
-                                <div class="stat-controls-row">
-                                    <button class="stat-down-btn hidden" data-stat="vitality">-</button>
-                                    <button class="stat-up-btn" data-stat="vitality">+</button>
+                                <div class="stat-value-container">
+                                    <span id="val-vitality" class="stat-value">5</span>
+                                    <div class="stat-controls-row">
+                                        <button class="stat-down-btn hidden" data-stat="vitality">-</button>
+                                        <button class="stat-up-btn" data-stat="vitality">+</button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="stat-row-ui">
                                 <label>🧠 지력 (INT)</label>
-                                <span id="val-intelligence">5</span>
-                                <div class="stat-controls-row">
-                                    <button class="stat-down-btn hidden" data-stat="intelligence">-</button>
-                                    <button class="stat-up-btn" data-stat="intelligence">+</button>
+                                <div class="stat-value-container">
+                                    <span id="val-intelligence" class="stat-value">5</span>
+                                    <div class="stat-controls-row">
+                                        <button class="stat-down-btn hidden" data-stat="intelligence">-</button>
+                                        <button class="stat-up-btn" data-stat="intelligence">+</button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="stat-row-ui">
                                 <label>✨ 지혜 (WIS)</label>
-                                <span id="val-wisdom">5</span>
-                                <div class="stat-controls-row">
-                                    <button class="stat-down-btn hidden" data-stat="wisdom">-</button>
-                                    <button class="stat-up-btn" data-stat="wisdom">+</button>
+                                <div class="stat-value-container">
+                                    <span id="val-wisdom" class="stat-value">5</span>
+                                    <div class="stat-controls-row">
+                                        <button class="stat-down-btn hidden" data-stat="wisdom">-</button>
+                                        <button class="stat-up-btn" data-stat="wisdom">+</button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="stat-row-ui">
                                 <label>⚡ 순발력 (AGI)</label>
-                                <span id="val-agility">5</span>
-                                <div class="stat-controls-row">
-                                    <button class="stat-down-btn hidden" data-stat="agility">-</button>
-                                    <button class="stat-up-btn" data-stat="agility">+</button>
+                                <div class="stat-value-container">
+                                    <span id="val-agility" class="stat-value">5</span>
+                                    <div class="stat-controls-row">
+                                        <button class="stat-down-btn hidden" data-stat="agility">-</button>
+                                        <button class="stat-up-btn" data-stat="agility">+</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -279,6 +287,23 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Confirm Modal (Modern UI) -->
+        <div id="confirm-modal" class="hidden">
+            <div class="confirm-content">
+                <p id="confirm-message">스텟을 저장하시겠습니까?<br><small>한번 저장하면 변경할 수 없습니다.</small></p>
+                <div class="confirm-buttons">
+                    <button id="confirm-yes">확인</button>
+                    <button id="confirm-no">취소</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skill Tooltip -->
+        <div id="skill-tooltip" class="hidden">
+            <div class="tooltip-name">스킬 이름</div>
+            <div class="tooltip-desc">설명</div>
         </div>
 
         <!-- Touch Feedback -->

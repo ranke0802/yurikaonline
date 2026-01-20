@@ -40,10 +40,10 @@ export default class Player {
             fireball: 1,
             shield: 1
         };
-        this.vitality = 5;
+        this.vitality = 1;
         this.intelligence = 5;
-        this.wisdom = 5;
-        this.agility = 5;
+        this.wisdom = 2;
+        this.agility = 1;
 
         // Derived Stats
         this.attackPower = 10;
@@ -149,8 +149,13 @@ export default class Player {
         return false;
     }
 
-    recoverMana(amount) {
-        this.mp = Math.min(this.maxMp, this.mp + amount);
+    recoverMana(amount, showFeedback = false) {
+        const recover = Math.min(this.maxMp - this.mp, amount);
+        if (recover <= 0) return;
+        this.mp += recover;
+        if (showFeedback && window.game) {
+            window.game.addDamageText(this.x, this.y - 20, `+${Math.round(recover)}`, '#48dbfb');
+        }
     }
 
     async init() {

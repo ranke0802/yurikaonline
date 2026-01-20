@@ -123,9 +123,9 @@ class Game {
         const player = this.localPlayer;
         player.triggerAction('ATTACK');
 
-        // Initial mana recovery: 2, +1 per level
+        // Initial mana recovery: 1, +1 per level
         const laserLv = player.skillLevels.laser || 1;
-        player.recoverMana(1 + laserLv);
+        player.recoverMana(laserLv, true); // true = show feedback
 
         let range = 600;
         let vx = 0, vy = 0;
@@ -366,12 +366,12 @@ class Game {
             if (ft.label) {
                 // Draw label (e.g. "Critical")
                 this.ctx.font = `bold 18px "Outfit", sans-serif`;
-                this.ctx.strokeText(ft.label, sx, sy - 25);
+                this.ctx.strokeText(ft.label, sx, sy - 35);
                 this.ctx.fillStyle = '#ffffff';
-                this.ctx.fillText(ft.label, sx, sy - 25);
+                this.ctx.fillText(ft.label, sx, sy - 35);
             }
 
-            const fontSize = ft.isCrit ? 40 : 20; // 2x size for crit
+            const fontSize = ft.isCrit ? 50 : 20; // 2.5x size for crit
             this.ctx.font = `bold ${fontSize}px "Outfit", sans-serif`;
 
             this.ctx.strokeText(ft.text, sx, sy);

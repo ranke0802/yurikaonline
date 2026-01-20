@@ -17,6 +17,49 @@ export class UIManager {
             btn.addEventListener('touchstart', handleClose, { passive: false });
         });
 
+        // Confirmation Modal
+        this.confirmModal = document.getElementById('confirm-modal');
+        this.confirmYes = document.getElementById('confirm-yes');
+        this.confirmNo = document.getElementById('confirm-no');
+        this.confirmCallback = null;
+
+        this.confirmYes.addEventListener('click', () => {
+            if (this.confirmCallback) this.confirmCallback(true);
+            this.hideConfirm();
+        });
+        this.confirmNo.addEventListener('click', () => {
+            if (this.confirmCallback) this.confirmCallback(false);
+            this.hideConfirm();
+        });
+
+        // Skill Tooltips
+        this.tooltip = document.getElementById('skill-tooltip');
+        this.skillData = {
+            laser: { name: '레이저 공격', desc: '기공을 모아 전방에 레이저를 발사합니다. 적중 시 마나를 회복합니다.' },
+            missile: { name: '매직 미사일', desc: '유도 마나 탄환을 발사합니다. 레벨에 따라 발사 수가 증가합니다.' },
+            fireball: { name: '파이어볼', desc: '강력한 화염구를 던집니다. 폭발 범위 내 적들에게 화상 피해를 입힙니다.' },
+            shield: { name: '마나 쉴드', desc: '마나를 사용하여 보호막을 생성합니다. 피해의 일부를 마나로 흡수합니다.' }
+        };
+
+        document.querySelectorAll('.skill-icon-container').forEach(container => {
+            const skillId = container.closest('.skill-row-ui')?.querySelector('.skill-up-btn')?.getAttribute('data-skill');
+            if (!skillId) return;
+
+            const show = (e) => {
+                const rect = container.getBoundingClientRect();
+                this.showTooltip(skillId, rect.left, rect.top);
+            };
+            const hide = () => this.hideTooltip();
+
+            container.addEventListener('mouseenter', show);
+            container.addEventListener('mouseleave', hide);
+            container.addEventListener('touchstart', (e) => {
+                show(e);
+                // For mobile, maybe hide after a delay or on next touch
+            }, { passive: true });
+            container.addEventListener('touchend', hide, { passive: true });
+        });
+
         // Chat send button
         const sendBtn = document.querySelector('.send-btn');
         const handleSend = (e) => {
@@ -103,13 +146,23 @@ export class UIManager {
         if (!isCurrentlyHidden && id === 'status-popup') {
             const totalPending = Object.values(this.pendingStats).reduce((a, b) => a + b, 0);
             if (totalPending > 0) {
-                if (confirm('스텟을 저장하시겠습니까? 한번 저장하면 변경할 수 없습니다.')) {
-                    this.savePendingStats();
-                } else {
-                    this.cancelPendingStats();
-                }
+                this.showConfirm('스텟을 저장하시겠습니까?<br><small>한번 저장하면 변경할 수 없습니다.</small>', (result) => {
+                    if (result) {
+                        this.savePendingStats();
+                    } else {
+                        this.cancelPendingStats();
+                    }
+                    this.executePopupClose(id);
+                });
+                return; // Wait for confirm
             }
         }
+
+        this.executePopupClose(id, isCurrentlyHidden, popup);
+    }
+
+    executePopupClose(id, isCurrentlyHidden, popup) {
+        if (!popup) popup = document.getElementById(id);
 
         document.querySelectorAll('.game-popup').forEach(p => p.classList.add('hidden'));
 
@@ -125,6 +178,30 @@ export class UIManager {
         } else {
             this.overlay.classList.add('hidden');
         }
+    }
+
+    showConfirm(message, callback) {
+        document.getElementById('confirm-message').innerHTML = message;
+        this.confirmModal.classList.remove('hidden');
+        this.confirmCallback = callback;
+    }
+
+    hideConfirm() {
+        this.confirmModal.classList.add('hidden');
+    }
+
+    showTooltip(skillId, x, y) {
+        const data = this.skillData[skillId];
+        if (!data) return;
+        this.tooltip.querySelector('.tooltip-name').textContent = data.name;
+        this.tooltip.querySelector('.tooltip-desc').textContent = data.desc;
+        this.tooltip.style.left = `${x}px`;
+        this.tooltip.style.top = `${y}px`;
+        this.tooltip.classList.remove('hidden');
+    }
+
+    hideTooltip() {
+        this.tooltip.classList.add('hidden');
     }
 
     savePendingStats() {
