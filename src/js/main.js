@@ -107,6 +107,10 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.12', date: '2026-01-21', title: 'Dynamic Skill Info',
+                logs: ['스킬 툴팁에 현재 레벨 기준 상세 수치 표시 기능 추가', '데미지, 소모량, 범위 등 실시간 스텟 반영']
+            },
+            {
                 version: 'v1.11', date: '2026-01-21', title: 'Cache Busting & Stability',
                 logs: ['자동 캐시 방지 시스템 도입 (새 버전 업데이트 시 자동 반영)', '이미지 및 스크립트 로딩 최적화', '전체적인 게임 버전 v1.11 업데이트']
             },

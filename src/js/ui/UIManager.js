@@ -243,10 +243,41 @@ export class UIManager {
     }
 
     showTooltip(skillId, x, y) {
+        const p = this.game.localPlayer;
+        if (!p) return;
         const data = this.skillData[skillId];
         if (!data) return;
+
+        const lv = p.skillLevels[skillId] || 1;
+        let currentEffect = "";
+
+        switch (skillId) {
+            case 'laser':
+                const laserDmg = Math.floor(p.attackPower * (1.0 + (lv - 1) * 0.2));
+                const mpRec = Math.min(5, 1 + Math.floor(lv / 2));
+                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>데미지: ${laserDmg} | 마나 회복: ${mpRec}</div>`;
+                break;
+            case 'missile':
+                const mCount = lv;
+                const mDmg = Math.floor(p.attackPower * 0.8);
+                const mCost = Math.floor(2 * Math.pow(1.5, mCount - 1));
+                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>발사 수: ${mCount}개 | 발당 데미지: ${mDmg} | 마나 소모: ${mCost}</div>`;
+                break;
+            case 'fireball':
+                const fDmg = Math.floor(p.attackPower * (1.0 + (lv - 1) * 0.3));
+                const fRad = 80 + (lv - 1) * 40;
+                const fBurn = 5 + (lv - 1);
+                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>데미지: ${fDmg} | 범위: ${fRad} | 화상: ${fBurn}초</div>`;
+                break;
+            case 'shield':
+                const reduction = Math.min(0.9, 0.6 + (lv - 1) * 0.05);
+                const dur = 60 + (lv - 1) * 20;
+                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>피해 흡수율: ${(reduction * 100).toFixed(0)}% | 지속시간: ${dur}초</div>`;
+                break;
+        }
+
         this.tooltip.querySelector('.tooltip-name').textContent = data.name;
-        this.tooltip.querySelector('.tooltip-desc').textContent = data.desc;
+        this.tooltip.querySelector('.tooltip-desc').innerHTML = data.desc + currentEffect;
         this.tooltip.style.left = `${x}px`;
         this.tooltip.style.top = `${y}px`;
         this.tooltip.classList.remove('hidden');

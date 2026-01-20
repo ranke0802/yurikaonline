@@ -1367,6 +1367,14 @@ html {
     line-height: 1.4;
 }
 
+.current-effect {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #ffd6a5;
+    color: #2980b9;
+    font-weight: bold;
+}
+
 /* 퀘스트 보상 버튼 */
 .quest-claim-btn {
     display: inline-block;
