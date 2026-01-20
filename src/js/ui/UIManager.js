@@ -163,11 +163,16 @@ export class UIManager {
         document.querySelectorAll('.game-popup').forEach(p => p.classList.add('hidden'));
     }
 
-    updateStats(hp, mp) {
+    updateStats(hp, mp, level, expPerc) {
         const hpFill = document.querySelector('.hp-fill');
         const mpFill = document.querySelector('.mp-fill');
+        const expFill = document.querySelector('.exp-fill');
+        const levelEl = document.getElementById('ui-level');
+
         if (hpFill) hpFill.style.width = `${hp}%`;
         if (mpFill) mpFill.style.width = `${mp}%`;
+        if (expFill) expFill.style.width = `${expPerc}%`;
+        if (levelEl) levelEl.textContent = level;
     }
 
     updateMinimap(player, monsters, mapWidth, mapHeight) {

@@ -461,7 +461,13 @@ export default class Player {
         });
 
         if (window.game?.ui) {
-            window.game.ui.updateStats((this.hp / this.maxHp) * 100, (this.mp / this.maxMp) * 100);
+            const expPerc = (this.exp / this.maxExp) * 100;
+            window.game.ui.updateStats(
+                (this.hp / this.maxHp) * 100,
+                (this.mp / this.maxMp) * 100,
+                this.level,
+                expPerc
+            );
         }
     }
 
