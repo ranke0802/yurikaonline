@@ -107,6 +107,10 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.09', date: '2026-01-21', title: 'Hotfix',
+                logs: ['좌우 방향 레이저 공격 발사가 대각선으로 휘어지던 버그 수정']
+            },
+            {
                 version: 'v1.08', date: '2026-01-21', title: 'Balance Update',
                 logs: ['슬라임 처치 퀘스트 보상 조정 (스텟 10개 -> 2개)', '중복 퀘스트 보상 지급 버그 수정']
             },
@@ -151,8 +155,8 @@ class Game {
 
         const vxList = [0, 0.707, 1, 0.707, 0, -0.707, -1, -0.707];
         const vyList = [-1, -0.707, 0, 0.707, 1, 0.707, 0, -0.707];
-        const vx = vxList[player.facingDir] || 0;
-        const vy = vyList[player.facingDir] || 1;
+        const vx = vxList[player.facingDir];
+        const vy = vyList[player.facingDir];
 
         const range = 400 + (laserLv - 1) * 20;
         const ex = player.x + vx * range;

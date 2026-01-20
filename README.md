@@ -1,5 +1,13 @@
-# 🌸 유리카 온라인 (Yurica Online) v1.08 (Balance Update)
+# 🌸 유리카 온라인 (Yurica Online) v1.09 (Hotfix)
 [**🎮 지금 바로 플레이하기 (Live Demo)**](https://ranke0802.github.io/yurikaonline/)
+
+### 🔄 최근 업데이트 내역 (v1.09)
+- **버그 수정**:
+    - **레이저 발사 방향 오류 수정**: 캐릭터가 왼쪽 또는 오른쪽을 바라보고 일반 공격(레이저)을 할 때, 공격이 일직선으로 나가지 않고 대각선으로 휘어지던 치명적인 오류를 수정했습니다.
+
+---
+
+# 🌸 유리카 온라인 (Yurica Online) v1.08 (Balance Update)
 
 ### 🔄 최근 업데이트 내역 (v1.08)
 - **밸런스 조정**:
