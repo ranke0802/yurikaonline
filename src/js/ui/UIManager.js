@@ -4,6 +4,7 @@ export class UIManager {
         this.overlay = document.getElementById('popup-overlay');
         this.pendingStats = { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
         this.initialPoints = 0;
+        this.isPaused = false;
         this.setupEventListeners();
     }
 
@@ -35,10 +36,10 @@ export class UIManager {
         // Skill Tooltips
         this.tooltip = document.getElementById('skill-tooltip');
         this.skillData = {
-            laser: { name: '레이저 공격 (J)', desc: '기공을 모아 전방에 레이저를 발사합니다. 적중 시 마나를 회복합니다.' },
-            missile: { name: '매직 미사일 (H)', desc: '유도 마나 탄환을 발사합니다. 레벨에 따라 발사 수가 증가합니다.' },
-            fireball: { name: '파이어볼 (U)', desc: '강력한 화염구를 던집니다. 폭발 범위 내 적들에게 화상 피해를 입힙니다.' },
-            shield: { name: '매직 실드 (K)', desc: '마나의 결계를 생성하여 모든 피해를 마나로 100% 흡수합니다. 레벨에 따라 피해 흡수 효율(MP 소모량)이 대폭 강화됩니다. (Lv.1: 데미지의 40% 소모 ~ Lv.7: 데미지의 10% 소모)' }
+            laser: { name: '레이저 공격 (J)', desc: '관통형 기공파를 발사합니다. [데미지: 공격력의 100% / 레벨당 +20% 추가] [적중 시 마나 회복: 레벨당 +1]' },
+            missile: { name: '매직 미사일 (H)', desc: '자동 추적 미사일을 발사합니다. [데미지: 공격력의 80%] [발사 수: 레벨당 +1개] [마나 소모: 1.5배씩 증가]' },
+            fireball: { name: '파이어볼 (U)', desc: '폭발하는 화염구를 던집니다. [직격 데미지: 공격력의 130% / 레벨당 +30% 추가] [화상: 5초 이상 지속 / 레벨당 +1초]' },
+            shield: { name: '매직 실드 (K)', desc: '마나의 결계를 생성하여 모든 피해를 마나로 100% 흡수합니다. 레벨에 따라 피해 흡수 효율(MP 소모량)이 대폭 강화됩니다. [효율: 데미지의 40% 소모(Lv.1) ~ 10% 소모(Lv.7)]' }
         };
 
         const keyToSkill = { 'j': 'laser', 'h': 'missile', 'u': 'fireball', 'k': 'shield' };
@@ -224,8 +225,10 @@ export class UIManager {
             }
             if (id === 'inventory-popup') this.updateInventory();
             if (id === 'skill-popup') this.updateSkillPopup();
+            this.isPaused = true;
         } else {
             this.overlay.classList.add('hidden');
+            this.isPaused = false;
         }
     }
 
@@ -380,16 +383,83 @@ export class UIManager {
         const bossItem = document.getElementById('quest-boss');
 
         if (slimeCount) slimeCount.textContent = Math.min(10, p.questData.slimeKills);
-        if (p.questData.slimeQuestDone && slimeItem) {
+
+        // Add Claim button if finished but not claimed
+        this.renderQuestButtons(p);
+
+        if (p.questData.slimeQuestClaimed && slimeItem) {
             slimeItem.style.textDecoration = 'line-through';
             slimeItem.style.opacity = '0.5';
         }
 
         if (bossStatus) bossStatus.textContent = p.questData.bossKilled ? '완료' : '미완료';
-        if (p.questData.bossQuestDone && bossItem) {
+        if (p.questData.bossQuestClaimed && bossItem) {
             bossItem.style.textDecoration = 'line-through';
             bossItem.style.opacity = '0.5';
         }
+    }
+
+    renderQuestButtons(p) {
+        const slimeQuest = document.getElementById('quest-slime');
+        const bossQuest = document.getElementById('quest-boss');
+
+        if (p.questData.slimeKills >= 10 && !p.questData.slimeQuestClaimed) {
+            if (!document.getElementById('claim-slime-btn')) {
+                const btn = document.createElement('button');
+                btn.id = 'claim-slime-btn';
+                btn.className = 'quest-claim-btn';
+                btn.textContent = '보상 받기';
+                btn.onclick = () => this.claimReward('slime');
+                slimeQuest.appendChild(btn);
+            }
+        }
+
+        if (p.questData.bossKilled && !p.questData.bossQuestClaimed) {
+            if (!document.getElementById('claim-boss-btn')) {
+                const btn = document.createElement('button');
+                btn.id = 'claim-boss-btn';
+                btn.className = 'quest-claim-btn';
+                btn.textContent = '보상 받기';
+                btn.onclick = () => this.claimReward('boss');
+                bossQuest.appendChild(btn);
+            }
+        }
+    }
+
+    claimReward(type) {
+        const p = this.game.localPlayer;
+        let title = "";
+        let rewardText = "";
+
+        if (type === 'slime') {
+            p.questData.slimeQuestClaimed = true;
+            p.statPoints += 5;
+            title = "슬라임 처치 퀘스트 완료!";
+            rewardText = "보상: 보너스 스텟 포인트 5개 획득!";
+            const btn = document.getElementById('claim-slime-btn');
+            if (btn) btn.remove();
+        } else if (type === 'boss') {
+            p.questData.bossQuestClaimed = true;
+            p.addGold(1000);
+            title = "대왕 슬라임 처치 퀘스트 완료!";
+            rewardText = "보상: 1000 골드 획득!";
+            const btn = document.getElementById('claim-boss-btn');
+            if (btn) btn.remove();
+        }
+
+        this.showRewardModal(title, rewardText);
+        this.updateQuestUI();
+        this.updateStatusPopup();
+    }
+
+    showRewardModal(title, message) {
+        const modal = document.getElementById('reward-modal');
+        const titleEl = document.getElementById('reward-title');
+        const msgEl = document.getElementById('reward-message');
+
+        if (titleEl) titleEl.textContent = title;
+        if (msgEl) msgEl.textContent = message;
+        if (modal) modal.classList.remove('hidden');
     }
 
     updateInventory() {
@@ -544,5 +614,36 @@ export class UIManager {
                 document.exitFullscreen();
             }
         }
+        toggleUpdateHistory() {
+            const modal = document.getElementById('history-modal');
+            if (!modal) return;
+
+            const isHidden = modal.classList.contains('hidden');
+            if (isHidden) {
+                this.renderHistory();
+                modal.classList.remove('hidden');
+                this.isPaused = true;
+            } else {
+                modal.classList.add('hidden');
+                this.isPaused = false;
+            }
+        }
+
+        renderHistory() {
+            const listEl = document.getElementById('history-list');
+            if (!listEl || !this.game.updateHistory) return;
+
+            listEl.innerHTML = this.game.updateHistory.map(item => `
+            <div class="history-item">
+                <div class="history-v-row">
+                    <span class="history-v">${item.version}</span>
+                    <span class="history-date">${item.date}</span>
+                </div>
+                <div class="history-title">${item.title}</div>
+                <ul class="history-logs">
+                    ${item.logs.map(log => `<li>${log}</li>`).join('')}
+                </ul>
+            </div>
+        `).join('');
+        }
     }
-}

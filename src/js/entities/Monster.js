@@ -176,6 +176,10 @@ export default class Monster {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
 
+        // Keep inside map bounds (2000x2000)
+        this.x = Math.max(50, Math.min(1950, this.x));
+        this.y = Math.max(50, Math.min(1950, this.y));
+
         if (this.hitTimer > 0) {
             this.hitTimer -= dt;
         }
@@ -216,7 +220,7 @@ export default class Monster {
             window.game.addDamageText(this.x, this.y - 40, Math.floor(amount), isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null);
         }
 
-        if (this.hp <= 0) {
+        if (this.hp < 1) {
             this.isDead = true;
         }
     }

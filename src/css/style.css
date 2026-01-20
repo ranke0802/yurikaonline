@@ -1319,3 +1319,102 @@ html {
     color: #4a3e35;
     line-height: 1.4;
 }
+
+/* 퀘스트 보상 버튼 */
+.quest-claim-btn {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    background: #4ade80;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 0 #22c55e;
+    vertical-align: middle;
+}
+
+.quest-claim-btn:hover {
+    background: #22c55e;
+}
+
+/* 버전 정보 아이콘 */
+.version-info {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(45, 52, 54, 0.8);
+    color: #f1c40f;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(241, 196, 15, 0.3);
+    z-index: 1500;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s, background 0.2s;
+}
+
+.version-info:hover {
+    transform: scale(1.05);
+    background: rgba(45, 52, 54, 0.95);
+}
+
+/* 히스토리 모달 내부 스타일 */
+.history-content {
+    max-width: 400px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #ddd;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+}
+
+.close-history {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+.history-item {
+    margin-bottom: 20px;
+    padding-left: 10px;
+    border-left: 3px solid #3498db;
+}
+
+.history-v {
+    font-weight: bold;
+    color: #2980b9;
+    font-size: 16px;
+}
+
+.history-date {
+    font-size: 12px;
+    color: #95a5a6;
+    margin-left: 10px;
+}
+
+.history-logs {
+    margin-top: 5px;
+    padding-left: 20px;
+    font-size: 13px;
+    color: #34495e;
+    list-style: disc;
+}
+
+.history-logs li {
+    margin-bottom: 3px;
+}

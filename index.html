@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>유리카 온라인 v1.02 (Quest & Economy)</title>
-    <link rel="stylesheet" href="src/css/style.css?v=1.02">
+    <title>유리카 온라인 v1.03 (Expansion)</title>
+    <link rel="stylesheet" href="src/css/style.css?v=1.03">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -109,7 +109,7 @@
                             </div>
                         </div>
                         <div class="chat-messages">
-                            <div class="message incoming">환영합니다! 유리카 온라인 v1.02 ✨</div>
+                            <div class="message incoming">환영합니다! 유리카 온라인 v1.03 ✨</div>
                         </div>
                         <div class="chat-input-area">
                             <input type="text" placeholder="메세지를 입력하세요...">
@@ -362,8 +362,35 @@
         <div id="touch-pointer" class="hidden"></div>
     </div>
 
-    <!-- Scripts -->
-    <script type="module" src="src/js/main.js?v=1.02"></script>
+    <!-- Reward Modal -->
+    <div id="reward-modal" class="confirm-modal-overlay hidden">
+        <div class="confirm-modal-content reward-content">
+            <h2 id="reward-title">퀘스트 완료!</h2>
+            <p id="reward-message">보상을 획득했습니다.</p>
+            <button class="confirm-btn"
+                onclick="document.getElementById('reward-modal').classList.add('hidden')">확인</button>
+        </div>
+    </div>
+
+    <!-- Update History UI -->
+    <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
+        📦 v1.03
+    </div>
+
+    <!-- Update History Modal -->
+    <div id="history-modal" class="confirm-modal-overlay hidden">
+        <div class="confirm-modal-content history-content">
+            <div class="history-header">
+                <h2>업데이트 히스토리 📜</h2>
+                <button class="close-history" onclick="window.game.ui.toggleUpdateHistory()">×</button>
+            </div>
+            <div id="history-list" class="history-list">
+                <!-- Content injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="src/js/main.js?v=1.03"></script>
 </body>
 
 </html>

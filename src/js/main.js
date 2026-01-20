@@ -99,10 +99,23 @@ class Game {
             new Monster(800, 900, '슬라임'),
             new Monster(1500, 1300, '대왕 슬라임')
         ];
-        this.monsters[2].width = 150;
-        this.monsters[2].height = 150;
-        this.monsters[2].maxHp = 300;
         this.monsters[2].hp = 300;
+        this.monsters[2].isBoss = true;
+
+        this.updateHistory = [
+            {
+                version: 'v1.02', date: '2026-01-21', title: 'Quest & Economy',
+                logs: ['골드 기반 스킬 강화 시스템', '슬라임 처치/보스 처치 퀘스트 추가', '레벨별 동시 적대 몬스터 수 제한']
+            },
+            {
+                version: 'v1.01', date: '2026-01-20', title: 'Visual UX & Comfort',
+                logs: ['아이템 자동 획득 범위 확장', '파이어볼 피격 예상지점 표시', '사망 모달 및 부활 대기시간 도입']
+            },
+            {
+                version: 'v1.0', date: '2026-01-20', title: 'Advanced UI & Balance',
+                logs: ['수동 스텟 분배 시스템', '스킬 개별 쿨타임 및 오버레이', '치명타 연출 강화']
+            }
+        ];
 
         this.portraitInitialized = false;
         this.init();
@@ -289,6 +302,8 @@ class Game {
     }
 
     update(dt) {
+        if (this.ui.isPaused) return;
+
         this.localPlayer.update(dt, this.input);
 
         // Update Projectiles
@@ -297,25 +312,25 @@ class Game {
             return !p.isDead;
         });
 
-        // Update monsters with Aggro Limit
+        // Update monsters with Aggro Limit & Targeted Aggro
         let aggroCount = 0;
         const maxAggro = this.localPlayer.level + 1;
 
         this.monsters.forEach(monster => {
-            // Check if this monster is already aggro or wants to be aggro
             const dist = Math.sqrt((this.localPlayer.x - monster.x) ** 2 + (this.localPlayer.y - monster.y) ** 2);
             const reflectsDamage = monster.hp < monster.maxHp;
             const isNear = dist < 400;
 
-            let canBeAggro = (this.playerHasAttacked || reflectsDamage) && isNear;
-
-            // If already at limit, newly approaching monsters stays peaceful
-            if (canBeAggro) {
+            // Reactive Aggro: If the player specifically attacked THIS monster
+            // Proactive Aggro: If monster is just near and we haven't reached limit
+            if (reflectsDamage) {
+                monster.isAggro = true; // Always aggro if hurt
+            } else if (this.playerHasAttacked && isNear) {
                 if (aggroCount < maxAggro) {
                     monster.isAggro = true;
                     aggroCount++;
                 } else {
-                    monster.isAggro = false; // Stay peaceful due to limit
+                    monster.isAggro = false;
                 }
             } else {
                 monster.isAggro = false;
@@ -349,7 +364,7 @@ class Game {
             return !monster.isDead || monster.hitTimer > 0;
         });
 
-        // Spawning logic (Every 3 seconds, up to 10 monsters)
+        // Spawning logic (Level-based respawn speed)
         if (!this.spawnTimer) this.spawnTimer = 0;
         this.spawnTimer -= dt;
         if (this.spawnTimer <= 0 && this.monsters.length < 10) {
@@ -358,7 +373,7 @@ class Game {
 
             // Randomly spawn a "Big Slime" as a mini-boss occasionally
             if (Math.random() < 0.1) {
-                const boss = new Monster(mx, my, '대왕 슬라임 (BOSS)');
+                const boss = new Monster(mx, my, '대왕 슬라임');
                 boss.width = 150;
                 boss.height = 150;
                 boss.maxHp = 500;
@@ -368,7 +383,9 @@ class Game {
             } else {
                 this.monsters.push(new Monster(mx, my, '야생 슬라임'));
             }
-            this.spawnTimer = 3.0; // Every 3 seconds
+            // Faster respawn as level increases: Base 3s, -0.2s per level (min 1s)
+            const respawnDelay = Math.max(1.0, 3.0 - (this.localPlayer.level - 1) * 0.2);
+            this.spawnTimer = respawnDelay;
         }
 
         // Update drops

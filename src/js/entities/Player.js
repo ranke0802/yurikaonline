@@ -37,8 +37,8 @@ export default class Player {
         this.questData = {
             slimeKills: 0,
             bossKilled: false,
-            slimeQuestDone: false,
-            bossQuestDone: false
+            slimeQuestClaimed: false,
+            bossQuestClaimed: false
         };
         this.skillLevels = {
             laser: 1,
@@ -123,7 +123,7 @@ export default class Player {
             this.triggerAction(`-${Math.round(finalHpDamage)}`);
         }
 
-        if (this.hp <= 0 && !this.isDead) {
+        if (this.hp < 1 && !this.isDead) {
             this.isDead = true;
             this.hp = 0;
             this.triggerAction('DIED');
@@ -140,6 +140,9 @@ export default class Player {
         this.y = 1000;
         this.isDead = false;
         this.triggerAction('RESPAWN');
+        if (window.game) {
+            window.game.playerHasAttacked = false; // Reset peace mode on respawn
+        }
     }
 
     recoverHp(amount) {
@@ -588,8 +591,8 @@ export default class Player {
 
             // Outer thick glow
             ctx.strokeStyle = '#00ffff';
-            ctx.lineWidth = 12 * lifeRatio;
-            ctx.shadowBlur = 20;
+            ctx.lineWidth = 24 * lifeRatio; // Increased from 12
+            ctx.shadowBlur = 40; // Increased from 20
             ctx.shadowColor = '#00ffff';
             ctx.globalAlpha = 0.4;
             ctx.beginPath();
@@ -599,12 +602,12 @@ export default class Player {
 
             // Middle layer
             ctx.globalAlpha = 0.8;
-            ctx.lineWidth = 6 * lifeRatio;
+            ctx.lineWidth = 12 * lifeRatio; // Increased from 6
             ctx.stroke();
 
             // Inner white core
             ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2 * lifeRatio;
+            ctx.lineWidth = 4 * lifeRatio; // Increased from 2
             ctx.shadowBlur = 0;
             ctx.stroke();
 
@@ -643,6 +646,43 @@ export default class Player {
             ctx.strokeText(this.actionFdbk, screenX, screenY - 70);
             ctx.fillText(this.actionFdbk, screenX, screenY - 70);
         }
+
+        // Draw Direction Arrow
+        this.drawDirectionArrow(ctx, screenX, screenY);
+    }
+
+    drawDirectionArrow(ctx, sx, sy) {
+        ctx.save();
+        const dist = 60;
+        let vx = 0, vy = 0;
+        const diag = 0.707;
+        switch (this.facingDir) {
+            case 0: vx = 0; vy = -1; break;
+            case 1: vx = diag; vy = -diag; break;
+            case 2: vx = 1; vy = 0; break;
+            case 3: vx = diag; vy = diag; break;
+            case 4: vx = 0; vy = 1; break;
+            case 5: vx = -diag; vy = diag; break;
+            case 6: vx = -1; vy = 0; break;
+            case 7: vx = -diag; vy = -diag; break;
+        }
+
+        const ax = sx + vx * dist;
+        const ay = sy + vy * dist;
+        const angle = Math.atan2(vy, vx);
+
+        ctx.translate(ax, ay);
+        ctx.rotate(angle);
+
+        ctx.fillStyle = 'rgba(255, 235, 59, 0.6)';
+        ctx.beginPath();
+        ctx.moveTo(10, 0);
+        ctx.lineTo(-5, -8);
+        ctx.lineTo(-5, 8);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
     }
 }
 
