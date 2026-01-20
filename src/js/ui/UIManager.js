@@ -279,10 +279,12 @@ export class UIManager {
     hideAllPopups() {
         const statusPopup = document.getElementById('status-popup');
         if (statusPopup && !statusPopup.classList.contains('hidden')) {
+            // Status popup has special handling due to confirm modal
             this.togglePopup('status-popup');
         } else {
             if (this.overlay) this.overlay.classList.add('hidden');
             document.querySelectorAll('.game-popup').forEach(p => p.classList.add('hidden'));
+            this.isPaused = false;
         }
     }
 

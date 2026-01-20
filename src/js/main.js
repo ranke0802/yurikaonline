@@ -104,6 +104,10 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.04', date: '2026-01-21', title: 'System Pause & Fix',
+                logs: ['스킬/인벤토리 창 열기 시 게임 일시정지', '창 닫기 시 게임 재개 버그 수정']
+            },
+            {
                 version: 'v1.02', date: '2026-01-21', title: 'Quest & Economy',
                 logs: ['골드 기반 스킬 강화 시스템', '슬라임 처치/보스 처치 퀘스트 추가', '레벨별 동시 적대 몬스터 수 제한']
             },
