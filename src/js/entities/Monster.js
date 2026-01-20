@@ -23,6 +23,10 @@ export default class Monster {
         this.statusEffects = []; // { type: 'burn', timer: 3.0, damage: 2 }
         this._looted = false;
 
+        this.vx = 0;
+        this.vy = 0;
+        this.moveTimer = 0;
+
         this.init();
     }
 
@@ -133,34 +137,38 @@ export default class Monster {
         const playerHasAttacked = window.game?.playerHasAttacked;
         const reflectsDamage = this.hp < this.maxHp;
 
-        if (player && (playerHasAttacked || reflectsDamage)) {
+        if (player) {
             const dist = Math.sqrt((player.x - this.x) ** 2 + (player.y - this.y) ** 2);
 
-            // Detection Range (400px)
-            if (dist < 400 && dist > 50) {
+            // 적대적 행위 (추격 및 공격)는 플레이어가 공격했거나 데미지를 입었을 때만
+            if ((playerHasAttacked || reflectsDamage) && dist < 400 && dist > 50) {
                 const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                const speed = 100; // Chasing speed
+                const speed = 100;
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
-            } else if (dist <= 60) {
-                // Attack Range
+            } else if ((playerHasAttacked || reflectsDamage) && dist <= 60) {
                 this.vx = 0;
                 this.vy = 0;
                 if (this.attackCooldown <= 0) {
-                    player.takeDamage(5 + (Math.random() * 5)); // Base monster damage
-                    this.attackCooldown = 1.5; // Attack interval
-                    this.hitTimer = 0.1; // Slight recoiling effect
+                    player.takeDamage(5 + (Math.random() * 5));
+                    this.attackCooldown = 1.5;
+                    this.hitTimer = 0.1;
                 }
             } else {
-                // Simple wandering behavior
-                if (!this.moveTimer) this.moveTimer = 0;
+                // 평상시: 정지하거나 자유롭게 배회
                 this.moveTimer -= dt;
                 if (this.moveTimer <= 0) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const speed = 30 + Math.random() * 40;
-                    this.vx = Math.cos(angle) * speed;
-                    this.vy = Math.sin(angle) * speed;
-                    this.moveTimer = 2 + Math.random() * 2;
+                    const shouldMove = Math.random() < 0.7; // 70% 확률로 이동
+                    if (shouldMove) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const speed = 30 + Math.random() * 40;
+                        this.vx = Math.cos(angle) * speed;
+                        this.vy = Math.sin(angle) * speed;
+                    } else {
+                        this.vx = 0;
+                        this.vy = 0;
+                    }
+                    this.moveTimer = 1 + Math.random() * 3;
                 }
             }
         }
