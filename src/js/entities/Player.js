@@ -88,18 +88,21 @@ export default class Player {
 
         if (this.shieldTimer > 0) {
             const shieldLv = this.skillLevels.shield || 1;
+            // Reduction Ratio: Level 1 = 30%, Level 5 = 70%, max 80%
             const reductionRatio = Math.min(0.8, 0.3 + (shieldLv - 1) * 0.1);
 
-            manaDamage = amount * reductionRatio;
-            finalHpDamage = amount - manaDamage; // Explicitly subtract mana-soaked portion
+            // 100% of HP damage is blocked. 
+            // The MP cost is the "reduced" damage amount.
+            // e.g. 100 damage, 80% reduction -> 20 MP lost, 0 HP lost.
+            manaDamage = amount * (1.0 - reductionRatio);
+            finalHpDamage = 0;
 
             if (this.mp >= manaDamage) {
                 this.mp -= manaDamage;
             } else {
-                const soaked = this.mp;
+                const overflowDamage = (manaDamage - this.mp) / (1.0 - reductionRatio);
                 this.mp = 0;
-                finalHpDamage += (manaDamage - soaked); // Overflow to HP
-                manaDamage = soaked;
+                finalHpDamage = overflowDamage; // Unprotected damage hits HP
             }
         }
 

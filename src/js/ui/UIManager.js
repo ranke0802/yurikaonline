@@ -35,29 +35,48 @@ export class UIManager {
         // Skill Tooltips
         this.tooltip = document.getElementById('skill-tooltip');
         this.skillData = {
-            laser: { name: '레이저 공격', desc: '기공을 모아 전방에 레이저를 발사합니다. 적중 시 마나를 회복합니다.' },
-            missile: { name: '매직 미사일', desc: '유도 마나 탄환을 발사합니다. 레벨에 따라 발사 수가 증가합니다.' },
-            fireball: { name: '파이어볼', desc: '강력한 화염구를 던집니다. 폭발 범위 내 적들에게 화상 피해를 입힙니다.' },
-            shield: { name: '마나 쉴드', desc: '마나를 사용하여 보호막을 생성합니다. 피해의 일부를 마나로 흡수합니다.' }
+            laser: { name: '레이저 공격 (J)', desc: '기공을 모아 전방에 레이저를 발사합니다. 적중 시 마나를 회복합니다.' },
+            missile: { name: '매직 미사일 (H)', desc: '유도 마나 탄환을 발사합니다. 레벨에 따라 발사 수가 증가합니다.' },
+            fireball: { name: '파이어볼 (U)', desc: '강력한 화염구를 던집니다. 폭발 범위 내 적들에게 화상 피해를 입힙니다.' },
+            shield: { name: '마나 쉴드 (K)', desc: '받는 피해를 0으로 만들고 대신 마나를 소모합니다. 소모되는 마나량은 스킬 레벨에 따라 감소합니다.' }
         };
 
-        document.querySelectorAll('.skill-icon-container').forEach(container => {
-            const skillId = container.closest('.skill-row-ui')?.querySelector('.skill-up-btn')?.getAttribute('data-skill');
+        const keyToSkill = { 'j': 'laser', 'h': 'missile', 'u': 'fireball', 'k': 'shield' };
+
+        const showTooltipHandler = (e, skillId) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            this.showTooltip(skillId, rect.left, rect.top);
+        };
+
+        const hideTooltipHandler = () => this.hideTooltip();
+
+        // 1. Action Bar Buttons
+        document.querySelectorAll('.skill-btn, .attack-btn').forEach(btn => {
+            const key = btn.getAttribute('data-key');
+            const skillId = keyToSkill[key];
             if (!skillId) return;
 
-            const show = (e) => {
-                const rect = container.getBoundingClientRect();
-                this.showTooltip(skillId, rect.left, rect.top);
-            };
-            const hide = () => this.hideTooltip();
-
-            container.addEventListener('mouseenter', show);
-            container.addEventListener('mouseleave', hide);
-            container.addEventListener('touchstart', (e) => {
-                show(e);
-                // For mobile, maybe hide after a delay or on next touch
+            btn.addEventListener('mouseenter', (e) => showTooltipHandler(e, skillId));
+            btn.addEventListener('mouseleave', hideTooltipHandler);
+            btn.addEventListener('touchstart', (e) => {
+                showTooltipHandler(e, skillId);
             }, { passive: true });
-            container.addEventListener('touchend', hide, { passive: true });
+            btn.addEventListener('touchend', hideTooltipHandler, { passive: true });
+        });
+
+        // 2. Skill popup icons
+        document.querySelectorAll('.skill-icon').forEach(icon => {
+            const skillItem = icon.closest('.skill-item');
+            const upBtn = skillItem ? skillItem.querySelector('.skill-up-btn') : null;
+            const skillId = upBtn ? upBtn.getAttribute('data-skill') : null;
+            if (!skillId) return;
+
+            icon.addEventListener('mouseenter', (e) => showTooltipHandler(e, skillId));
+            icon.addEventListener('mouseleave', hideTooltipHandler);
+            icon.addEventListener('touchstart', (e) => {
+                showTooltipHandler(e, skillId);
+            }, { passive: true });
+            icon.addEventListener('touchend', hideTooltipHandler, { passive: true });
         });
 
         // Chat send button
