@@ -153,6 +153,7 @@ export default class Player {
         this.hp += recover;
         if (window.game) {
             window.game.addDamageText(this.x, this.y - 40, `+${Math.round(recover)}`, '#4ade80');
+            if (window.game.ui) window.game.ui.logSystemMessage(`체력이 ${Math.round(recover)} 회복되었습니다.`);
         }
     }
 
@@ -297,11 +298,12 @@ export default class Player {
 
     addExp(amount) {
         this.exp += amount;
+        if (window.game?.ui) {
+            window.game.ui.logSystemMessage(`경험치를 ${Math.floor(amount)} 획득했습니다.`);
+            window.game.ui.updateStatusPopup();
+        }
         if (this.exp >= this.maxExp) {
             this.levelUp();
-        }
-        if (window.game?.ui) {
-            window.game.ui.updateStatusPopup();
         }
     }
 
@@ -323,10 +325,12 @@ export default class Player {
 
     addGold(amount) {
         this.gold += amount;
+        if (window.game?.ui) {
+            window.game.ui.logSystemMessage(`${amount} 골드를 획득했습니다.`);
+            window.game.ui.updateInventory();
+        }
         // Also ensure gold is in inventory as an item if we want to show it there
-        // For now, let's just make sure UI shows it in a specialized slot or logic
         this.addToInventory({ id: 'gold', name: 'Gold', amount: amount, icon: '💰' });
-        if (window.game?.ui) window.game.ui.updateInventory();
     }
 
     addToInventory(item) {

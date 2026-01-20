@@ -107,6 +107,10 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.10', date: '2026-01-21', title: 'System Message & UI Restoration',
+                logs: ['경험치, 골드, 체력 회복 시 시스템 메시지 출력 복구', '퀘스트 보상 수령 시 전용 안내 모달 적용', '전체적인 UI 애니메이션 및 가독성 개선']
+            },
+            {
                 version: 'v1.09', date: '2026-01-21', title: 'Hotfix',
                 logs: ['좌우 방향 레이저 공격 발사가 대각선으로 휘어지던 버그 수정']
             },
