@@ -200,6 +200,11 @@ export default class Monster {
         if (this.isDead) return;
         this.hp = Math.max(0, this.hp - amount);
         if (triggerFlash) this.hitTimer = 0.2;
+
+        if (amount > 0 && window.game) {
+            window.game.addDamageText(this.x, this.y - 40, Math.floor(amount));
+        }
+
         if (this.hp <= 0) {
             this.isDead = true;
         }
@@ -215,17 +220,20 @@ export default class Monster {
         // Draw shadow (Grounded)
         ctx.fillStyle = 'rgba(0,0,0,0.15)';
         ctx.beginPath();
-        // Place shadow exactly at the feet (bottom of height)
         ctx.ellipse(screenX, screenY + this.height / 2, this.width / 2 * 0.7, 5, 0, 0, Math.PI * 2);
         ctx.fill();
 
+        // Optimized Hit Flash (Avoid expensive ctx.filter on mobile)
         if (this.hitTimer > 0) {
-            ctx.filter = 'brightness(1.5) sepia(1) saturate(100) hue-rotate(-50deg)'; // Reddish flash
+            ctx.save();
+            // Draw a slightly enlarged red 'ghost' or just boost the existing draw
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = 0.5;
+            this.sprite.draw(ctx, 0, this.frame, screenX - this.width / 2 - 2, drawY - this.height / 2 - 2, this.width + 4, this.height + 4);
+            ctx.restore();
         }
 
         this.sprite.draw(ctx, 0, this.frame, screenX - this.width / 2, drawY - this.height / 2, this.width, this.height);
-
-        ctx.filter = 'none';
 
         // Name and HP Bar
         ctx.fillStyle = '#ffffff';

@@ -299,10 +299,10 @@ export default class Player {
         this.actionFdbk = actionName;
         this.actionTimer = 1.0;
 
-        const isCombatAction = actionName.includes('ATTACK') ||
-            actionName.includes('Skill') ||
-            actionName.includes('LASER') ||
-            actionName.includes('SHIELD');
+        const isCombatAction = actionName.toUpperCase().includes('ATTACK') ||
+            actionName.toUpperCase().includes('SKILL') ||
+            actionName.toUpperCase().includes('LASER') ||
+            actionName.toUpperCase().includes('SHIELD');
 
         if (isCombatAction) {
             this.isAttacking = true;

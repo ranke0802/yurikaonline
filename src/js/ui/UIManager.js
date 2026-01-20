@@ -196,7 +196,8 @@ export class UIManager {
         const msgArea = document.querySelector('.chat-messages');
         if (msgArea) {
             const div = document.createElement('div');
-            div.style.color = '#cccccc';
+            div.style.color = '#444444'; // Darker grey for better visibility
+            div.style.fontWeight = 'bold';
             div.style.fontStyle = 'italic';
             div.textContent = `[System] ${text}`;
             msgArea.appendChild(div);

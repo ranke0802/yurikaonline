@@ -44,7 +44,7 @@ export class Projectile {
 
                     // Collision check
                     if (dist < 30) {
-                        this.hit(this.target);
+                        this.hit(this.target, monsters);
                     }
                 }
             } else {
@@ -65,7 +65,7 @@ export class Projectile {
                 if (m.isDead) return;
                 const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
                 if (dist < 40) {
-                    this.hit(m);
+                    this.hit(m, monsters);
                 }
             });
         }
@@ -85,11 +85,23 @@ export class Projectile {
         return nearest;
     }
 
-    hit(monster) {
-        monster.takeDamage(this.damage);
+    hit(monster, monsters) {
+        if (this.type === 'fireball' && monsters) {
+            const aoeRadius = 160; // Approx 4 slimes wide (80px * 2 radius)
+            monsters.forEach(m => {
+                if (m.isDead) return;
+                const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
+                if (dist < aoeRadius) {
+                    m.takeDamage(this.damage);
+                    m.applyEffect('burn', 5.0, Math.floor(this.damage * 0.15)); // 5s burn, 15% dmg per tick
+                }
+            });
+        } else {
+            monster.takeDamage(this.damage);
 
-        if (this.type === 'fireball') {
-            monster.applyEffect('burn', 3.0, Math.floor(this.damage * 0.2)); // 20% of dmg as burn per tick
+            if (this.type === 'fireball') {
+                monster.applyEffect('burn', 5.0, Math.floor(this.damage * 0.15));
+            }
         }
 
         this.isDead = true;

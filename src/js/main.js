@@ -25,6 +25,7 @@ class Game {
 
         this.drops = [];
         this.projectiles = [];
+        this.floatingTexts = []; // For damage numbers
         this.localPlayer = new Player(1000, 1000);
 
         // Bind input actions
@@ -34,10 +35,10 @@ class Game {
             switch (action) {
                 case 'shift-b':
                     this.ui.togglePopup('inventory-popup');
-                    return; // Early return to bypass cooldown check for UI
+                    return;
                 case 'shift-i':
                     this.ui.togglePopup('status-popup');
-                    return; // Early return to bypass cooldown check for UI
+                    return;
                 case 'fullscreen':
                     this.ui.toggleFullscreen();
                     return;
@@ -52,22 +53,24 @@ class Game {
                     break;
                 case 'h': // Magic Missile (Homing)
                     if (player.useMana(2)) {
+                        this.ui.logSystemMessage('SKILL: 매직 미사일');
                         this.castMagicMissile();
                         player.attackCooldown = 0.8;
                     }
                     break;
                 case 'u': // Fireball (AoE)
-                    if (player.useMana(5)) {
+                    if (player.useMana(8)) { // 5 + 3 = 8
+                        this.ui.logSystemMessage('SKILL: 파이어볼');
                         this.castFireball();
                         player.attackCooldown = 1.6;
                     }
                     break;
                 case 'k': // Shield
                     if (player.useMana(20)) {
-                        player.triggerAction('SHIELD!');
+                        player.triggerAction('SKILL: 마나쉴드');
                         player.shieldTimer = 180; // 3 minutes
                         player.isShieldActive = true;
-                        this.ui.logSystemMessage('방어막이 3분간 지속됩니다. (80% 피해 경감)');
+                        this.ui.logSystemMessage('SKILL: 마나쉴드 - 방어막이 3분간 지속됩니다.');
                         player.attackCooldown = 2.0;
                     }
                     break;
@@ -93,6 +96,12 @@ class Game {
         requestAnimationFrame((time) => this.loop(time));
     }
 
+    addDamageText(x, y, amount, color = '#ff4757') {
+        this.floatingTexts.push({
+            x, y, text: amount, color, timer: 1.0, currentY: y
+        });
+    }
+
     resize() {
         this.width = this.viewport.clientWidth;
         this.height = this.viewport.clientHeight;
@@ -103,8 +112,8 @@ class Game {
 
     performLaserAttack() {
         const player = this.localPlayer;
-        player.triggerAction('LASER!');
-        player.recoverMana(1); // Normal attack recovers 1 MP
+        // Removed triggerAction('LASER!')
+        player.recoverMana(1);
 
         let range = 600;
         let vx = 0, vy = 0;
@@ -161,7 +170,7 @@ class Game {
         });
 
         if (nearest) {
-            player.triggerAction('Skill: Missile!');
+            player.triggerAction('SKILL: 매직 미사일');
             this.projectiles.push(new Projectile(player.x, player.y, nearest, 'missile', {
                 speed: 500,
                 damage: player.attackPower
@@ -173,7 +182,7 @@ class Game {
 
     castFireball() {
         const player = this.localPlayer;
-        player.triggerAction('Skill: Fireball!');
+        player.triggerAction('SKILL: 파이어볼');
 
         let vx = 0, vy = 0;
         const speed = 400;
@@ -277,6 +286,13 @@ class Game {
             return !shouldRemove;
         });
 
+        // Update floating texts
+        this.floatingTexts = this.floatingTexts.filter(ft => {
+            ft.timer -= dt;
+            ft.currentY -= 40 * dt; // Float up
+            return ft.timer > 0;
+        });
+
         this.camera.update(this.localPlayer.x, this.localPlayer.y);
 
         if (this.localPlayer.ready && !this.portraitInitialized) {
@@ -297,6 +313,21 @@ class Game {
         this.projectiles.forEach(p => p.draw(this.ctx, this.camera));
 
         this.localPlayer.draw(this.ctx, this.camera);
+
+        // Draw Floating Texts (Damage Numbers)
+        this.ctx.save();
+        this.floatingTexts.forEach(ft => {
+            const sx = ft.x - this.camera.x;
+            const sy = ft.currentY - this.camera.y;
+            this.ctx.globalAlpha = ft.timer;
+            this.ctx.fillStyle = ft.color;
+            this.ctx.font = 'bold 20px "Outfit", sans-serif';
+            this.ctx.textAlign = 'center';
+            this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            this.ctx.shadowBlur = 4;
+            this.ctx.fillText(ft.text, sx, sy);
+        });
+        this.ctx.restore();
     }
 
     loop(time) {
