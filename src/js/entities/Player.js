@@ -19,15 +19,30 @@ export default class Player {
         this.actionFdbk = null;
         this.actionTimer = 0;
 
+        // Stats & Level System
+        this.gold = 0;
+        this.exp = 0;
+        this.level = 1;
+        this.maxExp = 100;
+        this.hp = 100;
+        this.maxHp = 100;
+        this.mp = 100;
+        this.maxMp = 100;
+
+        // Cooldowns
+        this.attackCooldown = 0;
+        this.baseAttackDelay = 0.3; // Requested 0.3s delay
+
         this.init();
     }
 
     async init() {
+        // Optimization: Parallel loading of images
         const categories = {
             'front': { path: 'assets/resource/magicion_front', frames: ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png'] },
             'back': { path: 'assets/resource/magicion_back', frames: ['1.png', '2.png', '3.png', '4.png', '5.png'] },
             'left': { path: 'assets/resource/magicion_left', frames: ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png'] },
-            'right': { path: 'assets/resource/magicion_right', frames: ['4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '05.png'] }, // As found in folder
+            'right': { path: 'assets/resource/magicion_right', frames: ['4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '05.png'] },
             'attack': { path: 'assets/resource/magician_attack', frames: ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png'] }
         };
 
@@ -40,19 +55,12 @@ export default class Player {
         finalCanvas.height = targetH * 5;
         const finalCtx = finalCanvas.getContext('2d');
 
-        // Initialize sprite and ready state immediately so drawing can start
         this.sprite = new Sprite(finalCanvas, maxFrames, 5);
         this.ready = true;
 
-        this.frameCounts = {
-            1: 8, // front
-            0: 5, // back
-            2: 7, // left
-            3: 7, // right
-            4: 6  // attack
-        };
+        this.frameCounts = { 1: 8, 0: 5, 2: 7, 3: 7, 4: 6 };
 
-        let firstFrameLoaded = false;
+        const loadPromises = [];
 
         for (const [key, menu] of Object.entries(categories)) {
             let rowIndex = 0;
@@ -64,87 +72,93 @@ export default class Player {
                 case 'attack': rowIndex = 4; break;
             }
 
-            for (let i = 0; i < menu.frames.length; i++) {
+            menu.frames.forEach((frameFile, i) => {
                 const img = new Image();
-                img.src = `${menu.path}/${menu.frames[i]}`;
-
-                await new Promise((resolve) => {
-                    img.onload = resolve;
-                    img.onerror = resolve;
-                });
-
-                if (img.complete && img.width > 0) {
-                    this.processAndDrawFrame(img, finalCtx, i * targetW, rowIndex * targetH, targetW, targetH);
-
-                    // Update UI portrait as soon as the first front frame is available
-                    if (!firstFrameLoaded && key === 'front' && i === 0) {
-                        firstFrameLoaded = true;
-                        if (window.game && window.game.ui) {
+                img.src = `${menu.path}/${frameFile}`;
+                const p = new Promise((resolve) => {
+                    img.onload = () => {
+                        this.processAndDrawFrame(img, finalCtx, i * targetW, rowIndex * targetH, targetW, targetH);
+                        // Update UI portrait only once on first front frame
+                        if (key === 'front' && i === 0 && window.game?.ui) {
                             window.game.ui.setPortrait(finalCanvas);
                         }
-                    }
-                }
-            }
+                        resolve();
+                    };
+                    img.onerror = resolve;
+                });
+                loadPromises.push(p);
+            });
         }
 
-        // Final UI update just in case
-        if (window.game && window.game.ui) {
-            window.game.ui.setPortrait(finalCanvas);
-        }
+        await Promise.all(loadPromises);
     }
 
     processAndDrawFrame(img, ctx, destX, destY, destW, destH) {
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = img.width;
-        tempCanvas.height = img.height;
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.drawImage(img, 0, 0);
+        // Static temp canvas to avoid allocation lag
+        if (!this._tempCanvas) {
+            this._tempCanvas = document.createElement('canvas');
+            this._tempCtx = this._tempCanvas.getContext('2d', { willReadFrequently: true });
+        }
 
-        const imgData = tempCtx.getImageData(0, 0, img.width, img.height);
+        this._tempCanvas.width = img.width;
+        this._tempCanvas.height = img.height;
+        this._tempCtx.drawImage(img, 0, 0);
+
+        const imgData = this._tempCtx.getImageData(0, 0, img.width, img.height);
         const data = imgData.data;
 
         let minX = img.width, maxX = 0, minY = img.height, maxY = 0;
         let foundPixels = false;
 
-        // Enhanced Chroma Key (more aggressive to remove green fringes)
-        for (let y = 0; y < img.height; y++) {
-            for (let x = 0; x < img.width; x++) {
-                const idx = (y * img.width + x) * 4;
-                const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i], g = data[i + 1], b = data[i + 2];
+            const isGreen = (g > 140 && g > r * 1.1 && g > b * 1.1);
+            const isLightBG = (g > 200 && r > 200 && b > 200);
 
-                // Remove anything that is predominantly green or light cyan (common in AI BG)
-                const isGreen = (g > 140 && g > r * 1.1 && g > b * 1.1);
-                const isLightBG = (g > 200 && r > 200 && b > 200); // White/light cleanup
-
-                if (isGreen || isLightBG) {
-                    data[idx + 3] = 0;
-                } else if (data[idx + 3] > 0) {
-                    // Small alpha threshold for fringes
-                    if (data[idx + 3] < 50) {
-                        data[idx + 3] = 0;
-                    } else {
-                        if (x < minX) minX = x;
-                        if (x > maxX) maxX = x;
-                        if (y < minY) minY = y;
-                        if (y > maxY) maxY = y;
-                        foundPixels = true;
-                    }
-                }
+            if (isGreen || isLightBG) {
+                data[i + 3] = 0;
+            } else if (data[i + 3] > 50) {
+                const x = (i / 4) % img.width;
+                const y = Math.floor((i / 4) / img.width);
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+                foundPixels = true;
             }
         }
 
         if (foundPixels) {
-            tempCtx.putImageData(imgData, 0, 0);
+            this._tempCtx.putImageData(imgData, 0, 0);
             const charW = maxX - minX + 1;
             const charH = maxY - minY + 1;
-
             const scale = Math.min(destW / charW, destH / charH) * 0.95;
             const drawW = charW * scale;
             const drawH = charH * scale;
             const offX = (destW - drawW) / 2;
             const offY = (destH - drawH) / 2;
+            ctx.drawImage(this._tempCanvas, minX, minY, charW, charH, destX + offX, destY + offY, drawW, drawH);
+        }
+    }
 
-            ctx.drawImage(tempCanvas, minX, minY, charW, charH, destX + offX, destY + offY, drawW, drawH);
+    addExp(amount) {
+        this.exp += amount;
+        if (this.exp >= this.maxExp) {
+            this.levelUp();
+        }
+    }
+
+    levelUp() {
+        this.level++;
+        this.exp -= this.maxExp;
+        this.maxExp = Math.floor(this.maxExp * 1.5);
+        this.maxHp += 20;
+        this.maxMp += 10;
+        this.hp = this.maxHp;
+        this.mp = this.maxMp;
+        this.triggerAction('LEVEL UP!!');
+        if (window.game?.ui) {
+            window.game.ui.logSystemMessage(`축하합니다! 레벨 ${this.level}이 되었습니다!`);
         }
     }
 
@@ -167,9 +181,13 @@ export default class Player {
             if (this.actionTimer <= 0) this.actionFdbk = null;
         }
 
+        if (this.attackCooldown > 0) {
+            this.attackCooldown -= dt;
+        }
+
         if (this.isAttacking) {
             this.timer += dt;
-            if (this.timer >= 0.1) {
+            if (this.timer >= 0.08) {
                 this.timer = 0;
                 this.frame++;
                 if (this.frame >= (this.frameCounts[4] || 6)) {
@@ -190,7 +208,6 @@ export default class Player {
             this.isMoving = true;
 
             const angle = Math.atan2(vy, vx) * (180 / Math.PI);
-
             if (angle > -135 && angle <= -45) this.direction = 0; // Back
             else if (angle > 45 && angle <= 135) this.direction = 1; // Front
             else if (angle > -45 && angle <= 45) this.direction = 3; // Right
@@ -209,25 +226,27 @@ export default class Player {
         } else {
             this.frame = 0;
         }
+
+        if (window.game?.ui) {
+            window.game.ui.updateStats((this.hp / this.maxHp) * 100, (this.mp / this.maxMp) * 100);
+        }
     }
 
     draw(ctx, camera) {
         if (!this.sprite) return;
-
         let screenX = Math.round(this.x - camera.x);
         let screenY = Math.round(this.y - camera.y);
-
         let row = this.isAttacking ? 4 : this.direction;
         let col = this.frame;
-
         this.sprite.draw(ctx, row, col, screenX - this.width / 2, screenY - this.height / 2, this.width, this.height, false);
 
         if (this.actionFdbk) {
-            ctx.fillStyle = '#ffd700';
-            ctx.font = 'bold 16px "Outfit", sans-serif';
+            ctx.fillStyle = '#ffeb3b';
+            ctx.font = 'bold 20px "Outfit", sans-serif';
             ctx.textAlign = 'center';
-            ctx.strokeText(this.actionFdbk, screenX, screenY - 60);
-            ctx.fillText(this.actionFdbk, screenX, screenY - 60);
+            ctx.strokeText(this.actionFdbk, screenX, screenY - 70);
+            ctx.fillText(this.actionFdbk, screenX, screenY - 70);
         }
     }
 }
+

@@ -2,6 +2,9 @@ import { InputHandler } from './modules/InputHandler.js';
 import { Camera } from './modules/Camera.js';
 import { Map } from './modules/Map.js';
 import Player from './entities/Player.js';
+import Monster from './entities/Monster.js';
+import Drop from './entities/Drop.js';
+import { Projectile } from './entities/Projectile.js';
 import { UIManager } from './ui/UIManager.js';
 
 class Game {
@@ -20,8 +23,15 @@ class Game {
         this.map = new Map(this.ctx, 2000, 2000);
         this.camera = new Camera(this.width, this.height, 2000, 2000);
 
+        this.drops = [];
+        this.projectiles = [];
+        this.localPlayer = new Player(1000, 1000);
+
         // Bind input actions
         this.input.onAction = (action) => {
+            const player = this.localPlayer;
+            if (player.attackCooldown > 0) return;
+
             switch (action) {
                 case 'shift-b':
                     this.ui.togglePopup('inventory-popup');
@@ -29,19 +39,39 @@ class Game {
                 case 'shift-i':
                     this.ui.togglePopup('status-popup');
                     break;
-                case 'j': // Attack
-                case 'h': // Skill 1
-                case 'u': // Skill 2
-                case 'i': // Skill 3
-                    this.localPlayer.triggerAction('ATTACK!');
-                    this.ui.logSystemMessage('공격했습니다!');
+                case 'j': // Basic Attack
+                    player.triggerAction('ATTACK!');
+                    this.checkAttackHits();
+                    player.attackCooldown = player.baseAttackDelay;
+                    break;
+                case 'h': // Magic Missile (Homing)
+                    this.castMagicMissile();
+                    player.attackCooldown = 0.4;
+                    break;
+                case 'u': // Fireball (AoE)
+                    this.castFireball();
+                    player.attackCooldown = 0.8;
+                    break;
+                case 'k': // Shield
+                    player.triggerAction('SHIELD!');
+                    this.ui.logSystemMessage('방어막을 생성했습니다!');
+                    player.attackCooldown = 1.5;
                     break;
             }
         };
 
-        this.localPlayer = new Player(1000, 1000);
-        this.portraitInitialized = false;
+        // Add some monsters
+        this.monsters = [
+            new Monster(1200, 1100, '초보 슬라임'),
+            new Monster(800, 900, '슬라임'),
+            new Monster(1500, 1300, '대왕 슬라임')
+        ];
+        this.monsters[2].width = 150;
+        this.monsters[2].height = 150;
+        this.monsters[2].maxHp = 300;
+        this.monsters[2].hp = 300;
 
+        this.portraitInitialized = false;
         this.init();
     }
 
@@ -54,27 +84,133 @@ class Game {
         this.height = this.viewport.clientHeight;
         this.canvas.width = this.width;
         this.canvas.height = this.height;
-
         if (this.camera) this.camera.resize(this.width, this.height);
+    }
+
+    castMagicMissile() {
+        const player = this.localPlayer;
+        let nearest = null;
+        let minDist = 500;
+        this.monsters.forEach(m => {
+            if (m.isDead) return;
+            const dist = Math.sqrt((player.x - m.x) ** 2 + (player.y - m.y) ** 2);
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = m;
+            }
+        });
+
+        if (nearest) {
+            player.triggerAction('Skill: Missile!');
+            this.projectiles.push(new Projectile(player.x, player.y, nearest, 'missile', {
+                speed: 500,
+                damage: 20
+            }));
+        } else {
+            this.ui.logSystemMessage('대상을 찾을 수 없습니다.');
+        }
+    }
+
+    castFireball() {
+        const player = this.localPlayer;
+        player.triggerAction('Skill: Fireball!');
+
+        // Determine direction based on player.direction (0:Up, 1:Down, 2:Left, 3:Right)
+        let vx = 0, vy = 0;
+        const speed = 400;
+        if (player.direction === 0) vy = -speed;
+        else if (player.direction === 1) vy = speed;
+        else if (player.direction === 2) vx = -speed;
+        else if (player.direction === 3) vx = speed;
+
+        this.projectiles.push(new Projectile(player.x, player.y, null, 'fireball', {
+            vx, vy,
+            speed: speed,
+            damage: 40,
+            radius: 25,
+            lifeTime: 1.5
+        }));
+    }
+
+    checkAttackHits() {
+        const attackRange = 100;
+        this.monsters.forEach(monster => {
+            if (monster.isDead) return;
+            const dist = Math.sqrt((this.localPlayer.x - monster.x) ** 2 + (this.localPlayer.y - monster.y) ** 2);
+            if (dist < attackRange) {
+                monster.takeDamage(10 + Math.floor(Math.random() * 10));
+                if (monster.isDead) this.spawnLoot(monster);
+            }
+        });
+    }
+
+    spawnLoot(monster) {
+        this.ui.logSystemMessage(`${monster.name}을 처치했습니다!`);
+        this.drops.push(new Drop(monster.x, monster.y, 'gold', 50));
+        this.drops.push(new Drop(monster.x + 20, monster.y - 20, 'xp', 20));
+        // Bonus luck: chance for more items here
     }
 
     update(dt) {
         this.localPlayer.update(dt, this.input);
+
+        // Update Projectiles
+        this.projectiles = this.projectiles.filter(p => {
+            p.update(dt, this.monsters);
+            // Check for kills by projectiles
+            this.monsters.forEach(m => {
+                if (m.isDead && !m._looted) {
+                    m._looted = true;
+                    this.spawnLoot(m);
+                }
+            });
+            return !p.isDead;
+        });
+
+        // Update monsters
+        this.monsters = this.monsters.filter(monster => {
+            monster.update(dt);
+            return !monster.isDead || monster.hitTimer > 0;
+        });
+
+        // Loop monster respawn for testing
+        if (this.monsters.length < 3) {
+            const mx = 500 + Math.random() * 1000;
+            const my = 500 + Math.random() * 1000;
+            this.monsters.push(new Monster(mx, my, '재생된 슬라임'));
+        }
+
+        // Update drops
+        this.drops = this.drops.filter(drop => {
+            const shouldRemove = drop.update(dt, this.localPlayer);
+            if (drop.isCollected) {
+                if (drop.type === 'gold') {
+                    this.localPlayer.gold += drop.amount;
+                    this.ui.logSystemMessage(`💰 ${drop.amount} Gold 획득! (현재: ${this.localPlayer.gold})`);
+                } else {
+                    this.localPlayer.addExp(drop.amount);
+                    this.ui.logSystemMessage(`✨ ${drop.amount} Exp 획득!`);
+                }
+            }
+            return !shouldRemove;
+        });
+
         this.camera.update(this.localPlayer.x, this.localPlayer.y);
 
-        // Initial portrait set
         if (this.localPlayer.ready && !this.portraitInitialized) {
             this.ui.setPortrait(this.localPlayer.sprite.image);
             this.portraitInitialized = true;
         }
-
-        // Mock HP/MP
-        this.ui.updateStats(80, 60);
     }
 
     draw() {
         this.ctx.clearRect(0, 0, this.width, this.height);
         this.map.draw(this.camera);
+
+        this.drops.forEach(drop => drop.draw(this.ctx, this.camera));
+        this.monsters.forEach(monster => monster.draw(this.ctx, this.camera));
+        this.projectiles.forEach(p => p.draw(this.ctx, this.camera));
+
         this.localPlayer.draw(this.ctx, this.camera);
     }
 
@@ -82,7 +218,6 @@ class Game {
         if (!this.lastTime) this.lastTime = time;
         const dt = (time - this.lastTime) / 1000;
         this.lastTime = time;
-
         this.update(dt);
         this.draw();
         requestAnimationFrame((t) => this.loop(t));
@@ -92,3 +227,4 @@ class Game {
 window.onload = () => {
     window.game = new Game();
 };
+

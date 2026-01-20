@@ -39,10 +39,10 @@ export class InputHandler {
                 return;
             }
 
-            // Handle actions (Skills/Attack) - J, H, U, I
-            if (['KeyJ', 'KeyH', 'KeyU', 'KeyI'].includes(code)) {
-                // If it's KeyI but Shift is pressed, we already handled it above.
-                if (code === 'KeyI' && e.shiftKey) return;
+            // Handle actions (Skills/Attack) - J, H, U, K
+            if (['KeyJ', 'KeyH', 'KeyU', 'KeyK'].includes(code)) {
+                // If it's a key that could have a shift modifier, handle it carefully
+                // (Currently KeyI is used for Shift+I, but K is independent)
 
                 // Pass the code directly or a simplified action name
                 // Let's pass the simple letter to keep main.js clean
@@ -50,7 +50,7 @@ export class InputHandler {
                     'KeyJ': 'j',
                     'KeyH': 'h',
                     'KeyU': 'u',
-                    'KeyI': 'i'
+                    'KeyK': 'k'
                 };
                 if (this.onAction) this.onAction(actionMap[code]);
             }
