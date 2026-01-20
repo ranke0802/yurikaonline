@@ -13,6 +13,8 @@ export class Projectile {
         this.isDead = false;
         this.lifeTime = options.lifeTime || 3.0; // Life in seconds
         this.burnDuration = options.burnDuration || 5.0; // Default burn duration
+        this.targetX = options.targetX || null;
+        this.targetY = options.targetY || null;
 
         // Visuals
         this.color = type === 'missile' ? '#4f46e5' : '#f97316';
@@ -151,14 +153,17 @@ export class Projectile {
         // Glow
         ctx.shadowBlur = 0;
 
-        // Draw Fireball AoE Range (Fixed)
-        if (this.type === 'fireball') {
+        // Draw Fireball AoE Range (Fixed to impact point)
+        if (this.type === 'fireball' && this.targetX !== null && this.targetY !== null) {
+            const tx = this.targetX - camera.x;
+            const ty = this.targetY - camera.y;
+
             ctx.save();
             ctx.strokeStyle = 'rgba(249, 115, 22, 0.4)';
             ctx.lineWidth = 2;
             ctx.setLineDash([5, 5]);
             ctx.beginPath();
-            ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
+            ctx.arc(tx, ty, this.radius, 0, Math.PI * 2);
             ctx.stroke();
 
             ctx.fillStyle = 'rgba(249, 115, 22, 0.1)';

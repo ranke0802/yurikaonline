@@ -78,8 +78,9 @@ export default class Player {
         this.init();
         this.refreshStats();
         // Ensure starting at max
-        this.hp = this.maxHp;
         this.mp = this.maxMp;
+
+        this.isDead = false;
     }
 
     takeDamage(amount) {
@@ -116,14 +117,23 @@ export default class Player {
             this.triggerAction(`-${Math.round(finalHpDamage)}`);
         }
 
-        if (this.hp <= 0) {
-            // Respawn
-            this.hp = this.maxHp;
-            this.mp = this.maxMp;
-            this.x = 1000;
-            this.y = 1000;
-            this.triggerAction('RESPAWN');
+        if (this.hp <= 0 && !this.isDead) {
+            this.isDead = true;
+            this.hp = 0;
+            this.triggerAction('DIED');
+            if (window.game?.ui) {
+                window.game.ui.showDeathModal();
+            }
         }
+    }
+
+    respawn() {
+        this.hp = this.maxHp;
+        this.mp = this.maxMp;
+        this.x = 1000;
+        this.y = 1000;
+        this.isDead = false;
+        this.triggerAction('RESPAWN');
     }
 
     recoverHp(amount) {
@@ -375,7 +385,7 @@ export default class Player {
     }
 
     update(dt, input) {
-        if (!this.sprite) return;
+        if (!this.sprite || this.isDead) return;
 
         if (this.actionTimer > 0) {
             this.actionTimer -= dt;

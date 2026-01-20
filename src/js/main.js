@@ -240,13 +240,23 @@ class Game {
         const fireballLv = player.skillLevels.fireball || 1;
         const baseDamage = player.attackPower * (1.0 + (fireballLv - 1) * 0.3);
         const radius = 80 + (fireballLv - 1) * 40; // ~2 slimes to start, +1 slime/lv
+        const lifeTime = 1.5;
+
+        // Calculate expected impact point
+        const targetX = player.x + vx * (speed / speed) * (speed * lifeTime);
+        const targetY = player.y + vy * (speed / speed) * (speed * lifeTime);
+        // Simplified:
+        const tX = player.x + (vx / speed) * (speed * lifeTime);
+        const tY = player.y + (vy / speed) * (speed * lifeTime);
 
         this.projectiles.push(new Projectile(player.x, player.y, null, 'fireball', {
             vx, vy,
             speed: speed,
             damage: baseDamage,
             radius: radius,
-            lifeTime: 1.5,
+            lifeTime: lifeTime,
+            targetX: tX,
+            targetY: tY,
             burnDuration: 5.0 + (fireballLv - 1),
             critRate: player.critRate // Pass crit rate to projectile logic if needed
         }));

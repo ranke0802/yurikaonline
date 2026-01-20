@@ -122,6 +122,48 @@ export class UIManager {
             btn.addEventListener('click', handleSkillUp);
             btn.addEventListener('touchstart', handleSkillUp, { passive: false });
         });
+
+        // Retry Button
+        const retryBtn = document.getElementById('retry-btn');
+        if (retryBtn) {
+            const handleRetry = (e) => {
+                e.preventDefault();
+                this.hideDeathModal();
+                if (this.game.localPlayer) {
+                    this.game.localPlayer.respawn();
+                }
+            };
+            retryBtn.addEventListener('click', handleRetry);
+            retryBtn.addEventListener('touchstart', handleRetry, { passive: false });
+        }
+    }
+
+    showDeathModal() {
+        const modal = document.getElementById('death-modal');
+        const timerText = document.getElementById('death-timer-text');
+        const retryBtn = document.getElementById('retry-btn');
+
+        if (modal) modal.classList.remove('hidden');
+        if (retryBtn) retryBtn.classList.add('hidden');
+
+        let timeLeft = 3;
+        if (timerText) timerText.textContent = `${timeLeft}초 후 부활 가능합니다...`;
+
+        const interval = setInterval(() => {
+            timeLeft--;
+            if (timerText) timerText.textContent = `${timeLeft}초 후 부활 가능합니다...`;
+
+            if (timeLeft <= 0) {
+                clearInterval(interval);
+                if (timerText) timerText.textContent = '지금 바로 부활할 수 있습니다!';
+                if (retryBtn) retryBtn.classList.remove('hidden');
+            }
+        }, 1000);
+    }
+
+    hideDeathModal() {
+        const modal = document.getElementById('death-modal');
+        if (modal) modal.classList.add('hidden');
     }
 
     setPortrait(processedImage) {

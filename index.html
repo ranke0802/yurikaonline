@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>유리카 온라인 (Yurica Online)</title>
-    <link rel="stylesheet" href="src/css/style.css?v=0.9">
+    <title>유리카 온라인 v1.01 (Yurica Online)</title>
+    <link rel="stylesheet" href="src/css/style.css?v=1.01">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -109,7 +109,7 @@
                             </div>
                         </div>
                         <div class="chat-messages">
-                            <div class="message incoming">환영합니다! 유리카 온라인 v0.9 ✨</div>
+                            <div class="message incoming">환영합니다! 유리카 온라인 v1.01 ✨</div>
                         </div>
                         <div class="chat-input-area">
                             <input type="text" placeholder="메세지를 입력하세요...">
@@ -327,6 +327,16 @@
             </div>
         </div>
 
+        <!-- Death Modal -->
+        <div id="death-modal" class="hidden">
+            <div class="death-content">
+                <div class="death-icon">💀</div>
+                <h2>사망하셨습니다</h2>
+                <p id="death-timer-text">3초 후 부활 가능합니다...</p>
+                <button id="retry-btn" class="hidden">재도전</button>
+            </div>
+        </div>
+
         <!-- Confirm Modal (Modern UI) -->
         <div id="confirm-modal" class="hidden">
             <div class="confirm-content">
@@ -349,7 +359,7 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="src/js/main.js?v=0.9"></script>
+    <script type="module" src="src/js/main.js?v=1.01"></script>
 </body>
 
 </html>
