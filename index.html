@@ -5,10 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>유리카 온라인 v1.14 (Skill Balance)</title>
+    <title>유리카 온라인 v1.15 (Balance Refined)</title>
     <script>
         // Automatic Cache Busting System
-        window.GAME_VERSION = '1.14';
+        window.GAME_VERSION = '1.15';
         const storedVersion = localStorage.getItem('yurica_version');
         if (storedVersion !== window.GAME_VERSION) {
             localStorage.setItem('yurica_version', window.GAME_VERSION);
@@ -20,7 +20,7 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=1.14">
+    <link rel="stylesheet" href="src/css/style.css?v=1.15">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -295,7 +295,7 @@
                                     <span class="skill-name">일반 공격</span>
                                     <span class="skill-level">Lv.<span id="lvl-laser">1</span></span>
                                 </div>
-                                <p class="skill-desc">관통형 레이저 공격. <br><small>필요: <span class="skill-cost"
+                                <p class="skill-desc">관통형 기본 공격. <br><small>필요: <span class="skill-cost"
                                             data-skill="laser">300</span>G</small></p>
                             </div>
                             <button class="skill-up-btn" data-skill="laser">+</button>
@@ -387,7 +387,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v1.14
+        📦 v1.15
     </div>
 
     <!-- Update History Modal -->
@@ -403,7 +403,7 @@
         </div>
     </div>
 
-    <script type="module" src="src/js/main.js?v=1.14"></script>
+    <script type="module" src="src/js/main.js?v=1.15"></script>
 </body>
 
 </html>

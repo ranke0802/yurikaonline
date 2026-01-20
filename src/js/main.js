@@ -107,6 +107,10 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.15', date: '2026-01-21', title: 'Refined Skill Specs',
+                logs: ['일반 공격(레이저) 레벨업 시 데미지 증가 제거 (마나 회복 위주)', '매직 실드 툴팁 설명 가독성 개선 (피해 감소 효율 표기)', '스킬 설명 및 실제 로직 싱크로율 최적화']
+            },
+            {
                 version: 'v1.14', date: '2026-01-21', title: 'Skill Damage Fix',
                 logs: ['파이어볼 기본 데미지 상향 (100% -> 130%)', '스킬 툴팁 설명 및 수치 계산 오류 수정']
             },
@@ -194,7 +198,7 @@ class Game {
                     let dmg = player.attackPower;
                     let isCrit = Math.random() < player.critRate;
                     if (isCrit) dmg *= 2;
-                    m.takeDamage(dmg * (1.0 + (laserLv - 1) * 0.2), true, isCrit);
+                    m.takeDamage(dmg, true, isCrit);
                 }
             }
         });

@@ -36,10 +36,10 @@ export class UIManager {
         // Skill Tooltips
         this.tooltip = document.getElementById('skill-tooltip');
         this.skillData = {
-            laser: { name: '레이저 공격 (J)', desc: '관통형 기공파를 발사합니다. [데미지: 공격력의 100% / 레벨당 +20% 추가] [적중 시 마나 회복: 레벨당 +1]' },
+            laser: { name: '레이저 공격 (J)', desc: '관통형 기공파를 발사합니다. [데미지: 공격력의 100%] [적중 시 마나 회복: 레벨당 +1]' },
             missile: { name: '매직 미사일 (H)', desc: '자동 추적 미사일을 발사합니다. [데미지: 공격력의 80%] [발사 수: 레벨당 +1개] [마나 소모: 1.5배씩 증가]' },
             fireball: { name: '파이어볼 (U)', desc: '폭발하는 화염구를 던집니다. [직격 데미지: 공격력의 130% / 레벨당 +30% 추가] [화상: 5초 이상 지속 / 레벨당 +1초]' },
-            shield: { name: '매직 실드 (K)', desc: '마나의 결계를 생성하여 모든 피해를 마나로 100% 흡수합니다. 레벨에 따라 피해 흡수 효율(MP 소모량)이 대폭 강화됩니다. [효율: 데미지의 60% 소모(Lv.1) ~ 10% 소모(Lv.11)]' }
+            shield: { name: '매직 실드 (K)', desc: '마나의 결계를 생성하여 모든 피해를 마나로 100% 흡수합니다. 레벨에 따라 피해 감소 효율이 대폭 강화됩니다. [효율: 피해 감소 40%(Lv.1) ~ 90%(Lv.11)]' }
         };
 
         const keyToSkill = { 'j': 'laser', 'h': 'missile', 'u': 'fireball', 'k': 'shield' };
@@ -253,7 +253,7 @@ export class UIManager {
 
         switch (skillId) {
             case 'laser':
-                const laserDmg = Math.floor(p.attackPower * (1.0 + (lv - 1) * 0.2));
+                const laserDmg = Math.floor(p.attackPower);
                 const mpRec = Math.min(5, 1 + Math.floor(lv / 2));
                 currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>데미지: ${laserDmg} | 마나 회복: ${mpRec}</div>`;
                 break;
