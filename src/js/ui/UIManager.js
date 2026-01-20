@@ -17,6 +17,9 @@ export class UIManager {
         const statTrigger = document.querySelector('.status-trigger');
         if (statTrigger) statTrigger.addEventListener('click', () => this.togglePopup('status-popup'));
 
+        const fsToggle = document.getElementById('fullscreen-toggle');
+        if (fsToggle) fsToggle.addEventListener('click', () => this.toggleFullscreen());
+
         // Chat send button
         const sendBtn = document.querySelector('.send-btn');
         if (sendBtn) sendBtn.addEventListener('click', () => this.sendMessage());
@@ -193,6 +196,18 @@ export class UIManager {
             div.textContent = `[System] ${text}`;
             msgArea.appendChild(div);
             msgArea.scrollTop = msgArea.scrollHeight;
+        }
+    }
+
+    toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                this.logSystemMessage(`Error attempting to enable full-screen mode: ${err.message}`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
         }
     }
 }

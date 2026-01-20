@@ -652,11 +652,92 @@ html {
     background: rgba(0, 0, 0, 0.2);
 }
 
-.inventory-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    max-height: 200px;
-    overflow-y: auto;
-    padding: 5px;
+/* Fullscreen Toggle Style */
+#fullscreen-toggle {
+    background: #a29bfe;
+    border: 4px solid #fff;
+    border-radius: 15px;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
+    font-size: 13px;
+}
+
+/* Mobile Responsiveness (Galaxy S23 etc) */
+@media screen and (max-width: 900px) {
+    #joystick-container {
+        left: 40px;
+        bottom: 40px;
+        transform: scale(0.85);
+    }
+
+    .action-buttons {
+        right: 20px;
+        bottom: 20px;
+        transform: scale(0.85);
+    }
+
+    .quest-list-panel {
+        top: 80px;
+        left: 10px;
+        width: 140px;
+        font-size: 10px;
+        padding: 10px;
+    }
+
+    .chat-window {
+        bottom: 120px;
+        left: 10px;
+        width: 200px;
+        height: 140px;
+        opacity: 0.8;
+    }
+
+    .utility-bar {
+        gap: 10px;
+        padding: 5px 15px;
+        bottom: 15px;
+    }
+
+    .inventory-trigger span,
+    .status-trigger span {
+        display: none;
+        /* Icons only on mobile */
+    }
+
+    #minimap-container {
+        width: 100px;
+        top: 10px;
+        right: 10px;
+    }
+
+    #minimapCanvas {
+        width: 100px;
+        height: 100px;
+    }
+}
+
+@media screen and (max-height: 500px) {
+
+    /* Landscape mobile adjustments */
+    .quest-list-panel {
+        display: none;
+    }
+
+    .chat-window {
+        width: 180px;
+        height: 100px;
+        bottom: 80px;
+    }
+
+    .top-bar {
+        transform: scale(0.8);
+        top: 10px;
+        left: 10px;
+    }
 }
