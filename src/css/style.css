@@ -704,7 +704,7 @@ html {
     transform: scale(0.95);
 }
 
-/* Mobile Responsiveness (Galaxy S23 etc) - v0.6 Layout */
+/* Mobile Responsiveness (Galaxy S23 etc) - v0.7 Layout */
 @media screen and (max-width: 900px) {
     .top-bar {
         top: 10px;
@@ -722,7 +722,7 @@ html {
         display: flex;
         flex-direction: column;
         gap: 10px;
-        transform: scale(0.75);
+        transform: scale(0.7);
         transform-origin: top left;
         z-index: 90;
         pointer-events: none;
@@ -772,18 +772,16 @@ html {
 
     /* Joystick & Buttons: 1.5x larger and moved up */
     #joystick-container {
-        left: 50px;
-        bottom: 115px;
-        transform: scale(1.05);
-        /* 1.5x of 0.7 */
+        left: 10px;
+        bottom: 125px;
+        transform: scale(1.25);
         transform-origin: bottom left;
     }
 
     .action-buttons {
-        right: 40px;
-        bottom: 105px;
-        transform: scale(0.9);
-        /* 1.5x of 0.6 */
+        right: 15px;
+        bottom: 115px;
+        transform: scale(1.1);
         transform-origin: bottom right;
     }
 }

@@ -41,20 +41,11 @@ export default class Drop {
 
         ctx.save();
 
-        // Glow effect
-        const gradient = ctx.createRadialGradient(screenX, screenY, 0, screenX, screenY, this.radius * 1.5);
-        if (this.type === 'gold') {
-            gradient.addColorStop(0, 'rgba(255, 215, 0, 0.8)');
-            gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
-        } else if (this.type === 'hp') {
-            gradient.addColorStop(0, 'rgba(74, 222, 128, 0.8)');
-            gradient.addColorStop(1, 'rgba(74, 222, 128, 0)');
-        } else {
-            gradient.addColorStop(0, 'rgba(0, 191, 255, 0.8)');
-            gradient.addColorStop(1, 'rgba(0, 191, 255, 0)');
-        }
+        // Simple glow (Translucent circle instead of gradient for performance)
+        if (this.type === 'gold') ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+        else if (this.type === 'hp') ctx.fillStyle = 'rgba(74, 222, 128, 0.3)';
+        else ctx.fillStyle = 'rgba(0, 191, 255, 0.3)';
 
-        ctx.fillStyle = gradient;
         ctx.beginPath();
         ctx.arc(screenX, screenY, this.radius * 1.5, 0, Math.PI * 2);
         ctx.fill();
