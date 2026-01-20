@@ -435,9 +435,9 @@ export class UIManager {
 
         if (type === 'slime') {
             p.questData.slimeQuestClaimed = true;
-            p.statPoints += 5;
+            p.statPoints += 2;
             title = "슬라임 처치 퀘스트 완료!";
-            rewardText = "보상: 보너스 스텟 포인트 5개 획득!";
+            rewardText = "보상: 보너스 스텟 포인트 2개 획득!";
             const btn = document.getElementById('claim-slime-btn');
             if (btn) btn.remove();
         } else if (type === 'boss') {

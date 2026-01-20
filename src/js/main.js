@@ -107,6 +107,10 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.08', date: '2026-01-21', title: 'Balance Update',
+                logs: ['슬라임 처치 퀘스트 보상 조정 (스텟 10개 -> 2개)', '중복 퀘스트 보상 지급 버그 수정']
+            },
+            {
                 version: 'v1.07', date: '2026-01-21', title: 'Continuous Fire & UX',
                 logs: ['공격/스킬 버튼 홀드 시 연속 발동 기능', '이동/조이스틱 사용 시 팝업 자동 닫기', '공격 방향 표시(빨강) 가독성 개선']
             },
@@ -287,8 +291,16 @@ class Game {
 
     checkQuests() {
         const p = this.localPlayer;
-        if (p.localPlayer?.questData?.slimeKills >= 10 && !p.questData.slimeQuestDone) { p.questData.slimeQuestDone = true; p.statPoints += 5; this.ui.logSystemMessage('QUEST 완료: 슬라임 10마리 처치!'); this.ui.updateStatusPopup(); }
-        if (p.localPlayer?.questData?.bossKilled && !p.questData.bossQuestDone) { p.questData.bossQuestDone = true; p.addGold(1000); this.ui.logSystemMessage('QUEST 완료: 보스 처치!'); }
+        if (p.questData.slimeKills >= 10 && !p.questData._slimeMsgShown) {
+            p.questData._slimeMsgShown = true;
+            this.ui.logSystemMessage('QUEST 알림: 슬라임 10마리 처치 완료! 퀘스트 창에서 보상을 받으세요.');
+            this.ui.updateQuestUI();
+        }
+        if (p.questData.bossKilled && !p.questData._bossMsgShown) {
+            p.questData._bossMsgShown = true;
+            this.ui.logSystemMessage('QUEST 알림: 대왕 슬라임 처치 완료! 퀘스트 창에서 보상을 받으세요.');
+            this.ui.updateQuestUI();
+        }
     }
 
     draw() {

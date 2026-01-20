@@ -38,7 +38,9 @@ export default class Player {
             slimeKills: 0,
             bossKilled: false,
             slimeQuestClaimed: false,
-            bossQuestClaimed: false
+            bossQuestClaimed: false,
+            _slimeMsgShown: false,
+            _bossMsgShown: false
         };
         this.skillLevels = {
             laser: 1,
