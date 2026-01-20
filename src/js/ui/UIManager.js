@@ -2,6 +2,8 @@ export class UIManager {
     constructor(game) {
         this.game = game;
         this.overlay = document.getElementById('popup-overlay');
+        this.pendingStats = { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
+        this.initialPoints = 0;
         this.setupEventListeners();
     }
 
@@ -31,12 +33,31 @@ export class UIManager {
             const handleStatUp = (e) => {
                 e.preventDefault();
                 const stat = btn.getAttribute('data-stat');
-                if (stat && this.game.localPlayer) {
-                    this.game.localPlayer.increaseStat(stat);
+                const p = this.game.localPlayer;
+                if (stat && p && p.statPoints > 0) {
+                    p.statPoints--;
+                    this.pendingStats[stat]++;
+                    this.updateStatusPopup();
                 }
             };
             btn.addEventListener('click', handleStatUp);
             btn.addEventListener('touchstart', handleStatUp, { passive: false });
+        });
+
+        // Stat Down Buttons
+        document.querySelectorAll('.stat-down-btn').forEach(btn => {
+            const handleStatDown = (e) => {
+                e.preventDefault();
+                const stat = btn.getAttribute('data-stat');
+                const p = this.game.localPlayer;
+                if (stat && p && this.pendingStats[stat] > 0) {
+                    p.statPoints++;
+                    this.pendingStats[stat]--;
+                    this.updateStatusPopup();
+                }
+            };
+            btn.addEventListener('click', handleStatDown);
+            btn.addEventListener('touchstart', handleStatDown, { passive: false });
         });
 
         // Skill Up Buttons
@@ -77,16 +98,62 @@ export class UIManager {
         if (!popup) return;
 
         const isCurrentlyHidden = popup.classList.contains('hidden');
+
+        // If closing status popup, check for pending stats
+        if (!isCurrentlyHidden && id === 'status-popup') {
+            const totalPending = Object.values(this.pendingStats).reduce((a, b) => a + b, 0);
+            if (totalPending > 0) {
+                if (confirm('스텟을 저장하시겠습니까? 한번 저장하면 변경할 수 없습니다.')) {
+                    this.savePendingStats();
+                } else {
+                    this.cancelPendingStats();
+                }
+            }
+        }
+
         document.querySelectorAll('.game-popup').forEach(p => p.classList.add('hidden'));
 
         if (isCurrentlyHidden) {
             this.overlay.classList.remove('hidden');
             popup.classList.remove('hidden');
-            if (id === 'status-popup') this.updateStatusPopup();
+            if (id === 'status-popup') {
+                this.pendingStats = { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
+                this.updateStatusPopup();
+            }
             if (id === 'inventory-popup') this.updateInventory();
             if (id === 'skill-popup') this.updateSkillPopup();
         } else {
             this.overlay.classList.add('hidden');
+        }
+    }
+
+    savePendingStats() {
+        const p = this.game.localPlayer;
+        if (!p) return;
+        p.vitality += this.pendingStats.vitality;
+        p.intelligence += this.pendingStats.intelligence;
+        p.wisdom += this.pendingStats.wisdom;
+        p.agility += this.pendingStats.agility;
+        p.refreshStats();
+        this.pendingStats = { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
+    }
+
+    cancelPendingStats() {
+        const p = this.game.localPlayer;
+        if (!p) return;
+        const totalPending = Object.values(this.pendingStats).reduce((a, b) => a + b, 0);
+        p.statPoints += totalPending;
+        this.pendingStats = { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
+        this.updateStatusPopup();
+    }
+
+    hideAllPopups() {
+        const statusPopup = document.getElementById('status-popup');
+        if (statusPopup && !statusPopup.classList.contains('hidden')) {
+            this.togglePopup('status-popup');
+        } else {
+            if (this.overlay) this.overlay.classList.add('hidden');
+            document.querySelectorAll('.game-popup').forEach(p => p.classList.add('hidden'));
         }
     }
 
@@ -109,11 +176,27 @@ export class UIManager {
         if (expRemain) expRemain.textContent = `${p.maxExp - Math.floor(p.exp)}`;
 
         // Stats
+        // Stats
         document.getElementById('stat-points').textContent = p.statPoints;
-        document.getElementById('val-vitality').textContent = p.vitality;
-        document.getElementById('val-intelligence').textContent = p.intelligence;
-        document.getElementById('val-wisdom').textContent = p.wisdom;
-        document.getElementById('val-agility').textContent = p.agility;
+
+        const statsToShow = ['vitality', 'intelligence', 'wisdom', 'agility'];
+        statsToShow.forEach(s => {
+            const valEl = document.getElementById(`val-${s}`);
+            if (valEl) valEl.textContent = p[s] + this.pendingStats[s];
+
+            const upBtn = document.querySelector(`.stat-up-btn[data-stat="${s}"]`);
+            const downBtn = document.querySelector(`.stat-down-btn[data-stat="${s}"]`);
+
+            if (upBtn) {
+                if (p.statPoints > 0) upBtn.classList.remove('hidden');
+                else upBtn.classList.add('hidden');
+            }
+
+            if (downBtn) {
+                if (this.pendingStats[s] > 0) downBtn.classList.remove('hidden');
+                else downBtn.classList.add('hidden');
+            }
+        });
 
         // Derived
         document.getElementById('val-hp-range').textContent = `${Math.floor(p.hp)}/${p.maxHp}`;
@@ -158,10 +241,7 @@ export class UIManager {
         });
     }
 
-    hideAllPopups() {
-        if (this.overlay) this.overlay.classList.add('hidden');
-        document.querySelectorAll('.game-popup').forEach(p => p.classList.add('hidden'));
-    }
+
 
     updateStats(hp, mp, level, expPerc) {
         const hpFill = document.querySelector('.hp-fill');

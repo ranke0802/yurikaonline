@@ -321,11 +321,17 @@ html {
     border-radius: 8px;
 }
 
-.stat-up-btn {
+.stat-controls-row {
+    display: flex;
+    gap: 5px;
+}
+
+.stat-up-btn,
+.stat-down-btn {
     background: #ffd6a5;
     border: none;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
@@ -334,8 +340,17 @@ html {
     justify-content: center;
 }
 
+.stat-down-btn {
+    background: #fab1a0;
+}
+
 .stat-up-btn:hover {
     background: #fab1a0;
+}
+
+.stat-down-btn:hover {
+    background: #e17055;
+    color: white;
 }
 
 .stat-derived {

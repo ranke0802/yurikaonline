@@ -105,9 +105,9 @@ class Game {
         requestAnimationFrame((time) => this.loop(time));
     }
 
-    addDamageText(x, y, amount, color = '#ff4757', isCrit = false) {
+    addDamageText(x, y, amount, color = '#ff4757', isCrit = false, label = null) {
         this.floatingTexts.push({
-            x, y, text: amount, color, timer: 1.2, currentY: y, isCrit: isCrit
+            x, y, text: amount, color, timer: 1.5, currentY: y, isCrit: isCrit, label: label
         });
     }
 
@@ -314,7 +314,7 @@ class Game {
                     this.localPlayer.addGold(drop.amount);
                     this.ui.logSystemMessage(`💰 ${drop.amount} Gold 획득! (현재: ${this.localPlayer.gold})`);
                 } else if (drop.type === 'hp') {
-                    this.localPlayer.hp = Math.min(this.localPlayer.maxHp, this.localPlayer.hp + drop.amount);
+                    this.localPlayer.recoverHp(drop.amount);
                     this.ui.logSystemMessage(`💚 HP ${drop.amount} 회복!`);
                 } else {
                     this.localPlayer.addExp(drop.amount);
@@ -359,13 +359,21 @@ class Game {
             const sy = ft.currentY - this.camera.y;
             this.ctx.globalAlpha = Math.min(1, ft.timer);
 
-            // Critical hits are larger
-            const fontSize = ft.isCrit ? 32 : 20;
-            this.ctx.font = `bold ${fontSize}px "Outfit", sans-serif`;
             this.ctx.textAlign = 'center';
-
             this.ctx.strokeStyle = '#000000';
             this.ctx.lineWidth = 3;
+
+            if (ft.label) {
+                // Draw label (e.g. "Critical")
+                this.ctx.font = `bold 18px "Outfit", sans-serif`;
+                this.ctx.strokeText(ft.label, sx, sy - 25);
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.fillText(ft.label, sx, sy - 25);
+            }
+
+            const fontSize = ft.isCrit ? 40 : 20; // 2x size for crit
+            this.ctx.font = `bold ${fontSize}px "Outfit", sans-serif`;
+
             this.ctx.strokeText(ft.text, sx, sy);
 
             this.ctx.fillStyle = ft.color;

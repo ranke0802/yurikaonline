@@ -75,6 +75,9 @@ export default class Player {
 
         this.init();
         this.refreshStats();
+        // Ensure starting at max
+        this.hp = this.maxHp;
+        this.mp = this.maxMp;
     }
 
     takeDamage(amount) {
@@ -124,9 +127,22 @@ export default class Player {
         }
     }
 
+    recoverHp(amount) {
+        const recover = Math.min(this.maxHp - this.hp, amount);
+        if (recover <= 0) return;
+        this.hp += recover;
+        if (window.game) {
+            window.game.addDamageText(this.x, this.y - 40, `+${Math.round(recover)}`, '#4ade80');
+        }
+    }
+
     useMana(amount) {
         if (this.mp >= amount) {
             this.mp -= amount;
+            // Feedback for mana loss
+            if (window.game) {
+                window.game.addDamageText(this.x, this.y - 20, `-${amount}`, '#48dbfb');
+            }
             return true;
         }
         if (window.game?.ui) window.game.ui.logSystemMessage('마나가 부족합니다!');
@@ -459,13 +475,11 @@ export default class Player {
             this.isRunning = false;
             this.turnGraceTimer = 0;
 
-            // Standing still logic: For every 10 WIS, gain +1 MP/s after 3s
+            // Standing still logic: 1 MP/s + 1 per 5 WIS after 3s
             this.stillTimer += dt;
             if (this.stillTimer >= 3.0) {
-                const regenBonus = Math.floor(this.wisdom / 10);
-                if (regenBonus > 0) {
-                    this.mp = Math.min(this.maxMp, this.mp + regenBonus * dt);
-                }
+                const regenBonus = 1 + Math.floor(this.wisdom / 5);
+                this.mp = Math.min(this.maxMp, this.mp + regenBonus * dt);
             }
         }
 

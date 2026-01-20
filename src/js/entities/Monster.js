@@ -202,7 +202,7 @@ export default class Monster {
         if (triggerFlash) this.hitTimer = 0.2;
 
         if (amount > 0 && window.game) {
-            window.game.addDamageText(this.x, this.y - 40, Math.floor(amount), isCrit ? '#ff9f43' : '#ff4757', isCrit);
+            window.game.addDamageText(this.x, this.y - 40, Math.floor(amount), isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null);
         }
 
         if (this.hp <= 0) {
