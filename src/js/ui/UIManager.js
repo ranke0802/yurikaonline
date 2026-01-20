@@ -38,7 +38,7 @@ export class UIManager {
             laser: { name: '레이저 공격 (J)', desc: '기공을 모아 전방에 레이저를 발사합니다. 적중 시 마나를 회복합니다.' },
             missile: { name: '매직 미사일 (H)', desc: '유도 마나 탄환을 발사합니다. 레벨에 따라 발사 수가 증가합니다.' },
             fireball: { name: '파이어볼 (U)', desc: '강력한 화염구를 던집니다. 폭발 범위 내 적들에게 화상 피해를 입힙니다.' },
-            shield: { name: '마나 쉴드 (K)', desc: '받는 피해를 0으로 만들고 대신 마나를 소모합니다. 소모되는 마나량은 스킬 레벨에 따라 감소합니다.' }
+            shield: { name: '마나 쉴드 (K)', desc: '마나의 결계를 생성하여 모든 피해를 마나로 100% 흡수합니다. 레벨에 따라 피해 흡수 효율(MP 소모량)이 대폭 강화됩니다. (Lv.1: 데미지의 70% 소모 ~ Lv.6: 데미지의 20% 소모)' }
         };
 
         const keyToSkill = { 'j': 'laser', 'h': 'missile', 'u': 'fireball', 'k': 'shield' };
@@ -50,19 +50,7 @@ export class UIManager {
 
         const hideTooltipHandler = () => this.hideTooltip();
 
-        // 1. Action Bar Buttons
-        document.querySelectorAll('.skill-btn, .attack-btn').forEach(btn => {
-            const key = btn.getAttribute('data-key');
-            const skillId = keyToSkill[key];
-            if (!skillId) return;
-
-            btn.addEventListener('mouseenter', (e) => showTooltipHandler(e, skillId));
-            btn.addEventListener('mouseleave', hideTooltipHandler);
-            btn.addEventListener('touchstart', (e) => {
-                showTooltipHandler(e, skillId);
-            }, { passive: true });
-            btn.addEventListener('touchend', hideTooltipHandler, { passive: true });
-        });
+        // DELETED Action Bar Tooltips (User requested only inside skill window)
 
         // 2. Skill popup icons
         document.querySelectorAll('.skill-icon').forEach(icon => {
@@ -294,11 +282,21 @@ export class UIManager {
             }
         });
 
-        // Derived
-        document.getElementById('val-hp-range').textContent = `${Math.floor(p.hp)}/${p.maxHp}`;
-        document.getElementById('val-mp-range').textContent = `${Math.floor(p.mp)}/${p.maxMp}`;
-        document.getElementById('val-atk').textContent = p.attackPower;
-        document.getElementById('val-atk-spd').textContent = p.attackSpeed.toFixed(2);
+        // Derived (Immediate Predicted Feedback)
+        const predVit = p.vitality + this.pendingStats.vitality;
+        const predInt = p.intelligence + this.pendingStats.intelligence;
+        const predWis = p.wisdom + this.pendingStats.wisdom;
+        const predAgi = p.agility + this.pendingStats.agility;
+
+        const predMaxHp = 20 + (predVit * 10);
+        const predMaxMp = 30 + (predWis * 10);
+        const predAtk = 5 + (predInt * 1) + (p.level * 1);
+        const predAtkSpd = 1.0 + (predAgi * 0.10);
+
+        document.getElementById('val-hp-range').textContent = `${Math.floor(p.hp)}/${predMaxHp}`;
+        document.getElementById('val-mp-range').textContent = `${Math.floor(p.mp)}/${predMaxMp}`;
+        document.getElementById('val-atk').textContent = predAtk;
+        document.getElementById('val-atk-spd').textContent = predAtkSpd.toFixed(2);
     }
 
     updateSkillPopup() {

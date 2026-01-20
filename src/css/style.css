@@ -856,6 +856,10 @@ html {
 }
 
 #joystick-stick {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 50px;
     height: 50px;
     background: #fff;
@@ -864,6 +868,7 @@ html {
     display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: none;
 }
 
 .action-buttons {
@@ -1040,6 +1045,10 @@ html {
         height: 70px;
         /* ~3 lines */
         font-size: 11px;
+    }
+
+    .shortcut-badge {
+        display: none !important;
     }
 
     /* Right Side UI: Minimap */
