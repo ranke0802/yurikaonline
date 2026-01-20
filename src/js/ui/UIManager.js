@@ -38,7 +38,7 @@ export class UIManager {
         this.skillData = {
             laser: { name: '레이저 공격 (J)', desc: '관통형 기공파를 발사합니다. [데미지: 공격력의 100% / 레벨당 +20% 추가] [적중 시 마나 회복: 레벨당 +1]' },
             missile: { name: '매직 미사일 (H)', desc: '자동 추적 미사일을 발사합니다. [데미지: 공격력의 80%] [발사 수: 레벨당 +1개] [마나 소모: 1.5배씩 증가]' },
-            fireball: { name: '파이어볼 (U)', desc: '폭발하는 화염구를 던집니다. [직격 데미지: 공격력의 100% / 레벨당 +30% 추가] [화상: 5초 이상 지속 / 레벨당 +1초]' },
+            fireball: { name: '파이어볼 (U)', desc: '폭발하는 화염구를 던집니다. [직격 데미지: 공격력의 130% / 레벨당 +30% 추가] [화상: 5초 이상 지속 / 레벨당 +1초]' },
             shield: { name: '매직 실드 (K)', desc: '마나의 결계를 생성하여 모든 피해를 마나로 100% 흡수합니다. 레벨에 따라 피해 흡수 효율(MP 소모량)이 대폭 강화됩니다. [효율: 데미지의 60% 소모(Lv.1) ~ 10% 소모(Lv.11)]' }
         };
 
@@ -264,7 +264,7 @@ export class UIManager {
                 currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>발사 수: ${mCount}개 | 발당 데미지: ${mDmg} | 마나 소모: ${mCost}</div>`;
                 break;
             case 'fireball':
-                const fDmg = Math.floor(p.attackPower * (1.0 + (lv - 1) * 0.3));
+                const fDmg = Math.floor(p.attackPower * (1.3 + (lv - 1) * 0.3));
                 const fRad = 80 + (lv - 1) * 40;
                 const fBurn = 5 + (lv - 1);
                 currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>데미지: ${fDmg} | 범위: ${fRad} | 화상: ${fBurn}초</div>`;

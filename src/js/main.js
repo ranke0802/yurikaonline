@@ -107,6 +107,10 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.14', date: '2026-01-21', title: 'Skill Damage Fix',
+                logs: ['파이어볼 기본 데미지 상향 (100% -> 130%)', '스킬 툴팁 설명 및 수치 계산 오류 수정']
+            },
+            {
                 version: 'v1.13', date: '2026-01-21', title: 'Balance & Description Fix',
                 logs: ['순발력(AGI) 스텟 효율 조정 (공격속도/이동속도/치명타 증가량 절반 하향)', '매직 실드 기본 피해 감소율 조정 (60% -> 40%)', '스킬 상세 설명 문구 최신화 및 오류 수정']
             },
@@ -232,7 +236,7 @@ class Game {
         [vx, vy] = dirs[player.facingDir].map(v => v * speed);
 
         const fv = player.skillLevels.fireball || 1;
-        const dmg = player.attackPower * (1.0 + (fv - 1) * 0.3);
+        const dmg = player.attackPower * (1.3 + (fv - 1) * 0.3);
         const rad = 80 + (fv - 1) * 40; const lt = 1.5;
         this.projectiles.push(new Projectile(player.x, player.y, null, 'fireball', {
             vx, vy, speed, damage: dmg, radius: rad, lifeTime: lt,

@@ -5,10 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>유리카 온라인 v1.13 (Balance Update)</title>
+    <title>유리카 온라인 v1.14 (Skill Balance)</title>
     <script>
         // Automatic Cache Busting System
-        window.GAME_VERSION = '1.13';
+        window.GAME_VERSION = '1.14';
         const storedVersion = localStorage.getItem('yurica_version');
         if (storedVersion !== window.GAME_VERSION) {
             localStorage.setItem('yurica_version', window.GAME_VERSION);
@@ -20,7 +20,7 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=1.13">
+    <link rel="stylesheet" href="src/css/style.css?v=1.14">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -321,7 +321,7 @@
                                     <span class="skill-name">파이어볼</span>
                                     <span class="skill-level">Lv.<span id="lvl-fireball">1</span></span>
                                 </div>
-                                <p class="skill-desc">광역 범위 도트 공격. <br><small>필요: <span class="skill-cost"
+                                <p class="skill-desc">광역 폭발 및 화상 공격. <br><small>필요: <span class="skill-cost"
                                             data-skill="fireball">300</span>G</small></p>
                             </div>
                             <button class="skill-up-btn" data-skill="fireball">+</button>
@@ -334,7 +334,7 @@
                                     <span class="skill-name">매직 실드</span>
                                     <span class="skill-level">Lv.<span id="lvl-shield">1</span></span>
                                 </div>
-                                <p class="skill-desc">데미지 감소 및 마나 대체 소모. <br><small>필요: <span class="skill-cost"
+                                <p class="skill-desc">데미지 마나 흡수 및 방어. <br><small>필요: <span class="skill-cost"
                                             data-skill="shield">300</span>G</small>
                                 </p>
                             </div>
@@ -387,7 +387,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v1.13
+        📦 v1.14
     </div>
 
     <!-- Update History Modal -->
@@ -403,7 +403,7 @@
         </div>
     </div>
 
-    <script type="module" src="src/js/main.js?v=1.13"></script>
+    <script type="module" src="src/js/main.js?v=1.14"></script>
 </body>
 
 </html>
