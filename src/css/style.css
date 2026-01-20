@@ -64,43 +64,55 @@ html {
 
 .skill-btn,
 .attack-btn {
-    width: 56px;
-    height: 56px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 16px;
+    width: 60px;
+    height: 60px;
+    background: #fff;
+    border: 4px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 4px 10px rgba(0, 0, 0, 0.2);
     display: flex;
-    align-items: center;
     justify-content: center;
-    position: relative;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    align-items: center;
     cursor: pointer;
-    border: 2px solid white;
+    position: relative;
     font-size: 24px;
     transition: transform 0.1s, background 0.2s;
     overflow: hidden;
-    /* Necessary for cooldown overlay */
+}
+
+.skill-btn:active,
+.attack-btn:active {
+    transform: scale(0.9);
+    background: #ffd6a5;
 }
 
 .skill-btn.disabled,
 .attack-btn.disabled {
     cursor: default;
     pointer-events: none;
-    filter: grayscale(0.5);
+    filter: grayscale(0.8) brightness(0.7);
+}
+
+.attack-btn {
+    width: 90px;
+    height: 90px;
+    background: #fff4ba;
 }
 
 .shortcut-badge {
     position: absolute;
-    top: -4px;
-    right: -4px;
-    background: #ffd6a5;
-    color: #833471;
+    top: 5px;
+    right: 5px;
+    background: #ff6b6b;
+    color: white;
     font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 8px;
     font-weight: bold;
-    padding: 2px 5px;
-    border-radius: 6px;
-    border: 1px solid white;
+    border: 2px solid white;
     z-index: 12;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .cooldown-overlay {
@@ -109,7 +121,7 @@ html {
     left: 0;
     width: 100%;
     height: 0%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
     z-index: 10;
     pointer-events: none;
     transition: height 0.1s linear;
@@ -120,26 +132,12 @@ html {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 14px;
+    font-size: 16px;
     font-weight: bold;
     color: white;
-    text-shadow: 0 0 4px black;
+    text-shadow: 0 0 5px black;
     z-index: 11;
     pointer-events: none;
-}
-
-.skill-btn:active,
-.attack-btn:active {
-    transform: scale(0.9);
-    background: #ffd6a5;
-}
-
-.attack-btn {
-    width: 80px;
-    height: 80px;
-    background: #ffd6a5;
-    border-radius: 40px;
-    font-size: 32px;
 }
 
 .key-hint {
@@ -807,27 +805,6 @@ html {
 .skill-row {
     display: flex;
     gap: 15px;
-}
-
-.skill-btn,
-.attack-btn {
-    width: 60px;
-    height: 60px;
-    background: #fff;
-    border: 4px solid #fff;
-    border-radius: 50%;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 4px 10px rgba(0, 0, 0, 0.2);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    position: relative;
-}
-
-.attack-btn {
-    width: 90px;
-    height: 90px;
-    background: #fff4ba;
 }
 
 /* 5. 가방 아이콘: 배낭 형태 감성 (Image 1 하단 참고) */
