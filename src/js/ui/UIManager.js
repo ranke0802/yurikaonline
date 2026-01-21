@@ -83,6 +83,7 @@ export class UIManager {
         document.querySelectorAll('.stat-up-btn').forEach(btn => {
             const handleStatUp = (e) => {
                 e.preventDefault();
+                if (btn.classList.contains('disabled')) return;
                 const stat = btn.getAttribute('data-stat');
                 const p = this.game.localPlayer;
                 if (stat && p && p.statPoints > 0) {
@@ -99,6 +100,7 @@ export class UIManager {
         document.querySelectorAll('.stat-down-btn').forEach(btn => {
             const handleStatDown = (e) => {
                 e.preventDefault();
+                if (btn.classList.contains('disabled')) return;
                 const stat = btn.getAttribute('data-stat');
                 const p = this.game.localPlayer;
                 if (stat && p && this.pendingStats[stat] > 0) {
@@ -352,56 +354,77 @@ export class UIManager {
         if (expRemain) expRemain.textContent = `${p.maxExp - Math.floor(p.exp)}`;
 
         // Stats
-        // Stats
         document.getElementById('stat-points').textContent = p.statPoints;
 
         const statsToShow = ['vitality', 'intelligence', 'wisdom', 'agility'];
         statsToShow.forEach(s => {
             const valEl = document.getElementById(`val-${s}`);
-            if (valEl) valEl.textContent = p[s] + this.pendingStats[s];
+            if (valEl) {
+                valEl.textContent = p[s] + this.pendingStats[s];
+                if (this.pendingStats[s] > 0) valEl.classList.add('stat-predict-inc');
+                else valEl.classList.remove('stat-predict-inc');
+            }
 
             const upBtn = document.querySelector(`.stat-up-btn[data-stat="${s}"]`);
             const downBtn = document.querySelector(`.stat-down-btn[data-stat="${s}"]`);
 
             if (upBtn) {
-                if (p.statPoints > 0) upBtn.classList.remove('hidden');
-                else upBtn.classList.add('hidden');
+                if (p.statPoints > 0) upBtn.classList.remove('disabled');
+                else upBtn.classList.add('disabled');
             }
 
             if (downBtn) {
-                if (this.pendingStats[s] > 0) downBtn.classList.remove('hidden');
-                else downBtn.classList.add('hidden');
+                if (this.pendingStats[s] > 0) downBtn.classList.remove('disabled');
+                else downBtn.classList.add('disabled');
             }
         });
 
         // Derived (Immediate Predicted Feedback)
+        const baseVit = p.vitality;
+        const baseInt = p.intelligence;
+        const baseWis = p.wisdom;
+        const baseAgi = p.agility;
+
         const predVit = p.vitality + this.pendingStats.vitality;
         const predInt = p.intelligence + this.pendingStats.intelligence;
         const predWis = p.wisdom + this.pendingStats.wisdom;
         const predAgi = p.agility + this.pendingStats.agility;
 
+        // Compare pred vs base for green highlight
+        const updateDerived = (id, baseVal, predVal, isPercentage = false, decimal = 0) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+
+            let displayVal = isPercentage ? `${(predVal * 100).toFixed(decimal)}%` : predVal.toFixed(decimal);
+            if (decimal === 0 && !isPercentage) displayVal = Math.floor(predVal);
+
+            el.textContent = displayVal;
+            if (predVal > baseVal) el.classList.add('stat-predict-inc');
+            else el.classList.remove('stat-predict-inc');
+        };
+
+        // HP/MP Range special handling
+        const hpRangeEl = document.getElementById('val-hp-range');
+        const baseMaxHp = 20 + (baseVit * 10);
         const predMaxHp = 20 + (predVit * 10);
+        if (hpRangeEl) {
+            hpRangeEl.innerHTML = `${Math.floor(p.hp)} / <span class="${predMaxHp > baseMaxHp ? 'stat-predict-inc' : ''}">${predMaxHp}</span>`;
+        }
+
+        const mpRangeEl = document.getElementById('val-mp-range');
+        const baseMaxMp = 30 + (baseWis * 10);
         const predMaxMp = 30 + (predWis * 10);
-        const predDef = predVit * 1;
-        const predHpRegen = predVit * 1;
-        const predMpRegen = predWis * 1;
-        const predAtk = 5 + (predInt * 1) + Math.floor(predWis / 2) + (p.level * 1);
-        const predAtkSpd = 1.0 + (predAgi * 0.1);
-        const predCrit = 0.1 + (predAgi * 0.01);
-        const predMoveSpd = 1.0 + (predAgi * 0.05);
+        if (mpRangeEl) {
+            mpRangeEl.innerHTML = `${Math.floor(p.mp)} / <span class="${predMaxMp > baseMaxMp ? 'stat-predict-inc' : ''}">${predMaxMp}</span>`;
+        }
 
-        document.getElementById('val-hp-range').textContent = `${Math.floor(p.hp)}/${predMaxHp}`;
-        document.getElementById('val-mp-range').textContent = `${Math.floor(p.mp)}/${predMaxMp}`;
-        document.getElementById('val-atk').textContent = predAtk;
-        document.getElementById('val-atk-spd').textContent = predAtkSpd.toFixed(2);
-        document.getElementById('val-crit').textContent = `${(predCrit * 100).toFixed(0)}%`;
-        document.getElementById('val-move-spd').textContent = `${(predMoveSpd * 100).toFixed(0)}%`;
-
-        // Update additional stats in UI if they exist (or update the derived panel)
-        const defRow = document.getElementById('val-def');
-        if (defRow) defRow.textContent = predDef;
-        const regenRow = document.getElementById('val-regen');
-        if (regenRow) regenRow.textContent = `HP:${predHpRegen}/MP:${predMpRegen}`;
+        updateDerived('val-atk', 5 + (baseInt * 1) + Math.floor(baseWis / 2) + (p.level * 1), 5 + (predInt * 1) + Math.floor(predWis / 2) + (p.level * 1));
+        updateDerived('val-def', baseVit * 1, predVit * 1);
+        updateDerived('val-hp-regen', baseVit * 1, predVit * 1);
+        updateDerived('val-mp-regen', baseWis * 1, predWis * 1);
+        updateDerived('val-atk-spd', 1.0 + (baseAgi * 0.1), 1.0 + (predAgi * 0.1), false, 2);
+        updateDerived('val-crit', 0.1 + (baseAgi * 0.01), 0.1 + (predAgi * 0.01), true);
+        updateDerived('val-move-spd', 1.0 + (baseAgi * 0.05), 1.0 + (predAgi * 0.05), true);
     }
 
     updateSkillPopup() {

@@ -1473,6 +1473,12 @@ html {
     border-bottom: 2px solid #ddd;
     margin-bottom: 15px;
     padding-bottom: 10px;
+    position: sticky;
+    top: -30px;
+    /* Padding adjustment */
+    background: #ffffff;
+    z-index: 10;
+    margin-top: -10px;
 }
 
 .close-history {
@@ -1510,5 +1516,21 @@ html {
 }
 
 .history-logs li {
-    margin-bottom: 3px;
+    margin-bottom: 4px;
+}
+
+/* Stat Buttons Disabled State */
+.stat-up-btn.disabled,
+.stat-down-btn.disabled {
+    background: #dfe6e9 !important;
+    color: #b2bec3 !important;
+    cursor: default !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+/* Stat Prediction Highlight */
+.stat-predict-inc {
+    color: #2ecc71 !important;
+    font-weight: bold;
 }
