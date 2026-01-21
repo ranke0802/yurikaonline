@@ -117,6 +117,16 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.26', date: '2026-01-21', title: 'Mobile UI Final Tuning',
+                logs: [
+                    '세로 모드 하단 중앙 메뉴바 도입 (가방, 스킬, 정보)',
+                    '가로 모드 채팅창 위치(중앙 하단) 및 좌표 위치 원복',
+                    '가로 모드 메뉴 버튼들을 미니맵 좌측 상단으로 분리 배치',
+                    '세로 모드 전체화면 버튼 위치 최적화 (미니맵 아래)',
+                    '전반적인 모바일 UI 간섭 해결 및 조작성 정밀 개선'
+                ]
+            },
+            {
                 version: 'v1.25', date: '2026-01-21', title: 'Advanced Mobile Layout',
                 logs: [
                     '가로 모드 채팅창 하단 중앙 이동 (3줄 노출 및 너비 확장)',

@@ -9,10 +9,10 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Nanum+Gothic:wght@400;700&display=swap"
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <title>유리카 온라인 v1.25 (Advanced Mobile Layout)</title>
+    <title>유리카 온라인 v1.26 (Mobile UI Final Tuning)</title>
     <script>
         // Automatic Cache Busting System
-        window.GAME_VERSION = '1.24';
+        window.GAME_VERSION = '1.26';
         const storedVersion = localStorage.getItem('yurika_version');
         if (storedVersion !== window.GAME_VERSION) {
             localStorage.setItem('yurika_version', window.GAME_VERSION);
@@ -24,7 +24,7 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=1.25">
+    <link rel="stylesheet" href="src/css/style.css?v=1.26">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -88,16 +88,16 @@
                     </div>
 
                     <div class="minimap-menu">
-                        <div class="menu-btn inventory-trigger" data-key="shift-b" title="가방">
+                        <div class="menu-btn inventory-trigger" id="btn-inventory" data-key="shift-b" title="가방">
                             <div class="menu-icon">🎒</div>
                         </div>
-                        <div class="menu-btn skill-trigger" data-key="shift-s" title="스킬">
+                        <div class="menu-btn skill-trigger" id="btn-skill" data-key="shift-s" title="스킬">
                             <div class="menu-icon">📜</div>
                         </div>
-                        <div class="menu-btn status-trigger" data-key="shift-i" title="내 정보">
+                        <div class="menu-btn status-trigger" id="btn-status" data-key="shift-i" title="내 정보">
                             <div class="menu-icon">👤</div>
                         </div>
-                        <div class="menu-btn fullscreen-toggle" id="fullscreen-toggle" title="전체화면">
+                        <div class="menu-btn fullscreen-toggle" id="btn-fullscreen" title="전체화면">
                             <div class="menu-icon">⛶</div>
                         </div>
                     </div>
@@ -405,7 +405,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v1.25
+        📦 v1.26
     </div>
 
     <!-- Update History Modal -->
@@ -421,7 +421,7 @@
         </div>
     </div>
 
-    <script type="module" src="src/js/main.js?v=1.25"></script>
+    <script type="module" src="src/js/main.js?v=1.26"></script>
 </body>
 
 </html>
