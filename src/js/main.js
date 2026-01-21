@@ -14,7 +14,11 @@ class Game {
         this.ctx = this.canvas.getContext('2d');
         this.playerHasAttacked = false;
 
+        this.lastTime = 0;
+        this.isLoading = true;
+        this.loadingProgress = 0;
         this.zoom = 1.0; // Default zoom
+
         this.resize();
         window.addEventListener('resize', () => this.resize());
 
