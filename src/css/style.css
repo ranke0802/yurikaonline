@@ -1091,8 +1091,8 @@ html {
     /* Changed from 4 to 3 */
     background: rgba(255, 255, 255, 0.6);
     border: 3px solid #fff;
-    border-radius: 0 0 8px 8px;
-    /* Sharper corners */
+    border-radius: 4px;
+    /* Shorter corners as base */
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(5px);
     z-index: 100;
@@ -1188,37 +1188,42 @@ html {
         /* 하단 중앙: 가방/스킬/내정보 바 */
         body #ui-layer .minimap-menu {
             position: fixed !important;
+            top: auto !important;
+            /* CRITICAL: base top 215px 속성 해제 (늘어짐 방지) */
             bottom: 25px !important;
             left: 50% !important;
             transform: translateX(-50%) !important;
 
             display: flex !important;
             flex-direction: row !important;
-            gap: 15px !important;
+            gap: 12px !important;
 
             background: rgba(253, 250, 246, 0.95) !important;
-            border-radius: 12px !important;
-            /* Square-ish */
-            padding: 12px 30px !important;
+            border-radius: 6px !important;
+            /* More square-ish */
+            padding: 10px 25px !important;
             border: 3px solid #fff !important;
             backdrop-filter: blur(12px) !important;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
 
-            z-index: 200 !important;
+            z-index: 2000 !important;
+            /* Ensure it's above everything */
             width: auto !important;
-            height: auto !important;
+            height: fit-content !important;
+            /* Fix vertical stretch */
             max-width: none !important;
+            flex-wrap: nowrap !important;
         }
 
         /* 하단바 버튼: 완벽한 정사각형 프리미엄 디자인 */
         body #ui-layer .minimap-menu .menu-btn {
-            width: 50px !important;
-            height: 50px !important;
-            background: rgba(255, 255, 255, 0.98) !important;
+            width: 52px !important;
+            height: 52px !important;
+            background: rgba(255, 255, 255, 1.0) !important;
             border: 2px solid #ffd6a5 !important;
-            border-radius: 8px !important;
-            /* Square with minimal rounding */
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+            border-radius: 4px !important;
+            /* Sharper square */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
 
             margin: 0 !important;
             padding: 0 !important;
@@ -1232,23 +1237,24 @@ html {
             font-size: 26px !important;
         }
 
-        /* 전체화면 버튼: 미니맵 아래 별도 정사각형 타일 */
+        /* 전체화면 버튼: 미니맵 아래 별도 정사각형 타일 (침범 방지를 위해 더 아래로) */
         body #ui-layer #btn-fullscreen {
             position: fixed !important;
-            top: 185px !important;
+            top: 210px !important;
+            /* 185px -> 210px로 하향 조정 (미니맵과 거리 확보) */
             right: 20px !important;
             left: auto !important;
             bottom: auto !important;
 
-            width: 44px !important;
-            height: 44px !important;
+            width: 46px !important;
+            height: 46px !important;
             background: rgba(253, 250, 246, 0.95) !important;
-            border-radius: 10px !important;
+            border-radius: 6px !important;
             border: 3px solid #fff !important;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
             backdrop-filter: blur(10px) !important;
 
-            z-index: 210 !important;
+            z-index: 2000 !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
