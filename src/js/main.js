@@ -14,10 +14,7 @@ class Game {
         this.ctx = this.canvas.getContext('2d');
         this.playerHasAttacked = false;
 
-        this.lastTime = 0;
-        this.isLoading = true;
-        this.loadingProgress = 0;
-
+        this.zoom = 1.0; // Default zoom
         this.resize();
         window.addEventListener('resize', () => this.resize());
 
@@ -115,6 +112,16 @@ class Game {
         this.monsters.push(boss);
 
         this.updateHistory = [
+            {
+                version: 'v1.23', date: '2026-01-21', title: 'Mobile UX & Global Scaling',
+                logs: [
+                    '전역 화면 배율 조정 (70% 수준으로 줌 아웃하여 더 넓은 시야 확보)',
+                    '모바일 가로 모드 레이아웃 최적화 (버튼 간격 및 가시성 개선)',
+                    '모바일 UI 투명도 적용 (몬스터 시인성 확보를 위한 반투명화)',
+                    '미니맵 디자인 및 투명도 개선',
+                    '가로 모드에서 퀘스트/채팅 UI 노출 및 레이크아웃 조정'
+                ]
+            },
             {
                 version: 'v1.22', date: '2026-01-21', title: 'Quest UI/UX Premium Revamp',
                 logs: [
@@ -220,9 +227,17 @@ class Game {
     resize() {
         this.width = this.viewport.clientWidth;
         this.height = this.viewport.clientHeight;
+
+        // Apply zoom for wider view (requested ~70% size)
+        this.zoom = 0.7; // Global zoom factor (Smaller = Wider View)
+
         this.canvas.width = this.width;
         this.canvas.height = this.height;
-        if (this.camera) this.camera.resize(this.width, this.height);
+
+        if (this.camera) {
+            // Camera viewport must be larger to show more of the map relative to the canvas
+            this.camera.resize(this.width / this.zoom, this.height / this.zoom);
+        }
     }
 
     performLaserAttack() {
@@ -389,6 +404,9 @@ class Game {
 
     draw() {
         this.ctx.clearRect(0, 0, this.width, this.height);
+        this.ctx.save();
+        this.ctx.scale(this.zoom, this.zoom);
+
         this.map.draw(this.camera);
         this.drops.forEach(d => d.draw(this.ctx, this.camera));
         this.monsters.forEach(m => m.draw(this.ctx, this.camera));
@@ -405,7 +423,8 @@ class Game {
             this.ctx.shadowColor = 'rgba(0,0,0,0.5)'; this.ctx.shadowBlur = ft.isCrit ? 10 : 4;
             this.ctx.fillText(ft.text, sx, sy);
         });
-        this.ctx.restore();
+        this.ctx.restore(); // Restore floating texts
+        this.ctx.restore(); // Restore global scale
     }
 
     loop(time) {

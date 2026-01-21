@@ -1010,7 +1010,8 @@ html {
     top: 20px;
     right: 20px;
     width: 150px;
-    background: rgba(44, 62, 80, 0.85);
+    background: rgba(44, 62, 80, 0.6);
+    /* 투명하게 변경 */
     border: 3px solid #fff;
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -1072,8 +1073,9 @@ html {
 .minimap-menu {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    background: rgba(255, 255, 255, 0.9);
-    border-top: 2px solid #ffd6a5;
+    background: rgba(255, 255, 255, 0.6);
+    /* 투명하게 변경 */
+    border-top: 2px solid rgba(255, 214, 165, 0.8);
 }
 
 .menu-btn {
@@ -1156,8 +1158,8 @@ html {
         top: 0 !important;
         left: 0 !important;
         pointer-events: auto !important;
-        background: rgba(253, 250, 246, 1.0) !important;
-        /* 모바일은 완전 불투명하게 */
+        background: rgba(253, 250, 246, 0.6) !important;
+        /* 반투명하게 변경 (몬스터 시인성) */
         border-width: 4px !important;
         /* 테두리 강조 */
         width: 180px !important;
@@ -1187,7 +1189,8 @@ html {
         border-radius: 12px;
         border: 3px solid #fff;
         z-index: 110;
-        background: #1e272e;
+        background: rgba(30, 39, 46, 0.6) !important;
+        /* 미니맵 투명도 */
         overflow: hidden;
         transform: scale(0.95);
         transform-origin: top right;
@@ -1200,38 +1203,83 @@ html {
         display: block;
     }
 
-    /* Joystick & Buttons: 1.5x larger and moved up with transparency */
+    /* Joystick & Buttons: Positioned further from edges */
     #joystick-container {
-        left: 10px;
-        bottom: 125px;
-        transform: scale(1.25);
+        left: 40px;
+        /* 구석에서 띄움 */
+        bottom: 140px;
+        transform: scale(1.35);
         transform-origin: bottom left;
-        opacity: 0.7;
+        opacity: 0.6;
     }
 
     .action-buttons {
-        right: 15px;
-        bottom: 115px;
-        transform: scale(1.1);
+        right: 40px;
+        /* 구석에서 띄움 */
+        bottom: 130px;
+        transform: scale(1.2);
         transform-origin: bottom right;
-        opacity: 0.7;
+        opacity: 0.6;
     }
 }
 
-@media screen and (max-height: 500px) {
+/* Landscape mode dedicated tweaks */
+@media screen and (orientation: landscape) and (max-height: 500px) {
     .left-ui-container {
-        display: none;
-    }
-
-    .top-bar,
-    #minimap-container {
+        display: flex !important;
+        /* 가로모드에서도 표시 */
+        top: 55px;
         transform: scale(0.6);
+        gap: 8px;
     }
 
-    #joystick-container,
+    .quest-list-panel {
+        width: 200px !important;
+        max-height: 80px;
+    }
+
+    .chat-window {
+        width: 250px !important;
+        height: 100px !important;
+    }
+
+    .top-bar {
+        top: 10px;
+        left: 10px;
+        transform: scale(0.65) !important;
+    }
+
+    #minimap-container {
+        width: 100px !important;
+        top: 10px;
+        right: 10px;
+        transform: scale(0.8) !important;
+    }
+
+    #minimapCanvas {
+        height: 100px !important;
+    }
+
+    #joystick-container {
+        left: 60px;
+        bottom: 80px;
+        transform: scale(1.1) !important;
+    }
+
     .action-buttons {
-        bottom: 40px;
-        transform: scale(0.8);
+        right: 60px;
+        bottom: 70px;
+        transform: scale(1.0) !important;
+    }
+}
+
+/* Common landscape/short screen adjustments */
+@media screen and (max-height: 500px) and (min-width: 900px) {
+
+    /* PC but very short window */
+    .left-ui-container {
+        transform: scale(0.7);
+        top: 90px;
     }
 }
 
