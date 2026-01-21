@@ -91,7 +91,7 @@ class Game {
                 const sCost = 20 + (sLv - 1) * 5;
                 if (player.useMana(sCost)) {
                     const dur = 60 + (sLv - 1) * 20;
-                    player.triggerAction('SKILL: 마나쉴드');
+                    player.triggerAction(`${player.name} : 마나쉴드 !!`);
                     player.shieldTimer = dur;
                     player.isShieldActive = true;
                     this.ui.logSystemMessage(`SKILL: 마나쉴드 - 방어막이 ${dur}초간 지속됩니다.`);
@@ -338,7 +338,7 @@ class Game {
         });
 
         if (nearest) {
-            player.triggerAction('SKILL: 매직 미사일');
+            player.triggerAction(`${player.name} : 매직 미사일 !!`);
             this.playerHasAttacked = true;
             const count = player.skillLevels.missile || 1;
             for (let i = 0; i < count; i++) {
@@ -357,7 +357,7 @@ class Game {
 
     castFireball() {
         const player = this.localPlayer;
-        player.triggerAction('SKILL: 파이어볼');
+        player.triggerAction(`${player.name} : 파이어볼 !!`);
         this.playerHasAttacked = true;
         let vx = 0, vy = 0, speed = 400; const diag = 0.707;
         const dirs = [[0, -1], [diag, -diag], [1, 0], [diag, diag], [0, 1], [-diag, diag], [-1, 0], [-diag, -diag]];

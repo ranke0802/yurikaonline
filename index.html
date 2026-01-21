@@ -242,8 +242,15 @@
                     <div class="status-top">
                         <div class="status-portrait"></div>
                         <div class="status-basic-info">
-                            <p><strong>이름:</strong> <input type="text" id="player-name-input" maxlength="12"
+                            <p id="name-display-row"><strong>이름:</strong> <span id="player-name-display"></span> <button
+                                    id="player-name-edit-btn"
+                                    style="margin-left: 8px; padding: 2px 8px; font-size: 11px; border: 1px solid #ddd; border-radius: 4px; background: #f5f5f5; cursor: pointer;">수정</button>
+                            </p>
+                            <p id="name-input-row" style="display: none;"><strong>이름:</strong> <input type="text"
+                                    id="player-name-input" maxlength="12"
                                     style="width: 120px; padding: 2px 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;" />
+                                <button id="player-name-save-btn"
+                                    style="padding: 2px 8px; font-size: 11px; border: 1px solid #4ade80; border-radius: 4px; background: #4ade80; color: white; cursor: pointer;">저장</button>
                             </p>
                             <p><strong>직업:</strong> 초보 마법사</p>
                             <p><strong>레벨:</strong> <span id="stat-level">1</span></p>

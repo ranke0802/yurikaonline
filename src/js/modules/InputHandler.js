@@ -90,11 +90,28 @@ export class InputHandler {
         const maxRadius = 50;
 
         const handleStart = (e) => {
-            // Check if touch is on a skill button or action button
+            // Check if touch is on or near a skill button or action button
             const target = e.target;
             const isButton = target.closest('.skill-btn, .attack-btn, .menu-btn');
-            if (isButton) {
-                // Don't activate joystick if touching a button
+
+            // Also check if touch point is near any button (within 20px)
+            if (!isButton) {
+                const touch = e.touches ? e.touches[0] : e;
+                const x = touch.clientX;
+                const y = touch.clientY;
+
+                const buttons = document.querySelectorAll('.skill-btn, .attack-btn');
+                for (const btn of buttons) {
+                    const rect = btn.getBoundingClientRect();
+                    const padding = 20; // 20px padding around button
+                    if (x >= rect.left - padding && x <= rect.right + padding &&
+                        y >= rect.top - padding && y <= rect.bottom + padding) {
+                        // Touch is near a button, don't activate joystick
+                        return;
+                    }
+                }
+            } else {
+                // Direct button touch
                 return;
             }
 

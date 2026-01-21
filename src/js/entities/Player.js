@@ -713,18 +713,8 @@ export default class Player {
         ctx.fillStyle = hpPercent > 0.3 ? '#4ade80' : '#ef4444';
         ctx.fillRect(screenX - barWidth / 2, barY, barWidth * hpPercent, barHeight);
 
-        // Player Name (between HP and MP bars)
-        const nameY = barY + barHeight + 10;
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 11px "Outfit", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.shadowColor = 'rgba(0,0,0,0.7)';
-        ctx.shadowBlur = 3;
-        ctx.fillText(this.name, screenX, nameY);
-        ctx.shadowBlur = 0;
-
         // MP Bar
-        const mpBarY = nameY + 6;
+        const mpBarY = barY + barHeight + 2;
         // MP Bar background
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(screenX - barWidth / 2, mpBarY, barWidth, barHeight);
@@ -732,6 +722,16 @@ export default class Player {
         const mpPercent = Math.max(0, Math.min(1, this.mp / this.maxMp));
         ctx.fillStyle = '#48dbfb';
         ctx.fillRect(screenX - barWidth / 2, mpBarY, barWidth * mpPercent, barHeight);
+
+        // Player Name (below MP bar, same style as monster names)
+        const nameY = mpBarY + barHeight + 14;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 13px "Outfit", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 4;
+        ctx.fillText(this.name, screenX, nameY);
+        ctx.shadowBlur = 0;
 
         // Draw Direction Arrow
         this.drawDirectionArrow(ctx, screenX, screenY);

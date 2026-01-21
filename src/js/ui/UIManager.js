@@ -152,14 +152,39 @@ export class UIManager {
             fsBtn.addEventListener('touchstart', handleFs, { passive: false });
         }
 
-        // Player Name Input
+        // Player Name Edit/Save Buttons
+        const nameEditBtn = document.getElementById('player-name-edit-btn');
+        const nameSaveBtn = document.getElementById('player-name-save-btn');
+        const nameDisplayRow = document.getElementById('name-display-row');
+        const nameInputRow = document.getElementById('name-input-row');
         const nameInput = document.getElementById('player-name-input');
-        if (nameInput) {
-            nameInput.addEventListener('input', (e) => {
-                const newName = e.target.value.trim() || '유리카';
+        const nameDisplay = document.getElementById('player-name-display');
+
+        if (nameEditBtn && nameSaveBtn && nameInput) {
+            nameEditBtn.addEventListener('click', () => {
+                // Show input row, hide display row
+                nameDisplayRow.style.display = 'none';
+                nameInputRow.style.display = 'block';
+                nameInput.value = this.game.localPlayer?.name || '유리카';
+                nameInput.focus();
+            });
+
+            nameSaveBtn.addEventListener('click', () => {
+                // Save name and hide input row
+                const newName = nameInput.value.trim() || '유리카';
                 if (this.game.localPlayer) {
                     this.game.localPlayer.name = newName;
                     localStorage.setItem('yurika_player_name', newName);
+                }
+                nameDisplay.textContent = newName;
+                nameInputRow.style.display = 'none';
+                nameDisplayRow.style.display = 'block';
+            });
+
+            // Also save on Enter key
+            nameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    nameSaveBtn.click();
                 }
             });
         }
@@ -352,9 +377,9 @@ export class UIManager {
         if (!p) return;
 
         // Player Name
-        const nameInput = document.getElementById('player-name-input');
-        if (nameInput && nameInput.value !== p.name) {
-            nameInput.value = p.name;
+        const nameDisplay = document.getElementById('player-name-display');
+        if (nameDisplay) {
+            nameDisplay.textContent = p.name;
         }
 
         // Basic Info
