@@ -1185,12 +1185,13 @@ html {
     /* Mobile Portrait UI Layout Refinement */
     @media screen and (orientation: portrait) {
 
-        /* 하단 중앙: 가방/스킬/내정보 바 */
+        /* 하단 중앙: 가방/스킬/내정보 바 - Safe Area 적용 */
         body #ui-layer .minimap-menu {
             position: fixed !important;
             top: auto !important;
             /* CRITICAL: base top 215px 속성 해제 (늘어짐 방지) */
-            bottom: 25px !important;
+            bottom: calc(25px + env(safe-area-inset-bottom)) !important;
+            /* 하단 안전 영역 확보 */
             left: 50% !important;
             transform: translateX(-50%) !important;
 
@@ -1237,12 +1238,12 @@ html {
             font-size: 26px !important;
         }
 
-        /* 전체화면 버튼: 미니맵 아래 별도 정사각형 타일 (침범 방지를 위해 더 아래로) */
+        /* 전체화면 버튼: 미니맵 아래 별도 정사각형 타일 (Safe Area 적용) */
         body #ui-layer #btn-fullscreen {
             position: fixed !important;
-            top: 210px !important;
-            /* 185px -> 210px로 하향 조정 (미니맵과 거리 확보) */
-            right: 20px !important;
+            top: calc(210px + env(safe-area-inset-top)) !important;
+            /* 상단 안전 영역 확보 */
+            right: calc(20px + env(safe-area-inset-right)) !important;
             left: auto !important;
             bottom: auto !important;
 
@@ -1282,13 +1283,13 @@ html {
     }
 
     #minimap-container {
-        top: 10px;
-        right: 10px;
+        top: calc(10px + env(safe-area-inset-top));
+        /* 상단 안전 영역 확보 */
+        right: calc(10px + env(safe-area-inset-right));
         width: 110px;
         border-radius: 12px;
         border: 3px solid #fff;
-        z-index: 95;
-        /* 채팅보다는 아래 */
+        z-index: 100;
         background: rgba(30, 39, 46, 0.6) !important;
         overflow: visible !important;
         /* 버튼 분리를 위해 */
@@ -1757,8 +1758,10 @@ html {
 /* 버전 정보 아이콘 */
 .version-info {
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: calc(15px + env(safe-area-inset-top));
+    /* 상단 바와 정렬 유지 */
+    right: calc(160px + env(safe-area-inset-right));
+    /* 미니맵 왼쪽 위치 유지 */
     background: rgba(45, 52, 54, 0.8);
     color: #f1c40f;
     padding: 6px 12px;
