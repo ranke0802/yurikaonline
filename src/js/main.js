@@ -116,6 +116,16 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.22', date: '2026-01-21', title: 'Quest UI/UX Premium Revamp',
+                logs: [
+                    '퀘스트창 및 채팅창 디자인 통일화 (헤더 색상 및 창 스타일)',
+                    '퀘스트 텍스트 개행 문제 해결 (너비 확보 및 word-break 적용)',
+                    '모바일 버전 UI 불투명화 (배경 가독성 개선)',
+                    '좌측 UI 레이아웃 여유 공간 확보 (HP/MP 바 간섭 최소화)',
+                    '전체적인 UI 스케일 및 배율 재조정'
+                ]
+            },
+            {
                 version: 'v1.21', date: '2026-01-21', title: 'UI/UX Premium Revamp & Stability',
                 logs: [
                     '퀘스트 UI 전면 개편 (유리 질감 디자인 및 아이콘 적용)',
