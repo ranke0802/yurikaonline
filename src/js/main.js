@@ -117,6 +117,16 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.25', date: '2026-01-21', title: 'Advanced Mobile Layout',
+                logs: [
+                    '가로 모드 채팅창 하단 중앙 이동 (3줄 노출 및 너비 확장)',
+                    '가로 모드 퀘스트 창 위치 조정 및 스크롤 기능 추가',
+                    '가로 모드 미니맵 내부 메뉴 버튼 상단 배치',
+                    '세로 모드 조이스틱/스킬 버튼 크기 최적화 및 간격 조정',
+                    '전반적인 모바일 레이아웃 시인성 및 조작성 개선'
+                ]
+            },
+            {
                 version: 'v1.24', date: '2026-01-21', title: 'UX & Layout Refinement',
                 logs: [
                     'PC 버전 화면 배율 원복 (1.0) 및 모바일 줌 기능(0.7) 분리 적용',
