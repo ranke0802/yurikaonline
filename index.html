@@ -12,10 +12,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>유리카 온라인 v1.26 (Mobile UI Final Tuning)</title>
+    <title>유리카 온라인 v1.27 (Quest & Monster Tuning)</title>
     <script>
         // Enhanced Cache Busting System for Mobile & PC
-        window.GAME_VERSION = '1.26';
+        window.GAME_VERSION = '1.27';
 
         async function initCacheBusting() {
             try {
@@ -44,7 +44,7 @@
 
         initCacheBusting();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=1.26">
+    <link rel="stylesheet" href="src/css/style.css?v=1.27">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -139,7 +139,7 @@
                                     <div class="quest-progress">진행도: <span id="quest-slime-count">0</span>/10</div>
                                 </div>
                             </div>
-                            <div class="quest-item" id="quest-boss">
+                            <div class="quest-item" id="quest-boss" style="display: none;">
                                 <span class="quest-icon">👑</span>
                                 <div class="quest-details">
                                     <div class="quest-title">대왕 슬라임 토벌</div>
@@ -425,7 +425,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v1.26
+        📦 v1.27
     </div>
 
     <!-- Update History Modal -->
@@ -441,7 +441,7 @@
         </div>
     </div>
 
-    <script type="module" src="src/js/main.js?v=1.26"></script>
+    <script type="module" src="src/js/main.js?v=1.27"></script>
 </body>
 
 </html>

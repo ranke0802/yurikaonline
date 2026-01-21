@@ -106,16 +106,19 @@ class Game {
             new Monster(800, 900, '슬라임')
         ];
 
-        // 초기 대왕 슬라임 설정 (나중에 스폰되는 대왕 슬라임과 동일한 스펙 적용)
-        const boss = new Monster(1500, 1300, '대왕 슬라임');
-        boss.width = 150;
-        boss.height = 150;
-        boss.maxHp = 500;
-        boss.hp = 500;
-        boss.isBoss = true;
-        this.monsters.push(boss);
+        // 초기 대왕 슬라임 설정 제거 (퀘스트 진행도에 따라 스폰되도록 수정)
 
         this.updateHistory = [
+            {
+                version: 'v1.27', date: '2026-01-21', title: 'Quest & Monster Logic Tuning',
+                logs: [
+                    '대왕 슬라임 스폰 조건 추가 (슬라임 10마리 처치 후 스폰)',
+                    '대왕 슬라임 보스 퀘스트 노출 시점 조정 (첫 퀘스트 완료 후 노출)',
+                    '대왕 슬라임 처치 경험치 대폭 상향 (20 -> 150)',
+                    '모바일 버전 전체화면 작동 오류 해결',
+                    '전반적인 퀘스트 진행 흐름 자연스럽게 개선'
+                ]
+            },
             {
                 version: 'v1.26', date: '2026-01-21', title: 'Mobile UI Final Tuning',
                 logs: [
@@ -359,9 +362,16 @@ class Game {
 
     spawnLoot(monster) {
         this.ui.logSystemMessage(`${monster.name}을 처치했습니다!`);
-        this.drops.push(new Drop(monster.x, monster.y, 'gold', 50));
-        this.drops.push(new Drop(monster.x + 20, monster.y - 20, 'xp', 20));
-        if (Math.random() > 0.5) this.drops.push(new Drop(monster.x - 20, monster.y + 10, 'hp', 30));
+
+        // 보스 몬스터 보상 차별화
+        const xpAmount = monster.isBoss ? 150 : 20;
+        const goldAmount = monster.isBoss ? 300 : 50;
+
+        this.drops.push(new Drop(monster.x, monster.y, 'gold', goldAmount));
+        this.drops.push(new Drop(monster.x + 20, monster.y - 20, 'xp', xpAmount));
+        if (Math.random() > 0.5 || monster.isBoss) {
+            this.drops.push(new Drop(monster.x - 20, monster.y + 10, 'hp', 30));
+        }
     }
 
     update(dt) {
@@ -399,11 +409,16 @@ class Game {
         this.spawnTimer -= dt;
         if (this.spawnTimer <= 0 && this.monsters.length < 10) {
             const mx = Math.random() * 2000, my = Math.random() * 2000;
-            if (Math.random() < 0.1) {
+            // 대왕 슬라임은 슬라임 10마리 처치 퀘스트 달성 시에만 확률적으로 스폰
+            if (Math.random() < 0.1 && this.localPlayer.questData.slimeKills >= 10) {
                 const b = new Monster(mx, my, '대왕 슬라임');
                 b.width = 150; b.height = 150; b.maxHp = 500; b.hp = 500; b.isBoss = true;
                 this.monsters.push(b);
-            } else this.monsters.push(new Monster(mx, my, '야생 슬라임'));
+            } else {
+                const names = ['초보 슬라임', '야생 슬라임', '푸른 슬라임'];
+                const name = names[Math.floor(Math.random() * names.length)];
+                this.monsters.push(new Monster(mx, my, name));
+            }
             this.spawnTimer = Math.max(1.0, 3.0 - (pLv - 1) * 0.2);
         }
 

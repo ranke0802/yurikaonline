@@ -140,16 +140,16 @@ export class UIManager {
             retryBtn.addEventListener('touchstart', handleRetry, { passive: false });
         }
 
-        // Direct Fullscreen Button Listener (Single point of truth to avoid race conditions)
-        const fsBtn = document.getElementById('fullscreen-toggle');
+        // Direct Fullscreen Button Listener
+        const fsBtn = document.getElementById('btn-fullscreen');
         if (fsBtn) {
             const handleFs = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                // Browsers prefer 'click' for Fullscreen API as a trusted user gesture.
                 this.toggleFullscreen();
             };
             fsBtn.addEventListener('click', handleFs);
+            fsBtn.addEventListener('touchstart', handleFs, { passive: false });
         }
     }
 
@@ -473,10 +473,16 @@ export class UIManager {
         }
 
         if (bossStatus) bossStatus.textContent = p.questData.bossKilled ? '1' : '0';
-        if (p.questData.bossQuestClaimed && bossItem) {
-            bossItem.classList.add('completed');
-        } else if (bossItem) {
-            bossItem.classList.remove('completed');
+
+        // 슬라임 10마리 처치 후 대왕 슬라임 퀘스트 노출
+        if (bossItem) {
+            if (p.questData.slimeKills >= 10) {
+                bossItem.style.display = 'flex';
+                if (p.questData.bossQuestClaimed) bossItem.classList.add('completed');
+                else bossItem.classList.remove('completed');
+            } else {
+                bossItem.style.display = 'none';
+            }
         }
     }
 
