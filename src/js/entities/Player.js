@@ -58,6 +58,9 @@ export default class Player {
         this.attackSpeed = 1.0;
         this.critRate = 0.1;
         this.moveSpeedMult = 1.0;
+        this.defense = 0;
+        this.hpRegen = 0;
+        this.mpRegen = 0;
 
         // MP Recovery Timer
         this.stillTimer = 0;
@@ -103,7 +106,8 @@ export default class Player {
             // 100% of HP damage is blocked. 
             // The MP cost is the "reduced" damage amount.
             // e.g. 100 damage, 80% reduction -> 20 MP lost, 0 HP lost.
-            manaDamage = amount * (1.0 - reductionRatio);
+            const afterDef = Math.max(1, amount - (this.defense || 0));
+            manaDamage = afterDef * (1.0 - reductionRatio);
             finalHpDamage = 0;
 
             if (this.mp >= manaDamage) {
@@ -113,6 +117,8 @@ export default class Player {
                 this.mp = 0;
                 finalHpDamage = overflowDamage; // Unprotected damage hits HP
             }
+        } else {
+            finalHpDamage = Math.max(1, amount - (this.defense || 0));
         }
 
         this.hp = Math.max(0, this.hp - finalHpDamage);
@@ -284,12 +290,19 @@ export default class Player {
 
     refreshStats() {
         this.maxHp = 20 + (this.vitality * 10);
-        this.maxMp = 30 + (this.wisdom * 10);
-        this.attackPower = 5 + (this.intelligence * 1) + (this.level * 1);
+        this.defense = this.vitality * 1;
+        this.hpRegen = this.vitality * 1;
 
-        // Agility: 1 AGI = +2.5% Speed, +5% Attack Speed, +1% Crit
-        this.moveSpeedMult = 1.0 + (this.agility * 0.025);
-        this.attackSpeed = 1.0 + (this.agility * 0.05);
+        this.maxMp = 30 + (this.wisdom * 10);
+        this.mpRegen = this.wisdom * 1;
+
+        // INT: 1 INT = +1 ATK
+        // WIS: 2 WIS = +1 ATK
+        this.attackPower = 5 + (this.intelligence * 1) + Math.floor(this.wisdom / 2) + (this.level * 1);
+
+        // Agility: 1 AGI = +5% Speed, +0.1 Attack Speed, +1% Crit
+        this.moveSpeedMult = 1.0 + (this.agility * 0.05);
+        this.attackSpeed = 1.0 + (this.agility * 0.1);
         this.critRate = 0.1 + (this.agility * 0.01);
 
         if (window.game?.ui) {
@@ -535,10 +548,11 @@ export default class Player {
             this.turnGraceTimer = 0;
 
             // Standing still logic: 1 MP/s + 1 per 5 WIS after 3s
+            // Standing still logic: 2s wait -> Regen MP/HP based on stats
             this.stillTimer += dt;
-            if (this.stillTimer >= 3.0) {
-                const regenBonus = 1 + Math.floor(this.wisdom / 5);
-                this.mp = Math.min(this.maxMp, this.mp + regenBonus * dt);
+            if (this.stillTimer >= 2.0) {
+                this.mp = Math.min(this.maxMp, this.mp + (this.mpRegen || 0) * dt);
+                this.hp = Math.min(this.maxHp, this.hp + (this.hpRegen || 0) * dt);
             }
         }
 

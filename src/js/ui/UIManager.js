@@ -370,17 +370,26 @@ export class UIManager {
 
         const predMaxHp = 20 + (predVit * 10);
         const predMaxMp = 30 + (predWis * 10);
-        const predAtk = 5 + (predInt * 1) + (p.level * 1);
-        const predAtkSpd = 1.0 + (predAgi * 0.05);
+        const predDef = predVit * 1;
+        const predHpRegen = predVit * 1;
+        const predMpRegen = predWis * 1;
+        const predAtk = 5 + (predInt * 1) + Math.floor(predWis / 2) + (p.level * 1);
+        const predAtkSpd = 1.0 + (predAgi * 0.1);
         const predCrit = 0.1 + (predAgi * 0.01);
-        const predMoveSpd = 100 + (predAgi * 2.5); // Base 100% + 2.5% per AGI
+        const predMoveSpd = 1.0 + (predAgi * 0.05);
 
         document.getElementById('val-hp-range').textContent = `${Math.floor(p.hp)}/${predMaxHp}`;
         document.getElementById('val-mp-range').textContent = `${Math.floor(p.mp)}/${predMaxMp}`;
         document.getElementById('val-atk').textContent = predAtk;
         document.getElementById('val-atk-spd').textContent = predAtkSpd.toFixed(2);
         document.getElementById('val-crit').textContent = `${(predCrit * 100).toFixed(0)}%`;
-        document.getElementById('val-move-spd').textContent = `${predMoveSpd}%`;
+        document.getElementById('val-move-spd').textContent = `${(predMoveSpd * 100).toFixed(0)}%`;
+
+        // Update additional stats in UI if they exist (or update the derived panel)
+        const defRow = document.getElementById('val-def');
+        if (defRow) defRow.textContent = predDef;
+        const regenRow = document.getElementById('val-regen');
+        if (regenRow) regenRow.textContent = `HP:${predHpRegen}/MP:${predMpRegen}`;
     }
 
     updateSkillPopup() {

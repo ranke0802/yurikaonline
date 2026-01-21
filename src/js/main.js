@@ -56,7 +56,7 @@ class Game {
         switch (action) {
             case 'j':
                 this.performLaserAttack();
-                player.skillCooldowns['j'] = 1.0 / player.attackSpeed;
+                player.skillCooldowns['j'] = 0.8 / player.attackSpeed;
                 player.skillMaxCooldowns['j'] = player.skillCooldowns['j'];
                 player.attackCooldown = player.skillCooldowns['j'];
                 break;
@@ -110,8 +110,23 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.20', date: '2026-01-21', title: 'New Stat System & Regeneration',
+                logs: [
+                    '신규 스탯 방어력(DEF), 체력/마나 회복력 추가',
+                    '체력(VIT) 1당 HP +10, 방어력 +1, HP회복력 +1 적용',
+                    '지력(INT) 1당 공격력 +1',
+                    '지혜(WIS) 1당 MP +10, MP회복력 +1, 2당 공격력 +1 적용',
+                    '대기 회복 로직 변경: 2초 대기 후 매초 회복력만큼 HP/MP 회복',
+                    '방어력 시스템 적용: 데미지 계산 시 방어력만큼 피해 감소'
+                ]
+            },
+            {
+                version: 'v1.19', date: '2026-01-21', title: 'Stat & Attack Speed Balance',
+                logs: ['기본 공격(레이저) 쿨타임 0.8초로 상향', '순발력(AGI) 스탯 효율 상향 (이동속도 5%, 공격속도 0.1, 치명타 1%)']
+            },
+            {
                 version: 'v1.18', date: '2026-01-21', title: 'Performance & UX Update',
-                logs: ['기본 공격 및 매직 미사일 쿨타임 1초(기본)로 조정', '업데이트 노트 아이콘 클릭 시 README.md 내용 표시 기능 추가', '내부 자원 로딩 효율 최적화']
+                logs: ['업데이트 노트 아이콘 클릭 시 README.md 내용 표시 기능 추가', '내부 자원 로딩 효율 최적화']
             },
             {
                 version: 'v1.17', date: '2026-01-21', title: 'Balance & Optimization',
