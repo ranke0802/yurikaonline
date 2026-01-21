@@ -182,7 +182,7 @@ export class InputHandler {
         });
 
         // UI Action buttons (Add touchstart for mobile responsiveness)
-        const uiButtons = document.querySelectorAll('.skill-btn, .attack-btn, .inventory-trigger, .status-trigger, .fullscreen-toggle, .menu-btn');
+        const uiButtons = document.querySelectorAll('.skill-btn, .attack-btn, .inventory-trigger, .status-trigger, .menu-btn');
 
         const handleUiAction = (e, btn) => {
             e.preventDefault();

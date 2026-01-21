@@ -138,17 +138,16 @@ export class UIManager {
             retryBtn.addEventListener('touchstart', handleRetry, { passive: false });
         }
 
-        // Direct Fullscreen Button Listener (For better compatibility with browser security)
+        // Direct Fullscreen Button Listener (Single point of truth to avoid race conditions)
         const fsBtn = document.getElementById('fullscreen-toggle');
         if (fsBtn) {
             const handleFs = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                // Browsers prefer 'click' for Fullscreen API as a trusted user gesture.
                 this.toggleFullscreen();
             };
             fsBtn.addEventListener('click', handleFs);
-            fsBtn.addEventListener('mousedown', handleFs);
-            fsBtn.addEventListener('touchstart', handleFs, { passive: false });
         }
     }
 
@@ -679,7 +678,7 @@ export class UIManager {
         if (!fullscreenElement) {
             if (requestMethod) {
                 requestMethod.call(container).catch(err => {
-                    this.logSystemMessage(`전체화면 진입 실패: ${err.message}`);
+                    // Silently fail as requested, only log to console for debugging
                     console.error('Fullscreen Error:', err);
                 });
             } else {
