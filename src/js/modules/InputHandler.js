@@ -83,8 +83,9 @@ export class InputHandler {
         const base = document.getElementById('joystick-base');
         const stick = document.getElementById('joystick-stick');
         const joystickContainer = document.getElementById('joystick-container');
+        const joystickArea = document.getElementById('joystick-area');
 
-        if (!base || !stick) return;
+        if (!base || !stick || !joystickContainer) return;
 
         const maxRadius = 50;
 
@@ -92,25 +93,22 @@ export class InputHandler {
             e.preventDefault();
             this.joystick.active = true;
             if (window.game?.ui) window.game.ui.hideAllPopups();
+
+            // Set dynamic position for mobile
+            const touch = e.touches ? e.touches[0] : e;
+            const x = touch.clientX;
+            const y = touch.clientY;
+
+            joystickContainer.style.display = 'flex';
+            joystickContainer.style.left = `${x - 75}px`;
+            joystickContainer.style.top = `${y - 75}px`;
         };
 
         const handleMove = (e) => {
             if (!this.joystick.active) return;
             e.preventDefault();
 
-            let touch;
-            if (e.touches) {
-                // Find the touch that is inside or near the joystick
-                const rect = joystickContainer.getBoundingClientRect();
-                touch = Array.from(e.touches).find(t => {
-                    const dx = t.clientX - (rect.left + rect.width / 2);
-                    const dy = t.clientY - (rect.top + rect.height / 2);
-                    return Math.sqrt(dx * dx + dy * dy) < 150;
-                }) || e.touches[0];
-            } else {
-                touch = e;
-            }
-
+            const touch = e.touches ? e.touches[0] : e;
             const rect = base.getBoundingClientRect();
             const centerX = rect.left + rect.width / 2;
             const centerY = rect.top + rect.height / 2;
@@ -137,13 +135,19 @@ export class InputHandler {
             this.joystick.y = 0;
             stick.style.left = '50%';
             stick.style.top = '50%';
+            joystickContainer.style.display = 'none';
         };
 
-        joystickContainer.addEventListener('touchstart', handleStart);
+        if (joystickArea) {
+            joystickArea.addEventListener('touchstart', handleStart);
+            joystickArea.addEventListener('mousedown', handleStart);
+        } else {
+            joystickContainer.addEventListener('touchstart', handleStart);
+            joystickContainer.addEventListener('mousedown', handleStart);
+        }
+
         window.addEventListener('touchmove', handleMove, { passive: false });
         window.addEventListener('touchend', handleEnd);
-
-        joystickContainer.addEventListener('mousedown', handleStart);
         window.addEventListener('mousemove', handleMove);
         window.addEventListener('mouseup', handleEnd);
     }

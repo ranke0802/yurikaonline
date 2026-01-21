@@ -1047,6 +1047,32 @@ html {
     background: #1e272e;
 }
 
+/* Joystick Logic (Updated for Dynamic Position) */
+#joystick-area {
+    position: fixed;
+    top: 50px;
+    /* Below Top Bar */
+    left: 0;
+    width: 60%;
+    height: calc(100% - 150px);
+    /* Leave room for bottom bar */
+    z-index: 1000;
+    pointer-events: auto;
+    display: none;
+    /* Only show on mobile */
+}
+
+#joystick-container {
+    position: fixed;
+    width: 150px;
+    height: 150px;
+    z-index: 1500;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .minimap-footer {
     font-size: 9px;
     color: #bdc3c7;
@@ -1307,13 +1333,18 @@ html {
     }
 
     /* Joystick & Buttons: Positioned further to edges and smaller scale for Portrait */
+    #joystick-area {
+        display: block !important;
+    }
+
     #joystick-container {
-        left: 20px;
-        bottom: 120px;
-        transform: scale(1.1);
-        /* 크기 축소 */
-        transform-origin: bottom left;
-        opacity: 0.6;
+        display: none;
+        /* Hidden until touch */
+        opacity: 0.8;
+        transform: scale(0.9) !important;
+        position: fixed !important;
+        bottom: auto !important;
+        left: auto !important;
     }
 
     .action-buttons {
@@ -1439,9 +1470,17 @@ html {
         position: static !important;
     }
 
+    #joystick-area {
+        display: block !important;
+        width: 50% !important;
+        height: 100% !important;
+        top: 0 !important;
+    }
+
     #joystick-container {
-        left: 50px;
-        bottom: 30px;
+        display: none;
+        left: auto !important;
+        bottom: auto !important;
         transform: scale(1.0) !important;
     }
 

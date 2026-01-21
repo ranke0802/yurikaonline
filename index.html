@@ -12,10 +12,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>유리카 온라인 v1.33 (UI Stabilization)</title>
+    <title>유리카 온라인 v1.39 (Dynamic Joystick)</title>
     <script>
         // Enhanced Cache Busting System for Mobile & PC
-        window.GAME_VERSION = '1.33';
+        window.GAME_VERSION = '1.39';
 
         async function initCacheBusting() {
             try {
@@ -44,7 +44,7 @@
 
         initCacheBusting();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=1.33">
+    <link rel="stylesheet" href="src/css/style.css?v=1.39">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -169,6 +169,7 @@
                 </div>
 
                 <!-- Joystick & Buttons -->
+                <div id="joystick-area"></div>
                 <div id="joystick-container">
                     <div id="joystick-base">
                         <div id="joystick-stick">
@@ -426,7 +427,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v1.33
+        📦 v1.39
     </div>
 
     <!-- Update History Modal -->
