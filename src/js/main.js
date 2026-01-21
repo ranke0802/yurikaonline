@@ -72,8 +72,10 @@ class Game {
                 }
                 break;
             case 'u':
-                if (player.useMana(8)) {
-                    this.ui.logSystemMessage(`SKILL: 파이어볼 (Lv.${player.skillLevels.fireball || 1})`);
+                const fLv = player.skillLevels.fireball || 1;
+                const fCost = 8 + (fLv - 1) * 3;
+                if (player.useMana(fCost)) {
+                    this.ui.logSystemMessage(`SKILL: 파이어볼 (Lv.${fLv})`);
                     this.castFireball();
                     player.skillCooldowns['u'] = 5.0;
                     player.skillMaxCooldowns['u'] = 5.0;
@@ -82,7 +84,8 @@ class Game {
                 break;
             case 'k':
                 const sLv = player.skillLevels.shield || 1;
-                if (player.useMana(20)) {
+                const sCost = 20 + (sLv - 1) * 5;
+                if (player.useMana(sCost)) {
                     const dur = 60 + (sLv - 1) * 20;
                     player.triggerAction('SKILL: 마나쉴드');
                     player.shieldTimer = dur;
@@ -106,6 +109,10 @@ class Game {
         this.monsters[2].isBoss = true;
 
         this.updateHistory = [
+            {
+                version: 'v1.16', date: '2026-01-21', title: 'Skill Resource Scaling',
+                logs: ['스킬 레벨 상승에 따른 마나 소모량 가변 로직 적용', '파이어볼 마나 소모량: 8 + (Lv-1)*3', '매직 실드 마나 소모량: 20 + (Lv-1)*5', '스킬 툴팁 수치 동기화']
+            },
             {
                 version: 'v1.15', date: '2026-01-21', title: 'Refined Skill Specs',
                 logs: ['일반 공격(레이저) 레벨업 시 데미지 증가 제거 (마나 회복 위주)', '매직 실드 툴팁 설명 가독성 개선 (피해 감소 효율 표기)', '스킬 설명 및 실제 로직 싱크로율 최적화']

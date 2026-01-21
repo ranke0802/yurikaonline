@@ -5,10 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>유리카 온라인 v1.15 (Balance Refined)</title>
+    <title>유리카 온라인 v1.16 (Skill Cost Scaling)</title>
     <script>
         // Automatic Cache Busting System
-        window.GAME_VERSION = '1.15';
+        window.GAME_VERSION = '1.16';
         const storedVersion = localStorage.getItem('yurica_version');
         if (storedVersion !== window.GAME_VERSION) {
             localStorage.setItem('yurica_version', window.GAME_VERSION);
@@ -20,7 +20,7 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=1.15">
+    <link rel="stylesheet" href="src/css/style.css?v=1.16">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -387,7 +387,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v1.15
+        📦 v1.16
     </div>
 
     <!-- Update History Modal -->
@@ -403,7 +403,7 @@
         </div>
     </div>
 
-    <script type="module" src="src/js/main.js?v=1.15"></script>
+    <script type="module" src="src/js/main.js?v=1.16"></script>
 </body>
 
 </html>
