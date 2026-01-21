@@ -9,20 +9,40 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Nanum+Gothic:wght@400;700&display=swap"
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>유리카 온라인 v1.26 (Mobile UI Final Tuning)</title>
     <script>
-        // Automatic Cache Busting System
+        // Enhanced Cache Busting System for Mobile & PC
         window.GAME_VERSION = '1.26';
-        const storedVersion = localStorage.getItem('yurika_version');
-        if (storedVersion !== window.GAME_VERSION) {
-            localStorage.setItem('yurika_version', window.GAME_VERSION);
-            console.log('New version detected. Clearing old caches...');
-            if ('caches' in window) {
-                caches.keys().then(names => {
-                    for (let name of names) caches.delete(name);
-                });
+
+        async function initCacheBusting() {
+            try {
+                // Fetch the absolute truth from the server, bypassing any local cache
+                const response = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
+                const serverVersion = (await response.text()).trim();
+                const storedVersion = localStorage.getItem('yurika_version');
+
+                if (serverVersion && serverVersion !== storedVersion) {
+                    console.log(`[CacheBuster] New version detected: ${storedVersion} -> ${serverVersion}`);
+                    localStorage.setItem('yurika_version', serverVersion);
+
+                    // Clear Browser Cache API
+                    if ('caches' in window) {
+                        const names = await caches.keys();
+                        await Promise.all(names.map(name => caches.delete(name)));
+                    }
+
+                    // Perform a hard reload to get latest index.html and assets
+                    window.location.reload(true);
+                }
+            } catch (e) {
+                console.warn('[CacheBuster] Version check failed. Continuing with local version.', e);
             }
         }
+
+        initCacheBusting();
     </script>
     <link rel="stylesheet" href="src/css/style.css?v=1.26">
     <link rel="preconnect" href="https://fonts.googleapis.com">
