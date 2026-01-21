@@ -147,6 +147,7 @@ export class UIManager {
                 this.toggleFullscreen();
             };
             fsBtn.addEventListener('click', handleFs);
+            fsBtn.addEventListener('mousedown', handleFs);
             fsBtn.addEventListener('touchstart', handleFs, { passive: false });
         }
     }
