@@ -1174,19 +1174,19 @@ html {
         width: 180px !important;
     }
 
-    /* Mobile Portrait Bottom Menu */
+    /* Mobile Portrait Bottom Menu - 더 아래로 이동하여 조작 버튼과 겹치지 않게 */
     .minimap-menu {
         position: fixed !important;
-        bottom: 10px !important;
+        bottom: 20px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         width: auto !important;
         display: flex !important;
         flex-direction: row !important;
         gap: 20px !important;
-        background: rgba(253, 250, 246, 0.7) !important;
+        background: rgba(253, 250, 246, 0.85) !important;
         border-radius: 20px !important;
-        padding: 5px 20px !important;
+        padding: 8px 25px !important;
         border: 3px solid #fff !important;
         backdrop-filter: blur(5px) !important;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
@@ -1203,16 +1203,15 @@ html {
         transform: none !important;
     }
 
-    /* Fullscreen stays near minimap */
+    /* Fullscreen stays near minimap - 미니맵 바로 아래로 조정 */
     #btn-fullscreen {
         position: fixed !important;
-        top: 130px !important;
-        /* 미니맵 아래 우측 유도 */
-        right: 15px !important;
-        background: rgba(253, 250, 246, 0.7) !important;
+        top: 140px !important;
+        right: 20px !important;
+        background: rgba(253, 250, 246, 0.85) !important;
         border-radius: 10px !important;
         border: 3px solid #fff !important;
-        padding: 5px !important;
+        padding: 8px !important;
         z-index: 100 !important;
     }
 
@@ -1283,33 +1282,32 @@ html {
         gap: 8px;
     }
 
+    /* 가로모드 퀘스트창 높이 확대 */
     .quest-list-panel {
         width: 180px !important;
-        max-height: 120px !important;
+        max-height: 180px !important;
     }
 
     .quest-items {
-        max-height: 80px !important;
+        max-height: 140px !important;
     }
 
-    /* Landscape Chat: Centered at bottom */
+    /* Landscape Chat: Centered at bottom, 3줄 출력 */
     .chat-window {
         position: fixed !important;
         left: 50% !important;
         bottom: 15px !important;
-        /* 버튼바와 안겹치게 모바일 가로모드는 버튼바가 없으므로 하단 */
-        transform: translateX(-50%) scale(0.7) !important;
-        width: 400px !important;
-        height: 110px !important;
-        background: rgba(253, 250, 246, 0.7) !important;
+        transform: translateX(-50%) scale(0.75) !important;
+        width: 450px !important;
+        height: 130px !important;
+        background: rgba(253, 250, 246, 0.85) !important;
         z-index: 1000;
     }
 
-    /* 가로모드에서는 버튼바가 필요없으므로 숨김 (요청에 따라 다를 수 있으나 조작성 우선) */
-    /* 하지만 요청 4번에서 가로모드 메뉴 버튼들을 따로 배치해달라고 했음 */
-
     .chat-messages {
-        height: 55px !important;
+        height: 70px !important;
+        font-size: 11px !important;
+        line-height: 1.4 !important;
     }
 
     .top-bar {
@@ -1338,7 +1336,6 @@ html {
 
     .minimap-footer {
         order: 3 !important;
-        /* 좌표를 다시 아래로 */
         display: block !important;
         font-size: 10px;
         text-align: center;
@@ -1346,36 +1343,42 @@ html {
         color: #fff;
     }
 
-    /* Landscape Menu: Top-Left outside of Minimap */
+    /* Landscape Menu: 한 줄로 미니맵 왼쪽에 배치 (겹치지 않게) */
     .minimap-menu {
         position: absolute !important;
-        top: 0 !important;
-        left: -50px !important;
-        /* 미니맵 좌측으로 */
+        top: 10px !important;
+        right: 130px !important;
+        /* 미니맵 왼쪽으로 충분히 이동 */
         bottom: auto !important;
+        left: auto !important;
         transform: none !important;
-        display: grid !important;
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 5px !important;
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 8px !important;
         background: none !important;
         border: none !important;
         box-shadow: none !important;
         padding: 0 !important;
-        width: 85px !important;
+        width: auto !important;
         z-index: 110 !important;
     }
 
     .minimap-menu .menu-btn {
-        background: rgba(253, 250, 246, 0.7) !important;
+        background: rgba(253, 250, 246, 0.85) !important;
         border: 2px solid #fff !important;
         border-radius: 8px !important;
-        width: 38px !important;
-        height: 38px !important;
+        width: 36px !important;
+        height: 36px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         margin: 0 !important;
         position: static !important;
+        padding: 6px !important;
+    }
+
+    .minimap-menu .menu-icon {
+        font-size: 18px !important;
     }
 
     #btn-fullscreen {

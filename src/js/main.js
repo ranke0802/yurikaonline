@@ -25,12 +25,15 @@ class Game {
         this.input = new InputHandler();
         this.ui = new UIManager(this);
         this.map = new Map(this.ctx, 2000, 2000);
-        this.camera = new Camera(this.width, this.height, 2000, 2000);
 
         this.drops = [];
         this.projectiles = [];
         this.floatingTexts = [];
         this.localPlayer = new Player(1000, 1000);
+
+        // Initialize camera AFTER player to ensure proper centering
+        this.camera = new Camera(this.width, this.height, 2000, 2000);
+        this.camera.update(this.localPlayer.x, this.localPlayer.y);
 
         this.input.onAction = (action) => {
             this.handleAction(action);
@@ -109,6 +112,17 @@ class Game {
         // 초기 대왕 슬라임 설정 제거 (퀘스트 진행도에 따라 스폰되도록 수정)
 
         this.updateHistory = [
+            {
+                version: 'v1.28', date: '2026-01-21', title: 'Mobile UI/UX Optimization',
+                logs: [
+                    '모바일 세로모드 캐릭터 초기 위치 중앙 배치 수정',
+                    '세로모드 하단 메뉴바 위치 조정 (미니맵/조작 버튼과 겹침 해결)',
+                    '전체화면 기능 v1.10 이전 방식으로 복원 (모바일/PC 안정화)',
+                    '가로모드 채팅창 중앙 하단 이동 및 3줄 출력 최적화',
+                    '가로모드 UI 버튼 한 줄 배치 (미니맵 왼쪽, 겹침 방지)',
+                    '가로모드 퀘스트창 높이 확대'
+                ]
+            },
             {
                 version: 'v1.27', date: '2026-01-21', title: 'Quest & Monster Logic Tuning',
                 logs: [

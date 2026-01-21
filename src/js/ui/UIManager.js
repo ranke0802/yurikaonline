@@ -699,25 +699,31 @@ export class UIManager {
     }
 
     toggleFullscreen() {
-        const container = document.getElementById('game-container') || document.documentElement;
+        // v1.10 이전 방식: 간단하고 안정적인 전체화면 토글
+        const elem = document.documentElement;
 
-        // Multi-browser support
-        const requestMethod = container.requestFullscreen || container.webkitRequestFullscreen || container.mozRequestFullScreen || container.msRequestFullscreen;
-        const exitMethod = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
-        const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-
-        if (!fullscreenElement) {
-            if (requestMethod) {
-                requestMethod.call(container).catch(err => {
-                    // Silently fail as requested, only log to console for debugging
-                    console.error('Fullscreen Error:', err);
-                });
-            } else {
-                this.logSystemMessage('이 브라우저는 전체화면 기능을 지원하지 않습니다.');
+        if (!document.fullscreenElement && !document.webkitFullscreenElement &&
+            !document.mozFullScreenElement && !document.msFullscreenElement) {
+            // 전체화면 진입
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            } else if (elem.mozRequestFullScreen) {
+                elem.mozRequestFullScreen();
+            } else if (elem.msRequestFullscreen) {
+                elem.msRequestFullscreen();
             }
         } else {
-            if (exitMethod) {
-                exitMethod.call(document);
+            // 전체화면 해제
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
             }
         }
     }
