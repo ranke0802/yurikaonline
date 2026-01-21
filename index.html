@@ -107,11 +107,26 @@
                 <div class="left-ui-container">
                     <!-- Quest List (Left) -->
                     <div class="quest-list-panel">
-                        <h3>Quest List ⭐</h3>
-                        <ul id="quest-list">
-                            <li id="quest-slime">� 슬라임 처치 (<span id="quest-slime-count">0</span>/10)</li>
-                            <li id="quest-boss">👑 보스 몬스터 처치 (<span id="quest-boss-status">미완료</span>)</li>
-                        </ul>
+                        <div class="quest-panel-header">
+                            <span class="quest-header-icon">📜</span>
+                            <h3>진행 중인 퀘스트</h3>
+                        </div>
+                        <div class="quest-content">
+                            <div class="quest-item" id="quest-slime">
+                                <span class="quest-icon">⚔️</span>
+                                <div class="quest-details">
+                                    <div class="quest-title">슬라임 10마리 처치</div>
+                                    <div class="quest-progress">진행도: <span id="quest-slime-count">0</span>/10</div>
+                                </div>
+                            </div>
+                            <div class="quest-item" id="quest-boss">
+                                <span class="quest-icon">👑</span>
+                                <div class="quest-details">
+                                    <div class="quest-title">대왕 슬라임 토벌</div>
+                                    <div class="quest-progress">진행도: <span id="quest-boss-status">0</span>/1</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Chat Window -->

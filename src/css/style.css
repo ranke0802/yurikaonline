@@ -757,42 +757,133 @@ html {
     background: linear-gradient(90deg, #a29bfe, #6c5ce7);
 }
 
-/* Panels: Quest & Chat */
-.quest-list-panel {
+/* Panels: Quest & Chat Stacking */
+.left-ui-container {
     position: absolute;
-    top: 100px;
+    top: 85px;
     left: 20px;
-    background: rgba(255, 255, 255, 0.8);
-    padding: 15px;
-    border-radius: 16px;
-    width: 180px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    backdrop-filter: blur(5px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+    z-index: 50;
 }
 
-.quest-list-panel h3 {
+.left-ui-container>* {
+    pointer-events: auto;
+}
+
+.quest-list-panel {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    width: 220px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    overflow: hidden;
+    animation: slideInLeft 0.5s ease-out;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.quest-panel-header {
+    background: linear-gradient(135deg, #ffd6a5 0%, #fab1a0 100%);
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+}
+
+.quest-panel-header h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 800;
+    color: #833471;
+    letter-spacing: -0.5px;
+}
+
+.quest-header-icon {
     font-size: 14px;
-    margin-bottom: 8px;
-    color: #d35400;
 }
 
-.quest-list-panel ul {
-    list-style: none;
-    font-size: 12px;
+.quest-content {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.quest-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.02);
+    transition: all 0.2s;
+}
+
+.quest-item:hover {
+    background: rgba(255, 214, 165, 0.3);
+    border-color: #ffd6a5;
+    transform: translateX(4px);
+}
+
+.quest-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.quest-details {
+    flex: 1;
+}
+
+.quest-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #4a3e35;
+    margin-bottom: 2px;
+}
+
+.quest-progress {
+    font-size: 10px;
+    color: #833471;
+    font-weight: 600;
+}
+
+.quest-item.completed {
+    background: rgba(46, 204, 113, 0.1);
+    border-color: rgba(46, 204, 113, 0.2);
+}
+
+.quest-item.completed .quest-title {
+    text-decoration: line-through;
+    color: #7f8c8d;
 }
 
 .chat-window {
-    position: absolute;
-    bottom: 140px;
-    left: 20px;
-    width: 240px;
-    height: 180px;
+    width: 260px;
+    height: 200px;
     background: rgba(255, 255, 255, 0.9);
-    border-radius: 12px;
+    border-radius: 20px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
 }
 
 .chat-header {

@@ -467,14 +467,16 @@ export class UIManager {
         this.renderQuestButtons(p);
 
         if (p.questData.slimeQuestClaimed && slimeItem) {
-            slimeItem.style.textDecoration = 'line-through';
-            slimeItem.style.opacity = '0.5';
+            slimeItem.classList.add('completed');
+        } else if (slimeItem) {
+            slimeItem.classList.remove('completed');
         }
 
-        if (bossStatus) bossStatus.textContent = p.questData.bossKilled ? '완료' : '미완료';
+        if (bossStatus) bossStatus.textContent = p.questData.bossKilled ? '1' : '0';
         if (p.questData.bossQuestClaimed && bossItem) {
-            bossItem.style.textDecoration = 'line-through';
-            bossItem.style.opacity = '0.5';
+            bossItem.classList.add('completed');
+        } else if (bossItem) {
+            bossItem.classList.remove('completed');
         }
     }
 
