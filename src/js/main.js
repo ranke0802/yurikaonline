@@ -116,6 +116,16 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.21', date: '2026-01-21', title: 'UI/UX Premium Revamp & Stability',
+                logs: [
+                    '퀘스트 UI 전면 개편 (유리 질감 디자인 및 아이콘 적용)',
+                    '퀘스트 목표 표기 방식 통일 (숫자 형태 0/10, 0/1)',
+                    '내 정보 스탯 변화치 녹색 강조 및 회복력 스탯 분리 표기',
+                    '전체화면 안정화 (PC 호환성 개선 및 모바일 중복 호출 방지)',
+                    '업데이트 내역 스티키 헤더 및 기타 UI 마이너 버그 수정'
+                ]
+            },
+            {
                 version: 'v1.20', date: '2026-01-21', title: 'New Stat System & Regeneration',
                 logs: [
                     '신규 스탯 방어력(DEF), 체력/마나 회복력 추가',
