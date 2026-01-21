@@ -117,6 +117,16 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.24', date: '2026-01-21', title: 'UX & Layout Refinement',
+                logs: [
+                    'PC 버전 화면 배율 원복 (1.0) 및 모바일 줌 기능(0.7) 분리 적용',
+                    '모바일 채팅창 너비 축소 (퀘스트창과 통일)',
+                    '모바일 세로 모드 UI 스케일 하향 (너무 크게 보이던 현상 해결)',
+                    '가로 모드 미니맵 하단 메뉴 버튼 제거 (시야 방해 요소 제거)',
+                    '로딩 멈춤 현상 긴급 패치 및 안정화'
+                ]
+            },
+            {
                 version: 'v1.23', date: '2026-01-21', title: 'Mobile UX & Global Scaling',
                 logs: [
                     '전역 화면 배율 조정 (70% 수준으로 줌 아웃하여 더 넓은 시야 확보)',
@@ -232,8 +242,10 @@ class Game {
         this.width = this.viewport.clientWidth;
         this.height = this.viewport.clientHeight;
 
-        // Apply zoom for wider view (requested ~70% size)
-        this.zoom = 0.7; // Global zoom factor (Smaller = Wider View)
+        // Apply zoom for wider view on Mobile only (requested ~70% size for mobile)
+        // PC (width > 900) follows original 1.0 zoom
+        const isMobile = window.innerWidth <= 900;
+        this.zoom = isMobile ? 0.7 : 1.0;
 
         this.canvas.width = this.width;
         this.canvas.height = this.height;
