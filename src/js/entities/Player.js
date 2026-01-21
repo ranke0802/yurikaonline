@@ -668,6 +668,29 @@ export default class Player {
             ctx.fillText(this.actionFdbk, screenX, screenY - 70);
         }
 
+        // HP Bar
+        const barWidth = 60;
+        const barHeight = 6;
+        const barY = screenY - this.height / 2 - 25;
+
+        // HP Bar background
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(screenX - barWidth / 2, barY, barWidth, barHeight);
+        // HP Bar foreground
+        const hpPercent = Math.max(0, Math.min(1, this.hp / this.maxHp));
+        ctx.fillStyle = hpPercent > 0.3 ? '#4ade80' : '#ef4444';
+        ctx.fillRect(screenX - barWidth / 2, barY, barWidth * hpPercent, barHeight);
+
+        // MP Bar
+        const mpBarY = barY + barHeight + 2;
+        // MP Bar background
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(screenX - barWidth / 2, mpBarY, barWidth, barHeight);
+        // MP Bar foreground
+        const mpPercent = Math.max(0, Math.min(1, this.mp / this.maxMp));
+        ctx.fillStyle = '#48dbfb';
+        ctx.fillRect(screenX - barWidth / 2, mpBarY, barWidth * mpPercent, barHeight);
+
         // Draw Direction Arrow
         this.drawDirectionArrow(ctx, screenX, screenY);
     }
