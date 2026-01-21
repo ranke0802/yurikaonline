@@ -12,10 +12,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>유리카 온라인 v1.29 (Mobile UI/UX Optimization)</title>
+    <title>유리카 온라인 v1.30 (Mobile UI Layout Hub)</title>
     <script>
         // Enhanced Cache Busting System for Mobile & PC
-        window.GAME_VERSION = '1.29';
+        window.GAME_VERSION = '1.30';
 
         async function initCacheBusting() {
             try {
@@ -44,7 +44,7 @@
 
         initCacheBusting();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=1.29">
+    <link rel="stylesheet" href="src/css/style.css?v=1.30">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -106,20 +106,20 @@
                     <canvas id="minimapCanvas"></canvas>
                     <div class="minimap-footer">X: <span id="mini-pos-x">0</span> Y: <span id="mini-pos-y">0</span>
                     </div>
+                </div>
 
-                    <div class="minimap-menu">
-                        <div class="menu-btn inventory-trigger" id="btn-inventory" data-key="shift-b" title="가방">
-                            <div class="menu-icon">🎒</div>
-                        </div>
-                        <div class="menu-btn skill-trigger" id="btn-skill" data-key="shift-s" title="스킬">
-                            <div class="menu-icon">📜</div>
-                        </div>
-                        <div class="menu-btn status-trigger" id="btn-status" data-key="shift-i" title="내 정보">
-                            <div class="menu-icon">👤</div>
-                        </div>
-                        <div class="menu-btn fullscreen-toggle" id="btn-fullscreen" title="전체화면">
-                            <div class="menu-icon">⛶</div>
-                        </div>
+                <div class="minimap-menu">
+                    <div class="menu-btn inventory-trigger" id="btn-inventory" data-key="shift-b" title="가방">
+                        <div class="menu-icon">🎒</div>
+                    </div>
+                    <div class="menu-btn skill-trigger" id="btn-skill" data-key="shift-s" title="스킬">
+                        <div class="menu-icon">📜</div>
+                    </div>
+                    <div class="menu-btn status-trigger" id="btn-status" data-key="shift-i" title="내 정보">
+                        <div class="menu-icon">👤</div>
+                    </div>
+                    <div class="menu-btn fullscreen-toggle" id="btn-fullscreen" title="전체화면">
+                        <div class="menu-icon">⛶</div>
                     </div>
                 </div>
 
@@ -425,7 +425,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v1.29
+        📦 v1.30
     </div>
 
     <!-- Update History Modal -->
