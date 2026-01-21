@@ -56,7 +56,7 @@ class Game {
         switch (action) {
             case 'j':
                 this.performLaserAttack();
-                player.skillCooldowns['j'] = 0.6 / player.attackSpeed;
+                player.skillCooldowns['j'] = 1.0 / player.attackSpeed;
                 player.skillMaxCooldowns['j'] = player.skillCooldowns['j'];
                 player.attackCooldown = player.skillCooldowns['j'];
                 break;
@@ -66,8 +66,8 @@ class Game {
                 if (player.useMana(mCost)) {
                     this.ui.logSystemMessage(`SKILL: 매직 미사일 (Lv.${mCount})`);
                     this.castMagicMissile();
-                    player.skillCooldowns['h'] = 2.0;
-                    player.skillMaxCooldowns['h'] = 2.0;
+                    player.skillCooldowns['h'] = 1.0;
+                    player.skillMaxCooldowns['h'] = 1.0;
                     player.attackCooldown = 0.5;
                 }
                 break;
@@ -109,6 +109,10 @@ class Game {
         this.monsters[2].isBoss = true;
 
         this.updateHistory = [
+            {
+                version: 'v1.18', date: '2026-01-21', title: 'Performance & UX Update',
+                logs: ['기본 공격 및 매직 미사일 쿨타임 1초(기본)로 조정', '업데이트 노트 아이콘 클릭 시 README.md 내용 표시 기능 추가', '내부 자원 로딩 효율 최적화']
+            },
             {
                 version: 'v1.17', date: '2026-01-21', title: 'Balance & Optimization',
                 logs: ['기본 공격(레이저) 마나 회복량 상향 (레벨당 1씩 정비례 증가)', '매직 미사일 데미지 상향 (80% -> 90%) 및 마나 소모량 공식 변경', '화면 터치/클릭 시 시각 효과 제거', '스킬 툴팁 설명 최신화']

@@ -673,10 +673,25 @@ export class UIManager {
         }
     }
 
-    renderHistory() {
+    async renderHistory() {
         const listEl = document.getElementById('history-list');
-        if (!listEl || !this.game.updateHistory) return;
+        if (!listEl) return;
 
+        try {
+            const v = window.GAME_VERSION || Date.now();
+            const response = await fetch(`README.md?v=${v}`);
+            const text = await response.text();
+
+            if (typeof marked !== 'undefined') {
+                listEl.innerHTML = `<div class="readme-content">${marked.parse(text)}</div>`;
+                return;
+            }
+        } catch (e) {
+            console.error('Failed to load README.md:', e);
+        }
+
+        // Fallback to updateHistory array if fetch fails or marked is missing
+        if (!this.game.updateHistory) return;
         listEl.innerHTML = this.game.updateHistory.map(item => `
             <div class="history-item">
                 <div class="history-v-row">
