@@ -12,10 +12,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>유리카 온라인 v1.30 (Mobile UI Layout Hub)</title>
+    <title>유리카 온라인 v1.31 (Refined Square UI)</title>
     <script>
         // Enhanced Cache Busting System for Mobile & PC
-        window.GAME_VERSION = '1.30';
+        window.GAME_VERSION = '1.31';
 
         async function initCacheBusting() {
             try {
@@ -44,7 +44,7 @@
 
         initCacheBusting();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=1.30">
+    <link rel="stylesheet" href="src/css/style.css?v=1.31">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -118,9 +118,10 @@
                     <div class="menu-btn status-trigger" id="btn-status" data-key="shift-i" title="내 정보">
                         <div class="menu-icon">👤</div>
                     </div>
-                    <div class="menu-btn fullscreen-toggle" id="btn-fullscreen" title="전체화면">
-                        <div class="menu-icon">⛶</div>
-                    </div>
+                </div>
+
+                <div class="menu-btn fullscreen-toggle" id="btn-fullscreen" title="전체화면">
+                    <div class="menu-icon">⛶</div>
                 </div>
 
                 <!-- Left Side UI: Quest and Chat Stacking -->
@@ -425,7 +426,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v1.30
+        📦 v1.31
     </div>
 
     <!-- Update History Modal -->
