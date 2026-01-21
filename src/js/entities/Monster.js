@@ -280,7 +280,7 @@ export default class Monster {
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(screenX - 30, screenY - this.height / 2 - 12, 60, 6);
         // HP Bar foreground
-        const hpPercent = this.hp / this.maxHp;
+        const hpPercent = Math.max(0, Math.min(1, this.hp / this.maxHp));
         ctx.fillStyle = hpPercent > 0.3 ? '#4ade80' : '#ef4444';
         ctx.fillRect(screenX - 30, screenY - this.height / 2 - 12, 60 * hpPercent, 6);
 

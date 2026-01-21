@@ -102,11 +102,17 @@ class Game {
     initMonstersAndHistory() {
         this.monsters = [
             new Monster(1200, 1100, '초보 슬라임'),
-            new Monster(800, 900, '슬라임'),
-            new Monster(1500, 1300, '대왕 슬라임')
+            new Monster(800, 900, '슬라임')
         ];
-        this.monsters[2].hp = 300;
-        this.monsters[2].isBoss = true;
+
+        // 초기 대왕 슬라임 설정 (나중에 스폰되는 대왕 슬라임과 동일한 스펙 적용)
+        const boss = new Monster(1500, 1300, '대왕 슬라임');
+        boss.width = 150;
+        boss.height = 150;
+        boss.maxHp = 500;
+        boss.hp = 500;
+        boss.isBoss = true;
+        this.monsters.push(boss);
 
         this.updateHistory = [
             {
