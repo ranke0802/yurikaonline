@@ -1,4 +1,4 @@
-# 🌸 유리카 온라인 (Yurika Online) v1.20 (New Stat System)
+# 🌸 유리카 온라인 (Yurika Online) v1.20 (New State System)
 [**🎮 지금 바로 플레이하기 (Live Demo)**](https://ranke0802.github.io/yurikaonline/)
 
 ### 🔄 최근 업데이트 내역 (v1.20)
@@ -349,3 +349,4 @@
 
 ---
 *Developed by ranke0802*
+
