@@ -13,9 +13,9 @@
     <script>
         // Automatic Cache Busting System
         window.GAME_VERSION = '1.20';
-        const storedVersion = localStorage.getItem('yurica_version');
+        const storedVersion = localStorage.getItem('yurika_version');
         if (storedVersion !== window.GAME_VERSION) {
-            localStorage.setItem('yurica_version', window.GAME_VERSION);
+            localStorage.setItem('yurika_version', window.GAME_VERSION);
             console.log('New version detected. Clearing old caches...');
             if ('caches' in window) {
                 caches.keys().then(names => {
@@ -36,7 +36,7 @@
         <div id="loading-overlay">
             <div class="loading-content">
                 <div class="loading-spinner"></div>
-                <div class="loading-text">Yurica Online 로딩 중...</div>
+                <div class="loading-text">Yurika Online 로딩 중...</div>
                 <div class="loading-progress-bar">
                     <div id="loading-progress-fill"></div>
                 </div>
@@ -82,7 +82,7 @@
 
                 <!-- Minimap & Quick Menu (Top Right) -->
                 <div id="minimap-container">
-                    <div class="minimap-header">Yurica Map</div>
+                    <div class="minimap-header">Yurika Map</div>
                     <canvas id="minimapCanvas"></canvas>
                     <div class="minimap-footer">X: <span id="mini-pos-x">0</span> Y: <span id="mini-pos-y">0</span>
                     </div>
@@ -124,7 +124,7 @@
                             </div>
                         </div>
                         <div class="chat-messages">
-                            <div class="message incoming">유리카 온라인(Yurica Online)에 오신것을 환영합니다! ✨</div>
+                            <div class="message incoming">유리카 온라인(Yurika Online)에 오신것을 환영합니다! ✨</div>
                         </div>
                         <div class="chat-input-area">
                             <input type="text" placeholder="메세지를 입력하세요...">

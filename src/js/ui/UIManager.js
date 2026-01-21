@@ -137,6 +137,18 @@ export class UIManager {
             retryBtn.addEventListener('click', handleRetry);
             retryBtn.addEventListener('touchstart', handleRetry, { passive: false });
         }
+
+        // Direct Fullscreen Button Listener (For better compatibility with browser security)
+        const fsBtn = document.getElementById('fullscreen-toggle');
+        if (fsBtn) {
+            const handleFs = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleFullscreen();
+            };
+            fsBtn.addEventListener('click', handleFs);
+            fsBtn.addEventListener('touchstart', handleFs, { passive: false });
+        }
     }
 
     showDeathModal() {
@@ -656,13 +668,25 @@ export class UIManager {
     }
 
     toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                this.logSystemMessage(`Error attempting to enable full-screen mode: ${err.message}`);
-            });
+        const container = document.getElementById('game-container') || document.documentElement;
+
+        // Multi-browser support
+        const requestMethod = container.requestFullscreen || container.webkitRequestFullscreen || container.mozRequestFullScreen || container.msRequestFullscreen;
+        const exitMethod = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+        const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+
+        if (!fullscreenElement) {
+            if (requestMethod) {
+                requestMethod.call(container).catch(err => {
+                    this.logSystemMessage(`전체화면 진입 실패: ${err.message}`);
+                    console.error('Fullscreen Error:', err);
+                });
+            } else {
+                this.logSystemMessage('이 브라우저는 전체화면 기능을 지원하지 않습니다.');
+            }
         } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
+            if (exitMethod) {
+                exitMethod.call(document);
             }
         }
     }

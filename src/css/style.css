@@ -962,7 +962,7 @@ html {
 
 /* Specific fix for emojis inside buttons to prevent selection highlight */
 .inner-icon,
-.menu-btn,
+.menu-icon,
 .paw-icon,
 .bag-icon,
 .char-icon {
