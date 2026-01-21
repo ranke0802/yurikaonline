@@ -62,7 +62,7 @@ class Game {
                 break;
             case 'h':
                 const mCount = player.skillLevels.missile || 1;
-                const mCost = Math.floor(2 * Math.pow(1.5, mCount - 1));
+                const mCost = 4 + (mCount - 1) * 3;
                 if (player.useMana(mCost)) {
                     this.ui.logSystemMessage(`SKILL: 매직 미사일 (Lv.${mCount})`);
                     this.castMagicMissile();
@@ -109,6 +109,10 @@ class Game {
         this.monsters[2].isBoss = true;
 
         this.updateHistory = [
+            {
+                version: 'v1.17', date: '2026-01-21', title: 'Balance & Optimization',
+                logs: ['기본 공격(레이저) 마나 회복량 상향 (레벨당 1씩 정비례 증가)', '매직 미사일 데미지 상향 (80% -> 90%) 및 마나 소모량 공식 변경', '화면 터치/클릭 시 시각 효과 제거', '스킬 툴팁 설명 최신화']
+            },
             {
                 version: 'v1.16', date: '2026-01-21', title: 'Skill Resource Scaling',
                 logs: ['스킬 레벨 상승에 따른 마나 소모량 가변 로직 적용', '파이어볼 마나 소모량: 8 + (Lv-1)*3', '매직 실드 마나 소모량: 20 + (Lv-1)*5', '스킬 툴팁 수치 동기화']
@@ -181,7 +185,7 @@ class Game {
         player.triggerAction('ATTACK');
         this.playerHasAttacked = true;
         const laserLv = player.skillLevels.laser || 1;
-        const mpRecover = Math.min(5, 1 + Math.floor(laserLv / 2));
+        const mpRecover = laserLv;
         player.recoverMana(mpRecover, true);
 
         const vxList = [0, 0.707, 1, 0.707, 0, -0.707, -1, -0.707];
@@ -226,7 +230,7 @@ class Game {
             const count = player.skillLevels.missile || 1;
             for (let i = 0; i < count; i++) {
                 const offset = (i - (count - 1) / 2) * 20;
-                let dmg = player.attackPower * 0.8;
+                let dmg = player.attackPower * 0.9;
                 let isCrit = Math.random() < player.critRate;
                 if (isCrit) dmg *= 2;
                 this.projectiles.push(new Projectile(player.x + offset, player.y + offset, nearest, 'missile', {

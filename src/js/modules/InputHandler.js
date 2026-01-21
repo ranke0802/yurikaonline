@@ -161,7 +161,8 @@ export class InputHandler {
 
             this.touchMovePos = { x, y };
 
-            // Visual feedback
+            // Visual feedback (Disabled per user request)
+            /*
             if (pointer) {
                 pointer.style.left = `${x}px`;
                 pointer.style.top = `${y}px`;
@@ -170,6 +171,7 @@ export class InputHandler {
                 pointer.offsetHeight; // trigger reflow
                 pointer.style.animation = null;
             }
+            */
         };
 
         canvas.addEventListener('mousedown', handleClick);
