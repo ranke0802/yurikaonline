@@ -1211,75 +1211,66 @@ html {
     /* Mobile Portrait UI Layout Refinement */
     @media screen and (orientation: portrait) {
 
-        /* 하단 중앙: 가방/스킬/내정보 바 - Safe Area 적용 */
+        /* 하단 중앙: 가방/스킬/내정보 바 - Safe Area 적용 (아이콘만) */
         body #ui-layer .minimap-menu {
             position: fixed !important;
             top: auto !important;
-            /* CRITICAL: base top 215px 속성 해제 (늘어짐 방지) */
             bottom: calc(25px + env(safe-area-inset-bottom)) !important;
-            /* 하단 안전 영역 확보 */
             left: 50% !important;
             transform: translateX(-50%) !important;
 
             display: flex !important;
             flex-direction: row !important;
-            gap: 12px !important;
+            gap: 20px !important;
 
-            background: rgba(253, 250, 246, 0.95) !important;
-            border-radius: 6px !important;
-            /* More square-ish */
-            padding: 10px 25px !important;
-            border: 3px solid #fff !important;
-            backdrop-filter: blur(12px) !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+            background: none !important;
+            border: none !important;
+            padding: 0 !important;
+            backdrop-filter: none !important;
+            box-shadow: none !important;
 
             z-index: 2000 !important;
-            /* Ensure it's above everything */
             width: auto !important;
             height: fit-content !important;
-            /* Fix vertical stretch */
             max-width: none !important;
             flex-wrap: nowrap !important;
         }
 
-        /* 하단바 버튼: 완벽한 정사각형 프리미엄 디자인 */
+        /* 하단바 버튼: 아이콘만 표시 */
         body #ui-layer .minimap-menu .menu-btn {
-            width: 52px !important;
-            height: 52px !important;
-            background: rgba(255, 255, 255, 1.0) !important;
-            border: 2px solid #ffd6a5 !important;
-            border-radius: 4px !important;
-            /* Sharper square */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+            width: auto !important;
+            height: auto !important;
+            background: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
 
             margin: 0 !important;
             padding: 0 !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            border-right: none !important;
         }
 
         body #ui-layer .minimap-menu .menu-icon {
-            font-size: 26px !important;
+            font-size: 32px !important;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
         }
 
-        /* 전체화면 버튼: 미니맵 아래 별도 정사각형 타일 (Safe Area 적용) */
+        /* 전체화면 버튼: 미니맵 아래 아이콘만 표시 (Safe Area 적용) */
         body #ui-layer #btn-fullscreen {
             position: fixed !important;
             top: calc(210px + env(safe-area-inset-top)) !important;
-            /* 상단 안전 영역 확보 */
             right: calc(20px + env(safe-area-inset-right)) !important;
             left: auto !important;
             bottom: auto !important;
 
-            width: 46px !important;
-            height: 46px !important;
-            background: rgba(253, 250, 246, 0.95) !important;
-            border-radius: 6px !important;
-            border: 3px solid #fff !important;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
-            backdrop-filter: blur(10px) !important;
+            width: auto !important;
+            height: auto !important;
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
 
             z-index: 2000 !important;
             display: flex !important;
@@ -1291,7 +1282,8 @@ html {
         }
 
         body #ui-layer #btn-fullscreen .menu-icon {
-            font-size: 22px !important;
+            font-size: 28px !important;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
         }
     }
 
