@@ -21,6 +21,9 @@ export default class Player {
         this.actionFdbk = null;
         this.actionTimer = 0;
 
+        // Player Name
+        this.name = localStorage.getItem('yurika_player_name') || '유리카';
+
         // Stats & Level System
         this.gold = 0;
         this.exp = 0;
@@ -660,12 +663,41 @@ export default class Player {
             ctx.restore();
         }
 
+        // Speech Bubble for Action Feedback
         if (this.actionFdbk) {
-            ctx.fillStyle = '#ffeb3b';
-            ctx.font = 'bold 20px "Outfit", sans-serif';
+            const bubbleY = screenY - this.height / 2 - 60;
+            const bubbleText = this.actionFdbk;
+            ctx.font = 'bold 14px "Outfit", sans-serif';
+            const textWidth = ctx.measureText(bubbleText).width;
+            const bubbleWidth = textWidth + 20;
+            const bubbleHeight = 28;
+            const bubbleX = screenX - bubbleWidth / 2;
+
+            // Speech bubble background
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.strokeStyle = 'rgba(200, 200, 200, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            // Speech bubble tail (small triangle pointing down)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.beginPath();
+            ctx.moveTo(screenX - 6, bubbleY + bubbleHeight);
+            ctx.lineTo(screenX, bubbleY + bubbleHeight + 6);
+            ctx.lineTo(screenX + 6, bubbleY + bubbleHeight);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(200, 200, 200, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Speech bubble text
+            ctx.fillStyle = '#4a3e35';
             ctx.textAlign = 'center';
-            ctx.strokeText(this.actionFdbk, screenX, screenY - 70);
-            ctx.fillText(this.actionFdbk, screenX, screenY - 70);
+            ctx.fillText(bubbleText, screenX, bubbleY + bubbleHeight / 2 + 5);
         }
 
         // HP Bar
@@ -681,8 +713,18 @@ export default class Player {
         ctx.fillStyle = hpPercent > 0.3 ? '#4ade80' : '#ef4444';
         ctx.fillRect(screenX - barWidth / 2, barY, barWidth * hpPercent, barHeight);
 
+        // Player Name (between HP and MP bars)
+        const nameY = barY + barHeight + 10;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px "Outfit", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(0,0,0,0.7)';
+        ctx.shadowBlur = 3;
+        ctx.fillText(this.name, screenX, nameY);
+        ctx.shadowBlur = 0;
+
         // MP Bar
-        const mpBarY = barY + barHeight + 2;
+        const mpBarY = nameY + 6;
         // MP Bar background
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(screenX - barWidth / 2, mpBarY, barWidth, barHeight);

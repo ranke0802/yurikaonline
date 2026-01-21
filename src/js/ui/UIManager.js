@@ -151,6 +151,18 @@ export class UIManager {
             fsBtn.addEventListener('click', handleFs);
             fsBtn.addEventListener('touchstart', handleFs, { passive: false });
         }
+
+        // Player Name Input
+        const nameInput = document.getElementById('player-name-input');
+        if (nameInput) {
+            nameInput.addEventListener('input', (e) => {
+                const newName = e.target.value.trim() || '유리카';
+                if (this.game.localPlayer) {
+                    this.game.localPlayer.name = newName;
+                    localStorage.setItem('yurika_player_name', newName);
+                }
+            });
+        }
     }
 
     showDeathModal() {
@@ -338,6 +350,12 @@ export class UIManager {
     updateStatusPopup() {
         const p = this.game.localPlayer;
         if (!p) return;
+
+        // Player Name
+        const nameInput = document.getElementById('player-name-input');
+        if (nameInput && nameInput.value !== p.name) {
+            nameInput.value = p.name;
+        }
 
         // Basic Info
         const levelEl = document.getElementById('stat-level');
