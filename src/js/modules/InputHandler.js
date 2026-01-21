@@ -90,6 +90,14 @@ export class InputHandler {
         const maxRadius = 50;
 
         const handleStart = (e) => {
+            // Check if touch is on a skill button or action button
+            const target = e.target;
+            const isButton = target.closest('.skill-btn, .attack-btn, .menu-btn');
+            if (isButton) {
+                // Don't activate joystick if touching a button
+                return;
+            }
+
             e.preventDefault();
             this.joystick.active = true;
             if (window.game?.ui) window.game.ui.hideAllPopups();
