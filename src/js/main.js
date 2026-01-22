@@ -408,9 +408,15 @@ class Game {
                 // No targets, draw fizzle
                 const vxList = [0, 0.707, 1, 0.707, 0, -0.707, -1, -0.707];
                 const vyList = [-1, -0.707, 0, 0.707, 1, 0.707, 0, -0.707];
-                const vx = vxList[player.facingDir];
-                const vy = vyList[player.facingDir];
-                player.lightningEffect = { chains: [{ x1: player.x, y1: player.y, x2: player.x + vx * 80, y2: player.y + vy * 80 }], timer: 0.1 };
+                let dir = (player.facingDir >= 0 && player.facingDir <= 7) ? player.facingDir : 4;
+                const vx = vxList[dir];
+                const vy = vyList[dir];
+
+                // Final safety check for NaN components
+                const px = isNaN(player.x) ? 1000 : player.x;
+                const py = isNaN(player.y) ? 1000 : player.y;
+
+                player.lightningEffect = { chains: [{ x1: px, y1: py, x2: px + vx * 80, y2: py + vy * 80 }], timer: 0.1 };
             }
         }
     }

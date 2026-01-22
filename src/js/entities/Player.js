@@ -651,12 +651,16 @@ export default class Player {
             const bubbleHeight = 28;
             const bubbleX = screenX - bubbleWidth / 2;
 
-            // Speech bubble background
+            // Speech bubble background (Compatibility safe)
             ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
             ctx.strokeStyle = 'rgba(200, 200, 200, 0.8)';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.roundRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight, 8);
+            if (ctx.roundRect) {
+                ctx.roundRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight, 8);
+            } else {
+                ctx.rect(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
+            }
             ctx.fill();
             ctx.stroke();
 
@@ -807,7 +811,7 @@ export default class Player {
         // Impact Point Flash
         ctx.fillStyle = '#fff';
         ctx.beginPath();
-        ctx.arc(实际x2, 实际y2, 4 * intensity, 0, Math.PI * 2);
+        ctx.arc(targetX2, targetY2, 4 * intensity, 0, Math.PI * 2);
         ctx.fill();
     }
 }
