@@ -682,8 +682,8 @@ export default class Player {
             const lifeRatio = this.lightningEffect.timer / 0.15; // Shorter fade for channeling
             ctx.globalAlpha = lifeRatio;
 
-            this.lightningEffect.chains.forEach(segment => {
-                this.drawLightningSegment(ctx, segment.x1 - camera.x, segment.y1 - camera.y, segment.x2 - camera.x, segment.y2 - camera.y, lifeRatio);
+            this.lightningEffect.chains.forEach((segment, idx) => {
+                this.drawLightningSegment(ctx, segment.x1 - camera.x, segment.y1 - camera.y, segment.x2 - camera.x, segment.y2 - camera.y, lifeRatio, idx);
             });
 
             ctx.restore();
@@ -693,8 +693,8 @@ export default class Player {
         let col = this.frame;
         this.sprite.draw(ctx, row, col, screenX - this.width / 2, screenY - this.height / 2, this.width, this.height, false);
 
-        // Self Spark Effect during Channeling (v1.65: Slower flicker style)
-        if (this.isChanneling && !this.isDead) {
+        // Self Spark Effect (v1.66: Slower flicker, triggers during channeling OR attack)
+        if ((this.isChanneling || this.isAttacking) && !this.isDead) {
             ctx.save();
 
             // v1.65: Cache bolts to slow down flicker
@@ -878,7 +878,7 @@ export default class Player {
         ctx.restore();
     }
 
-    drawLightningSegment(ctx, x1, y1, x2, y2, intensity) {
+    drawLightningSegment(ctx, x1, y1, x2, y2, intensity, segmentIndex = 0) {
         if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) return;
 
         const dist = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
@@ -909,8 +909,8 @@ export default class Player {
             const px = x1 + (targetX2 - x1) * ratio;
             const py = y1 + (targetY2 - y1) * ratio;
 
-            // Stable pseudo-randomness based on timeSeed + segment index i + coords
-            const seed = timeSeed + i + (x1 * 0.1) + (y1 * 0.1);
+            // v1.66: Stable seed based on segmentID + timeSeed (avoids jitter when moving)
+            const seed = timeSeed + i + (segmentIndex * 10);
             const randomVal = (Math.sin(seed) * 10000) % 1;
             const offset = (randomVal - 0.5) * 20;
 
@@ -921,6 +921,28 @@ export default class Player {
             });
         }
         points.push({ x: targetX2, y: targetY2 });
+
+        // v1.66: Add a secondary "High Voltage" strand
+        const secondaryPoints = [];
+        secondaryPoints.push({ x: x1, y: y1 });
+        const secondSeedBase = timeSeed + 100 + (segmentIndex * 20);
+        for (let i = 1; i < steps; i++) {
+            const ratio = i / steps;
+            const px = x1 + (targetX2 - x1) * ratio;
+            const py = y1 + (targetY2 - y1) * ratio;
+
+            // Higher volatility for the secondary strand
+            const seed = secondSeedBase + i;
+            const randomVal = (Math.sin(seed * 0.5) * 10000) % 1;
+            const offset = (randomVal - 0.5) * 35;
+
+            const angle = Math.atan2(targetY2 - y1, targetX2 - x1) + Math.PI / 2;
+            secondaryPoints.push({
+                x: px + Math.cos(angle) * offset,
+                y: py + Math.sin(angle) * offset
+            });
+        }
+        secondaryPoints.push({ x: targetX2, y: targetY2 });
 
         ctx.beginPath();
         ctx.moveTo(points[0].x, points[0].y);
@@ -942,10 +964,22 @@ export default class Player {
         ctx.shadowColor = '#ffffff';
         ctx.stroke();
 
-        // 3. Bright White Core (Sharp)
+        // Pass 3: Bright White Core (Sharp)
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 5 * intensity;
         ctx.shadowBlur = 0;
+        ctx.stroke();
+
+        // 4. v1.66: High-Voltage Secondary Strand Rendering
+        ctx.beginPath();
+        ctx.moveTo(secondaryPoints[0].x, secondaryPoints[0].y);
+        for (let i = 1; i < secondaryPoints.length; i++) {
+            ctx.lineTo(secondaryPoints[i].x, secondaryPoints[i].y);
+        }
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = 1.5 * intensity;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#00d2ff';
         ctx.stroke();
 
         // Impact Point Flash (Enhanced)

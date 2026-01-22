@@ -115,6 +115,14 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.66', date: '2026-01-23', title: 'High-Voltage Multi-Strand Lightning',
+                logs: [
+                    '멀티 스트랜드 번개 도입: 메인 번개 줄기 뒤로 더 얇고 역동적인 보조 번개 줄기를 추가하여 고압 전류 느낌 강화',
+                    '체인 번개 안정성 개선: 연결된 모든 번개 마디에 동일한 0.1초 플리커 속도 적용 및 이동 시 지터 현상 해결',
+                    '공격 중 오라 상시 발동: 기 모으기뿐만 아니라 일반 공격 중에도 캐릭터 주변에 강력한 번개 오라가 출력되도록 수정'
+                ]
+            },
+            {
                 version: 'v1.65', date: '2026-01-23', title: 'Lightning Flicker Refinement',
                 logs: [
                     '번개 효과(Lightning) 치지직거리는 속도 최적화: 매 프레임 변하던 모양을 0.1초 간격으로 유지하여 묵직하고 강렬한 느낌을 주도록 개선',
