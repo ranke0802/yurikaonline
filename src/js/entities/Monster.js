@@ -378,16 +378,16 @@ export default class Monster {
         if (this.electrocutedTimer > 0 && !this.isDead) {
             ctx.save();
             ctx.strokeStyle = '#48dbfb';
-            ctx.lineWidth = 2;
-            ctx.shadowBlur = 8;
+            ctx.lineWidth = 3.5; // Thicker sparks (v1.62)
+            ctx.shadowBlur = 12; // Brighter glow
             ctx.shadowColor = '#00d2ff';
 
-            for (let i = 0; i < 2; i++) {
+            for (let i = 0; i < 3; i++) { // One more spark
                 const rx = screenX + (Math.random() - 0.5) * this.width * 0.8;
                 const ry = drawY + (Math.random() - 0.5) * this.height * 0.8;
                 ctx.beginPath();
                 ctx.moveTo(rx, ry);
-                ctx.lineTo(rx + (Math.random() - 0.5) * 20, ry + (Math.random() - 0.5) * 20);
+                ctx.lineTo(rx + (Math.random() - 0.5) * 25, ry + (Math.random() - 0.5) * 25); // Longer sparks
                 ctx.stroke();
             }
             ctx.restore();

@@ -136,8 +136,8 @@ html {
     height: 60px;
     background: rgba(255, 255, 255, 0.9);
     border: 3px solid #fff;
-    border-radius: 12px;
-    /* Circular(50%) -> rounded square(12px) like Inventory */
+    border-radius: 50%;
+    /* Circular(50%) (v1.62 Reverted) */
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: center;
@@ -1085,13 +1085,28 @@ html {
     width: 150px;
     background: rgba(44, 62, 80, 0.6);
     /* 투명하게 변경 */
-    border: 3px solid #fff;
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     overflow: hidden;
     display: flex;
     flex-direction: column;
     backdrop-filter: blur(5px);
+    border: none;
+    /* v1.62 border removed from main container */
+}
+
+/* v1.62 Minimap Frame Layer Fix */
+#minimap-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 3px solid #fff;
+    border-radius: 12px;
+    pointer-events: none;
+    z-index: 10;
 }
 
 .minimap-header {
@@ -1380,7 +1395,6 @@ html {
         right: calc(10px + env(safe-area-inset-right));
         width: 110px;
         border-radius: 12px;
-        border: 3px solid rgba(255, 255, 255, 0.8);
         z-index: 100;
         background: rgba(30, 39, 46, 0.3) !important;
         /* 더 투명하게 변경 */
@@ -1392,6 +1406,12 @@ html {
         flex-direction: column;
         backdrop-filter: blur(2px) !important;
         /* 블러 약화 */
+        border: none !important;
+        /* v1.62 */
+    }
+
+    #minimap-container::after {
+        border-color: rgba(255, 255, 255, 0.8) !important;
     }
 
     #minimapCanvas {
@@ -1848,7 +1868,8 @@ html {
 
 /* 퀘스트 보상 버튼 */
 .quest-claim-btn {
-    display: inline-block;
+    display: inline-flex;
+    /* v1.62 */
     margin-left: 8px;
     padding: 2px 8px;
     background: #4ade80;
@@ -1860,6 +1881,10 @@ html {
     cursor: pointer;
     box-shadow: 0 2px 0 #22c55e;
     vertical-align: middle;
+    white-space: nowrap;
+    /* v1.62 */
+    flex-shrink: 0;
+    /* v1.62 */
 }
 
 .quest-claim-btn:hover {

@@ -557,7 +557,7 @@ export default class Player {
                     this.isRunning = true;
                     this.turnGraceTimer = 0;
                 }
-                if (this.moveTimer >= 1.0) {
+                if (this.moveTimer >= 1.5) { // v1.62: 1.0s -> 1.5s
                     this.isRunning = true;
                 }
             } else {
@@ -645,7 +645,7 @@ export default class Player {
         if (this.isRunning && this.isMoving) {
             if (Math.random() < 0.3) {
                 this.runParticles.push({
-                    x: this.x + (Math.random() - 0.5) * 40,
+                    x: this.x + (Math.random() - 0.5) * 60, // v1.62: 40 -> 60 (1.5x wider)
                     y: this.y + 30 + (Math.random() - 0.5) * 10,
                     life: 0.5,
                     size: 4 + Math.random() * 6
@@ -696,16 +696,16 @@ export default class Player {
         if (this.isChanneling && !this.isDead) {
             ctx.save();
             ctx.strokeStyle = '#48dbfb';
-            ctx.lineWidth = 1.5;
-            ctx.shadowBlur = 6;
+            ctx.lineWidth = 3.0; // v1.62: 1.5 -> 3.0
+            ctx.shadowBlur = 10; // v1.62: 6 -> 10
             ctx.shadowColor = '#00d2ff';
 
-            for (let i = 0; i < 2; i++) {
+            for (let i = 0; i < 3; i++) { // v1.62: 2 -> 3
                 const rx = screenX + (Math.random() - 0.5) * this.width * 0.7;
                 const ry = screenY + (Math.random() - 0.5) * this.height * 0.7;
                 ctx.beginPath();
                 ctx.moveTo(rx, ry);
-                ctx.lineTo(rx + (Math.random() - 0.5) * 15, ry + (Math.random() - 0.5) * 15);
+                ctx.lineTo(rx + (Math.random() - 0.5) * 20, ry + (Math.random() - 0.5) * 20); // v1.62: 15 -> 20
                 ctx.stroke();
             }
             ctx.restore();
