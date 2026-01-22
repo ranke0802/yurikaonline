@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.83', date: '2026-01-23', title: 'Ultimate Visual Cleanup',
+                logs: [
+                    '불필요한 잔여 이펙트 완전 제거: 공격 시 튀던 연쇄 스파크 및 마법진 중앙의 타원형 코어를 삭제하여 시각적 피로도 최소화',
+                    '핵심 요소 집중: 오직 [이중 원 + 직선 육망성 + 12개 룬 문자]와 [몬스터 스타일 스파크]만 남겨 깔끔한 마법 연출 완성'
+                ]
+            },
+            {
                 version: 'v1.82', date: '2026-01-23', title: 'Double Outer Rim Update',
                 logs: [
                     '이중 외곽 테두리 추가: 마법진 가장자리에 얇은 선을 하나 더 추가하여 더욱 정교하고 밀도 있는 디자인 완성',

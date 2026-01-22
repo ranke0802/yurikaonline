@@ -679,20 +679,7 @@ export default class Player {
             this.drawMagicCircle(ctx, screenX, screenY + this.height / 2);
         }
 
-        // v1.71: High-Voltage Attack Sparks (Chaotic discharges)
-        if (this.isAttacking && !this.isDead) {
-            ctx.save();
-            const timeSeed = Math.floor(Date.now() / 100);
-            for (let i = 0; i < 3; i++) {
-                const sparkX = screenX + (Math.random() - 0.5) * this.width;
-                const sparkY = screenY + (Math.random() - 0.5) * this.height;
 
-                // v1.72 Hotfix: Use local ctx instead of this.ctx
-                ctx.globalAlpha = 0.7;
-                this.drawLightningSegment(ctx, screenX, screenY - 10, sparkX, sparkY, 0.4, i + 50);
-            }
-            ctx.restore();
-        }
 
         // Draw Run Particles
         this.runParticles.forEach(p => {
@@ -1174,13 +1161,7 @@ export default class Player {
             }
         }
 
-        // 5. Inner Pulsing Core
-        const pulse = Math.abs(Math.sin(time * 2)) * 0.3 + 0.1;
-        ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
-        ctx.beginPath();
-        // Simple oval core
-        ctx.ellipse(0, 0, radiusInner * 0.2, radiusInner * 0.2 * Y_SCALE, 0, 0, Math.PI * 2);
-        ctx.fill();
+
 
         ctx.restore();
     }
