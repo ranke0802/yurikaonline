@@ -324,31 +324,40 @@ class Game {
 
     performLaserAttack(dt = 0) {
         const player = this.localPlayer;
+        if (!player || player.isDead) return;
         this.playerHasAttacked = true;
+
+        // Ensure dt is a valid number to prevent freezing/NaN issues
+        const fixedDt = (typeof dt === 'number' && !isNaN(dt)) ? dt : 0.016;
 
         if (!player.isChanneling) {
             player.isChanneling = true;
             player.chargeTime = 0;
-            player.lightningTickTimer = 0;
-            player.triggerAction('ATTACK');
+            player.lightningTickTimer = 0; // Trigger first tick immediately
         }
 
-        player.chargeTime += dt;
-        player.lightningTickTimer -= dt;
+        player.chargeTime += fixedDt;
+        player.lightningTickTimer -= fixedDt;
 
-        // Perform tick every 0.3s
+        // Perform tick based on attack speed (Base 0.7s, scales down with attackSpeed)
+        const baseTickInterval = 0.7;
+        const tickInterval = baseTickInterval / player.attackSpeed;
+
         if (player.lightningTickTimer <= 0) {
-            player.lightningTickTimer = 0.3;
+            player.lightningTickTimer = tickInterval;
+
+            // Trigger animation for every tick
+            player.triggerAction('ATTACK');
 
             const laserLv = player.skillLevels.laser || 1;
 
-            // Damage amplification logic: Start at 50% + (Lv-1)*10%, +25% every 0.3s, max 150%
+            // Damage amplification logic: Start at 50% + (Lv-1)*10%, +25% every 0.3s relative time, max 150%
             const startRatio = 0.5 + (laserLv - 1) * 0.1;
             const chargeBonus = Math.floor(player.chargeTime / 0.3) * 0.25;
             const finalDmgRatio = Math.min(1.5, startRatio + chargeBonus);
 
-            // Chain Lightning Logic
-            const maxChains = 2 + Math.floor(laserLv / 3);
+            // Chain Lightning Logic: 기본 2마리 + 1레벨당 +1마리 (lv:1 -> 2, lv:2 -> 3)
+            const maxChains = 1 + laserLv;
             const chainRange = 350;
             let currentSource = { x: player.x, y: player.y };
             const affectedMonsters = [];
@@ -377,6 +386,12 @@ class Game {
                     let isCrit = Math.random() < player.critRate;
                     if (isCrit) dmg *= 2;
                     nextTarget.takeDamage(dmg, true, isCrit);
+
+                    // Apply Electrocution Status (30% + 3%/lv Slow)
+                    const slowAmount = 0.3 + (laserLv - 1) * 0.03;
+                    if (nextTarget.applyElectrocuted) {
+                        nextTarget.applyElectrocuted(1.0, slowAmount);
+                    }
 
                     // MP Recovery: 1 per hit
                     player.recoverMana(1, true);

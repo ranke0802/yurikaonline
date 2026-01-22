@@ -750,38 +750,40 @@ export default class Player {
     }
 
     drawLightningSegment(ctx, x1, y1, x2, y2, intensity) {
+        if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) return;
+
         const dist = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
 
         // Improvement: Ensure visiblity when extremely close by adding a minimum rendering length
         const minVisDist = 15;
-        let实际x2 = x2;
-        let实际y2 = y2;
+        let targetX2 = x2;
+        let targetY2 = y2;
 
         if (dist < minVisDist) {
             const angle = Math.atan2(y2 - y1, x2 - x1);
             // If they are literally at the same spot, just pick physical direction
             const finalAngle = dist < 1 ? (this.facingDir * 45 - 90) * (Math.PI / 180) : angle;
-            实际x2 = x1 + Math.cos(finalAngle) * minVisDist;
-            实际y2 = y1 + Math.sin(finalAngle) * minVisDist;
+            targetX2 = x1 + Math.cos(finalAngle) * minVisDist;
+            targetY2 = y1 + Math.sin(finalAngle) * minVisDist;
         }
 
-        const steps = Math.max(2, Math.floor(Math.sqrt(dist) * 1.5)); // More steps for character
+        const steps = Math.max(2, Math.floor(Math.sqrt(dist) * 1.5));
         const points = [];
         points.push({ x: x1, y: y1 });
 
         for (let i = 1; i < steps; i++) {
             const ratio = i / steps;
-            const px = x1 + (实际x2 - x1) * ratio;
-            const py = y1 + (实际y2 - y1) * ratio;
+            const px = x1 + (targetX2 - x1) * ratio;
+            const py = y1 + (targetY2 - y1) * ratio;
             // Random offset for zigzag
             const offset = (Math.random() - 0.5) * 20;
-            const angle = Math.atan2(实际y2 - y1, 实际x2 - x1) + Math.PI / 2;
+            const angle = Math.atan2(targetY2 - y1, targetX2 - x1) + Math.PI / 2;
             points.push({
                 x: px + Math.cos(angle) * offset,
                 y: py + Math.sin(angle) * offset
             });
         }
-        points.push({ x: 实际x2, y: 实际y2 });
+        points.push({ x: targetX2, y: targetY2 });
 
         ctx.beginPath();
         ctx.moveTo(points[0].x, points[0].y);
