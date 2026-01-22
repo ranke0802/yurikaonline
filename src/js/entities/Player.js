@@ -668,6 +668,17 @@ export default class Player {
         let screenX = Math.round(this.x - camera.x);
         let screenY = Math.round(this.y - camera.y);
 
+        // v1.67: Ground Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.beginPath();
+        ctx.ellipse(screenX, screenY + this.height / 2, this.width / 2 * 0.7, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // v1.67: High-Voltage Magic Circle during Attack
+        if (this.isAttacking && !this.isDead) {
+            this.drawMagicCircle(ctx, screenX, screenY);
+        }
+
         // Draw Run Particles
         this.runParticles.forEach(p => {
             ctx.fillStyle = `rgba(200, 200, 200, ${p.life * 1.5})`;
@@ -990,6 +1001,62 @@ export default class Player {
         ctx.arc(targetX2, targetY2, 8 * intensity, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
+    }
+
+    drawMagicCircle(ctx, sx, sy) {
+        ctx.save();
+        const time = Date.now() * 0.002;
+        const radiusInner = this.width * 0.45;
+        const radiusOuter = this.width * 0.55;
+
+        // Outer Glow
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#00d2ff';
+        ctx.strokeStyle = 'rgba(72, 219, 251, 0.6)';
+
+        // 1. Two Concentric Circles
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(sx, sy + 10, radiusOuter, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(sx, sy + 10, radiusInner, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 2. Hexagram (Six-pointed star)
+        ctx.save();
+        ctx.translate(sx, sy + 10);
+        ctx.rotate(time * 0.5); // Slow rotation
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+
+        // Loop twice to draw two triangles overlapping
+        for (let i = 0; i < 2; i++) {
+            ctx.beginPath();
+            const angleOffset = (i * Math.PI);
+            for (let j = 0; j < 3; j++) {
+                const angle = angleOffset + (j * (Math.PI * 2) / 3);
+                const x = Math.cos(angle) * radiusInner;
+                const y = Math.sin(angle) * radiusInner;
+                if (j === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // 3. Inner Pulsing Core
+        const pulse = Math.abs(Math.sin(time * 2)) * 0.3 + 0.1;
+        ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
+        ctx.beginPath();
+        ctx.arc(sx, sy + 10, radiusInner * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
     }
 }
 

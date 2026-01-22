@@ -115,6 +115,14 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.67', date: '2026-01-23', title: 'Premium Visual Overhaul',
+                logs: [
+                    '캐릭터 그림자 추가: 발밑에 부드러운 그림자를 추가하여 월드 내 안정감 보강',
+                    '공격용 마법진(Magic Circle) 도입: 일반 공격 시 발밑에 정교하게 회전하는 육망성 마법진 소환',
+                    '시각적 피드백 강화: 마법진 내부에 고압 전류 느낌의 네온 글로우 및 펄스 효과 적용'
+                ]
+            },
+            {
                 version: 'v1.66', date: '2026-01-23', title: 'High-Voltage Multi-Strand Lightning',
                 logs: [
                     '멀티 스트랜드 번개 도입: 메인 번개 줄기 뒤로 더 얇고 역동적인 보조 번개 줄기를 추가하여 고압 전류 느낌 강화',
