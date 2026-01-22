@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.77', date: '2026-01-23', title: 'Magic Circle Geometric Tweak',
+                logs: [
+                    '육망성(Hexagram) 선 복구: 육망성의 별 모양을 다시 선명하게 렌더링',
+                    '외곽 원(Outer Circles) 제거: 육각형 분위기를 내는 외곽의 연결 선들을 제거하여 별 모양과 룬만 깔끔하게 남김'
+                ]
+            },
+            {
                 version: 'v1.76', date: '2026-01-23', title: 'Magic Circle Pace Adjustment',
                 logs: [
                     '마법진 회전 속도 최적화: 기존 대비 약 30% 수준으로 감속하여 차분하고 묵직한 마법 연출 (너무 빠른 회전 방지)',
