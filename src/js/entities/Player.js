@@ -544,6 +544,11 @@ export default class Player {
             const finalSpeed = this.speed * this.moveSpeedMult * speedMult;
             this.x += vx * finalSpeed * dt;
             this.y += vy * finalSpeed * dt;
+
+            // Map Boundary Clamping (0-2000)
+            this.x = Math.max(0, Math.min(2000, this.x));
+            this.y = Math.max(0, Math.min(2000, this.y));
+
             this.isMoving = true;
 
             // Reset standing timer
@@ -706,11 +711,13 @@ export default class Player {
             ctx.fillText(bubbleText, screenX, bubbleY + bubbleHeight / 2 + 5);
         }
 
-        // HP Bar
+        // UI Layout below character
         const barWidth = 60;
         const barHeight = 6;
-        const barY = screenY - this.height / 2 - 25;
+        const startY = screenY + this.height / 2 + 5;
 
+        // HP Bar
+        const barY = startY;
         // HP Bar background
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(screenX - barWidth / 2, barY, barWidth, barHeight);
@@ -729,7 +736,7 @@ export default class Player {
         ctx.fillStyle = '#48dbfb';
         ctx.fillRect(screenX - barWidth / 2, mpBarY, barWidth * mpPercent, barHeight);
 
-        // Player Name (below MP bar, same style as monster names)
+        // Player Name
         const nameY = mpBarY + barHeight + 14;
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 13px "Outfit", sans-serif';

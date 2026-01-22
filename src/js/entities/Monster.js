@@ -197,9 +197,9 @@ export default class Monster {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
 
-        // Keep inside map bounds (2000x2000)
-        this.x = Math.max(50, Math.min(1950, this.x));
-        this.y = Math.max(50, Math.min(1950, this.y));
+        // Keep inside map bounds (0-2000)
+        this.x = Math.max(0, Math.min(2000, this.x));
+        this.y = Math.max(0, Math.min(2000, this.y));
 
         if (this.hitTimer > 0) {
             this.hitTimer -= dt;
@@ -298,22 +298,25 @@ export default class Monster {
             ctx.restore();
         }
 
-        // Name and HP Bar
+        // HP Bar background and Name (below character)
+        const uiBaseY = screenY + this.height / 2 + 5;
+
+        // HP Bar background
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(screenX - 30, uiBaseY, 60, 6);
+        // HP Bar foreground
+        const hpPercent = Math.max(0, Math.min(1, this.hp / this.maxHp));
+        ctx.fillStyle = hpPercent > 0.3 ? '#4ade80' : '#ef4444';
+        ctx.fillRect(screenX - 30, uiBaseY, 60 * hpPercent, 6);
+
+        // Name
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 13px "Outfit", sans-serif';
         ctx.textAlign = 'center';
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
         ctx.shadowBlur = 4;
-        ctx.fillText(this.name, screenX, screenY - this.height / 2 - 20);
+        ctx.fillText(this.name, screenX, uiBaseY + 20);
         ctx.shadowBlur = 0;
-
-        // HP Bar background
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.fillRect(screenX - 30, screenY - this.height / 2 - 12, 60, 6);
-        // HP Bar foreground
-        const hpPercent = Math.max(0, Math.min(1, this.hp / this.maxHp));
-        ctx.fillStyle = hpPercent > 0.3 ? '#4ade80' : '#ef4444';
-        ctx.fillRect(screenX - 30, screenY - this.height / 2 - 12, 60 * hpPercent, 6);
 
         // Status Effect Icons (Burn & Electrocuted)
         const burnEffect = this.statusEffects.find(e => e.type === 'burn');
@@ -321,7 +324,7 @@ export default class Monster {
             ctx.font = '16px serif';
             ctx.textAlign = 'left';
             let startX = screenX - this.width / 2;
-            let iconY = screenY + this.height / 2 + 15;
+            let iconY = screenY + this.height / 2 + 40;
 
             if (burnEffect) {
                 ctx.fillText('🔥', startX, iconY);
