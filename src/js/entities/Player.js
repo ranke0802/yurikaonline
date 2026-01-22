@@ -1003,12 +1003,17 @@ export default class Player {
         ctx.shadowBlur = 0;
     }
 
+    // v1.68 ground circle
     drawMagicCircle(ctx, sx, sy) {
         ctx.save();
         const time = Date.now() * 0.002;
         const radiusInner = this.width * 0.45;
         const radiusOuter = this.width * 0.55;
 
+        // v1.68: Perspective transform
+        ctx.translate(sx, sy + 10);
+        ctx.scale(1, 0.45);
+        // v1.68: Redraw with 0,0 center (due to transform)
         // Outer Glow
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#00d2ff';
@@ -1017,17 +1022,16 @@ export default class Player {
         // 1. Two Concentric Circles
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(sx, sy + 10, radiusOuter, 0, Math.PI * 2);
+        ctx.arc(0, 0, radiusOuter, 0, Math.PI * 2);
         ctx.stroke();
 
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(sx, sy + 10, radiusInner, 0, Math.PI * 2);
+        ctx.arc(0, 0, radiusInner, 0, Math.PI * 2);
         ctx.stroke();
 
         // 2. Hexagram (Six-pointed star)
         ctx.save();
-        ctx.translate(sx, sy + 10);
         ctx.rotate(time * 0.5); // Slow rotation
 
         ctx.lineWidth = 2;
@@ -1036,7 +1040,7 @@ export default class Player {
         // Loop twice to draw two triangles overlapping
         for (let i = 0; i < 2; i++) {
             ctx.beginPath();
-            const angleOffset = (i * Math.PI);
+            const angleOffset = (i === 0) ? -Math.PI / 2 : Math.PI / 2;
             for (let j = 0; j < 3; j++) {
                 const angle = angleOffset + (j * (Math.PI * 2) / 3);
                 const x = Math.cos(angle) * radiusInner;
@@ -1053,11 +1057,4 @@ export default class Player {
         const pulse = Math.abs(Math.sin(time * 2)) * 0.3 + 0.1;
         ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
         ctx.beginPath();
-        ctx.arc(sx, sy + 10, radiusInner * 0.2, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.restore();
-    }
-}
-
 

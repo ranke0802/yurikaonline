@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.68', date: '2026-01-23', title: 'Magic Circle Perspective Refinement',
+                logs: [
+                    '마법진 원근감 적용: 캐릭터 발밑 지면에 자연스럽게 깔리도록 3D 원근 타원 형태로 개선',
+                    '육망성 방향 조정: 삼각형의 꼭짓점이 12시와 6시 방향을 정확히 향하도록 초기 각도 수정'
+                ]
+            },
+            {
                 version: 'v1.67', date: '2026-01-23', title: 'Premium Visual Overhaul',
                 logs: [
                     '캐릭터 그림자 추가: 발밑에 부드러운 그림자를 추가하여 월드 내 안정감 보강',
