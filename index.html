@@ -12,15 +12,24 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v1.53</title>
+    <title>Yurika Online v1.54</title>
     <script>
-        window.GAME_VERSION = '1.53';
+        window.GAME_VERSION = '1.54';
 
         async function initCacheBusting() {
             try {
                 // Fetch the absolute truth from the server, bypassing any local cache
                 const response = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
                 const serverVersion = (await response.text()).trim();
+
+                // [Auto-Sync] Update UI elements to match server version
+                if (serverVersion) {
+                    document.title = `Yurika Online v${serverVersion}`;
+                    const vInfo = document.querySelector('.version-info');
+                    if (vInfo) vInfo.textContent = `📦 v${serverVersion}`;
+                    window.GAME_VERSION = serverVersion;
+                }
+
                 const storedVersion = localStorage.getItem('yurika_version');
 
                 if (serverVersion && serverVersion !== storedVersion) {
@@ -43,7 +52,7 @@
 
         initCacheBusting();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=1.53">
+    <link rel="stylesheet" href="src/css/style.css?v=1.54">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -435,7 +444,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v1.53
+        📦 v1.54
     </div>
 
     <!-- Update History Modal -->
@@ -451,7 +460,7 @@
         </div>
     </div>
 
-    <script type="module" src="src/js/main.js?v=1.53"></script>
+    <script type="module" src="src/js/main.js?v=1.54"></script>
 </body>
 
 </html>
