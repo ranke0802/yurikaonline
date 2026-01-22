@@ -626,6 +626,25 @@ export default class Player {
         let col = this.frame;
         this.sprite.draw(ctx, row, col, screenX - this.width / 2, screenY - this.height / 2, this.width, this.height, false);
 
+        // Self Spark Effect during Channeling
+        if (this.isChanneling && !this.isDead) {
+            ctx.save();
+            ctx.strokeStyle = '#48dbfb';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#00d2ff';
+
+            for (let i = 0; i < 3; i++) {
+                const rx = screenX + (Math.random() - 0.5) * this.width * 0.8;
+                const ry = screenY + (Math.random() - 0.5) * this.height * 0.8;
+                ctx.beginPath();
+                ctx.moveTo(rx, ry);
+                ctx.lineTo(rx + (Math.random() - 0.5) * 30, ry + (Math.random() - 0.5) * 30);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
         // Draw Shield Visual
         if (this.shieldTimer > 0) {
             ctx.save();
