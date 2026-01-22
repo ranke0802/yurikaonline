@@ -31,8 +31,11 @@ class Game {
         this.floatingTexts = [];
         this.localPlayer = new Player(1000, 1000);
 
-        // Initialize camera AFTER player to ensure proper centering
-        this.camera = new Camera(this.width, this.height, 2000, 2000);
+        // Manually trigger resize once to set initial zoom before camera init
+        this.resize();
+
+        // Initialize camera AFTER player and resize to ensure proper centering with zoom
+        this.camera = new Camera(this.width / this.zoom, this.height / this.zoom, 2000, 2000);
         this.camera.update(this.localPlayer.x, this.localPlayer.y);
 
         this.input.onAction = (action) => {
