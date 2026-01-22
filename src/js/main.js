@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.74', date: '2026-01-23', title: 'Dynamic Magic Circle Rotation',
+                logs: [
+                    '마법진 회전 속도 대폭 상향: 육망성(시계 방향)과 룬 문자(반시계 방향)의 회전 속도를 3배 이상 높여 역동성 강화',
+                    '시각적 분리감 극대화: 서로 반대로 빠르게 맞물려 돌아가는 애니메이션으로 마법 주문의 복잡도와 위력 표현'
+                ]
+            },
+            {
                 version: 'v1.73', date: '2026-01-23', title: 'Ancient Rune Magic Circle',
                 logs: [
                     '고대 룬 문자 링 추가: 육망성 마법진 테두리에 회전하는 기하학적 룬 심볼을 추가하여 신비감 강화',

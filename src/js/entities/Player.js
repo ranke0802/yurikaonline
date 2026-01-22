@@ -219,7 +219,7 @@ export default class Player {
 
             menu.frames.forEach((frameFile, i) => {
                 const img = new Image();
-                const v = '1.73';
+                const v = '1.74';
                 img.src = `${menu.path}/${frameFile}?v=${v}`;
                 const p = new Promise((resolve) => {
                     img.onload = () => {
@@ -1065,7 +1065,7 @@ export default class Player {
 
         // 2. Hexagram (Six-pointed star)
         ctx.save();
-        ctx.rotate(time * 0.5);
+        ctx.rotate(time * 1.5); // v1.74: Clockwise, Faster (0.5 -> 1.5)
         ctx.lineWidth = 2.5;
         ctx.strokeStyle = 'rgba(150, 240, 255, 0.9)';
 
@@ -1089,7 +1089,7 @@ export default class Player {
 
         // 4. v1.73: Rotating Ancient Runes (Between circles)
         ctx.save();
-        ctx.rotate(-time * 0.3); // Rotate opposite to hexagram
+        ctx.rotate(-time * 1.0); // v1.74: Counter-Clockwise, Noticeable Speed (0.3 -> 1.0)
         ctx.strokeStyle = 'rgba(150, 240, 255, 0.7)';
         ctx.lineWidth = 1.5;
 
