@@ -1265,7 +1265,7 @@ html {
         /* 전체화면 버튼: 미니맵 아래 아이콘만 표시 (Safe Area 적용) */
         body #ui-layer #btn-fullscreen {
             position: fixed !important;
-            top: calc(185px + env(safe-area-inset-top)) !important;
+            top: calc(180px + env(safe-area-inset-top)) !important;
             right: calc(20px + env(safe-area-inset-right)) !important;
             left: auto !important;
             bottom: auto !important;
