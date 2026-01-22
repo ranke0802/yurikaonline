@@ -1073,12 +1073,13 @@ export default class Player {
 
         // 2. Hexagram (Six-pointed star)
         // v1.75: Manual rotation
-        const hexRotation = time * 1.5; // Clockwise
+        // v1.76: Slower speed (30% of original 1.5 -> 0.45)
+        const hexRotation = time * 0.45;
 
+        // ctx.strokeStyle is not used for dots, but we keep the structure if needed
         ctx.lineWidth = 2.5;
-        ctx.strokeStyle = 'rgba(150, 240, 255, 0.9)';
 
-        ctx.beginPath();
+        // v1.76: Lines removed, Vertices only (Vertex rendering)
         for (let i = 0; i < 2; i++) {
             const angleOffset = (i === 0) ? -Math.PI / 2 : Math.PI / 2;
             const points = [];
@@ -1089,16 +1090,21 @@ export default class Player {
                     y: Math.sin(angle) * radiusInner * Y_SCALE
                 });
             }
-            // Draw triangles
-            for (let j = 0; j < 3; j++) {
-                const p1 = points[j];
-                const p2 = points[(j + 1) % 3];
-                addLightningPath(p1.x, p1.y, p2.x, p2.y, 4, 10);
-            }
-        }
-        ctx.stroke();
 
-        // 4. v1.73: Rotating Ancient Runes (Between circles)
+            // v1.76: Draw Glowing Dots at vertices instead of lines
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00d2ff';
+
+            points.forEach(p => {
+                ctx.beginPath();
+                // Slight Y-squash for dot perspective
+                ctx.ellipse(p.x, p.y, 4, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.shadowBlur = 0;
+        }
+
         // 4. v1.73: Rotating Ancient Runes (Between circles)
         // v1.75: Manual rendering for constant line width
         // v1.76: Slower speed (30% of original 1.0 -> 0.3)
@@ -1134,9 +1140,6 @@ export default class Player {
 
             // Rune faces outward: angle + 90deg
             const facing = angle + Math.PI / 2;
-
-            // Define glyphs as simple line strips [ {x,y}, ... ] (BREAKS allow separate strokes)
-            // Simplified for single-stroke style logic or multiple calls
 
             // Shape 1: Lightning Fork
             if (i % 4 === 0) {
