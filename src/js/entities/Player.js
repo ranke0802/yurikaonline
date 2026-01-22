@@ -219,7 +219,7 @@ export default class Player {
 
             menu.frames.forEach((frameFile, i) => {
                 const img = new Image();
-                const v = '1.60';
+                const v = '1.73';
                 img.src = `${menu.path}/${frameFile}?v=${v}`;
                 const p = new Promise((resolve) => {
                     img.onload = () => {
@@ -1087,7 +1087,43 @@ export default class Player {
         ctx.stroke();
         ctx.restore();
 
-        // 3. Inner Pulsing Core
+        // 4. v1.73: Rotating Ancient Runes (Between circles)
+        ctx.save();
+        ctx.rotate(-time * 0.3); // Rotate opposite to hexagram
+        ctx.strokeStyle = 'rgba(150, 240, 255, 0.7)';
+        ctx.lineWidth = 1.5;
+
+        const runeCount = 8;
+        const runeRadius = this.width * 0.5;
+
+        for (let i = 0; i < runeCount; i++) {
+            ctx.save();
+            const angle = (i / runeCount) * Math.PI * 2;
+            ctx.translate(Math.cos(angle) * runeRadius, Math.sin(angle) * runeRadius);
+            ctx.rotate(angle + Math.PI / 2); // Face outward
+
+            // Procedural Rune Drawing
+            ctx.beginPath();
+            // Simple glyph generation logic
+            if (i % 4 === 0) { // Shape: Lightning Fork
+                ctx.moveTo(-3, -5); ctx.lineTo(0, 0); ctx.lineTo(3, -5);
+                ctx.moveTo(0, 0); ctx.lineTo(0, 5);
+            } else if (i % 4 === 1) { // Shape: Crossed Z
+                ctx.moveTo(-3, -4); ctx.lineTo(3, -4); ctx.lineTo(-3, 4); ctx.lineTo(3, 4);
+                ctx.moveTo(0, -4); ctx.lineTo(0, 4);
+            } else if (i % 4 === 2) { // Shape: Diamond Eye
+                ctx.moveTo(0, -5); ctx.lineTo(3, 0); ctx.lineTo(0, 5); ctx.lineTo(-3, 0); ctx.closePath();
+            } else { // Shape: Twin Pillars
+                ctx.moveTo(-2, -5); ctx.lineTo(-2, 5);
+                ctx.moveTo(2, -5); ctx.lineTo(2, 5);
+                ctx.moveTo(-4, 0); ctx.lineTo(4, 0);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+        ctx.restore();
+
+        // 5. Inner Pulsing Core
         const pulse = Math.abs(Math.sin(time * 2)) * 0.3 + 0.1;
         ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
         ctx.beginPath();

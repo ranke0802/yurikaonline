@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.73', date: '2026-01-23', title: 'Ancient Rune Magic Circle',
+                logs: [
+                    '고대 룬 문자 링 추가: 육망성 마법진 테두리에 회전하는 기하학적 룬 심볼을 추가하여 신비감 강화',
+                    '역방향 회전 애니메이션: 룬 문자들이 마법진과 반대 방향으로 서서히 회전하며 입체적인 마법 연출 제공'
+                ]
+            },
+            {
                 version: 'v1.72', date: '2026-01-23', title: 'Emergency Hotfix: Attack Freeze & Optimization',
                 logs: [
                     '공격 멈춤 현상 수정: 일반 공격 시 발생하던 타자 오류(this.ctx)를 수정하여 게임이 멈추는 치명적인 버그 해결',
