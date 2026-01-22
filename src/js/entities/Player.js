@@ -719,18 +719,18 @@ export default class Player {
         let col = this.frame;
         this.sprite.draw(ctx, row, col, screenX - this.width / 2, screenY - this.height / 2, this.width, this.height, false);
 
-        // Self Spark Effect (v1.66: Slower flicker, triggers during channeling OR attack)
+        // v1.79: Replaced Self Spark with Monster-style Electrocuted Effect
         if ((this.isChanneling || this.isAttacking) && !this.isDead) {
             ctx.save();
 
-            // v1.65: Cache bolts to slow down flicker
+            // Cache bolts to slow down flicker (same as Monster)
             const now = Date.now();
             if (!this.auraBolts || (now - (this.auraLastUpdate || 0) > 100)) {
                 this.auraBolts = [];
                 this.auraLastUpdate = now;
-                for (let i = 0; i < 2; i++) {
-                    const rx = screenX + (Math.random() - 0.5) * this.width * 0.8;
-                    const ry = screenY + (Math.random() - 0.5) * this.height * 0.8;
+                for (let i = 0; i < 2; i++) { // 2 bolts
+                    const rx = screenX + (Math.random() - 0.5) * this.width * 0.9;
+                    const ry = screenY + (Math.random() - 0.5) * this.height * 0.9;
 
                     const steps = 3 + Math.floor(Math.random() * 2);
                     const boltPoints = [{ x: rx, y: ry }];
@@ -738,8 +738,8 @@ export default class Player {
                     for (let j = 0; j < steps; j++) {
                         const last = boltPoints[boltPoints.length - 1];
                         boltPoints.push({
-                            x: last.x + (Math.random() - 0.5) * 35,
-                            y: last.y + (Math.random() - 0.5) * 35
+                            x: last.x + (Math.random() - 0.5) * 40,
+                            y: last.y + (Math.random() - 0.5) * 40
                         });
                     }
                     this.auraBolts.push(boltPoints);
@@ -1080,29 +1080,36 @@ export default class Player {
         ctx.lineWidth = 2.5;
 
         // v1.76: Lines removed, Vertices only (Vertex rendering)
-        for (let i = 0; i < 2; i++) {
-            const angleOffset = (i === 0) ? -Math.PI / 2 : Math.PI / 2;
+        // v1.76: Lines removed, Vertices only (Reverted in v1.79)
+        // v1.79: Draw Logic for Two Triangles (Star of David) explicitly
+        const triangles = [
+            [0, 2, 4], // Triangle 1 (0, 120, 240 degrees)
+            [1, 3, 5]  // Triangle 2 (60, 180, 300 degrees)
+        ];
+
+        for (let tIndex = 0; tIndex < 2; tIndex++) {
             const points = [];
+            // Calculate 3 vertices for this triangle
             for (let j = 0; j < 3; j++) {
-                const angle = angleOffset + (j * (Math.PI * 2) / 3) + hexRotation;
+                const vertexIndex = triangles[tIndex][j];
+                // 6 vertices total around the circle
+                const hexAngle = (vertexIndex * (Math.PI * 2) / 6) + hexRotation - (Math.PI / 2); // Start from top (-90deg)
+
                 points.push({
-                    x: Math.cos(angle) * radiusInner,
-                    y: Math.sin(angle) * radiusInner * Y_SCALE
+                    x: Math.cos(hexAngle) * radiusInner,
+                    y: Math.sin(hexAngle) * radiusInner * Y_SCALE
                 });
             }
 
-            // v1.76: Draw Glowing Dots at vertices instead of lines
-            ctx.fillStyle = '#ffffff';
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = '#00d2ff';
-
-            points.forEach(p => {
-                ctx.beginPath();
-                // Slight Y-squash for dot perspective
-                ctx.ellipse(p.x, p.y, 4, 3, 0, 0, Math.PI * 2);
-                ctx.fill();
-            });
-            ctx.shadowBlur = 0;
+            // Draw lines connecting the 3 vertices
+            ctx.beginPath();
+            // 0 -> 1
+            addLightningPath(points[0].x, points[0].y, points[1].x, points[1].y, 4, 10);
+            // 1 -> 2
+            addLightningPath(points[1].x, points[1].y, points[2].x, points[2].y, 4, 10);
+            // 2 -> 0 (Close)
+            addLightningPath(points[2].x, points[2].y, points[0].x, points[0].y, 4, 10);
+            ctx.stroke();
         }
 
         // 4. v1.73: Rotating Ancient Runes (Between circles)

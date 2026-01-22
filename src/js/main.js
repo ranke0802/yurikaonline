@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.79', date: '2026-01-23', title: 'Visual Fixes & Aura Polish',
+                logs: [
+                    '육망성 렌더링 수정: 별 모양을 그리는 선이 보이지 않던 문제를 해결하여 뚜렷한 별(★) 복구',
+                    '캐릭터 오라 개선: 등 뒤의 지저분한 이펙트를 제거하고, 몬스터와 동일한 깔끔한 전기 스파크 이펙트로 교체'
+                ]
+            },
+            {
                 version: 'v1.78', date: '2026-01-23', title: 'Magic Circle Restoration',
                 logs: [
                     '마법진 원상복구: 사용자 요청에 따라 동심원 테두리와 육망성을 모두 표시하는 기존 스타일로 복구',
