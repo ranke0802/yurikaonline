@@ -626,20 +626,20 @@ export default class Player {
         let col = this.frame;
         this.sprite.draw(ctx, row, col, screenX - this.width / 2, screenY - this.height / 2, this.width, this.height, false);
 
-        // Self Spark Effect during Channeling (Subtle/Soft Style v1.52)
+        // Self Spark Effect during Channeling (Final Subtle Style v1.53)
         if (this.isChanneling && !this.isDead) {
             ctx.save();
             ctx.strokeStyle = '#48dbfb';
-            ctx.lineWidth = 2;
-            ctx.shadowBlur = 8;
+            ctx.lineWidth = 1.5;
+            ctx.shadowBlur = 6;
             ctx.shadowColor = '#00d2ff';
 
             for (let i = 0; i < 2; i++) {
-                const rx = screenX + (Math.random() - 0.5) * this.width * 0.8;
-                const ry = screenY + (Math.random() - 0.5) * this.height * 0.8;
+                const rx = screenX + (Math.random() - 0.5) * this.width * 0.7;
+                const ry = screenY + (Math.random() - 0.5) * this.height * 0.7;
                 ctx.beginPath();
                 ctx.moveTo(rx, ry);
-                ctx.lineTo(rx + (Math.random() - 0.5) * 20, ry + (Math.random() - 0.5) * 20);
+                ctx.lineTo(rx + (Math.random() - 0.5) * 15, ry + (Math.random() - 0.5) * 15);
                 ctx.stroke();
             }
             ctx.restore();
