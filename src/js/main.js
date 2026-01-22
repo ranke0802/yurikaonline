@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.70', date: '2026-01-23', title: 'Magic Circle Persistence & Positioning',
+                logs: [
+                    '마법진 위치 최적화: 캐릭터 등 뒤가 아닌 캐릭터 발바닥(지면) 위치로 정확히 이동',
+                    '노출 로직 개선: 공격 애니메이션 중 깜빡이지 않고 기 모으기부터 공격 종료까지 마법진이 안정적으로 유지되도록 수정'
+                ]
+            },
+            {
                 version: 'v1.69', date: '2026-01-23', title: 'Emergency Hotfix: Loading Stagnation',
                 logs: [
                     '로딩 멈춤 현상 수정: 이전 버전 배포 중 발생한 캐릭터 파일(Player.js)의 구문 오류를 수정하여 무한 로딩 발생 문제 해결'

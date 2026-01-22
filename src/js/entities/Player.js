@@ -674,9 +674,9 @@ export default class Player {
         ctx.ellipse(screenX, screenY + this.height / 2, this.width / 2 * 0.7, 5, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // v1.67: High-Voltage Magic Circle during Attack
-        if (this.isAttacking && !this.isDead) {
-            this.drawMagicCircle(ctx, screenX, screenY);
+        // v1.70: High-Voltage Magic Circle during Channeling OR Attack
+        if ((this.isChanneling || this.isAttacking) && !this.isDead) {
+            this.drawMagicCircle(ctx, screenX, screenY + this.height / 2);
         }
 
         // Draw Run Particles
@@ -1003,15 +1003,15 @@ export default class Player {
         ctx.shadowBlur = 0;
     }
 
-    // v1.68 ground circle
+    // v1.70 grounded circle
     drawMagicCircle(ctx, sx, sy) {
         ctx.save();
         const time = Date.now() * 0.002;
         const radiusInner = this.width * 0.45;
         const radiusOuter = this.width * 0.55;
 
-        // v1.68: Perspective transform
-        ctx.translate(sx, sy + 10);
+        // v1.70: Perspective transform at ground level
+        ctx.translate(sx, sy);
         ctx.scale(1, 0.45);
         // v1.68: Redraw with 0,0 center (due to transform)
         // Outer Glow
