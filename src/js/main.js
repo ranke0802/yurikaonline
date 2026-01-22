@@ -322,66 +322,81 @@ class Game {
         }
     }
 
-    performLaserAttack() {
+    performLaserAttack(dt = 0) {
         const player = this.localPlayer;
-        player.triggerAction('ATTACK');
         this.playerHasAttacked = true;
 
-        const laserLv = player.skillLevels.laser || 1;
-        const mpRecover = laserLv;
-        player.recoverMana(mpRecover, true);
-
-        // Chain Lightning Logic
-        const maxChains = 2 + Math.floor(laserLv / 3); // Levels increase chain count
-        const chainRange = 350;
-        let currentSource = { x: player.x, y: player.y };
-        const affectedMonsters = [];
-        const chains = [];
-
-        // 1. Find first target (nearest monster in range)
-        let availableMonsters = this.monsters.filter(m => !m.isDead);
-
-        for (let i = 0; i < maxChains; i++) {
-            let nextTarget = null;
-            let minDist = chainRange;
-
-            availableMonsters.forEach(m => {
-                const dist = Math.sqrt((currentSource.x - m.x) ** 2 + (currentSource.y - m.y) ** 2);
-                if (dist < minDist && !affectedMonsters.includes(m)) {
-                    minDist = dist;
-                    nextTarget = m;
-                }
-            });
-
-            if (nextTarget) {
-                // Add chain segment
-                chains.push({ x1: currentSource.x, y1: currentSource.y, x2: nextTarget.x, y2: nextTarget.y });
-                affectedMonsters.push(nextTarget);
-
-                // Apply Damage
-                let dmg = player.attackPower;
-                let isCrit = Math.random() < player.critRate;
-                if (isCrit) dmg *= 2;
-                nextTarget.takeDamage(dmg, true, isCrit);
-
-                // Update source for next chain
-                currentSource = { x: nextTarget.x, y: nextTarget.y };
-            } else {
-                break; // No more targets in range
-            }
+        if (!player.isChanneling) {
+            player.isChanneling = true;
+            player.chargeTime = 0;
+            player.lightningTickTimer = 0;
+            player.triggerAction('ATTACK');
         }
 
-        if (chains.length > 0) {
-            player.lightningEffect = { chains: chains, timer: 0.2 };
-        } else {
-            // No targets, draw a short "fizzle" lightning ahead
-            const vxList = [0, 0.707, 1, 0.707, 0, -0.707, -1, -0.707];
-            const vyList = [-1, -0.707, 0, 0.707, 1, 0.707, 0, -0.707];
-            const vx = vxList[player.facingDir];
-            const vy = vyList[player.facingDir];
-            const ex = player.x + vx * 100;
-            const ey = player.y + vy * 100;
-            player.lightningEffect = { chains: [{ x1: player.x, y1: player.y, x2: ex, y2: ey }], timer: 0.1 };
+        player.chargeTime += dt;
+        player.lightningTickTimer -= dt;
+
+        // Perform tick every 0.3s
+        if (player.lightningTickTimer <= 0) {
+            player.lightningTickTimer = 0.3;
+
+            const laserLv = player.skillLevels.laser || 1;
+
+            // Damage amplification logic: Start at 50% + (Lv-1)*10%, +25% every 0.3s, max 150%
+            const startRatio = 0.5 + (laserLv - 1) * 0.1;
+            const chargeBonus = Math.floor(player.chargeTime / 0.3) * 0.25;
+            const finalDmgRatio = Math.min(1.5, startRatio + chargeBonus);
+
+            // Chain Lightning Logic
+            const maxChains = 2 + Math.floor(laserLv / 3);
+            const chainRange = 350;
+            let currentSource = { x: player.x, y: player.y };
+            const affectedMonsters = [];
+            const chains = [];
+
+            let availableMonsters = this.monsters.filter(m => !m.isDead);
+
+            for (let i = 0; i < maxChains; i++) {
+                let nextTarget = null;
+                let minDist = chainRange;
+
+                availableMonsters.forEach(m => {
+                    const dist = Math.sqrt((currentSource.x - m.x) ** 2 + (currentSource.y - m.y) ** 2);
+                    if (dist < minDist && !affectedMonsters.includes(m)) {
+                        minDist = dist;
+                        nextTarget = m;
+                    }
+                });
+
+                if (nextTarget) {
+                    chains.push({ x1: currentSource.x, y1: currentSource.y, x2: nextTarget.x, y2: nextTarget.y });
+                    affectedMonsters.push(nextTarget);
+
+                    // Apply Damage
+                    let dmg = player.attackPower * finalDmgRatio;
+                    let isCrit = Math.random() < player.critRate;
+                    if (isCrit) dmg *= 2;
+                    nextTarget.takeDamage(dmg, true, isCrit);
+
+                    // MP Recovery: 1 per hit
+                    player.recoverMana(1, true);
+
+                    currentSource = { x: nextTarget.x, y: nextTarget.y };
+                } else {
+                    break;
+                }
+            }
+
+            if (chains.length > 0) {
+                player.lightningEffect = { chains: chains, timer: 0.15 };
+            } else {
+                // No targets, draw fizzle
+                const vxList = [0, 0.707, 1, 0.707, 0, -0.707, -1, -0.707];
+                const vyList = [-1, -0.707, 0, 0.707, 1, 0.707, 0, -0.707];
+                const vx = vxList[player.facingDir];
+                const vy = vyList[player.facingDir];
+                player.lightningEffect = { chains: [{ x1: player.x, y1: player.y, x2: player.x + vx * 80, y2: player.y + vy * 80 }], timer: 0.1 };
+            }
         }
     }
 
@@ -450,8 +465,19 @@ class Game {
 
         // Continuous Fire Logic
         const actions = ['j', 'h', 'u', 'k'];
+
+        // Handle J (Chain Lightning) specially for channeling
+        if (this.input.keys['j']) {
+            this.performLaserAttack(dt);
+        } else {
+            if (this.localPlayer.isChanneling) {
+                this.localPlayer.isChanneling = false;
+                this.localPlayer.isAttacking = false;
+            }
+        }
+
         actions.forEach(act => {
-            if (this.input.keys[act]) this.handleAction(act);
+            if (act !== 'j' && this.input.keys[act]) this.handleAction(act);
         });
 
         this.localPlayer.update(dt, this.input);
