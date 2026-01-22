@@ -707,9 +707,8 @@ export class UIManager {
         const w = canvas.width = 150;
         const h = canvas.height = 150;
 
-        // Draw Map BG
-        ctx.fillStyle = '#1e272e';
-        ctx.fillRect(0, 0, w, h);
+        // Clear Map (Make it transparent)
+        ctx.clearRect(0, 0, w, h);
 
         // Scaling factors
         const scaleX = w / mapWidth;

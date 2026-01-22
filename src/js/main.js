@@ -119,6 +119,14 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.56', date: '2026-01-22', title: 'Minimap Transparency & Mobile QoL',
+                logs: [
+                    '모바일 버전 미니맵 투명도 대폭 개선 (가시성 확보)',
+                    '미니맵 배경 블러 효과 약화 및 투명도 조정 (몬스터 시인성 개선)',
+                    '미니맵 드로잉 로직 최적화 (배경 지우기 방식 도입)'
+                ]
+            },
+            {
                 version: 'v1.55', date: '2026-01-22', title: 'Skill Rework & UI Polish',
                 logs: [
                     '신규 스킬 리워크: 매직 실드 -> 앱솔루트 베리어 (1회 피격 무효화)',
