@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.80', date: '2026-01-23', title: 'Geometric Stabilization',
+                logs: [
+                    '육망성 완전 직선화: 번개 효과를 제거하고 완벽한 직선으로 렌더링하여 모바일에서의 일그러짐 현상 해결',
+                    '이펙트 정리: 캐릭터 주변의 불필요한 잔여 이펙트를 제거하고 깔끔한 오라만 유지'
+                ]
+            },
+            {
                 version: 'v1.79', date: '2026-01-23', title: 'Visual Fixes & Aura Polish',
                 logs: [
                     '육망성 렌더링 수정: 별 모양을 그리는 선이 보이지 않던 문제를 해결하여 뚜렷한 별(★) 복구',
