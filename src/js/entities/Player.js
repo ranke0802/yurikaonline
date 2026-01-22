@@ -408,6 +408,18 @@ export default class Player {
         this.gold -= cost;
         this.skillLevels[skillId]++;
 
+        // Sync Inventory Gold
+        const goldItem = this.inventory.find(item => item && item.id === 'gold');
+        if (goldItem) {
+            goldItem.amount = this.gold;
+            if (goldItem.amount <= 0) {
+                // Optional: Remove if 0, or just keep as 0
+                // For now, keep as 0 or simply update logic to sync perfectly
+                const idx = this.inventory.indexOf(goldItem);
+                if (this.gold === 0) this.inventory[idx] = null;
+            }
+        }
+
         if (window.game?.ui) {
             window.game.ui.logSystemMessage(`${skillId} 스킬 레벨 업! (현재: ${this.skillLevels[skillId]})`);
             window.game.ui.updateSkillPopup();

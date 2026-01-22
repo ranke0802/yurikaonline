@@ -35,9 +35,19 @@ export default class Monster {
         this.init();
     }
 
+    static spriteCache = {};
+
     async init() {
         const frames = ['1.png', '2.png', '3.png', '4.png', '5.png'];
         const path = 'assets/resource/monster_slim';
+        const cacheKey = path; // In future, if path changes based on name, use that unique key
+
+        // Check Cache
+        if (Monster.spriteCache[cacheKey]) {
+            this.sprite = Monster.spriteCache[cacheKey];
+            this.ready = true;
+            return;
+        }
 
         const targetW = 256;
         const targetH = 256;
@@ -63,6 +73,7 @@ export default class Monster {
         await Promise.all(loadPromises);
 
         this.sprite = new Sprite(finalCanvas, frames.length, 1);
+        Monster.spriteCache[cacheKey] = this.sprite; // Save to cache
         this.ready = true;
     }
 

@@ -116,6 +116,15 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.54', date: '2026-01-22', title: 'Performance Optimization',
+                logs: [
+                    '몬스터 스폰 랙 해결 (이미지 캐싱 시스템 적용)',
+                    '아이템 드랍 및 시스템 메시지 랙 현상 완화 (채팅 로그 최적화)',
+                    '스킬 사용 시 인벤토리 골드 연동 오류 수정',
+                    '전반적인 클라이언트 성능 향상'
+                ]
+            },
+            {
                 version: 'v1.41', date: '2026-01-22', title: 'UI/UX Overhaul & Stability',
                 logs: [
                     '동적 UI 시스템 도입: 전체화면 모드 시 하단 메뉴 위치 자동 상향 조정',

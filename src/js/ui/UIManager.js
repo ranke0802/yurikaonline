@@ -743,6 +743,12 @@ export class UIManager {
             const div = document.createElement('div');
             div.textContent = `나: ${input.value}`;
             msgArea.appendChild(div);
+
+            // Limit history
+            while (msgArea.children.length > 50) {
+                msgArea.removeChild(msgArea.firstChild);
+            }
+
             msgArea.scrollTop = msgArea.scrollHeight;
             input.value = '';
         }
@@ -757,6 +763,12 @@ export class UIManager {
             div.style.fontStyle = 'italic';
             div.textContent = `[System] ${text}`;
             msgArea.appendChild(div);
+
+            // Limit history
+            while (msgArea.children.length > 50) {
+                msgArea.removeChild(msgArea.firstChild);
+            }
+
             msgArea.scrollTop = msgArea.scrollHeight;
         }
     }
