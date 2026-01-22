@@ -115,6 +115,14 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.71', date: '2026-01-23', title: 'Lightning Magic Circle & Attack Sparks',
+                logs: [
+                    '번개 마법진 도입: 바닥의 육망성 및 원형 마법진 선들을 매끄러운 직선이 아닌 지그재그 번개 줄기 형태로 변경',
+                    '공격 스파크 효과: 일반 공격(체인 라이트닝) 중 캐릭터 주변에 무작위로 고압 스파크(작은 번개)가 튀는 효과 추가',
+                    '시각적 완성도 강화: 마법진의 번개 선들이 0.1초 간격으로 모양이 변하며 실제 전기가 흐르는 듯한 생동감 부여'
+                ]
+            },
+            {
                 version: 'v1.70', date: '2026-01-23', title: 'Magic Circle Persistence & Positioning',
                 logs: [
                     '마법진 위치 최적화: 캐릭터 등 뒤가 아닌 캐릭터 발바닥(지면) 위치로 정확히 이동',

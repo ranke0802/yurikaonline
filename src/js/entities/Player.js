@@ -679,6 +679,21 @@ export default class Player {
             this.drawMagicCircle(ctx, screenX, screenY + this.height / 2);
         }
 
+        // v1.71: High-Voltage Attack Sparks (Chaotic discharges)
+        if (this.isAttacking && !this.isDead) {
+            ctx.save();
+            const timeSeed = Math.floor(Date.now() / 100);
+            for (let i = 0; i < 3; i++) {
+                const sparkX = screenX + (Math.random() - 0.5) * this.width;
+                const sparkY = screenY + (Math.random() - 0.5) * this.height;
+
+                // Use drawLightningSegment with short distance for sparks
+                this.ctx.globalAlpha = 0.7;
+                this.drawLightningSegment(ctx, screenX, screenY - 10, sparkX, sparkY, 0.4, i + 50);
+            }
+            ctx.restore();
+        }
+
         // Draw Run Particles
         this.runParticles.forEach(p => {
             ctx.fillStyle = `rgba(200, 200, 200, ${p.life * 1.5})`;
@@ -1003,53 +1018,69 @@ export default class Player {
         ctx.shadowBlur = 0;
     }
 
-    // v1.70 grounded circle
+    // v1.71 Jagged lightning magic circle
     drawMagicCircle(ctx, sx, sy) {
         ctx.save();
         const time = Date.now() * 0.002;
         const radiusInner = this.width * 0.45;
         const radiusOuter = this.width * 0.55;
+        const timeSeed = Math.floor(Date.now() / 100);
 
-        // v1.70: Perspective transform at ground level
+        // v1.71: Perspective transform at ground level
         ctx.translate(sx, sy);
         ctx.scale(1, 0.45);
-        // v1.68: Redraw with 0,0 center (due to transform)
+
+        // v1.71: Helper for lightning lines
+        const drawLightningLine = (x1, y1, x2, y2, segments = 3, spread = 8) => {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            for (let i = 1; i < segments; i++) {
+                const ratio = i / segments;
+                const px = x1 + (x2 - x1) * ratio;
+                const py = y1 + (y2 - y1) * ratio;
+                const seed = timeSeed + i + x1 + y1;
+                const offset = (Math.sin(seed * 999) * spread);
+                const angle = Math.atan2(y2 - y1, x2 - x1) + Math.PI / 2;
+                ctx.lineTo(px + Math.cos(angle) * offset, py + Math.sin(angle) * offset);
+            }
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        };
         // Outer Glow
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#00d2ff';
-        ctx.strokeStyle = 'rgba(72, 219, 251, 0.6)';
+        ctx.strokeStyle = 'rgba(72, 219, 251, 0.7)';
 
-        // 1. Two Concentric Circles
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(0, 0, radiusOuter, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(0, 0, radiusInner, 0, Math.PI * 2);
-        ctx.stroke();
+        // 1. Two Concentric Circles (Jagged segments)
+        const circleSegments = 16;
+        [radiusOuter, radiusInner].forEach((r, idx) => {
+            ctx.lineWidth = idx === 0 ? 2 : 1.5;
+            for (let i = 0; i < circleSegments; i++) {
+                const a1 = (i / circleSegments) * Math.PI * 2;
+                const a2 = ((i + 1) / circleSegments) * Math.PI * 2;
+                drawLightningLine(Math.cos(a1) * r, Math.sin(a1) * r, Math.cos(a2) * r, Math.sin(a2) * r, 2, 4);
+            }
+        });
 
         // 2. Hexagram (Six-pointed star)
         ctx.save();
-        ctx.rotate(time * 0.5); // Slow rotation
+        ctx.rotate(time * 0.5);
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = 'rgba(150, 240, 255, 0.9)';
 
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-
-        // Loop twice to draw two triangles overlapping
         for (let i = 0; i < 2; i++) {
-            ctx.beginPath();
             const angleOffset = (i === 0) ? -Math.PI / 2 : Math.PI / 2;
+            const points = [];
             for (let j = 0; j < 3; j++) {
                 const angle = angleOffset + (j * (Math.PI * 2) / 3);
-                const x = Math.cos(angle) * radiusInner;
-                const y = Math.sin(angle) * radiusInner;
-                if (j === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
+                points.push({ x: Math.cos(angle) * radiusInner, y: Math.sin(angle) * radiusInner });
             }
-            ctx.closePath();
-            ctx.stroke();
+            // Draw triangles with lightning lines
+            for (let j = 0; j < 3; j++) {
+                const p1 = points[j];
+                const p2 = points[(j + 1) % 3];
+                drawLightningLine(p1.x, p1.y, p2.x, p2.y, 4, 10);
+            }
         }
         ctx.restore();
 
