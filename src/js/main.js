@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.75', date: '2026-01-23', title: 'Magic Circle Perspective Fix',
+                logs: [
+                    '마법진 회전 왜곡(Wobble) 현상 해결: 캔버스 스케일링 대신 수학적 좌표 회전 방식을 적용하여 원근감(Perspective) 완벽 보정',
+                    '고품질 라인 렌더링: 회전 시 선 두께가 변하지 않고 일정하게 유지되도록 드로잉 로직 전면 재작성'
+                ]
+            },
+            {
                 version: 'v1.74', date: '2026-01-23', title: 'Dynamic Magic Circle Rotation',
                 logs: [
                     '마법진 회전 속도 대폭 상향: 육망성(시계 방향)과 룬 문자(반시계 방향)의 회전 속도를 3배 이상 높여 역동성 강화',

@@ -219,7 +219,7 @@ export default class Player {
 
             menu.frames.forEach((frameFile, i) => {
                 const img = new Image();
-                const v = '1.74';
+                const v = '1.75';
                 img.src = `${menu.path}/${frameFile}?v=${v}`;
                 const p = new Promise((resolve) => {
                     img.onload = () => {
@@ -1025,12 +1025,12 @@ export default class Player {
         const radiusInner = this.width * 0.45;
         const radiusOuter = this.width * 0.55;
         const timeSeed = Math.floor(Date.now() / 100);
+        const Y_SCALE = 0.45; // v1.75: Manual perspective scale
 
-        // v1.71: Perspective transform at ground level
+        // v1.75: No global scale/rotate to prevent line width wobble
         ctx.translate(sx, sy);
-        ctx.scale(1, 0.45);
 
-        // v1.72: Optimized helper that only adds points to current path (no stroke)
+        // v1.72: Optimized helper that only adds points to current path
         const addLightningPath = (x1, y1, x2, y2, segments = 3, spread = 8) => {
             ctx.moveTo(x1, y1);
             for (let i = 1; i < segments; i++) {
@@ -1039,6 +1039,7 @@ export default class Player {
                 const py = y1 + (y2 - y1) * ratio;
                 const seed = timeSeed + i + x1 + y1;
                 const offset = (Math.sin(seed * 999) * spread);
+                // Offset is perpendicular in screen space (2D electricity look)
                 const angle = Math.atan2(y2 - y1, x2 - x1) + Math.PI / 2;
                 ctx.lineTo(px + Math.cos(angle) * offset, py + Math.sin(angle) * offset);
             }
@@ -1058,14 +1059,22 @@ export default class Player {
             for (let i = 0; i < circleSegments; i++) {
                 const a1 = (i / circleSegments) * Math.PI * 2;
                 const a2 = ((i + 1) / circleSegments) * Math.PI * 2;
-                addLightningPath(Math.cos(a1) * r, Math.sin(a1) * r, Math.cos(a2) * r, Math.sin(a2) * r, 2, 4);
+
+                // v1.75: Manual squash
+                const x1 = Math.cos(a1) * r;
+                const y1 = Math.sin(a1) * r * Y_SCALE;
+                const x2 = Math.cos(a2) * r;
+                const y2 = Math.sin(a2) * r * Y_SCALE;
+
+                addLightningPath(x1, y1, x2, y2, 2, 4);
             }
             ctx.stroke();
         });
 
         // 2. Hexagram (Six-pointed star)
-        ctx.save();
-        ctx.rotate(time * 1.5); // v1.74: Clockwise, Faster (0.5 -> 1.5)
+        // v1.75: Manual rotation
+        const hexRotation = time * 1.5; // Clockwise
+
         ctx.lineWidth = 2.5;
         ctx.strokeStyle = 'rgba(150, 240, 255, 0.9)';
 
@@ -1074,10 +1083,13 @@ export default class Player {
             const angleOffset = (i === 0) ? -Math.PI / 2 : Math.PI / 2;
             const points = [];
             for (let j = 0; j < 3; j++) {
-                const angle = angleOffset + (j * (Math.PI * 2) / 3);
-                points.push({ x: Math.cos(angle) * radiusInner, y: Math.sin(angle) * radiusInner });
+                const angle = angleOffset + (j * (Math.PI * 2) / 3) + hexRotation;
+                points.push({
+                    x: Math.cos(angle) * radiusInner,
+                    y: Math.sin(angle) * radiusInner * Y_SCALE
+                });
             }
-            // Draw triangles with lightning lines
+            // Draw triangles
             for (let j = 0; j < 3; j++) {
                 const p1 = points[j];
                 const p2 = points[(j + 1) % 3];
@@ -1085,49 +1097,73 @@ export default class Player {
             }
         }
         ctx.stroke();
-        ctx.restore();
 
         // 4. v1.73: Rotating Ancient Runes (Between circles)
-        ctx.save();
-        ctx.rotate(-time * 1.0); // v1.74: Counter-Clockwise, Noticeable Speed (0.3 -> 1.0)
+        // v1.75: Manual rendering for constant line width
+        const runeRotation = -time * 1.0; // Counter-Clockwise
         ctx.strokeStyle = 'rgba(150, 240, 255, 0.7)';
         ctx.lineWidth = 1.5;
 
         const runeCount = 8;
         const runeRadius = this.width * 0.5;
 
-        for (let i = 0; i < runeCount; i++) {
-            ctx.save();
-            const angle = (i / runeCount) * Math.PI * 2;
-            ctx.translate(Math.cos(angle) * runeRadius, Math.sin(angle) * runeRadius);
-            ctx.rotate(angle + Math.PI / 2); // Face outward
-
-            // Procedural Rune Drawing
+        // Helper to transform local rune points to world-squashed points
+        const drawRunePoly = (cx, cy, rotationAngle, localPoints) => {
             ctx.beginPath();
-            // Simple glyph generation logic
-            if (i % 4 === 0) { // Shape: Lightning Fork
-                ctx.moveTo(-3, -5); ctx.lineTo(0, 0); ctx.lineTo(3, -5);
-                ctx.moveTo(0, 0); ctx.lineTo(0, 5);
-            } else if (i % 4 === 1) { // Shape: Crossed Z
-                ctx.moveTo(-3, -4); ctx.lineTo(3, -4); ctx.lineTo(-3, 4); ctx.lineTo(3, 4);
-                ctx.moveTo(0, -4); ctx.lineTo(0, 4);
-            } else if (i % 4 === 2) { // Shape: Diamond Eye
-                ctx.moveTo(0, -5); ctx.lineTo(3, 0); ctx.lineTo(0, 5); ctx.lineTo(-3, 0); ctx.closePath();
-            } else { // Shape: Twin Pillars
-                ctx.moveTo(-2, -5); ctx.lineTo(-2, 5);
-                ctx.moveTo(2, -5); ctx.lineTo(2, 5);
-                ctx.moveTo(-4, 0); ctx.lineTo(4, 0);
-            }
+            let first = true;
+            localPoints.forEach(pt => {
+                // 1. Rotate locally (face outward)
+                const rx = pt.x * Math.cos(rotationAngle) - pt.y * Math.sin(rotationAngle);
+                const ry = pt.x * Math.sin(rotationAngle) + pt.y * Math.cos(rotationAngle);
+                // 2. Translate to circle position and Squash Y
+                const finalX = cx + rx;
+                const finalY = cy + (ry * Y_SCALE); // Apply perspective to the glyph offset too
+
+                if (first) { ctx.moveTo(finalX, finalY); first = false; }
+                else { ctx.lineTo(finalX, finalY); }
+            });
             ctx.stroke();
-            ctx.restore();
+        };
+
+        for (let i = 0; i < runeCount; i++) {
+            const angle = (i / runeCount) * Math.PI * 2 + runeRotation;
+            const cx = Math.cos(angle) * runeRadius;
+            const cy = Math.sin(angle) * runeRadius * Y_SCALE;
+
+            // Rune faces outward: angle + 90deg
+            const facing = angle + Math.PI / 2;
+
+            // Define glyphs as simple line strips [ {x,y}, ... ] (BREAKS allow separate strokes)
+            // Simplified for single-stroke style logic or multiple calls
+
+            // Shape 1: Lightning Fork
+            if (i % 4 === 0) {
+                drawRunePoly(cx, cy, facing, [{ x: -3, y: -5 }, { x: 0, y: 0 }, { x: 3, y: -5 }]);
+                drawRunePoly(cx, cy, facing, [{ x: 0, y: 0 }, { x: 0, y: 5 }]);
+            }
+            // Shape 2: Crossed Z
+            else if (i % 4 === 1) {
+                drawRunePoly(cx, cy, facing, [{ x: -3, y: -4 }, { x: 3, y: -4 }, { x: -3, y: 4 }, { x: 3, y: 4 }]);
+                drawRunePoly(cx, cy, facing, [{ x: 0, y: -4 }, { x: 0, y: 4 }]);
+            }
+            // Shape 3: Diamond Eye
+            else if (i % 4 === 2) {
+                drawRunePoly(cx, cy, facing, [{ x: 0, y: -5 }, { x: 3, y: 0 }, { x: 0, y: 5 }, { x: -3, y: 0 }, { x: 0, y: -5 }]);
+            }
+            // Shape 4: Twin Pillars
+            else {
+                drawRunePoly(cx, cy, facing, [{ x: -2, y: -5 }, { x: -2, y: 5 }]);
+                drawRunePoly(cx, cy, facing, [{ x: 2, y: -5 }, { x: 2, y: 5 }]);
+                drawRunePoly(cx, cy, facing, [{ x: -4, y: 0 }, { x: 4, y: 0 }]);
+            }
         }
-        ctx.restore();
 
         // 5. Inner Pulsing Core
         const pulse = Math.abs(Math.sin(time * 2)) * 0.3 + 0.1;
         ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
         ctx.beginPath();
-        ctx.arc(0, 0, radiusInner * 0.2, 0, Math.PI * 2);
+        // Simple oval core
+        ctx.ellipse(0, 0, radiusInner * 0.2, radiusInner * 0.2 * Y_SCALE, 0, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.restore();
