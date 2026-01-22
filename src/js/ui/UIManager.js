@@ -52,7 +52,7 @@ export class UIManager {
         // Skill Tooltips
         this.tooltip = document.getElementById('skill-tooltip');
         this.skillData = {
-            laser: { name: '체인 라이트닝 (J)', desc: '공격 유지 시 위력이 증폭되는 연쇄 번개를 방출합니다. 감전된 적은 속도가 둔화됩니다. [연쇄: 기본 2마리 / 1레벨당 +1] [적중 시 마나 회복]' },
+            laser: { name: '체인 라이트닝 (J)', desc: '지속 시 위력이 강화되는 연쇄 번개를 방출합니다. 적중 시 마다 마나를 회복하며, 감전된 적은 속도가 60% 둔화됩니다. [연쇄: 1레벨당 +1] [기본 50% / 0.3초당 증폭]' },
             missile: { name: '매직 미사일 (H)', desc: '자동 추적 미사일을 발사합니다. [데미지: 공격력의 90%] [발사 수: 레벨당 +1개] [마나 소모: 4 / 레벨당 +3]' },
             fireball: { name: '파이어볼 (U)', desc: '폭발하는 화염구를 던집니다. [직격 데미지: 공격력의 130% / 레벨당 +30% 추가] [마나 소모: 8 / 레벨당 +3] [화상: 5초 이상 지속 / 레벨당 +1초]' },
             shield: { name: '매직 실드 (K)', desc: '마나의 결계를 생성하여 모든 피해를 마나로 100% 흡수합니다. 레벨에 따라 피해 감소 효율이 대폭 강화됩니다. [피해 감소: 40%(Lv.1) ~ 90%(Lv.11)] [마나 소모: 20 / 레벨당 +5]' }
@@ -321,10 +321,12 @@ export class UIManager {
         switch (skillId) {
             case 'laser':
                 const baseChain = 1 + lv;
-                const startDmg = Math.floor(p.attackPower * (0.5 + (lv - 1) * 0.1));
-                const maxDmg = Math.floor(startDmg * 1.5);
-                const slow = Math.floor((0.3 + (lv - 1) * 0.03) * 100);
-                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>연쇄: ${baseChain}마리 | 위력: ${startDmg} ~ ${maxDmg} | 둔화: ${slow}%</div>`;
+                const startRatio = 0.5;
+                const increment = 0.10 + (lv - 1) * 0.05;
+                const minDmg = Math.floor(p.attackPower * startRatio);
+                const maxDmg = Math.floor(p.attackPower * 1.5);
+                const slow = 60;
+                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>연쇄: ${baseChain}마리 | 위력: ${minDmg} ~ ${maxDmg} (+틱당 ${(increment * 100).toFixed(0)}%) | 둔화: ${slow}%</div>`;
                 break;
             case 'missile':
                 const mCount = lv;
