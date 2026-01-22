@@ -113,6 +113,23 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.40', date: '2026-01-21', title: 'Name System & UI Improvements',
+                logs: [
+                    '플레이어 이름 편집 및 저장 시스템 추가 (localStorage 연동)',
+                    '플레이어 이름 표시 위치 조정 (MP 바 아래)',
+                    '모바일 UI 아이콘 전용 모드 도입 (프레임 제거 및 깔끔한 디자인)',
+                    '액션 메시지 말풍선 UI 적용',
+                    '스킬 버튼 터치 시 조이스틱 오작동 방지'
+                ]
+            },
+            {
+                version: 'v1.39', date: '2026-01-21', title: 'Dynamic Mobile Joystick',
+                logs: [
+                    '화면 왼쪽 어디든 터치 시 조이스틱이 나타나는 다이나믹 조이스틱 도입',
+                    '모바일 조작 편의성 대폭 개선'
+                ]
+            },
+            {
                 version: 'v1.28', date: '2026-01-21', title: 'Mobile UI/UX Optimization',
                 logs: [
                     '모바일 세로모드 캐릭터 초기 위치 중앙 배치 수정',
