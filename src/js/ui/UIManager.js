@@ -6,6 +6,19 @@ export class UIManager {
         this.initialPoints = 0;
         this.isPaused = false;
         this.setupEventListeners();
+        this.setupFullscreenListeners();
+    }
+
+    setupFullscreenListeners() {
+        const updateClass = () => {
+            const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement ||
+                document.mozFullScreenElement || document.msFullscreenElement);
+            document.body.classList.toggle('is-fullscreen', isFull);
+        };
+        document.addEventListener('fullscreenchange', updateClass);
+        document.addEventListener('webkitfullscreenchange', updateClass);
+        document.addEventListener('mozfullscreenchange', updateClass);
+        document.addEventListener('MSFullscreenChange', updateClass);
     }
 
     setupEventListeners() {
@@ -742,7 +755,6 @@ export class UIManager {
     }
 
     toggleFullscreen() {
-        // v1.10 이전 방식: 간단하고 안정적인 전체화면 토글
         const elem = document.documentElement;
 
         if (!document.fullscreenElement && !document.webkitFullscreenElement &&

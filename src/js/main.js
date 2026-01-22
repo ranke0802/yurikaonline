@@ -116,6 +116,15 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.41', date: '2026-01-22', title: 'UI/UX Overhaul & Stability',
+                logs: [
+                    '동적 UI 시스템 도입: 전체화면 모드 시 하단 메뉴 위치 자동 상향 조정',
+                    '모바일 초기 위치 수정: 게임 시작 시 캐릭터가 정중앙에 위치하도록 개선',
+                    '피격 피드백 일관성 강화: 플레이어 데미지를 몬스터와 동일한 플로팅 텍스트로 변경',
+                    '전체화면 전환 시스템 안정화 및 클래스 기반 스타일 제어'
+                ]
+            },
+            {
                 version: 'v1.40', date: '2026-01-21', title: 'Name System & UI Improvements',
                 logs: [
                     '플레이어 이름 편집 및 저장 시스템 추가 (localStorage 연동)',

@@ -1,11 +1,13 @@
-# 🌸 유리카 온라인 (Yurika Online) v1.40 (Icon-Only Mobile UI)
+# 🎮 Yurika Online (유리카 온라인) - v1.41
 [**🎮 지금 바로 플레이하기 (Live Demo)**](https://ranke0802.github.io/yurikaonline/)
 
-### 🔄 최근 업데이트 내역 (v1.40)
-- **모바일 UI 미니멀 디자인 적용**:
-    *   **아이콘 전용 메뉴**: 모바일에서 하단 메뉴(가방/스킬/내정보)와 전체화면 버튼의 프레임과 배경을 제거하여 깔끔한 아이콘만 표시됩니다.
-    *   **시인성 개선**: 아이콘 크기를 확대(32px/28px)하고 그림자 효과를 추가하여 게임 화면 위에서도 명확하게 보입니다.
-    *   **기존 UI와의 조화**: 불필요한 프레임을 제거하여 게임의 전체적인 UI 디자인과 더욱 자연스럽게 어울립니다.
+### 🚀 v1.41 - UI/UX Overhaul & Stability (2026-01-22)
+- **Dynamic UI Positioning**: Bottom menu icons automatically lift when in fullscreen to avoid clipping.
+- **Mobile Centering Fix**: Resolved an issue where the character started off-center in mobile vertical mode.
+- **Damage Feedback Unified**: Changed player damage text to float above the character, matching the monster hit style.
+- **Fullscreen Stability**: Implemented class-based UI control for reliable fullscreen state detection.
+
+### 🚀 v1.40 - Name System & UI Improvements (2026-01-21)
 
 ---
 
