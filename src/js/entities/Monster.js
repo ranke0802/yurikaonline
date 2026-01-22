@@ -361,17 +361,31 @@ export default class Monster {
         const burnEffect = this.statusEffects.find(e => e.type === 'burn');
         if (burnEffect || (this.electrocutedTimer > 0 && !this.isDead)) {
             ctx.font = '16px serif';
-            ctx.textAlign = 'left';
-            let startX = screenX - this.width / 2;
-            let iconY = screenY + this.height / 2 + 40;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
 
-            if (burnEffect) {
-                ctx.fillText('🔥', startX, iconY);
-                startX += 20;
-            }
-            if (this.electrocutedTimer > 0) {
-                ctx.fillText('⚡', startX, iconY);
-            }
+            let startX = screenX - 12; // Start position
+            let iconY = screenY + this.height / 2 + 35;
+            const frameSize = 22;
+            const spacing = 26;
+
+            const drawStatusIcon = (icon) => {
+                // 1. Draw Frame Background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+                ctx.fillRect(startX - frameSize / 2, iconY - frameSize / 2, frameSize, frameSize);
+
+                // 2. Draw Frame Border
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(startX - frameSize / 2, iconY - frameSize / 2, frameSize, frameSize);
+
+                // 3. Draw Emoji Icon
+                ctx.fillText(icon, startX, iconY + 1);
+                startX += spacing;
+            };
+
+            if (burnEffect) drawStatusIcon('🔥');
+            if (this.electrocutedTimer > 0) drawStatusIcon('⚡');
         }
 
         // Electrocuted Spark Effect (v1.65: Slower flicker style)

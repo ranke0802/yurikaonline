@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.85', date: '2026-01-23', title: 'Monster UI Polish',
+                logs: [
+                    '상태 이상 아이콘 가독성 개선: 몬스터 머리 위 상태 이상 아이콘(감전, 화상) 뒤에 명확한 정사각형 프레임을 추가하여 시인성 확보',
+                    'UI 레이아웃 최적화: 아이콘 간 간격과 정렬을 조정하여 복잡한 전투 상황에서도 상태 파악이 용이하도록 개선'
+                ]
+            },
+            {
                 version: 'v1.84', date: '2026-01-23', title: 'Critical Hotfix: Attack Freeze',
                 logs: [
                     '공격 시 프리징 현상 수정: 마법진 렌더링에 필요한 변수가 누락되어 공격 시 화면이 멈추던 치명적인 버그를 해결했습니다.',
