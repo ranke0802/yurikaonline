@@ -1051,9 +1051,25 @@ export default class Player {
         ctx.shadowColor = '#00d2ff';
         ctx.strokeStyle = 'rgba(72, 219, 251, 0.7)';
 
-        // 1. Two Concentric Circles (Removed in v1.77 per user request: "remove lines connecting vertices")
-        // const circleSegments = 16;
-        // [radiusOuter, radiusInner].forEach((r, idx) => { ... });
+        // 1. Two Concentric Circles (Jagged segments)
+        const circleSegments = 16;
+        [radiusOuter, radiusInner].forEach((r, idx) => {
+            ctx.lineWidth = idx === 0 ? 2 : 1.5;
+            ctx.beginPath();
+            for (let i = 0; i < circleSegments; i++) {
+                const a1 = (i / circleSegments) * Math.PI * 2;
+                const a2 = ((i + 1) / circleSegments) * Math.PI * 2;
+
+                // v1.75: Manual squash
+                const x1 = Math.cos(a1) * r;
+                const y1 = Math.sin(a1) * r * Y_SCALE;
+                const x2 = Math.cos(a2) * r;
+                const y2 = Math.sin(a2) * r * Y_SCALE;
+
+                addLightningPath(x1, y1, x2, y2, 2, 4);
+            }
+            ctx.stroke();
+        });
 
         // 2. Hexagram (Six-pointed star)
         // v1.75: Manual rotation
@@ -1096,7 +1112,7 @@ export default class Player {
         ctx.strokeStyle = 'rgba(150, 240, 255, 0.7)';
         ctx.lineWidth = 1.5;
 
-        const runeCount = 8;
+        const runeCount = 12; // Increased from 8 to 12 per user request
         const runeRadius = this.width * 0.5;
 
         // Helper to transform local rune points to world-squashed points

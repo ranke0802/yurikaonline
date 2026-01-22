@@ -115,6 +115,14 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.78', date: '2026-01-23', title: 'Magic Circle Restoration',
+                logs: [
+                    '마법진 원상복구: 사용자 요청에 따라 동심원 테두리와 육망성을 모두 표시하는 기존 스타일로 복구',
+                    '속도 유지: v1.76의 감속된 회전 속도는 유지하여 묵직하고 신비로운 분위기 연출',
+                    '룬 밀도 증가: 회전하는 룬 문자의 개수를 8개에서 12개로 늘려 더욱 신비롭고 꽉 찬 느낌 제공'
+                ]
+            },
+            {
                 version: 'v1.77', date: '2026-01-23', title: 'Magic Circle Geometric Tweak',
                 logs: [
                     '육망성(Hexagram) 선 복구: 육망성의 별 모양을 다시 선명하게 렌더링',
