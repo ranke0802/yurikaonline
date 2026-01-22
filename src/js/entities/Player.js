@@ -626,50 +626,22 @@ export default class Player {
         let col = this.frame;
         this.sprite.draw(ctx, row, col, screenX - this.width / 2, screenY - this.height / 2, this.width, this.height, false);
 
-        // Self Spark Effect during Channeling (Enhanced v1.50)
+        // Self Spark Effect during Channeling (Restored to v1.49 style)
         if (this.isChanneling && !this.isDead) {
             ctx.save();
-
-            // 1. Electric Aura/Field (Background Glow)
-            ctx.beginPath();
-            ctx.ellipse(screenX, screenY, this.width * 0.7, this.height * 0.8, 0, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(0, 210, 255, 0.15)';
-            ctx.shadowBlur = 30;
+            ctx.strokeStyle = '#48dbfb';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 15;
             ctx.shadowColor = '#00d2ff';
-            ctx.fill();
 
-            // 2. High Density Sparks (Multi-layered)
-            for (let i = 0; i < 8; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const dist = Math.random() * this.width * 0.6;
-                const rx = screenX + Math.cos(angle) * dist;
-                const ry = screenY + Math.sin(angle) * dist;
-
-                // Outer Glow Spark
-                ctx.strokeStyle = '#00d2ff';
-                ctx.lineWidth = 4;
+            for (let i = 0; i < 3; i++) {
+                const rx = screenX + (Math.random() - 0.5) * this.width * 0.8;
+                const ry = screenY + (Math.random() - 0.5) * this.height * 0.8;
                 ctx.beginPath();
                 ctx.moveTo(rx, ry);
-                ctx.lineTo(rx + (Math.random() - 0.5) * 40, ry + (Math.random() - 0.5) * 40);
-                ctx.stroke();
-
-                // White Core Spark
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 1.5;
+                ctx.lineTo(rx + (Math.random() - 0.5) * 30, ry + (Math.random() - 0.5) * 30);
                 ctx.stroke();
             }
-
-            // 3. Horizontal Discharge Lines
-            ctx.strokeStyle = '#48dbfb';
-            ctx.lineWidth = 1;
-            for (let i = 0; i < 3; i++) {
-                const ry = screenY + (Math.random() - 0.5) * this.height;
-                ctx.beginPath();
-                ctx.moveTo(screenX - this.width * 0.7, ry);
-                ctx.lineTo(screenX + this.width * 0.7, ry + (Math.random() - 0.5) * 10);
-                ctx.stroke();
-            }
-
             ctx.restore();
         }
 
