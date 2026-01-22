@@ -55,7 +55,7 @@ export class UIManager {
             laser: { name: '체인 라이트닝 (J)', desc: '일반 공격(J) 시 발동되며, 지속 시 위력이 강화되는 연쇄 번개를 방출합니다. 적중 시 마다 마나를 회복하며, 감전된 적은 속도가 80% 둔화됩니다. [연쇄: 1레벨당 +1] [기본 50% / 0.3초당 증폭]' },
             missile: { name: '매직 미사일 (H)', desc: '자동 추적 미사일을 발사합니다. [데미지: 공격력의 90%] [발사 수: 레벨당 +1개] [마나 소모: 4 / 레벨당 +3]' },
             fireball: { name: '파이어볼 (U)', desc: '폭발하는 화염구를 던집니다. [직격 데미지: 공격력의 130% / 레벨당 +30% 추가] [마나 소모: 8 / 레벨당 +3] [화상: 5초 이상 지속 / 레벨당 +1초]' },
-            shield: { name: '매직 실드 (K)', desc: '마나의 결계를 생성하여 모든 피해를 마나로 100% 흡수합니다. 레벨에 따라 피해 감소 효율이 대폭 강화됩니다. [피해 감소: 40%(Lv.1) ~ 90%(Lv.11)] [마나 소모: 20 / 레벨당 +5]' }
+            shield: { name: '앱솔루트 베리어 (K)', desc: '절대 방어막을 전개하여 다음 1회의 피격을 완전히 무효화합니다. [마나 소모: 30] [재사용 대기시간: 15초] [레벨업 불가]' }
         };
 
         const keyToSkill = { 'j': 'laser', 'h': 'missile', 'u': 'fireball', 'k': 'shield' };
@@ -342,10 +342,7 @@ export class UIManager {
                 currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>데미지: ${fDmg} | 마나 소모: ${fCost} | 화상: ${fBurn}초</div>`;
                 break;
             case 'shield':
-                const reduction = Math.min(0.9, 0.4 + (lv - 1) * 0.05);
-                const dur = 60 + (lv - 1) * 20;
-                const sCost = 20 + (lv - 1) * 5;
-                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>피해 감소율: ${(reduction * 100).toFixed(0)}% | 마나 소모: ${sCost} | 지속시간: ${dur}초</div>`;
+                currentEffect = `<div class="current-effect">현재 효과:<br>다음 1회 피격 데미지 0 (BLOCK)</div>`;
                 break;
         }
 
@@ -509,8 +506,16 @@ export class UIManager {
 
             const btn = document.querySelector(`.skill-up-btn[data-skill="${skillId}"]`);
             if (btn) {
-                const cost = p.getSkillUpgradeCost(skillId);
-                btn.disabled = p.gold < cost;
+                if (skillId === 'shield') {
+                    btn.textContent = 'MAX';
+                    btn.disabled = true;
+                    btn.classList.add('disabled');
+                    const costEl = document.querySelector(`.skill-cost[data-skill="${skillId}"]`);
+                    if (costEl) costEl.textContent = '-';
+                } else {
+                    const cost = p.getSkillUpgradeCost(skillId);
+                    btn.disabled = p.gold < cost;
+                }
             }
         }
     }

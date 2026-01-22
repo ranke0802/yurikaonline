@@ -319,11 +319,17 @@ export default class Monster {
         const burnEffect = this.statusEffects.find(e => e.type === 'burn');
         if (burnEffect || (this.electrocutedTimer > 0 && !this.isDead)) {
             ctx.font = '16px serif';
-            ctx.textAlign = 'center';
-            let icons = '';
-            if (burnEffect) icons += '🔥';
-            if (this.electrocutedTimer > 0) icons += '⚡';
-            ctx.fillText(icons, screenX, screenY + this.height / 2 + 15);
+            ctx.textAlign = 'left';
+            let startX = screenX - this.width / 2;
+            let iconY = screenY + this.height / 2 + 15;
+
+            if (burnEffect) {
+                ctx.fillText('🔥', startX, iconY);
+                startX += 20;
+            }
+            if (this.electrocutedTimer > 0) {
+                ctx.fillText('⚡', startX, iconY);
+            }
         }
 
         // Electrocuted Spark Effect

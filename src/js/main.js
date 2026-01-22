@@ -85,21 +85,24 @@ class Game {
                     this.ui.logSystemMessage(`SKILL: 파이어볼 (Lv.${fLv})`);
                     this.castFireball();
                     player.skillCooldowns['u'] = 5.0;
-                    player.skillMaxCooldowns['u'] = 5.0;
-                    player.attackCooldown = 0.8;
+                    this.skillMaxCooldowns = { u: 5.0, k: 15.0, h: 2.0, j: 0.6 }; // Fireball, Shield, Missile, AttackCooldown = 0.8;
                 }
                 break;
             case 'k':
-                const sLv = player.skillLevels.shield || 1;
-                const sCost = 20 + (sLv - 1) * 5;
+                if (player.skillLevels.shield < 1) { // Unlock check
+                    // Assuming level 1 is default, but if we need unlock system, check here. 
+                    // For now, allow usage if learned.
+                }
+                const sCost = 30; // Fixed cost
                 if (player.useMana(sCost)) {
-                    const dur = 60 + (sLv - 1) * 20;
-                    player.triggerAction(`${player.name} : 마나쉴드 !!`);
+                    // Duration is effectively infinite until hit, but let's put a long timer just in case
+                    const dur = 9999;
+                    player.triggerAction(`${player.name} : 앱솔루트 베리어 !!`);
                     player.shieldTimer = dur;
                     player.isShieldActive = true;
-                    this.ui.logSystemMessage(`SKILL: 마나쉴드 - 방어막이 ${dur}초간 지속됩니다.`);
-                    player.skillCooldowns['k'] = 10.0;
-                    player.skillMaxCooldowns['k'] = 10.0;
+                    this.ui.logSystemMessage(`SKILL: 앱솔루트 베리어 - 다음 1회 피격을 무효화합니다.`);
+                    player.skillCooldowns['k'] = 15.0; // Increased CD due to power
+                    player.skillMaxCooldowns['k'] = 15.0;
                     player.attackCooldown = 0.5;
                 }
                 break;
@@ -115,6 +118,15 @@ class Game {
         // 초기 대왕 슬라임 설정 제거 (퀘스트 진행도에 따라 스폰되도록 수정)
 
         this.updateHistory = [
+            {
+                version: 'v1.55', date: '2026-01-22', title: 'Skill Rework & UI Polish',
+                logs: [
+                    '신규 스킬 리워크: 매직 실드 -> 앱솔루트 베리어 (1회 피격 무효화)',
+                    '앱솔루트 베리어 밸런스: 마나 소모 30, 레벨업 불가, 쿨타임 15초',
+                    '몬스터 상태이상 아이콘(화상, 감전) 위치 개선 (좌측 하단 정렬)',
+                    '스킬 UI 표기 업데이트'
+                ]
+            },
             {
                 version: 'v1.54', date: '2026-01-22', title: 'Performance Optimization',
                 logs: [

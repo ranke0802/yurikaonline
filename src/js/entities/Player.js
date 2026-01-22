@@ -107,24 +107,15 @@ export default class Player {
         let manaDamage = 0;
 
         if (this.shieldTimer > 0) {
-            const shieldLv = this.skillLevels.shield || 1;
-            // Efficiency: Level 1 = 40%, Level 11 = 90%
-            const reductionRatio = Math.min(0.9, 0.4 + (shieldLv - 1) * 0.05);
+            // Absolute Barrier Logic: Block 1 hit completely
+            this.shieldTimer = 0; // Remove shield immediately after hit
+            this.isShieldActive = false;
 
-            // 100% of HP damage is blocked. 
-            // The MP cost is the "reduced" damage amount.
-            // e.g. 100 damage, 80% reduction -> 20 MP lost, 0 HP lost.
-            const afterDef = Math.max(1, amount - (this.defense || 0));
-            manaDamage = afterDef * (1.0 - reductionRatio);
-            finalHpDamage = 0;
-
-            if (this.mp >= manaDamage) {
-                this.mp -= manaDamage;
-            } else {
-                const overflowDamage = (manaDamage - this.mp) / (1.0 - reductionRatio);
-                this.mp = 0;
-                finalHpDamage = overflowDamage; // Unprotected damage hits HP
+            if (window.game) {
+                window.game.addDamageText(this.x, this.y - 40, "BLOCK", '#ffffff', true); // White Block text
+                window.game.ui.logSystemMessage("앱솔루트 베리어가 피해를 막아냈습니다!");
             }
+            return; // No damage taken
         } else {
             finalHpDamage = Math.max(1, amount - (this.defense || 0));
         }
@@ -389,6 +380,7 @@ export default class Player {
     }
 
     getSkillUpgradeCost(skillId) {
+        if (skillId === 'shield') return 0; // Not upgradable
         const currentLv = this.skillLevels[skillId] || 1;
         // Level 1 -> 2: 300
         // Level 2 -> 3: 600
@@ -398,6 +390,7 @@ export default class Player {
 
     increaseSkill(skillId) {
         if (!this.skillLevels.hasOwnProperty(skillId)) return false;
+        if (skillId === 'shield') return false; // Cannot upgrade Absolute Barrier
 
         const cost = this.getSkillUpgradeCost(skillId);
         if (this.gold < cost) {
