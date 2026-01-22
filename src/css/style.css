@@ -1265,7 +1265,7 @@ html {
         /* 전체화면 버튼: 미니맵 아래 아이콘만 표시 (Safe Area 적용) */
         body #ui-layer #btn-fullscreen {
             position: fixed !important;
-            top: calc(230px + env(safe-area-inset-top)) !important;
+            top: calc(185px + env(safe-area-inset-top)) !important;
             right: calc(20px + env(safe-area-inset-right)) !important;
             left: auto !important;
             bottom: auto !important;
@@ -1809,8 +1809,12 @@ html {
     padding: 6px 12px;
     border-radius: 20px;
     font-size: 12px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: bold;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     transition: transform 0.2s, background 0.2s;
+    cursor: pointer;
+    z-index: 2000;
 }
 
 /* 전체화면 모드 시 버전 정보 위치 조정용 (사용자 조정 가능) */
@@ -1835,6 +1839,7 @@ body.is-fullscreen .version-info {
     border-radius: 24px;
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
     border: 4px solid white;
+    font-family: 'Outfit', sans-serif;
 }
 
 .history-header {

@@ -1,13 +1,16 @@
-# 🎮 Yurika Online (유리카 온라인) - v1.41
+# 🎮 Yurika Online (유리카 온라인) - v1.42
 [**🎮 지금 바로 플레이하기 (Live Demo)**](https://ranke0802.github.io/yurikaonline/)
 
-### 🚀 v1.41 - UI/UX Overhaul & Stability (2026-01-22)
-- **Dynamic UI Positioning**: Bottom menu icons automatically lift when in fullscreen to avoid clipping.
-- **Mobile Centering Fix**: Resolved an issue where the character started off-center in mobile vertical mode.
-- **Damage Feedback Unified**: Changed player damage text to float above the character, matching the monster hit style.
-- **Fullscreen Stability**: Implemented class-based UI control for reliable fullscreen state detection.
+### 🚀 v1.42 - UI 최적화 (2026-01-22)
+- **전체화면 버튼 위치 조정**: 전체화면 버튼의 수직 위치를 최적화하여 미니맵 영역과 겹치지 않도록 수정했습니다.
 
-### 🚀 v1.40 - Name System & UI Improvements (2026-01-21)
+### 🚀 v1.41 - UI/UX 개편 및 안정화 (2026-01-22)
+- **다이나믹 UI 배치**: 전체화면 모드 시 하단 메뉴 아이콘이 자동으로 위로 올라가 화면 잘림 현상을 방지합니다.
+- **모바일 중앙 위치 수정**: 모바일 세로 모드에서 캐릭터가 중앙에서 벗어나 시작하던 문제를 해결했습니다.
+- **데미지 피드백 통일**: 플레이어 피격 데미지 텍스트를 몬스터와 동일하게 캐릭터 머리 위로 띄워 시인성을 높였습니다.
+- **전체화면 안정성**: 클래스 기반 UI 제어 시스템을 도입하여 전체화면 상태 감지 로직의 신뢰도를 높였습니다.
+
+### 🚀 v1.40 - 이름 시스템 및 UI 개선 (2026-01-21)
 
 ---
 
