@@ -29,6 +29,9 @@ export default class Monster {
 
         this.isAggro = false;
         this.isBoss = false;
+        this.electrocutedTimer = 0;
+        this.slowRatio = 0;
+        this.sparkTimer = 0;
         this.init();
     }
 
@@ -146,7 +149,10 @@ export default class Monster {
             // 적대적 행위 (추격 및 공격)는 플레이어가 공격했거나 데미지를 입었을 때 + 공격 제한(isAggro)에 걸리지 않았을 때
             if (this.isAggro && dist < 400 && dist > 50) {
                 const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                const speed = 100;
+                let speed = 100;
+                if (this.electrocutedTimer > 0) {
+                    speed *= (1 - this.slowRatio);
+                }
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
             } else if (this.isAggro && dist <= 60) {
@@ -164,7 +170,8 @@ export default class Monster {
                     const shouldMove = Math.random() < 0.7; // 70% 확률로 이동
                     if (shouldMove) {
                         const angle = Math.random() * Math.PI * 2;
-                        const speed = 30 + Math.random() * 40;
+                        let speed = 30 + Math.random() * 40;
+                        if (this.electrocutedTimer > 0) speed *= (1 - this.slowRatio);
                         this.vx = Math.cos(angle) * speed;
                         this.vy = Math.sin(angle) * speed;
                     } else {
@@ -185,6 +192,14 @@ export default class Monster {
 
         if (this.hitTimer > 0) {
             this.hitTimer -= dt;
+        }
+
+        if (this.electrocutedTimer > 0) {
+            this.electrocutedTimer -= dt;
+            this.sparkTimer -= dt;
+            if (this.sparkTimer <= 0) this.sparkTimer = 0.1 + Math.random() * 0.2;
+        } else {
+            this.slowRatio = 0;
         }
 
         // Process Status Effects
@@ -226,6 +241,11 @@ export default class Monster {
         if (this.hp < 1) {
             this.isDead = true;
         }
+    }
+
+    applyElectrocuted(duration, ratio) {
+        this.electrocutedTimer = duration;
+        this.slowRatio = Math.max(this.slowRatio, ratio);
     }
 
     draw(ctx, camera) {
@@ -290,6 +310,25 @@ export default class Monster {
             ctx.font = '16px serif';
             ctx.textAlign = 'center';
             ctx.fillText('🔥', screenX, screenY + this.height / 2 + 15);
+        }
+
+        // Electrocuted Spark Effect
+        if (this.electrocutedTimer > 0 && !this.isDead) {
+            ctx.save();
+            ctx.strokeStyle = '#48dbfb';
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#00d2ff';
+
+            for (let i = 0; i < 2; i++) {
+                const rx = screenX + (Math.random() - 0.5) * this.width * 0.8;
+                const ry = drawY + (Math.random() - 0.5) * this.height * 0.8;
+                ctx.beginPath();
+                ctx.moveTo(rx, ry);
+                ctx.lineTo(rx + (Math.random() - 0.5) * 20, ry + (Math.random() - 0.5) * 20);
+                ctx.stroke();
+            }
+            ctx.restore();
         }
     }
 }
