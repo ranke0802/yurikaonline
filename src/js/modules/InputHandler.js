@@ -182,26 +182,24 @@ export class InputHandler {
         const canvas = document.getElementById('gameCanvas');
         const pointer = document.getElementById('touch-pointer');
 
+        // Prevent Right-Click Menu
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
         const handleClick = (e) => {
             // Only handle if clicking the canvas (not UI)
             if (e.target.tagName !== 'CANVAS') return;
+
+            // PC: Only left click (button 0) allowed
+            if (e.type === 'mousedown' && e.button !== 0) return;
+
+            // Mobile: Prevent touch-to-move (User requested to block move by touch on mobile)
+            const isMobile = window.innerWidth <= 900;
+            if (isMobile && (e.type === 'touchstart' || e.type === 'touchmove')) return;
 
             const x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
             const y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
 
             this.touchMovePos = { x, y };
-
-            // Visual feedback (Disabled per user request)
-            /*
-            if (pointer) {
-                pointer.style.left = `${x}px`;
-                pointer.style.top = `${y}px`;
-                pointer.classList.remove('hidden');
-                pointer.style.animation = 'none';
-                pointer.offsetHeight; // trigger reflow
-                pointer.style.animation = null;
-            }
-            */
         };
 
         canvas.addEventListener('mousedown', handleClick);
@@ -209,7 +207,7 @@ export class InputHandler {
             if (e.touches.length === 1 && !this.joystick.active) {
                 handleClick(e);
             }
-        });
+        }, { passive: false });
 
         // UI Action buttons (Add touchstart for mobile responsiveness)
         const uiButtons = document.querySelectorAll('.skill-btn, .attack-btn, .inventory-trigger, .status-trigger, .menu-btn');

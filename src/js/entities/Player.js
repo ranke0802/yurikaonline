@@ -219,7 +219,7 @@ export default class Player {
 
             menu.frames.forEach((frameFile, i) => {
                 const img = new Image();
-                const v = '1.59';
+                const v = '1.60';
                 img.src = `${menu.path}/${frameFile}?v=${v}`;
                 const p = new Promise((resolve) => {
                     img.onload = () => {
@@ -504,10 +504,12 @@ export default class Player {
         if (vx === 0 && vy === 0 && window.game?.input?.touchMovePos) {
             const touch = window.game.input.touchMovePos;
             const cam = window.game.camera;
+            const rect = window.game.canvas.getBoundingClientRect();
+            const zoom = window.game.zoom;
 
-            // Screen to World Conversion: (ScreenPos + CameraOffset) / Zoom
-            const worldTargetX = (touch.x + cam.x);
-            const worldTargetY = (touch.y + cam.y);
+            // Screen to World Conversion: ((ScreenPos - CanvasOffset) / Zoom) + CameraOffset
+            const worldTargetX = ((touch.x - rect.left) / zoom) + cam.x;
+            const worldTargetY = ((touch.y - rect.top) / zoom) + cam.y;
 
             const dx = worldTargetX - this.x;
             const dy = worldTargetY - this.y;
@@ -754,8 +756,8 @@ export default class Player {
             ctx.fillText(bubbleText, screenX, bubbleY + bubbleHeight / 2 + 5);
         }
 
-        // Player Name (back to top - adjusted down by 15px)
-        const nameY = screenY - this.height / 2 - 10;
+        // Player Name (back to top - adjusted down by 5px more)
+        const nameY = screenY - this.height / 2 - 5;
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 13px "Outfit", sans-serif';
         ctx.textAlign = 'center';

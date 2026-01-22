@@ -119,6 +119,15 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.60', date: '2026-01-22', title: 'Movement System Refinement',
+                logs: [
+                    '플레이어 캐릭터 이름 위치 5px 추가 하향 (이미지에 완전 밀착)',
+                    '클릭 이동(Click-to-Move) 좌표 계산 정밀 보정 (캔버스 오프셋 및 줌 반영)',
+                    'PC: 마우스 우클릭 메뉴 방지 및 왼쪽 클릭 이동 전용 설정',
+                    '모바일: 조이스틱 조작성 강화를 위해 터치 이동 기능 제거'
+                ]
+            },
+            {
                 version: 'v1.59', date: '2026-01-22', title: 'PC/Mobile Optimization & Click-to-Move',
                 logs: [
                     '캐릭터/몬스터 이름 위치 15px 하단 조정 (시각적 밀착감 개선)',
