@@ -795,24 +795,34 @@ export default class Player {
             ctx.lineTo(points[i].x, points[i].y);
         }
 
-        // Glow Layer
-        ctx.strokeStyle = '#48dbfb';
-        ctx.lineWidth = 10 * intensity;
-        ctx.shadowBlur = 20;
+        // 1. Outer Flashy Glow (Wide)
+        ctx.strokeStyle = '#00d2ff';
+        ctx.lineWidth = 20 * intensity;
+        ctx.shadowBlur = 35;
         ctx.shadowColor = '#00d2ff';
         ctx.stroke();
 
-        // White Core
+        // 2. Inner Neon Layer (Medium)
+        ctx.strokeStyle = '#48dbfb';
+        ctx.lineWidth = 10 * intensity;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#ffffff';
+        ctx.stroke();
+
+        // 3. Bright White Core (Sharp)
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 3 * intensity;
+        ctx.lineWidth = 5 * intensity;
         ctx.shadowBlur = 0;
         ctx.stroke();
 
-        // Impact Point Flash
+        // Impact Point Flash (Enhanced)
         ctx.fillStyle = '#fff';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#48dbfb';
         ctx.beginPath();
-        ctx.arc(targetX2, targetY2, 4 * intensity, 0, Math.PI * 2);
+        ctx.arc(targetX2, targetY2, 8 * intensity, 0, Math.PI * 2);
         ctx.fill();
+        ctx.shadowBlur = 0;
     }
 }
 
