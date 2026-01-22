@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.76', date: '2026-01-23', title: 'Magic Circle Pace Adjustment',
+                logs: [
+                    '마법진 회전 속도 최적화: 기존 대비 약 30% 수준으로 감속하여 차분하고 묵직한 마법 연출 (너무 빠른 회전 방지)',
+                    '육망성 스타일 변경: 내부의 연결 선들을 제거하고 6개의 빛나는 꼭짓점(Vertex)만 남겨 시각적 단순미 강조'
+                ]
+            },
+            {
                 version: 'v1.75', date: '2026-01-23', title: 'Magic Circle Perspective Fix',
                 logs: [
                     '마법진 회전 왜곡(Wobble) 현상 해결: 캔버스 스케일링 대신 수학적 좌표 회전 방식을 적용하여 원근감(Perspective) 완벽 보정',
