@@ -687,8 +687,8 @@ export default class Player {
                 const sparkX = screenX + (Math.random() - 0.5) * this.width;
                 const sparkY = screenY + (Math.random() - 0.5) * this.height;
 
-                // Use drawLightningSegment with short distance for sparks
-                this.ctx.globalAlpha = 0.7;
+                // v1.72 Hotfix: Use local ctx instead of this.ctx
+                ctx.globalAlpha = 0.7;
                 this.drawLightningSegment(ctx, screenX, screenY - 10, sparkX, sparkY, 0.4, i + 50);
             }
             ctx.restore();
@@ -1030,9 +1030,8 @@ export default class Player {
         ctx.translate(sx, sy);
         ctx.scale(1, 0.45);
 
-        // v1.71: Helper for lightning lines
-        const drawLightningLine = (x1, y1, x2, y2, segments = 3, spread = 8) => {
-            ctx.beginPath();
+        // v1.72: Optimized helper that only adds points to current path (no stroke)
+        const addLightningPath = (x1, y1, x2, y2, segments = 3, spread = 8) => {
             ctx.moveTo(x1, y1);
             for (let i = 1; i < segments; i++) {
                 const ratio = i / segments;
@@ -1044,8 +1043,8 @@ export default class Player {
                 ctx.lineTo(px + Math.cos(angle) * offset, py + Math.sin(angle) * offset);
             }
             ctx.lineTo(x2, y2);
-            ctx.stroke();
         };
+
         // Outer Glow
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#00d2ff';
@@ -1055,11 +1054,13 @@ export default class Player {
         const circleSegments = 16;
         [radiusOuter, radiusInner].forEach((r, idx) => {
             ctx.lineWidth = idx === 0 ? 2 : 1.5;
+            ctx.beginPath();
             for (let i = 0; i < circleSegments; i++) {
                 const a1 = (i / circleSegments) * Math.PI * 2;
                 const a2 = ((i + 1) / circleSegments) * Math.PI * 2;
-                drawLightningLine(Math.cos(a1) * r, Math.sin(a1) * r, Math.cos(a2) * r, Math.sin(a2) * r, 2, 4);
+                addLightningPath(Math.cos(a1) * r, Math.sin(a1) * r, Math.cos(a2) * r, Math.sin(a2) * r, 2, 4);
             }
+            ctx.stroke();
         });
 
         // 2. Hexagram (Six-pointed star)
@@ -1068,6 +1069,7 @@ export default class Player {
         ctx.lineWidth = 2.5;
         ctx.strokeStyle = 'rgba(150, 240, 255, 0.9)';
 
+        ctx.beginPath();
         for (let i = 0; i < 2; i++) {
             const angleOffset = (i === 0) ? -Math.PI / 2 : Math.PI / 2;
             const points = [];
@@ -1079,9 +1081,10 @@ export default class Player {
             for (let j = 0; j < 3; j++) {
                 const p1 = points[j];
                 const p2 = points[(j + 1) % 3];
-                drawLightningLine(p1.x, p1.y, p2.x, p2.y, 4, 10);
+                addLightningPath(p1.x, p1.y, p2.x, p2.y, 4, 10);
             }
         }
+        ctx.stroke();
         ctx.restore();
 
         // 3. Inner Pulsing Core

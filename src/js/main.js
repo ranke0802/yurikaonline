@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.72', date: '2026-01-23', title: 'Emergency Hotfix: Attack Freeze & Optimization',
+                logs: [
+                    '공격 멈춤 현상 수정: 일반 공격 시 발생하던 타자 오류(this.ctx)를 수정하여 게임이 멈추는 치명적인 버그 해결',
+                    '마법진 렌더링 최적화: 번개 마법진의 그리기 로직을 최적화하여 저사양 환경에서도 끊김 없이 부드럽게 작동하도록 개선'
+                ]
+            },
+            {
                 version: 'v1.71', date: '2026-01-23', title: 'Lightning Magic Circle & Attack Sparks',
                 logs: [
                     '번개 마법진 도입: 바닥의 육망성 및 원형 마법진 선들을 매끄러운 직선이 아닌 지그재그 번개 줄기 형태로 변경',
