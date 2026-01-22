@@ -1102,14 +1102,17 @@ export default class Player {
             }
 
             // Draw lines connecting the 3 vertices
+            // v1.81: Use Straight Lines (lineTo) instead of Lightning (addLightningPath) to prevent jitter/distortion
             ctx.beginPath();
-            // 0 -> 1
-            addLightningPath(points[0].x, points[0].y, points[1].x, points[1].y, 4, 10);
-            // 1 -> 2
-            addLightningPath(points[1].x, points[1].y, points[2].x, points[2].y, 4, 10);
-            // 2 -> 0 (Close)
-            addLightningPath(points[2].x, points[2].y, points[0].x, points[0].y, 4, 10);
+            ctx.moveTo(points[0].x, points[0].y);
+            ctx.lineTo(points[1].x, points[1].y);
+            ctx.lineTo(points[2].x, points[2].y);
+            ctx.closePath();
+
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#00d2ff';
             ctx.stroke();
+            ctx.shadowBlur = 0;
         }
 
         // 4. v1.73: Rotating Ancient Runes (Between circles)

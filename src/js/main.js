@@ -115,7 +115,14 @@ class Game {
 
         this.updateHistory = [
             {
-                version: 'v1.80', date: '2026-01-23', title: 'Geometric Stabilization',
+                version: 'v1.81', date: '2026-01-23', title: 'Perfect Geometry Finalized',
+                logs: [
+                    '육망성 진정한 직선화: 번개 효과 잔재를 완전히 제거하고 100% 직선(lineTo)으로 교구하여 기하학적 완벽함 구현',
+                    '회전 애니메이션 검증: 0.45의 부드러운 속도로 흔들림 없이 회전하도록 최적화'
+                ]
+            },
+            {
+                version: '1.80', date: '2026-01-23', title: 'Geometric Stabilization',
                 logs: [
                     '육망성 완전 직선화: 번개 효과를 제거하고 완벽한 직선으로 렌더링하여 모바일에서의 일그러짐 현상 해결',
                     '이펙트 정리: 캐릭터 주변의 불필요한 잔여 이펙트를 제거하고 깔끔한 오라만 유지'
