@@ -80,7 +80,7 @@ export default class Player {
         // Shield & Status
         this.shieldTimer = 0;
         this.isShieldActive = false;
-        this.laserEffect = null; // { x1, y1, x2, y2, timer }
+        this.lightningEffect = null; // { chains: [{x1, y1, x2, y2}, ...], timer }
 
         // Running Logic
         this.moveTimer = 0;
@@ -458,9 +458,9 @@ export default class Player {
             }
         }
 
-        if (this.laserEffect) {
-            this.laserEffect.timer -= dt;
-            if (this.laserEffect.timer <= 0) this.laserEffect = null;
+        if (this.lightningEffect) {
+            this.lightningEffect.timer -= dt;
+            if (this.lightningEffect.timer <= 0) this.lightningEffect = null;
         }
 
         if (window.game?.ui) {
@@ -604,42 +604,15 @@ export default class Player {
             ctx.fill();
         });
 
-        // Draw Laser (Improved Impact)
-        if (this.laserEffect) {
+        // Draw Lightning (Chain Lightning Effect)
+        if (this.lightningEffect) {
             ctx.save();
-            const lifeRatio = this.laserEffect.timer / 0.2;
-            const sx = this.laserEffect.x1 - camera.x;
-            const sy = this.laserEffect.y1 - camera.y;
-            const ex = this.laserEffect.x2 - camera.x;
-            const ey = this.laserEffect.y2 - camera.y;
+            const lifeRatio = this.lightningEffect.timer / 0.2;
+            ctx.globalAlpha = lifeRatio;
 
-            // Outer thick glow
-            ctx.strokeStyle = '#00ffff';
-            ctx.lineWidth = 24 * lifeRatio; // Increased from 12
-            ctx.shadowBlur = 40; // Increased from 20
-            ctx.shadowColor = '#00ffff';
-            ctx.globalAlpha = 0.4;
-            ctx.beginPath();
-            ctx.moveTo(sx, sy);
-            ctx.lineTo(ex, ey);
-            ctx.stroke();
-
-            // Middle layer
-            ctx.globalAlpha = 0.8;
-            ctx.lineWidth = 12 * lifeRatio; // Increased from 6
-            ctx.stroke();
-
-            // Inner white core
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 4 * lifeRatio; // Increased from 2
-            ctx.shadowBlur = 0;
-            ctx.stroke();
-
-            // Start point flash
-            ctx.fillStyle = '#00ffff';
-            ctx.beginPath();
-            ctx.arc(sx, sy, 10 * lifeRatio, 0, Math.PI * 2);
-            ctx.fill();
+            this.lightningEffect.chains.forEach(segment => {
+                this.drawLightningSegment(ctx, segment.x1 - camera.x, segment.y1 - camera.y, segment.x2 - camera.x, segment.y2 - camera.y, lifeRatio);
+            });
 
             ctx.restore();
         }
@@ -769,6 +742,52 @@ export default class Player {
         ctx.fill();
 
         ctx.restore();
+    }
+
+    drawLightningSegment(ctx, x1, y1, x2, y2, intensity) {
+        const dist = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        const steps = Math.max(2, Math.floor(dist / 20)); // Segments every 20px
+        const points = [];
+        points.push({ x: x1, y: y1 });
+
+        for (let i = 1; i < steps; i++) {
+            const ratio = i / steps;
+            const px = x1 + (x2 - x1) * ratio;
+            const py = y1 + (y2 - y1) * ratio;
+            // Random offset for zigzag
+            const offset = (Math.random() - 0.5) * 30;
+            const angle = Math.atan2(y2 - y1, x2 - x1) + Math.PI / 2;
+            points.push({
+                x: px + Math.cos(angle) * offset,
+                y: py + Math.sin(angle) * offset
+            });
+        }
+        points.push({ x: x2, y: y2 });
+
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+            ctx.lineTo(points[i].x, points[i].y);
+        }
+
+        // Glow Layer
+        ctx.strokeStyle = '#48dbfb';
+        ctx.lineWidth = 8 * intensity;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#00d2ff';
+        ctx.stroke();
+
+        // White Core
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2 * intensity;
+        ctx.shadowBlur = 0;
+        ctx.stroke();
+
+        // Impact Point Flash
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(x2, y2, 5 * intensity, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
 

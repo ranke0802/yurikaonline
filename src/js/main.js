@@ -326,35 +326,63 @@ class Game {
         const player = this.localPlayer;
         player.triggerAction('ATTACK');
         this.playerHasAttacked = true;
+
         const laserLv = player.skillLevels.laser || 1;
         const mpRecover = laserLv;
         player.recoverMana(mpRecover, true);
 
-        const vxList = [0, 0.707, 1, 0.707, 0, -0.707, -1, -0.707];
-        const vyList = [-1, -0.707, 0, 0.707, 1, 0.707, 0, -0.707];
-        const vx = vxList[player.facingDir];
-        const vy = vyList[player.facingDir];
+        // Chain Lightning Logic
+        const maxChains = 2 + Math.floor(laserLv / 3); // Levels increase chain count
+        const chainRange = 350;
+        let currentSource = { x: player.x, y: player.y };
+        const affectedMonsters = [];
+        const chains = [];
 
-        const range = 400 + (laserLv - 1) * 20;
-        const ex = player.x + vx * range;
-        const ey = player.y + vy * range;
-        player.laserEffect = { x1: player.x, y1: player.y, x2: ex, y2: ey, timer: 0.2 };
+        // 1. Find first target (nearest monster in range)
+        let availableMonsters = this.monsters.filter(m => !m.isDead);
 
-        this.monsters.forEach(m => {
-            if (m.isDead) return;
-            const dx = m.x - player.x, dy = m.y - player.y;
-            const dot = dx * vx + dy * vy;
-            if (dot > 0 && dot < range) {
-                const projX = player.x + vx * dot, projY = player.y + vy * dot;
-                const distToLine = Math.sqrt((m.x - projX) ** 2 + (m.y - projY) ** 2);
-                if (distToLine < 50) {
-                    let dmg = player.attackPower;
-                    let isCrit = Math.random() < player.critRate;
-                    if (isCrit) dmg *= 2;
-                    m.takeDamage(dmg, true, isCrit);
+        for (let i = 0; i < maxChains; i++) {
+            let nextTarget = null;
+            let minDist = chainRange;
+
+            availableMonsters.forEach(m => {
+                const dist = Math.sqrt((currentSource.x - m.x) ** 2 + (currentSource.y - m.y) ** 2);
+                if (dist < minDist && !affectedMonsters.includes(m)) {
+                    minDist = dist;
+                    nextTarget = m;
                 }
+            });
+
+            if (nextTarget) {
+                // Add chain segment
+                chains.push({ x1: currentSource.x, y1: currentSource.y, x2: nextTarget.x, y2: nextTarget.y });
+                affectedMonsters.push(nextTarget);
+
+                // Apply Damage
+                let dmg = player.attackPower;
+                let isCrit = Math.random() < player.critRate;
+                if (isCrit) dmg *= 2;
+                nextTarget.takeDamage(dmg, true, isCrit);
+
+                // Update source for next chain
+                currentSource = { x: nextTarget.x, y: nextTarget.y };
+            } else {
+                break; // No more targets in range
             }
-        });
+        }
+
+        if (chains.length > 0) {
+            player.lightningEffect = { chains: chains, timer: 0.2 };
+        } else {
+            // No targets, draw a short "fizzle" lightning ahead
+            const vxList = [0, 0.707, 1, 0.707, 0, -0.707, -1, -0.707];
+            const vyList = [-1, -0.707, 0, 0.707, 1, 0.707, 0, -0.707];
+            const vx = vxList[player.facingDir];
+            const vy = vyList[player.facingDir];
+            const ex = player.x + vx * 100;
+            const ey = player.y + vy * 100;
+            player.lightningEffect = { chains: [{ x1: player.x, y1: player.y, x2: ex, y2: ey }], timer: 0.1 };
+        }
     }
 
     castMagicMissile() {
