@@ -374,20 +374,41 @@ export default class Monster {
             }
         }
 
-        // Electrocuted Spark Effect
+        // Electrocuted Spark Effect (v1.64: Super Saiyan 2 Jagged Lightning Style)
         if (this.electrocutedTimer > 0 && !this.isDead) {
             ctx.save();
-            ctx.strokeStyle = '#48dbfb';
-            ctx.lineWidth = 3.5; // Thicker sparks (v1.62)
-            ctx.shadowBlur = 12; // Brighter glow
-            ctx.shadowColor = '#00d2ff';
+            for (let i = 0; i < 2; i++) {
+                const rx = screenX + (Math.random() - 0.5) * this.width * 0.9;
+                const ry = drawY + (Math.random() - 0.5) * this.height * 0.9;
 
-            for (let i = 0; i < 3; i++) { // One more spark
-                const rx = screenX + (Math.random() - 0.5) * this.width * 0.8;
-                const ry = drawY + (Math.random() - 0.5) * this.height * 0.8;
+                const steps = 3 + Math.floor(Math.random() * 2);
+                const boltPoints = [{ x: rx, y: ry }];
+
+                for (let j = 0; j < steps; j++) {
+                    const last = boltPoints[boltPoints.length - 1];
+                    boltPoints.push({
+                        x: last.x + (Math.random() - 0.5) * 40,
+                        y: last.y + (Math.random() - 0.5) * 40
+                    });
+                }
+
                 ctx.beginPath();
-                ctx.moveTo(rx, ry);
-                ctx.lineTo(rx + (Math.random() - 0.5) * 25, ry + (Math.random() - 0.5) * 25); // Longer sparks
+                ctx.moveTo(boltPoints[0].x, boltPoints[0].y);
+                for (let j = 1; j < boltPoints.length; j++) {
+                    ctx.lineTo(boltPoints[j].x, boltPoints[j].y);
+                }
+
+                // Pass 1: Outer Cyan Glow
+                ctx.strokeStyle = '#48dbfb';
+                ctx.lineWidth = 4;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#00d2ff';
+                ctx.stroke();
+
+                // Pass 2: White Sharp Core
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.shadowBlur = 0;
                 ctx.stroke();
             }
             ctx.restore();

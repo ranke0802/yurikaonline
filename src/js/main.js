@@ -115,6 +115,14 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.64', date: '2026-01-22', title: 'Aura & Magic Animation Fix',
+                logs: [
+                    '번개 효과(Aura) 시스템 개편: 밋밋한 스파크를 지그재그 모양의 강렬한 번개로 교체 (초사이언 2 스타일 적용)',
+                    '마법 사용 시 공격 모션 미작동 버그 수정 (이제 모든 스킬 사용 시 정상적으로 캐릭터 애니메이션이 동작합니다)',
+                    '번개 효과 이중 렌더링 도입: 흰색 코어와 하늘색 글로우를 통한 고에너지 연출'
+                ]
+            },
+            {
                 version: 'v1.63', date: '2026-01-22', title: 'Movement & UI Refinement',
                 logs: [
                     '달리기 전환 속도 상향: 1.5초 → 0.5초',

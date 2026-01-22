@@ -431,7 +431,8 @@ export default class Player {
         const isCombatAction = actionName.toUpperCase().includes('ATTACK') ||
             actionName.toUpperCase().includes('SKILL') ||
             actionName.toUpperCase().includes('LASER') ||
-            actionName.toUpperCase().includes('SHIELD');
+            actionName.toUpperCase().includes('SHIELD') ||
+            actionName.includes('!!'); // v1.64: Trigger motion for any skill shout
 
         if (isCombatAction) {
             this.isAttacking = true;
@@ -692,20 +693,41 @@ export default class Player {
         let col = this.frame;
         this.sprite.draw(ctx, row, col, screenX - this.width / 2, screenY - this.height / 2, this.width, this.height, false);
 
-        // Self Spark Effect during Channeling (Final Subtle Style v1.53)
+        // Self Spark Effect during Channeling (v1.64: Super Saiyan 2 Jagged Lightning Style)
         if (this.isChanneling && !this.isDead) {
             ctx.save();
-            ctx.strokeStyle = '#48dbfb';
-            ctx.lineWidth = 3.0; // v1.62: 1.5 -> 3.0
-            ctx.shadowBlur = 10; // v1.62: 6 -> 10
-            ctx.shadowColor = '#00d2ff';
+            for (let i = 0; i < 2; i++) {
+                const rx = screenX + (Math.random() - 0.5) * this.width * 0.8;
+                const ry = screenY + (Math.random() - 0.5) * this.height * 0.8;
 
-            for (let i = 0; i < 3; i++) { // v1.62: 2 -> 3
-                const rx = screenX + (Math.random() - 0.5) * this.width * 0.7;
-                const ry = screenY + (Math.random() - 0.5) * this.height * 0.7;
+                const steps = 3 + Math.floor(Math.random() * 2);
+                const boltPoints = [{ x: rx, y: ry }];
+
+                for (let j = 0; j < steps; j++) {
+                    const last = boltPoints[boltPoints.length - 1];
+                    boltPoints.push({
+                        x: last.x + (Math.random() - 0.5) * 35,
+                        y: last.y + (Math.random() - 0.5) * 35
+                    });
+                }
+
                 ctx.beginPath();
-                ctx.moveTo(rx, ry);
-                ctx.lineTo(rx + (Math.random() - 0.5) * 20, ry + (Math.random() - 0.5) * 20); // v1.62: 15 -> 20
+                ctx.moveTo(boltPoints[0].x, boltPoints[0].y);
+                for (let j = 1; j < boltPoints.length; j++) {
+                    ctx.lineTo(boltPoints[j].x, boltPoints[j].y);
+                }
+
+                // Pass 1: Outer Cyan Glow
+                ctx.strokeStyle = '#48dbfb';
+                ctx.lineWidth = 3.5;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = '#00d2ff';
+                ctx.stroke();
+
+                // Pass 2: White Sharp Core
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.2;
+                ctx.shadowBlur = 0;
                 ctx.stroke();
             }
             ctx.restore();
