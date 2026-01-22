@@ -1193,7 +1193,7 @@ html {
         transform: scale(0.6);
         /* 세로 모드에서 너무 크지 않게 배율 하향 (0.75 -> 0.6) */
         transform-origin: top left;
-        z-index: 90;
+        z-index: 1100;
         pointer-events: none;
     }
 
