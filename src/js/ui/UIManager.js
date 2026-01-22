@@ -687,12 +687,12 @@ export class UIManager {
             const timeText = btn.querySelector('.cooldown-time');
 
             if (cdTime > 0) {
-                const perc = (cdTime / maxCd) * 100;
-                if (overlay) overlay.style.height = `${perc}%`;
+                const angle = (cdTime / maxCd) * 360;
+                if (overlay) overlay.style.setProperty('--cd-angle', `${angle}deg`);
                 if (timeText) timeText.textContent = cdTime.toFixed(1);
                 btn.classList.add('disabled');
             } else {
-                if (overlay) overlay.style.height = '0%';
+                if (overlay) overlay.style.setProperty('--cd-angle', '0deg');
                 if (timeText) timeText.textContent = '';
                 btn.classList.remove('disabled');
             }

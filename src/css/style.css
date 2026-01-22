@@ -189,16 +189,15 @@ html {
 
 .cooldown-overlay {
     position: absolute;
-    bottom: 0;
-    left: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 100%;
-    height: 0%;
-    background: rgba(0, 0, 0, 0.6);
+    height: 100%;
+    background: conic-gradient(rgba(0, 0, 0, 0.6) var(--cd-angle, 0deg), transparent 0);
     z-index: 10;
     pointer-events: none;
-    transition: height 0.1s linear;
     border-radius: 50%;
-    /* v1.62 Reverted to Circular */
 }
 
 .cooldown-time {

@@ -115,6 +115,14 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.63', date: '2026-01-22', title: 'Movement & UI Refinement',
+                logs: [
+                    '달리기 전환 속도 상향: 1.5초 → 0.5초',
+                    '달리기 흙먼지 효과 범위 대폭 상향 (3배)',
+                    '쿨타임 표시 방식 개선: 회전식(Conic) 게이지 도입 및 "통통 튀는" 현상 수정'
+                ]
+            },
+            {
                 version: 'v1.62', date: '2026-01-22', title: 'Visual FX & UI Polish',
                 logs: [
                     '일반 공격/피격 시 스파크 효과 강화 (더 굵고 진하게 개선)',

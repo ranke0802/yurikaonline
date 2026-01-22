@@ -557,7 +557,7 @@ export default class Player {
                     this.isRunning = true;
                     this.turnGraceTimer = 0;
                 }
-                if (this.moveTimer >= 1.5) { // v1.62: 1.0s -> 1.5s
+                if (this.moveTimer >= 0.5) { // v1.63: 1.5s -> 0.5s
                     this.isRunning = true;
                 }
             } else {
@@ -645,7 +645,7 @@ export default class Player {
         if (this.isRunning && this.isMoving) {
             if (Math.random() < 0.3) {
                 this.runParticles.push({
-                    x: this.x + (Math.random() - 0.5) * 60, // v1.62: 40 -> 60 (1.5x wider)
+                    x: this.x + (Math.random() - 0.5) * 180, // v1.63: 60 -> 180 (3x wider)
                     y: this.y + 30 + (Math.random() - 0.5) * 10,
                     life: 0.5,
                     size: 4 + Math.random() * 6
