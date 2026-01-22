@@ -325,99 +325,95 @@ class Game {
     performLaserAttack(dt = 0) {
         const player = this.localPlayer;
         if (!player || player.isDead) return;
-        this.playerHasAttacked = true;
 
-        // Ensure dt is a valid number to prevent freezing/NaN issues
+        // 1. Anti-Spam: Check cooldown before starting
+        if (!player.isChanneling && player.skillCooldowns['j'] > 0) return;
+
+        this.playerHasAttacked = true;
         const fixedDt = (typeof dt === 'number' && !isNaN(dt)) ? dt : 0.016;
 
         if (!player.isChanneling) {
             player.isChanneling = true;
             player.chargeTime = 0;
-            player.lightningTickTimer = 0; // Trigger first tick immediately
+            player.lightningTickTimer = 0;
         }
 
         player.chargeTime += fixedDt;
         player.lightningTickTimer -= fixedDt;
 
-        // Perform tick based on attack speed (Base 0.7s, scales down with attackSpeed)
         const baseTickInterval = 0.7;
         const tickInterval = baseTickInterval / player.attackSpeed;
+        const isTick = player.lightningTickTimer <= 0;
 
-        if (player.lightningTickTimer <= 0) {
+        if (isTick) {
             player.lightningTickTimer = tickInterval;
-
-            // Trigger animation for every tick
             player.triggerAction('ATTACK');
+        }
 
-            const laserLv = player.skillLevels.laser || 1;
+        const laserLv = player.skillLevels.laser || 1;
+        // Formula: Base 50% ATK, Increment (10% + (Lv-1)*5%) per 0.3s charge
+        const startRatio = 0.5;
+        const tierIncrement = 0.10 + (laserLv - 1) * 0.05;
+        const chargeSteps = Math.floor(player.chargeTime / 0.3);
+        const finalDmgRatio = Math.min(1.5, startRatio + (chargeSteps * tierIncrement));
 
-            // Damage amplification logic: Start at 50% + (Lv-1)*10%, +25% every 0.3s relative time, max 150%
-            const startRatio = 0.5 + (laserLv - 1) * 0.1;
-            const chargeBonus = Math.floor(player.chargeTime / 0.3) * 0.25;
-            const finalDmgRatio = Math.min(1.5, startRatio + chargeBonus);
+        // 2. Visual Chain Logic: ALWAYS CALCULATE EVERY FRAME
+        // This ensures the lightning stays connected while moving even between ticks
+        const maxChains = 1 + laserLv;
+        const chainRange = 350;
+        let currentSource = { x: player.x, y: player.y };
+        const affectedMonsters = [];
+        const chains = [];
 
-            // Chain Lightning Logic: 기본 2마리 + 1레벨당 +1마리 (lv:1 -> 2, lv:2 -> 3)
-            const maxChains = 1 + laserLv;
-            const chainRange = 350;
-            let currentSource = { x: player.x, y: player.y };
-            const affectedMonsters = [];
-            const chains = [];
+        let availableMonsters = this.monsters.filter(m => !m.isDead);
 
-            let availableMonsters = this.monsters.filter(m => !m.isDead);
+        for (let i = 0; i < maxChains; i++) {
+            let nextTarget = null;
+            let minDist = chainRange;
 
-            for (let i = 0; i < maxChains; i++) {
-                let nextTarget = null;
-                let minDist = chainRange;
+            availableMonsters.forEach(m => {
+                const dist = Math.sqrt((currentSource.x - m.x) ** 2 + (currentSource.y - m.y) ** 2);
+                if (dist < minDist && !affectedMonsters.includes(m)) {
+                    minDist = dist;
+                    nextTarget = m;
+                }
+            });
 
-                availableMonsters.forEach(m => {
-                    const dist = Math.sqrt((currentSource.x - m.x) ** 2 + (currentSource.y - m.y) ** 2);
-                    if (dist < minDist && !affectedMonsters.includes(m)) {
-                        minDist = dist;
-                        nextTarget = m;
-                    }
-                });
+            if (nextTarget) {
+                chains.push({ x1: currentSource.x, y1: currentSource.y, x2: nextTarget.x, y2: nextTarget.y });
+                affectedMonsters.push(nextTarget);
 
-                if (nextTarget) {
-                    chains.push({ x1: currentSource.x, y1: currentSource.y, x2: nextTarget.x, y2: nextTarget.y });
-                    affectedMonsters.push(nextTarget);
-
-                    // Apply Damage
+                // 3. Application Logic ONLY on Tick
+                if (isTick) {
                     let dmg = player.attackPower * finalDmgRatio;
                     let isCrit = Math.random() < player.critRate;
                     if (isCrit) dmg *= 2;
+                    // Apply precision damage (non-integer) to ensure formula correctness
                     nextTarget.takeDamage(dmg, true, isCrit);
 
-                    // Apply Electrocution Status (30% + 3%/lv Slow)
-                    const slowAmount = 0.3 + (laserLv - 1) * 0.03;
+                    // 80% Slow as requested
                     if (nextTarget.applyElectrocuted) {
-                        nextTarget.applyElectrocuted(1.0, slowAmount);
+                        nextTarget.applyElectrocuted(3.0, 0.8);
                     }
-
-                    // MP Recovery: 1 per hit
                     player.recoverMana(1, true);
-
-                    currentSource = { x: nextTarget.x, y: nextTarget.y };
-                } else {
-                    break;
                 }
-            }
-
-            if (chains.length > 0) {
-                player.lightningEffect = { chains: chains, timer: 0.15 };
+                currentSource = { x: nextTarget.x, y: nextTarget.y };
             } else {
-                // No targets, draw fizzle
-                const vxList = [0, 0.707, 1, 0.707, 0, -0.707, -1, -0.707];
-                const vyList = [-1, -0.707, 0, 0.707, 1, 0.707, 0, -0.707];
-                let dir = (player.facingDir >= 0 && player.facingDir <= 7) ? player.facingDir : 4;
-                const vx = vxList[dir];
-                const vy = vyList[dir];
-
-                // Final safety check for NaN components
-                const px = isNaN(player.x) ? 1000 : player.x;
-                const py = isNaN(player.y) ? 1000 : player.y;
-
-                player.lightningEffect = { chains: [{ x1: px, y1: py, x2: px + vx * 80, y2: py + vy * 80 }], timer: 0.1 };
+                break;
             }
+        }
+
+        // 4. Update Visual Effect with high refresh
+        if (chains.length > 0) {
+            player.lightningEffect = { chains: chains, timer: 0.1 };
+        } else {
+            // Fizzle logic if no targets
+            const vxList = [0, 0.707, 1, 0.707, 0, -0.707, -1, -0.707];
+            const vyList = [-1, -0.707, 0, 0.707, 1, 0.707, 0, -0.707];
+            let dir = (player.facingDir >= 0 && player.facingDir <= 7) ? player.facingDir : 4;
+            const px = isNaN(player.x) ? 1000 : player.x;
+            const py = isNaN(player.y) ? 1000 : player.y;
+            player.lightningEffect = { chains: [{ x1: px, y1: py, x2: px + vxList[dir] * 80, y2: py + vyList[dir] * 80 }], timer: 0.05 };
         }
     }
 
