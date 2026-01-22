@@ -219,7 +219,7 @@ export default class Player {
 
             menu.frames.forEach((frameFile, i) => {
                 const img = new Image();
-                const v = '1.57';
+                const v = '1.58';
                 img.src = `${menu.path}/${frameFile}?v=${v}`;
                 const p = new Promise((resolve) => {
                     img.onload = () => {
@@ -733,7 +733,17 @@ export default class Player {
             ctx.fillText(bubbleText, screenX, bubbleY + bubbleHeight / 2 + 5);
         }
 
-        // UI Layout below character
+        // Player Name (back to top)
+        const nameY = screenY - this.height / 2 - 25;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 13px "Outfit", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 4;
+        ctx.fillText(this.name, screenX, nameY);
+        ctx.shadowBlur = 0;
+
+        // UI Layout below character (HP/MP Bars only)
         const barWidth = 60;
         const barHeight = 6;
         const startY = screenY + this.height / 2 + 5;
@@ -757,16 +767,6 @@ export default class Player {
         const mpPercent = Math.max(0, Math.min(1, this.mp / this.maxMp));
         ctx.fillStyle = '#48dbfb';
         ctx.fillRect(screenX - barWidth / 2, mpBarY, barWidth * mpPercent, barHeight);
-
-        // Player Name
-        const nameY = mpBarY + barHeight + 14;
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 13px "Outfit", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = 4;
-        ctx.fillText(this.name, screenX, nameY);
-        ctx.shadowBlur = 0;
 
         // Draw Direction Arrow
         this.drawDirectionArrow(ctx, screenX, screenY);

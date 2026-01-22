@@ -12,9 +12,9 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v1.57</title>
+    <title>Yurika Online v1.58</title>
     <script>
-        window.GAME_VERSION = '1.57';
+        window.GAME_VERSION = '1.58';
 
         async function initCacheBusting() {
             try {
@@ -52,7 +52,7 @@
 
         initCacheBusting();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=1.57">
+    <link rel="stylesheet" href="src/css/style.css?v=1.58">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -225,7 +225,6 @@
             <div id="inventory-popup" class="game-popup hidden">
                 <div class="popup-header">
                     <h2>가방 (Inventory)</h2>
-                    <button class="close-popup">✕</button>
                 </div>
                 <div class="inventory-grid">
                     <div class="grid-item"></div>
@@ -238,13 +237,15 @@
                     <div class="grid-item"></div>
                     <div class="grid-item"></div>
                 </div>
+                <div class="popup-footer">
+                    <button class="close-btn-bottom close-popup">닫기</button>
+                </div>
             </div>
 
             <!-- Status Popup -->
             <div id="status-popup" class="game-popup hidden">
                 <div class="popup-header">
                     <h2>내 정보 (Status)</h2>
-                    <button class="close-popup">✕</button>
                 </div>
                 <div class="status-content-wrapper">
                     <div class="status-top">
@@ -330,6 +331,9 @@
                             <div class="derived-row"><span>이동속도:</span> <span id="val-move-spd">100%</span></div>
                         </div>
                     </div>
+                    <div class="popup-footer">
+                        <button class="close-btn-bottom close-popup">닫기</button>
+                    </div>
                 </div>
             </div>
 
@@ -337,7 +341,6 @@
             <div id="skill-popup" class="game-popup hidden">
                 <div class="popup-header">
                     <h2>스킬 트리 (Skill Tree)</h2>
-                    <button class="close-popup">✕</button>
                 </div>
                 <div class="skill-content-wrapper">
                     <div class="skill-point-info">
@@ -399,6 +402,9 @@
                         </div>
                     </div>
                 </div>
+                <div class="popup-footer">
+                    <button class="close-btn-bottom close-popup">닫기</button>
+                </div>
             </div>
         </div>
 
@@ -444,7 +450,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v1.57
+        📦 v1.58
     </div>
 
     <!-- Update History Modal -->

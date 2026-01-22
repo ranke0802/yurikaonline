@@ -119,6 +119,15 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.58', date: '2026-01-22', title: 'UX Improvement & UI Polish',
+                logs: [
+                    '캐릭터 및 몬스터 이름 위치 상단 복구 (HP/MP 바는 하단 유지)',
+                    '인벤토리/내정보/스킬 팝업창 하단에 "닫기" 버튼 추가 (UX 개선)',
+                    '팝업창 헤더의 ✕ 버튼 제거',
+                    '팝업창 하단 버튼 프리미엄 스타일링 적용'
+                ]
+            },
+            {
                 version: 'v1.57', date: '2026-01-22', title: 'Collision System & UI Polish',
                 logs: [
                     '개체 간 충돌 판정 시스템 도입 (플레이어와 몬스터가 겹치지 않음)',

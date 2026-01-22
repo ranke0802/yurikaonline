@@ -330,7 +330,16 @@ export default class Monster {
             ctx.restore();
         }
 
-        // HP Bar background and Name (below character)
+        // Monster Name (back to top)
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 13px "Outfit", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 4;
+        ctx.fillText(this.name, screenX, screenY - this.height / 2 - 20);
+        ctx.shadowBlur = 0;
+
+        // HP Bar background (below character)
         const uiBaseY = screenY + this.height / 2 + 5;
 
         // HP Bar background
@@ -340,15 +349,6 @@ export default class Monster {
         const hpPercent = Math.max(0, Math.min(1, this.hp / this.maxHp));
         ctx.fillStyle = hpPercent > 0.3 ? '#4ade80' : '#ef4444';
         ctx.fillRect(screenX - 30, uiBaseY, 60 * hpPercent, 6);
-
-        // Name
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 13px "Outfit", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = 4;
-        ctx.fillText(this.name, screenX, uiBaseY + 20);
-        ctx.shadowBlur = 0;
 
         // Status Effect Icons (Burn & Electrocuted)
         const burnEffect = this.statusEffects.find(e => e.type === 'burn');
