@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.84', date: '2026-01-23', title: 'Critical Hotfix: Attack Freeze',
+                logs: [
+                    '공격 시 프리징 현상 수정: 마법진 렌더링에 필요한 변수가 누락되어 공격 시 화면이 멈추던 치명적인 버그를 해결했습니다.',
+                    '시스템 안정화: 전체적인 드로잉 루프를 재점검하여 예기치 못한 에러를 방지했습니다.'
+                ]
+            },
+            {
                 version: 'v1.83', date: '2026-01-23', title: 'Ultimate Visual Cleanup',
                 logs: [
                     '불필요한 잔여 이펙트 완전 제거: 공격 시 튀던 연쇄 스파크 및 마법진 중앙의 타원형 코어를 삭제하여 시각적 피로도 최소화',

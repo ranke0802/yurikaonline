@@ -1041,6 +1041,7 @@ export default class Player {
         // 1. Three Concentric Circles (Jagged segments)
         // v1.82: Added a third tight outer rim for a "double-line" effect
         const radiusRim = radiusOuter * 1.08;
+        const circleSegments = 16; // Added back to fix ReferenceError during attack
         [radiusRim, radiusOuter, radiusInner].forEach((r, idx) => {
             // idx 0: Rim (Thin), idx 1: Outer (Bold), idx 2: Inner (Normal)
             ctx.lineWidth = idx === 0 ? 1 : (idx === 1 ? 2 : 1.5);
