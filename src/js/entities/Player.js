@@ -1099,8 +1099,10 @@ export default class Player {
         ctx.stroke();
 
         // 4. v1.73: Rotating Ancient Runes (Between circles)
+        // 4. v1.73: Rotating Ancient Runes (Between circles)
         // v1.75: Manual rendering for constant line width
-        const runeRotation = -time * 1.0; // Counter-Clockwise
+        // v1.76: Slower speed (30% of original 1.0 -> 0.3)
+        const runeRotation = -time * 0.3; // Counter-Clockwise
         ctx.strokeStyle = 'rgba(150, 240, 255, 0.7)';
         ctx.lineWidth = 1.5;
 
