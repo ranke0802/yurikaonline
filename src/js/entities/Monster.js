@@ -194,8 +194,40 @@ export default class Monster {
             }
         }
 
-        this.x += this.vx * dt;
-        this.y += this.vy * dt;
+        const nextX = this.x + this.vx * dt;
+        const nextY = this.y + this.vy * dt;
+
+        let canMoveX = true;
+        let canMoveY = true;
+        const collisionRadius = 45; // 몬스터 간 충돌 반경
+
+        // Collision with Player
+        if (player && !player.isDead) {
+            const dist = Math.sqrt((nextX - player.x) ** 2 + (nextY - player.y) ** 2);
+            if (dist < collisionRadius) {
+                canMoveX = false;
+                canMoveY = false;
+            }
+        }
+
+        // Collision with other Monsters
+        if (window.game && window.game.monsters) {
+            for (const other of window.game.monsters) {
+                if (other === this || other.isDead) continue;
+                const distToOther = Math.sqrt((nextX - other.x) ** 2 + (nextY - other.y) ** 2);
+                if (distToOther < collisionRadius) {
+                    // 밀어내기 효과 (Separation force)
+                    const angle = Math.atan2(this.y - other.y, this.x - other.x);
+                    this.vx += Math.cos(angle) * 20;
+                    this.vy += Math.sin(angle) * 20;
+                    canMoveX = false;
+                    canMoveY = false;
+                }
+            }
+        }
+
+        if (canMoveX) this.x = nextX;
+        if (canMoveY) this.y = nextY;
 
         // Keep inside map bounds (0-2000)
         this.x = Math.max(0, Math.min(2000, this.x));

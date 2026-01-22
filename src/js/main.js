@@ -119,6 +119,15 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.57', date: '2026-01-22', title: 'Collision System & UI Polish',
+                logs: [
+                    '개체 간 충돌 판정 시스템 도입 (플레이어와 몬스터가 겹치지 않음)',
+                    '캐릭터 및 몬스터 HP/MP 바 위치 하단 이동 (플로팅 메시지 간섭 해제)',
+                    '맵 이탈 방지 로직 강화 (0~2000 범위 강제 제한)',
+                    '몬스터 상태 이상 아이콘 위치 보정'
+                ]
+            },
+            {
                 version: 'v1.56', date: '2026-01-22', title: 'Minimap Transparency & Mobile QoL',
                 logs: [
                     '모바일 버전 미니맵 투명도 대폭 개선 (가시성 확보)',

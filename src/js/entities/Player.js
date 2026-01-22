@@ -219,7 +219,7 @@ export default class Player {
 
             menu.frames.forEach((frameFile, i) => {
                 const img = new Image();
-                const v = window.GAME_VERSION || Date.now();
+                const v = '1.57';
                 img.src = `${menu.path}/${frameFile}?v=${v}`;
                 const p = new Promise((resolve) => {
                     img.onload = () => {
@@ -542,8 +542,30 @@ export default class Player {
 
             const speedMult = (this.isRunning || this.turnGraceTimer > 0) ? 1.3 : 1.0;
             const finalSpeed = this.speed * this.moveSpeedMult * speedMult;
-            this.x += vx * finalSpeed * dt;
-            this.y += vy * finalSpeed * dt;
+            const nextX = this.x + vx * finalSpeed * dt;
+            const nextY = this.y + vy * finalSpeed * dt;
+
+            // Collision Detection with Monsters
+            let canMoveX = true;
+            let canMoveY = true;
+            const collisionRadius = 40; // Approximate radius
+
+            if (window.game && window.game.monsters) {
+                for (const monster of window.game.monsters) {
+                    if (monster.isDead) continue;
+
+                    // Predict X movement
+                    const distX = Math.sqrt((nextX - monster.x) ** 2 + (this.y - monster.y) ** 2);
+                    if (distX < collisionRadius) canMoveX = false;
+
+                    // Predict Y movement
+                    const distY = Math.sqrt((this.x - monster.x) ** 2 + (nextY - monster.y) ** 2);
+                    if (distY < collisionRadius) canMoveY = false;
+                }
+            }
+
+            if (canMoveX) this.x = nextX;
+            if (canMoveY) this.y = nextY;
 
             // Map Boundary Clamping (0-2000)
             this.x = Math.max(0, Math.min(2000, this.x));
