@@ -374,24 +374,34 @@ export default class Monster {
             }
         }
 
-        // Electrocuted Spark Effect (v1.64: Super Saiyan 2 Jagged Lightning Style)
+        // Electrocuted Spark Effect (v1.65: Slower flicker style)
         if (this.electrocutedTimer > 0 && !this.isDead) {
             ctx.save();
-            for (let i = 0; i < 2; i++) {
-                const rx = screenX + (Math.random() - 0.5) * this.width * 0.9;
-                const ry = drawY + (Math.random() - 0.5) * this.height * 0.9;
 
-                const steps = 3 + Math.floor(Math.random() * 2);
-                const boltPoints = [{ x: rx, y: ry }];
+            // v1.65: Cache bolts to slow down flicker
+            const now = Date.now();
+            if (!this.auraBolts || (now - (this.auraLastUpdate || 0) > 100)) {
+                this.auraBolts = [];
+                this.auraLastUpdate = now;
+                for (let i = 0; i < 2; i++) {
+                    const rx = screenX + (Math.random() - 0.5) * this.width * 0.9;
+                    const ry = drawY + (Math.random() - 0.5) * this.height * 0.9;
 
-                for (let j = 0; j < steps; j++) {
-                    const last = boltPoints[boltPoints.length - 1];
-                    boltPoints.push({
-                        x: last.x + (Math.random() - 0.5) * 40,
-                        y: last.y + (Math.random() - 0.5) * 40
-                    });
+                    const steps = 3 + Math.floor(Math.random() * 2);
+                    const boltPoints = [{ x: rx, y: ry }];
+
+                    for (let j = 0; j < steps; j++) {
+                        const last = boltPoints[boltPoints.length - 1];
+                        boltPoints.push({
+                            x: last.x + (Math.random() - 0.5) * 40,
+                            y: last.y + (Math.random() - 0.5) * 40
+                        });
+                    }
+                    this.auraBolts.push(boltPoints);
                 }
+            }
 
+            this.auraBolts.forEach(boltPoints => {
                 ctx.beginPath();
                 ctx.moveTo(boltPoints[0].x, boltPoints[0].y);
                 for (let j = 1; j < boltPoints.length; j++) {
@@ -410,7 +420,7 @@ export default class Monster {
                 ctx.lineWidth = 1.5;
                 ctx.shadowBlur = 0;
                 ctx.stroke();
-            }
+            });
             ctx.restore();
         }
     }

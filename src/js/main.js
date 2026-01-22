@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.65', date: '2026-01-23', title: 'Lightning Flicker Refinement',
+                logs: [
+                    '번개 효과(Lightning) 치지직거리는 속도 최적화: 매 프레임 변하던 모양을 0.1초 간격으로 유지하여 묵직하고 강렬한 느낌을 주도록 개선',
+                    '공격(체인 라이트닝) 및 캐릭터/몬스터 오라 전체에 일관된 애니메이션 속도 적용'
+                ]
+            },
+            {
                 version: 'v1.64', date: '2026-01-22', title: 'Aura & Magic Animation Fix',
                 logs: [
                     '번개 효과(Aura) 시스템 개편: 밋밋한 스파크를 지그재그 모양의 강렬한 번개로 교체 (초사이언 2 스타일 적용)',

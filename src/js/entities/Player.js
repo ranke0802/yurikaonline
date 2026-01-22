@@ -693,7 +693,7 @@ export default class Player {
         let col = this.frame;
         this.sprite.draw(ctx, row, col, screenX - this.width / 2, screenY - this.height / 2, this.width, this.height, false);
 
-        // Self Spark Effect during Channeling (v1.64: Super Saiyan 2 Jagged Lightning Style)
+        // Self Spark Effect during Channeling (v1.65: Slower flicker style)
         if (this.isChanneling && !this.isDead) {
             ctx.save();
             for (let i = 0; i < 2; i++) {
@@ -890,12 +890,20 @@ export default class Player {
         const points = [];
         points.push({ x: x1, y: y1 });
 
+        // v1.65: Slower flicker logic for attack segment
+        // Use time-based stable "randomness" for 100ms
+        const timeSeed = Math.floor(Date.now() / 100);
+
         for (let i = 1; i < steps; i++) {
             const ratio = i / steps;
             const px = x1 + (targetX2 - x1) * ratio;
             const py = y1 + (targetY2 - y1) * ratio;
-            // Random offset for zigzag
-            const offset = (Math.random() - 0.5) * 20;
+
+            // Stable pseudo-randomness based on timeSeed + segment index i + coords
+            const seed = timeSeed + i + (x1 * 0.1) + (y1 * 0.1);
+            const randomVal = (Math.sin(seed) * 10000) % 1;
+            const offset = (randomVal - 0.5) * 20;
+
             const angle = Math.atan2(targetY2 - y1, targetX2 - x1) + Math.PI / 2;
             points.push({
                 x: px + Math.cos(angle) * offset,
