@@ -53,9 +53,10 @@ export class InputHandler {
                 if (this.onAction) this.onAction(action);
             }
 
-            // Automatically close popups if any movement key is pressed
+            // Automatically close popups and cancel click-to-move if any movement key is pressed
             if (['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(code)) {
                 if (window.game?.ui) window.game.ui.hideAllPopups();
+                this.touchMovePos = null;
             }
 
             // Prevent scrolling for navigation keys

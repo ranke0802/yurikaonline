@@ -330,13 +330,13 @@ export default class Monster {
             ctx.restore();
         }
 
-        // Monster Name (back to top)
+        // Monster Name (back to top - adjusted down by 15px)
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 13px "Outfit", sans-serif';
         ctx.textAlign = 'center';
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
         ctx.shadowBlur = 4;
-        ctx.fillText(this.name, screenX, screenY - this.height / 2 - 20);
+        ctx.fillText(this.name, screenX, screenY - this.height / 2 - 5);
         ctx.shadowBlur = 0;
 
         // HP Bar background (below character)

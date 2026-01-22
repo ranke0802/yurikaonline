@@ -12,9 +12,9 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v1.58</title>
+    <title>Yurika Online v1.59</title>
     <script>
-        window.GAME_VERSION = '1.58';
+        window.GAME_VERSION = '1.59';
 
         async function initCacheBusting() {
             try {
@@ -52,7 +52,7 @@
 
         initCacheBusting();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=1.58">
+    <link rel="stylesheet" href="src/css/style.css?v=1.59">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -225,6 +225,7 @@
             <div id="inventory-popup" class="game-popup hidden">
                 <div class="popup-header">
                     <h2>가방 (Inventory)</h2>
+                    <button class="close-popup pc-only">✕</button>
                 </div>
                 <div class="inventory-grid">
                     <div class="grid-item"></div>
@@ -246,6 +247,7 @@
             <div id="status-popup" class="game-popup hidden">
                 <div class="popup-header">
                     <h2>내 정보 (Status)</h2>
+                    <button class="close-popup pc-only">✕</button>
                 </div>
                 <div class="status-content-wrapper">
                     <div class="status-top">
@@ -341,6 +343,7 @@
             <div id="skill-popup" class="game-popup hidden">
                 <div class="popup-header">
                     <h2>스킬 트리 (Skill Tree)</h2>
+                    <button class="close-popup pc-only">✕</button>
                 </div>
                 <div class="skill-content-wrapper">
                     <div class="skill-point-info">
@@ -450,7 +453,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v1.58
+        📦 v1.59
     </div>
 
     <!-- Update History Modal -->
@@ -466,7 +469,7 @@
         </div>
     </div>
 
-    <script type="module" src="src/js/main.js?v=1.57"></script>
+    <script type="module" src="src/js/main.js?v=1.59"></script>
 </body>
 
 </html>

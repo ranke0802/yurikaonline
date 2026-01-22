@@ -219,7 +219,7 @@ export default class Player {
 
             menu.frames.forEach((frameFile, i) => {
                 const img = new Image();
-                const v = '1.58';
+                const v = '1.59';
                 img.src = `${menu.path}/${frameFile}?v=${v}`;
                 const p = new Promise((resolve) => {
                     img.onload = () => {
@@ -497,8 +497,29 @@ export default class Player {
         }
 
         const move = input.getMovement();
-        const vx = move.x;
-        const vy = move.y;
+        let vx = move.x;
+        let vy = move.y;
+
+        // Click-to-Move Logic for PC/Touch
+        if (vx === 0 && vy === 0 && window.game?.input?.touchMovePos) {
+            const touch = window.game.input.touchMovePos;
+            const cam = window.game.camera;
+
+            // Screen to World Conversion: (ScreenPos + CameraOffset) / Zoom
+            const worldTargetX = (touch.x + cam.x);
+            const worldTargetY = (touch.y + cam.y);
+
+            const dx = worldTargetX - this.x;
+            const dy = worldTargetY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > 5) { // Stop when close enough
+                vx = dx / dist;
+                vy = dy / dist;
+            } else {
+                window.game.input.touchMovePos = null;
+            }
+        }
 
         if (vx !== 0 || vy !== 0) {
             // 8-directional logic
@@ -733,8 +754,8 @@ export default class Player {
             ctx.fillText(bubbleText, screenX, bubbleY + bubbleHeight / 2 + 5);
         }
 
-        // Player Name (back to top)
-        const nameY = screenY - this.height / 2 - 25;
+        // Player Name (back to top - adjusted down by 15px)
+        const nameY = screenY - this.height / 2 - 10;
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 13px "Outfit", sans-serif';
         ctx.textAlign = 'center';

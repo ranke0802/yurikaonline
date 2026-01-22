@@ -322,6 +322,25 @@ html {
     padding-bottom: 10px;
 }
 
+/* PC-only and Mobile-only helper classes */
+.pc-only {
+    display: block !important;
+}
+
+.mobile-only {
+    display: none !important;
+}
+
+@media screen and (max-width: 900px) {
+    .pc-only {
+        display: none !important;
+    }
+
+    .mobile-only {
+        display: flex !important;
+    }
+}
+
 /* Popup Footer & Close Button */
 .popup-footer {
     padding: 15px 0 5px 0;
@@ -335,15 +354,22 @@ html {
     background: linear-gradient(135deg, #ff9f43, #ee5253);
     color: white;
     border: none;
-    padding: 10px 40px;
-    border-radius: 20px;
-    font-size: 14px;
+    padding: 12px 0;
+    width: 160px;
+    /* Fixed width to prevent vertical text */
+    border-radius: 25px;
+    font-size: 15px;
     font-weight: bold;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(238, 82, 83, 0.3);
     transition: all 0.2s ease;
     border: 2px solid rgba(255, 255, 255, 0.2);
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Outfit', 'Nanum Gothic', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    white-space: nowrap;
+    /* Prevent vertical text */
 }
 
 .close-btn-bottom:hover {

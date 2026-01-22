@@ -119,6 +119,16 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.59', date: '2026-01-22', title: 'PC/Mobile Optimization & Click-to-Move',
+                logs: [
+                    '캐릭터/몬스터 이름 위치 15px 하단 조정 (시각적 밀착감 개선)',
+                    'PC 버전: 팝업창 우측 상단 "X" 닫기 버튼 원복',
+                    '모바일 버전: 하단 닫기 버튼 레이아웃 오류 수정',
+                    'PC/Touch: 마우스 클릭 또는 화면 터치 지점으로 자동 이동 기능 도입 (Click-to-Move)',
+                    '이동 키 입력 시 클릭 이동 자동 취소 로직 적용'
+                ]
+            },
+            {
                 version: 'v1.58', date: '2026-01-22', title: 'UX Improvement & UI Polish',
                 logs: [
                     '캐릭터 및 몬스터 이름 위치 상단 복구 (HP/MP 바는 하단 유지)',
