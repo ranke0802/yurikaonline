@@ -244,7 +244,7 @@ export default class Monster {
     }
 
     applyElectrocuted(duration, ratio) {
-        this.electrocutedTimer = duration;
+        this.electrocutedTimer = 3.0; // Fixed 3 seconds as requested
         this.slowRatio = Math.max(this.slowRatio, ratio);
     }
 
@@ -304,12 +304,15 @@ export default class Monster {
         ctx.fillStyle = hpPercent > 0.3 ? '#4ade80' : '#ef4444';
         ctx.fillRect(screenX - 30, screenY - this.height / 2 - 12, 60 * hpPercent, 6);
 
-        // Status Effect Icons (Burn)
+        // Status Effect Icons (Burn & Electrocuted)
         const burnEffect = this.statusEffects.find(e => e.type === 'burn');
-        if (burnEffect) {
+        if (burnEffect || (this.electrocutedTimer > 0 && !this.isDead)) {
             ctx.font = '16px serif';
             ctx.textAlign = 'center';
-            ctx.fillText('🔥', screenX, screenY + this.height / 2 + 15);
+            let icons = '';
+            if (burnEffect) icons += '🔥';
+            if (this.electrocutedTimer > 0) icons += '⚡';
+            ctx.fillText(icons, screenX, screenY + this.height / 2 + 15);
         }
 
         // Electrocuted Spark Effect
