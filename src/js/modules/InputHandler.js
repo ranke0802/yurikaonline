@@ -189,12 +189,12 @@ export class InputHandler {
             // Only handle if clicking the canvas (not UI)
             if (e.target.tagName !== 'CANVAS') return;
 
+            // Mobile: Prevent all click-to-move. Mobile users should use joystick only.
+            const isMobile = window.innerWidth <= 900;
+            if (isMobile) return;
+
             // PC: Only left click (button 0) allowed
             if (e.type === 'mousedown' && e.button !== 0) return;
-
-            // Mobile: Prevent touch-to-move (User requested to block move by touch on mobile)
-            const isMobile = window.innerWidth <= 900;
-            if (isMobile && (e.type === 'touchstart' || e.type === 'touchmove')) return;
 
             const x = e.clientX || (e.touches ? e.touches[0].clientX : 0);
             const y = e.clientY || (e.touches ? e.touches[0].clientY : 0);
@@ -204,6 +204,14 @@ export class InputHandler {
 
         canvas.addEventListener('mousedown', handleClick);
         canvas.addEventListener('touchstart', (e) => {
+            const isMobile = window.innerWidth <= 900;
+            if (isMobile) {
+                // Stop synthetic mousedown on mobile
+                if (e.target === canvas) {
+                    // But don't prevent default if it's UI (already handled by event bubbling/propagation, but let's be safe)
+                }
+            }
+
             if (e.touches.length === 1 && !this.joystick.active) {
                 handleClick(e);
             }

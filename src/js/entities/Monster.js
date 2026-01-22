@@ -331,12 +331,19 @@ export default class Monster {
         }
 
         // Monster Name (back to top - adjusted down by 15px)
-        ctx.fillStyle = '#ffffff';
+        const nameY = screenY - this.height / 2 - 5;
         ctx.font = 'bold 13px "Outfit", sans-serif';
         ctx.textAlign = 'center';
+
+        // Black Outline
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.strokeText(this.name, screenX, nameY);
+
+        ctx.fillStyle = '#ffffff';
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
         ctx.shadowBlur = 4;
-        ctx.fillText(this.name, screenX, screenY - this.height / 2 - 5);
+        ctx.fillText(this.name, screenX, nameY);
         ctx.shadowBlur = 0;
 
         // HP Bar background (below character)

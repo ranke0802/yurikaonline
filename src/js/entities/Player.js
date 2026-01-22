@@ -75,7 +75,7 @@ export default class Player {
         this.attackCooldown = 0;
         this.baseAttackDelay = 0.6;
         this.skillCooldowns = { u: 0, k: 0, h: 0, j: 0 };
-        this.skillMaxCooldowns = { u: 5.0, k: 10.0, h: 2.0, j: 0.6 }; // Fireball, Shield, Missile, Attack
+        this.skillMaxCooldowns = { u: 5.0, k: 15.0, h: 2.0, j: 0.8 }; // Fireball, Shield, Missile, Attack
 
         // Shield & Status
         this.shieldTimer = 0;
@@ -500,26 +500,37 @@ export default class Player {
         let vx = move.x;
         let vy = move.y;
 
-        // Click-to-Move Logic for PC/Touch
-        if (vx === 0 && vy === 0 && window.game?.input?.touchMovePos) {
+        // Click-to-Move Logic for PC
+        if (window.game?.input?.touchMovePos) {
             const touch = window.game.input.touchMovePos;
             const cam = window.game.camera;
             const rect = window.game.canvas.getBoundingClientRect();
             const zoom = window.game.zoom;
 
             // Screen to World Conversion: ((ScreenPos - CanvasOffset) / Zoom) + CameraOffset
-            const worldTargetX = ((touch.x - rect.left) / zoom) + cam.x;
-            const worldTargetY = ((touch.y - rect.top) / zoom) + cam.y;
+            // Captured ONCE at click time to prevent drifting
+            this.moveTarget = {
+                x: ((touch.x - rect.left) / zoom) + cam.x,
+                y: ((touch.y - rect.top) / zoom) + cam.y
+            };
+            window.game.input.touchMovePos = null;
+        }
 
-            const dx = worldTargetX - this.x;
-            const dy = worldTargetY - this.y;
+        // Cancel click-to-move if keyboard keys are used
+        if (vx !== 0 || vy !== 0) {
+            this.moveTarget = null;
+        }
+
+        if (vx === 0 && vy === 0 && this.moveTarget) {
+            const dx = this.moveTarget.x - this.x;
+            const dy = this.moveTarget.y - this.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
 
             if (dist > 5) { // Stop when close enough
                 vx = dx / dist;
                 vy = dy / dist;
             } else {
-                window.game.input.touchMovePos = null;
+                this.moveTarget = null;
             }
         }
 
@@ -758,9 +769,15 @@ export default class Player {
 
         // Player Name (back to top - adjusted down by 5px more)
         const nameY = screenY - this.height / 2 - 5;
-        ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 13px "Outfit", sans-serif';
         ctx.textAlign = 'center';
+
+        // Black Outline
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.strokeText(this.name, screenX, nameY);
+
+        ctx.fillStyle = '#ffffff';
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
         ctx.shadowBlur = 4;
         ctx.fillText(this.name, screenX, nameY);

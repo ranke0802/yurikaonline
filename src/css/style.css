@@ -134,10 +134,11 @@ html {
 .attack-btn {
     width: 60px;
     height: 60px;
-    background: #fff;
-    border: 4px solid #fff;
-    border-radius: 50%;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 4px 10px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.9);
+    border: 3px solid #fff;
+    border-radius: 12px;
+    /* Circular(50%) -> rounded square(12px) like Inventory */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -145,7 +146,7 @@ html {
     position: relative;
     font-size: 24px;
     transition: transform 0.1s, background 0.2s;
-    overflow: hidden;
+    /* Removed overflow: hidden to prevent shortcut cropping */
 }
 
 .skill-btn:active,
@@ -169,8 +170,11 @@ html {
 
 .shortcut-badge {
     position: absolute;
-    top: 5px;
-    right: 5px;
+    top: -10px;
+    /* Adjusted to top */
+    left: 50%;
+    transform: translateX(-50%);
+    /* Centered top */
     background: #ff6b6b;
     color: white;
     font-size: 10px;
@@ -603,14 +607,13 @@ html {
 .skill-icon {
     width: 44px;
     height: 44px;
-    background: #fff;
+    background: rgba(0, 0, 0, 0.05);
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 24px;
-    border: 3px solid #fff;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(0, 0, 0, 0.05);
     flex-shrink: 0;
 }
 
@@ -836,14 +839,13 @@ html {
 }
 
 .quest-list-panel {
-    background: rgba(253, 250, 246, 0.95);
-    /* 따뜻한 크림색, 거의 불투명 */
+    background: rgba(253, 250, 246, 0.4);
+    /* PC: 투명하게 (0.95 -> 0.4) */
     border-radius: 18px;
     width: 250px;
-    /* 너비 확보 */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(10px);
-    border: 3px solid #fff;
+    border: 3px solid rgba(255, 255, 255, 0.5);
     overflow: hidden;
     animation: slideInLeft 0.5s ease-out;
 }
@@ -861,13 +863,13 @@ html {
 }
 
 .quest-panel-header {
-    background: #ffecd2;
-    /* 채팅창과 동일한 연한 살구색 헤더 */
+    background: rgba(255, 236, 210, 0.5);
+    /* PC: 투명 헤더 */
     padding: 8px 15px;
     display: flex;
     align-items: center;
     gap: 8px;
-    border-bottom: 2px solid #ffd6a5;
+    border-bottom: 2px solid rgba(255, 214, 165, 0.3);
 }
 
 .quest-panel-header h3 {
@@ -953,15 +955,15 @@ html {
 
 .chat-window {
     width: 250px;
-    /* 퀘스트 창과 너비 통일 */
     height: 180px;
-    background: rgba(253, 250, 246, 0.95);
+    background: rgba(253, 250, 246, 0.4);
+    /* PC: 투명하게 (0.95 -> 0.4) */
     border-radius: 18px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    border: 3px solid #fff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border: 3px solid rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(10px);
 }
 

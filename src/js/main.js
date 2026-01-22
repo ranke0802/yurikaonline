@@ -85,23 +85,19 @@ class Game {
                     this.ui.logSystemMessage(`SKILL: 파이어볼 (Lv.${fLv})`);
                     this.castFireball();
                     player.skillCooldowns['u'] = 5.0;
-                    this.skillMaxCooldowns = { u: 5.0, k: 15.0, h: 2.0, j: 0.6 }; // Fireball, Shield, Missile, AttackCooldown = 0.8;
+                    player.skillMaxCooldowns['u'] = 5.0;
+                    player.attackCooldown = 0.8;
                 }
                 break;
             case 'k':
-                if (player.skillLevels.shield < 1) { // Unlock check
-                    // Assuming level 1 is default, but if we need unlock system, check here. 
-                    // For now, allow usage if learned.
-                }
                 const sCost = 30; // Fixed cost
                 if (player.useMana(sCost)) {
-                    // Duration is effectively infinite until hit, but let's put a long timer just in case
                     const dur = 9999;
                     player.triggerAction(`${player.name} : 앱솔루트 베리어 !!`);
                     player.shieldTimer = dur;
                     player.isShieldActive = true;
                     this.ui.logSystemMessage(`SKILL: 앱솔루트 베리어 - 다음 1회 피격을 무효화합니다.`);
-                    player.skillCooldowns['k'] = 15.0; // Increased CD due to power
+                    player.skillCooldowns['k'] = 15.0;
                     player.skillMaxCooldowns['k'] = 15.0;
                     player.attackCooldown = 0.5;
                 }
@@ -119,12 +115,21 @@ class Game {
 
         this.updateHistory = [
             {
-                version: 'v1.60', date: '2026-01-22', title: 'Movement System Refinement',
+                version: 'v1.61', date: '2026-01-22', title: 'Spawn & Control Fix',
                 logs: [
-                    '플레이어 캐릭터 이름 위치 5px 추가 하향 (이미지에 완전 밀착)',
-                    '클릭 이동(Click-to-Move) 좌표 계산 정밀 보정 (캔버스 오프셋 및 줌 반영)',
-                    'PC: 마우스 우클릭 메뉴 방지 및 왼쪽 클릭 이동 전용 설정',
-                    '모바일: 조이스틱 조작성 강화를 위해 터치 이동 기능 제거'
+                    '몬스터 스폰 로직 개선: 플레이어와 최소 400거리 이상 떨어진 곳에 생성하도록 수정 (낑김 현상 방지)',
+                    '모바일 터치 이동 기능 완전 차단: 조이스틱 조작 중 의도치 않은 이동 현상 해결',
+                    'PC 클릭 이동(Click-to-Move) 드리프트 현상 수정 및 키보드 조작 시 자동 취소',
+                    '단축키 레이아웃 JHUK로 복구 (기존 K 유지)'
+                ]
+            },
+            {
+                version: 'v1.60', date: '2026-01-22', title: 'High-DPI & UI Refinement',
+                logs: [
+                    '모바일 고해상도(Retina) 최적화: Device Pixel Ratio 반영으로 흐릿한 화질 개선',
+                    '이름 외각선(Outline) 추가: 검은색 테두리 적용으로 시인성 강화',
+                    '스킬창 아이콘 프레임 개선: 인벤토리와 동일한 라운드 사각형으로 변경',
+                    'JHUI 단축키 체계 도입: 스킬 배치를 J, H, U, I 순으로 변경'
                 ]
             },
             {
@@ -379,8 +384,11 @@ class Game {
         const isMobile = window.innerWidth <= 900;
         this.zoom = isMobile ? 0.7 : 1.0;
 
-        this.canvas.width = this.width;
-        this.canvas.height = this.height;
+        const ratio = window.devicePixelRatio || 1;
+        this.canvas.width = this.width * ratio;
+        this.canvas.height = this.height * ratio;
+        this.canvas.style.width = this.width + 'px';
+        this.canvas.style.height = this.height + 'px';
 
         if (this.camera) {
             // Camera viewport must be larger to show more of the map relative to the canvas
@@ -589,7 +597,18 @@ class Game {
         if (!this.spawnTimer) this.spawnTimer = 0;
         this.spawnTimer -= dt;
         if (this.spawnTimer <= 0 && this.monsters.length < 10) {
-            const mx = Math.random() * 2000, my = Math.random() * 2000;
+            let mx, my, dist;
+            let attempts = 0;
+            const minSpawnDist = 400; // Minimum distance from player
+
+            // Try to find a spot far from player
+            do {
+                mx = Math.random() * 2000;
+                my = Math.random() * 2000;
+                dist = Math.sqrt((this.localPlayer.x - mx) ** 2 + (this.localPlayer.y - my) ** 2);
+                attempts++;
+            } while (dist < minSpawnDist && attempts < 10);
+
             // 대왕 슬라임은 슬라임 10마리 처치 퀘스트 달성 시에만 확률적으로 스폰
             if (Math.random() < 0.1 && this.localPlayer.questData.slimeKills >= 10) {
                 const b = new Monster(mx, my, '대왕 슬라임');
@@ -635,9 +654,10 @@ class Game {
     }
 
     draw() {
-        this.ctx.clearRect(0, 0, this.width, this.height);
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.save();
-        this.ctx.scale(this.zoom, this.zoom);
+        const ratio = window.devicePixelRatio || 1;
+        this.ctx.scale(this.zoom * ratio, this.zoom * ratio);
 
         this.map.draw(this.camera);
         this.drops.forEach(d => d.draw(this.ctx, this.camera));
