@@ -1057,4 +1057,9 @@ export default class Player {
         const pulse = Math.abs(Math.sin(time * 2)) * 0.3 + 0.1;
         ctx.fillStyle = `rgba(255, 255, 255, ${pulse})`;
         ctx.beginPath();
+        ctx.arc(0, 0, radiusInner * 0.2, 0, Math.PI * 2);
+        ctx.fill();
 
+        ctx.restore();
+    }
+}

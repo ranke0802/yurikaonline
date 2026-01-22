@@ -115,6 +115,12 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.69', date: '2026-01-23', title: 'Emergency Hotfix: Loading Stagnation',
+                logs: [
+                    '로딩 멈춤 현상 수정: 이전 버전 배포 중 발생한 캐릭터 파일(Player.js)의 구문 오류를 수정하여 무한 로딩 발생 문제 해결'
+                ]
+            },
+            {
                 version: 'v1.68', date: '2026-01-23', title: 'Magic Circle Perspective Refinement',
                 logs: [
                     '마법진 원근감 적용: 캐릭터 발밑 지면에 자연스럽게 깔리도록 3D 원근 타원 형태로 개선',
