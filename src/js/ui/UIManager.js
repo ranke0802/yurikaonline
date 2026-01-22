@@ -19,6 +19,9 @@ export class UIManager {
         document.addEventListener('webkitfullscreenchange', updateClass);
         document.addEventListener('mozfullscreenchange', updateClass);
         document.addEventListener('MSFullscreenChange', updateClass);
+
+        // Initial check on load
+        updateClass();
     }
 
     setupEventListeners() {
