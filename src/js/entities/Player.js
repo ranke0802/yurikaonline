@@ -1051,16 +1051,17 @@ export default class Player {
         ctx.shadowColor = '#00d2ff';
         ctx.strokeStyle = 'rgba(72, 219, 251, 0.7)';
 
-        // 1. Two Concentric Circles (Jagged segments)
-        const circleSegments = 16;
-        [radiusOuter, radiusInner].forEach((r, idx) => {
-            ctx.lineWidth = idx === 0 ? 2 : 1.5;
+        // 1. Three Concentric Circles (Jagged segments)
+        // v1.82: Added a third tight outer rim for a "double-line" effect
+        const radiusRim = radiusOuter * 1.08;
+        [radiusRim, radiusOuter, radiusInner].forEach((r, idx) => {
+            // idx 0: Rim (Thin), idx 1: Outer (Bold), idx 2: Inner (Normal)
+            ctx.lineWidth = idx === 0 ? 1 : (idx === 1 ? 2 : 1.5);
             ctx.beginPath();
             for (let i = 0; i < circleSegments; i++) {
                 const a1 = (i / circleSegments) * Math.PI * 2;
                 const a2 = ((i + 1) / circleSegments) * Math.PI * 2;
 
-                // v1.75: Manual squash
                 const x1 = Math.cos(a1) * r;
                 const y1 = Math.sin(a1) * r * Y_SCALE;
                 const x2 = Math.cos(a2) * r;

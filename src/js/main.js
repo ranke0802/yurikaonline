@@ -115,6 +115,13 @@ class Game {
 
         this.updateHistory = [
             {
+                version: 'v1.82', date: '2026-01-23', title: 'Double Outer Rim Update',
+                logs: [
+                    '이중 외곽 테두리 추가: 마법진 가장자리에 얇은 선을 하나 더 추가하여 더욱 정교하고 밀도 있는 디자인 완성',
+                    '시각적 밸런스 조정: 육망성과 룬 사이의 공간감을 최적화하여 가독성과 심미성 향상'
+                ]
+            },
+            {
                 version: 'v1.81', date: '2026-01-23', title: 'Perfect Geometry Finalized',
                 logs: [
                     '육망성 진정한 직선화: 번개 효과 잔재를 완전히 제거하고 100% 직선(lineTo)으로 교구하여 기하학적 완벽함 구현',
