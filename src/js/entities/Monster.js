@@ -357,35 +357,80 @@ export default class Monster {
         ctx.fillStyle = hpPercent > 0.3 ? '#4ade80' : '#ef4444';
         ctx.fillRect(screenX - 30, uiBaseY, 60 * hpPercent, 6);
 
-        // Status Effect Icons (Burn & Electrocuted)
+        // v1.86: Custom Status Icons at the BOTTOM (More fit & Professional)
         const burnEffect = this.statusEffects.find(e => e.type === 'burn');
-        if (burnEffect || (this.electrocutedTimer > 0 && !this.isDead)) {
-            ctx.font = '16px serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
+        if ((burnEffect || this.electrocutedTimer > 0) && !this.isDead) {
+            ctx.save();
+            const iconY = screenY + this.height / 2 + 15; // Directly below feet/shadow
+            let currentX = screenX;
 
-            let startX = screenX - 12; // Start position
-            let iconY = screenY + this.height / 2 + 35;
-            const frameSize = 22;
-            const spacing = 26;
+            // Adjust X for multiple icons
+            if (burnEffect && this.electrocutedTimer > 0) {
+                currentX -= 12;
+            }
 
-            const drawStatusIcon = (icon) => {
-                // 1. Draw Frame Background
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
-                ctx.fillRect(startX - frameSize / 2, iconY - frameSize / 2, frameSize, frameSize);
+            const drawStatusBadge = (type) => {
+                ctx.save();
+                ctx.translate(currentX, iconY);
 
-                // 2. Draw Frame Border
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(startX - frameSize / 2, iconY - frameSize / 2, frameSize, frameSize);
+                // 1. Small pill-shaped background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.beginPath();
+                // Check if roundRect is available (Modern browsers), fallback if needed
+                if (ctx.roundRect) {
+                    ctx.roundRect(-10, -10, 20, 20, 4);
+                } else {
+                    ctx.rect(-10, -10, 20, 20);
+                }
+                ctx.fill();
 
-                // 3. Draw Emoji Icon
-                ctx.fillText(icon, startX, iconY + 1);
-                startX += spacing;
+                // 2. Custom Graphic
+                ctx.lineWidth = 2;
+                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round';
+
+                if (type === 'elec') {
+                    // Custom Lightning Shape (N-style)
+                    ctx.strokeStyle = '#00d2ff';
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = '#00d2ff';
+                    ctx.beginPath();
+                    ctx.moveTo(2, -6);
+                    ctx.lineTo(-3, 0);
+                    ctx.lineTo(3, 0);
+                    ctx.lineTo(-2, 6);
+                    ctx.stroke();
+
+                    // Center Core
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 0.8;
+                    ctx.shadowBlur = 0;
+                    ctx.stroke();
+                } else if (type === 'burn') {
+                    // Custom Flame Shape
+                    ctx.strokeStyle = '#ff4757';
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = '#ff4757';
+                    ctx.beginPath();
+                    ctx.moveTo(0, 5);
+                    ctx.quadraticCurveTo(4, 5, 4, 0);
+                    ctx.quadraticCurveTo(4, -5, 0, -6);
+                    ctx.quadraticCurveTo(-4, -5, -4, 0);
+                    ctx.quadraticCurveTo(-4, 5, 0, 5);
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#ffa502';
+                    ctx.fill();
+                }
+
+                ctx.restore();
+                currentX += 25;
             };
 
-            if (burnEffect) drawStatusIcon('🔥');
-            if (this.electrocutedTimer > 0) drawStatusIcon('⚡');
+            if (burnEffect) drawStatusBadge('burn');
+            if (this.electrocutedTimer > 0) drawStatusBadge('elec');
+
+            ctx.restore();
         }
 
         // Electrocuted Spark Effect (v1.65: Slower flicker style)
