@@ -130,8 +130,8 @@ export default class Player {
             window.game.addDamageText(this.x, this.y - 20, `-${Math.round(manaDamage)}`, '#48dbfb');
         }
 
-        if (finalHpDamage > 0) {
-            this.triggerAction(`-${Math.round(finalHpDamage)}`);
+        if (finalHpDamage > 0 && window.game) {
+            window.game.addDamageText(this.x, this.y - 40, `-${Math.round(finalHpDamage)}`, '#ff4757');
         }
 
         if (this.hp < 1 && !this.isDead) {
