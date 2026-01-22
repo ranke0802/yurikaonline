@@ -487,7 +487,8 @@ class Game {
         let curAggro = this.monsters.filter(m => !m.isDead && m.hp < m.maxHp).length;
         this.monsters.forEach(m => {
             const dist = Math.sqrt((this.localPlayer.x - m.x) ** 2 + (this.localPlayer.y - m.y) ** 2);
-            let isAggro = m.hp < m.maxHp || (dist < 400 && curAggro < pLv && pLv > 1 && (pLv >= 3 || !m.isBoss));
+            // Peace Mode: Only aggro if player has attacked or monster is damaged
+            let isAggro = m.hp < m.maxHp || (this.playerHasAttacked && dist < 400 && curAggro < pLv && pLv > 1 && (pLv >= 3 || !m.isBoss));
             if (isAggro && m.hp >= m.maxHp) curAggro++;
             m.isAggro = isAggro; m.update(dt);
         });
