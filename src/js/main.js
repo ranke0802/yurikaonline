@@ -5,7 +5,7 @@ import TouchHandler from './core/input/TouchHandler.js';
 import KeyboardHandler from './core/input/KeyboardHandler.js';
 import ResourceManager from './core/ResourceManager.js';
 import ZoneManager from './world/ZoneManager.js';
-import { Camera } from './world/Camera.js';
+import Camera from './core/Camera.js';
 import Player from './entities/Player.js';
 import RemotePlayer from './entities/RemotePlayer.js';
 import AuthManager from './core/AuthManager.js';

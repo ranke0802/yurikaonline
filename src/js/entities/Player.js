@@ -1,5 +1,6 @@
 import Actor from './Actor.js';
 import Logger from '../utils/Logger.js';
+import { Sprite } from '../core/Sprite.js';
 
 export default class Player extends Actor {
     constructor(x, y, name = "Hero") {
@@ -22,8 +23,8 @@ export default class Player extends Actor {
         this.attackCooldown = 0;
 
         // Visuals
-        this.animations = {};
-        this.currentAnim = 'idle_down';
+        this.sprite = null;
+        this.direction = 1; // Default to Front
         this.animFrame = 0;
         this.animTimer = 0;
         this.animSpeed = 10; // FPS
@@ -41,7 +42,7 @@ export default class Player extends Actor {
     // Initialize with game dependencies
     init(inputManager, resourceManager) {
         this.input = inputManager;
-        this._loadAnimations(resourceManager);
+        this._loadSpriteSheet(resourceManager);
 
         // Bind input actions to methods
         this.input.on('keydown', (action) => {
@@ -50,32 +51,17 @@ export default class Player extends Actor {
         });
     }
 
-    async _loadAnimations(res) {
+    async _loadSpriteSheet(res) {
         if (!res) return;
 
-        const config = {
-            'move_down': { path: 'assets/resource/magicion_front/', count: 8 },
-            'move_up': { path: 'assets/resource/magicion_back/', count: 5 },
-            'move_left': { path: 'assets/resource/magicion_left/', count: 7 },
-            'move_right': { path: 'assets/resource/magicion_right/', count: 9 },
-            'attack': { path: 'assets/resource/magician_attack/', count: 13 }
-        };
-
-        for (const [key, conf] of Object.entries(config)) {
-            this.animations[key] = [];
-            for (let i = 1; i <= conf.count; i++) {
-                // Determine extension (assuming png based on previous checks)
-                const url = `${conf.path}${i}.png`;
-                // Load asynchronously but don't block everything? 
-                // Better to fire and forget or let ResourceManager cache handle it.
-                // We'll push a placeholder or wait? 
-                try {
-                    const img = await res.loadImage(url);
-                    this.animations[key].push(img);
-                } catch (e) {
-                    Logger.warn(`Failed to load anim frame: ${url}`);
-                }
-            }
+        try {
+            const sheetCanvas = await res.loadCharacterSpriteSheet();
+            // Max Frames 8, Rows 5 (Back, Front, Left, Right, Attack)
+            this.sprite = new Sprite(sheetCanvas, 8, 5);
+            // Frame counts per row (0:Back, 1:Front, 2:Left, 3:Right, 4:Attack)
+            this.frameCounts = { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 };
+        } catch (e) {
+            Logger.error('Failed to load character sprite sheet', e);
         }
     }
 
@@ -111,11 +97,12 @@ export default class Player extends Actor {
             this.vy = vy * this.speed;
             this.state = 'move';
 
-            // Direction Logic
+            // Direction Logic for Sprite Rows
+            // Legacy Rows: 0:Back, 1:Front, 2:Left, 3:Right
             if (Math.abs(vx) > Math.abs(vy)) {
-                this.direction = vx > 0 ? 'right' : 'left';
+                this.direction = vx > 0 ? 3 : 2; // Right : Left
             } else {
-                this.direction = vy > 0 ? 'down' : 'up';
+                this.direction = vy > 0 ? 1 : 0; // Front : Back
             }
         } else {
             this.vx = 0;
@@ -129,28 +116,24 @@ export default class Player extends Actor {
     }
 
     _updateAnimation(dt) {
-        // Determine current animation key
+        // Determine Row
+        let row = this.direction;
         if (this.isAttacking) {
-            this.currentAnim = 'attack';
-        } else if (this.state === 'move') {
-            this.currentAnim = `move_${this.direction}`;
-        } else {
-            this.currentAnim = `move_${this.direction}`; // Use move frame 0 for idle
+            row = 4; // Attack Row
+            // If attack, override direction visually just for sprite? 
+            // Legacy uses row 4 for attack.
         }
 
-        const frames = this.animations[this.currentAnim];
-        if (!frames || frames.length === 0) return;
+        const maxFrames = this.frameCounts ? (this.frameCounts[row] || 8) : 8;
 
-        // Update Timer
         if (this.state === 'move' || this.isAttacking) {
             this.animTimer += dt * this.animSpeed;
-            if (this.animTimer >= frames.length) {
-                this.animTimer = 0; // Loop
-                // Note: For attack, we might want to stop at end or reset state
+            if (this.animTimer >= maxFrames) {
+                this.animTimer = 0;
             }
-            this.animFrame = Math.floor(this.animTimer) % frames.length;
+            this.animFrame = Math.floor(this.animTimer) % maxFrames;
         } else {
-            this.animFrame = 0; // Idle
+            this.animFrame = 0; // Idle frame
             this.animTimer = 0;
         }
     }
@@ -160,7 +143,7 @@ export default class Player extends Actor {
 
         Logger.log('Player Attack!');
         this.isAttacking = true;
-        this.attackCooldown = 0.6; // Slightly longer than animation (6 frames / 10 fps = 0.6s)
+        this.attackCooldown = 0.6;
         this.state = 'attack';
         this.animTimer = 0;
         this.animFrame = 0;
@@ -197,20 +180,19 @@ export default class Player extends Actor {
         ctx.ellipse(centerX, y + this.height - 4, 14, 7, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // 2. Draw Animation Frame
-        const frames = this.animations[this.currentAnim];
-        if (frames && frames[this.animFrame]) {
-            const img = frames[this.animFrame];
-            // Draw centered, assuming frames are decent size. 
-            // Scale to match hitbox approx? Or keep original size?
-            // Original images seemed ~100-200px? Let's fix draw size.
-            const drawW = 100;
-            const drawH = 100;
-            // Align feet
+        // 2. Draw Sprite
+        if (this.sprite) {
+            let row = this.isAttacking ? 4 : this.direction;
+            let col = this.animFrame;
+
+            // Legacy visual size: 120x120
+            const drawW = 120;
+            const drawH = 120;
+
             const drawX = centerX - drawW / 2;
             const drawY = y + this.height - drawH + 10;
 
-            ctx.drawImage(img, drawX, drawY, drawW, drawH);
+            this.sprite.draw(ctx, row, col, drawX, drawY, drawW, drawH);
         } else {
             // Fallback (Circle)
             ctx.fillStyle = this.isAttacking ? '#ff6b6b' : '#0984e3';

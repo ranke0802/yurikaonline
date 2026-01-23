@@ -21,13 +21,13 @@ export default class ZoneManager {
             // 200x200 tiles (Large Map)
             width: 200,
             height: 200,
-            backgroundSrc: 'src/assets/grass_tile.png'
+            backgroundSrc: 'assets/resource/background.png'
         };
 
         // Load background tile
         try {
             this.bgImage = await this.res.loadImage(this.currentZone.backgroundSrc);
-            this.bgPattern = null; // Will be created in render or here (context needed)
+            this.bgPattern = null;
         } catch (e) {
             Logger.warn('Failed to load map tile', e);
         }
@@ -47,25 +47,22 @@ export default class ZoneManager {
         if (this.bgImage) {
             if (!this.bgPattern) {
                 this.bgPattern = ctx.createPattern(this.bgImage, 'repeat');
+                Logger.info('ZoneManager: Pattern created successfully.');
             }
+
+            if (!this.hasLoggedRender) {
+                Logger.info(`ZoneRender: Cam=${camera.x},${camera.y} ${camera.width}x${camera.height} | Image Loaded: ${this.bgImage.complete} ${this.bgImage.naturalWidth}x${this.bgImage.naturalHeight}`);
+                this.hasLoggedRender = true;
+            }
+
+            ctx.save();
+            // Context is already in World Space from Main.js
+            // Pattern origin will align with World(0,0) automatically
             ctx.fillStyle = this.bgPattern;
 
-            // Optimization: Draw slightly more than the camera view to avoid flickering
-            // But pattern fillRect is fast. Let's start with filling visible area.
-            ctx.save();
-            ctx.translate(0, 0); // Pattern is world-aligned by default if we draw from 0,0?
-            // Actually createPattern aligns to the origin of the canvas (screen), 
-            // but we are already translated by camera in Main.js (-camera.x, -camera.y).
-            // So filling rect at (0,0, worldW, worldH) works and aligns to world.
+            // Draw only the visible area (Camera Viewport) in World Coordinates
+            ctx.fillRect(camera.x, camera.y, camera.width, camera.height);
 
-            // However, filling a huge 6400x6400 rect might be slow on some devices?
-            // Let's cull.
-            const startX = Math.floor(camera.x / this.tileSize) * this.tileSize;
-            const startY = Math.floor(camera.y / this.tileSize) * this.tileSize;
-            const endX = startX + camera.width + this.tileSize * 2;
-            const endY = startY + camera.height + this.tileSize * 2;
-
-            ctx.fillRect(startX, startY, endX - startX, endY - startY);
             ctx.restore();
         } else {
             // Fallback Color

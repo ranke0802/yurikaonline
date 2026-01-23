@@ -1,5 +1,6 @@
 import Actor from './Actor.js';
 import Logger from '../utils/Logger.js';
+import { Sprite } from '../core/Sprite.js';
 
 export default class RemotePlayer extends Actor {
     constructor(id, x, y, resourceManager) {
@@ -12,47 +13,25 @@ export default class RemotePlayer extends Actor {
         this.serverTime = 0;
 
         // Visuals
-        this.animations = {};
-        this.currentAnim = 'idle_down';
+        this.sprite = null;
+        this.direction = 1; // Default to Front
         this.animFrame = 0;
         this.animTimer = 0;
         this.animSpeed = 10;
         this.width = 48;
         this.height = 48;
 
-        this._loadAnimations(resourceManager);
+        this._loadSpriteSheet(resourceManager);
     }
 
-    async _loadAnimations(res) {
+    async _loadSpriteSheet(res) {
         if (!res) return;
-
-        // Config based on directory scan
-        // Warning: 'right' folder had messy filenames (4..9, 05). 
-        // We will try 1..8 for valid folders and specific logic if needed, 
-        // but for now let's try standard 1..8 and let ResourceManager cache/fail handle it.
-        const config = {
-            'move_down': { path: 'assets/resource/magicion_front/', count: 8 },
-            'move_up': { path: 'assets/resource/magicion_back/', count: 5 }, // Found 5 files
-            'move_left': { path: 'assets/resource/magicion_left/', count: 7 }, // Found 7 files
-            'move_right': { path: 'assets/resource/magicion_right/', count: 9 }, // Try up to 9 to catch the high numbers
-            'attack': { path: 'assets/resource/magician_attack/', count: 13 }
-        };
-
-        for (const [key, conf] of Object.entries(config)) {
-            this.animations[key] = [];
-            for (let i = 1; i <= conf.count; i++) {
-                // Handle numbering (some might be 01, 02.. or just 1, 2)
-                // The list showed '1.png', '4.png'. 
-                // We'll just try loading i.png.
-                const url = `${conf.path}${i}.png`;
-                try {
-                    const img = await res.loadImage(url);
-                    this.animations[key].push(img);
-                } catch (e) {
-                    // Start index might be non-1 or gaps exist (like right folder 4..9)
-                    // Just ignore failure.
-                }
-            }
+        try {
+            const sheetCanvas = await res.loadCharacterSpriteSheet();
+            this.sprite = new Sprite(sheetCanvas, 8, 5);
+            this.frameCounts = { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 };
+        } catch (e) {
+            Logger.error("Failed to load character sprite sheet for RemotePlayer:", e);
         }
     }
 
@@ -79,12 +58,11 @@ export default class RemotePlayer extends Actor {
         // Determine state for animation
         if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
             this.state = 'move';
-
-            // Direction check
+            // Direction Logic for Sprite Rows (0:Back, 1:Front, 2:Left, 3:Right)
             if (Math.abs(dx) > Math.abs(dy)) {
-                this.direction = dx > 0 ? 'right' : 'left';
+                this.direction = dx > 0 ? 3 : 2; // Right : Left
             } else {
-                this.direction = dy > 0 ? 'down' : 'up';
+                this.direction = dy > 0 ? 1 : 0; // Front : Back
             }
         } else {
             this.state = 'idle';
@@ -98,23 +76,18 @@ export default class RemotePlayer extends Actor {
     }
 
     _updateAnimation(dt) {
-        if (this.state === 'move') {
-            this.currentAnim = `move_${this.direction}`;
-        } else {
-            this.currentAnim = `move_${this.direction}`; // Idle uses movement frame 0
-        }
+        let row = this.direction;
+        // Note: Remote player attack not yet fully synced via state, but if we add it:
+        // if (this.state === 'attack') row = 4;
 
-        const frames = this.animations[this.currentAnim];
-        // Fallback for right/left if missing?
-
-        if (!frames || frames.length === 0) return;
+        const maxFrames = this.frameCounts ? (this.frameCounts[row] || 8) : 8;
 
         if (this.state === 'move') {
             this.animTimer += dt * this.animSpeed;
-            if (this.animTimer >= frames.length) {
+            if (this.animTimer >= maxFrames) {
                 this.animTimer = 0;
             }
-            this.animFrame = Math.floor(this.animTimer) % frames.length;
+            this.animFrame = Math.floor(this.animTimer) % maxFrames;
         } else {
             this.animFrame = 0;
             this.animTimer = 0;
@@ -141,15 +114,19 @@ export default class RemotePlayer extends Actor {
         ctx.ellipse(centerX, y + this.height - 4, 14, 7, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // 2. Draw Animation
-        const frames = this.animations[this.currentAnim];
-        if (frames && frames[this.animFrame]) {
-            const img = frames[this.animFrame];
-            const drawW = 100;
-            const drawH = 100;
+        // 2. Draw Sprite
+        if (this.sprite) {
+            let row = this.direction; // Add attack check later
+            let col = this.animFrame;
+
+            // Legacy visual size: 120x120
+            const drawW = 120;
+            const drawH = 120;
+
             const drawX = centerX - drawW / 2;
             const drawY = y + this.height - drawH + 10;
-            ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+            this.sprite.draw(ctx, row, col, drawX, drawY, drawW, drawH);
         } else {
             // Fallback (Red Circle)
             const time = Date.now() / 200;
