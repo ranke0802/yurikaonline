@@ -126,291 +126,301 @@ export default class NetworkManager extends EventEmitter {
     }
 
     // --- Host Logic ---
-    _checkHostStatus() {
-        const now = Date.now();
-        const timeout = 60000; // 60s Active Timeout (Relaxed)
+    const now = Date.now();
+    const timeout = 60000; // 60s Active Timeout (Relaxed)
 
         // Update self
         this.userLastSeen.set(this.playerId, now);
 
-        // Filter active users
-        const activeUsers = this.connectedUsers.filter(uid => {
-            if (uid === this.playerId) return true;
-            const last = this.userLastSeen.get(uid) || 0;
-            return (now - last) < timeout;
-        });
+// Failsafe: If I am the only connected user, Force Host immediately
+if (this.connectedUsers.length === 1 && this.connectedUsers[0] === this.playerId) {
+    if (!this.isHost) {
+        this.isHost = true;
+        Logger.info('Host (Single User Force)');
+        this.emit('hostChanged', true);
+        this._startCleanupLoop();
+    }
+    return;
+}
 
-        activeUsers.sort();
+// Filter active users
+const activeUsers = this.connectedUsers.filter(uid => {
+    if (uid === this.playerId) return true;
+    const last = this.userLastSeen.get(uid) || 0;
+    return (now - last) < timeout;
+});
 
-        // Host is the first ACTIVE user
-        if (activeUsers.length > 0 && activeUsers[0] === this.playerId) {
-            if (!this.isHost) {
-                this.isHost = true;
-                Logger.info('I am the HOST (Active Check)');
-                this.emit('hostChanged', true);
-                this._startCleanupLoop();
-            }
-        } else {
-            if (this.isHost) {
-                this.isHost = false;
-                Logger.info('I am a GUEST client');
-                this.emit('hostChanged', false);
-                this._stopCleanupLoop();
-            }
-        }
+activeUsers.sort();
+
+// Host is the first ACTIVE user
+if (activeUsers.length > 0 && activeUsers[0] === this.playerId) {
+    if (!this.isHost) {
+        this.isHost = true;
+        Logger.info('I am the HOST (Active Check)');
+        this.emit('hostChanged', true);
+        this._startCleanupLoop();
+    }
+} else {
+    if (this.isHost) {
+        this.isHost = false;
+        Logger.info('I am a GUEST client');
+        this.emit('hostChanged', false);
+        this._stopCleanupLoop();
+    }
+}
     }
 
-    _startCleanupLoop() {
-        if (this.cleanupTimer) clearInterval(this.cleanupTimer);
-        this.cleanupTimer = setInterval(() => this._cleanupStaleUsers(), 5000); // Check every 5s
-    }
+_startCleanupLoop() {
+    if (this.cleanupTimer) clearInterval(this.cleanupTimer);
+    this.cleanupTimer = setInterval(() => this._cleanupStaleUsers(), 5000); // Check every 5s
+}
 
-    _stopCleanupLoop() {
-        if (this.cleanupTimer) {
-            clearInterval(this.cleanupTimer);
-            this.cleanupTimer = null;
-        }
+_stopCleanupLoop() {
+    if (this.cleanupTimer) {
+        clearInterval(this.cleanupTimer);
+        this.cleanupTimer = null;
     }
+}
 
     async _cleanupStaleUsers() {
-        if (!this.connected || !this.isHost) return;
+    if (!this.connected || !this.isHost) return;
 
-        const now = Date.now();
-        const staleTimeout = 180 * 1000; // 3 minutes
+    const now = Date.now();
+    const staleTimeout = 180 * 1000; // 3 minutes
 
-        try {
-            const snapshot = await this.dbRef.child('users').once('value');
-            if (!snapshot.exists()) return;
+    try {
+        const snapshot = await this.dbRef.child('users').once('value');
+        if (!snapshot.exists()) return;
 
-            snapshot.forEach(child => {
-                if (child.key === this.playerId) return;
+        snapshot.forEach(child => {
+            if (child.key === this.playerId) return;
 
-                const val = child.val();
-                let lastTs = 0;
-                const posData = Array.isArray(val) ? val : (val.p || null);
+            const val = child.val();
+            let lastTs = 0;
+            const posData = Array.isArray(val) ? val : (val.p || null);
 
-                if (posData && Array.isArray(posData)) {
-                    lastTs = posData[4] || 0;
-                } else if (val.ts) {
-                    lastTs = val.ts;
-                }
+            if (posData && Array.isArray(posData)) {
+                lastTs = posData[4] || 0;
+            } else if (val.ts) {
+                lastTs = val.ts;
+            }
 
-                // If very old, delete from DB
-                if (now - lastTs > staleTimeout) {
-                    Logger.log(`[Host] Removing stale user: ${child.key}`);
-                    this.dbRef.child(`users/${child.key}`).remove();
-                }
-            });
-        } catch (e) {
-            Logger.error('Cleanup failed', e);
-        }
-    }
-
-    sendMonsterUpdate(id, data) {
-        if (!this.connected || !this.isHost) return;
-        if (!id || !data) return;
-
-        // Validation to prevent Firebase Errors (No Spread to avoid undefined fields)
-        const safeData = {
-            x: Math.round(data.x || 0),
-            y: Math.round(data.y || 0),
-            hp: Math.round(data.hp || 0),
-            maxHp: Math.round(data.maxHp || 100),
-            type: data.type || 'slime'
-        };
-
-        this.dbRef.child(`monsters/${id}`).set(safeData).catch(e => { });
-    }
-
-    removeMonster(id) {
-        if (!this.connected || !this.isHost) return;
-        this.dbRef.child(`monsters/${id}`).remove().catch(e => { });
-    }
-
-    // --- Drop Methods ---
-    spawnDrop(data) {
-        if (!this.connected || !this.isHost) return;
-        const ref = this.dbRef.child('drops').push();
-        ref.set({
-            x: Math.round(data.x),
-            y: Math.round(data.y),
-            type: data.type,
-            amount: data.amount,
-            ts: Date.now()
-        }).catch(e => { });
-    }
-
-    removeDrop(id) {
-        if (!this.connected || !this.isHost) return;
-        this.dbRef.child(`drops/${id}`).remove().catch(e => { });
-    }
-
-    collectDrop(dropId) {
-        if (!this.connected || !this.playerId) return;
-        // Request collection: { did: dropId, cid: collectorId }
-        this.dbRef.child('drop_collection').push({
-            did: dropId,
-            cid: this.playerId,
-            ts: Date.now()
+            // If very old, delete from DB
+            if (now - lastTs > staleTimeout) {
+                Logger.log(`[Host] Removing stale user: ${child.key}`);
+                this.dbRef.child(`users/${child.key}`).remove();
+            }
         });
+    } catch (e) {
+        Logger.error('Cleanup failed', e);
+    }
+}
+
+sendMonsterUpdate(id, data) {
+    if (!this.connected || !this.isHost) return;
+    if (!id || !data) return;
+
+    // Validation to prevent Firebase Errors (No Spread to avoid undefined fields)
+    const safeData = {
+        x: Math.round(data.x || 0),
+        y: Math.round(data.y || 0),
+        hp: Math.round(data.hp || 0),
+        maxHp: Math.round(data.maxHp || 100),
+        type: data.type || 'slime'
+    };
+
+    this.dbRef.child(`monsters/${id}`).set(safeData).catch(e => { });
+}
+
+removeMonster(id) {
+    if (!this.connected || !this.isHost) return;
+    this.dbRef.child(`monsters/${id}`).remove().catch(e => { });
+}
+
+// --- Drop Methods ---
+spawnDrop(data) {
+    if (!this.connected || !this.isHost) return;
+    const ref = this.dbRef.child('drops').push();
+    ref.set({
+        x: Math.round(data.x),
+        y: Math.round(data.y),
+        type: data.type,
+        amount: data.amount,
+        ts: Date.now()
+    }).catch(e => { });
+}
+
+removeDrop(id) {
+    if (!this.connected || !this.isHost) return;
+    this.dbRef.child(`drops/${id}`).remove().catch(e => { });
+}
+
+collectDrop(dropId) {
+    if (!this.connected || !this.playerId) return;
+    // Request collection: { did: dropId, cid: collectorId }
+    this.dbRef.child('drop_collection').push({
+        did: dropId,
+        cid: this.playerId,
+        ts: Date.now()
+    });
+}
+
+// Packet: [x, y, vx, vy, timestamp, name]
+// Compact array to save bandwidth (360MB daily limit optimization)
+sendMovePacket(x, y, vx, vy, name) {
+    if (!this.connected || !this.playerId) return;
+
+    const now = Date.now();
+    // Throttle Network Calls
+    if (now - this.lastSyncTime < this.syncInterval) return;
+
+    // Validation to prevent Firebase Errors
+    const safeX = (isNaN(x) || x === null || x === undefined) ? 0 : Math.round(x);
+    const safeY = (isNaN(y) || y === null || y === undefined) ? 0 : Math.round(y);
+    const safeVx = (isNaN(vx) || vx === null || vx === undefined) ? 0 : parseFloat(vx.toFixed(2));
+    const safeVy = (isNaN(vy) || vy === null || vy === undefined) ? 0 : parseFloat(vy.toFixed(2));
+
+    // Idle Suppression: Skip if position and velocity haven't changed meaningfully
+    if (this.lastPacketData) {
+        const [lx, ly, lvx, lvy] = this.lastPacketData;
+        const posChanged = Math.abs(safeX - lx) > 1 || Math.abs(safeY - ly) > 1;
+        const velChanged = Math.abs(safeVx - lvx) > 0.01 || Math.abs(safeVy - lvy) > 0.01;
+        const isMoving = Math.abs(safeVx) > 0.1 || Math.abs(safeVy) > 0.1;
+
+        // If stationary and state hasn't changed, skip
+        if (!posChanged && !velChanged && !isMoving) return;
     }
 
-    // Packet: [x, y, vx, vy, timestamp, name]
-    // Compact array to save bandwidth (360MB daily limit optimization)
-    sendMovePacket(x, y, vx, vy, name) {
-        if (!this.connected || !this.playerId) return;
+    const packet = [
+        safeX,
+        safeY,
+        safeVx,
+        safeVy,
+        now,
+        name || "Unknown"
+    ];
 
-        const now = Date.now();
-        // Throttle Network Calls
-        if (now - this.lastSyncTime < this.syncInterval) return;
+    this.lastPacketData = packet;
+    this.lastSyncTime = now;
 
-        // Validation to prevent Firebase Errors
-        const safeX = (isNaN(x) || x === null || x === undefined) ? 0 : Math.round(x);
-        const safeY = (isNaN(y) || y === null || y === undefined) ? 0 : Math.round(y);
-        const safeVx = (isNaN(vx) || vx === null || vx === undefined) ? 0 : parseFloat(vx.toFixed(2));
-        const safeVy = (isNaN(vy) || vy === null || vy === undefined) ? 0 : parseFloat(vy.toFixed(2));
+    // Update Position Node 'p'
+    this.dbRef.child(`users/${this.playerId}/p`).set(packet).catch(e => { });
+}
 
-        // Idle Suppression: Skip if position and velocity haven't changed meaningfully
-        if (this.lastPacketData) {
-            const [lx, ly, lvx, lvy] = this.lastPacketData;
-            const posChanged = Math.abs(safeX - lx) > 1 || Math.abs(safeY - ly) > 1;
-            const velChanged = Math.abs(safeVx - lvx) > 0.01 || Math.abs(safeVy - lvy) > 0.01;
-            const isMoving = Math.abs(safeVx) > 0.1 || Math.abs(safeVy) > 0.1;
+sendAttack(x, y, direction) {
+    if (!this.connected || !this.playerId) return;
+    // Attack Packet: [timestamp, x, y, direction]
+    const attackPacket = [Date.now(), Math.round(x), Math.round(y), direction];
+    // Update Attack Node 'a'
+    this.dbRef.child(`users/${this.playerId}/a`).set(attackPacket);
+}
 
-            // If stationary and state hasn't changed, skip
-            if (!posChanged && !velChanged && !isMoving) return;
-        }
+sendMonsterDamage(monsterId, damage) {
+    if (!this.connected || !this.playerId) return;
+    this.dbRef.child('monster_damage').push({
+        mid: monsterId,
+        dmg: Math.round(damage),
+        aid: this.playerId,
+        ts: Date.now()
+    });
+}
 
-        const packet = [
-            safeX,
-            safeY,
-            safeVx,
-            safeVy,
-            now,
-            name || "Unknown"
-        ];
+sendPlayerDamage(targetId, damage) {
+    if (!this.connected || !this.playerId) return;
+    // Optimization: Use a push-queue for player damage
+    const ref = this.dbRef.child('player_damage').push();
+    ref.set({
+        tid: targetId,
+        dmg: Math.round(damage),
+        aid: this.playerId,
+        ts: Date.now()
+    });
+}
 
-        this.lastPacketData = packet;
-        this.lastSyncTime = now;
+sendReward(playerId, data) {
+    if (!this.connected || !this.isHost) return;
+    // data: { exp: number, gold: number, items: [] }
+    this.dbRef.child(`rewards/${playerId}`).push(data).catch(e => { });
+}
 
-        // Update Position Node 'p'
-        this.dbRef.child(`users/${this.playerId}/p`).set(packet).catch(e => { });
+_onPlayerAdded(snapshot) {
+    const uid = snapshot.key;
+    const val = snapshot.val();
+
+    // Host Logic: Timestamp
+    let ts = Date.now();
+    const posData = Array.isArray(val) ? val : (val.p || null);
+    if (posData && Array.isArray(posData)) {
+        ts = posData[4] || 0;
+    }
+    this.userLastSeen.set(uid, ts);
+
+    if (!this.connectedUsers.includes(uid)) {
+        this.connectedUsers.push(uid);
+        this.connectedUsers.sort();
+        this._checkHostStatus(); // Check if this new user (or existing ghost) changes host status
     }
 
-    sendAttack(x, y, direction) {
-        if (!this.connected || !this.playerId) return;
-        // Attack Packet: [timestamp, x, y, direction]
-        const attackPacket = [Date.now(), Math.round(x), Math.round(y), direction];
-        // Update Attack Node 'a'
-        this.dbRef.child(`users/${this.playerId}/a`).set(attackPacket);
-    }
+    if (uid === this.playerId) return;
 
-    sendMonsterDamage(monsterId, damage) {
-        if (!this.connected || !this.playerId) return;
-        this.dbRef.child('monster_damage').push({
-            mid: monsterId,
-            dmg: Math.round(damage),
-            aid: this.playerId,
-            ts: Date.now()
-        });
-    }
+    if (!posData || !Array.isArray(posData)) return;
 
-    sendPlayerDamage(targetId, damage) {
-        if (!this.connected || !this.playerId) return;
-        // Optimization: Use a push-queue for player damage
-        const ref = this.dbRef.child('player_damage').push();
-        ref.set({
-            tid: targetId,
-            dmg: Math.round(damage),
-            aid: this.playerId,
-            ts: Date.now()
-        });
-    }
+    this.emit('playerJoined', {
+        id: uid,
+        x: posData[0],
+        y: posData[1],
+        name: posData[5] || "Unknown"
+    });
+}
 
-    sendReward(playerId, data) {
-        if (!this.connected || !this.isHost) return;
-        // data: { exp: number, gold: number, items: [] }
-        this.dbRef.child(`rewards/${playerId}`).push(data).catch(e => { });
-    }
+_onPlayerChanged(snapshot) {
+    const uid = snapshot.key;
+    const val = snapshot.val();
 
-    _onPlayerAdded(snapshot) {
-        const uid = snapshot.key;
-        const val = snapshot.val();
-
-        // Host Logic: Timestamp
-        let ts = Date.now();
-        const posData = Array.isArray(val) ? val : (val.p || null);
-        if (posData && Array.isArray(posData)) {
-            ts = posData[4] || 0;
-        }
+    // Host Logic: Update Timestamp
+    const posData = Array.isArray(val) ? val : (val.p || null);
+    if (posData && Array.isArray(posData)) {
+        const ts = posData[4] || Date.now();
         this.userLastSeen.set(uid, ts);
+        this._checkHostStatus(); // User became active, re-check
+    }
 
-        if (!this.connectedUsers.includes(uid)) {
-            this.connectedUsers.push(uid);
-            this.connectedUsers.sort();
-            this._checkHostStatus(); // Check if this new user (or existing ghost) changes host status
-        }
+    if (uid === this.playerId) return;
 
-        if (uid === this.playerId) return;
-
-        if (!posData || !Array.isArray(posData)) return;
-
-        this.emit('playerJoined', {
+    // Position Update
+    if (posData && Array.isArray(posData)) {
+        this.emit('playerUpdate', {
             id: uid,
             x: posData[0],
             y: posData[1],
+            vx: posData[2],
+            vy: posData[3],
+            ts: posData[4],
             name: posData[5] || "Unknown"
         });
     }
 
-    _onPlayerChanged(snapshot) {
-        const uid = snapshot.key;
-        const val = snapshot.val();
-
-        // Host Logic: Update Timestamp
-        const posData = Array.isArray(val) ? val : (val.p || null);
-        if (posData && Array.isArray(posData)) {
-            const ts = posData[4] || Date.now();
-            this.userLastSeen.set(uid, ts);
-            this._checkHostStatus(); // User became active, re-check
-        }
-
-        if (uid === this.playerId) return;
-
-        // Position Update
-        if (posData && Array.isArray(posData)) {
-            this.emit('playerUpdate', {
-                id: uid,
-                x: posData[0],
-                y: posData[1],
-                vx: posData[2],
-                vy: posData[3],
-                ts: posData[4],
-                name: posData[5] || "Unknown"
-            });
-        }
-
-        // Attack Update
-        if (val && val.a && Array.isArray(val.a)) {
-            this.emit('playerAttack', {
-                id: uid,
-                ts: val.a[0],
-                x: val.a[1],
-                y: val.a[2],
-                dir: val.a[3]
-            });
-        }
+    // Attack Update
+    if (val && val.a && Array.isArray(val.a)) {
+        this.emit('playerAttack', {
+            id: uid,
+            ts: val.a[0],
+            x: val.a[1],
+            y: val.a[2],
+            dir: val.a[3]
+        });
     }
+}
 
-    _onPlayerRemoved(snapshot) {
-        const uid = snapshot.key;
+_onPlayerRemoved(snapshot) {
+    const uid = snapshot.key;
 
-        this.connectedUsers = this.connectedUsers.filter(id => id !== uid);
-        this.connectedUsers.sort();
-        this.userLastSeen.delete(uid);
-        this._checkHostStatus();
+    this.connectedUsers = this.connectedUsers.filter(id => id !== uid);
+    this.connectedUsers.sort();
+    this.userLastSeen.delete(uid);
+    this._checkHostStatus();
 
-        Logger.log(`Player Left: ${uid}`);
-        this.emit('playerLeft', uid);
-    }
+    Logger.log(`Player Left: ${uid}`);
+    this.emit('playerLeft', uid);
+}
 }

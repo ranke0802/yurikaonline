@@ -192,7 +192,7 @@ class Game {
 
         this.updateLoading('캐릭터 생성 및 최적화 중...', 95);
         // Spawn Player
-        this.player = new Player(startX, startY, user.displayName || "Hero");
+        this.player = new Player(startX, startY, user.displayName || "유리카");
         this.player.id = user.uid; // Ensure UID is set
         this.localPlayer = this.player; // Alias used by Monster AI
 
@@ -206,7 +206,7 @@ class Game {
             this.player.agility = profile.agility || 1;
             this.player.statPoints = profile.statPoints || 0;
             this.player.skillLevels = profile.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
-            this.player.name = profile.name || user.displayName || "Hero";
+            this.player.name = profile.name || user.displayName || "유리카";
             this.player.refreshStats();
         }
         this.player.init(this.input, this.resources, this.net);

@@ -1,10 +1,12 @@
-# 🎮 Yurika Online (유리카 온라인) - v0.07 (Online Refactor)
+# 🎮 Yurika Online (유리카 온라인) - v0.08 (Host Logic Fix)
 
-[**🎮 Firebase 라이브 데모 (v0.05 )**](https://yurika-online.web.app/)
+[**🎮 Firebase 라이브 데모 (v0.08)**](https://yurika-online.web.app/)
 
-**유리카 온라인: 리팩토링 프로젝트**는 기존의 단일 파일 구조였던 웹 게임을 **현대적인 모듈형 아키텍처**와 **실시간 멀티플레이어** 환경으로 재구축하는 대규모 개편 작업입니다.
-Firebase Hosting 연동
----
+## 📜 v0.08 - 싱글 플레이 호스트 권한 수정 (2026-01-23)
+- **Host Logic Fix**: 혼자 접속 시 호스트 권한(Host Authority)을 강제로 부여하여 AI, 드랍, 퀘스트 로직 정상화 (Network Failsafe).
+- **Network Stability**: `NetworkManager`의 호스트 선정 알고리즘 개선 및 연결 안정성 확보.
+- **Optimization**: `MonsterManager` 불필요한 디버그 로그 제거 및 성능 최적화.
+- **Quest System Fix**: `Player` 퀘스트 데이터 중복 초기화 문제 해결.
 
 ## 📜 v0.07 - 게임플레이 컨텐츠 확장 & 모바일 최적화 (2026-01-23)
 - **모바일 품질 개선 (Mobile Quality)**

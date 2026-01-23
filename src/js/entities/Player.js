@@ -41,14 +41,6 @@ export default class Player extends Actor {
         };
 
         // Quest Data
-        this.questData = {
-            slimeKills: 0,
-            bossKilled: false,
-            slimeQuestClaimed: false,
-            bossQuestClaimed: false,
-            _slimeMsgShown: false,
-            _bossMsgShown: false
-        };
 
         // Skill State
 

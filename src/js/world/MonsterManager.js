@@ -101,11 +101,10 @@ export default class MonsterManager {
 
                 // Quest Update (Host Logic)
                 // If the killer is the host player (simplification), update Quest
-                // In a real server, we'd credit the `lastAttackerId`.
-                // Checking local player for now as Host is also a player
                 if (player && player.questData) {
                     if (m.name.includes('슬라임') && !m.isBoss) {
                         player.questData.slimeKills++;
+
                         if (player.questData.slimeKills >= 10 && !this.bossSpawned) {
                             this.shouldSpawnBoss = true;
                         }
@@ -113,6 +112,7 @@ export default class MonsterManager {
                     if (m.isBoss) {
                         player.questData.bossKilled = true;
                     }
+                    if (window.game && window.game.ui) window.game.ui.updateQuestUI(); // Force update UI
                 }
 
                 this.net.removeMonster(id);
@@ -158,13 +158,6 @@ export default class MonsterManager {
             type: 'slime'
         };
 
-        // Create Locally immediately?
-        // No, wait for Network 'monsterAdded' event (even for Host) ensures consistency?
-        // Or Optimistic?
-        // Let's go Optimistic to avoid lag.
-        // But for simplicity, let `sendMonsterUpdate` trigger the event?
-        // Firebase `set` triggers `child_added` on consistent clients.
-
         this.net.sendMonsterUpdate(id, data);
     }
 
@@ -189,24 +182,22 @@ export default class MonsterManager {
 
         this.net.sendMonsterUpdate(id, data);
         Logger.info('Boss Spawning: King Slime');
+        if (window.game && window.game.ui) window.game.ui.logSystemMessage('대왕 슬라임이 나타났습니다!');
     }
 
     _onRemoteMonsterAdded(data) {
         if (this.monsters.has(data.id)) return;
 
         // Create Monster Instance
-        // We need ResourceManager... passed from ZoneManager?
-        // Or assume Monster loads its own? Monster.js logic check needed.
-        // Assuming Monster(x, y, type) signature.
-
-        // Wait, Monster constructor?
         const m = new Monster(data.x, data.y, data.type);
         m.id = data.id; // Assign net ID
         m.hp = data.hp;
         m.maxHp = data.maxHp;
-
-        // If Host, we are 'authoritative', so we keep control.
-        // If Guest, we just render.
+        if (data.isBoss) {
+            m.isBoss = true;
+            m.width = 160; // Bigger Boss
+            m.height = 160;
+        }
 
         this.monsters.set(data.id, m);
     }
@@ -219,7 +210,6 @@ export default class MonsterManager {
         }
 
         // If I am Host, I SENT this update, so I don't need to correct myself.
-        // Unless we want to re-sync?
         if (this.net.isHost) return;
 
         // Guest: Set target for interpolation
