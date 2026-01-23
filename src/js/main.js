@@ -154,7 +154,7 @@ class Game {
         // Load Map and Assets
         await this.zone.loadZone('zone_1');
         try {
-            await this.resources.loadImage('assets/character.png');
+            await this.resources.loadImage('src/assets/character.webp');
         } catch (e) {
             Logger.error('Failed to load character sprite', e);
         }
@@ -163,7 +163,7 @@ class Game {
         // Connect Network
         this.net.connect(user);
 
-        this.updateLoading('캐릭터 데이터 복구 중...', 80);
+        this.updateLoading('캐릭터 데이터 복구 중...', 90);
         // Try to restore position
         let startX = this.zone.width / 2 + (Math.random() * 100 - 50);
         let startY = this.zone.height / 2 + (Math.random() * 100 - 50);
@@ -178,7 +178,7 @@ class Game {
             }
         }
 
-        this.updateLoading('캐릭터 생성 중...');
+        this.updateLoading('캐릭터 생성 및 최적화 중...', 95);
         // Spawn Player
         this.player = new Player(startX, startY, user.displayName || "Hero");
         this.localPlayer = this.player; // Alias used by Monster AI

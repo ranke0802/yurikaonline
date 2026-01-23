@@ -4,7 +4,7 @@ export class Map {
         this.width = width;
         this.height = height;
         this.image = new Image();
-        this.image.src = 'assets/background.png';
+        this.image.src = 'assets/resource/background.webp';
         this.loaded = false;
         this.image.onload = () => {
             this.loaded = true;

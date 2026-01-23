@@ -38,7 +38,7 @@ export default class Monster {
     static spriteCache = {};
 
     async init() {
-        const frames = ['1.png', '2.png', '3.png', '4.png', '5.png'];
+        const frames = ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp'];
         const path = 'assets/resource/monster_slim';
         const cacheKey = path; // In future, if path changes based on name, use that unique key
 

@@ -21,7 +21,7 @@ export default class ZoneManager {
             // 200x200 tiles (Large Map)
             width: 200,
             height: 200,
-            backgroundSrc: 'assets/resource/background.png'
+            backgroundSrc: 'assets/resource/background.webp'
         };
 
         // Load background tile

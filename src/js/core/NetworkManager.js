@@ -174,6 +174,17 @@ export default class NetworkManager extends EventEmitter {
         const safeVx = (isNaN(vx) || vx === null || vx === undefined) ? 0 : parseFloat(vx.toFixed(2));
         const safeVy = (isNaN(vy) || vy === null || vy === undefined) ? 0 : parseFloat(vy.toFixed(2));
 
+        // Idle Suppression: Skip if position and velocity haven't changed meaningfully
+        if (this.lastPacketData) {
+            const [lx, ly, lvx, lvy] = this.lastPacketData;
+            const posChanged = Math.abs(safeX - lx) > 1 || Math.abs(safeY - ly) > 1;
+            const velChanged = Math.abs(safeVx - lvx) > 0.01 || Math.abs(safeVy - lvy) > 0.01;
+            const isMoving = Math.abs(safeVx) > 0.1 || Math.abs(safeVy) > 0.1;
+
+            // If stationary and state hasn't changed, skip
+            if (!posChanged && !velChanged && !isMoving) return;
+        }
+
         const packet = [
             safeX,
             safeY,
@@ -182,12 +193,11 @@ export default class NetworkManager extends EventEmitter {
             now
         ];
 
-        // Update Position Node 'p'
-        this.dbRef.child(`users/${this.playerId}/p`).set(packet).catch(e => {
-            // Suppress set errors to avoid console spam, just log once
-            // Logger.error('Net Move Error', e);
-        });
+        this.lastPacketData = packet;
         this.lastSyncTime = now;
+
+        // Update Position Node 'p'
+        this.dbRef.child(`users/${this.playerId}/p`).set(packet).catch(e => { });
     }
 
     sendAttack(x, y, direction) {

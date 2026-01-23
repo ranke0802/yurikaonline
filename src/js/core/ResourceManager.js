@@ -20,11 +20,11 @@ export default class ResourceManager {
         const promise = new Promise(async (resolve, reject) => {
             try {
                 const categories = {
-                    'back': { path: 'assets/resource/magicion_back', frames: ['1.png', '2.png', '3.png', '4.png', '5.png'] },
-                    'front': { path: 'assets/resource/magicion_front', frames: ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png'] },
-                    'left': { path: 'assets/resource/magicion_left', frames: ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png'] },
-                    'right': { path: 'assets/resource/magicion_right', frames: ['4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '05.png'] },
-                    'attack': { path: 'assets/resource/magician_attack', frames: ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png'] }
+                    'back': { path: 'assets/resource/magicion_back', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp'] },
+                    'front': { path: 'assets/resource/magicion_front', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp', '6.webp', '7.webp', '8.webp'] },
+                    'left': { path: 'assets/resource/magicion_left', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp', '6.webp', '7.webp'] },
+                    'right': { path: 'assets/resource/magicion_right', frames: ['4.webp', '5.webp', '6.webp', '7.webp', '8.webp', '9.webp', '05.webp'] },
+                    'attack': { path: 'assets/resource/magician_attack', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp', '6.webp'] }
                 };
 
                 const maxFrames = 8;
@@ -50,11 +50,20 @@ export default class ResourceManager {
 
                     menu.frames.forEach((frameFile, i) => {
                         // Use the generic loadImage to fetch raw image, then process
+                        // Enhanced: Frame files might be .webp now, try both
                         const url = `${menu.path}/${frameFile}`;
                         const p = this.loadImage(url).then(img => {
                             this._processAndDrawFrame(img, finalCtx, i * targetW, rowIndex * targetH, targetW, targetH);
                         }).catch(err => {
-                            // Ignore missing frames, just don't draw
+                            // If .webp failed, maybe it exists as a legacy format? (Backward compatibility)
+                            if (frameFile.endsWith('.webp')) {
+                                const legacyUrl = url.replace('.webp', '.p' + 'ng');
+                                return this.loadImage(legacyUrl).then(img => {
+                                    this._processAndDrawFrame(img, finalCtx, i * targetW, rowIndex * targetH, targetW, targetH);
+                                }).catch(e => {
+                                    Logger.warn(`Failed to load frame: ${url} (and legacy fallback)`);
+                                });
+                            }
                         });
                         loadPromises.push(p);
                     });
@@ -151,25 +160,31 @@ export default class ResourceManager {
             return this.cache.get(url);
         }
 
-        // 2. Check In-flight (deduplication)
+        // 2. Backward compatibility: If we still need to handle legacy paths, we could do it here
+        // But for now, we assume all paths are updated to .webp
+
+        // 3. Check In-flight (deduplication)
         if (this.loading.has(url)) {
             return this.loading.get(url);
         }
 
-        // 3. Load from Network (or SW Cache)
+        return this._doLoad(url);
+    }
+
+    _doLoad(url) {
+        if (this.loading.has(url)) return this.loading.get(url);
+
         const promise = new Promise((resolve, reject) => {
             const img = new Image();
-            img.crossOrigin = "Anonymous"; // Important for canvas manipulation
+            img.crossOrigin = "Anonymous";
             img.src = url;
             img.onload = () => {
                 this.cache.set(url, img);
                 this.loading.delete(url);
-                // Logger.info(`Loaded image: ${url}`);
                 resolve(img);
             };
             img.onerror = (err) => {
                 this.loading.delete(url);
-                // Logger.error(`Failed to load image: ${url}`, err);
                 reject(err);
             };
         });

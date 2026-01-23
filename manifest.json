@@ -8,14 +8,14 @@
     "orientation": "landscape",
     "icons": [
         {
-            "src": "src/assets/icon_192.png",
+            "src": "src/assets/icon_192.webp",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/webp"
         },
         {
-            "src": "src/assets/icon_512.png",
+            "src": "src/assets/icon_512.webp",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/webp"
         }
     ]
 }

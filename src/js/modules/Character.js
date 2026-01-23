@@ -12,7 +12,7 @@ export class Character {
         this.image.onload = () => {
             this.processImage();
         };
-        this.image.src = 'assets/character.png';
+        this.image.src = 'src/assets/character.webp';
 
         this.state = 'idle';
         this.direction = 0; // 0:Down, 4:Up, 2:Left, 6:Right (표준 8방향 매핑)
