@@ -95,10 +95,16 @@ html {
     max-height: 1280px;
     background-color: #000;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
-    /* Lift effect */
     border-radius: 4px;
-    /* Slight rounding */
     overflow: hidden;
+}
+
+/* PC Landscape Support */
+@media screen and (min-width: 1024px) {
+    #game-viewport {
+        max-width: 1280px;
+        max-height: 720px;
+    }
 }
 
 #gameCanvas {

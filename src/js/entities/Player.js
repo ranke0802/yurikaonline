@@ -63,6 +63,9 @@ export default class Player extends Actor {
         this.attackCooldown = 0;
         this.regenTimer = 0;
         this.idleTimer = 0; // For regen wait logic
+        this.actionFdbk = null;
+        this.actionTimer = 0;
+        this.shieldTimer = 0;
 
         // Running Logic (Matched with Solo)
         this.moveTimer = 0;
@@ -82,6 +85,7 @@ export default class Player extends Actor {
 
         this.input = null;
         this.joystick = { x: 0, y: 0, active: false };
+        this.moveTarget = null; // Target position for Click-to-Move
 
         this.updateDerivedStats();
     }
@@ -94,8 +98,14 @@ export default class Player extends Actor {
 
         // Bind input actions to methods
         this.input.on('keydown', (action) => {
+            // Cancel Click-to-Move on any action
+            this.moveTarget = null;
+
             if (action === 'ATTACK') this.attack();
             if (action === 'SKILL_1') this.useSkill(1);
+            if (action === 'SKILL_2') this.useSkill(2);
+            if (action === 'SKILL_3') this.useSkill(3);
+            if (action === 'SKILL_4') this.useSkill(4);
         });
 
         this.input.on('joystickMove', (data) => {
@@ -146,6 +156,16 @@ export default class Player extends Actor {
 
         // Call Actor's update (physics integration)
         super.update(dt);
+
+        if (this.actionTimer > 0) {
+            this.actionTimer -= dt;
+            if (this.actionTimer <= 0) this.actionFdbk = null;
+        }
+    }
+
+    triggerAction(text) {
+        this.actionFdbk = text;
+        this.actionTimer = 2.0;
     }
 
     _handleRegen(dt) {
@@ -182,6 +202,21 @@ export default class Player extends Actor {
         if (this.joystick.active) {
             vx = this.joystick.x;
             vy = this.joystick.y;
+            this.moveTarget = null; // Joystick cancels click-to-move
+        }
+
+        // 3. Click-to-Move Target
+        if (vx === 0 && vy === 0 && this.moveTarget) {
+            const dx = this.moveTarget.x - this.x;
+            const dy = this.moveTarget.y - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > 10) { // Stop threshold
+                vx = dx / dist;
+                vy = dy / dist;
+            } else {
+                this.moveTarget = null;
+            }
         }
 
         if (vx !== 0 || vy !== 0) {
@@ -232,6 +267,10 @@ export default class Player extends Actor {
             this.turnGraceTimer = 0;
             if (!this.isAttacking) this.state = 'idle';
         }
+    }
+
+    setMoveTarget(x, y) {
+        this.moveTarget = { x, y };
     }
 
     _updateCooldowns(dt) {
@@ -296,14 +335,23 @@ export default class Player extends Actor {
     }
 
     takeDamage(dmg) {
-        if (this.isDead) return;
+        if (this.isDead) return 0;
+
+        // Magic Shield check
+        if (this.shieldTimer > 0) {
+            this.shieldTimer = 0;
+            if (window.game) {
+                window.game.addDamageText(this.x + this.width / 2, this.y - 40, "BLOCK", '#48dbfb', true);
+            }
+            return 0;
+        }
+
         const finalDmg = Math.max(1, dmg - this.defense);
         this.hp -= finalDmg;
         if (this.hp <= 0) {
             this.hp = 0;
             this.die();
         }
-        // Save HP state (Optional: throttle if needed, but for now every hit or rely on interval)
         return finalDmg;
     }
 
@@ -478,8 +526,79 @@ export default class Player extends Actor {
     }
 
     useSkill(slot) {
-        Logger.log(`Skill ${slot} used`);
-        // missiles and fireball to be added later if needed, slot 1 is usually basic attack or missile
+        if (this.isDead || !window.game) return;
+
+        const skills = { 1: 'missile', 2: 'fireball', 3: 'shield' };
+        const keys = { 1: 'h', 2: 'u', 3: 'k' };
+        const skillId = skills[slot];
+        const key = keys[slot];
+
+        if (!skillId) return;
+        if (this.skillCooldowns[key] > 0) return;
+
+        const lv = this.skillLevels[skillId] || 1;
+
+        if (skillId === 'missile') {
+            const cost = 4 + (lv - 1) * 3;
+            if (this.useMana(cost)) {
+                this.triggerAction(`${this.name} : 매직 미사일 !!`);
+                this.skillCooldowns.h = 0.8; // Fast cooldown for missiles
+
+                let nearest = null;
+                let minDist = 500;
+                const monsters = window.game.monsterManager ? Array.from(window.game.monsterManager.monsters.values()) : [];
+                monsters.forEach(m => {
+                    if (m.isDead) return;
+                    const d = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
+                    if (d < minDist) { minDist = d; nearest = m; }
+                });
+
+                if (nearest) {
+                    const count = lv;
+                    for (let i = 0; i < count; i++) {
+                        const offset = (i - (count - 1) / 2) * 20;
+                        let dmg = this.attackPower * 0.9;
+                        let isCrit = Math.random() < this.critRate;
+                        if (isCrit) dmg *= 2;
+
+                        import('./Projectile.js').then(({ Projectile }) => {
+                            window.game.projectiles.push(new Projectile(this.x + offset, this.y + offset, nearest, 'missile', {
+                                speed: 500 + (Math.random() * 50), damage: dmg, isCrit: isCrit
+                            }));
+                        });
+                    }
+                }
+            }
+        } else if (skillId === 'fireball') {
+            const cost = 8 + (lv - 1) * 3;
+            if (this.useMana(cost)) {
+                this.triggerAction(`${this.name} : 파이어볼 !!`);
+                this.skillCooldowns.u = 2.5;
+
+                const dirs = [[0, -1], [0.707, -0.707], [1, 0], [0.707, 0.707], [0, 1], [-0.707, 0.707], [-1, 0], [-0.707, -0.707]];
+                const dir = dirs[this.direction] || [0, 1];
+                const speed = 400;
+                const vx = dir[0] * speed;
+                const vy = dir[1] * speed;
+                const dmg = this.attackPower * (1.3 + (lv - 1) * 0.3);
+                const rad = 80 + (lv - 1) * 40;
+
+                import('./Projectile.js').then(({ Projectile }) => {
+                    window.game.projectiles.push(new Projectile(this.x, this.y, null, 'fireball', {
+                        vx, vy, speed, damage: dmg, radius: rad, lifeTime: 1.5,
+                        targetX: this.x + dir[0] * 600,
+                        targetY: this.y + dir[1] * 600,
+                        burnDuration: 5.0 + (lv - 1), critRate: this.critRate
+                    }));
+                });
+            }
+        } else if (skillId === 'shield') {
+            if (this.useMana(30)) {
+                this.triggerAction(`${this.name} : 앱솔루트 베리어 !!`);
+                this.shieldTimer = 9999;
+                this.skillCooldowns.k = 15;
+            }
+        }
     }
 
     increaseSkill(skillId) {
@@ -630,6 +749,44 @@ export default class Player extends Actor {
 
         // 6. Direction Arrow (At feet)
         this.drawDirectionArrow(ctx, centerX, y + this.height);
+
+        // 7. Speech Bubble
+        if (this.actionFdbk) {
+            ctx.save();
+            const bubbleY = y - 60;
+            const bubbleText = this.actionFdbk;
+            ctx.font = 'bold 14px "Nanum Gothic", "Outfit", sans-serif';
+            const textWidth = ctx.measureText(bubbleText).width;
+            const bubbleWidth = textWidth + 20;
+            const bubbleHeight = 28;
+            const bubbleX = centerX - bubbleWidth / 2;
+
+            // Speech bubble background
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.strokeStyle = 'rgba(200, 200, 200, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight, 8);
+            } else {
+                ctx.rect(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
+            }
+            ctx.fill();
+            ctx.stroke();
+
+            // Tail
+            ctx.beginPath();
+            ctx.moveTo(centerX - 5, bubbleY + bubbleHeight);
+            ctx.lineTo(centerX + 5, bubbleY + bubbleHeight);
+            ctx.lineTo(centerX, bubbleY + bubbleHeight + 8);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#4a3e35';
+            ctx.textAlign = 'center';
+            ctx.fillText(bubbleText, centerX, bubbleY + 19);
+            ctx.restore();
+        }
     }
 
     drawHUD(ctx, centerX, y) {

@@ -33,10 +33,30 @@ class Game {
         this.ctx.webkitImageSmoothingEnabled = false;
         this.ctx.mozImageSmoothingEnabled = false;
         this.ctx.msImageSmoothingEnabled = false;
+        this.zoom = 1.0;
 
         // resize handler
         this.resize();
         window.addEventListener('resize', () => this.resize());
+
+        // Input Focus Management
+        this.canvas.addEventListener('mousedown', () => {
+            // Regain focus for keyboard input
+            window.focus();
+            // Blur chat input if it's active
+            const chatInput = document.querySelector('.chat-input-area input');
+            if (chatInput && document.activeElement === chatInput) {
+                chatInput.blur();
+            }
+            this._handleCanvasInteraction(e);
+        });
+
+        // Touch Interaction for Click-to-Move (Mobile/Tablet)
+        this.canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 0) {
+                this._handleCanvasInteraction(e.touches[0]);
+            }
+        }, { passive: true });
 
         // 1. Core Systems
         this.input = new InputManager();
@@ -67,6 +87,7 @@ class Game {
         this.remotePlayers = new Map(); // Other Players <uid, RemotePlayer>
         this.floatingTexts = []; // Floating Damage Text
         this.sparks = []; // Spark Particles
+        this.projectiles = []; // Projectiles (Fireball, Missile)
 
 
         // 5. Game Loop
@@ -92,6 +113,9 @@ class Game {
 
     resize() {
         const container = document.getElementById('game-viewport');
+        const isMobile = window.innerWidth <= 1024; // Standard mobile/tablet threshold
+        this.zoom = isMobile ? 0.7 : 1.0;
+
         if (container) {
             this.canvas.width = container.clientWidth;
             this.canvas.height = container.clientHeight;
@@ -101,7 +125,8 @@ class Game {
         }
 
         if (this.camera) {
-            this.camera.resize(this.canvas.width, this.canvas.height);
+            // Visible world size is scaled by zoom
+            this.camera.resize(this.canvas.width / this.zoom, this.canvas.height / this.zoom);
         }
     }
 
@@ -302,6 +327,11 @@ class Game {
                 }
             }
 
+            // Continuous Skills (Missile, Fireball, Shield)
+            if (this.input.isPressed('SKILL_1')) this.player.useSkill(1);
+            if (this.input.isPressed('SKILL_2')) this.player.useSkill(2);
+            if (this.input.isPressed('SKILL_3')) this.player.useSkill(3);
+
             this.player.update(dt);
 
             // Sync UI
@@ -355,6 +385,13 @@ class Game {
             s.y += s.vy * dt;
             return s.life > 0;
         });
+
+        // Update Projectiles
+        this.projectiles = this.projectiles.filter(p => {
+            const monsters = this.monsterManager ? Array.from(this.monsterManager.monsters.values()) : [];
+            p.update(dt, monsters);
+            return !p.isDead;
+        });
     }
 
     render() {
@@ -364,6 +401,7 @@ class Game {
         if (!this.zone.currentZone) return;
 
         this.ctx.save();
+        this.ctx.scale(this.zoom, this.zoom);
         this.ctx.translate(-this.camera.x, -this.camera.y);
 
         // Draw World
@@ -376,6 +414,9 @@ class Game {
         if (this.monsterManager) {
             this.monsterManager.render(this.ctx, this.camera);
         }
+
+        // Draw Projectiles
+        this.projectiles.forEach(p => p.draw(this.ctx, this.camera));
 
         // Draw Local Player
         if (this.player) {
@@ -449,6 +490,30 @@ class Game {
                 color: '#fff'
             });
         }
+    }
+
+    _handleCanvasInteraction(e) {
+        if (!this.player || this.ui.isPaused) return;
+
+        // Check if we hit any UI element (since UI is overlayed, this shouldn't trigger if UI blocks)
+        // However, pointer-events: none is on #ui-layer, so we might need simple distance check
+        // Or better yet, check if the click was within the joystick area.
+
+        const rect = this.canvas.getBoundingClientRect();
+        const screenX = e.clientX - rect.left;
+        const screenY = e.clientY - rect.top;
+
+        // Joystick Area (Left side) Exclusion
+        if (screenX < 200 && screenY > this.canvas.height / 2) return;
+
+        // Top bar exclusion
+        if (screenX < 300 && screenY < 100) return;
+
+        // Scale and translate coordinate to world
+        const worldX = (screenX / this.zoom) + this.camera.x;
+        const worldY = (screenY / this.zoom) + this.camera.y;
+
+        this.player.setMoveTarget(worldX, worldY);
     }
 }
 

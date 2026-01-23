@@ -154,23 +154,19 @@ export default class Monster {
 
         this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
 
-        // --- AI Logic (Aggro) ---
+        // --- AI Logic (Aggro & Awareness) ---
         const localP = window.game?.localPlayer;
         if (localP && !localP.isDead) {
             const dToP = Math.sqrt((localP.x - this.x) ** 2 + (localP.y - this.y) ** 2);
-            if (dToP < 400 && dToP > 50) {
+
+            // Level-based Aggro: Only aggro if Lv.3+ or already damaged
+            const canAggro = localP.level >= 3 || this.hp < this.maxHp;
+            const aggroRange = 300;
+
+            if (!this.isAggro && dToP < aggroRange && canAggro) {
                 this.isAggro = true;
-                const angle = Math.atan2(localP.y - this.y, localP.x - this.x);
-                let spd = 80;
-                if (this.electrocutedTimer > 0) spd *= (1 - this.slowRatio);
-                this.vx = Math.cos(angle) * spd;
-                this.vy = Math.sin(angle) * spd;
-            } else if (dToP <= 50) {
-                this.isAggro = true;
-                this.vx = 0;
-                this.vy = 0;
-            } else {
-                this.isAggro = false;
+            } else if (this.isAggro && dToP > 600) {
+                this.isAggro = false; // Lose aggro when too far
             }
         }
 
@@ -244,17 +240,22 @@ export default class Monster {
                 }
             }
 
-            // Collision with other Monsters
+            // Collision & Separation Factor: Push away from other monsters
             if (window.game && window.game.monsterManager?.monsters) {
                 const allMonsters = window.game.monsterManager.monsters;
                 if (allMonsters) {
                     allMonsters.forEach(other => {
                         if (other === this || other.isDead) return;
-                        const distToOther = Math.sqrt((nextX - other.x) ** 2 + (nextY - other.y) ** 2);
-                        if (distToOther < collisionRadius) {
+                        const distToOther = Math.sqrt((this.x - other.x) ** 2 + (this.y - other.y) ** 2);
+                        const separationDist = 55;
+                        if (distToOther < separationDist) {
+                            // Apply separation force
                             const angle = Math.atan2(this.y - other.y, this.x - other.x);
-                            this.vx += Math.cos(angle) * 20;
-                            this.vy += Math.sin(angle) * 20;
+                            const force = (separationDist - distToOther) * 2.0;
+                            this.vx += Math.cos(angle) * force;
+                            this.vy += Math.sin(angle) * force;
+
+                            // Visual hint for collision
                             canMoveX = false;
                             canMoveY = false;
                         }
