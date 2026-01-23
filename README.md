@@ -1,4 +1,4 @@
-# 🎮 Yurika Online (유리카 온라인) - v0.05 (Online Refactor)
+# 🎮 Yurika Online (유리카 온라인) - v0.07 (Online Refactor)
 
 [**🎮 Firebase 라이브 데모 (v0.05 )**](https://yurika-online.web.app/)
 
@@ -70,5 +70,6 @@ Firebase Hosting 연동
 ---
 
 *Developed by ranke0802 & Antigravity (Google Deepmind)*
+
 
 
