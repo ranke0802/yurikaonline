@@ -41,6 +41,59 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child('monsters').on('child_changed', (s) => this.emit('monsterUpdated', { id: s.key, ...s.val() }));
         this.dbRef.child('monsters').on('child_removed', (s) => this.emit('monsterRemoved', s.key));
 
+        // Monster Damage Sync (Listen for damage events - Spark / Text)
+        this.dbRef.child('monster_damage').on('child_added', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                this.emit('monsterDamageReceived', data);
+                if (this.isHost) {
+                    this.emit('monsterDamage', {
+                        monsterId: data.mid,
+                        damage: data.dmg,
+                        attackerId: data.aid
+                    });
+                }
+            }
+            if (this.isHost) snapshot.ref.remove();
+        });
+
+        // Player Damage Sync (PvP)
+        this.dbRef.child('player_damage').on('child_added', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                this.emit('playerDamageReceived', data);
+            }
+            // ephemeral PvP damage cleanup (anyone can clean if older than 5s, but usually host)
+            if (this.isHost) snapshot.ref.remove();
+        });
+
+        // Reward Sync (Guest side listens for rewards targeting them)
+        this.dbRef.child(`rewards/${this.playerId}`).on('child_added', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                this.emit('rewardReceived', data);
+            }
+            // Cleanup: Reward collected
+            snapshot.ref.remove();
+        });
+
+        // Drop Sync
+        this.dbRef.child('drops').on('child_added', (s) => this.emit('dropAdded', { id: s.key, ...s.val() }));
+        this.dbRef.child('drops').on('child_removed', (s) => this.emit('dropRemoved', s.key));
+
+        // Drop Collection Listener (Host only)
+        this.dbRef.child('drop_collection').on('child_added', (snapshot) => {
+            if (!this.isHost) return;
+            const data = snapshot.val();
+            if (data) {
+                this.emit('dropCollectionRequested', {
+                    dropId: data.did,
+                    collectorId: data.cid
+                });
+            }
+            snapshot.ref.remove();
+        });
+
         // 2. presence check
         const myRef = this.dbRef.child(`users/${this.playerId}`);
         // Commented out to allow position persistence on refresh.
@@ -59,6 +112,16 @@ export default class NetworkManager extends EventEmitter {
         } catch (e) {
             Logger.error('Failed to get player data', e);
             return null;
+        }
+    }
+
+    async savePlayerData(uid, data) {
+        if (!this.dbRef || !uid) return;
+        try {
+            // Save persistent profile data (level, stats, etc.)
+            await this.dbRef.child(`users/${uid}/profile`).set(data);
+        } catch (e) {
+            Logger.error('Failed to save player profile', e);
         }
     }
 
@@ -159,9 +222,42 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child(`monsters/${id}`).set(safeData).catch(e => { });
     }
 
-    // Packet: [x, y, vx, vy, timestamp]
+    removeMonster(id) {
+        if (!this.connected || !this.isHost) return;
+        this.dbRef.child(`monsters/${id}`).remove().catch(e => { });
+    }
+
+    // --- Drop Methods ---
+    spawnDrop(data) {
+        if (!this.connected || !this.isHost) return;
+        const ref = this.dbRef.child('drops').push();
+        ref.set({
+            x: Math.round(data.x),
+            y: Math.round(data.y),
+            type: data.type,
+            amount: data.amount,
+            ts: Date.now()
+        }).catch(e => { });
+    }
+
+    removeDrop(id) {
+        if (!this.connected || !this.isHost) return;
+        this.dbRef.child(`drops/${id}`).remove().catch(e => { });
+    }
+
+    collectDrop(dropId) {
+        if (!this.connected || !this.playerId) return;
+        // Request collection: { did: dropId, cid: collectorId }
+        this.dbRef.child('drop_collection').push({
+            did: dropId,
+            cid: this.playerId,
+            ts: Date.now()
+        });
+    }
+
+    // Packet: [x, y, vx, vy, timestamp, name]
     // Compact array to save bandwidth (360MB daily limit optimization)
-    sendMovePacket(x, y, vx, vy) {
+    sendMovePacket(x, y, vx, vy, name) {
         if (!this.connected || !this.playerId) return;
 
         const now = Date.now();
@@ -190,7 +286,8 @@ export default class NetworkManager extends EventEmitter {
             safeY,
             safeVx,
             safeVy,
-            now
+            now,
+            name || "Unknown"
         ];
 
         this.lastPacketData = packet;
@@ -206,6 +303,34 @@ export default class NetworkManager extends EventEmitter {
         const attackPacket = [Date.now(), Math.round(x), Math.round(y), direction];
         // Update Attack Node 'a'
         this.dbRef.child(`users/${this.playerId}/a`).set(attackPacket);
+    }
+
+    sendMonsterDamage(monsterId, damage) {
+        if (!this.connected || !this.playerId) return;
+        this.dbRef.child('monster_damage').push({
+            mid: monsterId,
+            dmg: Math.round(damage),
+            aid: this.playerId,
+            ts: Date.now()
+        });
+    }
+
+    sendPlayerDamage(targetId, damage) {
+        if (!this.connected || !this.playerId) return;
+        // Optimization: Use a push-queue for player damage
+        const ref = this.dbRef.child('player_damage').push();
+        ref.set({
+            tid: targetId,
+            dmg: Math.round(damage),
+            aid: this.playerId,
+            ts: Date.now()
+        });
+    }
+
+    sendReward(playerId, data) {
+        if (!this.connected || !this.isHost) return;
+        // data: { exp: number, gold: number, items: [] }
+        this.dbRef.child(`rewards/${playerId}`).push(data).catch(e => { });
     }
 
     _onPlayerAdded(snapshot) {
@@ -230,7 +355,12 @@ export default class NetworkManager extends EventEmitter {
 
         if (!posData || !Array.isArray(posData)) return;
 
-        this.emit('playerJoined', { id: uid, x: posData[0], y: posData[1] });
+        this.emit('playerJoined', {
+            id: uid,
+            x: posData[0],
+            y: posData[1],
+            name: posData[5] || "Unknown"
+        });
     }
 
     _onPlayerChanged(snapshot) {
@@ -255,7 +385,8 @@ export default class NetworkManager extends EventEmitter {
                 y: posData[1],
                 vx: posData[2],
                 vy: posData[3],
-                ts: posData[4]
+                ts: posData[4],
+                name: posData[5] || "Unknown"
             });
         }
 

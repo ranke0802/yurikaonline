@@ -6,6 +6,7 @@ export default class MonsterManager {
         this.zone = zoneManager;
         this.net = networkManager;
         this.monsters = new Map(); // id -> Monster
+        this.drops = new Map(); // id -> Drop
 
         this.spawnTimer = 0;
         this.spawnInterval = 3; // Spawn every 3s (Host only)
@@ -15,23 +16,42 @@ export default class MonsterManager {
         this.net.on('monsterAdded', (data) => this._onRemoteMonsterAdded(data));
         this.net.on('monsterUpdated', (data) => this._onRemoteMonsterUpdated(data));
         this.net.on('monsterRemoved', (id) => this._onRemoteMonsterRemoved(id));
+        this.net.on('monsterDamage', (data) => this._onMonsterDamageReceived(data));
+
+        // Drop Events
+        this.net.on('dropAdded', (data) => this._onDropAdded(data));
+        this.net.on('dropRemoved', (id) => this._onDropRemoved(id));
+        this.net.on('dropCollectionRequested', (data) => this._onDropCollectionRequested(data));
 
         Logger.info('MonsterManager initialized');
     }
 
     update(dt, player) {
+        if (!player) return;
+
         // 1. Host Logic: Spawn & AI
         if (this.net.isHost) {
             this._updateHostLogic(dt, player);
         }
 
         // 2. Client Updating (Visuals & Prediction)
-        this.monsters.forEach(m => {
-            m.update(dt);
+        this.monsters.forEach(m => m.update(dt));
+        this.drops.forEach((d, id) => {
+            const captured = d.update(dt, player);
+            if (captured) {
+                if (!this.net.isHost) {
+                    this.net.collectDrop(id);
+                } else {
+                    this._onDropCollectionRequested({ dropId: id, collectorId: this.net.playerId });
+                }
+            }
         });
     }
 
     render(ctx, camera) {
+        // Render Drops first (on ground)
+        this.drops.forEach(d => d.draw(ctx, camera));
+
         // Sort for depth if needed
         this.monsters.forEach(m => {
             m.draw(ctx, camera);
@@ -57,6 +77,27 @@ export default class MonsterManager {
         if (!this.lastSyncState) this.lastSyncState = new Map();
 
         this.monsters.forEach((m, id) => {
+            if (m.isDead) {
+                // Spawn Drops instead of direct rewards
+                const xpAmount = m.isBoss ? 500 : 25;
+                const goldAmount = m.isBoss ? 2000 : 50;
+
+                // Gold Drop
+                this.net.spawnDrop({ x: m.x, y: m.y, type: 'gold', amount: goldAmount });
+                // Exp Drop
+                this.net.spawnDrop({ x: m.x + 20, y: m.y - 10, type: 'exp', amount: xpAmount });
+
+                // Extra HP Drop?
+                if (Math.random() > 0.5 || m.isBoss) {
+                    this.net.spawnDrop({ x: m.x - 20, y: m.y + 10, type: 'hp', amount: 30 });
+                }
+
+                this.net.removeMonster(id);
+                this.monsters.delete(id);
+                this.lastSyncState.delete(id);
+                return;
+            }
+
             const last = this.lastSyncState.get(id);
             const dist = last ? Math.sqrt((m.x - last.x) ** 2 + (m.y - last.y) ** 2) : 999;
             const hpChanged = last ? (m.hp !== last.hp) : true;
@@ -135,13 +176,53 @@ export default class MonsterManager {
         // Unless we want to re-sync?
         if (this.net.isHost) return;
 
-        // Guest: Lerp to target
-        m.x = data.x; // Add lerp later if choppy
-        m.y = data.y;
+        // Guest: Set target for interpolation
+        m.targetX = data.x;
+        m.targetY = data.y;
         m.hp = data.hp;
     }
 
     _onRemoteMonsterRemoved(id) {
         this.monsters.delete(id);
+    }
+
+    _onMonsterDamageReceived(data) {
+        if (!this.net.isHost) return;
+        const m = this.monsters.get(data.monsterId);
+        if (m && !m.isDead) {
+            m.lastAttackerId = data.attackerId;
+            // Apply damage to host-side authoritative instance
+            m.takeDamage(data.damage, true);
+        }
+    }
+
+    // --- Drop Sync ---
+    async _onDropAdded(data) {
+        if (this.drops.has(data.id)) return;
+        const { default: Drop } = await import('../entities/Drop.js');
+        const d = new Drop(data.id, data.x, data.y, data.type, data.amount);
+        this.drops.set(data.id, d);
+    }
+
+    _onDropRemoved(id) {
+        this.drops.delete(id);
+    }
+
+    _onDropCollectionRequested(data) {
+        if (!this.net.isHost) return;
+        const drop = this.drops.get(data.dropId);
+        if (drop) {
+            // Send reward to collector
+            const reward = {};
+            if (drop.type === 'gold') reward.gold = drop.amount;
+            else if (drop.type === 'exp') reward.exp = drop.amount;
+            else if (drop.type === 'hp') reward.hp = drop.amount;
+
+            this.net.sendReward(data.collectorId, reward);
+
+            // Remove drop from network
+            this.net.removeDrop(data.dropId);
+            this.drops.delete(data.dropId);
+        }
     }
 }

@@ -168,6 +168,25 @@ export class UIManager {
             fsBtn.addEventListener('touchstart', handleFs, { passive: false });
         }
 
+        // Quick Menu Buttons (Add these listeners)
+        const menuBtnMap = {
+            'btn-inventory': 'inventory-popup',
+            'btn-skill': 'skill-popup',
+            'btn-status': 'status-popup'
+        };
+
+        Object.entries(menuBtnMap).forEach(([btnId, popupId]) => {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                const handleToggle = (e) => {
+                    e.preventDefault();
+                    this.togglePopup(popupId);
+                };
+                btn.addEventListener('click', handleToggle);
+                btn.addEventListener('touchstart', handleToggle, { passive: false });
+            }
+        });
+
         // Player Name Edit/Save Buttons
         const nameEditBtn = document.getElementById('player-name-edit-btn');
         const nameSaveBtn = document.getElementById('player-name-save-btn');
@@ -243,6 +262,7 @@ export class UIManager {
             canvas.width = sw;
             canvas.height = sh;
             const ctx = canvas.getContext('2d');
+            // Row 1 is Front-facing (0:Back, 1:Front)
             ctx.drawImage(processedImage, 0, sh, sw, sh, 0, 0, sw, sh);
 
             p.style.backgroundImage = `url(${canvas.toDataURL()})`;
@@ -365,6 +385,9 @@ export class UIManager {
         p.wisdom += this.pendingStats.wisdom;
         p.agility += this.pendingStats.agility;
         p.refreshStats();
+        // Clamp current stats to new maximums
+        p.hp = Math.min(p.hp, p.maxHp);
+        p.mp = Math.min(p.mp, p.maxMp);
         this.pendingStats = { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
     }
 
@@ -637,6 +660,9 @@ export class UIManager {
             div.className = 'grid-item';
             if (item) {
                 div.innerHTML = `<span class="item-icon">${item.icon}</span><span class="item-amount">${item.amount}</span>`;
+            } else {
+                // Keep empty slot visual
+                div.innerHTML = `<span class="item-icon"></span>`;
             }
             grid.appendChild(div);
         });

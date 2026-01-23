@@ -59,6 +59,9 @@ class Game {
         this.player = null; // Local Player
         this.localPlayer = null; // Alias for compatibility
         this.remotePlayers = new Map(); // Other Players <uid, RemotePlayer>
+        this.floatingTexts = []; // Floating Damage Text
+        this.sparks = []; // Spark Particles
+
 
         // 5. Game Loop
         this.loop = new GameLoop(
@@ -122,6 +125,7 @@ class Game {
             if (this.remotePlayers.has(data.id)) return;
             // Logger.log(`[Main] Remote Player Joined: ${data.id}`);
             const rp = new RemotePlayer(data.id, data.x, data.y, this.resources);
+            rp.name = data.name || "Unknown";
             this.remotePlayers.set(data.id, rp);
         });
 
@@ -129,6 +133,7 @@ class Game {
             const rp = this.remotePlayers.get(data.id);
             if (rp) {
                 rp.onServerUpdate(data);
+                if (data.name) rp.name = data.name;
             }
         });
 
@@ -169,20 +174,99 @@ class Game {
         let startY = this.zone.height / 2 + (Math.random() * 100 - 50);
 
         const savedData = await this.net.getPlayerData(user.uid);
+        let profile = null;
         if (savedData) {
-            const posData = Array.isArray(savedData) ? savedData : (savedData.p || null);
+            const posData = savedData.p;
             if (posData && Array.isArray(posData)) {
                 startX = posData[0];
                 startY = posData[1];
-                Logger.log(`[Main] Position restored: ${startX}, ${startY}`);
             }
+            profile = savedData.profile;
         }
 
         this.updateLoading('캐릭터 생성 및 최적화 중...', 95);
         // Spawn Player
         this.player = new Player(startX, startY, user.displayName || "Hero");
+        this.player.id = user.uid; // Ensure UID is set
         this.localPlayer = this.player; // Alias used by Monster AI
+
+        if (profile) {
+            this.player.level = profile.level || 1;
+            this.player.exp = profile.exp || 0;
+            this.player.gold = profile.gold || 300;
+            this.player.vitality = profile.vitality || 1;
+            this.player.intelligence = profile.intelligence || 3;
+            this.player.wisdom = profile.wisdom || 2;
+            this.player.agility = profile.agility || 1;
+            this.player.statPoints = profile.statPoints || 0;
+            this.player.skillLevels = profile.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
+            this.player.name = profile.name || user.displayName || "Hero";
+            this.player.refreshStats();
+        }
         this.player.init(this.input, this.resources, this.net);
+
+        // Network Handlers
+        this.net.on('rewardReceived', (data) => {
+            if (this.player) this.player.receiveReward(data);
+        });
+
+        this.net.on('monsterDamageReceived', (data) => {
+            const m = this.monsterManager?.monsters.get(data.mid);
+            if (m) {
+                this.addSpark(m.x, m.y);
+                this.addDamageText(m.x, m.y, data.dmg, '#ff4757', false);
+            }
+        });
+
+        this.net.on('playerDamageReceived', (data) => {
+            let target = null;
+            if (this.player && this.player.id === data.tid) target = this.player;
+            else target = this.remotePlayers.get(data.tid);
+
+            if (target) {
+                this.addSpark(target.x + target.width / 2, target.y + target.height / 2);
+                this.addDamageText(target.x + target.width / 2, target.y + target.height / 2, data.dmg, '#ff4757', false);
+                if (target === this.player) this.player.takeDamage(data.dmg);
+                else {
+                    // Manual HP update for remote player
+                    target.hp = Math.max(0, (target.hp || 100) - data.dmg);
+                }
+            }
+        });
+
+        this.net.on('playerJoined', (data) => {
+            if (this.remotePlayers.has(data.id)) return;
+            const rp = new RemotePlayer(data.id, data.x, data.y, this.resources);
+            rp.name = data.name || "Unknown";
+            this.remotePlayers.set(data.id, rp);
+            Logger.log(`[Main] Player Joined: ${rp.name} (${data.id})`);
+        });
+
+        this.net.on('playerUpdate', (data) => {
+            const rp = this.remotePlayers.get(data.id);
+            if (rp) {
+                rp.onServerUpdate(data);
+            }
+        });
+
+        this.net.on('playerLeft', (id) => {
+            if (this.remotePlayers.has(id)) {
+                this.remotePlayers.delete(id);
+                Logger.log(`[Main] Player Left: ${id}`);
+            }
+        });
+
+        this.net.on('playerAttack', (data) => {
+            const rp = this.remotePlayers.get(data.id);
+            if (rp) rp.triggerAttack(data);
+        });
+
+        // Bind UI Popups
+        this.input.on('keydown', (action) => {
+            if (action === 'OPEN_INVENTORY') this.ui.togglePopup('inventory-popup');
+            if (action === 'OPEN_SKILL') this.ui.togglePopup('skill-popup');
+            if (action === 'OPEN_STATUS') this.ui.togglePopup('status-popup');
+        });
 
         this.updateLoading('게임 시작!', 100);
         // Start Loop
@@ -201,14 +285,42 @@ class Game {
     update(dt) {
         // Update Local Player
         if (this.player) {
+            // Continuous Attack (J Key)
+            if (this.input.isPressed('ATTACK')) {
+                this.player.performLaserAttack(dt);
+            } else {
+                if (this.player.isChanneling) {
+                    this.player.isChanneling = false;
+                    this.player.isAttacking = false;
+                    this.player.chargeTime = 0;
+                }
+            }
+
             this.player.update(dt);
+
+            // Sync UI
+            if (this.ui) {
+                this.ui.updateStats(
+                    (this.player.hp / this.player.maxHp) * 100,
+                    (this.player.mp / this.player.maxMp) * 100,
+                    this.player.level,
+                    (this.player.exp / this.player.maxExp) * 100
+                );
+
+                // Set Max values for progress bars (initial or dynamic)
+                const hpMax = document.getElementById('ui-hp-max');
+                const mpMax = document.getElementById('ui-mp-max');
+                if (hpMax) hpMax.textContent = Math.floor(this.player.maxHp);
+                if (mpMax) mpMax.textContent = Math.floor(this.player.maxMp);
+            }
 
             // Sync Position
             this.net.sendMovePacket(
                 this.player.x,
                 this.player.y,
                 this.player.vx,
-                this.player.vy
+                this.player.vy,
+                this.player.name
             );
 
             // Camera Follow
@@ -222,6 +334,21 @@ class Game {
         if (this.monsterManager && this.player) {
             this.monsterManager.update(dt, this.player);
         }
+
+        // Update Floating Texts
+        this.floatingTexts = this.floatingTexts.filter(ft => {
+            ft.timer -= dt;
+            ft.currentY -= 40 * dt;
+            return ft.timer > 0;
+        });
+
+        // Update Sparks
+        this.sparks = this.sparks.filter(s => {
+            s.life -= dt;
+            s.x += s.vx * dt;
+            s.y += s.vy * dt;
+            return s.life > 0;
+        });
     }
 
     render() {
@@ -260,7 +387,62 @@ class Game {
             }
         }
 
+        // Draw Floating Texts
+        this.ctx.save();
+
+        // Draw Sparks
+        this.sparks.forEach(s => {
+            this.ctx.fillStyle = s.color;
+            this.ctx.globalAlpha = s.life * 2;
+            this.ctx.fillRect(s.x, s.y, 2, 2);
+        });
+        this.ctx.globalAlpha = 1.0;
+
+        this.floatingTexts.forEach(ft => {
+            const sx = ft.x, sy = ft.currentY;
+            this.ctx.globalAlpha = Math.min(1, ft.timer);
+            this.ctx.textAlign = 'center';
+            this.ctx.strokeStyle = '#000';
+            this.ctx.lineWidth = 3;
+
+            if (ft.label) {
+                this.ctx.font = 'bold 18px "Outfit", sans-serif';
+                this.ctx.strokeText(ft.label, sx, sy - 35);
+                this.ctx.fillStyle = '#fff';
+                this.ctx.fillText(ft.label, sx, sy - 35);
+            }
+
+            const fs = ft.isCrit ? 50 : 20;
+            this.ctx.font = `bold ${fs}px "Outfit", sans-serif`;
+            this.ctx.strokeText(ft.text, sx, sy);
+            this.ctx.fillStyle = ft.color;
+            this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            this.ctx.shadowBlur = ft.isCrit ? 10 : 4;
+            this.ctx.fillText(ft.text, sx, sy);
+        });
         this.ctx.restore();
+
+        this.ctx.restore();
+    }
+
+    addDamageText(x, y, amount, color = '#ff4757', isCrit = false, label = null) {
+        this.floatingTexts.push({
+            x, y, text: amount, color, timer: 1.5, currentY: y, isCrit: isCrit, label: label
+        });
+    }
+
+    addSpark(x, y) {
+        for (let i = 0; i < 8; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 50 + Math.random() * 50;
+            this.sparks.push({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 0.3 + Math.random() * 0.2,
+                color: '#fff'
+            });
+        }
     }
 }
 

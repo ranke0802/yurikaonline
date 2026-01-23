@@ -24,7 +24,10 @@ export default class KeyboardHandler extends EventEmitter {
             '1': 'SKILL_1',
             '2': 'SKILL_2',
             '3': 'SKILL_3',
-            '4': 'SKILL_4'
+            '4': 'SKILL_4',
+            'B': 'OPEN_INVENTORY',
+            'S': 'OPEN_SKILL',
+            'I': 'OPEN_STATUS'
         };
 
         this._onKeyDown = this._onKeyDown.bind(this);
@@ -43,14 +46,27 @@ export default class KeyboardHandler extends EventEmitter {
     }
 
     _onKeyDown(e) {
-        const action = this.keyMap[e.key] || this.keyMap[e.code];
+        let key = e.key;
+        if (e.shiftKey) {
+            if (key === 'b' || key === 'B') key = 'B';
+            if (key === 's' || key === 'S') key = 'S';
+            if (key === 'i' || key === 'I') key = 'I';
+        }
+        const action = this.keyMap[key] || this.keyMap[e.code];
         if (action) {
             this.emit('actionDown', action);
         }
     }
 
     _onKeyUp(e) {
-        const action = this.keyMap[e.key] || this.keyMap[e.code];
+        let key = e.key;
+        if (e.shiftKey || key === 'Shift') {
+            // We want to handle release carefully, but for simple mapping:
+            if (key === 'b' || key === 'B') key = 'B';
+            if (key === 's' || key === 'S') key = 'S';
+            if (key === 'i' || key === 'I') key = 'I';
+        }
+        const action = this.keyMap[key] || this.keyMap[e.code];
         if (action) {
             this.emit('actionUp', action);
         }

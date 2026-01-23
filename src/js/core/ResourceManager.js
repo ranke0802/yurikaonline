@@ -20,11 +20,11 @@ export default class ResourceManager {
         const promise = new Promise(async (resolve, reject) => {
             try {
                 const categories = {
-                    'back': { path: 'assets/resource/magicion_back', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp'] },
-                    'front': { path: 'assets/resource/magicion_front', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp', '6.webp', '7.webp', '8.webp'] },
-                    'left': { path: 'assets/resource/magicion_left', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp', '6.webp', '7.webp'] },
-                    'right': { path: 'assets/resource/magicion_right', frames: ['4.webp', '5.webp', '6.webp', '7.webp', '8.webp', '9.webp', '05.webp'] },
-                    'attack': { path: 'assets/resource/magician_attack', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp', '6.webp'] }
+                    'back': { path: '/assets/resource/magicion_back', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp'] },
+                    'front': { path: '/assets/resource/magicion_front', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp', '6.webp', '7.webp', '8.webp'] },
+                    'left': { path: '/assets/resource/magicion_left', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp', '6.webp', '7.webp'] },
+                    'right': { path: '/assets/resource/magicion_right', frames: ['4.webp', '5.webp', '6.webp', '7.webp', '8.webp', '9.webp', '05.webp'] },
+                    'attack': { path: '/assets/resource/magician_attack', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp', '6.webp'] }
                 };
 
                 const maxFrames = 8;

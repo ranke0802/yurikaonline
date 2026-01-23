@@ -43,21 +43,28 @@ export default class TouchHandler extends EventEmitter {
     }
 
     _bindUiButtons() {
+        const keyMap = {
+            'j': 'ATTACK',
+            'h': 'SKILL_1',
+            'u': 'SKILL_2',
+            'k': 'SKILL_3'
+        };
+
         const uiButtons = document.querySelectorAll('.skill-btn, .attack-btn, .inventory-trigger, .status-trigger, .menu-btn');
         uiButtons.forEach(btn => {
-            const key = btn.getAttribute('data-key');
-            if (!key) return;
+            const rawKey = btn.getAttribute('data-key');
+            if (!rawKey) return;
+
+            const action = keyMap[rawKey] || rawKey;
 
             const startAction = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                // Map 'j' to 'ATTACK', 'k' to 'ROLL' etc if needed, or pass raw key
-                // For now, passing raw key, InputManager can remap or broadcast
-                this.emit('actionDown', key);
+                this.emit('actionDown', action);
             };
 
             const endAction = (e) => {
-                this.emit('actionUp', key);
+                this.emit('actionUp', action);
             };
 
             btn.addEventListener('mousedown', startAction);

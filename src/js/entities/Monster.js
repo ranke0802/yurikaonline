@@ -19,6 +19,9 @@ export default class Monster {
 
         this.hitTimer = 0;
         this.isDead = false;
+        this.alpha = 1.0;
+        this.deathTimer = 0;
+        this.deathDuration = 1.0; // 1 second fade out
 
         this.statusEffects = []; // { type: 'burn', timer: 3.0, damage: 2 }
         this._looted = false;
@@ -32,6 +35,10 @@ export default class Monster {
         this.electrocutedTimer = 0;
         this.slowRatio = 0;
         this.sparkTimer = 0;
+        this.lastAttackerId = null; // Track who hit this monster
+        this.targetX = x;
+        this.targetY = y;
+        this.isMonster = true;
         this.init();
     }
 
@@ -39,7 +46,7 @@ export default class Monster {
 
     async init() {
         const frames = ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp'];
-        const path = 'assets/resource/monster_slim';
+        const path = '/assets/resource/monster_slim';
         const cacheKey = path; // In future, if path changes based on name, use that unique key
 
         // Check Cache
@@ -136,6 +143,12 @@ export default class Monster {
     }
 
     update(dt) {
+        if (this.isDead) {
+            this.deathTimer += dt;
+            this.alpha = Math.max(0, 1 - (this.deathTimer / this.deathDuration));
+            return;
+        }
+
         if (!this.ready) return;
 
         this.timer += dt;
@@ -239,9 +252,10 @@ export default class Monster {
             this.x = Math.max(0, Math.min(6000, this.x));
             this.y = Math.max(0, Math.min(6000, this.y));
         } else {
-            // Guest: Just follow velocity (or server updates handled in MonsterManager)
-            this.x += this.vx * dt;
-            this.y += this.vy * dt;
+            // Guest: Interpolate to target position for smoothness
+            const lerpFactor = 0.15;
+            this.x += (this.targetX - this.x) * lerpFactor;
+            this.y += (this.targetY - this.y) * lerpFactor;
         }
 
         if (this.hitTimer > 0) {
@@ -288,8 +302,13 @@ export default class Monster {
         this.hp = Math.max(0, this.hp - amount);
         if (triggerFlash) this.hitTimer = 0.2;
 
-        if (amount > 0 && window.game) {
+        if (amount > 0 && window.game && typeof window.game.addDamageText === 'function') {
             window.game.addDamageText(this.x, this.y - 40, Math.floor(amount), isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null);
+        }
+
+        // --- Damage Sync (Guest to Host) ---
+        if (amount > 0 && window.game?.net && !window.game.net.isHost) {
+            window.game.net.sendMonsterDamage(this.id, amount);
         }
 
         if (this.hp < 1) {
@@ -303,7 +322,10 @@ export default class Monster {
     }
 
     draw(ctx, camera) {
-        if (!this.ready) return;
+        if (!this.ready || this.deathTimer >= this.deathDuration) return;
+
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
 
         // Note: Context is already translated by Camera in Main.js
         const screenX = Math.round(this.x);
@@ -494,5 +516,6 @@ export default class Monster {
             });
             ctx.restore();
         }
+        ctx.restore();
     }
 }
