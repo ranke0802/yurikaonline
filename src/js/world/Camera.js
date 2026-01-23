@@ -24,4 +24,16 @@ export class Camera {
         this.viewportWidth = width;
         this.viewportHeight = height;
     }
+
+    follow(target, mapWidth, mapHeight) {
+        // Update map bounds if provided
+        if (mapWidth) this.mapWidth = mapWidth;
+        if (mapHeight) this.mapHeight = mapHeight;
+
+        // Calculate center of target
+        const targetX = target.x + (target.width || 0) / 2;
+        const targetY = target.y + (target.height || 0) / 2;
+
+        this.update(targetX, targetY);
+    }
 }
