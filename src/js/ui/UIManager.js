@@ -699,7 +699,7 @@ export class UIManager {
         });
     }
 
-    updateMinimap(player, monsters, mapWidth, mapHeight) {
+    updateMinimap(player, remotePlayers, monsters, mapWidth, mapHeight) {
         const canvas = document.getElementById('minimapCanvas');
         if (!canvas) return;
 
@@ -714,24 +714,38 @@ export class UIManager {
         const scaleX = w / mapWidth;
         const scaleY = h / mapHeight;
 
-        // Draw Player
+        // 1. Draw Remote Players (White)
         ctx.fillStyle = '#ffffff';
+        if (remotePlayers) {
+            remotePlayers.forEach(rp => {
+                const px = rp.x * scaleX;
+                const py = rp.y * scaleY;
+                ctx.beginPath();
+                ctx.arc(px, py, 3, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // 2. Draw Monsters (Red)
+        ctx.fillStyle = '#ff3f34';
+        if (monsters) {
+            monsters.forEach(m => {
+                if (m.isDead) return;
+                const mx = m.x * scaleX;
+                const my = m.y * scaleY;
+                ctx.beginPath();
+                ctx.arc(mx, my, 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // 3. Draw Local Player (Green - Last to be on top)
+        ctx.fillStyle = '#4ade80';
         const px = player.x * scaleX;
         const py = player.y * scaleY;
         ctx.beginPath();
         ctx.arc(px, py, 3, 0, Math.PI * 2);
         ctx.fill();
-
-        // Draw Monsters
-        ctx.fillStyle = '#ff3f34';
-        monsters.forEach(m => {
-            if (m.isDead) return;
-            const mx = m.x * scaleX;
-            const my = m.y * scaleY;
-            ctx.beginPath();
-            ctx.arc(mx, my, 2, 0, Math.PI * 2);
-            ctx.fill();
-        });
 
         // Update footer
         const posX = document.getElementById('mini-pos-x');

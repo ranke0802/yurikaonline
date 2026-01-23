@@ -10,6 +10,8 @@ import Player from './entities/Player.js';
 import RemotePlayer from './entities/RemotePlayer.js';
 import AuthManager from './core/AuthManager.js';
 import NetworkManager from './core/NetworkManager.js';
+import MonsterManager from './world/MonsterManager.js';
+import { UIManager } from './ui/UIManager.js';
 
 class Game {
     constructor() {
@@ -36,10 +38,15 @@ class Game {
         this.net = new NetworkManager();
         this.resources = new ResourceManager();
 
+        // Global Reference for AI and Debugging
+        window.game = this;
+
         // 2. World Systems
         this.zone = new ZoneManager(this.resources);
-        // Fix: Pass viewport width/height first (Initial assumption)
-        this.camera = new Camera(this.canvas.width, this.canvas.height, 2000, 2000);
+        this.monsterManager = new MonsterManager(this.zone, this.net);
+        this.ui = new UIManager(this);
+        // Map is 6400x6400 based on ZoneManager (200 * 32)
+        this.camera = new Camera(this.canvas.width, this.canvas.height, 6400, 6400);
 
         // 3. Handlers
         this.keyboard = new KeyboardHandler();
@@ -50,6 +57,7 @@ class Game {
 
         // 4. Game Entities
         this.player = null; // Local Player
+        this.localPlayer = null; // Alias for compatibility
         this.remotePlayers = new Map(); // Other Players <uid, RemotePlayer>
 
         // 5. Game Loop
@@ -61,10 +69,16 @@ class Game {
         this.init();
     }
 
-    updateLoading(msg) {
+    updateLoading(msg, percent = null) {
         const loader = document.querySelector('.loading-text');
         if (loader) loader.textContent = msg;
-        Logger.log(`[Loading] ${msg}`);
+
+        if (percent !== null) {
+            const fill = document.getElementById('loading-progress-fill');
+            if (fill) fill.style.width = `${percent}%`;
+        }
+
+        Logger.log(`[Loading] ${msg} ${percent ? `(${percent}%)` : ''}`);
     }
 
     resize() {
@@ -98,7 +112,7 @@ class Game {
 
         this.auth.on('authStateChanged', (user) => {
             if (user) {
-                this.updateLoading(`로그인 성공! (${user.isAnonymous ? '게스트' : user.displayName})`);
+                this.updateLoading(`로그인 성공! (${user.isAnonymous ? '게스트' : user.displayName})`, 20);
                 this.startSession(user);
             }
         });
@@ -135,28 +149,42 @@ class Game {
     }
 
     async startSession(user) {
-        this.updateLoading('월드 데이터 다운로드 중...');
+        this.updateLoading('월드 데이터 다운로드 중...', 40);
 
         // Load Map and Assets
         await this.zone.loadZone('zone_1');
         try {
-            await this.resources.loadImage('src/assets/character.png');
+            await this.resources.loadImage('assets/character.png');
         } catch (e) {
             Logger.error('Failed to load character sprite', e);
         }
 
-        this.updateLoading('서버 소켓 연결 중...');
+        this.updateLoading('서버 소켓 연결 중...', 60);
         // Connect Network
         this.net.connect(user);
 
+        this.updateLoading('캐릭터 데이터 복구 중...', 80);
+        // Try to restore position
+        let startX = this.zone.width / 2 + (Math.random() * 100 - 50);
+        let startY = this.zone.height / 2 + (Math.random() * 100 - 50);
+
+        const savedData = await this.net.getPlayerData(user.uid);
+        if (savedData) {
+            const posData = Array.isArray(savedData) ? savedData : (savedData.p || null);
+            if (posData && Array.isArray(posData)) {
+                startX = posData[0];
+                startY = posData[1];
+                Logger.log(`[Main] Position restored: ${startX}, ${startY}`);
+            }
+        }
+
         this.updateLoading('캐릭터 생성 중...');
-        // Spawn Player (Center of Map)
-        const startX = this.zone.width / 2 + (Math.random() * 100 - 50);
-        const startY = this.zone.height / 2 + (Math.random() * 100 - 50);
+        // Spawn Player
         this.player = new Player(startX, startY, user.displayName || "Hero");
+        this.localPlayer = this.player; // Alias used by Monster AI
         this.player.init(this.input, this.resources, this.net);
 
-        this.updateLoading('게임 시작!');
+        this.updateLoading('게임 시작!', 100);
         // Start Loop
         this.loop.start();
 
@@ -189,6 +217,11 @@ class Game {
 
         // Update Remote Players
         this.remotePlayers.forEach(rp => rp.update(dt));
+
+        // Update Monsters
+        if (this.monsterManager && this.player) {
+            this.monsterManager.update(dt, this.player);
+        }
     }
 
     render() {
@@ -206,9 +239,25 @@ class Game {
         // Draw Remote Players (Behind local player)
         this.remotePlayers.forEach(rp => rp.render(this.ctx, this.camera));
 
+        // Draw Monsters
+        if (this.monsterManager) {
+            this.monsterManager.render(this.ctx, this.camera);
+        }
+
         // Draw Local Player
         if (this.player) {
             this.player.render(this.ctx, this.camera);
+
+            // Update Minimap
+            if (this.ui) {
+                this.ui.updateMinimap(
+                    this.player,
+                    this.remotePlayers,
+                    this.monsterManager ? this.monsterManager.monsters : [],
+                    this.zone.width,
+                    this.zone.height
+                );
+            }
         }
 
         this.ctx.restore();

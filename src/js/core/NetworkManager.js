@@ -10,9 +10,13 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef = null;
 
         // Remote Players buffer
-        // Map<uid, {data: Object, target: Object, lastUpdate: number}>
-        // data: Current interpolated state, target: Next target state form server
         this.remotePlayers = new Map();
+
+        // Host Logic
+        this.isHost = false;
+        this.connectedUsers = [];
+        this.userLastSeen = new Map();
+        this.cleanupTimer = null;
 
         // Optimization: Dead Reckoning & Throttling
         this.lastSyncTime = 0;
@@ -32,12 +36,127 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child('users').on('child_changed', (snapshot) => this._onPlayerChanged(snapshot));
         this.dbRef.child('users').on('child_removed', (snapshot) => this._onPlayerRemoved(snapshot));
 
-        // 2. Remove self on disconnect (Presence System)
+        // Monster Sync
+        this.dbRef.child('monsters').on('child_added', (s) => this.emit('monsterAdded', { id: s.key, ...s.val() }));
+        this.dbRef.child('monsters').on('child_changed', (s) => this.emit('monsterUpdated', { id: s.key, ...s.val() }));
+        this.dbRef.child('monsters').on('child_removed', (s) => this.emit('monsterRemoved', s.key));
+
+        // 2. presence check
         const myRef = this.dbRef.child(`users/${this.playerId}`);
-        myRef.onDisconnect().remove();
+        // Commented out to allow position persistence on refresh.
+        // Stale users are cleaned up by Host after 5 minutes of inactivity.
+        // myRef.onDisconnect().remove();
 
         this.connected = true;
         this.emit('connected');
+    }
+
+    async getPlayerData(uid) {
+        if (!this.dbRef) return null;
+        try {
+            const snapshot = await this.dbRef.child(`users/${uid}`).once('value');
+            return snapshot.val();
+        } catch (e) {
+            Logger.error('Failed to get player data', e);
+            return null;
+        }
+    }
+
+    // --- Host Logic ---
+    _checkHostStatus() {
+        const now = Date.now();
+        const timeout = 60000; // 60s Active Timeout (Relaxed)
+
+        // Update self
+        this.userLastSeen.set(this.playerId, now);
+
+        // Filter active users
+        const activeUsers = this.connectedUsers.filter(uid => {
+            if (uid === this.playerId) return true;
+            const last = this.userLastSeen.get(uid) || 0;
+            return (now - last) < timeout;
+        });
+
+        activeUsers.sort();
+
+        // Host is the first ACTIVE user
+        if (activeUsers.length > 0 && activeUsers[0] === this.playerId) {
+            if (!this.isHost) {
+                this.isHost = true;
+                Logger.info('I am the HOST (Active Check)');
+                this.emit('hostChanged', true);
+                this._startCleanupLoop();
+            }
+        } else {
+            if (this.isHost) {
+                this.isHost = false;
+                Logger.info('I am a GUEST client');
+                this.emit('hostChanged', false);
+                this._stopCleanupLoop();
+            }
+        }
+    }
+
+    _startCleanupLoop() {
+        if (this.cleanupTimer) clearInterval(this.cleanupTimer);
+        this.cleanupTimer = setInterval(() => this._cleanupStaleUsers(), 5000); // Check every 5s
+    }
+
+    _stopCleanupLoop() {
+        if (this.cleanupTimer) {
+            clearInterval(this.cleanupTimer);
+            this.cleanupTimer = null;
+        }
+    }
+
+    async _cleanupStaleUsers() {
+        if (!this.connected || !this.isHost) return;
+
+        const now = Date.now();
+        const staleTimeout = 180 * 1000; // 3 minutes
+
+        try {
+            const snapshot = await this.dbRef.child('users').once('value');
+            if (!snapshot.exists()) return;
+
+            snapshot.forEach(child => {
+                if (child.key === this.playerId) return;
+
+                const val = child.val();
+                let lastTs = 0;
+                const posData = Array.isArray(val) ? val : (val.p || null);
+
+                if (posData && Array.isArray(posData)) {
+                    lastTs = posData[4] || 0;
+                } else if (val.ts) {
+                    lastTs = val.ts;
+                }
+
+                // If very old, delete from DB
+                if (now - lastTs > staleTimeout) {
+                    Logger.log(`[Host] Removing stale user: ${child.key}`);
+                    this.dbRef.child(`users/${child.key}`).remove();
+                }
+            });
+        } catch (e) {
+            Logger.error('Cleanup failed', e);
+        }
+    }
+
+    sendMonsterUpdate(id, data) {
+        if (!this.connected || !this.isHost) return;
+        if (!id || !data) return;
+
+        // Validation to prevent Firebase Errors (No Spread to avoid undefined fields)
+        const safeData = {
+            x: Math.round(data.x || 0),
+            y: Math.round(data.y || 0),
+            hp: Math.round(data.hp || 0),
+            maxHp: Math.round(data.maxHp || 100),
+            type: data.type || 'slime'
+        };
+
+        this.dbRef.child(`monsters/${id}`).set(safeData).catch(e => { });
     }
 
     // Packet: [x, y, vx, vy, timestamp]
@@ -49,16 +168,25 @@ export default class NetworkManager extends EventEmitter {
         // Throttle Network Calls
         if (now - this.lastSyncTime < this.syncInterval) return;
 
+        // Validation to prevent Firebase Errors
+        const safeX = (isNaN(x) || x === null || x === undefined) ? 0 : Math.round(x);
+        const safeY = (isNaN(y) || y === null || y === undefined) ? 0 : Math.round(y);
+        const safeVx = (isNaN(vx) || vx === null || vx === undefined) ? 0 : parseFloat(vx.toFixed(2));
+        const safeVy = (isNaN(vy) || vy === null || vy === undefined) ? 0 : parseFloat(vy.toFixed(2));
+
         const packet = [
-            Math.round(x),
-            Math.round(y),
-            parseFloat(vx.toFixed(2)),
-            parseFloat(vy.toFixed(2)),
+            safeX,
+            safeY,
+            safeVx,
+            safeVy,
             now
         ];
 
         // Update Position Node 'p'
-        this.dbRef.child(`users/${this.playerId}/p`).set(packet);
+        this.dbRef.child(`users/${this.playerId}/p`).set(packet).catch(e => {
+            // Suppress set errors to avoid console spam, just log once
+            // Logger.error('Net Move Error', e);
+        });
         this.lastSyncTime = now;
     }
 
@@ -72,24 +200,42 @@ export default class NetworkManager extends EventEmitter {
 
     _onPlayerAdded(snapshot) {
         const uid = snapshot.key;
-        if (uid === this.playerId) return;
-
         const val = snapshot.val();
-        // Support new Object {p:[], a:[]} and legacy Array []
+
+        // Host Logic: Timestamp
+        let ts = Date.now();
         const posData = Array.isArray(val) ? val : (val.p || null);
+        if (posData && Array.isArray(posData)) {
+            ts = posData[4] || 0;
+        }
+        this.userLastSeen.set(uid, ts);
+
+        if (!this.connectedUsers.includes(uid)) {
+            this.connectedUsers.push(uid);
+            this.connectedUsers.sort();
+            this._checkHostStatus(); // Check if this new user (or existing ghost) changes host status
+        }
+
+        if (uid === this.playerId) return;
 
         if (!posData || !Array.isArray(posData)) return;
 
-        // Logger.log(`[Net] Player Joined: ${uid}`);
         this.emit('playerJoined', { id: uid, x: posData[0], y: posData[1] });
     }
 
     _onPlayerChanged(snapshot) {
         const uid = snapshot.key;
-        if (uid === this.playerId) return;
-
         const val = snapshot.val();
+
+        // Host Logic: Update Timestamp
         const posData = Array.isArray(val) ? val : (val.p || null);
+        if (posData && Array.isArray(posData)) {
+            const ts = posData[4] || Date.now();
+            this.userLastSeen.set(uid, ts);
+            this._checkHostStatus(); // User became active, re-check
+        }
+
+        if (uid === this.playerId) return;
 
         // Position Update
         if (posData && Array.isArray(posData)) {
@@ -117,6 +263,12 @@ export default class NetworkManager extends EventEmitter {
 
     _onPlayerRemoved(snapshot) {
         const uid = snapshot.key;
+
+        this.connectedUsers = this.connectedUsers.filter(id => id !== uid);
+        this.connectedUsers.sort();
+        this.userLastSeen.delete(uid);
+        this._checkHostStatus();
+
         Logger.log(`Player Left: ${uid}`);
         this.emit('playerLeft', uid);
     }

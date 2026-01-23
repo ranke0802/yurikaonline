@@ -1,0 +1,147 @@
+import Logger from '../utils/Logger.js';
+import Monster from '../entities/Monster.js';
+
+export default class MonsterManager {
+    constructor(zoneManager, networkManager) {
+        this.zone = zoneManager;
+        this.net = networkManager;
+        this.monsters = new Map(); // id -> Monster
+
+        this.spawnTimer = 0;
+        this.spawnInterval = 3; // Spawn every 3s (Host only)
+        this.maxMonsters = 10;
+
+        // Listen to Network Events
+        this.net.on('monsterAdded', (data) => this._onRemoteMonsterAdded(data));
+        this.net.on('monsterUpdated', (data) => this._onRemoteMonsterUpdated(data));
+        this.net.on('monsterRemoved', (id) => this._onRemoteMonsterRemoved(id));
+
+        Logger.info('MonsterManager initialized');
+    }
+
+    update(dt, player) {
+        // 1. Host Logic: Spawn & AI
+        if (this.net.isHost) {
+            this._updateHostLogic(dt, player);
+        }
+
+        // 2. Client Updating (Visuals & Prediction)
+        this.monsters.forEach(m => {
+            m.update(dt);
+        });
+    }
+
+    render(ctx, camera) {
+        // Sort for depth if needed
+        this.monsters.forEach(m => {
+            m.draw(ctx, camera);
+        });
+    }
+
+    _updateHostLogic(dt, player) {
+        // Spawning
+        this.spawnTimer += dt;
+        if (this.spawnTimer >= this.spawnInterval) {
+            this.spawnTimer = 0;
+            if (this.monsters.size < this.maxMonsters) {
+                this._spawnMonster();
+            }
+        }
+
+        // AI & Sync Throttling (Save Bandwidth)
+        if (!this.lastSyncTime) this.lastSyncTime = 0;
+        const now = Date.now();
+        if (now - this.lastSyncTime < 200) return; // 5Hz Sync
+        this.lastSyncTime = now;
+
+        if (!this.lastSyncState) this.lastSyncState = new Map();
+
+        this.monsters.forEach((m, id) => {
+            const last = this.lastSyncState.get(id);
+            const dist = last ? Math.sqrt((m.x - last.x) ** 2 + (m.y - last.y) ** 2) : 999;
+            const hpChanged = last ? (m.hp !== last.hp) : true;
+
+            if (dist > 2 || hpChanged) {
+                // Send Update
+                this.net.sendMonsterUpdate(id, {
+                    x: Math.round(m.x),
+                    y: Math.round(m.y),
+                    hp: m.hp,
+                    maxHp: m.maxHp,
+                    type: m.name
+                });
+                this.lastSyncState.set(id, { x: m.x, y: m.y, hp: m.hp });
+            }
+        });
+    }
+
+    _spawnMonster() {
+        const id = `mob_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
+        // Use zone dimensions with a safe fallback
+        const worldW = this.zone.width || 6400;
+        const worldH = this.zone.height || 6400;
+
+        // Random Pos within Zone (avoiding very edges)
+        const x = 200 + Math.random() * (worldW - 400);
+        const y = 200 + Math.random() * (worldH - 400);
+
+        const data = {
+            x: Math.round(x),
+            y: Math.round(y),
+            hp: 50,
+            maxHp: 50,
+            type: 'slime'
+        };
+
+        // Create Locally immediately?
+        // No, wait for Network 'monsterAdded' event (even for Host) ensures consistency?
+        // Or Optimistic?
+        // Let's go Optimistic to avoid lag.
+        // But for simplicity, let `sendMonsterUpdate` trigger the event?
+        // Firebase `set` triggers `child_added` on consistent clients.
+
+        this.net.sendMonsterUpdate(id, data);
+    }
+
+    _onRemoteMonsterAdded(data) {
+        if (this.monsters.has(data.id)) return;
+
+        // Create Monster Instance
+        // We need ResourceManager... passed from ZoneManager?
+        // Or assume Monster loads its own? Monster.js logic check needed.
+        // Assuming Monster(x, y, type) signature.
+
+        // Wait, Monster constructor?
+        const m = new Monster(data.x, data.y, data.type);
+        m.id = data.id; // Assign net ID
+        m.hp = data.hp;
+        m.maxHp = data.maxHp;
+
+        // If Host, we are 'authoritative', so we keep control.
+        // If Guest, we just render.
+
+        this.monsters.set(data.id, m);
+    }
+
+    _onRemoteMonsterUpdated(data) {
+        const m = this.monsters.get(data.id);
+        if (!m) {
+            this._onRemoteMonsterAdded(data);
+            return;
+        }
+
+        // If I am Host, I SENT this update, so I don't need to correct myself.
+        // Unless we want to re-sync?
+        if (this.net.isHost) return;
+
+        // Guest: Lerp to target
+        m.x = data.x; // Add lerp later if choppy
+        m.y = data.y;
+        m.hp = data.hp;
+    }
+
+    _onRemoteMonsterRemoved(id) {
+        this.monsters.delete(id);
+    }
+}

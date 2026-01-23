@@ -146,92 +146,103 @@ export default class Monster {
 
         this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
 
-        // --- AI Logic ---
-        if (!this.attackCooldown) this.attackCooldown = 0;
-        if (this.attackCooldown > 0) this.attackCooldown -= dt;
+        // --- AI Logic (Host Only) ---
+        if (window.game?.net?.isHost) {
+            if (!this.attackCooldown) this.attackCooldown = 0;
+            if (this.attackCooldown > 0) this.attackCooldown -= dt;
 
-        const player = window.game?.localPlayer;
-        const playerHasAttacked = window.game?.playerHasAttacked;
-        const reflectsDamage = this.hp < this.maxHp;
+            const player = window.game?.localPlayer;
+            // Note: In multiplayer, host should ideally target the nearest player.
+            // For now, we continue targeting the local player (which is the Host's player).
 
-        if (player) {
-            const dist = Math.sqrt((player.x - this.x) ** 2 + (player.y - this.y) ** 2);
+            if (player) {
+                const dist = Math.sqrt((player.x - this.x) ** 2 + (player.y - this.y) ** 2);
 
-            // 적대적 행위 (추격 및 공격)는 플레이어가 공격했거나 데미지를 입었을 때 + 공격 제한(isAggro)에 걸리지 않았을 때
-            if (this.isAggro && dist < 400 && dist > 50) {
-                const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                let speed = 100;
-                if (this.electrocutedTimer > 0) {
-                    speed *= (1 - this.slowRatio);
-                }
-                this.vx = Math.cos(angle) * speed;
-                this.vy = Math.sin(angle) * speed;
-            } else if (this.isAggro && dist <= 60) {
-                this.vx = 0;
-                this.vy = 0;
-                if (this.attackCooldown <= 0) {
-                    player.takeDamage(5 + (Math.random() * 5));
-                    this.attackCooldown = 1.5;
-                    this.hitTimer = 0.1;
-                }
-            } else {
-                // 평상시: 정지하거나 자유롭게 배회
-                this.moveTimer -= dt;
-                if (this.moveTimer <= 0) {
-                    const shouldMove = Math.random() < 0.7; // 70% 확률로 이동
-                    if (shouldMove) {
-                        const angle = Math.random() * Math.PI * 2;
-                        let speed = 30 + Math.random() * 40;
-                        if (this.electrocutedTimer > 0) speed *= (1 - this.slowRatio);
-                        this.vx = Math.cos(angle) * speed;
-                        this.vy = Math.sin(angle) * speed;
-                    } else {
-                        this.vx = 0;
-                        this.vy = 0;
+                if (this.isAggro && dist < 400 && dist > 50) {
+                    const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                    let speed = 100;
+                    if (this.electrocutedTimer > 0) {
+                        speed *= (1 - this.slowRatio);
                     }
-                    this.moveTimer = 1 + Math.random() * 3;
+                    this.vx = Math.cos(angle) * speed;
+                    this.vy = Math.sin(angle) * speed;
+                } else if (this.isAggro && dist <= 60) {
+                    this.vx = 0;
+                    this.vy = 0;
+                    if (this.attackCooldown <= 0) {
+                        player.takeDamage(5 + (Math.random() * 5));
+                        this.attackCooldown = 1.5;
+                        this.hitTimer = 0.1;
+                    }
+                } else {
+                    // Wandering
+                    this.moveTimer -= dt;
+                    if (this.moveTimer <= 0) {
+                        const shouldMove = Math.random() < 0.7;
+                        if (shouldMove) {
+                            const angle = Math.random() * Math.PI * 2;
+                            let speed = 30 + Math.random() * 40;
+                            if (this.electrocutedTimer > 0) speed *= (1 - this.slowRatio);
+                            this.vx = Math.cos(angle) * speed;
+                            this.vy = Math.sin(angle) * speed;
+                        } else {
+                            this.vx = 0;
+                            this.vy = 0;
+                        }
+                        this.moveTimer = 1 + Math.random() * 3;
+                    }
                 }
             }
-        }
 
-        const nextX = this.x + this.vx * dt;
-        const nextY = this.y + this.vy * dt;
+            // Movement & Collision (Host Authority)
+            const nextX = this.x + this.vx * dt;
+            const nextY = this.y + this.vy * dt;
 
-        let canMoveX = true;
-        let canMoveY = true;
-        const collisionRadius = 45; // 몬스터 간 충돌 반경
+            let canMoveX = true;
+            let canMoveY = true;
+            const collisionRadius = 45;
 
-        // Collision with Player
-        if (player && !player.isDead) {
-            const dist = Math.sqrt((nextX - player.x) ** 2 + (nextY - player.y) ** 2);
-            if (dist < collisionRadius) {
-                canMoveX = false;
-                canMoveY = false;
-            }
-        }
-
-        // Collision with other Monsters
-        if (window.game && window.game.monsters) {
-            for (const other of window.game.monsters) {
-                if (other === this || other.isDead) continue;
-                const distToOther = Math.sqrt((nextX - other.x) ** 2 + (nextY - other.y) ** 2);
-                if (distToOther < collisionRadius) {
-                    // 밀어내기 효과 (Separation force)
-                    const angle = Math.atan2(this.y - other.y, this.x - other.x);
-                    this.vx += Math.cos(angle) * 20;
-                    this.vy += Math.sin(angle) * 20;
+            // Collision with Player
+            if (player && !player.isDead) {
+                const dist = Math.sqrt((nextX - player.x) ** 2 + (nextY - player.y) ** 2);
+                if (dist < collisionRadius) {
                     canMoveX = false;
                     canMoveY = false;
                 }
             }
+
+            // Collision with other Monsters
+            if (window.game && window.game.monsters) {
+                // Fixed: monsters is a Map in MonsterManager, but some parts might use array. 
+                // In Monster.js it was referring to window.game.monsters which is ambiguous.
+                // Let's check window.game.monsterManager.monsters
+                const allMonsters = window.game.monsterManager?.monsters;
+                if (allMonsters) {
+                    allMonsters.forEach(other => {
+                        if (other === this || other.isDead) return;
+                        const distToOther = Math.sqrt((nextX - other.x) ** 2 + (nextY - other.y) ** 2);
+                        if (distToOther < collisionRadius) {
+                            const angle = Math.atan2(this.y - other.y, this.x - other.x);
+                            this.vx += Math.cos(angle) * 20;
+                            this.vy += Math.sin(angle) * 20;
+                            canMoveX = false;
+                            canMoveY = false;
+                        }
+                    });
+                }
+            }
+
+            if (canMoveX) this.x = nextX;
+            if (canMoveY) this.y = nextY;
+
+            // Keep inside map bounds
+            this.x = Math.max(0, Math.min(6000, this.x));
+            this.y = Math.max(0, Math.min(6000, this.y));
+        } else {
+            // Guest: Just follow velocity (or server updates handled in MonsterManager)
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
         }
-
-        if (canMoveX) this.x = nextX;
-        if (canMoveY) this.y = nextY;
-
-        // Keep inside map bounds (0-2000)
-        this.x = Math.max(0, Math.min(2000, this.x));
-        this.y = Math.max(0, Math.min(2000, this.y));
 
         if (this.hitTimer > 0) {
             this.hitTimer -= dt;
@@ -294,8 +305,9 @@ export default class Monster {
     draw(ctx, camera) {
         if (!this.ready) return;
 
-        const screenX = Math.round(this.x - camera.x);
-        const screenY = Math.round(this.y - camera.y);
+        // Note: Context is already translated by Camera in Main.js
+        const screenX = Math.round(this.x);
+        const screenY = Math.round(this.y);
         const drawY = screenY + (this.renderOffY || 0);
 
         // Draw shadow (Grounded)

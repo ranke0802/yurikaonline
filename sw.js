@@ -1,13 +1,20 @@
-const CACHE_NAME = 'yurika-online-v1.87-dev';
+const CACHE_NAME = 'yurika-online-v1.88-dev';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './manifest.json',
+    './version.txt',
     './src/css/style.css',
     './src/js/main.js',
-    // Basic assets
+    // Assets
     './src/assets/icon_192.png',
-    './src/assets/icon_512.png'
+    './src/assets/icon_512.png',
+    './src/assets/character.png',
+    './assets/resource/monster_slim/1.png',
+    './assets/resource/monster_slim/2.png',
+    './assets/resource/monster_slim/3.png',
+    './assets/resource/monster_slim/4.png',
+    './assets/resource/monster_slim/5.png'
 ];
 
 // Install Event: Cache Core Assets
