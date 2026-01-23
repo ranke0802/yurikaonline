@@ -40,7 +40,18 @@ export default class Player extends Actor {
             bossQuestClaimed: false
         };
 
+        // Quest Data
+        this.questData = {
+            slimeKills: 0,
+            bossKilled: false,
+            slimeQuestClaimed: false,
+            bossQuestClaimed: false,
+            _slimeMsgShown: false,
+            _bossMsgShown: false
+        };
+
         // Skill State
+
         this.skillLevels = {
             laser: 1,
             missile: 1,
@@ -51,7 +62,7 @@ export default class Player extends Actor {
         this.skillMaxCooldowns = { j: 0, h: 0, u: 0, k: 0 };
 
         // Combat & Channeling
-        this.attackRange = 350; // Range for Chain Lightning
+        this.attackRange = 400; // Range for Chain Lightning
         this.isAttacking = false;
         this.isChanneling = false;
         this.chargeTime = 0;
@@ -653,7 +664,9 @@ export default class Player extends Actor {
         ctx.fillRect(centerX - barWidth / 2, mpBarY, barWidth * mpPerc, barHeight);
 
         // Name Tag (Styled with outline to match screenshot)
-        const nameY = y - 40; // Moved 30px higher
+        // Name Tag (Styled with outline to match screenshot)
+        const nameY = y - 50; // Moved 10px higher (Total 50px offset)
+
 
         ctx.save();
         ctx.font = 'bold 16px "Nanum Gothic", "Outfit", sans-serif';

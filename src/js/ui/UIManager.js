@@ -543,37 +543,46 @@ export class UIManager {
         }
     }
 
+    // Quest UI logic
     updateQuestUI() {
         const p = this.game.localPlayer;
-        if (!p) return;
+        if (!p || !p.questData) return;
+
+        // Profile Image Sync
+        const profileImg = document.querySelector('.profile-img');
+        if (profileImg) {
+            // Using Frame 1 of Front Sprite
+            const v = window.GAME_VERSION || '1.0';
+            const newSrc = `assets/resource/magicion_front/1.png?v=${v}`;
+            if (!profileImg.src.includes('magicion_front')) {
+                profileImg.src = newSrc;
+            }
+        }
 
         const slimeCount = document.getElementById('quest-slime-count');
         const slimeItem = document.getElementById('quest-slime');
         const bossStatus = document.getElementById('quest-boss-status');
         const bossItem = document.getElementById('quest-boss');
 
+        // 1. Slime Quest
         if (slimeCount) slimeCount.textContent = Math.min(10, p.questData.slimeKills);
-
-        // Add Claim button if finished but not claimed
         this.renderQuestButtons(p);
 
         if (p.questData.slimeQuestClaimed && slimeItem) {
             slimeItem.classList.add('completed');
-        } else if (slimeItem) {
-            slimeItem.classList.remove('completed');
+            slimeItem.style.opacity = '0.5';
+        }
+
+        // 2. Boss Quest
+        if (p.questData.slimeQuestClaimed) {
+            if (bossItem) bossItem.style.display = 'flex';
         }
 
         if (bossStatus) bossStatus.textContent = p.questData.bossKilled ? '1' : '0';
 
-        // 슬라임 10마리 처치 후 대왕 슬라임 퀘스트 노출
-        if (bossItem) {
-            if (p.questData.slimeKills >= 10) {
-                bossItem.style.display = 'flex';
-                if (p.questData.bossQuestClaimed) bossItem.classList.add('completed');
-                else bossItem.classList.remove('completed');
-            } else {
-                bossItem.style.display = 'none';
-            }
+        if (p.questData.bossKilled) {
+            if (bossItem) bossItem.classList.add('completed');
+            if (p.questData.bossQuestClaimed && bossItem) bossItem.style.opacity = '0.5';
         }
     }
 
@@ -581,54 +590,53 @@ export class UIManager {
         const slimeQuest = document.getElementById('quest-slime');
         const bossQuest = document.getElementById('quest-boss');
 
+        // Remove existing buttons first to avoid duplicates
+        const existing = document.querySelectorAll('.quest-claim-btn');
+        existing.forEach(b => b.remove());
+
         if (p.questData.slimeKills >= 10 && !p.questData.slimeQuestClaimed) {
-            if (!document.getElementById('claim-slime-btn')) {
+            if (slimeQuest) {
                 const btn = document.createElement('button');
-                btn.id = 'claim-slime-btn';
-                btn.className = 'quest-claim-btn';
                 btn.textContent = '보상 받기';
-                btn.onclick = () => this.claimReward('slime');
+                btn.className = 'quest-claim-btn';
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    this.claimSlimeReward(p);
+                };
                 slimeQuest.appendChild(btn);
             }
         }
 
         if (p.questData.bossKilled && !p.questData.bossQuestClaimed) {
-            if (!document.getElementById('claim-boss-btn')) {
+            if (bossQuest) {
                 const btn = document.createElement('button');
-                btn.id = 'claim-boss-btn';
-                btn.className = 'quest-claim-btn';
                 btn.textContent = '보상 받기';
-                btn.onclick = () => this.claimReward('boss');
+                btn.className = 'quest-claim-btn';
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    this.claimBossReward(p);
+                };
                 bossQuest.appendChild(btn);
             }
         }
     }
 
-    claimReward(type) {
-        const p = this.game.localPlayer;
-        let title = "";
-        let rewardText = "";
-
-        if (type === 'slime') {
-            p.questData.slimeQuestClaimed = true;
-            p.statPoints += 2;
-            title = "슬라임 처치 퀘스트 완료!";
-            rewardText = "보상: 보너스 스텟 포인트 2개 획득!";
-            const btn = document.getElementById('claim-slime-btn');
-            if (btn) btn.remove();
-        } else if (type === 'boss') {
-            p.questData.bossQuestClaimed = true;
-            p.addGold(1000);
-            title = "대왕 슬라임 처치 퀘스트 완료!";
-            rewardText = "보상: 1000 골드 획득!";
-            const btn = document.getElementById('claim-boss-btn');
-            if (btn) btn.remove();
-        }
-
-        this.showRewardModal(title, rewardText);
+    claimSlimeReward(p) {
+        p.questData.slimeQuestClaimed = true;
+        p.addGold(500);
+        p.gainExp(100);
+        this.logSystemMessage('QUEST 완료: 슬라임 토벌 보상 지급 (500G, 100EXP)');
         this.updateQuestUI();
-        this.updateStatusPopup();
-        this.isPaused = true;
+        p.saveState();
+    }
+
+    claimBossReward(p) {
+        p.questData.bossQuestClaimed = true;
+        p.addGold(5000);
+        p.gainExp(1000);
+        this.logSystemMessage('QUEST 완료: 대왕 슬라임 토벌 보상 지급 (5000G, 1000EXP)');
+        this.updateQuestUI();
+        p.saveState();
     }
 
     showRewardModal(title, message) {
@@ -654,6 +662,9 @@ export class UIManager {
         const grid = document.querySelector('.inventory-grid');
         if (!grid) return;
 
+        // Update Quest UI alongside Inventory
+        this.updateQuestUI();
+
         grid.innerHTML = '';
         p.inventory.forEach(item => {
             const div = document.createElement('div');
@@ -667,8 +678,6 @@ export class UIManager {
             grid.appendChild(div);
         });
     }
-
-
 
     updateStats(hp, mp, level, expPerc) {
         const hpFill = document.querySelector('.hp-fill');

@@ -47,7 +47,7 @@ export default class Monster {
 
     async init() {
         const frames = ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp'];
-        const path = '/assets/resource/monster_slim';
+        const path = 'assets/resource/monster_slim';
         const cacheKey = path; // In future, if path changes based on name, use that unique key
 
         // Check Cache
@@ -152,22 +152,41 @@ export default class Monster {
 
         if (!this.ready) return;
 
+        this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
+
+        // --- AI Logic (Aggro) ---
+        const localP = window.game?.localPlayer;
+        if (localP && !localP.isDead) {
+            const dToP = Math.sqrt((localP.x - this.x) ** 2 + (localP.y - this.y) ** 2);
+            if (dToP < 400 && dToP > 50) {
+                this.isAggro = true;
+                const angle = Math.atan2(localP.y - this.y, localP.x - this.x);
+                let spd = 80;
+                if (this.electrocutedTimer > 0) spd *= (1 - this.slowRatio);
+                this.vx = Math.cos(angle) * spd;
+                this.vy = Math.sin(angle) * spd;
+            } else if (dToP <= 50) {
+                this.isAggro = true;
+                this.vx = 0;
+                this.vy = 0;
+            } else {
+                this.isAggro = false;
+            }
+        }
+
         this.timer += dt;
         if (this.timer >= this.frameSpeed) {
             this.timer = 0;
             this.frame = (this.frame + 1) % this.frameCount;
         }
 
-        this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
-
-        // --- AI Logic (Host Only) ---
+        // --- AI Logic (Host Only: Physical Movement) ---
         if (window.game?.net?.isHost) {
             if (!this.attackCooldown) this.attackCooldown = 0;
             if (this.attackCooldown > 0) this.attackCooldown -= dt;
 
+            // Host AI targeting
             const player = window.game?.localPlayer;
-            // Note: In multiplayer, host should ideally target the nearest player.
-            // For now, we continue targeting the local player (which is the Host's player).
 
             if (player) {
                 const dist = Math.sqrt((player.x - this.x) ** 2 + (player.y - this.y) ** 2);
@@ -226,11 +245,8 @@ export default class Monster {
             }
 
             // Collision with other Monsters
-            if (window.game && window.game.monsters) {
-                // Fixed: monsters is a Map in MonsterManager, but some parts might use array. 
-                // In Monster.js it was referring to window.game.monsters which is ambiguous.
-                // Let's check window.game.monsterManager.monsters
-                const allMonsters = window.game.monsterManager?.monsters;
+            if (window.game && window.game.monsterManager?.monsters) {
+                const allMonsters = window.game.monsterManager.monsters;
                 if (allMonsters) {
                     allMonsters.forEach(other => {
                         if (other === this || other.isDead) return;
@@ -342,7 +358,6 @@ export default class Monster {
         // Optimized Hit Flash (Avoid expensive ctx.filter on mobile)
         if (this.hitTimer > 0) {
             ctx.save();
-            // Draw a slightly enlarged red 'ghost' or just boost the existing draw
             ctx.globalCompositeOperation = 'lighter';
             ctx.globalAlpha = 0.5;
             this.sprite.draw(ctx, 0, this.frame, screenX - this.width / 2 - 2, drawY - this.height / 2 - 2, this.width + 4, this.height + 4);
@@ -359,7 +374,6 @@ export default class Monster {
             ctx.textAlign = 'center';
             ctx.shadowColor = 'rgba(0,0,0,0.5)';
             ctx.shadowBlur = 4;
-            // Add a small bounce to the exclamation mark
             const bounce = Math.sin(Date.now() * 0.01) * 3;
             ctx.fillText('!', screenX, screenY - this.height / 2 - 40 + bounce);
             ctx.restore();

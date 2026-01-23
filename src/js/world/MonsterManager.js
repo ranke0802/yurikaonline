@@ -68,6 +68,13 @@ export default class MonsterManager {
             }
         }
 
+        // Boss Spawning
+        if (this.shouldSpawnBoss) {
+            this._spawnBoss();
+            this.shouldSpawnBoss = false;
+            this.bossSpawned = true;
+        }
+
         // AI & Sync Throttling (Save Bandwidth)
         if (!this.lastSyncTime) this.lastSyncTime = 0;
         const now = Date.now();
@@ -90,6 +97,22 @@ export default class MonsterManager {
                 // Extra HP Drop?
                 if (Math.random() > 0.5 || m.isBoss) {
                     this.net.spawnDrop({ x: m.x - 20, y: m.y + 10, type: 'hp', amount: 30 });
+                }
+
+                // Quest Update (Host Logic)
+                // If the killer is the host player (simplification), update Quest
+                // In a real server, we'd credit the `lastAttackerId`.
+                // Checking local player for now as Host is also a player
+                if (player && player.questData) {
+                    if (m.name.includes('슬라임') && !m.isBoss) {
+                        player.questData.slimeKills++;
+                        if (player.questData.slimeKills >= 10 && !this.bossSpawned) {
+                            this.shouldSpawnBoss = true;
+                        }
+                    }
+                    if (m.isBoss) {
+                        player.questData.bossKilled = true;
+                    }
                 }
 
                 this.net.removeMonster(id);
@@ -143,6 +166,29 @@ export default class MonsterManager {
         // Firebase `set` triggers `child_added` on consistent clients.
 
         this.net.sendMonsterUpdate(id, data);
+    }
+
+    _spawnBoss() {
+        const id = `boss_${Date.now()}`;
+        const worldW = this.zone.width || 6400;
+        const worldH = this.zone.height || 6400;
+
+        // Spawn Boss in Center or Random? Let's go near player or center.
+        // Center for dramatic effect
+        const x = worldW / 2;
+        const y = worldH / 2;
+
+        const data = {
+            x: x,
+            y: y,
+            hp: 500,
+            maxHp: 500,
+            type: '대왕 슬라임',
+            isBoss: true
+        };
+
+        this.net.sendMonsterUpdate(id, data);
+        Logger.info('Boss Spawning: King Slime');
     }
 
     _onRemoteMonsterAdded(data) {
