@@ -40,8 +40,9 @@ export default class Player extends Actor {
     }
 
     // Initialize with game dependencies
-    init(inputManager, resourceManager) {
+    init(inputManager, resourceManager, networkManager) {
         this.input = inputManager;
+        this.net = networkManager;
         this._loadSpriteSheet(resourceManager);
 
         // Bind input actions to methods
@@ -142,6 +143,9 @@ export default class Player extends Actor {
         if (this.attackCooldown > 0 || this.isAttacking) return;
 
         Logger.log('Player Attack!');
+        if (this.net) {
+            this.net.sendAttack(this.x, this.y, this.direction);
+        }
         this.isAttacking = true;
         this.attackCooldown = 0.6;
         this.state = 'attack';

@@ -11,6 +11,7 @@ export default class RemotePlayer extends Actor {
         this.targetX = x;
         this.targetY = y;
         this.serverTime = 0;
+        this.lastAttackTime = 0;
 
         // Visuals
         this.sprite = null;
@@ -56,16 +57,18 @@ export default class RemotePlayer extends Actor {
         const dy = this.targetY - this.y;
 
         // Determine state for animation
-        if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
-            this.state = 'move';
-            // Direction Logic for Sprite Rows (0:Back, 1:Front, 2:Left, 3:Right)
-            if (Math.abs(dx) > Math.abs(dy)) {
-                this.direction = dx > 0 ? 3 : 2; // Right : Left
+        if (!this.isAttacking) {
+            if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+                this.state = 'move';
+                // Direction Logic for Sprite Rows (0:Back, 1:Front, 2:Left, 3:Right)
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    this.direction = dx > 0 ? 3 : 2; // Right : Left
+                } else {
+                    this.direction = dy > 0 ? 1 : 0; // Front : Back
+                }
             } else {
-                this.direction = dy > 0 ? 1 : 0; // Front : Back
+                this.state = 'idle';
             }
-        } else {
-            this.state = 'idle';
         }
 
         this.x += dx * lerpFactor;
@@ -77,12 +80,13 @@ export default class RemotePlayer extends Actor {
 
     _updateAnimation(dt) {
         let row = this.direction;
-        // Note: Remote player attack not yet fully synced via state, but if we add it:
-        // if (this.state === 'attack') row = 4;
+        if (this.state === 'attack') {
+            row = 4; // Attack Row
+        }
 
         const maxFrames = this.frameCounts ? (this.frameCounts[row] || 8) : 8;
 
-        if (this.state === 'move') {
+        if (this.state === 'move' || this.state === 'attack') {
             this.animTimer += dt * this.animSpeed;
             if (this.animTimer >= maxFrames) {
                 this.animTimer = 0;
@@ -116,7 +120,8 @@ export default class RemotePlayer extends Actor {
 
         // 2. Draw Sprite
         if (this.sprite) {
-            let row = this.direction; // Add attack check later
+            let row = this.direction;
+            if (this.state === 'attack') row = 4;
             let col = this.animFrame;
 
             // Legacy visual size: 120x120
@@ -149,5 +154,34 @@ export default class RemotePlayer extends Actor {
         ctx.shadowBlur = 2;
         ctx.fillText(this.id.substring(0, 5), centerX, y - 10);
         ctx.shadowBlur = 0;
+    }
+    triggerAttack(data) {
+        // Prevent duplicate firing of same attack
+        if (this.lastAttackTime && data.ts <= this.lastAttackTime) return;
+
+        // Ignore stale attacks (older than 3 seconds) - fixes "Ghost Attack" on refresh
+        if (Date.now() - data.ts > 3000) return;
+
+        this.lastAttackTime = data.ts;
+
+        // data: { ts, x, y, dir }
+        // Snap to attack position for precise visual
+        this.x = data.x;
+        this.y = data.y;
+        this.targetX = data.x; // Stop interpolation movement
+        this.targetY = data.y;
+        this.direction = data.dir;
+
+        this.isAttacking = true;
+        this.state = 'attack';
+        this.animTimer = 0;
+        this.animFrame = 0;
+
+        // Reset after animation (approx 0.6s)
+        if (this.attackTimeout) clearTimeout(this.attackTimeout);
+        this.attackTimeout = setTimeout(() => {
+            this.isAttacking = false;
+            this.state = 'idle';
+        }, 600);
     }
 }

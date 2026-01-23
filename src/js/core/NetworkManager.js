@@ -48,7 +48,6 @@ export default class NetworkManager extends EventEmitter {
         const now = Date.now();
         // Throttle Network Calls
         if (now - this.lastSyncTime < this.syncInterval) return;
-        // Don't send if standing still? (Optional optimization, but keep heartbeat for now)
 
         const packet = [
             Math.round(x),
@@ -58,21 +57,31 @@ export default class NetworkManager extends EventEmitter {
             now
         ];
 
-        // Fire and forget
-        this.dbRef.child(`users/${this.playerId}`).set(packet);
-        // Logger.log(`[Net] Sent: ${Math.round(x)}, ${Math.round(y)}`);
+        // Update Position Node 'p'
+        this.dbRef.child(`users/${this.playerId}/p`).set(packet);
         this.lastSyncTime = now;
+    }
+
+    sendAttack(x, y, direction) {
+        if (!this.connected || !this.playerId) return;
+        // Attack Packet: [timestamp, x, y, direction]
+        const attackPacket = [Date.now(), Math.round(x), Math.round(y), direction];
+        // Update Attack Node 'a'
+        this.dbRef.child(`users/${this.playerId}/a`).set(attackPacket);
     }
 
     _onPlayerAdded(snapshot) {
         const uid = snapshot.key;
         if (uid === this.playerId) return;
 
-        const val = snapshot.val(); // Expecting array [x,y,vx,vy,ts]
-        if (!Array.isArray(val)) return; // Sanity check
+        const val = snapshot.val();
+        // Support new Object {p:[], a:[]} and legacy Array []
+        const posData = Array.isArray(val) ? val : (val.p || null);
+
+        if (!posData || !Array.isArray(posData)) return;
 
         // Logger.log(`[Net] Player Joined: ${uid}`);
-        this.emit('playerJoined', { id: uid, x: val[0], y: val[1] });
+        this.emit('playerJoined', { id: uid, x: posData[0], y: posData[1] });
     }
 
     _onPlayerChanged(snapshot) {
@@ -80,17 +89,30 @@ export default class NetworkManager extends EventEmitter {
         if (uid === this.playerId) return;
 
         const val = snapshot.val();
-        if (!Array.isArray(val)) return;
+        const posData = Array.isArray(val) ? val : (val.p || null);
 
-        // Emit for interpolation in RemotePlayer entity
-        this.emit('playerUpdate', {
-            id: uid,
-            x: val[0],
-            y: val[1],
-            vx: val[2],
-            vy: val[3],
-            ts: val[4]
-        });
+        // Position Update
+        if (posData && Array.isArray(posData)) {
+            this.emit('playerUpdate', {
+                id: uid,
+                x: posData[0],
+                y: posData[1],
+                vx: posData[2],
+                vy: posData[3],
+                ts: posData[4]
+            });
+        }
+
+        // Attack Update
+        if (val && val.a && Array.isArray(val.a)) {
+            this.emit('playerAttack', {
+                id: uid,
+                ts: val.a[0],
+                x: val.a[1],
+                y: val.a[2],
+                dir: val.a[3]
+            });
+        }
     }
 
     _onPlayerRemoved(snapshot) {

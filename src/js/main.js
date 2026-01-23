@@ -123,6 +123,13 @@ class Game {
             this.remotePlayers.delete(id);
         });
 
+        this.net.on('playerAttack', (data) => {
+            const rp = this.remotePlayers.get(data.id);
+            if (rp) {
+                rp.triggerAttack(data);
+            }
+        });
+
         this.updateLoading('Firebase 연결 대기 중...');
         this.auth.init();
     }
@@ -147,7 +154,7 @@ class Game {
         const startX = this.zone.width / 2 + (Math.random() * 100 - 50);
         const startY = this.zone.height / 2 + (Math.random() * 100 - 50);
         this.player = new Player(startX, startY, user.displayName || "Hero");
-        this.player.init(this.input, this.resources);
+        this.player.init(this.input, this.resources, this.net);
 
         this.updateLoading('게임 시작!');
         // Start Loop
