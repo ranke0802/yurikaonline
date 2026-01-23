@@ -21,8 +21,16 @@ export default class ZoneManager {
             // 200x200 tiles (Large Map)
             width: 200,
             height: 200,
-            backgroundSrc: 'src/assets/map_bg.png' // This should be a tilemap really
+            backgroundSrc: 'src/assets/grass_tile.png'
         };
+
+        // Load background tile
+        try {
+            this.bgImage = await this.res.loadImage(this.currentZone.backgroundSrc);
+            this.bgPattern = null; // Will be created in render or here (context needed)
+        } catch (e) {
+            Logger.warn('Failed to load map tile', e);
+        }
 
         // In a real implementation, we would fetch map.json here
         this.width = this.currentZone.width * this.tileSize;
@@ -35,30 +43,39 @@ export default class ZoneManager {
     render(ctx, camera) {
         if (!this.currentZone) return;
 
-        // Simple Tiled Background (Optimization: Only draw visible tiles)
-        // For MVP, just filling with grass color if no image
-        ctx.fillStyle = '#4caf50'; // Grass green
+        // Draw Background
+        if (this.bgImage) {
+            if (!this.bgPattern) {
+                this.bgPattern = ctx.createPattern(this.bgImage, 'repeat');
+            }
+            ctx.fillStyle = this.bgPattern;
 
-        // Calculate visible range
-        const startCol = Math.floor(camera.x / this.tileSize);
-        const endCol = startCol + (camera.width / this.tileSize) + 1;
-        const startRow = Math.floor(camera.y / this.tileSize);
-        const endRow = startRow + (camera.height / this.tileSize) + 1;
+            // Optimization: Draw slightly more than the camera view to avoid flickering
+            // But pattern fillRect is fast. Let's start with filling visible area.
+            ctx.save();
+            ctx.translate(0, 0); // Pattern is world-aligned by default if we draw from 0,0?
+            // Actually createPattern aligns to the origin of the canvas (screen), 
+            // but we are already translated by camera in Main.js (-camera.x, -camera.y).
+            // So filling rect at (0,0, worldW, worldH) works and aligns to world.
 
-        // Draw efficient background
-        ctx.fillRect(0, 0, this.width, this.height);
+            // However, filling a huge 6400x6400 rect might be slow on some devices?
+            // Let's cull.
+            const startX = Math.floor(camera.x / this.tileSize) * this.tileSize;
+            const startY = Math.floor(camera.y / this.tileSize) * this.tileSize;
+            const endX = startX + camera.width + this.tileSize * 2;
+            const endY = startY + camera.height + this.tileSize * 2;
 
-        // Grid lines debug
-        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-        ctx.beginPath();
-        for (let x = 0; x <= this.width; x += this.tileSize) {
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, this.height);
+            ctx.fillRect(startX, startY, endX - startX, endY - startY);
+            ctx.restore();
+        } else {
+            // Fallback Color
+            ctx.fillStyle = '#76b041';
+            ctx.fillRect(0, 0, this.width, this.height);
         }
-        for (let y = 0; y <= this.height; y += this.tileSize) {
-            ctx.moveTo(0, y);
-            ctx.lineTo(this.width, y);
-        }
-        ctx.stroke();
+
+        // Draw borders
+        ctx.strokeStyle = '#2d3436';
+        ctx.lineWidth = 5;
+        ctx.strokeRect(0, 0, this.width, this.height);
     }
 }

@@ -107,7 +107,7 @@ class Game {
         this.net.on('playerJoined', (data) => {
             if (this.remotePlayers.has(data.id)) return;
             // Logger.log(`[Main] Remote Player Joined: ${data.id}`);
-            const rp = new RemotePlayer(data.id, data.x, data.y);
+            const rp = new RemotePlayer(data.id, data.x, data.y, this.resources);
             this.remotePlayers.set(data.id, rp);
         });
 
@@ -130,8 +130,13 @@ class Game {
     async startSession(user) {
         this.updateLoading('월드 데이터 다운로드 중...');
 
-        // Load Map
+        // Load Map and Assets
         await this.zone.loadZone('zone_1');
+        try {
+            await this.resources.loadImage('src/assets/character.png');
+        } catch (e) {
+            Logger.error('Failed to load character sprite', e);
+        }
 
         this.updateLoading('서버 소켓 연결 중...');
         // Connect Network
@@ -142,7 +147,7 @@ class Game {
         const startX = this.zone.width / 2 + (Math.random() * 100 - 50);
         const startY = this.zone.height / 2 + (Math.random() * 100 - 50);
         this.player = new Player(startX, startY, user.displayName || "Hero");
-        this.player.init(this.input);
+        this.player.init(this.input, this.resources);
 
         this.updateLoading('게임 시작!');
         // Start Loop
