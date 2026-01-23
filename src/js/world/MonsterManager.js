@@ -26,18 +26,18 @@ export default class MonsterManager {
         Logger.info('MonsterManager initialized');
     }
 
-    update(dt, player) {
-        if (!player) return;
+    update(dt, localPlayer, remotePlayers) {
+        if (!localPlayer) return;
 
         // 1. Host Logic: Spawn & AI
         if (this.net.isHost) {
-            this._updateHostLogic(dt, player);
+            this._updateHostLogic(dt, localPlayer, remotePlayers);
         }
 
         // 2. Client Updating (Visuals & Prediction)
         this.monsters.forEach(m => m.update(dt));
         this.drops.forEach((d, id) => {
-            const captured = d.update(dt, player);
+            const captured = d.update(dt, localPlayer);
             if (captured) {
                 if (!this.net.isHost) {
                     this.net.collectDrop(id);
@@ -58,7 +58,7 @@ export default class MonsterManager {
         });
     }
 
-    _updateHostLogic(dt, player) {
+    _updateHostLogic(dt, localPlayer, remotePlayers) {
         // Spawning
         this.spawnTimer += dt;
         if (this.spawnTimer >= this.spawnInterval) {
@@ -83,6 +83,17 @@ export default class MonsterManager {
 
         if (!this.lastSyncState) this.lastSyncState = new Map();
 
+        // Build Candidate List for AI Targeting
+        const candidates = [];
+        if (localPlayer && !localPlayer.isDead) candidates.push(localPlayer);
+        if (remotePlayers) {
+            remotePlayers.forEach(rp => {
+                // Assuming RemotePlayer has isDead property or similar check?
+                // RemotePlayer usually renders state.
+                candidates.push(rp);
+            });
+        }
+
         this.monsters.forEach((m, id) => {
             if (m.isDead) {
                 // Spawn Drops instead of direct rewards
@@ -100,19 +111,36 @@ export default class MonsterManager {
                 }
 
                 // Quest Update (Host Logic)
-                // If the killer is the host player (simplification), update Quest
-                if (player && player.questData) {
-                    if (m.name.includes('슬라임') && !m.isBoss) {
-                        player.questData.slimeKills++;
+                // Credit the killer? For now, if Host kills, credit Host.
+                // If Guest kills -> we need Damage Source ID passed in 'monsterDamage'
+                // Ideally, track 'lastAttackerId' on Monster and credit THAT player.
+                // Here we credit the Host if lastAttacker matched?
+                // Or simply: If lastAttackerId matches localPlayer ID.
 
-                        if (player.questData.slimeKills >= 10 && !this.bossSpawned) {
-                            this.shouldSpawnBoss = true;
+                // For simplicity in v0.08:
+                // Only credit Host if Host is the logic runner?
+                // No, we should update Quest for WHOEVER killed it.
+                // But we can only update Local Player's Quest Data directly.
+                // Guest Quest Data is on their client.
+                // So: We send a 'QuestProgress' packet? Or Guest detects death?
+                // Guest detects death via 'monsterRemoved' or 'monsterUpdate(hp=0)'?
+                // Currently Guest relies on 'monsterRemoved'.
+
+                // Let's keep it simple: Everyone gets quest credit for now (Co-op style)?
+                // Or just Local Player (Host) gets it here.
+                if (localPlayer && localPlayer.questData) {
+                    if (m.lastAttackerId === this.net.playerId || !m.lastAttackerId) {
+                        if (m.name.includes('슬라임') && !m.isBoss) {
+                            localPlayer.questData.slimeKills++;
+                            if (localPlayer.questData.slimeKills >= 10 && !this.bossSpawned) {
+                                this.shouldSpawnBoss = true;
+                            }
                         }
+                        if (m.isBoss) {
+                            localPlayer.questData.bossKilled = true;
+                        }
+                        if (window.game && window.game.ui) window.game.ui.updateQuestUI();
                     }
-                    if (m.isBoss) {
-                        player.questData.bossKilled = true;
-                    }
-                    if (window.game && window.game.ui) window.game.ui.updateQuestUI(); // Force update UI
                 }
 
                 this.net.removeMonster(id);
@@ -120,6 +148,70 @@ export default class MonsterManager {
                 this.lastSyncState.delete(id);
                 return;
             }
+
+            // --- AI Targeting (Closest Player) ---
+            let target = null;
+            let minDist = 9999;
+
+            candidates.forEach(p => {
+                const d = Math.sqrt((p.x - m.x) ** 2 + (p.y - m.y) ** 2);
+                if (d < minDist) {
+                    minDist = d;
+                    target = p;
+                }
+            });
+
+            // Logic matching Monster.js client prediction
+            if (target && minDist < 400 && minDist > 50) {
+                const angle = Math.atan2(target.y - m.y, target.x - m.x);
+                let speed = 100;
+                // Note: statusEffects like slow are on 'm' instance
+                if (m.electrocutedTimer > 0) speed *= (1 - m.slowRatio);
+
+                m.vx = Math.cos(angle) * speed;
+                m.vy = Math.sin(angle) * speed;
+            } else if (target && minDist <= 60) {
+                m.vx = 0;
+                m.vy = 0;
+                if (!m.attackCooldown) m.attackCooldown = 0;
+                m.attackCooldown -= dt; // dt is in seconds? usually passed as 0.016
+                // Actually attackCooldown is decremented in outer loop usually.
+                // Let's do it here.
+                if (m.attackCooldown <= 0) {
+                    // Attack!
+                    // Server-side damage application?
+                    // Host applies damage to Player? No, Players are authoritative over their HP usually?
+                    // Or Host sends 'PlayerDamage' packet?
+                    // Currently Player.js handles 'takeDamage'.
+                    // Host sends 'playerDamage' event?
+                    this.net.sendPlayerDamage(target.id, 5 + Math.random() * 5);
+                    m.attackCooldown = 1.5;
+                }
+            } else {
+                // Wandering...
+                m.moveTimer -= dt;
+                if (m.moveTimer <= 0) {
+                    const shouldMove = Math.random() < 0.7;
+                    if (shouldMove) {
+                        const angle = Math.random() * Math.PI * 2;
+                        let speed = 30 + Math.random() * 40;
+                        m.vx = Math.cos(angle) * speed;
+                        m.vy = Math.sin(angle) * speed;
+                    } else {
+                        m.vx = 0;
+                        m.vy = 0;
+                    }
+                    m.moveTimer = 1 + Math.random() * 3;
+                }
+            }
+
+            // Apply Physics
+            const nextX = m.x + m.vx * dt;
+            const nextY = m.y + m.vy * dt;
+
+            // Constrain
+            m.x = Math.max(0, Math.min(6400, nextX));
+            m.y = Math.max(0, Math.min(6400, nextY));
 
             const last = this.lastSyncState.get(id);
             const dist = last ? Math.sqrt((m.x - last.x) ** 2 + (m.y - last.y) ** 2) : 999;
@@ -141,12 +233,8 @@ export default class MonsterManager {
 
     _spawnMonster() {
         const id = `mob_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-
-        // Use zone dimensions with a safe fallback
         const worldW = this.zone.width || 6400;
         const worldH = this.zone.height || 6400;
-
-        // Random Pos within Zone (avoiding very edges)
         const x = 200 + Math.random() * (worldW - 400);
         const y = 200 + Math.random() * (worldH - 400);
 
@@ -165,9 +253,6 @@ export default class MonsterManager {
         const id = `boss_${Date.now()}`;
         const worldW = this.zone.width || 6400;
         const worldH = this.zone.height || 6400;
-
-        // Spawn Boss in Center or Random? Let's go near player or center.
-        // Center for dramatic effect
         const x = worldW / 2;
         const y = worldH / 2;
 
@@ -187,18 +272,15 @@ export default class MonsterManager {
 
     _onRemoteMonsterAdded(data) {
         if (this.monsters.has(data.id)) return;
-
-        // Create Monster Instance
         const m = new Monster(data.x, data.y, data.type);
-        m.id = data.id; // Assign net ID
+        m.id = data.id;
         m.hp = data.hp;
         m.maxHp = data.maxHp;
         if (data.isBoss) {
             m.isBoss = true;
-            m.width = 160; // Bigger Boss
+            m.width = 160;
             m.height = 160;
         }
-
         this.monsters.set(data.id, m);
     }
 
@@ -208,11 +290,7 @@ export default class MonsterManager {
             this._onRemoteMonsterAdded(data);
             return;
         }
-
-        // If I am Host, I SENT this update, so I don't need to correct myself.
         if (this.net.isHost) return;
-
-        // Guest: Set target for interpolation
         m.targetX = data.x;
         m.targetY = data.y;
         m.hp = data.hp;
@@ -227,7 +305,6 @@ export default class MonsterManager {
         const m = this.monsters.get(data.monsterId);
         if (m && !m.isDead) {
             m.lastAttackerId = data.attackerId;
-            // Apply damage to host-side authoritative instance
             m.takeDamage(data.damage, true);
         }
     }
@@ -248,15 +325,12 @@ export default class MonsterManager {
         if (!this.net.isHost) return;
         const drop = this.drops.get(data.dropId);
         if (drop) {
-            // Send reward to collector
             const reward = {};
             if (drop.type === 'gold') reward.gold = drop.amount;
             else if (drop.type === 'exp') reward.exp = drop.amount;
             else if (drop.type === 'hp') reward.hp = drop.amount;
 
             this.net.sendReward(data.collectorId, reward);
-
-            // Remove drop from network
             this.net.removeDrop(data.dropId);
             this.drops.delete(data.dropId);
         }

@@ -338,7 +338,7 @@ class Game {
 
         // Update Monsters
         if (this.monsterManager && this.player) {
-            this.monsterManager.update(dt, this.player);
+            this.monsterManager.update(dt, this.player, this.remotePlayers);
         }
 
         // Update Floating Texts

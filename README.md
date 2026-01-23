@@ -1,6 +1,10 @@
-# 🎮 Yurika Online (유리카 온라인) - v0.08 (Host Logic Fix)
+# 🎮 Yurika Online (유리카 온라인) - v0.09 (Multi-Aggro)
 
-[**🎮 Firebase 라이브 데모 (v0.08)**](https://yurika-online.web.app/)
+[**🎮 Firebase 라이브 데모 (v0.09)**](https://yurika-online.web.app/)
+
+## 📜 v0.09 - 멀티플레이어 어그로 개선 (2026-01-23)
+- **Multi-Target Aggro**: 몬스터가 호스트뿐만 아니라 **모든 접속자(게스트 포함) 중 가장 가까운 대상을 추격**하도록 AI 로직을 개선했습니다.
+- **Bug Fix**: 2번째, 3번째 접속 유저가 몬스터에게 무시당하던 문제 해결.
 
 ## 📜 v0.08 - 싱글 플레이 호스트 권한 수정 (2026-01-23)
 - **Host Logic Fix**: 혼자 접속 시 호스트 권한(Host Authority)을 강제로 부여하여 AI, 드랍, 퀘스트 로직 정상화 (Network Failsafe).
