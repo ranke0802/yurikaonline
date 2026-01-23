@@ -1,7 +1,8 @@
 import { Sprite } from '../core/Sprite.js';
 
 export default class Monster {
-    constructor(x, y, name = 'Slime') {
+    constructor(x, y, name = '슬라임') {
+
         this.x = x;
         this.y = y;
         this.width = 80;

@@ -28,6 +28,12 @@ class Game {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
 
+        // Mobile Quality: Disable image smoothing for crisp pixel art
+        this.ctx.imageSmoothingEnabled = false;
+        this.ctx.webkitImageSmoothingEnabled = false;
+        this.ctx.mozImageSmoothingEnabled = false;
+        this.ctx.msImageSmoothingEnabled = false;
+
         // resize handler
         this.resize();
         window.addEventListener('resize', () => this.resize());

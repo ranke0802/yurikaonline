@@ -91,8 +91,8 @@ html {
     position: relative;
     width: 100%;
     height: 100%;
-    max-width: 1280px;
-    max-height: 720px;
+    max-width: 720px;
+    max-height: 1280px;
     background-color: #000;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
     /* Lift effect */
@@ -109,6 +109,9 @@ html {
     height: 100%;
     display: block;
     /* Remove inline-block gap */
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
 }
 
 #ui-layer {
@@ -2017,4 +2020,24 @@ body.is-fullscreen .version-info {
 .stat-predict-inc {
     color: #2ecc71 !important;
     font-weight: bold;
+}
+
+/* Portrait Mode Focus & Landscape Warning */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+    #game-viewport::after {
+        content: "세로 모드로 플레이해 주세요! 📱";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #1a1c2c;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+        z-index: 10000;
+        font-family: var(--cosy-font);
+    }
 }

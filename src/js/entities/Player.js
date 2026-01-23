@@ -3,7 +3,7 @@ import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
 
 export default class Player extends Actor {
-    constructor(x, y, name = "Hero") {
+    constructor(x, y, name = "유리카") {
         super(x, y, 180); // Speed 180
         this.name = name;
 
@@ -15,9 +15,9 @@ export default class Player extends Actor {
         this.statPoints = 0;
 
         // Derived Stats (Calculated)
-        this.maxHp = 30; // 20 + 5*10
+        this.maxHp = 30; // 20 + 1*10
         this.hp = 20;
-        this.maxMp = 50; // 30 + 5*10
+        this.maxMp = 50; // 30 + 2*10
         this.mp = 50;
         this.attackPower = 10;
         this.defense = 1;
@@ -78,6 +78,7 @@ export default class Player extends Actor {
         this.height = 48;
 
         this.input = null;
+        this.joystick = { x: 0, y: 0, active: false };
 
         this.updateDerivedStats();
     }
@@ -92,6 +93,12 @@ export default class Player extends Actor {
         this.input.on('keydown', (action) => {
             if (action === 'ATTACK') this.attack();
             if (action === 'SKILL_1') this.useSkill(1);
+        });
+
+        this.input.on('joystickMove', (data) => {
+            this.joystick.x = data.x;
+            this.joystick.y = data.y;
+            this.joystick.active = data.active;
         });
     }
 
@@ -162,12 +169,26 @@ export default class Player extends Actor {
         let vx = 0;
         let vy = 0;
 
+        // 1. Digital Input (Keyboard/Button)
         if (this.input.isPressed('MOVE_UP')) vy -= 1;
         if (this.input.isPressed('MOVE_DOWN')) vy += 1;
         if (this.input.isPressed('MOVE_LEFT')) vx -= 1;
         if (this.input.isPressed('MOVE_RIGHT')) vx += 1;
 
+        // 2. Analog Input (Joystick) - Overrides digital if active
+        if (this.joystick.active) {
+            vx = this.joystick.x;
+            vy = this.joystick.y;
+        }
+
         if (vx !== 0 || vy !== 0) {
+            // Normalize digital only (joystick is already normalized or partial)
+            if (!this.joystick.active) {
+                const mag = Math.sqrt(vx * vx + vy * vy);
+                vx /= mag;
+                vy /= mag;
+            }
+
             // Running Logic (Matched with Solo)
             if (this.direction === this.prevFacingDir) {
                 this.moveTimer += dt;
@@ -632,7 +653,8 @@ export default class Player extends Actor {
         ctx.fillRect(centerX - barWidth / 2, mpBarY, barWidth * mpPerc, barHeight);
 
         // Name Tag (Styled with outline to match screenshot)
-        const nameY = y - 10;
+        const nameY = y - 40; // Moved 30px higher
+
         ctx.save();
         ctx.font = 'bold 16px "Nanum Gothic", "Outfit", sans-serif';
         ctx.textAlign = 'center';
