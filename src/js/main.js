@@ -71,7 +71,7 @@ class Game {
 
         // 2. World Systems
         this.zone = new ZoneManager(this.resources);
-        this.monsterManager = new MonsterManager(this.zone, this.net);
+        this.monsterManager = new MonsterManager(this);
         this.ui = new UIManager(this);
         // Map is 6400x6400 based on ZoneManager (200 * 32)
         this.camera = new Camera(this.canvas.width, this.canvas.height, 6400, 6400);
@@ -260,6 +260,11 @@ class Game {
             this.player.skillLevels = profile.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
             this.player.name = profile.name || user.displayName || "유리카";
             this.player.refreshStats();
+
+            // Restore HP/MP if saved
+            if (typeof profile.hp === 'number') this.player.hp = profile.hp;
+            if (typeof profile.mp === 'number') this.player.mp = profile.mp;
+
         }
         this.player.init(this.input, this.resources, this.net);
 
@@ -452,7 +457,7 @@ class Game {
         }
 
         // Draw Projectiles
-        this.projectiles.forEach(p => p.draw(this.ctx, this.camera));
+        this.projectiles.forEach(p => p.render(this.ctx, this.camera));
 
         // Draw Local Player
         if (this.player) {

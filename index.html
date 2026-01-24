@@ -32,11 +32,11 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.11</title>
+    <title>Yurika Online v0.19.1</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
-        window.GAME_VERSION = '0.11';
+        window.GAME_VERSION = '0.19.1';
 
 
         async function initCacheBusting() {
@@ -75,7 +75,7 @@
 
         initCacheBusting();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=1.86">
+    <link rel="stylesheet" href="src/css/style.css?v=0.15">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -164,21 +164,24 @@
                             <h3>진행 중인 퀘스트</h3>
                         </div>
                         <div class="quest-content">
-                            <div class="quest-item" id="quest-slime">
+                            <!-- Slot 1: Mission Task -->
+                            <div class="quest-item" id="quest-task-display">
                                 <span class="quest-icon">⚔️</span>
                                 <div class="quest-details">
-                                    <div class="quest-title">슬라임 10마리 처치</div>
-                                    <div class="quest-progress">진행도: <span id="quest-slime-count">0</span>/10</div>
+                                    <div class="quest-title" id="active-quest-title">활성 퀘스트 정보</div>
+                                    <div class="quest-progress" id="active-quest-task">퀘스트를 진행해주세요.</div>
                                 </div>
                             </div>
-                            <div class="quest-item" id="quest-boss" style="display: none;">
-                                <span class="quest-icon">👑</span>
+                            <!-- Slot 2: Reward Info -->
+                            <div class="quest-item" id="quest-reward-display">
+                                <span class="quest-icon">🎁</span>
                                 <div class="quest-details">
-                                    <div class="quest-title">대왕 슬라임 토벌</div>
-                                    <div class="quest-progress">진행도: <span id="quest-boss-status">0</span>/1</div>
+                                    <div class="quest-title">퀘스트 보상</div>
+                                    <div class="quest-progress" id="active-quest-reward">-</div>
                                 </div>
                             </div>
                         </div>
+
                     </div>
 
                     <!-- Chat Window -->
@@ -233,7 +236,9 @@
                         </div>
                         <div class="attack-btn" data-key="j">
                             <div class="shortcut-badge">J</div>
-                            <div class="inner-icon">⚔️</div>
+                            <div class="inner-icon"
+                                style="background-image: url('src/assets/btn_attack.png'); background-size: cover; border-radius: 50%;">
+                            </div>
                             <div class="cooldown-overlay"></div>
                             <div class="cooldown-time"></div>
                         </div>
@@ -356,6 +361,8 @@
                             <div class="derived-row"><span>이동속도:</span> <span id="val-move-spd">100%</span></div>
                         </div>
                     </div>
+                    <button id="reset-character-btn" class="reset-btn hidden"
+                        onclick="window.game.ui.confirmResetCharacter()">캐릭터 초기화</button>
                     <div class="popup-footer">
                         <button class="close-btn-bottom close-popup">닫기</button>
                     </div>
@@ -476,8 +483,9 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v0.12
+        📦 v0.19.1
     </div>
+
 
 
     <!-- Update History Modal -->
@@ -493,7 +501,14 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=1.90"></script>
+    <script type="module" src="./src/js/main.js?v=0.15"></script>
+
+    <!-- Developer Overlay -->
+    <div id="dev-overlay" class="dev-overlay hidden">
+        <div class="dev-stat">Monsters: <span id="dev-m-count">0</span>/<span id="dev-m-max">10</span></div>
+        <div class="dev-stat">Respawn: <span id="dev-m-interval">5s</span></div>
+        <div class="dev-stat">Total Level: <span id="dev-p-sum">1</span></div>
+    </div>
 </body>
 
 </html>

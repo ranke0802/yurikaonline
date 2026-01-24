@@ -169,15 +169,17 @@ export default class Monster {
         if (localP && !localP.isDead) {
             const dToP = Math.sqrt((localP.x - this.x) ** 2 + (localP.y - this.y) ** 2);
 
-            // Level-based Aggro: Only aggro if Lv.3+ or already damaged
-            const canAggro = localP.level >= 3 || this.hp < this.maxHp;
-            const aggroRange = 300;
+            // Level-scaled Aggro Range
+            const canAggro = localP.level > 3 || this.hp < this.maxHp;
+            const aggroRange = 300 + (localP.level * 20); // Scale by level
+            const leashRange = aggroRange * 2;
 
             if (!this.isAggro && dToP < aggroRange && canAggro) {
                 this.isAggro = true;
-            } else if (this.isAggro && dToP > 600) {
+            } else if (this.isAggro && dToP > leashRange) {
                 this.isAggro = false; // Lose aggro when too far
             }
+
         }
 
         this.timer += dt;
@@ -199,7 +201,7 @@ export default class Monster {
 
                 if (this.isAggro && dist < 400 && dist > 50) {
                     const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                    let speed = 100;
+                    let speed = 120; // Reduced from 180 (v0.18.9 Nerf)
                     if (this.electrocutedTimer > 0) {
                         speed *= (1 - this.slowRatio);
                     }
@@ -220,7 +222,7 @@ export default class Monster {
                         const shouldMove = Math.random() < 0.7;
                         if (shouldMove) {
                             const angle = Math.random() * Math.PI * 2;
-                            let speed = 30 + Math.random() * 40;
+                            let speed = 60 + Math.random() * 40; // 60-100 (v0.18.9 Nerf)
                             if (this.electrocutedTimer > 0) speed *= (1 - this.slowRatio);
                             this.vx = Math.cos(angle) * speed;
                             this.vy = Math.sin(angle) * speed;
@@ -354,7 +356,7 @@ export default class Monster {
         }
 
         if (amount > 0 && window.game && typeof window.game.addDamageText === 'function') {
-            window.game.addDamageText(this.x, this.y - 40, Math.floor(amount), isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null);
+            window.game.addDamageText(this.x, this.y - 40, `-${Math.floor(amount)}`, isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null);
         }
 
         // --- Damage Sync (Guest to Host) ---
@@ -384,7 +386,7 @@ export default class Monster {
         this.slowRatio = Math.max(this.slowRatio, ratio);
     }
 
-    draw(ctx, camera) {
+    render(ctx, camera) {
         if (!this.ready || this.deathTimer >= this.deathDuration) return;
 
         ctx.save();

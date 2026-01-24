@@ -54,7 +54,7 @@ export default class Player extends Actor {
         this.skillMaxCooldowns = { j: 0, h: 0, u: 0, k: 0 };
 
         // Combat & Channeling
-        this.attackRange = 700; // Increased to prevent disconnect during knockback
+        this.attackRange = 400; // Reduced from 700 to 400 as requested
 
         this.isAttacking = false;
         this.isChanneling = false;
@@ -225,8 +225,16 @@ export default class Player extends Actor {
                 this.regenTimer += dt;
                 if (this.regenTimer >= 1.0) {
                     this.regenTimer = 0;
-                    if (this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + this.hpRegen);
-                    if (this.mp < this.maxMp) this.mp = Math.min(this.maxMp, this.mp + this.mpRegen);
+                    if (this.hp < this.maxHp) {
+                        const amount = this.hpRegen;
+                        this.hp = Math.min(this.maxHp, this.hp + amount);
+                        if (window.game) window.game.addDamageText(this.x + this.width / 2, this.y, `+${amount}`, '#4ade80', false);
+                    }
+                    if (this.mp < this.maxMp) {
+                        const amount = this.mpRegen;
+                        this.mp = Math.min(this.maxMp, this.mp + amount);
+                        if (window.game) window.game.addDamageText(this.x + this.width / 2, this.y + 20, `+${amount}`, '#00d2ff', false);
+                    }
                 }
             }
         } else {
@@ -367,7 +375,7 @@ export default class Player extends Actor {
         // Formulas matched with UIManager.js updateStatusPopup
         this.maxHp = 20 + (this.vitality * 10);
         this.maxMp = 30 + (this.wisdom * 10);
-        this.attackPower = 5 + (this.intelligence * 1) + Math.floor(this.wisdom / 2) + (this.level * 1);
+        this.attackPower = 5 + (this.intelligence * 1) + Math.floor(this.wisdom / 2); // Removed + (this.level * 1)
         this.defense = this.vitality * 1;
         this.hpRegen = this.vitality * 1;
         this.mpRegen = this.wisdom * 1;
@@ -381,7 +389,45 @@ export default class Player extends Actor {
 
     updateDerivedStats() {
         this.refreshStats();
+        this.saveState();
     }
+
+    fullReset() {
+        this.level = 1;
+        this.exp = 0;
+        this.maxExp = 100;
+        this.statPoints = 0;
+        this.vitality = 1;
+        this.intelligence = 3;
+        this.wisdom = 2;
+        this.agility = 1;
+        this.gold = 300;
+        this.questData = {
+            slimeKills: 0,
+            slimeQuestClaimed: false,
+            bossKilled: false,
+            bossQuestClaimed: false
+        };
+        this.skillLevels = {
+            laser: 1,
+            missile: 1,
+            fireball: 1,
+            shield: 1
+        };
+
+        this.refreshStats();
+        this.hp = this.maxHp;
+        this.mp = this.maxMp;
+        this.saveState();
+
+        if (window.game && window.game.ui) {
+            window.game.ui.logSystemMessage("캐릭터 정보가 초기화되었습니다.");
+            window.game.ui.updateStatusPopup();
+            window.game.ui.updateSkillPopup();
+            window.game.ui.updateQuestUI();
+        }
+    }
+
 
     takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null) {
         if (this.isDead) return 0;
@@ -404,8 +450,21 @@ export default class Player extends Actor {
         const validAmount = parseFloat(amount);
         if (isNaN(validAmount)) return 0;
 
-        const finalDmg = Math.max(1, Math.round(validAmount - this.defense));
+        let finalDmg;
+        if (validAmount <= this.defense) {
+            // Miss logic
+            if (window.game) {
+                window.game.addDamageText(this.x + this.width / 2, this.y - 20, "Miss!", '#00d2ff', true);
+            }
+            finalDmg = 1; // Minimum 1 damage or keep as 0 if preferred, but usually 1 is standard
+        } else {
+            finalDmg = Math.round(validAmount - this.defense);
+        }
+
         this.hp -= finalDmg;
+        if (window.game) {
+            window.game.addDamageText(this.x + this.width / 2, this.y - 40, `-${finalDmg}`, '#ff4757', false);
+        }
         Logger.log(`[Player] HP: ${this.hp}`);
 
         if (this.hp <= 0) {
@@ -453,6 +512,8 @@ export default class Player extends Actor {
         const data = {
             level: this.level,
             exp: this.exp,
+            hp: Math.round(this.hp),
+            mp: Math.round(this.mp),
             gold: this.gold,
             vitality: this.vitality,
             intelligence: this.intelligence,
@@ -464,6 +525,7 @@ export default class Player extends Actor {
             ts: Date.now()
         };
         this.net.savePlayerData(this.id, data);
+
     }
 
     resetLevel() {
@@ -531,11 +593,16 @@ export default class Player extends Actor {
         }
 
         const laserLv = this.skillLevels.laser || 1;
-        // Formula: Base 50% ATK, Increment (10% + (Lv-1)*5%) per 0.3s charge
-        const startRatio = 0.5;
-        const tierIncrement = 0.10 + (laserLv - 1) * 0.05;
+        // v0.18: Overload Formula
+        // 시작 값: 0.10 + (lv-1)*0.05
+        // 증가 수치: 0.10 + (lv-1)*0.05
+        // 최대치: 1.0 (100%)
+        const baseRatio = 0.10 + (laserLv - 1) * 0.05;
+        const increment = 0.10 + (laserLv - 1) * 0.05;
+        const maxRatio = 1.0;
+
         const chargeSteps = Math.floor(this.chargeTime / 0.3);
-        const finalDmgRatio = Math.min(1.5, startRatio + (chargeSteps * tierIncrement));
+        const finalDmgRatio = Math.min(maxRatio, baseRatio + (chargeSteps * increment));
 
         // Visual Chain Logic
         const maxChains = 1 + laserLv;
@@ -593,6 +660,9 @@ export default class Player extends Actor {
                         nextTarget.applyElectrocuted(3.0, 0.8);
                     }
                     this.recoverMana(1, true);
+                    if (window.game) {
+                        window.game.addDamageText(this.x + this.width / 2, this.y - 20, `+1`, '#00d2ff', false);
+                    }
                 }
                 currentSource = { x: nextTarget.x, y: nextTarget.y };
             } else {
@@ -603,20 +673,10 @@ export default class Player extends Actor {
         if (chains.length > 0) {
             this.lightningEffect = { chains: chains, timer: 0.1 };
         } else {
-            // Visualize a small burst in facing direction if no target
-            let tx = centerX;
-            let ty = centerY;
-            const dist = 60;
-            if (this.direction === 0) ty -= dist; // Back
-            else if (this.direction === 1) ty += dist; // Front
-            else if (this.direction === 2) tx -= dist; // Left
-            else if (this.direction === 3) tx += dist; // Right
-
-            this.lightningEffect = {
-                chains: [{ x1: centerX, y1: centerY, x2: tx, y2: ty }],
-                timer: 0.05
-            };
+            // No target: magic circle and aura sparks will still render, but no lightning chains
+            this.lightningEffect = null;
         }
+
     }
 
     useSkill(slot) {
@@ -636,7 +696,8 @@ export default class Player extends Actor {
             const cost = 4 + (lv - 1) * 3;
             if (this.useMana(cost)) {
                 this.triggerAction(`${this.name} : 매직 미사일 !!`);
-                this.skillCooldowns.h = 0.8; // Fast cooldown for missiles
+                this.skillCooldowns.h = 1.0; // Original balance: 1.0s
+
 
                 let nearest = null;
                 let minDist = 500;
@@ -667,7 +728,8 @@ export default class Player extends Actor {
             const cost = 8 + (lv - 1) * 3;
             if (this.useMana(cost)) {
                 this.triggerAction(`${this.name} : 파이어볼 !!`);
-                this.skillCooldowns.u = 2.5;
+                this.skillCooldowns.u = 5.0; // Original balance: 5.0s
+
 
                 const dirs = [[0, -1], [0.707, -0.707], [1, 0], [0.707, 0.707], [0, 1], [-0.707, 0.707], [-1, 0], [-0.707, -0.707]];
                 const dir = dirs[this.direction] || [0, 1];
@@ -680,11 +742,12 @@ export default class Player extends Actor {
                 import('./Projectile.js').then(({ Projectile }) => {
                     window.game.projectiles.push(new Projectile(this.x, this.y, null, 'fireball', {
                         vx, vy, speed, damage: dmg, radius: rad, lifeTime: 1.5,
-                        targetX: this.x + dir[0] * 600,
-                        targetY: this.y + dir[1] * 600,
+                        targetX: this.x + dir[0] * 640,
+                        targetY: this.y + dir[1] * 640,
                         burnDuration: 5.0 + (lv - 1), critRate: this.critRate
                     }));
                 });
+
             }
         } else if (skillId === 'shield') {
             if (this.useMana(30)) {
@@ -759,7 +822,7 @@ export default class Player extends Actor {
         this.exp -= this.maxExp;
         this.level++;
         this.maxExp = Math.floor(this.maxExp * 1.5);
-        this.statPoints += 2; // Buffed reward
+        this.statPoints += 1; // Reduced from 2 to 1 as requested
         this.hp = this.maxHp; // Heal on level up
         this.mp = this.maxMp;
 
@@ -894,7 +957,7 @@ export default class Player extends Actor {
         // 7. Speech Bubble
         if (this.actionFdbk) {
             ctx.save();
-            const bubbleY = y - 60;
+            const bubbleY = y - 80; // Moved up 20px from -60
             const bubbleText = this.actionFdbk;
             ctx.font = 'bold 14px "Nanum Gothic", "Outfit", sans-serif';
             const textWidth = ctx.measureText(bubbleText).width;

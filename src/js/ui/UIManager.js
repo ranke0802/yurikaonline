@@ -5,9 +5,12 @@ export class UIManager {
         this.pendingStats = { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
         this.initialPoints = 0;
         this.isPaused = false;
+        this.devMode = false;
         this.setupEventListeners();
         this.setupFullscreenListeners();
+        this.setupDevModeListeners();
     }
+
 
     setupFullscreenListeners() {
         const updateClass = () => {
@@ -52,7 +55,7 @@ export class UIManager {
         // Skill Tooltips
         this.tooltip = document.getElementById('skill-tooltip');
         this.skillData = {
-            laser: { name: '체인 라이트닝 (J)', desc: '일반 공격(J) 시 발동되며, 지속 시 위력이 강화되는 연쇄 번개를 방출합니다. 적중 시 마다 마나를 회복하며, 감전된 적은 속도가 80% 둔화됩니다. [연쇄: 1레벨당 +1] [기본 50% / 0.3초당 증폭]' },
+            laser: { name: '체인 라이트닝 (J)', desc: '대상의 체내 전기를 점진적으로 과부하시켜 데미지를 줍니다. 그 과정에서 일부 전기를 마나로 회수합니다. [연쇄: 1레벨당 +1] [기본 10% / 0.3초당 증폭]' },
             missile: { name: '매직 미사일 (H)', desc: '자동 추적 미사일을 발사합니다. [데미지: 공격력의 90%] [발사 수: 레벨당 +1개] [마나 소모: 4 / 레벨당 +3]' },
             fireball: { name: '파이어볼 (U)', desc: '폭발하는 화염구를 던집니다. [직격 데미지: 공격력의 130% / 레벨당 +30% 추가] [마나 소모: 8 / 레벨당 +3] [화상: 5초 이상 지속 / 레벨당 +1초]' },
             shield: { name: '앱솔루트 베리어 (K)', desc: '절대 방어막을 전개하여 다음 1회의 피격을 완전히 무효화합니다. [마나 소모: 30] [재사용 대기시간: 15초] [레벨업 불가]' }
@@ -133,9 +136,23 @@ export class UIManager {
         document.querySelectorAll('.skill-up-btn').forEach(btn => {
             const handleSkillUp = (e) => {
                 e.preventDefault();
-                const skill = btn.getAttribute('data-skill');
-                if (skill && this.game.localPlayer) {
-                    this.game.localPlayer.increaseSkill(skill);
+                const skillId = btn.getAttribute('data-skill');
+                const p = this.game.localPlayer;
+                if (!p || !skillId) return;
+
+                // Exponential Cost: 300 * 2^(lv-1)
+                const lv = p.skillLevels[skillId] || 1;
+                const cost = 300 * Math.pow(2, lv - 1);
+
+                if (p.gold >= cost) {
+                    p.gold -= cost;
+                    p.skillLevels[skillId]++;
+                    this.logSystemMessage(`✨ [SKILL] ${this.skillData[skillId].name} 레벨이 상승했습니다! (현재: ${p.skillLevels[skillId]})`);
+                    this.updateSkillPopup();
+                    this.updateStatusPopup();
+                    p.saveState();
+                } else {
+                    this.logSystemMessage(`❌ 골드가 부족합니다! (필요: ${cost}G)`);
                 }
             };
             btn.addEventListener('click', handleSkillUp);
@@ -341,10 +358,10 @@ export class UIManager {
         switch (skillId) {
             case 'laser':
                 const baseChain = 1 + lv;
-                const startRatio = 0.5;
+                const baseRatio = 0.10 + (lv - 1) * 0.05;
                 const increment = 0.10 + (lv - 1) * 0.05;
-                const minDmg = Math.floor(p.attackPower * startRatio);
-                const maxDmg = Math.floor(p.attackPower * 1.5);
+                const minDmg = Math.floor(p.attackPower * baseRatio);
+                const maxDmg = Math.floor(p.attackPower * 1.0);
                 const slow = 80;
                 currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>연쇄: ${baseChain}마리 | 위력: ${minDmg} ~ ${maxDmg} (+틱당 ${(increment * 100).toFixed(0)}%) | 둔화: ${slow}%</div>`;
                 break;
@@ -501,7 +518,7 @@ export class UIManager {
             mpRangeEl.innerHTML = `${Math.floor(p.mp)} / <span class="${predMaxMp > baseMaxMp ? 'stat-predict-inc' : ''}">${predMaxMp}</span>`;
         }
 
-        updateDerived('val-atk', 5 + (baseInt * 1) + Math.floor(baseWis / 2) + (p.level * 1), 5 + (predInt * 1) + Math.floor(predWis / 2) + (p.level * 1));
+        updateDerived('val-atk', 5 + (baseInt * 1) + Math.floor(baseWis / 2), 5 + (predInt * 1) + Math.floor(predWis / 2)); // Removed (p.level * 1)
         updateDerived('val-def', baseVit * 1, predVit * 1);
         updateDerived('val-hp-regen', baseVit * 1, predVit * 1);
         updateDerived('val-mp-regen', baseWis * 1, predWis * 1);
@@ -517,76 +534,94 @@ export class UIManager {
         const goldEl = document.getElementById('ui-skill-gold');
         if (goldEl) goldEl.textContent = p.gold;
 
-        // Update levels and costs
-        for (const [skillId, level] of Object.entries(p.skillLevels)) {
+        const skillIds = ['laser', 'missile', 'fireball', 'shield'];
+        skillIds.forEach(skillId => {
+            const lv = p.skillLevels[skillId] || 1;
             const levelEl = document.getElementById(`lvl-${skillId}`);
-            if (levelEl) levelEl.textContent = level;
+            if (levelEl) levelEl.textContent = lv;
 
+            // Exponential Cost Logic
+            const cost = 300 * Math.pow(2, lv - 1);
             const costEl = document.querySelector(`.skill-cost[data-skill="${skillId}"]`);
-            if (costEl) {
-                costEl.textContent = p.getSkillUpgradeCost(skillId);
-            }
+            if (costEl) costEl.textContent = skillId === 'shield' ? '-' : cost;
 
             const btn = document.querySelector(`.skill-up-btn[data-skill="${skillId}"]`);
             if (btn) {
                 if (skillId === 'shield') {
                     btn.textContent = 'MAX';
-                    btn.disabled = true;
                     btn.classList.add('disabled');
-                    const costEl = document.querySelector(`.skill-cost[data-skill="${skillId}"]`);
-                    if (costEl) costEl.textContent = '-';
+                    btn.disabled = true;
                 } else {
-                    const cost = p.getSkillUpgradeCost(skillId);
                     btn.disabled = p.gold < cost;
+                    btn.classList.toggle('disabled', p.gold < cost);
                 }
             }
-        }
+        });
     }
 
-    // Quest UI logic
     updateQuestUI() {
         const p = this.game.localPlayer;
         if (!p || !p.questData) return;
 
-        // Profile Image Sync
-        const profileImg = document.querySelector('.profile-img');
-        if (profileImg) {
-            // Using Frame 1 of Front Sprite
-            const v = window.GAME_VERSION || '1.0';
-            const newSrc = `assets/resource/magicion_front/1.png?v=${v}`;
-            if (!profileImg.src.includes('magicion_front')) {
-                profileImg.src = newSrc;
+        const taskDisplay = document.getElementById('quest-task-display');
+        const rewardDisplay = document.getElementById('quest-reward-display');
+        const taskTitle = document.getElementById('active-quest-title');
+        const taskProgress = document.getElementById('active-quest-task');
+        const rewardText = document.getElementById('active-quest-reward');
+
+        if (!taskDisplay || !rewardDisplay) return;
+
+        // Determine Active Quest
+        let currentQuest = null;
+        if (!p.questData.slimeQuestClaimed) {
+            currentQuest = {
+                title: "슬라임 10마리 처치",
+                task: `진행도: ${Math.min(10, p.questData.slimeKills)}/10`,
+                reward: "스탯 포인트 +2",
+                canClaim: p.questData.slimeKills >= 10,
+                claimFn: () => this.claimSlimeReward(p)
+            };
+        } else if (!p.questData.bossQuestClaimed) {
+            currentQuest = {
+                title: "대왕 슬라임 토벌",
+                task: `진행도: ${p.questData.bossKilled ? '1' : '0'}/1`,
+                reward: "스탯 포인트 +5",
+                canClaim: p.questData.bossKilled,
+                claimFn: () => this.claimBossReward(p)
+            };
+        }
+
+        // Render OR Hide
+        if (currentQuest) {
+            taskDisplay.style.display = 'flex';
+            rewardDisplay.style.display = 'flex';
+            taskTitle.textContent = currentQuest.title;
+            taskProgress.textContent = currentQuest.task;
+            rewardText.textContent = currentQuest.reward;
+
+            // Handle claim button
+            const existingBtn = taskDisplay.querySelector('.quest-claim-btn');
+            if (existingBtn) existingBtn.remove();
+
+            if (currentQuest.canClaim) {
+                const btn = document.createElement('button');
+                btn.textContent = '보상 받기';
+                btn.className = 'quest-claim-btn';
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    currentQuest.claimFn();
+                };
+                taskDisplay.appendChild(btn);
             }
-        }
-
-        const slimeCount = document.getElementById('quest-slime-count');
-        const slimeItem = document.getElementById('quest-slime');
-        const bossStatus = document.getElementById('quest-boss-status');
-        const bossItem = document.getElementById('quest-boss');
-
-        // 1. Slime Quest
-        if (slimeCount) slimeCount.textContent = Math.min(10, p.questData.slimeKills);
-        this.renderQuestButtons(p);
-
-        if (p.questData.slimeQuestClaimed && slimeItem) {
-            slimeItem.classList.add('completed');
-            slimeItem.style.opacity = '0.5';
-        }
-
-        // 2. Boss Quest
-        if (p.questData.slimeQuestClaimed) {
-            if (bossItem) bossItem.style.display = 'flex';
-        }
-
-        if (bossStatus) bossStatus.textContent = p.questData.bossKilled ? '1' : '0';
-
-        if (p.questData.bossKilled) {
-            if (bossItem) bossItem.classList.add('completed');
-            if (p.questData.bossQuestClaimed && bossItem) bossItem.style.opacity = '0.5';
+        } else {
+            // All quests cleared
+            taskDisplay.style.display = 'none';
+            rewardDisplay.style.display = 'none';
         }
     }
 
     renderQuestButtons(p) {
+
         const slimeQuest = document.getElementById('quest-slime');
         const bossQuest = document.getElementById('quest-boss');
 
@@ -623,22 +658,22 @@ export class UIManager {
 
     claimSlimeReward(p) {
         p.questData.slimeQuestClaimed = true;
-        p.addGold(500);
-        p.gainExp(100);
-        this.logSystemMessage('QUEST 완료: 슬라임 토벌 보상 지급 (500G, 100EXP)');
-        this.showRewardModal("슬라임 처치 퀘스트 완료!", "보상: 500 골드 및 100 경험치 획득!");
+        p.statPoints += 2; // 2 Stat Points reward
+        this.logSystemMessage('QUEST 완료: 슬라임 토벌 보상 지급 (스탯 포인트 +2)');
+        this.showRewardModal("슬라임 처치 퀘스트 완료!", "보상: 스탯 포인트 2개를 획득했습니다!");
         this.updateQuestUI();
+        this.updateStatusPopup();
         p.saveState();
     }
 
 
     claimBossReward(p) {
         p.questData.bossQuestClaimed = true;
-        p.addGold(5000);
-        p.gainExp(1000);
-        this.logSystemMessage('QUEST 완료: 대왕 슬라임 토벌 보상 지급 (5000G, 1000EXP)');
-        this.showRewardModal("대왕 슬라임 처치 퀘스트 완료!", "보상: 5000 골드 및 1000 경험치 획득!");
+        p.statPoints += 5; // 5 Stat Points reward
+        this.logSystemMessage('QUEST 완료: 대왕 슬라임 토벌 보상 지급 (스탯 포인트 +5)');
+        this.showRewardModal("대왕 슬라임 처치 퀘스트 완료!", "보상: 스탯 포인트 5개를 획득했습니다!");
         this.updateQuestUI();
+        this.updateStatusPopup();
         p.saveState();
     }
 
@@ -944,4 +979,54 @@ export class UIManager {
             </div>
         `).join('');
     }
+
+    setupDevModeListeners() {
+        const portrait = document.querySelector('.status-portrait');
+        if (portrait) {
+            portrait.style.cursor = 'pointer';
+            portrait.title = '개발자 모드 토글';
+            portrait.addEventListener('click', () => {
+                this.devMode = !this.devMode;
+                const overlay = document.getElementById('dev-overlay');
+                const resetBtn = document.getElementById('reset-character-btn');
+                if (overlay) overlay.classList.toggle('hidden', !this.devMode);
+                if (resetBtn) resetBtn.classList.toggle('hidden', !this.devMode);
+                this.logSystemMessage(`개발자 모드 ${this.devMode ? '활성화' : '비활성화'}`);
+                if (this.devMode) this.updateDevOverlay();
+            });
+        }
+    }
+
+    updateDevOverlay() {
+        if (!this.game.monsterManager) return;
+        const stats = this.game.monsterManager.getStats();
+        const mCount = document.getElementById('dev-m-count');
+        const mMax = document.getElementById('dev-m-max');
+        const mInterval = document.getElementById('dev-m-interval');
+        const pSum = document.getElementById('dev-p-sum');
+
+        if (mCount) mCount.textContent = stats.count;
+        if (mMax) mMax.textContent = stats.max;
+        if (mInterval) mInterval.textContent = stats.interval + 's';
+        if (pSum) pSum.textContent = stats.totalLevel;
+    }
+
+    confirmResetCharacter() {
+        this.showConfirm("정말 캐릭터를 초기화하시겠습니까?<br><small>맵 정보(몬스터/아이템)도 함께 초기화됩니다.</small>", async (confirmed) => {
+            if (confirmed && this.game.player) {
+                // 1. Reset World (Firebase)
+                if (this.game.net) {
+                    await this.game.net.resetWorldData();
+                }
+                // 1.5 Clear Local World State for immediate feedback
+                if (this.game.monsterManager) {
+                    this.game.monsterManager.clearAll();
+                }
+                // 2. Reset Player
+                this.game.player.fullReset();
+                this.hideAllPopups();
+            }
+        });
+    }
 }
+

@@ -49,7 +49,7 @@ export default class Drop extends Entity {
         return false;
     }
 
-    draw(ctx, camera) {
+    render(ctx, camera) {
         const screenX = this.x;
         const screenY = this.y + this.offY;
 

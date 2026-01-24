@@ -104,6 +104,15 @@ export default class NetworkManager extends EventEmitter {
         this.emit('connected');
     }
 
+    // --- Event Registration Helpers (v0.18.1 Fix) ---
+    onRemoteMonsterAdded(callback) { this.on('monsterAdded', callback); }
+    onRemoteMonsterUpdated(callback) { this.on('monsterUpdated', callback); }
+    onRemoteMonsterRemoved(callback) { this.on('monsterRemoved', callback); }
+    onMonsterDamageReceived(callback) { this.on('monsterDamageReceived', callback); }
+    onDropAdded(callback) { this.on('dropAdded', callback); }
+    onDropRemoved(callback) { this.on('dropRemoved', callback); }
+    onDropCollectionRequested(callback) { this.on('dropCollectionRequested', callback); }
+
     async getPlayerData(uid) {
         if (!this.dbRef) return null;
         try {
@@ -122,6 +131,23 @@ export default class NetworkManager extends EventEmitter {
             await this.dbRef.child(`users/${uid}/profile`).set(data);
         } catch (e) {
             Logger.error('Failed to save player profile', e);
+        }
+    }
+
+    async resetWorldData() {
+        if (!this.dbRef || !this.connected) return;
+        try {
+            Logger.info('--- DEVELOPER WORLD RESET INITIALIZED ---');
+            // Clear World Nodes
+            await Promise.all([
+                this.dbRef.child('monsters').remove(),
+                this.dbRef.child('drops').remove(),
+                this.dbRef.child('monster_damage').remove(),
+                this.dbRef.child('player_damage').remove()
+            ]);
+            Logger.log('World data (monsters/drops/logs) cleared successfully.');
+        } catch (e) {
+            Logger.error('Failed to reset world data', e);
         }
     }
 

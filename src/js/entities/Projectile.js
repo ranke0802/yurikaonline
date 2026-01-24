@@ -103,6 +103,11 @@ export class Projectile {
                     }
                     m.takeDamage(finalDmg, true, isCrit, this.x, this.y);
                     m.applyEffect('burn', this.burnDuration, Math.floor(finalDmg * 0.15));
+
+                    // Add visual impact
+                    if (window.game && window.game.addSpark) {
+                        window.game.addSpark(m.x, m.y);
+                    }
                 }
             });
         } else {
@@ -123,9 +128,9 @@ export class Projectile {
         this.isDead = true;
     }
 
-    draw(ctx, camera) {
-        const sx = this.x - camera.x;
-        const sy = this.y - camera.y;
+    render(ctx, camera) {
+        const sx = this.x;
+        const sy = this.y;
 
         // Draw Trail
         this.trail.forEach((p, i) => {
@@ -133,9 +138,10 @@ export class Projectile {
             ctx.fillStyle = this.color;
             ctx.globalAlpha = alpha * 0.5;
             ctx.beginPath();
-            ctx.arc(p.x - camera.x, p.y - camera.y, this.radius * (1 - i / 10), 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, this.radius * (1 - i / 10), 0, Math.PI * 2);
             ctx.fill();
         });
+
         ctx.globalAlpha = 1.0;
 
         // Core
@@ -155,8 +161,9 @@ export class Projectile {
 
         // Draw Fireball AoE Range (Fixed to impact point)
         if (this.type === 'fireball' && this.targetX !== null && this.targetY !== null) {
-            const tx = this.targetX - camera.x;
-            const ty = this.targetY - camera.y;
+            const tx = this.targetX;
+            const ty = this.targetY;
+
 
             ctx.save();
             ctx.strokeStyle = 'rgba(249, 115, 22, 0.4)';

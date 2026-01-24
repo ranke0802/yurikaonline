@@ -1,73 +1,83 @@
+import Monster from '../entities/Monster.js';
 import Logger from '../utils/Logger.js';
 
-import Monster from '../entities/Monster.js';
-
 export default class MonsterManager {
-    constructor(zoneManager, networkManager) {
-        this.zone = zoneManager;
-        this.net = networkManager;
-        this.monsters = new Map(); // id -> Monster
-        this.drops = new Map(); // id -> Drop
+    constructor(game) {
+        this.game = game;
+        this.net = game.net;
+        this.zone = game.zone;
+        this.monsters = new Map();
+        this.drops = new Map();
 
         this.spawnTimer = 0;
-        this.spawnInterval = 3; // Spawn every 3s (Host only)
+        this.spawnInterval = 5000;
         this.maxMonsters = 10;
+        this.totalLevelSum = 1;
 
-        // Listen to Network Events
-        this.net.on('monsterAdded', (data) => this._onRemoteMonsterAdded(data));
-        this.net.on('monsterUpdated', (data) => this._onRemoteMonsterUpdated(data));
-        this.net.on('monsterRemoved', (id) => this._onRemoteMonsterRemoved(id));
-        this.net.on('monsterDamage', (data) => this._onMonsterDamageReceived(data));
+        this.bossSpawned = false;
+        this.shouldSpawnBoss = false;
 
-        // Drop Events
-        this.net.on('dropAdded', (data) => this._onDropAdded(data));
-        this.net.on('dropRemoved', (id) => this._onDropRemoved(id));
-        this.net.on('dropCollectionRequested', (data) => this._onDropCollectionRequested(data));
+        this.lastSyncState = new Map();
 
-        Logger.info('MonsterManager initialized');
+        // Register Network Handlers
+        this.net.onRemoteMonsterAdded(this._onRemoteMonsterAdded.bind(this));
+        this.net.onRemoteMonsterUpdated(this._onRemoteMonsterUpdated.bind(this));
+        this.net.onRemoteMonsterRemoved(this._onRemoteMonsterRemoved.bind(this));
+        this.net.onMonsterDamageReceived(this._onMonsterDamageReceived.bind(this));
+        this.net.onDropAdded(this._onDropAdded.bind(this));
+        this.net.onDropRemoved(this._onDropRemoved.bind(this));
+        this.net.onDropCollectionRequested(this._onDropCollectionRequested.bind(this));
     }
 
-    update(dt, localPlayer, remotePlayers) {
-        if (!localPlayer) return;
+    update(dt) {
+        const localPlayer = this.game.localPlayer;
+        const remotePlayers = this.game.remotePlayers;
 
-        // 1. Host Logic: Spawn & AI
         if (this.net.isHost) {
             this._updateHostLogic(dt, localPlayer, remotePlayers);
         }
 
-        // 2. Client Updating (Visuals & Prediction)
+        // Update local monster instances
         this.monsters.forEach(m => m.update(dt));
+
+        // Update drops (Magnet logic)
         this.drops.forEach((d, id) => {
-            const captured = d.update(dt, localPlayer);
-            if (captured) {
-                if (!this.net.isHost) {
-                    this.net.collectDrop(id);
-                } else {
-                    this._onDropCollectionRequested({ dropId: id, collectorId: this.net.playerId });
-                }
+            if (d.update(dt, localPlayer)) {
+                this.net.collectDrop(id);
             }
         });
     }
 
     render(ctx, camera) {
-        // Render Drops first (on ground)
-        this.drops.forEach(d => d.draw(ctx, camera));
+        // 1. Render Monsters
+        this.monsters.forEach(m => m.render(ctx, camera));
 
-        // Sort for depth if needed
-        this.monsters.forEach(m => {
-            m.draw(ctx, camera);
-        });
+        // 2. Render Drops
+        this.drops.forEach(d => d.render(ctx, camera));
     }
 
     _updateHostLogic(dt, localPlayer, remotePlayers) {
-        // Spawning
+        // Calculate Total Level Sum
+        let currentTotalLevel = localPlayer?.level || 1;
+        if (remotePlayers) {
+            remotePlayers.forEach(rp => currentTotalLevel += (rp.level || 1));
+        }
+        this.totalLevelSum = currentTotalLevel;
+
+        // Dynamic Spawning: 10 + 1 per 5 levels
+        const maxMonsters = 10 + Math.floor(this.totalLevelSum / 5);
+
+        // Faster Respawn: 5s base, reduce by 0.2s per 5 levels, min 0.5s
+        const spawnInterval = Math.max(0.5, 5 - Math.floor(this.totalLevelSum / 5) * 0.2);
+
         this.spawnTimer += dt;
-        if (this.spawnTimer >= this.spawnInterval) {
+        if (this.spawnTimer >= spawnInterval) {
             this.spawnTimer = 0;
-            if (this.monsters.size < this.maxMonsters) {
+            if (this.monsters.size < maxMonsters) {
                 this._spawnMonster();
             }
         }
+
 
         // Boss Spawning
         if (this.shouldSpawnBoss) {
@@ -76,90 +86,72 @@ export default class MonsterManager {
             this.bossSpawned = true;
         }
 
-        // AI & Sync Throttling (Save Bandwidth)
-        if (!this.lastSyncTime) this.lastSyncTime = 0;
-        const now = Date.now();
-        if (now - this.lastSyncTime < 200) return; // 5Hz Sync
-        this.lastSyncTime = now;
-
-        if (!this.lastSyncState) this.lastSyncState = new Map();
-
-        // Build Candidate List for AI Targeting
-        const candidates = [];
-        if (localPlayer && !localPlayer.isDead) candidates.push(localPlayer);
-        if (remotePlayers) {
-            remotePlayers.forEach(rp => {
-                // Assuming RemotePlayer has isDead property or similar check?
-                // RemotePlayer usually renders state.
-                candidates.push(rp);
-            });
-        }
+        // --- Host Authority: Monster AI & Sync ---
+        const candidates = [localPlayer, ...Array.from(remotePlayers.values())].filter(p => !p.isDead);
 
         this.monsters.forEach((m, id) => {
             if (m.isDead) {
-                // Spawn Drops instead of direct rewards
+                // Spawn Drops
                 const xpAmount = m.isBoss ? 500 : 25;
-                const goldAmount = m.isBoss ? 2000 : 50;
+                const goldAmount = m.isBoss ? 5000 : 50;
 
-                // Gold Drop
                 this.net.spawnDrop({ x: m.x, y: m.y, type: 'gold', amount: goldAmount });
-                // Exp Drop
                 this.net.spawnDrop({ x: m.x + 20, y: m.y - 10, type: 'exp', amount: xpAmount });
-
-                // Extra HP Drop?
                 if (Math.random() > 0.5 || m.isBoss) {
                     this.net.spawnDrop({ x: m.x - 20, y: m.y + 10, type: 'hp', amount: 30 });
                 }
 
-                // Quest Update (Host Logic)
-                // Credit the killer? For now, if Host kills, credit Host.
-                // If Guest kills -> we need Damage Source ID passed in 'monsterDamage'
-                // Ideally, track 'lastAttackerId' on Monster and credit THAT player.
-                // Here we credit the Host if lastAttacker matched?
-                // Or simply: If lastAttackerId matches localPlayer ID.
-
-                // For simplicity in v0.08:
-                // Only credit Host if Host is the logic runner?
-                // No, we should update Quest for WHOEVER killed it.
-                // But we can only update Local Player's Quest Data directly.
-                // Guest Quest Data is on their client.
-                // So: We send a 'QuestProgress' packet? Or Guest detects death?
-                // Guest detects death via 'monsterRemoved' or 'monsterUpdate(hp=0)'?
-                // Currently Guest relies on 'monsterRemoved'.
-
-                // Let's keep it simple: Everyone gets quest credit for now (Co-op style)?
-                // Or just Local Player (Host) gets it here.
+                // Quest & Splitting Logic
                 if (localPlayer && localPlayer.questData) {
                     const isMyKill = m.lastAttackerId === this.net.playerId || !m.lastAttackerId;
-                    Logger.log(`[HOST] Monster ${id} death check. LastAttacker: ${m.lastAttackerId}, IsMyKill: ${isMyKill}`);
 
                     if (isMyKill) {
-                        if (m.name.includes('슬라임') && !m.isBoss) {
+                        if (m.name.includes('슬라임') && !m.isBoss && m.name !== '분열된 슬라임') {
                             localPlayer.questData.slimeKills++;
-                            if (localPlayer.questData.slimeKills >= 10 && !this.bossSpawned) {
-                                this.shouldSpawnBoss = true;
+                            if (!this.bossSpawned) {
+                                if (localPlayer.questData.slimeKills >= 10 && Math.random() < 0.1) {
+                                    this.shouldSpawnBoss = true;
+                                }
+                            } else {
+                                if (Math.random() < 0.02) {
+                                    this.shouldSpawnBoss = true;
+                                    if (window.game && window.game.ui) window.game.ui.logSystemMessage('⚠️ 강력한 기운이 느껴집니다! 대왕 슬라임이 필드에 다시 나타났습니다!');
+                                }
                             }
                         }
-                        if (m.isBoss) {
+
+                        // BOSS SPLITTING (Stage 1): King Slime -> 20 Split Slimes
+                        if (m.isBoss || m.name === '대왕 슬라임') {
                             localPlayer.questData.bossKilled = true;
+                            for (let i = 0; i < 20; i++) {
+                                const offX = (Math.random() - 0.5) * 300;
+                                const offY = (Math.random() - 0.5) * 300;
+                                this._spawnMonster(m.x + offX, m.y + offY, '분열된 슬라임');
+                            }
+                        }
+
+                        // SPLIT SLIME SPLITTING (Stage 2): Split Slime -> 3 Normal Slimes
+                        if (m.name === '분열된 슬라임') {
+                            for (let i = 0; i < 3; i++) {
+                                const offX = (Math.random() - 0.5) * 60;
+                                const offY = (Math.random() - 0.5) * 60;
+                                this._spawnMonster(m.x + offX, m.y + offY, '슬라임');
+                            }
                         }
                         if (window.game && window.game.ui) window.game.ui.updateQuestUI();
                     }
                 }
 
                 Logger.info(`[HOST] REMOVING Monster: ${id} (${m.name})`);
-
                 this.net.removeMonster(id);
                 this.monsters.delete(id);
                 this.lastSyncState.delete(id);
                 return;
             }
 
-
             // --- AI Targeting (Closest Player) ---
             let target = null;
             let minDist = 9999;
-
             candidates.forEach(p => {
                 const d = Math.sqrt((p.x - m.x) ** 2 + (p.y - m.y) ** 2);
                 if (d < minDist) {
@@ -168,64 +160,46 @@ export default class MonsterManager {
                 }
             });
 
-            // Logic matching Monster.js client prediction
             if (target && minDist < 400 && minDist > 50) {
                 const angle = Math.atan2(target.y - m.y, target.x - m.x);
-                let speed = 100;
-                // Note: statusEffects like slow are on 'm' instance
-                if (m.electrocutedTimer > 0) speed *= (1 - m.slowRatio);
-
+                let speed = 120; // Reduced from 180 (v0.18.9 Nerf)
+                if (m.electrocutedTimer > 0) speed *= (1 - (m.slowRatio || 0.8));
                 m.vx = Math.cos(angle) * speed;
                 m.vy = Math.sin(angle) * speed;
             } else if (target && minDist <= 60) {
                 m.vx = 0;
                 m.vy = 0;
                 if (!m.attackCooldown) m.attackCooldown = 0;
-                m.attackCooldown -= dt; // dt is in seconds? usually passed as 0.016
-                // Actually attackCooldown is decremented in outer loop usually.
-                // Let's do it here.
+                m.attackCooldown -= dt;
                 if (m.attackCooldown <= 0) {
-                    // Attack!
-                    // Server-side damage application?
-                    // Host applies damage to Player? No, Players are authoritative over their HP usually?
-                    // Or Host sends 'PlayerDamage' packet?
-                    // Currently Player.js handles 'takeDamage'.
-                    // Host sends 'playerDamage' event?
                     this.net.sendPlayerDamage(target.id, 5 + Math.random() * 5);
                     m.attackCooldown = 1.5;
                 }
             } else {
-                // Wandering...
+                // Wandering
                 m.moveTimer -= dt;
                 if (m.moveTimer <= 0) {
                     const shouldMove = Math.random() < 0.7;
                     if (shouldMove) {
                         const angle = Math.random() * Math.PI * 2;
-                        let speed = 30 + Math.random() * 40;
+                        let speed = 60 + Math.random() * 40; // 60-100 (v0.18.9 Nerf)
                         m.vx = Math.cos(angle) * speed;
                         m.vy = Math.sin(angle) * speed;
                     } else {
-                        m.vx = 0;
-                        m.vy = 0;
+                        m.vx = 0; m.vy = 0;
                     }
                     m.moveTimer = 1 + Math.random() * 3;
                 }
             }
 
-            // Apply Physics
-            const nextX = m.x + m.vx * dt;
-            const nextY = m.y + m.vy * dt;
-
-            // Constrain
-            m.x = Math.max(0, Math.min(6400, nextX));
-            m.y = Math.max(0, Math.min(6400, nextY));
+            m.x = Math.max(0, Math.min(6400, m.x + m.vx * dt));
+            m.y = Math.max(0, Math.min(6400, m.y + m.vy * dt));
 
             const last = this.lastSyncState.get(id);
             const dist = last ? Math.sqrt((m.x - last.x) ** 2 + (m.y - last.y) ** 2) : 999;
             const hpChanged = last ? (m.hp !== last.hp) : true;
 
             if (dist > 2 || hpChanged) {
-                // Send Update
                 this.net.sendMonsterUpdate(id, {
                     x: Math.round(m.x),
                     y: Math.round(m.y),
@@ -238,20 +212,21 @@ export default class MonsterManager {
         });
     }
 
-    _spawnMonster() {
+    _spawnMonster(fixedX = null, fixedY = null, type = '슬라임') {
         const id = `mob_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         const worldW = this.zone.width || 6400;
         const worldH = this.zone.height || 6400;
-        const x = 200 + Math.random() * (worldW - 400);
-        const y = 200 + Math.random() * (worldH - 400);
+
+        let x = fixedX ?? (200 + Math.random() * (worldW - 400));
+        let y = fixedY ?? (200 + Math.random() * (worldH - 400));
 
         const data = {
+            id: id,
             x: Math.round(x),
             y: Math.round(y),
-            hp: 50,
-            maxHp: 50,
-            type: '슬라임'
-
+            hp: type === '분열된 슬라임' ? 50 : 100,
+            maxHp: type === '분열된 슬라임' ? 50 : 100,
+            type: type
         };
 
         this.net.sendMonsterUpdate(id, data);
@@ -265,17 +240,19 @@ export default class MonsterManager {
         const y = worldH / 2;
 
         const data = {
+            id: id,
             x: x,
             y: y,
             hp: 500,
             maxHp: 500,
             type: '대왕 슬라임',
-            isBoss: true
+            isBoss: true,
+            w: 320,
+            h: 320
         };
 
         this.net.sendMonsterUpdate(id, data);
-        Logger.info('Boss Spawning: King Slime');
-        if (window.game && window.game.ui) window.game.ui.logSystemMessage('대왕 슬라임이 나타났습니다!');
+        if (window.game && window.game.ui) window.game.ui.logSystemMessage('거대한 대왕 슬라임이 나타났습니다!');
     }
 
     _onRemoteMonsterAdded(data) {
@@ -284,10 +261,10 @@ export default class MonsterManager {
         m.id = data.id;
         m.hp = data.hp;
         m.maxHp = data.maxHp;
-        if (data.isBoss) {
+        if (data.isBoss || data.type === '대왕 슬라임') {
             m.isBoss = true;
-            m.width = 160;
-            m.height = 160;
+            m.width = data.w || 320;
+            m.height = data.h || 320;
         }
         this.monsters.set(data.id, m);
     }
@@ -312,16 +289,11 @@ export default class MonsterManager {
         if (!this.net.isHost) return;
         const m = this.monsters.get(data.monsterId);
         if (m && !m.isDead) {
-            Logger.log(`[MonsterManager] Host received damage for ${data.monsterId}: ${data.damage}`);
             m.lastAttackerId = data.attackerId;
             m.takeDamage(data.damage, true);
-        } else {
-            Logger.warn(`[MonsterManager] Received damage for unknown or dead monster: ${data.monsterId}`);
         }
-
     }
 
-    // --- Drop Sync ---
     async _onDropAdded(data) {
         if (this.drops.has(data.id)) return;
         const { default: Drop } = await import('../entities/Drop.js');
@@ -341,10 +313,18 @@ export default class MonsterManager {
             if (drop.type === 'gold') reward.gold = drop.amount;
             else if (drop.type === 'exp') reward.exp = drop.amount;
             else if (drop.type === 'hp') reward.hp = drop.amount;
-
             this.net.sendReward(data.collectorId, reward);
             this.net.removeDrop(data.dropId);
             this.drops.delete(data.dropId);
         }
+    }
+
+    getStats() {
+        return {
+            count: this.monsters.size,
+            max: 10 + Math.floor((this.totalLevelSum || 1) / 5),
+            interval: Math.max(0.5, 5 - Math.floor((this.totalLevelSum || 1) / 5) * 0.2).toFixed(1),
+            totalLevel: this.totalLevelSum || 1
+        };
     }
 }
