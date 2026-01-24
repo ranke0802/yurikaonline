@@ -138,7 +138,7 @@ class Game {
     resize() {
         const container = document.getElementById('game-viewport');
         const isMobile = window.innerWidth <= 1024; // Standard mobile/tablet threshold
-        this.zoom = isMobile ? 0.7 : 1.0;
+        this.zoom = isMobile ? 0.7 : 0.8;
 
         if (container) {
             this.canvas.width = container.clientWidth;
