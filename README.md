@@ -1,6 +1,15 @@
-# 🎮 Yurika Online (유리카 온라인) - v0.21.0 (Splitting & Optimization)
+# 🎮 Yurika Online (유리카 온라인) - v0.22.0 (Stabilization & UI Polish)
 
-[**🎮 Firebase 라이브 데모 (v0.21.0)**](https://yurika-online.web.app/)
+[**🎮 Firebase 라이브 데모 (v0.22.0)**](https://yurika-online.web.app/)
+
+## 📜 v0.22.0 - 캐릭터 초기화 로직 복구 & UI 회복 피드백 개선 (2026-01-25)
+- **Character Reset Fix**: `MonsterManager`에 누락된 `clearAll` 기능을 추가하여 초기화 시 맵 데이터가 정상적으로 소거되지 않아 발생하던 멈춤 현상을 완벽하게 해결했습니다.
+- **Starting Gold Balance**: 신규 캐릭터의 초기 보유 골드를 300G에서 **0G**로 조정하여 초기 성장의 재미를 강화했습니다.
+- **Gold-Inventory Sync**: 보유 골드를 인벤토리 첫 번째 슬롯에 화폐 아이템으로 표시하고, 스킬 레벨업 시 소모되는 골드량이 실시간으로 동기화되도록 연동했습니다.
+- **Dynamic UI Regen**: 
+    - 캐릭터 위의 단순 텍스트를 제거하고, HP/MP 상태바 근처에서 `+1` 수치가 경쾌하게 떠오르는 **다이나믹 플로팅 연출**을 도입했습니다.
+    - 레이어 조정을 통해 회복 표시가 다른 UI에 가려지거나 잘리지 않도록 시각적 안정성을 확보했습니다.
+- **Bug Fix**: 코드 내 불필요한 유령 텍스트(`Joseph`) 및 런타임 크래시 유발 요소들을 전수 제거했습니다.
 
 ## 📜 v0.21.0 - 슬라임 분열 메커니즘 정밀화 (2026-01-25)
 - **Splitting Refinement**: 대왕 슬라임 및 분열된 슬라임의 생성 개수를 하향 조정하여 게임 밸런스와 네트워크 부하를 동시에 최적화했습니다. (3마리/2마리)

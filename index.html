@@ -32,11 +32,11 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.21.0</title>
+    <title>Yurika Online v0.22.0</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
-        window.GAME_VERSION = '0.21.0';
+        window.GAME_VERSION = '0.22.0';
 
 
         async function initCacheBusting() {
@@ -111,17 +111,22 @@
                             <span class="stat-label">HP</span>
                             <div class="bar-bg hp-bg">
                                 <div class="bar-fill hp-fill"></div>
-                                <div class="bar-text"><span id="ui-hp-cur">0</span> / <span id="ui-hp-max">0</span>
+                                <div class="bar-text">
+                                    <span id="ui-hp-cur">0</span> / <span id="ui-hp-max">0</span>
                                 </div>
                             </div>
+                            <div id="ui-hp-regen-container" class="regen-container"></div>
                         </div>
                         <div class="stat-row">
                             <span class="stat-label">MP</span>
                             <div class="bar-bg mp-bg">
                                 <div class="bar-fill mp-fill"></div>
-                                <div class="bar-text"><span id="ui-mp-cur">0</span> / <span id="ui-mp-max">0</span>
+                                <div class="bar-text">
+                                    <span id="ui-mp-cur">0</span> / <span id="ui-mp-max">0</span>
                                 </div>
                             </div>
+                            <div id="ui-mp-regen-container" class="regen-container"></div>
+
                         </div>
                         <div class="stat-row exp-row">
                             <div class="bar-bg exp-bg">
@@ -385,11 +390,11 @@
                             <div class="skill-icon">⚔️</div>
                             <div class="skill-info">
                                 <div class="skill-name-row">
-                                    <span class="skill-name">일반 공격</span>
+                                    <span class="skill-name">체인 라이트닝</span>
                                     <span class="skill-level">Lv.<span id="lvl-laser">1</span></span>
                                 </div>
-                                <p class="skill-desc">관통형 기본 공격. <br><small>필요: <span class="skill-cost"
-                                            data-skill="laser">300</span>G</small></p>
+                                <p class="skill-desc">연쇄형 기본공격 (전기속성). <br>공격 시 MP -2, 적중 시 적당 +1 회복 <br><small>필요:
+                                        <span class="skill-cost" data-skill="laser">300</span>G</small></p>
                             </div>
                             <button class="skill-up-btn" data-skill="laser">+</button>
                         </div>
@@ -483,8 +488,9 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v0.21.0
+        📦 v0.22.0
     </div>
+
 
 
 

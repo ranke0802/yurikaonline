@@ -341,4 +341,11 @@ export default class MonsterManager {
             totalLevel: this.totalLevelSum || 1
         };
     }
+
+    clearAll() {
+        this.monsters.clear();
+        this.drops.clear();
+        this.lastSyncState.clear();
+        Logger.info("[MonsterManager] Local world state cleared.");
+    }
 }

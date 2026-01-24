@@ -30,7 +30,7 @@ export default class Player extends Actor {
         this.level = 1;
         this.exp = 0;
         this.maxExp = 100;
-        this.gold = 300;
+        this.gold = 0;
         this.inventory = [];
         for (let i = 0; i < 20; i++) this.inventory.push(null); // 20 slots
         this.questData = {
@@ -63,7 +63,7 @@ export default class Player extends Actor {
         this.lightningEffect = null;
         this.attackCooldown = 0;
         this.regenTimer = 0;
-        this.idleTimer = 0; // For regen wait logic
+        this.lastHitTimer = 1.0; // Start at 1.0 so recovery works immediately on spawn
         this.actionFdbk = null;
         this.actionTimer = 0;
         this.shieldTimer = 0;
@@ -218,28 +218,29 @@ export default class Player extends Actor {
     }
 
     _handleRegen(dt) {
-        // "대기 회복 로직: 2초 대기 후 매초 회복력만큼 HP/MP 회복"
-        if (this.vx === 0 && this.vy === 0 && !this.isAttacking) {
-            this.idleTimer += dt;
-            if (this.idleTimer >= 2.0) {
-                this.regenTimer += dt;
-                if (this.regenTimer >= 1.0) {
-                    this.regenTimer = 0;
-                    if (this.hp < this.maxHp) {
-                        const amount = this.hpRegen;
-                        this.hp = Math.min(this.maxHp, this.hp + amount);
-                        if (window.game) window.game.addDamageText(this.x + this.width / 2, this.y, `+${amount}`, '#4ade80', false);
-                    }
-                    if (this.mp < this.maxMp) {
-                        const amount = this.mpRegen;
-                        this.mp = Math.min(this.maxMp, this.mp + amount);
-                        if (window.game) window.game.addDamageText(this.x + this.width / 2, this.y + 20, `+${amount}`, '#00d2ff', false);
-                    }
+        // v0.22.7: Optimized regeneration timing. 
+        // First tick happens at exactly 1.0s after hit, then every 1.0s.
+        this.lastHitTimer += dt;
+
+        if (this.lastHitTimer >= 1.0) {
+            this.regenTimer += dt;
+            if (this.regenTimer >= 1.0) {
+                this.regenTimer = 0;
+
+                if (this.hp < this.maxHp) {
+                    const amount = this.hpRegen;
+                    this.hp = Math.min(this.maxHp, this.hp + amount);
+                    if (window.game?.ui) window.game.ui.showRegenHint('hp', amount);
+                }
+                if (this.mp < this.maxMp) {
+                    const amount = this.mpRegen;
+                    this.mp = Math.min(this.maxMp, this.mp + amount);
+                    if (window.game?.ui) window.game.ui.showRegenHint('mp', amount);
                 }
             }
         } else {
-            this.idleTimer = 0;
-            this.regenTimer = 0;
+            // Pre-charge regen timer so it triggers immediately when lastHitTimer hits 1.0
+            this.regenTimer = 1.0;
         }
     }
 
@@ -401,7 +402,7 @@ export default class Player extends Actor {
         this.intelligence = 3;
         this.wisdom = 2;
         this.agility = 1;
-        this.gold = 300;
+        this.gold = 0;
         this.questData = {
             slimeKills: 0,
             slimeQuestClaimed: false,
@@ -418,6 +419,7 @@ export default class Player extends Actor {
         this.refreshStats();
         this.hp = this.maxHp;
         this.mp = this.maxMp;
+        this.updateGoldInventory();
         this.saveState();
 
         if (window.game && window.game.ui) {
@@ -521,6 +523,7 @@ export default class Player extends Actor {
             agility: this.agility,
             statPoints: this.statPoints,
             skillLevels: this.skillLevels,
+            questData: this.questData, // Added in v0.22.4
             name: this.name,
             ts: Date.now()
         };
@@ -537,7 +540,7 @@ export default class Player extends Actor {
         this.intelligence = 3;
         this.wisdom = 2;
         this.agility = 1;
-        this.gold = 300;
+        this.gold = 0;
         this.hp = 20 + (this.vitality * 10);
         this.mp = 30 + (this.wisdom * 10);
         this.skillLevels = { laser: 1, missile: 1, fireball: 1, shield: 1 };
@@ -585,6 +588,15 @@ export default class Player extends Actor {
         const isTick = this.lightningTickTimer <= 0;
 
         if (isTick) {
+            // v0.22.1: Mana overhauled - 2 MP per tick (includes first cast)
+            if (!this.useMana(2)) {
+                this.stopLaserAttack();
+                return;
+            }
+            // v0.22.3: Visual feedback for mana cost
+            if (window.game) {
+                window.game.addDamageText(this.x + this.width / 2, this.y + 20, `-2`, '#00d2ff', false);
+            }
             this.lightningTickTimer = tickInterval;
             this.animTimer = 0; // Restart attack animation
             if (this.net) {
@@ -731,7 +743,9 @@ export default class Player extends Actor {
                 this.skillCooldowns.u = 5.0; // Original balance: 5.0s
 
 
-                const dirs = [[0, -1], [0.707, -0.707], [1, 0], [0.707, 0.707], [0, 1], [-0.707, 0.707], [-1, 0], [-0.707, -0.707]];
+                // v0.21.3: Fix direction mapping for 4-way character orientation
+                // 0: Back (Up), 1: Front (Down), 2: Left, 3: Right
+                const dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
                 const dir = dirs[this.direction] || [0, 1];
                 const speed = 400;
                 const vx = dir[0] * speed;
@@ -788,8 +802,11 @@ export default class Player extends Actor {
 
     addGold(amount) {
         this.gold += amount;
+        this.updateGoldInventory();
         this.saveState();
+        if (window.game?.ui) window.game.ui.updateInventory();
     }
+
 
     recoverHp(amount) {
         this.hp = Math.min(this.maxHp, this.hp + amount);
@@ -797,7 +814,10 @@ export default class Player extends Actor {
 
     receiveReward(data) {
         if (data.exp) this.gainExp(data.exp);
-        if (data.gold) this.gold += data.gold; // addGold calls saveState
+        if (data.gold) {
+            this.gold += data.gold;
+            this.updateGoldInventory();
+        }
         if (data.hp) this.recoverHp(data.hp);
 
         if (window.game?.ui) {
@@ -806,9 +826,20 @@ export default class Player extends Actor {
             if (data.gold) msg += ` +${data.gold} Gold`;
             if (data.hp) msg += ` +${data.hp} HP`;
             window.game.ui.logSystemMessage(msg);
+            window.game.ui.updateInventory();
         }
         this.saveState();
     }
+
+    updateGoldInventory() {
+        // v0.22.9: Keep gold in the first inventory slot (slot 0)
+        this.inventory[0] = {
+            type: 'gold',
+            amount: this.gold,
+            icon: '💰'
+        };
+    }
+
 
     gainExp(amount) {
         this.exp += amount;
@@ -896,6 +927,11 @@ export default class Player extends Actor {
             const isElec = this.electrocutedTimer > 0;
 
             this.sprite.draw(ctx, row, col, drawX, drawY, drawW, drawH);
+
+            // v0.21.5: Absolute Barrier (Shield) Effect - Centered on body
+            if (this.shieldTimer > 0) {
+                this.drawShieldEffect(ctx, centerX, centerY - 20);
+            }
 
 
             // --- Spark Effect during Normal Attack (Chain Lightning) ---
@@ -994,10 +1030,10 @@ export default class Player extends Actor {
     }
 
     drawHUD(ctx, centerX, y) {
-        // Dimensions matched with Original Solo (60x6 bars)
+        // v0.21.3: Slim HUD (Identical to monsters)
         const barWidth = 60;
-        const barHeight = 8; // Slightly thicker for visibility
-        const startY = y + this.height + 5; // Positioned at feet
+        const barHeight = 6;
+        const startY = y + this.height + 5;
 
         // HP Bar
         const barY = startY;
@@ -1277,6 +1313,39 @@ export default class Player extends Actor {
                 drawRunePoly(cx, cy, facing, [{ x: -4, y: 0 }, { x: 4, y: 0 }]);
             }
         }
+        ctx.restore();
+    }
+
+    drawShieldEffect(ctx, x, y) {
+        ctx.save();
+        const pulse = Math.sin(Date.now() / 200) * 0.15;
+        const radius = 55 + pulse * 10;
+
+        // 1. Outer Glow
+        ctx.beginPath();
+        ctx.arc(x, y, radius + 5, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 210, 255, 0.3)';
+        ctx.lineWidth = 10;
+        ctx.stroke();
+
+        // 2. Shield Shell
+        const grad = ctx.createRadialGradient(x, y, radius * 0.3, x, y, radius);
+        grad.addColorStop(0, 'rgba(0, 210, 255, 0.05)');
+        grad.addColorStop(0.8, 'rgba(0, 210, 255, 0.2)');
+        grad.addColorStop(1, 'rgba(120, 255, 255, 0.6)');
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 3. Rim Highlight
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([10, 5]); // Dashed aesthetic
+        ctx.lineDashOffset = -Date.now() / 50;
+        ctx.stroke();
+
         ctx.restore();
     }
 }

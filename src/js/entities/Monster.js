@@ -168,18 +168,25 @@ export default class Monster {
         const localP = window.game?.localPlayer;
         if (localP && !localP.isDead) {
             const dToP = Math.sqrt((localP.x - this.x) ** 2 + (localP.y - this.y) ** 2);
-
-            // Level-scaled Aggro Range
-            const canAggro = localP.level > 3 || this.hp < this.maxHp;
-            const aggroRange = 300 + (localP.level * 20); // Scale by level
+            const wasAttacked = this.hp < this.maxHp;
+            const aggroRange = 300 + (localP.level * 20);
             const leashRange = aggroRange * 2;
 
-            if (!this.isAggro && dToP < aggroRange && canAggro) {
-                this.isAggro = true;
-            } else if (this.isAggro && dToP > leashRange) {
-                this.isAggro = false; // Lose aggro when too far
+            if (!this.isAggro) {
+                // Aggro trigger: either by damage or proximity
+                if (wasAttacked || (dToP < aggroRange && localP.level > 3)) {
+                    this.isAggro = true;
+                }
+            } else {
+                // v0.22.0: Persistent Aggro Mechanism
+                // If attacked, tracking is INFINITE until death.
+                // If only proximity-triggered, standard leash applies.
+                if (!wasAttacked && dToP > leashRange) {
+                    this.isAggro = false;
+                }
             }
-
+        } else {
+            this.isAggro = false; // Target is dead or missing
         }
 
         this.timer += dt;
@@ -199,9 +206,9 @@ export default class Monster {
             if (player) {
                 const dist = Math.sqrt((player.x - this.x) ** 2 + (player.y - this.y) ** 2);
 
-                if (this.isAggro && dist < 400 && dist > 50) {
+                if (this.isAggro && dist > 50) {
                     const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                    let speed = 100; // User-requested "1.0" base (v0.20.1 Nerf)
+                    let speed = 15; // User-requested even slower "15px/s" (v0.21.2)
                     if (this.electrocutedTimer > 0) {
                         speed *= (1 - this.slowRatio);
                     }
@@ -222,7 +229,7 @@ export default class Monster {
                         const shouldMove = Math.random() < 0.7;
                         if (shouldMove) {
                             const angle = Math.random() * Math.PI * 2;
-                            let speed = 40 + Math.random() * 30; // 40-70 (v0.20.1 Nerf)
+                            let speed = 5 + Math.random() * 10; // 5-15 range for wandering (v0.21.2)
                             if (this.electrocutedTimer > 0) speed *= (1 - this.slowRatio);
                             this.vx = Math.cos(angle) * speed;
                             this.vy = Math.sin(angle) * speed;

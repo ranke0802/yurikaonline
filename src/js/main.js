@@ -42,7 +42,7 @@ class Game {
         window.addEventListener('resize', () => this.resize());
 
         // Input Focus Management
-        this.canvas.addEventListener('mousedown', () => {
+        this.canvas.addEventListener('mousedown', (e) => {
             // Regain focus for keyboard input
             window.focus();
             // Blur chat input if it's active
@@ -251,7 +251,7 @@ class Game {
         if (profile) {
             this.player.level = profile.level || 1;
             this.player.exp = profile.exp || 0;
-            this.player.gold = profile.gold || 300;
+            this.player.gold = profile.gold || 0;
             this.player.vitality = profile.vitality || 1;
             this.player.intelligence = profile.intelligence || 3;
             this.player.wisdom = profile.wisdom || 2;
@@ -277,7 +277,7 @@ class Game {
             const m = this.monsterManager?.monsters.get(data.mid);
             if (m) {
                 this.addSpark(m.x, m.y);
-                this.addDamageText(m.x, m.y, data.dmg, '#ff4757', false);
+                // v0.21.3: Removed redundant addDamageText. Monster.takeDamage will handle it.
             }
         });
 
@@ -288,7 +288,7 @@ class Game {
 
             if (target) {
                 this.addSpark(target.x + target.width / 2, target.y + target.height / 2);
-                this.addDamageText(target.x + target.width / 2, target.y + target.height / 2, data.dmg, '#ff4757', false);
+                // v0.21.3: Removed redundant addDamageText.
                 if (target === this.player) this.player.takeDamage(data.dmg);
                 else {
                     // Manual HP update for remote player

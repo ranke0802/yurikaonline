@@ -852,6 +852,68 @@ html {
     background: linear-gradient(90deg, #a29bfe, #6c5ce7);
 }
 
+/* UI Regeneration Floating (v0.23.2) */
+.stat-row {
+    position: relative;
+    /* Anchor for regen containers */
+}
+
+.regen-container {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 60px;
+    height: 40px;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 50;
+    /* Above bars */
+}
+
+.regen-float {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    font-size: 16px;
+    font-weight: 900;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 100;
+    text-shadow: 1px 1px 1px black;
+    animation: regen-float-up 1s ease-out forwards;
+}
+
+@keyframes regen-float-up {
+    0% {
+        transform: translate(0, 0) scale(0.5);
+        opacity: 0;
+    }
+
+    20% {
+        transform: translate(5px, -10px) scale(1.2);
+        opacity: 1;
+    }
+
+    40% {
+        transform: translate(10px, -20px) scale(1.0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(15px, -40px) scale(0.8);
+        opacity: 0;
+    }
+}
+
+.hp-regen-float {
+    color: #4ade80;
+}
+
+.mp-regen-float {
+    color: #00d2ff;
+}
+
 /* Panels: Quest & Chat Stacking */
 .left-ui-container {
     position: absolute;

@@ -55,7 +55,7 @@ export class UIManager {
         // Skill Tooltips
         this.tooltip = document.getElementById('skill-tooltip');
         this.skillData = {
-            laser: { name: '체인 라이트닝 (J)', desc: '대상의 체내 전기를 점진적으로 과부하시켜 데미지를 줍니다. 그 과정에서 일부 전기를 마나로 회수합니다. [연쇄: 1레벨당 +1] [기본 10% / 0.3초당 증폭]' },
+            laser: { name: '체인 라이트닝 (J)', desc: '연쇄형 기본공격 (전기속성). 공격 시 마나 2 소모, 적중한 적 하나당 마나 1을 회복합니다. [연쇄: Lv당 +1] [기본 10% / 공격 1회당 증폭]' },
             missile: { name: '매직 미사일 (H)', desc: '자동 추적 미사일을 발사합니다. [데미지: 공격력의 90%] [발사 수: 레벨당 +1개] [마나 소모: 4 / 레벨당 +3]' },
             fireball: { name: '파이어볼 (U)', desc: '폭발하는 화염구를 던집니다. [직격 데미지: 공격력의 130% / 레벨당 +30% 추가] [마나 소모: 8 / 레벨당 +3] [화상: 5초 이상 지속 / 레벨당 +1초]' },
             shield: { name: '앱솔루트 베리어 (K)', desc: '절대 방어막을 전개하여 다음 1회의 피격을 완전히 무효화합니다. [마나 소모: 30] [재사용 대기시간: 15초] [레벨업 불가]' }
@@ -146,10 +146,12 @@ export class UIManager {
 
                 if (p.gold >= cost) {
                     p.gold -= cost;
+                    p.updateGoldInventory(); // v0.22.9
                     p.skillLevels[skillId]++;
                     this.logSystemMessage(`✨ [SKILL] ${this.skillData[skillId].name} 레벨이 상승했습니다! (현재: ${p.skillLevels[skillId]})`);
                     this.updateSkillPopup();
                     this.updateStatusPopup();
+                    this.updateInventory(); // v0.22.9
                     p.saveState();
                 } else {
                     this.logSystemMessage(`❌ 골드가 부족합니다! (필요: ${cost}G)`);
@@ -989,8 +991,16 @@ export class UIManager {
                 this.devMode = !this.devMode;
                 const overlay = document.getElementById('dev-overlay');
                 const resetBtn = document.getElementById('reset-character-btn');
+
                 if (overlay) overlay.classList.toggle('hidden', !this.devMode);
-                if (resetBtn) resetBtn.classList.toggle('hidden', !this.devMode);
+                if (resetBtn) {
+                    resetBtn.classList.toggle('hidden', !this.devMode);
+                    // Bind click only once
+                    if (!resetBtn.dataset.bound) {
+                        resetBtn.addEventListener('click', () => this.confirmResetCharacter());
+                        resetBtn.dataset.bound = "true";
+                    }
+                }
                 this.logSystemMessage(`개발자 모드 ${this.devMode ? '활성화' : '비활성화'}`);
                 if (this.devMode) this.updateDevOverlay();
             });
@@ -1011,9 +1021,26 @@ export class UIManager {
         if (pSum) pSum.textContent = stats.totalLevel;
     }
 
+    showRegenHint(type, amount) {
+        const container = document.getElementById(`ui-${type}-regen-container`);
+        if (!container) return;
+
+        const el = document.createElement('div');
+        el.className = `regen-float ${type}-regen-float`;
+        el.textContent = `+${amount}`;
+
+        container.appendChild(el);
+
+        // Auto-cleanup after animation duration (1s)
+        setTimeout(() => {
+            if (el.parentNode) container.removeChild(el);
+        }, 1000);
+    }
+
+
     confirmResetCharacter() {
         this.showConfirm("정말 캐릭터를 초기화하시겠습니까?<br><small>맵 정보(몬스터/아이템)도 함께 초기화됩니다.</small>", async (confirmed) => {
-            if (confirmed && this.game.player) {
+            if (confirmed && this.game.localPlayer) {
                 // 1. Reset World (Firebase)
                 if (this.game.net) {
                     await this.game.net.resetWorldData();
@@ -1023,7 +1050,7 @@ export class UIManager {
                     this.game.monsterManager.clearAll();
                 }
                 // 2. Reset Player
-                this.game.player.fullReset();
+                this.game.localPlayer.fullReset();
                 this.hideAllPopups();
             }
         });
