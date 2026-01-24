@@ -12,6 +12,8 @@ import AuthManager from './core/AuthManager.js';
 import NetworkManager from './core/NetworkManager.js';
 import MonsterManager from './world/MonsterManager.js';
 import { UIManager } from './ui/UIManager.js';
+import ObjectPool from './utils/ObjectPool.js';
+
 
 class Game {
     constructor() {
@@ -88,6 +90,28 @@ class Game {
         this.floatingTexts = []; // Floating Damage Text
         this.sparks = []; // Spark Particles
         this.projectiles = []; // Projectiles (Fireball, Missile)
+
+        // Performance: Object Pools
+        this.sparkPool = new ObjectPool(
+            () => ({}),
+            (s, x, y, angle, speed, life, color) => {
+                s.x = x; s.y = y;
+                s.vx = Math.cos(angle) * speed;
+                s.vy = Math.sin(angle) * speed;
+                s.life = life;
+                s.color = color;
+            },
+            100
+        );
+        this.textPool = new ObjectPool(
+            () => ({}),
+            (ft, x, y, text, color, timer, isCrit, label) => {
+                ft.x = x; ft.y = y; ft.text = text; ft.color = color;
+                ft.timer = timer; ft.currentY = y; ft.isCrit = isCrit; ft.label = label;
+            },
+            20
+        );
+
 
 
         // 5. Game Loop
@@ -190,10 +214,13 @@ class Game {
         // Load Map and Assets
         await this.zone.loadZone('zone_1');
         try {
-            await this.resources.loadImage('src/assets/character.webp');
+            // Fix: Asset path is in /src/assets/
+            await this.resources.loadImage('/src/assets/character.webp');
         } catch (e) {
             Logger.error('Failed to load character sprite', e);
         }
+
+
 
         this.updateLoading('서버 소켓 연결 중...', 60);
         // Connect Network
@@ -372,19 +399,28 @@ class Game {
         }
 
         // Update Floating Texts
-        this.floatingTexts = this.floatingTexts.filter(ft => {
+        for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+            const ft = this.floatingTexts[i];
             ft.timer -= dt;
             ft.currentY -= 40 * dt;
-            return ft.timer > 0;
-        });
+            if (ft.timer <= 0) {
+                this.textPool.release(ft);
+                this.floatingTexts.splice(i, 1);
+            }
+        }
 
         // Update Sparks
-        this.sparks = this.sparks.filter(s => {
+        for (let i = this.sparks.length - 1; i >= 0; i--) {
+            const s = this.sparks[i];
             s.life -= dt;
             s.x += s.vx * dt;
             s.y += s.vy * dt;
-            return s.life > 0;
-        });
+            if (s.life <= 0) {
+                this.sparkPool.release(s);
+                this.sparks.splice(i, 1);
+            }
+        }
+
 
         // Update Projectiles
         this.projectiles = this.projectiles.filter(p => {
@@ -473,24 +509,20 @@ class Game {
     }
 
     addDamageText(x, y, amount, color = '#ff4757', isCrit = false, label = null) {
-        this.floatingTexts.push({
-            x, y, text: amount, color, timer: 1.5, currentY: y, isCrit: isCrit, label: label
-        });
+        const ft = this.textPool.acquire(x, y, amount, color, 1.5, isCrit, label);
+        this.floatingTexts.push(ft);
     }
 
     addSpark(x, y) {
         for (let i = 0; i < 8; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 50 + Math.random() * 50;
-            this.sparks.push({
-                x, y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                life: 0.3 + Math.random() * 0.2,
-                color: '#fff'
-            });
+            const life = 0.3 + Math.random() * 0.2;
+            const s = this.sparkPool.acquire(x, y, angle, speed, life, '#fff');
+            this.sparks.push(s);
         }
     }
+
 
     _handleCanvasInteraction(e) {
         if (!this.player || this.ui.isPaused) return;

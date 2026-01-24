@@ -101,16 +101,26 @@ export default class ResourceManager {
         let minX = img.width, maxX = 0, minY = img.height, maxY = 0;
         let foundPixels = false;
 
+        // Sample top-left pixel for chroma key if it's green-ish
+        const sampleR = data[0], sampleG = data[1], sampleB = data[2];
+        const isSampleGreen = (sampleG > 120 && sampleG > sampleR * 1.2 && sampleG > sampleB * 1.2);
+
         for (let i = 0; i < data.length; i += 4) {
             const r = data[i], g = data[i + 1], b = data[i + 2];
 
-            // Chroma Key Logic from Legacy Code
+            // Primary Chroma Key (Green)
             const isGreen = (g > 140 && g > r * 1.1 && g > b * 1.1);
-            const isLightBG = (g > 200 && r > 200 && b > 200);
+            // Secondary (Light/White backgrounds)
+            const isLightBG = (g > 230 && r > 230 && b > 230);
+            // Sample-based (If top-left is green, match it)
+            const matchesSample = isSampleGreen &&
+                Math.abs(r - sampleR) < 30 &&
+                Math.abs(g - sampleG) < 30 &&
+                Math.abs(b - sampleB) < 30;
 
-            if (isGreen || isLightBG) {
+            if (isGreen || isLightBG || matchesSample) {
                 data[i + 3] = 0; // Alpha 0
-            } else if (data[i + 3] > 50) {
+            } else if (data[i + 3] > 20) {
                 // Determine bounding box of visible pixels
                 const x = (i / 4) % img.width;
                 const y = Math.floor((i / 4) / img.width);
@@ -125,14 +135,12 @@ export default class ResourceManager {
         if (foundPixels) {
             tempCtx.putImageData(imgData, 0, 0);
 
-            // Crop and Scale Logic
             const charW = maxX - minX + 1;
             const charH = maxY - minY + 1;
 
-            // Logger.info(`Frame Processed: W=${charW} H=${charH} (Raw: ${img.width}x${img.height})`);
-
-            // Scale to fit target box (keeping aspect ratio) with 95% max size
-            const scale = Math.min(destW / charW, destH / charH) * 0.95;
+            // Scale to fit target box (keeping aspect ratio)
+            // Use 0.85 to leave more padding for health bars/frames
+            const scale = Math.min(destW / charW, destH / charH) * 0.85;
 
             const drawW = charW * scale;
             const drawH = charH * scale;
@@ -143,7 +151,6 @@ export default class ResourceManager {
 
             ctx.drawImage(tempCanvas, minX, minY, charW, charH, destX + offX, destY + offY, drawW, drawH);
         } else {
-            Logger.warn(`_processAndDrawFrame for ${imageUrl}: No pixels found after filter! Drawing raw fallback.`);
             // Fallback: Just draw the raw image scaled to fit
             const scale = Math.min(destW / img.width, destH / img.height);
             const drawW = img.width * scale;
@@ -153,6 +160,7 @@ export default class ResourceManager {
             ctx.drawImage(img, 0, 0, img.width, img.height, destX + offX, destY + offY, drawW, drawH);
         }
     }
+
 
     async loadImage(url) {
         // 1. Check Cache

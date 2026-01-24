@@ -101,7 +101,7 @@ export class Projectile {
                         finalDmg *= 2;
                         isCrit = true;
                     }
-                    m.takeDamage(finalDmg, true, isCrit);
+                    m.takeDamage(finalDmg, true, isCrit, this.x, this.y);
                     m.applyEffect('burn', this.burnDuration, Math.floor(finalDmg * 0.15));
                 }
             });
@@ -113,7 +113,7 @@ export class Projectile {
                 finalDmg *= 2;
                 isCrit = true;
             }
-            monster.takeDamage(finalDmg, true, isCrit);
+            monster.takeDamage(finalDmg, true, isCrit, this.x, this.y);
 
             if (this.type === 'fireball') {
                 monster.applyEffect('burn', this.burnDuration, Math.floor(finalDmg * 0.15));

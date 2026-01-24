@@ -54,7 +54,8 @@ export default class Player extends Actor {
         this.skillMaxCooldowns = { j: 0, h: 0, u: 0, k: 0 };
 
         // Combat & Channeling
-        this.attackRange = 400; // Range for Chain Lightning
+        this.attackRange = 700; // Increased to prevent disconnect during knockback
+
         this.isAttacking = false;
         this.isChanneling = false;
         this.chargeTime = 0;
@@ -66,6 +67,12 @@ export default class Player extends Actor {
         this.actionFdbk = null;
         this.actionTimer = 0;
         this.shieldTimer = 0;
+
+        // Status Effects
+        this.statusEffects = [];
+        this.electrocutedTimer = 0;
+        this.slowRatio = 0;
+        this.sparkTimer = 0;
 
         // Running Logic (Matched with Solo)
         this.moveTimer = 0;
@@ -124,6 +131,12 @@ export default class Player extends Actor {
             this.sprite = new Sprite(sheetCanvas, 8, 5);
             // Frame counts per row (0:Back, 1:Front, 2:Left, 3:Right, 4:Attack)
             this.frameCounts = { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 };
+
+            // Update UI portraits with the new transparent sheet
+            if (window.game && window.game.ui) {
+                window.game.ui.updatePlayerPortraits(sheetCanvas);
+            }
+
         } catch (e) {
             Logger.error('Failed to load character sprite sheet', e);
         }
@@ -161,6 +174,42 @@ export default class Player extends Actor {
             this.actionTimer -= dt;
             if (this.actionTimer <= 0) this.actionFdbk = null;
         }
+
+        // Process Status Effects
+        this.statusEffects = this.statusEffects.filter(eff => {
+            eff.timer -= dt;
+            if (eff.type === 'burn') {
+                if (!eff.tickTimer) eff.tickTimer = 0;
+                eff.tickTimer += dt;
+                if (eff.tickTimer >= 0.5) {
+                    eff.tickTimer = 0;
+                    this.takeDamage(eff.damage, false);
+                }
+            }
+            return eff.timer > 0;
+        });
+
+        if (this.electrocutedTimer > 0) {
+            this.electrocutedTimer -= dt;
+        } else {
+            this.slowRatio = 0;
+        }
+    }
+
+    applyEffect(type, duration, damage) {
+        if (this.isDead) return;
+        const existing = this.statusEffects.find(e => e.type === type);
+        if (existing) {
+            existing.timer = duration;
+            existing.damage = Math.max(existing.damage, damage);
+        } else {
+            this.statusEffects.push({ type, timer: duration, damage });
+        }
+    }
+
+    applyElectrocuted(duration, ratio) {
+        this.electrocutedTimer = 3.0; // Fixed 3s
+        this.slowRatio = Math.max(this.slowRatio, ratio);
     }
 
     triggerAction(text) {
@@ -334,7 +383,7 @@ export default class Player extends Actor {
         this.refreshStats();
     }
 
-    takeDamage(dmg) {
+    takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null) {
         if (this.isDead) return 0;
 
         // Magic Shield check
@@ -346,8 +395,19 @@ export default class Player extends Actor {
             return 0;
         }
 
-        const finalDmg = Math.max(1, dmg - this.defense);
+        // Apply Knockback
+        if (sourceX !== null && sourceY !== null) {
+            const angle = Math.atan2(this.y - sourceY, this.x - sourceX);
+            this.applyKnockback(Math.cos(angle) * 100, Math.sin(angle) * 100);
+        }
+
+        const validAmount = parseFloat(amount);
+        if (isNaN(validAmount)) return 0;
+
+        const finalDmg = Math.max(1, Math.round(validAmount - this.defense));
         this.hp -= finalDmg;
+        Logger.log(`[Player] HP: ${this.hp}`);
+
         if (this.hp <= 0) {
             this.hp = 0;
             this.die();
@@ -355,7 +415,40 @@ export default class Player extends Actor {
         return finalDmg;
     }
 
+    die() {
+        if (this.isDead) return;
+        this.isDead = true;
+        this.state = 'die';
+        this.stop(); // Stop movement
+
+        // Visual feedback
+        if (window.game && window.game.ui) {
+            window.game.ui.logSystemMessage('당신은 전사했습니다...');
+            window.game.ui.showDeathModal();
+        }
+    }
+
+    respawn() {
+        this.hp = this.maxHp;
+        this.mp = this.maxMp;
+        this.isDead = false;
+        this.state = 'idle';
+
+        // Move to world center or some spawn point
+        if (window.game && window.game.zone) {
+            this.x = window.game.zone.width / 2;
+            this.y = window.game.zone.height / 2;
+        }
+
+        if (window.game && window.game.ui) {
+            window.game.ui.logSystemMessage('부활했습니다.');
+        }
+
+        this.saveState();
+    }
+
     saveState() {
+
         if (!this.net || !this.id) return;
         const data = {
             level: this.level,
@@ -491,7 +584,8 @@ export default class Player extends Actor {
                             }
                         }
                         if (nextTarget.isMonster && window.game?.net?.isHost) nextTarget.lastAttackerId = window.game.net.playerId;
-                        nextTarget.takeDamage(dmg, true, isCrit);
+                        nextTarget.takeDamage(dmg, true, isCrit, null, null);
+
                     }
 
                     // Slow effect
@@ -735,8 +829,55 @@ export default class Player extends Actor {
             const drawX = centerX - drawW / 2;
             const drawY = y + this.height - drawH + 10;
 
+            const burnEffect = this.statusEffects.find(e => e.type === 'burn');
+            const isElec = this.electrocutedTimer > 0;
+
             this.sprite.draw(ctx, row, col, drawX, drawY, drawW, drawH);
+
+
+            // --- Spark Effect during Normal Attack (Chain Lightning) ---
+            if (this.isChanneling && !this.isDead) {
+                ctx.save();
+                const now = Date.now();
+                if (!this.auraBolts || (now - (this.auraLastUpdate || 0) > 100)) {
+                    this.auraBolts = [];
+                    this.auraLastUpdate = now;
+                    for (let i = 0; i < 2; i++) {
+                        const rx = centerX + (Math.random() - 0.5) * 80;
+                        const ry = centerY + (Math.random() - 0.5) * 80;
+                        const steps = 3 + Math.floor(Math.random() * 2);
+                        const boltPoints = [{ x: rx, y: ry }];
+                        for (let j = 0; j < steps; j++) {
+                            const last = boltPoints[boltPoints.length - 1];
+                            boltPoints.push({
+                                x: last.x + (Math.random() - 0.5) * 40,
+                                y: last.y + (Math.random() - 0.5) * 40
+                            });
+                        }
+                        this.auraBolts.push(boltPoints);
+                    }
+                }
+
+                this.auraBolts.forEach(boltPoints => {
+                    ctx.beginPath();
+                    ctx.moveTo(boltPoints[0].x, boltPoints[0].y);
+                    for (let j = 1; j < boltPoints.length; j++) {
+                        ctx.lineTo(boltPoints[j].x, boltPoints[j].y);
+                    }
+                    ctx.strokeStyle = '#48dbfb';
+                    ctx.lineWidth = 4;
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#00d2ff';
+                    ctx.stroke();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.5;
+                    ctx.shadowBlur = 0;
+                    ctx.stroke();
+                });
+                ctx.restore();
+            }
         } else {
+
             // Fallback (Circle)
             ctx.fillStyle = this.isAttacking ? '#ff6b6b' : '#0984e3';
             ctx.beginPath();

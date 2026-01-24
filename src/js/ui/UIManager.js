@@ -626,18 +626,58 @@ export class UIManager {
         p.addGold(500);
         p.gainExp(100);
         this.logSystemMessage('QUEST 완료: 슬라임 토벌 보상 지급 (500G, 100EXP)');
+        this.showRewardModal("슬라임 처치 퀘스트 완료!", "보상: 500 골드 및 100 경험치 획득!");
         this.updateQuestUI();
         p.saveState();
     }
+
 
     claimBossReward(p) {
         p.questData.bossQuestClaimed = true;
         p.addGold(5000);
         p.gainExp(1000);
         this.logSystemMessage('QUEST 완료: 대왕 슬라임 토벌 보상 지급 (5000G, 1000EXP)');
+        this.showRewardModal("대왕 슬라임 처치 퀘스트 완료!", "보상: 5000 골드 및 1000 경험치 획득!");
         this.updateQuestUI();
         p.saveState();
     }
+
+
+    updatePlayerPortraits(spriteSheetCanvas) {
+        if (!spriteSheetCanvas) return;
+
+        // Target: Front facing frame (Row 1, Col 0 in the generated sheet)
+        // From ResourceManager: targetW = 256, targetH = 256
+        const targetW = 256;
+        const targetH = 256;
+        const rowIndex = 1; // Front
+        const colIndex = 0; // First frame
+
+        const portraitCanvas = document.createElement('canvas');
+        portraitCanvas.width = targetW;
+        portraitCanvas.height = targetH;
+        const pCtx = portraitCanvas.getContext('2d');
+
+        // Draw the specific frame from the master sheet
+        pCtx.drawImage(
+            spriteSheetCanvas,
+            colIndex * targetW, rowIndex * targetH, targetW, targetH,
+            0, 0, targetW, targetH
+        );
+
+        const portraitDataUrl = portraitCanvas.toDataURL('image/png');
+
+        // Apply to both UI elements
+        const portraitEls = document.querySelectorAll('.portrait, .status-portrait');
+        portraitEls.forEach(el => {
+            el.style.backgroundImage = `url(${portraitDataUrl})`;
+            el.style.backgroundSize = '100% auto'; // Fill width, maintain ratio
+            el.style.backgroundPosition = 'center 10%'; // Slight upward nudge for better head alignment
+            el.style.backgroundRepeat = 'no-repeat';
+            el.style.backgroundColor = 'transparent'; // Remove any fallback colors
+        });
+    }
+
 
     showRewardModal(title, message) {
         const modal = document.getElementById('reward-modal');
@@ -647,7 +687,9 @@ export class UIManager {
         if (titleEl) titleEl.textContent = title;
         if (msgEl) msgEl.textContent = message;
         if (modal) modal.classList.remove('hidden');
+        this.isPaused = true;
     }
+
 
     hideRewardModal() {
         const modal = document.getElementById('reward-modal');

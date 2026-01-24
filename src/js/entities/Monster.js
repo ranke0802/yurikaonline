@@ -1,4 +1,6 @@
+import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
+
 
 export default class Monster {
     constructor(x, y, name = '슬라임') {
@@ -40,8 +42,15 @@ export default class Monster {
         this.targetX = x;
         this.targetY = y;
         this.isMonster = true;
+        this.isDead = false;
+
+        this.knockback = { vx: 0, vy: 0 };
+        this.knockbackFriction = 0.9;
+
         this.init();
     }
+
+
 
     static spriteCache = {};
 
@@ -150,9 +159,10 @@ export default class Monster {
             return;
         }
 
-        if (!this.ready) return;
+        if (!this.ready || this.isDead) return;
 
         this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
+
 
         // --- AI Logic (Aggro & Awareness) ---
         const localP = window.game?.localPlayer;
@@ -224,8 +234,15 @@ export default class Monster {
             }
 
             // Movement & Collision (Host Authority)
-            const nextX = this.x + this.vx * dt;
-            const nextY = this.y + this.vy * dt;
+            const nextX = this.x + (this.vx + this.knockback.vx) * dt;
+            const nextY = this.y + (this.vy + this.knockback.vy) * dt;
+
+            // Dissipate knockback
+            this.knockback.vx *= this.knockbackFriction;
+            this.knockback.vy *= this.knockbackFriction;
+            if (Math.abs(this.knockback.vx) < 1) this.knockback.vx = 0;
+            if (Math.abs(this.knockback.vy) < 1) this.knockback.vy = 0;
+
 
             let canMoveX = true;
             let canMoveY = true;
@@ -315,10 +332,26 @@ export default class Monster {
         }
     }
 
-    takeDamage(amount, triggerFlash = true, isCrit = false) {
+    takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null) {
         if (this.isDead) return;
-        this.hp = Math.max(0, this.hp - amount);
+
+        const dmg = parseFloat(amount);
+        if (isNaN(dmg)) {
+            Logger.warn(`[Monster] Invalid damage: ${amount}`);
+            return;
+        }
+
+        this.hp = Math.max(0, this.hp - dmg);
+        Logger.log(`[Monster] ${this.id} HP: ${this.hp}`);
+
         if (triggerFlash) this.hitTimer = 0.2;
+
+        // Apply Knockback
+        if (sourceX !== null && sourceY !== null) {
+            const angle = Math.atan2(this.y - sourceY, this.x - sourceX);
+            const force = isCrit ? 300 : 150;
+            this.applyKnockback(Math.cos(angle) * force, Math.sin(angle) * force);
+        }
 
         if (amount > 0 && window.game && typeof window.game.addDamageText === 'function') {
             window.game.addDamageText(this.x, this.y - 40, Math.floor(amount), isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null);
@@ -329,10 +362,22 @@ export default class Monster {
             window.game.net.sendMonsterDamage(this.id, amount);
         }
 
-        if (this.hp < 1) {
+        if (this.hp <= 0) {
+            if (!this.isDead) Logger.log(`[Monster] ${this.id || 'unknown'} died`);
             this.isDead = true;
+            this.hp = 0;
+            this.vx = 0;
+            this.vy = 0;
         }
     }
+
+    applyKnockback(vx, vy) {
+        this.knockback.vx = vx;
+        this.knockback.vy = vy;
+    }
+
+
+
 
     applyElectrocuted(duration, ratio) {
         this.electrocutedTimer = 3.0; // Fixed 3 seconds as requested
@@ -343,7 +388,12 @@ export default class Monster {
         if (!this.ready || this.deathTimer >= this.deathDuration) return;
 
         ctx.save();
-        ctx.globalAlpha = this.alpha;
+        if (this.isDead) {
+            ctx.globalAlpha = 0.5; // Fade out dead monsters
+        } else {
+            ctx.globalAlpha = this.alpha;
+        }
+
 
         // Note: Context is already translated by Camera in Main.js
         const screenX = Math.round(this.x);
@@ -356,16 +406,11 @@ export default class Monster {
         ctx.ellipse(screenX, screenY + this.height / 2, this.width / 2 * 0.7, 5, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Optimized Hit Flash (Avoid expensive ctx.filter on mobile)
-        if (this.hitTimer > 0) {
-            ctx.save();
-            ctx.globalCompositeOperation = 'lighter';
-            ctx.globalAlpha = 0.5;
-            this.sprite.draw(ctx, 0, this.frame, screenX - this.width / 2 - 2, drawY - this.height / 2 - 2, this.width + 4, this.height + 4);
-            ctx.restore();
-        }
-
+        const burnEffect = this.statusEffects.find(e => e.type === 'burn');
         this.sprite.draw(ctx, 0, this.frame, screenX - this.width / 2, drawY - this.height / 2, this.width, this.height);
+
+
+
 
         // Aggro Indicator (!)
         if (this.isAggro && !this.isDead) {
@@ -379,6 +424,7 @@ export default class Monster {
             ctx.fillText('!', screenX, screenY - this.height / 2 - 40 + bounce);
             ctx.restore();
         }
+
 
         // Monster Name (back to top - adjusted down by 15px)
         const nameY = screenY - this.height / 2 - 5;
@@ -408,7 +454,6 @@ export default class Monster {
         ctx.fillRect(screenX - 30, uiBaseY, 60 * hpPercent, 6);
 
         // v1.86: Custom Status Icons at the BOTTOM (More fit & Professional)
-        const burnEffect = this.statusEffects.find(e => e.type === 'burn');
         if ((burnEffect || this.electrocutedTimer > 0) && !this.isDead) {
             ctx.save();
             const iconY = screenY + this.height / 2 + 15; // Directly below feet/shadow
@@ -482,6 +527,7 @@ export default class Monster {
 
             ctx.restore();
         }
+
 
         // Electrocuted Spark Effect (v1.65: Slower flicker style)
         if (this.electrocutedTimer > 0 && !this.isDead) {

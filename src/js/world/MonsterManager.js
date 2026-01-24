@@ -1,4 +1,5 @@
 import Logger from '../utils/Logger.js';
+
 import Monster from '../entities/Monster.js';
 
 export default class MonsterManager {
@@ -129,7 +130,10 @@ export default class MonsterManager {
                 // Let's keep it simple: Everyone gets quest credit for now (Co-op style)?
                 // Or just Local Player (Host) gets it here.
                 if (localPlayer && localPlayer.questData) {
-                    if (m.lastAttackerId === this.net.playerId || !m.lastAttackerId) {
+                    const isMyKill = m.lastAttackerId === this.net.playerId || !m.lastAttackerId;
+                    Logger.log(`[HOST] Monster ${id} death check. LastAttacker: ${m.lastAttackerId}, IsMyKill: ${isMyKill}`);
+
+                    if (isMyKill) {
                         if (m.name.includes('슬라임') && !m.isBoss) {
                             localPlayer.questData.slimeKills++;
                             if (localPlayer.questData.slimeKills >= 10 && !this.bossSpawned) {
@@ -143,11 +147,14 @@ export default class MonsterManager {
                     }
                 }
 
+                Logger.info(`[HOST] REMOVING Monster: ${id} (${m.name})`);
+
                 this.net.removeMonster(id);
                 this.monsters.delete(id);
                 this.lastSyncState.delete(id);
                 return;
             }
+
 
             // --- AI Targeting (Closest Player) ---
             let target = null;
@@ -243,7 +250,8 @@ export default class MonsterManager {
             y: Math.round(y),
             hp: 50,
             maxHp: 50,
-            type: 'slime'
+            type: '슬라임'
+
         };
 
         this.net.sendMonsterUpdate(id, data);
@@ -304,9 +312,13 @@ export default class MonsterManager {
         if (!this.net.isHost) return;
         const m = this.monsters.get(data.monsterId);
         if (m && !m.isDead) {
+            Logger.log(`[MonsterManager] Host received damage for ${data.monsterId}: ${data.damage}`);
             m.lastAttackerId = data.attackerId;
             m.takeDamage(data.damage, true);
+        } else {
+            Logger.warn(`[MonsterManager] Received damage for unknown or dead monster: ${data.monsterId}`);
         }
+
     }
 
     // --- Drop Sync ---

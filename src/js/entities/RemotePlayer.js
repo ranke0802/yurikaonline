@@ -10,8 +10,8 @@ export default class RemotePlayer extends Actor {
 
         this.targetX = x;
         this.targetY = y;
-        this.serverTime = 0;
-        this.lastAttackTime = 0;
+        this.serverUpdates = []; // Buffer for interpolation: { x, y, vx, vy, ts }
+        this.interpolationDelay = 150; // Delay in ms (Buffer size)
 
         // Visuals
         this.sprite = null;
@@ -39,42 +39,96 @@ export default class RemotePlayer extends Actor {
     // Called when network packet arrives
     onServerUpdate(packet) {
         // packet: { id, x, y, vx, vy, ts, name }
-        this.targetX = packet.x;
-        this.targetY = packet.y;
-        this.vx = packet.vx || 0;
-        this.vy = packet.vy || 0;
         if (packet.name) this.name = packet.name;
+
+        this.serverUpdates.push({
+            x: packet.x,
+            y: packet.y,
+            vx: packet.vx || 0,
+            vy: packet.vy || 0,
+            ts: packet.ts || Date.now()
+        });
+
+        // Limit buffer size
+        if (this.serverUpdates.length > 20) {
+            this.serverUpdates.shift();
+        }
+
+        // Sort by timestamp just in case of out-of-order delivery
+        this.serverUpdates.sort((a, b) => a.ts - b.ts);
     }
 
     update(dt) {
         if (this.isDead) return;
 
-        // Simple Lerp for smooth movement (Dead Reckoning's visual part)
-        const lerpFactor = 10 * dt; // Adjust smoothness
+        const renderTime = Date.now() - this.interpolationDelay;
+        let finalX = this.x;
+        let finalY = this.y;
+        let finalVx = this.vx;
+        let finalVy = this.vy;
 
-        const dx = this.targetX - this.x;
-        const dy = this.targetY - this.y;
+        if (this.serverUpdates.length >= 2) {
+            // Find two packets that surround our renderTime
+            let i = 0;
+            for (i = 0; i < this.serverUpdates.length - 1; i++) {
+                if (this.serverUpdates[i + 1].ts > renderTime) break;
+            }
 
+            const p1 = this.serverUpdates[i];
+            const p2 = this.serverUpdates[i + 1];
+
+            if (renderTime >= p1.ts && renderTime <= p2.ts) {
+                // Interpolate
+                const t = (renderTime - p1.ts) / (p2.ts - p1.ts);
+                finalX = p1.x + (p2.x - p1.x) * t;
+                finalY = p1.y + (p2.y - p1.y) * t;
+                finalVx = p1.vx + (p2.vx - p1.vx) * t;
+                finalVy = p1.vy + (p2.vy - p1.vy) * t;
+            } else if (renderTime > p2.ts) {
+                // Extrapolate (Dead Reckoning) - We ran out of packets
+                const delta = (renderTime - p2.ts) / 1000;
+                finalX = p2.x + p2.vx * delta;
+                finalY = p2.y + p2.vy * delta;
+                finalVx = p2.vx;
+                finalVy = p2.vy;
+            } else {
+                // Snap to oldest if too behind
+                finalX = p1.x;
+                finalY = p1.y;
+                finalVx = p1.vx;
+                finalVy = p1.vy;
+            }
+
+            // Cleanup old packets
+            while (this.serverUpdates.length > 2 && this.serverUpdates[1].ts < renderTime) {
+                this.serverUpdates.shift();
+            }
+        }
+
+        const dx = finalX - this.x;
+        const dy = finalY - this.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Determine state for animation
+        // Movement Threshold & Animation State
         if (!this.isAttacking) {
-            // Threshold reduced for better sensitivity, added dist check
-            if (dist > 1.0) {
+            if (dist > 1.0 || Math.abs(finalVx) > 0.1 || Math.abs(finalVy) > 0.1) {
                 this.state = 'move';
-                // Direction Logic for Sprite Rows (0:Back, 1:Front, 2:Left, 3:Right)
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    this.direction = dx > 0 ? 3 : 2; // Right : Left
-                } else {
-                    this.direction = dy > 0 ? 1 : 0; // Front : Back
+                // Direction Logic
+                if (Math.abs(finalVx) > Math.abs(finalVy)) {
+                    this.direction = finalVx > 0 ? 3 : 2;
+                } else if (Math.abs(finalVy) > 0.1) {
+                    this.direction = finalVy > 0 ? 1 : 0;
                 }
             } else {
                 this.state = 'idle';
             }
         }
 
-        this.x += dx * lerpFactor;
-        this.y += dy * lerpFactor;
+        // Apply calculated position
+        this.x = finalX;
+        this.y = finalY;
+        this.vx = finalVx;
+        this.vy = finalVy;
 
 
         // Remote Lightning Logic

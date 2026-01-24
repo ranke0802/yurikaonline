@@ -1,4 +1,5 @@
-const CACHE_NAME = 'yurika-online-v1.89-dev';
+const CACHE_NAME = 'yurika-online-v1.90-bugfix';
+
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
