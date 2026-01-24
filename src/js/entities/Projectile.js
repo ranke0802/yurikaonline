@@ -101,8 +101,9 @@ export class Projectile {
                         finalDmg *= 2;
                         isCrit = true;
                     }
-                    m.takeDamage(finalDmg, true, isCrit, this.x, this.y);
-                    m.applyEffect('burn', this.burnDuration, Math.floor(finalDmg * 0.15));
+                    const ceilDmg = Math.ceil(finalDmg);
+                    m.takeDamage(ceilDmg, true, isCrit, this.x, this.y);
+                    m.applyEffect('burn', this.burnDuration, Math.ceil(ceilDmg * 0.15));
 
                     // Add visual impact
                     if (window.game && window.game.addSpark) {
@@ -118,10 +119,11 @@ export class Projectile {
                 finalDmg *= 2;
                 isCrit = true;
             }
-            monster.takeDamage(finalDmg, true, isCrit, this.x, this.y);
+            const ceilDmg = Math.ceil(finalDmg);
+            monster.takeDamage(ceilDmg, true, isCrit, this.x, this.y);
 
             if (this.type === 'fireball') {
-                monster.applyEffect('burn', this.burnDuration, Math.floor(finalDmg * 0.15));
+                monster.applyEffect('burn', this.burnDuration, Math.ceil(ceilDmg * 0.15));
             }
         }
 

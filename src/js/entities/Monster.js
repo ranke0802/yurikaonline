@@ -208,7 +208,7 @@ export default class Monster {
 
                 if (this.isAggro && dist > 50) {
                     const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                    let speed = 15; // User-requested even slower "15px/s" (v0.21.2)
+                    let speed = 30; // User-requested (v0.22.8)
                     if (this.electrocutedTimer > 0) {
                         speed *= (1 - this.slowRatio);
                     }
@@ -218,7 +218,7 @@ export default class Monster {
                     this.vx = 0;
                     this.vy = 0;
                     if (this.attackCooldown <= 0) {
-                        player.takeDamage(5 + (Math.random() * 5));
+                        player.takeDamage(Math.ceil(5 + (Math.random() * 5)));
                         this.attackCooldown = 1.5;
                         this.hitTimer = 0.1;
                     }
@@ -344,7 +344,7 @@ export default class Monster {
     takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null) {
         if (this.isDead) return;
 
-        const dmg = parseFloat(amount);
+        const dmg = Math.ceil(parseFloat(amount));
         if (isNaN(dmg)) {
             Logger.warn(`[Monster] Invalid damage: ${amount}`);
             return;
@@ -363,7 +363,7 @@ export default class Monster {
         }
 
         if (amount > 0 && window.game && typeof window.game.addDamageText === 'function') {
-            window.game.addDamageText(this.x, this.y - 40, `-${Math.floor(amount)}`, isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null);
+            window.game.addDamageText(this.x, this.y - 40, `-${Math.ceil(amount)}`, isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null);
         }
 
         // --- Damage Sync (Guest to Host) ---

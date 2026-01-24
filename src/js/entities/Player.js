@@ -67,6 +67,7 @@ export default class Player extends Actor {
         this.actionFdbk = null;
         this.actionTimer = 0;
         this.shieldTimer = 0;
+        this.skillAttackTimer = 0; // v0.22.3: Briefly show attack anim on skills
 
         // Status Effects
         this.statusEffects = [];
@@ -175,6 +176,14 @@ export default class Player extends Actor {
             if (this.actionTimer <= 0) this.actionFdbk = null;
         }
 
+        // v0.22.3: Reset isAttacking after skill animation
+        if (this.skillAttackTimer > 0) {
+            this.skillAttackTimer -= dt;
+            if (this.skillAttackTimer <= 0) {
+                this.isAttacking = false;
+            }
+        }
+
         // Process Status Effects
         this.statusEffects = this.statusEffects.filter(eff => {
             eff.timer -= dt;
@@ -183,7 +192,7 @@ export default class Player extends Actor {
                 eff.tickTimer += dt;
                 if (eff.tickTimer >= 0.5) {
                     eff.tickTimer = 0;
-                    this.takeDamage(eff.damage, false);
+                    this.takeDamage(Math.ceil(eff.damage), false);
                 }
             }
             return eff.timer > 0;
@@ -460,7 +469,7 @@ export default class Player extends Actor {
             }
             finalDmg = 1; // Minimum 1 damage or keep as 0 if preferred, but usually 1 is standard
         } else {
-            finalDmg = Math.round(validAmount - this.defense);
+            finalDmg = Math.ceil(validAmount - this.defense);
         }
 
         this.hp -= finalDmg;
@@ -588,16 +597,12 @@ export default class Player extends Actor {
         const isTick = this.lightningTickTimer <= 0;
 
         if (isTick) {
-            // v0.22.1: Mana overhauled - 2 MP per tick (includes first cast)
-            if (!this.useMana(2)) {
-                this.stopLaserAttack();
-                return;
-            }
-            // v0.22.3: Visual feedback for mana cost
-            if (window.game) {
-                window.game.addDamageText(this.x + this.width / 2, this.y + 20, `-2`, '#00d2ff', false);
-            }
             this.lightningTickTimer = tickInterval;
+
+            // v0.22.2: Restore Attack Cooldown (Scaled by attack speed)
+            this.skillCooldowns.j = tickInterval;
+            this.skillMaxCooldowns.j = tickInterval;
+
             this.animTimer = 0; // Restart attack animation
             if (this.net) {
                 this.net.sendAttack(this.x, this.y, this.direction);
@@ -663,7 +668,7 @@ export default class Player extends Actor {
                             }
                         }
                         if (nextTarget.isMonster && window.game?.net?.isHost) nextTarget.lastAttackerId = window.game.net.playerId;
-                        nextTarget.takeDamage(dmg, true, isCrit, null, null);
+                        nextTarget.takeDamage(Math.ceil(dmg), true, isCrit, null, null);
 
                     }
 
@@ -710,6 +715,11 @@ export default class Player extends Actor {
                 this.triggerAction(`${this.name} : 매직 미사일 !!`);
                 this.skillCooldowns.h = 1.0; // Original balance: 1.0s
 
+                // v0.22.3: Visual Attack FeedBack
+                this.isAttacking = true;
+                this.skillAttackTimer = 0.4;
+                this.animTimer = 0;
+
 
                 let nearest = null;
                 let minDist = 500;
@@ -742,6 +752,11 @@ export default class Player extends Actor {
                 this.triggerAction(`${this.name} : 파이어볼 !!`);
                 this.skillCooldowns.u = 5.0; // Original balance: 5.0s
 
+                // v0.22.3: Visual Attack FeedBack
+                this.isAttacking = true;
+                this.skillAttackTimer = 0.4;
+                this.animTimer = 0;
+
 
                 // v0.21.3: Fix direction mapping for 4-way character orientation
                 // 0: Back (Up), 1: Front (Down), 2: Left, 3: Right
@@ -750,7 +765,7 @@ export default class Player extends Actor {
                 const speed = 400;
                 const vx = dir[0] * speed;
                 const vy = dir[1] * speed;
-                const dmg = this.attackPower * (1.3 + (lv - 1) * 0.3);
+                const dmg = Math.ceil(this.attackPower * (1.3 + (lv - 1) * 0.3));
                 const rad = 80 + (lv - 1) * 40;
 
                 import('./Projectile.js').then(({ Projectile }) => {
@@ -766,6 +781,11 @@ export default class Player extends Actor {
         } else if (skillId === 'shield') {
             if (this.useMana(30)) {
                 this.triggerAction(`${this.name} : 앱솔루트 베리어 !!`);
+
+                // v0.22.3: Visual Attack FeedBack
+                this.isAttacking = true;
+                this.skillAttackTimer = 0.4;
+                this.animTimer = 0;
                 this.shieldTimer = 9999;
                 this.skillCooldowns.k = 15;
             }
