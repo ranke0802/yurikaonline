@@ -1,6 +1,14 @@
-# 🎮 Yurika Online (유리카 온라인) - v0.19.1 (World Reset & Polish)
+# 🎮 Yurika Online (유리카 온라인) - v0.21.0 (Splitting & Optimization)
 
-[**🎮 Firebase 라이브 데모 (v0.19.1)**](https://yurika-online.web.app/)
+[**🎮 Firebase 라이브 데모 (v0.21.0)**](https://yurika-online.web.app/)
+
+## 📜 v0.21.0 - 슬라임 분열 메커니즘 정밀화 (2026-01-25)
+- **Splitting Refinement**: 대왕 슬라임 및 분열된 슬라임의 생성 개수를 하향 조정하여 게임 밸런스와 네트워크 부하를 동시에 최적화했습니다. (3마리/2마리)
+- **Spawn Location Fix**: 분열된 개체들이 맵 전체로 퍼지지 않고 부모의 사망 위치 주변(반경 100px)에 자연스럽게 생성되도록 버그를 수정했습니다.
+
+## 📜 v0.20.1 - Firebase 대역폭 최적화 및 밸런스 조정 (2026-01-25)
+- **Bandwidth Emergency Fix**: 몬스터 이동 동기화를 10Hz(100ms)로 제한하고 이동 감지 임계값을 8px로 상향하여 Firebase 데이터 소모량을 90% 이상 절감했습니다. (v0.20.1)
+- **Monster Speed Nerf**: 슬라임의 이동 속도를 유저 요청에 맞춰 기본 수치(100px/s)로 하향 조정하여 컨트롤의 재미를 높였습니다.
 
 ## 📜 v0.19.1 - 개발자 도구 및 월드 데이터 동기화 강화 (2026-01-25)
 - **World Reset**: 개발자 모드에서 '캐릭터 초기화' 시 Firebase 서버의 몬스터, 드랍 아이템, 데미지 로그를 일괄 제거하는 기능을 연동했습니다. (v0.19.0)

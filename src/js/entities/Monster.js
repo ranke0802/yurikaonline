@@ -201,7 +201,7 @@ export default class Monster {
 
                 if (this.isAggro && dist < 400 && dist > 50) {
                     const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                    let speed = 120; // Reduced from 180 (v0.18.9 Nerf)
+                    let speed = 100; // User-requested "1.0" base (v0.20.1 Nerf)
                     if (this.electrocutedTimer > 0) {
                         speed *= (1 - this.slowRatio);
                     }
@@ -222,7 +222,7 @@ export default class Monster {
                         const shouldMove = Math.random() < 0.7;
                         if (shouldMove) {
                             const angle = Math.random() * Math.PI * 2;
-                            let speed = 60 + Math.random() * 40; // 60-100 (v0.18.9 Nerf)
+                            let speed = 40 + Math.random() * 30; // 40-70 (v0.20.1 Nerf)
                             if (this.electrocutedTimer > 0) speed *= (1 - this.slowRatio);
                             this.vx = Math.cos(angle) * speed;
                             this.vy = Math.sin(angle) * speed;

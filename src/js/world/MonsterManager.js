@@ -14,6 +14,10 @@ export default class MonsterManager {
         this.maxMonsters = 10;
         this.totalLevelSum = 1;
 
+        // Bandwidth Optimization (v0.20.0)
+        this.lastSyncTime = 0;
+        this.syncInterval = 0.1; // 10Hz Sync (100ms)
+
         this.bossSpawned = false;
         this.shouldSpawnBoss = false;
 
@@ -120,19 +124,19 @@ export default class MonsterManager {
                             }
                         }
 
-                        // BOSS SPLITTING (Stage 1): King Slime -> 20 Split Slimes
+                        // BOSS SPLITTING (Stage 1): King Slime -> 3 Split Slimes (v0.21.0 Refined)
                         if (m.isBoss || m.name === '대왕 슬라임') {
                             localPlayer.questData.bossKilled = true;
-                            for (let i = 0; i < 20; i++) {
-                                const offX = (Math.random() - 0.5) * 300;
-                                const offY = (Math.random() - 0.5) * 300;
+                            for (let i = 0; i < 3; i++) {
+                                const offX = (Math.random() - 0.5) * 100;
+                                const offY = (Math.random() - 0.5) * 100;
                                 this._spawnMonster(m.x + offX, m.y + offY, '분열된 슬라임');
                             }
                         }
 
-                        // SPLIT SLIME SPLITTING (Stage 2): Split Slime -> 3 Normal Slimes
+                        // SPLIT SLIME SPLITTING (Stage 2): Split Slime -> 2 Normal Slimes (v0.21.0 Refined)
                         if (m.name === '분열된 슬라임') {
-                            for (let i = 0; i < 3; i++) {
+                            for (let i = 0; i < 2; i++) {
                                 const offX = (Math.random() - 0.5) * 60;
                                 const offY = (Math.random() - 0.5) * 60;
                                 this._spawnMonster(m.x + offX, m.y + offY, '슬라임');
@@ -162,7 +166,7 @@ export default class MonsterManager {
 
             if (target && minDist < 400 && minDist > 50) {
                 const angle = Math.atan2(target.y - m.y, target.x - m.x);
-                let speed = 120; // Reduced from 180 (v0.18.9 Nerf)
+                let speed = 100; // User-requested "1.0" base (v0.20.1 Nerf)
                 if (m.electrocutedTimer > 0) speed *= (1 - (m.slowRatio || 0.8));
                 m.vx = Math.cos(angle) * speed;
                 m.vy = Math.sin(angle) * speed;
@@ -182,7 +186,7 @@ export default class MonsterManager {
                     const shouldMove = Math.random() < 0.7;
                     if (shouldMove) {
                         const angle = Math.random() * Math.PI * 2;
-                        let speed = 60 + Math.random() * 40; // 60-100 (v0.18.9 Nerf)
+                        let speed = 40 + Math.random() * 30; // 40-70 (v0.20.1 Nerf)
                         m.vx = Math.cos(angle) * speed;
                         m.vy = Math.sin(angle) * speed;
                     } else {
@@ -195,21 +199,31 @@ export default class MonsterManager {
             m.x = Math.max(0, Math.min(6400, m.x + m.vx * dt));
             m.y = Math.max(0, Math.min(6400, m.y + m.vy * dt));
 
-            const last = this.lastSyncState.get(id);
-            const dist = last ? Math.sqrt((m.x - last.x) ** 2 + (m.y - last.y) ** 2) : 999;
-            const hpChanged = last ? (m.hp !== last.hp) : true;
+            // --- Bandwidth Throttling (v0.20.0) ---
+            // Only sync if 100ms has passed since last global monster sync
+            if (this.game.time - this.lastSyncTime >= this.syncInterval) {
+                const last = this.lastSyncState.get(id);
+                // Increase threshold to 8px to filter minor jitter
+                const dist = last ? Math.sqrt((m.x - last.x) ** 2 + (m.y - last.y) ** 2) : 999;
+                const hpChanged = last ? (m.hp !== last.hp) : true;
 
-            if (dist > 2 || hpChanged) {
-                this.net.sendMonsterUpdate(id, {
-                    x: Math.round(m.x),
-                    y: Math.round(m.y),
-                    hp: m.hp,
-                    maxHp: m.maxHp,
-                    type: m.name
-                });
-                this.lastSyncState.set(id, { x: m.x, y: m.y, hp: m.hp });
+                if (dist > 8 || hpChanged) {
+                    this.net.sendMonsterUpdate(id, {
+                        x: Math.round(m.x),
+                        y: Math.round(m.y),
+                        hp: m.hp,
+                        maxHp: m.maxHp,
+                        type: m.name
+                    });
+                    this.lastSyncState.set(id, { x: m.x, y: m.y, hp: m.hp });
+                }
             }
         });
+
+        // Update global sync timer
+        if (this.game.time - this.lastSyncTime >= this.syncInterval) {
+            this.lastSyncTime = this.game.time;
+        }
     }
 
     _spawnMonster(fixedX = null, fixedY = null, type = '슬라임') {
