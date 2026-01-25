@@ -365,9 +365,14 @@ export default class RemotePlayer extends Actor {
         }
 
         // 3. Draw Sprite / Tombstone
-        if (this.isDying) {
+        // v0.29.4: Fix tombstone remaining after respawn
+        // Priority: If HP > 0, force alive state rendering (even if isDying flag lingered)
+        if (this.isDying && this.hp <= 0) {
             this.drawTombstone(ctx, centerX, this.y);
         } else if (this.sprite) {
+            // Force reset dying state if we are rendering sprite but flag is stuck
+            if (this.isDying && this.hp > 0) this.isDying = false;
+
             let row = Math.max(0, Math.min(4, this.direction));
             if (this.state === 'attack') row = 4;
 
