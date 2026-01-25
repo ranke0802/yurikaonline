@@ -92,6 +92,7 @@ class Game {
         this.floatingTexts = []; // Floating Damage Text
         this.sparks = []; // Spark Particles
         this.projectiles = []; // Projectiles (Fireball, Missile)
+        this.time = 0; // Game Time for Throttling/Sync
 
         // Performance: Object Pools
         this.sparkPool = new ObjectPool(
