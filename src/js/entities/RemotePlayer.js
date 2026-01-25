@@ -280,13 +280,19 @@ export default class RemotePlayer extends Actor {
         if (chains.length > 0) {
             this.lightningEffect = { chains: chains, timer: 0.25 };
         } else {
-            // Facing visual
+            // v0.29.2: Force visual chain even if no monsters (Action Feedback)
             let tx = centerX; let ty = centerY;
-            if (this.direction === 0) ty -= 60;
-            else if (this.direction === 1) ty += 60;
-            else if (this.direction === 2) tx -= 60;
-            else if (this.direction === 3) tx += 60;
-            this.lightningEffect = { chains: [{ x1: centerX, y1: centerY, x2: tx, y2: ty }], timer: 0.2 };
+            const dist = 300; // Visual range
+            if (this.direction === 0) ty -= dist;
+            else if (this.direction === 1) ty += dist;
+            else if (this.direction === 2) tx -= dist;
+            else if (this.direction === 3) tx += dist;
+
+            // Add some jitter to endpoint
+            tx += (Math.random() - 0.5) * 50;
+            ty += (Math.random() - 0.5) * 50;
+
+            this.lightningEffect = { chains: [{ x1: centerX, y1: centerY, x2: tx, y2: ty }], timer: 0.3 };
         }
     }
 
@@ -470,8 +476,10 @@ export default class RemotePlayer extends Actor {
                         vx, vy, speed, damage: 0, ownerId: this.id, radius: 80
                     }));
                 } else if (skillType === 'missile') {
-                    // v0.29.0: Fire multiple missiles based on external data (count)
-                    const count = data.extraData || 1;
+                    // v0.29.2: Ensure at least 1 missile and validate count
+                    let count = Number(data.extraData);
+                    if (isNaN(count) || count < 1) count = 1;
+                    if (count > 5) count = 5; // Cap at 5
                     this._triggerRemoteMissileVisual(centerX, centerY, count);
                 }
             });
@@ -571,14 +579,16 @@ export default class RemotePlayer extends Actor {
     drawLightningEffect(ctx, centerX, centerY) {
         if (!this.lightningEffect || !this.lightningEffect.chains.length) return;
         ctx.save();
-        ctx.strokeStyle = '#00d2ff'; ctx.lineWidth = 1.5; ctx.shadowBlur = 8; ctx.shadowColor = '#00d2ff';
+        // v0.29.2: Much brighter and thicker for visibility
+        ctx.strokeStyle = '#00d2ff'; ctx.lineWidth = 3.5; ctx.shadowBlur = 15; ctx.shadowColor = '#00d2ff';
+
         this.lightningEffect.chains.forEach(c => {
             ctx.beginPath(); ctx.moveTo(c.x1, c.y1);
             const dx = c.x2 - c.x1, dy = c.y2 - c.y1, dist = Math.sqrt(dx * dx + dy * dy);
-            const segments = Math.max(3, Math.floor(dist / 30));
+            const segments = Math.max(3, Math.floor(dist / 20)); // More segments
             for (let i = 1; i < segments; i++) {
                 const tx = c.x1 + dx * (i / segments), ty = c.y1 + dy * (i / segments);
-                const off = (Math.random() - 0.5) * 10;
+                const off = (Math.random() - 0.5) * 15; // More jitter
                 ctx.lineTo(tx + off, ty + off);
             }
             ctx.lineTo(c.x2, c.y2); ctx.stroke();
@@ -594,13 +604,22 @@ export default class RemotePlayer extends Actor {
     drawShield(ctx, centerX, centerY) {
         ctx.save();
         const time = Date.now() / 200;
-        ctx.strokeStyle = `rgba(72, 219, 251, ${0.4 + Math.sin(time) * 0.2})`;
-        ctx.fillStyle = `rgba(72, 219, 251, ${0.1 + Math.sin(time) * 0.05})`;
-        ctx.lineWidth = 3;
+        // v0.29.2: Make it much more visible (higher opacity)
+        ctx.strokeStyle = `rgba(72, 219, 251, ${0.8 + Math.sin(time) * 0.2})`;
+        ctx.fillStyle = `rgba(72, 219, 251, ${0.4 + Math.sin(time) * 0.1})`;
+        ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.arc(centerX, centerY, 40, 0, Math.PI * 2);
+        ctx.arc(centerX, centerY, 45, 0, Math.PI * 2); // Slightly larger
         ctx.fill();
         ctx.stroke();
+
+        // Inner pulse
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 35 + Math.sin(time * 2) * 2, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255, 255, 255, 0.5)`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
         ctx.restore();
     }
 

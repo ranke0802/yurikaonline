@@ -11,7 +11,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=0.29.1')
+                navigator.serviceWorker.register('sw.js?v=0.29.2')
                     .then(reg => console.log('SW registered:', reg.scope))
                     .catch(err => console.log('SW failed:', err));
             });
@@ -32,11 +32,11 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.29.1</title>
+    <title>Yurika Online v0.29.2</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
-        window.GAME_VERSION = '0.29.1';
+        window.GAME_VERSION = '0.29.2';
 
         async function initCacheBusting() {
             try {
@@ -53,7 +53,7 @@
         }
         initCacheBusting();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.29.1">
+    <link rel="stylesheet" href="src/css/style.css?v=0.29.2">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -467,7 +467,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v0.29.1
+        📦 v0.29.2
     </div>
 
 
