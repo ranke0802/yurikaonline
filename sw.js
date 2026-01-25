@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yurika-online-v0.29.15';
+const CACHE_NAME = 'yurika-online-v0.29.16';
 
 const ASSETS_TO_CACHE = [
     './',
@@ -12,6 +12,7 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
     );
+    // v0.29.16: Force immediate activation
     self.skipWaiting();
 });
 
@@ -25,52 +26,34 @@ self.addEventListener('activate', (event) => {
             );
         })
     );
+    // v0.29.16: Take control of all clients immediately
     self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
+    // Skip external requests
     if (url.hostname.includes('googleapis.com') || url.hostname.includes('firebase')) return;
 
+    // version.txt - Always network only
     if (url.pathname.endsWith('version.txt')) {
         event.respondWith(fetch(event.request).catch(() => new Response('error')));
         return;
     }
 
-    // index.html -> Network First
-    if (url.pathname.endsWith('index.html') || url.pathname === '/') {
-        event.respondWith(
-            fetch(event.request)
-                .then(response => {
+    // v0.29.16: ALL local files -> Network First for immediate updates
+    // Cache is only used as fallback when offline
+    event.respondWith(
+        fetch(event.request)
+            .then(response => {
+                // Cache successful responses
+                if (response.status === 200) {
                     const cloned = response.clone();
                     caches.open(CACHE_NAME).then(cache => cache.put(event.request, cloned));
-                    return response;
-                })
-                .catch(() => caches.match(event.request))
-        );
-        return;
-    }
-
-    // JS Files -> Stale-While-Revalidate (v0.28.5 Optimization)
-    // This stops the constant 304 requests by serving from cache immediately
-    if (url.pathname.includes('/src/js/')) {
-        event.respondWith(
-            caches.open(CACHE_NAME).then((cache) => {
-                return cache.match(event.request).then((cachedResponse) => {
-                    const fetchedResponse = fetch(event.request).then((networkResponse) => {
-                        cache.put(event.request, networkResponse.clone());
-                        return networkResponse;
-                    }).catch(() => { });
-
-                    return cachedResponse || fetchedResponse;
-                });
+                }
+                return response;
             })
-        );
-        return;
-    }
-
-    event.respondWith(
-        caches.match(event.request).then((response) => response || fetch(event.request))
+            .catch(() => caches.match(event.request))
     );
 });
