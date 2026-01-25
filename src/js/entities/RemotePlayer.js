@@ -372,8 +372,13 @@ export default class RemotePlayer extends Actor {
 
     triggerAttack(data) {
         if (this.lastAttackTime && data.ts <= this.lastAttackTime) return;
+
+        // v0.28.6: Validate direction to prevent sprite disappearing
+        if (typeof data.dir === 'number' && data.dir >= 0 && data.dir <= 3) {
+            this.direction = data.dir;
+        }
+
         this.lastAttackTime = data.ts;
-        this.direction = data.dir;
         this.isAttacking = true;
         this.state = 'attack';
         this.animTimer = 0;

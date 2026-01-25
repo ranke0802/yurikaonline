@@ -149,7 +149,8 @@ class Game {
 
         // Match yurikaonline-master logic: 900px threshold, 0.7/1.0 zoom
         const isMobile = window.innerWidth <= 900;
-        this.zoom = isMobile ? 0.7 : 1.0;
+        // v0.28.6: Adjust PC zoom to 0.8 for wider view (User Feedback)
+        this.zoom = isMobile ? 0.7 : 0.8;
 
         const ratio = window.devicePixelRatio || 1;
         this.dpr = ratio; // Store for render loop
