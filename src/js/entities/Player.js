@@ -577,6 +577,9 @@ export default class Player extends Actor {
             window.game.ui.logSystemMessage('부활했습니다.');
         }
 
+        // v0.29.6: Force Sync HP to ensure remote clients remove tombstone
+        if (this.net) this.net.sendPlayerHp(this.hp, this.maxHp);
+
         this.saveState();
     }
 
