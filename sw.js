@@ -1,33 +1,44 @@
-const CACHE_NAME = 'yurika-online-v0.28.3';
+const CACHE_NAME = 'yurika-online-v0.28.5';
 
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './manifest.json',
-    // version.txt is EXCLUDED to force network check always
     './src/css/style.css',
-    './src/js/main.js',
-    // ... (rest of assets)
+    './src/js/main.js'
 ];
 
-// ... (install/activate events remain same, but update CACHE_NAME)
+self.addEventListener('install', (event) => {
+    event.waitUntil(
+        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
+    );
+    self.skipWaiting();
+});
 
-// Fetch Event: Strategies
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((keyList) => {
+            return Promise.all(
+                keyList.map((key) => {
+                    if (key !== CACHE_NAME) return caches.delete(key);
+                })
+            );
+        })
+    );
+    self.clients.claim();
+});
+
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // 1. Firebase & Google APIs -> Network Only
-    if (url.hostname.includes('googleapis.com') || url.hostname.includes('firebase')) {
-        return;
-    }
+    if (url.hostname.includes('googleapis.com') || url.hostname.includes('firebase')) return;
 
-    // 2. version.txt (Cache Buster) -> Network Only (Crucial!)
     if (url.pathname.endsWith('version.txt')) {
         event.respondWith(fetch(event.request).catch(() => new Response('error')));
         return;
     }
 
-    // 3. index.html (Vital Root) -> Network First with immediate cache update
+    // index.html -> Network First
     if (url.pathname.endsWith('index.html') || url.pathname === '/') {
         event.respondWith(
             fetch(event.request)
@@ -41,20 +52,25 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 4. JS Files -> Network First
+    // JS Files -> Stale-While-Revalidate (v0.28.5 Optimization)
+    // This stops the constant 304 requests by serving from cache immediately
     if (url.pathname.includes('/src/js/')) {
         event.respondWith(
-            fetch(event.request)
-                .then(response => response)
-                .catch(() => caches.match(event.request))
+            caches.open(CACHE_NAME).then((cache) => {
+                return cache.match(event.request).then((cachedResponse) => {
+                    const fetchedResponse = fetch(event.request).then((networkResponse) => {
+                        cache.put(event.request, networkResponse.clone());
+                        return networkResponse;
+                    }).catch(() => { });
+
+                    return cachedResponse || fetchedResponse;
+                });
+            })
         );
         return;
     }
 
-    // 5. Other Assets (Images, CSS) -> Cache First
     event.respondWith(
-        caches.match(event.request).then((response) => {
-            return response || fetch(event.request);
-        })
+        caches.match(event.request).then((response) => response || fetch(event.request))
     );
 });

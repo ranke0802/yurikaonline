@@ -32,6 +32,11 @@ export default class RemotePlayer extends Actor {
         this.isDying = false;
 
         this._loadSpriteSheet(resourceManager);
+
+        // v0.28.5: Cache Projectile import to stop repeated requests on attack
+        if (!RemotePlayer.projectilePromise) {
+            RemotePlayer.projectilePromise = import('./Projectile.js');
+        }
     }
 
     onHpUpdate(data) {
@@ -380,7 +385,7 @@ export default class RemotePlayer extends Actor {
         if (skillType === 'fireball' || skillType === 'missile') {
             const centerX = data.x + this.width / 2;
             const centerY = data.y + this.height / 2;
-            import('./Projectile.js').then(({ Projectile }) => {
+            RemotePlayer.projectilePromise.then(({ Projectile }) => {
                 if (!window.game) return;
                 if (skillType === 'fireball') {
                     let vx = 0, vy = 0, speed = 400;
@@ -410,7 +415,7 @@ export default class RemotePlayer extends Actor {
     }
 
     _triggerRemoteMissileVisual(centerX, centerY) {
-        import('./Projectile.js').then(({ Projectile }) => {
+        RemotePlayer.projectilePromise.then(({ Projectile }) => {
             if (!window.game) return;
             const angles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
             const baseAngle = angles[this.direction] + Math.PI;
