@@ -99,6 +99,9 @@ export default class Player extends Actor {
         this.joystick = { x: 0, y: 0, active: false };
         this.moveTarget = null; // Target position for Click-to-Move
 
+        this.chatMessage = null;
+        this.chatTimer = 0;
+
         this.updateDerivedStats();
     }
 
@@ -221,6 +224,11 @@ export default class Player extends Actor {
             this.electrocutedTimer -= dt;
         } else {
             this.slowRatio = 0;
+        }
+
+        if (this.chatTimer > 0) {
+            this.chatTimer -= dt;
+            if (this.chatTimer <= 0) this.chatMessage = null;
         }
     }
 
@@ -1098,6 +1106,51 @@ export default class Player extends Actor {
             ctx.fillText(bubbleText, centerX, bubbleY + 19);
             ctx.restore();
         }
+
+        // 8. Chat Speech Bubble (v0.26.0)
+        if (this.chatMessage) {
+            this.drawSpeechBubble(ctx, centerX, y - 55);
+        }
+    }
+
+    showSpeechBubble(text) {
+        this.chatMessage = text;
+        this.chatTimer = 5.0; // Show for 5 seconds
+    }
+
+    drawSpeechBubble(ctx, x, y) {
+        ctx.save();
+        ctx.font = '13px "Outfit", sans-serif';
+        const padding = 10;
+        const metrics = ctx.measureText(this.chatMessage);
+        const w = Math.min(200, metrics.width + padding * 2);
+        const h = 28;
+        const bx = x - w / 2;
+        const by = y - h - 10;
+
+        // Bubble background
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.strokeStyle = '#2d3436';
+        ctx.lineWidth = 1.5;
+
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(bx, by, w, h, 8);
+        else ctx.rect(bx, by, w, h);
+        ctx.fill();
+        ctx.stroke();
+
+        // Tail
+        ctx.beginPath();
+        ctx.moveTo(x - 5, by + h);
+        ctx.lineTo(x + 5, by + h);
+        ctx.lineTo(x, by + h + 5);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#2d3436';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.chatMessage, x, by + 19, 190);
+        ctx.restore();
     }
 
     drawHUD(ctx, centerX, y) {

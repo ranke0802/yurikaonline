@@ -7,6 +7,14 @@ export default class InputManager extends EventEmitter {
         this.handlers = [];
         this.actions = new Set(); // 현재 활성화된 액션들 (예: 'MOVE_UP', 'ATTACK')
         this.enabled = true;
+        this._lockedActions = new Set();
+    }
+
+    setEnabled(enabled) {
+        this.enabled = enabled;
+        if (!enabled) {
+            this.actions.clear();
+        }
     }
 
     addHandler(handler) {

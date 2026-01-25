@@ -98,7 +98,18 @@ export default class NetworkManager extends EventEmitter {
         const myRef = this.dbRef.child(`users/${this.playerId}`);
         // Commented out to allow position persistence on refresh.
         // Stale users are cleaned up by Host after 5 minutes of inactivity.
-        // myRef.onDisconnect().remove();
+        // chat Sync
+        this.dbRef.child('chat').on('child_added', (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.ts > Date.now() - 30000) { // Only recent chats
+                this.emit('chatReceived', data);
+            }
+            // Host cleans up old chats
+            if (this.isHost) {
+                const now = Date.now();
+                if (now - data.ts > 60000) snapshot.ref.remove();
+            }
+        });
 
         this.connected = true;
         this.emit('connected');
@@ -368,6 +379,16 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.isHost) return;
         // data: { exp: number, gold: number, items: [] }
         this.dbRef.child(`rewards/${playerId}`).push(data).catch(e => { });
+    }
+
+    sendChat(text, senderName) {
+        if (!this.connected || !this.playerId) return;
+        this.dbRef.child('chat').push({
+            uid: this.playerId,
+            name: senderName || "Unknown",
+            text: text,
+            ts: Date.now()
+        });
     }
 
     _onPlayerAdded(snapshot) {

@@ -1079,18 +1079,22 @@ html {
 
 .chat-input-area {
     display: flex;
-    padding: 8px;
-    gap: 5px;
-    border-top: 1px solid #eee;
+    gap: 8px;
+    padding: 10px;
+    background: #fdfaf6;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .chat-input-area input {
     flex: 1;
-    border: none;
-    background: #f7f7f7;
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: 11px;
+    min-width: 0;
+    /* Important for flex items */
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    background: #fff;
 }
 
 .send-btn {

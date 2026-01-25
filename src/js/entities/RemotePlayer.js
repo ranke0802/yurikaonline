@@ -22,6 +22,9 @@ export default class RemotePlayer extends Actor {
         this.width = 48;
         this.height = 48;
 
+        this.chatMessage = null;
+        this.chatTimer = 0;
+
         this._loadSpriteSheet(resourceManager);
     }
 
@@ -150,6 +153,11 @@ export default class RemotePlayer extends Actor {
 
         this._updateAnimation(dt);
         super.update(dt);
+
+        if (this.chatTimer > 0) {
+            this.chatTimer -= dt;
+            if (this.chatTimer <= 0) this.chatMessage = null;
+        }
     }
 
     _updateLightningVisual() {
@@ -359,6 +367,49 @@ export default class RemotePlayer extends Actor {
 
         ctx.fillStyle = '#fff';
         ctx.fillText(this.name, centerX, nameY);
+        ctx.restore();
+
+        // Chat Speech Bubble (v0.26.0)
+        if (this.chatMessage) {
+            this.drawSpeechBubble(ctx, centerX, y - 55);
+        }
+    }
+
+    showSpeechBubble(text) {
+        this.chatMessage = text;
+        this.chatTimer = 5.0;
+    }
+
+    drawSpeechBubble(ctx, x, y) {
+        ctx.save();
+        ctx.font = '13px "Outfit", sans-serif';
+        const padding = 10;
+        const metrics = ctx.measureText(this.chatMessage);
+        const w = Math.min(200, metrics.width + padding * 2);
+        const h = 28;
+        const bx = x - w / 2;
+        const by = y - h - 10;
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.strokeStyle = '#2d3436';
+        ctx.lineWidth = 1.5;
+
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(bx, by, w, h, 8);
+        else ctx.rect(bx, by, w, h);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(x - 5, by + h);
+        ctx.lineTo(x + 5, by + h);
+        ctx.lineTo(x, by + h + 5);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#2d3436';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.chatMessage, x, by + 19, 190);
         ctx.restore();
     }
 

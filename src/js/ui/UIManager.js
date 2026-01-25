@@ -9,6 +9,7 @@ export class UIManager {
         this.setupEventListeners();
         this.setupFullscreenListeners();
         this.setupDevModeListeners();
+        this.inputManager = game.input; // Local reference
     }
 
 
@@ -241,6 +242,28 @@ export class UIManager {
                     nameSaveBtn.click();
                 }
             });
+        }
+
+        // Chat Input Focus/Blur (to disable game input)
+        const chatInput = document.querySelector('.chat-input-area input');
+        if (chatInput) {
+            chatInput.addEventListener('focus', () => {
+                if (this.game.inputManager) this.game.inputManager.setEnabled(false);
+            });
+            chatInput.addEventListener('blur', () => {
+                if (this.game.inputManager) this.game.inputManager.setEnabled(true);
+            });
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    this.sendMessage();
+                    chatInput.blur(); // Focus out to resume game input
+                }
+            });
+        }
+
+        // Listen for Network Chats (v0.26.0)
+        if (this.game.net) {
+            this.game.net.on('chatReceived', (data) => this._onChatReceived(data));
         }
     }
 
@@ -870,19 +893,35 @@ export class UIManager {
 
     sendMessage() {
         const input = document.querySelector('.chat-input-area input');
+        const text = input ? input.value.trim() : "";
+        if (text && this.game.net && this.game.localPlayer) {
+            // Send to Network
+            this.game.net.sendChat(text, this.game.localPlayer.name);
+            input.value = '';
+        }
+    }
+
+    _onChatReceived(data) {
         const msgArea = document.querySelector('.chat-messages');
-        if (input && input.value && msgArea) {
+        if (msgArea) {
             const div = document.createElement('div');
-            div.textContent = `나: ${input.value}`;
+            const isMe = data.uid === this.game.net.playerId;
+            div.className = isMe ? 'chat-msg-me' : 'chat-msg-other';
+            div.innerHTML = `<span class="chat-sender">${data.name}:</span> <span class="chat-text">${data.text}</span>`;
             msgArea.appendChild(div);
 
-            // Limit history
             while (msgArea.children.length > 50) {
                 msgArea.removeChild(msgArea.firstChild);
             }
-
             msgArea.scrollTop = msgArea.scrollHeight;
-            input.value = '';
+        }
+
+        // Trigger Speech Bubble on Character
+        if (data.uid === this.game.net.playerId) {
+            if (this.game.localPlayer) this.game.localPlayer.showSpeechBubble(data.text);
+        } else {
+            const rp = this.game.remotePlayers.get(data.uid);
+            if (rp) rp.showSpeechBubble(data.text);
         }
     }
 
