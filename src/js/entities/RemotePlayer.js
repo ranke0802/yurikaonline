@@ -348,7 +348,7 @@ export default class RemotePlayer extends Actor {
         ctx.fillRect(centerX - barWidth / 2, barY, barWidth * hpPerc, barHeight);
 
         // Name Tag (Styled with outline to match screenshot)
-        const nameY = y - 10;
+        const nameY = y - 50;
         ctx.save();
         ctx.font = 'bold 13px "Outfit", sans-serif';
         ctx.textAlign = 'center';
