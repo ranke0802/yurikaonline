@@ -400,10 +400,20 @@ export default class NetworkManager extends EventEmitter {
         const uid = snapshot.key;
         const val = snapshot.val();
 
-        // Host Logic: Timestamp
+        // v0.28.2: Enhanced hybrid data parsing
+        let posData = null;
+        if (Array.isArray(val)) {
+            posData = val;
+        } else if (val && typeof val === 'object') {
+            if (val.p && Array.isArray(val.p)) {
+                posData = val.p;
+            } else if (val[0] !== undefined) {
+                posData = [val[0], val[1], val[2], val[3], val[4], val[5]];
+            }
+        }
+
         let ts = Date.now();
-        const posData = Array.isArray(val) ? val : (val.p || null);
-        if (posData && Array.isArray(posData)) {
+        if (posData) {
             ts = posData[4] || 0;
         }
         this.userLastSeen.set(uid, ts);
@@ -430,12 +440,23 @@ export default class NetworkManager extends EventEmitter {
         const uid = snapshot.key;
         const val = snapshot.val();
 
-        // Host Logic: Update Timestamp
-        const posData = Array.isArray(val) ? val : (val.p || null);
-        if (posData && Array.isArray(posData)) {
+        // v0.28.2: Enhanced hybrid data parsing (Array <-> Object transition)
+        let posData = null;
+        if (Array.isArray(val)) {
+            posData = val;
+        } else if (val && typeof val === 'object') {
+            if (val.p && Array.isArray(val.p)) {
+                posData = val.p;
+            } else if (val[0] !== undefined) {
+                // Legacy structure being treated as object by Firebase due to added sub-nodes ('a' or 'h')
+                posData = [val[0], val[1], val[2], val[3], val[4], val[5]];
+            }
+        }
+
+        if (posData) {
             const ts = posData[4] || Date.now();
             this.userLastSeen.set(uid, ts);
-            this._checkHostStatus(); // User became active, re-check
+            this._checkHostStatus();
         }
 
         if (uid === this.playerId) return;

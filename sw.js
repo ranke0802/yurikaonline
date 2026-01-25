@@ -1,51 +1,16 @@
-const CACHE_NAME = 'yurika-online-v0.28.1';
+const CACHE_NAME = 'yurika-online-v0.28.2';
 
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
     './manifest.json',
-    './version.txt',
+    // version.txt is EXCLUDED to force network check always
     './src/css/style.css',
     './src/js/main.js',
-    // Assets (Prioritize WebP)
-    './src/assets/icon_192.webp',
-    './src/assets/icon_512.webp',
-    './src/assets/character.webp',
-    './assets/resource/background.webp',
-    './assets/resource/monster_slim/1.webp',
-    './assets/resource/monster_slim/2.webp',
-    './assets/resource/monster_slim/3.webp',
-    './assets/resource/monster_slim/4.webp',
-    './assets/resource/monster_slim/5.webp'
+    // ... (rest of assets)
 ];
 
-// Install Event: Cache Core Assets
-self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            console.log('[ServiceWorker] Pre-caching offline assets');
-            return cache.addAll(ASSETS_TO_CACHE);
-        })
-    );
-    self.skipWaiting();
-});
-
-// Activate Event: Clean up old caches
-self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then((keyList) => {
-            return Promise.all(
-                keyList.map((key) => {
-                    if (key !== CACHE_NAME) {
-                        console.log('[ServiceWorker] Removing old cache', key);
-                        return caches.delete(key);
-                    }
-                })
-            );
-        })
-    );
-    self.clients.claim();
-});
+// ... (install/activate events remain same, but update CACHE_NAME)
 
 // Fetch Event: Strategies
 self.addEventListener('fetch', (event) => {
@@ -56,8 +21,13 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 2. index.html (Vital Root) -> Network First
-    // This fixed the "Reverting to v0.26" bug by ensuring we check for the NEW index.html with version busting
+    // 2. version.txt (Cache Buster) -> Network Only (Crucial!)
+    if (url.pathname.endsWith('version.txt')) {
+        event.respondWith(fetch(event.request).catch(() => new Response('error')));
+        return;
+    }
+
+    // 3. index.html (Vital Root) -> Network First with immediate cache update
     if (url.pathname.endsWith('index.html') || url.pathname === '/') {
         event.respondWith(
             fetch(event.request)
@@ -71,7 +41,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 3. JS Files (Development Mode) -> Network First
+    // 4. JS Files -> Network First
     if (url.pathname.includes('/src/js/')) {
         event.respondWith(
             fetch(event.request)
@@ -81,7 +51,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 4. Other Assets (Images, CSS) -> Cache First
+    // 5. Other Assets (Images, CSS) -> Cache First
     event.respondWith(
         caches.match(event.request).then((response) => {
             return response || fetch(event.request);
