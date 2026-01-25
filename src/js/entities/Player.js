@@ -387,12 +387,15 @@ export default class Player extends Actor {
             // Calculate facing angle (in radians) for skill aiming
             this.facingAngle = Math.atan2(vy, vx);
 
-            // Map to 8 directions (0-7): 0=UP, 1=UP-RIGHT, 2=RIGHT, 3=DOWN-RIGHT, 4=DOWN, 5=DOWN-LEFT, 6=LEFT, 7=UP-LEFT
-            const angle = (this.facingAngle + Math.PI) / (Math.PI * 2) * 8; // Normalize to 0-8
-            this.direction8 = Math.round(angle) % 8;
+            // v0.29.15: Correct 8-direction and 4-sprite mapping
+            // atan2 returns: right=0, down=π/2, left=±π, up=-π/2
+            // Convert to 0-7: 0=right, 1=down-right, 2=down, 3=down-left, 4=left, 5=up-left, 6=up, 7=up-right
+            let angleNorm = (this.facingAngle + Math.PI * 2) % (Math.PI * 2); // Normalize to 0 ~ 2π
+            this.direction8 = Math.round(angleNorm / (Math.PI / 4)) % 8;
 
-            // Map 8 directions to 4 sprite rows (0:Back, 1:Front, 2:Left, 3:Right)
-            const dir8ToSprite = [0, 3, 3, 3, 1, 2, 2, 2]; // 8dir -> 4dir sprite
+            // Map 8 directions to 4 sprite rows (0:Back/Up, 1:Front/Down, 2:Left, 3:Right)
+            // dir8: 0=right, 1=down-right, 2=down, 3=down-left, 4=left, 5=up-left, 6=up, 7=up-right
+            const dir8ToSprite = [3, 1, 1, 1, 2, 0, 0, 0]; // Favor vertical for diagonals
             this.direction = dir8ToSprite[this.direction8];
         } else {
             this.vx = 0;
