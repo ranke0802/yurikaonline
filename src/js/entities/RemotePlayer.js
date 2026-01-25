@@ -28,7 +28,6 @@ export default class RemotePlayer extends Actor {
         // v0.28.0: Combat States
         this.hp = 100;
         this.maxHp = 100;
-        this.floatingTexts = [];
         this.deathTimer = 0; // For 3s death state visual
         this.isDying = false;
 
@@ -46,8 +45,15 @@ export default class RemotePlayer extends Actor {
             this.state = 'hit';
             setTimeout(() => { if (this.state === 'hit') this.state = 'idle'; }, 200);
 
-            // Show floating damage
-            this.addFloatingText(Math.round(oldHp - this.hp), '#ff4d4d');
+            // v0.28.4: Use global damage text for consistency
+            if (window.game) {
+                window.game.addDamageText(
+                    this.x + this.width / 2,
+                    this.y - 40,
+                    Math.round(oldHp - this.hp),
+                    '#ff4d4d'
+                );
+            }
         }
 
         // Handle Death
@@ -56,17 +62,6 @@ export default class RemotePlayer extends Actor {
         } else if (this.hp > 0 && this.isDying) {
             this.respawn();
         }
-    }
-
-    addFloatingText(text, color) {
-        this.floatingTexts.push({
-            text: text,
-            color: color,
-            x: this.x + this.width / 2 + (Math.random() - 0.5) * 20,
-            y: this.y,
-            life: 1.0,
-            vy: -40 // Floating up
-        });
     }
 
     die() {
@@ -231,20 +226,6 @@ export default class RemotePlayer extends Actor {
             this.actionTimer -= dt;
             if (this.actionTimer <= 0) this.actionFdbk = null;
         }
-
-        // v0.28.0: Floating Text update
-        for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
-            const ft = this.floatingTexts[i];
-            ft.y += ft.vy * dt;
-            ft.life -= dt * 0.8;
-            if (ft.life <= 0) this.floatingTexts.splice(i, 1);
-        }
-
-        // Death State Handling
-        if (this.isDying) {
-            this.deathTimer = Math.max(0, this.deathTimer - dt);
-            this.state = 'die';
-        }
     }
 
     _updateLightningVisual() {
@@ -320,160 +301,95 @@ export default class RemotePlayer extends Actor {
             return;
         }
 
-        const x = this.x;
-        const y = this.y;
-        const centerX = x + this.width / 2;
-        const centerY = y + this.height / 2;
+        const centerX = this.x + this.width / 2;
+        const centerY = this.y + this.height / 2;
 
         // 1. Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.15)'; // Synced shadow
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
         ctx.beginPath();
-        ctx.ellipse(centerX, y + this.height - 4, this.width / 2 * 0.7, 5, 0, 0, Math.PI * 2);
+        ctx.ellipse(centerX, this.y + this.height - 4, this.width / 2 * 0.7, 5, 0, 0, Math.PI * 2);
         ctx.fill();
+        ctx.restore();
 
-        // 2. Magic Circle (Drawn before character if attacking)
+        // 2. Magic Circle
         if (this.state === 'attack' || this.isAttacking) {
-            this.drawMagicCircle(ctx, centerX, y + this.height + 5);
+            this.drawMagicCircle(ctx, centerX, this.y + this.height + 5);
         }
 
-        // 3. Draw Sprite
-        if (this.state === 'die' || this.isDying) {
-            // v0.28.0: Tombstone visual
-            ctx.save();
-            ctx.fillStyle = '#b2bec3';
-            ctx.strokeStyle = '#2d3436';
-            ctx.lineWidth = 2;
-
-            // Draw gravestone shape
-            const tw = 40, th = 50;
-            const tx = centerX - tw / 2, ty = y + this.height - th;
-            ctx.beginPath();
-            ctx.moveTo(tx, ty + th);
-            ctx.lineTo(tx, ty + 15);
-            ctx.quadraticCurveTo(tx, ty, tx + tw / 2, ty);
-            ctx.quadraticCurveTo(tx + tw, ty, tx + tw, ty + 15);
-            ctx.lineTo(tx + tw, ty + th);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-
-            // Cross on tombstone
-            ctx.strokeStyle = '#636e72';
-            ctx.beginPath();
-            ctx.moveTo(centerX, ty + 10); ctx.lineTo(centerX, ty + 30);
-            ctx.moveTo(centerX - 10, ty + 18); ctx.lineTo(centerX + 10, ty + 18);
-            ctx.stroke();
-            ctx.restore();
+        // 3. Draw Sprite / Tombstone
+        if (this.isDying) {
+            this.drawTombstone(ctx, centerX, this.y);
         } else if (this.sprite) {
             let row = this.direction;
             if (this.state === 'attack') row = 4;
             let col = this.animFrame;
-
-            // Legacy visual size: 120x120
             const drawW = 120;
             const drawH = 120;
-
             const drawX = centerX - drawW / 2;
-            const drawY = y + this.height - drawH + 10;
-
+            const drawY = this.y + this.height - drawH + 10;
             this.sprite.draw(ctx, row, col, drawX, drawY, drawW, drawH);
-        } else {
-            // Fallback (Red Circle)
-            const time = Date.now() / 200;
-            const pulse = Math.sin(time + 100) * 2;
-            ctx.save();
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = '#fab1a0';
-            ctx.fillStyle = '#e17055';
-            ctx.beginPath();
-            ctx.arc(centerX, centerY - 5 + pulse, 14, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
         }
 
-        // 3. HUD (HP Bar & Name)
-        this.drawHUD(ctx, centerX, y);
+        // 4. HUD
+        this.drawHUD(ctx, centerX, this.y);
 
-        // 4. Floating Damage (v0.28.0)
-        this.floatingTexts.forEach(ft => {
-            ctx.save();
-            ctx.font = 'bold 20px "Outfit", sans-serif';
-            ctx.fillStyle = ft.color;
-            ctx.globalAlpha = ft.life;
-            ctx.textAlign = 'center';
-            ctx.strokeText(ft.text, ft.x, ft.y);
-            ctx.fillText(ft.text, ft.x, ft.y);
-            ctx.restore();
-        });
+        // 5. Direction Arrow
+        this.drawDirectionArrow(ctx, centerX, this.y + this.height);
 
-        // 4. Direction Arrow (At feet)
-        this.drawDirectionArrow(ctx, centerX, y + this.height);
-
-        // 5. Lightning Effect (Remote)
-        if (this.lightningEffect && Array.isArray(this.lightningEffect.chains) && this.lightningEffect.chains.length > 0) {
-            ctx.save();
-            ctx.strokeStyle = '#00d2ff'; // Synced color
-            ctx.lineWidth = 1.5;
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = '#00d2ff';
-
-            this.lightningEffect.chains.forEach(c => {
-                if (!c || typeof c.x1 !== 'number') return;
-                ctx.beginPath();
-                ctx.moveTo(c.x1, c.y1);
-                const dx = c.x2 - c.x1;
-                const dy = c.y2 - c.y1;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const segments = Math.max(3, Math.floor(dist / 30));
-                for (let i = 1; i < segments; i++) {
-                    const tx = c.x1 + dx * (i / segments);
-                    const ty = c.y1 + dy * (i / segments);
-                    const off = (Math.random() - 0.5) * 10;
-                    ctx.lineTo(tx + off, ty + off);
-                }
-                ctx.lineTo(c.x2, c.y2);
-                ctx.stroke();
-            });
-            ctx.restore();
-        }
+        // 6. Lightning Effect
+        this.drawLightningEffect(ctx, centerX, centerY);
     }
-    triggerAttack(data) {
-        // data: { ts, x, y, dir, skillType }
-        if (this.lastAttackTime && data.ts <= this.lastAttackTime) return;
-        if (Date.now() - data.ts > 3000) return;
 
+    drawTombstone(ctx, centerX, y) {
+        ctx.save();
+        ctx.fillStyle = '#b2bec3';
+        ctx.strokeStyle = '#2d3436';
+        ctx.lineWidth = 2;
+        const tw = 40, th = 50;
+        const tx = centerX - tw / 2, ty = y + this.height - th;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty + th);
+        ctx.lineTo(tx, ty + 15);
+        ctx.quadraticCurveTo(tx, ty, tx + tw / 2, ty);
+        ctx.quadraticCurveTo(tx + tw, ty, tx + tw, ty + 15);
+        ctx.lineTo(tx + tw, ty + th);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.strokeStyle = '#636e72';
+        ctx.beginPath();
+        ctx.moveTo(centerX, ty + 10); ctx.lineTo(centerX, ty + 30);
+        ctx.moveTo(centerX - 10, ty + 18); ctx.lineTo(centerX + 10, ty + 18);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    triggerAttack(data) {
+        if (this.lastAttackTime && data.ts <= this.lastAttackTime) return;
         this.lastAttackTime = data.ts;
         this.direction = data.dir;
         this.isAttacking = true;
         this.state = 'attack';
         this.animTimer = 0;
-        this.animFrame = 0;
 
         const skillType = data.skillType || 'normal';
-
-        // v0.28.3: Visual consistency for skills & Speech Bubbles
         const skillNames = { 'missile': '매직 미사일 !!', 'fireball': '파이어볼 !!', 'laser': '체인 라이트닝 !!' };
-        if (skillNames[skillType]) {
-            this.triggerAction(skillNames[skillType]);
-        }
+        if (skillNames[skillType]) this.triggerAction(skillNames[skillType]);
 
         if (skillType === 'fireball' || skillType === 'missile') {
             const centerX = data.x + this.width / 2;
             const centerY = data.y + this.height / 2;
-
-            // v0.28.3: Fix projectile creation (removed non-existent projectileManager)
             import('./Projectile.js').then(({ Projectile }) => {
                 if (!window.game) return;
-
                 if (skillType === 'fireball') {
                     let vx = 0, vy = 0, speed = 400;
                     if (this.direction === 0) vy = -speed;
                     else if (this.direction === 1) vy = speed;
                     else if (this.direction === 2) vx = -speed;
                     else if (this.direction === 3) vx = speed;
-
                     window.game.projectiles.push(new Projectile(centerX, centerY, null, 'fireball', {
-                        vx, vy, speed, damage: 0, ownerId: this.id
+                        vx, vy, speed, damage: 0, ownerId: this.id, radius: 80
                     }));
                 } else if (skillType === 'missile') {
                     this._triggerRemoteMissileVisual(centerX, centerY);
@@ -494,60 +410,40 @@ export default class RemotePlayer extends Actor {
     }
 
     _triggerRemoteMissileVisual(centerX, centerY) {
-        // v0.28.3: Visual-only burst similar to player's missile
         import('./Projectile.js').then(({ Projectile }) => {
             if (!window.game) return;
-            const baseAngles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
-            const baseAngle = baseAngles[this.direction] + Math.PI;
-
+            const angles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
+            const baseAngle = angles[this.direction] + Math.PI;
             for (let i = 0; i < 3; i++) {
                 const angle = baseAngle + (Math.random() - 0.5) * 1.5;
-                const burstSpeed = 300 + Math.random() * 200;
-                const vx = Math.cos(angle) * burstSpeed;
-                const vy = Math.sin(angle) * burstSpeed;
-
+                const speed = 300 + Math.random() * 200;
                 window.game.projectiles.push(new Projectile(centerX, centerY, null, 'missile', {
-                    vx, vy, speed: 600, damage: 0, ownerId: this.id
+                    vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                    speed: 600, damage: 0, ownerId: this.id
                 }));
             }
         });
     }
 
     drawHUD(ctx, centerX, y) {
-        const barWidth = 60;
-        const barHeight = 8;
-        const startY = y + this.height + 5;
-
-        // HP Bar
-        const barY = startY;
+        const barW = 60, barH = 8, barY = y + this.height + 5;
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(centerX - barWidth / 2, barY, barWidth, barHeight);
+        ctx.fillRect(centerX - barW / 2, barY, barW, barH);
+        const hpP = Math.min(1, Math.max(0, this.hp / this.maxHp));
+        ctx.fillStyle = hpP > 0.3 ? '#4ade80' : '#ef4444';
+        ctx.fillRect(centerX - barW / 2, barY, barW * hpP, barH);
 
-        const hpPerc = Math.min(1, Math.max(0, (this.hp || 100) / (this.maxHp || 100)));
-        ctx.fillStyle = hpPerc > 0.3 ? '#4ade80' : '#ef4444';
-        ctx.fillRect(centerX - barWidth / 2, barY, barWidth * hpPerc, barHeight);
-
-        // Name Tag (Styled with outline to match screenshot)
         const nameY = y - 50;
         ctx.save();
         ctx.font = 'bold 13px "Outfit", sans-serif';
         ctx.textAlign = 'center';
-
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
         ctx.strokeText(this.name, centerX, nameY);
-
-        ctx.fillStyle = '#fff';
-        ctx.fillText(this.name, centerX, nameY);
+        ctx.fillStyle = '#fff'; ctx.fillText(this.name, centerX, nameY);
         ctx.restore();
 
-        // Chat Speech Bubble (v0.26.0)
-        if (this.chatMessage) {
-            this.drawSpeechBubble(ctx, centerX, y - 55, this.chatMessage);
-        } else if (this.actionFdbk) {
-            // v0.28.3: Show skill names (e.g. "매직 미사일 !!")
-            this.drawSpeechBubble(ctx, centerX, y - 55, this.actionFdbk, '#833471');
-        }
+        if (this.chatMessage) this.drawSpeechBubble(ctx, centerX, y - 85, this.chatMessage);
+        else if (this.actionFdbk) this.drawSpeechBubble(ctx, centerX, y - 85, this.actionFdbk, '#833471');
     }
 
     showSpeechBubble(text) {
@@ -559,102 +455,65 @@ export default class RemotePlayer extends Actor {
         if (!text) return;
         ctx.save();
         ctx.font = 'bold 13px "Outfit", sans-serif';
-        const padding = 10;
-        const metrics = ctx.measureText(text);
-        const w = Math.min(200, metrics.width + padding * 2);
-        const h = 28;
-        const bx = x - w / 2;
-        const by = y - h - 10;
-
+        const padding = 10, metrics = ctx.measureText(text);
+        const w = Math.min(200, metrics.width + padding * 2), h = 28;
+        const bx = x - w / 2, by = y - h - 10;
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.strokeStyle = '#2d3436';
-        ctx.lineWidth = 1.5;
-
+        ctx.strokeStyle = '#2d3436'; ctx.lineWidth = 1.5;
         ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(bx, by, w, h, 8);
-        else ctx.rect(bx, by, w, h);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(x - 5, by + h);
-        ctx.lineTo(x + 5, by + h);
-        ctx.lineTo(x, by + h + 5);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = textColor;
-        ctx.textAlign = 'center';
-        ctx.fillText(text, x, by + 19, 190);
+        if (ctx.roundRect) ctx.roundRect(bx, by, w, h, 8); else ctx.rect(bx, by, w, h);
+        ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x - 5, by + h); ctx.lineTo(x + 5, by + h); ctx.lineTo(x, by + h + 5);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = textColor; ctx.textAlign = 'center'; ctx.fillText(text, x, by + 19, 190);
         ctx.restore();
     }
 
     drawDirectionArrow(ctx, sx, sy) {
         ctx.save();
-        const dist = 60;
         let vx = 0, vy = 0;
         switch (this.direction) {
-            case 0: vx = 0; vy = -1; break; // Back
-            case 1: vx = 0; vy = 1; break; // Front
-            case 2: vx = -1; vy = 0; break; // Left
-            case 3: vx = 1; vy = 0; break; // Right
+            case 0: vy = -1; break; case 1: vy = 1; break; case 2: vx = -1; break; case 3: vx = 1; break;
         }
-
         const angle = Math.atan2(vy, vx);
-        ctx.translate(sx + vx * 20, sy + vy * 5); // Positioned slightly below character
+        ctx.translate(sx + vx * 20, sy + vy * 5);
         ctx.rotate(angle);
-
         ctx.fillStyle = 'rgba(255, 68, 68, 0.7)';
-        ctx.beginPath();
-        ctx.moveTo(10, 0);
-        ctx.lineTo(-5, -6);
-        ctx.lineTo(-5, 6);
-        ctx.closePath();
-        ctx.fill();
+        ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-5, -6); ctx.lineTo(-5, 6); ctx.closePath(); ctx.fill();
+        ctx.restore();
+    }
+
+    drawLightningEffect(ctx, centerX, centerY) {
+        if (!this.lightningEffect || !this.lightningEffect.chains.length) return;
+        ctx.save();
+        ctx.strokeStyle = '#00d2ff'; ctx.lineWidth = 1.5; ctx.shadowBlur = 8; ctx.shadowColor = '#00d2ff';
+        this.lightningEffect.chains.forEach(c => {
+            ctx.beginPath(); ctx.moveTo(c.x1, c.y1);
+            const dx = c.x2 - c.x1, dy = c.y2 - c.y1, dist = Math.sqrt(dx * dx + dy * dy);
+            const segments = Math.max(3, Math.floor(dist / 30));
+            for (let i = 1; i < segments; i++) {
+                const tx = c.x1 + dx * (i / segments), ty = c.y1 + dy * (i / segments);
+                const off = (Math.random() - 0.5) * 10;
+                ctx.lineTo(tx + off, ty + off);
+            }
+            ctx.lineTo(c.x2, c.y2); ctx.stroke();
+        });
         ctx.restore();
     }
 
     drawMagicCircle(ctx, sx, sy) {
-        // Reusing logic from Player.js but with synced color
         ctx.save();
-        const time = Date.now() * 0.002;
-        const radiusInner = 60;
-        const radiusOuter = 75;
-        const timeSeed = Math.floor(Date.now() / 100);
-        const Y_SCALE = 0.45;
-
+        const rInner = 60, rOuter = 75, Y_SCALE = 0.45;
         ctx.translate(sx, sy);
-
-        const addLightningPath = (x1, y1, x2, y2, segments = 3, spread = 8) => {
-            ctx.moveTo(x1, y1);
-            for (let i = 1; i < segments; i++) {
-                const ratio = i / segments;
-                const px = x1 + (x2 - x1) * ratio;
-                const py = y1 + (y2 - y1) * ratio;
-                const seed = timeSeed + i + x1 + y1;
-                const offset = (Math.sin(seed * 999) * spread);
-                const angle = Math.atan2(y2 - y1, x2 - x1) + Math.PI / 2;
-                ctx.lineTo(px + Math.cos(angle) * offset, py + Math.sin(angle) * offset);
-            }
-            ctx.lineTo(x2, y2);
-        };
-
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#00d2ff';
+        ctx.shadowBlur = 10; ctx.shadowColor = '#00d2ff';
         ctx.strokeStyle = 'rgba(72, 219, 251, 0.6)';
-
-        const radiusRim = radiusOuter * 1.08;
-        const circleSegments = 12; // Simplified for remotes
-        [radiusOuter, radiusInner].forEach((r, idx) => {
+        [rOuter, rInner].forEach(r => {
             ctx.beginPath();
-            for (let i = 0; i < circleSegments; i++) {
-                const a1 = (i / circleSegments) * Math.PI * 2;
-                const a2 = ((i + 1) / circleSegments) * Math.PI * 2;
-                const x1 = Math.cos(a1) * r;
-                const y1 = Math.sin(a1) * r * Y_SCALE;
-                const x2 = Math.cos(a2) * r;
-                const y2 = Math.sin(a2) * r * Y_SCALE;
-                addLightningPath(x1, y1, x2, y2, 2, 4);
+            for (let i = 0; i < 12; i++) {
+                const a1 = (i / 12) * Math.PI * 2, a2 = ((i + 1) / 12) * Math.PI * 2;
+                const x1 = Math.cos(a1) * r, y1 = Math.sin(a1) * r * Y_SCALE;
+                const x2 = Math.cos(a2) * r, y2 = Math.sin(a2) * r * Y_SCALE;
+                ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
             }
             ctx.stroke();
         });
