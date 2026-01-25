@@ -442,15 +442,21 @@ export default class NetworkManager extends EventEmitter {
 
         // Position Update
         if (posData && Array.isArray(posData)) {
-            this.emit('playerUpdate', {
-                id: uid,
-                x: posData[0],
-                y: posData[1],
-                vx: posData[2],
-                vy: posData[3],
-                ts: posData[4],
-                name: posData[5] || "Unknown"
-            });
+            const px = parseFloat(posData[0]);
+            const py = parseFloat(posData[1]);
+
+            // v0.28.1: Prevent NaN pollution which causes entities to disappear
+            if (!isNaN(px) && !isNaN(py)) {
+                this.emit('playerUpdate', {
+                    id: uid,
+                    x: px,
+                    y: py,
+                    vx: posData[2] || 0,
+                    vy: posData[3] || 0,
+                    ts: posData[4] || Date.now(),
+                    name: posData[5] || "Unknown"
+                });
+            }
         }
 
         // Attack Update

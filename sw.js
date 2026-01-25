@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yurika-online-v0.28.0';
+const CACHE_NAME = 'yurika-online-v0.28.1';
 
 const ASSETS_TO_CACHE = [
     './',
@@ -49,18 +49,21 @@ self.addEventListener('activate', (event) => {
 
 // Fetch Event: Strategies
 self.addEventListener('fetch', (event) => {
+    const url = new URL(event.request.url);
+
     // 1. Firebase & Google APIs -> Network Only
-    if (event.request.url.includes('googleapis.com') || event.request.url.includes('firebase')) {
+    if (url.hostname.includes('googleapis.com') || url.hostname.includes('firebase')) {
         return;
     }
 
-    // 2. JS Files (Development Mode) -> Network First, Fallback to Cache
-    // This ensures we always get the latest code during development
-    if (event.request.url.includes('/src/js/')) {
+    // 2. index.html (Vital Root) -> Network First
+    // This fixed the "Reverting to v0.26" bug by ensuring we check for the NEW index.html with version busting
+    if (url.pathname.endsWith('index.html') || url.pathname === '/') {
         event.respondWith(
             fetch(event.request)
                 .then(response => {
-                    // Optional: Update cache with new version
+                    const cloned = response.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, cloned));
                     return response;
                 })
                 .catch(() => caches.match(event.request))
@@ -68,7 +71,17 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // 3. Other Assets (Images, CSS) -> Cache First, Fallback to Network
+    // 3. JS Files (Development Mode) -> Network First
+    if (url.pathname.includes('/src/js/')) {
+        event.respondWith(
+            fetch(event.request)
+                .then(response => response)
+                .catch(() => caches.match(event.request))
+        );
+        return;
+    }
+
+    // 4. Other Assets (Images, CSS) -> Cache First
     event.respondWith(
         caches.match(event.request).then((response) => {
             return response || fetch(event.request);
