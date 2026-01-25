@@ -383,12 +383,17 @@ export default class Player extends Actor {
             this.vy = vy * finalSpeed;
             this.state = 'move';
 
-            // Direction Logic for Sprite Rows Restoration
-            if (Math.abs(vx) > Math.abs(vy)) {
-                this.direction = vx > 0 ? 3 : 2; // Right : Left
-            } else {
-                this.direction = vy > 0 ? 1 : 0; // Front : Back
-            }
+            // v0.29.13: 8-Direction Logic
+            // Calculate facing angle (in radians) for skill aiming
+            this.facingAngle = Math.atan2(vy, vx);
+
+            // Map to 8 directions (0-7): 0=UP, 1=UP-RIGHT, 2=RIGHT, 3=DOWN-RIGHT, 4=DOWN, 5=DOWN-LEFT, 6=LEFT, 7=UP-LEFT
+            const angle = (this.facingAngle + Math.PI) / (Math.PI * 2) * 8; // Normalize to 0-8
+            this.direction8 = Math.round(angle) % 8;
+
+            // Map 8 directions to 4 sprite rows (0:Back, 1:Front, 2:Left, 3:Right)
+            const dir8ToSprite = [0, 3, 3, 3, 1, 2, 2, 2]; // 8dir -> 4dir sprite
+            this.direction = dir8ToSprite[this.direction8];
         } else {
             this.vx = 0;
             this.vy = 0;
@@ -874,24 +879,21 @@ export default class Player extends Actor {
 
                 // v0.28.0: Sync Fireball skill
                 // v0.29.0: Updates to sendPlayerAttack
-                if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'fireball', { level: lv });
+                if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'fireball', { level: lv, angle: this.facingAngle });
 
-
-                // v0.21.3: Fix direction mapping for 4-way character orientation
-                // 0: Back (Up), 1: Front (Down), 2: Left, 3: Right
-                const dirs = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-                const dir = dirs[this.direction] || [0, 1];
+                // v0.29.13: 8-direction firing using facingAngle
+                const angle = this.facingAngle !== undefined ? this.facingAngle : 0;
                 const speed = 400;
-                const vx = dir[0] * speed;
-                const vy = dir[1] * speed;
+                const vx = Math.cos(angle) * speed;
+                const vy = Math.sin(angle) * speed;
                 const dmg = Math.ceil(this.attackPower * (1.3 + (lv - 1) * 0.3));
                 const rad = 80 + (lv - 1) * 40;
 
                 import('./Projectile.js').then(({ Projectile }) => {
                     window.game.projectiles.push(new Projectile(this.x, this.y, null, 'fireball', {
                         vx, vy, speed, damage: dmg, radius: rad, lifeTime: 1.5,
-                        targetX: this.x + dir[0] * 640,
-                        targetY: this.y + dir[1] * 640,
+                        targetX: this.x + Math.cos(angle) * 640,
+                        targetY: this.y + Math.sin(angle) * 640,
                         burnDuration: 5.0 + (lv - 1), critRate: this.critRate
                     }));
                 });
@@ -1188,8 +1190,8 @@ export default class Player extends Actor {
         // 5. HUD (HP/MP Bars & Name)
         this.drawHUD(ctx, centerX, y);
 
-        // 6. Direction Arrow (At feet)
-        this.drawDirectionArrow(ctx, centerX, y + this.height);
+        // 6. Direction Arrow (At feet) - v0.29.13: Move up 30px
+        this.drawDirectionArrow(ctx, centerX, y + this.height - 30);
 
         // 7. Speech Bubble
         if (this.actionFdbk) {

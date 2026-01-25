@@ -403,8 +403,8 @@ export default class RemotePlayer extends Actor {
         // 4. HUD
         this.drawHUD(ctx, centerX, this.y);
 
-        // 5. Direction Arrow
-        this.drawDirectionArrow(ctx, centerX, this.y + this.height);
+        // 5. Direction Arrow - v0.29.13: Move up 30px
+        this.drawDirectionArrow(ctx, centerX, this.y + this.height - 30);
 
         // 6. Lightning Effect
         this.drawLightningEffect(ctx, centerX, centerY);
@@ -473,10 +473,18 @@ export default class RemotePlayer extends Actor {
                 if (!window.game) return;
                 if (skillType === 'fireball') {
                     let vx = 0, vy = 0, speed = 400;
-                    if (this.direction === 0) vy = -speed;
-                    else if (this.direction === 1) vy = speed;
-                    else if (this.direction === 2) vx = -speed;
-                    else if (this.direction === 3) vx = speed;
+                    // v0.29.13: Use angle from extraData if available (8-direction)
+                    const angle = data.extraData?.angle;
+                    if (angle !== undefined) {
+                        vx = Math.cos(angle) * speed;
+                        vy = Math.sin(angle) * speed;
+                    } else {
+                        // Fallback to 4-direction
+                        if (this.direction === 0) vy = -speed;
+                        else if (this.direction === 1) vy = speed;
+                        else if (this.direction === 2) vx = -speed;
+                        else if (this.direction === 3) vx = speed;
+                    }
                     window.game.projectiles.push(new Projectile(centerX, centerY, null, 'fireball', {
                         vx, vy, speed, damage: 0, ownerId: this.id, radius: 80
                     }));
