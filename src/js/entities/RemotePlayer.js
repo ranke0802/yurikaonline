@@ -227,6 +227,11 @@ export default class RemotePlayer extends Actor {
             if (this.lightningEffect.timer <= 0) this.lightningEffect = null;
         }
 
+        if (this.shieldEffect && this.shieldEffect.timer > 0) {
+            this.shieldEffect.timer -= dt;
+            if (this.shieldEffect.timer <= 0) this.shieldEffect = null;
+        }
+
         this._updateAnimation(dt);
         super.update(dt);
 
@@ -344,6 +349,15 @@ export default class RemotePlayer extends Actor {
             this.drawMagicCircle(ctx, centerX, this.y + this.height + 5);
         }
 
+        // 2.5 Shield Element (v0.29.0)
+        if (this.shieldEffect && this.shieldEffect.timer > 0) {
+            // Keep shield active/fading logic here? Or just static visual for animation duration
+            // Let's assume just drawing if timer > 0
+            // We can decrement timer in update() - wait, did I add update logic?
+            // Yes update() decrements lightningEffect, lets add shieldEffect too.
+            this.drawShield(ctx, centerX, centerY);
+        }
+
         // 3. Draw Sprite / Tombstone
         if (this.isDying) {
             this.drawTombstone(ctx, centerX, this.y);
@@ -423,8 +437,23 @@ export default class RemotePlayer extends Actor {
         this.animTimer = 0;
 
         const skillType = data.skillType || 'normal';
-        const skillNames = { 'missile': '매직 미사일 !!', 'fireball': '파이어볼 !!', 'laser': '체인 라이트닝 !!' };
-        if (skillNames[skillType]) this.triggerAction(skillNames[skillType]);
+        const skillNames = {
+            'missile': '매직 미사일 !!',
+            'fireball': '파이어볼 !!',
+            'laser': '체인 라이트닝 !!',
+            'shield': '앱솔루트 베리어 !!'
+        };
+
+        // v0.29.0: Show "ID : SkillName" in speech bubble
+        if (skillNames[skillType]) {
+            this.triggerAction(`${this.name} : ${skillNames[skillType]}`);
+        }
+
+        if (skillType === 'shield') {
+            // Shield Visual
+            this.shieldEffect = { timer: 2.0 };
+            return;
+        }
 
         if (skillType === 'fireball' || skillType === 'missile') {
             const centerX = data.x + this.width / 2;
@@ -441,7 +470,9 @@ export default class RemotePlayer extends Actor {
                         vx, vy, speed, damage: 0, ownerId: this.id, radius: 80
                     }));
                 } else if (skillType === 'missile') {
-                    this._triggerRemoteMissileVisual(centerX, centerY);
+                    // v0.29.0: Fire multiple missiles based on external data (count)
+                    const count = data.extraData || 1;
+                    this._triggerRemoteMissileVisual(centerX, centerY, count);
                 }
             });
         }
@@ -458,14 +489,19 @@ export default class RemotePlayer extends Actor {
         this.actionTimer = 2.0;
     }
 
-    _triggerRemoteMissileVisual(centerX, centerY) {
+    _triggerRemoteMissileVisual(centerX, centerY, count = 1) {
         RemotePlayer.projectilePromise.then(({ Projectile }) => {
             if (!window.game) return;
             const angles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
             const baseAngle = angles[this.direction] + Math.PI;
-            for (let i = 0; i < 3; i++) {
-                const angle = baseAngle + (Math.random() - 0.5) * 1.5;
-                const speed = 300 + Math.random() * 200;
+
+            for (let i = 0; i < count; i++) {
+                // Spread logic similar to Player.js
+                const spread = (Math.PI * 4) / 9;
+                const angleOffset = (Math.random() - 0.5) * 0.4;
+                const angle = baseAngle + (i - (count - 1) / 2) * (spread / Math.max(1, count - 1)) + angleOffset;
+
+                const speed = 350 + Math.random() * 300;
                 window.game.projectiles.push(new Projectile(centerX, centerY, null, 'missile', {
                     vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
                     speed: 600, damage: 0, ownerId: this.id
@@ -546,7 +582,25 @@ export default class RemotePlayer extends Actor {
                 ctx.lineTo(tx + off, ty + off);
             }
             ctx.lineTo(c.x2, c.y2); ctx.stroke();
+
+            // v0.29.0: Add Spark at target
+            if (window.game && Math.random() < 0.3) {
+                window.game.addSpark(c.x2, c.y2);
+            }
         });
+        ctx.restore();
+    }
+
+    drawShield(ctx, centerX, centerY) {
+        ctx.save();
+        const time = Date.now() / 200;
+        ctx.strokeStyle = `rgba(72, 219, 251, ${0.4 + Math.sin(time) * 0.2})`;
+        ctx.fillStyle = `rgba(72, 219, 251, ${0.1 + Math.sin(time) * 0.05})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 40, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
         ctx.restore();
     }
 
@@ -555,7 +609,8 @@ export default class RemotePlayer extends Actor {
         const rInner = 60, rOuter = 75, Y_SCALE = 0.45;
         ctx.translate(sx, sy);
         ctx.shadowBlur = 10; ctx.shadowColor = '#00d2ff';
-        ctx.strokeStyle = 'rgba(72, 219, 251, 0.6)';
+        ctx.strokeStyle = 'rgba(72, 219, 251, 0.8)'; // Increased visibility v0.29.0
+        ctx.lineWidth = 2; // Thicker lines
         [rOuter, rInner].forEach(r => {
             ctx.beginPath();
             for (let i = 0; i < 12; i++) {

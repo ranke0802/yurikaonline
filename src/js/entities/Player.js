@@ -775,10 +775,10 @@ export default class Player extends Actor {
                 this.animTimer = 0;
 
                 // v0.28.0: Sync Missile skill
-                if (this.net) this.net.sendAttack(this.x, this.y, this.direction, 'missile');
+                // v0.29.0: Sync Missile Count (Level)
+                if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'missile', count);
 
-
-                let nearest = null;
+                const targets = [];
                 let minDist = 700;
                 const monsters = window.game.monsterManager ? Array.from(window.game.monsterManager.monsters.values()) : [];
                 monsters.forEach(m => {
@@ -842,7 +842,8 @@ export default class Player extends Actor {
                 this.animTimer = 0;
 
                 // v0.28.0: Sync Fireball skill
-                if (this.net) this.net.sendAttack(this.x, this.y, this.direction, 'fireball');
+                // v0.29.0: Updates to sendPlayerAttack
+                if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'fireball', { level: lv });
 
 
                 // v0.21.3: Fix direction mapping for 4-way character orientation
@@ -875,6 +876,9 @@ export default class Player extends Actor {
                 this.animTimer = 0;
                 this.shieldTimer = 9999;
                 this.skillCooldowns.k = 15;
+
+                // v0.29.0: Sync Absolute Barrier
+                if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'shield');
             }
         }
     }

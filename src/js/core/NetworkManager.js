@@ -346,10 +346,17 @@ export default class NetworkManager extends EventEmitter {
     }
 
     // v0.28.0: Detailed attack sync [ts, x, y, direction, skillType]
-    sendAttack(x, y, direction, skillType = 'normal') {
+    sendPlayerAttack(x, y, dir, skillType, extraData = null) {
         if (!this.connected || !this.playerId) return;
-        const attackPacket = [Date.now(), Math.round(x), Math.round(y), direction, skillType];
-        this.dbRef.child(`users/${this.playerId}/a`).set(attackPacket);
+        const payload = [
+            Date.now(),
+            Math.round(x),
+            Math.round(y),
+            dir,
+            skillType,
+            extraData // v0.29.0: Added for skill specifics (e.g. missile count)
+        ];
+        this.dbRef.child(`users/${this.playerId}/a`).set(payload);
     }
 
     sendMonsterDamage(monsterId, damage) {
@@ -488,7 +495,8 @@ export default class NetworkManager extends EventEmitter {
                 x: val.a[1],
                 y: val.a[2],
                 dir: val.a[3],
-                skillType: val.a[4] || 'normal' // v0.28.0
+                skillType: val.a[4] || 'normal', // v0.28.0
+                extraData: val.a[5] || null // v0.29.0
             });
         }
 
