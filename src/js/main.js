@@ -366,6 +366,8 @@ class Game {
     }
 
     update(dt) {
+        this.time += dt;
+
         // Update Local Player
         if (this.player) {
             // Continuous Attack (J Key)
