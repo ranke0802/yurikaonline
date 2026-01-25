@@ -166,31 +166,19 @@ export default class Player extends Actor {
         this._updateAnimation(dt);
         this._handleRegen(dt);
 
-        // v0.29.3: Restore Chain Lightning Update Call
-        // v0.29.7: Fix Chain Lightning logic. It should not depend on 'ATTACK' key press,
-        // but rather on the skill state (channeling) or if the skill key is held (if we want hold-to-cast).
-        // However, 'performLaserAttack' handles cooldowns and state internally.
-        // If we want it to fire ONCE when key is pressed, useSkill handles it.
-        // If we want CONTINUOUS fire (channeling), we need a flag.
-        // Current design: performLaserAttack is called every frame, but checks cooldowns.
-        // To prevent auto-fire, we should only call it if we are conceptually "trying to attack".
-
-        // Reverting the strict input check because 'J' key triggers performLaserAttack via channeling state?
-        // Actually, performLaserAttack is the implementation. 
-        // We should add a flag 'isLaserActive' toggled by key press/release if we want hold-to-fire.
-        // For now, let's relax the check: If isChanneling is true (set by useSkill), allow update.
-
-        if (this.isChanneling && this.state === 'attack') {
+        // v0.29.9: Chain Lightning Full Restore
+        // Call performLaserAttack when ATTACK key is held, OR when already channeling
+        if (this.input && this.input.isPressed('ATTACK')) {
             this.performLaserAttack(dt);
-        } else if (this.input && this.input.isPressed('ATTACK')) {
-            // Basic attack override if we had one, or keeps the old behavior for spacebar
-            // But performLaserAttack is specific to skill 4 (Laser).
-            // Let's just allow it if channeling.
-        }
-
-        // Safety: If not channeling, ensure we reset
-        if (!this.isChanneling && this.lightningEffect) {
-            this.lightningEffect = null;
+        } else {
+            // Key released - stop channeling Chain Lightning only (not other skills)
+            // skillAttackTimer > 0 means Missile/Fireball/Shield is animating
+            if (this.isChanneling && this.skillAttackTimer <= 0) {
+                this.isChanneling = false;
+                this.chargeTime = 0;
+                this.lightningEffect = null;
+                if (this.state === 'attack') this.state = 'idle';
+            }
         }
 
         // Process Missile Fire Queue (Sequential Launch)
@@ -238,6 +226,8 @@ export default class Player extends Actor {
             this.skillAttackTimer -= dt;
             if (this.skillAttackTimer <= 0) {
                 this.isAttacking = false;
+                // v0.29.9: Also reset channeling for non-laser skills (Missile/Fireball/Shield)
+                this.isChanneling = false;
             }
         }
 

@@ -374,28 +374,10 @@ class Game {
 
         // Update Local Player
         if (this.player) {
-            // Continuous Attack (J Key) & Continuous Skills (Missile)
-            const isAttackPressed = this.input.isPressed('ATTACK');
-            const isMissilePressed = this.input.isPressed('SKILL_1');
-
-            if (isAttackPressed) {
-                this.player.performLaserAttack(dt);
-            }
-
-            if (isMissilePressed) {
-                this.player.useSkill(1);
-            }
-
-            // v0.26.1: Maintain channeling state if any continuous skill is active
-            if (!isAttackPressed && !isMissilePressed) {
-                if (this.player.isChanneling) {
-                    this.player.isChanneling = false;
-                    this.player.isAttacking = false;
-                    this.player.chargeTime = 0;
-                }
-            }
-
-            // Other Continuous Skills (Fireball, Shield - single cast but checked every frame)
+            // v0.29.9: Skill calls are now handled entirely within Player.js update().
+            // main.js only triggers skills on key press events below.
+            // Continuous skills (Missile) are checked here but Player.js handles cooldowns.
+            if (this.input.isPressed('SKILL_1')) this.player.useSkill(1);
             if (this.input.isPressed('SKILL_2')) this.player.useSkill(2);
             if (this.input.isPressed('SKILL_3')) this.player.useSkill(3);
 

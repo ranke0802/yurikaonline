@@ -490,6 +490,11 @@ export default class RemotePlayer extends Actor {
             });
         }
 
+        // v0.29.9: Trigger Chain Lightning visual for remote player
+        if (skillType === 'laser') {
+            this._updateLightningVisual();
+        }
+
         if (this.attackTimeout) clearTimeout(this.attackTimeout);
         this.attackTimeout = setTimeout(() => {
             this.isAttacking = false;
