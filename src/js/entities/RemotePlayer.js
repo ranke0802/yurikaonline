@@ -452,7 +452,7 @@ export default class RemotePlayer extends Actor {
         if (skillType === 'shield') {
             // Shield Visual
             this.shieldEffect = { timer: 2.0 };
-            return;
+            // Do not return early, let the state reset timer run
         }
 
         if (skillType === 'fireball' || skillType === 'missile') {
