@@ -167,17 +167,30 @@ export default class Player extends Actor {
         this._handleRegen(dt);
 
         // v0.29.3: Restore Chain Lightning Update Call
-        // v0.29.3: Restore Chain Lightning Update Call
-        // v0.29.5: Fix auto-fire bug by checking input
-        if (this.input && this.input.isPressed('ATTACK')) {
+        // v0.29.7: Fix Chain Lightning logic. It should not depend on 'ATTACK' key press,
+        // but rather on the skill state (channeling) or if the skill key is held (if we want hold-to-cast).
+        // However, 'performLaserAttack' handles cooldowns and state internally.
+        // If we want it to fire ONCE when key is pressed, useSkill handles it.
+        // If we want CONTINUOUS fire (channeling), we need a flag.
+        // Current design: performLaserAttack is called every frame, but checks cooldowns.
+        // To prevent auto-fire, we should only call it if we are conceptually "trying to attack".
+
+        // Reverting the strict input check because 'J' key triggers performLaserAttack via channeling state?
+        // Actually, performLaserAttack is the implementation. 
+        // We should add a flag 'isLaserActive' toggled by key press/release if we want hold-to-fire.
+        // For now, let's relax the check: If isChanneling is true (set by useSkill), allow update.
+
+        if (this.isChanneling && this.state === 'attack') {
             this.performLaserAttack(dt);
-        } else {
-            // Reset channeling if key is released
-            if (this.isChanneling) {
-                this.isChanneling = false;
-                this.chargeTime = 0;
-                if (this.state === 'attack') this.state = 'idle';
-            }
+        } else if (this.input && this.input.isPressed('ATTACK')) {
+            // Basic attack override if we had one, or keeps the old behavior for spacebar
+            // But performLaserAttack is specific to skill 4 (Laser).
+            // Let's just allow it if channeling.
+        }
+
+        // Safety: If not channeling, ensure we reset
+        if (!this.isChanneling && this.lightningEffect) {
+            this.lightningEffect = null;
         }
 
         // Process Missile Fire Queue (Sequential Launch)
