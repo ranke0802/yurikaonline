@@ -452,12 +452,16 @@ class Game {
     }
 
     render() {
-        // Clear
+        // Clear with full internal resolution
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         if (!this.zone.currentZone) return;
 
         this.ctx.save();
+        // 1. Scale for HiDPI
+        this.ctx.scale(this.dpr, this.dpr);
+        // 2. Scale for Game Zoom
         this.ctx.scale(this.zoom, this.zoom);
         this.ctx.translate(-this.camera.x, -this.camera.y);
 
