@@ -4,7 +4,12 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "sample/**",
+      "package.json",
+      "package-lock.json",
+      "LOCAL_DEV.md",
+      "README.md"
     ],
     "rewrites": [
       {
