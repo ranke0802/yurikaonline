@@ -138,9 +138,20 @@ class Game {
     }
 
     resize() {
+        // v0.24.2: Mobile Viewport Height (vh) polyfill for inconsistent mobile browser bars
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+
         const container = document.getElementById('game-viewport');
-        const isMobile = window.innerWidth <= 1024; // Standard mobile/tablet threshold
-        this.zoom = isMobile ? 0.7 : 0.8;
+        const width = window.innerWidth;
+        const isMobile = width <= 1024;
+
+        // Dynamic zoom based on screen width
+        if (isMobile) {
+            this.zoom = width < 480 ? 0.65 : 0.75;
+        } else {
+            this.zoom = 0.8;
+        }
 
         if (container) {
             this.canvas.width = container.clientWidth;
@@ -151,7 +162,6 @@ class Game {
         }
 
         if (this.camera) {
-            // Visible world size is scaled by zoom
             this.camera.resize(this.canvas.width / this.zoom, this.canvas.height / this.zoom);
         }
     }
