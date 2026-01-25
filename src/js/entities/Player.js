@@ -733,15 +733,19 @@ export default class Player extends Actor {
 
                     // Support both Monster and RemotePlayer takeDamage
                     if (nextTarget.takeDamage) {
-                        if (window.game?.net?.isHost || !nextTarget.isMonster) {
-                            // PvP damage handled by attacker
-                            if (!nextTarget.isMonster && this.net) {
-                                this.net.sendPlayerDamage(nextTarget.id, dmg);
-                            }
+                        // v0.29.12: Always send monster damage to network for sync
+                        if (nextTarget.isMonster && this.net) {
+                            this.net.sendMonsterDamage(nextTarget.id, Math.ceil(dmg));
+                            nextTarget.lastAttackerId = this.net.playerId;
                         }
-                        if (nextTarget.isMonster && window.game?.net?.isHost) nextTarget.lastAttackerId = window.game.net.playerId;
-                        nextTarget.takeDamage(Math.ceil(dmg), true, isCrit, null, null);
-
+                        // PvP damage handled by attacker
+                        if (!nextTarget.isMonster && this.net) {
+                            this.net.sendPlayerDamage(nextTarget.id, dmg);
+                        }
+                        // Only host applies actual damage to monsters
+                        if (window.game?.net?.isHost || !nextTarget.isMonster) {
+                            nextTarget.takeDamage(Math.ceil(dmg), true, isCrit, null, null);
+                        }
                     }
 
                     // Slow effect

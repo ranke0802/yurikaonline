@@ -131,6 +131,8 @@ export class Projectile {
             for (let i = 0; i < 8; i++) window.game.addSpark(this.x, this.y);
         }
 
+        const net = window.game?.net;
+
         if (this.type === 'fireball' && monsters) {
             const aoeRadius = this.radius || 100;
             monsters.forEach(m => {
@@ -143,14 +145,30 @@ export class Projectile {
                         finalDmg *= 2;
                         isCrit = true;
                     }
-                    m.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y);
-                    m.applyEffect('burn', this.burnDuration, Math.ceil(finalDmg * 0.15));
+                    // v0.29.12: Send damage to network for sync
+                    if (m.isMonster && net) {
+                        net.sendMonsterDamage(m.id, Math.ceil(finalDmg));
+                        m.lastAttackerId = net.playerId;
+                    }
+                    // Only host applies actual damage
+                    if (net?.isHost || !m.isMonster) {
+                        m.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y);
+                        m.applyEffect('burn', this.burnDuration, Math.ceil(finalDmg * 0.15));
+                    }
                 }
             });
         } else {
             let finalDmg = this.damage;
             let isCrit = this.isCrit || false;
-            monster.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y);
+            // v0.29.12: Send damage to network for sync
+            if (monster.isMonster && net) {
+                net.sendMonsterDamage(monster.id, Math.ceil(finalDmg));
+                monster.lastAttackerId = net.playerId;
+            }
+            // Only host applies actual damage
+            if (net?.isHost || !monster.isMonster) {
+                monster.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y);
+            }
         }
         this.isDead = true;
     }
