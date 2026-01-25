@@ -227,6 +227,11 @@ export default class RemotePlayer extends Actor {
             if (this.chatTimer <= 0) this.chatMessage = null;
         }
 
+        if (this.actionTimer > 0) {
+            this.actionTimer -= dt;
+            if (this.actionTimer <= 0) this.actionFdbk = null;
+        }
+
         // v0.28.0: Floating Text update
         for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
             const ft = this.floatingTexts[i];
@@ -446,29 +451,34 @@ export default class RemotePlayer extends Actor {
 
         const skillType = data.skillType || 'normal';
 
-        // v0.28.0: Visual consistency for skills
+        // v0.28.3: Visual consistency for skills & Speech Bubbles
+        const skillNames = { 'missile': '매직 미사일 !!', 'fireball': '파이어볼 !!', 'laser': '체인 라이트닝 !!' };
+        if (skillNames[skillType]) {
+            this.triggerAction(skillNames[skillType]);
+        }
+
         if (skillType === 'fireball' || skillType === 'missile') {
             const centerX = data.x + this.width / 2;
             const centerY = data.y + this.height / 2;
 
-            // Re-use projectile logic from Player.js if possible, 
-            // but for simplicity we inject into the world-level projectile manager
-            if (window.game && window.game.projectileManager) {
+            // v0.28.3: Fix projectile creation (removed non-existent projectileManager)
+            import('./Projectile.js').then(({ Projectile }) => {
+                if (!window.game) return;
+
                 if (skillType === 'fireball') {
-                    // Fireball uses direction to aim
                     let vx = 0, vy = 0, speed = 400;
                     if (this.direction === 0) vy = -speed;
                     else if (this.direction === 1) vy = speed;
                     else if (this.direction === 2) vx = -speed;
                     else if (this.direction === 3) vx = speed;
 
-                    window.game.projectileManager.createFireball(centerX, centerY, vx, vy, 0, this.id);
+                    window.game.projectiles.push(new Projectile(centerX, centerY, null, 'fireball', {
+                        vx, vy, speed, damage: 0, ownerId: this.id
+                    }));
                 } else if (skillType === 'missile') {
-                    // Missile needs a target. For remote, we just pick closest monster or ignore for visual.
-                    // Ideally we sync the target too, but for now just visual burst behind.
                     this._triggerRemoteMissileVisual(centerX, centerY);
                 }
-            }
+            });
         }
 
         if (this.attackTimeout) clearTimeout(this.attackTimeout);
@@ -478,21 +488,29 @@ export default class RemotePlayer extends Actor {
         }, 600);
     }
 
+    triggerAction(text) {
+        this.actionFdbk = text;
+        this.actionTimer = 2.0;
+    }
+
     _triggerRemoteMissileVisual(centerX, centerY) {
-        // Visual-only burst similar to player's missile
-        const baseAngles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
-        const baseAngle = baseAngles[this.direction] + Math.PI;
+        // v0.28.3: Visual-only burst similar to player's missile
+        import('./Projectile.js').then(({ Projectile }) => {
+            if (!window.game) return;
+            const baseAngles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
+            const baseAngle = baseAngles[this.direction] + Math.PI;
 
-        for (let i = 0; i < 3; i++) {
-            const angle = baseAngle + (Math.random() - 0.5) * 1.5;
-            const burstSpeed = 300 + Math.random() * 200;
-            const vx = Math.cos(angle) * burstSpeed;
-            const vy = Math.sin(angle) * burstSpeed;
+            for (let i = 0; i < 3; i++) {
+                const angle = baseAngle + (Math.random() - 0.5) * 1.5;
+                const burstSpeed = 300 + Math.random() * 200;
+                const vx = Math.cos(angle) * burstSpeed;
+                const vy = Math.sin(angle) * burstSpeed;
 
-            if (window.game.projectileManager) {
-                window.game.projectileManager.createMissile(centerX, centerY, vx, vy, null, 0, this.id);
+                window.game.projectiles.push(new Projectile(centerX, centerY, null, 'missile', {
+                    vx, vy, speed: 600, damage: 0, ownerId: this.id
+                }));
             }
-        }
+        });
     }
 
     drawHUD(ctx, centerX, y) {
@@ -525,7 +543,10 @@ export default class RemotePlayer extends Actor {
 
         // Chat Speech Bubble (v0.26.0)
         if (this.chatMessage) {
-            this.drawSpeechBubble(ctx, centerX, y - 55);
+            this.drawSpeechBubble(ctx, centerX, y - 55, this.chatMessage);
+        } else if (this.actionFdbk) {
+            // v0.28.3: Show skill names (e.g. "매직 미사일 !!")
+            this.drawSpeechBubble(ctx, centerX, y - 55, this.actionFdbk, '#833471');
         }
     }
 
@@ -534,11 +555,12 @@ export default class RemotePlayer extends Actor {
         this.chatTimer = 5.0;
     }
 
-    drawSpeechBubble(ctx, x, y) {
+    drawSpeechBubble(ctx, x, y, text, textColor = '#2d3436') {
+        if (!text) return;
         ctx.save();
-        ctx.font = '13px "Outfit", sans-serif';
+        ctx.font = 'bold 13px "Outfit", sans-serif';
         const padding = 10;
-        const metrics = ctx.measureText(this.chatMessage);
+        const metrics = ctx.measureText(text);
         const w = Math.min(200, metrics.width + padding * 2);
         const h = 28;
         const bx = x - w / 2;
@@ -561,9 +583,9 @@ export default class RemotePlayer extends Actor {
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = '#2d3436';
+        ctx.fillStyle = textColor;
         ctx.textAlign = 'center';
-        ctx.fillText(this.chatMessage, x, by + 19, 190);
+        ctx.fillText(text, x, by + 19, 190);
         ctx.restore();
     }
 
