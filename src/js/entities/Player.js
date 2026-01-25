@@ -167,7 +167,18 @@ export default class Player extends Actor {
         this._handleRegen(dt);
 
         // v0.29.3: Restore Chain Lightning Update Call
-        this.performLaserAttack(dt);
+        // v0.29.3: Restore Chain Lightning Update Call
+        // v0.29.5: Fix auto-fire bug by checking input
+        if (this.input && this.input.isPressed('ATTACK')) {
+            this.performLaserAttack(dt);
+        } else {
+            // Reset channeling if key is released
+            if (this.isChanneling) {
+                this.isChanneling = false;
+                this.chargeTime = 0;
+                if (this.state === 'attack') this.state = 'idle';
+            }
+        }
 
         // Process Missile Fire Queue (Sequential Launch)
         if (this.missileFireQueue.length > 0) {
