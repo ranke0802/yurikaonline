@@ -138,31 +138,34 @@ class Game {
     }
 
     resize() {
-        // v0.24.2: Mobile Viewport Height (vh) polyfill for inconsistent mobile browser bars
+        // v0.24.2: Mobile Viewport Height (vh) polyfill
         const vh = window.innerHeight * 0.01;
         document.documentElement.style.setProperty('--vh', `${vh}px`);
 
         const container = document.getElementById('game-viewport');
-        const width = window.innerWidth;
-        const isMobile = width <= 1024;
+        const displayWidth = container ? container.clientWidth : window.innerWidth;
+        const displayHeight = container ? container.clientHeight : window.innerHeight;
 
-        // Dynamic zoom based on screen width
-        if (isMobile) {
-            this.zoom = width < 480 ? 0.65 : 0.75;
-        } else {
-            this.zoom = 0.8;
-        }
+        // Match yurikaonline-master logic: 900px threshold, 0.7/1.0 zoom
+        const isMobile = window.innerWidth <= 900;
+        this.zoom = isMobile ? 0.7 : 1.0;
 
-        if (container) {
-            this.canvas.width = container.clientWidth;
-            this.canvas.height = container.clientHeight;
-        } else {
-            this.canvas.width = window.innerWidth;
-            this.canvas.height = window.innerHeight;
-        }
+        const ratio = window.devicePixelRatio || 1;
+        this.dpr = ratio; // Store for render loop
+
+        // Internal resolution for HiDPI
+        this.canvas.width = displayWidth * ratio;
+        this.canvas.height = displayHeight * ratio;
+
+        // Visual Display Size
+        this.canvas.style.width = displayWidth + 'px';
+        this.canvas.style.height = displayHeight + 'px';
+
+        // Re-enable smoothing for better HiDPI filtering (matches master source behavior)
+        this.ctx.imageSmoothingEnabled = true;
 
         if (this.camera) {
-            this.camera.resize(this.canvas.width / this.zoom, this.canvas.height / this.zoom);
+            this.camera.resize(displayWidth / this.zoom, displayHeight / this.zoom);
         }
     }
 
@@ -459,10 +462,10 @@ class Game {
         if (!this.zone.currentZone) return;
 
         this.ctx.save();
-        // 1. Scale for HiDPI
-        this.ctx.scale(this.dpr, this.dpr);
-        // 2. Scale for Game Zoom
-        this.ctx.scale(this.zoom, this.zoom);
+        // Match yurikaonline-master: scale(zoom * ratio)
+        const scale = this.zoom * this.dpr;
+        this.ctx.scale(scale, scale);
+
         this.ctx.translate(-this.camera.x, -this.camera.y);
 
         // Draw World
