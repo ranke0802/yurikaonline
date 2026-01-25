@@ -90,7 +90,7 @@ export class Projectile {
                             this.vx = (this.vx / currentSpeed) * this.speed;
                             this.vy = (this.vy / currentSpeed) * this.speed;
                         }
-                        if (dist < 40) this.hit(this.target, monsters);
+                        if (dist < 60) this.hit(this.target, monsters); // v0.29.8: Increased hit box (40->60)
                     }
                 } else {
                     if (!this.vx && !this.vy) this.isDead = true;
@@ -127,7 +127,8 @@ export class Projectile {
 
     hit(monster, monsters) {
         if (window.game && window.game.addSpark) {
-            for (let i = 0; i < 4; i++) window.game.addSpark(this.x, this.y);
+            // v0.29.8: More sparks for better impact
+            for (let i = 0; i < 8; i++) window.game.addSpark(this.x, this.y);
         }
 
         if (this.type === 'fireball' && monsters) {
