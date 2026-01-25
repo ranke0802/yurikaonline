@@ -166,6 +166,9 @@ export default class Player extends Actor {
         this._updateAnimation(dt);
         this._handleRegen(dt);
 
+        // v0.29.3: Restore Chain Lightning Update Call
+        this.performLaserAttack(dt);
+
         // Process Missile Fire Queue (Sequential Launch)
         if (this.missileFireQueue.length > 0) {
             this.missileFireTimer -= dt;
@@ -784,6 +787,7 @@ export default class Player extends Actor {
                 if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'missile', count);
 
                 const targets = [];
+                let nearest = null; // v0.29.3: Restored missing variable declaration
                 let minDist = 700;
                 const monsters = window.game.monsterManager ? Array.from(window.game.monsterManager.monsters.values()) : [];
                 monsters.forEach(m => {
