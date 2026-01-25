@@ -200,6 +200,11 @@ export default class RemotePlayer extends Actor {
                 } else if (Math.abs(finalVy) > 0.1) {
                     this.direction = finalVy > 0 ? 1 : 0;
                 }
+
+                // v0.28.7: Fallback safety
+                if (typeof this.direction !== 'number' || isNaN(this.direction)) {
+                    this.direction = 1;
+                }
             } else {
                 this.state = 'idle';
             }
@@ -326,14 +331,31 @@ export default class RemotePlayer extends Actor {
         if (this.isDying) {
             this.drawTombstone(ctx, centerX, this.y);
         } else if (this.sprite) {
-            let row = this.direction;
+            let row = Math.max(0, Math.min(4, this.direction));
             if (this.state === 'attack') row = 4;
-            let col = this.animFrame;
+
+            // Safety check for animFrame
+            const maxFrames = this.frameCounts[row] || 8;
+            let col = this.animFrame % maxFrames;
+            if (col < 0 || isNaN(col)) col = 0;
+
             const drawW = 120;
             const drawH = 120;
             const drawX = centerX - drawW / 2;
             const drawY = this.y + this.height - drawH + 10;
             this.sprite.draw(ctx, row, col, drawX, drawY, drawW, drawH);
+        } else {
+            // v0.28.7: Restore Fallback (Red Circle) for missing sprite or loading state
+            const time = Date.now() / 200;
+            const pulse = Math.sin(time + 100) * 2;
+            ctx.save();
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#fab1a0';
+            ctx.fillStyle = '#e17055';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - 5 + pulse, 14, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
         }
 
         // 4. HUD

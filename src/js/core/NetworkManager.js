@@ -472,8 +472,8 @@ export default class NetworkManager extends EventEmitter {
                     id: uid,
                     x: px,
                     y: py,
-                    vx: posData[2] || 0,
-                    vy: posData[3] || 0,
+                    vx: Number(posData[2]) || 0,
+                    vy: Number(posData[3]) || 0,
                     ts: posData[4] || Date.now(),
                     name: posData[5] || "Unknown"
                 });
