@@ -350,7 +350,7 @@ export default class RemotePlayer extends Actor {
         // Name Tag (Styled with outline to match screenshot)
         const nameY = y - 10;
         ctx.save();
-        ctx.font = 'bold 16px "Nanum Gothic", "Outfit", sans-serif';
+        ctx.font = 'bold 13px "Outfit", sans-serif';
         ctx.textAlign = 'center';
 
         ctx.strokeStyle = '#000';

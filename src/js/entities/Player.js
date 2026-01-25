@@ -1129,7 +1129,7 @@ export default class Player extends Actor {
 
 
         ctx.save();
-        ctx.font = 'bold 16px "Nanum Gothic", "Outfit", sans-serif';
+        ctx.font = 'bold 13px "Outfit", sans-serif';
         ctx.textAlign = 'center';
 
         // Thick Black Outline
