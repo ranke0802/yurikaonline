@@ -569,6 +569,10 @@ class Game {
         // Joystick Area (Left side) Exclusion
         if (screenX < 200 && screenY > this.canvas.height / 2) return;
 
+        // Action Buttons Area (Right side) Exclusion (v0.24.9)
+        // Prevents accidental movement when missing skill buttons
+        if (screenX > this.canvas.width - 220 && screenY > this.canvas.height - 220) return;
+
         // Top bar exclusion
         if (screenX < 300 && screenY < 100) return;
 
