@@ -283,6 +283,16 @@ export default class Player extends Actor {
     _handleMovement(dt) {
         if (!this.input) return;
 
+        // v0.26.1: Block movement while channeling (Magic Missile, Chain Lightning)
+        if (this.isChanneling) {
+            this.vx = 0;
+            this.vy = 0;
+            this.moveTarget = null;
+            this.isRunning = false;
+            this.state = 'attack';
+            return;
+        }
+
         let vx = 0;
         let vy = 0;
 
@@ -750,6 +760,7 @@ export default class Player extends Actor {
 
                 // v0.22.3: Visual Attack FeedBack
                 this.isAttacking = true;
+                this.isChanneling = true; // v0.26.1
                 this.skillAttackTimer = 0.4;
                 this.animTimer = 0;
 

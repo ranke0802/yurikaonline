@@ -370,10 +370,20 @@ class Game {
 
         // Update Local Player
         if (this.player) {
-            // Continuous Attack (J Key)
-            if (this.input.isPressed('ATTACK')) {
+            // Continuous Attack (J Key) & Continuous Skills (Missile)
+            const isAttackPressed = this.input.isPressed('ATTACK');
+            const isMissilePressed = this.input.isPressed('SKILL_1');
+
+            if (isAttackPressed) {
                 this.player.performLaserAttack(dt);
-            } else {
+            }
+
+            if (isMissilePressed) {
+                this.player.useSkill(1);
+            }
+
+            // v0.26.1: Maintain channeling state if any continuous skill is active
+            if (!isAttackPressed && !isMissilePressed) {
                 if (this.player.isChanneling) {
                     this.player.isChanneling = false;
                     this.player.isAttacking = false;
@@ -381,8 +391,7 @@ class Game {
                 }
             }
 
-            // Continuous Skills (Missile, Fireball, Shield)
-            if (this.input.isPressed('SKILL_1')) this.player.useSkill(1);
+            // Other Continuous Skills (Fireball, Shield - single cast but checked every frame)
             if (this.input.isPressed('SKILL_2')) this.player.useSkill(2);
             if (this.input.isPressed('SKILL_3')) this.player.useSkill(3);
 
@@ -556,7 +565,7 @@ class Game {
 
 
     _handleCanvasInteraction(e) {
-        if (!this.player || this.ui.isPaused) return;
+        if (!this.player || this.ui.isPaused || !this.input.enabled) return;
 
         // Check if we hit any UI element (since UI is overlayed, this shouldn't trigger if UI blocks)
         // However, pointer-events: none is on #ui-layer, so we might need simple distance check

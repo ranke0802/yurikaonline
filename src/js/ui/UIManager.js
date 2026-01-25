@@ -248,15 +248,20 @@ export class UIManager {
         const chatInput = document.querySelector('.chat-input-area input');
         if (chatInput) {
             chatInput.addEventListener('focus', () => {
-                if (this.game.inputManager) this.game.inputManager.setEnabled(false);
+                if (this.inputManager) this.inputManager.setEnabled(false);
+                if (this.game.localPlayer) this.game.localPlayer.moveTarget = null;
             });
             chatInput.addEventListener('blur', () => {
-                if (this.game.inputManager) this.game.inputManager.setEnabled(true);
+                if (this.inputManager) this.inputManager.setEnabled(true);
             });
             chatInput.addEventListener('keydown', (e) => {
+                if (e.isComposing) return; // Prevent double trigger with IME
+
                 if (e.key === 'Enter') {
                     this.sendMessage();
                     chatInput.blur(); // Focus out to resume game input
+                } else if (e.key === 'Escape') {
+                    chatInput.blur();
                 }
             });
         }
@@ -265,6 +270,20 @@ export class UIManager {
         if (this.game.net) {
             this.game.net.on('chatReceived', (data) => this._onChatReceived(data));
         }
+
+        // v0.26.0: Global Enter to focus chat (PC Convenience)
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const active = document.activeElement;
+                if (active === chatInput) return; // Already in chat
+                if (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') return;
+
+                if (chatInput) {
+                    chatInput.focus();
+                    e.preventDefault();
+                }
+            }
+        });
     }
 
     showDeathModal() {
