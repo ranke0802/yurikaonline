@@ -11,7 +11,7 @@ export default class RemotePlayer extends Actor {
         this.targetX = x;
         this.targetY = y;
         this.serverUpdates = []; // Buffer for interpolation: { x, y, vx, vy, ts }
-        this.interpolationDelay = 150; // Delay in ms (Buffer size)
+        this.interpolationDelay = 200; // v0.27.0: Increased for better jitter tolerance (200ms)
 
         // Visuals
         this.sprite = null;
@@ -91,10 +91,16 @@ export default class RemotePlayer extends Actor {
                 finalVx = p1.vx + (p2.vx - p1.vx) * t;
                 finalVy = p1.vy + (p2.vy - p1.vy) * t;
             } else if (renderTime > p2.ts) {
-                // Extrapolate (Dead Reckoning) - We ran out of packets
+                // Dead Reckoning: Running out of packets
                 const delta = (renderTime - p2.ts) / 1000;
-                finalX = p2.x + p2.vx * delta;
-                finalY = p2.y + p2.vy * delta;
+                // v0.27.0: Stop if too far out (1s) to prevent ghosting
+                if (delta < 1.0) {
+                    finalX = p2.x + p2.vx * delta;
+                    finalY = p2.y + p2.vy * delta;
+                } else {
+                    finalX = p2.x;
+                    finalY = p2.y;
+                }
                 finalVx = p2.vx;
                 finalVy = p2.vy;
             } else {
@@ -111,13 +117,28 @@ export default class RemotePlayer extends Actor {
             }
         }
 
+        // Apply calculated position with gentle smoothing (v0.27.0)
+        // If distance is huge (teleport), snap. Else, Lerp.
         const dx = finalX - this.x;
         const dy = finalY - this.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        const distSq = dx * dx + dy * dy;
+
+        if (distSq > 400 * 400) { // If distance is greater than 400 pixels, snap
+            this.x = finalX;
+            this.y = finalY;
+        } else {
+            const lerpFactor = 0.25; // Smooth but responsive (approx 1/4 per frame)
+            this.x += dx * lerpFactor;
+            this.y += dy * lerpFactor;
+        }
+
+        this.vx = finalVx;
+        this.vy = finalVy;
+
 
         // Movement Threshold & Animation State
         if (!this.isAttacking) {
-            if (dist > 1.0 || Math.abs(finalVx) > 0.1 || Math.abs(finalVy) > 0.1) {
+            if (distSq > 1.0 || Math.abs(finalVx) > 0.1 || Math.abs(finalVy) > 0.1) {
                 this.state = 'move';
                 // Direction Logic
                 if (Math.abs(finalVx) > Math.abs(finalVy)) {
@@ -129,13 +150,6 @@ export default class RemotePlayer extends Actor {
                 this.state = 'idle';
             }
         }
-
-        // Apply calculated position
-        this.x = finalX;
-        this.y = finalY;
-        this.vx = finalVx;
-        this.vy = finalVy;
-
 
         // Remote Lightning Logic
         if (this.state === 'attack') {

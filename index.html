@@ -32,47 +32,25 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.26.3</title>
+    <title>Yurika Online v0.27.0</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
-        window.GAME_VERSION = '0.26.3';
-
+        window.GAME_VERSION = '0.27.0';
 
         async function initCacheBusting() {
             try {
-                // Fetch the absolute truth from the server, bypassing any local cache
                 const response = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
                 const serverVersion = (await response.text()).trim();
 
-                // [Auto-Sync] Update UI elements to match server version
-                if (serverVersion) {
-                    document.title = `Yurika Online v${serverVersion}`;
-                    const vInfo = document.querySelector('.version-info');
-                    if (vInfo) vInfo.textContent = `📦 v${serverVersion}`;
-                    window.GAME_VERSION = serverVersion;
-                }
-
-                const storedVersion = localStorage.getItem('yurika_version');
-
-                if (serverVersion && serverVersion !== storedVersion) {
-                    console.log(`[CacheBuster] New version detected: ${storedVersion} -> ${serverVersion}`);
-                    localStorage.setItem('yurika_version', serverVersion);
-
-                    // Clear Browser Cache API
-                    if ('caches' in window) {
-                        const names = await caches.keys();
-                        await Promise.all(names.map(name => caches.delete(name)));
-                    }
-
-                    // Perform a hard reload to get latest index.html and assets
+                if (serverVersion && window.GAME_VERSION !== serverVersion) {
+                    console.log(`New version detected: ${window.GAME_VERSION} -> ${serverVersion}. Reloading...`);
                     window.location.reload(true);
                 }
             } catch (e) {
-                console.warn('[CacheBuster] Version check failed. Continuing with local version.', e);
+                console.log('Version check failed:', e);
             }
         }
-
         initCacheBusting();
     </script>
     <link rel="stylesheet" href="src/css/style.css?v=0.26.0">
@@ -81,8 +59,7 @@
 </head>
 
 <body>
-    <div id="game-container">
-        <!-- Viewport wrapper for centered layout -->
+    <div id="game-ui">
         <!-- Loading Overlay -->
         <div id="loading-overlay">
             <div class="loading-content">
@@ -357,11 +334,15 @@
                             <div class="derived-row"><span>현재 MP:</span> <span id="val-mp-range">100/100</span></div>
                             <div class="derived-row"><span>공격력:</span> <span id="val-atk">10</span></div>
                             <div class="derived-row"><span>방어력:</span> <span id="val-def">0</span></div>
-                            <div class="derived-row"><span>체력 회복력:</span> <span id="val-hp-regen">0</span></div>
-                            <div class="derived-row"><span>마나 회복력:</span> <span id="val-mp-regen">0</span></div>
-                            <div class="derived-row"><span>공격속도:</span> <span id="val-atk-spd">1.0</span></div>
+                            <div class="derived-row"><span>체력 회복력:</span> <span id="val-hp-regen">0</span>
+                            </div>
+                            <div class="derived-row"><span>마나 회복력:</span> <span id="val-mp-regen">0</span>
+                            </div>
+                            <div class="derived-row"><span>공격속도:</span> <span id="val-atk-spd">1.0</span>
+                            </div>
                             <div class="derived-row"><span>치명확률:</span> <span id="val-crit">10%</span></div>
-                            <div class="derived-row"><span>이동속도:</span> <span id="val-move-spd">100%</span></div>
+                            <div class="derived-row"><span>이동속도:</span> <span id="val-move-spd">100%</span>
+                            </div>
                         </div>
                     </div>
                     <button id="reset-character-btn" class="reset-btn hidden"

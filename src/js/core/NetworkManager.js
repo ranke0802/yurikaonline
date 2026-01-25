@@ -20,7 +20,7 @@ export default class NetworkManager extends EventEmitter {
 
         // Optimization: Dead Reckoning & Throttling
         this.lastSyncTime = 0;
-        this.syncInterval = 100; // 10Hz Update Rate (Mobile Friendly)
+        this.syncInterval = 60; // 16Hz Update Rate (v0.27.0 optimization)
     }
 
     connect(user) {
