@@ -1,11 +1,13 @@
 import Logger from '../utils/Logger.js';
 
 export default class Camera {
-    constructor(width, height) {
+    constructor(width, height, worldWidth = 6400, worldHeight = 6400) {
         this.x = 0;
         this.y = 0;
         this.width = width;
         this.height = height;
+        this.worldWidth = worldWidth;
+        this.worldHeight = worldHeight;
         this.deadZoneX = 0;
         this.deadZoneY = 0;
     }

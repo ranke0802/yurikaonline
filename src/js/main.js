@@ -37,8 +37,7 @@ class Game {
         this.ctx.msImageSmoothingEnabled = false;
         this.zoom = 1.0;
 
-        // resize handler
-        this.resize();
+        // Initial resize will be called after camera creation for full sync
         window.addEventListener('resize', () => this.resize());
 
         // Input Focus Management
@@ -75,6 +74,9 @@ class Game {
         this.ui = new UIManager(this);
         // Map is 6400x6400 based on ZoneManager (200 * 32)
         this.camera = new Camera(this.canvas.width, this.canvas.height, 6400, 6400);
+
+        // Force initial resize after camera is ready to sync viewport
+        this.resize();
 
         // 3. Handlers
         this.keyboard = new KeyboardHandler();
@@ -332,6 +334,10 @@ class Game {
         });
 
         this.updateLoading('게임 시작!', 100);
+
+        // Final layout sync before starting the loop to prevent glitches
+        this.resize();
+
         // Start Loop
         this.loop.start();
 
