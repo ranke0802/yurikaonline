@@ -139,7 +139,10 @@ export default class RemotePlayer extends Actor {
 
             if (renderTime >= p1.ts && renderTime <= p2.ts) {
                 // Interpolate
-                const t = (renderTime - p1.ts) / (p2.ts - p1.ts);
+                // v0.28.8: Prevent NaN (Division by Zero) if timestamps are identical
+                const totalTime = p2.ts - p1.ts;
+                const t = totalTime > 0 ? (renderTime - p1.ts) / totalTime : 0;
+
                 finalX = p1.x + (p2.x - p1.x) * t;
                 finalY = p1.y + (p2.y - p1.y) * t;
                 finalVx = p1.vx + (p2.vx - p1.vx) * t;
@@ -303,6 +306,20 @@ export default class RemotePlayer extends Actor {
     }
 
     render(ctx, camera) {
+        // v0.28.8: Ultimate Safety Check - Prevent disappearing due to NaN
+        if (isNaN(this.x) || isNaN(this.y)) {
+            // Try to recover from targetX/Y or packet buffer, otherwise 0
+            if (this.serverUpdates.length > 0) {
+                const last = this.serverUpdates[this.serverUpdates.length - 1];
+                this.x = last.x || 0;
+                this.y = last.y || 0;
+            } else {
+                this.x = this.x || 0; // if it was NaN, it stays NaN? No.
+                if (isNaN(this.x)) this.x = this.targetX || 0;
+                if (isNaN(this.y)) this.y = this.targetY || 0;
+            }
+        }
+
         // Culling Check
         if (this.x + this.width + 100 < camera.x ||
             this.x - 100 > camera.x + camera.width ||
