@@ -74,6 +74,9 @@ export default class RemotePlayer extends Actor {
                 if (this.serverUpdates[i + 1].ts > renderTime) break;
             }
 
+            // Clamping to avoid index out of bounds if renderTime is ahead of all packets
+            if (i >= this.serverUpdates.length - 1) i = this.serverUpdates.length - 2;
+
             const p1 = this.serverUpdates[i];
             const p2 = this.serverUpdates[i + 1];
 
@@ -388,8 +391,8 @@ export default class RemotePlayer extends Actor {
         // Reusing logic from Player.js but with synced color
         ctx.save();
         const time = Date.now() * 0.002;
-        const radiusInner = 40;
-        const radiusOuter = 50;
+        const radiusInner = 60;
+        const radiusOuter = 75;
         const timeSeed = Math.floor(Date.now() / 100);
         const Y_SCALE = 0.45;
 

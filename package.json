@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "start": "npx live-server ."
+  },
   "dependencies": {
     "image-size": "^2.0.2"
   }

@@ -208,7 +208,7 @@ export default class Monster {
 
                 if (this.isAggro && dist > 50) {
                     const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                    let speed = 30; // User-requested (v0.22.8)
+                    let speed = 20; // Requested by User (v0.22.8)
                     if (this.electrocutedTimer > 0) {
                         speed *= (1 - this.slowRatio);
                     }

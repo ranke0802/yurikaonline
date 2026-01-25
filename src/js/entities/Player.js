@@ -82,6 +82,10 @@ export default class Player extends Actor {
         this.runParticles = [];
         this.turnGraceTimer = 0;
 
+        // Missile Queue for Sequential Launch
+        this.missileFireQueue = [];
+        this.missileFireTimer = 0;
+
         // Visuals
         this.sprite = null;
         this.direction = 1; // Default to Front
@@ -150,6 +154,21 @@ export default class Player extends Actor {
         this._updateCooldowns(dt);
         this._updateAnimation(dt);
         this._handleRegen(dt);
+
+        // Process Missile Fire Queue (Sequential Launch)
+        if (this.missileFireQueue.length > 0) {
+            this.missileFireTimer -= dt;
+            if (this.missileFireTimer <= 0) {
+                this.missileFireTimer = 0.05; // 0.05s interval between shots
+                const data = this.missileFireQueue.shift();
+
+                import('./Projectile.js').then(({ Projectile }) => {
+                    if (window.game) {
+                        window.game.projectiles.push(new Projectile(this.x, this.y, data.target, 'missile', data.options));
+                    }
+                });
+            }
+        }
 
         // Run Particle Lifecycle
         if (this.isRunning && (this.vx !== 0 || this.vy !== 0)) {
@@ -394,6 +413,9 @@ export default class Player extends Actor {
         this.moveSpeedBonus = 1.0 + (this.agility * 0.05);
         this.critRate = 0.1 + (this.agility * 0.01);
 
+        // Skill Cooldown Reduction (CDR): 1% per INT+WIS point, max 75%
+        this.skillCDR = Math.min(0.75, (this.intelligence + this.wisdom) * 0.01);
+
         this.speed = 180 * this.moveSpeedBonus;
     }
 
@@ -592,7 +614,7 @@ export default class Player extends Actor {
         this.chargeTime += dt;
         this.lightningTickTimer -= dt;
 
-        const baseTickInterval = 0.7;
+        const baseTickInterval = 1.0; // Increased from 0.7 to 1.0 (Nerf)
         const tickInterval = baseTickInterval / this.attackSpeed;
         const isTick = this.lightningTickTimer <= 0;
 
@@ -713,7 +735,10 @@ export default class Player extends Actor {
             const cost = 4 + (lv - 1) * 3;
             if (this.useMana(cost)) {
                 this.triggerAction(`${this.name} : 매직 미사일 !!`);
-                this.skillCooldowns.h = 1.0; // Original balance: 1.0s
+
+                // Base 0.7s, reduced by CDR
+                const baseCD = 0.7;
+                this.skillCooldowns.h = baseCD * (1 - (this.skillCDR || 0));
 
                 // v0.22.3: Visual Attack FeedBack
                 this.isAttacking = true;
@@ -722,7 +747,7 @@ export default class Player extends Actor {
 
 
                 let nearest = null;
-                let minDist = 500;
+                let minDist = 700;
                 const monsters = window.game.monsterManager ? Array.from(window.game.monsterManager.monsters.values()) : [];
                 monsters.forEach(m => {
                     if (m.isDead) return;
@@ -732,16 +757,42 @@ export default class Player extends Actor {
 
                 if (nearest) {
                     const count = lv;
+                    // Get base firing angle (opposite of movement/facing)
+                    // If moving, use movement direction. Else use sprite direction.
+                    let baseAngle;
+                    if (this.vx !== 0 || this.vy !== 0) {
+                        baseAngle = Math.atan2(this.vy, this.vx) + Math.PI; // Opposite of move
+                    } else {
+                        // 0:Back, 1:Front, 2:Left, 3:Right
+                        const angles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
+                        baseAngle = angles[this.direction] + Math.PI;
+                    }
+
                     for (let i = 0; i < count; i++) {
-                        const offset = (i - (count - 1) / 2) * 20;
+                        // Spread out missiles behind the player with random jitter
+                        const spread = (Math.PI * 4) / 9; // 80 degrees
+                        const angleOffset = (Math.random() - 0.5) * 0.4; // +/- 11 degrees random jitter
+                        const angle = baseAngle + (i - (count - 1) / 2) * (spread / Math.max(1, count - 1)) + angleOffset;
+
+                        // Initial velocity (Burst out) with varied speed
+                        const burstSpeed = 350 + (Math.random() * 300); // 350~650 range
+                        const vx = Math.cos(angle) * burstSpeed;
+                        const vy = Math.sin(angle) * burstSpeed;
+
                         let dmg = this.attackPower * 0.9;
                         let isCrit = Math.random() < this.critRate;
                         if (isCrit) dmg *= 2;
 
-                        import('./Projectile.js').then(({ Projectile }) => {
-                            window.game.projectiles.push(new Projectile(this.x + offset, this.y + offset, nearest, 'missile', {
-                                speed: 500 + (Math.random() * 50), damage: dmg, isCrit: isCrit
-                            }));
+                        // Push to queue for sequential launch (Fixed from previous attempt)
+                        this.missileFireQueue.push({
+                            target: nearest,
+                            options: {
+                                speed: 800 + (Math.random() * 100),
+                                vx, vy,
+                                damage: dmg,
+                                isCrit: isCrit,
+                                radius: 5 // Thicker, beefier laser beam
+                            }
                         });
                     }
                 }
@@ -1225,8 +1276,8 @@ export default class Player extends Actor {
     drawMagicCircle(ctx, sx, sy) {
         ctx.save();
         const time = Date.now() * 0.002;
-        const radiusInner = 40;
-        const radiusOuter = 50;
+        const radiusInner = 60;
+        const radiusOuter = 75;
         const timeSeed = Math.floor(Date.now() / 100);
         const Y_SCALE = 0.45;
 
@@ -1297,7 +1348,7 @@ export default class Player extends Actor {
         ctx.strokeStyle = 'rgba(150, 240, 255, 0.7)';
         ctx.lineWidth = 1.5;
         const runeCount = 12;
-        const runeRadius = 45;
+        const runeRadius = 67.5;
 
         const drawRunePoly = (cx, cy, rotationAngle, localPoints) => {
             ctx.beginPath();

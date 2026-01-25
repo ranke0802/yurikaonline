@@ -165,11 +165,7 @@ export default class MonsterManager {
             });
 
             if (target && minDist < 400 && minDist > 50) {
-                const angle = Math.atan2(target.y - m.y, target.x - m.x);
-                let speed = 100; // User-requested "1.0" base (v0.20.1 Nerf)
-                if (m.electrocutedTimer > 0) speed *= (1 - (m.slowRatio || 0.8));
-                m.vx = Math.cos(angle) * speed;
-                m.vy = Math.sin(angle) * speed;
+                // Movement logic moved to Monster.js to avoid duplication
             } else if (target && minDist <= 60) {
                 m.vx = 0;
                 m.vy = 0;
@@ -180,20 +176,7 @@ export default class MonsterManager {
                     m.attackCooldown = 1.5;
                 }
             } else {
-                // Wandering
-                m.moveTimer -= dt;
-                if (m.moveTimer <= 0) {
-                    const shouldMove = Math.random() < 0.7;
-                    if (shouldMove) {
-                        const angle = Math.random() * Math.PI * 2;
-                        let speed = 40 + Math.random() * 30; // 40-70 (v0.20.1 Nerf)
-                        m.vx = Math.cos(angle) * speed;
-                        m.vy = Math.sin(angle) * speed;
-                    } else {
-                        m.vx = 0; m.vy = 0;
-                    }
-                    m.moveTimer = 1 + Math.random() * 3;
-                }
+                // Wandering logic moved to Monster.js
             }
 
             m.x = Math.max(0, Math.min(6400, m.x + m.vx * dt));
