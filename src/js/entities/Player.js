@@ -762,19 +762,8 @@ export default class Player extends Actor {
         if (chains.length > 0) {
             this.lightningEffect = { chains: chains, timer: 0.1 };
         } else {
-            // v0.29.8: Force visual chain even if no monsters (Action Feedback like Fireball)
-            let tx = centerX; let ty = centerY;
-            const dist = 300; // Visual range
-            if (this.direction === 0) ty -= dist;
-            else if (this.direction === 1) ty += dist;
-            else if (this.direction === 2) tx -= dist;
-            else if (this.direction === 3) tx += dist;
-
-            // Add some jitter to endpoint
-            tx += (Math.random() - 0.5) * 50;
-            ty += (Math.random() - 0.5) * 50;
-
-            this.lightningEffect = { chains: [{ x1: centerX, y1: centerY, x2: tx, y2: ty }], timer: 0.15 };
+            // v0.29.11: No target = no lightning (no longer force visual on empty space)
+            this.lightningEffect = null;
         }
 
     }
