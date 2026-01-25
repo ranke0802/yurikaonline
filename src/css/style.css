@@ -2001,10 +2001,8 @@ html {
 /* 버전 정보 아이콘 */
 .version-info {
     position: absolute;
-    top: calc(5px + env(safe-area-inset-top));
-    /* 상단 바와 정렬 유지 */
-    right: calc(160px + env(safe-area-inset-right));
-    /* 미니맵 왼쪽 위치 유지 */
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    right: calc(10px + env(safe-area-inset-right));
     background: rgba(45, 52, 54, 0.8);
     color: #f1c40f;
     padding: 6px 12px;
