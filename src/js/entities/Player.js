@@ -175,9 +175,10 @@ export default class Player extends Actor {
             // skillAttackTimer > 0 means Missile/Fireball/Shield is animating
             if (this.isChanneling && this.skillAttackTimer <= 0) {
                 this.isChanneling = false;
+                this.isAttacking = false; // v0.29.10: Also reset attacking state
                 this.chargeTime = 0;
                 this.lightningEffect = null;
-                if (this.state === 'attack') this.state = 'idle';
+                this.state = 'idle';
             }
         }
 
