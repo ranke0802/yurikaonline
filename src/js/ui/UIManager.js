@@ -258,10 +258,14 @@ export class UIManager {
                 if (e.isComposing) return; // Prevent double trigger with IME
 
                 if (e.key === 'Enter') {
+                    e.preventDefault(); // Prevent accidental global triggers
                     this.sendMessage();
+                    chatInput.value = ''; // Always clear
                     chatInput.blur(); // Focus out to resume game input
+                    if (this.game.canvas) this.game.canvas.focus(); // Restore game focus
                 } else if (e.key === 'Escape') {
                     chatInput.blur();
+                    if (this.game.canvas) this.game.canvas.focus();
                 }
             });
         }
