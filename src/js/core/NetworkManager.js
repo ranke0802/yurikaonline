@@ -345,11 +345,10 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child(`users/${this.playerId}/p`).set(packet).catch(e => { });
     }
 
-    sendAttack(x, y, direction) {
+    // v0.28.0: Detailed attack sync [ts, x, y, direction, skillType]
+    sendAttack(x, y, direction, skillType = 'normal') {
         if (!this.connected || !this.playerId) return;
-        // Attack Packet: [timestamp, x, y, direction]
-        const attackPacket = [Date.now(), Math.round(x), Math.round(y), direction];
-        // Update Attack Node 'a'
+        const attackPacket = [Date.now(), Math.round(x), Math.round(y), direction, skillType];
         this.dbRef.child(`users/${this.playerId}/a`).set(attackPacket);
     }
 
@@ -379,6 +378,12 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.isHost) return;
         // data: { exp: number, gold: number, items: [] }
         this.dbRef.child(`rewards/${playerId}`).push(data).catch(e => { });
+    }
+
+    // v0.28.0: Sync player HP status
+    sendPlayerHp(hp, maxHp) {
+        if (!this.connected || !this.playerId) return;
+        this.dbRef.child(`users/${this.playerId}/h`).set([Math.round(hp), Math.round(maxHp), Date.now()]);
     }
 
     sendChat(text, senderName) {
@@ -455,7 +460,18 @@ export default class NetworkManager extends EventEmitter {
                 ts: val.a[0],
                 x: val.a[1],
                 y: val.a[2],
-                dir: val.a[3]
+                dir: val.a[3],
+                skillType: val.a[4] || 'normal' // v0.28.0
+            });
+        }
+
+        // v0.28.0: HP Update
+        if (val && val.h && Array.isArray(val.h)) {
+            this.emit('playerHpUpdate', {
+                id: uid,
+                hp: val.h[0],
+                maxHp: val.h[1],
+                ts: val.h[2]
             });
         }
     }

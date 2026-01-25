@@ -215,9 +215,12 @@ class Game {
 
         this.net.on('playerAttack', (data) => {
             const rp = this.remotePlayers.get(data.id);
-            if (rp) {
-                rp.triggerAttack(data);
-            }
+            if (rp) rp.triggerAttack(data);
+        });
+
+        this.net.on('playerHpUpdate', (data) => {
+            const rp = this.remotePlayers.get(data.id);
+            if (rp) rp.onHpUpdate(data);
         });
 
         this.updateLoading('Firebase 연결 대기 중...');

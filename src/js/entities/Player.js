@@ -151,6 +151,14 @@ export default class Player extends Actor {
     }
 
     update(dt) {
+        // v0.28.0: Handle Death Timer even if isDead is true
+        if (this.isDying) {
+            this.deathTimer -= dt;
+            if (this.deathTimer <= 0) {
+                this.respawn();
+            }
+        }
+
         if (this.isDead) return;
 
         this._handleMovement(dt);
@@ -516,21 +524,22 @@ export default class Player extends Actor {
         if (window.game) {
             window.game.addDamageText(this.x + this.width / 2, this.y - 40, `-${finalDmg}`, '#ff4757', false);
         }
+
+        // v0.28.0: Sync HP to DB
+        if (this.net) this.net.sendPlayerHp(this.hp, this.maxHp);
+
         Logger.log(`[Player] HP: ${this.hp}`);
 
-        if (this.hp <= 0) {
-            this.hp = 0;
+        if (this.hp <= 0 && !this.isDead) {
             this.die();
         }
+
         return finalDmg;
     }
 
     die() {
-        if (this.isDead) return;
         this.isDead = true;
         this.state = 'die';
-        this.stop(); // Stop movement
-
         // Visual feedback
         if (window.game && window.game.ui) {
             window.game.ui.logSystemMessage('당신은 전사했습니다...');
@@ -644,9 +653,9 @@ export default class Player extends Actor {
             this.skillMaxCooldowns.j = tickInterval;
 
             this.animTimer = 0; // Restart attack animation
-            if (this.net) {
-                this.net.sendAttack(this.x, this.y, this.direction);
-            }
+
+            // v0.28.0: Detailed attack sync [ts, x, y, direction, skillType]
+            if (this.net) this.net.sendAttack(this.x, this.y, this.direction, 'laser');
         }
 
         const laserLv = this.skillLevels.laser || 1;
@@ -759,10 +768,14 @@ export default class Player extends Actor {
                 this.skillCooldowns.h = baseCD * (1 - (this.skillCDR || 0));
 
                 // v0.22.3: Visual Attack FeedBack
+                // v0.22.3: Visual Attack FeedBack
                 this.isAttacking = true;
                 this.isChanneling = true; // v0.26.1
                 this.skillAttackTimer = 0.4;
                 this.animTimer = 0;
+
+                // v0.28.0: Sync Missile skill
+                if (this.net) this.net.sendAttack(this.x, this.y, this.direction, 'missile');
 
 
                 let nearest = null;
@@ -823,9 +836,13 @@ export default class Player extends Actor {
                 this.skillCooldowns.u = 5.0; // Original balance: 5.0s
 
                 // v0.22.3: Visual Attack FeedBack
+                // v0.22.3: Visual Attack FeedBack
                 this.isAttacking = true;
                 this.skillAttackTimer = 0.4;
                 this.animTimer = 0;
+
+                // v0.28.0: Sync Fireball skill
+                if (this.net) this.net.sendAttack(this.x, this.y, this.direction, 'fireball');
 
 
                 // v0.21.3: Fix direction mapping for 4-way character orientation
@@ -1063,8 +1080,32 @@ export default class Player extends Actor {
                     ctx.shadowBlur = 0;
                     ctx.stroke();
                 });
-                ctx.restore();
             }
+        } else if (this.state === 'die' || this.isDying) {
+            // v0.28.0: Tombstone visual for LOCAL player
+            ctx.save();
+            ctx.fillStyle = '#b2bec3';
+            ctx.strokeStyle = '#2d3436';
+            ctx.lineWidth = 2;
+
+            const tw = 40, th = 50;
+            const tx = centerX - tw / 2, ty = y + this.height - th;
+            ctx.beginPath();
+            ctx.moveTo(tx, ty + th);
+            ctx.lineTo(tx, ty + 15);
+            ctx.quadraticCurveTo(tx, ty, tx + tw / 2, ty);
+            ctx.quadraticCurveTo(tx + tw, ty, tx + tw, ty + 15);
+            ctx.lineTo(tx + tw, ty + th);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.strokeStyle = '#636e72';
+            ctx.beginPath();
+            ctx.moveTo(centerX, ty + 10); ctx.lineTo(centerX, ty + 30);
+            ctx.moveTo(centerX - 10, ty + 18); ctx.lineTo(centerX + 10, ty + 18);
+            ctx.stroke();
+            ctx.restore();
         } else {
 
             // Fallback (Circle)

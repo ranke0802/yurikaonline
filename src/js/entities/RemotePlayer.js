@@ -25,7 +25,61 @@ export default class RemotePlayer extends Actor {
         this.chatMessage = null;
         this.chatTimer = 0;
 
+        // v0.28.0: Combat States
+        this.hp = 100;
+        this.maxHp = 100;
+        this.floatingTexts = [];
+        this.deathTimer = 0; // For 3s death state visual
+        this.isDying = false;
+
         this._loadSpriteSheet(resourceManager);
+    }
+
+    onHpUpdate(data) {
+        // data: { hp, maxHp, ts }
+        const oldHp = this.hp;
+        this.hp = data.hp;
+        this.maxHp = data.maxHp;
+
+        // Trigger hit effect if HP decreased
+        if (oldHp > this.hp) {
+            this.state = 'hit';
+            setTimeout(() => { if (this.state === 'hit') this.state = 'idle'; }, 200);
+
+            // Show floating damage
+            this.addFloatingText(Math.round(oldHp - this.hp), '#ff4d4d');
+        }
+
+        // Handle Death
+        if (this.hp <= 0 && !this.isDying) {
+            this.die();
+        } else if (this.hp > 0 && this.isDying) {
+            this.respawn();
+        }
+    }
+
+    addFloatingText(text, color) {
+        this.floatingTexts.push({
+            text: text,
+            color: color,
+            x: this.x + this.width / 2 + (Math.random() - 0.5) * 20,
+            y: this.y,
+            life: 1.0,
+            vy: -40 // Floating up
+        });
+    }
+
+    die() {
+        this.isDying = true;
+        this.isDead = true;
+        this.state = 'die';
+        this.deathTimer = 3.0; // 3 seconds visual
+    }
+
+    respawn() {
+        this.isDying = false;
+        this.isDead = false;
+        this.state = 'idle';
     }
 
     async _loadSpriteSheet(res) {
@@ -172,6 +226,20 @@ export default class RemotePlayer extends Actor {
             this.chatTimer -= dt;
             if (this.chatTimer <= 0) this.chatMessage = null;
         }
+
+        // v0.28.0: Floating Text update
+        for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+            const ft = this.floatingTexts[i];
+            ft.y += ft.vy * dt;
+            ft.life -= dt * 0.8;
+            if (ft.life <= 0) this.floatingTexts.splice(i, 1);
+        }
+
+        // Death State Handling
+        if (this.isDying) {
+            this.deathTimer = Math.max(0, this.deathTimer - dt);
+            this.state = 'die';
+        }
     }
 
     _updateLightningVisual() {
@@ -264,7 +332,34 @@ export default class RemotePlayer extends Actor {
         }
 
         // 3. Draw Sprite
-        if (this.sprite) {
+        if (this.state === 'die' || this.isDying) {
+            // v0.28.0: Tombstone visual
+            ctx.save();
+            ctx.fillStyle = '#b2bec3';
+            ctx.strokeStyle = '#2d3436';
+            ctx.lineWidth = 2;
+
+            // Draw gravestone shape
+            const tw = 40, th = 50;
+            const tx = centerX - tw / 2, ty = y + this.height - th;
+            ctx.beginPath();
+            ctx.moveTo(tx, ty + th);
+            ctx.lineTo(tx, ty + 15);
+            ctx.quadraticCurveTo(tx, ty, tx + tw / 2, ty);
+            ctx.quadraticCurveTo(tx + tw, ty, tx + tw, ty + 15);
+            ctx.lineTo(tx + tw, ty + th);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Cross on tombstone
+            ctx.strokeStyle = '#636e72';
+            ctx.beginPath();
+            ctx.moveTo(centerX, ty + 10); ctx.lineTo(centerX, ty + 30);
+            ctx.moveTo(centerX - 10, ty + 18); ctx.lineTo(centerX + 10, ty + 18);
+            ctx.stroke();
+            ctx.restore();
+        } else if (this.sprite) {
             let row = this.direction;
             if (this.state === 'attack') row = 4;
             let col = this.animFrame;
@@ -293,6 +388,18 @@ export default class RemotePlayer extends Actor {
 
         // 3. HUD (HP Bar & Name)
         this.drawHUD(ctx, centerX, y);
+
+        // 4. Floating Damage (v0.28.0)
+        this.floatingTexts.forEach(ft => {
+            ctx.save();
+            ctx.font = 'bold 20px "Outfit", sans-serif';
+            ctx.fillStyle = ft.color;
+            ctx.globalAlpha = ft.life;
+            ctx.textAlign = 'center';
+            ctx.strokeText(ft.text, ft.x, ft.y);
+            ctx.fillText(ft.text, ft.x, ft.y);
+            ctx.restore();
+        });
 
         // 4. Direction Arrow (At feet)
         this.drawDirectionArrow(ctx, centerX, y + this.height);
@@ -326,33 +433,66 @@ export default class RemotePlayer extends Actor {
         }
     }
     triggerAttack(data) {
-        // Prevent duplicate firing of same attack
+        // data: { ts, x, y, dir, skillType }
         if (this.lastAttackTime && data.ts <= this.lastAttackTime) return;
-
-        // Ignore stale attacks (older than 3 seconds) - fixes "Ghost Attack" on refresh
         if (Date.now() - data.ts > 3000) return;
 
         this.lastAttackTime = data.ts;
-
-        // data: { ts, x, y, dir }
-        // Snap to attack position for precise visual
-        this.x = data.x;
-        this.y = data.y;
-        this.targetX = data.x; // Stop interpolation movement
-        this.targetY = data.y;
         this.direction = data.dir;
-
         this.isAttacking = true;
         this.state = 'attack';
         this.animTimer = 0;
         this.animFrame = 0;
 
-        // Reset after animation (approx 0.6s)
+        const skillType = data.skillType || 'normal';
+
+        // v0.28.0: Visual consistency for skills
+        if (skillType === 'fireball' || skillType === 'missile') {
+            const centerX = data.x + this.width / 2;
+            const centerY = data.y + this.height / 2;
+
+            // Re-use projectile logic from Player.js if possible, 
+            // but for simplicity we inject into the world-level projectile manager
+            if (window.game && window.game.projectileManager) {
+                if (skillType === 'fireball') {
+                    // Fireball uses direction to aim
+                    let vx = 0, vy = 0, speed = 400;
+                    if (this.direction === 0) vy = -speed;
+                    else if (this.direction === 1) vy = speed;
+                    else if (this.direction === 2) vx = -speed;
+                    else if (this.direction === 3) vx = speed;
+
+                    window.game.projectileManager.createFireball(centerX, centerY, vx, vy, 0, this.id);
+                } else if (skillType === 'missile') {
+                    // Missile needs a target. For remote, we just pick closest monster or ignore for visual.
+                    // Ideally we sync the target too, but for now just visual burst behind.
+                    this._triggerRemoteMissileVisual(centerX, centerY);
+                }
+            }
+        }
+
         if (this.attackTimeout) clearTimeout(this.attackTimeout);
         this.attackTimeout = setTimeout(() => {
             this.isAttacking = false;
-            this.state = 'idle';
+            if (!this.isDying) this.state = 'idle';
         }, 600);
+    }
+
+    _triggerRemoteMissileVisual(centerX, centerY) {
+        // Visual-only burst similar to player's missile
+        const baseAngles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
+        const baseAngle = baseAngles[this.direction] + Math.PI;
+
+        for (let i = 0; i < 3; i++) {
+            const angle = baseAngle + (Math.random() - 0.5) * 1.5;
+            const burstSpeed = 300 + Math.random() * 200;
+            const vx = Math.cos(angle) * burstSpeed;
+            const vy = Math.sin(angle) * burstSpeed;
+
+            if (window.game.projectileManager) {
+                window.game.projectileManager.createMissile(centerX, centerY, vx, vy, null, 0, this.id);
+            }
+        }
     }
 
     drawHUD(ctx, centerX, y) {
