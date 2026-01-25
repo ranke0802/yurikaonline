@@ -350,28 +350,31 @@ export default class Monster {
             return;
         }
 
-        this.hp = Math.max(0, this.hp - dmg);
-        Logger.log(`[Monster] ${this.id} HP: ${this.hp}`);
+        // v0.29.17: Only HOST reduces actual HP to prevent desync
+        if (window.game?.net?.isHost) {
+            this.hp = Math.max(0, this.hp - dmg);
+            Logger.log(`[Monster] ${this.id} HP: ${this.hp}`);
+        }
 
+        // Visual feedback for ALL clients
         if (triggerFlash) this.hitTimer = 0.2;
 
-        // Apply Knockback
+        // Apply Knockback (visual only, doesn't affect sync)
         if (sourceX !== null && sourceY !== null) {
             const angle = Math.atan2(this.y - sourceY, this.x - sourceX);
             const force = isCrit ? 300 : 150;
             this.applyKnockback(Math.cos(angle) * force, Math.sin(angle) * force);
         }
 
+        // Damage text for ALL clients
         if (amount > 0 && window.game && typeof window.game.addDamageText === 'function') {
             window.game.addDamageText(this.x, this.y - 40, `-${Math.ceil(amount)}`, isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null);
         }
 
-        // --- Damage Sync (Guest to Host) ---
-        if (amount > 0 && window.game?.net && !window.game.net.isHost) {
-            window.game.net.sendMonsterDamage(this.id, amount);
-        }
+        // v0.29.17: Removed internal sendMonsterDamage call (it's now handled by attack code)
 
-        if (this.hp <= 0) {
+        // Death check (host authority)
+        if (window.game?.net?.isHost && this.hp <= 0) {
             if (!this.isDead) Logger.log(`[Monster] ${this.id || 'unknown'} died`);
             this.isDead = true;
             this.hp = 0;

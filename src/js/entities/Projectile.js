@@ -150,9 +150,10 @@ export class Projectile {
                         net.sendMonsterDamage(m.id, Math.ceil(finalDmg));
                         m.lastAttackerId = net.playerId;
                     }
-                    // Only host applies actual damage
-                    if (net?.isHost || !m.isMonster) {
-                        m.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y);
+                    // v0.29.17: All clients call takeDamage for visual feedback
+                    m.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y);
+                    // Only host applies burn effect that modifies state
+                    if (net?.isHost) {
                         m.applyEffect('burn', this.burnDuration, Math.ceil(finalDmg * 0.15));
                     }
                 }
@@ -165,10 +166,8 @@ export class Projectile {
                 net.sendMonsterDamage(monster.id, Math.ceil(finalDmg));
                 monster.lastAttackerId = net.playerId;
             }
-            // Only host applies actual damage
-            if (net?.isHost || !monster.isMonster) {
-                monster.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y);
-            }
+            // v0.29.17: All clients call takeDamage for visual feedback
+            monster.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y);
         }
         this.isDead = true;
     }

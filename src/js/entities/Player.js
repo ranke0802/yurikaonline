@@ -741,7 +741,7 @@ export default class Player extends Actor {
 
                     // Support both Monster and RemotePlayer takeDamage
                     if (nextTarget.takeDamage) {
-                        // v0.29.12: Always send monster damage to network for sync
+                        // v0.29.12: Send monster damage to network for sync
                         if (nextTarget.isMonster && this.net) {
                             this.net.sendMonsterDamage(nextTarget.id, Math.ceil(dmg));
                             nextTarget.lastAttackerId = this.net.playerId;
@@ -750,10 +750,9 @@ export default class Player extends Actor {
                         if (!nextTarget.isMonster && this.net) {
                             this.net.sendPlayerDamage(nextTarget.id, dmg);
                         }
-                        // Only host applies actual damage to monsters
-                        if (window.game?.net?.isHost || !nextTarget.isMonster) {
-                            nextTarget.takeDamage(Math.ceil(dmg), true, isCrit, null, null);
-                        }
+                        // v0.29.17: All clients call takeDamage for visual feedback (damage text)
+                        // Actual HP reduction is controlled within Monster.takeDamage based on isHost
+                        nextTarget.takeDamage(Math.ceil(dmg), true, isCrit, null, null);
                     }
 
                     // Slow effect
