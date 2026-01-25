@@ -2016,10 +2016,10 @@ html {
     z-index: 2000;
 }
 
-/* 전체화면 모드 시 버전 정보 위치 조정용 (사용자 조정 가능) */
+/* 전체화면 모드 시에도 우측 하단 위치 유지 (충돌 방지) */
 body.is-fullscreen .version-info {
-    top: calc(15px + env(safe-area-inset-top));
-    right: calc(160px + env(safe-area-inset-right));
+    bottom: calc(15px + env(safe-area-inset-bottom));
+    right: calc(10px + env(safe-area-inset-right));
 }
 
 .version-info:hover {
