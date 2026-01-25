@@ -582,9 +582,18 @@ export default class RemotePlayer extends Actor {
 
     drawDirectionArrow(ctx, sx, sy) {
         ctx.save();
-        let vx = 0, vy = 0;
-        switch (this.direction) {
-            case 0: vy = -1; break; case 1: vy = 1; break; case 2: vx = -1; break; case 3: vx = 1; break;
+        // v0.29.14: Use velocity for 8-direction arrow
+        let vx = this.vx || 0;
+        let vy = this.vy || 0;
+        const mag = Math.sqrt(vx * vx + vy * vy);
+        if (mag > 0.1) {
+            vx /= mag;
+            vy /= mag;
+        } else {
+            // Fallback to direction when idle
+            switch (this.direction) {
+                case 0: vy = -1; break; case 1: vy = 1; break; case 2: vx = -1; break; case 3: vx = 1; break;
+            }
         }
         const angle = Math.atan2(vy, vx);
         ctx.translate(sx + vx * 20, sy + vy * 5);

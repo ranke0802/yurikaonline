@@ -1323,18 +1323,14 @@ export default class Player extends Actor {
     drawDirectionArrow(ctx, sx, sy) {
         ctx.save();
         const dist = 60;
-        let vx = 0, vy = 0;
-        const diag = 0.707;
-        switch (this.direction) {
-            case 0: vx = 0; vy = -1; break; // Back
-            case 1: vx = 0; vy = 1; break; // Front
-            case 2: vx = -1; vy = 0; break; // Left
-            case 3: vx = 1; vy = 0; break; // Right
-        }
+
+        // v0.29.14: Use facingAngle for 8-direction arrow
+        const angle = this.facingAngle !== undefined ? this.facingAngle : 0;
+        const vx = Math.cos(angle);
+        const vy = Math.sin(angle);
 
         const ax = sx + vx * dist;
         const ay = sy + vy * dist;
-        const angle = Math.atan2(vy, vx);
 
         ctx.translate(ax, ay);
         ctx.rotate(angle);
