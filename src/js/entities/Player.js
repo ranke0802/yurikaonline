@@ -840,6 +840,16 @@ export default class Player extends CharacterBase {
                     if (d < minDist) { minDist = d; nearest = m; }
                 });
 
+                // v0.00.08: PvP Targeting (RemotePlayers)
+                // If no monster is closer than 700, check players
+                if (window.game.remotePlayers) {
+                    window.game.remotePlayers.forEach(rp => {
+                        if (rp.isDead || rp.id === this.id) return;
+                        const d = Math.sqrt((this.x - rp.x) ** 2 + (this.y - rp.y) ** 2);
+                        if (d < minDist) { minDist = d; nearest = rp; }
+                    });
+                }
+
                 if (nearest) {
                     // count is already defined above
                     // Get base firing angle (opposite of movement/facing)
