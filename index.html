@@ -36,22 +36,37 @@
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
-        window.GAME_VERSION = '0.29.19';
-
-        async function initCacheBusting() {
+        // v0.29.20: Improved version check - uses localStorage to prevent infinite reload loops
+        (async function initCacheBusting() {
             try {
                 const response = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
                 const serverVersion = (await response.text()).trim();
+                const cachedVersion = localStorage.getItem('yurika_last_version');
 
-                if (serverVersion && window.GAME_VERSION !== serverVersion) {
-                    console.log(`New version detected: ${window.GAME_VERSION} -> ${serverVersion}. Reloading...`);
+                // Set global version from server (single source of truth)
+                window.GAME_VERSION = serverVersion;
+
+                // Only reload if:
+                // 1. We have a cached version (not first visit)
+                // 2. Server version differs from cached version
+                // 3. We haven't just reloaded (prevent loop via session flag)
+                const justReloaded = sessionStorage.getItem('yurika_just_reloaded');
+
+                if (cachedVersion && cachedVersion !== serverVersion && !justReloaded) {
+                    console.log(`New version detected: ${cachedVersion} -> ${serverVersion}. Reloading...`);
+                    sessionStorage.setItem('yurika_just_reloaded', 'true');
+                    localStorage.setItem('yurika_last_version', serverVersion);
                     window.location.reload(true);
+                } else {
+                    // Clear reload flag and save current version
+                    sessionStorage.removeItem('yurika_just_reloaded');
+                    localStorage.setItem('yurika_last_version', serverVersion);
                 }
             } catch (e) {
                 console.log('Version check failed:', e);
+                window.GAME_VERSION = 'unknown';
             }
-        }
-        initCacheBusting();
+        })();
     </script>
     <link rel="stylesheet" href="src/css/style.css?v=0.29.19">
     <link rel="preconnect" href="https://fonts.googleapis.com">
