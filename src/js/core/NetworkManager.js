@@ -251,6 +251,18 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
+    // v1.94: Developer Mode - Lookup UID by Player Name
+    async getUidByName(name) {
+        if (!name) return null;
+        try {
+            const snapshot = await firebase.database().ref(`names/${name}`).once('value');
+            return snapshot.val();
+        } catch (e) {
+            Logger.error('UID lookup by name failed', e);
+            return null;
+        }
+    }
+
     // v0.00.04: Full Character Deletion
     async deleteCharacter(uid, name) {
         if (!uid) return;
@@ -275,7 +287,7 @@ export default class NetworkManager extends EventEmitter {
     // --- Host Logic ---
     _checkHostStatus() {
         const now = Date.now();
-        const timeout = 60000; // 60s Active Timeout (Relaxed)
+        const timeout = 12000; // v1.97: Reduced from 60s to 12s for faster takeover
 
         // Update self
         this.userLastSeen.set(this.playerId, now);

@@ -5,8 +5,8 @@ import { Sprite } from '../core/Sprite.js';
 
 export default class Monster extends CharacterBase {
     constructor(x, y, definition = null) {
-        // Use speed from definition or default 20
-        const speed = definition?.baseStats?.speed || 20;
+        // Use speed from definition or default 50
+        const speed = definition?.baseStats?.speed || 50;
         super(x, y, speed);
 
         // Apply Definition Data
@@ -51,6 +51,8 @@ export default class Monster extends CharacterBase {
         this.vx = 0;
         this.vy = 0;
         this.moveTimer = 0;
+        this.wanderVx = 0;
+        this.wanderVy = 0;
 
         this.isAggro = false;
         this.isBoss = false;
@@ -60,6 +62,8 @@ export default class Monster extends CharacterBase {
         this.lastAttackerId = null;
         this.targetX = x;
         this.targetY = y;
+        this.targetPlayer = null; // v1.99: AI Target
+        this.spawnGraceTimer = 3.0; // v1.99.10: Wait 3s after spawn before chasing
         this.isMonster = true;
 
         this.init(this.assetPath);
@@ -168,6 +172,18 @@ export default class Monster extends CharacterBase {
     }
 
     update(dt) {
+        // v1.99.9: Hard cap on dt to prevent physics tunneling or explosions during lag
+        const safeDt = Math.min(0.1, dt);
+
+        // 1. Death handling
+        if (this.hp <= 0 && !this.isDead) {
+            this.isDead = true;
+            this.hp = 0;
+            this.vx = 0;
+            this.vy = 0;
+            Logger.log(`[Monster] Local death trigger for ${this.id}`);
+        }
+
         if (this.isDead) {
             this.deathTimer += dt;
             this.alpha = Math.max(0, 1 - (this.deathTimer / this.deathDuration));
@@ -178,30 +194,40 @@ export default class Monster extends CharacterBase {
 
         this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
 
-
-        // --- AI Logic (Aggro & Awareness) ---
-        const localP = window.game?.localPlayer;
-        if (localP && !localP.isDead) {
-            const dToP = Math.sqrt((localP.x - this.x) ** 2 + (localP.y - this.y) ** 2);
-            const wasAttacked = this.hp < this.maxHp;
-            const aggroRange = 300 + (localP.level * 20);
-            const leashRange = aggroRange * 2;
-
-            if (!this.isAggro) {
-                // Aggro trigger: either by damage or proximity
-                if (wasAttacked || (dToP < aggroRange && localP.level > 3)) {
-                    this.isAggro = true;
-                }
-            } else {
-                // v0.22.0: Persistent Aggro Mechanism
-                // If attacked, tracking is INFINITE until death.
-                // If only proximity-triggered, standard leash applies.
-                if (!wasAttacked && dToP > leashRange) {
-                    this.isAggro = false;
-                }
+        // 2. Targeting (AI Awareness)
+        const getAllPlayers = () => {
+            const players = [];
+            if (window.game?.localPlayer && !window.game.localPlayer.isDead) players.push(window.game.localPlayer);
+            if (window.game?.remotePlayers) {
+                window.game.remotePlayers.forEach(p => { if (!p.isDead) players.push(p); });
             }
-        } else {
-            this.isAggro = false; // Target is dead or missing
+            return players;
+        };
+
+        this.isAggro = false;
+        this.targetPlayer = null;
+
+        // v1.99.10: Handle spawn grace delay (Wait 3s before aggro)
+        if (!this.spawnGraceTimer) this.spawnGraceTimer = 0; // Guard
+        if (this.spawnGraceTimer > 0) {
+            this.spawnGraceTimer -= safeDt;
+        }
+
+        const candidates = getAllPlayers();
+        if (this.spawnGraceTimer <= 0 && candidates.length > 0) {
+            let nearest = null;
+            let minDist = Infinity;
+            candidates.forEach(p => {
+                const dx = p.x - this.x;
+                const dy = p.y - this.y;
+                const d = Math.sqrt(dx * dx + dy * dy);
+                if (d < minDist) {
+                    minDist = d;
+                    nearest = p;
+                }
+            });
+            this.targetPlayer = nearest;
+            this.isAggro = true;
         }
 
         this.timer += dt;
@@ -210,116 +236,119 @@ export default class Monster extends CharacterBase {
             this.frame = (this.frame + 1) % this.frameCount;
         }
 
-        // --- AI Logic (Host Only: Physical Movement) ---
+        // 3. Movement Logic (Host Authority)
         if (window.game?.net?.isHost) {
-            if (!this.attackCooldown) this.attackCooldown = 0;
-            if (this.attackCooldown > 0) this.attackCooldown -= dt;
+            const target = this.targetPlayer;
+            let aiVx = 0;
+            let aiVy = 0;
 
-            // Host AI targeting
-            const player = window.game?.localPlayer;
-
-            if (player) {
-                const dist = Math.sqrt((player.x - this.x) ** 2 + (player.y - this.y) ** 2);
-
-                if (this.isAggro && dist > 50) {
-                    const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                    let speed = 20; // Requested by User (v0.22.8)
-                    if (this.electrocutedTimer > 0) {
-                        speed *= (1 - this.slowRatio);
-                    }
-                    this.vx = Math.cos(angle) * speed;
-                    this.vy = Math.sin(angle) * speed;
-                } else if (this.isAggro && dist <= 60) {
-                    this.vx = 0;
-                    this.vy = 0;
+            // Base Velocity from AI
+            if (target) {
+                const dist = Math.sqrt((target.x - this.x) ** 2 + (target.y - this.y) ** 2);
+                if (dist > 55) {
+                    // Chase mode
+                    const angle = Math.atan2(target.y - this.y, target.x - this.x);
+                    let speed = this.speed || 50;
+                    if (this.electrocutedTimer > 0) speed *= (1 - this.slowRatio);
+                    aiVx = Math.cos(angle) * speed;
+                    aiVy = Math.sin(angle) * speed;
+                } else {
+                    // Attack mode (Stop and hit)
+                    aiVx = 0;
+                    aiVy = 0;
+                    if (!this.attackCooldown) this.attackCooldown = 0;
+                    this.attackCooldown -= dt;
                     if (this.attackCooldown <= 0) {
-                        player.takeDamage(Math.ceil(5 + (Math.random() * 5)));
+                        if (window.game?.net) {
+                            window.game.net.sendPlayerDamage(target.id, Math.ceil(5 + (Math.random() * 5)));
+                        } else {
+                            target.takeDamage(Math.ceil(5 + (Math.random() * 5)));
+                        }
                         this.attackCooldown = 1.5;
                         this.hitTimer = 0.1;
                     }
-                } else {
-                    // Wandering
-                    this.moveTimer -= dt;
-                    if (this.moveTimer <= 0) {
-                        const shouldMove = Math.random() < 0.7;
-                        if (shouldMove) {
-                            const angle = Math.random() * Math.PI * 2;
-                            let speed = 5 + Math.random() * 10; // 5-15 range for wandering (v0.21.2)
-                            if (this.electrocutedTimer > 0) speed *= (1 - this.slowRatio);
-                            this.vx = Math.cos(angle) * speed;
-                            this.vy = Math.sin(angle) * speed;
-                        } else {
-                            this.vx = 0;
-                            this.vy = 0;
-                        }
-                        this.moveTimer = 1 + Math.random() * 3;
+                }
+            } else {
+                // Wandering mode
+                this.moveTimer -= dt;
+                if (this.moveTimer <= 0) {
+                    if (Math.random() < 0.7) {
+                        const angle = Math.random() * Math.PI * 2;
+                        let speed = 5 + Math.random() * 10;
+                        if (this.electrocutedTimer > 0) speed *= (1 - this.slowRatio);
+                        this.wanderVx = Math.cos(angle) * speed;
+                        this.wanderVy = Math.sin(angle) * speed;
+                    } else {
+                        this.wanderVx = 0;
+                        this.wanderVy = 0;
                     }
+                    this.moveTimer = 1 + Math.random() * 3;
                 }
+                aiVx = this.wanderVx;
+                aiVy = this.wanderVy;
             }
 
-            // Movement & Collision (Host Authority)
-            const nextX = this.x + (this.vx + this.knockback.vx) * dt;
-            const nextY = this.y + (this.vy + this.knockback.vy) * dt;
+            // v1.99.9: Apply fresh calculated velocity (Guard against NaN and invalid numbers)
+            this.vx = (typeof aiVx === 'number' && !isNaN(aiVx)) ? aiVx : 0;
+            this.vy = (typeof aiVy === 'number' && !isNaN(aiVy)) ? aiVy : 0;
 
-            // Dissipate knockback
-            this.knockback.vx *= this.knockbackFriction;
-            this.knockback.vy *= this.knockbackFriction;
-            if (Math.abs(this.knockback.vx) < 1) this.knockback.vx = 0;
-            if (Math.abs(this.knockback.vy) < 1) this.knockback.vy = 0;
-
-
-            let canMoveX = true;
-            let canMoveY = true;
-            const collisionRadius = 45;
-
-            // Collision with Player
-            if (player && !player.isDead) {
-                const dist = Math.sqrt((nextX - player.x) ** 2 + (nextY - player.y) ** 2);
-                if (dist < collisionRadius) {
-                    canMoveX = false;
-                    canMoveY = false;
-                }
-            }
-
-            // Collision & Separation Factor: Push away from other monsters
-            if (window.game && window.game.monsterManager?.monsters) {
+            // Separation Force: Prevent monsters from overlapping perfectly
+            if (window.game?.monsterManager?.monsters) {
                 const allMonsters = window.game.monsterManager.monsters;
-                if (allMonsters) {
-                    allMonsters.forEach(other => {
-                        if (other === this || other.isDead) return;
-                        const distToOther = Math.sqrt((this.x - other.x) ** 2 + (this.y - other.y) ** 2);
-                        const separationDist = 55;
-                        if (distToOther < separationDist) {
-                            // Apply separation force
-                            const angle = Math.atan2(this.y - other.y, this.x - other.x);
-                            const force = (separationDist - distToOther) * 2.0;
-                            this.vx += Math.cos(angle) * force;
-                            this.vy += Math.sin(angle) * force;
-
-                            // Visual hint for collision
-                            canMoveX = false;
-                            canMoveY = false;
-                        }
-                    });
-                }
+                const separationDist = 50;
+                allMonsters.forEach(other => {
+                    if (other === this || other.isDead) return;
+                    let dx = this.x - other.x;
+                    let dy = this.y - other.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 1) { // Perfect overlap fix
+                        dx = Math.random() - 0.5;
+                        dy = Math.random() - 0.5;
+                        dist = Math.sqrt(dx * dx + dy * dy);
+                    }
+                    if (dist < separationDist) {
+                        const angle = Math.atan2(dy, dx);
+                        const force = (separationDist - dist) * 0.4; // v1.99.9: Much softer push to avoid bounce
+                        this.vx += Math.cos(angle) * force;
+                        this.vy += Math.sin(angle) * force;
+                    }
+                });
             }
 
-            if (canMoveX) this.x = nextX;
-            if (canMoveY) this.y = nextY;
+            // Final Position Calculation (Safe move)
+            let nextX = this.x + (this.vx + this.knockback.vx) * safeDt;
+            let nextY = this.y + (this.vy + this.knockback.vy) * safeDt;
 
-            // Keep inside map bounds
-            this.x = Math.max(0, Math.min(6000, this.x));
-            this.y = Math.max(0, Math.min(6000, this.y));
+            // Collision Detection with Target Player
+            let canMove = true;
+            if (target && !target.isDead) {
+                const currentDist = Math.sqrt((this.x - target.x) ** 2 + (this.y - target.y) ** 2);
+                const nextDist = Math.sqrt((nextX - target.x) ** 2 + (nextY - target.y) ** 2);
+                if (nextDist < 45 && nextDist < currentDist) canMove = false;
+            }
+
+            if (canMove) {
+                // Apply move with boundary and NaN guard
+                const targetX = isNaN(nextX) ? this.x : nextX;
+                const targetY = isNaN(nextY) ? this.y : nextY;
+                this.x = Math.max(0, Math.min(6000, targetX));
+                this.y = Math.max(0, Math.min(6000, targetY));
+            }
+
+            // Dissipate knockback forces
+            this.knockback.vx *= 0.85; // Slightly faster dissipation
+            this.knockback.vy *= 0.85;
         } else {
-            // Guest: Interpolate to target position for smoothness
-            const lerpFactor = 0.15;
-            this.x += (this.targetX - this.x) * lerpFactor;
-            this.y += (this.targetY - this.y) * lerpFactor;
+            // Guest Side: Smooth Interpolation
+            const targetX = isNaN(this.targetX) ? this.x : this.targetX;
+            const targetY = isNaN(this.targetY) ? this.y : this.targetY;
+            const lerpFactor = 0.35; // Snappy
+            this.x += (targetX - this.x) * lerpFactor;
+            this.y += (targetY - this.y) * lerpFactor;
         }
 
-        if (this.hitTimer > 0) {
-            this.hitTimer -= dt;
-        }
+        // 4. Cleanup & Feedback
+        if (this.hitTimer > 0) this.hitTimer -= dt;
 
         if (this.electrocutedTimer > 0) {
             this.electrocutedTimer -= dt;
@@ -329,16 +358,15 @@ export default class Monster extends CharacterBase {
             this.slowRatio = 0;
         }
 
-        // Process Status Effects
+        // 5. Status Effects
         this.statusEffects = this.statusEffects.filter(eff => {
             eff.timer -= dt;
             if (eff.type === 'burn') {
-                // Apply burn damage every second-ish
                 if (!eff.tickTimer) eff.tickTimer = 0;
                 eff.tickTimer += dt;
                 if (eff.tickTimer >= 0.5) {
                     eff.tickTimer = 0;
-                    this.takeDamage(eff.damage, false); // false = don't trigger hit flash for DoT
+                    this.takeDamage(eff.damage, false);
                 }
             }
             return eff.timer > 0;

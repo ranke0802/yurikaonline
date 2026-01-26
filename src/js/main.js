@@ -221,7 +221,7 @@ class Game {
             }
         });
 
-        this.updateLoading('Firebase 연결 중...');
+        this.updateLoading('로그인 상태 확인 중...');
         this.auth.init();
     }
 

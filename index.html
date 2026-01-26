@@ -32,7 +32,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.29.23</title>
+    <title>Yurika Online v0.00.04</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
@@ -295,6 +295,12 @@
                             </p>
                             <p><strong>직업:</strong> 초보 마법사</p>
                             <p><strong>레벨:</strong> <span id="stat-level">1</span></p>
+                            <div class="auth-link-row" style="margin-top: 5px;">
+                                <button id="btn-link-google" class="link-google-btn"
+                                    style="width: 100%; border: 1px solid #4285f4; background: white; color: #4285f4; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-weight: bold;">
+                                    <!-- Text injected via JS -->
+                                </button>
+                            </div>
                             <div class="exp-bar-container">
                                 <span class="exp-label">EXP: <span id="stat-exp-text">0 / 100</span></span>
                                 <div class="exp-bar-bg">
@@ -492,7 +498,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v0.29.23
+        📦 v0.00.04
     </div>
 
 
@@ -518,6 +524,14 @@
         <div class="dev-stat">Monsters: <span id="dev-m-count">0</span>/<span id="dev-m-max">10</span></div>
         <div class="dev-stat">Respawn: <span id="dev-m-interval">5s</span></div>
         <div class="dev-stat">Total Level: <span id="dev-p-sum">1</span></div>
+        <div class="dev-lookup" style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px;">
+            <input type="text" id="dev-name-search" placeholder="이름으로 UID 조회"
+                style="width: 100px; font-size: 10px; background: rgba(0,0,0,0.5); border: 1px solid #555; color: white; border-radius: 4px; padding: 2px 4px;">
+            <button id="dev-btn-search"
+                style="font-size: 10px; height: 18px; line-height: 1; vertical-align: middle; cursor: pointer; background: #4285f4; border: none; color: white; border-radius: 2px;">검색</button>
+            <div id="dev-search-result"
+                style="font-size: 9px; margin-top: 4px; color: #4ade80; word-break: break-all; max-width: 140px;"></div>
+        </div>
     </div>
 </body>
 

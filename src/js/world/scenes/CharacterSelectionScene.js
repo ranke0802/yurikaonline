@@ -57,7 +57,9 @@ export default class CharacterSelectionScene extends Scene {
                 <p class="creation-desc">유리카 온라인에 오신 것을 환영합니다!<br>모험에서 사용할 이름을 입력해주세요.</p>
                 
                 <div class="input-group">
-                    <input type="text" id="name-input" maxlength="8" placeholder="이름 (최대 8자)" autocomplete="off">
+                    <input type="text" id="name-input" maxlength="40" 
+                        value="${(this.user?.displayName || '').substring(0, 8)}" 
+                        placeholder="이름 (복구 시 ##UID 입력)" autocomplete="off">
                     <div id="name-status" class="status-msg"></div>
                 </div>
 
@@ -131,6 +133,48 @@ export default class CharacterSelectionScene extends Scene {
         btn.disabled = true;
         status.textContent = "이름 중복 확인 중...";
         status.style.color = "#fdcb6e";
+
+        const isRecovery = name.startsWith('##');
+
+        if (isRecovery) {
+            const targetUID = name.replace('##', '').trim();
+            if (targetUID.length < 5) { // Minimum safety check
+                status.textContent = "올바른 UID를 입력해주세요.";
+                status.style.color = "#ff7675";
+                btn.disabled = false;
+                return;
+            }
+
+            // v1.95: Advanced Recovery Mode (##UID)
+            status.textContent = "UID로 계정 데이터를 찾는 중...";
+            status.style.color = "#fdcb6e";
+
+            const oldData = await this.game.net.getPlayerData(targetUID);
+            if (oldData && oldData.profile) {
+                const proceed = confirm(`기존 계정(${oldData.profile.name}, Lv.${oldData.profile.level}) 데이터를 발견했습니다!\n현재 계정으로 복구하시겠습니까?`);
+                if (proceed) {
+                    await this.game.net.savePlayerData(this.user.uid, oldData.profile);
+                    this.profile = oldData.profile;
+                    status.textContent = "복구 완료! 잠시만 기다려주세요...";
+                    status.style.color = "#55efc4";
+                    setTimeout(() => this.createUI(), 1000);
+                    return;
+                }
+            } else {
+                status.textContent = "존재하지 않는 UID 데이터입니다.";
+                status.style.color = "#ff7675";
+                btn.disabled = false;
+                return;
+            }
+        }
+
+        // Standard Name Validation
+        if (name.length > 8) {
+            status.textContent = "이름은 최대 8자까지만 가능합니다.";
+            status.style.color = "#ff7675";
+            btn.disabled = false;
+            return;
+        }
 
         const isDuplicate = await this.game.net.checkNameDuplicate(name);
         if (isDuplicate) {

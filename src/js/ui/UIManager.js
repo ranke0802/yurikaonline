@@ -1,3 +1,5 @@
+import Logger from '../utils/Logger.js';
+
 export class UIManager {
     constructor(game) {
         this.game = game;
@@ -577,6 +579,72 @@ export class UIManager {
         updateDerived('val-atk-spd', 1.0 + (baseAgi * 0.1), 1.0 + (predAgi * 0.1), false, 2);
         updateDerived('val-crit', 0.1 + (baseAgi * 0.01), 0.1 + (predAgi * 0.01), true);
         updateDerived('val-move-spd', 1.0 + (baseAgi * 0.05), 1.0 + (predAgi * 0.05), true);
+
+        // v1.92: Bind & Update Link Google Button
+        const linkBtn = document.getElementById('btn-link-google');
+        if (linkBtn) {
+            const isGuest = this.game.auth.currentUser?.isAnonymous;
+            linkBtn.textContent = isGuest ? '🔗 구글 계정 연동하기' : '✅ 구글 로그인 중';
+            if (!isGuest) linkBtn.classList.add('linked');
+            else linkBtn.classList.remove('linked');
+
+            linkBtn.onclick = async () => {
+                if (!this.game.auth.currentUser.isAnonymous) return;
+
+                try {
+                    linkBtn.disabled = true;
+                    linkBtn.textContent = '🔄 구글 로그인 중...';
+
+                    // v1.93: Trigger popup FIRST for immediate user feedback and faster cancellation recovery
+                    const result = await this.game.auth.migrateToGoogle(); // Call WITHOUT data first
+
+                    if (result && result.success) {
+                        linkBtn.textContent = '🔄 데이터 전송 중...';
+
+                        // Current profile data (Fetch only after successful auth to save time on cancel)
+                        const currentProfile = await this.game.net.getPlayerData(this.game.auth.getUid());
+                        if (!currentProfile || !currentProfile.profile) {
+                            alert("현재 데이터를 불러오지 못했습니다.");
+                            linkBtn.disabled = false;
+                            linkBtn.textContent = '🔗 구글 계정 연동하기';
+                            return;
+                        }
+
+                        // Now finalize migration with the data
+                        // (Wait, migrateToGoogle in AuthManager should handle the UI flow better)
+                        // Actually, I'll refactor migrateToGoogle to handle the data internally or split it.
+                        // For now, let's just make the catch block faster.
+
+                        // Re-running migrate with data (This logic needs sync with AuthManager)
+                        // I will update AuthManager to accept data later or handle it here.
+                        // Let's keep it simple: Popup first, then DB, then Finish.
+
+                        const googleUser = firebase.auth().currentUser;
+                        await firebase.database().ref(`users/${googleUser.uid}/profile`).set({
+                            ...currentProfile.profile,
+                            displayName: googleUser.displayName,
+                            linkedAt: firebase.database.ServerValue.TIMESTAMP
+                        });
+
+                        alert("연동이 완료되었습니다! 새로운 계정으로 다시 로그인합니다.");
+                        window.location.reload();
+                    } else {
+                        // result.cancelled === true
+                        linkBtn.disabled = false;
+                        linkBtn.textContent = '🔗 구글 계정 연동하기';
+                    }
+                } catch (e) {
+                    if (e.code === 'auth/popup-closed-by-user') {
+                        console.log("User cancelled Google login popup.");
+                    } else {
+                        console.error("Migration Error:", e);
+                        alert("오류가 발생했습니다: " + e.message);
+                    }
+                    linkBtn.disabled = false;
+                    linkBtn.textContent = '🔗 구글 계정 연동하기';
+                }
+            };
+        }
     }
 
     updateSkillPopup() {
@@ -812,7 +880,7 @@ export class UIManager {
             this.game.addDamageText(
                 p.x + p.width / 2,
                 p.y - 30,
-                `✨ LEVEL UP! Lv.${level} ✨`,
+                ` LEVEL UP! Lv.${level} `,
                 '#ffd700', // 황금색
                 true, // isCrit = true로 큰 텍스트
                 null
@@ -875,6 +943,9 @@ export class UIManager {
         }
 
         this.updateCooldowns();
+
+        // v1.98: Live update developer overlay if active
+        if (this.devMode) this.updateDevOverlay();
     }
 
     updateCooldowns() {
@@ -1112,6 +1183,37 @@ export class UIManager {
                 this.logSystemMessage(`개발자 모드 ${this.devMode ? '활성화' : '비활성화'}`);
                 if (this.devMode) this.updateDevOverlay();
             });
+        }
+
+        // v1.94: Handle Name-to-UID Lookup in Dev Overlay
+        const searchInput = document.getElementById('dev-name-search');
+        const searchBtn = document.getElementById('dev-btn-search');
+        const resultEl = document.getElementById('dev-search-result');
+
+        if (searchInput && searchBtn && resultEl) {
+            searchBtn.onclick = async () => {
+                const name = searchInput.value.trim();
+                if (!name) return;
+
+                resultEl.textContent = '조회 중...';
+                resultEl.style.color = '#fdcb6e';
+
+                const uid = await this.game.net.getUidByName(name);
+                if (uid) {
+                    resultEl.textContent = uid;
+                    resultEl.style.color = '#4ade80';
+                } else {
+                    resultEl.textContent = '사용자를 찾을 수 없습니다.';
+                    resultEl.style.color = '#ff7675';
+                }
+            };
+
+            searchInput.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    e.stopPropagation();
+                    searchBtn.click();
+                }
+            };
         }
     }
 

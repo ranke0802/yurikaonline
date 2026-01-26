@@ -20,29 +20,32 @@ export default class AuthManager extends EventEmitter {
 
         Logger.log('AuthManager: Initializing Firebase Auth...');
 
-        // v0.00.03: Handle Redirect Result (Fix COOP Error)
-        // Ensure this is called once on startup
-        firebase.auth().getRedirectResult()
+        // v1.89: Explicitly set persistence to LOCAL for reliable sessions
+        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+            .then(() => {
+                // v0.00.03: Handle Redirect Result (Fix COOP Error)
+                return firebase.auth().getRedirectResult();
+            })
             .then((result) => {
                 if (result && result.user) {
                     Logger.info(`[Auth] Redirect Login Success: ${result.user.displayName}`);
-                    // onAuthStateChanged will trigger scene change
                 } else {
                     Logger.log('[Auth] No pending redirect result found.');
                 }
+                // Start listening to state changes AFTER redirect result is processed
+                firebase.auth().onAuthStateChanged(this._onAuthStateChanged);
             })
             .catch((error) => {
-                Logger.error("[Auth] Redirect Login Error:", error.code, error.message);
+                Logger.error("[Auth] Initialization/Redirect Error:", error.code, error.message);
 
-                // v0.00.03: Alert for domain authorization issues which are common on localhost
                 if (error.code === 'auth/unauthorized-domain') {
-                    const msg = "Firebase Console에서 '" + window.location.hostname + "' 도메인을 승인해야 구글 로그인이 가능합니다.";
+                    const msg = `[Auth] 도메인 오류: '${window.location.hostname}'가 Firebase 승인 도메인에 없습니다. (Console > Auth > Settings)`;
                     alert(msg);
-                    Logger.error(msg);
                 }
-            });
 
-        firebase.auth().onAuthStateChanged(this._onAuthStateChanged);
+                // Still listen to state changes so manual login works
+                firebase.auth().onAuthStateChanged(this._onAuthStateChanged);
+            });
     }
 
     async loginGoogle() {
@@ -124,6 +127,46 @@ export default class AuthManager extends EventEmitter {
             lastLogin: firebase.database.ServerValue.TIMESTAMP
         });
         */
+    }
+
+    async migrateToGoogle(currentData = null) {
+        try {
+            Logger.log('Starting Google Migration...');
+            const provider = new firebase.auth.GoogleAuthProvider();
+
+            // 1. Get Google Credentials
+            const result = await firebase.auth().signInWithPopup(provider);
+            const googleUser = result.user;
+
+            if (!googleUser) throw new Error("Google login failed");
+
+            // 2. Check if this Google Account already has data
+            const googleDataSnapshot = await firebase.database().ref(`users/${googleUser.uid}/profile`).once('value');
+            const googleData = googleDataSnapshot.val();
+
+            if (googleData) {
+                const proceed = confirm(`선택한 구글 계정에 이미 레벨 ${googleData.level} 캐릭터(${googleData.name})가 있습니다.\n현재 데이터를 덮어씌우시겠습니까? (기존 데이터는 삭제됩니다)`);
+                if (!proceed) {
+                    Logger.log("Migration cancelled by user (Existing data found)");
+                    return { success: false, cancelled: true };
+                }
+            }
+
+            // 3. Overwrite Google UID with Current Guest Data (if provided)
+            if (currentData) {
+                await firebase.database().ref(`users/${googleUser.uid}/profile`).set({
+                    ...currentData,
+                    displayName: googleUser.displayName,
+                    linkedAt: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
+
+            Logger.info(`Migration Authorized for ${googleUser.uid}`);
+            return { success: true };
+        } catch (error) {
+            Logger.error("Migration Error:", error);
+            throw error;
+        }
     }
 
     getUid() {

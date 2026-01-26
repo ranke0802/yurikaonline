@@ -10,12 +10,12 @@ export default class MonsterManager {
         this.drops = new Map();
 
         this.spawnTimer = 0;
-        this.spawnInterval = 5000;
-        this.maxMonsters = 10;
+        this.spawnInterval = 3000; // v1.97: Balanced (3s)
+        this.maxMonsters = 15;     // v1.97: Balanced (15)
         this.totalLevelSum = 1;
 
         // Bandwidth Optimization (v0.20.0)
-        this.lastSyncTime = 0;
+        this.syncTimer = 0;
         this.syncInterval = 0.1; // 10Hz Sync (100ms)
 
         this.bossSpawned = false;
@@ -37,6 +37,15 @@ export default class MonsterManager {
         const localPlayer = this.game.localPlayer;
         const remotePlayers = this.game.remotePlayers;
 
+        // v1.99: Calculate total level for all clients (for UI/Dev Mode)
+        let currentTotalLevel = localPlayer?.level || 1;
+        if (remotePlayers) {
+            remotePlayers.forEach(rp => currentTotalLevel += (rp.level || 1));
+        }
+        this.totalLevelSum = currentTotalLevel;
+
+        this.syncTimer += dt;
+
         if (this.net.isHost) {
             this._updateHostLogic(dt, localPlayer, remotePlayers);
         }
@@ -54,7 +63,8 @@ export default class MonsterManager {
                     y: Math.round(m.y),
                     hp: m.hp,
                     maxHp: m.maxHp,
-                    type: m.typeId || m.name
+                    type: m.typeId || m.name,
+                    fullSync: true // v1.99.10: Flag to distinguish from movement sync
                 });
             });
         }
@@ -76,18 +86,13 @@ export default class MonsterManager {
     }
 
     _updateHostLogic(dt, localPlayer, remotePlayers) {
-        // Calculate Total Level Sum
-        let currentTotalLevel = localPlayer?.level || 1;
-        if (remotePlayers) {
-            remotePlayers.forEach(rp => currentTotalLevel += (rp.level || 1));
-        }
-        this.totalLevelSum = currentTotalLevel;
+        // v1.99: Level sum already calculated in update()
 
-        // Dynamic Spawning: 10 + 1 per 5 levels
-        const maxMonsters = 10 + Math.floor(this.totalLevelSum / 5);
+        // v1.97: Dynamic Spawning: 15 + 1 per 5 levels (Balanced)
+        const maxMonsters = 15 + Math.floor(this.totalLevelSum / 5);
 
-        // Faster Respawn: 5s base, reduce by 0.2s per 5 levels, min 0.5s
-        const spawnInterval = Math.max(0.5, 5 - Math.floor(this.totalLevelSum / 5) * 0.2);
+        // v1.97: Balanced Respawn: 3s base, min 0.5s
+        const spawnInterval = Math.max(0.5, 3 - Math.floor(this.totalLevelSum / 5) * 0.2);
 
         this.spawnTimer += dt;
         if (this.spawnTimer >= spawnInterval) {
@@ -109,13 +114,13 @@ export default class MonsterManager {
         const candidates = [localPlayer, ...Array.from(remotePlayers.values())].filter(p => !p.isDead);
 
         this.monsters.forEach((m, id) => {
-            if (m.isDead && m.deathTimer >= m.deathDuration) {
-                // v1.86: Only remove and spawn drops AFTER fade duration
+            // v1.88: Handle Quest Rewards & Drops IMMEDIATELY when isDead flips (Host only)
+            if (m.isDead && !m._wasProcessed) {
+                m._wasProcessed = true; // One-time flag
 
                 // Spawn Drops
                 const xpAmount = m.isBoss ? 500 : 25;
                 const goldAmount = m.isBoss ? 5000 : 50;
-
                 this.net.spawnDrop({ x: m.x, y: m.y, type: 'gold', amount: goldAmount });
                 this.net.spawnDrop({ x: m.x + 20, y: m.y - 10, type: 'exp', amount: xpAmount });
                 if (Math.random() > 0.5 || m.isBoss) {
@@ -128,7 +133,7 @@ export default class MonsterManager {
                     const isMyKill = attackerId === this.net.playerId;
 
                     if (isMyKill) {
-                        // v0.00.01: Use typeId for reliable quest tracking
+                        // v1.88: Use typeId for reliable quest tracking
                         if (m.typeId === 'slime' || m.typeId === 'slime_split') {
                             localPlayer.questData.slimeKills++;
                             if (!this.bossSpawned) {
@@ -143,7 +148,6 @@ export default class MonsterManager {
                             }
                         }
 
-                        // BOSS SPLITTING
                         if (m.typeId === 'king_slime') {
                             localPlayer.questData.bossKilled = true;
                             for (let i = 0; i < 3; i++) {
@@ -153,7 +157,6 @@ export default class MonsterManager {
                             }
                         }
 
-                        // SPLIT SLIME SPLITTING
                         if (m.typeId === 'slime_split') {
                             for (let i = 0; i < 2; i++) {
                                 const offX = (Math.random() - 0.5) * 60;
@@ -162,11 +165,10 @@ export default class MonsterManager {
                             }
                         }
 
-                        // v0.00.01: Persist quest progress and update UI
                         localPlayer.saveState();
                         if (window.game && window.game.ui) window.game.ui.updateQuestUI();
                     } else {
-                        // v0.00.01: Notify Remote Player of their kill for quest credit
+                        // Notify Remote Player
                         this.net.sendReward(attackerId, {
                             questKill: m.typeId,
                             monsterName: m.name,
@@ -174,69 +176,44 @@ export default class MonsterManager {
                         });
                     }
                 }
+            }
 
+            if (m.isDead && m.deathTimer >= m.deathDuration) {
+                // v1.86: Only remove after fade duration
                 Logger.info(`[HOST] REMOVING Monster after death fade: ${id} (${m.name})`);
                 this.net.removeMonster(id);
                 this.monsters.delete(id);
                 this.lastSyncState.delete(id);
                 return;
-            } else if (m.isDead) {
-                // Already dead but still fading, skip AI sync but continue to next monster
-                return;
             }
 
-            // --- AI Targeting (Closest Player) ---
-            let target = null;
-            let minDist = 9999;
-            candidates.forEach(p => {
-                const d = Math.sqrt((p.x - m.x) ** 2 + (p.y - m.y) ** 2);
-                if (d < minDist) {
-                    minDist = d;
-                    target = p;
-                }
-            });
-
-            if (target && minDist < 400 && minDist > 50) {
-                // Movement logic moved to Monster.js to avoid duplication
-            } else if (target && minDist <= 60) {
-                m.vx = 0;
-                m.vy = 0;
-                if (!m.attackCooldown) m.attackCooldown = 0;
-                m.attackCooldown -= dt;
-                if (m.attackCooldown <= 0) {
-                    this.net.sendPlayerDamage(target.id, 5 + Math.random() * 5);
-                    m.attackCooldown = 1.5;
-                }
-            } else {
-                // Wandering logic moved to Monster.js
-            }
-
-            m.x = Math.max(0, Math.min(6400, m.x + m.vx * dt));
-            m.y = Math.max(0, Math.min(6400, m.y + m.vy * dt));
+            // AI and Movement are now handled inside Monster.js update()
+            // to avoid double-update conflicts on the Host.
+            // We just fall through to the Sync part below.
 
             // --- Bandwidth Throttling (v0.20.0) ---
-            // Only sync if 100ms has passed since last global monster sync
-            if (this.game.time - this.lastSyncTime >= this.syncInterval) {
+            if (this.syncTimer >= this.syncInterval) {
                 const last = this.lastSyncState.get(id);
-                // Increase threshold to 8px to filter minor jitter
+                // Lower threshold for smoother movement
                 const dist = last ? Math.sqrt((m.x - last.x) ** 2 + (m.y - last.y) ** 2) : 999;
                 const hpChanged = last ? (m.hp !== last.hp) : true;
 
-                if (dist > 8 || hpChanged) {
+                if (dist > 1 || hpChanged) {
                     this.net.sendMonsterUpdate(id, {
                         x: Math.round(m.x),
                         y: Math.round(m.y),
                         hp: m.hp,
                         maxHp: m.maxHp,
-                        type: m.typeId || m.name // v0.00.01: Use typeId for reliable JSON loading
+                        type: m.typeId || m.name
                     });
                     this.lastSyncState.set(id, { x: m.x, y: m.y, hp: m.hp });
                 }
             }
         });
 
-        // Update global sync timer
-        this.lastSyncTime = this.game.time;
+        if (this.syncTimer >= this.syncInterval) {
+            this.syncTimer = 0;
+        }
     }
 
     forceSync(id) {
@@ -345,10 +322,28 @@ export default class MonsterManager {
             return;
         }
         if (this.net.isHost) return;
-        m.targetX = data.x;
-        m.targetY = data.y;
         m.hp = data.hp;
         if (data.maxHp) m.maxHp = data.maxHp;
+
+        // v1.99.10: If it's a fullSync, don't snap position if we're already close
+        // This prevents the "flash back" effect when server sends a slow periodic update
+        if (data.fullSync) {
+            const dist = Math.sqrt((m.targetX - data.x) ** 2 + (m.targetY - data.y) ** 2);
+            if (dist > 100) { // Only snap if desync is massive
+                m.targetX = data.x;
+                m.targetY = data.y;
+            }
+        } else {
+            m.targetX = data.x;
+            m.targetY = data.y;
+        }
+
+        // v1.87: Force death state on Guest if HP is 0
+        if (m.hp <= 0 && !m.isDead) {
+            m.isDead = true;
+            m.vx = 0;
+            m.vy = 0;
+        }
     }
 
     _onRemoteMonsterRemoved(id) {
@@ -395,8 +390,8 @@ export default class MonsterManager {
     getStats() {
         return {
             count: this.monsters.size,
-            max: 10 + Math.floor((this.totalLevelSum || 1) / 5),
-            interval: Math.max(0.5, 5 - Math.floor((this.totalLevelSum || 1) / 5) * 0.2).toFixed(1),
+            max: 15 + Math.floor((this.totalLevelSum || 1) / 5),
+            interval: Math.max(0.5, 3 - Math.floor((this.totalLevelSum || 1) / 5) * 0.2).toFixed(1),
             totalLevel: this.totalLevelSum || 1
         };
     }
