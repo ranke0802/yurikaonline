@@ -285,11 +285,11 @@ export default class MonsterManager {
     _onMonsterDamageReceived(data) {
         if (!this.net.isHost) return;
         // v0.29.18: 호스트 자신이 보낸 데미지는 이미 로컬에서 처리했으므로 무시
-        if (data.attackerId === this.net.playerId) return;
-        const m = this.monsters.get(data.monsterId);
+        if (data.aid === this.net.playerId) return;
+        const m = this.monsters.get(data.mid);
         if (m && !m.isDead) {
-            m.lastAttackerId = data.attackerId;
-            m.takeDamage(data.damage, true);
+            m.lastAttackerId = data.aid;
+            m.takeDamage(data.dmg, true);
         }
     }
 
