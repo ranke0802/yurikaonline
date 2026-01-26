@@ -109,7 +109,9 @@ export default class MonsterManager {
         const candidates = [localPlayer, ...Array.from(remotePlayers.values())].filter(p => !p.isDead);
 
         this.monsters.forEach((m, id) => {
-            if (m.isDead) {
+            if (m.isDead && m.deathTimer >= m.deathDuration) {
+                // v1.86: Only remove and spawn drops AFTER fade duration
+
                 // Spawn Drops
                 const xpAmount = m.isBoss ? 500 : 25;
                 const goldAmount = m.isBoss ? 5000 : 50;
@@ -173,10 +175,13 @@ export default class MonsterManager {
                     }
                 }
 
-                Logger.info(`[HOST] REMOVING Monster: ${id} (${m.name})`);
+                Logger.info(`[HOST] REMOVING Monster after death fade: ${id} (${m.name})`);
                 this.net.removeMonster(id);
                 this.monsters.delete(id);
                 this.lastSyncState.delete(id);
+                return;
+            } else if (m.isDead) {
+                // Already dead but still fading, skip AI sync but continue to next monster
                 return;
             }
 
@@ -231,9 +236,21 @@ export default class MonsterManager {
         });
 
         // Update global sync timer
-        if (this.game.time - this.lastSyncTime >= this.syncInterval) {
-            this.lastSyncTime = this.game.time;
-        }
+        this.lastSyncTime = this.game.time;
+    }
+
+    forceSync(id) {
+        const m = this.monsters.get(id);
+        if (!m || !this.net.isHost) return;
+
+        this.net.sendMonsterUpdate(id, {
+            x: Math.round(m.x),
+            y: Math.round(m.y),
+            hp: m.hp,
+            maxHp: m.maxHp,
+            type: m.typeId || m.name
+        });
+        this.lastSyncState.set(id, { x: m.x, y: m.y, hp: m.hp });
     }
 
     async _spawnMonster(fixedX = null, fixedY = null, type = 'slime') {

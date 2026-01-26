@@ -171,10 +171,10 @@ export default class Monster extends CharacterBase {
         if (this.isDead) {
             this.deathTimer += dt;
             this.alpha = Math.max(0, 1 - (this.deathTimer / this.deathDuration));
-            return;
+            return; // Dead monsters only fade out, no AI
         }
 
-        if (!this.ready || this.isDead) return;
+        if (!this.ready) return;
 
         this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
 
@@ -392,11 +392,17 @@ export default class Monster extends CharacterBase {
 
         // Death check (host authority)
         if (window.game?.net?.isHost && this.hp <= 0) {
-            if (!this.isDead) Logger.log(`[Monster] ${this.id || 'unknown'} died`);
-            this.isDead = true;
-            this.hp = 0;
-            this.vx = 0;
-            this.vy = 0;
+            if (!this.isDead) {
+                Logger.log(`[Monster] ${this.id || 'unknown'} died`);
+                this.isDead = true;
+                this.hp = 0;
+                this.vx = 0;
+                this.vy = 0;
+                // v1.86: Ensure immediate sync for death state
+                if (window.game && window.game.monsterManager) {
+                    window.game.monsterManager.forceSync(this.id);
+                }
+            }
         }
     }
 
