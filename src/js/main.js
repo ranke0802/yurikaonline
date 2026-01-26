@@ -11,6 +11,7 @@ import RemotePlayer from './entities/RemotePlayer.js';
 import AuthManager from './core/AuthManager.js';
 import NetworkManager from './core/NetworkManager.js';
 import MonsterManager from './world/MonsterManager.js';
+import MonsterDataManager from './core/MonsterDataManager.js';
 import { UIManager } from './ui/UIManager.js';
 import ObjectPool from './utils/ObjectPool.js';
 
@@ -64,6 +65,7 @@ class Game {
         this.auth = new AuthManager();
         this.net = new NetworkManager();
         this.resources = new ResourceManager();
+        this.monsterData = new MonsterDataManager(this.resources); // Initialize MonsterDataManager
 
         // Global Reference for AI and Debugging
         window.game = this;

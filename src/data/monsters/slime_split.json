@@ -1,0 +1,22 @@
+{
+    "id": "slime_split",
+    "name": "분열된 슬라임",
+    "baseStats": {
+        "hp": 50,
+        "maxHp": 50,
+        "speed": 15,
+        "atk": 3
+    },
+    "visual": {
+        "assetPath": "assets/resource/monster_slim",
+        "frameCount": 5,
+        "frameSpeed": 0.15,
+        "width": 60,
+        "height": 60
+    },
+    "ai": {
+        "type": "wander",
+        "aggroRange": 200,
+        "leashRange": 400
+    }
+}

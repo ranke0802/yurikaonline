@@ -1,0 +1,22 @@
+{
+    "id": "slime",
+    "name": "초록 슬라임",
+    "baseStats": {
+        "hp": 100,
+        "maxHp": 100,
+        "speed": 20,
+        "atk": 5
+    },
+    "visual": {
+        "assetPath": "assets/resource/monster_slim",
+        "frameCount": 5,
+        "frameSpeed": 0.15,
+        "width": 80,
+        "height": 80
+    },
+    "ai": {
+        "type": "wander",
+        "aggroRange": 300,
+        "leashRange": 600
+    }
+}

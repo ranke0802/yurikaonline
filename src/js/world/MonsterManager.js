@@ -110,7 +110,7 @@ export default class MonsterManager {
                     const isMyKill = m.lastAttackerId === this.net.playerId || !m.lastAttackerId;
 
                     if (isMyKill) {
-                        if (m.name.includes('슬라임') && !m.isBoss && m.name !== '분열된 슬라임') {
+                        if (m.name.includes('슬라임') || m.id === 'slime') {
                             localPlayer.questData.slimeKills++;
                             if (!this.bossSpawned) {
                                 if (localPlayer.questData.slimeKills >= 10 && Math.random() < 0.1) {
@@ -124,22 +124,22 @@ export default class MonsterManager {
                             }
                         }
 
-                        // BOSS SPLITTING (Stage 1): King Slime -> 3 Split Slimes (v0.21.0 Refined)
-                        if (m.isBoss || m.name === '대왕 슬라임') {
+                        // BOSS SPLITTING
+                        if (m.isBoss || m.name === '대왕 슬라임' || m.id === 'king_slime') {
                             localPlayer.questData.bossKilled = true;
                             for (let i = 0; i < 3; i++) {
                                 const offX = (Math.random() - 0.5) * 100;
                                 const offY = (Math.random() - 0.5) * 100;
-                                this._spawnMonster(m.x + offX, m.y + offY, '분열된 슬라임');
+                                this._spawnMonster(m.x + offX, m.y + offY, 'slime_split');
                             }
                         }
 
-                        // SPLIT SLIME SPLITTING (Stage 2): Split Slime -> 2 Normal Slimes (v0.21.0 Refined)
-                        if (m.name === '분열된 슬라임') {
+                        // SPLIT SLIME SPLITTING
+                        if (m.name === '분열된 슬라임' || m.id === 'slime_split') {
                             for (let i = 0; i < 2; i++) {
                                 const offX = (Math.random() - 0.5) * 60;
                                 const offY = (Math.random() - 0.5) * 60;
-                                this._spawnMonster(m.x + offX, m.y + offY, '슬라임');
+                                this._spawnMonster(m.x + offX, m.y + offY, 'slime');
                             }
                         }
                         if (window.game && window.game.ui) window.game.ui.updateQuestUI();
@@ -209,7 +209,7 @@ export default class MonsterManager {
         }
     }
 
-    _spawnMonster(fixedX = null, fixedY = null, type = '슬라임') {
+    async _spawnMonster(fixedX = null, fixedY = null, type = 'slime') {
         const id = `mob_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         const worldW = this.zone.width || 6400;
         const worldH = this.zone.height || 6400;
@@ -217,53 +217,77 @@ export default class MonsterManager {
         let x = fixedX ?? (200 + Math.random() * (worldW - 400));
         let y = fixedY ?? (200 + Math.random() * (worldH - 400));
 
+        // Load definition first
+        const definition = await this.game.monsterData.loadDefinition(type);
+
         const data = {
             id: id,
             x: Math.round(x),
             y: Math.round(y),
-            hp: type === '분열된 슬라임' ? 50 : 100,
-            maxHp: type === '분열된 슬라임' ? 50 : 100,
+            hp: definition.baseStats?.hp || 100,
+            maxHp: definition.baseStats?.maxHp || 100,
             type: type
         };
 
         this.net.sendMonsterUpdate(id, data);
     }
 
-    _spawnBoss() {
+    async _spawnBoss() {
         const id = `boss_${Date.now()}`;
         const worldW = this.zone.width || 6400;
         const worldH = this.zone.height || 6400;
         const x = worldW / 2;
         const y = worldH / 2;
 
+        const definition = await this.game.monsterData.loadDefinition('king_slime');
+
         const data = {
             id: id,
             x: x,
             y: y,
-            hp: 500,
-            maxHp: 500,
-            type: '대왕 슬라임',
+            hp: definition.baseStats?.hp || 500,
+            maxHp: definition.baseStats?.maxHp || 500,
+            type: 'king_slime',
             isBoss: true,
-            w: 320,
-            h: 320
+            w: definition.visual?.width || 320,
+            h: definition.visual?.height || 320
         };
 
         this.net.sendMonsterUpdate(id, data);
         if (window.game && window.game.ui) window.game.ui.logSystemMessage('거대한 대왕 슬라임이 나타났습니다!');
     }
 
-    _onRemoteMonsterAdded(data) {
+    async _onRemoteMonsterAdded(data) {
         if (this.monsters.has(data.id)) return;
-        const m = new Monster(data.x, data.y, data.type);
-        m.id = data.id;
-        m.hp = data.hp;
-        m.maxHp = data.maxHp;
-        if (data.isBoss || data.type === '대왕 슬라임') {
-            m.isBoss = true;
-            m.width = data.w || 320;
-            m.height = data.h || 320;
+
+        // Map legacy types to JSON IDs if necessary
+        let typeId = data.type;
+        if (typeId === '슬라임') typeId = 'slime';
+        if (typeId === '분열된 슬라임') typeId = 'slime_split'; // Need this JSON later
+        if (typeId === '대왕 슬라임') typeId = 'king_slime';    // Need this JSON later
+
+        try {
+            const definition = await this.game.monsterData.loadDefinition(typeId);
+            const m = new Monster(data.x, data.y, definition);
+            m.id = data.id;
+            m.hp = data.hp;
+            m.maxHp = data.maxHp;
+
+            if (data.isBoss || data.type === '대왕 슬라임') {
+                m.isBoss = true;
+                // Definition usually handles this, but sync data might override
+                m.width = data.w || m.width;
+                m.height = data.h || m.height;
+            }
+            this.monsters.set(data.id, m);
+        } catch (e) {
+            Logger.warn(`Defaulting to fallback for monster ${data.id} (${typeId})`);
+            const m = new Monster(data.x, data.y);
+            m.id = data.id;
+            m.hp = data.hp;
+            m.maxHp = data.maxHp;
+            this.monsters.set(data.id, m);
         }
-        this.monsters.set(data.id, m);
     }
 
     _onRemoteMonsterUpdated(data) {

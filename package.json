@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "start": "npx live-server ."
+    "start": "npx -y live-server . --port=8081"
   },
   "dependencies": {
     "image-size": "^2.0.2"

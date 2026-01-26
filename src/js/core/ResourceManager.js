@@ -86,6 +86,24 @@ export default class ResourceManager {
         return promise;
     }
 
+    async loadJSON(url) {
+        if (this.cache.has(url)) return this.cache.get(url);
+        if (this.loading.has(url)) return this.loading.get(url);
+
+        const promise = fetch(url).then(res => res.json()).then(data => {
+            this.cache.set(url, data);
+            this.loading.delete(url);
+            return data;
+        }).catch(err => {
+            this.loading.delete(url);
+            Logger.error(`Failed to load JSON: ${url}`, err);
+            throw err;
+        });
+
+        this.loading.set(url, promise);
+        return promise;
+    }
+
     _processAndDrawFrame(img, ctx, destX, destY, destW, destH) {
         // Create temp canvas for processing if not exists (not efficient to recreate every time vs reuse, but ok for init)
         const tempCanvas = document.createElement('canvas');

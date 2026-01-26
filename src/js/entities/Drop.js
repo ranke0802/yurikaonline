@@ -1,4 +1,4 @@
-import Entity from './Entity.js';
+import Entity from './core/Entity.js';
 
 export default class Drop extends Entity {
     constructor(id, x, y, type, amount) {

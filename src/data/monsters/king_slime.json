@@ -1,0 +1,22 @@
+{
+    "id": "king_slime",
+    "name": "대왕 슬라임",
+    "baseStats": {
+        "hp": 500,
+        "maxHp": 500,
+        "speed": 10,
+        "atk": 15
+    },
+    "visual": {
+        "assetPath": "assets/resource/monster_slim",
+        "frameCount": 5,
+        "frameSpeed": 0.15,
+        "width": 320,
+        "height": 320
+    },
+    "ai": {
+        "type": "aggro",
+        "aggroRange": 1000,
+        "leashRange": 2000
+    }
+}

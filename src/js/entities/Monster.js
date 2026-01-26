@@ -1,32 +1,49 @@
+import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
 
 
-export default class Monster {
-    constructor(x, y, name = '슬라임') {
+export default class Monster extends CharacterBase {
+    constructor(x, y, definition = null) {
+        // Use speed from definition or default 20
+        const speed = definition?.baseStats?.speed || 20;
+        super(x, y, speed);
 
-        this.x = x;
-        this.y = y;
-        this.width = 80;
-        this.height = 80;
-        this.name = name;
-        this.hp = 100;
-        this.maxHp = 100;
+        // Apply Definition Data
+        if (definition) {
+            this.id = definition.id; // Usually set by Manager but good for fallback
+            this.name = definition.name || '슬라임';
+            this.hp = definition.baseStats?.hp || 100;
+            this.maxHp = definition.baseStats?.maxHp || 100;
+            this.width = definition.visual?.width || 80;
+            this.height = definition.visual?.height || 80;
+            this.frameSpeed = definition.visual?.frameSpeed || 0.15;
+            this.frameCount = definition.visual?.frameCount || 5;
+            this.assetPath = definition.visual?.assetPath || 'assets/resource/monster_slim';
+        } else {
+            // Legacy / Fallback
+            this.name = '슬라임';
+            this.hp = 100;
+            this.maxHp = 100;
+            this.width = 80;
+            this.height = 80;
+            this.frameSpeed = 0.15;
+            this.frameCount = 5;
+            this.assetPath = 'assets/resource/monster_slim';
+        }
 
         this.sprite = null;
         this.ready = false;
         this.frame = 0;
         this.timer = 0;
-        this.frameSpeed = 0.15;
-        this.frameCount = 5;
 
         this.hitTimer = 0;
         this.isDead = false;
         this.alpha = 1.0;
         this.deathTimer = 0;
-        this.deathDuration = 1.0; // 1 second fade out
+        this.deathDuration = 1.0;
 
-        this.statusEffects = []; // { type: 'burn', timer: 3.0, damage: 2 }
+        this.statusEffects = [];
         this._looted = false;
 
         this.vx = 0;
@@ -38,26 +55,22 @@ export default class Monster {
         this.electrocutedTimer = 0;
         this.slowRatio = 0;
         this.sparkTimer = 0;
-        this.lastAttackerId = null; // Track who hit this monster
+        this.lastAttackerId = null;
         this.targetX = x;
         this.targetY = y;
         this.isMonster = true;
-        this.isDead = false;
 
-        this.knockback = { vx: 0, vy: 0 };
-        this.knockbackFriction = 0.9;
-
-        this.init();
+        this.init(this.assetPath);
     }
 
 
 
     static spriteCache = {};
 
-    async init() {
+    async init(path) {
+        if (!path) path = 'assets/resource/monster_slim';
         const frames = ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp'];
-        const path = 'assets/resource/monster_slim';
-        const cacheKey = path; // In future, if path changes based on name, use that unique key
+        const cacheKey = path;
 
         // Check Cache
         if (Monster.spriteCache[cacheKey]) {
