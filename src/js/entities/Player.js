@@ -830,28 +830,33 @@ export default class Player extends CharacterBase {
                 // Sync Missile Count (Level)
                 if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'missile', count);
 
-                const targets = [];
-                let nearest = null; // v0.29.3: Restored missing variable declaration
-                let minDist = 700;
-                // 1. Check Remote Players FIRST (Priority Target for PvP)
-                // v0.00.09: Prioritize PvP targets over monsters
+                const candidates = [];
+                // 1. Monsters
+                if (window.game.monsterManager) {
+                    candidates.push(...window.game.monsterManager.monsters.values());
+                }
+                // 2. Remote Players
                 if (window.game.remotePlayers) {
-                    window.game.remotePlayers.forEach(rp => {
-                        if (rp.isDead || rp.id === this.id) return;
-                        const d = Math.sqrt((this.x - rp.x) ** 2 + (this.y - rp.y) ** 2);
-                        if (d < minDist) { minDist = d; nearest = rp; }
-                    });
+                    candidates.push(...window.game.remotePlayers.values());
                 }
 
-                // 2. If no player target found, check Monsters
-                if (!nearest) {
-                    const monsters = window.game.monsterManager ? Array.from(window.game.monsterManager.monsters.values()) : [];
-                    monsters.forEach(m => {
-                        if (m.isDead) return;
-                        const d = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
-                        if (d < minDist) { minDist = d; nearest = m; }
-                    });
-                }
+                let nearest = null;
+                let minDist = 700;
+
+                candidates.forEach(t => {
+                    if (!t || t.isDead) return;
+                    if (t.id === this.id) return; // Skip self
+
+                    // Use center position if available, else x/y
+                    const tx = (t.width) ? t.x + t.width / 2 : t.x;
+                    const ty = (t.height) ? t.y + t.height / 2 : t.y;
+
+                    const d = Math.sqrt((this.x - tx) ** 2 + (this.y - ty) ** 2);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearest = t;
+                    }
+                });
 
                 if (nearest) {
                     // count is already defined above
