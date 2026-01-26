@@ -233,7 +233,8 @@ export default class RemotePlayer extends CharacterBase {
         }
 
         // Remote Lightning Logic
-        if (this.state === 'attack') {
+        // v0.00.07: Fix - Only trigger lightning visual if current skill is 'laser'
+        if (this.state === 'attack' && this.currentSkill === 'laser') {
             this.lightningTickTimer = (this.lightningTickTimer || 0) - dt;
             if (this.lightningTickTimer <= 0) {
                 this.lightningTickTimer = 0.2; // Visual-only tick speed
@@ -489,6 +490,7 @@ export default class RemotePlayer extends CharacterBase {
         this.animTimer = 0;
 
         const skillType = data.skillType || 'normal';
+        this.currentSkill = skillType; // v0.00.07: Track current skill type
         const skillNames = {
             'missile': '매직 미사일 !!',
             'fireball': '파이어볼 !!',
