@@ -230,6 +230,7 @@ export class UIManager {
                 if (this.game.localPlayer) {
                     this.game.localPlayer.name = newName;
                     localStorage.setItem('yurika_player_name', newName);
+                    this.game.localPlayer.saveState(); // v0.00.01: Sync to DB immediately
                 }
                 nameDisplay.textContent = newName;
                 nameInputRow.style.display = 'none';
@@ -456,6 +457,7 @@ export class UIManager {
         p.hp = Math.min(p.hp, p.maxHp);
         p.mp = Math.min(p.mp, p.maxMp);
         this.pendingStats = { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
+        p.saveState(); // v0.00.01: Persist stats to DB
     }
 
     cancelPendingStats() {

@@ -266,7 +266,8 @@ class Game {
 
         this.updateLoading('캐릭터 생성 및 최적화 중...', 95);
         // Spawn Player
-        this.player = new Player(startX, startY, user.displayName || "유리카");
+        const localName = localStorage.getItem('yurika_player_name') || user.displayName || "유리카";
+        this.player = new Player(startX, startY, localName);
         this.player.id = user.uid; // Ensure UID is set
         this.localPlayer = this.player; // Alias used by Monster AI
 
@@ -280,11 +281,15 @@ class Game {
             this.player.agility = profile.agility || 1;
             this.player.statPoints = profile.statPoints || 0;
             this.player.skillLevels = profile.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
-            this.player.name = profile.name || user.displayName || "유리카";
+            this.player.name = profile.name || localName || user.displayName || "유리카";
 
             // v0.29.21: 퀘스트 데이터 복원 (슬라임 처치 수, 완료 여부 등)
             if (profile.questData) {
-                this.player.questData = profile.questData;
+                // v0.00.01: Merge with defaults to ensure all fields exist
+                this.player.questData = {
+                    ...this.player.questData,
+                    ...profile.questData
+                };
             }
 
             this.player.refreshStats();
@@ -360,6 +365,12 @@ class Game {
         });
 
         this.updateLoading('게임 시작!', 100);
+
+        // v0.00.01: Initial UI Sync
+        if (this.ui) {
+            this.ui.updateQuestUI();
+            this.ui.updateStatusPopup();
+        }
 
         // Final layout sync before starting the loop to prevent glitches
         this.resize();

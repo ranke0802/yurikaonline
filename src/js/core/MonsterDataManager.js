@@ -16,7 +16,7 @@ export default class MonsterDataManager {
         if (this.definitions.has(id)) return this.definitions.get(id);
 
         try {
-            const data = await this.resourceManager.loadJSON(`/src/data/monsters/${id}.json`);
+            const data = await this.resourceManager.loadJSON(`/assets/data/monsters/${id}.json`);
             this.definitions.set(id, data);
             return data;
         } catch (e) {

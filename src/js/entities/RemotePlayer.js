@@ -265,24 +265,40 @@ export default class RemotePlayer extends CharacterBase {
         const affected = [];
         const chains = [];
         const maxChains = 2; // Default for remote visual if level unknown
-        const range = 350;
+        const range = 400; // v0.00.01: Match actual attack range
 
-        for (let i = 0; i < maxChains; i++) {
-            let next = null;
-            let minDist = range;
-            monsters.forEach(m => {
-                if (m.isDead || affected.includes(m)) return;
-                const d = Math.sqrt((currentSource.x - m.x) ** 2 + (currentSource.y - m.y) ** 2);
-                if (d < minDist) {
-                    minDist = d;
-                    next = m;
+        // v0.00.01: Use synced target IDs if available for perfect visual match
+        if (this.lastAttackTargets && Array.isArray(this.lastAttackTargets) && this.lastAttackTargets.length > 0) {
+            this.lastAttackTargets.forEach(tid => {
+                let target = window.game?.monsterManager?.monsters.get(tid);
+                if (!target) target = window.game?.remotePlayers.get(tid);
+                if (tid === window.game?.localPlayer?.id) target = window.game?.localPlayer;
+
+                if (target && !target.isDead) {
+                    chains.push({ x1: currentSource.x, y1: currentSource.y, x2: target.x + target.width / 2, y2: target.y + target.height / 2 });
+                    currentSource = { x: target.x + target.width / 2, y: target.y + target.height / 2 };
                 }
             });
-            if (next) {
-                chains.push({ x1: currentSource.x, y1: currentSource.y, x2: next.x, y2: next.y });
-                affected.push(next);
-                currentSource = { x: next.x, y: next.y };
-            } else break;
+        }
+        // Fallback: Local search if no targets synced
+        else {
+            for (let i = 0; i < maxChains; i++) {
+                let next = null;
+                let minDist = range;
+                monsters.forEach(m => {
+                    if (m.isDead || affected.includes(m)) return;
+                    const d = Math.sqrt((currentSource.x - m.x) ** 2 + (currentSource.y - m.y) ** 2);
+                    if (d < minDist) {
+                        minDist = d;
+                        next = m;
+                    }
+                });
+                if (next) {
+                    chains.push({ x1: currentSource.x, y1: currentSource.y, x2: next.x + (next.width / 2 || 0), y2: next.y + (next.height / 2 || 0) });
+                    affected.push(next);
+                    currentSource = { x: next.x + (next.width / 2 || 0), y: next.y + (next.height / 2 || 0) };
+                } else break;
+            }
         }
 
         if (chains.length > 0) {
@@ -291,10 +307,17 @@ export default class RemotePlayer extends CharacterBase {
             // v0.29.2: Force visual chain even if no monsters (Action Feedback)
             let tx = centerX; let ty = centerY;
             const dist = 300; // Visual range
-            if (this.direction === 0) ty -= dist;
-            else if (this.direction === 1) ty += dist;
-            else if (this.direction === 2) tx -= dist;
-            else if (this.direction === 3) tx += dist;
+
+            // v0.00.01: Use precision angle if available, otherwise fallback to direction
+            if (this.lastAttackAngle !== undefined) {
+                tx += Math.cos(this.lastAttackAngle) * dist;
+                ty += Math.sin(this.lastAttackAngle) * dist;
+            } else {
+                if (this.direction === 0) ty -= dist;
+                else if (this.direction === 1) ty += dist;
+                else if (this.direction === 2) tx -= dist;
+                else if (this.direction === 3) tx += dist;
+            }
 
             // Add some jitter to endpoint
             tx += (Math.random() - 0.5) * 50;
@@ -447,6 +470,8 @@ export default class RemotePlayer extends CharacterBase {
         }
 
         this.lastAttackTime = data.ts;
+        this.lastAttackAngle = data.extraData?.angle; // v0.00.01: Store precision angle
+        this.lastAttackTargets = data.extraData?.targets; // v0.00.01: Store target IDs
         this.isAttacking = true;
         this.state = 'attack';
         this.animTimer = 0;

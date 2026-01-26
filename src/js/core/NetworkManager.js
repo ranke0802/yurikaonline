@@ -453,15 +453,19 @@ export default class NetworkManager extends EventEmitter {
         }
 
         if (val && val.a && Array.isArray(val.a)) {
-            this.emit('playerAttack', {
-                id: uid,
-                ts: val.a[0],
-                x: val.a[1],
-                y: val.a[2],
-                dir: val.a[3],
-                skillType: val.a[4] || 'normal',
-                extraData: val.a[5] || null
-            });
+            // v0.00.01: Filter stale attacks (ignore if older than 10s)
+            const attackTs = val.a[0];
+            if (attackTs > Date.now() - 10000) {
+                this.emit('playerAttack', {
+                    id: uid,
+                    ts: attackTs,
+                    x: val.a[1],
+                    y: val.a[2],
+                    dir: val.a[3],
+                    skillType: val.a[4] || 'normal',
+                    extraData: val.a[5] || null
+                });
+            }
         }
     }
 
@@ -511,15 +515,19 @@ export default class NetworkManager extends EventEmitter {
 
         // Attack Update
         if (val && val.a && Array.isArray(val.a)) {
-            this.emit('playerAttack', {
-                id: uid,
-                ts: val.a[0],
-                x: val.a[1],
-                y: val.a[2],
-                dir: val.a[3],
-                skillType: val.a[4] || 'normal', // v0.28.0
-                extraData: val.a[5] || null // v0.29.0
-            });
+            // v0.00.01: Filter stale attacks (ignore if older than 10s)
+            const attackTs = val.a[0];
+            if (attackTs > Date.now() - 10000) {
+                this.emit('playerAttack', {
+                    id: uid,
+                    ts: attackTs,
+                    x: val.a[1],
+                    y: val.a[2],
+                    dir: val.a[3],
+                    skillType: val.a[4] || 'normal', // v0.28.0
+                    extraData: val.a[5] || null // v0.29.0
+                });
+            }
         }
 
         // v0.28.0: HP Update

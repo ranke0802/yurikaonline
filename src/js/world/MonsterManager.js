@@ -107,10 +107,12 @@ export default class MonsterManager {
 
                 // Quest & Splitting Logic
                 if (localPlayer && localPlayer.questData) {
-                    const isMyKill = m.lastAttackerId === this.net.playerId || !m.lastAttackerId;
+                    const attackerId = m.lastAttackerId || this.net.playerId;
+                    const isMyKill = attackerId === this.net.playerId;
 
                     if (isMyKill) {
-                        if (m.name.includes('슬라임') || m.id === 'slime') {
+                        // v0.00.01: Use typeId for reliable quest tracking
+                        if (m.typeId === 'slime' || m.typeId === 'slime_split') {
                             localPlayer.questData.slimeKills++;
                             if (!this.bossSpawned) {
                                 if (localPlayer.questData.slimeKills >= 10 && Math.random() < 0.1) {
@@ -125,7 +127,7 @@ export default class MonsterManager {
                         }
 
                         // BOSS SPLITTING
-                        if (m.isBoss || m.name === '대왕 슬라임' || m.id === 'king_slime') {
+                        if (m.typeId === 'king_slime') {
                             localPlayer.questData.bossKilled = true;
                             for (let i = 0; i < 3; i++) {
                                 const offX = (Math.random() - 0.5) * 100;
@@ -135,14 +137,24 @@ export default class MonsterManager {
                         }
 
                         // SPLIT SLIME SPLITTING
-                        if (m.name === '분열된 슬라임' || m.id === 'slime_split') {
+                        if (m.typeId === 'slime_split') {
                             for (let i = 0; i < 2; i++) {
                                 const offX = (Math.random() - 0.5) * 60;
                                 const offY = (Math.random() - 0.5) * 60;
                                 this._spawnMonster(m.x + offX, m.y + offY, 'slime');
                             }
                         }
+
+                        // v0.00.01: Persist quest progress and update UI
+                        localPlayer.saveState();
                         if (window.game && window.game.ui) window.game.ui.updateQuestUI();
+                    } else {
+                        // v0.00.01: Notify Remote Player of their kill for quest credit
+                        this.net.sendReward(attackerId, {
+                            questKill: m.typeId,
+                            monsterName: m.name,
+                            ts: Date.now()
+                        });
                     }
                 }
 
@@ -196,7 +208,7 @@ export default class MonsterManager {
                         y: Math.round(m.y),
                         hp: m.hp,
                         maxHp: m.maxHp,
-                        type: m.name
+                        type: m.typeId || m.name // v0.00.01: Use typeId for reliable JSON loading
                     });
                     this.lastSyncState.set(id, { x: m.x, y: m.y, hp: m.hp });
                 }
@@ -260,11 +272,15 @@ export default class MonsterManager {
     async _onRemoteMonsterAdded(data) {
         if (this.monsters.has(data.id)) return;
 
-        // Map legacy types to JSON IDs if necessary
+        // v0.00.01: Map legacy types or handle direct typeId
         let typeId = data.type;
-        if (typeId === '슬라임') typeId = 'slime';
-        if (typeId === '분열된 슬라임') typeId = 'slime_split'; // Need this JSON later
-        if (typeId === '대왕 슬라임') typeId = 'king_slime';    // Need this JSON later
+        const legacyMap = {
+            '슬라임': 'slime',
+            '초록 슬라임': 'slime',
+            '분열된 슬라임': 'slime_split',
+            '대왕 슬라임': 'king_slime'
+        };
+        if (legacyMap[typeId]) typeId = legacyMap[typeId];
 
         try {
             const definition = await this.game.monsterData.loadDefinition(typeId);

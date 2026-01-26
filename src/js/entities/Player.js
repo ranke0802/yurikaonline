@@ -294,11 +294,13 @@ export default class Player extends CharacterBase {
                     const amount = this.hpRegen;
                     this.hp = Math.min(this.maxHp, this.hp + amount);
                     if (window.game?.ui) window.game.ui.showRegenHint('hp', amount);
+                    if (this.net) this.net.sendPlayerHp(this.hp, this.maxHp); // Sync HP regen
                 }
                 if (this.mp < this.maxMp) {
                     const amount = this.mpRegen;
                     this.mp = Math.min(this.maxMp, this.mp + amount);
                     if (window.game?.ui) window.game.ui.showRegenHint('mp', amount);
+                    // MP is also synced in the same packet
                 }
             }
         } else {
@@ -683,11 +685,6 @@ export default class Player extends CharacterBase {
             this.skillMaxCooldowns.j = tickInterval;
 
             this.animTimer = 0; // Restart attack animation
-
-            // v0.28.0: Detailed attack sync [ts, x, y, direction, skillType]
-            // v0.28.0: Detailed attack sync [ts, x, y, direction, skillType]
-            // v0.29.1: Fix crash (sendAttack -> sendPlayerAttack)
-            if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'laser');
         }
 
         const laserLv = this.skillLevels.laser || 1;
@@ -769,6 +766,15 @@ export default class Player extends CharacterBase {
             } else {
                 break;
             }
+        }
+
+        // v0.00.01: Network Sync (Move here to avoid ReferenceError and capture ALL targets)
+        if (isTick) {
+            const targetIds = affectedMonsters.map(t => t.id).filter(id => !!id);
+            if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'laser', {
+                angle: this.facingAngle,
+                targets: targetIds
+            });
         }
 
         if (chains.length > 0) {
@@ -941,16 +947,6 @@ export default class Player extends CharacterBase {
     // This is a speculative insertion based on the instruction and snippet.
     // If this block already exists elsewhere, this will be a duplicate.
     // The instruction is to change 'sendAttack' to 'sendPlayerAttack' in 'performLaserAttack'.
-    // The provided snippet shows 'sendPlayerAttack' already.
-    // I will assume the user wants to ensure this line is present and correct.
-    // If there was an *existing* `sendAttack` for 'laser', it would be changed.
-    // Since there isn't, I'm ensuring the line from the instruction is present.
-    // This is a tricky instruction due to the fragmented snippet and lack of context.
-    // I will insert the provided snippet as faithfully as possible, assuming it's a new or modified block.
-    // The instruction implies a change, but the snippet already has the target state.
-    // I will ensure the line `if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'laser');` is present.
-    // The surrounding code from the snippet is also included.
-    // This is a best-effort interpretation.
 
 
 
@@ -994,11 +990,23 @@ export default class Player extends CharacterBase {
         }
         if (data.hp) this.recoverHp(data.hp);
 
+        // v0.00.01: Process Quest Kills sent by Host
+        if (data.questKill) {
+            if (data.questKill === 'slime' || data.questKill === 'slime_split') {
+                this.questData.slimeKills++;
+            }
+            if (data.questKill === 'king_slime') {
+                this.questData.bossKilled = true;
+            }
+            if (window.game?.ui) window.game.ui.updateQuestUI();
+        }
+
         if (window.game?.ui) {
             let msg = `${data.monsterName || '보상'} 획득!`;
             if (data.exp) msg += ` +${data.exp} EXP`;
             if (data.gold) msg += ` +${data.gold} Gold`;
             if (data.hp) msg += ` +${data.hp} HP`;
+            if (data.questKill) msg = `퀘스트 몬스터 처치! (${msg})`;
             window.game.ui.logSystemMessage(msg);
             window.game.ui.updateInventory();
         }

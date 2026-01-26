@@ -11,7 +11,8 @@ export default class Monster extends CharacterBase {
 
         // Apply Definition Data
         if (definition) {
-            this.id = definition.id; // Usually set by Manager but good for fallback
+            this.id = null; // Set by Manager
+            this.typeId = definition.id || 'slime'; // v0.00.01: Persistent ID for sync
             this.name = definition.name || '슬라임';
             this.hp = definition.baseStats?.hp || 100;
             this.maxHp = definition.baseStats?.maxHp || 100;
@@ -22,6 +23,7 @@ export default class Monster extends CharacterBase {
             this.assetPath = definition.visual?.assetPath || 'assets/resource/monster_slim';
         } else {
             // Legacy / Fallback
+            this.typeId = 'slime'; // v0.00.01: Default type for fallbacks
             this.name = '슬라임';
             this.hp = 100;
             this.maxHp = 100;
