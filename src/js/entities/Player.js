@@ -132,19 +132,6 @@ export default class Player extends CharacterBase {
 
         // v0.00.04: Sync profile to world ONLY after entering
         this.saveState(true);
-
-        // v0.00.04: Heartbeat presence (1s)
-        if (this._hbInterval) clearInterval(this._hbInterval);
-        this._hbInterval = setInterval(() => {
-            if (this.net) this.net.sendHeartbeat();
-        }, 1000);
-    }
-
-    stopHeartbeat() {
-        if (this._hbInterval) {
-            clearInterval(this._hbInterval);
-            this._hbInterval = null;
-        }
     }
 
     async _loadSpriteSheet(res) {

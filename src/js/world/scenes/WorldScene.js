@@ -148,9 +148,6 @@ export default class WorldScene extends Scene {
     }
 
     async exit() {
-        if (this.player) {
-            this.player.stopHeartbeat();
-        }
         // ... any other cleanup
     }
 

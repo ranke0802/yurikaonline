@@ -119,6 +119,20 @@ export default class NetworkManager extends EventEmitter {
 
         // v0.00.04: Heartbeat is now the primary presence method
         this._startLocalGhostCleanup();
+
+        // v0.00.05: Global Heartbeat (Starts on connect, active even in Waiting scenes)
+        if (this._hbInterval) clearInterval(this._hbInterval);
+        this._hbInterval = setInterval(() => {
+            this.sendHeartbeat();
+        }, 1000);
+    }
+
+    disconnect() {
+        if (this._hbInterval) clearInterval(this._hbInterval);
+        this.connected = false;
+        if (this.playerId && this.dbRef) {
+            this.dbRef.child(`users/${this.playerId}`).remove();
+        }
     }
 
     sendHeartbeat() {
@@ -320,34 +334,18 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.isHost) return;
 
         const now = Date.now();
-        const staleTimeout = 6000; // v0.00.05: Relaxed 6s global timeout
+        const staleTimeout = 8000; // v0.00.05: Balanced 8s timeout
 
-        try {
-            const snapshot = await this.dbRef.child('users').once('value');
-            if (!snapshot.exists()) return;
+        // v0.00.05: Use LOCAL userLastSeen map for cleanup to avoid Server/Host clock skew
+        this.userLastSeen.forEach((lastTs, uid) => {
+            if (uid === this.playerId) return;
 
-            snapshot.forEach(child => {
-                if (child.key === this.playerId) return;
-
-                const val = child.val();
-                let lastTs = 0;
-                const posData = Array.isArray(val) ? val : (val.p || null);
-
-                if (posData && Array.isArray(posData)) {
-                    lastTs = posData[4] || 0;
-                } else if (val.ts) {
-                    lastTs = val.ts;
-                }
-
-                // If very old, delete from DB
-                if (now - lastTs > staleTimeout) {
-                    Logger.log(`[Host] Removing stale user: ${child.key}`);
-                    this.dbRef.child(`users/${child.key}`).remove();
-                }
-            });
-        } catch (e) {
-            Logger.error('Cleanup failed', e);
-        }
+            if (now - lastTs > staleTimeout) {
+                Logger.log(`[Host] Removing inactive user: ${uid}`);
+                this.dbRef.child(`users/${uid}`).remove();
+                this.userLastSeen.delete(uid);
+            }
+        });
     }
 
     sendMonsterUpdate(id, data) {

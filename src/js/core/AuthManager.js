@@ -47,12 +47,28 @@ export default class AuthManager extends EventEmitter {
 
     async loginGoogle() {
         try {
-            Logger.log('Attempting Google Login (Redirect Mode)...');
+            Logger.log('Attempting Google Login (Popup Mode)...');
             const provider = new firebase.auth.GoogleAuthProvider();
-            // v0.00.03: Use Redirect instead of Popup to avoid COOP errors in modern browsers
-            await firebase.auth().signInWithRedirect(provider);
+
+            // v0.00.04: Try Popup first for smoother experience (No page reload)
+            try {
+                const result = await firebase.auth().signInWithPopup(provider);
+                if (result.user) {
+                    Logger.info(`[Auth] Popup Login Success: ${result.user.displayName}`);
+                    // onAuthStateChanged will handle the rest
+                }
+            } catch (popupError) {
+                // If popup is blocked or other error, fallback to Redirect
+                if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/cancelled-popup-request') {
+                    Logger.warn("[Auth] Popup blocked or cancelled. Falling back to Redirect mode...");
+                    await firebase.auth().signInWithRedirect(provider);
+                } else {
+                    throw popupError;
+                }
+            }
         } catch (error) {
             Logger.error("Google Login Initialization Failed:", error);
+            throw error; // Propagate to UI for notice
         }
     }
 
