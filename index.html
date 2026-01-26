@@ -11,7 +11,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=0.29.19')
+                navigator.serviceWorker.register('sw.js?v=0.00.04')
                     .then(reg => console.log('SW registered:', reg.scope))
                     .catch(err => console.log('SW failed:', err));
             });
@@ -75,7 +75,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.29.19">
+    <link rel="stylesheet" href="src/css/style.css?v=0.00.04">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -517,7 +517,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.26.0"></script>
+    <script type="module" src="./src/js/main.js?v=0.00.04"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">
