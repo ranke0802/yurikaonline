@@ -2226,3 +2226,253 @@ body.is-fullscreen .version-info {
         transform: translateY(-5px);
     }
 }
+
+/* =========================================
+   SCENE SYSTEM UI (Login & CharSelect)
+   ========================================= */
+
+.scene-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    background: radial-gradient(circle at center, rgba(45, 52, 54, 0.4) 0%, rgba(0, 0, 0, 0.8) 100%);
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.login-card,
+.char-card {
+    padding: 60px;
+    border-radius: 40px;
+    text-align: center;
+    width: 400px;
+    max-width: 90%;
+    color: white;
+}
+
+.game-logo {
+    font-size: 42px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+}
+
+.game-subtitle {
+    font-size: 14px;
+    opacity: 0.7;
+    margin-bottom: 40px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+}
+
+.login-options,
+.char-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.login-btn,
+.action-btn {
+    padding: 18px;
+    border: none;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-family: var(--cosy-font);
+}
+
+.login-btn:hover,
+.action-btn:hover {
+    transform: translateY(-5px);
+}
+
+.login-btn.google {
+    background: white;
+    color: #444;
+}
+
+.login-btn.guest {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.action-btn.primary {
+    background: linear-gradient(135deg, #ffd32a, #ff9f1a);
+    color: #4a3e35;
+    box-shadow: 0 10px 20px rgba(255, 211, 42, 0.3);
+}
+
+.action-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.action-btn.primary:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 15px 25px rgba(255, 211, 42, 0.4);
+}
+
+.action-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.character-preview {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 25px;
+    padding: 30px;
+    margin: 30px 0;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.char-avatar-container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle, rgba(162, 155, 254, 0.2) 0%, rgba(0, 0, 0, 0) 70%);
+    border-radius: 50%;
+}
+
+.char-glow {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle, rgba(162, 155, 254, 0.4) 0%, rgba(162, 155, 254, 0) 70%);
+    border-radius: 50%;
+    animation: pulse-glow 3s infinite ease-in-out;
+    filter: blur(20px);
+}
+
+#char-preview-canvas {
+    position: relative;
+    z-index: 1;
+    image-rendering: pixelated;
+    width: 180px;
+    height: 180px;
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
+}
+
+.char-info {
+    text-align: left;
+}
+
+.char-name {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.char-level {
+    color: #a29bfe;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.char-stats {
+    margin-top: 10px;
+    font-size: 12px;
+}
+
+.version-tag {
+    margin-top: 40px;
+    font-size: 10px;
+    opacity: 0.4;
+}
+
+/* Character Creation v0.00.03 */
+.creation-desc {
+    margin: 15px 0;
+    font-size: 14px;
+    opacity: 0.8;
+    line-height: 1.6;
+}
+
+.input-group {
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+#name-input {
+    width: 200px;
+    padding: 12px 20px;
+    border-radius: 25px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    font-family: inherit;
+    font-size: 16px;
+    text-align: center;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+#name-input:focus {
+    border-color: #a29bfe;
+    background: rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 15px rgba(162, 155, 254, 0.3);
+}
+
+.status-msg {
+    font-size: 13px;
+    height: 18px;
+    font-weight: bold;
+}
+
+.character-preview.small {
+    margin: 10px 0;
+    justify-content: center;
+}

@@ -1147,19 +1147,22 @@ export class UIManager {
 
 
     confirmResetCharacter() {
-        this.showConfirm("정말 캐릭터를 초기화하시겠습니까?<br><small>맵 정보(몬스터/아이템)도 함께 초기화됩니다.</small>", async (confirmed) => {
+        this.showConfirm("정말 캐릭터를 삭제하시겠습니까?<br><small>캐릭터 정보가 영구 삭제되며 처음부터 다시 시작합니다.</small>", async (confirmed) => {
             if (confirmed && this.game.localPlayer) {
-                // 1. Reset World (Firebase)
+                const p = this.game.localPlayer;
+                const name = p.name;
+                const uid = this.game.net.playerId;
+
+                // 1. Delete from DB
                 if (this.game.net) {
-                    await this.game.net.resetWorldData();
+                    await this.game.net.deleteCharacter(uid, name);
+                    this.logSystemMessage('캐릭터가 삭제되었습니다. 페이지를 새로고침합니다.');
+
+                    // 2. Force Reload to go back to title/character selection
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
                 }
-                // 1.5 Clear Local World State for immediate feedback
-                if (this.game.monsterManager) {
-                    this.game.monsterManager.clearAll();
-                }
-                // 2. Reset Player
-                this.game.localPlayer.fullReset();
-                this.hideAllPopups();
             }
         });
     }

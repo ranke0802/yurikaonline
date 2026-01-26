@@ -65,7 +65,8 @@ export default class RemotePlayer extends CharacterBase {
         // Handle Death
         if (this.hp <= 0 && !this.isDying) {
             this.die();
-        } else if (this.hp > 0 && this.isDying) {
+        } else if (this.hp > 0 && (this.isDying || this.isDead)) {
+            // v0.00.03: Ensure respawn if HP becomes positive
             this.respawn();
         }
     }
@@ -118,12 +119,16 @@ export default class RemotePlayer extends CharacterBase {
 
     update(dt) {
         // v0.29.18: Fix tombstone remaining after respawn
-        // Allow deathTimer to update even when dead, so respawn logic works correctly
-        if (this.isDead) {
-            if (this.deathTimer > 0) {
-                this.deathTimer -= dt;
+        // v0.00.03: Defensive Check - If HP > 0 but stuck in dead state, force respawn
+        if (this.isDead || this.isDying) {
+            if (this.hp > 0) {
+                this.respawn();
+            } else {
+                if (this.deathTimer > 0) {
+                    this.deathTimer -= dt;
+                }
+                return;
             }
-            return;
         }
 
         const renderTime = Date.now() - this.interpolationDelay;

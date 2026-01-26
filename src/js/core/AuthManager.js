@@ -18,19 +18,41 @@ export default class AuthManager extends EventEmitter {
             return;
         }
 
-        Logger.log('AuthManager: Waiting for Firebase Auth...');
+        Logger.log('AuthManager: Initializing Firebase Auth...');
+
+        // v0.00.03: Handle Redirect Result (Fix COOP Error)
+        // Ensure this is called once on startup
+        firebase.auth().getRedirectResult()
+            .then((result) => {
+                if (result && result.user) {
+                    Logger.info(`[Auth] Redirect Login Success: ${result.user.displayName}`);
+                    // onAuthStateChanged will trigger scene change
+                } else {
+                    Logger.log('[Auth] No pending redirect result found.');
+                }
+            })
+            .catch((error) => {
+                Logger.error("[Auth] Redirect Login Error:", error.code, error.message);
+
+                // v0.00.03: Alert for domain authorization issues which are common on localhost
+                if (error.code === 'auth/unauthorized-domain') {
+                    const msg = "Firebase Console에서 '" + window.location.hostname + "' 도메인을 승인해야 구글 로그인이 가능합니다.";
+                    alert(msg);
+                    Logger.error(msg);
+                }
+            });
+
         firebase.auth().onAuthStateChanged(this._onAuthStateChanged);
     }
 
     async loginGoogle() {
         try {
-            Logger.log('Attempting Google Login...');
+            Logger.log('Attempting Google Login (Redirect Mode)...');
             const provider = new firebase.auth.GoogleAuthProvider();
-            await firebase.auth().signInWithPopup(provider);
-            // State change will be handled by onAuthStateChanged
+            // v0.00.03: Use Redirect instead of Popup to avoid COOP errors in modern browsers
+            await firebase.auth().signInWithRedirect(provider);
         } catch (error) {
-            Logger.error("Google Login Failed:", error);
-            // Fallback to anonymous if popup blocked or closed, or notify UI
+            Logger.error("Google Login Initialization Failed:", error);
         }
     }
 
@@ -76,13 +98,16 @@ export default class AuthManager extends EventEmitter {
     }
 
     _updateUserProfile(user) {
-        // Basic profile sync to Realtime Database
-        // We do this to ensure other players can see this user's name
+        // v0.00.03: DEPRECATED - Do not create profile stub here.
+        // It causes CharacterSelectionScene to skip name input because /profile/ already exists.
+        // Profile creation is now exclusively handled by CharacterSelectionScene.handleCreateCharacter()
+        /*
         const userRef = firebase.database().ref(`users/${user.uid}/profile`);
         userRef.update({
             displayName: user.displayName || `Guest-${user.uid.substring(0, 4)}`,
             lastLogin: firebase.database.ServerValue.TIMESTAMP
         });
+        */
     }
 
     getUid() {

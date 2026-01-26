@@ -111,8 +111,36 @@ export default class NetworkManager extends EventEmitter {
             }
         });
 
+        // v0.00.03: Failsafe exit logic
+        myRef.onDisconnect().remove();
+
         this.connected = true;
         this.emit('connected');
+
+        // v0.00.04: Heartbeat is now the primary presence method
+        this._startLocalGhostCleanup();
+    }
+
+    sendHeartbeat() {
+        if (!this.connected || !this.playerId) return;
+        // v0.00.05: Use ServerValue.TIMESTAMP to eliminate clock skew issues
+        this.dbRef.child(`users/${this.playerId}/ts`).set(firebase.database.ServerValue.TIMESTAMP);
+    }
+
+    _startLocalGhostCleanup() {
+        if (this._localCleanupTimer) clearInterval(this._localCleanupTimer);
+        this._localCleanupTimer = setInterval(() => {
+            const now = Date.now();
+            const ghostTimeout = 6000; // v0.00.05: Relaxed 6s heartbeat timeout (more stable)
+
+            this.remotePlayers.forEach((rp, uid) => {
+                if (now - rp.ts > ghostTimeout) {
+                    Logger.log(`[Presence] Removing timed-out user (Local): ${uid}`);
+                    this.remotePlayers.delete(uid);
+                    this.emit('playerLeft', uid);
+                }
+            });
+        }, 2000); // Check every 2s
     }
 
     // --- Event Registration Helpers (v0.18.1 Fix) ---
@@ -127,7 +155,8 @@ export default class NetworkManager extends EventEmitter {
     async getPlayerData(uid) {
         if (!this.dbRef) return null;
         try {
-            const snapshot = await this.dbRef.child(`users/${uid}`).once('value');
+            // v0.00.03: Unify with AuthManager root path
+            const snapshot = await firebase.database().ref(`users/${uid}`).once('value');
             return snapshot.val();
         } catch (e) {
             Logger.error('Failed to get player data', e);
@@ -135,11 +164,17 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
-    async savePlayerData(uid, data) {
-        if (!this.dbRef || !uid) return;
+    async savePlayerData(uid, data, syncToZone = false) {
+        if (!uid) return;
         try {
-            // Save persistent profile data (level, stats, etc.)
-            await this.dbRef.child(`users/${uid}/profile`).set(data);
+            // v0.00.04: Root profile update (Persistent across logins)
+            await firebase.database().ref(`users/${uid}/profile`).set(data);
+
+            // v0.00.04: Zone-specific update ONLY IF requested and in a zone
+            // This prevents players in character selection from appearing in the map
+            if (syncToZone && this.dbRef) {
+                await this.dbRef.child(`users/${uid}/profile`).set(data);
+            }
         } catch (e) {
             Logger.error('Failed to save player profile', e);
         }
@@ -159,6 +194,67 @@ export default class NetworkManager extends EventEmitter {
             Logger.log('World data (monsters/drops/logs) cleared successfully.');
         } catch (e) {
             Logger.error('Failed to reset world data', e);
+        }
+    }
+
+    // v0.00.03: Full Database Reset (Users & Names)
+    async resetAllUserData() {
+        if (!window.firebase) return;
+        try {
+            Logger.warn('!!! FULL DATA RESET STARTING !!!');
+            await Promise.all([
+                firebase.database().ref('users').remove(),
+                firebase.database().ref('names').remove(),
+                firebase.database().ref('zones').remove()
+            ]);
+            Logger.log('All user and zone data cleared.');
+        } catch (e) {
+            Logger.error('Reset failed', e);
+        }
+    }
+
+    // v0.00.03: Name Duplicate Management
+    async checkNameDuplicate(name) {
+        if (!name) return true;
+        try {
+            const snapshot = await firebase.database().ref(`names/${name}`).once('value');
+            return snapshot.exists();
+        } catch (e) {
+            Logger.error('Name check failed', e);
+            return true;
+        }
+    }
+
+    async claimName(uid, name) {
+        if (!uid || !name) return false;
+        try {
+            // Reserve name in root list
+            await firebase.database().ref(`names/${name}`).set(uid);
+            return true;
+        } catch (e) {
+            Logger.error('Name claim failed', e);
+            return false;
+        }
+    }
+
+    // v0.00.04: Full Character Deletion
+    async deleteCharacter(uid, name) {
+        if (!uid) return;
+        try {
+            const updates = {};
+            updates[`users/${uid}/profile`] = null;
+            if (this.dbRef) {
+                updates[`zones/${this.roomId}/users/${uid}`] = null;
+            }
+            if (name) {
+                updates[`names/${name}`] = null;
+            }
+            await firebase.database().ref().update(updates);
+            Logger.warn(`Character deleted: ${uid} (${name})`);
+            return true;
+        } catch (e) {
+            Logger.error('Character deletion failed', e);
+            return false;
         }
     }
 
@@ -224,7 +320,7 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.isHost) return;
 
         const now = Date.now();
-        const staleTimeout = 180 * 1000; // 3 minutes
+        const staleTimeout = 6000; // v0.00.05: Relaxed 6s global timeout
 
         try {
             const snapshot = await this.dbRef.child('users').once('value');
@@ -435,12 +531,20 @@ export default class NetworkManager extends EventEmitter {
 
         if (!posData || !Array.isArray(posData)) return;
 
-        this.emit('playerJoined', {
+        // v0.00.03: Buffer player data with fallback for missing name/profile
+        const profile = val.profile || {};
+        this.remotePlayers.set(uid, {
             id: uid,
             x: posData[0],
             y: posData[1],
-            name: posData[5] || "Unknown"
+            name: profile.name || posData[5] || "Unknown",
+            h: val.h,
+            a: val.a,
+            level: profile.level || 1
         });
+
+        Logger.log(`[NetworkManager] Remote player joined: ${uid} (${this.remotePlayers.get(uid).name})`);
+        this.emit('playerJoined', this.remotePlayers.get(uid));
 
         // v0.29.24: Sync Initial HP and Attack state on join
         if (val && val.h && Array.isArray(val.h)) {
@@ -453,6 +557,11 @@ export default class NetworkManager extends EventEmitter {
         }
 
         if (val && val.a && Array.isArray(val.a)) {
+            const now = Date.now();
+            const existing = this.remotePlayers.get(uid);
+            if (existing) existing.ts = now; // v0.00.03: Activity!
+            this.userLastSeen.set(uid, now);
+
             // v0.00.01: Filter stale attacks (ignore if older than 10s)
             const attackTs = val.a[0];
             if (attackTs > Date.now() - 10000) {
@@ -486,9 +595,15 @@ export default class NetworkManager extends EventEmitter {
             }
         }
 
-        if (posData) {
-            const ts = posData[4] || Date.now();
-            this.userLastSeen.set(uid, ts);
+        if (posData || val.ts) {
+            // v0.00.05: Refresh activity for ANY update including heartbeats
+            const now = Date.now();
+            this.userLastSeen.set(uid, now);
+
+            // Update local remote player timestamp to prevent ghost cleanup
+            const existing = this.remotePlayers.get(uid);
+            if (existing) existing.ts = now;
+
             this._checkHostStatus();
         }
 
@@ -501,20 +616,45 @@ export default class NetworkManager extends EventEmitter {
 
             // v0.28.1: Prevent NaN pollution which causes entities to disappear
             if (!isNaN(px) && !isNaN(py)) {
-                this.emit('playerUpdate', {
-                    id: uid,
-                    x: px,
-                    y: py,
-                    vx: Number(posData[2]) || 0,
-                    vy: Number(posData[3]) || 0,
-                    ts: posData[4] || Date.now(),
-                    name: posData[5] || "Unknown"
-                });
+                // v0.00.03: Update Buffer
+                const now = Date.now();
+                const existing = this.remotePlayers.get(uid);
+                const isNew = !existing;
+
+                const data = existing || { id: uid };
+                data.x = px;
+                data.y = py;
+                data.vx = Number(posData[2]) || 0;
+                data.vy = Number(posData[3]) || 0;
+                // v0.00.03: Update activity timestamp to NOW whenever any packet is processed
+                data.ts = now;
+                data.name = posData[5] || "Unknown";
+                this.remotePlayers.set(uid, data);
+
+                // v0.00.03: If they were deleted by cleanup but sent a move, revive them
+                if (isNew) {
+                    this.emit('playerJoined', data);
+                } else {
+                    this.emit('playerUpdate', {
+                        id: uid,
+                        x: px,
+                        y: py,
+                        vx: data.vx,
+                        vy: data.vy,
+                        ts: data.ts,
+                        name: data.name
+                    });
+                }
             }
         }
 
         // Attack Update
         if (val && val.a && Array.isArray(val.a)) {
+            const now = Date.now();
+            const existing = this.remotePlayers.get(uid);
+            if (existing) existing.ts = now; // v0.00.03: Activity!
+            this.userLastSeen.set(uid, now);
+
             // v0.00.01: Filter stale attacks (ignore if older than 10s)
             const attackTs = val.a[0];
             if (attackTs > Date.now() - 10000) {
@@ -532,6 +672,15 @@ export default class NetworkManager extends EventEmitter {
 
         // v0.28.0: HP Update
         if (val && val.h && Array.isArray(val.h)) {
+            // v0.00.03: Update Buffer
+            const now = Date.now();
+            const existing = this.remotePlayers.get(uid);
+            if (existing) {
+                existing.h = val.h;
+                existing.ts = now; // v0.00.03: Activity!
+            }
+            this.userLastSeen.set(uid, now); // v0.00.03: Keep Host status active
+
             this.emit('playerHpUpdate', {
                 id: uid,
                 hp: val.h[0],
@@ -547,6 +696,7 @@ export default class NetworkManager extends EventEmitter {
         this.connectedUsers = this.connectedUsers.filter(id => id !== uid);
         this.connectedUsers.sort();
         this.userLastSeen.delete(uid);
+        this.remotePlayers.delete(uid); // v0.00.03
         this._checkHostStatus();
 
         Logger.log(`Player Left: ${uid}`);

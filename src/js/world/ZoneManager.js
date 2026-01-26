@@ -5,8 +5,8 @@ export default class ZoneManager {
         this.res = resourceManager;
         this.currentZone = null;
         this.tiles = null;
-        this.width = 0;
-        this.height = 0;
+        this.width = 6400; // v0.00.03: Set default 200*32 to allow center calculation before load
+        this.height = 6400;
         this.tileSize = 32;
         this.chunkSize = 512; // 16x16 tiles per chunk
         this.chunks = new Map(); // Chunk caching

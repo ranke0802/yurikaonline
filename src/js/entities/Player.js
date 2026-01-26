@@ -129,6 +129,22 @@ export default class Player extends CharacterBase {
             this.joystick.y = data.y;
             this.joystick.active = data.active;
         });
+
+        // v0.00.04: Sync profile to world ONLY after entering
+        this.saveState(true);
+
+        // v0.00.04: Heartbeat presence (1s)
+        if (this._hbInterval) clearInterval(this._hbInterval);
+        this._hbInterval = setInterval(() => {
+            if (this.net) this.net.sendHeartbeat();
+        }, 1000);
+    }
+
+    stopHeartbeat() {
+        if (this._hbInterval) {
+            clearInterval(this._hbInterval);
+            this._hbInterval = null;
+        }
     }
 
     async _loadSpriteSheet(res) {
@@ -476,6 +492,11 @@ export default class Player extends CharacterBase {
 
     updateDerivedStats() {
         this.refreshStats();
+        // v0.00.03: Ensure maxExp is correct based on level if somehow corrupted
+        const expectedMaxExp = Math.floor(100 * Math.pow(1.5, this.level - 1));
+        if (this.maxExp < expectedMaxExp) {
+            this.maxExp = expectedMaxExp;
+        }
         this.saveState();
     }
 
@@ -598,12 +619,12 @@ export default class Player extends CharacterBase {
         this.saveState();
     }
 
-    saveState() {
-
+    saveState(syncToWorld = false) {
         if (!this.net || !this.id) return;
         const data = {
             level: this.level,
             exp: this.exp,
+            maxExp: this.maxExp, // v0.00.03: Persist maxExp
             hp: Math.round(this.hp),
             mp: Math.round(this.mp),
             gold: this.gold,
@@ -617,8 +638,7 @@ export default class Player extends CharacterBase {
             name: this.name,
             ts: Date.now()
         };
-        this.net.savePlayerData(this.id, data);
-
+        this.net.savePlayerData(this.id, data, syncToWorld);
     }
 
     resetLevel() {
@@ -1240,6 +1260,10 @@ export default class Player extends CharacterBase {
         if (this.chatMessage) {
             this.drawSpeechBubble(ctx, centerX, y - 55);
         }
+
+        // v0.00.03: Local HUD Rendering (HP/MP/Name above head)
+        this.drawHUD(ctx, centerX, y);
+        this.drawDirectionArrow(ctx, centerX, y + this.height - 30);
     }
 
     showSpeechBubble(text) {

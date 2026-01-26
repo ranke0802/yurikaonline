@@ -44,6 +44,21 @@ export default class MonsterManager {
         // Update local monster instances
         this.monsters.forEach(m => m.update(dt));
 
+        // v0.00.03: Full Monster Sync (Every 2s) to fix HP/Position desync for newer/returning clients
+        this.fullSyncTimer = (this.fullSyncTimer || 0) + dt;
+        if (this.net.isHost && this.fullSyncTimer >= 2.0) {
+            this.fullSyncTimer = 0;
+            this.monsters.forEach((m, id) => {
+                this.net.sendMonsterUpdate(id, {
+                    x: Math.round(m.x),
+                    y: Math.round(m.y),
+                    hp: m.hp,
+                    maxHp: m.maxHp,
+                    type: m.typeId || m.name
+                });
+            });
+        }
+
         // Update drops (Magnet logic)
         this.drops.forEach((d, id) => {
             if (d.update(dt, localPlayer)) {
@@ -316,6 +331,7 @@ export default class MonsterManager {
         m.targetX = data.x;
         m.targetY = data.y;
         m.hp = data.hp;
+        if (data.maxHp) m.maxHp = data.maxHp;
     }
 
     _onRemoteMonsterRemoved(id) {
@@ -323,7 +339,8 @@ export default class MonsterManager {
     }
 
     _onMonsterDamageReceived(data) {
-        if (!this.net.isHost) return;
+        // v0.00.03: Allow ALL clients to process damage events for visual feedback
+        // if (!this.net.isHost) return; 
         // v0.29.18: 호스트 자신이 보낸 데미지는 이미 로컬에서 처리했으므로 무시
         if (data.aid === this.net.playerId) return;
         const m = this.monsters.get(data.mid);

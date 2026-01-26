@@ -1,0 +1,335 @@
+import Scene from '../../core/Scene.js';
+import Logger from '../../utils/Logger.js';
+import Player from '../../entities/Player.js';
+import RemotePlayer from '../../entities/RemotePlayer.js';
+
+export default class WorldScene extends Scene {
+    constructor(game) {
+        super(game);
+        this.camera = game.camera;
+        this.monsterManager = game.monsterManager;
+        this.ui = game.ui;
+        this.net = game.net;
+        this.resources = game.resources;
+        this.input = game.input;
+
+        this.player = null;
+        this.remotePlayers = new Map();
+        this.floatingTexts = [];
+        this.sparks = [];
+        this.projectiles = [];
+        this.time = 0;
+    }
+
+    async enter(params) {
+        Logger.info("[WorldScene] Entering game world...");
+
+        // v0.00.02: Restore asset loading which was cut from main.js
+        if (this.game.updateLoading) this.game.updateLoading('월드 데이터 다운로드 중...', 40);
+        await this.game.zone.loadZone('zone_1');
+
+        try {
+            await this.resources.loadImage('/src/assets/character.webp');
+        } catch (e) {
+            Logger.error('Failed to load character sprite', e);
+        }
+
+        const user = params.user;
+        const startX = params.startX;
+        const startY = params.startY;
+        const profile = params.profile;
+        const localName = params.localName;
+
+        // Spawn Player
+        this.player = new Player(startX, startY, localName);
+        this.player.id = user.uid;
+        this.game.localPlayer = this.player; // Global reference for UIManager / MonsterAI
+
+        if (profile) {
+            this.player.level = profile.level || 1;
+            this.player.exp = profile.exp || 0;
+            this.player.maxExp = profile.maxExp || Math.floor(100 * Math.pow(1.5, this.player.level - 1)); // v0.00.03: Restore maxExp or recalculate
+            this.player.gold = profile.gold || 0;
+            this.player.vitality = profile.vitality || 1;
+            this.player.intelligence = profile.intelligence || 3;
+            this.player.wisdom = profile.wisdom || 2;
+            this.player.agility = profile.agility || 1;
+            this.player.statPoints = profile.statPoints || 0;
+            this.player.skillLevels = profile.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
+            this.player.name = profile.name || localName || user.displayName || "유리카";
+
+            if (profile.questData) {
+                this.player.questData = { ...this.player.questData, ...profile.questData };
+            }
+
+            this.player.refreshStats();
+            if (typeof profile.hp === 'number') this.player.hp = profile.hp;
+            if (typeof profile.mp === 'number') this.player.mp = profile.mp;
+        }
+
+        this.player.init(this.input, this.resources, this.net);
+
+        // v0.00.03: Spawn players already in the buffer (Multiplayer Fix)
+        if (this.net.remotePlayers) {
+            this.net.remotePlayers.forEach(data => {
+                if (data.id === this.player.id) return;
+                const rp = new RemotePlayer(data.id, data.x, data.y, this.resources);
+                rp.name = data.name || "Unknown";
+
+                // Sync Initial Stats if available in buffer
+                if (data.h) {
+                    rp.hp = data.h[0];
+                    rp.maxHp = data.h[1];
+                }
+
+                this.remotePlayers.set(data.id, rp);
+                Logger.log(`[WorldScene] Spawned buffered player: ${rp.name}`);
+            });
+        }
+
+        // Setup Network Handlers
+        this._setupNetworkHandlers();
+
+        // Initial UI Sync
+        if (this.ui) {
+            this.ui.updateQuestUI();
+            this.ui.updateStatusPopup();
+        }
+
+        // v0.00.03: Ensure data is synchronized to the zone database on entry
+        if (this.player) this.player.saveState();
+    }
+
+    _setupNetworkHandlers() {
+        this.net.on('rewardReceived', (data) => {
+            if (this.player) this.player.receiveReward(data);
+        });
+
+        this.net.on('monsterDamageReceived', (data) => {
+            const m = this.monsterManager?.monsters.get(data.mid);
+            if (m) this.addSpark(m.x, m.y);
+        });
+
+        this.net.on('playerDamageReceived', (data) => {
+            let target = (this.player && this.player.id === data.tid) ? this.player : this.remotePlayers.get(data.tid);
+            if (target) {
+                this.addSpark(target.x + target.width / 2, target.y + target.height / 2);
+                if (target === this.player) this.player.takeDamage(data.dmg);
+                else target.hp = Math.max(0, (target.hp || 100) - data.dmg);
+            }
+        });
+
+        this.net.on('playerJoined', (data) => {
+            if (this.remotePlayers.has(data.id)) return;
+            const rp = new RemotePlayer(data.id, data.x, data.y, this.resources);
+            rp.name = data.name || "Unknown";
+            this.remotePlayers.set(data.id, rp);
+        });
+
+        this.net.on('playerUpdate', (data) => {
+            const rp = this.remotePlayers.get(data.id);
+            if (rp) rp.onServerUpdate(data);
+        });
+
+        this.net.on('playerLeft', (id) => {
+            this.remotePlayers.delete(id);
+        });
+
+        this.net.on('playerAttack', (data) => {
+            const rp = this.remotePlayers.get(data.id);
+            if (rp) rp.triggerAttack(data);
+        });
+
+        // v0.00.03: Sync Detailed HP & Death Status for Remote Players
+        this.net.on('playerHpUpdate', (data) => {
+            const rp = this.remotePlayers.get(data.id);
+            if (rp) rp.onHpUpdate(data);
+        });
+    }
+
+    async exit() {
+        if (this.player) {
+            this.player.stopHeartbeat();
+        }
+        // ... any other cleanup
+    }
+
+    update(dt) {
+        this.time += dt;
+
+        if (this.player) {
+            if (this.input.isPressed('SKILL_1')) this.player.useSkill(1);
+            if (this.input.isPressed('SKILL_2')) this.player.useSkill(2);
+            if (this.input.isPressed('SKILL_3')) this.player.useSkill(3);
+            this.player.update(dt);
+
+            // Sync Position
+            this.net.sendMovePacket(
+                this.player.x,
+                this.player.y,
+                this.player.vx,
+                this.player.vy,
+                this.player.name
+            );
+
+            this.camera.follow(this.player, this.game.zone.width, this.game.zone.height);
+
+            if (this.ui) {
+                this.ui.updateStats(
+                    (this.player.hp / this.player.maxHp) * 100,
+                    (this.player.mp / this.player.maxMp) * 100,
+                    this.player.level,
+                    (this.player.exp / this.player.maxExp) * 100
+                );
+
+                const hpMax = document.getElementById('ui-hp-max');
+                const mpMax = document.getElementById('ui-mp-max');
+                if (hpMax) hpMax.textContent = Math.floor(this.player.maxHp);
+                if (mpMax) mpMax.textContent = Math.floor(this.player.maxMp);
+            }
+        }
+
+        this.remotePlayers.forEach(rp => rp.update(dt));
+        if (this.monsterManager && this.player) {
+            this.monsterManager.update(dt, this.player, this.remotePlayers);
+        }
+
+        // Update Sparks
+        for (let i = this.sparks.length - 1; i >= 0; i--) {
+            const s = this.sparks[i];
+            s.life -= dt;
+            s.x += s.vx * dt;
+            s.y += s.vy * dt;
+            if (s.life <= 0) {
+                this.game.sparkPool.release(s);
+                this.sparks.splice(i, 1);
+            }
+        }
+
+        // Update Floating Texts
+        for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+            const ft = this.floatingTexts[i];
+            ft.timer -= dt;
+            ft.currentY -= 40 * dt;
+            if (ft.timer <= 0) {
+                this.game.textPool.release(ft);
+                this.floatingTexts.splice(i, 1);
+            }
+        }
+
+        // Update Projectiles (v0.29.23: Fixed removal logic)
+        this.projectiles = this.projectiles.filter(p => {
+            const monsters = this.monsterManager ? Array.from(this.monsterManager.monsters.values()) : [];
+            p.update(dt, monsters);
+            return !p.isDead;
+        });
+    }
+
+    render(ctx) {
+        if (!this.game.zone.currentZone) return;
+
+        ctx.save();
+        const scale = this.game.zoom * this.game.dpr;
+        ctx.scale(scale, scale);
+        ctx.translate(-this.camera.x, -this.camera.y);
+
+        // 1. World & Entities
+        this.game.zone.render(ctx, this.camera);
+        this.remotePlayers.forEach(rp => rp.render(ctx, this.camera));
+        this.monsterManager.render(ctx, this.camera);
+        this.projectiles.forEach(p => p.render(ctx, this.camera));
+
+        if (this.player) {
+            this.player.render(ctx, this.camera);
+
+            // 2. Minimap (UI Sync)
+            if (this.ui) {
+                this.ui.updateMinimap(
+                    this.player,
+                    this.remotePlayers,
+                    this.monsterManager ? this.monsterManager.monsters : [],
+                    this.game.zone.width,
+                    this.game.zone.height
+                );
+            }
+        }
+
+        // 3. Effects (Sparks & Damage Text)
+        this.sparks.forEach(s => {
+            ctx.save();
+            ctx.fillStyle = s.color;
+            ctx.globalAlpha = s.life * 2;
+            ctx.fillRect(s.x, s.y, 2, 2);
+            ctx.restore();
+        });
+
+        this.floatingTexts.forEach(ft => {
+            const sx = ft.x, sy = ft.currentY;
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, ft.timer);
+            ctx.textAlign = 'center';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+
+            if (ft.label) {
+                ctx.font = 'bold 18px "Outfit", sans-serif';
+                ctx.strokeText(ft.label, sx, sy - 35);
+                ctx.fillStyle = '#fff';
+                ctx.fillText(ft.label, sx, sy - 35);
+            }
+
+            const fs = ft.isCrit ? 50 : 20;
+            ctx.font = `bold ${fs}px "Outfit", sans-serif`;
+            ctx.strokeText(ft.text, sx, sy);
+            ctx.fillStyle = ft.color;
+            ctx.fillText(ft.text, sx, sy);
+            ctx.restore();
+        });
+
+        ctx.restore();
+    }
+
+    addSpark(x, y) {
+        for (let i = 0; i < 8; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 50 + Math.random() * 50;
+            const life = 0.3 + Math.random() * 0.2;
+            const s = this.game.sparkPool.acquire(x, y, angle, speed, life, '#fff');
+            if (s) this.sparks.push(s);
+        }
+    }
+
+    addDamageText(x, y, text, color, isCrit, type) {
+        const ft = this.game.textPool.acquire(x, y, text, color, 1.5, isCrit, type);
+        if (ft) {
+            this.floatingTexts.push(ft);
+        }
+    }
+
+    addProjectile(p) {
+        this.projectiles.push(p);
+    }
+
+    onPointerDown(e) {
+        if (!this.player || this.game.ui.isPaused || !this.input.enabled) return;
+
+        const rect = this.game.canvas.getBoundingClientRect();
+        const screenX = e.clientX - rect.left;
+        const screenY = e.clientY - rect.top;
+
+        // Joystick Area (Left side) Exclusion
+        if (screenX < 200 && screenY > this.game.canvas.height / this.game.dpr / 2) return;
+
+        // Action Buttons Area (Right side) Exclusion
+        if (screenX > (this.game.canvas.width / this.game.dpr) - 220 && screenY > (this.game.canvas.height / this.game.dpr) - 220) return;
+
+        // Top bar exclusion
+        if (screenX < 300 && screenY < 100) return;
+
+        // Scale and translate coordinate to world
+        const worldX = (screenX / this.game.zoom) + this.camera.x;
+        const worldY = (screenY / this.game.zoom) + this.camera.y;
+
+        this.player.setMoveTarget(worldX, worldY);
+    }
+}
