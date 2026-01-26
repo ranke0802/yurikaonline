@@ -219,21 +219,12 @@ export class Projectile {
         }
         // Case B: Player Hit (PvP)
         else {
-            // Is it LocalPlayer?
             if (target === window.game?.localPlayer) {
-                // If damage > 0, it means *I* shot it at *myself* (unlikely due to ownerCheck)
-                // OR logic failure. 
-                // BUT, if this is a "Visual" projectile from RemotePlayer (damage=0), 
-                // we just want Sparks (already done above).
-                // We DO NOT take damage locally from visual projectiles.
-                // Real damage comes via network packet.
+                // Visual hit (damage=0). Just sparks.
             }
-            // Is it RemotePlayer?
             else {
-                // If I am the owner (damage > 0), I hit them. Send packet.
+                // PvP Hit from me to Rplayer
                 if (this.ownerId === window.game?.localPlayer?.id && this.damage > 0) {
-                    // Fireball AOE for Players? Maybe too complex. Just single hit for now or simple range check.
-                    // Simple single hit:
                     if (net) net.sendPlayerDamage(target.id, Math.ceil(this.damage));
                 }
             }
@@ -246,22 +237,121 @@ export class Projectile {
         let finalDmg = this.damage;
         let isCrit = this.isCrit || false;
 
-        // Crit recalc if needed (for AOE)
-        // If this.critRate exists, might recalc. But simplified: use strict this.damage
-
         if (isMonster && net) {
-            if (this.damage > 0) { // Only send if real damage
+            if (this.damage > 0) {
                 net.sendMonsterDamage(m.id, Math.ceil(finalDmg));
                 m.lastAttackerId = net.playerId;
             }
         }
 
-        // Visual feedback
-        // v0.29.17: All clients call takeDamage for visual feedback
         m.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y);
 
         if (this.type === 'fireball' && net?.isHost && isMonster) {
             m.applyEffect('burn', this.burnDuration, Math.ceil(finalDmg * 0.15));
+        }
+    }
+
+    render(ctx, camera) {
+        if (this.isDead) return;
+        const sx = this.x;
+        const sy = this.y;
+
+        // 0. Energy Particles
+        this.particles.forEach(p => {
+            ctx.fillStyle = this.color;
+            ctx.globalAlpha = p.life * 2;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+
+        if (this.type === 'missile') {
+            // --- Advanced Beefy Laser Rendering ---
+            ctx.save();
+
+            if (this.trail.length > 2) {
+                // Layer 1: Outer Wide Glow
+                ctx.beginPath();
+                ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                for (let i = 1; i < this.trail.length; i++) {
+                    ctx.lineTo(this.trail[i].x, this.trail[i].y);
+                }
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = this.radius * 2.5;
+                ctx.globalAlpha = 0.2;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+
+                // Layer 2: Vivid Cyan Beam
+                ctx.globalAlpha = 0.6;
+                ctx.lineWidth = this.radius * 1.5;
+                ctx.stroke();
+
+                // Layer 3: Main Beam Core
+                ctx.globalAlpha = 0.9;
+                ctx.lineWidth = this.radius;
+                ctx.stroke();
+
+                // Layer 4: Bright White Core
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = this.radius * 0.4;
+                ctx.globalAlpha = 1.0;
+                ctx.stroke();
+            }
+
+            // High-Energy Pulsing Tip
+            const pulse = (Math.sin(Date.now() * 0.04) + 1) * 0.5;
+            ctx.shadowBlur = 15 + pulse * 15;
+            ctx.shadowColor = this.color;
+
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(sx, sy, this.radius * 1.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(sx, sy, this.radius * 0.7, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        } else {
+            // --- Fireball Rendering ---
+            this.trail.forEach((p, i) => {
+                const alpha = 1 - (i / this.trail.length);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = alpha * 0.5;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, this.radius * (1 - i / 10), 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(sx, sy, this.radius * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // Fireball Landing Indicator
+        if (this.type === 'fireball' && this.targetX !== null && this.targetY !== null) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(249, 115, 22, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(this.targetX, this.targetY, this.radius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(249, 115, 22, 0.1)';
+            ctx.fill();
+            ctx.restore();
         }
     }
 }

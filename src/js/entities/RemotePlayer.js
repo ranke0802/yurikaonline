@@ -51,6 +51,12 @@ export default class RemotePlayer extends CharacterBase {
             this.state = 'hit';
             setTimeout(() => { if (this.state === 'hit') this.state = 'idle'; }, 200);
 
+            // v0.00.06: Shield Break Effect on Hit
+            if (this.shieldEffect) {
+                this.shieldEffect = null;
+                // Optional: Add shield break sound or particles here
+            }
+
             // v0.28.4: Use global damage text for consistency
             if (window.game) {
                 window.game.addDamageText(
@@ -240,10 +246,11 @@ export default class RemotePlayer extends CharacterBase {
             if (this.lightningEffect.timer <= 0) this.lightningEffect = null;
         }
 
-        if (this.shieldEffect && this.shieldEffect.timer > 0) {
-            this.shieldEffect.timer -= dt;
-            if (this.shieldEffect.timer <= 0) this.shieldEffect = null;
-        }
+        // v0.00.06: Shield is now permanent until hit
+        // if (this.shieldEffect && this.shieldEffect.timer > 0) {
+        //    this.shieldEffect.timer -= dt;
+        //    if (this.shieldEffect.timer <= 0) this.shieldEffect = null;
+        // }
 
         this._updateAnimation(dt);
         super.update(dt);
@@ -495,8 +502,8 @@ export default class RemotePlayer extends CharacterBase {
         }
 
         if (skillType === 'shield') {
-            // Shield Visual
-            this.shieldEffect = { timer: 2.0 };
+            // Shield Visual (Permanent until hit)
+            this.shieldEffect = { timer: 9999 };
             // Do not return early, let the state reset timer run
         }
 
