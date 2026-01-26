@@ -279,6 +279,12 @@ class Game {
             this.player.statPoints = profile.statPoints || 0;
             this.player.skillLevels = profile.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
             this.player.name = profile.name || user.displayName || "유리카";
+
+            // v0.29.21: 퀘스트 데이터 복원 (슬라임 처치 수, 완료 여부 등)
+            if (profile.questData) {
+                this.player.questData = profile.questData;
+            }
+
             this.player.refreshStats();
 
             // Restore HP/MP if saved

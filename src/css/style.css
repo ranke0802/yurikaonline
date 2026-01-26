@@ -2133,3 +2133,96 @@ body.is-fullscreen .version-info {
         font-family: var(--cosy-font);
     }
 }
+
+/* ============================================
+   v0.29.22: 레벨업 이펙트 및 퀘스트 보상 UI
+   ============================================ */
+
+/* 레벨업 플래시 오버레이 */
+#levelup-flash {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.8) 0%, rgba(255, 165, 0, 0.4) 50%, transparent 100%);
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+}
+
+#levelup-flash.active {
+    animation: levelup-flash-anim 0.8s ease-out forwards;
+}
+
+@keyframes levelup-flash-anim {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    20% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.5);
+    }
+}
+
+/* 퀘스트 보상 수령 가능 상태 - 화려한 버튼화 */
+.quest-reward-claimable {
+    background: linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%) !important;
+    border: 3px solid #fbbf24 !important;
+    cursor: pointer !important;
+    animation: quest-reward-pulse 1.5s ease-in-out infinite !important;
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.6), inset 0 0 15px rgba(255, 255, 255, 0.3) !important;
+    transition: transform 0.2s, box-shadow 0.2s !important;
+}
+
+.quest-reward-claimable:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 0 30px rgba(74, 222, 128, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.4) !important;
+}
+
+.quest-reward-claimable .quest-icon {
+    font-size: 24px !important;
+    animation: bounce-icon 0.6s ease-in-out infinite alternate !important;
+}
+
+.quest-reward-claimable .quest-title {
+    color: white !important;
+    font-weight: bold !important;
+    font-size: 14px !important;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+.quest-reward-claimable .quest-progress {
+    color: #fef3c7 !important;
+    font-weight: bold !important;
+    font-size: 12px !important;
+}
+
+@keyframes quest-reward-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 15px rgba(74, 222, 128, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 0 30px rgba(74, 222, 128, 0.9), inset 0 0 20px rgba(255, 255, 255, 0.5);
+    }
+}
+
+@keyframes bounce-icon {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(-5px);
+    }
+}

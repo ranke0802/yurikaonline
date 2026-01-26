@@ -1033,6 +1033,8 @@ export default class Player extends Actor {
         if (window.game?.ui) {
             window.game.ui.logSystemMessage(`✨ LEVEL UP! 현재 레벨: ${this.level}`);
             window.game.ui.updateStatusPopup();
+            // v0.29.22: 레벨업 이펙트 호출
+            window.game.ui.showLevelUpEffect(this.level);
         }
 
         this.updateDerivedStats();

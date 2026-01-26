@@ -618,6 +618,8 @@ export class UIManager {
         const taskTitle = document.getElementById('active-quest-title');
         const taskProgress = document.getElementById('active-quest-task');
         const rewardText = document.getElementById('active-quest-reward');
+        const rewardIcon = rewardDisplay?.querySelector('.quest-icon');
+        const rewardTitle = rewardDisplay?.querySelector('.quest-title');
 
         if (!taskDisplay || !rewardDisplay) return;
 
@@ -647,26 +649,36 @@ export class UIManager {
             rewardDisplay.style.display = 'flex';
             taskTitle.textContent = currentQuest.title;
             taskProgress.textContent = currentQuest.task;
-            rewardText.textContent = currentQuest.reward;
 
-            // Handle claim button
+            // Remove old claim button from task display
             const existingBtn = taskDisplay.querySelector('.quest-claim-btn');
             if (existingBtn) existingBtn.remove();
 
+            // v0.29.22: 보상 수령 가능 시 보상 칸 전체를 클릭 가능한 버튼으로 변경
             if (currentQuest.canClaim) {
-                const btn = document.createElement('button');
-                btn.textContent = '보상 받기';
-                btn.className = 'quest-claim-btn';
-                btn.onclick = (e) => {
+                rewardDisplay.classList.add('quest-reward-claimable');
+                if (rewardIcon) rewardIcon.textContent = '🎉';
+                if (rewardTitle) rewardTitle.textContent = '보상 수령하기!';
+                rewardText.textContent = `클릭하여 ${currentQuest.reward} 획득`;
+
+                // 클릭 이벤트 (중복 방지)
+                rewardDisplay.onclick = (e) => {
                     e.stopPropagation();
                     currentQuest.claimFn();
                 };
-                taskDisplay.appendChild(btn);
+            } else {
+                rewardDisplay.classList.remove('quest-reward-claimable');
+                if (rewardIcon) rewardIcon.textContent = '🎁';
+                if (rewardTitle) rewardTitle.textContent = '퀘스트 보상';
+                rewardText.textContent = currentQuest.reward;
+                rewardDisplay.onclick = null;
             }
         } else {
             // All quests cleared
             taskDisplay.style.display = 'none';
             rewardDisplay.style.display = 'none';
+            rewardDisplay.classList.remove('quest-reward-claimable');
+            rewardDisplay.onclick = null;
         }
     }
 
@@ -775,6 +787,36 @@ export class UIManager {
         this.isPaused = true;
     }
 
+    // v0.29.22: 레벨업 이펙트 - 화면 플래시 + 플로팅 텍스트
+    showLevelUpEffect(level) {
+        // 1. 화면 플래시 이펙트
+        const flash = document.getElementById('levelup-flash');
+        if (flash) {
+            flash.classList.remove('active');
+            // Force reflow to restart animation
+            void flash.offsetWidth;
+            flash.classList.add('active');
+
+            // 애니메이션 종료 후 클래스 제거
+            setTimeout(() => {
+                flash.classList.remove('active');
+            }, 800);
+        }
+
+        // 2. 플레이어 머리 위 "LEVEL UP!" 플로팅 텍스트
+        if (this.game && this.game.localPlayer) {
+            const p = this.game.localPlayer;
+            // 더 큰 플로팅 텍스트 추가
+            this.game.addDamageText(
+                p.x + p.width / 2,
+                p.y - 30,
+                `✨ LEVEL UP! Lv.${level} ✨`,
+                '#ffd700', // 황금색
+                true, // isCrit = true로 큰 텍스트
+                null
+            );
+        }
+    }
 
     hideRewardModal() {
         const modal = document.getElementById('reward-modal');
