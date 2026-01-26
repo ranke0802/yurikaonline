@@ -833,20 +833,23 @@ export default class Player extends CharacterBase {
                 const targets = [];
                 let nearest = null; // v0.29.3: Restored missing variable declaration
                 let minDist = 700;
-                const monsters = window.game.monsterManager ? Array.from(window.game.monsterManager.monsters.values()) : [];
-                monsters.forEach(m => {
-                    if (m.isDead) return;
-                    const d = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
-                    if (d < minDist) { minDist = d; nearest = m; }
-                });
-
-                // v0.00.08: PvP Targeting (RemotePlayers)
-                // If no monster is closer than 700, check players
+                // 1. Check Remote Players FIRST (Priority Target for PvP)
+                // v0.00.09: Prioritize PvP targets over monsters
                 if (window.game.remotePlayers) {
                     window.game.remotePlayers.forEach(rp => {
                         if (rp.isDead || rp.id === this.id) return;
                         const d = Math.sqrt((this.x - rp.x) ** 2 + (this.y - rp.y) ** 2);
                         if (d < minDist) { minDist = d; nearest = rp; }
+                    });
+                }
+
+                // 2. If no player target found, check Monsters
+                if (!nearest) {
+                    const monsters = window.game.monsterManager ? Array.from(window.game.monsterManager.monsters.values()) : [];
+                    monsters.forEach(m => {
+                        if (m.isDead) return;
+                        const d = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
+                        if (d < minDist) { minDist = d; nearest = m; }
                     });
                 }
 
