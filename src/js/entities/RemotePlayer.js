@@ -562,7 +562,9 @@ export default class RemotePlayer extends CharacterBase {
                 const angle = baseAngle + (i - (count - 1) / 2) * (spread / Math.max(1, count - 1)) + angleOffset;
 
                 const speed = 350 + Math.random() * 300;
-                window.game.projectiles.push(new Projectile(centerX, centerY, null, 'missile', {
+                // v0.00.05: Auto-target LocalPlayer for PvP visuals
+                const target = (!window.game.localPlayer?.isDead) ? window.game.localPlayer : null;
+                window.game.projectiles.push(new Projectile(centerX, centerY, target, 'missile', {
                     vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
                     speed: 600, damage: 0, ownerId: this.id
                 }));

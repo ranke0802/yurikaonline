@@ -195,7 +195,8 @@ export default class Player extends CharacterBase {
 
                 import('./Projectile.js').then(({ Projectile }) => {
                     if (window.game) {
-                        window.game.projectiles.push(new Projectile(this.x, this.y, data.target, 'missile', data.options));
+                        // v0.00.05: Inject ownerId for PvP safety
+                        window.game.projectiles.push(new Projectile(this.x, this.y, data.target, 'missile', { ...data.options, ownerId: this.id }));
                     }
                 });
             }
@@ -908,6 +909,7 @@ export default class Player extends CharacterBase {
                 import('./Projectile.js').then(({ Projectile }) => {
                     window.game.projectiles.push(new Projectile(this.x, this.y, null, 'fireball', {
                         vx, vy, speed, damage: dmg, radius: rad, lifeTime: 1.5,
+                        ownerId: this.id, // v0.00.05: PvP Safety
                         targetX: this.x + Math.cos(angle) * 640,
                         targetY: this.y + Math.sin(angle) * 640,
                         burnDuration: 5.0 + (lv - 1), critRate: this.critRate

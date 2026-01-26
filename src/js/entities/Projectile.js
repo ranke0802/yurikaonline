@@ -16,15 +16,18 @@ export class Projectile {
         this.targetY = options.targetY || null;
         this.isCrit = options.isCrit || false;
 
+        // v0.00.05: Owner ID for PvP safety
+        this.ownerId = options.ownerId || null;
+
         // Visuals
-        this.color = type === 'missile' ? '#00d2ff' : '#f97316'; // Cyan for laser
+        this.color = type === 'missile' ? '#00d2ff' : '#f97316';
         this.trail = [];
         this.trailLength = type === 'missile' ? 20 : 10;
-        this.particles = []; // Particles for high-energy look
+        this.particles = [];
 
-        // Missile-specific: Steering & Spread
+        // Missile-specific
         if (type === 'missile') {
-            this.homingDelay = 0.1 + Math.random() * 0.2; // Randomized 0.1s~0.3s
+            this.homingDelay = 0.1 + Math.random() * 0.2;
             this.maxForce = 800;
             this.turnEase = 0;
             this.wobblePhase = Math.random() * Math.PI * 2;
@@ -37,7 +40,7 @@ export class Projectile {
         if (this.lifeTime <= 0) this.isDead = true;
         if (this.isDead) return;
 
-        // Update Particles
+        // Particles
         this.particles.forEach(p => {
             p.x += p.vx * dt;
             p.y += p.vy * dt;
@@ -45,12 +48,12 @@ export class Projectile {
         });
         this.particles = this.particles.filter(p => p.life > 0);
 
-        // Trail for effect
+        // Trail
         this.trail.unshift({ x: this.x, y: this.y });
         if (this.trail.length > this.trailLength) this.trail.pop();
 
         if (this.type === 'missile') {
-            // Spawn Exhaust Particles
+            // Exhaust Particles
             if (Math.random() < 0.3) {
                 const angle = Math.atan2(this.vy, this.vx) + Math.PI + (Math.random() - 0.5);
                 const pSpeed = Math.random() * 150;
@@ -68,21 +71,26 @@ export class Projectile {
                 this.vx *= 0.98;
                 this.vy *= 0.98;
             } else {
-                if (this.target && this.target.isDead) {
+                // v0.00.05: Smart Retargeting (Monsters + Players)
+                if ((this.target && this.target.isDead) || !this.target) {
                     this.target = this.findNearestTarget(monsters);
                 }
 
                 if (this.target) {
-                    const dx = this.target.x - this.x;
-                    const dy = this.target.y - this.y;
+                    // Use center point if possible, else x/y
+                    const tx = (this.target.width) ? this.target.x + this.target.width / 2 : this.target.x;
+                    const ty = (this.target.height) ? this.target.y + this.target.height / 2 : this.target.y;
+
+                    const dx = tx - this.x;
+                    const dy = ty - this.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
 
                     if (dist > 5) {
                         this.turnEase = Math.min(1.0, this.turnEase + dt * 2.5);
-                        const tx = (dx / dist) * this.speed;
-                        const ty = (dy / dist) * this.speed;
-                        const steerX = (tx - this.vx) * 25 * this.turnEase;
-                        const steerY = (ty - this.vy) * 25 * this.turnEase;
+                        const normX = (dx / dist) * this.speed;
+                        const normY = (dy / dist) * this.speed;
+                        const steerX = (normX - this.vx) * 25 * this.turnEase;
+                        const steerY = (normY - this.vy) * 25 * this.turnEase;
                         this.vx += steerX * dt;
                         this.vy += steerY * dt;
                         const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
@@ -90,10 +98,10 @@ export class Projectile {
                             this.vx = (this.vx / currentSpeed) * this.speed;
                             this.vy = (this.vy / currentSpeed) * this.speed;
                         }
-                        if (dist < 60) this.hit(this.target, monsters); // v0.29.8: Increased hit box (40->60)
+                        if (dist < 60) this.hit(this.target, monsters);
                     }
                 } else {
-                    if (!this.vx && !this.vy) this.isDead = true;
+                    if (Math.abs(this.vx) < 1 && Math.abs(this.vy) < 1) this.isDead = true;
                 }
             }
         }
@@ -101,178 +109,159 @@ export class Projectile {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
 
-        if (this.type === 'fireball' && monsters) {
-            monsters.forEach(m => {
-                if (m.isDead) return;
-                const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
-                if (dist < 40) this.hit(m, monsters);
-            });
+        // Collision Checks
+        if (this.type === 'fireball') {
+            const hitRadius = 40;
+            // 1. Monsters
+            if (monsters) {
+                monsters.forEach(m => {
+                    if (m.isDead) return;
+                    const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
+                    if (dist < hitRadius) this.hit(m, monsters);
+                });
+            }
+            // 2. Local Player (PvP Visual)
+            const lp = window.game?.localPlayer;
+            if (lp && !lp.isDead && lp.id !== this.ownerId) {
+                const cx = lp.x + (lp.width || 48) / 2;
+                const cy = lp.y + (lp.height || 48) / 2;
+                const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
+                if (dist < hitRadius) this.hit(lp, monsters);
+            }
+            // 3. Remote Players (PvP Damage)
+            const rps = window.game?.remotePlayers;
+            if (rps) {
+                rps.forEach(rp => {
+                    if (rp.isDead || rp.id === this.ownerId) return;
+                    const cx = rp.x + (rp.width || 48) / 2;
+                    const cy = rp.y + (rp.height || 48) / 2;
+                    const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
+                    if (dist < hitRadius) this.hit(rp, monsters);
+                });
+            }
         }
     }
 
     findNearestTarget(monsters) {
         let nearest = null;
         let minDist = Infinity;
-        if (!monsters) return null;
-        monsters.forEach(m => {
-            if (m.isDead) return;
-            const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
-            if (dist < minDist && dist < 700) {
+        const scanRange = 700;
+        const myId = this.ownerId;
+
+        // 1. Monsters
+        if (monsters) {
+            monsters.forEach(m => {
+                if (m.isDead) return;
+                const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
+                if (dist < minDist && dist < scanRange) {
+                    minDist = dist;
+                    nearest = m;
+                }
+            });
+        }
+
+        // 2. Local Player (Targeting me)
+        const lp = window.game?.localPlayer;
+        if (lp && !lp.isDead && lp.id !== myId) {
+            const cx = lp.x + (lp.width || 48) / 2;
+            const cy = lp.y + (lp.height || 48) / 2;
+            const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
+            if (dist < minDist && dist < scanRange) {
                 minDist = dist;
-                nearest = m;
+                nearest = lp;
             }
-        });
+        }
+
+        // 3. Remote Players (Targeting others)
+        const rps = window.game?.remotePlayers;
+        if (rps) {
+            rps.forEach(rp => {
+                if (rp.isDead || rp.id === myId) return;
+                const cx = rp.x + (rp.width || 48) / 2;
+                const cy = rp.y + (rp.height || 48) / 2;
+                const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
+                if (dist < minDist && dist < scanRange) {
+                    minDist = dist;
+                    nearest = rp;
+                }
+            });
+        }
+
         return nearest;
     }
 
-    hit(monster, monsters) {
+    hit(target, monsters) {
+        // v0.29.8: Sparks
         if (window.game && window.game.addSpark) {
-            // v0.29.8: More sparks for better impact
             for (let i = 0; i < 8; i++) window.game.addSpark(this.x, this.y);
         }
 
         const net = window.game?.net;
 
-        if (this.type === 'fireball' && monsters) {
-            const aoeRadius = this.radius || 100;
-            monsters.forEach(m => {
-                if (m.isDead) return;
-                const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
-                if (dist < aoeRadius) {
-                    let finalDmg = this.damage;
-                    let isCrit = false;
-                    if (this.critRate && Math.random() < this.critRate) {
-                        finalDmg *= 2;
-                        isCrit = true;
-                    }
-                    // v0.29.12: Send damage to network for sync
-                    if (m.isMonster && net) {
-                        net.sendMonsterDamage(m.id, Math.ceil(finalDmg));
-                        m.lastAttackerId = net.playerId;
-                    }
-                    // v0.29.17: All clients call takeDamage for visual feedback
-                    m.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y);
-                    // Only host applies burn effect that modifies state
-                    if (net?.isHost) {
-                        m.applyEffect('burn', this.burnDuration, Math.ceil(finalDmg * 0.15));
-                    }
+        // Case A: Monster Hit
+        if (target.isMonster || (monsters && monsters.has && monsters.has(target.id))) { // Double check properties
+            // Fireball AOE logic for Monsters
+            if (this.type === 'fireball') {
+                // ... existing AOE monster logic ...
+                const aoeRadius = this.radius || 100;
+                if (monsters) {
+                    monsters.forEach(m => {
+                        if (m.isDead) return;
+                        const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
+                        if (dist < aoeRadius) {
+                            this._applyDamage(m, net, true);
+                        }
+                    });
                 }
-            });
-        } else {
-            let finalDmg = this.damage;
-            let isCrit = this.isCrit || false;
-            // v0.29.12: Send damage to network for sync
-            if (monster.isMonster && net) {
-                net.sendMonsterDamage(monster.id, Math.ceil(finalDmg));
-                monster.lastAttackerId = net.playerId;
+            } else {
+                this._applyDamage(target, net, true);
             }
-            // v0.29.17: All clients call takeDamage for visual feedback
-            monster.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y);
         }
+        // Case B: Player Hit (PvP)
+        else {
+            // Is it LocalPlayer?
+            if (target === window.game?.localPlayer) {
+                // If damage > 0, it means *I* shot it at *myself* (unlikely due to ownerCheck)
+                // OR logic failure. 
+                // BUT, if this is a "Visual" projectile from RemotePlayer (damage=0), 
+                // we just want Sparks (already done above).
+                // We DO NOT take damage locally from visual projectiles.
+                // Real damage comes via network packet.
+            }
+            // Is it RemotePlayer?
+            else {
+                // If I am the owner (damage > 0), I hit them. Send packet.
+                if (this.ownerId === window.game?.localPlayer?.id && this.damage > 0) {
+                    // Fireball AOE for Players? Maybe too complex. Just single hit for now or simple range check.
+                    // Simple single hit:
+                    if (net) net.sendPlayerDamage(target.id, Math.ceil(this.damage));
+                }
+            }
+        }
+
         this.isDead = true;
     }
 
-    render(ctx, camera) {
-        if (this.isDead) return;
-        const sx = this.x;
-        const sy = this.y;
+    _applyDamage(m, net, isMonster) {
+        let finalDmg = this.damage;
+        let isCrit = this.isCrit || false;
 
-        // 0. Energy Particles
-        this.particles.forEach(p => {
-            ctx.fillStyle = this.color;
-            ctx.globalAlpha = p.life * 2;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            ctx.fill();
-        });
-        ctx.globalAlpha = 1.0;
+        // Crit recalc if needed (for AOE)
+        // If this.critRate exists, might recalc. But simplified: use strict this.damage
 
-        if (this.type === 'missile') {
-            // --- Advanced Beefy Laser Rendering ---
-            ctx.save();
-
-            if (this.trail.length > 2) {
-                // Layer 1: Outer Wide Glow
-                ctx.beginPath();
-                ctx.moveTo(this.trail[0].x, this.trail[0].y);
-                for (let i = 1; i < this.trail.length; i++) {
-                    ctx.lineTo(this.trail[i].x, this.trail[i].y);
-                }
-                ctx.strokeStyle = this.color;
-                ctx.lineWidth = this.radius * 2.5;
-                ctx.globalAlpha = 0.2;
-                ctx.lineCap = 'round';
-                ctx.stroke();
-
-                // Layer 2: Vivid Cyan Beam
-                ctx.globalAlpha = 0.6;
-                ctx.lineWidth = this.radius * 1.5;
-                ctx.stroke();
-
-                // Layer 3: Main Beam Core
-                ctx.globalAlpha = 0.9;
-                ctx.lineWidth = this.radius;
-                ctx.stroke();
-
-                // Layer 4: Bright White Core
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = this.radius * 0.4;
-                ctx.globalAlpha = 1.0;
-                ctx.stroke();
+        if (isMonster && net) {
+            if (this.damage > 0) { // Only send if real damage
+                net.sendMonsterDamage(m.id, Math.ceil(finalDmg));
+                m.lastAttackerId = net.playerId;
             }
-
-            // High-Energy Pulsing Tip
-            const pulse = (Math.sin(Date.now() * 0.04) + 1) * 0.5;
-            ctx.shadowBlur = 15 + pulse * 15;
-            ctx.shadowColor = this.color;
-
-            ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(sx, sy, this.radius * 1.3, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.arc(sx, sy, this.radius * 0.7, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.restore();
-        } else {
-            // --- Fireball Rendering ---
-            this.trail.forEach((p, i) => {
-                const alpha = 1 - (i / this.trail.length);
-                ctx.fillStyle = this.color;
-                ctx.globalAlpha = alpha * 0.5;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, this.radius * (1 - i / 10), 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            ctx.globalAlpha = 1.0;
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.arc(sx, sy, this.radius * 0.6, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.strokeStyle = this.color;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
-            ctx.stroke();
         }
 
-        // Fireball Landing Indicator
-        if (this.type === 'fireball' && this.targetX !== null && this.targetY !== null) {
-            ctx.save();
-            ctx.strokeStyle = 'rgba(249, 115, 22, 0.4)';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([5, 5]);
-            ctx.beginPath();
-            ctx.arc(this.targetX, this.targetY, this.radius, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.fillStyle = 'rgba(249, 115, 22, 0.1)';
-            ctx.fill();
-            ctx.restore();
+        // Visual feedback
+        // v0.29.17: All clients call takeDamage for visual feedback
+        m.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y);
+
+        if (this.type === 'fireball' && net?.isHost && isMonster) {
+            m.applyEffect('burn', this.burnDuration, Math.ceil(finalDmg * 0.15));
         }
     }
 }
