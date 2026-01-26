@@ -965,17 +965,9 @@ export default class Player extends Actor {
         }
     }
 
-    respawn() {
-        this.isDead = false;
-        this.hp = this.maxHp;
-        this.mp = this.maxMp;
-        this.state = 'idle';
-        // Teleport to safely (usually center or spawn point)
-        // For now, keep at current or origin
-        this.x = window.game?.zone?.width / 2 || 1000;
-        this.y = window.game?.zone?.height / 2 || 1000;
-        Logger.log('Player respawned');
-    }
+    // v0.29.18: Removed duplicate respawn() function
+    // The primary respawn() at line 576 includes network HP sync (sendPlayerHp)
+    // which is required for other clients to see the player as alive
 
     getSkillUpgradeCost(skillId) {
         return 300; // Legacy fixed cost

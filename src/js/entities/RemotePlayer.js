@@ -116,7 +116,14 @@ export default class RemotePlayer extends Actor {
     }
 
     update(dt) {
-        if (this.isDead) return;
+        // v0.29.18: Fix tombstone remaining after respawn
+        // Allow deathTimer to update even when dead, so respawn logic works correctly
+        if (this.isDead) {
+            if (this.deathTimer > 0) {
+                this.deathTimer -= dt;
+            }
+            return;
+        }
 
         const renderTime = Date.now() - this.interpolationDelay;
         let finalX = this.x;
