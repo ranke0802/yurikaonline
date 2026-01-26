@@ -32,7 +32,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.29.19</title>
+    <title>Yurika Online v0.29.23</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
@@ -45,6 +45,13 @@
 
                 // Set global version from server (single source of truth)
                 window.GAME_VERSION = serverVersion;
+
+                // Update UI to reflect actual server version
+                document.title = `Yurika Online v${serverVersion}`;
+                const versionInfo = document.querySelector('.version-info');
+                if (versionInfo) {
+                    versionInfo.innerHTML = `📦 v${serverVersion}`;
+                }
 
                 // Only reload if:
                 // 1. We have a cached version (not first visit)
@@ -485,7 +492,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v0.29.19
+        📦 v0.29.23
     </div>
 
 
