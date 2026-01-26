@@ -441,6 +441,28 @@ export default class NetworkManager extends EventEmitter {
             y: posData[1],
             name: posData[5] || "Unknown"
         });
+
+        // v0.29.24: Sync Initial HP and Attack state on join
+        if (val && val.h && Array.isArray(val.h)) {
+            this.emit('playerHpUpdate', {
+                id: uid,
+                hp: val.h[0],
+                maxHp: val.h[1],
+                ts: val.h[2]
+            });
+        }
+
+        if (val && val.a && Array.isArray(val.a)) {
+            this.emit('playerAttack', {
+                id: uid,
+                ts: val.a[0],
+                x: val.a[1],
+                y: val.a[2],
+                dir: val.a[3],
+                skillType: val.a[4] || 'normal',
+                extraData: val.a[5] || null
+            });
+        }
     }
 
     _onPlayerChanged(snapshot) {
