@@ -1,3 +1,5 @@
+import SkillRenderer from '../skills/renderers/SkillRenderer.js';
+
 export class Projectile {
     constructor(x, y, target, type = 'missile', options = {}) {
         this.x = x;
@@ -15,6 +17,23 @@ export class Projectile {
         this.targetX = options.targetX || null;
         this.targetY = options.targetY || null;
         this.isCrit = options.isCrit || false;
+
+        // v1.99.16: Separate hit detection radius from AOE/visual radius
+        this.aoeRadius = options.aoeRadius || this.radius * 2; // v1.99.30: Explosion 2x wider than projectile (balanced)
+        if (this.type === 'fireball') {
+            this.hitRadius = this.radius; // v1.99.20: Sync hitbox with visible radius
+        } else {
+            this.hitRadius = this.radius;
+        }
+
+        // v1.99.18: Origin for safety threshold
+        this.spawnX = x;
+        this.spawnY = y;
+
+        // v1.99.25: Impact delay state
+        this.isExploding = false;
+        this.explosionDelay = options.penetrationDelay || 0; // v1.99.33: Scaled by level
+        this.explosionContext = null;
 
         // v0.00.05: Owner ID for PvP safety
         this.ownerId = options.ownerId || null;
@@ -36,9 +55,18 @@ export class Projectile {
     }
 
     update(dt, monsters) {
-        this.lifeTime -= dt;
-        if (this.lifeTime <= 0) this.isDead = true;
         if (this.isDead) return;
+
+        // v1.99.25: Handle impact delay (Penetration feel)
+        if (this.isExploding) {
+            this.explosionDelay -= dt;
+            if (this.explosionDelay <= 0) {
+                this._executeActualExplosion();
+            }
+            // v1.99.26: Removed 'return' to allow depth penetration (keep moving while exploding)
+        }
+
+        this.lifeTime -= dt;
 
         // Particles
         this.particles.forEach(p => {
@@ -77,9 +105,9 @@ export class Projectile {
                 }
 
                 if (this.target) {
-                    // Use center point if possible, else x/y
-                    const tx = (this.target.width) ? this.target.x + this.target.width / 2 : this.target.x;
-                    const ty = (this.target.height) ? this.target.y + this.target.height / 2 : this.target.y;
+                    // v1.99.31: Monster x/y are already centers. No offset needed.
+                    const tx = this.target.x;
+                    const ty = this.target.y;
 
                     const dx = tx - this.x;
                     const dy = ty - this.y;
@@ -98,7 +126,7 @@ export class Projectile {
                             this.vx = (this.vx / currentSpeed) * this.speed;
                             this.vy = (this.vy / currentSpeed) * this.speed;
                         }
-                        if (dist < 60) this.hit(this.target, monsters);
+                        if (dist < (60 + (this.target.width || 80) / 2)) this.hit(this.target, monsters);
                     }
                 } else {
                     if (Math.abs(this.vx) < 1 && Math.abs(this.vy) < 1) this.isDead = true;
@@ -111,13 +139,21 @@ export class Projectile {
 
         // Collision Checks
         if (this.type === 'fireball') {
-            const hitRadius = 40;
+            // v1.99.18: Prevent instant explosion at feet. Must travel at least 50px.
+            const distFromSpawnSq = (this.x - this.spawnX) ** 2 + (this.y - this.spawnY) ** 2;
+            if (distFromSpawnSq < 50 * 50) return;
+
             // 1. Monsters
             if (monsters) {
                 monsters.forEach(m => {
                     if (m.isDead) return;
-                    const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
-                    if (dist < hitRadius) this.hit(m, monsters);
+                    // v1.99.21: Monster x/y are already centers. No offset needed.
+                    const mx = m.x;
+                    const my = m.y;
+                    const monsterRadius = (m.width || 80) / 2;
+                    const dist = Math.sqrt((this.x - mx) ** 2 + (this.y - my) ** 2);
+                    // v1.99.21: Account for monster size in collision
+                    if (dist < (this.hitRadius + monsterRadius)) this.hit(m, monsters);
                 });
             }
             // 2. Local Player (PvP Visual)
@@ -126,7 +162,7 @@ export class Projectile {
                 const cx = lp.x + (lp.width || 48) / 2;
                 const cy = lp.y + (lp.height || 48) / 2;
                 const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
-                if (dist < hitRadius) this.hit(lp, monsters);
+                if (dist < this.hitRadius) this.hit(lp, monsters);
             }
             // 3. Remote Players (PvP Damage)
             const rps = window.game?.remotePlayers;
@@ -141,7 +177,33 @@ export class Projectile {
                     const cx = rp.x + (rp.width || 48) / 2;
                     const cy = rp.y + (rp.height || 48) / 2;
                     const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
-                    if (dist < hitRadius) this.hit(rp, monsters);
+                    if (dist < this.hitRadius) this.hit(rp, monsters);
+                });
+            }
+        } else if (this.type === 'missile') {
+            // v1.99.31: Standard Missile Collision logic with owner safety
+            const lp = window.game?.localPlayer;
+            if (lp && !lp.isDead && lp.id !== this.ownerId) {
+                const cx = lp.x + (lp.width || 48) / 2;
+                const cy = lp.y + (lp.height || 48) / 2;
+                const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
+                if (dist < this.hitRadius) this.hit(lp, monsters);
+            }
+            const rps = window.game?.remotePlayers;
+            if (rps) {
+                rps.forEach(rp => {
+                    if (rp.isDead || rp.id === this.ownerId) return;
+                    const cx = rp.x + (rp.width || 48) / 2;
+                    const cy = rp.y + (rp.height || 48) / 2;
+                    const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
+                    if (dist < this.hitRadius) this.hit(rp, monsters);
+                });
+            }
+            if (monsters) {
+                monsters.forEach(m => {
+                    if (m.isDead) return;
+                    const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
+                    if (dist < (this.hitRadius + (m.width || 80) / 2)) this.hit(m, monsters);
                 });
             }
         }
@@ -196,24 +258,50 @@ export class Projectile {
     }
 
     hit(target, monsters) {
-        // v0.29.8: Sparks
-        if (window.game && window.game.addSpark) {
-            for (let i = 0; i < 8; i++) window.game.addSpark(this.x, this.y);
+        // v1.99.25: Initiate impact delay (v1.99.26: Penetration mode)
+        if (this.type === 'fireball') {
+            if (!this.isExploding) {
+                this.isExploding = true;
+                // v1.99.34: respect the delay passed from constructor (scaled by level)
+                this.explosionContext = { target, monsters };
+            }
+            return;
+        }
+
+        this._executeActualExplosion(target, monsters);
+    }
+
+    _executeActualExplosion(manualTarget = null, manualMonsters = null) {
+        const target = manualTarget || (this.explosionContext ? this.explosionContext.target : null);
+        const monsters = manualMonsters || (this.explosionContext ? this.explosionContext.monsters : null);
+
+        if (!target) {
+            this.isDead = true;
+            return;
+        }
+
+        // v1.99.15: Visual Explosion
+        if (window.game) {
+            window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3);
+            for (let i = 0; i < 15; i++) window.game.addSpark(this.x, this.y);
         }
 
         const net = window.game?.net;
+        const targetIsMonster = target.isMonster || (target.type === 'monster');
 
         // Case A: Monster Hit
-        if (target.isMonster || (monsters && monsters.has && monsters.has(target.id))) { // Double check properties
-            // Fireball AOE logic for Monsters
+        if (targetIsMonster) {
             if (this.type === 'fireball') {
-                // ... existing AOE monster logic ...
-                const aoeRadius = this.radius || 100;
+                const aoeRadius = this.aoeRadius || 100;
                 if (monsters) {
                     monsters.forEach(m => {
                         if (m.isDead) return;
-                        const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
-                        if (dist < aoeRadius) {
+                        // v1.99.31: Monster x/y are already centers.
+                        const mx = m.x;
+                        const my = m.y;
+                        const dist = Math.sqrt((this.x - mx) ** 2 + (this.y - my) ** 2);
+                        const monsterRadius = (m.width || 80) / 2;
+                        if (dist < (aoeRadius + monsterRadius)) {
                             this._applyDamage(m, net, true);
                         }
                     });
@@ -235,6 +323,21 @@ export class Projectile {
                         eType = 'burn';
                         eDur = this.burnDuration;
                         eDmg = Math.ceil(this.damage * 0.15);
+
+                        // v1.99.15: AOE for PvP (Damage other hostile players nearby)
+                        const rps = window.game?.remotePlayers;
+                        if (rps) {
+                            rps.forEach(rp => {
+                                if (rp === target || rp.isDead || rp.id === this.ownerId) return;
+                                if (window.game?.localPlayer?.canAttackTarget(rp)) {
+                                    const dist = Math.sqrt((this.x - rp.x) ** 2 + (this.y - rp.y) ** 2);
+                                    const rpRadius = (rp.width || 48) / 2;
+                                    if (dist < (this.aoeRadius + rpRadius)) {
+                                        net.sendPlayerDamage(rp.id, Math.ceil(this.damage), eType, eDur, eDmg);
+                                    }
+                                }
+                            });
+                        }
                     }
 
                     if (net) net.sendPlayerDamage(target.id, Math.ceil(this.damage), eType, eDur, eDmg);
@@ -279,77 +382,24 @@ export class Projectile {
         ctx.globalAlpha = 1.0;
 
         if (this.type === 'missile') {
-            // --- Advanced Beefy Laser Rendering ---
+            SkillRenderer.drawLightning(ctx, this.trail[0]?.x || sx, this.trail[0]?.y || sy, sx, sy, 1);
+            // Keep existing beam fallback for trail logic
             ctx.save();
-
             if (this.trail.length > 2) {
-                // Layer 1: Outer Wide Glow
                 ctx.beginPath();
                 ctx.moveTo(this.trail[0].x, this.trail[0].y);
-                for (let i = 1; i < this.trail.length; i++) {
-                    ctx.lineTo(this.trail[i].x, this.trail[i].y);
-                }
+                for (let i = 1; i < this.trail.length; i++) ctx.lineTo(this.trail[i].x, this.trail[i].y);
                 ctx.strokeStyle = this.color;
-                ctx.lineWidth = this.radius * 2.5;
-                ctx.globalAlpha = 0.2;
-                ctx.lineCap = 'round';
-                ctx.stroke();
-
-                // Layer 2: Vivid Cyan Beam
-                ctx.globalAlpha = 0.6;
-                ctx.lineWidth = this.radius * 1.5;
-                ctx.stroke();
-
-                // Layer 3: Main Beam Core
-                ctx.globalAlpha = 0.9;
                 ctx.lineWidth = this.radius;
-                ctx.stroke();
-
-                // Layer 4: Bright White Core
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = this.radius * 0.4;
-                ctx.globalAlpha = 1.0;
+                ctx.globalAlpha = 0.5;
                 ctx.stroke();
             }
-
-            // High-Energy Pulsing Tip
-            const pulse = (Math.sin(Date.now() * 0.04) + 1) * 0.5;
-            ctx.shadowBlur = 15 + pulse * 15;
-            ctx.shadowColor = this.color;
-
-            ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(sx, sy, this.radius * 1.3, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.arc(sx, sy, this.radius * 0.7, 0, Math.PI * 2);
-            ctx.fill();
-
             ctx.restore();
         } else {
-            // --- Fireball Rendering ---
-            this.trail.forEach((p, i) => {
-                const alpha = 1 - (i / this.trail.length);
-                ctx.fillStyle = this.color;
-                ctx.globalAlpha = alpha * 0.5;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, this.radius * (1 - i / 10), 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            ctx.globalAlpha = 1.0;
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.arc(sx, sy, this.radius * 0.6, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.strokeStyle = this.color;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
-            ctx.stroke();
+            // v1.99.15: Premium Fireball Visuals
+            const angle = Math.atan2(this.vy, this.vx);
+            // v1.99.20: Visual radius matches hitRadius for intuitive collision
+            SkillRenderer.drawFireball(ctx, sx, sy, this.radius, angle, this.trail);
         }
 
         // Fireball Landing Indicator
@@ -359,7 +409,7 @@ export class Projectile {
             ctx.lineWidth = 2;
             ctx.setLineDash([5, 5]);
             ctx.beginPath();
-            ctx.arc(this.targetX, this.targetY, this.radius, 0, Math.PI * 2);
+            ctx.arc(this.targetX, this.targetY, this.aoeRadius, 0, Math.PI * 2);
             ctx.stroke();
             ctx.fillStyle = 'rgba(249, 115, 22, 0.1)';
             ctx.fill();

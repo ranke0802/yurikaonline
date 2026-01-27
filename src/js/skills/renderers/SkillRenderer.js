@@ -169,44 +169,144 @@ export default class SkillRenderer {
     }
 
     /**
-     * Chain Lightning / Laser Effect
+     * High-quality Fireball Rendering
+     * @param {CanvasRenderingContext2D} ctx 
+     * @param {number} x 
+     * @param {number} y 
+     * @param {number} radius 
+     * @param {number} angle 
+     * @param {Array} trail 
      */
-    static drawLightning(ctx, x1, y1, x2, y2, intensity = 1, options = {}) {
-        const {
-            color = '#00d2ff',
-            coreColor = '#48dbfb',
-            glowColor = '#00d2ff',
-            segmentLength = 20,
-            jitter = 15
-        } = options;
-
+    static drawFireball(ctx, x, y, radius, angle, trail = []) {
         ctx.save();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 3.5 * intensity;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = glowColor;
+
+        // 1. Trail (Dynamic Flame)
+        trail.forEach((p, i) => {
+            const ratio = 1 - (i / trail.length);
+            const pRadius = radius * (0.4 + ratio * 0.6);
+
+            const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, pRadius);
+            grad.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+            grad.addColorStop(0.3, 'rgba(255, 165, 0, 0.3)');
+            grad.addColorStop(1, 'rgba(255, 69, 0, 0)');
+
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, pRadius, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // 2. Outer Glow (Corona)
+        const outerGrad = ctx.createRadialGradient(x, y, radius * 0.5, x, y, radius * 1.5);
+        outerGrad.addColorStop(0, 'rgba(255, 69, 0, 0.8)');
+        outerGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+
+        ctx.fillStyle = outerGrad;
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 3. Main Orb
+        const mainGrad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        mainGrad.addColorStop(0, '#ffffff'); // White hot core
+        mainGrad.addColorStop(0.2, '#fff200'); // Yellow
+        mainGrad.addColorStop(0.5, '#f39c12'); // Orange
+        mainGrad.addColorStop(1, '#e67e22'); // Dark Orange
+
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#e67e22';
+        ctx.fillStyle = mainGrad;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 4. Inner Detail (Flicker)
+        const flicker = Math.sin(Date.now() * 0.02) * (radius * 0.1);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = Math.max(1, radius * 0.05);
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 0.7 + flicker, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    /**
+     * Fireball Explosion Effect
+     */
+    static drawExplosion(ctx, x, y, radius, progress) {
+        ctx.save();
+        const alpha = 1 - progress;
+        const currentRad = radius * (0.5 + progress * 0.5);
+
+        // Radial Shockwave
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, currentRad);
+        grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+        grad.addColorStop(0.4, `rgba(255, 165, 0, ${alpha * 0.8})`);
+        grad.addColorStop(1, `rgba(255, 69, 0, 0)`);
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, currentRad, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Debris / Embers
+        ctx.fillStyle = '#ff4757';
+        for (let i = 0; i < 8; i++) {
+            const ang = (i / 8) * Math.PI * 2 + progress * 2;
+            const dist = currentRad * 0.8;
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            ctx.arc(x + Math.cos(ang) * dist, y + Math.sin(ang) * dist, 2 + Math.random() * 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
+    /**
+     * High-quality Lightning Rendering
+     */
+    static drawLightning(ctx, x1, y1, x2, y2, intensity = 1) {
+        ctx.save();
+
+        const dist = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        const segments = Math.max(2, Math.floor(dist / 20)); // Segment every 20px
+        const spread = 8 * intensity;
 
         ctx.beginPath();
         ctx.moveTo(x1, y1);
 
-        const dx = x2 - x1;
-        const dy = y2 - y1;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const segments = Math.max(3, Math.floor(dist / segmentLength));
-
         for (let i = 1; i < segments; i++) {
-            const tx = x1 + dx * (i / segments);
-            const ty = y1 + dy * (i / segments);
-            const off = (Math.random() - 0.5) * jitter * intensity;
-            ctx.lineTo(tx + off, ty + off);
+            const ratio = i / segments;
+            const px = x1 + (x2 - x1) * ratio;
+            const py = y1 + (y2 - y1) * ratio;
+
+            // Random jitter perpendicular to the path
+            const angle = Math.atan2(y2 - y1, x2 - x1) + Math.PI / 2;
+            const offset = (Math.random() - 0.5) * spread * 2;
+
+            ctx.lineTo(px + Math.cos(angle) * offset, py + Math.sin(angle) * offset);
         }
 
         ctx.lineTo(x2, y2);
+
+        // Styling
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // Outer Glow
+        ctx.strokeStyle = '#48dbfb';
+        ctx.lineWidth = 3 * intensity;
+        ctx.shadowBlur = 10 * intensity;
+        ctx.shadowColor = '#00d2ff';
         ctx.stroke();
 
-        // Internal glow core
-        ctx.strokeStyle = coreColor;
-        ctx.lineWidth = 1.5 * intensity;
+        // Inner Sharp Core
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1 * intensity;
+        ctx.shadowBlur = 0;
         ctx.stroke();
 
         ctx.restore();

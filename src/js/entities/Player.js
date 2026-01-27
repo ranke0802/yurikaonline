@@ -554,12 +554,14 @@ export default class Player extends CharacterBase {
             this.applyEffect(effectType, effectDuration, effectDamage || 0);
         }
 
-        // Magic Shield check
+        // v0.29.31: Improved Absolute Barrier (Blocks any immediate damage source)
         if (this.shieldTimer > 0) {
             this.shieldTimer = 0;
             if (window.game) {
                 window.game.addDamageText(this.x + this.width / 2, this.y - 40, "BLOCK", '#48dbfb', true);
             }
+            // Send sync immediately to say shield is down
+            if (this.net) this.net.sendPlayerHp(this.hp, this.maxHp);
             return 0;
         }
 
@@ -600,16 +602,23 @@ export default class Player extends CharacterBase {
         return finalDmg;
     }
 
+    // v1.99.36: Enhanced Mutual Hostility Check
     canAttackTarget(target) {
         if (!target) return false;
         if (target.type === 'monster') return true;
         if (target.type === 'player') {
-            // Basic Self check
             if (target.id === this.id) return false;
-            // Party check
             if (this.party && this.party.members.includes(target.id)) return false;
-            // Hostility check
-            return this.hostileTargets.has(target.id);
+
+            // Check if BOTH are hostile to each other
+            const myHostileEntry = this.hostileTargets.get(target.id);
+            if (!myHostileEntry) return false;
+
+            // Does target have me in their hostility list? (Synced via data/profile)
+            const targetHostileList = target.hostility || {}; // For RemotePlayer, synced from server
+            const isHostileToMe = targetHostileList.hasOwnProperty(this.id) || !!targetHostileList[this.id];
+
+            return isHostileToMe;
         }
         return false;
     }
@@ -622,6 +631,8 @@ export default class Player extends CharacterBase {
             window.game.ui.logSystemMessage('당신은 전사했습니다...');
             window.game.ui.showDeathModal();
         }
+        // v0.29.32: Sync death state (HP 0) immediately
+        if (this.net) this.net.sendPlayerHp(0, this.maxHp);
     }
 
     saveState(syncToWorld = false) {
@@ -642,7 +653,9 @@ export default class Player extends CharacterBase {
             questData: this.questData, // Added in v0.22.4
             name: this.name,
             party: this.party, // v0.00.14: Sync party state
-            hostility: Object.fromEntries(this.hostileTargets), // v0.00.15: Persist Hostility (Map -> Object)
+            hostility: Object.fromEntries(
+                Array.from(this.hostileTargets.entries()).map(([k, v]) => [k, { name: v.name || "Unknown", ts: v.ts || Date.now() }])
+            ), // v1.99.37: Unified to 'name' for UI consistency
             ts: Date.now()
         };
         // Debug
@@ -780,7 +793,6 @@ export default class Player extends CharacterBase {
                             // v0.00.14: Send Shock Effect
                             this.net.sendPlayerDamage(nextTarget.id, Math.ceil(dmg), 'shock', 3.0, 0);
                         }
-                        // v0.29.17: All clients call takeDamage for visual feedback (damage text)
                         // Actual HP reduction is controlled within Monster.takeDamage based on isHost
                         nextTarget.takeDamage(Math.ceil(dmg), true, isCrit, null, null);
                     }
@@ -788,10 +800,6 @@ export default class Player extends CharacterBase {
                     // Slow effect
                     if (nextTarget.applyElectrocuted) {
                         nextTarget.applyElectrocuted(3.0, 0.8);
-                    }
-                    this.recoverMana(1, true);
-                    if (window.game) {
-                        window.game.addDamageText(this.x + this.width / 2, this.y - 20, `+1`, '#00d2ff', false);
                     }
                 }
                 currentSource = { x: nextTarget.x, y: nextTarget.y };
@@ -925,10 +933,10 @@ export default class Player extends CharacterBase {
                 }
             }
         } else if (skillId === 'fireball') {
-            const cost = 8 + (lv - 1) * 3;
+            const cost = 12 + (lv - 1) * 4; // v1.99.32: 12 base, +4 per level
             if (this.useMana(cost)) {
                 this.triggerAction(`${this.name} : 파이어볼 !!`);
-                this.skillCooldowns.u = 5.0; // Original balance: 5.0s
+                this.skillCooldowns.u = 2.0; // v1.99.31: Reduced to 2s
 
                 // v0.22.3: Visual Attack FeedBack
                 // v0.22.3: Visual Attack FeedBack
@@ -942,19 +950,22 @@ export default class Player extends CharacterBase {
 
                 // v0.29.13: 8-direction firing using facingAngle
                 const angle = this.facingAngle !== undefined ? this.facingAngle : 0;
-                const speed = 400;
+                const speed = 800;
                 const vx = Math.cos(angle) * speed;
                 const vy = Math.sin(angle) * speed;
-                const dmg = Math.ceil(this.attackPower * (1.3 + (lv - 1) * 0.3));
-                const rad = 80 + (lv - 1) * 40;
+                const dmg = Math.ceil(this.attackPower * (1.8 + (lv - 1) * 0.3)); // v1.99.31: 180% + 30% per level
+                const baseRad = 20 + (lv - 1) * 20;
+                const aoeRad = baseRad * 2.5; // v1.99.35: Increased to 2.5x for better coverage
 
                 import('./Projectile.js').then(({ Projectile }) => {
                     window.game.projectiles.push(new Projectile(this.x, this.y, null, 'fireball', {
-                        vx, vy, speed, damage: dmg, radius: rad, lifeTime: 1.5,
-                        ownerId: this.id, // v0.00.05: PvP Safety
-                        targetX: this.x + Math.cos(angle) * 640,
-                        targetY: this.y + Math.sin(angle) * 640,
-                        burnDuration: 5.0 + (lv - 1), critRate: this.critRate
+                        vx, vy, speed, damage: dmg, radius: baseRad, aoeRadius: aoeRad, lifeTime: 1.5,
+                        ownerId: this.id,
+                        targetX: this.x + Math.cos(angle) * 1200,
+                        targetY: this.y + Math.sin(angle) * 1200,
+                        burnDuration: 2.0 + (lv - 1) * 0.5,
+                        penetrationDelay: (lv - 1) * 0.05, // v1.99.33: Scaled delay
+                        critRate: this.critRate
                     }));
                 });
 
@@ -1311,7 +1322,7 @@ export default class Player extends CharacterBase {
         if (source && source.type === 'player') {
             // Auto-retaliation: If attacked by a player, mark them as hostile automatically
             if (!this.hostileTargets.has(source.id)) {
-                this.hostileTargets.add(source.id);
+                this.hostileTargets.set(source.id, { name: source.name, ts: Date.now() });
                 if (window.game && window.game.ui) {
                     window.game.ui.logSystemMessage(`⚠️ ${source.name}님이 적대 관계가 되었습니다! (자동 반격)`);
                     window.game.ui.updateHostilityUI();
@@ -1334,15 +1345,13 @@ export default class Player extends CharacterBase {
         return finalDmg;
     }
 
-    // v0.00.14: Check if target is valid for attack
+    // v0.00.14: Check if target is valid for attack (Redundant, keeping for safety or updating to reuse)
     canAttackTarget(target) {
-        if (!target) return false;
-        if (target.type === 'monster') return true;
-        if (target.type === 'player') {
-            // Must be in hostile list to attack
-            return this.hostileTargets.has(target.id);
-        }
-        return false;
+        if (!target || target.isDead) return false;
+        if (target.isMonster) return true;
+
+        // PvP logic: Can attack if target is in our hostileTargets list
+        return this.hostileTargets && this.hostileTargets.has(target.id);
     }
 
     drawSpeechBubble(ctx, x, y) {
@@ -1458,23 +1467,35 @@ export default class Player extends CharacterBase {
 
         try {
             const targetUid = await this.net.getUidByName(targetName);
-            console.log(`[Player] declareHostility Resolved: ${targetName} -> ${targetUid}`);
-
             if (!targetUid) return 'NOT_FOUND';
             if (targetUid === this.id) return 'SELF';
 
-            // Check if already hostile
-            if (this.hostileTargets.has(targetUid)) return 'ALREADY_HOSTILE';
+            const now = Date.now();
+            const existing = this.hostileTargets.get(targetUid);
 
-            this.hostileTargets.set(targetUid, targetName); // Store ID and Name
+            // Toggle Logic: If already hostile, try to remove
+            if (existing) {
+                const elapsed = (now - existing.ts) / 1000;
+                if (elapsed < 30) {
+                    return `COOLDOWN:${Math.ceil(30 - elapsed)}`;
+                }
+
+                // Remove hostility (Mutual removal logic)
+                this.hostileTargets.delete(targetUid);
+                if (this.net) this.net.sendHostilityRemovalEvent?.(targetUid); // Implement this in NetManager
+
+                this.saveState();
+                if (window.game?.ui) window.game.ui.updateHostilityUI();
+                return 'REMOVED';
+            }
+
+            // Declare New Hostility
+            this.hostileTargets.set(targetUid, { name: targetName, ts: now });
 
             // v0.00.15: Mutual Hostility Event
             if (this.net) this.net.sendHostilityEvent(targetUid);
 
-            // Should we notify UI? 
             if (window.game?.ui) window.game.ui.updateHostilityUI();
-
-            // v0.00.15: Persist the change immediately
             this.saveState();
 
             return 'DECLARED';

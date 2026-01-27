@@ -60,7 +60,7 @@ export class UIManager {
         this.skillData = {
             laser: { name: '체인 라이트닝 (J)', desc: '연쇄형 기본공격 (전기속성). 적중한 적 하나당 마나 1을 회복합니다. [연쇄: Lv당 +1] [기본 10% / 공격 1회당 증폭 / 마나 회복 +1]' },
             missile: { name: '매직 미사일 (H)', desc: '자동 추적 미사일을 발사합니다. [데미지: 공격력의 90%] [발사 수: 레벨당 +1개] [마나 소모: 4 / 레벨당 +3]' },
-            fireball: { name: '파이어볼 (U)', desc: '폭발하는 화염구를 던집니다. [직격 데미지: 공격력의 130% / 레벨당 +30% 추가] [마나 소모: 8 / 레벨당 +3] [화상: 5초 이상 지속 / 레벨당 +1초]' },
+            fireball: { name: '파이어볼 (U)', desc: '폭발하는 화염구를 던집니다. [직격 데미지: 공격력의 180% / 레벨당 +30% 추가] [마나 소모: 12 / 레벨당 +4] [화상: 2초 이상 지속 / 레벨당 +0.5초] [폭발 범위: 투사체의 2.5배]' },
             shield: { name: '앱솔루트 베리어 (K)', desc: '절대 방어막을 전개하여 다음 1회의 피격을 완전히 무효화합니다. [마나 소모: 30] [재사용 대기시간: 15초] [레벨업 불가]' }
         };
 
@@ -379,16 +379,12 @@ export class UIManager {
         panel.classList.remove('hidden');
         list.innerHTML = '';
 
-        hostileTargets.forEach((name, uid) => {
+        hostileTargets.forEach((data, uid) => {
             const li = document.createElement('li');
             li.className = 'hostility-item';
 
-            // Name is now stored in the Map value
-            /* 
-            if (this.game.remotePlayers.has(uid)) {
-                name = this.game.remotePlayers.get(uid).name;
-            }
-            */
+            // data is { name, ts }
+            const name = data && typeof data === 'object' ? data.name : "Unknown";
 
             li.innerHTML = `<span>${name}</span> <button class="btn-remove-hostile" data-uid="${uid}">x</button>`;
 
@@ -545,11 +541,11 @@ export class UIManager {
                 currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>발사 수: ${mCount}개 | 발당 데미지: ${mDmg} | 마나 소모: ${mCost}</div>`;
                 break;
             case 'fireball':
-                const fDmg = Math.floor(p.attackPower * (1.3 + (lv - 1) * 0.3));
-                const fRad = 80 + (lv - 1) * 40;
-                const fBurn = 5 + (lv - 1);
-                const fCost = 8 + (lv - 1) * 3;
-                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>데미지: ${fDmg} | 마나 소모: ${fCost} | 화상: ${fBurn}초</div>`;
+                const fDmg = Math.floor(p.attackPower * (1.8 + (lv - 1) * 0.3));
+                const fRad = 20 + (lv - 1) * 20;
+                const fBurn = 2.0 + (lv - 1) * 0.5;
+                const fCost = 12 + (lv - 1) * 4;
+                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>위력: ${fDmg} (180% + 30%/lv) | 마나 소모: ${fCost} | 화상: ${fBurn}초</div>`;
                 break;
             case 'shield':
                 currentEffect = `<div class="current-effect">현재 효과:<br>다음 1회 피격 데미지 0 (BLOCK)</div>`;
@@ -1230,9 +1226,12 @@ export class UIManager {
                 }
                 const result = await this.game.localPlayer.declareHostility(param);
                 if (result === 'DECLARED') {
-                    this.logSystemMessage(`⚔️ ${param}님을 적대 대상으로 선포했습니다!`);
-                } else if (result === 'ALREADY_HOSTILE') {
-                    this.logSystemMessage(`이미 적대 중인 대상입니다.`);
+                    this.logSystemMessage(`⚔️ ${param}님을 적대 대상으로 선포했습니다! (상호 적대 시 공격 가능)`);
+                } else if (result === 'REMOVED') {
+                    this.logSystemMessage(`🕊️ ${param}님과 적대 관계를 해제했습니다.`);
+                } else if (result.startsWith('COOLDOWN:')) {
+                    const time = result.split(':')[1];
+                    this.logSystemMessage(`⚠️ 적대 해제는 선포 후 30초가 지나야 가능합니다. (남은 시간: ${time}초)`);
                 } else if (result === 'NOT_FOUND') {
                     this.logSystemMessage(`해당 유저를 찾을 수 없습니다.`);
                 } else if (result === 'SELF') {

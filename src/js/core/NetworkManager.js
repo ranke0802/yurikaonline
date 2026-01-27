@@ -852,10 +852,21 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.playerId) return;
 
         Logger.log(`Sending Hostility Event to ${targetUid}`);
-        // Notify target that I declared war on them
         this.dbRef.child(`hostility_events/${targetUid}`).push({
+            type: 'declare',
             senderId: this.playerId,
             senderName: window.game.localPlayer?.name || "Unknown",
+            ts: Date.now()
+        });
+    }
+
+    sendHostilityRemovalEvent(targetUid) {
+        if (!this.connected || !this.playerId) return;
+
+        Logger.log(`Sending Hostility Removal to ${targetUid}`);
+        this.dbRef.child(`hostility_events/${targetUid}`).push({
+            type: 'remove',
+            senderId: this.playerId,
             ts: Date.now()
         });
     }
@@ -876,20 +887,25 @@ export default class NetworkManager extends EventEmitter {
                 if (window.game && window.game.localPlayer) {
                     const lp = window.game.localPlayer;
 
-                    if (!lp.hostileTargets.has(val.senderId)) {
-                        // Mutual Hostility: Auto-add sender to my hostile list
-                        lp.hostileTargets.set(val.senderId, val.senderName);
-
-                        // Notify UI
-                        if (window.game.ui) {
-                            window.game.ui.logSystemMessage(`⚠️ ${val.senderName}님이 당신을 적대 관계로 등록했습니다! (상호 적대)`);
-                            window.game.ui.updateHostilityUI();
+                    if (val.type === 'remove') {
+                        if (lp.hostileTargets.has(val.senderId)) {
+                            lp.hostileTargets.delete(val.senderId);
+                            if (window.game.ui) {
+                                window.game.ui.logSystemMessage(`🕊️ 상대가 적대 관계를 해제하여 평화 상태가 되었습니다.`);
+                                window.game.ui.updateHostilityUI();
+                            }
+                            lp.saveState();
                         }
-
-                        // Save State
-                        // Fix for crash: game.savePlayerData likely doesn't exist on Game instance
-                        if (lp.saveState) lp.saveState();
-                        else if (window.game.net) window.game.net.savePlayerData(lp.id, { ...lp.data }); // Fallback
+                    } else {
+                        // type === 'declare' or legacy
+                        if (!lp.hostileTargets.has(val.senderId)) {
+                            lp.hostileTargets.set(val.senderId, { name: val.senderName, ts: val.ts || Date.now() });
+                            if (window.game.ui) {
+                                window.game.ui.logSystemMessage(`⚠️ ${val.senderName}님이 당신을 적대 관계로 등록했습니다! (상호 적대 시 PvP 가능)`);
+                                window.game.ui.updateHostilityUI();
+                            }
+                            lp.saveState();
+                        }
                     }
                 } else {
                     Logger.warn('[Network] Hostility Event received but localPlayer not ready. Keeping event.');

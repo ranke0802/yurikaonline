@@ -179,7 +179,7 @@ class Game {
 
     async init() {
         this.updateLoading('리소스 다운로드 중...', 0);
-        
+
         // v0.30.0: Centralized Pre-loading
         try {
             await this.resources.preloadCriticalAssets((pct) => {
@@ -262,6 +262,10 @@ class Game {
         return (this.sceneManager?.currentScene?.sparks) || [];
     }
 
+    get explosions() {
+        return (this.sceneManager?.currentScene?.explosions) || [];
+    }
+
     addDamageText(x, y, amount, color, isCrit, label) {
         if (this.sceneManager?.currentScene?.addDamageText) {
             this.sceneManager.currentScene.addDamageText(x, y, amount, color, isCrit, label);
@@ -271,6 +275,12 @@ class Game {
     addSpark(x, y) {
         if (this.sceneManager?.currentScene?.addSpark) {
             this.sceneManager.currentScene.addSpark(x, y);
+        }
+    }
+
+    addExplosion(x, y, radius) {
+        if (this.sceneManager?.currentScene?.addExplosion) {
+            this.sceneManager.currentScene.addExplosion(x, y, radius);
         }
     }
 

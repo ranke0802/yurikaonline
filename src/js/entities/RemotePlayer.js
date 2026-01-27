@@ -515,7 +515,7 @@ export default class RemotePlayer extends CharacterBase {
             RemotePlayer.projectilePromise.then(({ Projectile }) => {
                 if (!window.game) return;
                 if (skillType === 'fireball') {
-                    let vx = 0, vy = 0, speed = 400;
+                    let vx = 0, vy = 0, speed = 800;
                     // v0.29.13: Use angle from extraData if available (8-direction)
                     const angle = data.extraData?.angle;
                     if (angle !== undefined) {
@@ -528,8 +528,13 @@ export default class RemotePlayer extends CharacterBase {
                         else if (this.direction === 2) vx = -speed;
                         else if (this.direction === 3) vx = speed;
                     }
+                    const attackerLevel = (data.extraData && typeof data.extraData.level === 'number') ? data.extraData.level : 1;
+                    const baseRad = 20 + (attackerLevel - 1) * 20;
+                    const aoeRad = baseRad * 2.5; // v1.99.35: Sync 2.5x AOE
+
                     window.game.projectiles.push(new Projectile(centerX, centerY, null, 'fireball', {
-                        vx, vy, speed, damage: 0, ownerId: this.id, radius: 80
+                        vx, vy, speed, damage: 0, ownerId: this.id, radius: baseRad, aoeRadius: aoeRad,
+                        penetrationDelay: (attackerLevel - 1) * 0.05 // v1.99.33: Sync delay
                     }));
                 } else if (skillType === 'missile') {
                     // v0.29.2: Ensure at least 1 missile and validate count

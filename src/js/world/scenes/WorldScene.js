@@ -2,6 +2,7 @@ import Scene from '../../core/Scene.js';
 import Logger from '../../utils/Logger.js';
 import Player from '../../entities/Player.js';
 import RemotePlayer from '../../entities/RemotePlayer.js';
+import SkillRenderer from '../../skills/renderers/SkillRenderer.js';
 
 export default class WorldScene extends Scene {
     constructor(game) {
@@ -18,6 +19,7 @@ export default class WorldScene extends Scene {
         this.floatingTexts = [];
         this.sparks = [];
         this.projectiles = [];
+        this.explosions = []; // v1.99.15: Visual-only explosions
         this.time = 0;
     }
 
@@ -256,6 +258,14 @@ export default class WorldScene extends Scene {
             }
         }
 
+        // v1.99.15: Update Explosions
+        for (let i = this.explosions.length - 1; i >= 0; i--) {
+            this.explosions[i].life -= dt;
+            if (this.explosions[i].life <= 0) {
+                this.explosions.splice(i, 1);
+            }
+        }
+
         // Update Projectiles (v0.29.23: Fixed removal logic)
         this.projectiles = this.projectiles.filter(p => {
             const monsters = this.monsterManager ? Array.from(this.monsterManager.monsters.values()) : [];
@@ -325,6 +335,12 @@ export default class WorldScene extends Scene {
             ctx.restore();
         });
 
+        // 7. Explosions (Top Layer)
+        this.explosions.forEach(exp => {
+            const progress = 1 - (exp.life / exp.maxLife);
+            SkillRenderer.drawExplosion(ctx, exp.x, exp.y, exp.radius, progress);
+        });
+
         ctx.restore();
     }
 
@@ -336,6 +352,15 @@ export default class WorldScene extends Scene {
             const s = this.game.sparkPool.acquire(x, y, angle, speed, life, '#fff');
             if (s) this.sparks.push(s);
         }
+    }
+
+    addExplosion(x, y, radius) {
+        // v1.99.15: Visual-only explosion state
+        this.explosions.push({
+            x, y, radius,
+            life: 0.6,
+            maxLife: 0.6
+        });
     }
 
     addDamageText(x, y, text, color, isCrit, type) {
