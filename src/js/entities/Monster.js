@@ -66,7 +66,9 @@ export default class Monster extends CharacterBase {
         this.spawnGraceTimer = 3.0; // v1.99.10: Wait 3s after spawn before chasing
         this.isMonster = true;
 
-        this.init(this.assetPath);
+        // Lazy Load: Do not call init() here. 
+        // We will call it in render() so that we only load assets when the monster is actually being drawn (in WorldScene).
+        this.loadingRequested = false;
     }
 
 
@@ -74,7 +76,7 @@ export default class Monster extends CharacterBase {
     static spriteCache = {};
 
     async init(path) {
-        if (!path) path = 'assets/resource/monster_slim';
+        if (!path) path = '/assets/resource/monster_slim';
         const frames = ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp'];
         const cacheKey = path;
 
@@ -88,42 +90,114 @@ export default class Monster extends CharacterBase {
         const targetW = 256;
         const targetH = 256;
 
+        // Support both single file and directory logic
+        const isSingleFile = path.toLowerCase().endsWith('.webp') || path.toLowerCase().endsWith('.png');
+
+        if (isSingleFile) {
+            const img = new Image();
+            let v = window.GAME_VERSION;
+            // Fallback if version check failed
+            if (!v || v === 'error' || v === 'unknown') v = Date.now();
+            img.src = `${path}?v=${v}`;
+
+            await new Promise((resolve) => {
+                img.onload = () => {
+                    const finalCanvas = document.createElement('canvas');
+                    finalCanvas.width = targetW;
+                    finalCanvas.height = targetH;
+                    const finalCtx = finalCanvas.getContext('2d');
+                    this.processAndDrawFrame(img, finalCtx, 0, 0, targetW, targetH);
+                    this.sprite = new Sprite(finalCanvas, 1, 1);
+                    Monster.spriteCache[cacheKey] = this.sprite;
+                    this.ready = true;
+                    resolve();
+                };
+                img.onerror = () => {
+                    this.ready = true; // Still mark as ready to avoid infinite wait
+                    resolve();
+                };
+            });
+            return;
+        }
+
         const finalCanvas = document.createElement('canvas');
         finalCanvas.width = targetW * frames.length;
         finalCanvas.height = targetH;
         const finalCtx = finalCanvas.getContext('2d');
+        let loadedCount = 0;
+        let loadPromises = [];
 
-        const loadPromises = frames.map((frameFile, i) => {
-            const img = new Image();
-            const v = window.GAME_VERSION || Date.now();
-            img.src = `${path}/${frameFile}?v=${v}`;
-            return new Promise((resolve) => {
-                img.onload = () => {
+        if (window.game && window.game.resources) {
+            // Use ResourceManager to ensure we hit the preloaded cache
+            loadPromises = frames.map((frameFile, i) => {
+                let v = window.GAME_VERSION;
+                if (!v || v === 'error' || v === 'unknown') v = Date.now();
+                const url = `${path}/${frameFile}?v=${v}`;
+
+                return window.game.resources.loadImage(url).then(img => {
                     this.processAndDrawFrame(img, finalCtx, i * targetW, 0, targetW, targetH);
-                    resolve();
-                };
-                img.onerror = resolve;
+                    loadedCount++;
+                }).catch(err => {
+                    Logger.warn(`Failed to load monster frame: ${url}`, err);
+                });
             });
-        });
+            await Promise.all(loadPromises);
+        } else {
+            // Fallback if no game instance (should not happen in normal flow)
+            loadPromises = frames.map((frameFile, i) => {
+                const img = new Image();
+                const v = window.GAME_VERSION || Date.now();
+                img.src = `${path}/${frameFile}?v=${v}`;
+                return new Promise((resolve) => {
+                    img.onload = () => {
+                        this.processAndDrawFrame(img, finalCtx, i * targetW, 0, targetW, targetH);
+                        loadedCount++;
+                        resolve();
+                    };
+                    img.onerror = () => {
+                        Logger.warn(`Failed to load monster frame: ${img.src}`);
+                        resolve();
+                    };
+                });
+            });
+            await Promise.all(loadPromises);
+        }
 
         await Promise.all(loadPromises);
 
-        this.sprite = new Sprite(finalCanvas, frames.length, 1);
-        Monster.spriteCache[cacheKey] = this.sprite; // Save to cache
+        if (loadedCount > 0) {
+            this.sprite = new Sprite(finalCanvas, frames.length, 1);
+            Monster.spriteCache[cacheKey] = this.sprite; // Save to cache
+        } else {
+            Logger.warn(`No frames loaded for ${path}, using fallback.`);
+            this.sprite = null; // Force fallback rendering
+        }
         this.ready = true;
     }
 
     processAndDrawFrame(img, ctx, destX, destY, destW, destH) {
+        // Critical Robustness Check
+        if (!img || img.width === 0 || img.height === 0) {
+            return;
+        }
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = img.width;
         tempCanvas.height = img.height;
-        const tempCtx = tempCanvas.getContext('2d');
+        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
         tempCtx.drawImage(img, 0, 0);
 
         const imgData = tempCtx.getImageData(0, 0, img.width, img.height);
         const data = imgData.data;
 
-        // Find background color (top-left pixel is usually safe)
+        // 1. Check if image is ALREADY transparent (WebP/PNG)
+        // Check top-left pixel alpha. If it's 0, assume the image is pre-processed.
+        if (data[3] === 0) {
+            // Just draw resizing to destination, don't chroma key
+            ctx.drawImage(img, 0, 0, img.width, img.height, destX, destY, destW, destH);
+            return;
+        }
+
+        // 2. Manual Chroma Key (Legacy)
         const bgR = data[0];
         const bgG = data[1];
         const bgB = data[2];
@@ -168,6 +242,10 @@ export default class Monster extends CharacterBase {
             const offY = (destH - drawH) / 2;
 
             ctx.drawImage(tempCanvas, minX, minY, charW, charH, destX + offX, destY + offY, drawW, drawH);
+        } else {
+            // 3. Fallback: If chroma key wiped everything, draw ORIGINAL
+            Logger.warn('[Monster] Chroma Key removed all pixels! Reverting to raw image.');
+            ctx.drawImage(img, 0, 0, img.width, img.height, destX, destY, destW, destH);
         }
     }
 
@@ -448,7 +526,16 @@ export default class Monster extends CharacterBase {
     }
 
     render(ctx, camera) {
-        if (!this.ready || this.deathTimer >= this.deathDuration) return;
+        if (!this.ready) {
+            if (!this.loadingRequested) {
+                this.loadingRequested = true;
+                this.init(this.assetPath);
+            }
+            // While not ready, maybe show a loading placeholder?
+            // For now, we just fall through to the render logic which handles null sprites.
+        }
+
+        if (this.deathTimer >= this.deathDuration) return;
 
         ctx.save();
         if (this.isDead) {
@@ -456,7 +543,6 @@ export default class Monster extends CharacterBase {
         } else {
             ctx.globalAlpha = this.alpha;
         }
-
 
         // Note: Context is already translated by Camera in Main.js
         const screenX = Math.round(this.x);
@@ -470,10 +556,17 @@ export default class Monster extends CharacterBase {
         ctx.fill();
 
         const burnEffect = this.statusEffects.find(e => e.type === 'burn');
-        this.sprite.draw(ctx, 0, this.frame, screenX - this.width / 2, drawY - this.height / 2, this.width, this.height);
 
-
-
+        // Fallback or Sprite Draw
+        if (this.sprite) {
+            this.sprite.draw(ctx, 0, this.frame, screenX - this.width / 2, drawY - this.height / 2, this.width, this.height);
+        } else {
+            // Fallback: Red Circle
+            ctx.fillStyle = '#ff4757';
+            ctx.beginPath();
+            ctx.arc(screenX, drawY, this.width / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
 
         // Aggro Indicator (!)
         if (this.isAggro && !this.isDead) {
@@ -487,7 +580,6 @@ export default class Monster extends CharacterBase {
             ctx.fillText('!', screenX, screenY - this.height / 2 - 40 + bounce);
             ctx.restore();
         }
-
 
         // Monster Name (back to top - adjusted down by 15px)
         const nameY = screenY - this.height / 2 - 5;
@@ -515,6 +607,7 @@ export default class Monster extends CharacterBase {
         const hpPercent = Math.max(0, Math.min(1, this.hp / this.maxHp));
         ctx.fillStyle = hpPercent > 0.3 ? '#4ade80' : '#ef4444';
         ctx.fillRect(screenX - 30, uiBaseY, 60 * hpPercent, 6);
+
 
         // v1.86: Custom Status Icons at the BOTTOM (More fit & Professional)
         if ((burnEffect || this.electrocutedTimer > 0) && !this.isDead) {

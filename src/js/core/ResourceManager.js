@@ -12,14 +12,20 @@ export default class ResourceManager {
 
     // Specialized loader for the Complex Character Sprite Sheet
     // Integrates Chroma Key, Auto-Crop, and Scaling from legacy code
-    async loadCharacterSpriteSheet() {
-        const cacheKey = 'character_spritesheet';
+    async loadCharacterSpriteSheet(previewOnly = false) {
+        const cacheKey = previewOnly ? 'character_spritesheet_preview' : 'character_spritesheet';
         if (this.cache.has(cacheKey)) return this.cache.get(cacheKey);
+        // If full sheet is already loaded, use it even for preview
+        if (this.cache.has('character_spritesheet')) return this.cache.get('character_spritesheet');
+
         if (this.loading.has(cacheKey)) return this.loading.get(cacheKey);
 
         const promise = new Promise(async (resolve, reject) => {
             try {
-                const categories = {
+                // v1.99.12: Preview Optimization - Only load 'front' for CharSelect
+                const categories = previewOnly ? {
+                    'front': { path: '/assets/resource/magicion_front', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp', '6.webp', '7.webp', '8.webp'] }
+                } : {
                     'back': { path: '/assets/resource/magicion_back', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp'] },
                     'front': { path: '/assets/resource/magicion_front', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp', '6.webp', '7.webp', '8.webp'] },
                     'left': { path: '/assets/resource/magicion_left', frames: ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp', '6.webp', '7.webp'] },
@@ -49,21 +55,16 @@ export default class ResourceManager {
                     }
 
                     menu.frames.forEach((frameFile, i) => {
-                        // Use the generic loadImage to fetch raw image, then process
-                        // Enhanced: Frame files might be .webp now, try both
-                        const url = `${menu.path}/${frameFile}`;
+                        const path = `${menu.path}/${frameFile}`;
+                        // Add version/cache-busting
+                        let v = window.GAME_VERSION;
+                        if (!v || v === 'error' || v === 'unknown') v = Date.now();
+                        const url = `${path}?v=${v}`;
+
                         const p = this.loadImage(url).then(img => {
                             this._processAndDrawFrame(img, finalCtx, i * targetW, rowIndex * targetH, targetW, targetH);
                         }).catch(err => {
-                            // If .webp failed, maybe it exists as a legacy format? (Backward compatibility)
-                            if (frameFile.endsWith('.webp')) {
-                                const legacyUrl = url.replace('.webp', '.p' + 'ng');
-                                return this.loadImage(legacyUrl).then(img => {
-                                    this._processAndDrawFrame(img, finalCtx, i * targetW, rowIndex * targetH, targetW, targetH);
-                                }).catch(e => {
-                                    Logger.warn(`Failed to load frame: ${url} (and legacy fallback)`);
-                                });
-                            }
+                            Logger.warn(`Failed to load frame: ${path}`, err);
                         });
                         loadPromises.push(p);
                     });
@@ -105,6 +106,7 @@ export default class ResourceManager {
     }
 
     _processAndDrawFrame(img, ctx, destX, destY, destW, destH) {
+        if (!img || img.width === 0 || img.height === 0) return;
         // Create temp canvas for processing if not exists (not efficient to recreate every time vs reuse, but ok for init)
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = img.width;
@@ -220,4 +222,47 @@ export default class ResourceManager {
     }
 
     // Simple Audio loading could be added here similar to images
+
+    async preloadCriticalAssets(onProgress) {
+        const criticalImages = [
+            // Monster: Slime (1-5)
+            '/assets/resource/monster_slim/1.webp',
+            '/assets/resource/monster_slim/2.webp',
+            '/assets/resource/monster_slim/3.webp',
+            '/assets/resource/monster_slim/4.webp',
+            '/assets/resource/monster_slim/5.webp',
+            // Player: Front (1-8) for Character Selection
+            '/assets/resource/magicion_front/1.webp',
+            '/assets/resource/magicion_front/2.webp',
+            '/assets/resource/magicion_front/3.webp',
+            '/assets/resource/magicion_front/4.webp',
+            '/assets/resource/magicion_front/5.webp',
+            '/assets/resource/magicion_front/6.webp',
+            '/assets/resource/magicion_front/7.webp',
+            '/assets/resource/magicion_front/8.webp',
+        ];
+
+        let loaded = 0;
+        const total = criticalImages.length;
+
+        // Force browser to cache these files
+        const promises = criticalImages.map(async (url) => {
+            try {
+                // Use current version to ensure fresh cache
+                let v = window.GAME_VERSION;
+                if (!v || v === 'error' || v === 'unknown') v = Date.now();
+
+                const fullUrl = `${url}?v=${v}`;
+                await this.loadImage(fullUrl);
+            } catch (e) {
+                console.warn(`[Preload] Failed: ${url}`, e);
+            } finally {
+                loaded++;
+                // Progress from 0% to 100% (mapped to overall loading 40% -> 90%)
+                if (onProgress) onProgress(loaded, total);
+            }
+        });
+
+        await Promise.all(promises);
+    }
 }

@@ -9,9 +9,24 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2d3436">
     <script>
+        // v0.00.13+: Failsafe unregistration for zombie service workers
         if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (let registration of registrations) {
+                    const swUrl = registration.active?.scriptURL || "";
+                    // Fix: Correct logic to catch ANY old SW
+                    if (!swUrl.includes('v0.00.13')) {
+                        console.warn('Found old SW. Forcefully unregistering:', swUrl);
+                        registration.unregister().then(() => {
+                            // Force Reload to clear the slate
+                            window.location.reload();
+                        });
+                    }
+                }
+            });
+
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=0.00.04')
+                navigator.serviceWorker.register('sw.js?v=0.00.13')
                     .then(reg => console.log('SW registered:', reg.scope))
                     .catch(err => console.log('SW failed:', err));
             });
@@ -32,7 +47,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.00.04</title>
+    <title>Yurika Online v0.00.12</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
@@ -75,7 +90,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.00.04">
+    <link rel="stylesheet" href="src/css/style.css?v=0.00.12">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -498,7 +513,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v0.00.04
+        📦 v0.00.13
     </div>
 
 
@@ -517,7 +532,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.00.04"></script>
+    <script type="module" src="./src/js/main.js?v=0.00.13"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

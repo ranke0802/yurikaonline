@@ -231,7 +231,7 @@ export default class CharacterSelectionScene extends Scene {
         canvas.height = size;
 
         // Load SpriteSheet
-        const spriteSheet = await this.game.resources.loadCharacterSpriteSheet();
+        const spriteSheet = await this.game.resources.loadCharacterSpriteSheet(true);
 
         let frame = 0;
         let lastTime = 0;

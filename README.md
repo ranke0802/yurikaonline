@@ -1,4 +1,6 @@
 # 🎮 Yurika Online (유리카 온라인)
+> **Service Link:** [https://yurika-online.web.app/](https://yurika-online.web.app/)
+
 
 **Yurika Online**은 HTML5 Canvas와 Firebase를 기반으로 구축된 최첨단 에이전트 기반 MMORPG입니다. 이 프로젝트는 현대적인 웹 기술을 사용하여 부드러운 멀티플레이어 경험과 화려한 마법 전투 시스템을 구현하는 것을 목표로 합니다.
 

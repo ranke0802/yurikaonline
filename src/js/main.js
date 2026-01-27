@@ -177,8 +177,19 @@ class Game {
         }
     }
 
-    init() {
-        this.updateLoading('시스템 초기화 중...');
+    async init() {
+        this.updateLoading('리소스 다운로드 중...', 0);
+        
+        // v0.30.0: Centralized Pre-loading
+        try {
+            await this.resources.preloadCriticalAssets((pct) => {
+                this.updateLoading('리소스 다운로드 중...', pct);
+            });
+        } catch (e) {
+            Logger.error('Asset Preloading Partial failure', e);
+        }
+
+        this.updateLoading('시스템 초기화 중...', 100);
 
         // Bind UI Popups (Global Key Listener)
         this.input.on('keydown', (action) => {

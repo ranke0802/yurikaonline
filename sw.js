@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yurika-online-v0.00.04';
+const CACHE_NAME = 'yurika-online-v0.00.13';
 
 const ASSETS_TO_CACHE = [
     './',
@@ -42,18 +42,30 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // v0.29.16: ALL local files -> Network First for immediate updates
+    // v0.00.12+: ALL local files -> Network First for immediate updates
     // Cache is only used as fallback when offline
     event.respondWith(
         fetch(event.request)
             .then(response => {
-                // Cache successful responses
-                if (response.status === 200) {
+                // Only cache successful standard responses
+                if (response && response.status === 200 && response.type === 'basic') {
                     const cloned = response.clone();
                     caches.open(CACHE_NAME).then(cache => cache.put(event.request, cloned));
                 }
                 return response;
             })
-            .catch(() => caches.match(event.request))
+            .catch(err => {
+                // console.error('[SW] Fetch failed:', err);
+                return caches.match(event.request).then(cachedResponse => {
+                    if (cachedResponse) return cachedResponse;
+
+                    // Fallback if neither network nor cache works
+                    return new Response('Asset Not Found (Offline)', {
+                        status: 404,
+                        statusText: 'Not Found',
+                        headers: { 'Content-Type': 'text/plain' }
+                    });
+                });
+            })
     );
 });

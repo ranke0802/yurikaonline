@@ -40,6 +40,9 @@ export default class WorldScene extends Scene {
         const profile = params.profile;
         const localName = params.localName;
 
+        // v1.99.12: Load FULL sprite sheet (preview loaded only partial)
+        await this.resources.loadCharacterSpriteSheet();
+
         // Spawn Player
         this.player = new Player(startX, startY, localName);
         this.player.id = user.uid;
