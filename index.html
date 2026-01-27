@@ -15,20 +15,24 @@
                 for (let registration of registrations) {
                     const swUrl = registration.active?.scriptURL || "";
                     // Fix: Correct logic to catch ANY old SW
-                    if (!swUrl.includes('v0.00.13')) {
-                        console.warn('Found old SW. Forcefully unregistering:', swUrl);
-                        registration.unregister().then(() => {
-                            // Force Reload to clear the slate
+                    if (!swUrl.includes('v0.00.14')) {
+                        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                            for (let registration of registrations) {
+                                registration.unregister();
+                            }
                             window.location.reload();
                         });
                     }
                 }
             });
-
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js?v=0.00.13')
-                    .then(reg => console.log('SW registered:', reg.scope))
-                    .catch(err => console.log('SW failed:', err));
+                navigator.serviceWorker.register('./sw.js?v=0.00.14')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
             });
         }
     </script>
@@ -47,7 +51,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.00.12</title>
+    <title>Yurika Online v0.00.14</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
@@ -90,7 +94,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.00.12">
+    <link rel="stylesheet" href="src/css/style.css?v=0.00.14">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -174,8 +178,20 @@
                     <div class="menu-icon">⛶</div>
                 </div>
 
+                <!-- Hostility Panel (Right Side) -->
+                <div id="hostility-panel" class="hidden">
+                    <div class="panel-header">⚔️ 적대 목록</div>
+                    <ul id="hostility-list"></ul>
+                </div>
+
                 <!-- Left Side UI: Quest and Chat Stacking -->
                 <div class="left-ui-container">
+                    <!-- Party Panel (Left Side, Above Quest) -->
+                    <div id="party-panel" class="hidden">
+                        <div class="panel-header">🛡️ 파티원</div>
+                        <ul id="party-list"></ul>
+                    </div>
+
                     <!-- Quest List (Left) -->
                     <div class="quest-list-panel">
                         <div class="quest-panel-header">
@@ -264,8 +280,36 @@
             </div>
         </div>
 
+        <!-- Hostility Panel (Right Side Hostile Targets) -->
+        <div id="hostility-panel" class="hidden">
+            <div class="panel-header">적대 대상 (PvP)</div>
+            <div id="hostile-list">
+                <!-- Hostile targets injected here -->
+            </div>
+        </div>
+
+        <!-- Party Status Panel (Left Side Party Members) -->
+        <div id="party-panel" class="hidden">
+            <div class="panel-header">파티원 목록</div>
+            <div id="party-list">
+                <!-- Party members injected here -->
+            </div>
+        </div>
+
         <!-- Popups -->
         <div id="popup-overlay" class="hidden">
+            <!-- Generic Confirm/Cancel Modal (Reuse for Party/PvP) -->
+            <div id="generic-modal" class="confirm-modal-overlay hidden">
+                <div class="confirm-modal-content">
+                    <h2 id="generic-modal-title">알림</h2>
+                    <p id="generic-modal-message">메시지 내용</p>
+                    <div class="modal-buttons">
+                        <button id="generic-btn-yes" class="confirm-btn">확인</button>
+                        <button id="generic-btn-no" class="cancel-btn">취소</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Inventory Popup -->
             <div id="inventory-popup" class="game-popup hidden">
                 <div class="popup-header">
@@ -388,8 +432,12 @@
                             </div>
                         </div>
                     </div>
-                    <button id="reset-character-btn" class="reset-btn hidden"
-                        onclick="window.game.ui.confirmResetCharacter()">캐릭터 초기화</button>
+                    <div class="reset-actions"
+                        style="display: flex; flex-direction: column; gap: 5px; margin-top: 10px;">
+                        <button id="reset-account-btn" class="reset-btn hidden">계정 초기화</button>
+                        <button id="reset-stat-btn" class="reset-btn hidden" style="background: #e17055;">캐릭터
+                            초기화</button>
+                    </div>
                     <div class="popup-footer">
                         <button class="close-btn-bottom close-popup">닫기</button>
                     </div>
@@ -513,7 +561,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v0.00.13
+        📦 v0.00.14
     </div>
 
 
@@ -530,15 +578,25 @@
                 <!-- Content injected by JS -->
             </div>
         </div>
+        <!-- Generic Modal -->
+        <div id="generic-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2 id="generic-modal-title">알림</h2>
+                <p id="generic-modal-message">메세지 내용</p>
+                <div class="modal-buttons">
+                    <button id="generic-modal-yes" class="btn-primary">수락</button>
+                    <button id="generic-modal-no" class="btn-secondary">거절</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.00.13"></script>
+    <script type="module" src="./src/js/main.js?v=0.00.14"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">
         <div class="dev-stat">Monsters: <span id="dev-m-count">0</span>/<span id="dev-m-max">10</span></div>
         <div class="dev-stat">Respawn: <span id="dev-m-interval">5s</span></div>
-        <div class="dev-stat">Total Level: <span id="dev-p-sum">1</span></div>
         <div class="dev-lookup" style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px;">
             <input type="text" id="dev-name-search" placeholder="이름으로 UID 조회"
                 style="width: 100px; font-size: 10px; background: rgba(0,0,0,0.5); border: 1px solid #555; color: white; border-radius: 4px; padding: 2px 4px;">
@@ -546,6 +604,15 @@
                 style="font-size: 10px; height: 18px; line-height: 1; vertical-align: middle; cursor: pointer; background: #4285f4; border: none; color: white; border-radius: 2px;">검색</button>
             <div id="dev-search-result"
                 style="font-size: 9px; margin-top: 4px; color: #4ade80; word-break: break-all; max-width: 140px;"></div>
+        </div>
+        <div class="dev-reset"
+            style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px; display: flex; gap: 4px;">
+            <button id="dev-btn-reset-char"
+                style="flex: 1; font-size: 10px; background: #e17055; border: none; color: white; border-radius: 4px; padding: 4px; cursor: pointer;">캐릭터
+                초기화</button>
+            <button id="dev-btn-reset-account"
+                style="flex: 1; font-size: 10px; background: #d63031; border: none; color: white; border-radius: 4px; padding: 4px; cursor: pointer;">계정
+                초기화</button>
         </div>
     </div>
 </body>

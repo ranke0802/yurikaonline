@@ -133,6 +133,11 @@ export class Projectile {
             if (rps) {
                 rps.forEach(rp => {
                     if (rp.isDead || rp.id === this.ownerId) return;
+
+                    // v0.00.14: Hostility Check
+                    const lp = window.game?.localPlayer;
+                    if (lp && !lp.canAttackTarget(rp)) return;
+
                     const cx = rp.x + (rp.width || 48) / 2;
                     const cy = rp.y + (rp.height || 48) / 2;
                     const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
@@ -225,7 +230,14 @@ export class Projectile {
             else {
                 // PvP Hit from me to Rplayer
                 if (this.ownerId === window.game?.localPlayer?.id && this.damage > 0) {
-                    if (net) net.sendPlayerDamage(target.id, Math.ceil(this.damage));
+                    let eType = null, eDur = 0, eDmg = 0;
+                    if (this.type === 'fireball') {
+                        eType = 'burn';
+                        eDur = this.burnDuration;
+                        eDmg = Math.ceil(this.damage * 0.15);
+                    }
+
+                    if (net) net.sendPlayerDamage(target.id, Math.ceil(this.damage), eType, eDur, eDmg);
                 }
             }
         }

@@ -49,6 +49,7 @@ export default class WorldScene extends Scene {
         this.game.localPlayer = this.player; // Global reference for UIManager / MonsterAI
 
         if (profile) {
+            console.log(`[WorldScene] Loading Player Profile:`, profile);
             this.player.level = profile.level || 1;
             this.player.exp = profile.exp || 0;
             this.player.maxExp = profile.maxExp || Math.floor(100 * Math.pow(1.5, this.player.level - 1)); // v0.00.03: Restore maxExp or recalculate
@@ -61,13 +62,40 @@ export default class WorldScene extends Scene {
             this.player.skillLevels = profile.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
             this.player.name = profile.name || localName || user.displayName || "유리카";
 
+            // v0.00.15: Restore Hostility
+            // Support both Object (new) and Array (old/broken) formats specifically for robustness
+            if (profile.hostility) {
+                if (Array.isArray(profile.hostility)) {
+                    // Try to recover if it really is an array (legacy)
+                    try { this.player.hostileTargets = new Map(profile.hostility); } catch (e) { }
+                } else if (typeof profile.hostility === 'object') {
+                    // Standard Object format
+                    console.log('[WorldScene] Restoring Hostility from Object:', profile.hostility);
+                    this.player.hostileTargets = new Map(Object.entries(profile.hostility));
+                }
+                // v0.00.15: Force UI update
+                if (this.ui) this.ui.updateHostilityUI();
+            } else {
+                console.log('[WorldScene] No Hostility Data found in profile');
+            }
+
             if (profile.questData) {
+                console.log('[WorldScene] Restoring Quest Data:', profile.questData);
                 this.player.questData = { ...this.player.questData, ...profile.questData };
+            } else {
+                console.warn('[WorldScene] No Quest Data found in profile.');
             }
 
             this.player.refreshStats();
             if (typeof profile.hp === 'number') this.player.hp = profile.hp;
             if (typeof profile.mp === 'number') this.player.mp = profile.mp;
+
+            // v1.99.12: Force UI Update after profile restoration
+            if (this.ui) {
+                this.ui.updateQuestUI();
+                this.ui.updateStatusPopup();
+                this.ui.updateSkillPopup();
+            }
         }
 
         this.player.init(this.input, this.resources, this.net);
@@ -100,7 +128,18 @@ export default class WorldScene extends Scene {
         }
 
         // v0.00.03: Ensure data is synchronized to the zone database on entry
-        if (this.player) this.player.saveState();
+        if (this.player) {
+            this.player.saveState();
+
+            // v0.00.15: Self-heal Name Mapping (Force update name->uid)
+            // This fixes the issue where an old UID is linked to the name
+            if (this.player.name) {
+                this.net.claimName(this.player.id, this.player.name);
+                console.log(`[WorldScene] Claimed name mapping: ${this.player.name} -> ${this.player.id}`);
+            }
+        }
+        // v0.00.15: Start Hostility Listeners now that player is ready
+        this.net.startHostilityListeners();
     }
 
     _setupNetworkHandlers() {

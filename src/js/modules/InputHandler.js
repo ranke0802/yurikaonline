@@ -59,9 +59,14 @@ export class InputHandler {
                 this.touchMovePos = null;
             }
 
-            // Prevent scrolling for navigation keys
+            // Prevent scrolling for navigation keys (unless typing)
             if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(code)) {
-                e.preventDefault();
+                // v0.00.14: Use e.target for more reliable input detection
+                const target = e.target;
+                const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+                if (!isInput) {
+                    e.preventDefault();
+                }
             }
         });
 

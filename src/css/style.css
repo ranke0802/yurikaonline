@@ -991,6 +991,117 @@ html {
     }
 }
 
+/* v0.00.14: Hostility & Party Panels */
+#hostility-panel {
+    position: absolute;
+    top: 40px;
+    /* Moved up by 40px */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 250px;
+    /* Slightly wider */
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 68, 68, 0.5);
+    border-radius: 12px;
+    padding: 10px;
+    backdrop-filter: blur(4px);
+    z-index: 90;
+    pointer-events: auto;
+    font-family: 'Noto Sans KR', sans-serif;
+}
+
+#party-panel {
+    position: relative;
+    /* Inside left-ui-container */
+    width: 240px;
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(74, 222, 128, 0.5);
+    border-radius: 12px;
+    padding: 10px;
+    backdrop-filter: blur(4px);
+    pointer-events: auto;
+    font-family: 'Noto Sans KR', sans-serif;
+}
+
+.panel-header {
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#hostility-list,
+#party-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.hostility-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #ff7675;
+    font-size: 13px;
+    margin-bottom: 4px;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.hostility-item span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn-remove-hostile {
+    background: none;
+    border: none;
+    color: #ff4757;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 2px 6px;
+}
+
+.btn-remove-hostile:hover {
+    color: #ff6b81;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+}
+
+.party-item {
+    color: #55efc4;
+    font-size: 13px;
+    margin-bottom: 4px;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+/* Generic Modal Styles */
+#generic-modal .modal-content {
+    width: 350px;
+    text-align: center;
+    color: #2d3436;
+}
+
+#generic-modal-yes {
+    background: #00cec9;
+    color: white;
+}
+
+#generic-modal-no {
+    background: #ff7675;
+    color: white;
+}
+
 .quest-panel-header {
     background: rgba(255, 236, 210, 0.5);
     /* PC: 투명 헤더 */
@@ -2362,6 +2473,10 @@ body.is-fullscreen .version-info {
     border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
+.action-btn.full-width {
+    width: 100%;
+}
+
 .action-btn.primary {
     background: linear-gradient(135deg, #ffd32a, #ff9f1a);
     color: #4a3e35;
@@ -2373,6 +2488,18 @@ body.is-fullscreen .version-info {
     color: white;
     border: 2px solid rgba(255, 255, 255, 0.3);
     transition: all 0.3s ease;
+}
+
+.action-btn.warning {
+    background: linear-gradient(135deg, #e17055, #fab1a0);
+    color: white;
+    font-size: 0.9rem;
+}
+
+.action-btn.danger {
+    background: linear-gradient(135deg, #d63031, #ff7675);
+    color: white;
+    font-size: 0.9rem;
 }
 
 .action-btn.primary:hover {
@@ -2537,4 +2664,177 @@ body.is-fullscreen .version-info {
     display: flex;
     justify-content: space-between;
     gap: 15px;
+}
+
+/* v0.00.14: Party & PvP Styles */
+
+/* Hostility Panel (Right Side) */
+#hostility-panel {
+    position: absolute;
+    top: 15%;
+    right: 15px;
+    background: rgba(45, 52, 54, 0.85);
+    border: 1px solid #d63031;
+    border-radius: 12px;
+    padding: 10px;
+    width: 200px;
+    color: white;
+    z-index: 50;
+    backdrop-filter: blur(4px);
+}
+
+.panel-header {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-align: center;
+    color: #ff7675;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 4px;
+}
+
+.hostile-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 13px;
+    padding: 4px 6px;
+    background: rgba(214, 48, 49, 0.2);
+    border-radius: 6px;
+}
+
+.remove-hostile {
+    background: none;
+    border: none;
+    color: #ff7675;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.remove-hostile:hover {
+    color: white;
+}
+
+
+/* Party Panel (Left Side) */
+#party-panel {
+    position: absolute;
+    top: 25%;
+    /* Below profile */
+    left: 15px;
+    background: rgba(45, 52, 54, 0.85);
+    border: 1px solid #0984e3;
+    border-radius: 12px;
+    padding: 10px;
+    width: 180px;
+    color: white;
+    z-index: 50;
+    backdrop-filter: blur(4px);
+}
+
+#party-panel .panel-header {
+    color: #74b9ff;
+    border-color: rgba(116, 185, 255, 0.3);
+}
+
+.party-row {
+    margin-bottom: 8px;
+    padding: 6px;
+    background: rgba(9, 132, 227, 0.15);
+    border-radius: 8px;
+}
+
+.party-name {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    color: #dfe6e9;
+}
+
+.party-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.party-hp {
+    height: 6px;
+    background: #2d3436;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.party-hp .fill {
+    height: 100%;
+    background: #00b894;
+    transition: width 0.2s;
+}
+
+/* Generic Modal (Confirm/Cancel) */
+.confirm-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.confirm-modal-content {
+    background: white;
+    padding: 24px;
+    border-radius: 16px;
+    text-align: center;
+    min-width: 300px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.confirm-modal-content h2 {
+    margin-bottom: 12px;
+    color: #2d3436;
+}
+
+.confirm-modal-content p {
+    margin-bottom: 24px;
+    color: #636e72;
+    line-height: 1.5;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.confirm-btn,
+.cancel-btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.1s;
+}
+
+.confirm-btn {
+    background: #0984e3;
+    color: white;
+}
+
+.cancel-btn {
+    background: #dfe6e9;
+    color: #2d3436;
+}
+
+.confirm-btn:active,
+.cancel-btn:active {
+    transform: scale(0.96);
 }

@@ -230,6 +230,12 @@ export class UIManager {
                 // Save name and hide input row
                 const newName = nameInput.value.trim() || '유리카';
                 if (this.game.localPlayer) {
+                    const oldName = this.game.localPlayer.name;
+
+                    if (this.game.net && oldName !== newName) {
+                        this.game.net.updateNameMapping(this.game.localPlayer.id, oldName, newName);
+                    }
+
                     this.game.localPlayer.name = newName;
                     localStorage.setItem('yurika_player_name', newName);
                     this.game.localPlayer.saveState(); // v0.00.01: Sync to DB immediately
@@ -258,6 +264,10 @@ export class UIManager {
                 if (this.inputManager) this.inputManager.setEnabled(true);
             });
             chatInput.addEventListener('keydown', (e) => {
+                // v0.00.14: Stop propagation to prevent InputHandler from seeing these keys
+                // This fixes Spacebar scrolling issues and WASD movement while typing
+                e.stopPropagation();
+
                 if (e.isComposing) return; // Prevent double trigger with IME
 
                 if (e.key === 'Enter') {
@@ -321,6 +331,116 @@ export class UIManager {
     hideDeathModal() {
         const modal = document.getElementById('death-modal');
         if (modal) modal.classList.add('hidden');
+    }
+
+    showGenericModal(title, message, onYes, onNo) {
+        const modal = document.getElementById('generic-modal');
+        if (!modal) return;
+
+        const titleEl = document.getElementById('generic-modal-title');
+        const msgEl = document.getElementById('generic-modal-message');
+        const yesBtn = document.getElementById('generic-modal-yes');
+        const noBtn = document.getElementById('generic-modal-no');
+
+        if (titleEl) titleEl.textContent = title;
+        if (msgEl) msgEl.textContent = message;
+
+        const newYes = yesBtn.cloneNode(true);
+        const newNo = noBtn.cloneNode(true);
+        yesBtn.parentNode.replaceChild(newYes, yesBtn);
+        noBtn.parentNode.replaceChild(newNo, noBtn);
+
+        newYes.onclick = () => {
+            if (onYes) onYes();
+            else this.hideGenericModal();
+        };
+
+        newNo.onclick = () => {
+            if (onNo) onNo();
+            this.hideGenericModal();
+        };
+
+        modal.classList.remove('hidden');
+        modal.classList.add('visible');
+    }
+
+    updateHostilityUI() {
+        if (!this.game.localPlayer) return;
+        const panel = document.getElementById('hostility-panel');
+        const list = document.getElementById('hostility-list');
+        if (!panel || !list) return;
+
+        const hostileTargets = this.game.localPlayer.hostileTargets;
+        if (hostileTargets.size === 0) {
+            panel.classList.add('hidden');
+            return;
+        }
+
+        panel.classList.remove('hidden');
+        list.innerHTML = '';
+
+        hostileTargets.forEach((name, uid) => {
+            const li = document.createElement('li');
+            li.className = 'hostility-item';
+
+            // Name is now stored in the Map value
+            /* 
+            if (this.game.remotePlayers.has(uid)) {
+                name = this.game.remotePlayers.get(uid).name;
+            }
+            */
+
+            li.innerHTML = `<span>${name}</span> <button class="btn-remove-hostile" data-uid="${uid}">x</button>`;
+
+            // Remove handler
+            li.querySelector('.btn-remove-hostile').onclick = () => {
+                this.game.localPlayer.hostileTargets.delete(uid);
+                this.game.localPlayer.saveState(); // v0.00.15: Persist removal
+                this.updateHostilityUI();
+            };
+
+            list.appendChild(li);
+        });
+    }
+
+    updatePartyUI() {
+        if (!this.game.localPlayer) return;
+        const panel = document.getElementById('party-panel');
+        const list = document.getElementById('party-list');
+        if (!panel || !list) return;
+
+        const party = this.game.localPlayer.party;
+        if (!party) {
+            panel.classList.add('hidden');
+            return;
+        }
+
+        panel.classList.remove('hidden');
+        list.innerHTML = '';
+
+        party.members.forEach(uid => {
+            const li = document.createElement('li');
+            li.className = 'party-item';
+
+            let name = "로딩 중...";
+
+            if (uid === this.game.localPlayer.id) {
+                name = this.game.localPlayer.name;
+            } else if (this.game.remotePlayers.has(uid)) {
+                name = this.game.remotePlayers.get(uid).name;
+            }
+
+            li.textContent = `${name}`;
+            list.appendChild(li);
+        });
+    }
+
+    hideGenericModal() {
+        const modal = document.getElementById('generic-modal');
+        if (modal) {
+            modal.classList.remove('visible');
+            modal.classList.add('hidden');
+        }
     }
 
     setPortrait(processedImage) {
@@ -894,6 +1014,58 @@ export class UIManager {
         this.isPaused = false;
     }
 
+    updatePartyUI() {
+        const panel = document.getElementById('party-panel');
+        const list = document.getElementById('party-list');
+        if (!panel || !list) return;
+
+        const p = this.game.localPlayer;
+        if (!p || !p.party || p.party.members.length < 2) {
+            panel.classList.add('hidden');
+            return;
+        }
+
+        panel.classList.remove('hidden');
+        list.innerHTML = '';
+
+        p.party.members.forEach(uid => {
+            let data = null;
+            let isSelf = (uid === p.id);
+
+            if (isSelf) {
+                data = { name: p.name, hp: p.hp, maxHp: p.maxHp, mp: p.mp, maxMp: p.maxMp, level: p.level };
+            } else {
+                const rp = this.game.net.remotePlayers.get(uid);
+                if (rp) {
+                    // Remote player data has h:[hp, maxHp], no mp usually unless I add it.
+                    // For now, assume remote players sync HP. MP might be missing.
+                    data = {
+                        name: rp.name,
+                        hp: rp.h ? rp.h[0] : 100,
+                        maxHp: rp.h ? rp.h[1] : 100,
+                        mp: 0, // MP not synced yet
+                        maxMp: 100,
+                        level: rp.level || 1
+                    };
+                }
+            }
+
+            if (data) {
+                const row = document.createElement('div');
+                row.className = 'party-row';
+                const hpPerc = Math.floor((data.hp / data.maxHp) * 100);
+
+                row.innerHTML = `
+                    <div class="party-name">${data.name} (Lv.${data.level})</div>
+                    <div class="party-bars">
+                        <div class="party-hp"><div class="fill" style="width:${hpPerc}%"></div></div>
+                    </div>
+                `;
+                list.appendChild(row);
+            }
+        });
+    }
+
     updateInventory() {
         const p = this.game.localPlayer;
         if (!p) return;
@@ -1031,14 +1203,67 @@ export class UIManager {
         if (posY) posY.textContent = Math.round(player.y);
     }
 
-    sendMessage() {
+    async sendMessage() {
         const input = document.querySelector('.chat-input-area input');
         const text = input ? input.value.trim() : "";
-        if (text && this.game.net && this.game.localPlayer) {
-            // Send to Network
-            this.game.net.sendChat(text, this.game.localPlayer.name);
-            input.value = '';
+        if (!text || !this.game.net || !this.game.localPlayer) return;
+
+        // Command Parsing
+        if (text.startsWith('/')) {
+            // v0.00.14: Parse command and arguments robustly (handle multiple spaces)
+            const parts = text.trim().split(/\s+/);
+            const cmd = parts[0].toLowerCase();
+            const param = parts[1]; // Get the first argument as name
+
+            if (cmd === '/e') {
+                if (!param) {
+                    // v0.00.14: Logic to list hostile targets
+                    const targets = this.game.localPlayer.hostileTargets;
+                    if (targets.size === 0) {
+                        this.logSystemMessage('현재 적대 중인 대상이 없습니다.');
+                    } else {
+                        const names = Array.from(targets.values()).join(', ');
+                        this.logSystemMessage(`현재 적대 대상: ${names}`);
+                    }
+                    input.value = '';
+                    return;
+                }
+                const result = await this.game.localPlayer.declareHostility(param);
+                if (result === 'DECLARED') {
+                    this.logSystemMessage(`⚔️ ${param}님을 적대 대상으로 선포했습니다!`);
+                } else if (result === 'ALREADY_HOSTILE') {
+                    this.logSystemMessage(`이미 적대 중인 대상입니다.`);
+                } else if (result === 'NOT_FOUND') {
+                    this.logSystemMessage(`해당 유저를 찾을 수 없습니다.`);
+                } else if (result === 'SELF') {
+                    this.logSystemMessage(`자기 자신을 적대할 수 없습니다.`);
+                } else if (result === 'INVALID') {
+                    this.logSystemMessage(`올바른 닉네임을 입력해주세요.`);
+                } else {
+                    this.logSystemMessage(`오류가 발생했습니다.`);
+                }
+                input.value = '';
+                return;
+            } else if (cmd === '/p') {
+                if (!param) {
+                    this.logSystemMessage('사용법: /p [닉네임] (파티 초대)');
+                    input.value = '';
+                    return;
+                }
+                const result = await this.game.net.inviteToParty(targetName);
+                if (result === 'SENT') this.logSystemMessage(`📩 ${targetName}님에게 파티 초대를 보냈습니다.`);
+                else if (result === 'SELF') this.logSystemMessage(`🚫 자기 자신을 초대할 수 없습니다.`);
+                else if (result === 'NOT_FOUND') this.logSystemMessage(`🚫 사용자를 찾을 수 없습니다: ${targetName}`);
+                else this.logSystemMessage(`🚫 오류가 발생했습니다.`);
+
+                input.value = '';
+                return;
+            }
         }
+
+        // Send to Network as regular chat
+        this.game.net.sendChat(text, this.game.localPlayer.name);
+        input.value = '';
     }
 
     _onChatReceived(data) {
@@ -1169,17 +1394,29 @@ export class UIManager {
             portrait.addEventListener('click', () => {
                 this.devMode = !this.devMode;
                 const overlay = document.getElementById('dev-overlay');
-                const resetBtn = document.getElementById('reset-character-btn');
+
+                // Status Popup Buttons
+                const btnAccount = document.getElementById('reset-account-btn');
+                const btnStat = document.getElementById('reset-stat-btn');
 
                 if (overlay) overlay.classList.toggle('hidden', !this.devMode);
-                if (resetBtn) {
-                    resetBtn.classList.toggle('hidden', !this.devMode);
-                    // Bind click only once
-                    if (!resetBtn.dataset.bound) {
-                        resetBtn.addEventListener('click', () => this.confirmResetCharacter());
-                        resetBtn.dataset.bound = "true";
+
+                if (btnAccount) {
+                    btnAccount.classList.toggle('hidden', !this.devMode);
+                    if (!btnAccount.dataset.bound) {
+                        btnAccount.onclick = () => this.handleDevAccountReset(); // Wipe
+                        btnAccount.dataset.bound = "true";
                     }
                 }
+
+                if (btnStat) {
+                    btnStat.classList.toggle('hidden', !this.devMode);
+                    if (!btnStat.dataset.bound) {
+                        btnStat.onclick = () => this.handleDevCharacterReset(); // Refund
+                        btnStat.dataset.bound = "true";
+                    }
+                }
+
                 this.logSystemMessage(`개발자 모드 ${this.devMode ? '활성화' : '비활성화'}`);
                 if (this.devMode) this.updateDevOverlay();
             });
@@ -1200,10 +1437,10 @@ export class UIManager {
 
                 const uid = await this.game.net.getUidByName(name);
                 if (uid) {
-                    resultEl.textContent = uid;
-                    resultEl.style.color = '#4ade80';
+                    resultEl.textContent = `UID: ${uid}`;
+                    resultEl.style.color = '#55efc4';
                 } else {
-                    resultEl.textContent = '사용자를 찾을 수 없습니다.';
+                    resultEl.textContent = '찾을 수 없음';
                     resultEl.style.color = '#ff7675';
                 }
             };
@@ -1214,6 +1451,90 @@ export class UIManager {
                     searchBtn.click();
                 }
             };
+        }
+
+        // v0.00.15: Developer Mode Reset UI
+        const btnCharReset = document.getElementById('dev-btn-reset-char');
+        const btnAccountReset = document.getElementById('dev-btn-reset-account');
+
+        if (btnCharReset && !btnCharReset.dataset.bound) {
+            btnCharReset.onclick = () => this.handleDevCharacterReset();
+            btnCharReset.dataset.bound = "true";
+        }
+
+        if (btnAccountReset && !btnAccountReset.dataset.bound) {
+            btnAccountReset.onclick = () => this.handleDevAccountReset();
+            btnAccountReset.dataset.bound = "true";
+        }
+    }
+
+    // v0.00.15: Dev Mode - Character Reset (Refund)
+    async handleDevCharacterReset() {
+        const p = this.game.localPlayer;
+        if (!p) return;
+
+        const msg = "레벨을 제외한 골드/스텟/스킬이 초기화됩니다.\n사용된 골드/스텟은 반환됩니다.\n\n계속하시겠습니까?";
+        if (!confirm(msg)) return;
+
+        // 1. Calculate Refunded Stat Points
+        const usedVit = Math.max(0, (p.vitality || 1) - 1);
+        const usedInt = Math.max(0, (p.intelligence || 3) - 3);
+        const usedWis = Math.max(0, (p.wisdom || 2) - 2);
+        const usedAgi = Math.max(0, (p.agility || 1) - 1);
+
+        const totalRefundedStats = usedVit + usedInt + usedWis + usedAgi;
+
+        // 2. Calculate Refunded Gold from Skills
+        let totalRefundedGold = 0;
+        const skills = p.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
+
+        ['laser', 'missile', 'fireball'].forEach(skill => {
+            const lv = skills[skill] || 1;
+            if (lv > 1) {
+                totalRefundedGold += 300 * (Math.pow(2, lv - 1) - 1);
+            }
+        });
+
+        // 3. Apply Changes
+        p.statPoints = (p.statPoints || 0) + totalRefundedStats;
+        p.gold = (p.gold || 0) + totalRefundedGold;
+
+        // Reset Stats
+        p.vitality = 1;
+        p.intelligence = 3;
+        p.wisdom = 2;
+        p.agility = 1;
+
+        // Recalculate Derived Stats
+        p.hp = 20 + (p.vitality * 10);
+        p.maxHp = p.hp;
+        p.mp = 30 + (p.wisdom * 10);
+        p.maxMp = p.mp;
+
+        // Reset Skills
+        p.skillLevels = { laser: 1, missile: 1, fireball: 1, shield: 1 };
+
+        // 4. Save and Reload
+        if (p.saveState) p.saveState(true); // Sync to world
+
+        alert(`초기화 완료!\n반환된 스텟: ${totalRefundedStats}\n반환된 골드: ${totalRefundedGold}\n\n게임을 다시 불러옵니다.`);
+        window.location.reload();
+    }
+
+    // v0.00.15: Dev Mode - Account Reset (Wipe)
+    async handleDevAccountReset() {
+        if (!this.game.localPlayer) return;
+
+        const check = confirm("⚠️ 경고: 정말로 모든 데이터를 삭제하고 계정을 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.");
+        if (!check) return;
+
+        try {
+            await this.game.net.deleteCharacter(this.game.localPlayer.id, this.game.localPlayer.name);
+            alert("계정이 초기화되었습니다. 게임을 다시 시작합니다.");
+            window.location.reload();
+        } catch (e) {
+            console.error(e);
+            alert("초기화 실패");
         }
     }
 

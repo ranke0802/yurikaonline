@@ -7,6 +7,8 @@ export default class Player extends CharacterBase {
     constructor(x, y, name = "유리카") {
         super(x, y, 180); // Speed 180
         this.name = name;
+        this.spawnX = x;
+        this.spawnY = y;
 
         // Stats (Base)
         this.vitality = 1;
@@ -34,6 +36,7 @@ export default class Player extends CharacterBase {
         this.gold = 0;
         this.inventory = [];
         for (let i = 0; i < 20; i++) this.inventory.push(null); // 20 slots
+        // Quest Data (v0.22.4+)
         this.questData = {
             slimeKills: 0,
             slimeQuestClaimed: false,
@@ -41,9 +44,10 @@ export default class Player extends CharacterBase {
             bossQuestClaimed: false
         };
 
-        // Quest Data
-
-        // Skill State
+        // PvP & Party (v0.00.14)
+        this.hostileTargets = new Map(); // Map<UID, Name>
+        this.party = null; // { id: string, members: string[] }
+        this.partyInvite = null; // { senderId, senderName, ts }
 
         this.skillLevels = {
             laser: 1,
@@ -526,8 +530,29 @@ export default class Player extends CharacterBase {
     }
 
 
-    takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null) {
+    takeDamage(amount, fromNetwork = false, isCrit = false, sourceX = null, sourceY = null, attacker = null, effectType = null, effectDuration = 0, effectDamage = 0) {
         if (this.isDead) return 0;
+
+        // 1. PvP Logic: Auto-Retaliation
+        if (attacker && attacker.type === 'player' && attacker.id !== this.id) {
+            if (!this.hostileTargets.has(attacker.id)) {
+                // Try to find name in remotePlayers or use provided name
+                let attackerName = attacker.name || '알 수 없음';
+                if (window.game && window.game.remotePlayers.has(attacker.id)) {
+                    attackerName = window.game.remotePlayers.get(attacker.id).name;
+                }
+                this.hostileTargets.set(attacker.id, attackerName);
+                if (window.game && window.game.ui) {
+                    window.game.ui.logSystemMessage(`⚠️ ${attackerName}님과 적대 관계가 되었습니다!`);
+                    window.game.ui.updateHostilityUI();
+                }
+            }
+        }
+
+        // v0.00.14: Apply Status Effects from PvP
+        if (effectType && effectDuration) {
+            this.applyEffect(effectType, effectDuration, effectDamage || 0);
+        }
 
         // Magic Shield check
         if (this.shieldTimer > 0) {
@@ -575,6 +600,20 @@ export default class Player extends CharacterBase {
         return finalDmg;
     }
 
+    canAttackTarget(target) {
+        if (!target) return false;
+        if (target.type === 'monster') return true;
+        if (target.type === 'player') {
+            // Basic Self check
+            if (target.id === this.id) return false;
+            // Party check
+            if (this.party && this.party.members.includes(target.id)) return false;
+            // Hostility check
+            return this.hostileTargets.has(target.id);
+        }
+        return false;
+    }
+
     die() {
         this.isDead = true;
         this.state = 'die';
@@ -583,28 +622,6 @@ export default class Player extends CharacterBase {
             window.game.ui.logSystemMessage('당신은 전사했습니다...');
             window.game.ui.showDeathModal();
         }
-    }
-
-    respawn() {
-        this.hp = this.maxHp;
-        this.mp = this.maxMp;
-        this.isDead = false;
-        this.state = 'idle';
-
-        // Move to world center or some spawn point
-        if (window.game && window.game.zone) {
-            this.x = window.game.zone.width / 2;
-            this.y = window.game.zone.height / 2;
-        }
-
-        if (window.game && window.game.ui) {
-            window.game.ui.logSystemMessage('부활했습니다.');
-        }
-
-        // v0.29.6: Force Sync HP to ensure remote clients remove tombstone
-        if (this.net) this.net.sendPlayerHp(this.hp, this.maxHp);
-
-        this.saveState();
     }
 
     saveState(syncToWorld = false) {
@@ -624,8 +641,12 @@ export default class Player extends CharacterBase {
             skillLevels: this.skillLevels,
             questData: this.questData, // Added in v0.22.4
             name: this.name,
+            party: this.party, // v0.00.14: Sync party state
+            hostility: Object.fromEntries(this.hostileTargets), // v0.00.15: Persist Hostility (Map -> Object)
             ts: Date.now()
         };
+        // Debug
+        console.log('[Player] Saving State:', { level: data.level, exp: data.exp, maxExp: data.maxExp, quest: data.questData });
         this.net.savePlayerData(this.id, data, syncToWorld);
     }
 
@@ -722,7 +743,9 @@ export default class Player extends CharacterBase {
         const remotesMap = window.game?.remotePlayers;
         const remotes = remotesMap ? Array.from(remotesMap.values()) : [];
 
-        let availableTargets = [...monsters.filter(m => !m.isDead), ...remotes.filter(rp => !rp.isDead)];
+        // v0.00.15: Filter valid PvP targets only
+        let validRemotes = remotes.filter(rp => !rp.isDead && this.canAttackTarget(rp));
+        let availableTargets = [...monsters.filter(m => !m.isDead), ...validRemotes];
 
         for (let i = 0; i < maxChains; i++) {
             let nextTarget = null;
@@ -754,7 +777,8 @@ export default class Player extends CharacterBase {
                         }
                         // PvP damage handled by attacker
                         if (!nextTarget.isMonster && this.net) {
-                            this.net.sendPlayerDamage(nextTarget.id, dmg);
+                            // v0.00.14: Send Shock Effect
+                            this.net.sendPlayerDamage(nextTarget.id, Math.ceil(dmg), 'shock', 3.0, 0);
                         }
                         // v0.29.17: All clients call takeDamage for visual feedback (damage text)
                         // Actual HP reduction is controlled within Monster.takeDamage based on isHost
@@ -1026,6 +1050,7 @@ export default class Player extends CharacterBase {
                 this.questData.bossKilled = true;
             }
             if (window.game?.ui) window.game.ui.updateQuestUI();
+            this.saveState();
         }
 
         if (window.game?.ui) {
@@ -1278,6 +1303,48 @@ export default class Player extends CharacterBase {
         this.chatTimer = 5.0; // Show for 5 seconds
     }
 
+    // v0.00.14: PvP Damage Handler
+    takeDamage(amount, source = null) {
+        if (this.isDead) return 0;
+
+        // 1. PvP Logic
+        if (source && source.type === 'player') {
+            // Auto-retaliation: If attacked by a player, mark them as hostile automatically
+            if (!this.hostileTargets.has(source.id)) {
+                this.hostileTargets.add(source.id);
+                if (window.game && window.game.ui) {
+                    window.game.ui.logSystemMessage(`⚠️ ${source.name}님이 적대 관계가 되었습니다! (자동 반격)`);
+                    window.game.ui.updateHostilityUI();
+                }
+            }
+        }
+
+        const finalDmg = Math.max(1, Math.round(amount - this.defense));
+        this.hp = Math.max(0, this.hp - finalDmg);
+
+        // Interrupt channeling on hit
+        if (this.isChanneling) { // Optional: Channelling break?
+            // this.isChanneling = false; 
+        }
+
+        if (this.hp <= 0) {
+            this.die();
+        }
+
+        return finalDmg;
+    }
+
+    // v0.00.14: Check if target is valid for attack
+    canAttackTarget(target) {
+        if (!target) return false;
+        if (target.type === 'monster') return true;
+        if (target.type === 'player') {
+            // Must be in hostile list to attack
+            return this.hostileTargets.has(target.id);
+        }
+        return false;
+    }
+
     drawSpeechBubble(ctx, x, y) {
         ctx.save();
         ctx.font = '13px "Outfit", sans-serif';
@@ -1386,11 +1453,78 @@ export default class Player extends CharacterBase {
         SkillRenderer.drawLightning(ctx, x1, y1, x2, y2, intensity);
     }
 
+    async declareHostility(targetName) {
+        if (!targetName || !this.net) return 'INVALID';
+
+        try {
+            const targetUid = await this.net.getUidByName(targetName);
+            console.log(`[Player] declareHostility Resolved: ${targetName} -> ${targetUid}`);
+
+            if (!targetUid) return 'NOT_FOUND';
+            if (targetUid === this.id) return 'SELF';
+
+            // Check if already hostile
+            if (this.hostileTargets.has(targetUid)) return 'ALREADY_HOSTILE';
+
+            this.hostileTargets.set(targetUid, targetName); // Store ID and Name
+
+            // v0.00.15: Mutual Hostility Event
+            if (this.net) this.net.sendHostilityEvent(targetUid);
+
+            // Should we notify UI? 
+            if (window.game?.ui) window.game.ui.updateHostilityUI();
+
+            // v0.00.15: Persist the change immediately
+            this.saveState();
+
+            return 'DECLARED';
+        } catch (e) {
+            console.error(e);
+            return 'ERROR';
+        }
+    }
+
     drawMagicCircle(ctx, sx, sy) {
         SkillRenderer.drawMagicCircle(ctx, sx, sy);
     }
 
     drawShieldEffect(ctx, x, y) {
         SkillRenderer.drawShield(ctx, x, y);
+    }
+
+    // v0.00.15: Consolidate Respawn Logic
+    async respawn() {
+        this.isDead = false;
+        this.isDying = false;
+        this.deathTimer = 0;
+        this.hp = this.maxHp;
+        this.mp = this.maxMp;
+
+        // Spawn at zone center or fallback
+        if (window.game && window.game.zone) {
+            this.x = window.game.zone.width / 2;
+            this.y = window.game.zone.height / 2;
+        } else {
+            this.x = this.spawnX || 200;
+            this.y = this.spawnY || 200;
+        }
+
+        this.state = 'idle';
+
+        Logger.log('Player Respawned');
+
+        // Reset UI
+        if (window.game && window.game.ui) {
+            window.game.ui.hideDeathModal();
+            window.game.ui.updateStatusPopup();
+            window.game.ui.logSystemMessage("부활했습니다!");
+        }
+
+        // Save and Sync
+        this.saveState();
+        if (this.net) {
+            this.net.sendPlayerHp(this.hp, this.maxHp); // v0.29.6: Vital for tombstone cleanup
+            this.net.sendMovePacket(this.x, this.y, 0, 0, this.name); // Sync position immediately
+        }
     }
 }

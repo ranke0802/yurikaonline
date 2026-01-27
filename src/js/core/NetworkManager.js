@@ -125,6 +125,12 @@ export default class NetworkManager extends EventEmitter {
         this._hbInterval = setInterval(() => {
             this.sendHeartbeat();
         }, 1000);
+
+        this._setupPartyListeners();
+        this._setupDamageListeners(); // v0.00.14: PvP Damage
+        // this._setupHostilityListeners(); // Moved to WorldScene to ensure localPlayer exists
+
+        Logger.log('Connected to Game Zone.');
     }
 
     disconnect() {
@@ -139,6 +145,15 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.playerId) return;
         // v0.00.05: Use ServerValue.TIMESTAMP to eliminate clock skew issues
         this.dbRef.child(`users/${this.playerId}/ts`).set(firebase.database.ServerValue.TIMESTAMP);
+
+        // v0.00.03: Ensure resonance of local user list
+        if (!this.connectedUsers.includes(this.playerId)) {
+            this.connectedUsers.push(this.playerId);
+            this.connectedUsers.sort();
+        }
+
+        // v1.99.14: Aggressive host re-check every second
+        this._checkHostStatus();
     }
 
     _startLocalGhostCleanup() {
@@ -182,6 +197,7 @@ export default class NetworkManager extends EventEmitter {
         if (!uid) return;
         try {
             // v0.00.04: Root profile update (Persistent across logins)
+            console.log(`[Network] Saving Player Data to users/${uid}/profile:`, data);
             await firebase.database().ref(`users/${uid}/profile`).set(data);
 
             // v0.00.04: Zone-specific update ONLY IF requested and in a zone
@@ -251,6 +267,23 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
+    // v0.00.14: Update Name Mapping when player renamed
+    async updateNameMapping(uid, oldName, newName) {
+        if (!uid || !newName || oldName === newName) return;
+        try {
+            const updates = {};
+            if (oldName) {
+                updates[`names/${oldName}`] = null; // Release old name
+            }
+            updates[`names/${newName}`] = uid; // Claim new name
+
+            await firebase.database().ref().update(updates);
+            Logger.log(`Name mapping updated: ${oldName} -> ${newName} (${uid})`);
+        } catch (e) {
+            Logger.error('Failed to update name mapping', e);
+        }
+    }
+
     // v1.94: Developer Mode - Lookup UID by Player Name
     async getUidByName(name) {
         if (!name) return null;
@@ -286,47 +319,36 @@ export default class NetworkManager extends EventEmitter {
 
     // --- Host Logic ---
     _checkHostStatus() {
-        const now = Date.now();
-        const timeout = 12000; // v1.97: Reduced from 60s to 12s for faster takeover
+        if (!this.playerId || !this.connected) return;
 
-        // Update self
+        const now = Date.now();
+        const timeout = 12000; // 12s for takeover
+
+        // Update self Activity
         this.userLastSeen.set(this.playerId, now);
 
-        // Failsafe: If I am the only connected user, Force Host immediately
-        if (this.connectedUsers.length === 1 && this.connectedUsers[0] === this.playerId) {
-            if (!this.isHost) {
-                this.isHost = true;
-                Logger.info('Host (Single User Force)');
-                this.emit('hostChanged', true);
-                this._startCleanupLoop();
-            }
-            return;
-        }
-
-        // Filter active users
+        // Filter active users based on last seen heartbeat
         const activeUsers = this.connectedUsers.filter(uid => {
             if (uid === this.playerId) return true;
             const last = this.userLastSeen.get(uid) || 0;
             return (now - last) < timeout;
         });
 
+        // Lexicographical sort to find authoritative "lowest UID" host
         activeUsers.sort();
 
-        // Host is the first ACTIVE user
-        if (activeUsers.length > 0 && activeUsers[0] === this.playerId) {
-            if (!this.isHost) {
-                this.isHost = true;
-                Logger.info('I am the HOST (Active Check)');
-                this.emit('hostChanged', true);
-                this._startCleanupLoop();
-            }
-        } else {
-            if (this.isHost) {
-                this.isHost = false;
-                Logger.info('I am a GUEST client');
-                this.emit('hostChanged', false);
-                this._stopCleanupLoop();
-            }
+        const desiredHost = (activeUsers.length > 0 && activeUsers[0] === this.playerId);
+
+        if (desiredHost && !this.isHost) {
+            this.isHost = true;
+            console.log(`%c[Network] PROMOTED TO HOST. Active Users: ${activeUsers.length}. ID: ${this.playerId}`, "color: yellow; font-weight: bold; background: #222; padding: 2px 5px;");
+            this.emit('hostChanged', true);
+            this._startCleanupLoop();
+        } else if (!desiredHost && this.isHost) {
+            this.isHost = false;
+            console.log(`%c[Network] DEMOTED TO GUEST. Active Users: ${activeUsers.length}`, "color: gray;");
+            this.emit('hostChanged', false);
+            this._stopCleanupLoop();
         }
     }
 
@@ -550,7 +572,8 @@ export default class NetworkManager extends EventEmitter {
             name: profile.name || posData[5] || "Unknown",
             h: val.h,
             a: val.a,
-            level: profile.level || 1
+            level: profile.level || 1,
+            party: profile.party || null // v0.00.14: Sync Party
         });
 
         Logger.log(`[NetworkManager] Remote player joined: ${uid} (${this.remotePlayers.get(uid).name})`);
@@ -591,6 +614,15 @@ export default class NetworkManager extends EventEmitter {
     _onPlayerChanged(snapshot) {
         const uid = snapshot.key;
         const val = snapshot.val();
+
+        // 1. Profile Sync (Level, Party)
+        if (val.profile) {
+            const existing = this.remotePlayers.get(uid);
+            if (existing) {
+                if (val.profile.level) existing.level = val.profile.level;
+                if (val.profile.party !== undefined) existing.party = val.profile.party;
+            }
+        }
 
         // v0.28.2: Enhanced hybrid data parsing (Array <-> Object transition)
         let posData = null;
@@ -711,5 +743,216 @@ export default class NetworkManager extends EventEmitter {
 
         Logger.log(`Player Left: ${uid}`);
         this.emit('playerLeft', uid);
+    }
+    // v0.00.14: Party System Methods
+    sendPartyInvite(targetUid) {
+        if (!this.connected || !this.playerId) return;
+
+        // Push invite to target's mailbox
+        this.dbRef.child(`party_invites/${targetUid}`).push({
+            senderId: this.playerId,
+            senderName: window.game.localPlayer.name,
+            ts: Date.now()
+        });
+    }
+
+    acceptPartyInvite(senderId) {
+        if (!this.connected || !this.playerId) return;
+
+        // Create or Join Party
+        // For simplicity: Create a party ID (e.g., senderId_timestamp) or use senderId as leader
+        // We'll use a transaction or simple push to a 'parties' node.
+
+        // 1. Notify Sender I accepted
+        this.dbRef.child(`party_responses/${senderId}`).push({
+            responderId: this.playerId,
+            responderName: window.game.localPlayer.name,
+            response: 'accept',
+            ts: Date.now()
+        });
+    }
+
+    async inviteToParty(targetName) {
+        if (!targetName || !this.playerId) return false;
+
+        try {
+            const targetUid = await this.getUidByName(targetName);
+            if (!targetUid) {
+                Logger.log(`[Party] Target not found: ${targetName}`);
+                return 'NOT_FOUND';
+            }
+
+            if (targetUid === this.playerId) {
+                return 'SELF';
+            }
+
+            // Push invite to target's inbox
+            const inviteRef = this.dbRef.child(`party_invites/${targetUid}`).push();
+            await inviteRef.set({
+                from: this.playerId,
+                fromName: window.game.localPlayer ? window.game.localPlayer.name : "Unknown",
+                ts: Date.now()
+            });
+
+            return 'SENT';
+        } catch (e) {
+            Logger.error('Failed to invite to party', e);
+            return 'ERROR';
+        }
+    }
+
+    // v0.00.14: Send PvP Damage with Status Effects
+    sendPlayerDamage(targetId, amount, effectType = null, effectDuration = 0, effectDamage = 0) {
+        if (!this.connected || !this.playerId) return;
+
+        // Push damage event to target's inbox
+        this.dbRef.child(`damage_events/${targetId}`).push({
+            attackerId: this.playerId,
+            damage: amount,
+            effectType: effectType,
+            effectDuration: effectDuration,
+            effectDamage: effectDamage,
+            ts: Date.now()
+        });
+    }
+
+    _setupDamageListeners() {
+        // Listen for Incoming Damage
+        this.dbRef.child(`damage_events/${this.playerId}`).on('child_added', (snapshot) => {
+            const val = snapshot.val();
+            if (val) {
+                // Validate timestamp (ignore old attacks > 5s)
+                if (Date.now() - val.ts < 5000) {
+                    if (window.game && window.game.localPlayer) {
+                        // Apply damage via Player.takeDamage
+                        // Signature: takeDamage(amount, fromNetwork, isCrit, sourceX, sourceY, attacker, effectType, effectDuration, effectDamage)
+                        // Attacker object is simulated {id, type='player'}
+                        const attacker = { id: val.attackerId, type: 'player' };
+                        window.game.localPlayer.takeDamage(
+                            val.damage,
+                            true,
+                            false,
+                            null,
+                            null,
+                            attacker,
+                            val.effectType,
+                            val.effectDuration,
+                            val.effectDamage
+                        );
+                    }
+                }
+            }
+            // Auto-remove after processing
+            snapshot.ref.remove();
+        });
+    }
+
+    // v0.00.14: Hostility Synchronization
+    sendHostilityEvent(targetUid) {
+        if (!this.connected || !this.playerId) return;
+
+        Logger.log(`Sending Hostility Event to ${targetUid}`);
+        // Notify target that I declared war on them
+        this.dbRef.child(`hostility_events/${targetUid}`).push({
+            senderId: this.playerId,
+            senderName: window.game.localPlayer?.name || "Unknown",
+            ts: Date.now()
+        });
+    }
+
+    startHostilityListeners() {
+        if (!this.playerId) return;
+        if (this._hostilityListenerActive) return; // Prevent double binding
+
+        this._hostilityListenerActive = true;
+        Logger.log(`[Network] Starting hostility listeners for ${this.playerId}`);
+
+        // Listen for Incoming Hostility Declarations
+        this.dbRef.child(`hostility_events/${this.playerId}`).on('child_added', (snapshot) => {
+            const val = snapshot.val();
+            Logger.log('[Network] Received Hostility Event:', val);
+            if (val) {
+                // Determine if this is a new declaration
+                if (window.game && window.game.localPlayer) {
+                    const lp = window.game.localPlayer;
+
+                    if (!lp.hostileTargets.has(val.senderId)) {
+                        // Mutual Hostility: Auto-add sender to my hostile list
+                        lp.hostileTargets.set(val.senderId, val.senderName);
+
+                        // Notify UI
+                        if (window.game.ui) {
+                            window.game.ui.logSystemMessage(`⚠️ ${val.senderName}님이 당신을 적대 관계로 등록했습니다! (상호 적대)`);
+                            window.game.ui.updateHostilityUI();
+                        }
+
+                        // Save State
+                        // Fix for crash: game.savePlayerData likely doesn't exist on Game instance
+                        if (lp.saveState) lp.saveState();
+                        else if (window.game.net) window.game.net.savePlayerData(lp.id, { ...lp.data }); // Fallback
+                    }
+                } else {
+                    Logger.warn('[Network] Hostility Event received but localPlayer not ready. Keeping event.');
+                    return; // Do NOT remove snapshot if player not ready
+                }
+            }
+            // Only remove if processed successfully
+            snapshot.ref.remove();
+        });
+    }
+
+    _setupPartyListeners() {
+        // Listen for Invites
+        this.dbRef.child(`party_invites/${this.playerId}`).on('child_added', (snapshot) => {
+            const val = snapshot.val();
+            Logger.log('[Party] Received Invite:', val); // Debug Log
+            if (val) {
+                // Show Invite Modal
+                if (window.game && window.game.ui) {
+                    window.game.ui.showGenericModal(
+                        "파티 초대",
+                        `${val.senderName}님으로부터 파티 초대가 왔습니다. 수락하시겠습니까?`,
+                        () => { // Yes
+                            this.acceptPartyInvite(val.senderId);
+                            // Set local party state provisional
+                            window.game.localPlayer.party = { id: val.senderId, members: [val.senderId, this.playerId] };
+                            // Remove hostility
+                            window.game.localPlayer.hostileTargets.delete(val.senderId);
+                            window.game.ui.updateHostilityUI();
+                            window.game.ui.updatePartyUI(); // Need implementation
+                            window.game.ui.hideGenericModal();
+                        },
+                        () => { // No
+                            window.game.ui.hideGenericModal();
+                        }
+                    );
+                }
+            }
+            // Auto-remove invite after processing
+            snapshot.ref.remove();
+        });
+
+        // Listen for Responses (If I sent an invite)
+        this.dbRef.child(`party_responses/${this.playerId}`).on('child_added', (snapshot) => {
+            const val = snapshot.val();
+            if (val && val.response === 'accept') {
+                // Form Party
+                if (window.game && window.game.ui) {
+                    window.game.ui.logSystemMessage(`${val.responderName}님이 파티 초대를 수락했습니다!`);
+
+                    // Init Party if not exists
+                    if (!window.game.localPlayer.party) {
+                        window.game.localPlayer.party = { id: this.playerId, members: [this.playerId] };
+                    }
+                    window.game.localPlayer.party.members.push(val.responderId);
+
+                    // Remove hostility
+                    window.game.localPlayer.hostileTargets.delete(val.responderId);
+                    window.game.ui.updateHostilityUI();
+                    window.game.ui.updatePartyUI();
+                }
+            }
+            snapshot.ref.remove();
+        });
     }
 }

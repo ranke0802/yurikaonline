@@ -201,6 +201,12 @@ export default class CharacterSelectionScene extends Scene {
                 maxHp: 30,
                 mp: 50,
                 maxMp: 50,
+                questData: {
+                    slimeKills: 0,
+                    slimeQuestClaimed: false,
+                    bossKilled: false,
+                    bossQuestClaimed: false
+                },
                 createdAt: Date.now()
             };
 
@@ -284,6 +290,9 @@ export default class CharacterSelectionScene extends Scene {
 
         const localName = localStorage.getItem('yurika_player_name') || this.user.displayName || "유리카";
 
+        // Add log to confirm profile data before Scene Change.
+        console.log('[CharSelect] Starting game with profile:', this.profile);
+
         await this.game.sceneManager.changeScene('world', {
             user: this.user,
             startX,
@@ -291,6 +300,61 @@ export default class CharacterSelectionScene extends Scene {
             profile: this.profile,
             localName
         });
+    }
+
+    async handleCharacterReset() {
+        const msg = "레벨을 제외한 골드/스텟/스킬이 초기화됩니다.\n사용된 골드/스텟은 반환됩니다.\n\n계속하시겠습니까?";
+        if (!confirm(msg)) return;
+
+        const p = this.profile;
+        if (!p) return;
+
+        // 1. Calculate Refunded Stat Points
+        // Base Stats: Vit 1, Int 3, Wis 2, Agi 1
+        const usedVit = Math.max(0, (p.vitality || 1) - 1);
+        const usedInt = Math.max(0, (p.intelligence || 3) - 3);
+        const usedWis = Math.max(0, (p.wisdom || 2) - 2);
+        const usedAgi = Math.max(0, (p.agility || 1) - 1);
+
+        const totalRefundedStats = usedVit + usedInt + usedWis + usedAgi;
+
+        // 2. Calculate Refunded Gold from Skills
+        // Cost Formula: 300 * (2^(lv-1) - 1)
+        let totalRefundedGold = 0;
+        const skills = p.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
+
+        ['laser', 'missile', 'fireball'].forEach(skill => {
+            const lv = skills[skill] || 1;
+            if (lv > 1) {
+                totalRefundedGold += 300 * (Math.pow(2, lv - 1) - 1);
+            }
+        });
+
+        // 3. Apply Changes
+        p.statPoints = (p.statPoints || 0) + totalRefundedStats;
+        p.gold = (p.gold || 0) + totalRefundedGold;
+
+        // Reset Stats
+        p.vitality = 1;
+        p.intelligence = 3;
+        p.wisdom = 2;
+        p.agility = 1;
+
+        // Recalculate Derived Stats (HP/MP)
+        // HP = 20 + Vit*10
+        // MP = 30 + Wis*10
+        p.hp = 20 + (p.vitality * 10);
+        p.maxHp = p.hp;
+        p.mp = 30 + (p.wisdom * 10);
+        p.maxMp = p.mp;
+
+        // Reset Skills
+        p.skillLevels = { laser: 1, missile: 1, fireball: 1, shield: 1 };
+
+        // 4. Save and Update UI
+        await this.game.net.savePlayerData(this.user.uid, p);
+        alert(`초기화 완료!\n반환된 스텟: ${totalRefundedStats}\n반환된 골드: ${totalRefundedGold}`);
+        this.showSelectionUI(); // Refresh UI to show updated gold/stats (though stats hidden in selection)
     }
 
     render(ctx) {

@@ -253,7 +253,6 @@ export default class Monster extends CharacterBase {
         // v1.99.9: Hard cap on dt to prevent physics tunneling or explosions during lag
         const safeDt = Math.min(0.1, dt);
 
-        // 1. Death handling
         if (this.hp <= 0 && !this.isDead) {
             this.isDead = true;
             this.hp = 0;
@@ -268,7 +267,14 @@ export default class Monster extends CharacterBase {
             return; // Dead monsters only fade out, no AI
         }
 
-        if (!this.ready) return;
+        if (!this.ready) {
+            // v1.99.13: If host, we MUST load assets even if off-screen to run AI pathing
+            if (!this.loadingRequested) {
+                this.loadingRequested = true;
+                this.init(this.assetPath);
+            }
+            return;
+        }
 
         this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
 
@@ -409,6 +415,13 @@ export default class Monster extends CharacterBase {
                 // Apply move with boundary and NaN guard
                 const targetX = isNaN(nextX) ? this.x : nextX;
                 const targetY = isNaN(nextY) ? this.y : nextY;
+
+                // Debug movement (limited to one monster per session to avoid spam)
+                if (!window._moveLogShown) {
+                    console.log(`[MonsterAI] Moving ${this.typeId}: vel(${this.vx.toFixed(1)}, ${this.vy.toFixed(1)}) -> pos(${this.x.toFixed(0)}, ${this.y.toFixed(0)})`);
+                    window._moveLogShown = true;
+                }
+
                 this.x = Math.max(0, Math.min(6000, targetX));
                 this.y = Math.max(0, Math.min(6000, targetY));
             }

@@ -127,13 +127,52 @@ export default class MonsterManager {
                     this.net.spawnDrop({ x: m.x - 20, y: m.y + 10, type: 'hp', amount: 30 });
                 }
 
-                // Quest & Splitting Logic
-                if (localPlayer && localPlayer.questData) {
+                // Quest & Splitting Logic (v0.00.14)
+                if (localPlayer) {
                     const attackerId = m.lastAttackerId || this.net.playerId;
-                    const isMyKill = attackerId === this.net.playerId;
 
-                    if (isMyKill) {
-                        // v1.88: Use typeId for reliable quest tracking
+                    // Identify Killer & Party
+                    let killerParty = null;
+                    if (attackerId === this.net.playerId) {
+                        killerParty = localPlayer.party;
+                    } else {
+                        const rp = remotePlayers.get(attackerId);
+                        if (rp) killerParty = rp.party;
+                    }
+
+                    // Calculate Rewards (Drops are separate, this is auto-grant Exp/Gold/Quest)
+                    // Note: Current Drop system handles Gold/Exp items. This block handles *direct* grants or Quest triggers.
+                    // Wait, the code above spawns drops. This block is for QUESTS and NOTIFICATIONS.
+                    // BUT, prompt says "Experience, Gold... split 1/N".
+                    // The standard game loop has Drops for Gold/Exp.
+                    // If drops exist, players pick them up individually.
+                    // If shared, maybe "Picking up drop" splits it?
+                    // OR: Remove drops and auto-grant?
+                    // The code at line 124 SPOWNS drops.
+                    // Maybe leave drops as is, but if they are picked up, handle split?
+                    // OR: Don't spawn drops for partykills, just grant?
+                    // "Shared Experience, Gold... (1/N distribution)"
+                    // If I change drop logic, I break pickup animation.
+                    // BETTER: Modify `collectDrop` in NetworkManager to handle split. 
+                    // BUT here, let's handle QUEST updates for party members if needed.
+                    // Actually, usually quests are "Kill Count". Everyone in party witnessing kill gets +1?
+                    // Prompt doesn't say "Shared Quest Progress". It says "Shared Exp, Gold".
+                    // Drops give Exp/Gold. So I should modify `_onDropCollectionRequested` or `collectDrop`.
+
+                    // However, we still need to process QUESTS for the KILLER (or Party?).
+                    // Let's assume Quest completion is individual for now (or shared if specified, but prompt says Exp/Gold).
+                    // So I will leave Quest Logic mostly as is, but handle `isMyKill` check.
+
+                    // wait, lines 135-170 handle LOCAL QUEST updates.
+                    // If I am in party, should my kill count for others? "Shared Experience" usually implies shared kills too?
+                    // Let's stick to explicit prompt: "Shared Exp, Gold".
+                    // So Quest is personal.
+
+                    // But wait, the reward notification at line 172 sends `questKill`.
+                    // I will keep this block for Quest Updates.
+
+                    if (attackerId === this.net.playerId) {
+                        // My Kill -> My Quest Logic
                         if (m.typeId === 'slime' || m.typeId === 'slime_split') {
                             localPlayer.questData.slimeKills++;
                             if (!this.bossSpawned) {
@@ -150,6 +189,7 @@ export default class MonsterManager {
 
                         if (m.typeId === 'king_slime') {
                             localPlayer.questData.bossKilled = true;
+                            // Spawn logic for Boss Split
                             for (let i = 0; i < 3; i++) {
                                 const offX = (Math.random() - 0.5) * 100;
                                 const offY = (Math.random() - 0.5) * 100;
@@ -168,7 +208,7 @@ export default class MonsterManager {
                         localPlayer.saveState();
                         if (window.game && window.game.ui) window.game.ui.updateQuestUI();
                     } else {
-                        // Notify Remote Player
+                        // Remote Kill -> Notify Killer for Quest Updates
                         this.net.sendReward(attackerId, {
                             questKill: m.typeId,
                             monsterName: m.name,
@@ -380,8 +420,37 @@ export default class MonsterManager {
             const reward = {};
             if (drop.type === 'gold') reward.gold = drop.amount;
             else if (drop.type === 'exp') reward.exp = drop.amount;
-            else if (drop.type === 'hp') reward.hp = drop.amount;
-            this.net.sendReward(data.collectorId, reward);
+            else if (drop.type === 'hp') reward.hp = drop.amount; // HP usually not split? "Healing (1/N distribution)" per prompt.
+
+            // v0.00.14: Party Splitting Logic
+            let collector = null;
+            if (data.collectorId === this.net.playerId) {
+                collector = window.game.localPlayer;
+            } else {
+                collector = this.net.remotePlayers.get(data.collectorId);
+            }
+
+            const party = collector ? collector.party : null;
+
+            if (party && party.members && party.members.length > 1) {
+                // Split Logic
+                const count = party.members.length;
+                const splitReward = {};
+                if (reward.gold) splitReward.gold = Math.floor(reward.gold / count);
+                if (reward.exp) splitReward.exp = Math.floor(reward.exp / count);
+                if (reward.hp) splitReward.hp = Math.floor(reward.hp / count);
+
+                party.members.forEach(uid => {
+                    this.net.sendReward(uid, splitReward);
+                });
+
+                // Remainder? Lost or given to collector? 
+                // Simple 1/N floor is fine.
+            } else {
+                // Solo
+                this.net.sendReward(data.collectorId, reward);
+            }
+
             this.net.removeDrop(data.dropId);
             this.drops.delete(data.dropId);
         }
