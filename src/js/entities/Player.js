@@ -589,6 +589,26 @@ export default class Player extends CharacterBase {
             this.die();
         }
 
+        // v0.00.19: Automatic Retaliation (PvP)
+        // If attacked by another player and they are not in my hostile list, add them and sync immediately
+        if (attacker && attacker.type === 'player' && attacker.id !== this.id) {
+            if (!this.hostileTargets.has(attacker.id)) {
+                // Determine name from attacker object or remote player list
+                let attackerName = attacker.name;
+                if (!attackerName && window.game && window.game.net) {
+                    const rp = window.game.net.remotePlayers.get(attacker.id);
+                    if (rp) attackerName = rp.name;
+                }
+
+                this.hostileTargets.set(attacker.id, { name: attackerName || "Unknown", ts: Date.now() });
+                if (window.game?.ui) {
+                    window.game.ui.logSystemMessage(`⚠️ ${attackerName || '상대'}의 공격을 받아 적대 처리되었습니다!`);
+                    window.game.ui.updateHostilityUI();
+                }
+                this.saveState(true); // Sync to world immediately
+            }
+        }
+
         return finalDmg;
     }
 
@@ -1460,7 +1480,7 @@ export default class Player extends CharacterBase {
                 this.hostileTargets.delete(effectiveUid);
                 if (this.net) this.net.sendHostilityRemovalEvent?.(effectiveUid, this.name); // v1.99.38: Pass name for better messages
 
-                this.saveState();
+                this.saveState(true); // v0.00.19: Force world sync for immediate PvP logic change
                 if (window.game?.ui) window.game.ui.updateHostilityUI();
                 return 'REMOVED';
             }
@@ -1472,7 +1492,7 @@ export default class Player extends CharacterBase {
             if (this.net) this.net.sendHostilityEvent(targetUid);
 
             if (window.game?.ui) window.game.ui.updateHostilityUI();
-            this.saveState();
+            this.saveState(true); // v0.00.19: Force world sync for immediate PvP logic change
 
             return 'DECLARED';
         } catch (e) {

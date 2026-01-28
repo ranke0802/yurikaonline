@@ -574,7 +574,8 @@ export default class NetworkManager extends EventEmitter {
             a: val.a,
             level: profile.level || 1,
             party: profile.party || null, // v0.00.14: Sync Party
-            hostility: profile.hostility || {} // v1.99.37: Sync Hostility
+            // v0.00.19: Support both nested profile.hostility and flat val.hostility
+            hostility: profile.hostility || val.hostility || {}
         });
 
         Logger.log(`[NetworkManager] Remote player joined: ${uid} (${this.remotePlayers.get(uid).name})`);
@@ -624,6 +625,12 @@ export default class NetworkManager extends EventEmitter {
                 if (val.profile.party !== undefined) existing.party = val.profile.party;
                 if (val.profile.hostility !== undefined) existing.hostility = val.profile.hostility;
             }
+        }
+
+        // v0.00.19: Handle flat hostility updates
+        if (val.hostility !== undefined) {
+            const existing = this.remotePlayers.get(uid);
+            if (existing) existing.hostility = val.hostility;
         }
 
         // v0.28.2: Enhanced hybrid data parsing (Array <-> Object transition)
@@ -912,7 +919,7 @@ export default class NetworkManager extends EventEmitter {
                                 window.game.ui.logSystemMessage(`🕊️ ${val.senderName || '상대'}가 적대 관계를 해제하여 평화 상태가 되었습니다.`);
                                 window.game.ui.updateHostilityUI();
                             }
-                            lp.saveState();
+                            lp.saveState(true); // v0.00.19: Immediate world sync for mutual pvp
                         }
                     } else {
                         // type === 'declare' or legacy
@@ -925,7 +932,7 @@ export default class NetworkManager extends EventEmitter {
                                 window.game.ui.logSystemMessage(`⚠️ ${val.senderName}님이 당신을 적대 관계로 등록했습니다! (상호 적대 시 PvP 가능)`);
                                 window.game.ui.updateHostilityUI();
                             }
-                            lp.saveState();
+                            lp.saveState(true); // v0.00.19: Immediate world sync for mutual pvp
                         }
                     }
                 } else {
