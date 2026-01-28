@@ -809,7 +809,8 @@ export default class Player extends CharacterBase {
                 affectedMonsters.push(nextTarget);
 
                 if (isTick) {
-                    let dmg = this.attackPower * finalDmgRatio;
+                    // v0.00.27: Minimum damage = 10% of attack power, rounded up, min 1
+                    let dmg = Math.max(1, Math.ceil(this.attackPower * finalDmgRatio));
                     let isCrit = Math.random() < this.critRate;
                     if (isCrit) dmg *= 2;
 
