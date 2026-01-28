@@ -57,6 +57,10 @@ export class Projectile {
     update(dt, monsters) {
         if (this.isDead) return;
 
+        const lp = window.game?.localPlayer;
+        const rps = window.game?.remotePlayers;
+        const owner = (lp && lp.id === this.ownerId) ? lp : rps?.get(this.ownerId);
+
         // v1.99.25: Handle impact delay (Penetration feel)
         if (this.isExploding) {
             this.explosionDelay -= dt;
@@ -100,6 +104,12 @@ export class Projectile {
                 this.vy *= 0.98;
             } else {
                 // v0.00.05: Smart Retargeting (Monsters + Players)
+                // v1.99.38: Per-frame target validation (Robust player check)
+                const isPlayer = this.target && (this.target.type === 'player' || (!this.target.isMonster && this.target.id));
+                if (isPlayer && owner && !owner.canAttackTarget(this.target)) {
+                    this.target = null;
+                }
+
                 if ((this.target && this.target.isDead) || !this.target) {
                     this.target = this.findNearestTarget(monsters);
                 }
@@ -126,7 +136,14 @@ export class Projectile {
                             this.vx = (this.vx / currentSpeed) * this.speed;
                             this.vy = (this.vy / currentSpeed) * this.speed;
                         }
-                        if (dist < (60 + (this.target.width || 80) / 2)) this.hit(this.target, monsters);
+
+                        // v1.99.38: Added final guard before direct hit
+                        const targetIsPlayer = this.target.type === 'player' || (!this.target.isMonster && this.target.id);
+                        if (dist < (60 + (this.target.width || 80) / 2)) {
+                            if (!targetIsPlayer || (owner && owner.canAttackTarget(this.target))) {
+                                this.hit(this.target, monsters);
+                            }
+                        }
                     }
                 } else {
                     if (Math.abs(this.vx) < 1 && Math.abs(this.vy) < 1) this.isDead = true;
@@ -156,23 +173,20 @@ export class Projectile {
                     if (dist < (this.hitRadius + monsterRadius)) this.hit(m, monsters);
                 });
             }
-            // 2. Local Player (PvP Visual)
-            const lp = window.game?.localPlayer;
+            // 2. Local Player (PvP Visual/Damage)
             if (lp && !lp.isDead && lp.id !== this.ownerId) {
-                const cx = lp.x + (lp.width || 48) / 2;
-                const cy = lp.y + (lp.height || 48) / 2;
-                const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
-                if (dist < this.hitRadius) this.hit(lp, monsters);
+                if (owner && owner.canAttackTarget(lp)) {
+                    const cx = lp.x + (lp.width || 48) / 2;
+                    const cy = lp.y + (lp.height || 48) / 2;
+                    const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
+                    if (dist < this.hitRadius) this.hit(lp, monsters);
+                }
             }
             // 3. Remote Players (PvP Damage)
-            const rps = window.game?.remotePlayers;
             if (rps) {
                 rps.forEach(rp => {
                     if (rp.isDead || rp.id === this.ownerId) return;
-
-                    // v0.00.14: Hostility Check
-                    const lp = window.game?.localPlayer;
-                    if (lp && !lp.canAttackTarget(rp)) return;
+                    if (owner && !owner.canAttackTarget(rp)) return;
 
                     const cx = rp.x + (rp.width || 48) / 2;
                     const cy = rp.y + (rp.height || 48) / 2;
@@ -182,17 +196,17 @@ export class Projectile {
             }
         } else if (this.type === 'missile') {
             // v1.99.31: Standard Missile Collision logic with owner safety
-            const lp = window.game?.localPlayer;
-            if (lp && !lp.isDead && lp.id !== this.ownerId) {
+            if (lp && !lp.isDead && lp.id !== this.ownerId && owner?.canAttackTarget(lp)) {
                 const cx = lp.x + (lp.width || 48) / 2;
                 const cy = lp.y + (lp.height || 48) / 2;
                 const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
                 if (dist < this.hitRadius) this.hit(lp, monsters);
             }
-            const rps = window.game?.remotePlayers;
             if (rps) {
                 rps.forEach(rp => {
                     if (rp.isDead || rp.id === this.ownerId) return;
+                    if (owner && !owner.canAttackTarget(rp)) return;
+
                     const cx = rp.x + (rp.width || 48) / 2;
                     const cy = rp.y + (rp.height || 48) / 2;
                     const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
@@ -214,6 +228,11 @@ export class Projectile {
         let minDist = Infinity;
         const scanRange = 700;
         const myId = this.ownerId;
+        const lp = window.game?.localPlayer;
+        const rps = window.game?.remotePlayers;
+        const owner = (lp && lp.id === myId) ? lp : rps?.get(myId);
+
+        if (!owner) return null;
 
         // 1. Monsters
         if (monsters) {
@@ -227,23 +246,27 @@ export class Projectile {
             });
         }
 
-        // 2. Local Player (Targeting me)
-        const lp = window.game?.localPlayer;
+        // 2. Local Player
         if (lp && !lp.isDead && lp.id !== myId) {
-            const cx = lp.x + (lp.width || 48) / 2;
-            const cy = lp.y + (lp.height || 48) / 2;
-            const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
-            if (dist < minDist && dist < scanRange) {
-                minDist = dist;
-                nearest = lp;
+            // v1.99.38: Robust player check
+            if (owner.canAttackTarget(lp)) {
+                const cx = lp.x + (lp.width || 48) / 2;
+                const cy = lp.y + (lp.height || 48) / 2;
+                const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
+                if (dist < minDist && dist < scanRange) {
+                    minDist = dist;
+                    nearest = lp;
+                }
             }
         }
 
-        // 3. Remote Players (Targeting others)
-        const rps = window.game?.remotePlayers;
+        // 3. Remote Players
         if (rps) {
             rps.forEach(rp => {
                 if (rp.isDead || rp.id === myId) return;
+                // v1.99.38: Robust player check
+                if (!owner.canAttackTarget(rp)) return;
+
                 const cx = rp.x + (rp.width || 48) / 2;
                 const cy = rp.y + (rp.height || 48) / 2;
                 const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);

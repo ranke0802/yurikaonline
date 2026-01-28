@@ -388,11 +388,16 @@ export class UIManager {
 
             li.innerHTML = `<span>${name}</span> <button class="btn-remove-hostile" data-uid="${uid}">x</button>`;
 
-            // Remove handler
-            li.querySelector('.btn-remove-hostile').onclick = () => {
-                this.game.localPlayer.hostileTargets.delete(uid);
-                this.game.localPlayer.saveState(); // v0.00.15: Persist removal
-                this.updateHostilityUI();
+            // Remove handler (v1.99.38: Use declareHostility to ensure network event and cooldown)
+            li.querySelector('.btn-remove-hostile').onclick = async () => {
+                const result = await this.game.localPlayer.declareHostility(name);
+                if (result === 'REMOVED' || result === 'DECLARED') {
+                    // Success or Toggle. If it was already REMOVED, the method handles the sync.
+                    this.updateHostilityUI();
+                } else if (result.startsWith('COOLDOWN:')) {
+                    const time = result.split(':')[1];
+                    this.logSystemMessage(`⚠️ 적대 해제는 선포 후 30초가 지나야 가능합니다. (남은 시간: ${time}초)`);
+                }
             };
 
             list.appendChild(li);

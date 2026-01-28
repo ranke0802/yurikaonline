@@ -8,6 +8,7 @@ export default class RemotePlayer extends CharacterBase {
         super(x, y, 180);
         this.id = id;
         this.name = "Unknown";
+        this.type = 'player'; // v1.99.38: Explicit type for hostility checks
 
         this.targetX = x;
         this.targetY = y;
@@ -90,6 +91,28 @@ export default class RemotePlayer extends CharacterBase {
         this.state = 'idle';
     }
 
+    // v1.99.37: PvP check for RemotePlayer owner (Used by Projectile)
+    canAttackTarget(target) {
+        if (!target || target.isDead) return false;
+        if (target.isMonster || target.type === 'monster') return true;
+
+        if (target.type === 'player') {
+            if (target.id === this.id) return false;
+            if (this.party && this.party.members.includes(target.id)) return false;
+
+            // Enforce mutual hostility
+            const hostileList = this.hostility || {};
+            const isHeHostileToMe = hostileList.hasOwnProperty(target.id) || !!hostileList[target.id];
+            if (!isHeHostileToMe) return false;
+
+            const targetHostileList = target.hostility || {};
+            const amIHostileToHim = targetHostileList.hasOwnProperty(this.id) || !!targetHostileList[this.id];
+
+            return amIHostileToHim;
+        }
+        return false;
+    }
+
     async _loadSpriteSheet(res) {
         if (!res) return;
         try {
@@ -103,8 +126,13 @@ export default class RemotePlayer extends CharacterBase {
 
     // Called when network packet arrives
     onServerUpdate(packet) {
-        // packet: { id, x, y, vx, vy, ts, name }
+        // packet: { id, x, y, vx, vy, ts, name, level, party, hostility }
         if (packet.name) this.name = packet.name;
+
+        // v1.99.38: Sync profile fields in real-time
+        if (packet.level !== undefined && packet.level !== null) this.level = packet.level;
+        if (packet.party !== undefined) this.party = packet.party;
+        if (packet.hostility !== undefined && packet.hostility !== null) this.hostility = packet.hostility;
 
         this.serverUpdates.push({
             x: packet.x,
@@ -576,8 +604,9 @@ export default class RemotePlayer extends CharacterBase {
                 const angle = baseAngle + (i - (count - 1) / 2) * (spread / Math.max(1, count - 1)) + angleOffset;
 
                 const speed = 350 + Math.random() * 300;
-                // v0.00.05: Auto-target LocalPlayer for PvP visuals
-                const target = (!window.game.localPlayer?.isDead) ? window.game.localPlayer : null;
+                // v0.00.05: Auto-target LocalPlayer for PvP visuals removed (v1.99.38)
+                // Now passes null to force projectile to find its own valid (hostile) target
+                const target = null;
                 window.game.projectiles.push(new Projectile(centerX, centerY, target, 'missile', {
                     vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
                     speed: 600, damage: 0, ownerId: this.id

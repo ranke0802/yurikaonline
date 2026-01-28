@@ -65,6 +65,7 @@ export default class Monster extends CharacterBase {
         this.targetPlayer = null; // v1.99: AI Target
         this.spawnGraceTimer = 3.0; // v1.99.10: Wait 3s after spawn before chasing
         this.isMonster = true;
+        this.type = 'monster'; // v1.99.38: Explicit type for identification
 
         // Lazy Load: Do not call init() here. 
         // We will call it in render() so that we only load assets when the monster is actually being drawn (in WorldScene).

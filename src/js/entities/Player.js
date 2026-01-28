@@ -9,6 +9,7 @@ export default class Player extends CharacterBase {
         this.name = name;
         this.spawnX = x;
         this.spawnY = y;
+        this.type = 'player'; // v1.99.38: Explicit type for hostility checks
 
         // Stats (Base)
         this.vitality = 1;
@@ -108,6 +109,11 @@ export default class Player extends CharacterBase {
         this.chatTimer = 0;
 
         this.updateDerivedStats();
+    }
+
+    // v1.99.38: Compatibility getter for RemotePlayer.canAttackTarget checks
+    get hostility() {
+        return Object.fromEntries(this.hostileTargets);
     }
 
     // Initialize with game dependencies
@@ -533,22 +539,6 @@ export default class Player extends CharacterBase {
     takeDamage(amount, fromNetwork = false, isCrit = false, sourceX = null, sourceY = null, attacker = null, effectType = null, effectDuration = 0, effectDamage = 0) {
         if (this.isDead) return 0;
 
-        // 1. PvP Logic: Auto-Retaliation
-        if (attacker && attacker.type === 'player' && attacker.id !== this.id) {
-            if (!this.hostileTargets.has(attacker.id)) {
-                // Try to find name in remotePlayers or use provided name
-                let attackerName = attacker.name || '알 수 없음';
-                if (window.game && window.game.remotePlayers.has(attacker.id)) {
-                    attackerName = window.game.remotePlayers.get(attacker.id).name;
-                }
-                this.hostileTargets.set(attacker.id, attackerName);
-                if (window.game && window.game.ui) {
-                    window.game.ui.logSystemMessage(`⚠️ ${attackerName}님과 적대 관계가 되었습니다!`);
-                    window.game.ui.updateHostilityUI();
-                }
-            }
-        }
-
         // v0.00.14: Apply Status Effects from PvP
         if (effectType && effectDuration) {
             this.applyEffect(effectType, effectDuration, effectDamage || 0);
@@ -604,20 +594,27 @@ export default class Player extends CharacterBase {
 
     // v1.99.36: Enhanced Mutual Hostility Check
     canAttackTarget(target) {
-        if (!target) return false;
+        if (!target) return false; // 타겟이 없으면 공격 불가
+        // 1. 몬스터 체크
         if (target.type === 'monster') return true;
+        // 타겟이 몬스터인 경우, 다른 조건 없이 즉시 true를 반환하여 공격을 허용합니다.
+        // 2. 플레이어(PvP) 체크
         if (target.type === 'player') {
-            if (target.id === this.id) return false;
-            if (this.party && this.party.members.includes(target.id)) return false;
-
-            // Check if BOTH are hostile to each other
+            // (A) 자신인지 확인
+            if (target.id === this.id) return false; // 자신은 공격할 수 없음
+            // (B) 파티원인지 확인
+            if (this.party && this.party.members.includes(target.id)) return false; // 파티원은 보호됨
+            // (C) 내가 상대를 적대로 등록했는가?
             const myHostileEntry = this.hostileTargets.get(target.id);
-            if (!myHostileEntry) return false;
+            // 내가 /e [닉네임] 명령어를 쳐서 내 적대 목록(Map)에 상대가 들어있어야 합니다.
+            if (!myHostileEntry) return false; // 내가 적대하지 않았다면 공격 불가
+            // (D) 상대방도 나를 적대로 등록했는가? (상호 적대 확인)
+            // target.hostility는 상대방 객체의 적대 목록입니다.
+            const targetHostileList = target.hostility || {};
 
-            // Does target have me in their hostility list? (Synced via data/profile)
-            const targetHostileList = target.hostility || {}; // For RemotePlayer, synced from server
+            // 상대방의 적대 목록에 내 ID(this.id)가 포함되어 있는지 확인합니다.
             const isHostileToMe = targetHostileList.hasOwnProperty(this.id) || !!targetHostileList[this.id];
-
+            // 최종 반환: 상호 적대인 경우에만 true가 반환됩니다.
             return isHostileToMe;
         }
         return false;
@@ -878,6 +875,11 @@ export default class Player extends CharacterBase {
                 candidates.forEach(t => {
                     if (!t || t.isDead) return;
                     if (t.id === this.id) return; // Skip self
+
+                    // v1.99.37: Filter valid targets (Monsters or Hostile Players)
+                    // v1.99.38: Robust check using both .type and .isMonster
+                    const isPossiblePlayer = (t.type === 'player' || (!t.isMonster && t.id !== undefined));
+                    if (isPossiblePlayer && !this.canAttackTarget(t)) return;
 
                     // Use center position if available, else x/y
                     const tx = (t.width) ? t.x + t.width / 2 : t.x;
@@ -1314,45 +1316,7 @@ export default class Player extends CharacterBase {
         this.chatTimer = 5.0; // Show for 5 seconds
     }
 
-    // v0.00.14: PvP Damage Handler
-    takeDamage(amount, source = null) {
-        if (this.isDead) return 0;
 
-        // 1. PvP Logic
-        if (source && source.type === 'player') {
-            // Auto-retaliation: If attacked by a player, mark them as hostile automatically
-            if (!this.hostileTargets.has(source.id)) {
-                this.hostileTargets.set(source.id, { name: source.name, ts: Date.now() });
-                if (window.game && window.game.ui) {
-                    window.game.ui.logSystemMessage(`⚠️ ${source.name}님이 적대 관계가 되었습니다! (자동 반격)`);
-                    window.game.ui.updateHostilityUI();
-                }
-            }
-        }
-
-        const finalDmg = Math.max(1, Math.round(amount - this.defense));
-        this.hp = Math.max(0, this.hp - finalDmg);
-
-        // Interrupt channeling on hit
-        if (this.isChanneling) { // Optional: Channelling break?
-            // this.isChanneling = false; 
-        }
-
-        if (this.hp <= 0) {
-            this.die();
-        }
-
-        return finalDmg;
-    }
-
-    // v0.00.14: Check if target is valid for attack (Redundant, keeping for safety or updating to reuse)
-    canAttackTarget(target) {
-        if (!target || target.isDead) return false;
-        if (target.isMonster) return true;
-
-        // PvP logic: Can attack if target is in our hostileTargets list
-        return this.hostileTargets && this.hostileTargets.has(target.id);
-    }
 
     drawSpeechBubble(ctx, x, y) {
         ctx.save();
@@ -1482,7 +1446,7 @@ export default class Player extends CharacterBase {
 
                 // Remove hostility (Mutual removal logic)
                 this.hostileTargets.delete(targetUid);
-                if (this.net) this.net.sendHostilityRemovalEvent?.(targetUid); // Implement this in NetManager
+                if (this.net) this.net.sendHostilityRemovalEvent?.(targetUid, this.name); // v1.99.38: Pass name for better messages
 
                 this.saveState();
                 if (window.game?.ui) window.game.ui.updateHostilityUI();

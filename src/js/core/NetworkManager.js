@@ -573,7 +573,8 @@ export default class NetworkManager extends EventEmitter {
             h: val.h,
             a: val.a,
             level: profile.level || 1,
-            party: profile.party || null // v0.00.14: Sync Party
+            party: profile.party || null, // v0.00.14: Sync Party
+            hostility: profile.hostility || {} // v1.99.37: Sync Hostility
         });
 
         Logger.log(`[NetworkManager] Remote player joined: ${uid} (${this.remotePlayers.get(uid).name})`);
@@ -621,6 +622,7 @@ export default class NetworkManager extends EventEmitter {
             if (existing) {
                 if (val.profile.level) existing.level = val.profile.level;
                 if (val.profile.party !== undefined) existing.party = val.profile.party;
+                if (val.profile.hostility !== undefined) existing.hostility = val.profile.hostility;
             }
         }
 
@@ -649,6 +651,12 @@ export default class NetworkManager extends EventEmitter {
             this._checkHostStatus();
         }
 
+        // v1.99.38: Gather profile data for real-time sync
+        const profile = val.profile || {};
+        const hostility = profile.hostility || null;
+        const level = profile.level || null;
+        const party = profile.party || null;
+
         if (uid === this.playerId) return;
 
         // Position Update
@@ -671,6 +679,12 @@ export default class NetworkManager extends EventEmitter {
                 // v0.00.03: Update activity timestamp to NOW whenever any packet is processed
                 data.ts = now;
                 data.name = posData[5] || "Unknown";
+
+                // v1.99.38: Sync profile fields
+                if (level) data.level = level;
+                if (party !== undefined) data.party = party;
+                if (hostility) data.hostility = hostility;
+
                 this.remotePlayers.set(uid, data);
 
                 // v0.00.03: If they were deleted by cleanup but sent a move, revive them
@@ -684,7 +698,10 @@ export default class NetworkManager extends EventEmitter {
                         vx: data.vx,
                         vy: data.vy,
                         ts: data.ts,
-                        name: data.name
+                        name: data.name,
+                        level: level,    // Added v1.99.38
+                        party: party,    // Added v1.99.38
+                        hostility: hostility // Added v1.99.38
                     });
                 }
             }
@@ -860,13 +877,14 @@ export default class NetworkManager extends EventEmitter {
         });
     }
 
-    sendHostilityRemovalEvent(targetUid) {
+    sendHostilityRemovalEvent(targetUid, myName) {
         if (!this.connected || !this.playerId) return;
 
         Logger.log(`Sending Hostility Removal to ${targetUid}`);
         this.dbRef.child(`hostility_events/${targetUid}`).push({
             type: 'remove',
             senderId: this.playerId,
+            senderName: myName || "Someone", // v1.99.38: Added senderName for better UI messages
             ts: Date.now()
         });
     }
@@ -891,7 +909,7 @@ export default class NetworkManager extends EventEmitter {
                         if (lp.hostileTargets.has(val.senderId)) {
                             lp.hostileTargets.delete(val.senderId);
                             if (window.game.ui) {
-                                window.game.ui.logSystemMessage(`🕊️ 상대가 적대 관계를 해제하여 평화 상태가 되었습니다.`);
+                                window.game.ui.logSystemMessage(`🕊️ ${val.senderName || '상대'}가 적대 관계를 해제하여 평화 상태가 되었습니다.`);
                                 window.game.ui.updateHostilityUI();
                             }
                             lp.saveState();
