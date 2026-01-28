@@ -15,7 +15,7 @@
                 for (let registration of registrations) {
                     const swUrl = registration.active?.scriptURL || "";
                     // Fix: Correct logic to catch ANY old SW
-                    if (!swUrl.includes('v0.00.28')) {
+                    if (!swUrl.includes('v0.00.29')) {
                         navigator.serviceWorker.getRegistrations().then(function (registrations) {
                             for (let registration of registrations) {
                                 registration.unregister();
@@ -51,7 +51,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.00.28</title>
+    <title>Yurika Online v0.00.29</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
@@ -561,7 +561,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v0.00.28
+        📦 v0.00.29
     </div>
 
 

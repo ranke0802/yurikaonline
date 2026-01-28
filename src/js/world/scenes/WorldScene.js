@@ -114,6 +114,13 @@ export default class WorldScene extends Scene {
             if (typeof profile.hp === 'number') this.player.hp = profile.hp;
             if (typeof profile.mp === 'number') this.player.mp = profile.mp;
 
+            // v0.00.29: Restore saved position
+            if (typeof profile.x === 'number' && typeof profile.y === 'number') {
+                this.player.x = profile.x;
+                this.player.y = profile.y;
+                console.log(`[WorldScene] Restored position: (${profile.x}, ${profile.y})`);
+            }
+
             // v1.99.12: Force UI Update after profile restoration
             if (this.ui) {
                 this.ui.updateQuestUI();

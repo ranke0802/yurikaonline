@@ -678,6 +678,9 @@ export default class Player extends CharacterBase {
             hostility: Object.fromEntries(
                 Array.from(this.hostileTargets.entries()).map(([k, v]) => [k, { name: v.name || "Unknown", ts: v.ts || Date.now() }])
             ), // v1.99.37: Unified to 'name' for UI consistency
+            // v0.00.29: Save position for persistence
+            x: Math.round(this.x),
+            y: Math.round(this.y),
             ts: Date.now()
         };
         // Debug
