@@ -93,7 +93,10 @@ export class UIManager {
         // Chat send button
         const sendBtn = document.querySelector('.send-btn');
         const handleSend = (e) => {
-            e.preventDefault();
+            if (e) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            }
             this.sendMessage();
         };
         if (sendBtn) {
@@ -1208,6 +1211,9 @@ export class UIManager {
         const input = document.querySelector('.chat-input-area input');
         const text = input ? input.value.trim() : "";
         if (!text || !this.game.net || !this.game.localPlayer) return;
+
+        // v0.32.1: Clear input IMMEDIATELY to prevent double-submit from ghost clicks/touches on mobile
+        if (input) input.value = '';
 
         // Command Parsing
         if (text.startsWith('/')) {
