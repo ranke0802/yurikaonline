@@ -710,8 +710,8 @@ export default class Player extends CharacterBase {
             // v0.00.28: Floating text for mana usage (below damage text)
             if (window.game?.addDamageText && amount > 0) {
                 const px = this.x + this.width / 2;
-                const py = this.y + 30; // Below damage text position
-                window.game.addDamageText(px, py, `-${amount}`, '#29B6F6', false, 'mp');
+                const py = this.y + 30;
+                window.game.addDamageText(px, py, `-${amount}`, '#29B6F6', false);
             }
             return true;
         }
@@ -726,8 +726,8 @@ export default class Player extends CharacterBase {
         // v0.00.28: Floating text for mana recovery (below damage text)
         if (!isSilent && recovered > 0 && window.game?.addDamageText) {
             const px = this.x + this.width / 2;
-            const py = this.y + 30; // Below damage text position
-            window.game.addDamageText(px, py, `+${recovered}`, '#4FC3F7', false, 'mp');
+            const py = this.y + 30;
+            window.game.addDamageText(px, py, `+${recovered}`, '#4FC3F7', false);
         }
     }
 
