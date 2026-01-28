@@ -79,20 +79,30 @@ export default class MonsterManager {
             // Off-screen: Skip update (minimap will still show position)
         });
 
-        // v0.00.03: Full Monster Sync (Every 2s) to fix HP/Position desync for newer/returning clients
+        // v0.00.23: Full Monster Sync - Optimized (on-screen: 2s, off-screen: 5s)
         this.fullSyncTimer = (this.fullSyncTimer || 0) + dt;
-        if (this.net.isHost && this.fullSyncTimer >= 2.0) {
-            this.fullSyncTimer = 0;
+        this.offscreenSyncTimer = (this.offscreenSyncTimer || 0) + dt;
+
+        if (this.net.isHost) {
             this.monsters.forEach((m, id) => {
-                this.net.sendMonsterUpdate(id, {
-                    x: Math.round(m.x),
-                    y: Math.round(m.y),
-                    hp: m.hp,
-                    maxHp: m.maxHp,
-                    type: m.typeId || m.name,
-                    fullSync: true // v1.99.10: Flag to distinguish from movement sync
-                });
+                const onScreen = this.isOnScreen(m);
+                const syncInterval = onScreen ? 2.0 : 5.0;
+                const timer = onScreen ? this.fullSyncTimer : this.offscreenSyncTimer;
+
+                if (timer >= syncInterval) {
+                    this.net.sendMonsterUpdate(id, {
+                        x: Math.round(m.x),
+                        y: Math.round(m.y),
+                        hp: m.hp,
+                        maxHp: m.maxHp,
+                        type: m.typeId || m.name,
+                        fullSync: true
+                    });
+                }
             });
+
+            if (this.fullSyncTimer >= 2.0) this.fullSyncTimer = 0;
+            if (this.offscreenSyncTimer >= 5.0) this.offscreenSyncTimer = 0;
         }
 
         // Update drops (Magnet logic)

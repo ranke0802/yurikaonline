@@ -21,6 +21,13 @@ export default class NetworkManager extends EventEmitter {
         // Optimization: Dead Reckoning & Throttling
         this.lastSyncTime = 0;
         this.syncInterval = 60; // 16Hz Update Rate (v0.27.0 optimization)
+
+        // v0.00.23: Dynamic Heartbeat Optimization
+        this.isPlayerMoving = false;
+        this.lastHeartbeatTime = 0;
+        this.idleHeartbeatInterval = 5000; // 5s when idle
+        this.activeHeartbeatInterval = 1000; // 1s when moving
+        this.lastPacketData = null;
     }
 
     connect(user) {
@@ -120,11 +127,11 @@ export default class NetworkManager extends EventEmitter {
         // v0.00.04: Heartbeat is now the primary presence method
         this._startLocalGhostCleanup();
 
-        // v0.00.05: Global Heartbeat (Starts on connect, active even in Waiting scenes)
+        // v0.00.23: Dynamic Heartbeat (idle detection handled in sendHeartbeat)
         if (this._hbInterval) clearInterval(this._hbInterval);
         this._hbInterval = setInterval(() => {
-            this.sendHeartbeat();
-        }, 1000);
+            this._dynamicHeartbeat();
+        }, 1000); // Check every 1s, but actual send is throttled
 
         this._setupPartyListeners();
         this._setupDamageListeners(); // v0.00.14: PvP Damage
@@ -145,6 +152,7 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.playerId) return;
         // v0.00.05: Use ServerValue.TIMESTAMP to eliminate clock skew issues
         this.dbRef.child(`users/${this.playerId}/ts`).set(firebase.database.ServerValue.TIMESTAMP);
+        this.lastHeartbeatTime = Date.now();
 
         // v0.00.03: Ensure resonance of local user list
         if (!this.connectedUsers.includes(this.playerId)) {
@@ -153,6 +161,22 @@ export default class NetworkManager extends EventEmitter {
         }
 
         // v1.99.14: Aggressive host re-check every second
+        this._checkHostStatus();
+    }
+
+    /**
+     * v0.00.23: Dynamic heartbeat - reduces frequency when idle
+     */
+    _dynamicHeartbeat() {
+        if (!this.connected || !this.playerId) return;
+        const now = Date.now();
+        const interval = this.isPlayerMoving ? this.activeHeartbeatInterval : this.idleHeartbeatInterval;
+
+        if (now - this.lastHeartbeatTime >= interval) {
+            this.sendHeartbeat();
+        }
+
+        // Always check host status
         this._checkHostStatus();
     }
 
@@ -446,12 +470,15 @@ export default class NetworkManager extends EventEmitter {
         const safeVx = (isNaN(vx) || vx === null || vx === undefined) ? 0 : parseFloat(vx.toFixed(2));
         const safeVy = (isNaN(vy) || vy === null || vy === undefined) ? 0 : parseFloat(vy.toFixed(2));
 
+        // v0.00.23: Track movement state for dynamic heartbeat
+        const isMoving = Math.abs(safeVx) > 0.1 || Math.abs(safeVy) > 0.1;
+        this.isPlayerMoving = isMoving;
+
         // Idle Suppression: Skip if position and velocity haven't changed meaningfully
         if (this.lastPacketData) {
             const [lx, ly, lvx, lvy] = this.lastPacketData;
             const posChanged = Math.abs(safeX - lx) > 1 || Math.abs(safeY - ly) > 1;
             const velChanged = Math.abs(safeVx - lvx) > 0.01 || Math.abs(safeVy - lvy) > 0.01;
-            const isMoving = Math.abs(safeVx) > 0.1 || Math.abs(safeVy) > 0.1;
 
             // If stationary and state hasn't changed, skip
             if (!posChanged && !velChanged && !isMoving) return;
