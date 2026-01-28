@@ -1426,6 +1426,14 @@ export default class Player extends CharacterBase {
         SkillRenderer.drawLightning(ctx, x1, y1, x2, y2, intensity);
     }
 
+    getHostileUidByName(name) {
+        if (!name) return null;
+        for (const [uid, data] of this.hostileTargets.entries()) {
+            if (data && data.name === name) return uid;
+        }
+        return null;
+    }
+
     async declareHostility(targetName) {
         if (!targetName || !this.net) return 'INVALID';
 
@@ -1435,7 +1443,11 @@ export default class Player extends CharacterBase {
             if (targetUid === this.id) return 'SELF';
 
             const now = Date.now();
-            const existing = this.hostileTargets.get(targetUid);
+
+            // v0.00.18: Use name-based check to prevent duplicates even if UID changes
+            const existingUid = this.getHostileUidByName(targetName);
+            const effectiveUid = existingUid || targetUid;
+            const existing = this.hostileTargets.get(effectiveUid);
 
             // Toggle Logic: If already hostile, try to remove
             if (existing) {
@@ -1445,8 +1457,8 @@ export default class Player extends CharacterBase {
                 }
 
                 // Remove hostility (Mutual removal logic)
-                this.hostileTargets.delete(targetUid);
-                if (this.net) this.net.sendHostilityRemovalEvent?.(targetUid, this.name); // v1.99.38: Pass name for better messages
+                this.hostileTargets.delete(effectiveUid);
+                if (this.net) this.net.sendHostilityRemovalEvent?.(effectiveUid, this.name); // v1.99.38: Pass name for better messages
 
                 this.saveState();
                 if (window.game?.ui) window.game.ui.updateHostilityUI();

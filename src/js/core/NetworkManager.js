@@ -916,7 +916,10 @@ export default class NetworkManager extends EventEmitter {
                         }
                     } else {
                         // type === 'declare' or legacy
-                        if (!lp.hostileTargets.has(val.senderId)) {
+                        // v0.00.18: Check for duplicate name even if ID is different
+                        const alreadyExistsByName = lp.getHostileUidByName?.(val.senderName);
+
+                        if (!lp.hostileTargets.has(val.senderId) && !alreadyExistsByName) {
                             lp.hostileTargets.set(val.senderId, { name: val.senderName, ts: val.ts || Date.now() });
                             if (window.game.ui) {
                                 window.game.ui.logSystemMessage(`⚠️ ${val.senderName}님이 당신을 적대 관계로 등록했습니다! (상호 적대 시 PvP 가능)`);
