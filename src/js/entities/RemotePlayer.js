@@ -330,7 +330,8 @@ export default class RemotePlayer extends CharacterBase {
         const maxChains = 2; // Default for remote visual if level unknown
         const range = 400; // v0.00.01: Match actual attack range
 
-        // v0.00.01: Use synced target IDs if available for perfect visual match
+        // v0.00.35: Use synced target IDs ONLY - no local fallback for PvP safety
+        // This ensures visual effects only appear for valid hostile targets
         if (this.lastAttackTargets && Array.isArray(this.lastAttackTargets) && this.lastAttackTargets.length > 0) {
             this.lastAttackTargets.forEach(tid => {
                 let target = window.game?.monsterManager?.monsters.get(tid);
@@ -343,7 +344,7 @@ export default class RemotePlayer extends CharacterBase {
                 }
             });
         }
-        // Fallback: Local search if no targets synced
+        // Fallback: Search monsters only (NOT players) for visual
         else {
             for (let i = 0; i < maxChains; i++) {
                 let next = null;
