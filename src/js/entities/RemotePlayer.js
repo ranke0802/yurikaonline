@@ -34,6 +34,11 @@ export default class RemotePlayer extends CharacterBase {
         this.deathTimer = 0; // For 3s death state visual
         this.isDying = false;
 
+        // v0.00.26: Status Effect Timers
+        this.electrocutedTimer = 0;
+        this.burnTimer = 0;
+        this.slowRatio = 0;
+
         this._loadSpriteSheet(resourceManager);
 
         // v0.28.5: Cache Projectile import to stop repeated requests on attack
@@ -294,6 +299,22 @@ export default class RemotePlayer extends CharacterBase {
             this.actionTimer -= dt;
             if (this.actionTimer <= 0) this.actionFdbk = null;
         }
+
+        // v0.00.26: Status Effect Timer Updates
+        if (this.electrocutedTimer > 0) this.electrocutedTimer -= dt;
+        if (this.burnTimer > 0) this.burnTimer -= dt;
+    }
+
+    // v0.00.26: Apply electrocuted effect
+    applyElectrocuted(duration, ratio) {
+        this.electrocutedTimer = duration;
+        this.slowRatio = ratio;
+    }
+
+    // v0.00.26: Apply burn effect
+    applyBurn(duration, damagePerTick) {
+        this.burnTimer = duration;
+        this.burnDamage = damagePerTick;
     }
 
     _updateLightningVisual() {
@@ -477,6 +498,77 @@ export default class RemotePlayer extends CharacterBase {
 
         // 6. Lightning Effect
         this.drawLightningEffect(ctx, centerX, centerY);
+
+        // 7. v0.00.26: Status Effect Icons (Burn/Electrocuted)
+        this._drawStatusIcons(ctx, centerX, this.y + this.height);
+    }
+
+    // v0.00.26: Draw status effect icons
+    _drawStatusIcons(ctx, centerX, baseY) {
+        const hasBurn = this.burnTimer > 0;
+        const hasElec = this.electrocutedTimer > 0;
+        if (!hasBurn && !hasElec) return;
+
+        ctx.save();
+        const iconY = baseY + 15;
+        let currentX = centerX;
+
+        if (hasBurn && hasElec) currentX -= 12;
+
+        const drawStatusBadge = (type) => {
+            ctx.save();
+            ctx.translate(currentX, iconY);
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(-10, -10, 20, 20, 4);
+            } else {
+                ctx.rect(-10, -10, 20, 20);
+            }
+            ctx.fill();
+
+            ctx.lineWidth = 2;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            if (type === 'elec') {
+                ctx.strokeStyle = '#00d2ff';
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#00d2ff';
+                ctx.beginPath();
+                ctx.moveTo(2, -6);
+                ctx.lineTo(-3, 0);
+                ctx.lineTo(3, 0);
+                ctx.lineTo(-2, 6);
+                ctx.stroke();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 0.8;
+                ctx.shadowBlur = 0;
+                ctx.stroke();
+            } else if (type === 'burn') {
+                ctx.strokeStyle = '#ff4757';
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#ff4757';
+                ctx.beginPath();
+                ctx.moveTo(0, 5);
+                ctx.quadraticCurveTo(4, 5, 4, 0);
+                ctx.quadraticCurveTo(4, -5, 0, -6);
+                ctx.quadraticCurveTo(-4, -5, -4, 0);
+                ctx.quadraticCurveTo(-4, 5, 0, 5);
+                ctx.stroke();
+                ctx.fillStyle = '#ffa502';
+                ctx.fill();
+            }
+
+            ctx.restore();
+            currentX += 25;
+        };
+
+        if (hasBurn) drawStatusBadge('burn');
+        if (hasElec) drawStatusBadge('elec');
+
+        ctx.restore();
     }
 
     drawTombstone(ctx, centerX, y) {

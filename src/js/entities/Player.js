@@ -1364,6 +1364,78 @@ export default class Player extends CharacterBase {
         // v0.00.03: Local HUD Rendering (HP/MP/Name above head)
         this.drawHUD(ctx, centerX, y);
         this.drawDirectionArrow(ctx, centerX, y + this.height - 30);
+
+        // 9. v0.00.26: Status Effect Icons (Burn/Electrocuted)
+        this._drawStatusIcons(ctx, centerX, y + this.height);
+    }
+
+    // v0.00.26: Draw status effect icons for local player
+    _drawStatusIcons(ctx, centerX, baseY) {
+        const burnEffect = this.statusEffects.find(e => e.type === 'burn');
+        const hasBurn = burnEffect && burnEffect.duration > 0;
+        const hasElec = this.electrocutedTimer > 0;
+        if (!hasBurn && !hasElec) return;
+
+        ctx.save();
+        const iconY = baseY + 15;
+        let currentX = centerX;
+
+        if (hasBurn && hasElec) currentX -= 12;
+
+        const drawStatusBadge = (type) => {
+            ctx.save();
+            ctx.translate(currentX, iconY);
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(-10, -10, 20, 20, 4);
+            } else {
+                ctx.rect(-10, -10, 20, 20);
+            }
+            ctx.fill();
+
+            ctx.lineWidth = 2;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            if (type === 'elec') {
+                ctx.strokeStyle = '#00d2ff';
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#00d2ff';
+                ctx.beginPath();
+                ctx.moveTo(2, -6);
+                ctx.lineTo(-3, 0);
+                ctx.lineTo(3, 0);
+                ctx.lineTo(-2, 6);
+                ctx.stroke();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 0.8;
+                ctx.shadowBlur = 0;
+                ctx.stroke();
+            } else if (type === 'burn') {
+                ctx.strokeStyle = '#ff4757';
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#ff4757';
+                ctx.beginPath();
+                ctx.moveTo(0, 5);
+                ctx.quadraticCurveTo(4, 5, 4, 0);
+                ctx.quadraticCurveTo(4, -5, 0, -6);
+                ctx.quadraticCurveTo(-4, -5, -4, 0);
+                ctx.quadraticCurveTo(-4, 5, 0, 5);
+                ctx.stroke();
+                ctx.fillStyle = '#ffa502';
+                ctx.fill();
+            }
+
+            ctx.restore();
+            currentX += 25;
+        };
+
+        if (hasBurn) drawStatusBadge('burn');
+        if (hasElec) drawStatusBadge('elec');
+
+        ctx.restore();
     }
 
     showSpeechBubble(text) {
