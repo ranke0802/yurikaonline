@@ -707,13 +707,28 @@ export default class Player extends CharacterBase {
     useMana(amount) {
         if (this.mp >= amount) {
             this.mp -= amount;
+            // v0.00.28: Floating text for mana usage
+            if (window.game?.scene?.addDamageText && amount > 0) {
+                const px = this.x + this.width / 2;
+                const py = this.y;
+                window.game.scene.addDamageText(px, py, `-${amount}`, '#29B6F6', false, 'mp');
+            }
             return true;
         }
         return false;
     }
 
     recoverMana(amount, isSilent = false) {
+        if (amount <= 0) return;
+        const oldMp = this.mp;
         this.mp = Math.min(this.maxMp, this.mp + amount);
+        const recovered = this.mp - oldMp;
+        // v0.00.28: Floating text for mana recovery
+        if (!isSilent && recovered > 0 && window.game?.scene?.addDamageText) {
+            const px = this.x + this.width / 2;
+            const py = this.y;
+            window.game.scene.addDamageText(px, py, `+${recovered}`, '#4FC3F7', false, 'mp');
+        }
     }
 
     recoverHp(amount) {
@@ -835,15 +850,8 @@ export default class Player extends CharacterBase {
                         nextTarget.applyElectrocuted(3.0, 0.8);
                     }
 
-                    // v0.00.25: Mana recovery per hit (+1 MP per chain target)
-                    this.mp = Math.min(this.maxMp, this.mp + 1);
-
-                    // Blue floating text for MP recovery
-                    if (window.game?.scene?.addDamageText) {
-                        const px = this.x + this.width / 2;
-                        const py = this.y;
-                        window.game.scene.addDamageText(px, py, '+1', '#4FC3F7', false, 'mp');
-                    }
+                    // v0.00.28: Mana recovery per hit (+1 MP per chain target)
+                    this.recoverMana(1);
                 }
                 currentSource = { x: nextTarget.x, y: nextTarget.y };
             } else {
