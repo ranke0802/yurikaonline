@@ -104,6 +104,7 @@ export default class Player extends CharacterBase {
         this.input = null;
         this.joystick = { x: 0, y: 0, active: false };
         this.moveTarget = null; // Target position for Click-to-Move
+        this.currentTarget = null; // v0.00.20: Explicitly selected target (Monster or RemotePlayer)
 
         this.chatMessage = null;
         this.chatTimer = 0;
@@ -248,6 +249,10 @@ export default class Player extends CharacterBase {
         }
 
         // Process Status Effects
+        // v0.00.21: Cleanup target if dead
+        if (this.currentTarget && this.currentTarget.isDead) {
+            this.currentTarget = null;
+        }
         this.statusEffects = this.statusEffects.filter(eff => {
             eff.timer -= dt;
             if (eff.type === 'burn') {
@@ -781,13 +786,23 @@ export default class Player extends CharacterBase {
             let nextTarget = null;
             let minDist = chainRange;
 
-            availableTargets.forEach(target => {
-                const dist = Math.sqrt((currentSource.x - target.x) ** 2 + (currentSource.y - target.y) ** 2);
-                if (dist < minDist && !affectedMonsters.includes(target)) {
-                    minDist = dist;
-                    nextTarget = target;
+            // v0.00.20: If it's the first chain and we have a currentTarget, prioritize it
+            if (i === 0 && this.currentTarget && !this.currentTarget.isDead) {
+                const dist = Math.sqrt((centerX - this.currentTarget.x) ** 2 + (centerY - this.currentTarget.y) ** 2);
+                if (dist < chainRange && this.canAttackTarget(this.currentTarget)) {
+                    nextTarget = this.currentTarget;
                 }
-            });
+            }
+
+            if (!nextTarget) {
+                availableTargets.forEach(target => {
+                    const dist = Math.sqrt((currentSource.x - target.x) ** 2 + (currentSource.y - target.y) ** 2);
+                    if (dist < minDist && !affectedMonsters.includes(target)) {
+                        minDist = dist;
+                        nextTarget = target;
+                    }
+                });
+            }
 
             if (nextTarget) {
                 chains.push({ x1: currentSource.x, y1: currentSource.y, x2: nextTarget.x, y2: nextTarget.y });
@@ -892,25 +907,35 @@ export default class Player extends CharacterBase {
                 let nearest = null;
                 let minDist = 700;
 
-                candidates.forEach(t => {
-                    if (!t || t.isDead) return;
-                    if (t.id === this.id) return; // Skip self
-
-                    // v1.99.37: Filter valid targets (Monsters or Hostile Players)
-                    // v1.99.38: Robust check using both .type and .isMonster
-                    const isPossiblePlayer = (t.type === 'player' || (!t.isMonster && t.id !== undefined));
-                    if (isPossiblePlayer && !this.canAttackTarget(t)) return;
-
-                    // Use center position if available, else x/y
-                    const tx = (t.width) ? t.x + t.width / 2 : t.x;
-                    const ty = (t.height) ? t.y + t.height / 2 : t.y;
-
-                    const d = Math.sqrt((this.x - tx) ** 2 + (this.y - ty) ** 2);
+                // v0.00.20: Prioritize currentTarget if valid
+                if (this.currentTarget && !this.currentTarget.isDead && this.canAttackTarget(this.currentTarget)) {
+                    const d = Math.sqrt((this.x - this.currentTarget.x) ** 2 + (this.y - this.currentTarget.y) ** 2);
                     if (d < minDist) {
-                        minDist = d;
-                        nearest = t;
+                        nearest = this.currentTarget;
                     }
-                });
+                }
+
+                if (!nearest) {
+                    candidates.forEach(t => {
+                        if (!t || t.isDead) return;
+                        if (t.id === this.id) return; // Skip self
+
+                        // v1.99.37: Filter valid targets (Monsters or Hostile Players)
+                        // v1.99.38: Robust check using both .type and .isMonster
+                        const isPossiblePlayer = (t.type === 'player' || (!t.isMonster && t.id !== undefined));
+                        if (isPossiblePlayer && !this.canAttackTarget(t)) return;
+
+                        // Use center position if available, else x/y
+                        const tx = (t.width) ? t.x + t.width / 2 : t.x;
+                        const ty = (t.height) ? t.y + t.height / 2 : t.y;
+
+                        const d = Math.sqrt((this.x - tx) ** 2 + (this.y - ty) ** 2);
+                        if (d < minDist) {
+                            minDist = d;
+                            nearest = t;
+                        }
+                    });
+                }
 
                 if (nearest) {
                     // count is already defined above

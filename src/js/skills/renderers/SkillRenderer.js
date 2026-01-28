@@ -311,4 +311,46 @@ export default class SkillRenderer {
 
         ctx.restore();
     }
+
+    /**
+     * Target Lock-on Marker (v0.00.21)
+     */
+    static drawTargetMarker(ctx, x, y, width, height) {
+        ctx.save();
+        const time = Date.now() / 300;
+        const pulse = Math.sin(Date.now() / 200) * 0.1;
+        const radius = (Math.max(width, height) / 2) * (1.2 + pulse);
+        const yScale = 0.5;
+
+        ctx.translate(x, y);
+
+        // 1. Bottom Glow Circle
+        ctx.beginPath();
+        ctx.ellipse(0, 0, radius, radius * yScale, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 71, 87, 0.1)';
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(255, 71, 87, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([10, 5]);
+        ctx.lineDashOffset = -time * 10;
+        ctx.stroke();
+
+        // 2. Corner Brackets (Rotating)
+        ctx.rotate(time * 0.5);
+        ctx.setLineDash([]);
+        ctx.lineWidth = 3;
+        const bracketSize = radius * 0.4;
+
+        for (let i = 0; i < 4; i++) {
+            ctx.rotate(Math.PI / 2);
+            ctx.beginPath();
+            ctx.moveTo(radius - bracketSize, -radius * yScale);
+            ctx.lineTo(radius, -radius * yScale);
+            ctx.lineTo(radius, -radius * yScale + bracketSize);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
 }

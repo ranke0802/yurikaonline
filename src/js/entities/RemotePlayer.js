@@ -9,6 +9,7 @@ export default class RemotePlayer extends CharacterBase {
         this.id = id;
         this.name = "Unknown";
         this.type = 'player'; // v1.99.38: Explicit type for hostility checks
+        this.hostility = {}; // v0.00.20: Initialize to prevent undefined checks
 
         this.targetX = x;
         this.targetY = y;

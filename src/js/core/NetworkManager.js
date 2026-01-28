@@ -660,7 +660,8 @@ export default class NetworkManager extends EventEmitter {
 
         // v1.99.38: Gather profile data for real-time sync
         const profile = val.profile || {};
-        const hostility = profile.hostility || null;
+        // v0.00.20: Ensure hostility is captured from either nested or flat structure
+        const hostility = profile.hostility || val.hostility || null;
         const level = profile.level || null;
         const party = profile.party || null;
 

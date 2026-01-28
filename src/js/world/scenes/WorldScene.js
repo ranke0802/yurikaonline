@@ -167,6 +167,8 @@ export default class WorldScene extends Scene {
             if (this.remotePlayers.has(data.id)) return;
             const rp = new RemotePlayer(data.id, data.x, data.y, this.resources);
             rp.name = data.name || "Unknown";
+            // v0.00.20: Sync initial hostility
+            if (data.hostility) rp.hostility = data.hostility;
             this.remotePlayers.set(data.id, rp);
         });
 
@@ -284,6 +286,19 @@ export default class WorldScene extends Scene {
 
         // 1. World & Entities
         this.game.zone.render(ctx, this.camera);
+
+        // v0.00.21: Target Lock-on Marker (Draw under entities)
+        if (this.player && this.player.currentTarget) {
+            const t = this.player.currentTarget;
+            if (!t.isDead) {
+                const tx = t.x + t.width / 2;
+                const ty = t.y + t.height; // Bottom of target
+                import('../../skills/renderers/SkillRenderer.js').then(m => {
+                    m.default.drawTargetMarker(ctx, tx, ty, t.width || 48, t.height || 48);
+                });
+            }
+        }
+
         this.remotePlayers.forEach(rp => rp.render(ctx, this.camera));
         this.monsterManager.render(ctx, this.camera);
         this.projectiles.forEach(p => p.render(ctx, this.camera));
@@ -394,6 +409,55 @@ export default class WorldScene extends Scene {
         const worldX = (screenX / this.game.zoom) + this.camera.x;
         const worldY = (screenY / this.game.zoom) + this.camera.y;
 
-        this.player.setMoveTarget(worldX, worldY);
+        // v0.00.21: PC Targeting (Enhanced Entity Picking)
+        let clickedEntity = null;
+        let minDist = 50; // Max distance for "sticky" targeting
+
+        // 1. Check Monsters
+        for (const m of this.monsterManager.monsters.values()) {
+            if (m.isDead) continue;
+            const mx = m.x + (m.width / 2);
+            const my = m.y + (m.height / 2);
+            const dist = Math.sqrt((worldX - mx) ** 2 + (worldY - my) ** 2);
+
+            // v0.00.21: Use minimum of (Distance or specific Hitbox)
+            const inHitbox = worldX >= m.x && worldX <= m.x + m.width && worldY >= m.y && worldY <= m.y + m.height;
+            if (inHitbox || dist < minDist) {
+                if (dist < minDist) {
+                    minDist = dist;
+                    clickedEntity = m;
+                }
+            }
+        }
+
+        // 2. Check Remote Players (If no monster hit)
+        if (!clickedEntity) {
+            for (const rp of this.remotePlayers.values()) {
+                if (rp.isDead) continue;
+                const rpx = rp.x + (rp.width / 2);
+                const rpy = rp.y + (rp.height / 2);
+                const dist = Math.sqrt((worldX - rpx) ** 2 + (worldY - rpy) ** 2);
+
+                const inHitbox = worldX >= rp.x && worldX <= rp.x + rp.width && worldY >= rp.y && worldY <= rp.y + rp.height;
+                if (inHitbox || dist < minDist) {
+                    if (dist < minDist) {
+                        minDist = dist;
+                        clickedEntity = rp;
+                    }
+                }
+            }
+        }
+
+        if (clickedEntity) {
+            this.player.currentTarget = clickedEntity;
+            if (this.ui) this.ui.logSystemMessage(`🎯 ${clickedEntity.name}님을 대상으로 지정했습니다.`);
+            // When targeting, don't necessarily stop movement unless you want to?
+            // Usually, single click on target = target. double click/action = attack.
+            // For now, let's just set the target and allow movement.
+        } else {
+            // Clicked on empty ground = Clear target (optional)
+            // this.player.currentTarget = null;
+            this.player.setMoveTarget(worldX, worldY);
+        }
     }
 }
