@@ -833,6 +833,16 @@ export default class Player extends CharacterBase {
                     if (nextTarget.applyElectrocuted) {
                         nextTarget.applyElectrocuted(3.0, 0.8);
                     }
+
+                    // v0.00.25: Mana recovery per hit (+1 MP per chain target)
+                    this.mp = Math.min(this.maxMp, this.mp + 1);
+
+                    // Blue floating text for MP recovery
+                    if (window.game?.scene?.addDamageText) {
+                        const px = this.x + this.width / 2;
+                        const py = this.y;
+                        window.game.scene.addDamageText(px, py, '+1', '#4FC3F7', false, 'mp');
+                    }
                 }
                 currentSource = { x: nextTarget.x, y: nextTarget.y };
             } else {
