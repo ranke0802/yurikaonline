@@ -911,7 +911,8 @@ export default class Player extends CharacterBase {
 
                 // v0.28.0: Sync Missile skill
                 // v0.29.0: Fix ReferenceError by defining count first
-                const count = lv; // Level = Count logic
+                // v0.00.33: Balance Update (2 missiles per level)
+                const count = lv * 2;
 
                 // Sync Missile Count (Level)
                 if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'missile', count);
