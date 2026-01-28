@@ -31,6 +31,27 @@ export default class MonsterManager {
         this.net.onDropAdded(this._onDropAdded.bind(this));
         this.net.onDropRemoved(this._onDropRemoved.bind(this));
         this.net.onDropCollectionRequested(this._onDropCollectionRequested.bind(this));
+
+        // v0.00.22: Off-screen culling support
+        this.viewMargin = 200;
+    }
+
+    /**
+     * v0.00.22: Check if entity is on-screen
+     */
+    isOnScreen(entity) {
+        if (!entity || !this.game.camera) return true;
+        const cam = this.game.camera;
+        const canvas = this.game.canvas;
+        const vw = (canvas.width / this.game.dpr) / this.game.zoom;
+        const vh = (canvas.height / this.game.dpr) / this.game.zoom;
+        const margin = this.viewMargin;
+
+        const ex = entity.x + (entity.width || 0) / 2;
+        const ey = entity.y + (entity.height || 0) / 2;
+
+        return ex >= cam.x - margin && ex <= cam.x + vw + margin &&
+            ey >= cam.y - margin && ey <= cam.y + vh + margin;
     }
 
     update(dt) {
@@ -50,8 +71,13 @@ export default class MonsterManager {
             this._updateHostLogic(dt, localPlayer, remotePlayers);
         }
 
-        // Update local monster instances
-        this.monsters.forEach(m => m.update(dt));
+        // Update local monster instances (v0.00.22: Off-screen culling)
+        this.monsters.forEach(m => {
+            if (this.isOnScreen(m)) {
+                m.update(dt); // Full update for on-screen
+            }
+            // Off-screen: Skip update (minimap will still show position)
+        });
 
         // v0.00.03: Full Monster Sync (Every 2s) to fix HP/Position desync for newer/returning clients
         this.fullSyncTimer = (this.fullSyncTimer || 0) + dt;
@@ -78,8 +104,13 @@ export default class MonsterManager {
     }
 
     render(ctx, camera) {
-        // 1. Render Monsters
-        this.monsters.forEach(m => m.render(ctx, camera));
+        // 1. Render Monsters (v0.00.22: Off-screen culling)
+        this.monsters.forEach(m => {
+            if (this.isOnScreen(m)) {
+                m.render(ctx, camera);
+            }
+            // Off-screen: Skip rendering entirely
+        });
 
         // 2. Render Drops
         this.drops.forEach(d => d.render(ctx, camera));

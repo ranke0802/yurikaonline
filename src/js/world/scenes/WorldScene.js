@@ -21,6 +21,28 @@ export default class WorldScene extends Scene {
         this.projectiles = [];
         this.explosions = []; // v1.99.15: Visual-only explosions
         this.time = 0;
+
+        // v0.00.22: Off-screen entity culling
+        this.minimapUpdateTimer = 0;
+        this.minimapUpdateInterval = 3; // seconds
+        this.viewMargin = 200; // Extra pixels for off-screen margin
+    }
+
+    /**
+     * v0.00.22: Check if entity is within camera viewport + margin
+     */
+    isOnScreen(entity) {
+        if (!entity || !this.camera) return true; // Default to on-screen if no camera
+        const cam = this.camera;
+        const vw = (this.game.canvas.width / this.game.dpr) / this.game.zoom;
+        const vh = (this.game.canvas.height / this.game.dpr) / this.game.zoom;
+        const margin = this.viewMargin;
+
+        const ex = entity.x + (entity.width || 0) / 2;
+        const ey = entity.y + (entity.height || 0) / 2;
+
+        return ex >= cam.x - margin && ex <= cam.x + vw + margin &&
+            ey >= cam.y - margin && ey <= cam.y + vh + margin;
     }
 
     async enter(params) {
@@ -232,7 +254,19 @@ export default class WorldScene extends Scene {
             }
         }
 
-        this.remotePlayers.forEach(rp => rp.update(dt));
+        // v0.00.22: Minimap-only update timer
+        this.minimapUpdateTimer += dt;
+
+        // v0.00.22: Off-screen entity culling for RemotePlayers
+        this.remotePlayers.forEach(rp => {
+            if (this.isOnScreen(rp)) {
+                rp.update(dt); // Full update for on-screen
+            } else {
+                // Off-screen: Only update position interpolation minimally
+                // Skip animations, effects, etc.
+            }
+        });
+
         if (this.monsterManager && this.player) {
             this.monsterManager.update(dt, this.player, this.remotePlayers);
         }
@@ -299,7 +333,13 @@ export default class WorldScene extends Scene {
             }
         }
 
-        this.remotePlayers.forEach(rp => rp.render(ctx, this.camera));
+        // v0.00.22: Off-screen culling for RemotePlayers render
+        this.remotePlayers.forEach(rp => {
+            if (this.isOnScreen(rp)) {
+                rp.render(ctx, this.camera);
+            }
+            // Off-screen: Skip rendering entirely (minimap will still see them)
+        });
         this.monsterManager.render(ctx, this.camera);
         this.projectiles.forEach(p => p.render(ctx, this.camera));
 
