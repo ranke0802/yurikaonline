@@ -32,8 +32,8 @@ export default class MonsterManager {
         this.net.onDropRemoved(this._onDropRemoved.bind(this));
         this.net.onDropCollectionRequested(this._onDropCollectionRequested.bind(this));
 
-        // v0.00.22: Off-screen culling support
-        this.viewMargin = 200;
+        // v0.00.24: Increased for smoother sync
+        this.viewMargin = 500;
     }
 
     /**

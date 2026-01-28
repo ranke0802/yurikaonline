@@ -25,7 +25,7 @@ export default class WorldScene extends Scene {
         // v0.00.22: Off-screen entity culling
         this.minimapUpdateTimer = 0;
         this.minimapUpdateInterval = 3; // seconds
-        this.viewMargin = 200; // Extra pixels for off-screen margin
+        this.viewMargin = 500; // v0.00.24: Increased for smoother player sync
     }
 
     /**
