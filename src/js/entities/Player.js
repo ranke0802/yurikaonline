@@ -707,10 +707,10 @@ export default class Player extends CharacterBase {
     useMana(amount) {
         if (this.mp >= amount) {
             this.mp -= amount;
-            // v0.00.28: Floating text for mana usage
+            // v0.00.28: Floating text for mana usage (below damage text)
             if (window.game?.scene?.addDamageText && amount > 0) {
                 const px = this.x + this.width / 2;
-                const py = this.y;
+                const py = this.y + 30; // Below damage text position
                 window.game.scene.addDamageText(px, py, `-${amount}`, '#29B6F6', false, 'mp');
             }
             return true;
@@ -723,10 +723,10 @@ export default class Player extends CharacterBase {
         const oldMp = this.mp;
         this.mp = Math.min(this.maxMp, this.mp + amount);
         const recovered = this.mp - oldMp;
-        // v0.00.28: Floating text for mana recovery
+        // v0.00.28: Floating text for mana recovery (below damage text)
         if (!isSilent && recovered > 0 && window.game?.scene?.addDamageText) {
             const px = this.x + this.width / 2;
-            const py = this.y;
+            const py = this.y + 30; // Below damage text position
             window.game.scene.addDamageText(px, py, `+${recovered}`, '#4FC3F7', false, 'mp');
         }
     }
