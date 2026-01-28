@@ -667,6 +667,13 @@ html {
     border-radius: 16px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     border: 2px solid #f0f0f0;
+    /* v0.00.30: Prevent selection/highlight */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+    /* 혹은 default, 터치 피드백 유지하려면 pointer가 나을 수도 있으나 문맥상 선택 방지가 목적 */
+    outline: none;
 }
 
 .skill-icon {
