@@ -661,7 +661,7 @@ export default class RemotePlayer extends CharacterBase {
                     // v0.29.2: Ensure at least 1 missile and validate count
                     let count = Number(data.extraData);
                     if (isNaN(count) || count < 1) count = 1;
-                    if (count > 5) count = 5; // Cap at 5
+                    if (count > 20) count = 20; // v0.00.32: Increased Cap to 20 for multi-shot
                     this._triggerRemoteMissileVisual(centerX, centerY, count);
                 }
             });

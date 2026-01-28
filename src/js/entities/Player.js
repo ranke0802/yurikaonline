@@ -983,7 +983,8 @@ export default class Player extends CharacterBase {
                         const vx = Math.cos(angle) * burstSpeed;
                         const vy = Math.sin(angle) * burstSpeed;
 
-                        let dmg = this.attackPower * 0.9;
+                        // v0.00.32: Balance Update (Damage 45%)
+                        let dmg = this.attackPower * 0.45;
                         let isCrit = Math.random() < this.critRate;
                         if (isCrit) dmg *= 2;
 
