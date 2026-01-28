@@ -479,7 +479,8 @@ export default class Monster extends CharacterBase {
     takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null) {
         if (this.isDead) return;
 
-        const dmg = Math.ceil(parseFloat(amount));
+        // v0.00.34: Ensure minimum 1 damage
+        const dmg = Math.max(1, Math.ceil(parseFloat(amount)));
         if (isNaN(dmg)) {
             Logger.warn(`[Monster] Invalid damage: ${amount}`);
             return;
