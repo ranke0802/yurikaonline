@@ -862,13 +862,16 @@ export default class Player extends CharacterBase {
             }
         }
 
-        // v0.00.01: Network Sync (Move here to avoid ReferenceError and capture ALL targets)
+        // v0.00.35: Network Sync - Only send if there are valid targets
         if (isTick) {
             const targetIds = affectedMonsters.map(t => t.id).filter(id => !!id);
-            if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'laser', {
-                angle: this.facingAngle,
-                targets: targetIds
-            });
+            // Only sync if we actually hit something
+            if (targetIds.length > 0 && this.net) {
+                this.net.sendPlayerAttack(this.x, this.y, this.direction, 'laser', {
+                    angle: this.facingAngle,
+                    targets: targetIds
+                });
+            }
         }
 
         if (chains.length > 0) {
@@ -914,9 +917,6 @@ export default class Player extends CharacterBase {
                 // v0.00.33: Balance Update (2 missiles per level)
                 const count = lv * 2;
 
-                // Sync Missile Count (Level)
-                if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'missile', count);
-
                 const candidates = [];
                 // 1. Monsters
                 if (window.game.monsterManager) {
@@ -961,6 +961,9 @@ export default class Player extends CharacterBase {
                 }
 
                 if (nearest) {
+                    // v0.00.35: Only sync if we have a valid target
+                    if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'missile', count);
+
                     // count is already defined above
                     // Get base firing angle (opposite of movement/facing)
                     // If moving, use movement direction. Else use sprite direction.
