@@ -1001,6 +1001,7 @@ export default class Player extends CharacterBase {
 
                         // v0.00.32: Balance Update (Damage 45%)
                         let dmg = this.attackPower * 0.45;
+                        console.log(`[MissileDMG] AP:${this.attackPower} x0.45 = ${dmg}`);
                         let isCrit = Math.random() < this.critRate;
                         if (isCrit) dmg *= 2;
 
