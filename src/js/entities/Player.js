@@ -549,12 +549,8 @@ export default class Player extends CharacterBase {
     takeDamage(amount, fromNetwork = false, isCrit = false, sourceX = null, sourceY = null, attacker = null, effectType = null, effectDuration = 0, effectDamage = 0) {
         if (this.isDead) return 0;
 
-        // v0.00.14: Apply Status Effects from PvP
-        if (effectType && effectDuration) {
-            this.applyEffect(effectType, effectDuration, effectDamage || 0);
-        }
-
         // v0.29.31: Improved Absolute Barrier (Blocks any immediate damage source)
+        // v0.00.42: Also blocks status effects (burn, shock)
         if (this.shieldTimer > 0) {
             this.shieldTimer = 0;
             if (window.game) {
@@ -562,7 +558,12 @@ export default class Player extends CharacterBase {
             }
             // Send sync immediately to say shield is down
             if (this.net) this.net.sendPlayerHp(this.hp, this.maxHp);
-            return 0;
+            return 0;  // Exit early - no damage AND no status effects applied
+        }
+
+        // v0.00.14: Apply Status Effects from PvP (after shield check)
+        if (effectType && effectDuration) {
+            this.applyEffect(effectType, effectDuration, effectDamage || 0);
         }
 
         // Apply Knockback
@@ -1056,7 +1057,8 @@ export default class Player extends CharacterBase {
 
             }
         } else if (skillId === 'shield') {
-            if (this.useMana(30)) {
+            // v0.00.42: Adjusted mana cost (20) and cooldown (3s)
+            if (this.useMana(20)) {
                 this.triggerAction(`${this.name} : 앱솔루트 베리어 !!`);
 
                 // v0.22.3: Visual Attack FeedBack
@@ -1064,7 +1066,7 @@ export default class Player extends CharacterBase {
                 this.skillAttackTimer = 0.4;
                 this.animTimer = 0;
                 this.shieldTimer = 9999;
-                this.skillCooldowns.k = 15;
+                this.skillCooldowns.k = 3;  // 3 second cooldown
 
                 // v0.29.0: Sync Absolute Barrier
                 if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'shield');
