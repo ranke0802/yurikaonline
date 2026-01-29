@@ -365,29 +365,13 @@ export default class RemotePlayer extends CharacterBase {
             }
         }
 
+        // v0.00.39: Only show lightning if there are actual chain targets
+        // No more forced fallback visual - prevents fake lightning on remote screens
         if (chains.length > 0) {
             this.lightningEffect = { chains: chains, timer: 0.25 };
         } else {
-            // v0.29.2: Force visual chain even if no monsters (Action Feedback)
-            let tx = centerX; let ty = centerY;
-            const dist = 300; // Visual range
-
-            // v0.00.01: Use precision angle if available, otherwise fallback to direction
-            if (this.lastAttackAngle !== undefined) {
-                tx += Math.cos(this.lastAttackAngle) * dist;
-                ty += Math.sin(this.lastAttackAngle) * dist;
-            } else {
-                if (this.direction === 0) ty -= dist;
-                else if (this.direction === 1) ty += dist;
-                else if (this.direction === 2) tx -= dist;
-                else if (this.direction === 3) tx += dist;
-            }
-
-            // Add some jitter to endpoint
-            tx += (Math.random() - 0.5) * 50;
-            ty += (Math.random() - 0.5) * 50;
-
-            this.lightningEffect = { chains: [{ x1: centerX, y1: centerY, x2: tx, y2: ty }], timer: 0.3 };
+            // No targets = no lightning effect
+            this.lightningEffect = null;
         }
     }
 

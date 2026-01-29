@@ -270,14 +270,10 @@ export default class WorldScene extends Scene {
         // v0.00.22: Minimap-only update timer
         this.minimapUpdateTimer += dt;
 
-        // v0.00.22: Off-screen entity culling for RemotePlayers
+        // v0.00.39: Always update all remote players for proper sync
+        // Position updates must run regardless of screen visibility
         this.remotePlayers.forEach(rp => {
-            if (this.isOnScreen(rp)) {
-                rp.update(dt); // Full update for on-screen
-            } else {
-                // Off-screen: Only update position interpolation minimally
-                // Skip animations, effects, etc.
-            }
+            rp.update(dt);
         });
 
         if (this.monsterManager && this.player) {
