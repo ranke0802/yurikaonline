@@ -78,9 +78,9 @@ export default class NetworkManager extends EventEmitter {
         // v0.00.42: Anti-cheat defense variables
         this._rewardCount = 0;
         this._rewardResetTime = Date.now();
-        const MAX_REWARDS_PER_MIN = 30;  // Max 30 rewards per minute
-        const MAX_EXP_PER_REWARD = 500;  // Max exp per single reward
-        const MAX_GOLD_PER_REWARD = 100; // Max gold per single reward
+        const MAX_REWARDS_PER_MIN = 100;  // Max 100 rewards per minute
+        const MAX_EXP_PER_REWARD = 2000;  // Max exp per single reward
+        const MAX_GOLD_PER_REWARD = 2000; // Max gold per single reward
 
         // Reward Sync (Guest side listens for rewards targeting them)
         this.dbRef.child(`rewards/${this.playerId}`).on('child_added', (snapshot) => {
@@ -107,14 +107,16 @@ export default class NetworkManager extends EventEmitter {
                     return;
                 }
 
-                // 3. Sanity check on reward amounts
-                if (data.exp && data.exp > MAX_EXP_PER_REWARD) {
-                    console.warn('[AntiCheat] EXP too high:', data.exp);
-                    data.exp = MAX_EXP_PER_REWARD;
-                }
-                if (data.gold && data.gold > MAX_GOLD_PER_REWARD) {
-                    console.warn('[AntiCheat] Gold too high:', data.gold);
-                    data.gold = MAX_GOLD_PER_REWARD;
+                // 3. Sanity check on reward amounts (skip for quest rewards)
+                if (!data.questKill) {
+                    if (data.exp && data.exp > MAX_EXP_PER_REWARD) {
+                        console.warn('[AntiCheat] EXP too high:', data.exp);
+                        data.exp = MAX_EXP_PER_REWARD;
+                    }
+                    if (data.gold && data.gold > MAX_GOLD_PER_REWARD) {
+                        console.warn('[AntiCheat] Gold too high:', data.gold);
+                        data.gold = MAX_GOLD_PER_REWARD;
+                    }
                 }
 
                 // 4. Timestamp check (reject old rewards > 10s)
