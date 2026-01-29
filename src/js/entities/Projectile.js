@@ -388,7 +388,8 @@ export class Projectile {
 
         m.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y);
 
-        if (this.type === 'fireball' && net?.isHost && isMonster) {
+        // v0.00.42: Apply burn locally for visual, host syncs to DB
+        if (this.type === 'fireball' && isMonster) {
             m.applyEffect('burn', this.burnDuration, Math.ceil(finalDmg * 0.15));
         }
     }
