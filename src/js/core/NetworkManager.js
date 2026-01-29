@@ -514,6 +514,13 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child(`users/${this.playerId}/a`).set(payload);
     }
 
+    // v0.00.37: Send channeling state for casting effects (independent of attack hit)
+    sendChanneling(skillType) {
+        if (!this.connected || !this.playerId) return;
+        const payload = [Date.now(), skillType];
+        this.dbRef.child(`users/${this.playerId}/ch`).set(payload);
+    }
+
     sendMonsterDamage(monsterId, damage) {
         if (!this.connected || !this.playerId) return;
         this.dbRef.child('monster_damage').push({
@@ -760,6 +767,20 @@ export default class NetworkManager extends EventEmitter {
                     dir: val.a[3],
                     skillType: val.a[4] || 'normal', // v0.28.0
                     extraData: val.a[5] || null // v0.29.0
+                });
+            }
+        }
+
+        // v0.00.37: Channeling Update (casting effects independent of attack hit)
+        if (val && val.ch && Array.isArray(val.ch)) {
+            const chTs = val.ch[0];
+            const skillType = val.ch[1];
+            // Filter stale channeling (ignore if older than 5s)
+            if (chTs > Date.now() - 5000) {
+                this.emit('playerChanneling', {
+                    id: uid,
+                    ts: chTs,
+                    skillType: skillType
                 });
             }
         }

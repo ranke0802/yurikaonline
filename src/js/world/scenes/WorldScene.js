@@ -215,6 +215,12 @@ export default class WorldScene extends Scene {
             if (rp) rp.triggerAttack(data);
         });
 
+        // v0.00.37: Channeling sync for casting effects (spark, magic circle, attack motion)
+        this.net.on('playerChanneling', (data) => {
+            const rp = this.remotePlayers.get(data.id);
+            if (rp) rp.triggerChanneling(data);
+        });
+
         // v0.00.03: Sync Detailed HP & Death Status for Remote Players
         this.net.on('playerHpUpdate', (data) => {
             const rp = this.remotePlayers.get(data.id);

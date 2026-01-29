@@ -596,6 +596,32 @@ export default class RemotePlayer extends CharacterBase {
         ctx.restore();
     }
 
+    // v0.00.37: Channeling for casting effects (spark, magic circle, attack motion)
+    triggerChanneling(data) {
+        if (this.lastChannelTime && data.ts <= this.lastChannelTime) return;
+        this.lastChannelTime = data.ts;
+
+        this.isAttacking = true;
+        this.state = 'attack';
+        this.animTimer = 0;
+        this.currentSkill = data.skillType;
+
+        // Visual feedback
+        if (data.skillType === 'laser') {
+            // Don't trigger speech bubble here, attack will trigger it if hits
+        } else if (data.skillType === 'missile') {
+            this.triggerAction(`${this.name} : 매직 미사일 !!`);
+        }
+
+        // Reset attack state after a short duration
+        setTimeout(() => {
+            if (this.isAttacking && !this.lightningEffect) {
+                this.isAttacking = false;
+                this.state = 'idle';
+            }
+        }, 500);
+    }
+
     triggerAttack(data) {
         if (this.lastAttackTime && data.ts <= this.lastAttackTime) return;
 

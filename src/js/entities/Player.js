@@ -748,9 +748,15 @@ export default class Player extends CharacterBase {
         // Cooldown check for start of attack
         if (!this.isChanneling && this.skillCooldowns.j > 0) return;
 
+        // v0.00.37: Send channeling start to sync casting effects
+        const wasChanneling = this.isChanneling;
         this.isChanneling = true;
         this.isAttacking = true;
         this.state = 'attack';
+
+        if (!wasChanneling && this.net) {
+            this.net.sendChanneling('laser');
+        }
 
         this.chargeTime += dt;
         this.lightningTickTimer -= dt;
@@ -906,11 +912,13 @@ export default class Player extends CharacterBase {
                 this.skillCooldowns.h = baseCD * (1 - (this.skillCDR || 0));
 
                 // v0.22.3: Visual Attack FeedBack
-                // v0.22.3: Visual Attack FeedBack
                 this.isAttacking = true;
                 this.isChanneling = true; // v0.26.1
                 this.skillAttackTimer = 0.4;
                 this.animTimer = 0;
+
+                // v0.00.37: Send channeling for casting effect sync
+                if (this.net) this.net.sendChanneling('missile');
 
                 // v0.28.0: Sync Missile skill
                 // v0.29.0: Fix ReferenceError by defining count first
