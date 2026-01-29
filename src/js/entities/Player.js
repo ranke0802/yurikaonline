@@ -1400,7 +1400,8 @@ export default class Player extends CharacterBase {
     // v0.00.26: Draw status effect icons for local player
     _drawStatusIcons(ctx, centerX, baseY) {
         const burnEffect = this.statusEffects.find(e => e.type === 'burn');
-        const hasBurn = burnEffect && burnEffect.duration > 0;
+        // v0.00.41: Fixed burn check - use timer instead of duration
+        const hasBurn = burnEffect && burnEffect.timer > 0;
         const hasElec = this.electrocutedTimer > 0;
         if (!hasBurn && !hasElec) return;
 
@@ -1651,6 +1652,11 @@ export default class Player extends CharacterBase {
         this.deathTimer = 0;
         this.hp = this.maxHp;
         this.mp = this.maxMp;
+
+        // v0.00.41: Clear all status effects on respawn
+        this.statusEffects = [];
+        this.electrocutedTimer = 0;
+        this.slowRatio = 0;
 
         // Spawn at zone center or fallback
         if (window.game && window.game.zone) {

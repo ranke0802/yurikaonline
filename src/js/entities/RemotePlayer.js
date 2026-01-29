@@ -97,6 +97,11 @@ export default class RemotePlayer extends CharacterBase {
         this.isDying = false;
         this.isDead = false;
         this.state = 'idle';
+
+        // v0.00.41: Clear all status effects on respawn
+        this.burnTimer = 0;
+        this.electrocutedTimer = 0;
+        this.slowRatio = 0;
     }
 
     // v1.99.37: PvP check for RemotePlayer owner (Used by Projectile)
