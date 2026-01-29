@@ -189,6 +189,9 @@ export default class Player extends CharacterBase {
             // Key released - stop channeling Chain Lightning only (not other skills)
             // skillAttackTimer > 0 means Missile/Fireball/Shield is animating
             if (this.isChanneling && this.skillAttackTimer <= 0) {
+                // v0.00.38: Notify remote players that channeling stopped
+                if (this.net) this.net.sendChanneling('stop');
+
                 this.isChanneling = false;
                 this.isAttacking = false; // v0.29.10: Also reset attacking state
                 this.chargeTime = 0;

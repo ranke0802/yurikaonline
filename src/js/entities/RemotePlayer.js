@@ -601,6 +601,15 @@ export default class RemotePlayer extends CharacterBase {
         if (this.lastChannelTime && data.ts <= this.lastChannelTime) return;
         this.lastChannelTime = data.ts;
 
+        // v0.00.38: Handle channeling stop
+        if (data.skillType === 'stop') {
+            this.isAttacking = false;
+            this.state = 'idle';
+            this.lightningEffect = null;
+            this.currentSkill = null;
+            return;
+        }
+
         this.isAttacking = true;
         this.state = 'attack';
         this.animTimer = 0;
@@ -613,13 +622,13 @@ export default class RemotePlayer extends CharacterBase {
             this.triggerAction(`${this.name} : 매직 미사일 !!`);
         }
 
-        // Reset attack state after a short duration
+        // Reset attack state after a short duration (fallback if stop packet is lost)
         setTimeout(() => {
             if (this.isAttacking && !this.lightningEffect) {
                 this.isAttacking = false;
                 this.state = 'idle';
             }
-        }, 500);
+        }, 2000); // Increased to 2s as fallback, stop packet should arrive first
     }
 
     triggerAttack(data) {
