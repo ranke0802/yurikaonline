@@ -486,9 +486,11 @@ export default class Player extends CharacterBase {
         this.hpRegen = this.vitality * 1;
         this.mpRegen = this.wisdom * 1;
 
-        this.attackSpeed = 1.0 + (this.agility * 0.1);
+        // v0.00.40: INT bonuses: +5% attack speed per INT, +1% crit rate per INT
+        this.attackSpeed = 1.0 + (this.agility * 0.1) + (this.intelligence * 0.05);
         this.moveSpeedBonus = 1.0 + (this.agility * 0.05);
-        this.critRate = 0.1 + (this.agility * 0.01);
+        // v0.00.40: Base 10% crit, +1% per AGI, +1% per INT
+        this.critRate = 0.1 + (this.agility * 0.01) + (this.intelligence * 0.01);
 
         // Skill Cooldown Reduction (CDR): 1% per INT+WIS point, max 75%
         this.skillCDR = Math.min(0.75, (this.intelligence + this.wisdom) * 0.01);
@@ -572,20 +574,15 @@ export default class Player extends CharacterBase {
         const validAmount = parseFloat(amount);
         if (isNaN(validAmount)) return 0;
 
-        let finalDmg;
-        if (validAmount <= this.defense) {
-            // Miss logic
-            if (window.game) {
-                window.game.addDamageText(this.x + this.width / 2, this.y - 20, "Miss!", '#00d2ff', true);
-            }
-            finalDmg = 1; // Minimum 1 damage or keep as 0 if preferred, but usually 1 is standard
-        } else {
-            finalDmg = Math.ceil(validAmount - this.defense);
-        }
+        // v0.00.40: Defense already applied by attacker's damage calculation
+        // Just apply the received damage
+        let finalDmg = Math.max(1, Math.ceil(validAmount));
 
         this.hp -= finalDmg;
         if (window.game) {
-            window.game.addDamageText(this.x + this.width / 2, this.y - 40, `-${finalDmg}`, '#ff4757', false);
+            // v0.00.40: Show crit message properly
+            const color = isCrit ? '#ff9f43' : '#ff4757';
+            window.game.addDamageText(this.x + this.width / 2, this.y - 40, `-${finalDmg}`, color, isCrit, isCrit ? 'Critical' : null);
         }
 
         // v0.28.0: Sync HP to DB
@@ -836,8 +833,11 @@ export default class Player extends CharacterBase {
                 affectedMonsters.push(nextTarget);
 
                 if (isTick) {
-                    // v0.00.27: Minimum damage = 10% of attack power, rounded up, min 1
-                    let dmg = Math.max(1, Math.ceil(this.attackPower * finalDmgRatio));
+                    // v0.00.40: Damage formula: (Skill Damage - Defense), min 1
+                    // Then apply crit multiplier to reduced damage
+                    const baseDmg = Math.ceil(this.attackPower * finalDmgRatio);
+                    const targetDef = nextTarget.defense || 0;
+                    let dmg = Math.max(1, baseDmg - targetDef);
                     let isCrit = Math.random() < this.critRate;
                     if (isCrit) dmg *= 2;
 

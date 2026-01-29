@@ -700,8 +700,9 @@ export class UIManager {
         updateDerived('val-def', baseVit * 1, predVit * 1);
         updateDerived('val-hp-regen', baseVit * 1, predVit * 1);
         updateDerived('val-mp-regen', baseWis * 1, predWis * 1);
-        updateDerived('val-atk-spd', 1.0 + (baseAgi * 0.1), 1.0 + (predAgi * 0.1), false, 2);
-        updateDerived('val-crit', 0.1 + (baseAgi * 0.01), 0.1 + (predAgi * 0.01), true);
+        // v0.00.40: INT bonuses: +5% attack speed per INT, +1% crit rate per INT
+        updateDerived('val-atk-spd', 1.0 + (baseAgi * 0.1) + (baseInt * 0.05), 1.0 + (predAgi * 0.1) + (predInt * 0.05), false, 2);
+        updateDerived('val-crit', 0.1 + (baseAgi * 0.01) + (baseInt * 0.01), 0.1 + (predAgi * 0.01) + (predInt * 0.01), true);
         updateDerived('val-move-spd', 1.0 + (baseAgi * 0.05), 1.0 + (predAgi * 0.05), true);
 
         // v1.92: Bind & Update Link Google Button

@@ -372,8 +372,12 @@ export class Projectile {
     }
 
     _applyDamage(m, net, isMonster) {
-        let finalDmg = this.damage;
+        // v0.00.40: Damage formula: (Skill Damage - Defense), min 1
+        // Then apply crit multiplier to reduced damage
+        const targetDef = m.defense || 0;
+        let finalDmg = Math.max(1, this.damage - targetDef);
         let isCrit = this.isCrit || false;
+        if (isCrit) finalDmg *= 2;
 
         if (isMonster && net) {
             if (this.damage > 0) {

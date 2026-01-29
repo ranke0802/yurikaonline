@@ -65,11 +65,13 @@ export default class RemotePlayer extends CharacterBase {
             }
 
             // v0.28.4: Use global damage text for consistency
+            // v0.00.40: Added minus prefix for damage display
             if (window.game) {
+                const dmgAmount = Math.round(oldHp - this.hp);
                 window.game.addDamageText(
                     this.x + this.width / 2,
                     this.y - 40,
-                    Math.round(oldHp - this.hp),
+                    `-${dmgAmount}`,
                     '#ff4d4d'
                 );
             }
