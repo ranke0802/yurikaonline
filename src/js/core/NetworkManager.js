@@ -14,6 +14,7 @@ export default class NetworkManager extends EventEmitter {
 
         // Host Logic
         this.isHost = false;
+        this.currentHostId = null;  // v0.00.42: Track current host for anti-cheat
         this.connectedUsers = [];
         this.userLastSeen = new Map();
         this.cleanupTimer = null;
@@ -74,10 +75,55 @@ export default class NetworkManager extends EventEmitter {
             if (this.isHost) snapshot.ref.remove();
         });
 
+        // v0.00.42: Anti-cheat defense variables
+        this._rewardCount = 0;
+        this._rewardResetTime = Date.now();
+        const MAX_REWARDS_PER_MIN = 30;  // Max 30 rewards per minute
+        const MAX_EXP_PER_REWARD = 500;  // Max exp per single reward
+        const MAX_GOLD_PER_REWARD = 100; // Max gold per single reward
+
         // Reward Sync (Guest side listens for rewards targeting them)
         this.dbRef.child(`rewards/${this.playerId}`).on('child_added', (snapshot) => {
             const data = snapshot.val();
             if (data) {
+                // v0.00.42: Anti-cheat validation
+                // 1. Check if reward is from legitimate host
+                if (!data.hostId || data.hostId !== this.currentHostId) {
+                    console.warn('[AntiCheat] Rejected reward from non-host:', data.hostId);
+                    snapshot.ref.remove();
+                    return;
+                }
+
+                // 2. Rate limit check
+                const now = Date.now();
+                if (now - this._rewardResetTime > 60000) {
+                    this._rewardCount = 0;
+                    this._rewardResetTime = now;
+                }
+                this._rewardCount++;
+                if (this._rewardCount > MAX_REWARDS_PER_MIN) {
+                    console.warn('[AntiCheat] Too many rewards, ignoring:', this._rewardCount);
+                    snapshot.ref.remove();
+                    return;
+                }
+
+                // 3. Sanity check on reward amounts
+                if (data.exp && data.exp > MAX_EXP_PER_REWARD) {
+                    console.warn('[AntiCheat] EXP too high:', data.exp);
+                    data.exp = MAX_EXP_PER_REWARD;
+                }
+                if (data.gold && data.gold > MAX_GOLD_PER_REWARD) {
+                    console.warn('[AntiCheat] Gold too high:', data.gold);
+                    data.gold = MAX_GOLD_PER_REWARD;
+                }
+
+                // 4. Timestamp check (reject old rewards > 10s)
+                if (data.ts && (now - data.ts > 10000)) {
+                    console.warn('[AntiCheat] Stale reward rejected:', data.ts);
+                    snapshot.ref.remove();
+                    return;
+                }
+
                 this.emit('rewardReceived', data);
             }
             // Cleanup: Reward collected
@@ -361,6 +407,9 @@ export default class NetworkManager extends EventEmitter {
         // Lexicographical sort to find authoritative "lowest UID" host
         activeUsers.sort();
 
+        // v0.00.42: Always track current host for anti-cheat validation
+        this.currentHostId = activeUsers.length > 0 ? activeUsers[0] : null;
+
         const desiredHost = (activeUsers.length > 0 && activeUsers[0] === this.playerId);
 
         if (desiredHost && !this.isHost) {
@@ -545,8 +594,14 @@ export default class NetworkManager extends EventEmitter {
 
     sendReward(playerId, data) {
         if (!this.connected || !this.isHost) return;
+        // v0.00.42: Include hostId for anti-cheat validation
         // data: { exp: number, gold: number, items: [] }
-        this.dbRef.child(`rewards/${playerId}`).push(data).catch(e => { });
+        const safeData = {
+            ...data,
+            hostId: this.playerId,  // Host signature
+            ts: Date.now()
+        };
+        this.dbRef.child(`rewards/${playerId}`).push(safeData).catch(e => { });
     }
 
     // v0.28.0: Sync player HP status
