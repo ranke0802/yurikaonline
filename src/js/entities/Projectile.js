@@ -373,11 +373,11 @@ export class Projectile {
 
     _applyDamage(m, net, isMonster) {
         // v0.00.40: Damage formula: (Skill Damage - Defense), min 1
-        // Then apply crit multiplier to reduced damage
+        // v0.00.42: REMOVED duplicate crit - crit already applied in Player.js
         const targetDef = m.defense || 0;
         let finalDmg = Math.max(1, this.damage - targetDef);
         let isCrit = this.isCrit || false;
-        if (isCrit) finalDmg *= 2;
+        // Note: crit multiplier already applied in Player.js, don't apply again
 
         if (isMonster && net) {
             if (this.damage > 0) {

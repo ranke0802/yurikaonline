@@ -544,7 +544,8 @@ export class UIManager {
                 break;
             case 'missile':
                 const mCount = lv;
-                const mDmg = Math.floor(p.attackPower * 0.9);
+                // v0.00.42: Fixed to match actual damage (45%, not 90%)
+                const mDmg = Math.floor(p.attackPower * 0.45);
                 const mCost = 4 + (mCount - 1) * 3;
                 currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>발사 수: ${mCount}개 | 발당 데미지: ${mDmg} | 마나 소모: ${mCost}</div>`;
                 break;
