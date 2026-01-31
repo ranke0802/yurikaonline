@@ -12,6 +12,13 @@ export class UIManager {
         this.setupFullscreenListeners();
         this.setupDevModeListeners();
         this.inputManager = game.input; // Local reference
+
+        // v0.00.50: Check Standalone (PWA) on init and force lock
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('portrait').catch(() => { });
+            }
+        }
     }
 
 
@@ -20,6 +27,14 @@ export class UIManager {
             const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement ||
                 document.mozFullScreenElement || document.msFullscreenElement);
             document.body.classList.toggle('is-fullscreen', isFull);
+
+            // v0.00.50: Force Portrait Lock when in Fullscreen (Mobile/PWA support)
+            if (isFull && screen.orientation && screen.orientation.lock) {
+                // 'portrait-primary' is safer for mobile, or just 'portrait'
+                screen.orientation.lock('portrait').catch(err => {
+                    // console.log('[UIManager] Orientation lock failed (not supported or not trusted):', err);
+                });
+            }
         };
         document.addEventListener('fullscreenchange', updateClass);
         document.addEventListener('webkitfullscreenchange', updateClass);
