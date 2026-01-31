@@ -299,8 +299,9 @@ export default class Player extends CharacterBase {
     }
 
     applyElectrocuted(duration, ratio) {
-        this.electrocutedTimer = 3.0; // Fixed 3s
-        this.slowRatio = Math.max(this.slowRatio, ratio);
+        // v0.00.47: Changed to 4s duration, 50% slow (0.5)
+        this.electrocutedTimer = 4.0;
+        this.slowRatio = Math.max(this.slowRatio, 0.5);
     }
 
     triggerAction(text) {
@@ -1158,6 +1159,18 @@ export default class Player extends CharacterBase {
             }
             if (data.questKill === 'king_slime') {
                 this.questData.bossKilled = true;
+                // v0.00.47: Show Boss Clear Modal
+                if (window.game?.ui?.showBossClearModal) {
+                    window.game.ui.showBossClearModal(data);
+                }
+
+                // v0.00.48: Repeatable Boss Quest
+                // Reset kill status so the quest appears as "0/1" again immediately
+                // User requirement: "Quest reappears after kill".
+                // We reset it here. Since reward is already given above (Gold/Exp), 
+                // there is no separate "Turn In" step for Boss Quest in this codebase.
+                // (Unlike Slime Quest which has 'completeSlimeQuest')
+                this.questData.bossKilled = false;
             }
             if (window.game?.ui) window.game.ui.updateQuestUI();
             this.saveState();
@@ -1168,7 +1181,12 @@ export default class Player extends CharacterBase {
             if (data.exp) msg += ` +${data.exp} EXP`;
             if (data.gold) msg += ` +${data.gold} Gold`;
             if (data.hp) msg += ` +${data.hp} HP`;
-            if (data.questKill) msg = `퀘스트 몬스터 처치! (${msg})`;
+            // v0.00.48: Customized message for Repeatable Boss
+            if (data.questKill === 'king_slime') {
+                msg = `👑 대왕 슬라임 처치! (${msg}) [퀘스트 초기화됨]`;
+            } else if (data.questKill) {
+                msg = `퀘스트 몬스터 처치! (${msg})`;
+            }
             window.game.ui.logSystemMessage(msg);
             window.game.ui.updateInventory();
         }

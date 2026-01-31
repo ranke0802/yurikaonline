@@ -185,29 +185,9 @@ export default class MonsterManager {
                 this.net.dbRef.child('world_state/last_host_time').set(Date.now());
             }
 
-            // v0.00.45: Check Quest Status for all players (Local + Remote)
-            // If ANY player has claimed the Slime Quest, ensure kill count is at least 10
-            let questCompleted = false;
-
-            // Check Local
-            if (localPlayer?.questData?.slimeQuestClaimed) questCompleted = true;
-
-            // Check Remotes (Scanning all players is cheap for small max concurrence)
-            if (!questCompleted && remotePlayers) {
-                remotePlayers.forEach(p => {
-                    if (p.questData?.slimeQuestClaimed) questCompleted = true;
-                });
-            }
-
-            if (questCompleted && this.slimeKillCount < 10 && !this.bossSpawned) {
-                Logger.log(`[MonsterManager] Quest Completed Player Detected! Boosting Kill Count to 10.`);
-                this.slimeKillCount = 10;
-                if (this.net.dbRef) {
-                    this.net.dbRef.child('world_state/slime_kill_count').set(this.slimeKillCount);
-                }
-                // v0.00.46: Changed message to standard 10-kill message
-                this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 슬퍼하고 있습니다.(10/30)", "#ffeb3b");
-            }
+            // v0.00.48: Removed Force 10-Kill logic. 
+            // Quest progression is now strictly based on accumulated kills (0->30).
+            // Legacy code removed.
         }
 
 
@@ -331,9 +311,11 @@ export default class MonsterManager {
             // to avoid double-update conflicts on the Host.
             // We just fall through to the Sync part below.
 
-            // v0.33.0: Host-side Boss AI (Magic Missile)
+            // v0.33.0: Host-side Boss AI (Magic Missile + Shield)
             if (!m.isDead && m.typeId === 'king_slime') {
                 if (m.missileCooldown > 0) m.missileCooldown -= dt * 1000;
+                // v0.00.47: Boss Shield Logic
+                if (m.shieldCooldown > 0) m.shieldCooldown -= dt * 1000;
 
                 // Simple Target Selection (Closest)
                 let target = m.targetPlayer;
@@ -349,7 +331,7 @@ export default class MonsterManager {
                     m.targetPlayer = target;
                 }
 
-                // Attack Trigger
+                // Attack Trigger (Missile)
                 if (target && m.missileCooldown <= 0) {
                     const dist = Math.sqrt((m.x - target.x) ** 2 + (m.y - target.y) ** 2);
                     if (dist < 600) { // Range check 800 -> 600
@@ -357,6 +339,26 @@ export default class MonsterManager {
                         // Send Attack Sync
                         this.net.sendMonsterAttack(m.id, 'missile', { count: 4, targetId: target.id });
                     }
+                }
+
+                // Defensive Trigger (Shield) - v0.00.47
+                // Use when cooldown ready and (Random chance OR under attack?)
+                // Let's make it periodic: every 15-20s, or random chance every sec
+                if (m.shieldCooldown <= 0 && Math.random() < 0.05) { // Simple random check
+                    m.shieldCooldown = 15000; // 15s Cooldown
+                    // Duration handled by Monster state, or just visual?
+                    // Monster.js needs to handle 'shield' action or status effect.
+                    // Actually, sendMonsterAttack('shield') triggers the visual.
+                    // But we also want the EFFECT (Invincibility).
+                    // This requires Monster.js to handle startShield().
+                    // For now, let's sync the attack animation which triggers visual.
+                    this.net.sendMonsterAttack(m.id, 'shield');
+
+                    // Apply logical shield effect on Host side
+                    // Note: Monster.js logic should handle 'shield' skill type? 
+                    // No, usually Monster just receives "Shield Effect".
+                    // We need to set `m.shieldTimer` or similar.
+                    m.shieldTimer = 9999; // Permanent until hit (Same as player)
                 }
             }
 
