@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.GAME_VERSION = '0.00.51'; // v0.00.51: Quest Flow & King Slime Balance
+window.GAME_VERSION = '0.00.52'; // v0.00.52: Absolute Barrier Bug Fix (Unification)
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';

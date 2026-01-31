@@ -345,26 +345,6 @@ export default class MonsterManager {
                         this.net.sendMonsterAttack(m.id, 'missile', { count: 4, targetId: target.id });
                     }
                 }
-
-                // Defensive Trigger (Shield) - v0.00.47
-                // Use when cooldown ready and (Random chance OR under attack?)
-                // Let's make it periodic: every 15-20s, or random chance every sec
-                if (m.shieldCooldown <= 0 && Math.random() < 0.05) { // Simple random check
-                    m.shieldCooldown = 15000; // 15s Cooldown
-                    // Duration handled by Monster state, or just visual?
-                    // Monster.js needs to handle 'shield' action or status effect.
-                    // Actually, sendMonsterAttack('shield') triggers the visual.
-                    // But we also want the EFFECT (Invincibility).
-                    // This requires Monster.js to handle startShield().
-                    // For now, let's sync the attack animation which triggers visual.
-                    this.net.sendMonsterAttack(m.id, 'shield');
-
-                    // Apply logical shield effect on Host side
-                    // Note: Monster.js logic should handle 'shield' skill type? 
-                    // No, usually Monster just receives "Shield Effect".
-                    // We need to set `m.shieldTimer` or similar.
-                    m.shieldTimer = 9999; // Permanent until hit (Same as player)
-                }
             }
 
             // v0.33.0: Split Slime AI (Magic Missile Lv 1)

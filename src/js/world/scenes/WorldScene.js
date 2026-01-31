@@ -280,7 +280,8 @@ export default class WorldScene extends Scene {
             } else if (data.skill === 'shield') {
                 // Visual Effect for Shield
                 if (m) {
-                    m.applyEffect('shield', (data.extra?.duration || 5000) / 1000, 0);
+                    // v0.00.52: Default duration 1s (1000ms) to prevent long-lasting shield bugs
+                    m.applyEffect('shield', (data.extra?.duration || 1000) / 1000, 0);
                     // Add some sparks/particles?
                     for (let i = 0; i < 10; i++) {
                         this.addSpark(m.x + (Math.random() - 0.5) * m.width, m.y + (Math.random() - 0.5) * m.height);

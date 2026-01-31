@@ -947,8 +947,8 @@ export default class Monster extends CharacterBase {
 
             if (burnEffect) drawStatusBadge('burn');
             if (this.electrocutedTimer > 0) drawStatusBadge('elec');
-            // v0.00.45: Shield Icon for Monster
-            if (this.shieldTimer > 0) drawStatusBadge('shield');
+            // v0.00.45: Shield Icon for Monster (v0.00.52: Unified with statusEffects)
+            if (this.hasEffect('shield')) drawStatusBadge('shield');
 
             ctx.restore();
         }
