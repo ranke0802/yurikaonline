@@ -320,6 +320,17 @@ export class Projectile {
             return;
         }
 
+        // v0.00.46: RemotePlayer Absolute Barrier Logic (Visual Sync)
+        // If target has shield > 1.5s (Permanent Phase), trigger 1.5s countdown
+        if (target.shieldEffect && target.shieldEffect.timer > 1.5) {
+            target.shieldEffect.timer = 1.5;
+            if (window.game) {
+                const cx = target.x + (target.width || 48) / 2;
+                window.game.addDamageText(cx, target.y - 40, "BLOCK", '#48dbfb', true);
+            }
+            // Continue to show explosion visuals, but effective damage is blocked logically (on host)
+        }
+
         // v1.99.15: Visual Explosion
         if (window.game) {
             window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3);

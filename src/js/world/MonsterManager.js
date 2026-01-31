@@ -205,7 +205,8 @@ export default class MonsterManager {
                 if (this.net.dbRef) {
                     this.net.dbRef.child('world_state/slime_kill_count').set(this.slimeKillCount);
                 }
-                this.net.sendSystemMessage("이미 퀘스트를 완료한 모험가가 있어 슬라임의 왕이 주시하고 있습니다.", "#ffeb3b");
+                // v0.00.46: Changed message to standard 10-kill message
+                this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 슬퍼하고 있습니다.(10/30)", "#ffeb3b");
             }
         }
 
@@ -416,7 +417,7 @@ export default class MonsterManager {
                         cdTime = 3000;
                     }
                     if (m.typeId === 'king_slime') {
-                        chargeRange = 600;
+                        chargeRange = 800; // v0.00.46: Increased to 800
                         cdTime = 3000;
                     }
 
@@ -686,13 +687,11 @@ export default class MonsterManager {
                 Logger.log(`[MonsterManager] Slime Kill Count: ${this.slimeKillCount}`);
 
                 if (this.slimeKillCount === 10) {
-                    this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 슬퍼 합니다", "#ffeb3b"); // Yellow
+                    this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 슬퍼하고 있습니다.(10/30)", "#ffeb3b");
                 } else if (this.slimeKillCount === 20) {
-                    this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 분노합니다", "#ffeb3b");
+                    this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 분노하고 있습니다.(20/30)", "#ffeb3b");
                 } else if (this.slimeKillCount >= 30) {
-                    // Determine spawn: Only if boss not already alive/spawned?
-                    // "Spawn King Slime"
-                    this.net.sendSystemMessage("슬라임의 왕이 슬픔과 분노를 삼키고 복수를 위해 강립하였습니다", "#ffeb3b");
+                    this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 슬픔과 분노를 삼키고 복수를 위해 강림합니다.(30/30)", "#ffeb3b");
 
                     if (!this.bossSpawned) {
                         this._spawnBoss();

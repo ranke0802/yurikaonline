@@ -652,8 +652,8 @@ export default class RemotePlayer extends CharacterBase {
         }
 
         if (skillType === 'shield') {
-            // Shield Visual (Duration 1.5s)
-            this.shieldEffect = { timer: 1.5 };
+            // Shield Visual (Permanent until hit)
+            this.shieldEffect = { timer: 9999 };
             // Do not return early, let the state reset timer run
         }
 
