@@ -1189,7 +1189,9 @@ export class UIManager {
                 const mx = m.x * scaleX;
                 const my = m.y * scaleY;
                 ctx.beginPath();
-                ctx.arc(mx, my, 2, 0, Math.PI * 2);
+                // v0.33.0: Boss is bigger
+                const radius = (m.isBoss || m.typeId === 'king_slime') ? 6 : 2;
+                ctx.arc(mx, my, radius, 0, Math.PI * 2);
                 ctx.fill();
             });
         }
@@ -1600,6 +1602,42 @@ export class UIManager {
                 }
             }
         });
+    }
+
+    // v0.00.43: Center System Message (Warning Text)
+    showCenterMessage(text, color = '#ffeb3b') {
+        let el = document.getElementById('center-message');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'center-message';
+            el.style.position = 'absolute';
+            el.style.top = '25%'; // Slightly above center
+            el.style.left = '50%';
+            el.style.transform = 'translate(-50%, -50%)';
+            el.style.color = color;
+            el.style.fontSize = '24px';
+            el.style.fontWeight = 'bold';
+            el.style.textShadow = '2px 2px 2px #000';
+            el.style.pointerEvents = 'none';
+            el.style.opacity = '0';
+            el.style.transition = 'opacity 0.5s';
+            el.style.zIndex = '2000';
+            el.style.textAlign = 'center';
+            el.style.width = '80%';
+            document.body.appendChild(el);
+        }
+
+        el.textContent = text;
+        el.style.color = color;
+        el.style.opacity = '1';
+
+        // Clear previous timer
+        if (this._centerMsgTimer) clearTimeout(this._centerMsgTimer);
+
+        // Hide after 4 seconds
+        this._centerMsgTimer = setTimeout(() => {
+            el.style.opacity = '0';
+        }, 4000);
     }
 }
 

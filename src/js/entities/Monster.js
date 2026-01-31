@@ -16,6 +16,12 @@ export default class Monster extends CharacterBase {
             this.name = definition.name || '슬라임';
             this.hp = definition.baseStats?.hp || 100;
             this.maxHp = definition.baseStats?.maxHp || 100;
+            this.atk = definition.baseStats?.atk || 10; // v0.33.0: Load Atk
+            // v0.33.0: MP & Regen support
+            this.mp = definition.baseStats?.mp || 0;
+            this.maxMp = definition.baseStats?.maxMp || 0;
+            this.hpRegen = definition.baseStats?.hpRegen || 0;
+            this.mpRegen = definition.baseStats?.mpRegen || 0;
             this.width = definition.visual?.width || 80;
             this.height = definition.visual?.height || 80;
             this.frameSpeed = definition.visual?.frameSpeed || 0.15;
@@ -58,7 +64,10 @@ export default class Monster extends CharacterBase {
         this.isBoss = false;
         this.electrocutedTimer = 0;
         this.slowRatio = 0;
+        this.electrocutedTimer = 0;
+        this.slowRatio = 0;
         this.sparkTimer = 0;
+        this.regenTimer = 0; // v0.33.0: Regen Timer
         this.lastAttackerId = null;
         this.targetX = x;
         this.targetY = y;
@@ -66,6 +75,20 @@ export default class Monster extends CharacterBase {
         this.spawnGraceTimer = 3.0; // v1.99.10: Wait 3s after spawn before chasing
         this.isMonster = true;
         this.type = 'monster'; // v1.99.38: Explicit type for identification
+
+        // v0.33.0: Boss Skill Cooldowns
+        this.missileCooldown = 0;
+        this.missileMaxCooldown = 5000;
+
+        // v0.00.43: Slime Charge Skill
+        this.chargeCooldown = 0;
+        this.chargeState = 'idle'; // idle, casting, charging
+        this.chargeTimer = 0;
+        this.chargeTarget = null; // {x, y}
+        this.width = definition.visual?.width || 60; // Ensure width is set for telegraph
+        this.shieldCooldown = 0; // v0.33.0: Shield Cooldown
+        this.shieldMaxCooldown = 8000;
+        this.shieldDuration = 0;
 
         // Lazy Load: Do not call init() here. 
         // We will call it in render() so that we only load assets when the monster is actually being drawn (in WorldScene).
@@ -250,6 +273,122 @@ export default class Monster extends CharacterBase {
         }
     }
 
+    // v0.33.0: Regen Logic
+    _handleRegen(dt) {
+        if (this.isDead) return;
+        this.regenTimer += dt;
+        if (this.regenTimer >= 1.0) {
+            this.regenTimer = 0;
+            if (this.hp < this.maxHp && this.hpRegen > 0) {
+                this.hp = Math.min(this.maxHp, this.hp + this.hpRegen);
+                // v0.33.0: Regen Feedback (Accumulate or just show every second)
+                // Since this runs once per second (regenTimer >= 1.0), we can show it directly.
+                if (window.game && window.game.addDamageText) {
+                    window.game.addDamageText(this.x, this.y - 60, `+${this.hpRegen}`, '#4ade80', false);
+                }
+            }
+            if (this.mp < this.maxMp && this.mpRegen > 0) {
+                this.mp = Math.min(this.maxMp, this.mp + this.mpRegen);
+            }
+        }
+
+        // v0.33.0: Update Shield Cooldown
+        if (this.shieldCooldown > 0) {
+            this.shieldCooldown -= dt * 1000;
+        }
+    }
+
+    // v0.00.43: Charge Skill Implementation
+    startCharge(targetX, targetY) {
+        if (this.isDead || this.chargeState !== 'idle') return;
+
+        this.chargeState = 'casting';
+        this.chargeTimer = 1.0; // 1s Casting
+        this.chargeTarget = { x: targetX, y: targetY };
+        this.vx = 0;
+        this.vy = 0;
+        // Optionally play warning sound?
+        Logger.log(`[Monster] ${this.id} started charge casting.`);
+    }
+
+    _updateCharge(dt) {
+        if (this.chargeState === 'idle') {
+            if (this.chargeCooldown > 0) this.chargeCooldown -= dt * 1000;
+            return false; // Not charging, continue normal AI
+        }
+
+        if (this.chargeState === 'casting') {
+            this.chargeTimer -= dt;
+            this.vx = 0;
+            this.vy = 0; // Freeze movement
+            if (this.chargeTimer <= 0) {
+                this.chargeState = 'charging';
+                // Lock target vector
+                const angle = Math.atan2(this.chargeTarget.y - this.y, this.chargeTarget.x - this.x);
+                const speed = 300;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+
+                // Calculate max duration based on distance (or fixed duration?) 
+                // Requirement: "Rush to player position".
+                // Stop when close to that point.
+                const dist = Math.sqrt((this.chargeTarget.x - this.x) ** 2 + (this.chargeTarget.y - this.y) ** 2);
+                this.chargeTimer = (dist / speed) + 0.2; // Add minimal buffer
+            }
+            return true; // Override normal AI
+        }
+
+        if (this.chargeState === 'charging') {
+            this.chargeTimer -= dt;
+
+            // Move logic is handled by update() using this.vx/vy, but we must ensure AI doesn't overwrite it.
+            // Collision Check (Host Authority preferred, but client prediction needed for smoothness)
+            // Ideally, Host checks collision. Client just visualizes.
+
+            // Check if arrived at target point
+            const distToTarget = Math.sqrt((this.chargeTarget.x - this.x) ** 2 + (this.chargeTarget.y - this.y) ** 2);
+            if (distToTarget < 10 || this.chargeTimer <= 0) {
+                this.chargeState = 'idle';
+                this.chargeCooldown = 5000; // 5s Cooldown
+                this.vx = 0;
+                this.vy = 0;
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    renderTelegraph(ctx) {
+        if (this.chargeState !== 'casting' || !this.chargeTarget) return;
+
+        const screenX = Math.round(this.x);
+        const screenY = Math.round(this.y);
+        const targetScreenX = Math.round(this.chargeTarget.x); // Assumes static target point in world space? 
+        // Wait, render is camera relative? No, ctx is transformed.
+        // this.x is world, target.x is world.
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+        ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+        ctx.lineWidth = 2;
+
+        const dx = this.chargeTarget.x - this.x;
+        const dy = this.chargeTarget.y - this.y;
+        const angle = Math.atan2(dy, dx);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const width = this.width;
+
+        ctx.translate(screenX, screenY);
+        ctx.rotate(angle);
+
+        // Draw Rectangle (0, -width/2, dist, width)
+        ctx.fillRect(0, -width / 2, dist, width);
+        ctx.strokeRect(0, -width / 2, dist, width);
+
+        ctx.restore();
+    }
+
     update(dt) {
         // v1.99.9: Hard cap on dt to prevent physics tunneling or explosions during lag
         const safeDt = Math.min(0.1, dt);
@@ -268,6 +407,12 @@ export default class Monster extends CharacterBase {
             return; // Dead monsters only fade out, no AI
         }
 
+        // v0.33.0: Handle Regen
+        this._handleRegen(dt);
+
+        // v0.00.43: Charge Logic (Returns true if overriding AI)
+        const isCharging = this._updateCharge(safeDt);
+
         if (!this.ready) {
             // v1.99.13: If host, we MUST load assets even if off-screen to run AI pathing
             if (!this.loadingRequested) {
@@ -279,40 +424,42 @@ export default class Monster extends CharacterBase {
 
         this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
 
-        // 2. Targeting (AI Awareness)
-        const getAllPlayers = () => {
-            const players = [];
-            if (window.game?.localPlayer && !window.game.localPlayer.isDead) players.push(window.game.localPlayer);
-            if (window.game?.remotePlayers) {
-                window.game.remotePlayers.forEach(p => { if (!p.isDead) players.push(p); });
-            }
-            return players;
-        };
-
-        this.isAggro = false;
-        this.targetPlayer = null;
-
-        // v1.99.10: Handle spawn grace delay (Wait 3s before aggro)
-        if (!this.spawnGraceTimer) this.spawnGraceTimer = 0; // Guard
-        if (this.spawnGraceTimer > 0) {
-            this.spawnGraceTimer -= safeDt;
-        }
-
-        const candidates = getAllPlayers();
-        if (this.spawnGraceTimer <= 0 && candidates.length > 0) {
-            let nearest = null;
-            let minDist = Infinity;
-            candidates.forEach(p => {
-                const dx = p.x - this.x;
-                const dy = p.y - this.y;
-                const d = Math.sqrt(dx * dx + dy * dy);
-                if (d < minDist) {
-                    minDist = d;
-                    nearest = p;
+        // 2. Targeting (AI Awareness) - Skip if Charging (already locked)
+        if (!isCharging) {
+            const getAllPlayers = () => {
+                const players = [];
+                if (window.game?.localPlayer && !window.game.localPlayer.isDead) players.push(window.game.localPlayer);
+                if (window.game?.remotePlayers) {
+                    window.game.remotePlayers.forEach(p => { if (!p.isDead) players.push(p); });
                 }
-            });
-            this.targetPlayer = nearest;
-            this.isAggro = true;
+                return players;
+            };
+
+            this.isAggro = false;
+            this.targetPlayer = null;
+
+            // v1.99.10: Handle spawn grace delay (Wait 3s before aggro)
+            if (!this.spawnGraceTimer) this.spawnGraceTimer = 0; // Guard
+            if (this.spawnGraceTimer > 0) {
+                this.spawnGraceTimer -= safeDt;
+            }
+
+            const candidates = getAllPlayers();
+            if (this.spawnGraceTimer <= 0 && candidates.length > 0) {
+                let nearest = null;
+                let minDist = Infinity;
+                candidates.forEach(p => {
+                    const dx = p.x - this.x;
+                    const dy = p.y - this.y;
+                    const d = Math.sqrt(dx * dx + dy * dy);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearest = p;
+                    }
+                });
+                this.targetPlayer = nearest;
+                this.isAggro = true;
+            }
         }
 
         this.timer += dt;
@@ -323,62 +470,64 @@ export default class Monster extends CharacterBase {
 
         // 3. Movement Logic (Host Authority)
         if (window.game?.net?.isHost) {
-            const target = this.targetPlayer;
-            let aiVx = 0;
-            let aiVy = 0;
+            if (!isCharging) {
+                const target = this.targetPlayer;
+                let aiVx = 0;
+                let aiVy = 0;
 
-            // Base Velocity from AI
-            if (target) {
-                const dist = Math.sqrt((target.x - this.x) ** 2 + (target.y - this.y) ** 2);
-                if (dist > 55) {
-                    // Chase mode
-                    const angle = Math.atan2(target.y - this.y, target.x - this.x);
-                    let speed = this.speed || 50;
-                    if (this.electrocutedTimer > 0) speed *= (1 - this.slowRatio);
-                    aiVx = Math.cos(angle) * speed;
-                    aiVy = Math.sin(angle) * speed;
-                } else {
-                    // Attack mode (Stop and hit)
-                    aiVx = 0;
-                    aiVy = 0;
-                    if (!this.attackCooldown) this.attackCooldown = 0;
-                    this.attackCooldown -= dt;
-                    if (this.attackCooldown <= 0) {
-                        if (window.game?.net) {
-                            window.game.net.sendPlayerDamage(target.id, Math.ceil(5 + (Math.random() * 5)));
-                        } else {
-                            target.takeDamage(Math.ceil(5 + (Math.random() * 5)));
-                        }
-                        this.attackCooldown = 1.5;
-                        this.hitTimer = 0.1;
-                    }
-                }
-            } else {
-                // Wandering mode
-                this.moveTimer -= dt;
-                if (this.moveTimer <= 0) {
-                    if (Math.random() < 0.7) {
-                        const angle = Math.random() * Math.PI * 2;
-                        let speed = 5 + Math.random() * 10;
+                // Base Velocity from AI
+                if (target) {
+                    const dist = Math.sqrt((target.x - this.x) ** 2 + (target.y - this.y) ** 2);
+                    if (dist > 55) {
+                        // Chase mode
+                        const angle = Math.atan2(target.y - this.y, target.x - this.x);
+                        let speed = this.speed || 50;
                         if (this.electrocutedTimer > 0) speed *= (1 - this.slowRatio);
-                        this.wanderVx = Math.cos(angle) * speed;
-                        this.wanderVy = Math.sin(angle) * speed;
+                        aiVx = Math.cos(angle) * speed;
+                        aiVy = Math.sin(angle) * speed;
                     } else {
-                        this.wanderVx = 0;
-                        this.wanderVy = 0;
+                        // Attack mode (Stop and hit)
+                        aiVx = 0;
+                        aiVy = 0;
+                        if (!this.attackCooldown) this.attackCooldown = 0;
+                        this.attackCooldown -= dt;
+                        if (this.attackCooldown <= 0) {
+                            if (window.game?.net) {
+                                window.game.net.sendPlayerDamage(target.id, Math.ceil(5 + (Math.random() * 5)));
+                            } else {
+                                target.takeDamage(Math.ceil(5 + (Math.random() * 5)));
+                            }
+                            this.attackCooldown = 1.5;
+                            this.hitTimer = 0.1;
+                        }
                     }
-                    this.moveTimer = 1 + Math.random() * 3;
+                } else {
+                    // Wandering mode
+                    this.moveTimer -= dt;
+                    if (this.moveTimer <= 0) {
+                        if (Math.random() < 0.7) {
+                            const angle = Math.random() * Math.PI * 2;
+                            let speed = 5 + Math.random() * 10;
+                            if (this.electrocutedTimer > 0) speed *= (1 - this.slowRatio);
+                            this.wanderVx = Math.cos(angle) * speed;
+                            this.wanderVy = Math.sin(angle) * speed;
+                        } else {
+                            this.wanderVx = 0;
+                            this.wanderVy = 0;
+                        }
+                        this.moveTimer = 1 + Math.random() * 3;
+                    }
+                    aiVx = this.wanderVx;
+                    aiVy = this.wanderVy;
                 }
-                aiVx = this.wanderVx;
-                aiVy = this.wanderVy;
-            }
 
-            // v1.99.9: Apply fresh calculated velocity (Guard against NaN and invalid numbers)
-            this.vx = (typeof aiVx === 'number' && !isNaN(aiVx)) ? aiVx : 0;
-            this.vy = (typeof aiVy === 'number' && !isNaN(aiVy)) ? aiVy : 0;
+                // v1.99.9: Apply fresh calculated velocity (Guard against NaN and invalid numbers)
+                this.vx = (typeof aiVx === 'number' && !isNaN(aiVx)) ? aiVx : 0;
+                this.vy = (typeof aiVy === 'number' && !isNaN(aiVy)) ? aiVy : 0;
+            } // End !isCharging check (Charging sets vx/vy itself)
 
-            // Separation Force: Prevent monsters from overlapping perfectly
-            if (window.game?.monsterManager?.monsters) {
+            // Separation Force: Prevent monsters from overlapping perfectly (skip if charging to allow ramming)
+            if (window.game?.monsterManager?.monsters && !isCharging) {
                 const allMonsters = window.game.monsterManager.monsters;
                 const separationDist = 50;
                 allMonsters.forEach(other => {
@@ -406,9 +555,52 @@ export default class Monster extends CharacterBase {
 
             // Collision Detection with Target Player
             let canMove = true;
-            if (target && !target.isDead) {
-                const currentDist = Math.sqrt((this.x - target.x) ** 2 + (this.y - target.y) ** 2);
-                const nextDist = Math.sqrt((nextX - target.x) ** 2 + (nextY - target.y) ** 2);
+            if (this.chargeState === 'charging') {
+                // Check collision with ANY player
+                // Optimization: iterate players
+                const players = [];
+                if (window.game?.localPlayer && !window.game.localPlayer.isDead) players.push(window.game.localPlayer);
+                if (window.game?.remotePlayers) {
+                    window.game.remotePlayers.forEach(p => { if (!p.isDead) players.push(p); });
+                }
+
+                players.forEach(p => {
+                    const dist = Math.sqrt((nextX - p.x) ** 2 + (nextY - p.y) ** 2);
+                    if (dist < (this.width / 2 + 20)) { // Collision Radius
+                        // Hit Player!
+                        // v0.00.43: Variable Charge Damage
+                        let dmg = 15; // Slime (Default)
+                        if (this.typeId === 'slime_split') dmg = 30;
+                        if (this.typeId === 'king_slime') dmg = 50;
+
+                        if (window.game?.net) {
+                            window.game.net.sendPlayerDamage(p.id, dmg);
+                        } else {
+                            p.takeDamage(dmg);
+                        }
+
+                        // Knockback Player
+                        // Since Player knockback is typically client-side or handled by 'force' in damage packet?
+                        // Currently sendPlayerDamage doesn't support force.
+                        // I might need to send a knockback event or Player.js handles it.
+                        // Wait, `Monster.js` line 392 just sends damage.
+                        // Player physics: `takeDamage` handles visual.
+
+                        // Stop Charging
+                        this.chargeState = 'idle';
+                        this.chargeCooldown = 5000;
+                        this.vx = 0;
+                        this.vy = 0;
+                        canMove = false;
+
+                        // Apply Knockback to Player?
+                        // p.applyKnockback(this.vx * 2, this.vy * 2); // If local
+                    }
+                });
+            } else if (this.targetPlayer && !this.targetPlayer.isDead) {
+                // Normal Body Block
+                const currentDist = Math.sqrt((this.x - this.targetPlayer.x) ** 2 + (this.y - this.targetPlayer.y) ** 2);
+                const nextDist = Math.sqrt((nextX - this.targetPlayer.x) ** 2 + (nextY - this.targetPlayer.y) ** 2);
                 if (nextDist < 45 && nextDist < currentDist) canMove = false;
             }
 
@@ -465,6 +657,10 @@ export default class Monster extends CharacterBase {
         });
     }
 
+    hasEffect(type) {
+        return this.statusEffects.some(e => e.type === type);
+    }
+
     applyEffect(type, duration, damage) {
         if (this.isDead) return;
         const existing = this.statusEffects.find(e => e.type === type);
@@ -480,10 +676,33 @@ export default class Monster extends CharacterBase {
         if (this.isDead) return;
 
         // v0.00.34: Ensure minimum 1 damage
-        const dmg = Math.max(1, Math.ceil(parseFloat(amount)));
+        let dmg = Math.max(1, Math.ceil(parseFloat(amount))); // Changed const to let
         if (isNaN(dmg)) {
             Logger.warn(`[Monster] Invalid damage: ${amount}`);
             return;
+        }
+
+        // v0.33.0: Reactive Absolute Barrier (Shield)
+        // If Shield is active, BLOCK ALL DAMAGE (except maybe 1?)
+        if (this.hasEffect('shield')) {
+            dmg = 0;
+            // Visual feedback "Blocked" (Optional, maybe implied by 0 damage or icon)
+            if (window.game && window.game.addDamageText) {
+                window.game.addDamageText(this.x, this.y - 40, "BLOCK", "#00d2ff", false);
+            }
+            return; // Completely block
+        }
+
+        // v0.33.0: Trigger Shield on Hit (Host Only)
+        if (window.game?.net?.isHost && this.typeId === 'king_slime') {
+            if (this.shieldCooldown <= 0) {
+                // Trigger Shield!
+                this.shieldCooldown = this.shieldMaxCooldown;
+                // 1.5s duration
+                this.applyEffect('shield', 1.5, 0);
+                // Sync to network
+                window.game.net.sendMonsterAttack(this.id, 'shield', { duration: 1500 });
+            }
         }
 
         // v0.00.03: Optimistic HP reduction for ALL clients for immediate feedback
@@ -572,6 +791,9 @@ export default class Monster extends CharacterBase {
 
         const burnEffect = this.statusEffects.find(e => e.type === 'burn');
 
+        // v0.00.43: Render Charge Telegraph (Underneath monster)
+        this.renderTelegraph(ctx);
+
         // Fallback or Sprite Draw
         if (this.sprite) {
             this.sprite.draw(ctx, 0, this.frame, screenX - this.width / 2, drawY - this.height / 2, this.width, this.height);
@@ -589,10 +811,25 @@ export default class Monster extends CharacterBase {
             ctx.fillStyle = '#ff3f34';
             ctx.font = 'bold 30px "Outfit", sans-serif';
             ctx.textAlign = 'center';
-            ctx.shadowColor = 'rgba(0,0,0,0.5)';
-            ctx.shadowBlur = 4;
-            const bounce = Math.sin(Date.now() * 0.01) * 3;
-            ctx.fillText('!', screenX, screenY - this.height / 2 - 40 + bounce);
+
+            // v0.33.0: Draw Shield Icon
+            if (this.hasEffect('shield')) {
+                // Draw Blue Shield Overlay or Icon
+                ctx.save();
+                ctx.strokeStyle = '#00d2ff';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(screenX, drawY, this.width / 2 + 5, 0, Math.PI * 2);
+                ctx.stroke();
+                // Maybe a small icon above head?
+                ctx.font = '20px sans-serif';
+                ctx.fillStyle = '#00d2ff';
+                ctx.textAlign = 'center';
+                ctx.fillText('🛡️', screenX, drawY - this.height / 2 - 20);
+                ctx.restore();
+            }
+
+            ctx.fillText('!', screenX, drawY - this.height / 2 - 30);
             ctx.restore();
         }
 

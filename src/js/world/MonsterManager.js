@@ -20,6 +20,7 @@ export default class MonsterManager {
 
         this.bossSpawned = false;
         this.shouldSpawnBoss = false;
+        this.slimeKillCount = 0; // v0.00.43: Track kills for boss spawn
 
         this.lastSyncState = new Map();
 
@@ -144,12 +145,8 @@ export default class MonsterManager {
         }
 
 
-        // Boss Spawning
-        if (this.shouldSpawnBoss) {
-            this._spawnBoss();
-            this.shouldSpawnBoss = false;
-            this.bossSpawned = true;
-        }
+        // Boss Spawning (Legacy dead code removed)
+        // Boss is now spawned directly via _handleMonsterDeath based on Kill Count
 
         // --- Host Authority: Monster AI & Sync ---
         const candidates = [localPlayer, ...Array.from(remotePlayers.values())].filter(p => !p.isDead);
@@ -159,9 +156,13 @@ export default class MonsterManager {
             if (m.isDead && !m._wasProcessed) {
                 m._wasProcessed = true; // One-time flag
 
+                // v0.00.43: Handle Death Logic (Kill Count & Boss Spawn)
+                this._handleMonsterDeath(m);
+
                 // Spawn Drops
-                const xpAmount = m.isBoss ? 500 : 25;
-                const goldAmount = m.isBoss ? 5000 : 50;
+                // Spawn Drops
+                const xpAmount = m.typeId === 'king_slime' ? 500 : (m.isBoss ? 500 : 25);
+                const goldAmount = m.typeId === 'king_slime' ? 2000 : (m.isBoss ? 5000 : 50);
                 this.net.spawnDrop({ x: m.x, y: m.y, type: 'gold', amount: goldAmount });
                 this.net.spawnDrop({ x: m.x + 20, y: m.y - 10, type: 'exp', amount: xpAmount });
                 if (Math.random() > 0.5 || m.isBoss) {
@@ -216,17 +217,9 @@ export default class MonsterManager {
                         // My Kill -> My Quest Logic
                         if (m.typeId === 'slime' || m.typeId === 'slime_split') {
                             localPlayer.questData.slimeKills++;
-                            if (!this.bossSpawned) {
-                                if (localPlayer.questData.slimeKills >= 10 && Math.random() < 0.1) {
-                                    this.shouldSpawnBoss = true;
-                                }
-                            } else {
-                                if (Math.random() < 0.02) {
-                                    this.shouldSpawnBoss = true;
-                                    if (window.game && window.game.ui) window.game.ui.logSystemMessage('⚠️ 강력한 기운이 느껴집니다! 대왕 슬라임이 필드에 다시 나타났습니다!');
-                                }
-                            }
-                        }
+                            // v0.00.43: Boss Spawn is now handled by _handleMonsterDeath (Global Count)
+                            // Removed legacy random spawn logic
+                        } // Closing for (m.typeId === 'slime' || m.typeId === 'slime_split')
 
                         if (m.typeId === 'king_slime') {
                             localPlayer.questData.bossKilled = true;
@@ -271,6 +264,107 @@ export default class MonsterManager {
             // AI and Movement are now handled inside Monster.js update()
             // to avoid double-update conflicts on the Host.
             // We just fall through to the Sync part below.
+
+            // v0.33.0: Host-side Boss AI (Magic Missile)
+            if (!m.isDead && m.typeId === 'king_slime') {
+                if (m.missileCooldown > 0) m.missileCooldown -= dt * 1000;
+
+                // Simple Target Selection (Closest)
+                let target = m.targetPlayer;
+                if (!target && candidates.length > 0) {
+                    let minDist = 9999;
+                    candidates.forEach(p => {
+                        const d = Math.sqrt((m.x - p.x) ** 2 + (m.y - p.y) ** 2);
+                        if (d < minDist) {
+                            minDist = d;
+                            target = p;
+                        }
+                    });
+                    m.targetPlayer = target;
+                }
+
+                // Attack Trigger
+                if (target && m.missileCooldown <= 0) {
+                    const dist = Math.sqrt((m.x - target.x) ** 2 + (m.y - target.y) ** 2);
+                    if (dist < 600) { // Range check 800 -> 600
+                        m.missileCooldown = m.missileMaxCooldown;
+                        // Send Attack Sync
+                        this.net.sendMonsterAttack(m.id, 'missile', { count: 4, targetId: target.id });
+                    }
+                }
+            }
+
+            // v0.33.0: Split Slime AI (Magic Missile Lv 1)
+            if (!m.isDead && m.typeId === 'slime_split') {
+                if (m.missileCooldown > 0) m.missileCooldown -= dt * 1000;
+
+                // Find Target
+                let target = m.targetPlayer;
+                if (!target && candidates.length > 0) {
+                    let minDist = 9999;
+                    candidates.forEach(p => {
+                        const d = Math.sqrt((m.x - p.x) ** 2 + (m.y - p.y) ** 2);
+                        if (d < minDist) {
+                            minDist = d;
+                            target = p;
+                        }
+                    });
+                    m.targetPlayer = target;
+                }
+
+                if (target && m.missileCooldown <= 0) {
+                    const dist = Math.sqrt((m.x - target.x) ** 2 + (m.y - target.y) ** 2);
+                    if (dist < 600) {
+                        m.missileCooldown = 6000; // Slower than boss
+                        this.net.sendMonsterAttack(m.id, 'missile', { count: 2, targetId: target.id });
+                    }
+                }
+            }
+
+            // v0.00.43: Charge Skill (All Slimes: slime, slime_split, king_slime)
+            if (!m.isDead && (m.typeId === 'slime' || m.typeId === 'slime_split' || m.typeId === 'king_slime')) {
+                if (m.chargeCooldown > 0) m.chargeCooldown -= dt * 1000;
+
+                // Find Target (if not already found by previous logic)
+                let target = m.targetPlayer;
+                if (!target && candidates.length > 0) {
+                    let minDist = 9999;
+                    candidates.forEach(p => {
+                        const d = Math.sqrt((m.x - p.x) ** 2 + (m.y - p.y) ** 2);
+                        if (d < minDist) {
+                            minDist = d;
+                            target = p;
+                        }
+                    });
+                    m.targetPlayer = target;
+                }
+
+                if (target && m.chargeCooldown <= 0 && m.chargeState === 'idle') {
+                    const dist = Math.sqrt((m.x - target.x) ** 2 + (m.y - target.y) ** 2);
+
+                    // Variable Range & Cooldown Logic
+                    let chargeRange = 400;
+                    let cdTime = 4000;
+
+                    if (m.typeId === 'slime_split') {
+                        chargeRange = 500;
+                        cdTime = 3000;
+                    }
+                    if (m.typeId === 'king_slime') {
+                        chargeRange = 600;
+                        cdTime = 3000;
+                    }
+
+                    if (dist < chargeRange) {
+                        // Start Charge!
+                        m.startCharge(target.x, target.y);
+                        m.chargeCooldown = cdTime;
+
+                        // Sync to Clients
+                        this.net.sendMonsterAttack(m.id, 'charge', { x: target.x, y: target.y });
+                    }
+                }
+            }
 
             // --- Bandwidth Throttling (v0.20.0) ---
             if (this.syncTimer >= this.syncInterval) {
@@ -512,4 +606,43 @@ export default class MonsterManager {
         this.lastSyncState.clear();
         Logger.info("[MonsterManager] Local world state cleared.");
     }
-}
+
+    // v0.00.43: Kill Count & Boss Spawn Logic
+    _handleMonsterDeath(m) {
+        // Only count basic slimes or split slimes (minions)
+        if (m.typeId === 'slime' || m.typeId === 'slime_split') {
+            // v0.00.44: Pause count while Boss is active
+            if (!this.bossSpawned) {
+                this.slimeKillCount++;
+                // Sync to DB
+                if (this.net.dbRef) {
+                    this.net.dbRef.child('world_state/slime_kill_count').set(this.slimeKillCount);
+                }
+                Logger.log(`[MonsterManager] Slime Kill Count: ${this.slimeKillCount}`);
+
+                if (this.slimeKillCount === 10) {
+                    this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 슬퍼 합니다", "#ffeb3b"); // Yellow
+                } else if (this.slimeKillCount === 20) {
+                    this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 분노합니다", "#ffeb3b");
+                } else if (this.slimeKillCount >= 30) {
+                    // Determine spawn: Only if boss not already alive/spawned?
+                    // "Spawn King Slime"
+                    this.net.sendSystemMessage("슬라임의 왕이 슬픔과 분노를 삼키고 복수를 위해 강립하였습니다", "#ffeb3b");
+
+                    if (!this.bossSpawned) {
+                        this._spawnBoss();
+                        this.bossSpawned = true;
+                        this.slimeKillCount = 0; // Reset counter
+                        if (this.net.dbRef) this.net.dbRef.child('world_state/slime_kill_count').set(0);
+                    } else {
+                        // Boss already alive.
+                    }
+                }
+            }
+        } else if (m.typeId === 'king_slime') {
+            // Boss died.
+            this.bossSpawned = false;
+            this.slimeKillCount = 0;
+            if (this.net.dbRef) this.net.dbRef.child('world_state/slime_kill_count').set(0);
+        }
+    }

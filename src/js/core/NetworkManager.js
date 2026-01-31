@@ -49,6 +49,19 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child('monsters').on('child_changed', (s) => this.emit('monsterUpdated', { id: s.key, ...s.val() }));
         this.dbRef.child('monsters').on('child_removed', (s) => this.emit('monsterRemoved', s.key));
 
+        // v0.33.0: Monster Attack Sync (Boss Skills)
+        this.dbRef.child('monster_attack').on('child_added', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                // Ignore old attacks (> 5s)
+                if (Date.now() - data.ts < 5000) {
+                    this.emit('monsterAttack', data);
+                }
+            }
+            // Host cleans up
+            if (this.isHost) snapshot.ref.remove();
+        });
+
         // Monster Damage Sync (Listen for damage events - Spark / Text)
         this.dbRef.child('monster_damage').on('child_added', (snapshot) => {
             const data = snapshot.val();
@@ -164,6 +177,15 @@ export default class NetworkManager extends EventEmitter {
                 const now = Date.now();
                 if (now - data.ts > 60000) snapshot.ref.remove();
             }
+        });
+
+        // v0.00.43: System Message Listener (Center Screen Warnings)
+        this.dbRef.child('system_messages').on('child_added', (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.ts > Date.now() - 5000) { // Only very recent (5s)
+                this.emit('systemMessage', data);
+            }
+            if (this.isHost) snapshot.ref.remove(); // Immediate cleanup
         });
 
         // v0.00.03: Failsafe exit logic
@@ -578,6 +600,17 @@ export default class NetworkManager extends EventEmitter {
             mid: monsterId,
             dmg: Math.round(damage),
             aid: this.playerId,
+            ts: Date.now()
+        });
+    }
+
+    // v0.33.0: Send Monster Attack (Host Only)
+    sendMonsterAttack(monsterId, skillType, extraData = null) {
+        if (!this.connected || !this.isHost) return;
+        this.dbRef.child('monster_attack').push({
+            mid: monsterId,
+            skill: skillType,
+            extra: extraData,
             ts: Date.now()
         });
     }
@@ -1104,5 +1137,19 @@ export default class NetworkManager extends EventEmitter {
             }
             snapshot.ref.remove();
         });
+    }
+
+    // v0.00.43: Send System Message
+    sendSystemMessage(message, color = '#ffffff') {
+        if (!this.connected) return;
+        this.dbRef.child('system_messages').push({
+            message: message,
+            color: color,
+            ts: firebase.database.ServerValue.TIMESTAMP
+        });
+    }
+
+    onSystemMessage(callback) {
+        this.on('systemMessage', callback);
     }
 }

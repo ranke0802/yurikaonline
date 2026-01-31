@@ -26,6 +26,10 @@ export default class WorldScene extends Scene {
         this.minimapUpdateTimer = 0;
         this.minimapUpdateInterval = 3; // seconds
         this.viewMargin = 500; // v0.00.24: Increased for smoother player sync
+
+        // v0.33.0: Monster Attack Queue
+        this.monsterMissileQueue = [];
+        this.monsterMissileTimer = 0;
     }
 
     /**
@@ -178,6 +182,11 @@ export default class WorldScene extends Scene {
             if (this.player) this.player.receiveReward(data);
         });
 
+        // v0.00.43: Center Screen System Messages
+        this.net.on('systemMessage', (data) => {
+            if (this.ui) this.ui.showCenterMessage(data.message, data.color);
+        });
+
         this.net.on('monsterDamageReceived', (data) => {
             const m = this.monsterManager?.monsters.get(data.mid);
             if (m) this.addSpark(m.x, m.y);
@@ -221,10 +230,72 @@ export default class WorldScene extends Scene {
             if (rp) rp.triggerChanneling(data);
         });
 
-        // v0.00.03: Sync Detailed HP & Death Status for Remote Players
         this.net.on('playerHpUpdate', (data) => {
             const rp = this.remotePlayers.get(data.id);
             if (rp) rp.onHpUpdate(data);
+        });
+
+        // v0.33.0: Monster Attack Sync
+        this.net.on('monsterAttack', (data) => {
+            const m = this.monsterManager?.monsters.get(data.mid);
+            if (!m) return;
+
+            if (data.skill === 'missile') {
+                const count = data.extra?.count || 4;
+                let target = null;
+                if (data.extra?.targetId) {
+                    if (data.extra.targetId === this.player?.id) target = this.player;
+                    else target = this.remotePlayers.get(data.extra.targetId);
+                }
+
+                // Calculate angle (towards target)
+                let baseAngle = 0;
+                if (target) {
+                    baseAngle = Math.atan2(target.y - m.y, target.x - m.x);
+                }
+
+                for (let i = 0; i < count; i++) {
+                    const spread = (Math.PI * 4) / 9;
+                    const angleOffset = (Math.random() - 0.5) * 0.4;
+                    const angle = baseAngle + (i - (count - 1) / 2) * (spread / Math.max(1, count - 1)) + angleOffset;
+
+                    const burstSpeed = 350 + (Math.random() * 300);
+                    const vx = Math.cos(angle) * burstSpeed;
+                    const vy = Math.sin(angle) * burstSpeed;
+
+                    this.monsterMissileQueue.push({
+                        x: m.x + m.width / 2,
+                        y: m.y + m.height / 2,
+                        target: target,
+                        options: {
+                            speed: 700 + (Math.random() * 100),
+                            vx, vy,
+                            damage: (m.atk || 10) * 0.45, // v0.33.0: 45% of ATK (Req #2)
+                            radius: 6,
+                            ownerId: m.id,
+                            isMonsterAttack: true
+                        }
+                    });
+                }
+            } else if (data.skill === 'shield') {
+                // Visual Effect for Shield
+                if (m) {
+                    m.applyEffect('shield', (data.extra?.duration || 5000) / 1000, 0);
+                    // Add some sparks/particles?
+                    for (let i = 0; i < 10; i++) {
+                        this.addSpark(m.x + (Math.random() - 0.5) * m.width, m.y + (Math.random() - 0.5) * m.height);
+                    }
+                }
+            } else if (data.skill === 'charge') {
+                // v0.00.43: Charge Skill Visualization
+                if (m) {
+                    const tx = data.extra?.x;
+                    const ty = data.extra?.y;
+                    if (tx !== undefined && ty !== undefined) {
+                        m.startCharge(tx, ty);
+                    }
+                }
+            }
         });
     }
 
@@ -300,6 +371,19 @@ export default class WorldScene extends Scene {
             if (ft.timer <= 0) {
                 this.game.textPool.release(ft);
                 this.floatingTexts.splice(i, 1);
+            }
+        }
+
+        // v0.33.0: Process Monster Missile Queue
+        if (this.monsterMissileQueue.length > 0) {
+            this.monsterMissileTimer -= dt;
+            if (this.monsterMissileTimer <= 0) {
+                this.monsterMissileTimer = 0.1;
+                const data = this.monsterMissileQueue.shift();
+
+                import('../../entities/Projectile.js').then(({ Projectile }) => {
+                    this.projectiles.push(new Projectile(data.x, data.y, data.target, 'missile', data.options));
+                });
             }
         }
 

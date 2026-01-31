@@ -36,7 +36,9 @@ export class Projectile {
         this.explosionContext = null;
 
         // v0.00.05: Owner ID for PvP safety
+        // v0.00.05: Owner ID for PvP safety
         this.ownerId = options.ownerId || null;
+        this.isMonsterAttack = options.isMonsterAttack || false; // v0.33.0: Monster Attack Flag
 
         // Visuals
         this.color = type === 'missile' ? '#00d2ff' : '#f97316';
@@ -124,11 +126,13 @@ export class Projectile {
                     const dist = Math.sqrt(dx * dx + dy * dy);
 
                     if (dist > 5) {
-                        this.turnEase = Math.min(1.0, this.turnEase + dt * 2.5);
+                        this.turnEase = Math.min(1.0, this.turnEase + dt * 5.0); // v0.33.0: Faster ramp-up (check plan)
                         const normX = (dx / dist) * this.speed;
                         const normY = (dy / dist) * this.speed;
-                        const steerX = (normX - this.vx) * 25 * this.turnEase;
-                        const steerY = (normY - this.vy) * 25 * this.turnEase;
+                        // v0.33.0: Stronger steering force (was 25)
+                        const steerMulti = 50;
+                        const steerX = (normX - this.vx) * steerMulti * this.turnEase;
+                        const steerY = (normY - this.vy) * steerMulti * this.turnEase;
                         this.vx += steerX * dt;
                         this.vy += steerY * dt;
                         const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
@@ -139,8 +143,11 @@ export class Projectile {
 
                         // v1.99.38: Added final guard before direct hit
                         const targetIsPlayer = this.target.type === 'player' || (!this.target.isMonster && this.target.id);
-                        if (dist < (60 + (this.target.width || 80) / 2)) {
-                            if (!targetIsPlayer || (owner && owner.canAttackTarget(this.target))) {
+                        // v0.33.0: More generous hit radius to prevent orbiting
+                        if (dist < (80 + (this.target.width || 80) / 2)) {
+                            // v0.00.43: Fix Infinite Orbiting (Owner check fails for Monster Attacks)
+                            // If it's a monster attack, we skip the owner.canAttackTarget check (monsters always attack)
+                            if (this.isMonsterAttack || !targetIsPlayer || (owner && owner.canAttackTarget(this.target))) {
                                 this.hit(this.target, monsters);
                             }
                         }
@@ -196,11 +203,21 @@ export class Projectile {
             }
         } else if (this.type === 'missile') {
             // v1.99.31: Standard Missile Collision logic with owner safety
-            if (lp && !lp.isDead && lp.id !== this.ownerId && owner?.canAttackTarget(lp)) {
-                const cx = lp.x + (lp.width || 48) / 2;
-                const cy = lp.y + (lp.height || 48) / 2;
-                const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
-                if (dist < this.hitRadius) this.hit(lp, monsters);
+            // v0.33.0: Monster Attack Logic (Always hostile to players)
+            if (lp && !lp.isDead) {
+                let canHit = false;
+                if (this.isMonsterAttack) {
+                    canHit = true;
+                } else if (lp.id !== this.ownerId && owner?.canAttackTarget(lp)) {
+                    canHit = true;
+                }
+
+                if (canHit) {
+                    const cx = lp.x + (lp.width || 48) / 2;
+                    const cy = lp.y + (lp.height || 48) / 2;
+                    const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
+                    if (dist < this.hitRadius) this.hit(lp, monsters);
+                }
             }
             if (rps) {
                 rps.forEach(rp => {
@@ -337,6 +354,10 @@ export class Projectile {
         else {
             if (target === window.game?.localPlayer) {
                 // Visual hit (damage=0). Just sparks.
+                // v0.33.0: Monster Attack -> Player Damage
+                if (this.isMonsterAttack) {
+                    target.takeDamage(Math.ceil(this.damage), false, this.isCrit);
+                }
             }
             else {
                 // PvP Hit from me to Rplayer
@@ -380,6 +401,39 @@ export class Projectile {
         // Note: crit multiplier already applied in Player.js, don't apply again
 
         if (isMonster && net) {
+            // v0.33.0: Check Shield Effect (Optimization)
+            if (m.hasEffect && m.hasEffect('shield')) {
+                // Do not send damage, or send 0? Better to just not verify hit if fully blocked.
+                // But we want the "Block" text. The text is local in m.takeDamage?
+                // Actually, takeDamage is reactive to net msg. 
+                // So if we don't send msg, no text.
+                // We should send 0 damage or handle it.
+                // Re-reading logic: Host triggers Shield. Clients respect it.
+                // If I hit local monster with shield, I see Block.
+                // If I don't send packet, Host doesn't know.
+                // Better: Client logic in Monster.js handles the damage=0.
+                // But here, we can optimize by sending 0, or just sending normally and let Receiver filter.
+                // Let's send normally so `monsterDamageReceived` triggers `takeDamage` which triggers "BLOCK" text.
+                // Wait, if I send 100 dmg, and `takeDamage` sees Shield, it sets dmg=0 and shows "BLOCK".
+                // So I don't actually need to change Projectile.js unless I want to save bandwidth.
+                // But if I filter here, I might miss the visual feedback on other clients?
+                // No, other clients only see damage if valid.
+                // Let's leave Projectile.js ALONE to rely on the robust `takeDamage` logic I just wrote.
+                // Actually, I'll add a comment or small optimization if needed.
+                // Returning early might be bad for "Block" feedback.
+                // I will NOT modify Projectile.js to avoid logic split. 
+                // Wait, the plan said "In _applyDamage: Check m.hasEffect('shield')..."
+                // "If true, do not send damage packet" -> this means NO "BLOCK" text on other clients.
+                // "and effectively deal 0 damage locally" -> this happens in case A.
+                // If I want "BLOCK" text, I must run takeDamage.
+                // So I should send the packet, and let MonsterManager -> Monster.takeDamage handles it.
+                // I will skip this step as it contradicts the "Show Block" goal if we block it too early.
+                // Wait, I can run `m.takeDamage(0)` locally to show block?
+                // Let's stick to the plan but refine: 
+                // If shield, logic in Monster.js `takeDamage` handles it. 
+                // So I will NOT modify Projectile.js.
+            }
+
             if (this.damage > 0) {
                 net.sendMonsterDamage(m.id, Math.ceil(finalDmg));
                 m.lastAttackerId = net.playerId;

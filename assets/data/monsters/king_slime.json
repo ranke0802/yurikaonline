@@ -2,10 +2,14 @@
     "id": "king_slime",
     "name": "대왕 슬라임",
     "baseStats": {
-        "hp": 500,
-        "maxHp": 500,
+        "hp": 1500,
+        "maxHp": 1500,
         "speed": 10,
-        "atk": 15
+        "atk": 12,
+        "mp": 200,
+        "maxMp": 200,
+        "hpRegen": 6,
+        "mpRegen": 6
     },
     "visual": {
         "assetPath": "assets/resource/monster_slim",
