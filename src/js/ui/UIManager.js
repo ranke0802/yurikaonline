@@ -837,21 +837,48 @@ export class UIManager {
         // Determine Active Quest
         let currentQuest = null;
         if (!p.questData.slimeQuestClaimed) {
+            // Quest 1: 初步 (10)
             currentQuest = {
-                title: "슬라임 10마리 처치",
+                title: "1. 슬라임 10마리 처치",
                 task: `진행도: ${Math.min(10, p.questData.slimeKills)}/10`,
                 reward: "스탯 포인트 +2",
                 canClaim: p.questData.slimeKills >= 10,
                 claimFn: () => this.claimSlimeReward(p)
             };
-        } else if (!p.questData.bossQuestClaimed) {
+        } else if ((p.questData.bossClearCount || 0) === 0) {
+            // Quest 3: First King Slime
             currentQuest = {
-                title: "대왕 슬라임 토벌",
+                title: "3. 대왕 슬라임 처치",
                 task: `진행도: ${p.questData.bossKilled ? '1' : '0'}/1`,
-                reward: "스탯 포인트 +5",
-                canClaim: p.questData.bossKilled,
-                claimFn: () => this.claimBossReward(p)
+                reward: "스탯+5, EXP+500, Gold+2000",
+                canClaim: false, // Auto-claimed on kill in Player.js for now
+                claimFn: null
             };
+        } else {
+            // Repeatable Loop (Quest 4 & 5)
+            const mm = this.game.monsterManager;
+            const bossFound = Array.from(mm?.monsters.values() || []).find(m => m.typeId === 'king_slime' && !m.isDead);
+
+            if (bossFound) {
+                // Quest 5: Boss Active
+                currentQuest = {
+                    title: "5. 대왕 슬라임 처치 (반복)",
+                    task: "진행도: 0/1", // Boss is active
+                    reward: "EXP+300, Gold+1000",
+                    canClaim: false,
+                    claimFn: null
+                };
+            } else {
+                // Quest 4: Progression
+                const count = mm?.slimeKillCount || 0;
+                currentQuest = {
+                    title: "4. 슬라임 30마리 처치 (강림)",
+                    task: `진행도: ${count}/30`,
+                    reward: "대왕 슬라임 소환",
+                    canClaim: false,
+                    claimFn: null
+                };
+            }
         }
 
         // Render OR Hide

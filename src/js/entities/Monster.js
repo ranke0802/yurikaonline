@@ -698,10 +698,10 @@ export default class Monster extends CharacterBase {
             if (this.shieldCooldown <= 0) {
                 // Trigger Shield!
                 this.shieldCooldown = this.shieldMaxCooldown;
-                // 1.5s duration
-                this.applyEffect('shield', 1.5, 0);
+                // 1.0s duration (v0.00.51: Reduced from 1.5s as requested)
+                this.applyEffect('shield', 1.0, 0);
                 // Sync to network
-                window.game.net.sendMonsterAttack(this.id, 'shield', { duration: 1500 });
+                window.game.net.sendMonsterAttack(this.id, 'shield', { duration: 1000 });
             }
         }
 

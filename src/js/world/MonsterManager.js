@@ -268,7 +268,12 @@ export default class MonsterManager {
                         } // Closing for (m.typeId === 'slime' || m.typeId === 'slime_split')
 
                         if (m.typeId === 'king_slime') {
-                            localPlayer.questData.bossKilled = true;
+                            // v0.00.51: Use unify reward logic
+                            localPlayer.receiveReward({
+                                questKill: 'king_slime',
+                                monsterName: m.name
+                            });
+
                             // Spawn logic for Boss Split
                             for (let i = 0; i < 3; i++) {
                                 const offX = (Math.random() - 0.5) * 100;
@@ -689,25 +694,29 @@ export default class MonsterManager {
                 Logger.log(`[MonsterManager] Slime Kill Count: ${this.slimeKillCount}`);
 
                 if (this.slimeKillCount === 10) {
-                    this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 슬퍼하고 있습니다.(10/30)", "#ffeb3b");
+                    this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 슬퍼하고 있습니다. (10/30)", "#ffeb3b");
                 } else if (this.slimeKillCount === 20) {
-                    this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 분노하고 있습니다.(20/30)", "#ffeb3b");
+                    this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 분노하고 있습니다. (20/30)", "#ffeb3b");
                 } else if (this.slimeKillCount >= 30) {
-                    this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 슬픔과 분노를 삼키고 복수를 위해 강림합니다.(30/30)", "#ffeb3b");
+                    this.net.sendSystemMessage("슬라임의 왕이 복수를 위해 강림합니다! (30/30)", "#ff4757");
 
                     if (!this.bossSpawned) {
                         this._spawnBoss();
                         this.bossSpawned = true;
-                        this.slimeKillCount = 0; // Reset counter
+                        // v0.00.51: Don't reset to 0 immediately here?
+                        // If we reset to 0, UI goes 0/30.
+                        // User wants "Repeatable".
+                        // Reset happens here so next cycle starts from 0?
+                        // Yes, reset here.
+                        this.slimeKillCount = 0;
                         if (this.net.dbRef) this.net.dbRef.child('world_state/slime_kill_count').set(0);
-                    } else {
-                        // Boss already alive.
                     }
                 }
             }
         } else if (m.typeId === 'king_slime') {
             // Boss died.
             this.bossSpawned = false;
+            // Ensure count is 0
             this.slimeKillCount = 0;
             if (this.net.dbRef) this.net.dbRef.child('world_state/slime_kill_count').set(0);
         }

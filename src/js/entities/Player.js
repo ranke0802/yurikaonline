@@ -1158,18 +1158,43 @@ export default class Player extends CharacterBase {
                 this.questData.slimeKills++;
             }
             if (data.questKill === 'king_slime') {
-                this.questData.bossKilled = true;
-                // v0.00.47: Show Boss Clear Modal
-                if (window.game?.ui?.showBossClearModal) {
-                    window.game.ui.showBossClearModal(data);
+                this.questData.bossKilled = true; // Mark as killed momentarily
+
+                // v0.00.51: Boss Quest Logic (First vs Repeat)
+                this.questData.bossClearCount = (this.questData.bossClearCount || 0) + 1;
+
+                let rewardMsg = "";
+                let modalTitle = "";
+                let modalDesc = "";
+
+                if (this.questData.bossClearCount === 1) {
+                    // First Kill Reward
+                    this.statPoints += 5;
+                    this.gainExp(500);
+                    this.gold += 2000;
+                    this.updateGoldInventory();
+
+                    modalTitle = "👑 퀘스트 완료!";
+                    modalDesc = "대왕 슬라임을 처치했습니다!<br><br>보상:<br>스텟 포인트 +5<br>경험치 500<br>골드 2000<br><br>(이제 반복 퀘스트가 시작됩니다!)";
+                    rewardMsg = "첫 대왕 슬라임 처치! (스텟+5, EXP+500, Gold+2000)";
+                } else {
+                    // Repeat Kill Reward
+                    this.gainExp(300); // Reduced from 500
+                    this.gold += 1000; // Reduced from 2000
+                    this.updateGoldInventory();
+
+                    modalTitle = "⚔️ 반복 퀘스트 완료";
+                    modalDesc = "대왕 슬라임을 다시 처치했습니다!<br><br>보상:<br>경험치 300<br>골드 1000<br><br>(슬라임 30마리를 잡으면 다시 소환됩니다)";
+                    rewardMsg = `대왕 슬라임 처치! (${this.questData.bossClearCount}회차) (EXP+300, Gold+1000)`;
                 }
 
-                // v0.00.48: Repeatable Boss Quest
-                // Reset kill status so the quest appears as "0/1" again immediately
-                // User requirement: "Quest reappears after kill".
-                // We reset it here. Since reward is already given above (Gold/Exp), 
-                // there is no separate "Turn In" step for Boss Quest in this codebase.
-                // (Unlike Slime Quest which has 'completeSlimeQuest')
+                // Show Modal
+                if (window.game?.ui?.showRewardModal) {
+                    window.game.ui.showRewardModal(modalTitle, modalDesc);
+                }
+
+                // Reset for Repeatable Cycle
+                // "Reset" means preparing for the loop.
                 this.questData.bossKilled = false;
             }
             if (window.game?.ui) window.game.ui.updateQuestUI();
@@ -1181,13 +1206,27 @@ export default class Player extends CharacterBase {
             if (data.exp) msg += ` +${data.exp} EXP`;
             if (data.gold) msg += ` +${data.gold} Gold`;
             if (data.hp) msg += ` +${data.hp} HP`;
-            // v0.00.48: Customized message for Repeatable Boss
+
+            // Override message for boss
             if (data.questKill === 'king_slime') {
-                msg = `👑 대왕 슬라임 처치! (${msg}) [퀘스트 초기화됨]`;
+                // Already handled above? 
+                // We want to log the specific reward message constructed above?
+                // Wait, `rewardMsg` is local scope above.
+                // Let's reconstruct or simplify.
+                // Actually this block runs AFTER logic.
+                // `data.exp/gold` passed in might be distinct from what I just added.
+                // `receiveReward` can be called with `data` containing `exp/gold`.
+                // BUT `king_slime` call from `MonsterManager` did NOT pass exp/gold in the object!
+                // It passed `{ questKill: 'king_slime', monsterName: ... }`.
+                // So `msg` here would just be "King Slime 획득!".
+                // So I should log `rewardMsg` if it exists (but it's out of scope).
+                // I will move logging INSIDE the block or make the block below smarter.
+                // Since I am already modifying the block below...
             } else if (data.questKill) {
                 msg = `퀘스트 몬스터 처치! (${msg})`;
+                window.game.ui.logSystemMessage(msg);
             }
-            window.game.ui.logSystemMessage(msg);
+
             window.game.ui.updateInventory();
         }
         this.saveState();
