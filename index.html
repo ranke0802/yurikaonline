@@ -8,6 +8,11 @@
     <!-- PWA Manifest & Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2d3436">
+    <!-- v0.00.50: Force Portrait Mode -->
+    <meta name="screen-orientation" content="portrait">
+    <meta name="x5-orientation" content="portrait">
+    <meta name="browsermode" content="application">
+    <meta name="full-screen" content="yes">
     <script>
         // v0.00.13+: Failsafe unregistration for zombie service workers
         if ('serviceWorker' in navigator) {
@@ -15,7 +20,7 @@
                 for (let registration of registrations) {
                     const swUrl = registration.active?.scriptURL || "";
                     // Fix: Correct logic to catch ANY old SW
-                    if (!swUrl.includes('0.00.49')) {
+                    if (!swUrl.includes('0.00.50')) {
                         navigator.serviceWorker.getRegistrations().then(function (registrations) {
                             for (let registration of registrations) {
                                 registration.unregister();
