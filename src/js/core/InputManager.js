@@ -26,6 +26,10 @@ export default class InputManager extends EventEmitter {
 
     _onActionDown(action) {
         if (!this.enabled) return;
+        // v0.00.44: Prevent actions if Character Selection/Creation is active
+        const sceneName = window.game?.sceneManager?.currentScene?.constructor?.name;
+        if (sceneName === 'CharacterSelectionScene') return;
+
         if (!this.actions.has(action)) {
             this.actions.add(action);
             this.emit('keydown', action); // 하위 호환성 또는 이벤트 기반 로직용

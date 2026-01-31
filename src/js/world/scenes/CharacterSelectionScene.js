@@ -78,6 +78,15 @@ export default class CharacterSelectionScene extends Scene {
             this.initCanvasPreview(120);
             document.getElementById('create-char-btn').onclick = () => this.handleCreateCharacter();
             document.getElementById('creation-logout-btn').onclick = () => this.game.auth.logout();
+
+            // v0.00.44: Allow Enter key to submit character creation
+            const input = document.getElementById('name-input');
+            if (input) {
+                input.focus();
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') this.handleCreateCharacter();
+                });
+            }
         }, 10);
     }
 

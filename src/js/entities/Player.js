@@ -940,7 +940,8 @@ export default class Player extends CharacterBase {
                 }
 
                 let nearest = null;
-                let minDist = 700;
+                // v0.00.45: Reduced Missile Range to 600
+                let minDist = 600;
 
                 // v0.00.20: Prioritize currentTarget if valid
                 if (this.currentTarget && !this.currentTarget.isDead && this.canAttackTarget(this.currentTarget)) {
@@ -1406,13 +1407,22 @@ export default class Player extends CharacterBase {
         // v0.00.41: Fixed burn check - use timer instead of duration
         const hasBurn = burnEffect && burnEffect.timer > 0;
         const hasElec = this.electrocutedTimer > 0;
-        if (!hasBurn && !hasElec) return;
+        // v0.00.45: Absolute Barrier Icon
+        const hasShield = this.shieldTimer > 0;
+
+        if (!hasBurn && !hasElec && !hasShield) return;
 
         ctx.save();
         const iconY = baseY + 15;
         let currentX = centerX;
 
-        if (hasBurn && hasElec) currentX -= 12;
+        // Center alignment based on count
+        let count = 0;
+        if (hasBurn) count++;
+        if (hasElec) count++;
+        if (hasShield) count++;
+
+        if (count > 0) currentX -= ((count - 1) * 25) / 2;
 
         const drawStatusBadge = (type) => {
             ctx.save();
@@ -1458,6 +1468,22 @@ export default class Player extends CharacterBase {
                 ctx.stroke();
                 ctx.fillStyle = '#ffa502';
                 ctx.fill();
+            } else if (type === 'shield') { // v0.00.45: Shield Icon
+                ctx.strokeStyle = '#fff';
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#fff';
+                ctx.beginPath();
+                // Shield shape
+                ctx.moveTo(0, 6);
+                ctx.quadraticCurveTo(5, 6, 5, 0);
+                ctx.lineTo(5, -4);
+                ctx.lineTo(0, -6);
+                ctx.lineTo(-5, -4);
+                ctx.lineTo(-5, 0);
+                ctx.quadraticCurveTo(-5, 6, 0, 6);
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(100, 100, 255, 0.5)';
+                ctx.fill();
             }
 
             ctx.restore();
@@ -1466,6 +1492,7 @@ export default class Player extends CharacterBase {
 
         if (hasBurn) drawStatusBadge('burn');
         if (hasElec) drawStatusBadge('elec');
+        if (hasShield) drawStatusBadge('shield');
 
         ctx.restore();
     }

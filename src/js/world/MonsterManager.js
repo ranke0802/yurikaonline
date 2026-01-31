@@ -22,6 +22,39 @@ export default class MonsterManager {
         this.shouldSpawnBoss = false;
         this.slimeKillCount = 0; // v0.00.43: Track kills for boss spawn
 
+        // v0.00.44: Persistence for Slime Kill Count
+        if (this.net.dbRef) {
+            // v0.00.45: Check Last Host Time for Reset
+            this.net.dbRef.child('world_state/last_host_time').once('value', (snapshot) => {
+                const lastTime = snapshot.val() || 0;
+                const now = Date.now();
+                if (now - lastTime > 60000) { // 1 min inactive
+                    Logger.log('[MonsterManager] Host inactive > 1min. Resetting Kill Count.');
+                    this.slimeKillCount = 0;
+                    this.net.dbRef.child('world_state/slime_kill_count').set(0);
+                } else {
+                    // Load existing count
+                    this.net.dbRef.child('world_state/slime_kill_count').once('value', (s) => {
+                        const val = s.val();
+                        if (val !== null) this.slimeKillCount = val;
+                    });
+                }
+            });
+
+            // Listen for updates (Sync between hosts or re-connections)
+            this.net.dbRef.child('world_state/slime_kill_count').on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val !== null) {
+                    // Only update if we are NOT the one writing (or to just sync state)
+                    // If we are host, we are the authority, but if we just became host, we might need latest.
+                    // Simple: Always accept DB value unless we just incremented it?
+                    // Actually, if we are host, we increment local and write.
+                    // If another host writes, we should accept? (Should be only 1 host).
+                    this.slimeKillCount = val;
+                }
+            });
+        }
+
         this.lastSyncState = new Map();
 
         // Register Network Handlers
@@ -141,6 +174,38 @@ export default class MonsterManager {
             this.spawnTimer = 0;
             if (this.monsters.size < maxMonsters) {
                 this._spawnMonster();
+            }
+        }
+
+        // v0.00.45: Host Heartbeat (Every 5 seconds)
+        this.hostHeartbeatTimer = (this.hostHeartbeatTimer || 0) + dt;
+        if (this.hostHeartbeatTimer >= 5.0) {
+            this.hostHeartbeatTimer = 0;
+            if (this.net.dbRef) {
+                this.net.dbRef.child('world_state/last_host_time').set(Date.now());
+            }
+
+            // v0.00.45: Check Quest Status for all players (Local + Remote)
+            // If ANY player has claimed the Slime Quest, ensure kill count is at least 10
+            let questCompleted = false;
+
+            // Check Local
+            if (localPlayer?.questData?.slimeQuestClaimed) questCompleted = true;
+
+            // Check Remotes (Scanning all players is cheap for small max concurrence)
+            if (!questCompleted && remotePlayers) {
+                remotePlayers.forEach(p => {
+                    if (p.questData?.slimeQuestClaimed) questCompleted = true;
+                });
+            }
+
+            if (questCompleted && this.slimeKillCount < 10 && !this.bossSpawned) {
+                Logger.log(`[MonsterManager] Quest Completed Player Detected! Boosting Kill Count to 10.`);
+                this.slimeKillCount = 10;
+                if (this.net.dbRef) {
+                    this.net.dbRef.child('world_state/slime_kill_count').set(this.slimeKillCount);
+                }
+                this.net.sendSystemMessage("이미 퀘스트를 완료한 모험가가 있어 슬라임의 왕이 주시하고 있습니다.", "#ffeb3b");
             }
         }
 
@@ -646,3 +711,4 @@ export default class MonsterManager {
             if (this.net.dbRef) this.net.dbRef.child('world_state/slime_kill_count').set(0);
         }
     }
+}

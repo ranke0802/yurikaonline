@@ -924,6 +924,21 @@ export default class Monster extends CharacterBase {
 
                     ctx.fillStyle = '#ffa502';
                     ctx.fill();
+                } else if (type === 'shield') { // v0.00.45: Shield Icon
+                    ctx.strokeStyle = '#fff';
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = '#fff';
+                    ctx.beginPath();
+                    ctx.moveTo(0, 6);
+                    ctx.quadraticCurveTo(5, 6, 5, 0);
+                    ctx.lineTo(5, -4);
+                    ctx.lineTo(0, -6);
+                    ctx.lineTo(-5, -4);
+                    ctx.lineTo(-5, 0);
+                    ctx.quadraticCurveTo(-5, 6, 0, 6);
+                    ctx.stroke();
+                    ctx.fillStyle = 'rgba(100, 100, 255, 0.5)';
+                    ctx.fill();
                 }
 
                 ctx.restore();
@@ -932,6 +947,8 @@ export default class Monster extends CharacterBase {
 
             if (burnEffect) drawStatusBadge('burn');
             if (this.electrocutedTimer > 0) drawStatusBadge('elec');
+            // v0.00.45: Shield Icon for Monster
+            if (this.shieldTimer > 0) drawStatusBadge('shield');
 
             ctx.restore();
         }
