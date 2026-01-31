@@ -288,11 +288,11 @@ export default class RemotePlayer extends CharacterBase {
             if (this.lightningEffect.timer <= 0) this.lightningEffect = null;
         }
 
-        // v0.00.06: Shield is now permanent until hit
-        // if (this.shieldEffect && this.shieldEffect.timer > 0) {
-        //    this.shieldEffect.timer -= dt;
-        //    if (this.shieldEffect.timer <= 0) this.shieldEffect = null;
-        // }
+        // v0.00.45: Shield is now duration-based (1.5s)
+        if (this.shieldEffect && this.shieldEffect.timer > 0) {
+            this.shieldEffect.timer -= dt;
+            if (this.shieldEffect.timer <= 0) this.shieldEffect = null;
+        }
 
         this._updateAnimation(dt);
         super.update(dt);
@@ -652,8 +652,8 @@ export default class RemotePlayer extends CharacterBase {
         }
 
         if (skillType === 'shield') {
-            // Shield Visual (Permanent until hit)
-            this.shieldEffect = { timer: 9999 };
+            // Shield Visual (Duration 1.5s)
+            this.shieldEffect = { timer: 1.5 };
             // Do not return early, let the state reset timer run
         }
 

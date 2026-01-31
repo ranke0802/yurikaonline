@@ -279,6 +279,12 @@ export default class Player extends CharacterBase {
             this.chatTimer -= dt;
             if (this.chatTimer <= 0) this.chatMessage = null;
         }
+
+        // v0.00.45: Shield Timer Countdown
+        if (this.shieldTimer > 0) {
+            this.shieldTimer -= dt;
+            if (this.shieldTimer < 0) this.shieldTimer = 0;
+        }
     }
 
     applyEffect(type, duration, damage) {
@@ -552,12 +558,15 @@ export default class Player extends CharacterBase {
         // v0.29.31: Improved Absolute Barrier (Blocks any immediate damage source)
         // v0.00.42: Also blocks status effects (burn, shock)
         if (this.shieldTimer > 0) {
-            this.shieldTimer = 0;
+            // v0.00.45: Absolute Barrier provides invincibility for duration, NOT 1-hit block
+            // this.shieldTimer = 0; // Removed to allow duration-based invincibility
             if (window.game) {
+                // v0.00.45: Show BLOCK but don't remove shield
                 window.game.addDamageText(this.x + this.width / 2, this.y - 40, "BLOCK", '#48dbfb', true);
             }
-            // Send sync immediately to say shield is down
-            if (this.net) this.net.sendPlayerHp(this.hp, this.maxHp);
+            // Send sync immediately to say shield is down // OLD logic
+            // if (this.net) this.net.sendPlayerHp(this.hp, this.maxHp);
+
             return 0;  // Exit early - no damage AND no status effects applied
         }
 
@@ -1067,7 +1076,7 @@ export default class Player extends CharacterBase {
                 this.isAttacking = true;
                 this.skillAttackTimer = 0.4;
                 this.animTimer = 0;
-                this.shieldTimer = 9999;
+                this.shieldTimer = 1.5; // v0.00.45: Invincibility for 1.5 seconds
                 this.skillCooldowns.k = 3;  // 3 second cooldown
 
                 // v0.29.0: Sync Absolute Barrier
