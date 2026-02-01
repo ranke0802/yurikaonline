@@ -20,7 +20,7 @@
                 for (let registration of registrations) {
                     const swUrl = registration.active?.scriptURL || "";
                     // Fix: Correct logic to catch ANY old SW
-                    if (!swUrl.includes('0.00.54')) {
+                    if (!swUrl.includes('0.00.55')) {
                         navigator.serviceWorker.getRegistrations().then(function (registrations) {
                             for (let registration of registrations) {
                                 registration.unregister();
@@ -31,7 +31,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.00.54')
+                navigator.serviceWorker.register('./sw.js?v=0.00.55')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -56,7 +56,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.00.54</title>
+    <title>Yurika Online v0.00.55</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
@@ -596,7 +596,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.00.54"></script>
+    <script type="module" src="./src/js/main.js?v=0.00.55"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

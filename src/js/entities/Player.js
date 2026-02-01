@@ -683,6 +683,7 @@ export default class Player extends CharacterBase {
             gold: this.gold,
             vitality: this.vitality,
             defense: this.defense || 0, // v0.00.53: Sync defense to others
+            isPaused: !!window.game?.ui?.isPaused, // v0.00.55: Sync safety state
             intelligence: this.intelligence,
             wisdom: this.wisdom,
             agility: this.agility,

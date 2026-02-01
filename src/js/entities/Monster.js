@@ -431,9 +431,15 @@ export default class Monster extends CharacterBase {
         if (!isCharging) {
             const getAllPlayers = () => {
                 const players = [];
-                if (window.game?.localPlayer && !window.game.localPlayer.isDead) players.push(window.game.localPlayer);
+                // v0.00.55: Filter candidates who are viewing modals (isPaused)
+                const isLocalPaused = !!window.game?.ui?.isPaused;
+                if (window.game?.localPlayer && !window.game.localPlayer.isDead && !isLocalPaused) {
+                    players.push(window.game.localPlayer);
+                }
                 if (window.game?.remotePlayers) {
-                    window.game.remotePlayers.forEach(p => { if (!p.isDead) players.push(p); });
+                    window.game.remotePlayers.forEach(p => {
+                        if (!p.isDead && !p.isPaused) players.push(p);
+                    });
                 }
                 return players;
             };

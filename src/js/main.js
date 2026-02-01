@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.GAME_VERSION = '0.00.54'; // v0.00.54: UI Modal Fix & Invincibility during Modals
+window.GAME_VERSION = '0.00.55'; // v0.00.55: Global Safety State Sync (Aggro Exclusion)
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';
