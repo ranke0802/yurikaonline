@@ -196,8 +196,14 @@ export default class WorldScene extends Scene {
             let target = (this.player && this.player.id === data.tid) ? this.player : this.remotePlayers.get(data.tid);
             if (target) {
                 this.addSpark(target.x + target.width / 2, target.y + target.height / 2);
-                if (target === this.player) this.player.takeDamage(data.dmg);
-                else target.hp = Math.max(0, (target.hp || 100) - data.dmg);
+                if (target === this.player) {
+                    this.player.takeDamage(data.dmg);
+                } else {
+                    // v0.00.53: Remote players also consider defense formula locally for visual consistency
+                    const def = target.defense || 0;
+                    const finalDmg = Math.max(1, Math.ceil(data.dmg - def));
+                    target.hp = Math.max(0, (target.hp || 100) - finalDmg);
+                }
             }
         });
 

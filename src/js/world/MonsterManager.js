@@ -678,7 +678,7 @@ export default class MonsterManager {
                 } else if (this.slimeKillCount === 20) {
                     this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 분노하고 있습니다. (20/30)", "#ffeb3b");
                 } else if (this.slimeKillCount >= 30) {
-                    this.net.sendSystemMessage("슬라임의 왕이 복수를 위해 강림합니다! (30/30)", "#ff4757");
+                    this.net.sendSystemMessage("슬라임의 왕이 슬픔과 분노를 삼키고 복수를 위해 강림합니다.(30/30)", "#ff4757");
 
                     if (!this.bossSpawned) {
                         this._spawnBoss();

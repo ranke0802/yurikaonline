@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.GAME_VERSION = '0.00.52'; // v0.00.52: Absolute Barrier Bug Fix (Unification)
+window.GAME_VERSION = '0.00.53'; // v0.00.53: Player Defense & Spawn Message Fix
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';

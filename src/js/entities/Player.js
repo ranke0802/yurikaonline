@@ -586,9 +586,10 @@ export default class Player extends CharacterBase {
         const validAmount = parseFloat(amount);
         if (isNaN(validAmount)) return 0;
 
-        // v0.00.40: Defense already applied by attacker's damage calculation
+        // v0.00.40: Defense already applied by attacker's damage calculation (v0.00.53: Defensive formula: raw - def)
         // Just apply the received damage
-        let finalDmg = Math.max(1, Math.ceil(validAmount));
+        const def = this.defense || 0;
+        let finalDmg = Math.max(1, Math.ceil(validAmount - def));
 
         this.hp -= finalDmg;
         if (window.game) {
@@ -679,6 +680,7 @@ export default class Player extends CharacterBase {
             mp: Math.round(this.mp),
             gold: this.gold,
             vitality: this.vitality,
+            defense: this.defense || 0, // v0.00.53: Sync defense to others
             intelligence: this.intelligence,
             wisdom: this.wisdom,
             agility: this.agility,

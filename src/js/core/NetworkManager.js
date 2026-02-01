@@ -746,6 +746,7 @@ export default class NetworkManager extends EventEmitter {
             const existing = this.remotePlayers.get(uid);
             if (existing) {
                 if (val.profile.level) existing.level = val.profile.level;
+                if (val.profile.defense !== undefined) existing.defense = val.profile.defense; // v0.00.53: Sync defense to RemotePlayer
                 if (val.profile.party !== undefined) existing.party = val.profile.party;
                 if (val.profile.hostility !== undefined) existing.hostility = val.profile.hostility;
             }
