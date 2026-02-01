@@ -1020,7 +1020,7 @@ export class UIManager {
         const msgEl = document.getElementById('reward-message');
 
         if (titleEl) titleEl.textContent = title;
-        if (msgEl) msgEl.textContent = message;
+        if (msgEl) msgEl.innerHTML = message;
         if (modal) modal.classList.remove('hidden');
         this.isPaused = true;
     }

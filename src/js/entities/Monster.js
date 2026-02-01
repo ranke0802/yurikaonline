@@ -393,6 +393,9 @@ export default class Monster extends CharacterBase {
         // v1.99.9: Hard cap on dt to prevent physics tunneling or explosions during lag
         const safeDt = Math.min(0.1, dt);
 
+        // v0.00.54: Pause AI/Movement if UI is in a modal (Reward, Status, etc.)
+        if (window.game?.ui?.isPaused) return;
+
         if (this.hp <= 0 && !this.isDead) {
             this.isDead = true;
             this.hp = 0;

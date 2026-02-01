@@ -555,6 +555,8 @@ export default class Player extends CharacterBase {
 
     takeDamage(amount, fromNetwork = false, isCrit = false, sourceX = null, sourceY = null, attacker = null, effectType = null, effectDuration = 0, effectDamage = 0) {
         if (this.isDead) return 0;
+        // v0.00.54: Prevent damage while in modals (Character Status, Inventory, etc.)
+        if (window.game?.ui?.isPaused) return 0;
 
         // v0.29.31: Improved Absolute Barrier (Blocks any immediate damage source)
         // v0.00.42: Also blocks status effects (burn, shock)

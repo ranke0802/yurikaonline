@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.GAME_VERSION = '0.00.53'; // v0.00.53: Player Defense & Spawn Message Fix
+window.GAME_VERSION = '0.00.54'; // v0.00.54: UI Modal Fix & Invincibility during Modals
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';
