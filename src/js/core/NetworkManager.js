@@ -69,28 +69,52 @@ export default class NetworkManager extends EventEmitter {
         });
 
         // Monster Damage Sync (Listen for damage events - Spark / Text)
+        // v0.00.57: Support both single (legacy) and batched updates
+        const handleMonsterDamage = (data) => {
+            if (!data) return;
+            this.emit('monsterDamageReceived', data);
+            if (this.isHost) {
+                this.emit('monsterDamage', {
+                    monsterId: data.mid,
+                    damage: data.dmg,
+                    attackerId: data.aid
+                });
+            }
+        };
+
         this.dbRef.child('monster_damage').on('child_added', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                this.emit('monsterDamageReceived', data);
-                if (this.isHost) {
-                    this.emit('monsterDamage', {
-                        monsterId: data.mid,
-                        damage: data.dmg,
-                        attackerId: data.aid
-                    });
+            handleMonsterDamage(snapshot.val());
+            if (this.isHost) snapshot.ref.remove();
+        });
+
+        this.dbRef.child('monster_damage_batch').on('child_added', (snapshot) => {
+            const batch = snapshot.val();
+            if (batch && batch.items && Array.isArray(batch.items)) {
+                // Check if batch is too old (> 5s)
+                if (Date.now() - batch.ts < 5000) {
+                    batch.items.forEach(item => handleMonsterDamage(item));
                 }
             }
             if (this.isHost) snapshot.ref.remove();
         });
 
         // Player Damage Sync (PvP)
+        const handlePlayerDamage = (data) => {
+            if (data) this.emit('playerDamageReceived', data);
+        };
+
         this.dbRef.child('player_damage').on('child_added', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                this.emit('playerDamageReceived', data);
+            handlePlayerDamage(snapshot.val());
+            if (this.isHost) snapshot.ref.remove();
+        });
+
+        this.dbRef.child('player_damage_batch').on('child_added', (snapshot) => {
+            const batch = snapshot.val();
+            if (batch && batch.items && Array.isArray(batch.items)) {
+                if (Date.now() - batch.ts < 5000) {
+                    batch.items.forEach(item => handlePlayerDamage(item));
+                }
             }
-            // ephemeral PvP damage cleanup (anyone can clean if older than 5s, but usually host)
             if (this.isHost) snapshot.ref.remove();
         });
 
@@ -670,11 +694,10 @@ export default class NetworkManager extends EventEmitter {
 
     sendMonsterDamage(monsterId, damage) {
         if (!this.connected || !this.playerId) return;
-        this.dbRef.child('monster_damage').push({
+        this.queueBatchUpdate('monster_damage', {
             mid: monsterId,
             dmg: Math.round(damage),
-            aid: this.playerId,
-            ts: Date.now()
+            aid: this.playerId
         });
     }
 
@@ -691,13 +714,11 @@ export default class NetworkManager extends EventEmitter {
 
     sendPlayerDamage(targetId, damage) {
         if (!this.connected || !this.playerId) return;
-        // Optimization: Use a push-queue for player damage
-        const ref = this.dbRef.child('player_damage').push();
-        ref.set({
+        // Optimization: Use batch queue for player damage
+        this.queueBatchUpdate('player_damage', {
             tid: targetId,
             dmg: Math.round(damage),
-            aid: this.playerId,
-            ts: Date.now()
+            aid: this.playerId
         });
     }
 
