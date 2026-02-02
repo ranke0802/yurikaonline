@@ -9,6 +9,12 @@ export default class LoginScene extends Scene {
 
     async enter() {
         Logger.info("[LoginScene] Entered");
+
+        // v0.00.57: Play Intro BGM
+        if (this.game.sound) {
+            this.game.sound.loadAndPlayBgm('bgm_intro');
+        }
+
         this.createUI();
     }
 
@@ -45,8 +51,14 @@ export default class LoginScene extends Scene {
         document.getElementById('game-container').appendChild(this.loginUI);
 
         // Bind Events
-        document.getElementById('google-login-btn').onclick = () => this.handleGoogleLogin();
-        document.getElementById('guest-login-btn').onclick = () => this.handleGuestLogin();
+        document.getElementById('google-login-btn').onclick = () => {
+            if (this.game.sound) this.game.sound.playSfx('ui_click');
+            this.handleGoogleLogin();
+        }
+        document.getElementById('guest-login-btn').onclick = () => {
+            if (this.game.sound) this.game.sound.playSfx('ui_click');
+            this.handleGuestLogin();
+        }
     }
 
     async handleGoogleLogin() {

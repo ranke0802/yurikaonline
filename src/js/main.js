@@ -12,6 +12,7 @@ import NetworkManager from './core/NetworkManager.js';
 import MonsterManager from './world/MonsterManager.js';
 import MonsterDataManager from './core/MonsterDataManager.js';
 import { UIManager } from './ui/UIManager.js';
+import SoundManager from './core/SoundManager.js';
 import ObjectPool from './utils/ObjectPool.js';
 import SceneManager from './core/SceneManager.js';
 import WorldScene from './world/scenes/WorldScene.js';
@@ -63,12 +64,15 @@ class Game {
             }
         }, { passive: true });
 
+        // ... (empty to remove)
+
         // 1. Core Systems
         this.input = new InputManager();
         this.auth = new AuthManager();
         this.net = new NetworkManager();
         this.resources = new ResourceManager();
         this.monsterData = new MonsterDataManager(this.resources); // Initialize MonsterDataManager
+        this.sound = new SoundManager(this.resources); // Initialize SoundManager
 
         // Global Reference for AI and Debugging
         window.game = this;

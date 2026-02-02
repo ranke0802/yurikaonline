@@ -429,6 +429,17 @@ export default class Player extends CharacterBase {
             // dir8: 0=right, 1=down-right, 2=down, 3=down-left, 4=left, 5=up-left, 6=up, 7=up-right
             const dir8ToSprite = [3, 1, 1, 1, 2, 0, 0, 0]; // Favor vertical for diagonals
             this.direction = dir8ToSprite[this.direction8];
+
+            // v0.00.57: Footstep SFX (Approx every 0.3s)
+            if (!this.stepTimer) this.stepTimer = 0;
+            this.stepTimer -= dt;
+            const stepInterval = this.isRunning ? 0.25 : 0.35;
+            if (this.stepTimer <= 0) {
+                this.stepTimer = stepInterval;
+                if (window.game?.sound) {
+                    window.game.sound.playSfx(this.isRunning ? 'run_fast' : 'run');
+                }
+            }
         } else {
             this.vx = 0;
             this.vy = 0;
@@ -585,6 +596,9 @@ export default class Player extends CharacterBase {
             this.applyKnockback(Math.cos(angle) * 100, Math.sin(angle) * 100);
         }
 
+        // v0.00.57: Hit SFX
+        if (window.game?.sound) window.game.sound.playSfx('hit');
+
         const validAmount = parseFloat(amount);
         if (isNaN(validAmount)) return 0;
 
@@ -598,6 +612,8 @@ export default class Player extends CharacterBase {
             // v0.00.40: Show crit message properly
             const color = isCrit ? '#ff9f43' : '#ff4757';
             window.game.addDamageText(this.x + this.width / 2, this.y - 40, `-${finalDmg}`, color, isCrit, isCrit ? 'Critical' : null);
+            // v0.00.57: Crit SFX
+            if (isCrit && window.game.sound) window.game.sound.playSfx('crit');
         }
 
         // v0.28.0: Sync HP to DB
@@ -624,6 +640,8 @@ export default class Player extends CharacterBase {
                 if (window.game?.ui) {
                     window.game.ui.logSystemMessage(`⚠️ ${attackerName || '상대'}의 공격을 받아 적대 처리되었습니다!`);
                     window.game.ui.updateHostilityUI();
+                    // v0.00.57: PvP Alert SFX
+                    if (window.game.sound) window.game.sound.playSfx('pvp_alert');
                 }
                 this.saveState(true); // Sync to world immediately
             }
@@ -790,6 +808,9 @@ export default class Player extends CharacterBase {
             this.skillMaxCooldowns.j = tickInterval;
 
             this.animTimer = 0; // Restart attack animation
+
+            // v0.00.57: SFX
+            if (window.game?.sound) window.game.sound.playSfx('magic');
         }
 
         const laserLv = this.skillLevels.laser || 1;
@@ -1268,6 +1289,8 @@ export default class Player extends CharacterBase {
             window.game.ui.updateStatusPopup();
             // v0.29.22: 레벨업 이펙트 호출
             window.game.ui.showLevelUpEffect(this.level);
+            // v0.00.57: SFX
+            if (window.game.sound) window.game.sound.playSfx('level_up');
         }
 
         this.updateDerivedStats();

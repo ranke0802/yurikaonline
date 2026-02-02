@@ -175,6 +175,11 @@ export default class WorldScene extends Scene {
         }
         // v0.00.15: Start Hostility Listeners now that player is ready
         this.net.startHostilityListeners();
+
+        // v0.00.57: Play BGM
+        if (this.game.sound) {
+            this.game.sound.loadAndPlayBgm('bgm_cabin');
+        }
     }
 
     _setupNetworkHandlers() {

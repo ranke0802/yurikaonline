@@ -18,6 +18,11 @@ export default class CharacterSelectionScene extends Scene {
         this.profile = savedData ? savedData.profile : null;
 
         this.createUI();
+
+        // v0.00.57: Intro BGM (Ensure it plays if coming from refresh)
+        if (this.game.sound) {
+            this.game.sound.loadAndPlayBgm('bgm_intro');
+        }
     }
 
     async exit() {
@@ -122,8 +127,15 @@ export default class CharacterSelectionScene extends Scene {
 
         setTimeout(() => {
             this.initCanvasPreview(200);
-            document.getElementById('start-game-btn').onclick = () => this.handleStartGame();
-            document.getElementById('logout-btn').onclick = () => this.game.auth.logout();
+            document.getElementById('start-game-btn').onclick = () => {
+                // v0.00.57: SFX
+                if (this.game.sound) this.game.sound.playSfx('ui_click');
+                this.handleStartGame();
+            }
+            document.getElementById('logout-btn').onclick = () => {
+                if (this.game.sound) this.game.sound.playSfx('ui_close');
+                this.game.auth.logout();
+            }
         }, 10);
     }
 

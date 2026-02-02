@@ -51,7 +51,18 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child('users').on('child_removed', (snapshot) => this._onPlayerRemoved(snapshot));
 
         // Monster Sync
-        this.dbRef.child('monsters').on('child_added', (s) => this.emit('monsterAdded', { id: s.key, ...s.val() }));
+        this.dbRef.child('monsters').on('child_added', (s) => {
+            const val = s.val();
+            this.emit('monsterAdded', { id: s.key, ...val });
+
+            // v0.00.57: Boss BGM Trigger
+            if (val && val.type === 'king_slime') {
+                if (window.game && window.game.sound) {
+                    window.game.sound.loadAndPlayBgm('bgm_boss');
+                    window.game.sound.playSfx('boss_spawn');
+                }
+            }
+        });
         this.dbRef.child('monsters').on('child_changed', (s) => this.emit('monsterUpdated', { id: s.key, ...s.val() }));
         this.dbRef.child('monsters').on('child_removed', (s) => this.emit('monsterRemoved', s.key));
 
@@ -62,6 +73,15 @@ export default class NetworkManager extends EventEmitter {
                 // Ignore old attacks (> 5s)
                 if (Date.now() - data.ts < 5000) {
                     this.emit('monsterAttack', data);
+
+                    // v0.00.57: Audio Triggers
+                    if (window.game && window.game.sound) {
+                        if (data.skill === 'charge') {
+                            window.game.sound.playSfx('monster_charge');
+                        } else if (data.skill === 'roar') {
+                            window.game.sound.playSfx('boss_spawn'); // Reusing boss_spawn/roar sound
+                        }
+                    }
                 }
             }
             // Host cleans up

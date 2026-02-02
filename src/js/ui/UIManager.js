@@ -90,7 +90,7 @@ export class UIManager {
 
         // DELETED Action Bar Tooltips (User requested only inside skill window)
 
-        // 2. Skill popup icons
+        // Skill popup icons
         document.querySelectorAll('.skill-icon').forEach(icon => {
             const skillItem = icon.closest('.skill-item');
             const upBtn = skillItem ? skillItem.querySelector('.skill-up-btn') : null;
@@ -112,6 +112,7 @@ export class UIManager {
                 e.preventDefault();
                 e.stopImmediatePropagation();
             }
+            if (this.game.sound) this.game.sound.playSfx('ui_type');
             this.sendMessage();
         };
         if (sendBtn) {
@@ -124,6 +125,10 @@ export class UIManager {
             const handleStatUp = (e) => {
                 e.preventDefault();
                 if (btn.classList.contains('disabled')) return;
+
+                // v0.00.57: SFX
+                if (this.game.sound) this.game.sound.playSfx('ui_click');
+
                 const stat = btn.getAttribute('data-stat');
                 const p = this.game.localPlayer;
                 if (stat && p && p.statPoints > 0) {
@@ -141,6 +146,10 @@ export class UIManager {
             const handleStatDown = (e) => {
                 e.preventDefault();
                 if (btn.classList.contains('disabled')) return;
+
+                // v0.00.57: SFX
+                if (this.game.sound) this.game.sound.playSfx('ui_click');
+
                 const stat = btn.getAttribute('data-stat');
                 const p = this.game.localPlayer;
                 if (stat && p && this.pendingStats[stat] > 0) {
@@ -513,6 +522,7 @@ export class UIManager {
         document.querySelectorAll('.game-popup').forEach(p => p.classList.add('hidden'));
 
         if (isCurrentlyHidden) {
+            if (this.game.sound) this.game.sound.playSfx('ui_open');
             this.overlay.classList.remove('hidden');
             popup.classList.remove('hidden');
             if (id === 'status-popup') {
@@ -523,6 +533,7 @@ export class UIManager {
             if (id === 'skill-popup') this.updateSkillPopup();
             this.isPaused = true;
         } else {
+            if (this.game.sound) this.game.sound.playSfx('ui_close');
             this.overlay.classList.add('hidden');
             this.isPaused = false;
         }
