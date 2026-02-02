@@ -19,16 +19,22 @@ export default class NetworkManager extends EventEmitter {
         this.userLastSeen = new Map();
         this.cleanupTimer = null;
 
-        // Optimization: Dead Reckoning & Throttling
+        // Phase 1: Optimized sync settings
         this.lastSyncTime = 0;
-        this.syncInterval = 60; // 16Hz Update Rate (v0.27.0 optimization)
+        this.syncInterval = 60; // 16Hz when moving
+        this.idleSyncInterval = 200; // 5Hz when idle (reduced from 60ms)
 
-        // v0.00.23: Dynamic Heartbeat Optimization
+        // Dynamic Heartbeat Optimization
         this.isPlayerMoving = false;
         this.lastHeartbeatTime = 0;
         this.idleHeartbeatInterval = 5000; // 5s when idle
         this.activeHeartbeatInterval = 1000; // 1s when moving
         this.lastPacketData = null;
+
+        // Batch update queue for damage/events
+        this.batchQueue = [];
+        this.batchInterval = 100; // 100ms batch window
+        this.startBatchProcessor();
     }
 
     connect(user) {
@@ -210,8 +216,58 @@ export default class NetworkManager extends EventEmitter {
         Logger.log('Connected to Game Zone.');
     }
 
+    /**
+     * Phase 1: Batch processor for damage/events
+     */
+    startBatchProcessor() {
+        if (this._batchTimer) clearInterval(this._batchTimer);
+        this._batchTimer = setInterval(() => this.flushBatchQueue(), this.batchInterval);
+    }
+
+    stopBatchProcessor() {
+        if (this._batchTimer) {
+            clearInterval(this._batchTimer);
+            this._batchTimer = null;
+        }
+    }
+
+    queueBatchUpdate(type, data) {
+        this.batchQueue.push({ type, data, ts: Date.now() });
+    }
+
+    async flushBatchQueue() {
+        if (this.batchQueue.length === 0 || !this.connected) return;
+
+        const batch = this.batchQueue.splice(0, this.batchQueue.length);
+        const updates = {};
+
+        // Group by type for efficient updates
+        const grouped = batch.reduce((acc, item) => {
+            if (!acc[item.type]) acc[item.type] = [];
+            acc[item.type].push(item.data);
+            return acc;
+        }, {});
+
+        // Create batched updates
+        Object.entries(grouped).forEach(([type, items]) => {
+            const batchId = Date.now();
+            updates[`${type}_batch/${batchId}`] = {
+                items: items.slice(0, 10), // Max 10 items per batch
+                count: items.length,
+                ts: batchId
+            };
+        });
+
+        try {
+            await this.dbRef.update(updates);
+        } catch (e) {
+            Logger.error('Batch update failed:', e);
+        }
+    }
+
     disconnect() {
         if (this._hbInterval) clearInterval(this._hbInterval);
+        this.stopBatchProcessor();
         this.connected = false;
         if (this.playerId && this.dbRef) {
             this.dbRef.child(`users/${this.playerId}`).remove();
@@ -528,49 +584,67 @@ export default class NetworkManager extends EventEmitter {
         });
     }
 
-    // Packet: [x, y, vx, vy, timestamp, name]
-    // Compact array to save bandwidth (360MB daily limit optimization)
+    // Phase 1: Delta synchronization for bandwidth optimization
+    // Only sync changed fields instead of full packet
     sendMovePacket(x, y, vx, vy, name) {
         if (!this.connected || !this.playerId) return;
 
         const now = Date.now();
-        // Throttle Network Calls
-        if (now - this.lastSyncTime < this.syncInterval) return;
 
-        // Validation to prevent Firebase Errors
-        const safeX = (isNaN(x) || x === null || x === undefined) ? 0 : Math.round(x);
-        const safeY = (isNaN(y) || y === null || y === undefined) ? 0 : Math.round(y);
-        const safeVx = (isNaN(vx) || vx === null || vx === undefined) ? 0 : parseFloat(vx.toFixed(2));
-        const safeVy = (isNaN(vy) || vy === null || vy === undefined) ? 0 : parseFloat(vy.toFixed(2));
-
-        // v0.00.23: Track movement state for dynamic heartbeat
-        const isMoving = Math.abs(safeVx) > 0.1 || Math.abs(safeVy) > 0.1;
+        // Adaptive sync interval based on movement state
+        const isMoving = Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1;
         this.isPlayerMoving = isMoving;
 
-        // Idle Suppression: Skip if position and velocity haven't changed meaningfully
-        if (this.lastPacketData) {
-            const [lx, ly, lvx, lvy] = this.lastPacketData;
-            const posChanged = Math.abs(safeX - lx) > 1 || Math.abs(safeY - ly) > 1;
-            const velChanged = Math.abs(safeVx - lvx) > 0.01 || Math.abs(safeVy - lvy) > 0.01;
+        const currentInterval = isMoving ? this.syncInterval : this.idleSyncInterval;
+        if (now - this.lastSyncTime < currentInterval) return;
 
-            // If stationary and state hasn't changed, skip
-            if (!posChanged && !velChanged && !isMoving) return;
+        // Validation
+        const safeX = Math.round(x) || 0;
+        const safeY = Math.round(y) || 0;
+        const safeVx = parseFloat((vx || 0).toFixed(2));
+        const safeVy = parseFloat((vy || 0).toFixed(2));
+
+        // Delta calculation - only send changed fields
+        const updates = {};
+        let hasChanges = false;
+        const basePath = `users/${this.playerId}`;
+
+        // Position delta (threshold: 2 pixels)
+        if (!this.lastPacketData || Math.abs(safeX - this.lastPacketData.x) > 2) {
+            updates[`${basePath}/p/x`] = safeX;
+            hasChanges = true;
+        }
+        if (!this.lastPacketData || Math.abs(safeY - this.lastPacketData.y) > 2) {
+            updates[`${basePath}/p/y`] = safeY;
+            hasChanges = true;
         }
 
-        const packet = [
-            safeX,
-            safeY,
-            safeVx,
-            safeVy,
-            now,
-            name || "Unknown"
-        ];
+        // Velocity - only when moving
+        if (isMoving) {
+            if (!this.lastPacketData ||
+                Math.abs(safeVx - (this.lastPacketData.vx || 0)) > 0.05 ||
+                Math.abs(safeVy - (this.lastPacketData.vy || 0)) > 0.05) {
+                updates[`${basePath}/p/vx`] = safeVx;
+                updates[`${basePath}/p/vy`] = safeVy;
+                hasChanges = true;
+            }
+        }
 
-        this.lastPacketData = packet;
+        // Name only on first packet or change
+        if (!this.lastPacketData || (name && name !== this.lastPacketData.name)) {
+            updates[`${basePath}/p/n`] = name || "Unknown";
+            hasChanges = true;
+        }
+
+        // Timestamp always included for latency calculation
+        updates[`${basePath}/p/ts`] = now;
+
+        if (hasChanges) {
+            this.dbRef.update(updates).catch(e => { });
+            this.lastPacketData = { x: safeX, y: safeY, vx: safeVx, vy: safeVy, name };
+        }
+
         this.lastSyncTime = now;
-
-        // Update Position Node 'p'
-        this.dbRef.child(`users/${this.playerId}/p`).set(packet).catch(e => { });
     }
 
     // v0.28.0: Detailed attack sync [ts, x, y, direction, skillType]

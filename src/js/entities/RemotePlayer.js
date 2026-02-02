@@ -8,17 +8,27 @@ export default class RemotePlayer extends CharacterBase {
         super(x, y, 180);
         this.id = id;
         this.name = "Unknown";
-        this.type = 'player'; // v1.99.38: Explicit type for hostility checks
-        this.hostility = {}; // v0.00.20: Initialize to prevent undefined checks
+        this.type = 'player';
+        this.hostility = {};
 
         this.targetX = x;
         this.targetY = y;
-        this.serverUpdates = []; // Buffer for interpolation: { x, y, vx, vy, ts }
-        this.interpolationDelay = 200; // v0.27.0: Increased for better jitter tolerance (200ms)
+
+        // Phase 1: Enhanced interpolation system
+        this.serverUpdates = [];
+        this.interpolationDelay = 100; // Reduced for lower latency feel
+        this.adaptiveDelay = 100;
+        this.packetJitterHistory = [];
+        this.lastPacketTime = 0;
+
+        // Extrapolation state
+        this.isExtrapolating = false;
+        this.extrapolationConfidence = 0;
+        this.lastKnownVelocity = { x: 0, y: 0 };
 
         // Visuals
         this.sprite = null;
-        this.direction = 1; // Default to Front
+        this.direction = 1;
         this.animFrame = 0;
         this.animTimer = 0;
         this.animSpeed = 10;
@@ -28,20 +38,20 @@ export default class RemotePlayer extends CharacterBase {
         this.chatMessage = null;
         this.chatTimer = 0;
 
-        // v0.28.0: Combat States
+        // Combat States
         this.hp = 100;
         this.maxHp = 100;
-        this.deathTimer = 0; // For 3s death state visual
+        this.deathTimer = 0;
         this.isDying = false;
 
-        // v0.00.26: Status Effect Timers
+        // Status Effect Timers
         this.electrocutedTimer = 0;
         this.burnTimer = 0;
         this.slowRatio = 0;
 
         this._loadSpriteSheet(resourceManager);
 
-        // v0.28.5: Cache Projectile import to stop repeated requests on attack
+        // Cache Projectile import
         if (!RemotePlayer.projectilePromise) {
             RemotePlayer.projectilePromise = import('./Projectile.js');
         }
@@ -137,48 +147,82 @@ export default class RemotePlayer extends CharacterBase {
         }
     }
 
-    // Called when network packet arrives
+    // Phase 1: Enhanced server update with adaptive delay calculation
     onServerUpdate(packet) {
-        // packet: { id, x, y, vx, vy, ts, name, level, party, hostility }
+        const now = Date.now();
+
+        // Update profile fields
         if (packet.name) this.name = packet.name;
-
-        // v1.99.38: Sync profile fields in real-time
-        if (packet.level !== undefined && packet.level !== null) this.level = packet.level;
+        if (packet.level !== undefined) this.level = packet.level;
         if (packet.party !== undefined) this.party = packet.party;
-        if (packet.hostility !== undefined && packet.hostility !== null) this.hostility = packet.hostility;
+        if (packet.hostility !== undefined) this.hostility = packet.hostility;
 
-        this.serverUpdates.push({
+        // Calculate packet jitter for adaptive delay
+        if (this.lastPacketTime > 0) {
+            const jitter = Math.abs(now - this.lastPacketTime - 60); // Expected 60ms interval
+            this.packetJitterHistory.push(jitter);
+            if (this.packetJitterHistory.length > 30) this.packetJitterHistory.shift();
+
+            // Update adaptive delay based on 90th percentile jitter
+            if (this.packetJitterHistory.length >= 10) {
+                const sorted = [...this.packetJitterHistory].sort((a, b) => a - b);
+                const p90 = sorted[Math.floor(sorted.length * 0.9)];
+                this.adaptiveDelay = Math.max(50, Math.min(300, p90 * 2 + 30));
+            }
+        }
+        this.lastPacketTime = now;
+
+        // Validate packet data
+        if (typeof packet.x !== 'number' || typeof packet.y !== 'number') {
+            Logger.warn(`Invalid packet from ${this.id}:`, packet);
+            return;
+        }
+
+        // Add to buffer with deduplication
+        const newUpdate = {
             x: packet.x,
             y: packet.y,
             vx: packet.vx || 0,
             vy: packet.vy || 0,
-            ts: packet.ts || Date.now()
-        });
+            ts: packet.ts || now,
+            receivedAt: now
+        };
 
-        // Limit buffer size
-        if (this.serverUpdates.length > 20) {
-            this.serverUpdates.shift();
+        // Skip if duplicate timestamp
+        if (this.serverUpdates.length > 0) {
+            const last = this.serverUpdates[this.serverUpdates.length - 1];
+            if (Math.abs(newUpdate.ts - last.ts) < 10) return;
         }
 
-        // Sort by timestamp just in case of out-of-order delivery
+        this.serverUpdates.push(newUpdate);
+
+        // Keep only last 2 seconds of updates
+        const cutoff = now - 2000;
+        this.serverUpdates = this.serverUpdates.filter(u => u.ts > cutoff);
+
+        // Sort by timestamp
         this.serverUpdates.sort((a, b) => a.ts - b.ts);
+
+        // Update extrapolation confidence
+        this.extrapolationConfidence = Math.min(1, this.extrapolationConfidence + 0.2);
+        this.lastKnownVelocity = { x: newUpdate.vx, y: newUpdate.vy };
+        this.isExtrapolating = false;
     }
 
     update(dt) {
-        // v0.29.18: Fix tombstone remaining after respawn
-        // v0.00.03: Defensive Check - If HP > 0 but stuck in dead state, force respawn
+        // Handle death/respawn logic
         if (this.isDead || this.isDying) {
             if (this.hp > 0) {
                 this.respawn();
             } else {
-                if (this.deathTimer > 0) {
-                    this.deathTimer -= dt;
-                }
+                if (this.deathTimer > 0) this.deathTimer -= dt;
                 return;
             }
         }
 
-        const renderTime = Date.now() - this.interpolationDelay;
+        // Phase 1: Enhanced interpolation with adaptive delay and extrapolation
+        const effectiveDelay = this.adaptiveDelay || this.interpolationDelay;
+        const renderTime = Date.now() - effectiveDelay;
         let finalX = this.x;
         let finalY = this.y;
         let finalVx = this.vx;
@@ -197,31 +241,44 @@ export default class RemotePlayer extends CharacterBase {
             const p1 = this.serverUpdates[i];
             const p2 = this.serverUpdates[i + 1];
 
-            if (renderTime >= p1.ts && renderTime <= p2.ts) {
-                // Interpolate
-                // v0.28.8: Prevent NaN (Division by Zero) if timestamps are identical
-                const totalTime = p2.ts - p1.ts;
-                const t = totalTime > 0 ? (renderTime - p1.ts) / totalTime : 0;
+            const totalTime = p2.ts - p1.ts;
 
-                finalX = p1.x + (p2.x - p1.x) * t;
-                finalY = p1.y + (p2.y - p1.y) * t;
+            if (renderTime >= p1.ts && renderTime <= p2.ts && totalTime > 0) {
+                // Normal interpolation with smooth curve
+                const t = (renderTime - p1.ts) / totalTime;
+                // Smooth step interpolation
+                const smoothT = t * t * (3 - 2 * t);
+
+                finalX = p1.x + (p2.x - p1.x) * smoothT;
+                finalY = p1.y + (p2.y - p1.y) * smoothT;
                 finalVx = p1.vx + (p2.vx - p1.vx) * t;
                 finalVy = p1.vy + (p2.vy - p1.vy) * t;
+
+                this.isExtrapolating = false;
+                this.extrapolationConfidence = 1;
+
             } else if (renderTime > p2.ts) {
-                // Dead Reckoning: Running out of packets
+                // Phase 1: Enhanced extrapolation with confidence decay
                 const delta = (renderTime - p2.ts) / 1000;
-                // v0.27.0: Stop if too far out (1s) to prevent ghosting
-                if (delta < 1.0) {
-                    finalX = p2.x + p2.vx * delta;
-                    finalY = p2.y + p2.vy * delta;
+
+                if (delta < 0.5) {
+                    // Apply velocity with decay
+                    const decay = Math.max(0, 1 - delta * 2);
+                    finalX = p2.x + p2.vx * delta * decay;
+                    finalY = p2.y + p2.vy * delta * decay;
+                    finalVx = p2.vx * decay;
+                    finalVy = p2.vy * decay;
+
+                    this.isExtrapolating = true;
+                    this.extrapolationConfidence = Math.max(0, 1 - delta * 2);
                 } else {
                     finalX = p2.x;
                     finalY = p2.y;
+                    finalVx = 0;
+                    finalVy = 0;
+                    this.extrapolationConfidence = 0;
                 }
-                finalVx = p2.vx;
-                finalVy = p2.vy;
             } else {
-                // Snap to oldest if too behind
                 finalX = p1.x;
                 finalY = p1.y;
                 finalVx = p1.vx;
@@ -229,22 +286,38 @@ export default class RemotePlayer extends CharacterBase {
             }
 
             // Cleanup old packets
-            while (this.serverUpdates.length > 2 && this.serverUpdates[1].ts < renderTime) {
+            while (this.serverUpdates.length > 2 && this.serverUpdates[0].ts < renderTime - 100) {
                 this.serverUpdates.shift();
             }
+        } else if (this.serverUpdates.length === 1) {
+            // Single packet - use with velocity
+            const p = this.serverUpdates[0];
+            const delta = (renderTime - p.ts) / 1000;
+
+            if (delta < 0.2) {
+                finalX = p.x + p.vx * delta;
+                finalY = p.y + p.vy * delta;
+            } else {
+                finalX = p.x;
+                finalY = p.y;
+            }
+            finalVx = p.vx;
+            finalVy = p.vy;
         }
 
-        // Apply calculated position with gentle smoothing (v0.27.0)
-        // If distance is huge (teleport), snap. Else, Lerp.
+        // Apply position with adaptive smoothing
         const dx = finalX - this.x;
         const dy = finalY - this.y;
         const distSq = dx * dx + dy * dy;
 
-        if (distSq > 400 * 400) { // If distance is greater than 400 pixels, snap
+        if (distSq > 400 * 400) {
+            // Teleport - snap immediately
             this.x = finalX;
             this.y = finalY;
         } else {
-            const lerpFactor = 0.25; // Smooth but responsive (approx 1/4 per frame)
+            // Adaptive lerp based on distance
+            const dist = Math.sqrt(distSq);
+            const lerpFactor = Math.min(0.5, 0.1 + dist * 0.01);
             this.x += dx * lerpFactor;
             this.y += dy * lerpFactor;
         }

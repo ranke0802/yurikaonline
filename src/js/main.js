@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.GAME_VERSION = '0.00.55'; // v0.00.55: Global Safety State Sync (Aggro Exclusion)
+window.GAME_VERSION = '0.00.56'; // v0.00.56: Data Optimization & Sync Enhancement
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';
