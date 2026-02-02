@@ -3,11 +3,52 @@
 
 **Yurika Online**은 HTML5 Canvas와 Firebase를 기반으로 구축된 최첨단 에이전트 기반 MMORPG입니다. 이 프로젝트는 현대적인 웹 기술을 사용하여 부드러운 멀티플레이어 경험과 화려한 마법 전투 시스템을 구현하는 것을 목표로 합니다.
 
-현재 버전: **0.00.58**
+현재 버전: **0.00.63**
 
 ---
 
-## 📋 최신 업데이트 내역 (0.00.58)
+## 📋 최신 업데이트 내역 (0.00.59)
+
+### v0.00.59 (2026-02-02) - 네트워크 및 오디오 안정화
+*   **네트워크 동기화(보이지 않는 캐릭터) 수정**: 원격 플레이어가 생성 직후 사라지던(Ghost Cleanup) 문제를 해결했습니다.
+    *   **안전한 TS 할당**: 네트워크 패킷에서 Timestamp가 누락되어도 서버 시간을 기준으로 안전하게 생성되도록 폴백(Fallback) 로직을 추가했습니다.
+    *   **즉시 위치 동기화**: 입장 직후 위치 정보를 강제로 브로드캐스트하여 "투명 인간" 현상을 차단했습니다.
+*   **로그인 화면 오디오 버그 수정**:
+    *   **BGM 재생 실패 해결**: 새로고침 시 로그인 화면에서 BGM이 나오지 않던 문제를 해결했습니다. (AudioContext Resume Promise 대기 로직 적용)
+    *   **반응형 로딩**: 클릭 즉시 오디오 엔진이 깨어나며 음악이 부드럽게 시작됩니다.
+*   **파티 시스템 복구**:
+    *   **초대 기능 정상화**: `/p [닉네임]` 명령어가 작동하지 않던 버그를 수정하고, `NetworkManager`에 누락된 초대 로직을 구현했습니다.
+    *   **UI 연동**: 파티 초대 팝업 및 수락/거절 처리가 정상적으로 동작합니다.
+*   **UI/UX 개선**:
+    *   **채팅 가시성**: 말풍선에서 사라졌던 "아이디 : " 접두어를 복구하고, 텍스트 정렬을 중앙(`center`)으로 교정했습니다.
+
+### v0.00.6x (2026-02-02) Legacy Archive
+(이전 오디오 실험 버전들은 v0.00.59로 통합 및 안정화되었습니다.)
+
+### v0.00.63 (2026-02-02)
+- **Global Audio Coverage**:
+    - **Login Unlock**: BGM now starts immediately at the Login Screen (no more silence!).
+    - **Responsive UI**: All buttons now utilize a "Pop & Bounce" visual effect with hover sounds.
+    - **New SFX**: Added Loot (Coin), Equip (Clink), and Error (Buzz) sounds.
+
+### v0.00.62 (2026-02-02)
+- **Audio Polish**: Finalized 16-bit sound engine.
+- **Robust Audio Unlock**: Added "Click to Start Audio" logic in Character Select to solve "Silence on Refresh" (Browser Policy).
+- **Sound Redesign**:
+    - Removed "Static" noise from drums, replaced with synthesized kicks/snares.
+    - Added **Flashy FM Instruments** (Brass, Harp, Warp Bass).
+    - Upgraded BGM to use Arpeggios and Harmonized Leads.
+
+### 0.00.61 - 16-bit 오디오 시스템 업그레이드
+*   **16-bit 사운드 엔진**: 고전 게임기(SNES) 스타일의 사운드를 구현하기 위해 `SoundManager`에 **FM 신디사이저**와 **리버브(Reverb)** 기능을 추가했습니다.
+*   **풍성한 악기**: 단순 파형 대신 `FM Bell`, `Rich String`, `FM EPiano`, `Snare` 등 다양한 질감의 악기를 사용합니다.
+*   **공간감 추가**: 모든 소리에 공간 울림(Convolution Reverb)을 적용하여 깊이감을 더했습니다.
+
+### 0.00.59 - 8-bit 사운드 시스템 개선
+*   **사운드 엔진 재작성**: `SoundManager.js` 리팩토링을 통해 BGM 겹침 현상을 해결하고, 안정적인 루프 재생을 구현했습니다.
+*   **효과음(SFX) 품질 향상**: 기존의 노이즈 섞인 소리를 깔끔한 8-bit 파형(Square, Sawtooth)으로 교체했습니다.
+*   **스킬 사운드 추가**: 체인 라이트닝(전기음), 파이어볼(폭발음), 매직 미사일, 쉴드 등 스킬별 고유 사운드를 적용했습니다.
+*   **버그 수정**: 보스 처치 후 필드 BGM으로 복귀하지 않던 문제를 수정했습니다.
 
 ### 0.00.58 - 8-bit 사운드 시스템 대규모 확장
 

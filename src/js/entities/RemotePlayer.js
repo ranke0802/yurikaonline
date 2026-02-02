@@ -346,6 +346,27 @@ export default class RemotePlayer extends CharacterBase {
             }
         }
 
+        // v0.00.63: Remote Player Footsteps (Auditory Cues for Approach)
+        if (this.state === 'move') {
+            if (!this.stepTimer) this.stepTimer = 0;
+            this.stepTimer -= dt;
+            if (this.stepTimer <= 0) {
+                this.stepTimer = 0.4; // Default walk interval
+                if (window.game?.sound) {
+                    // Simple distance check to avoid cacophony
+                    const distToLocal = window.game.localPlayer
+                        ? Math.sqrt((this.x - window.game.localPlayer.x) ** 2 + (this.y - window.game.localPlayer.y) ** 2)
+                        : 9999;
+
+                    if (distToLocal < 800) { // Only play if audible
+                        window.game.sound.playSfx('footstep_grass');
+                    }
+                }
+            }
+        } else {
+            this.stepTimer = 0;
+        }
+
         // Remote Lightning Logic
         // v0.00.07: Fix - Only trigger lightning visual if current skill is 'laser'
         if (this.state === 'attack' && this.currentSkill === 'laser') {

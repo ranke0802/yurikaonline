@@ -335,6 +335,12 @@ export class Projectile {
         if (window.game) {
             window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3);
             for (let i = 0; i < 15; i++) window.game.addSpark(this.x, this.y);
+            // v0.00.63: Explosion SFX
+            if (this.type === 'fireball' && window.game.sound) {
+                window.game.sound.playSfx('fireball_explosion');
+            } else if (this.type === 'missile' && window.game.sound) {
+                window.game.sound.playSfx('missile_hit');
+            }
         }
 
         const net = window.game?.net;

@@ -47,7 +47,8 @@ export default class Player extends CharacterBase {
 
         // PvP & Party (v0.00.14)
         this.hostileTargets = new Map(); // Map<UID, Name>
-        this.party = null; // { id: string, members: string[] }
+
+        this.party = { members: [this.id] }; // Initialize with selfstring, members: string[] }
         this.partyInvite = null; // { senderId, senderName, ts }
 
         this.skillLevels = {
@@ -430,14 +431,14 @@ export default class Player extends CharacterBase {
             const dir8ToSprite = [3, 1, 1, 1, 2, 0, 0, 0]; // Favor vertical for diagonals
             this.direction = dir8ToSprite[this.direction8];
 
-            // v0.00.57: Footstep SFX (Approx every 0.3s)
+            // v0.00.57: Footstep SFX (Refined)
             if (!this.stepTimer) this.stepTimer = 0;
             this.stepTimer -= dt;
-            const stepInterval = this.isRunning ? 0.25 : 0.35;
+            const stepInterval = this.isRunning ? 0.25 : 0.4;
             if (this.stepTimer <= 0) {
                 this.stepTimer = stepInterval;
                 if (window.game?.sound) {
-                    window.game.sound.playSfx(this.isRunning ? 'run_fast' : 'run');
+                    window.game.sound.playSfx('footstep_grass');
                 }
             }
         } else {
@@ -810,7 +811,8 @@ export default class Player extends CharacterBase {
             this.animTimer = 0; // Restart attack animation
 
             // v0.00.57: SFX
-            if (window.game?.sound) window.game.sound.playSfx('magic');
+            if (window.game?.sound) window.game.sound.playSfx('lightning');
+            if (window.game?.sound) window.game.sound.playSfx('lightning_chain');
         }
 
         const laserLv = this.skillLevels.laser || 1;
@@ -947,6 +949,8 @@ export default class Player extends CharacterBase {
             const cost = 4 + (lv - 1) * 3;
             if (this.useMana(cost)) {
                 this.triggerAction(`${this.name} : 매직 미사일 !!`);
+                if (window.game?.sound) window.game.sound.playSfx('missile_launch');
+                if (window.game?.sound) window.game.sound.playSfx('magic_cast');
 
                 // Base 0.7s, reduced by CDR
                 const baseCD = 0.7;
@@ -1061,6 +1065,8 @@ export default class Player extends CharacterBase {
             const cost = 12 + (lv - 1) * 4; // v1.99.32: 12 base, +4 per level
             if (this.useMana(cost)) {
                 this.triggerAction(`${this.name} : 파이어볼 !!`);
+                if (window.game?.sound) window.game.sound.playSfx('fireball_cast');
+                if (window.game?.sound) window.game.sound.playSfx('magic_cast');
                 this.skillCooldowns.u = 2.0; // v1.99.31: Reduced to 2s
 
                 // v0.22.3: Visual Attack FeedBack
@@ -1099,6 +1105,8 @@ export default class Player extends CharacterBase {
             // v0.00.42: Adjusted mana cost (20) and cooldown (3s)
             if (this.useMana(20)) {
                 this.triggerAction(`${this.name} : 앱솔루트 베리어 !!`);
+                if (window.game?.sound) window.game.sound.playSfx('shield_activate');
+                if (window.game?.sound) window.game.sound.playSfx('magic_cast');
 
                 // v0.22.3: Visual Attack FeedBack
                 this.isAttacking = true;
@@ -1629,9 +1637,19 @@ export default class Player extends CharacterBase {
         ctx.stroke();
 
         ctx.fillStyle = '#2d3436';
+        ctx.fillStyle = '#2d3436';
         ctx.textAlign = 'center';
         ctx.fillText(this.chatMessage, x, by + 19, 190);
         ctx.restore();
+    }
+
+    addToParty(uid) {
+        if (!this.party.members.includes(uid)) {
+            this.party.members.push(uid);
+            // Sync party state to network so others see it (via profile)
+            this.saveState();
+            if (window.game && window.game.ui) window.game.ui.updatePartyUI();
+        }
     }
 
     drawHUD(ctx, centerX, y) {

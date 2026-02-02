@@ -19,9 +19,35 @@ export default class CharacterSelectionScene extends Scene {
 
         this.createUI();
 
-        // v0.00.57: Intro BGM (Ensure it plays if coming from refresh)
+        // v0.00.62: Robust Audio Unlock
         if (this.game.sound) {
-            this.game.sound.loadAndPlayBgm('bgm_intro');
+            const sound = this.game.sound;
+            const isSuspended = !sound.ctx || sound.ctx.state === 'suspended';
+
+            if (isSuspended) {
+                const unlock = () => {
+                    sound.initOrResume();
+                    sound.resume().then(() => {
+                        const bgmUrl = '/assets/data/music/bgm_intro.json';
+                        // Use loadJSON correctly (it returns a promise)
+                        this.game.resources.loadJSON(bgmUrl).then(data => {
+                            this.game.sound.playBgm(data, 'bgm_intro');
+                        }).catch(e => console.warn('BGM Load Failed', e));
+                    });
+
+                    window.removeEventListener('click', unlock);
+                    window.removeEventListener('touchstart', unlock);
+                    window.removeEventListener('keydown', unlock);
+                };
+                window.addEventListener('click', unlock);
+                window.addEventListener('touchstart', unlock);
+                window.addEventListener('keydown', unlock);
+            } else {
+                // Already running, just ensure BGM is correct if not already playing
+                if (sound.currentBgmId !== 'bgm_intro') {
+                    sound.playBgm(this.game.resources.getJSON('/assets/data/music/bgm_intro.json'), 'bgm_intro');
+                }
+            }
         }
     }
 

@@ -10,9 +10,36 @@ export default class LoginScene extends Scene {
     async enter() {
         Logger.info("[LoginScene] Entered");
 
-        // v0.00.57: Play Intro BGM
+        // v0.00.64: Preload BGM immediately to eliminate "slow start" feeling on click
+        this.game.resources.loadJSON('/assets/data/music/bgm_intro.json').catch(e => { });
+
         if (this.game.sound) {
-            this.game.sound.loadAndPlayBgm('bgm_intro');
+            // Check state without forcing resume immediately to avoid console warnings
+            const sound = this.game.sound;
+            const isSuspended = !sound.ctx || sound.ctx.state === 'suspended';
+
+            if (isSuspended) {
+                const unlock = () => {
+                    // Remove listeners immediately to prevent multiple triggers
+                    window.removeEventListener('click', unlock);
+                    window.removeEventListener('touchstart', unlock);
+                    window.removeEventListener('keydown', unlock);
+
+                    sound.initOrResume();
+                    sound.resume().then(() => {
+                        sound.loadAndPlayBgm('bgm_intro');
+                    }).catch(e => {
+                        console.warn('Audio Resume Failed', e);
+                        // Try playing anyway in case state updated
+                        sound.loadAndPlayBgm('bgm_intro');
+                    });
+                };
+                window.addEventListener('click', unlock);
+                window.addEventListener('touchstart', unlock);
+                window.addEventListener('keydown', unlock);
+            } else {
+                sound.loadAndPlayBgm('bgm_intro');
+            }
         }
 
         this.createUI();
@@ -29,6 +56,7 @@ export default class LoginScene extends Scene {
         this.loginUI = document.createElement('div');
         this.loginUI.id = 'login-scene-ui';
         this.loginUI.className = 'scene-overlay';
+        const version = window.GAME_VERSION || 'v0.00.63';
 
         this.loginUI.innerHTML = `
             <div class="login-card glass">
@@ -44,7 +72,7 @@ export default class LoginScene extends Scene {
                     </button>
                 </div>
                 
-                <div class="version-tag">v0.00.02</div>
+                <div class="version-tag">${version}</div>
             </div>
         `;
 

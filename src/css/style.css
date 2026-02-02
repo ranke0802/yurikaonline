@@ -136,6 +136,46 @@ html {
     pointer-events: auto;
 }
 
+/* v0.00.63: Global Interactive Feedback (Scale & Bounce) */
+button,
+.btn,
+.skill-icon,
+.item-slot,
+.stat-up-btn,
+.stat-down-btn,
+.close-popup,
+.login-btn,
+.action-btn {
+    transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    /* Slight bounce */
+}
+
+button:hover,
+.btn:hover,
+.skill-icon:hover,
+.item-slot:hover,
+.stat-up-btn:hover,
+.stat-down-btn:hover,
+.close-popup:hover,
+.login-btn:hover,
+.action-btn:hover {
+    transform: scale(1.08) !important;
+    z-index: 100;
+    /* Pop to front */
+}
+
+button:active,
+.btn:active,
+.skill-icon:active,
+.item-slot:active,
+.stat-up-btn:active,
+.stat-down-btn:active,
+.close-popup:active,
+.login-btn:active,
+.action-btn:active {
+    transform: scale(0.95) !important;
+}
+
 /* Skill Buttons & Action Bar */
 .action-buttons {
     position: absolute;

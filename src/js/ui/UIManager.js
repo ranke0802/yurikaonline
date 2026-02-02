@@ -19,8 +19,33 @@ export class UIManager {
                 screen.orientation.lock('portrait').catch(() => { });
             }
         }
+
+        // v0.00.63: Global UI Audio & Visual Feedback Delegation
+        this.setupGlobalInteractions();
     }
 
+    setupGlobalInteractions() {
+        const INTERACTIVE_SELECTORS = 'button, .btn, .skill-icon, .item-slot, .stat-up-btn, .stat-down-btn, .close-popup, .login-btn, .action-btn';
+
+        document.body.addEventListener('mouseover', (e) => {
+            const target = e.target.closest(INTERACTIVE_SELECTORS);
+            if (target && !target.disabled && !target.classList.contains('disabled')) {
+                // Debounce hover sound slightly to prevent spam
+                if (!target._hoverSoundPlayed) {
+                    if (this.game.sound) this.game.sound.playSfx('ui_hover');
+                    target._hoverSoundPlayed = true;
+                    setTimeout(() => target._hoverSoundPlayed = false, 100);
+                }
+            }
+        });
+
+        document.body.addEventListener('click', (e) => {
+            const target = e.target.closest(INTERACTIVE_SELECTORS);
+            if (target && !target.disabled && !target.classList.contains('disabled')) {
+                if (this.game.sound) this.game.sound.playSfx('ui_click');
+            }
+        });
+    }
 
     setupFullscreenListeners() {
         const updateClass = () => {
@@ -30,10 +55,7 @@ export class UIManager {
 
             // v0.00.50: Force Portrait Lock when in Fullscreen (Mobile/PWA support)
             if (isFull && screen.orientation && screen.orientation.lock) {
-                // 'portrait-primary' is safer for mobile, or just 'portrait'
-                screen.orientation.lock('portrait').catch(err => {
-                    // console.log('[UIManager] Orientation lock failed (not supported or not trusted):', err);
-                });
+                screen.orientation.lock('portrait').catch(err => { });
             }
         };
         document.addEventListener('fullscreenchange', updateClass);
@@ -112,7 +134,7 @@ export class UIManager {
                 e.preventDefault();
                 e.stopImmediatePropagation();
             }
-            if (this.game.sound) this.game.sound.playSfx('ui_type');
+            if (this.game.sound) this.game.sound.playSfx('ui_chat_send');
             this.sendMessage();
         };
         if (sendBtn) {
@@ -292,14 +314,19 @@ export class UIManager {
             });
             chatInput.addEventListener('keydown', (e) => {
                 // v0.00.14: Stop propagation to prevent InputHandler from seeing these keys
-                // This fixes Spacebar scrolling issues and WASD movement while typing
                 e.stopPropagation();
 
                 if (e.isComposing) return; // Prevent double trigger with IME
 
+                // v0.00.63: Typing Sound
+                if (this.game.sound && e.key.length === 1) { // Only printable chars
+                    this.game.sound.playSfx('ui_type');
+                }
+
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    e.stopPropagation(); // v0.26.3: Prevent global listener from re-focusing
+                    e.stopPropagation();
+                    if (this.game.sound) this.game.sound.playSfx('ui_chat_send'); // v0.00.63: Send Sound
                     this.sendMessage();
                     chatInput.value = '';
                     chatInput.blur();
@@ -315,6 +342,25 @@ export class UIManager {
         // Listen for Network Chats (v0.26.0)
         if (this.game.net) {
             this.game.net.on('chatReceived', (data) => this._onChatReceived(data));
+
+            // v0.00.65: Party System Listeners (Moved from Player.js to avoid constructor errors)
+            this.game.net.on('partyInviteReceived', (data) => {
+                this.showGenericModal(
+                    '파티 초대',
+                    `${data.fromName}님이 파티에 초대했습니다.`,
+                    () => this.game.net.respondToInvite(data.id, data.from, true),
+                    () => this.game.net.respondToInvite(data.id, data.from, false)
+                );
+            });
+
+            this.game.net.on('partyResponseReceived', (data) => {
+                if (data.accept) {
+                    this.logSystemMessage(`✅ ${data.fromName}님이 파티 초대를 수락했습니다.`);
+                    if (this.game.localPlayer) this.game.localPlayer.addToParty(data.from);
+                } else {
+                    this.logSystemMessage(`❌ ${data.fromName}님이 파티 초대를 거절했습니다.`);
+                }
+            });
         }
 
         // v0.26.0: Global Enter to focus chat (PC Convenience)
@@ -1317,10 +1363,10 @@ export class UIManager {
                     input.value = '';
                     return;
                 }
-                const result = await this.game.net.inviteToParty(targetName);
-                if (result === 'SENT') this.logSystemMessage(`📩 ${targetName}님에게 파티 초대를 보냈습니다.`);
+                const result = await this.game.net.inviteToParty(param);
+                if (result === 'SENT') this.logSystemMessage(`📩 ${param}님에게 파티 초대를 보냈습니다.`);
                 else if (result === 'SELF') this.logSystemMessage(`🚫 자기 자신을 초대할 수 없습니다.`);
-                else if (result === 'NOT_FOUND') this.logSystemMessage(`🚫 사용자를 찾을 수 없습니다: ${targetName}`);
+                else if (result === 'NOT_FOUND') this.logSystemMessage(`🚫 사용자를 찾을 수 없습니다: ${param}`);
                 else this.logSystemMessage(`🚫 오류가 발생했습니다.`);
 
                 input.value = '';
@@ -1349,11 +1395,12 @@ export class UIManager {
         }
 
         // Trigger Speech Bubble on Character
+        const bubbleText = `${data.name}: ${data.text}`;
         if (data.uid === this.game.net.playerId) {
-            if (this.game.localPlayer) this.game.localPlayer.showSpeechBubble(data.text);
+            if (this.game.localPlayer) this.game.localPlayer.showSpeechBubble(bubbleText);
         } else {
             const rp = this.game.remotePlayers.get(data.uid);
-            if (rp) rp.showSpeechBubble(data.text);
+            if (rp) rp.showSpeechBubble(bubbleText);
         }
     }
 
