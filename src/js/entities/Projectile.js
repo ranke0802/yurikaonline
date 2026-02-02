@@ -53,6 +53,16 @@ export class Projectile {
             this.turnEase = 0;
             this.wobblePhase = Math.random() * Math.PI * 2;
             this.wobbleSpeed = 5 + Math.random() * 5;
+
+            // v0.00.65: Magic Missile Logic Update
+            // Lock onto initial target position
+            if (this.target) {
+                this.homingX = this.target.x;
+                this.homingY = this.target.y;
+            } else {
+                this.homingX = x;
+                this.homingY = y;
+            }
         }
     }
 
@@ -104,56 +114,61 @@ export class Projectile {
                 this.homingDelay -= dt;
                 this.vx *= 0.98;
                 this.vy *= 0.98;
+
+                // Keep updating homing pos while target is alive during delay
+                if (this.target && !this.target.isDead) {
+                    this.homingX = this.target.x;
+                    this.homingY = this.target.y;
+                }
             } else {
-                // v0.00.05: Smart Retargeting (Monsters + Players)
-                // v1.99.38: Per-frame target validation (Robust player check)
-                const isPlayer = this.target && (this.target.type === 'player' || (!this.target.isMonster && this.target.id));
-                if (isPlayer && owner && !owner.canAttackTarget(this.target)) {
-                    this.target = null;
+                // v0.00.65: Magic Missile Logic Update
+                // If target is alive, update homing position.
+                // If target is dead/null, KEEP last homing position (Do NOT retarget).
+
+                if (this.target && !this.target.isDead) {
+                    this.homingX = this.target.x;
+                    this.homingY = this.target.y;
                 }
 
-                if ((this.target && this.target.isDead) || !this.target) {
-                    this.target = this.findNearestTarget(monsters);
-                }
+                // Steer towards homingX/Y
+                const dx = this.homingX - this.x;
+                const dy = this.homingY - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
 
-                if (this.target) {
-                    // v1.99.31: Monster x/y are already centers. No offset needed.
-                    const tx = this.target.x;
-                    const ty = this.target.y;
+                if (dist > 10) {
+                    this.turnEase = Math.min(1.0, this.turnEase + dt * 5.0);
+                    const normX = (dx / dist) * this.speed;
+                    const normY = (dy / dist) * this.speed;
 
-                    const dx = tx - this.x;
-                    const dy = ty - this.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const steerMulti = 50;
+                    const steerX = (normX - this.vx) * steerMulti * this.turnEase;
+                    const steerY = (normY - this.vy) * steerMulti * this.turnEase;
+                    this.vx += steerX * dt;
+                    this.vy += steerY * dt;
 
-                    if (dist > 5) {
-                        this.turnEase = Math.min(1.0, this.turnEase + dt * 5.0); // v0.33.0: Faster ramp-up (check plan)
-                        const normX = (dx / dist) * this.speed;
-                        const normY = (dy / dist) * this.speed;
-                        // v0.33.0: Stronger steering force (was 25)
-                        const steerMulti = 50;
-                        const steerX = (normX - this.vx) * steerMulti * this.turnEase;
-                        const steerY = (normY - this.vy) * steerMulti * this.turnEase;
-                        this.vx += steerX * dt;
-                        this.vy += steerY * dt;
-                        const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                        if (currentSpeed > 0) {
-                            this.vx = (this.vx / currentSpeed) * this.speed;
-                            this.vy = (this.vy / currentSpeed) * this.speed;
-                        }
+                    const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                    if (currentSpeed > 0) {
+                        this.vx = (this.vx / currentSpeed) * this.speed;
+                        this.vy = (this.vy / currentSpeed) * this.speed;
+                    }
 
-                        // v1.99.38: Added final guard before direct hit
-                        const targetIsPlayer = this.target.type === 'player' || (!this.target.isMonster && this.target.id);
-                        // v0.33.0: More generous hit radius to prevent orbiting
+                    // Check if we hit the INTENDED target (if valid)
+                    if (this.target && !this.target.isDead) {
                         if (dist < (80 + (this.target.width || 80) / 2)) {
-                            // v0.00.43: Fix Infinite Orbiting (Owner check fails for Monster Attacks)
-                            // If it's a monster attack, we skip the owner.canAttackTarget check (monsters always attack)
+                            // v0.00.43: Fix Infinite Orbiting check
+                            const owner = (window.game?.localPlayer?.id === this.ownerId) ? window.game.localPlayer : window.game?.remotePlayers?.get(this.ownerId);
+                            const targetIsPlayer = this.target.type === 'player' || (!this.target.isMonster && this.target.id);
+
                             if (this.isMonsterAttack || !targetIsPlayer || (owner && owner.canAttackTarget(this.target))) {
                                 this.hit(this.target, monsters);
                             }
                         }
                     }
                 } else {
-                    if (Math.abs(this.vx) < 1 && Math.abs(this.vy) < 1) this.isDead = true;
+                    // Reached destination (homingX/Y) but no hit?
+                    // If target was dead, we just explode/vanish here.
+                    this.isDead = true;
+                    // Optional: Add small fizzle effect?
                 }
             }
         }
