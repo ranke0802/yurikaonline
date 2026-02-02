@@ -107,9 +107,9 @@
             ]
         },
         {
-            "instrument": "rich_string",
-            "type": "sawtooth",
-            "gain": 0.1,
+            "instrument": "fm_bell",
+            "type": "sine",
+            "gain": 0.15,
             "notes": [
                 [
                     "E3",
