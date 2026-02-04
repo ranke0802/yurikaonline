@@ -955,7 +955,7 @@ export class UIManager {
                     title: "4. 슬라임 30마리 처치 (소환)",
                     task: `진행도: ${count}/30`,
                     reward: "대왕 슬라임 소환",
-                    canClaim: count >= 30 && this.game.net?.isHost, // Host can summon
+                    canClaim: count >= 30, // v0.00.77: Shared Summon
                     claimFn: () => {
                         if (this.game.monsterManager) {
                             this.game.monsterManager._spawnBoss(false);

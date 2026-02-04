@@ -697,7 +697,8 @@ export default class NetworkManager extends EventEmitter {
             y: Math.round(data.y || 0),
             hp: Math.round(data.hp || 0),
             maxHp: Math.round(data.maxHp || 100),
-            type: data.type || 'slime'
+            type: data.type || 'slime',
+            chargeOnly: data.chargeOnly || false // v0.00.76+
         };
 
         this.dbRef.child(`monsters/${id}`).set(safeData).catch(e => { });

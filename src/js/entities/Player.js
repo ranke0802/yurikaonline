@@ -41,8 +41,10 @@ export default class Player extends CharacterBase {
         this.questData = {
             slimeKills: 0,
             slimeQuestClaimed: false,
+            slime30QuestClaimed: false, // v0.00.75+
             bossKilled: false,
-            bossQuestClaimed: false
+            bossQuestClaimed: false,
+            bossClearCount: 0 // v0.00.75+
         };
 
         // PvP & Party (v0.00.14)
