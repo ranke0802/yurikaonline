@@ -272,42 +272,71 @@ export default class SkillRenderer {
         ctx.save();
 
         const dist = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-        const segments = Math.max(2, Math.floor(dist / 20)); // Segment every 20px
-        const spread = 8 * intensity;
+        const segments = Math.max(3, Math.floor(dist / 15)); // v0.00.79: Denser segments
+        const spread = 12 * intensity; // High voltage spread
 
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
+        // Path generator for organic lightning
+        const getJaggedPoints = (startX, startY, endX, endY, segs, spr) => {
+            const pts = [{ x: startX, y: startY }];
+            const angle = Math.atan2(endY - startY, endX - startX);
+            const perpAngle = angle + Math.PI / 2;
+            for (let i = 1; i < segs; i++) {
+                const ratio = i / segs;
+                const px = startX + (endX - startX) * ratio;
+                const py = startY + (endY - startY) * ratio;
+                const offset = (Math.random() - 0.5) * spr * 2;
+                pts.push({
+                    x: px + Math.cos(perpAngle) * offset,
+                    y: py + Math.sin(perpAngle) * offset
+                });
+            }
+            pts.push({ x: endX, y: endY });
+            return pts;
+        };
 
-        for (let i = 1; i < segments; i++) {
-            const ratio = i / segments;
-            const px = x1 + (x2 - x1) * ratio;
-            const py = y1 + (y2 - y1) * ratio;
+        const drawPath = (points) => {
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+        };
 
-            // Random jitter perpendicular to the path
-            const angle = Math.atan2(y2 - y1, x2 - x1) + Math.PI / 2;
-            const offset = (Math.random() - 0.5) * spread * 2;
+        const mainPoints = getJaggedPoints(x1, y1, x2, y2, segments, spread);
 
-            ctx.lineTo(px + Math.cos(angle) * offset, py + Math.sin(angle) * offset);
-        }
-
-        ctx.lineTo(x2, y2);
-
-        // Styling
+        // 1. Layer 1: Distant Glow (Atmospheric)
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-
-        // Outer Glow
-        ctx.strokeStyle = '#48dbfb';
-        ctx.lineWidth = 3 * intensity;
-        ctx.shadowBlur = 10 * intensity;
+        ctx.shadowBlur = 25 * intensity;
         ctx.shadowColor = '#00d2ff';
+        ctx.strokeStyle = 'rgba(72, 219, 251, 0.2)';
+        ctx.lineWidth = 10 * intensity;
+        drawPath(mainPoints);
         ctx.stroke();
 
-        // Inner Sharp Core
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1 * intensity;
-        ctx.shadowBlur = 0;
+        // 2. Layer 2: Main High-Voltage Trunk (Cyan)
+        ctx.shadowBlur = 10 * intensity;
+        ctx.strokeStyle = '#48dbfb';
+        ctx.lineWidth = 4.5 * intensity;
+        drawPath(mainPoints);
         ctx.stroke();
+
+        // 3. Layer 3: Ultra-bright Core (Pure White)
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.8 * intensity;
+        drawPath(mainPoints);
+        ctx.stroke();
+
+        // 4. Side Arcs (Minor jittery bolts)
+        ctx.globalAlpha = 0.6;
+        for (let s = 0; s < 2; s++) {
+            const subPoints = getJaggedPoints(x1, y1, x2, y2, segments, spread * 1.8);
+            ctx.strokeStyle = s === 0 ? '#00d2ff' : '#74b9ff';
+            ctx.lineWidth = 0.8 * intensity;
+            drawPath(subPoints);
+            ctx.stroke();
+        }
 
         ctx.restore();
     }
