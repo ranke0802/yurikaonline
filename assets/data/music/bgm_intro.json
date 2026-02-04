@@ -4,9 +4,9 @@
     "loop": true,
     "tracks": [
         {
-            "instrument": "fm_brass",
-            "type": "sawtooth",
-            "gain": 0.12,
+            "instrument": "fm_bell",
+            "type": "sine",
+            "gain": 0.15,
             "notes": [
                 [
                     "C4",
@@ -45,38 +45,38 @@
                     0.5
                 ],
                 [
-                    "C5",
+                    "F#4",
                     0.5
                 ],
                 [
-                    "F5",
+                    "C5",
                     1.5
-                ],
-                [
-                    "C5",
-                    0.5
                 ],
                 [
                     "A4",
                     0.5
                 ],
                 [
-                    "F4",
+                    "F#4",
+                    0.5
+                ],
+                [
+                    "D4",
                     4.0
                 ]
             ]
         },
         {
-            "instrument": "rich_string",
-            "type": "sawtooth",
-            "gain": 0.1,
+            "instrument": "harp",
+            "type": "triangle",
+            "gain": 0.12,
             "notes": [
                 [
                     "C3",
                     8.0
                 ],
                 [
-                    "F2",
+                    "D3",
                     8.0
                 ]
             ]

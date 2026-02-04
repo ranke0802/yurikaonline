@@ -48,7 +48,8 @@ export default class Player extends CharacterBase {
         // PvP & Party (v0.00.14)
         this.hostileTargets = new Map(); // Map<UID, Name>
 
-        this.party = { members: [this.id] }; // Initialize with selfstring, members: string[] }
+        // v0.00.66: Delayed party initialization until ID is set in init()
+        this.party = { members: [] }; // Members: string[]
         this.partyInvite = null; // { senderId, senderName, ts }
 
         this.skillLevels = {
@@ -122,6 +123,17 @@ export default class Player extends CharacterBase {
     init(inputManager, resourceManager, networkManager) {
         this.input = inputManager;
         this.net = networkManager;
+
+        // v0.00.66: Ensure ID is set before finalizing party
+        if (this.net && this.net.playerId) {
+            this.id = this.net.playerId;
+        }
+
+        // v0.00.66: Self is always the first member
+        if (this.id && !this.party.members.includes(this.id)) {
+            this.party.members.push(this.id);
+        }
+
         this._loadSpriteSheet(resourceManager);
 
         // Bind input actions to methods

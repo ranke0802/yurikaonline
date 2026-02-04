@@ -348,7 +348,13 @@ export class UIManager {
                 this.showGenericModal(
                     '파티 초대',
                     `${data.fromName}님이 파티에 초대했습니다.`,
-                    () => this.game.net.respondToInvite(data.id, data.from, true),
+                    () => {
+                        this.game.net.respondToInvite(data.id, data.from, true);
+                        // v0.00.66: Acceptor also adds requester to their own party list immediately
+                        if (this.game.localPlayer) {
+                            this.game.localPlayer.addToParty(data.from);
+                        }
+                    },
                     () => this.game.net.respondToInvite(data.id, data.from, false)
                 );
             });
@@ -358,6 +364,13 @@ export class UIManager {
                     this.logSystemMessage(`✅ ${data.fromName}님이 파티 초대를 수락했습니다.`);
                     if (this.game.localPlayer) this.game.localPlayer.addToParty(data.from);
                 } else {
+                    // v0.00.66: Show Modal for Rejection instead of just log
+                    this.showGenericModal(
+                        '파티 초대 거절',
+                        `${data.fromName}님이 파티 초대를 거절했습니다.`,
+                        null, // Only OK button
+                        null
+                    );
                     this.logSystemMessage(`❌ ${data.fromName}님이 파티 초대를 거절했습니다.`);
                 }
             });

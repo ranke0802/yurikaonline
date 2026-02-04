@@ -949,8 +949,8 @@ export default class NetworkManager extends EventEmitter {
         // Logger.log(`[NetworkManager] Remote player joined: ${uid} (TS: ${ts})`);
         this.emit('playerJoined', newPlayer);
 
-        // Explicitly fire a move event to sync initial position immediately
-        this.emit('playerMoved', { id: uid, x: pX, y: pY, vx: 0, vy: 0, ts: ts });
+        // Explicitly fire an update event to sync initial position immediately
+        this.emit('playerUpdate', { id: uid, x: pX, y: pY, vx: 0, vy: 0, ts: ts });
 
         // v0.29.24: Sync Initial HP and Attack state on join
         if (val && val.h && Array.isArray(val.h)) {
@@ -1011,7 +1011,8 @@ export default class NetworkManager extends EventEmitter {
         if (Array.isArray(val)) {
             posData = val;
         } else if (val && typeof val === 'object') {
-            if (val.p && Array.isArray(val.p)) {
+            if (val.p) {
+                // v0.00.67: Support both Array (Legacy) and Object (Delta Sync) formats
                 posData = val.p;
             } else if (val[0] !== undefined) {
                 // Legacy structure being treated as object by Firebase due to added sub-nodes ('a' or 'h')
@@ -1037,35 +1038,40 @@ export default class NetworkManager extends EventEmitter {
                 if (existing) {
                     existing.ts = ts;
                     if (posData) {
+                        const update = { id: uid };
+
                         if (Array.isArray(posData)) {
                             // Array: [x, y, vx, vy, ts, name]
-                            this.emit('playerMoved', {
-                                id: uid,
-                                x: posData[0],
-                                y: posData[1],
-                                vx: posData[2],
-                                vy: posData[3],
-                                ts: posData[4]
-                            });
-                            existing.x = posData[0];
-                            existing.y = posData[1];
+                            update.x = posData[0];
+                            update.y = posData[1];
+                            update.vx = posData[2];
+                            update.vy = posData[3];
+                            update.ts = posData[4];
+                            update.name = posData[5];
+                            existing.x = update.x;
+                            existing.y = update.y;
                         } else {
                             // Object: Delta Sync {x?, y?, vx?, vy?, ts, n?}
-                            const update = { id: uid, ts: posData.ts };
-                            // Logger.log(`[NetDebug] Delta update for ${uid}:`, posData);
-
+                            update.ts = posData.ts || Date.now();
                             if (posData.x !== undefined) { update.x = posData.x; existing.x = posData.x; }
                             if (posData.y !== undefined) { update.y = posData.y; existing.y = posData.y; }
                             if (posData.vx !== undefined) update.vx = posData.vx;
                             if (posData.vy !== undefined) update.vy = posData.vy;
-
-                            this.emit('playerMoved', update);
+                            if (posData.n !== undefined) update.name = posData.n;
                         }
+
+                        // v1.99.38: Sync profile fields in the same update
+                        if (level) update.level = level;
+                        if (party !== undefined) update.party = party;
+                        if (hostility) update.hostility = hostility;
+
+                        this.emit('playerUpdate', update);
                     }
                 } else {
                     // Packet arrived for unknown player -> Treat as Add
+                    // v0.00.67: Only attempt add if we have some position data
                     console.warn(`[Network] Received update for unknown player ${uid}, treating as ADD.`);
-                    if (posData) {
+                    if (posData && (Array.isArray(posData) || posData.x !== undefined || posData.y !== undefined || val.ts)) {
                         this._onPlayerAdded(snapshot);
                     }
                 }
@@ -1083,59 +1089,8 @@ export default class NetworkManager extends EventEmitter {
 
         if (uid === this.playerId) return;
 
-        // Position Update (This block is now largely redundant due to the new posData handling above,
-        // but keeping it for now as the instruction only replaced a specific part.)
-        // The new logic for playerMoved emission is now handled in the `if (posData || val.ts)` block.
-        // This original block was specifically for Array-based posData and emitted 'playerUpdate'.
-        // The new logic emits 'playerMoved' for both array and object posData.
-        // For now, I will leave this block as is, as the instruction did not explicitly remove it,
-        // but it's worth noting it might cause duplicate updates or be unnecessary.
-        if (posData && Array.isArray(posData)) {
-            const px = parseFloat(posData[0]);
-            const py = parseFloat(posData[1]);
-
-            // v0.28.1: Prevent NaN pollution which causes entities to disappear
-            if (!isNaN(px) && !isNaN(py)) {
-                // v0.00.03: Update Buffer
-                const now = Date.now();
-                const existing = this.remotePlayers.get(uid);
-                const isNew = !existing;
-
-                const data = existing || { id: uid };
-                data.x = px;
-                data.y = py;
-                data.vx = Number(posData[2]) || 0;
-                data.vy = Number(posData[3]) || 0;
-                // v0.00.03: Update activity timestamp to NOW whenever any packet is processed
-                data.ts = now;
-                data.name = posData[5] || "Unknown";
-
-                // v1.99.38: Sync profile fields
-                if (level) data.level = level;
-                if (party !== undefined) data.party = party;
-                if (hostility) data.hostility = hostility;
-
-                this.remotePlayers.set(uid, data);
-
-                // v0.00.03: If they were deleted by cleanup but sent a move, revive them
-                if (isNew) {
-                    this.emit('playerJoined', data);
-                } else {
-                    this.emit('playerUpdate', {
-                        id: uid,
-                        x: px,
-                        y: py,
-                        vx: data.vx,
-                        vy: data.vy,
-                        ts: data.ts,
-                        name: data.name,
-                        level: level,    // Added v1.99.38
-                        party: party,    // Added v1.99.38
-                        hostility: hostility // Added v1.99.38
-                    });
-                }
-            }
-        }
+        // Position Update (NOW UNIFIED IN THE BLOCK ABOVE v0.00.68)
+        // Redundant array-only block removed for cleaner delta-sync support.
 
         // Attack Update
         if (val && val.a && Array.isArray(val.a)) {
