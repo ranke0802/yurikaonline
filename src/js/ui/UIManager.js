@@ -1062,6 +1062,8 @@ export class UIManager {
         // Spawn Boss (First Boss)
         if (this.game.monsterManager) {
             this.game.monsterManager._spawnBoss(true);
+            // v0.00.77: Reset slime count when transition to boss quest
+            this.game.monsterManager.slimeKillCount = 0;
         }
 
         this.logSystemMessage('QUEST 완료: 슬라임 30마리 토벌 보상 지급 (체력 +3)');
