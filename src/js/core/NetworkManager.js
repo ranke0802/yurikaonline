@@ -988,6 +988,12 @@ export default class NetworkManager extends EventEmitter {
         const uid = snapshot.key;
         const val = snapshot.val();
 
+        // v1.99.38: Gather profile data for real-time sync early to avoid ReferenceError
+        const profile = val.profile || {};
+        const hostility = profile.hostility || val.hostility || null;
+        const level = profile.level || null;
+        const party = profile.party || null;
+
         // 1. Profile Sync (Level, Party)
         if (val.profile) {
             const existing = this.remotePlayers.get(uid);
@@ -1079,13 +1085,6 @@ export default class NetworkManager extends EventEmitter {
         }
 
         this._checkHostStatus();
-
-        // v1.99.38: Gather profile data for real-time sync
-        const profile = val.profile || {};
-        // v0.00.20: Ensure hostility is captured from either nested or flat structure
-        const hostility = profile.hostility || val.hostility || null;
-        const level = profile.level || null;
-        const party = profile.party || null;
 
         if (uid === this.playerId) return;
 
