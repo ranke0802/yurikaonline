@@ -582,26 +582,28 @@ export default class NetworkManager extends EventEmitter {
         this.emit('leftParty');
     }
 
-    // Listener for invites
+    // Listener for invites (v0.00.70: 중복 정의 통합, 올바른 경로 사용)
     _setupPartyListeners() {
         if (!this.dbRef) return;
 
-        // Listen for Invites
-        this.dbRef.child(`users/${this.playerId}/invites`).on('child_added', (snapshot) => {
+        // Listen for Invites (party_invites 경로 사용)
+        this.dbRef.child(`party_invites/${this.playerId}`).on('child_added', (snapshot) => {
             const val = snapshot.val();
-            if (val && Date.now() - val.ts < 30000) { // Valid for 30s
+            Logger.log('[Party] Received Invite:', val);
+            if (val && Date.now() - (val.ts || 0) < 30000) { // Valid for 30s
+                // v0.00.70: UIManager의 이벤트 리스너를 통해 모달 표시
                 this.emit('partyInviteReceived', {
                     id: snapshot.key,
                     from: val.from,
                     fromName: val.fromName
                 });
-            } else {
-                snapshot.ref.remove(); // Cleanup old
             }
+            // Auto-remove invite after processing
+            snapshot.ref.remove();
         });
 
-        // Listen for Responses (if I invited someone)
-        this.dbRef.child(`users/${this.playerId}/party_responses`).on('child_added', (snapshot) => {
+        // Listen for Responses (party_responses 경로 사용)
+        this.dbRef.child(`party_responses/${this.playerId}`).on('child_added', (snapshot) => {
             const val = snapshot.val();
             if (val) {
                 this.emit('partyResponseReceived', val);
@@ -988,6 +990,9 @@ export default class NetworkManager extends EventEmitter {
         const uid = snapshot.key;
         const val = snapshot.val();
 
+        // v0.00.69: val이 null인 경우 (플레이어 삭제 이벤트 등) 조기 반환
+        if (!val) return;
+
         // v1.99.38: Gather profile data for real-time sync early to avoid ReferenceError
         const profile = val.profile || {};
         const hostility = profile.hostility || val.hostility || null;
@@ -1336,60 +1341,8 @@ export default class NetworkManager extends EventEmitter {
         });
     }
 
-    _setupPartyListeners() {
-        // Listen for Invites
-        this.dbRef.child(`party_invites/${this.playerId}`).on('child_added', (snapshot) => {
-            const val = snapshot.val();
-            Logger.log('[Party] Received Invite:', val); // Debug Log
-            if (val) {
-                // Show Invite Modal
-                if (window.game && window.game.ui) {
-                    window.game.ui.showGenericModal(
-                        "파티 초대",
-                        `${val.senderName}님으로부터 파티 초대가 왔습니다. 수락하시겠습니까?`,
-                        () => { // Yes
-                            this.acceptPartyInvite(val.senderId);
-                            // Set local party state provisional
-                            window.game.localPlayer.party = { id: val.senderId, members: [val.senderId, this.playerId] };
-                            // Remove hostility
-                            window.game.localPlayer.hostileTargets.delete(val.senderId);
-                            window.game.ui.updateHostilityUI();
-                            window.game.ui.updatePartyUI(); // Need implementation
-                            window.game.ui.hideGenericModal();
-                        },
-                        () => { // No
-                            window.game.ui.hideGenericModal();
-                        }
-                    );
-                }
-            }
-            // Auto-remove invite after processing
-            snapshot.ref.remove();
-        });
 
-        // Listen for Responses (If I sent an invite)
-        this.dbRef.child(`party_responses/${this.playerId}`).on('child_added', (snapshot) => {
-            const val = snapshot.val();
-            if (val && val.response === 'accept') {
-                // Form Party
-                if (window.game && window.game.ui) {
-                    window.game.ui.logSystemMessage(`${val.responderName}님이 파티 초대를 수락했습니다!`);
-
-                    // Init Party if not exists
-                    if (!window.game.localPlayer.party) {
-                        window.game.localPlayer.party = { id: this.playerId, members: [this.playerId] };
-                    }
-                    window.game.localPlayer.party.members.push(val.responderId);
-
-                    // Remove hostility
-                    window.game.localPlayer.hostileTargets.delete(val.responderId);
-                    window.game.ui.updateHostilityUI();
-                    window.game.ui.updatePartyUI();
-                }
-            }
-            snapshot.ref.remove();
-        });
-    }
+    // v0.00.70: 중복 _setupPartyListeners 제거됨 (586행으로 통합)
 
     // v0.00.43: Send System Message
     sendSystemMessage(message, color = '#ffffff') {

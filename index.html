@@ -31,7 +31,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.00.69')
+                navigator.serviceWorker.register('./sw.js?v=0.00.71')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -56,7 +56,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.00.69</title>
+    <title>Yurika Online v0.00.71</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
@@ -569,7 +569,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📦 v0.00.69
+        📦 v0.00.70
     </div>
 
 
@@ -586,20 +586,23 @@
                 <!-- Content injected by JS -->
             </div>
         </div>
-        <!-- Generic Modal -->
-        <div id="generic-modal" class="modal hidden">
-            <div class="modal-content">
-                <h2 id="generic-modal-title">알림</h2>
-                <p id="generic-modal-message">메세지 내용</p>
-                <div class="modal-buttons">
-                    <button id="generic-modal-yes" class="btn-primary">수락</button>
-                    <button id="generic-modal-no" class="btn-secondary">거절</button>
-                </div>
+    </div>
+
+    <!-- Generic Modal (v0.00.70: history-modal 밖으로 분리) -->
+    <div id="generic-modal" class="confirm-modal-overlay hidden">
+        <div class="confirm-modal-content">
+            <h2 id="generic-modal-title">알림</h2>
+            <p id="generic-modal-message">메세지 내용</p>
+            <div class="modal-buttons" style="display: flex; justify-content: center; gap: 12px; margin-top: 16px;">
+                <button id="generic-modal-yes" class="confirm-btn"
+                    style="background: linear-gradient(135deg, #4ade80, #22c55e);">수락</button>
+                <button id="generic-modal-no" class="confirm-btn"
+                    style="background: linear-gradient(135deg, #f87171, #ef4444);">거절</button>
             </div>
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.00.69"></script>
+    <script type="module" src="./src/js/main.js?v=0.00.70"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

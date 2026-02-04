@@ -205,10 +205,19 @@ export default class MonsterManager {
                 // v0.00.43: Handle Death Logic (Kill Count & Boss Spawn)
                 this._handleMonsterDeath(m);
 
-                // Spawn Drops
-                // Spawn Drops
-                const xpAmount = m.typeId === 'king_slime' ? 500 : (m.isBoss ? 500 : 25);
-                const goldAmount = m.typeId === 'king_slime' ? 2000 : (m.isBoss ? 5000 : 50);
+                // Spawn Drops (v0.00.70: 분열된 슬라임 드롭 조정)
+                let xpAmount = 25;
+                let goldAmount = 50;
+                if (m.typeId === 'king_slime') {
+                    xpAmount = 500;
+                    goldAmount = 2000;
+                } else if (m.typeId === 'slime_split') {
+                    xpAmount = 100;
+                    goldAmount = 150;
+                } else if (m.isBoss) {
+                    xpAmount = 500;
+                    goldAmount = 5000;
+                }
                 this.net.spawnDrop({ x: m.x, y: m.y, type: 'gold', amount: goldAmount });
                 this.net.spawnDrop({ x: m.x + 20, y: m.y - 10, type: 'exp', amount: xpAmount });
                 if (Math.random() > 0.5 || m.isBoss) {
@@ -275,10 +284,11 @@ export default class MonsterManager {
                             });
 
                             // Spawn logic for Boss Split
+                            // v0.00.70: 첫 대왕 슬라임(chargeOnly)에서 분열된 슬라임도 chargeOnly 상속
                             for (let i = 0; i < 3; i++) {
                                 const offX = (Math.random() - 0.5) * 100;
                                 const offY = (Math.random() - 0.5) * 100;
-                                this._spawnMonster(m.x + offX, m.y + offY, 'slime_split');
+                                this._spawnMonster(m.x + offX, m.y + offY, 'slime_split', { chargeOnly: m.chargeOnly });
                             }
                         }
 
@@ -317,7 +327,8 @@ export default class MonsterManager {
             // We just fall through to the Sync part below.
 
             // v0.33.0: Host-side Boss AI (Magic Missile + Shield)
-            if (!m.isDead && m.typeId === 'king_slime') {
+            // v0.00.70: isQuestBoss면 미사일/쉴드 비활성화 (돌진만 사용)
+            if (!m.isDead && m.typeId === 'king_slime' && !m.chargeOnly) {
                 if (m.missileCooldown > 0) m.missileCooldown -= dt * 1000;
                 // v0.00.47: Boss Shield Logic
                 if (m.shieldCooldown > 0) m.shieldCooldown -= dt * 1000;
@@ -348,7 +359,8 @@ export default class MonsterManager {
             }
 
             // v0.33.0: Split Slime AI (Magic Missile Lv 1)
-            if (!m.isDead && m.typeId === 'slime_split') {
+            // v0.00.70: chargeOnly면 미사일 비활성화
+            if (!m.isDead && m.typeId === 'slime_split' && !m.chargeOnly) {
                 if (m.missileCooldown > 0) m.missileCooldown -= dt * 1000;
 
                 // Find Target
@@ -458,7 +470,7 @@ export default class MonsterManager {
         this.lastSyncState.set(id, { x: m.x, y: m.y, hp: m.hp });
     }
 
-    async _spawnMonster(fixedX = null, fixedY = null, type = 'slime') {
+    async _spawnMonster(fixedX = null, fixedY = null, type = 'slime', options = {}) {
         const id = `mob_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         const worldW = this.zone.width || 6400;
         const worldH = this.zone.height || 6400;
@@ -475,13 +487,14 @@ export default class MonsterManager {
             y: Math.round(y),
             hp: definition.baseStats?.hp || 100,
             maxHp: definition.baseStats?.maxHp || 100,
-            type: type
+            type: type,
+            chargeOnly: options.chargeOnly || false // v0.00.70: chargeOnly 옵션 지원
         };
 
         this.net.sendMonsterUpdate(id, data);
     }
 
-    async _spawnBoss() {
+    async _spawnBoss(isFirstBoss = true) {
         const id = `boss_${Date.now()}`;
         const worldW = this.zone.width || 6400;
         const worldH = this.zone.height || 6400;
@@ -490,20 +503,31 @@ export default class MonsterManager {
 
         const definition = await this.game.monsterData.loadDefinition('king_slime');
 
+        // v0.00.70: 첫 대왕 슬라임(퀘스트용)은 HP 1000, 돌진만 사용
+        const hp = isFirstBoss ? 1000 : (definition.baseStats?.hp || 1500);
+        const maxHp = isFirstBoss ? 1000 : (definition.baseStats?.maxHp || 1500);
+
         const data = {
             id: id,
             x: x,
             y: y,
-            hp: definition.baseStats?.hp || 500,
-            maxHp: definition.baseStats?.maxHp || 500,
+            hp: hp,
+            maxHp: maxHp,
             type: 'king_slime',
             isBoss: true,
+            chargeOnly: isFirstBoss, // v0.00.70: 첫 대왕 슬라임은 돌진만 사용
             w: definition.visual?.width || 320,
             h: definition.visual?.height || 320
         };
 
         this.net.sendMonsterUpdate(id, data);
-        if (window.game && window.game.ui) window.game.ui.logSystemMessage('거대한 대왕 슬라임이 나타났습니다!');
+        if (window.game && window.game.ui) {
+            if (isFirstBoss) {
+                window.game.ui.logSystemMessage('초보 모험가를 위한 대왕 슬라임이 나타났습니다! (돌진 공격만 사용)');
+            } else {
+                window.game.ui.logSystemMessage('분노한 대왕 슬라임이 나타났습니다!');
+            }
+        }
     }
 
     async _onRemoteMonsterAdded(data) {
@@ -531,6 +555,10 @@ export default class MonsterManager {
                 // Definition usually handles this, but sync data might override
                 m.width = data.w || m.width;
                 m.height = data.h || m.height;
+            }
+            // v0.00.70: chargeOnly 플래그 적용 (돌진 공격만 사용)
+            if (data.chargeOnly) {
+                m.chargeOnly = true;
             }
             this.monsters.set(data.id, m);
         } catch (e) {
@@ -674,14 +702,16 @@ export default class MonsterManager {
                 Logger.log(`[MonsterManager] Slime Kill Count: ${this.slimeKillCount}`);
 
                 if (this.slimeKillCount === 10) {
-                    this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 슬퍼하고 있습니다. (10/30)", "#ffeb3b");
+                    this.net.sendSystemMessage("슬라임의 왕이 백성의 죽음에 슬퍼하고 있습니다. (10/30)", "#ffeb3b");
                 } else if (this.slimeKillCount === 20) {
-                    this.net.sendSystemMessage("슬라임의 왕이 자신의 백성의 죽음에 분노하고 있습니다. (20/30)", "#ffeb3b");
+                    this.net.sendSystemMessage("슬라임의 왕이 백성의 죽음에 분노하고 있습니다. (20/30)", "#ffeb3b");
                 } else if (this.slimeKillCount >= 30) {
                     this.net.sendSystemMessage("슬라임의 왕이 슬픔과 분노를 삼키고 복수를 위해 강림합니다.(30/30)", "#ff4757");
 
                     if (!this.bossSpawned) {
-                        this._spawnBoss();
+                        // v0.00.70: 첫 대왕 슬라임 처치 전까지는 isFirstBoss: true
+                        const isFirst = !this.firstBossDefeated;
+                        this._spawnBoss(isFirst);
                         this.bossSpawned = true;
                         // v0.00.51: Don't reset to 0 immediately here?
                         // If we reset to 0, UI goes 0/30.
@@ -696,6 +726,8 @@ export default class MonsterManager {
         } else if (m.typeId === 'king_slime') {
             // Boss died.
             this.bossSpawned = false;
+            // v0.00.70: 첫 대왕 슬라임 처치 완료 플래그
+            this.firstBossDefeated = true;
             // Ensure count is 0
             this.slimeKillCount = 0;
             if (this.net.dbRef) this.net.dbRef.child('world_state/slime_kill_count').set(0);

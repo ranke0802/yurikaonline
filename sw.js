@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yurika-online-0.00.69';
+const CACHE_NAME = 'yurika-online-0.00.71';
 
 const ASSETS_TO_CACHE = [
     './',

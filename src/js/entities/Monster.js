@@ -498,16 +498,19 @@ export default class Monster extends CharacterBase {
                         // Attack mode (Stop and hit)
                         aiVx = 0;
                         aiVy = 0;
-                        if (!this.attackCooldown) this.attackCooldown = 0;
-                        this.attackCooldown -= dt;
-                        if (this.attackCooldown <= 0) {
-                            if (window.game?.net) {
-                                window.game.net.sendPlayerDamage(target.id, Math.ceil(5 + (Math.random() * 5)));
-                            } else {
-                                target.takeDamage(Math.ceil(5 + (Math.random() * 5)));
+                        // v0.00.70: chargeOnly 슬라임은 일반공격 비활성화
+                        if (!this.chargeOnly) {
+                            if (!this.attackCooldown) this.attackCooldown = 0;
+                            this.attackCooldown -= dt;
+                            if (this.attackCooldown <= 0) {
+                                if (window.game?.net) {
+                                    window.game.net.sendPlayerDamage(target.id, Math.ceil(5 + (Math.random() * 5)));
+                                } else {
+                                    target.takeDamage(Math.ceil(5 + (Math.random() * 5)));
+                                }
+                                this.attackCooldown = 1.5;
+                                this.hitTimer = 0.1;
                             }
-                            this.attackCooldown = 1.5;
-                            this.hitTimer = 0.1;
                         }
                     }
                 } else {
@@ -703,7 +706,8 @@ export default class Monster extends CharacterBase {
         }
 
         // v0.33.0: Trigger Shield on Hit (Host Only)
-        if (window.game?.net?.isHost && this.typeId === 'king_slime') {
+        // v0.00.70: chargeOnly 대왕 슬라임은 Shield 비활성화
+        if (window.game?.net?.isHost && this.typeId === 'king_slime' && !this.chargeOnly) {
             if (this.shieldCooldown <= 0) {
                 // Trigger Shield!
                 this.shieldCooldown = this.shieldMaxCooldown;

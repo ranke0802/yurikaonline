@@ -151,7 +151,7 @@ export default class RemotePlayer extends CharacterBase {
     onServerUpdate(packet) {
         const now = Date.now();
 
-        // Update profile fields
+        // Update profile fields (v0.00.70: 조기 반환 이전에 처리)
         if (packet.name) this.name = packet.name;
         if (packet.level !== undefined) this.level = packet.level;
         if (packet.party !== undefined) this.party = packet.party;
@@ -172,9 +172,9 @@ export default class RemotePlayer extends CharacterBase {
         }
         this.lastPacketTime = now;
 
-        // Validate packet data
+        // Validate packet data (v0.00.70: 위치 데이터가 없으면 프로필만 업데이트하고 반환)
         if (typeof packet.x !== 'number' || typeof packet.y !== 'number') {
-            Logger.warn(`Invalid packet from ${this.id}:`, packet);
+            // 이름/레벨 등 프로필 정보만 있는 업데이트는 위에서 처리됨
             return;
         }
 
