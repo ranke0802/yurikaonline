@@ -808,20 +808,59 @@ export default class RemotePlayer extends CharacterBase {
     _triggerRemoteMissileVisual(centerX, centerY, count = 1) {
         RemotePlayer.projectilePromise.then(({ Projectile }) => {
             if (!window.game) return;
+
+            // v0.00.72: Find nearest valid target for remote player's missile
+            const lp = window.game.localPlayer;
+            const monsters = window.game.monsterManager?.monsters;
+            const rps = window.game.remotePlayers;
+
+            let nearest = null;
+            let minDist = 600;
+
+            // 1. Check Local Player
+            if (lp && !lp.isDead && this.canAttackTarget(lp)) {
+                const d = Math.sqrt((this.x - lp.x) ** 2 + (this.y - lp.y) ** 2);
+                if (d < minDist) {
+                    minDist = d;
+                    nearest = lp;
+                }
+            }
+
+            // 2. Check Monsters
+            if (monsters) {
+                monsters.forEach(m => {
+                    if (m.isDead) return;
+                    const d = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearest = m;
+                    }
+                });
+            }
+
+            // 3. Check Other Remote Players (PvP)
+            if (rps) {
+                rps.forEach(rp => {
+                    if (rp === this || rp.isDead || !this.canAttackTarget(rp)) return;
+                    const d = Math.sqrt((this.x - rp.x) ** 2 + (this.y - rp.y) ** 2);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearest = rp;
+                    }
+                });
+            }
+
             const angles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
             const baseAngle = angles[this.direction] + Math.PI;
 
             for (let i = 0; i < count; i++) {
-                // Spread logic similar to Player.js
                 const spread = (Math.PI * 4) / 9;
                 const angleOffset = (Math.random() - 0.5) * 0.4;
                 const angle = baseAngle + (i - (count - 1) / 2) * (spread / Math.max(1, count - 1)) + angleOffset;
 
                 const speed = 350 + Math.random() * 300;
-                // v0.00.05: Auto-target LocalPlayer for PvP visuals removed (v1.99.38)
-                // Now passes null to force projectile to find its own valid (hostile) target
-                const target = null;
-                window.game.projectiles.push(new Projectile(centerX, centerY, target, 'missile', {
+                // v0.00.72: Pass the found nearest target
+                window.game.projectiles.push(new Projectile(centerX, centerY, nearest, 'missile', {
                     vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
                     speed: 600, damage: 0, ownerId: this.id
                 }));

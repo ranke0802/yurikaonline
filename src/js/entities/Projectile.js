@@ -60,8 +60,12 @@ export class Projectile {
                 this.homingX = this.target.x;
                 this.homingY = this.target.y;
             } else {
-                this.homingX = x;
-                this.homingY = y;
+                // v0.00.72: If no target, do NOT set homingX/Y to start position.
+                // This prevents the missile from immediately returning to origin.
+                // It will travel along vx/vy until it finds a target in update() if implemented,
+                // or just travel straight-ish until it expires or finds nearest.
+                this.homingX = null;
+                this.homingY = null;
             }
         }
     }
@@ -131,6 +135,12 @@ export class Projectile {
                 }
 
                 // Steer towards homingX/Y
+                if (this.homingX === null || this.homingY === null) {
+                    // v0.00.72: No target and no homing position, keep straight
+                    this.x += this.vx * dt;
+                    this.y += this.vy * dt;
+                    return;
+                }
                 const dx = this.homingX - this.x;
                 const dy = this.homingY - this.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
