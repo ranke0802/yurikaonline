@@ -1519,25 +1519,18 @@ export default class Player extends CharacterBase {
     // v0.00.26: Draw status effect icons for local player
     _drawStatusIcons(ctx, centerX, baseY) {
         const burnEffect = this.statusEffects.find(e => e.type === 'burn');
-        // v0.00.41: Fixed burn check - use timer instead of duration
         const hasBurn = burnEffect && burnEffect.timer > 0;
         const hasElec = this.electrocutedTimer > 0;
-        // v0.00.45: Absolute Barrier Icon
         const hasShield = this.shieldTimer > 0;
 
         if (!hasBurn && !hasElec && !hasShield) return;
 
         ctx.save();
-        const iconY = baseY + 15;
-        let currentX = centerX;
-
-        // Center alignment based on count
-        let count = 0;
-        if (hasBurn) count++;
-        if (hasElec) count++;
-        if (hasShield) count++;
-
-        if (count > 0) currentX -= ((count - 1) * 25) / 2;
+        // v0.00.73: Position icons BELOW bars, aligned to the LEFT of the health bar
+        const barWidth = 60;
+        const startX = centerX - barWidth / 2;
+        const iconY = baseY + 18; // Below MP Bar (startY + barHeight*2 + padding)
+        let currentX = startX + 10; // Slight offset from left edge
 
         const drawStatusBadge = (type) => {
             ctx.save();
@@ -1588,7 +1581,6 @@ export default class Player extends CharacterBase {
                 ctx.shadowBlur = 8;
                 ctx.shadowColor = '#fff';
                 ctx.beginPath();
-                // Shield shape
                 ctx.moveTo(0, 6);
                 ctx.quadraticCurveTo(5, 6, 5, 0);
                 ctx.lineTo(5, -4);
@@ -1602,12 +1594,12 @@ export default class Player extends CharacterBase {
             }
 
             ctx.restore();
-            currentX += 25;
+            currentX += 22; // Slightly tighter spacing
         };
 
+        if (hasShield) drawStatusBadge('shield'); // Priority to shield
         if (hasBurn) drawStatusBadge('burn');
         if (hasElec) drawStatusBadge('elec');
-        if (hasShield) drawStatusBadge('shield');
 
         ctx.restore();
     }

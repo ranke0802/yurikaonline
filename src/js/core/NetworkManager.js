@@ -523,25 +523,32 @@ export default class NetworkManager extends EventEmitter {
 
     // --- Party System (v0.00.65) ---
 
+    // --- Party System (v0.00.73: Unified Path to party_invites) ---
     async inviteToParty(targetName) {
-        if (!this.connected || !this.playerId) return 'ERROR';
-        if (targetName === this.game.localPlayer.name) return 'SELF';
+        if (!targetName || !this.playerId) return 'ERROR';
 
-        // 1. Find Target UID by Name
-        const targetUid = await this.getUidByName(targetName);
-        if (!targetUid) return 'NOT_FOUND';
-
-        // 2. Send Invite via Firebase
-        // We push to the target's 'invites' node
         try {
-            await this.dbRef.child(`users/${targetUid}/invites`).push({
+            const targetUid = await this.getUidByName(targetName);
+            if (!targetUid) {
+                Logger.log(`[Party] Target not found: ${targetName}`);
+                return 'NOT_FOUND';
+            }
+
+            if (targetUid === this.playerId) {
+                return 'SELF';
+            }
+
+            // Push invite to target's inbox (Correct Path: party_invites)
+            const inviteRef = this.dbRef.child(`party_invites/${targetUid}`).push();
+            await inviteRef.set({
                 from: this.playerId,
-                fromName: this.game.localPlayer.name,
+                fromName: window.game.localPlayer ? window.game.localPlayer.name : "Unknown",
                 ts: Date.now()
             });
+
             return 'SENT';
         } catch (e) {
-            Logger.error('Party invite failed', e);
+            Logger.error('Failed to invite to party', e);
             return 'ERROR';
         }
     }
@@ -1192,34 +1199,7 @@ export default class NetworkManager extends EventEmitter {
         });
     }
 
-    async inviteToParty(targetName) {
-        if (!targetName || !this.playerId) return false;
 
-        try {
-            const targetUid = await this.getUidByName(targetName);
-            if (!targetUid) {
-                Logger.log(`[Party] Target not found: ${targetName}`);
-                return 'NOT_FOUND';
-            }
-
-            if (targetUid === this.playerId) {
-                return 'SELF';
-            }
-
-            // Push invite to target's inbox
-            const inviteRef = this.dbRef.child(`party_invites/${targetUid}`).push();
-            await inviteRef.set({
-                from: this.playerId,
-                fromName: window.game.localPlayer ? window.game.localPlayer.name : "Unknown",
-                ts: Date.now()
-            });
-
-            return 'SENT';
-        } catch (e) {
-            Logger.error('Failed to invite to party', e);
-            return 'ERROR';
-        }
-    }
 
     // v0.00.14: Send PvP Damage with Status Effects
     sendPlayerDamage(targetId, amount, effectType = null, effectDuration = 0, effectDamage = 0) {

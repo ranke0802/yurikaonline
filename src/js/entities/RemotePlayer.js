@@ -593,13 +593,17 @@ export default class RemotePlayer extends CharacterBase {
     _drawStatusIcons(ctx, centerX, baseY) {
         const hasBurn = this.burnTimer > 0;
         const hasElec = this.electrocutedTimer > 0;
-        if (!hasBurn && !hasElec) return;
+        // v0.00.73: Sync Shield Icon for remote players
+        const hasShield = this.shieldEffect && this.shieldEffect.timer > 0;
+
+        if (!hasBurn && !hasElec && !hasShield) return;
 
         ctx.save();
-        const iconY = baseY + 15;
-        let currentX = centerX;
-
-        if (hasBurn && hasElec) currentX -= 12;
+        // v0.00.73: Position icons BELOW bars, aligned to the LEFT
+        const barWidth = 60;
+        const startX = centerX - barWidth / 2;
+        const iconY = baseY + 18;
+        let currentX = startX + 10;
 
         const drawStatusBadge = (type) => {
             ctx.save();
@@ -645,12 +649,28 @@ export default class RemotePlayer extends CharacterBase {
                 ctx.stroke();
                 ctx.fillStyle = '#ffa502';
                 ctx.fill();
+            } else if (type === 'shield') { // v0.00.73: Shield Icon
+                ctx.strokeStyle = '#fff';
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#fff';
+                ctx.beginPath();
+                ctx.moveTo(0, 6);
+                ctx.quadraticCurveTo(5, 6, 5, 0);
+                ctx.lineTo(5, -4);
+                ctx.lineTo(0, -6);
+                ctx.lineTo(-5, -4);
+                ctx.lineTo(-5, 0);
+                ctx.quadraticCurveTo(-5, 6, 0, 6);
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(100, 100, 255, 0.5)';
+                ctx.fill();
             }
 
             ctx.restore();
-            currentX += 25;
+            currentX += 22;
         };
 
+        if (hasShield) drawStatusBadge('shield');
         if (hasBurn) drawStatusBadge('burn');
         if (hasElec) drawStatusBadge('elec');
 
