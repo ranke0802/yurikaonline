@@ -917,7 +917,8 @@ export class UIManager {
             };
         } else if (!p.questData.slime30QuestClaimed) {
             // Quest 2: 30 Slimes (Vitality +3, Boss Spawn)
-            const count = this.game.monsterManager?.slimeKillCount || 0;
+            // v0.00.80: Use individual persistent kills (40 total = 10 from Q1 + 30 for Q2)
+            const count = Math.max(0, p.questData.slimeKills - 10);
             currentQuest = {
                 title: "2. 슬라임 30마리 처치 (강림)",
                 task: `진행도: ${Math.min(30, count)}/30`,
@@ -1055,14 +1056,15 @@ export class UIManager {
     }
 
     claimSlime30Reward(p) {
+        if (p.questData.slime30QuestClaimed) return;
+
         p.questData.slime30QuestClaimed = true;
         p.vitality += 3; // v0.00.75: Vitality directly +3
         p.updateDerivedStats();
 
-        // Spawn Boss (First Boss)
-        if (this.game.monsterManager) {
+        // Spawn Boss (ONLY if not already spawned by global system)
+        if (this.game.monsterManager && !this.game.monsterManager.bossSpawned) {
             this.game.monsterManager._spawnBoss(true);
-            // v0.00.77: Reset slime count when transition to boss quest
             this.game.monsterManager.slimeKillCount = 0;
         }
 
