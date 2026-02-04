@@ -811,9 +811,9 @@ export default class Player extends CharacterBase {
         this.chargeTime += dt;
         this.lightningTickTimer -= dt;
 
-        const baseTickInterval = 0.5; // v0.00.75: Buffed from 1.0 to 0.5
-        // v0.00.75: WIS/INT reduction: 0.1s faster per (total 10 points) -> approx 0.1/(INT+WIS) bonus
-        const statBonus = (this.intelligence + this.wisdom) * 0.1;
+        const baseTickInterval = 0.7; // v0.00.78: Adjusted from 0.5 to 0.7
+        // v0.00.78: WIS/INT factor: 0.05 per point
+        const statBonus = (this.intelligence + this.wisdom) * 0.05;
         const tickInterval = baseTickInterval / (this.attackSpeed + statBonus);
         const isTick = this.lightningTickTimer <= 0;
 
