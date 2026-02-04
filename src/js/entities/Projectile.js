@@ -410,6 +410,11 @@ export class Projectile {
                         eDur = this.burnDuration;
                         eDmg = Math.ceil(this.damage * 0.15);
 
+                        // v0.00.74: Apply local visual effect to RemotePlayer so I can see it immediately
+                        if (target.applyBurn) {
+                            target.applyBurn(eDur, eDmg);
+                        }
+
                         // v1.99.15: AOE for PvP (Damage other hostile players nearby)
                         const rps = window.game?.remotePlayers;
                         if (rps) {

@@ -602,7 +602,7 @@ export default class RemotePlayer extends CharacterBase {
         // v0.00.73: Position icons BELOW bars, aligned to the LEFT
         const barWidth = 60;
         const startX = centerX - barWidth / 2;
-        const iconY = baseY + 18;
+        const iconY = baseY + 28; // v0.00.74: Moved 10px down to avoid covering MP bar
         let currentX = startX + 10;
 
         const drawStatusBadge = (type) => {

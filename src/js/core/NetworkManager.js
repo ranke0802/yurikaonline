@@ -1090,6 +1090,8 @@ export default class NetworkManager extends EventEmitter {
                     // v0.00.67: Only attempt add if we have some position data
                     console.warn(`[Network] Received update for unknown player ${uid}, treating as ADD.`);
                     if (posData && (Array.isArray(posData) || posData.x !== undefined || posData.y !== undefined || val.ts)) {
+                        // v0.00.74: Update userLastSeen to NOW to give grace period
+                        this.userLastSeen.set(uid, Date.now());
                         this._onPlayerAdded(snapshot);
                     }
                 }
