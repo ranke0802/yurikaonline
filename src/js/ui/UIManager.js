@@ -907,13 +907,23 @@ export class UIManager {
         // Determine Active Quest
         let currentQuest = null;
         if (!p.questData.slimeQuestClaimed) {
-            // Quest 1: 初步 (10)
+            // Quest 1: 10 Slimes (Wisdom +2)
             currentQuest = {
                 title: "1. 슬라임 10마리 처치",
                 task: `진행도: ${Math.min(10, p.questData.slimeKills)}/10`,
-                reward: "스탯 포인트 +2",
+                reward: "지혜 스탯 +2",
                 canClaim: p.questData.slimeKills >= 10,
                 claimFn: () => this.claimSlimeReward(p)
+            };
+        } else if (!p.questData.slime30QuestClaimed) {
+            // Quest 2: 30 Slimes (Vitality +3, Boss Spawn)
+            const count = this.game.monsterManager?.slimeKillCount || 0;
+            currentQuest = {
+                title: "2. 슬라임 30마리 처치 (강림)",
+                task: `진행도: ${Math.min(30, count)}/30`,
+                reward: "체력 스탯 +3, 대왕 슬라임 소환",
+                canClaim: count >= 30,
+                claimFn: () => this.claimSlime30Reward(p)
             };
         } else if ((p.questData.bossClearCount || 0) === 0) {
             // Quest 3: First King Slime
@@ -921,32 +931,38 @@ export class UIManager {
                 title: "3. 대왕 슬라임 처치",
                 task: `진행도: ${p.questData.bossKilled ? '1' : '0'}/1`,
                 reward: "스탯+5, EXP+500, Gold+2000",
-                canClaim: false, // Auto-claimed on kill in Player.js for now
+                canClaim: false, // Auto-claimed on kill
                 claimFn: null
             };
         } else {
-            // Repeatable Loop (Quest 4 & 5)
+            // v0.00.75: Repeatable loop logic integrated with above steps
             const mm = this.game.monsterManager;
             const bossFound = Array.from(mm?.monsters.values() || []).find(m => m.typeId === 'king_slime' && !m.isDead);
 
             if (bossFound) {
-                // Quest 5: Boss Active
+                // Quest 5: Boss Active (Repeatable)
                 currentQuest = {
                     title: "5. 대왕 슬라임 처치 (반복)",
-                    task: "진행도: 0/1", // Boss is active
+                    task: "진행도: 0/1",
                     reward: "EXP+300, Gold+1000",
                     canClaim: false,
                     claimFn: null
                 };
             } else {
-                // Quest 4: Progression
+                // Quest 4: Progression (Repeatable Summon)
                 const count = mm?.slimeKillCount || 0;
                 currentQuest = {
-                    title: "4. 슬라임 30마리 처치 (강림)",
+                    title: "4. 슬라임 30마리 처치 (소환)",
                     task: `진행도: ${count}/30`,
                     reward: "대왕 슬라임 소환",
-                    canClaim: false,
-                    claimFn: null
+                    canClaim: count >= 30 && this.game.net?.isHost, // Host can summon
+                    claimFn: () => {
+                        if (this.game.monsterManager) {
+                            this.game.monsterManager._spawnBoss(false);
+                            this.game.monsterManager.slimeKillCount = 0;
+                            this.updateQuestUI();
+                        }
+                    }
                 };
             }
         }
@@ -1028,9 +1044,30 @@ export class UIManager {
 
     claimSlimeReward(p) {
         p.questData.slimeQuestClaimed = true;
-        p.statPoints += 2; // 2 Stat Points reward
-        this.logSystemMessage('QUEST 완료: 슬라임 토벌 보상 지급 (스탯 포인트 +2)');
-        this.showRewardModal("슬라임 처치 퀘스트 완료!", "보상: 스탯 포인트 2개를 획득했습니다!");
+        p.wisdom += 2; // v0.00.75: Wisdom directly +2
+        p.updateDerivedStats();
+        this.logSystemMessage('QUEST 완료: 슬라임 토벌 보상 지급 (지혜 +2)');
+        this.logSystemMessage('✨ 이제 마나 회복이 보다 원활해집니다');
+        this.showRewardModal("슬라임 처치 퀘스트 완료!", "보상: 지혜 스탯 2개를 획득했습니다!");
+        this.updateQuestUI();
+        this.updateStatusPopup();
+        p.saveState();
+    }
+
+    claimSlime30Reward(p) {
+        p.questData.slime30QuestClaimed = true;
+        p.vitality += 3; // v0.00.75: Vitality directly +3
+        p.updateDerivedStats();
+
+        // Spawn Boss (First Boss)
+        if (this.game.monsterManager) {
+            this.game.monsterManager._spawnBoss(true);
+        }
+
+        this.logSystemMessage('QUEST 완료: 슬라임 30마리 토벌 보상 지급 (체력 +3)');
+        this.logSystemMessage('🛡️ 전체 체력이 30 증가하고 방어력과 체력회복이 3 증가했습니다.');
+        this.showRewardModal("슬라임 30마리 처치 퀘스트 완료!", "보상: 체력 스탯 3개를 획득했습니다! 대왕 슬라임이 소환됩니다.");
+
         this.updateQuestUI();
         this.updateStatusPopup();
         p.saveState();

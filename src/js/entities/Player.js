@@ -62,7 +62,7 @@ export default class Player extends CharacterBase {
         this.skillMaxCooldowns = { j: 0, h: 0, u: 0, k: 0 };
 
         // Combat & Channeling
-        this.attackRange = 400; // Reduced from 700 to 400 as requested
+        this.attackRange = 700; // v0.00.75: Reverted back to 700 as requested
 
         this.isAttacking = false;
         this.isChanneling = false;
@@ -809,8 +809,10 @@ export default class Player extends CharacterBase {
         this.chargeTime += dt;
         this.lightningTickTimer -= dt;
 
-        const baseTickInterval = 1.0; // Increased from 0.7 to 1.0 (Nerf)
-        const tickInterval = baseTickInterval / this.attackSpeed;
+        const baseTickInterval = 0.5; // v0.00.75: Buffed from 1.0 to 0.5
+        // v0.00.75: WIS/INT reduction: 0.1s faster per (total 10 points) -> approx 0.1/(INT+WIS) bonus
+        const statBonus = (this.intelligence + this.wisdom) * 0.1;
+        const tickInterval = baseTickInterval / (this.attackSpeed + statBonus);
         const isTick = this.lightningTickTimer <= 0;
 
         if (isTick) {
@@ -964,9 +966,9 @@ export default class Player extends CharacterBase {
                 if (window.game?.sound) window.game.sound.playSfx('missile_launch');
                 if (window.game?.sound) window.game.sound.playSfx('magic_cast');
 
-                // Base 0.7s, reduced by CDR
-                const baseCD = 0.7;
-                this.skillCooldowns.h = baseCD * (1 - (this.skillCDR || 0));
+                // v0.00.75: Fixed casting speed to 1.0s, removed CDR/Stat influence
+                const baseCD = 1.0;
+                this.skillCooldowns.h = baseCD;
 
                 // v0.22.3: Visual Attack FeedBack
                 this.isAttacking = true;
