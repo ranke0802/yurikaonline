@@ -706,7 +706,7 @@ export default class Monster extends CharacterBase {
         }
 
         // v0.33.0: Trigger Shield on Hit (Host Only)
-        // v0.00.70: chargeOnly 대왕 슬라임은 Shield 비활성화
+        // v0.00.76: chargeOnly 대왕 슬라임은 Shield(Absolute Barrier)를 절대 사용하지 않음
         if (window.game?.net?.isHost && this.typeId === 'king_slime' && !this.chargeOnly) {
             if (this.shieldCooldown <= 0) {
                 // Trigger Shield!

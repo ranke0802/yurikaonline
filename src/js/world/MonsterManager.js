@@ -327,7 +327,7 @@ export default class MonsterManager {
             // We just fall through to the Sync part below.
 
             // v0.33.0: Host-side Boss AI (Magic Missile + Shield)
-            // v0.00.70: isQuestBoss면 미사일/쉴드 비활성화 (돌진만 사용)
+            // v0.00.76: chargeOnly면 미사일/쉴드 비활성화 (돌진만 사용)
             if (!m.isDead && m.typeId === 'king_slime' && !m.chargeOnly) {
                 if (m.missileCooldown > 0) m.missileCooldown -= dt * 1000;
                 // v0.00.47: Boss Shield Logic
@@ -444,7 +444,8 @@ export default class MonsterManager {
                         y: Math.round(m.y),
                         hp: m.hp,
                         maxHp: m.maxHp,
-                        type: m.typeId || m.name
+                        type: m.typeId || m.name,
+                        chargeOnly: m.chargeOnly || false // v0.00.76: Sync special patterns
                     });
                     this.lastSyncState.set(id, { x: m.x, y: m.y, hp: m.hp });
                 }
@@ -520,6 +521,7 @@ export default class MonsterManager {
             h: definition.visual?.height || 320
         };
 
+        // v0.00.76: Ensure clients know this is a limited pattern boss
         this.net.sendMonsterUpdate(id, data);
         if (window.game && window.game.ui) {
             if (isFirstBoss) {
