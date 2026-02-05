@@ -251,8 +251,10 @@ export default class CharacterSelectionScene extends Scene {
                 questData: {
                     slimeKills: 0,
                     slimeQuestClaimed: false,
+                    slime30QuestClaimed: false,
                     bossKilled: false,
-                    bossQuestClaimed: false
+                    bossQuestClaimed: false,
+                    bossClearCount: 0
                 },
                 createdAt: Date.now()
             };

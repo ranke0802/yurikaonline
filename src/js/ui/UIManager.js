@@ -917,8 +917,8 @@ export class UIManager {
             };
         } else if (!p.questData.slime30QuestClaimed) {
             // Quest 2: 30 Slimes (Vitality +3, Boss Spawn)
-            // v0.00.80: Use individual persistent kills (40 total = 10 from Q1 + 30 for Q2)
-            const count = Math.max(0, p.questData.slimeKills - 10);
+            // v0.00.82: Start from 10/30 (cumulative kills), target 30
+            const count = p.questData.slimeKills || 0;
             currentQuest = {
                 title: "2. 슬라임 30마리 처치 (강림)",
                 task: `진행도: ${Math.min(30, count)}/30`,

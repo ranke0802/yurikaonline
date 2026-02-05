@@ -703,19 +703,19 @@ export default class MonsterManager {
                 }
                 Logger.log(`[MonsterManager] Slime Kill Count: ${this.slimeKillCount}`);
 
-                if (this.slimeKillCount === 20) {
-                    this.net.sendSystemMessage("슬라임의 왕이 백성의 죽음에 슬퍼하고 있습니다. (20/40)", "#ffeb3b");
-                } else if (this.slimeKillCount === 30) {
-                    this.net.sendSystemMessage("슬라임의 왕이 백성의 죽음에 분노하고 있습니다. (30/40)", "#ffeb3b");
-                } else if (this.slimeKillCount >= 40) {
-                    this.net.sendSystemMessage("슬라임의 왕이 슬픔과 분노를 삼키고 복수를 위해 강림합니다.(40/40)", "#ff4757");
+                if (this.slimeKillCount === 10) {
+                    this.net.sendSystemMessage("슬라임의 왕이 백성의 죽음에 슬퍼하고 있습니다. (10/30)", "#ffeb3b");
+                } else if (this.slimeKillCount === 20) {
+                    this.net.sendSystemMessage("슬라임의 왕이 백성의 죽음에 분노하고 있습니다. (20/30)", "#ffeb3b");
+                } else if (this.slimeKillCount >= 30) {
+                    this.net.sendSystemMessage("슬라임의 왕이 슬픔과 분노를 삼키고 복수를 위해 강림합니다.(30/30)", "#ff4757");
 
                     if (!this.bossSpawned) {
                         // v0.00.70: 첫 대왕 슬라임 처치 전까지는 isFirstBoss: true
                         const isFirst = !this.firstBossDefeated;
                         this._spawnBoss(isFirst);
                         this.bossSpawned = true;
-                        // v0.00.81: Reset to 0 after boss descent (matches 40/40 goal)
+                        // v0.00.82: Reset after 30 total kills (starts loop over)
                         this.slimeKillCount = 0;
                         if (this.net.dbRef) this.net.dbRef.child('world_state/slime_kill_count').set(0);
                     }
