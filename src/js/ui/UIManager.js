@@ -951,16 +951,18 @@ export class UIManager {
                 };
             } else {
                 // Quest 4: Progression (Repeatable Summon)
-                const count = mm?.slimeKillCount || 0;
+                // v0.00.83: Use individual persistent repeatable kills
+                const count = p.questData.slimeRepeatKills || 0;
                 currentQuest = {
                     title: "4. 슬라임 30마리 처치 (소환)",
-                    task: `진행도: ${count}/30`,
+                    task: `진행도: ${Math.min(30, count)}/30`,
                     reward: "대왕 슬라임 소환",
                     canClaim: count >= 30, // v0.00.77: Shared Summon
                     claimFn: () => {
                         if (this.game.monsterManager) {
                             this.game.monsterManager._spawnBoss(false);
-                            this.game.monsterManager.slimeKillCount = 0;
+                            p.questData.slimeRepeatKills = 0; // Reset individual count
+                            p.saveState(); // Ensure it marks as 0 in DB
                             this.updateQuestUI();
                         }
                     }

@@ -42,6 +42,7 @@ export default class Player extends CharacterBase {
             slimeKills: 0,
             slimeQuestClaimed: false,
             slime30QuestClaimed: false, // v0.00.75+
+            slimeRepeatKills: 0,        // v0.00.83+ (Persistence for Quest 4)
             bossKilled: false,
             bossQuestClaimed: false,
             bossClearCount: 0 // v0.00.75+
@@ -1206,6 +1207,11 @@ export default class Player extends CharacterBase {
         if (data.questKill) {
             if (data.questKill === 'slime' || data.questKill === 'slime_split') {
                 this.questData.slimeKills++;
+
+                // v0.00.83: If already cleared first boss, track progress for repeatable summon
+                if (this.questData.bossClearCount > 0) {
+                    this.questData.slimeRepeatKills++;
+                }
             }
             if (data.questKill === 'king_slime') {
                 this.questData.bossKilled = true; // Mark as killed momentarily
