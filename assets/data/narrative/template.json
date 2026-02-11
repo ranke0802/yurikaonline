@@ -1,0 +1,43 @@
+{
+    "id": "unique_story_id",
+    "title": "Story Title Displayed in Logs",
+    "sequences": [
+        {
+            "id": "start",
+            "name": "Speaker Name",
+            "text": "Dialog content goes here.",
+            "image": "assets/ui/portraits/guide.png",
+            "duration": 3000,
+            "next": "next_sequence_id",
+            "action": "optional_action_trigger_id"
+        },
+        {
+            "id": "choice_example",
+            "name": "NPC",
+            "text": "Do you accept the quest?",
+            "options": [
+                {
+                    "text": "Yes",
+                    "next": "accept_sequence"
+                },
+                {
+                    "text": "No",
+                    "next": "reject_sequence"
+                }
+            ]
+        }
+    ],
+    "triggers": [
+        {
+            "type": "zone_enter",
+            "target": "zone_1",
+            "condition": "level >= 1",
+            "startSequence": "start"
+        },
+        {
+            "type": "interaction",
+            "target": "npc_id_101",
+            "startSequence": "start"
+        }
+    ]
+}

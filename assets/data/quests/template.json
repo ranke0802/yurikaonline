@@ -1,0 +1,25 @@
+{
+    "_comment": "Quest Template Schema v1.0",
+    "id": "quest_template",
+    "title": "퀘스트 제목",
+    "description": "퀘스트 설명 (UI에 표시)",
+    "type": "main",
+    "prerequisites": [],
+    "objectives": [
+        {
+            "type": "kill",
+            "target": "slime",
+            "count": 10,
+            "description": "슬라임을 {count}마리 처치하세요"
+        }
+    ],
+    "rewards": {
+        "exp": 0,
+        "gold": 0,
+        "items": []
+    },
+    "onComplete": {
+        "message": "퀘스트 완료 메시지",
+        "unlocks": []
+    }
+}

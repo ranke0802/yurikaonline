@@ -1,0 +1,25 @@
+{
+    "id": "quest_slime_10",
+    "title": "슬라임 토벌",
+    "description": "숲 근처에 출몰하는 슬라임 10마리를 처치하세요.",
+    "type": "main",
+    "prerequisites": [],
+    "objectives": [
+        {
+            "type": "kill",
+            "target": "slime",
+            "count": 10,
+            "description": "슬라임 처치: {current}/{count}"
+        }
+    ],
+    "rewards": {
+        "exp": 200,
+        "gold": 500
+    },
+    "onComplete": {
+        "message": "슬라임 토벌 완료! 보상을 수령하세요.",
+        "unlocks": [
+            "quest_slime_30"
+        ]
+    }
+}

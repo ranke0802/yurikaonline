@@ -1,26 +1,67 @@
 {
     "id": "king_slime",
     "name": "대왕 슬라임",
+    "type": "monster",
     "baseStats": {
-        "hp": 1500,
-        "maxHp": 1500,
-        "speed": 10,
-        "atk": 12,
-        "mp": 200,
-        "maxMp": 200,
-        "hpRegen": 6,
-        "mpRegen": 6
+        "hp": 2000,
+        "maxHp": 2000,
+        "mp": 500,
+        "maxMp": 500,
+        "atk": 50,
+        "def": 15,
+        "speed": 40,
+        "exp": 500,
+        "hpRegen": 5
     },
     "visual": {
-        "assetPath": "assets/resource/monster_slim",
+        "assetPath": "assets/resource/monster_slime",
+        "width": 160,
+        "height": 160,
+        "frameSpeed": 0.1,
         "frameCount": 5,
-        "frameSpeed": 0.15,
-        "width": 320,
-        "height": 320
+        "scale": 4.0
     },
-    "ai": {
-        "type": "aggro",
-        "aggroRange": 1000,
-        "leashRange": 2000
-    }
+    "sounds": {
+        "attack": "sfx_boss_attack",
+        "hit": "sfx_boss_hit",
+        "die": "sfx_boss_die",
+        "move": "sfx_boss_move"
+    },
+    "skills": [
+        {
+            "id": "missile",
+            "trigger": "cooldown",
+            "chance": 1.0,
+            "cooldown": 15000,
+            "data": {
+                "count": 4,
+                "damage": 7
+            }
+        },
+        {
+            "id": "shield",
+            "trigger": "damage_received",
+            "chance": 0.3,
+            "cooldown": 20000,
+            "data": {
+                "duration": 1000
+            }
+        }
+    ],
+    "drops": [
+        {
+            "itemId": "gold",
+            "min": 500,
+            "max": 1000,
+            "chance": 1.0
+        },
+        {
+            "itemId": "royal_jelly",
+            "chance": 0.5
+        },
+        {
+            "itemId": "king_crown",
+            "chance": 0.05
+        }
+    ]
 }

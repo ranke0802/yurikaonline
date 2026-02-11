@@ -6,13 +6,17 @@ import TouchHandler from './core/input/TouchHandler.js';
 import KeyboardHandler from './core/input/KeyboardHandler.js';
 import ResourceManager from './core/ResourceManager.js';
 import ZoneManager from './world/ZoneManager.js';
-import Camera from './core/Camera.js';
+import Camera from './world/Camera.js';
 import AuthManager from './core/AuthManager.js';
 import NetworkManager from './core/NetworkManager.js';
 import MonsterManager from './world/MonsterManager.js';
 import MonsterDataManager from './core/MonsterDataManager.js';
+import CharacterDataManager from './core/CharacterDataManager.js';
+import StoryManager from './core/StoryManager.js';
 import { UIManager } from './ui/UIManager.js';
 import SoundManager from './core/SoundManager.js';
+import QuestManager from './core/QuestManager.js';
+import TutorialManager from './core/TutorialManager.js'; // v2.3
 import ObjectPool from './utils/ObjectPool.js';
 import SceneManager from './core/SceneManager.js';
 import WorldScene from './world/scenes/WorldScene.js';
@@ -72,7 +76,11 @@ class Game {
         this.net = new NetworkManager();
         this.resources = new ResourceManager();
         this.monsterData = new MonsterDataManager(this.resources); // Initialize MonsterDataManager
+        this.characterData = new CharacterDataManager(this.resources);
+        this.story = new StoryManager(this); // Initialize StoryManager
         this.sound = new SoundManager(this.resources); // Initialize SoundManager
+        this.quests = new QuestManager(this); // v2.2: Initialize QuestManager
+        this.tutorial = new TutorialManager(this); // v2.3: Tutorial System
 
         // Global Reference for AI and Debugging
         window.game = this;
@@ -130,7 +138,10 @@ class Game {
 
         // 8. Game Loop
         this.loop = new GameLoop(
-            (dt) => this.sceneManager.update(dt),
+            (dt) => {
+                this.sceneManager.update(dt);
+                if (this.tutorial) this.tutorial.update(dt);
+            },
             () => this.sceneManager.render(this.ctx)
         );
 
@@ -190,6 +201,14 @@ class Game {
             await this.resources.preloadCriticalAssets((pct) => {
                 this.updateLoading('리소스 다운로드 중...', pct);
             });
+
+            // v2.1: Load Emotes
+            const emoteData = await this.resources.loadJSON('/assets/data/emotes/basic_emotes.json');
+            this.emotes = Array.isArray(emoteData) ? emoteData : (emoteData?.emotes || []);
+
+            // v2.2: Load Quest Definitions
+            await this.quests.loadQuests();
+
         } catch (e) {
             Logger.error('Asset Preloading Partial failure', e);
         }

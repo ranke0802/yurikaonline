@@ -226,11 +226,11 @@ export default class ResourceManager {
     async preloadCriticalAssets(onProgress) {
         const criticalImages = [
             // Monster: Slime (1-5)
-            '/assets/resource/monster_slim/1.webp',
-            '/assets/resource/monster_slim/2.webp',
-            '/assets/resource/monster_slim/3.webp',
-            '/assets/resource/monster_slim/4.webp',
-            '/assets/resource/monster_slim/5.webp',
+            '/assets/resource/monster_slime/1.webp',
+            '/assets/resource/monster_slime/2.webp',
+            '/assets/resource/monster_slime/3.webp',
+            '/assets/resource/monster_slime/4.webp',
+            '/assets/resource/monster_slime/5.webp',
             // Player: Front (1-8) for Character Selection
             '/assets/resource/magicion_front/1.webp',
             '/assets/resource/magicion_front/2.webp',

@@ -1,0 +1,30 @@
+{
+    "id": "training_dummy",
+    "name": "허수아비",
+    "type": "dummy",
+    "stats": {
+        "hp": 20,
+        "maxHp": 20,
+        "attack": 0,
+        "defense": 0,
+        "speed": 0,
+        "exp": 10
+    },
+    "sprite": {
+        "texture": "monster_slime",
+        "tint": "0x888888",
+        "scale": 1.2
+    },
+    "behavior": {
+        "aggroRange": 0,
+        "attackRange": 0,
+        "type": "passive"
+    },
+    "rewards": {
+        "gold": {
+            "min": 0,
+            "max": 0
+        },
+        "items": []
+    }
+}

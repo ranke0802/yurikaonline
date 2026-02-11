@@ -2885,3 +2885,134 @@ body.is-fullscreen .version-info {
 .cancel-btn:active {
     transform: scale(0.96);
 }
+
+/* Dialog System */
+#dialog-box {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 600px;
+    z-index: 200;
+}
+
+.dialog-content {
+    background: rgba(255, 255, 255, 0.95);
+    border: 4px solid #fff;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dialog-name {
+    font-weight: bold;
+    color: #833471;
+    font-size: 16px;
+    background: #ffd6a5;
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    align-self: flex-start;
+}
+
+.dialog-text {
+    font-size: 14px;
+    color: #2d3436;
+    line-height: 1.5;
+    min-height: 42px;
+}
+
+.dialog-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.dialog-option-btn {
+    background: #74b9ff;
+    border: none;
+    padding: 10px;
+    border-radius: 10px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: var(--cosy-font);
+}
+
+.dialog-option-btn:hover {
+    background: #0984e3;
+}
+
+.dialog-next-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 20px;
+    background: transparent;
+    border: none;
+    color: #833471;
+    font-weight: bold;
+    cursor: pointer;
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(5px);
+    }
+}
+
+/* Emote Picker */
+.emote-picker {
+    position: absolute;
+    bottom: 50px;
+    left: 10px;
+    width: 200px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 101;
+}
+
+.emote-item {
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    border-radius: 4px;
+    object-fit: contain;
+}
+
+.emote-item:hover {
+    transform: scale(1.2);
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.emote-btn {
+    cursor: pointer;
+    font-size: 18px;
+    margin-right: 8px;
+    transition: transform 0.2s;
+    user-select: none;
+}
+
+.emote-btn:hover {
+    transform: scale(1.1);
+}

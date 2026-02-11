@@ -266,6 +266,7 @@ export default class NetworkManager extends EventEmitter {
         this._setupPartyListeners();
         this._setupDamageListeners(); // v0.00.14: PvP Damage
         // this._setupHostilityListeners(); // Moved to WorldScene to ensure localPlayer exists
+        this._setupEmoteListeners(); // v2.1
 
         Logger.log('Connected to Game Zone.');
     }
@@ -1277,49 +1278,51 @@ export default class NetworkManager extends EventEmitter {
 
     startHostilityListeners() {
         if (!this.playerId) return;
-        if (this._hostilityListenerActive) return; // Prevent double binding
+        if (this._hostilityListenerActive) return;
 
         this._hostilityListenerActive = true;
         Logger.log(`[Network] Starting hostility listeners for ${this.playerId}`);
 
-        // Listen for Incoming Hostility Declarations
-        this.dbRef.child(`hostility_events/${this.playerId}`).on('child_added', (snapshot) => {
+        // Listen for Direct Hostility Updates (Inbox Pattern)
+        this.dbRef.child(`users/${this.playerId}/hostility_inbox`).on('child_added', (snapshot) => {
             const val = snapshot.val();
-            Logger.log('[Network] Received Hostility Event:', val);
             if (val) {
-                // Determine if this is a new declaration
+                // v1.1: Force Mutual Hostility Logic
                 if (window.game && window.game.localPlayer) {
                     const lp = window.game.localPlayer;
+                    const senderId = val.from;
+                    const senderName = val.fromName || "Unknown";
 
-                    if (val.type === 'remove') {
-                        if (lp.hostileTargets.has(val.senderId)) {
-                            lp.hostileTargets.delete(val.senderId);
+                    // Handle ADD (Forced Hostility)
+                    // If someone declares war on me, I MUST reciprocate physically
+                    // (But logically, I just add them to my list so I can attack back)
+                    if (val.type === 'ADD') {
+                        // Avoid duplicates
+                        if (!lp.hostileTargets.has(senderId)) {
+                            lp.hostileTargets.set(senderId, { name: senderName, ts: val.ts || Date.now() });
                             if (window.game.ui) {
-                                window.game.ui.logSystemMessage(`🕊️ ${val.senderName || '상대'}가 적대 관계를 해제하여 평화 상태가 되었습니다.`);
+                                // Message: Someone added you, ensuring mutual hostility
+                                window.game.ui.logSystemMessage(`⚔️ ${senderName}님이 당신을 적대 등록했습니다! (상호 적대 성립 / 반격 가능)`);
                                 window.game.ui.updateHostilityUI();
+                                window.game.sound.playSfx('pvp_alert');
                             }
-                            lp.saveState(true); // v0.00.19: Immediate world sync for mutual pvp
-                        }
-                    } else {
-                        // type === 'declare' or legacy
-                        // v0.00.18: Check for duplicate name even if ID is different
-                        const alreadyExistsByName = lp.getHostileUidByName?.(val.senderName);
-
-                        if (!lp.hostileTargets.has(val.senderId) && !alreadyExistsByName) {
-                            lp.hostileTargets.set(val.senderId, { name: val.senderName, ts: val.ts || Date.now() });
-                            if (window.game.ui) {
-                                window.game.ui.logSystemMessage(`⚠️ ${val.senderName}님이 당신을 적대 관계로 등록했습니다! (상호 적대 시 PvP 가능)`);
-                                window.game.ui.updateHostilityUI();
-                            }
-                            lp.saveState(true); // v0.00.19: Immediate world sync for mutual pvp
+                            lp.saveState(true);
                         }
                     }
-                } else {
-                    Logger.warn('[Network] Hostility Event received but localPlayer not ready. Keeping event.');
-                    return; // Do NOT remove snapshot if player not ready
+                    // Handle REMOVE
+                    else if (val.type === 'REMOVE') {
+                        if (lp.hostileTargets.has(senderId)) {
+                            lp.hostileTargets.delete(senderId);
+                            if (window.game.ui) {
+                                window.game.ui.logSystemMessage(`🕊️ ${senderName}님이 적대를 해제하여 평화 상태가 되었습니다.`);
+                                window.game.ui.updateHostilityUI();
+                            }
+                            lp.saveState(true);
+                        }
+                    }
                 }
             }
-            // Only remove if processed successfully
+            // Auto-remove processed event
             snapshot.ref.remove();
         });
     }
@@ -1339,5 +1342,27 @@ export default class NetworkManager extends EventEmitter {
 
     onSystemMessage(callback) {
         this.on('systemMessage', callback);
+    }
+    // v2.1: Emote System
+    sendEmote(emoteId) {
+        if (!this.connected || !this.playerId) return;
+        this.dbRef.child('emotes').push({
+            uid: this.playerId,
+            emoteId: emoteId,
+            ts: firebase.database.ServerValue.TIMESTAMP
+        });
+    }
+
+    _setupEmoteListeners() {
+        this.dbRef.child('emotes').on('child_added', (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.ts > Date.now() - 5000) { // Recent only
+                this.emit('emoteReceived', data);
+            }
+            // Host cleans up
+            if (this.isHost) {
+                snapshot.ref.remove();
+            }
+        });
     }
 }

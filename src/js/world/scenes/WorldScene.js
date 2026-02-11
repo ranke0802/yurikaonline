@@ -54,7 +54,32 @@ export default class WorldScene extends Scene {
 
         // v0.00.02: Restore asset loading which was cut from main.js
         if (this.game.updateLoading) this.game.updateLoading('월드 데이터 다운로드 중...', 40);
-        await this.game.zone.loadZone('zone_1');
+
+        // 1. Load Zone Data
+        const zoneData = await this.game.zone.loadZone('zone_1');
+
+        // 2. Setup Camera Bounds
+        if (zoneData) {
+            this.camera.setWorldBounds(this.game.zone.width, this.game.zone.height);
+
+            // 3. Setup Monster Spawns
+            if (this.net.isHost && this.monsterManager) {
+                this.monsterManager.setSpawnRules(zoneData.spawns);
+                this.monsterManager.clearAll(); // Clear old monsters on zone change
+            }
+
+            // 4. Place Objects
+            // v2.0: Dynamic Object Placement from JSON
+            this.mapObjects = []; // Reset objects
+            this.staticColliders = []; // For collision checking
+
+            if (zoneData.objects) {
+                Logger.log(`[WorldScene] Placing ${zoneData.objects.length} objects...`);
+                zoneData.objects.forEach(objDef => {
+                    this._createMapObject(objDef);
+                });
+            }
+        }
 
         try {
             await this.resources.loadImage('/src/assets/character.webp');
@@ -71,10 +96,18 @@ export default class WorldScene extends Scene {
         // v1.99.12: Load FULL sprite sheet (preview loaded only partial)
         await this.resources.loadCharacterSpriteSheet();
 
+        // 5. Load Character Definition (Warrior Default)
+        // TODO: Select class based on user profile or selection
+        let charDef = null;
+        if (this.game.characterData) {
+            charDef = await this.game.characterData.loadDefinition('wizard');
+        }
+
         // Spawn Player
-        this.player = new Player(startX, startY, localName);
+        this.player = new Player(startX, startY, localName, charDef);
         this.player.id = user.uid;
         this.game.localPlayer = this.player; // Global reference for UIManager / MonsterAI
+
 
         if (profile) {
             console.log(`[WorldScene] Loading Player Profile:`, profile);
@@ -88,6 +121,10 @@ export default class WorldScene extends Scene {
             this.player.agility = profile.agility || 1;
             this.player.statPoints = profile.statPoints || 0;
             this.player.skillLevels = profile.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
+            // v0.00.75: Restore Inventory
+            if (profile.inventory && Array.isArray(profile.inventory)) {
+                this.player.inventory = profile.inventory;
+            }
             this.player.name = profile.name || localName || user.displayName || "유리카";
 
             // v0.00.15: Restore Hostility
@@ -110,19 +147,48 @@ export default class WorldScene extends Scene {
             if (profile.questData) {
                 console.log('[WorldScene] Restoring Quest Data:', profile.questData);
                 this.player.questData = { ...this.player.questData, ...profile.questData };
+                // v2.2: Sync to QuestManager
+                if (this.game.quests) {
+                    this.game.quests.restoreFromLegacy(this.player.questData);
+                }
             } else {
                 console.warn('[WorldScene] No Quest Data found in profile.');
+                // v2.2: Initialize first quest
+                if (this.game.quests) {
+                    this.game.quests.acceptQuest('quest_slime_10');
+                }
             }
 
             this.player.refreshStats();
             if (typeof profile.hp === 'number') this.player.hp = profile.hp;
             if (typeof profile.mp === 'number') this.player.mp = profile.mp;
 
-            // v0.00.29: Restore saved position
-            if (typeof profile.x === 'number' && typeof profile.y === 'number') {
-                this.player.x = profile.x;
-                this.player.y = profile.y;
-                console.log(`[WorldScene] Restored position: (${profile.x}, ${profile.y})`);
+            // v0.00.84: Restore saved position with params priority
+            const posX = profile.x ?? params.startX;
+            const posY = profile.y ?? params.startY;
+
+            if (typeof posX === 'number' && typeof posY === 'number') {
+                this.player.x = posX;
+                this.player.y = posY;
+                console.log(`[WorldScene] Position set to: (${this.player.x}, ${this.player.y})`);
+
+                // v2.3.3: Boundary Check (Move to after Restoration)
+                if (this.player.x >= this.game.zone.width || this.player.y >= this.game.zone.height) {
+                    Logger.warn(`[WorldScene] Restoration out of bounds (${this.player.x}, ${this.player.y}). Resetting.`);
+                    const spawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
+                    this.player.x = spawn.x;
+                    this.player.y = spawn.y;
+                    this.player.saveState();
+                }
+
+                // v2.3.4: Collision Fail-safe (Stuck at old spawn or invalid place)
+                if (this.checkCollision(this.player.x, this.player.y, this.player.width, this.player.height)) {
+                    Logger.warn(`[WorldScene] Player stuck in collision at (${this.player.x}, ${this.player.y}). Resetting to safe spawn.`);
+                    const spawn = this.game.zone.getSpawnPoint('default');
+                    this.player.x = spawn.x;
+                    this.player.y = spawn.y;
+                    this.player.saveState();
+                }
             }
 
             // v1.99.12: Force UI Update after profile restoration
@@ -180,6 +246,45 @@ export default class WorldScene extends Scene {
         if (this.game.sound) {
             this.game.sound.loadAndPlayBgm('bgm_cabin');
         }
+
+        // v2.0: Trigger Prologue Story if new player (or just test it)
+        // Check if quest data is empty to assume new player?
+        // For now, let's trigger it if slimeKills is 0.
+        if (this.player && this.player.level === 1 && this.player.questData.slimeKills === 0 && !this.player.questData.slimeQuestClaimed) {
+            // Delay slightly to allow fade-in
+            setTimeout(() => {
+                this.game.story.startStory('prologue');
+            }, 1000);
+        }
+    }
+
+    // v2.3.4: Effect Bridge
+    addSpark(x, y) {
+        // Fallback simple particles if no pool
+        for (let i = 0; i < 5; i++) {
+            this.sparks.push({
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 300,
+                vy: (Math.random() - 0.5) * 300,
+                life: 0.3 + Math.random() * 0.4,
+                color: '#fff'
+            });
+        }
+    }
+
+    // v0.00.55: Floating Text Bridge
+    addDamageText(x, y, text, color, isCrit, label) {
+        this.floatingTexts.push({
+            x: x,
+            y: y,
+            text: text,
+            color: color || '#fff',
+            timer: 1.5,
+            currentY: y,
+            isCrit: isCrit,
+            label: label
+        });
     }
 
     _setupNetworkHandlers() {
@@ -194,13 +299,36 @@ export default class WorldScene extends Scene {
 
         this.net.on('monsterDamageReceived', (data) => {
             const m = this.monsterManager?.monsters.get(data.mid);
-            if (m) this.addSpark(m.x, m.y);
+            if (m) this.game.addSpark(m.x, m.y);
+        });
+
+        // v2.1: Emote Sync
+        this.net.on('emoteReceived', (data) => {
+            if (this.player && this.player.id === data.uid) {
+                this.player.showEmote(data.emoteId);
+            } else {
+                const rp = this.remotePlayers.get(data.uid);
+                if (rp) {
+                    if (rp.showEmote) rp.showEmote(data.emoteId);
+                    else {
+                        // Polyfill for RemotePlayer if showEmote missing
+                        // Assuming RemotePlayer structure or just set props if render reads them
+                        // See Player.js showEmote: sets chatMessage, isEmote, chatTimer.
+                        const emote = this.game.emotes?.find(e => e.id === data.emoteId);
+                        if (emote) {
+                            rp.chatMessage = emote.icon;
+                            rp.isEmote = true;
+                            rp.chatTimer = 3.0;
+                        }
+                    }
+                }
+            }
         });
 
         this.net.on('playerDamageReceived', (data) => {
             let target = (this.player && this.player.id === data.tid) ? this.player : this.remotePlayers.get(data.tid);
             if (target) {
-                this.addSpark(target.x + target.width / 2, target.y + target.height / 2);
+                this.game.addSpark(target.x + target.width / 2, target.y + target.height / 2);
                 if (target === this.player) {
                     this.player.takeDamage(data.dmg);
                 } else {
@@ -295,7 +423,7 @@ export default class WorldScene extends Scene {
                     m.applyEffect('shield', (data.extra?.duration || 1000) / 1000, 0);
                     // Add some sparks/particles?
                     for (let i = 0; i < 10; i++) {
-                        this.addSpark(m.x + (Math.random() - 0.5) * m.width, m.y + (Math.random() - 0.5) * m.height);
+                        this.game.addSpark(m.x + (Math.random() - 0.5) * m.width, m.y + (Math.random() - 0.5) * m.height);
                     }
                 }
             } else if (data.skill === 'charge') {
@@ -322,7 +450,32 @@ export default class WorldScene extends Scene {
             if (this.input.isPressed('SKILL_1')) this.player.useSkill(1);
             if (this.input.isPressed('SKILL_2')) this.player.useSkill(2);
             if (this.input.isPressed('SKILL_3')) this.player.useSkill(3);
+
+            // v2.0: Predictive Collision (Check before update or after?)
+            // Player.update() modifies x/y directly based on vx/vy. 
+            // We need to check if the new position is valid.
+            const prevX = this.player.x;
+            const prevY = this.player.y;
+
             this.player.update(dt);
+
+            // Access WorldScene.checkCollision
+            if (this.checkCollision(this.player.x, this.player.y, this.player.width, this.player.height)) {
+                // Simple Revert (Slide logic could be better but this is safe)
+                // Try X only (Slide Y)
+                if (!this.checkCollision(prevX, this.player.y, this.player.width, this.player.height)) {
+                    this.player.x = prevX;
+                }
+                // Try Y only (Slide X)
+                else if (!this.checkCollision(this.player.x, prevY, this.player.width, this.player.height)) {
+                    this.player.y = prevY;
+                }
+                // Block both
+                else {
+                    this.player.x = prevX;
+                    this.player.y = prevY;
+                }
+            }
 
             // Sync Position
             this.net.sendMovePacket(
@@ -354,7 +507,6 @@ export default class WorldScene extends Scene {
         this.minimapUpdateTimer += dt;
 
         // v0.00.39: Always update all remote players for proper sync
-        // Position updates must run regardless of screen visibility
         this.remotePlayers.forEach(rp => {
             rp.update(dt);
         });
@@ -407,12 +559,62 @@ export default class WorldScene extends Scene {
             }
         }
 
-        // Update Projectiles (v0.29.23: Fixed removal logic)
+        // Update Projectiles
         this.projectiles = this.projectiles.filter(p => {
             const monsters = this.monsterManager ? Array.from(this.monsterManager.monsters.values()) : [];
             p.update(dt, monsters);
             return !p.isDead;
         });
+    }
+
+    _createMapObject(def) {
+        // Simple entity creation based on definition
+        const obj = {
+            id: def.id,
+            type: def.type,
+            x: def.x,
+            y: def.y,
+            width: def.visual?.width || 32,
+            height: def.visual?.height || 32,
+            image: def.visual?.image ? this.resources.getImage(def.visual.image) : null,
+            scale: def.visual?.scale || 1.0,
+            collision: def.collision,
+            interaction: def.interaction,
+            zIndex: def.y // Simple Y-sort base
+        };
+
+        // Add to list
+        this.mapObjects.push(obj);
+
+        // Add to collision list if enabled
+        if (def.collision && def.collision.enabled) {
+            this.staticColliders.push(obj);
+        }
+    }
+
+    checkCollision(x, y, width, height) {
+        // 1. Zone Boundaries
+        if (x < 0 || x + width > this.game.zone.width || y < 0 || y + height > this.game.zone.height) {
+            return true;
+        }
+
+        // 2. Static Colliders (Map Objects)
+        // v2.0: Check against staticColliders list
+        for (const obj of this.staticColliders) {
+            const col = obj.collision;
+            // Calculate object's collision box absolute position
+            const objX = obj.x + (col.offsetX || 0);
+            const objY = obj.y + (col.offsetY || 0);
+
+            if (x < objX + col.width &&
+                x + width > objX &&
+                y < objY + col.height &&
+                y + height > objY) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     render(ctx) {
@@ -421,21 +623,65 @@ export default class WorldScene extends Scene {
         ctx.save();
         const scale = this.game.zoom * this.game.dpr;
         ctx.scale(scale, scale);
-        ctx.translate(-this.camera.x, -this.camera.y);
+        // v2.2: Use getPosition() to include shake offset
+        const camPos = this.camera.getPosition ? this.camera.getPosition() : { x: this.camera.x, y: this.camera.y };
+        ctx.translate(-camPos.x, -camPos.y);
 
         // 1. World & Entities
         this.game.zone.render(ctx, this.camera);
 
-        // v0.00.21: Target Lock-on Marker (Draw under entities)
-        if (this.player && this.player.currentTarget) {
-            const t = this.player.currentTarget;
-            if (!t.isDead) {
-                const tx = t.x + t.width / 2;
-                const ty = t.y + t.height; // Bottom of target
-                import('../../skills/renderers/SkillRenderer.js').then(m => {
-                    m.default.drawTargetMarker(ctx, tx, ty, t.width || 48, t.height || 48);
-                });
+        // 2. Prepare Render List (Y-Sort)
+        const renderList = [];
+
+        // Map Objects
+        if (this.mapObjects) renderList.push(...this.mapObjects);
+
+        // Local Player
+        if (this.player && !this.player.isDead) renderList.push(this.player);
+
+        // Remote Players
+        this.remotePlayers.forEach(rp => renderList.push(rp));
+
+        // Monsters
+        if (this.monsterManager) {
+            this.monsterManager.monsters.forEach(m => {
+                if (this.isOnScreen(m)) renderList.push(m);
+            });
+        }
+
+        // Projectiles
+        if (this.monsterMissileQueue) {
+            // These are data objects, not sprites with render() methods usually... 
+        }
+
+        // Sort by Y for depth
+        renderList.sort((a, b) => a.y - b.y);
+
+        // Render All
+        renderList.forEach(entity => {
+            if (this.isOnScreen(entity)) {
+                if (entity.render) {
+                    entity.render(ctx, this.camera);
+                } else if (entity.image) {
+                    // Simple Object Render
+                    const screenX = Math.round(entity.x);
+                    const screenY = Math.round(entity.y);
+                    ctx.drawImage(entity.image, screenX, screenY, entity.width * entity.scale, entity.height * entity.scale);
+                }
             }
+        });
+
+        // Effect Layers
+        this.projectiles.forEach(p => p.render(ctx, this.camera));
+
+        // v0.00.21: Target Lock-on Marker
+        if (this.player && this.player.currentTarget && !this.player.currentTarget.isDead) {
+            const t = this.player.currentTarget;
+            const tx = t.x + t.width / 2;
+            const ty = t.y + t.height;
+            import('../../skills/renderers/SkillRenderer.js').then(m => {
+                m.default.drawTargetMarker(ctx, tx, ty, t.width || 48, t.height || 48);
+            });
         }
 
         // v0.00.22: Off-screen culling for RemotePlayers render
@@ -443,13 +689,55 @@ export default class WorldScene extends Scene {
             if (this.isOnScreen(rp)) {
                 rp.render(ctx, this.camera);
             }
-            // Off-screen: Skip rendering entirely (minimap will still see them)
         });
-        this.monsterManager.render(ctx, this.camera);
-        this.projectiles.forEach(p => p.render(ctx, this.camera));
+
+        if (this.monsterManager) this.monsterManager.render(ctx, this.camera);
+        // this.projectiles.forEach(p => p.render(ctx, this.camera)); 
 
         if (this.player) {
             this.player.render(ctx, this.camera);
+
+            // 렌더링 순서: 플레이어 위에 이펙트
+            this.sparks.forEach(s => {
+                ctx.globalAlpha = s.life / 0.5; // Fade out
+                ctx.fillStyle = s.color;
+                ctx.beginPath();
+                ctx.arc(Math.round(s.x), Math.round(s.y), Math.random() * 3 + 1, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1.0;
+
+            // 플로팅 텍스트 (최상단)
+            this.floatingTexts.forEach(ft => {
+                const screenX = Math.round(ft.x);
+                const screenY = Math.round(ft.currentY);
+
+                ctx.save();
+                ctx.textAlign = 'center';
+                // v0.00.55: Dynamic Font Size based on Critical
+                if (ft.isCrit) {
+                    ctx.font = 'bold 24px "Outfit", sans-serif';
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 3;
+                    ctx.strokeText(ft.text, screenX, screenY);
+                    ctx.fillStyle = ft.color;
+                    ctx.fillText(ft.text, screenX, screenY);
+
+                    if (ft.label) {
+                        ctx.font = 'bold 12px sans-serif';
+                        ctx.fillStyle = '#fff';
+                        ctx.fillText(ft.label, screenX, screenY - 20);
+                    }
+                } else {
+                    ctx.font = 'bold 16px "Outfit", sans-serif';
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.strokeText(ft.text, screenX, screenY);
+                    ctx.fillStyle = ft.color;
+                    ctx.fillText(ft.text, screenX, screenY);
+                }
+                ctx.restore();
+            });
 
             // 2. Minimap (UI Sync)
             if (this.ui) {
@@ -463,146 +751,11 @@ export default class WorldScene extends Scene {
             }
         }
 
-        // 3. Effects (Sparks & Damage Text)
-        this.sparks.forEach(s => {
-            ctx.save();
-            ctx.fillStyle = s.color;
-            ctx.globalAlpha = s.life * 2;
-            ctx.fillRect(s.x, s.y, 2, 2);
-            ctx.restore();
-        });
-
-        this.floatingTexts.forEach(ft => {
-            const sx = ft.x, sy = ft.currentY;
-            ctx.save();
-            ctx.globalAlpha = Math.min(1, ft.timer);
-            ctx.textAlign = 'center';
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 3;
-
-            if (ft.label) {
-                ctx.font = 'bold 18px "Outfit", sans-serif';
-                ctx.strokeText(ft.label, sx, sy - 35);
-                ctx.fillStyle = '#fff';
-                ctx.fillText(ft.label, sx, sy - 35);
-            }
-
-            const fs = ft.isCrit ? 50 : 20;
-            ctx.font = `bold ${fs}px "Outfit", sans-serif`;
-            ctx.strokeText(ft.text, sx, sy);
-            ctx.fillStyle = ft.color;
-            ctx.fillText(ft.text, sx, sy);
-            ctx.restore();
-        });
-
-        // 7. Explosions (Top Layer)
-        this.explosions.forEach(exp => {
-            const progress = 1 - (exp.life / exp.maxLife);
-            SkillRenderer.drawExplosion(ctx, exp.x, exp.y, exp.radius, progress);
-        });
-
         ctx.restore();
-    }
 
-    addSpark(x, y) {
-        for (let i = 0; i < 8; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 50 + Math.random() * 50;
-            const life = 0.3 + Math.random() * 0.2;
-            const s = this.game.sparkPool.acquire(x, y, angle, speed, life, '#fff');
-            if (s) this.sparks.push(s);
-        }
-    }
-
-    addExplosion(x, y, radius) {
-        // v1.99.15: Visual-only explosion state
-        this.explosions.push({
-            x, y, radius,
-            life: 0.6,
-            maxLife: 0.6
-        });
-    }
-
-    addDamageText(x, y, text, color, isCrit, type) {
-        const ft = this.game.textPool.acquire(x, y, text, color, 1.5, isCrit, type);
-        if (ft) {
-            this.floatingTexts.push(ft);
-        }
-    }
-
-    addProjectile(p) {
-        this.projectiles.push(p);
-    }
-
-    onPointerDown(e) {
-        if (!this.player || this.game.ui.isPaused || !this.input.enabled) return;
-
-        const rect = this.game.canvas.getBoundingClientRect();
-        const screenX = e.clientX - rect.left;
-        const screenY = e.clientY - rect.top;
-
-        // Joystick Area (Left side) Exclusion
-        if (screenX < 200 && screenY > this.game.canvas.height / this.game.dpr / 2) return;
-
-        // Action Buttons Area (Right side) Exclusion
-        if (screenX > (this.game.canvas.width / this.game.dpr) - 220 && screenY > (this.game.canvas.height / this.game.dpr) - 220) return;
-
-        // Top bar exclusion
-        if (screenX < 300 && screenY < 100) return;
-
-        // Scale and translate coordinate to world
-        const worldX = (screenX / this.game.zoom) + this.camera.x;
-        const worldY = (screenY / this.game.zoom) + this.camera.y;
-
-        // v0.00.21: PC Targeting (Enhanced Entity Picking)
-        let clickedEntity = null;
-        let minDist = 50; // Max distance for "sticky" targeting
-
-        // 1. Check Monsters
-        for (const m of this.monsterManager.monsters.values()) {
-            if (m.isDead) continue;
-            const mx = m.x + (m.width / 2);
-            const my = m.y + (m.height / 2);
-            const dist = Math.sqrt((worldX - mx) ** 2 + (worldY - my) ** 2);
-
-            // v0.00.21: Use minimum of (Distance or specific Hitbox)
-            const inHitbox = worldX >= m.x && worldX <= m.x + m.width && worldY >= m.y && worldY <= m.y + m.height;
-            if (inHitbox || dist < minDist) {
-                if (dist < minDist) {
-                    minDist = dist;
-                    clickedEntity = m;
-                }
-            }
-        }
-
-        // 2. Check Remote Players (If no monster hit)
-        if (!clickedEntity) {
-            for (const rp of this.remotePlayers.values()) {
-                if (rp.isDead) continue;
-                const rpx = rp.x + (rp.width / 2);
-                const rpy = rp.y + (rp.height / 2);
-                const dist = Math.sqrt((worldX - rpx) ** 2 + (worldY - rpy) ** 2);
-
-                const inHitbox = worldX >= rp.x && worldX <= rp.x + rp.width && worldY >= rp.y && worldY <= rp.y + rp.height;
-                if (inHitbox || dist < minDist) {
-                    if (dist < minDist) {
-                        minDist = dist;
-                        clickedEntity = rp;
-                    }
-                }
-            }
-        }
-
-        if (clickedEntity) {
-            this.player.currentTarget = clickedEntity;
-            if (this.ui) this.ui.logSystemMessage(`🎯 ${clickedEntity.name}님을 대상으로 지정했습니다.`);
-            // When targeting, don't necessarily stop movement unless you want to?
-            // Usually, single click on target = target. double click/action = attack.
-            // For now, let's just set the target and allow movement.
-        } else {
-            // Clicked on empty ground = Clear target (optional)
-            // this.player.currentTarget = null;
-            this.player.setMoveTarget(worldX, worldY);
+        // v2.2: Story Fade Overlay (rendered AFTER ctx.restore to cover full screen)
+        if (this.game.story?.fadeAlpha > 0) {
+            this.game.story.renderFade(ctx, this.game.canvas.width, this.game.canvas.height);
         }
     }
 }

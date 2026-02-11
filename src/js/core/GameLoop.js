@@ -13,6 +13,9 @@ export default class GameLoop {
         this.paused = false;
         this.rafId = null;
 
+        // v2.2: Hitstop
+        this.hitstopTimer = 0;
+
         this._loop = this._loop.bind(this);
     }
 
@@ -44,6 +47,14 @@ export default class GameLoop {
         Logger.log('GameLoop resumed');
     }
 
+    /**
+     * v2.2: Trigger hitstop (freeze updates for visual impact)
+     * @param {number} durationMs - Duration in milliseconds (e.g., 50~120ms)
+     */
+    hitstop(durationMs = 80) {
+        this.hitstopTimer = Math.max(this.hitstopTimer, durationMs);
+    }
+
     _loop(currentTime) {
         if (!this.running) return;
 
@@ -57,6 +68,13 @@ export default class GameLoop {
         // Prevent spiral of death if lag allows frameTime to be too large
         // Cap it at 0.25 seconds
         const safeFrameTime = Math.min(frameTime, 0.25);
+
+        // v2.2: Hitstop — skip updates but still render
+        if (this.hitstopTimer > 0) {
+            this.hitstopTimer -= safeFrameTime * 1000;
+            this.renderFn();
+            return;
+        }
 
         this.accumulator += safeFrameTime;
 

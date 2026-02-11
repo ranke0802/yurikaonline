@@ -20,8 +20,121 @@ export class UIManager {
             }
         }
 
+        // v0.00.63: Global UI Audio & Visual Feedback
+        if (this.tooltip) {
+            this.tooltip.style.opacity = '0';
+        }
+
+        // v2.1: Dialog System Elements
+        this.dialogBox = document.getElementById('dialog-box');
+        this.dialogText = document.getElementById('dialog-text');
+        this.dialogName = document.getElementById('dialog-name');
+        this.dialogNext = document.getElementById('dialog-next');
+
+        if (this.dialogNext) {
+            this.dialogNext.addEventListener('click', () => this.advanceDialog());
+        }
+
+        this.currentDialogQueue = [];
+
         // v0.00.63: Global UI Audio & Visual Feedback Delegation
         this.setupGlobalInteractions();
+
+        // v2.1: Emote UI
+        this.setupEmoteUI();
+    }
+
+    // v2.1: Dialog System Methods
+    showDialog(dialogData) {
+        if (!this.dialogBox) return;
+
+        if (Array.isArray(dialogData)) {
+            this.currentDialogQueue = [...dialogData];
+        } else {
+            this.currentDialogQueue = [dialogData];
+        }
+
+        this.dialogBox.style.display = 'block';
+        this.dialogBox.classList.remove('hidden');
+        this.advanceDialog();
+    }
+
+    advanceDialog() {
+        if (this.currentDialogQueue.length === 0 && !this.waitingForOption) {
+            this.hideDialog();
+            return;
+        }
+
+        if (this.waitingForOption) return; // Do not advance if waiting for user choice
+
+        const data = this.currentDialogQueue.shift();
+        if (this.dialogText) this.dialogText.textContent = data.text;
+        if (this.dialogName) this.dialogName.textContent = data.name || '';
+
+        // Handle Options
+        const optionsContainer = document.getElementById('dialog-options'); // Assuming this exists or we create it
+        if (optionsContainer) optionsContainer.innerHTML = '';
+
+        if (data.options && data.options.length > 0) {
+            this.waitingForOption = true;
+            if (this.dialogNext) this.dialogNext.style.display = 'none'; // Hide Next button
+
+            if (optionsContainer) {
+                data.options.forEach((opt, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'dialog-option-btn';
+                    btn.textContent = opt.text;
+                    btn.onclick = () => {
+                        this.waitingForOption = false;
+                        if (this.game.story) this.game.story.advance(index);
+                        else this.advanceDialog(); // Fallback if no story manager
+                    };
+                    optionsContainer.appendChild(btn);
+                });
+            }
+        } else {
+            if (this.dialogNext) this.dialogNext.style.display = 'block';
+        }
+    }
+
+    hideDialog() {
+        if (this.dialogBox) this.dialogBox.style.display = 'none';
+        this.currentDialogQueue = [];
+    }
+
+    // v2.3: Tutorial UI
+    showTutorialGuide(text) {
+        let guide = document.getElementById('tutorial-guide');
+        if (!guide) {
+            guide = document.createElement('div');
+            guide.id = 'tutorial-guide';
+            guide.style.position = 'absolute';
+            guide.style.top = '20%';
+            guide.style.left = '50%';
+            guide.style.transform = 'translate(-50%, -50%)';
+            guide.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            guide.style.color = '#ffffff';
+            guide.style.padding = '16px 24px';
+            guide.style.borderRadius = '12px';
+            guide.style.fontFamily = "'Noto Sans KR', sans-serif";
+            guide.style.fontSize = '18px';
+            guide.style.fontWeight = 'bold';
+            guide.style.pointerEvents = 'none';
+            guide.style.display = 'none';
+            guide.style.zIndex = '1000';
+            guide.style.border = '2px solid #ffd700';
+            guide.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.3)';
+            guide.style.textAlign = 'center';
+            guide.style.textShadow = '0 2px 4px rgba(0,0,0,0.5)';
+            document.body.appendChild(guide);
+        }
+        guide.innerHTML = `<div style="font-size:14px; color:#ffd700; margin-bottom:4px;">TUTORIAL</div>${text}`;
+        guide.style.display = 'block';
+    }
+
+    hideTutorialGuide() {
+        const guide = document.getElementById('tutorial-guide');
+        if (guide) guide.style.display = 'none';
     }
 
     setupGlobalInteractions() {
@@ -298,6 +411,41 @@ export class UIManager {
             nameInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     nameSaveBtn.click();
+                }
+            });
+        }
+
+        // v2.1: Emote UI
+        const chatArea = document.querySelector('.chat-input-area');
+        if (chatArea && !document.getElementById('btn-emote')) {
+            const emoteBtn = document.createElement('button');
+            emoteBtn.id = 'btn-emote';
+            emoteBtn.className = 'btn-emote';
+            emoteBtn.textContent = '😀';
+            emoteBtn.style.cssText = 'width: 30px; height: 30px; margin-right: 5px; border: none; background: none; font-size: 20px; cursor: pointer;';
+            chatArea.insertBefore(emoteBtn, chatArea.firstChild);
+
+            // Emote Panel
+            const emotePanel = document.createElement('div');
+            emotePanel.id = 'emote-panel';
+            emotePanel.className = 'emote-panel hidden';
+            emotePanel.style.cssText = 'position: absolute; bottom: 50px; left: 10px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 5px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; z-index: 1000;';
+            document.body.appendChild(emotePanel);
+
+            emoteBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (emotePanel.classList.contains('hidden')) {
+                    this.showEmotePanel();
+                } else {
+                    emotePanel.classList.add('hidden');
+                }
+            });
+
+            // Close emote panel on outside click
+            document.addEventListener('click', (e) => {
+                if (!emotePanel.contains(e.target) && e.target !== emoteBtn) {
+                    emotePanel.classList.add('hidden');
                 }
             });
         }
@@ -768,28 +916,59 @@ export class UIManager {
         };
 
         // HP/MP Range special handling
+        // v2.1: Data-Driven UI Formulas (Synced with Player.js)
+        const def = p.definition || {};
+        const base = def.baseStats || {};
+        const growth = def.growthStats || { hp: 10, mp: 10, atk: 1, def: 1 };
+
+        // Constants using nullish coalescing for safety
+        const bMaxHp = base.maxHp ?? 30;
+        const bMaxMp = base.maxMp ?? 50;
+        const bAtk = base.atk ?? 10;
+        const bDef = base.def ?? 1;
+        const bHpRegen = base.hpRegen ?? 1;
+        const bMpRegen = base.mpRegen ?? 2;
+
+        // v2.1: Robust Growth Defaults
+        const gHp = growth.hp ?? 10;
+        const gMp = growth.mp ?? 10;
+        const gAtk = growth.atk ?? 1;
+        const gDef = growth.def ?? 1;
+
+        // HP/MP Range
         const hpRangeEl = document.getElementById('val-hp-range');
-        const baseMaxHp = 20 + (baseVit * 10);
-        const predMaxHp = 20 + (predVit * 10);
+        const predMaxHp = bMaxHp + (predVit * gHp);
         if (hpRangeEl) {
-            hpRangeEl.innerHTML = `${Math.floor(p.hp)} / <span class="${predMaxHp > baseMaxHp ? 'stat-predict-inc' : ''}">${predMaxHp}</span>`;
+            hpRangeEl.innerHTML = `${Math.floor(p.hp)} / <span class="${predMaxHp > p.maxHp ? 'stat-predict-inc' : ''}">${predMaxHp}</span>`;
         }
 
         const mpRangeEl = document.getElementById('val-mp-range');
-        const baseMaxMp = 30 + (baseWis * 10);
-        const predMaxMp = 30 + (predWis * 10);
+        const predMaxMp = bMaxMp + (predWis * gMp);
         if (mpRangeEl) {
-            mpRangeEl.innerHTML = `${Math.floor(p.mp)} / <span class="${predMaxMp > baseMaxMp ? 'stat-predict-inc' : ''}">${predMaxMp}</span>`;
+            mpRangeEl.innerHTML = `${Math.floor(p.mp)} / <span class="${predMaxMp > p.maxMp ? 'stat-predict-inc' : ''}">${predMaxMp}</span>`;
         }
 
-        updateDerived('val-atk', 5 + (baseInt * 1) + Math.floor(baseWis / 2), 5 + (predInt * 1) + Math.floor(predWis / 2)); // Removed (p.level * 1)
-        updateDerived('val-def', baseVit * 1, predVit * 1);
-        updateDerived('val-hp-regen', baseVit * 1, predVit * 1);
-        updateDerived('val-mp-regen', baseWis * 1, predWis * 1);
+        // Derived Stats
+        const predAtk = bAtk + (predInt * gAtk) + Math.floor(predWis / 2);
+        const predDef = bDef + (predVit * gDef);
+        const predHpRegen = bHpRegen + (predVit * 1);
+        const predMpRegen = bMpRegen + (predWis * 1);
+
+        updateDerived('val-atk', p.attackPower, predAtk);
+        updateDerived('val-def', p.defense, predDef);
+        updateDerived('val-hp-regen', p.hpRegen, predHpRegen);
+        updateDerived('val-mp-regen', p.mpRegen, predMpRegen);
+
         // v0.00.40: INT bonuses: +5% attack speed per INT, +1% crit rate per INT
-        updateDerived('val-atk-spd', 1.0 + (baseAgi * 0.1) + (baseInt * 0.05), 1.0 + (predAgi * 0.1) + (predInt * 0.05), false, 2);
-        updateDerived('val-crit', 0.1 + (baseAgi * 0.01) + (baseInt * 0.01), 0.1 + (predAgi * 0.01) + (predInt * 0.01), true);
-        updateDerived('val-move-spd', 1.0 + (baseAgi * 0.05), 1.0 + (predAgi * 0.05), true);
+        // Note: These are multiplier bonuses, not additive base stats usually.
+        // Player.js: 1.0 + (agi * 0.1) + (int * 0.05)
+        const predAtkSpd = 1.0 + (predAgi * 0.1) + (predInt * 0.05);
+        const predCrit = 0.1 + (predAgi * 0.01) + (predInt * 0.01);
+        const predMoveSpd = 1.0 + (predAgi * 0.05); // Base 1.0
+
+        updateDerived('val-atk-spd', p.attackSpeed, predAtkSpd, false, 2);
+        updateDerived('val-crit', p.critRate, predCrit, true);
+        updateDerived('val-move-spd', p.moveSpeedBonus, predMoveSpd, true);
 
         // v1.92: Bind & Update Link Google Button
         const linkBtn = document.getElementById('btn-link-google');
@@ -858,6 +1037,124 @@ export class UIManager {
         }
     }
 
+    // --- Dialogue System (v2.0) ---
+    showDialogue(sequence) {
+        let dialogueBox = document.getElementById('dialogue-overlay');
+        if (!dialogueBox) {
+            dialogueBox = document.createElement('div');
+            dialogueBox.id = 'dialogue-overlay';
+            dialogueBox.className = 'dialogue-overlay hidden';
+            dialogueBox.innerHTML = `
+                <div class="dialogue-box">
+                    <div class="dialogue-portrait"></div>
+                    <div class="dialogue-content">
+                        <div class="dialogue-speaker"></div>
+                        <div class="dialogue-text"></div>
+                        <div class="dialogue-options"></div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(dialogueBox);
+
+            // Basic CSS for Dialogue (Injected here for simplicity if not in CSS)
+            if (!document.getElementById('dialogue-css')) {
+                const style = document.createElement('style');
+                style.id = 'dialogue-css';
+                style.textContent = `
+                    .dialogue-overlay { position: fixed; bottom: 10%; left: 50%; transform: translateX(-50%); width: 90%; max-width: 800px; z-index: 2000; pointer-events: auto; }
+                    .dialogue-box { background: rgba(0,0,0,0.85); border: 2px solid #fff; border-radius: 10px; padding: 20px; display: flex; gap: 20px; align-items: flex-end; color: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+                    .dialogue-portrait { width: 100px; height: 100px; background-size: contain; background-repeat: no-repeat; background-position: center; flex-shrink: 0; background-color: #333; border: 1px solid #555; }
+                    .dialogue-content { flex-grow: 1; display: flex; flex-direction: column; gap: 10px; }
+                    .dialogue-speaker { font-size: 1.2rem; font-weight: bold; color: #ffd700; margin-bottom: 5px; }
+                    .dialogue-text { font-size: 1.1rem; line-height: 1.5; white-space: pre-wrap; }
+                    .dialogue-options { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+                    .dialogue-option-btn { background: #333; border: 1px solid #777; color: #fff; padding: 10px; cursor: pointer; text-align: left; transition: background 0.2s; }
+                    .dialogue-option-btn:hover { background: #555; }
+                    .hidden { display: none !important; }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        const portraitEl = dialogueBox.querySelector('.dialogue-portrait');
+        const speakerEl = dialogueBox.querySelector('.dialogue-speaker');
+        const textEl = dialogueBox.querySelector('.dialogue-text');
+        const optionsEl = dialogueBox.querySelector('.dialogue-options');
+
+        // Update Content
+        speakerEl.textContent = sequence.speaker || 'Unknown';
+        textEl.textContent = sequence.text || '...';
+
+        // Portrait (Placeholder logic)
+        if (sequence.visual && this.game.resources) {
+            portraitEl.style.backgroundColor = '#555';
+            portraitEl.style.backgroundImage = 'none';
+        } else {
+            portraitEl.style.display = 'none';
+        }
+
+        // Options
+        optionsEl.innerHTML = '';
+        if (sequence.options && sequence.options.length > 0) {
+            sequence.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'dialogue-option-btn';
+                btn.textContent = opt.text;
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (this.game.sound) this.game.sound.playSfx('ui_click');
+                    this.game.story.advance(index);
+                };
+                optionsEl.appendChild(btn);
+            });
+        } else {
+            dialogueBox.onclick = (e) => {
+                if (e.target.tagName === 'BUTTON') return;
+                if (this.game.sound) this.game.sound.playSfx('ui_click');
+                this.game.story.advance();
+                dialogueBox.onclick = null;
+            };
+        }
+
+        dialogueBox.classList.remove('hidden');
+        this.isPaused = true;
+    }
+
+    hideDialogue() {
+        const dialogueBox = document.getElementById('dialogue-overlay');
+        if (dialogueBox) {
+            dialogueBox.classList.add('hidden');
+        }
+        this.isPaused = false;
+    }
+
+    showEmotePanel() {
+        const panel = document.getElementById('emote-panel');
+        if (!panel) return;
+
+        panel.innerHTML = '';
+        const emotes = this.game.emotes || [];
+
+        emotes.forEach(emote => {
+            const btn = document.createElement('button');
+            btn.className = 'emote-item';
+            btn.textContent = emote.icon;
+            btn.title = emote.name;
+            btn.style.cssText = 'font-size: 24px; background: none; border: none; cursor: pointer; padding: 5px;';
+
+            btn.onclick = () => {
+                // Send Emote Command
+                this.sendMessage(`/emote ${emote.id}`);
+                panel.classList.add('hidden');
+                if (this.game.sound) this.game.sound.playSfx('ui_click');
+            };
+
+            panel.appendChild(btn);
+        });
+
+        panel.classList.remove('hidden');
+    }
+
     updateSkillPopup() {
         const p = this.game.localPlayer;
         if (!p) return;
@@ -872,7 +1169,8 @@ export class UIManager {
             if (levelEl) levelEl.textContent = lv;
 
             // Exponential Cost Logic
-            const cost = 300 * Math.pow(2, lv - 1);
+            // v1.1: Use Player method or same formula
+            const cost = p.getSkillUpgradeCost ? p.getSkillUpgradeCost(skillId) : (300 * Math.pow(2, lv - 1));
             const costEl = document.querySelector(`.skill-cost[data-skill="${skillId}"]`);
             if (costEl) costEl.textContent = skillId === 'shield' ? '-' : cost;
 
@@ -1436,12 +1734,26 @@ export class UIManager {
     }
 
     _onChatReceived(data) {
+        // v2.1: Emote Handling
+        let displayMsg = data.text;
+        let isEmote = false;
+        let emoteId = null;
+
+        if (data.text.startsWith('/emote ')) {
+            emoteId = data.text.split(' ')[1];
+            isEmote = true;
+
+            // Find emote icon for chat log
+            const emote = this.game.emotes?.find(e => e.id === emoteId);
+            displayMsg = emote ? `(이모트) ${emote.icon}` : '(이모트)';
+        }
+
         const msgArea = document.querySelector('.chat-messages');
         if (msgArea) {
             const div = document.createElement('div');
             const isMe = data.uid === this.game.net.playerId;
             div.className = isMe ? 'chat-msg-me' : 'chat-msg-other';
-            div.innerHTML = `<span class="chat-sender">${data.name}:</span> <span class="chat-text">${data.text}</span>`;
+            div.innerHTML = `<span class="chat-sender">${data.name}:</span> <span class="chat-text">${displayMsg}</span>`;
             msgArea.appendChild(div);
 
             while (msgArea.children.length > 50) {
@@ -1450,13 +1762,22 @@ export class UIManager {
             msgArea.scrollTop = msgArea.scrollHeight;
         }
 
-        // Trigger Speech Bubble on Character
-        const bubbleText = `${data.name}: ${data.text}`;
-        if (data.uid === this.game.net.playerId) {
-            if (this.game.localPlayer) this.game.localPlayer.showSpeechBubble(bubbleText);
+        // Trigger Speech Bubble or Emote on Character
+        if (isEmote && emoteId) {
+            if (data.uid === this.game.net.playerId) {
+                if (this.game.localPlayer) this.game.localPlayer.showEmote(emoteId);
+            } else {
+                const rp = this.game.remotePlayers.get(data.uid);
+                if (rp) rp.showEmote(emoteId);
+            }
         } else {
-            const rp = this.game.remotePlayers.get(data.uid);
-            if (rp) rp.showSpeechBubble(bubbleText);
+            const bubbleText = `${data.name}: ${data.text}`;
+            if (data.uid === this.game.net.playerId) {
+                if (this.game.localPlayer) this.game.localPlayer.showSpeechBubble(bubbleText);
+            } else {
+                const rp = this.game.remotePlayers.get(data.uid);
+                if (rp) rp.showSpeechBubble(bubbleText);
+            }
         }
     }
 
@@ -1767,7 +2088,7 @@ export class UIManager {
             el = document.createElement('div');
             el.id = 'center-message';
             el.style.position = 'absolute';
-            el.style.top = '25%'; // Slightly above center
+            el.style.top = '30%'; // Slightly above center
             el.style.left = '50%';
             el.style.transform = 'translate(-50%, -50%)';
             el.style.color = color;
@@ -1780,7 +2101,13 @@ export class UIManager {
             el.style.zIndex = '2000';
             el.style.textAlign = 'center';
             el.style.width = '80%';
-            document.body.appendChild(el);
+
+            const uiLayer = document.getElementById('ui-layer');
+            if (uiLayer) {
+                uiLayer.appendChild(el);
+            } else {
+                document.body.appendChild(el);
+            }
         }
 
         el.textContent = text;
@@ -1794,6 +2121,108 @@ export class UIManager {
         this._centerMsgTimer = setTimeout(() => {
             el.style.opacity = '0';
         }, 4000);
+    }
+    // v2.1: Emote System
+    setupEmoteUI() {
+        const emoteBtn = document.querySelector('.emote-btn');
+        const emotePicker = document.getElementById('emote-picker');
+
+        if (emoteBtn && emotePicker) {
+            emoteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleEmotePicker();
+            });
+
+            // Close picker when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!emotePicker.contains(e.target) && !emoteBtn.contains(e.target)) {
+                    emotePicker.classList.add('hidden');
+                }
+            });
+
+            this.loadEmotes();
+        }
+    }
+
+    async loadEmotes() {
+        // Simple fetch or use ResourceManager if ready. 
+        // For now, fetch direct since ResourceManager loads assets, not raw json for UI list usually.
+        // Actually ResourceManager has loadJSON.
+        try {
+            const response = await fetch('assets/data/emotes/basic_emotes.json');
+            const emotes = await response.json();
+
+            // v2.1: Store globally for Player.js rendering
+            if (this.game) this.game.emotes = emotes;
+
+            const picker = document.getElementById('emote-picker');
+
+            if (picker && emotes) {
+                picker.innerHTML = '';
+                emotes.forEach(emote => {
+                    const img = document.createElement('img');
+                    img.src = emote.icon;
+                    img.className = 'emote-item';
+                    img.title = emote.text;
+                    img.onclick = () => this.onEmoteClick(emote.id);
+                    picker.appendChild(img);
+                });
+            }
+        } catch (e) {
+            Logger.error('Failed to load emotes:', e);
+        }
+    }
+
+    toggleEmotePicker() {
+        const picker = document.getElementById('emote-picker');
+        if (picker) {
+            const isHidden = picker.classList.contains('hidden');
+            if (isHidden) picker.classList.remove('hidden');
+            else picker.classList.add('hidden');
+        }
+    }
+
+    onEmoteClick(emoteId) {
+        // Send emote command to chat or network
+        // For now, simulate chat command
+        // If we have a chat input, we could append or just send directly.
+        // Direct send is better for UX.
+        if (this.game.net) {
+            // this.game.net.sendEmote(emoteId); // Implement this in NetworkManager
+            // Fallback: Send via chat
+            // this.game.net.sendChat(`/emote ${emoteId}`); 
+            // Actually let's assume direct packet for now or use chat.
+            // Let's use chat input injection for now as immediate feedback?
+            // No, direct send.
+
+            // Checking if sendEmote exists... probably not yet.
+            // Let's use chat input logic for now to utilize existing system.
+            const chatInput = document.querySelector('.chat-input-area input');
+            const sendBtn = document.querySelector('.send-btn');
+            if (chatInput && sendBtn) {
+                // Determine if we want to send command or just text
+                // Let's send a command: /e [id]
+                // But NetworkManager needs to handle /e
+                // Or we can just handle it here?
+
+                // Let's try sending a special packet if possible, but user task says "Chat System Integration"
+                // So maybe just appending to chat is safer.
+                // But typically emotes are separate packets.
+
+                // Let's implement sendEmote in NetworkManager later.
+                // For now, let's just log or try to call a method that might not exist, or add it.
+                // I'll call this.game.player.showEmote(emoteId) directly for local, and send packet.
+
+                if (this.game.localPlayer) {
+                    this.game.localPlayer.showEmote(emoteId);
+                }
+                if (this.game.net && this.game.net.socket) {
+                    this.game.net.sendEmote(emoteId);
+                }
+            }
+
+            this.toggleEmotePicker(); // Close after pick
+        }
     }
 }
 

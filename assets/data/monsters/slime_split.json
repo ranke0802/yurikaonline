@@ -1,26 +1,63 @@
 {
     "id": "slime_split",
-    "name": "분열된 슬라임",
+    "name": "분열 슬라임",
+    "type": "monster",
     "baseStats": {
-        "hp": 500,
-        "maxHp": 500,
-        "speed": 15,
-        "atk": 10,
-        "mp": 50,
-        "maxMp": 50,
-        "hpRegen": 4,
-        "mpRegen": 4
+        "hp": 200,
+        "maxHp": 200,
+        "mp": 0,
+        "maxMp": 0,
+        "atk": 25,
+        "def": 5,
+        "speed": 60,
+        "exp": 35
     },
     "visual": {
-        "assetPath": "assets/resource/monster_slim",
+        "assetPath": "assets/resource/monster_split",
+        "width": 96,
+        "height": 96,
+        "frameSpeed": 0.12,
         "frameCount": 5,
-        "frameSpeed": 0.15,
-        "width": 160,
-        "height": 160
+        "scale": 2.0
     },
-    "ai": {
-        "type": "wander",
-        "aggroRange": 200,
-        "leashRange": 400
-    }
+    "sounds": {
+        "attack": "sfx_slime_attack",
+        "hit": "sfx_slime_hit",
+        "die": "sfx_slime_die",
+        "move": "sfx_slime_move"
+    },
+    "skills": [
+        {
+            "id": "charge",
+            "trigger": "hp_below_70",
+            "chance": 0.2,
+            "cooldown": 10000,
+            "data": {
+                "damage": 30,
+                "speed": 300
+            }
+        },
+        {
+            "id": "missile",
+            "trigger": "cooldown",
+            "chance": 1.0,
+            "cooldown": 15000,
+            "data": {
+                "count": 4,
+                "damage": 7
+            }
+        }
+    ],
+    "drops": [
+        {
+            "itemId": "gold",
+            "min": 30,
+            "max": 80,
+            "chance": 1.0
+        },
+        {
+            "itemId": "slime_gel",
+            "chance": 0.5
+        }
+    ]
 }

@@ -45,7 +45,9 @@ export default class CharacterSelectionScene extends Scene {
             } else {
                 // Already running, just ensure BGM is correct if not already playing
                 if (sound.currentBgmId !== 'bgm_intro') {
-                    sound.playBgm(this.game.resources.getJSON('/assets/data/music/bgm_intro.json'), 'bgm_intro');
+                    this.game.resources.loadJSON('/assets/data/music/bgm_intro.json').then(data => {
+                        sound.playBgm(data, 'bgm_intro');
+                    });
                 }
             }
         }
@@ -327,21 +329,20 @@ export default class CharacterSelectionScene extends Scene {
     }
 
     async handleStartGame() {
-        // ... (rest of the file remains same)
-        // Prepare data for WorldScene
-        let startX = this.game.zone.width / 2;
-        let startY = this.game.zone.height / 2;
+        // v0.00.84: Default to cabin spawn (1500, 1900) for new players
+        let startX = 1500;
+        let startY = 1900;
 
-        const savedData = await this.game.net.getPlayerData(this.user.uid);
-        if (savedData && savedData.p) {
-            startX = savedData.p[0];
-            startY = savedData.p[1];
+        // v0.00.84: Correct coordinate path restoration (Fixed from savedData.p)
+        if (this.profile) {
+            if (typeof this.profile.x === 'number') startX = this.profile.x;
+            if (typeof this.profile.y === 'number') startY = this.profile.y;
         }
 
         const localName = localStorage.getItem('yurika_player_name') || this.user.displayName || "유리카";
 
         // Add log to confirm profile data before Scene Change.
-        console.log('[CharSelect] Starting game with profile:', this.profile);
+        console.log('[CharSelect] Starting game with profile:', this.profile, 'at', startX, startY);
 
         await this.game.sceneManager.changeScene('world', {
             user: this.user,

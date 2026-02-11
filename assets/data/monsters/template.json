@@ -1,37 +1,43 @@
 {
-    "id": "slime",
-    "name": "슬라임",
+    "id": "template_monster",
+    "name": "Monster Name",
     "type": "monster",
     "baseStats": {
         "hp": 100,
         "maxHp": 100,
+        "mp": 0,
+        "maxMp": 0,
         "atk": 10,
-        "def": 2,
+        "def": 0,
         "speed": 50,
-        "exp": 15
+        "exp": 10,
+        "hpRegen": 0,
+        "mpRegen": 0
     },
     "visual": {
-        "assetPath": "assets/resource/monster_slime",
+        "assetPath": "assets/resource/monster_template",
         "width": 80,
         "height": 80,
         "frameSpeed": 0.15,
         "frameCount": 5,
-        "scale": 1.0
+        "scale": 1.0,
+        "tint": "#ffffff"
     },
     "sounds": {
-        "attack": "sfx_slime_attack",
-        "hit": "sfx_slime_hit",
-        "die": "sfx_slime_die",
-        "move": "sfx_slime_move"
+        "attack": "sfx_attack",
+        "hit": "sfx_hit",
+        "die": "sfx_die",
+        "move": "sfx_move"
     },
     "skills": [
         {
-            "id": "slime_jump",
+            "id": "skill_id",
+            "name": "Skill Name",
             "trigger": "random",
             "chance": 0.1,
             "cooldown": 5000,
             "data": {
-                "power": 1.5,
+                "damage": 10,
                 "range": 100
             }
         }
@@ -40,16 +46,8 @@
         {
             "itemId": "gold",
             "min": 10,
-            "max": 50,
+            "max": 20,
             "chance": 1.0
-        },
-        {
-            "itemId": "slime_gel",
-            "chance": 0.3
-        },
-        {
-            "itemId": "potion_hp_small",
-            "chance": 0.1
         }
     ]
 }

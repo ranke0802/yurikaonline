@@ -52,11 +52,9 @@ export default class MonsterDataManager {
                 return data;
             } catch (e) {
                 Logger.error(`Failed to load monster definition: ${id}`, e);
-                // Don't throw immediately if it's a critical asset, but for now we must re-throw
-                // to let caller handle it.
-                throw e;
+                return null;
             } finally {
-                if (this.pendingRequests) this.pendingRequests.delete(id);
+                this.pendingRequests.delete(id);
             }
         })();
 

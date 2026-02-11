@@ -160,20 +160,53 @@ export default class MonsterManager {
         this.drops.forEach(d => d.render(ctx, camera));
     }
 
+    setSpawnRules(rules) {
+        this.spawnRules = rules || [];
+        // Reset counters or mapping if needed
+        Logger.log('[MonsterManager] Spawn rules updated:', this.spawnRules);
+    }
+
     _updateHostLogic(dt, localPlayer, remotePlayers) {
         // v1.99: Level sum already calculated in update()
 
-        // v1.97: Dynamic Spawning: 15 + 1 per 5 levels (Balanced)
-        const maxMonsters = 15 + Math.floor(this.totalLevelSum / 5);
+        if (this.spawnRules && this.spawnRules.length > 0) {
+            // Zone-based Spawning Logic
+            this.spawnTimer += dt;
+            if (this.spawnTimer >= 1.0) { // Check every 1s
+                this.spawnTimer = 0;
 
-        // v1.97: Balanced Respawn: 3s base, min 0.5s
-        const spawnInterval = Math.max(0.5, 3 - Math.floor(this.totalLevelSum / 5) * 0.2);
+                this.spawnRules.forEach(rule => {
+                    // Count current monsters of this type
+                    // Optimization: Maintain a counter map instead of iterating specific types every time?
+                    // For now, iteration is fine for < 100 monsters.
+                    let currentCount = 0;
+                    this.monsters.forEach(m => {
+                        if (m.typeId === rule.monsterId && !m.isDead) currentCount++;
+                    });
 
-        this.spawnTimer += dt;
-        if (this.spawnTimer >= spawnInterval) {
-            this.spawnTimer = 0;
-            if (this.monsters.size < maxMonsters) {
-                this._spawnMonster();
+                    if (currentCount < rule.count) {
+                        // Spawn needed
+                        const area = rule.area;
+                        const x = area.x + Math.random() * area.w;
+                        const y = area.y + Math.random() * area.h;
+                        this._spawnMonster(x, y, rule.monsterId);
+                    }
+                });
+            }
+        } else {
+            // Legacy Random Spawning Logic
+            // v1.97: Dynamic Spawning: 15 + 1 per 5 levels (Balanced)
+            const maxMonsters = 15 + Math.floor(this.totalLevelSum / 5);
+
+            // v1.97: Balanced Respawn: 3s base, min 0.5s
+            const spawnInterval = Math.max(0.5, 3 - Math.floor(this.totalLevelSum / 5) * 0.2);
+
+            this.spawnTimer += dt;
+            if (this.spawnTimer >= spawnInterval) {
+                this.spawnTimer = 0;
+                if (this.monsters.size < maxMonsters) {
+                    this._spawnMonster();
+                }
             }
         }
 
@@ -413,11 +446,11 @@ export default class MonsterManager {
 
                     if (m.typeId === 'slime_split') {
                         chargeRange = 500;
-                        cdTime = 3000;
+                        cdTime = 10000; // v1.1: 10s Cooldown
                     }
                     if (m.typeId === 'king_slime') {
-                        chargeRange = 800; // v0.00.46: Increased to 800
-                        cdTime = 3000;
+                        chargeRange = 800;
+                        cdTime = 10000; // v1.1: 10s Cooldown
                     }
 
                     if (dist < chargeRange) {
@@ -480,7 +513,8 @@ export default class MonsterManager {
         let y = fixedY ?? (200 + Math.random() * (worldH - 400));
 
         // Load definition first
-        const definition = await this.game.monsterData.loadDefinition(type);
+        let definition = await this.game.monsterData.loadDefinition(type);
+        if (!definition) definition = {}; // Fallback if missing
 
         const data = {
             id: id,
@@ -547,6 +581,8 @@ export default class MonsterManager {
 
         try {
             const definition = await this.game.monsterData.loadDefinition(typeId);
+            if (!definition) throw new Error(`Definition not found for ${typeId}`);
+
             const m = new Monster(data.x, data.y, definition);
             m.id = data.id;
             m.hp = data.hp;
@@ -565,7 +601,7 @@ export default class MonsterManager {
             this.monsters.set(data.id, m);
         } catch (e) {
             Logger.warn(`Defaulting to fallback for monster ${data.id} (${typeId})`);
-            const m = new Monster(data.x, data.y);
+            const m = new Monster(data.x, data.y, {});
             m.id = data.id;
             m.hp = data.hp;
             m.maxHp = data.maxHp;

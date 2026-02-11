@@ -1,0 +1,14 @@
+{
+    "id": "emote_id",
+    "icon": "path/to/icon.png",
+    "animation": {
+        "frames": [
+            0,
+            1,
+            2
+        ],
+        "speed": 0.1,
+        "loop": false
+    },
+    "sound": "emote_sound"
+}

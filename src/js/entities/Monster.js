@@ -4,53 +4,55 @@ import { Sprite } from '../core/Sprite.js';
 
 
 export default class Monster extends CharacterBase {
-    constructor(x, y, definition = null) {
+    constructor(x, y, definition) {
+        // v2.3.2: Robust null check
+        definition = definition || {};
+
         // Use speed from definition or default 50
-        const speed = definition?.baseStats?.speed || 50;
+        const speed = definition.baseStats?.speed ?? 50;
         super(x, y, speed);
 
-        // Apply Definition Data
-        if (definition) {
-            this.id = null; // Set by Manager
-            this.typeId = definition.id || 'slime'; // v0.00.01: Persistent ID for sync
-            this.name = definition.name || '슬라임';
-            this.hp = definition.baseStats?.hp || 100;
-            this.maxHp = definition.baseStats?.maxHp || 100;
-            this.atk = definition.baseStats?.atk || 10; // v0.33.0: Load Atk
-            // v0.33.0: MP & Regen support
-            this.mp = definition.baseStats?.mp || 0;
-            this.maxMp = definition.baseStats?.maxMp || 0;
-            this.hpRegen = definition.baseStats?.hpRegen || 0;
-            this.mpRegen = definition.baseStats?.mpRegen || 0;
-            this.width = definition.visual?.width || 80;
-            this.height = definition.visual?.height || 80;
-            this.frameSpeed = definition.visual?.frameSpeed || 0.15;
-            this.frameCount = definition.visual?.frameCount || 5;
-            this.assetPath = definition.visual?.assetPath || 'assets/resource/monster_slim';
-        } else {
-            // Legacy / Fallback
-            this.typeId = 'slime'; // v0.00.01: Default type for fallbacks
-            this.name = '슬라임';
-            this.hp = 100;
-            this.maxHp = 100;
-            this.width = 80;
-            this.height = 80;
-            this.frameSpeed = 0.15;
-            this.frameCount = 5;
-            this.assetPath = 'assets/resource/monster_slim';
-        }
+        this.definition = definition;
+        this.initialX = x;
 
+        // Apply Definition Data
+        this.id = null; // Set by Manager
+        this.typeId = definition.id || 'slime';
+        this.name = definition.name || (this.typeId === 'king_slime' ? '킹 슬라임' : '슬라임');
+        this.hp = definition.baseStats?.hp ?? 100;
+        this.maxHp = definition.baseStats?.maxHp ?? 100;
+        this.atk = definition.baseStats?.atk ?? 10;
+        this.def = definition.baseStats?.def ?? 0;
+        this.mp = definition.baseStats?.mp ?? 0;
+        this.maxMp = definition.baseStats?.maxMp ?? 0;
+        this.hpRegen = definition.baseStats?.hpRegen ?? 0;
+        this.mpRegen = definition.baseStats?.mpRegen ?? 0;
+        this.exp = definition.baseStats?.exp ?? 10;
+
+        // Visual
+        this.width = definition.visual?.width ?? 80;
+        this.height = definition.visual?.height ?? 80;
+        this.frameSpeed = definition.visual?.frameSpeed ?? 0.15;
+        this.frameCount = definition.visual?.frameCount ?? 5;
+        this.assetPath = definition.visual?.assetPath || 'assets/resource/monster_slime';
+        this.scale = definition.visual?.scale ?? 1.0;
+
+        // Components
+        this.skills = definition.skills || [];
+        this.skillCooldowns = new Map();
+        this.drops = definition.drops || [];
+        this.sounds = definition.sounds || {};
+
+        // States
         this.sprite = null;
         this.ready = false;
         this.frame = 0;
         this.timer = 0;
-
         this.hitTimer = 0;
         this.isDead = false;
         this.alpha = 1.0;
         this.deathTimer = 0;
         this.deathDuration = 1.0;
-
         this.statusEffects = [];
         this._looted = false;
 
@@ -61,37 +63,30 @@ export default class Monster extends CharacterBase {
         this.wanderVy = 0;
 
         this.isAggro = false;
-        this.isBoss = false;
-        this.electrocutedTimer = 0;
-        this.slowRatio = 0;
+        this.isBoss = (this.typeId === 'king_slime');
         this.electrocutedTimer = 0;
         this.slowRatio = 0;
         this.sparkTimer = 0;
-        this.regenTimer = 0; // v0.33.0: Regen Timer
+        this.regenTimer = 0;
         this.lastAttackerId = null;
         this.targetX = x;
         this.targetY = y;
-        this.targetPlayer = null; // v1.99: AI Target
-        this.spawnGraceTimer = 3.0; // v1.99.10: Wait 3s after spawn before chasing
+        this.targetPlayer = null;
+        this.spawnGraceTimer = 3.0;
         this.isMonster = true;
-        this.type = 'monster'; // v1.99.38: Explicit type for identification
+        this.type = 'monster';
 
-        // v0.33.0: Boss Skill Cooldowns
+        // Specific Skill Cooldowns (Legacy Support)
         this.missileCooldown = 0;
         this.missileMaxCooldown = 5000;
-
-        // v0.00.43: Slime Charge Skill
         this.chargeCooldown = 0;
-        this.chargeState = 'idle'; // idle, casting, charging
+        this.chargeState = 'idle';
         this.chargeTimer = 0;
-        this.chargeTarget = null; // {x, y}
-        this.width = definition.visual?.width || 60; // Ensure width is set for telegraph
-        this.shieldCooldown = 0; // v0.33.0: Shield Cooldown
+        this.chargeTarget = null;
+        this.shieldCooldown = 0;
         this.shieldMaxCooldown = 8000;
         this.shieldDuration = 0;
 
-        // Lazy Load: Do not call init() here. 
-        // We will call it in render() so that we only load assets when the monster is actually being drawn (in WorldScene).
         this.loadingRequested = false;
     }
 
@@ -100,7 +95,7 @@ export default class Monster extends CharacterBase {
     static spriteCache = {};
 
     async init(path) {
-        if (!path) path = '/assets/resource/monster_slim';
+        if (!path) path = 'assets/resource/monster_slime'; // v2.3.5: Fixed typo and removed leading slash
         const frames = ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp'];
         const cacheKey = path;
 
@@ -241,8 +236,8 @@ export default class Monster extends CharacterBase {
                     Math.pow(b - bgB, 2)
                 );
 
-                // Threshold for background removal
-                if (diff < 85) {
+                // Threshold for background removal - v2.3.5: Increased to 100 for better green screen removal
+                if (diff < 100) {
                     data[idx + 3] = 0;
                 } else {
                     if (x < minX) minX = x;
@@ -349,7 +344,7 @@ export default class Monster extends CharacterBase {
             const distToTarget = Math.sqrt((this.chargeTarget.x - this.x) ** 2 + (this.chargeTarget.y - this.y) ** 2);
             if (distToTarget < 10 || this.chargeTimer <= 0) {
                 this.chargeState = 'idle';
-                this.chargeCooldown = 5000; // 5s Cooldown
+                this.chargeCooldown = 15000; // v0.00.85: Increased to 15s for balance
                 this.vx = 0;
                 this.vy = 0;
             }
@@ -393,8 +388,15 @@ export default class Monster extends CharacterBase {
         // v1.99.9: Hard cap on dt to prevent physics tunneling or explosions during lag
         const safeDt = Math.min(0.1, dt);
 
-        // v0.00.54: Pause AI/Movement if UI is in a modal (Reward, Status, etc.)
-        if (window.game?.ui?.isPaused) return;
+        // v0.00.85: Pause AI/Movement if UI is in a modal or Story is active
+        const isPaused = window.game?.ui?.isPaused;
+        const isStoryActive = window.game?.story?.isStoryActive;
+        if (isPaused || isStoryActive) {
+            // v0.00.85: Reset velocity to prevent persistent sliding during stories
+            this.vx = 0;
+            this.vy = 0;
+            return;
+        }
 
         if (this.hp <= 0 && !this.isDead) {
             this.isDead = true;
@@ -498,21 +500,34 @@ export default class Monster extends CharacterBase {
                         // Attack mode (Stop and hit)
                         aiVx = 0;
                         aiVy = 0;
-                        // v0.00.70: chargeOnly 슬라임은 일반공격 비활성화
-                        if (!this.chargeOnly) {
+
+                        // Data-Driven Attack Logic
+                        if (!this.chargeOnly) { // Legacy flag support
                             if (!this.attackCooldown) this.attackCooldown = 0;
                             this.attackCooldown -= dt;
                             if (this.attackCooldown <= 0) {
+                                // Basic Attack
+                                const dmg = Math.ceil(this.atk * (0.8 + Math.random() * 0.4)); // 80% ~ 120% of ATK
                                 if (window.game?.net) {
-                                    window.game.net.sendPlayerDamage(target.id, Math.ceil(5 + (Math.random() * 5)));
+                                    window.game.net.sendPlayerDamage(target.id, dmg);
                                 } else {
-                                    target.takeDamage(Math.ceil(5 + (Math.random() * 5)));
+                                    target.takeDamage(dmg);
                                 }
-                                this.attackCooldown = 1.5;
+
+                                // Play Attack Sound
+                                if (this.sounds.attack && window.game?.sound) {
+                                    window.game.sound.playSfx(this.sounds.attack);
+                                }
+
+                                this.attackCooldown = 1.5; // Default Attack Speed
                                 this.hitTimer = 0.1;
                             }
                         }
                     }
+
+                    // v2.0: JSON Driven Skill System
+                    this._updateSkills(dt, target);
+
                 } else {
                     // Wandering mode
                     this.moveTimer -= dt;
@@ -600,7 +615,7 @@ export default class Monster extends CharacterBase {
 
                         // Stop Charging
                         this.chargeState = 'idle';
-                        this.chargeCooldown = 5000;
+                        this.chargeCooldown = 15000; // v0.00.85: Increased to 15s for balance
                         this.vx = 0;
                         this.vy = 0;
                         canMove = false;
@@ -687,8 +702,8 @@ export default class Monster extends CharacterBase {
     takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null) {
         if (this.isDead) return;
 
-        // v0.00.34: Ensure minimum 1 damage
-        let dmg = Math.max(1, Math.ceil(parseFloat(amount))); // Changed const to let
+        // v0.00.34: Ensure minimum 0 damage (allow full block)
+        let dmg = Math.max(0, Math.ceil(parseFloat(amount))); // Changed const to let
         if (isNaN(dmg)) {
             Logger.warn(`[Monster] Invalid damage: ${amount}`);
             return;
@@ -741,6 +756,23 @@ export default class Monster extends CharacterBase {
             window.game.addDamageText(this.x, this.y - 40, `-${Math.ceil(amount)}`, isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null);
         }
 
+        // v2.2: Hit Feedback — Screen Shake on monster hit
+        if (amount > 0 && window.game?.camera?.shake) {
+            window.game.camera.shake(isCrit ? 8 : 3, isCrit ? 0.2 : 0.1);
+        }
+        if (isCrit && window.game?.loop?.hitstop) {
+            window.game.loop.hitstop(60);
+        }
+
+        // Play Hit Sound
+        if (this.sounds.hit && window.game?.sound) {
+            // Limit hit sound frequency
+            if (!this._lastHitSound || Date.now() - this._lastHitSound > 300) {
+                window.game.sound.playSfx(this.sounds.hit);
+                this._lastHitSound = Date.now();
+            }
+        }
+
         // v0.29.17: Removed internal sendMonsterDamage call (it's now handled by attack code)
 
         // Death check (host authority)
@@ -754,6 +786,25 @@ export default class Monster extends CharacterBase {
                 // v1.86: Ensure immediate sync for death state
                 if (window.game && window.game.monsterManager) {
                     window.game.monsterManager.forceSync(this.id);
+                }
+
+                // Play Death Sound
+                if (this.sounds.die && window.game?.sound) {
+                    window.game.sound.playSfx(this.sounds.die);
+                }
+
+                // v2.2: Death Feedback — Strong shake for bosses
+                if (window.game?.camera?.shake) {
+                    const isBoss = this.typeId === 'king_slime';
+                    window.game.camera.shake(isBoss ? 20 : 6, isBoss ? 0.5 : 0.2);
+                }
+                if (this.typeId === 'king_slime' && window.game?.loop?.hitstop) {
+                    window.game.loop.hitstop(120);
+                }
+
+                // v2.3: Tutorial Kill Trigger
+                if (window.game?.tutorial) {
+                    window.game.tutorial.trigger('kill', { target: this.typeId });
                 }
             }
         }
@@ -770,6 +821,75 @@ export default class Monster extends CharacterBase {
     applyElectrocuted(duration, ratio) {
         this.electrocutedTimer = 3.0; // Fixed 3 seconds as requested
         this.slowRatio = Math.max(this.slowRatio, ratio);
+    }
+
+    _updateSkills(dt, target) {
+        if (!this.skills || this.skills.length === 0) return;
+
+        this.skills.forEach(skill => {
+            // Init cooldown if needed
+            if (!this.skillCooldowns.has(skill.id)) {
+                this.skillCooldowns.set(skill.id, Math.random() * 2000); // Random offset start
+            }
+
+            let cd = this.skillCooldowns.get(skill.id);
+            if (cd > 0) {
+                cd -= dt * 1000;
+                this.skillCooldowns.set(skill.id, cd);
+                return;
+            }
+
+            // Check Trigger
+            let shouldTrigger = false;
+            if (skill.trigger === 'cooldown') {
+                shouldTrigger = true;
+            } else if (skill.trigger === 'random') {
+                if (Math.random() < (skill.chance || 0.1) * dt) shouldTrigger = true;
+            } else if (skill.trigger === 'hp_below_70') {
+                if (this.hp < this.maxHp * 0.7) {
+                    if (Math.random() < (skill.chance || 0.1) * dt) shouldTrigger = true;
+                }
+            } else if (skill.trigger === 'damage_received') {
+                // Handled in takeDamage typically, but here we can check status
+            }
+
+            if (shouldTrigger && target) {
+                // Execute Skill
+                this._executeSkill(skill, target);
+
+                // Reset Cooldown
+                this.skillCooldowns.set(skill.id, skill.cooldown || 5000);
+            }
+        });
+    }
+
+    _executeSkill(skill, target) {
+        Logger.log(`[Monster] ${this.id} executing skill: ${skill.id}`);
+
+        // 1. Send Network Event (Host sends 'monsterAttack' packet)
+        if (window.game?.net) {
+            window.game.net.sendMonsterAttack(this.id, skill.id, {
+                targetId: target.id,
+                ...skill.data
+            });
+        }
+
+        // 2. Execute Local Logic (Host side immediate effect)
+        if (skill.id === 'charge') {
+            this.startCharge(target.x, target.y);
+        } else if (skill.id === 'shield') {
+            this.applyEffect('shield', (skill.data?.duration || 1000) / 1000, 0);
+        } else if (skill.id === 'missile') {
+            // Handled by MonsterManager/WorldScene queue via Network Event. 
+            // Host also processes the event via loopback or direct call?
+            // Currently WorldScene listens to 'monsterAttack'.
+            // Host needs to ensure visual consistency.
+            // WorldScene.js: this.net.on('monsterAttack') handles it.
+            // If we are Host, we send it, do we also receive it? 
+            // NetworkManager usually sends to server. Server broadcasts to ALL (including sender?).
+            // If local-only server (p2p/firebase), we might need to simulate echo.
+            // For now, assume network handles broadcast.
+        }
     }
 
     render(ctx, camera) {

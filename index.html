@@ -31,7 +31,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.00.82')
+                navigator.serviceWorker.register('./sw.js?v=0.00.83')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -56,7 +56,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.00.82</title>
+    <title>Yurika Online v0.01.00</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
@@ -232,11 +232,16 @@
                         <div class="chat-header">
                             <span>💬 Chat</span>
                             <div class="chat-controls">
+                                <span class="emote-btn" title="이모티콘">☺</span>
                                 <span class="minimize-btn">_</span>
                             </div>
                         </div>
                         <div class="chat-messages">
                             <div class="message incoming">유리카 온라인(Yurika Online)에 오신것을 환영합니다! ✨</div>
+                        </div>
+                        <!-- Emote Picker (Hidden by default) -->
+                        <div id="emote-picker" class="emote-picker hidden">
+                            <!-- Emotes injected here -->
                         </div>
                         <div class="chat-input-area">
                             <input type="text" placeholder="메세지를 입력하세요...">
@@ -301,6 +306,18 @@
             <div class="panel-header">파티원 목록</div>
             <div id="party-list">
                 <!-- Party members injected here -->
+            </div>
+        </div>
+
+        <!-- Dialog Box (Story/Interaction) -->
+        <div id="dialog-box" class="hidden">
+            <div class="dialog-content">
+                <div id="dialog-name" class="dialog-name">Name</div>
+                <div id="dialog-text" class="dialog-text">Dialog Text...</div>
+                <div id="dialog-options" class="dialog-options">
+                    <!-- Options injected here -->
+                </div>
+                <button id="dialog-next" class="dialog-next-btn">Next ▼</button>
             </div>
         </div>
 
@@ -602,7 +619,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.00.70"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.00"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

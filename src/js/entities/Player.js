@@ -4,29 +4,31 @@ import { Sprite } from '../core/Sprite.js';
 import SkillRenderer from '../skills/renderers/SkillRenderer.js';
 
 export default class Player extends CharacterBase {
-    constructor(x, y, name = "유리카") {
-        super(x, y, 180); // Speed 180
+    constructor(x, y, name = "유리카", definition = null) {
+        super(x, y, definition?.baseStats?.speed || 180); // Speed from JSON or Default 180
         this.name = name;
         this.spawnX = x;
         this.spawnY = y;
-        this.type = 'player'; // v1.99.38: Explicit type for hostility checks
+        this.type = 'player'; // v1.99.38: Explicit type
+        this.definition = definition; // Save for growth ref
 
-        // Stats (Base)
-        this.vitality = 1;
-        this.intelligence = 3;
-        this.wisdom = 2;
-        this.agility = 1;
+        // Stats (Base) - Loaded from JSON or Default
+        const base = definition?.baseStats || {};
+        this.vitality = base.vitality ?? 1;
+        this.intelligence = base.intelligence ?? 3;
+        this.wisdom = base.wisdom ?? 2;
+        this.agility = base.agility ?? 1;
         this.statPoints = 0;
 
         // Derived Stats (Calculated)
-        this.maxHp = 30; // 20 + 1*10
-        this.hp = 20;
-        this.maxMp = 50; // 30 + 2*10
-        this.mp = 50;
-        this.attackPower = 10;
-        this.defense = 1;
-        this.hpRegen = 1;
-        this.mpRegen = 2;
+        this.maxHp = base.maxHp ?? 30;
+        this.hp = this.maxHp;
+        this.maxMp = base.maxMp ?? 50;
+        this.mp = this.maxMp;
+        this.attackPower = base.atk ?? 10;
+        this.defense = base.def ?? 1;
+        this.hpRegen = base.hpRegen ?? 1;
+        this.mpRegen = base.mpRegen ?? 2;
         this.attackSpeed = 1.0;
         this.critRate = 0.1;
         this.moveSpeedBonus = 1.0;
@@ -251,6 +253,13 @@ export default class Player extends CharacterBase {
 
         // Call Actor's update (physics integration)
         super.update(dt);
+
+        // v2.3: Tutorial Move Trigger
+        if (this.isRunning && (this.vx !== 0 || this.vy !== 0)) {
+            if (window.game?.tutorial) {
+                window.game.tutorial.trigger('move');
+            }
+        }
 
         if (this.actionTimer > 0) {
             this.actionTimer -= dt;
@@ -512,13 +521,28 @@ export default class Player extends CharacterBase {
     }
 
     refreshStats() {
+        // v2.0: JSON Data Driven Stats
+        const base = this.definition?.baseStats || {};
+        const growth = this.definition?.growthStats || { hp: 10, mp: 10, atk: 1, def: 1 };
+
         // Formulas matched with UIManager.js updateStatusPopup
-        this.maxHp = 20 + (this.vitality * 10);
-        this.maxMp = 30 + (this.wisdom * 10);
-        this.attackPower = 5 + (this.intelligence * 1) + Math.floor(this.wisdom / 2); // Removed + (this.level * 1)
-        this.defense = this.vitality * 1;
-        this.hpRegen = this.vitality * 1;
-        this.mpRegen = this.wisdom * 1;
+        // Base + (Vitality * Growth)
+        const baseXp = base.maxHp ?? 100;
+        const baseMp = base.maxMp ?? 50;
+        const baseAtk = base.atk ?? 10;
+
+        // v2.1: Robust Growth Defaults (Prevent NaN if JSON is partial)
+        const gHp = growth.hp ?? 10;
+        const gMp = growth.mp ?? 5;
+        const gAtk = growth.atk ?? 1;
+        const gDef = growth.def ?? 0;
+
+        this.maxHp = baseXp + (this.vitality * gHp);
+        this.maxMp = baseMp + (this.wisdom * gMp);
+        this.attackPower = baseAtk + (this.intelligence * gAtk) + Math.floor(this.wisdom / 2);
+        this.defense = (base.def ?? 0) + (this.vitality * gDef);
+        this.hpRegen = this.vitality;
+        this.mpRegen = this.wisdom; // v1.1: Wis contributes 1:1 to MP regen
 
         // v0.00.40: INT bonuses: +5% attack speed per INT, +1% crit rate per INT
         this.attackSpeed = 1.0 + (this.agility * 0.1) + (this.intelligence * 0.05);
@@ -529,7 +553,7 @@ export default class Player extends CharacterBase {
         // Skill Cooldown Reduction (CDR): 1% per INT+WIS point, max 75%
         this.skillCDR = Math.min(0.75, (this.intelligence + this.wisdom) * 0.01);
 
-        this.speed = 180 * this.moveSpeedBonus;
+        this.speed = (base.speed || 180) * this.moveSpeedBonus;
     }
 
     updateDerivedStats() {
@@ -615,13 +639,21 @@ export default class Player extends CharacterBase {
         // v0.00.57: Hit SFX
         if (window.game?.sound) window.game.sound.playSfx('hit');
 
+        // v2.2: Hit Feedback — Screen Shake + Hitstop
+        if (window.game?.camera?.shake) {
+            window.game.camera.shake(isCrit ? 12 : 6, isCrit ? 0.25 : 0.15);
+        }
+        if (isCrit && window.game?.loop?.hitstop) {
+            window.game.loop.hitstop(80);
+        }
+
         const validAmount = parseFloat(amount);
         if (isNaN(validAmount)) return 0;
 
-        // v0.00.40: Defense already applied by attacker's damage calculation (v0.00.53: Defensive formula: raw - def)
-        // Just apply the received damage
+        // v0.00.40: Apply defense reduction (Monsters send raw damage, so we subtract it here)
+        // For PvP, damage might be pre-reduced, but currently monster damage is raw.
         const def = this.defense || 0;
-        let finalDmg = Math.max(1, Math.ceil(validAmount - def));
+        let finalDmg = Math.max(1, Math.ceil(validAmount - def)); // Minimum 1 damage
 
         this.hp -= finalDmg;
         if (window.game) {
@@ -641,27 +673,10 @@ export default class Player extends CharacterBase {
             this.die();
         }
 
-        // v0.00.19: Automatic Retaliation (PvP)
-        // If attacked by another player and they are not in my hostile list, add them and sync immediately
-        if (attacker && attacker.type === 'player' && attacker.id !== this.id) {
-            if (!this.hostileTargets.has(attacker.id)) {
-                // Determine name from attacker object or remote player list
-                let attackerName = attacker.name;
-                if (!attackerName && window.game && window.game.net) {
-                    const rp = window.game.net.remotePlayers.get(attacker.id);
-                    if (rp) attackerName = rp.name;
-                }
-
-                this.hostileTargets.set(attacker.id, { name: attackerName || "Unknown", ts: Date.now() });
-                if (window.game?.ui) {
-                    window.game.ui.logSystemMessage(`⚠️ ${attackerName || '상대'}의 공격을 받아 적대 처리되었습니다!`);
-                    window.game.ui.updateHostilityUI();
-                    // v0.00.57: PvP Alert SFX
-                    if (window.game.sound) window.game.sound.playSfx('pvp_alert');
-                }
-                this.saveState(true); // Sync to world immediately
-            }
-        }
+        // v0.00.19: Automatic Retaliation Removed (Strict PvP)
+        // Preemptive attacks are now fully restricted by Mutual Hostility.
+        // If I am attacked, I do NOT automatically add the attacker to my hostile list.
+        // I must explicitly declare hostility (/e name) to fight back.
 
         return finalDmg;
     }
@@ -723,6 +738,7 @@ export default class Player extends CharacterBase {
             agility: this.agility,
             statPoints: this.statPoints,
             skillLevels: this.skillLevels,
+            inventory: this.inventory, // v0.00.75: Save Inventory (Fixed Persistence Bug)
             questData: this.questData, // Added in v0.22.4
             name: this.name,
             party: this.party, // v0.00.14: Sync party state
@@ -744,18 +760,30 @@ export default class Player extends CharacterBase {
         this.exp = 0;
         this.maxExp = 100;
         this.statPoints = 0;
-        this.vitality = 1;
-        this.intelligence = 3;
-        this.wisdom = 2;
-        this.agility = 1;
         this.gold = 0;
-        this.hp = 20 + (this.vitality * 10);
-        this.mp = 30 + (this.wisdom * 10);
+
+        // Reset to Base Stats from Definition
+        const base = this.definition?.baseStats || {};
+        this.vitality = base.vitality || 1;
+        this.intelligence = base.intelligence || 3;
+        this.wisdom = base.wisdom || 2;
+        this.agility = base.agility || 1;
+
         this.skillLevels = { laser: 1, missile: 1, fireball: 1, shield: 1 };
+
+        // Recalculate derived stats
         this.refreshStats();
+
+        // Full Heal
+        this.hp = this.maxHp;
+        this.mp = this.maxMp;
+
         this.saveState();
-        if (window.game?.ui) window.game.ui.updateStatusPopup();
-        Logger.log('Player level reset to 1 (Debug)');
+        if (window.game?.ui) {
+            window.game.ui.updateStatusPopup();
+            window.game.ui.updateSkillPopup(); // v0.00.72: Update skill UI too
+        }
+        Logger.log('Player level reset to 1 (Data-Driven)');
     }
 
     useMana(amount) {
@@ -1164,7 +1192,7 @@ export default class Player extends CharacterBase {
 
 
     increaseSkill(skillId) {
-        const cost = 300; // Legacy fixed cost for now
+        const cost = this.getSkillUpgradeCost(skillId);
         if (this.gold >= cost) {
             this.gold -= cost;
             this.skillLevels[skillId] = (this.skillLevels[skillId] || 0) + 1;
@@ -1180,7 +1208,9 @@ export default class Player extends CharacterBase {
     // which is required for other clients to see the player as alive
 
     getSkillUpgradeCost(skillId) {
-        return 300; // Legacy fixed cost
+        // v1.1: Exponential Cost (300 -> 600 -> 1200 -> 2400)
+        const lv = this.skillLevels[skillId] || 1;
+        return 300 * Math.pow(2, lv - 1);
     }
 
     addGold(amount) {
@@ -1515,7 +1545,7 @@ export default class Player extends CharacterBase {
 
         // 8. Chat Speech Bubble (v0.26.0)
         if (this.chatMessage) {
-            this.drawSpeechBubble(ctx, centerX, y - 55);
+            this.drawSpeechBubble(ctx, centerX, y - 85);
         }
 
         // v0.00.03: Local HUD Rendering (HP/MP/Name above head)
@@ -1616,12 +1646,71 @@ export default class Player extends CharacterBase {
 
     showSpeechBubble(text) {
         this.chatMessage = text;
+        this.isEmote = false; // v2.1: Text mode
         this.chatTimer = 5.0; // Show for 5 seconds
     }
 
+    // v2.1: Emote Display
+    showEmote(emoteId) {
+        // Find emote icon from Game data
+        const emote = window.game?.emotes?.find(e => e.id === emoteId);
+        if (emote) {
+            this.chatMessage = emote.icon; // Keep path for fallback or debug
+            this.isEmote = true;
+            this.chatTimer = 3.0;
+            this.emoteImage = null; // Reset current image
 
+            // Load image asynchronously
+            if (window.game?.resources) {
+                window.game.resources.loadImage(emote.icon)
+                    .then(img => { this.emoteImage = img; })
+                    .catch(e => { console.warn('Emote load failed', e); });
+            }
+        }
+    }
 
     drawSpeechBubble(ctx, x, y) {
+        if (this.isEmote) {
+            // Emote Style
+            ctx.save();
+            const bubbleWidth = 60;  // Fixed size for icons
+            const bubbleHeight = 50;
+            const bubbleX = x - bubbleWidth / 2;
+            const bubbleY = y - bubbleHeight; // Synced with RemotePlayer
+
+            // Bubble Background (Rounder)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight, 15);
+            } else {
+                ctx.rect(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
+            }
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw Emote Image
+            if (this.emoteImage) {
+                const iconSize = 32;
+                const iconX = bubbleX + (bubbleWidth - iconSize) / 2;
+                const iconY = bubbleY + (bubbleHeight - iconSize) / 2;
+                ctx.drawImage(this.emoteImage, iconX, iconY, iconSize, iconSize);
+            } else {
+                // Loading ...
+                ctx.fillStyle = '#999';
+                ctx.font = 'bold 20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('...', x, bubbleY + bubbleHeight / 2);
+            }
+
+            ctx.restore();
+            return;
+        }
+
+        // Normal Chat Bubble (non-emote)
         ctx.save();
         ctx.font = '13px "Outfit", sans-serif';
         const padding = 10;
@@ -1650,7 +1739,6 @@ export default class Player extends CharacterBase {
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = '#2d3436';
         ctx.fillStyle = '#2d3436';
         ctx.textAlign = 'center';
         ctx.fillText(this.chatMessage, x, by + 19, 190);
@@ -1757,7 +1845,7 @@ export default class Player extends CharacterBase {
 
             const now = Date.now();
 
-            // v0.00.18: Use name-based check to prevent duplicates even if UID changes
+            // v0.00.18: Use name-based check to prevent duplicates
             const existingUid = this.getHostileUidByName(targetName);
             const effectiveUid = existingUid || targetUid;
             const existing = this.hostileTargets.get(effectiveUid);
@@ -1771,21 +1859,37 @@ export default class Player extends CharacterBase {
 
                 // Remove hostility (Mutual removal logic)
                 this.hostileTargets.delete(effectiveUid);
-                if (this.net) this.net.sendHostilityRemovalEvent?.(effectiveUid, this.name); // v1.99.38: Pass name for better messages
+                // v1.99.38: Send removal event to target
+                if (window.game.net && window.game.net.dbRef) {
+                    await window.game.net.dbRef.child(`users/${effectiveUid}/hostility_inbox`).push({
+                        type: 'REMOVE',
+                        from: this.id,
+                        fromName: this.name,
+                        ts: now
+                    });
+                }
 
-                this.saveState(true); // v0.00.19: Force world sync for immediate PvP logic change
+                this.saveState(true);
                 if (window.game?.ui) window.game.ui.updateHostilityUI();
                 return 'REMOVED';
             }
 
-            // Declare New Hostility
+            // Declare New Hostility (Mutual Force)
             this.hostileTargets.set(targetUid, { name: targetName, ts: now });
 
-            // v0.00.15: Mutual Hostility Event
-            if (this.net) this.net.sendHostilityEvent(targetUid);
+            // v1.1: Force Mutual Hostility
+            // Send packet to target's inbox to force them to add me
+            if (window.game.net && window.game.net.dbRef) {
+                await window.game.net.dbRef.child(`users/${targetUid}/hostility_inbox`).push({
+                    type: 'ADD',
+                    from: this.id,
+                    fromName: this.name,
+                    ts: now
+                });
+            }
 
             if (window.game?.ui) window.game.ui.updateHostilityUI();
-            this.saveState(true); // v0.00.19: Force world sync for immediate PvP logic change
+            this.saveState(true);
 
             return 'DECLARED';
         } catch (e) {
@@ -1815,13 +1919,14 @@ export default class Player extends CharacterBase {
         this.electrocutedTimer = 0;
         this.slowRatio = 0;
 
-        // Spawn at zone center or fallback
+        // v2.3.6: Spawn at zone's default spawn point to avoid getting stuck in collision
         if (window.game && window.game.zone) {
-            this.x = window.game.zone.width / 2;
-            this.y = window.game.zone.height / 2;
+            const spawn = window.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
+            this.x = spawn.x;
+            this.y = spawn.y;
         } else {
-            this.x = this.spawnX || 200;
-            this.y = this.spawnY || 200;
+            this.x = this.spawnX || 1500;
+            this.y = this.spawnY || 1900;
         }
 
         this.state = 'idle';

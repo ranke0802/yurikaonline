@@ -15,36 +15,88 @@ export default class ZoneManager {
 
     async loadZone(zoneId) {
         Logger.log(`Loading Zone: ${zoneId}`);
-        // TODO: Load from JSON data later. For now, hardcode the basic grass field.
 
-        // Mock zone data
-        this.currentZone = {
-            id: zoneId,
-            name: "Starting Fields",
-            // 200x200 tiles (Large Map)
-            width: 200,
-            height: 200,
-            backgroundSrc: 'assets/resource/background.webp'
-        };
-
-        // Load background tile
         try {
-            this.bgImage = await this.res.loadImage(this.currentZone.backgroundSrc);
-            this.bgPattern = null;
+            // 1. Load Zone JSON
+            const zoneData = await this.res.loadJSON(`assets/data/zones/${zoneId}.json`);
+            if (!zoneData) {
+                throw new Error(`Zone data not found: ${zoneId}`);
+            }
+
+            this.currentZone = zoneData;
+
+            // 2. Setup Dimensions
+            this.tileSize = zoneData.tileSize || 32;
+            this.width = zoneData.width; // Width in pixels
+            this.height = zoneData.height; // Height in pixels
+
+            // Validate logic: If width represents tiles (e.g. < 500), treat as tiles? 
+            // Better to rely on explicit pixel values from JSON as per zone_1.json (3200)
+            if (this.width < 1000) this.width *= this.tileSize; // Backward compat for Tile-based defs
+            if (this.height < 1000) this.height *= this.tileSize;
+
+            // 3. Load Background
+            // Support different background types (image, tilemap, etc.)
+            if (zoneData.background) {
+                if (zoneData.background.image) {
+                    this.bgImage = await this.res.loadImage(zoneData.background.image);
+                    this.bgPattern = null;
+                } else if (zoneData.background.src) {
+                    // Legacy support
+                    this.bgImage = await this.res.loadImage(zoneData.background.src);
+                    this.bgPattern = null;
+                }
+            } else {
+                Logger.warn(`No background defined for zone: ${zoneId}`);
+            }
+
+            // 4. Setup Boundaries & Spawns & Objects
+            this.boundaries = zoneData.boundaries || { minX: 0, maxX: this.width, minY: 0, maxY: this.height };
+            this.spawns = zoneData.spawnPoints || [];
+            this.objects = zoneData.objects || [];
+
+            // 4.1 Preload Object Assets
+            const assetPromises = this.objects.map(obj => {
+                if (obj.visual && obj.visual.image) {
+                    return this.res.loadImage(obj.visual.image).catch(e => {
+                        Logger.warn(`Failed to preload asset for object ${obj.id}: ${obj.visual.image}`);
+                    });
+                }
+                return Promise.resolve();
+            });
+            await Promise.all(assetPromises);
+
+            // 5. Clear & Reset Chunks
+            this.chunks.clear();
+
+            Logger.log(`Zone loaded: ${this.currentZone.name} (${this.width}x${this.height})`);
+            return this.currentZone;
+
         } catch (e) {
-            Logger.warn('Failed to load map tile', e);
+            Logger.error(`Failed to load zone: ${zoneId}`, e);
+            // Fallback to avoid crash
+            this.currentZone = {
+                id: 'fallback',
+                name: 'Fallback Field',
+                width: 100,
+                height: 100,
+                objects: [],
+                spawns: [],
+                background: { type: 'solid', color: '#76b041' }
+            };
+            this.width = 3200;
+            this.height = 3200;
+            return this.currentZone;
         }
+    }
 
-        // In a real implementation, we would fetch map.json here
-        this.width = this.currentZone.width * this.tileSize;
-        this.height = this.currentZone.height * this.tileSize;
+    getSpawnPoint(id) {
+        if (!this.spawns) return null;
+        return this.spawns.find(s => s.id === id) || this.spawns[0];
+    }
 
-        // Clear chunks on zone load
-        this.chunks.forEach(canvas => canvas.width = 0);
-        this.chunks.clear();
-
-        Logger.log(`Zone loaded: ${this.currentZone.name} (${this.width}x${this.height})`);
-        return this.currentZone;
+    getBoundaries() {
+        return this.boundaries;
     }
 
 

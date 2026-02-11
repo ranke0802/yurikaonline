@@ -49,6 +49,9 @@ export default class RemotePlayer extends CharacterBase {
         this.burnTimer = 0;
         this.slowRatio = 0;
 
+        // v2.1: Initialization Flag
+        this.initialized = false;
+
         this._loadSpriteSheet(resourceManager);
 
         // Cache Projectile import
@@ -62,6 +65,12 @@ export default class RemotePlayer extends CharacterBase {
         const oldHp = this.hp;
         this.hp = data.hp;
         this.maxHp = data.maxHp;
+
+        // v2.1: Prevent Hit Effect on First Sync (e.g. 100 -> 30 adjustment)
+        if (!this.initialized) {
+            this.initialized = true;
+            return;
+        }
 
         // Trigger hit effect if HP decreased
         if (oldHp > this.hp) {
@@ -911,11 +920,66 @@ export default class RemotePlayer extends CharacterBase {
 
     showSpeechBubble(text) {
         this.chatMessage = text;
+        this.isEmote = false;
         this.chatTimer = 5.0;
+    }
+
+    // v2.1: Remote Emote (Fixed to render Image)
+    showEmote(emoteId) {
+        const emote = window.game?.emotes?.find(e => e.id === emoteId);
+        if (emote) {
+            this.chatMessage = emote.icon;
+            this.isEmote = true;
+            this.chatTimer = 3.0;
+            this.emoteImage = null;
+
+            if (window.game?.resources) {
+                window.game.resources.loadImage(emote.icon)
+                    .then(img => { this.emoteImage = img; })
+                    .catch(e => { console.warn('Remote emote load failed', e); });
+            }
+        }
     }
 
     drawSpeechBubble(ctx, x, y, text, textColor = '#2d3436') {
         if (!text) return;
+
+        if (this.isEmote) {
+            ctx.save();
+            // Fixed size for icons
+            const bubbleWidth = 60;
+            const bubbleHeight = 50;
+            const bubbleX = x - bubbleWidth / 2;
+            const bubbleY = y - bubbleHeight;
+
+            // Bubble Background
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight, 15);
+            else ctx.rect(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
+            ctx.fill(); ctx.stroke();
+
+            // Emoji Image
+            if (this.emoteImage) {
+                const iconSize = 32;
+                const iconX = bubbleX + (bubbleWidth - iconSize) / 2;
+                const iconY = bubbleY + (bubbleHeight - iconSize) / 2;
+                ctx.drawImage(this.emoteImage, iconX, iconY, iconSize, iconSize);
+            } else {
+                ctx.fillStyle = '#999';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = 'bold 20px sans-serif';
+                ctx.fillText('...', x, bubbleY + bubbleHeight / 2);
+            }
+
+            ctx.restore();
+            return;
+        }
+
+        // Normal Chat Bubble (non-emote)
         ctx.save();
         ctx.font = 'bold 13px "Outfit", sans-serif';
         const padding = 10, metrics = ctx.measureText(text);

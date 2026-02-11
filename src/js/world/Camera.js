@@ -14,13 +14,13 @@ export default class Camera {
         this.worldHeight = worldHeight;
 
         // Smooth following properties
-        this.smoothness = 0.1; // Lower = smoother but more lag (0.1 = 10% per frame)
+        this.smoothness = 1.0; // Instant follow (1.0 = 100% per frame)
         this.targetX = 0;
         this.targetY = 0;
 
         // Dead zone (target can move within this area without camera moving)
-        this.deadZoneX = width * 0.15; // 15% of viewport
-        this.deadZoneY = height * 0.15;
+        this.deadZoneX = 0;
+        this.deadZoneY = 0;
 
         // Screen shake effect
         this.shakeIntensity = 0;
@@ -78,15 +78,20 @@ export default class Camera {
 
     /**
      * Follow a target entity with smooth interpolation
+     * Compatible with both legacy (target, mapW, mapH) and new (target, dt) signatures
      * @param {Object} target - Target entity with x, y, width, height properties
-     * @param {number} dt - Delta time
+     * @param {number} arg2 - Either mapWidth (legacy) or dt (new)
+     * @param {number} arg3 - mapHeight (legacy, optional)
      */
-    follow(target, dt = 1 / 60) {
+    follow(target, arg2, arg3) {
         if (!target) return;
 
         // Calculate center of target
         const centerX = target.x + (target.width || 0) / 2;
         const centerY = target.y + (target.height || 0) / 2;
+
+        // Determine if called with legacy (target, mapW, mapH) or new (target, dt) signature
+        const dt = (arg3 !== undefined) ? (1 / 60) : (arg2 || 1 / 60);
 
         this.update(centerX, centerY, dt);
     }
@@ -181,8 +186,8 @@ export default class Camera {
         this.height = height;
 
         // Recalculate dead zone
-        this.deadZoneX = width * 0.15;
-        this.deadZoneY = height * 0.15;
+        this.deadZoneX = 0;
+        this.deadZoneY = 0;
 
         // Re-clamp to bounds
         this.clampToBounds();

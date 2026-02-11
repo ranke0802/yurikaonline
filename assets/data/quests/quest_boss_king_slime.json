@@ -1,0 +1,27 @@
+{
+    "id": "quest_boss_king_slime",
+    "title": "대왕 슬라임 토벌",
+    "description": "대왕 슬라임을 처치하세요!",
+    "type": "main",
+    "prerequisites": [
+        "quest_slime_30"
+    ],
+    "objectives": [
+        {
+            "type": "kill",
+            "target": "king_slime",
+            "count": 1,
+            "description": "대왕 슬라임 처치: {current}/{count}"
+        }
+    ],
+    "rewards": {
+        "exp": 1000,
+        "gold": 3000
+    },
+    "onComplete": {
+        "message": "대왕 슬라임을 처치했습니다! 영웅이여!",
+        "unlocks": [
+            "quest_slime_repeat"
+        ]
+    }
+}

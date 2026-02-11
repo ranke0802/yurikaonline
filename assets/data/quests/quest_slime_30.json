@@ -1,0 +1,28 @@
+{
+    "id": "quest_slime_30",
+    "title": "슬라임 정화",
+    "description": "더 많은 슬라임을 처치하여 지역을 정화하세요. (누적 30마리)",
+    "type": "main",
+    "prerequisites": [
+        "quest_slime_10"
+    ],
+    "objectives": [
+        {
+            "type": "kill",
+            "target": "slime",
+            "count": 30,
+            "cumulative": true,
+            "description": "슬라임 처치: {current}/{count}"
+        }
+    ],
+    "rewards": {
+        "exp": 500,
+        "gold": 1000
+    },
+    "onComplete": {
+        "message": "지역 정화 완료! 대왕 슬라임의 기운이 느껴집니다...",
+        "unlocks": [
+            "quest_boss_king_slime"
+        ]
+    }
+}
