@@ -137,6 +137,17 @@ export class UIManager {
         if (guide) guide.style.display = 'none';
     }
 
+    // v2.3.1: HUD Visibility Control for Cutscenes
+    hideHUD() {
+        const uiLayer = document.getElementById('ui-layer');
+        if (uiLayer) uiLayer.classList.add('hidden');
+    }
+
+    showHUD() {
+        const uiLayer = document.getElementById('ui-layer');
+        if (uiLayer) uiLayer.classList.remove('hidden');
+    }
+
     setupGlobalInteractions() {
         const INTERACTIVE_SELECTORS = 'button, .btn, .skill-icon, .item-slot, .stat-up-btn, .stat-down-btn, .close-popup, .login-btn, .action-btn';
 
@@ -1200,7 +1211,10 @@ export class UIManager {
         const rewardIcon = rewardDisplay?.querySelector('.quest-icon');
         const rewardTitle = rewardDisplay?.querySelector('.quest-title');
 
-        if (!taskDisplay || !rewardDisplay) return;
+        if (!taskDisplay || !rewardDisplay) {
+            // Logger.warn('[UIManager] Quest UI elements missing');
+            return;
+        }
 
         // Determine Active Quest
         let currentQuest = null;

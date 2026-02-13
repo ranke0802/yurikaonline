@@ -15,6 +15,12 @@ export default class StoryManager {
         this.isFading = false;
     }
 
+    resetFade() {
+        this.fadeAlpha = 0;
+        this.fadeTarget = 0;
+        this.isFading = false;
+    }
+
     async loadStory(id) {
         try {
             const data = await this.resourceManager.loadJSON(`/assets/data/narrative/${id}.json`);
@@ -49,6 +55,9 @@ export default class StoryManager {
     startStory(id, startSequenceId = 'start') {
         this.loadStory(id).then(data => {
             if (data) {
+                // v2.3.1: Hide HUD during story
+                if (this.game.ui) this.game.ui.hideHUD();
+
                 this.isStoryActive = true;
                 this.playSequence(startSequenceId);
             }
@@ -111,17 +120,21 @@ export default class StoryManager {
      */
     _executeAction(action) {
         return new Promise((resolve) => {
+            // v2.2.1: Robust duration handling (allow 0)
+            const duration = action.duration !== undefined ? action.duration : 1000;
+
             switch (action.type) {
                 case 'delay':
-                    setTimeout(resolve, action.duration || 1000);
+                    if (duration <= 0) resolve();
+                    else setTimeout(resolve, duration);
                     break;
 
                 case 'fade_out':
-                    this._startFade(1, action.duration || 1000, resolve);
+                    this._startFade(1, duration, resolve);
                     break;
 
                 case 'fade_in':
-                    this._startFade(0, action.duration || 1000, resolve);
+                    this._startFade(0, duration, resolve);
                     break;
 
                 case 'camera_pan': {
@@ -129,7 +142,15 @@ export default class StoryManager {
                     if (camera && action.target) {
                         const targetX = action.target.x - camera.width / 2;
                         const targetY = action.target.y - camera.height / 2;
-                        const duration = action.duration || 2000;
+
+                        if (duration <= 0) {
+                            camera.x = targetX;
+                            camera.y = targetY;
+                            camera.clampToBounds();
+                            resolve();
+                            return;
+                        }
+
                         const startX = camera.x;
                         const startY = camera.y;
                         const startTime = performance.now();
@@ -163,10 +184,11 @@ export default class StoryManager {
                     if (this.game.camera?.shake) {
                         this.game.camera.shake(
                             action.intensity || 10,
-                            action.duration ? action.duration / 1000 : 0.3
+                            duration ? duration / 1000 : 0.3
                         );
                     }
-                    setTimeout(resolve, action.duration || 300);
+                    if (duration <= 0) resolve();
+                    else setTimeout(resolve, duration);
                     break;
 
                 case 'sound':
@@ -182,9 +204,10 @@ export default class StoryManager {
 
                 case 'message':
                     if (this.game.ui && action.text) {
-                        this.game.ui.showCenterMessage(action.text, action.duration || 3000);
+                        this.game.ui.showCenterMessage(action.text, duration || 3000);
                     }
-                    setTimeout(resolve, action.duration || 3000);
+                    if (duration <= 0) resolve();
+                    else setTimeout(resolve, duration);
                     break;
 
                 case 'action':
@@ -203,6 +226,15 @@ export default class StoryManager {
      * v2.2: Start a fade transition
      */
     _startFade(target, duration, onComplete) {
+        // v2.2.1: Division by zero safety
+        if (duration <= 0) {
+            this.fadeAlpha = target;
+            this.fadeTarget = target;
+            this.isFading = false;
+            if (onComplete) onComplete();
+            return;
+        }
+
         this.fadeTarget = target;
         this.fadeSpeed = Math.abs(target - this.fadeAlpha) / (duration / 1000 * 60);
         this.isFading = true;
@@ -267,8 +299,11 @@ export default class StoryManager {
         this.currentSequence = null;
         this.fadeAlpha = 0;
         this.isFading = false;
+
+        // v2.3.1: Restore HUD
         if (this.game.ui) {
             this.game.ui.hideDialog();
+            this.game.ui.showHUD();
         }
         Logger.log('Story ended.');
     }

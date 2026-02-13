@@ -52,6 +52,11 @@ export default class WorldScene extends Scene {
     async enter(params) {
         Logger.info("[WorldScene] Entering game world...");
 
+        // v0.35.0: Ensure Story Fade is reset to prevent black screen
+        if (this.game.story) {
+            this.game.story.resetFade();
+        }
+
         // v0.00.02: Restore asset loading which was cut from main.js
         if (this.game.updateLoading) this.game.updateLoading('월드 데이터 다운로드 중...', 40);
 
@@ -252,8 +257,13 @@ export default class WorldScene extends Scene {
         // For now, let's trigger it if slimeKills is 0.
         if (this.player && this.player.level === 1 && this.player.questData.slimeKills === 0 && !this.player.questData.slimeQuestClaimed) {
             // Delay slightly to allow fade-in
+            // v2.1: Robust Story Trigger
             setTimeout(() => {
-                this.game.story.startStory('prologue');
+                if (this.game.story && this.game.story.startStory) {
+                    this.game.story.startStory('prologue');
+                } else {
+                    Logger.warn('[WorldScene] StoryManager not ready, skipping prologue.');
+                }
             }, 1000);
         }
     }
@@ -618,7 +628,16 @@ export default class WorldScene extends Scene {
     }
 
     render(ctx) {
-        if (!this.game.zone.currentZone) return;
+        if (!this.game.zone.currentZone) {
+            // Loading State
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, this.game.canvas.width, this.game.canvas.height);
+            ctx.fillStyle = '#fff';
+            ctx.font = '24px "Outfit", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Loading Zone...', this.game.canvas.width / 2, this.game.canvas.height / 2);
+            return;
+        }
 
         ctx.save();
         const scale = this.game.zoom * this.game.dpr;

@@ -4,6 +4,7 @@ export default class TouchHandler extends EventEmitter {
     constructor() {
         super();
         this.joystick = { x: 0, y: 0, active: false };
+        this.joystickTouchId = null; // v0.35.1: Multi-touch support
         this.maxRadius = 50;
 
         // DOM Elements
@@ -86,7 +87,9 @@ export default class TouchHandler extends EventEmitter {
         // TODO: Emit event instead of direct UI call
         // this.emit('interactionStart'); 
 
-        const touch = e.touches ? e.touches[0] : e;
+        const touch = e.touches ? e.changedTouches[0] : e;
+        this.joystickTouchId = touch.identifier; // Save ID
+
         const x = touch.clientX;
         const y = touch.clientY;
 
@@ -107,7 +110,21 @@ export default class TouchHandler extends EventEmitter {
         if (!this.joystick.active) return;
         e.preventDefault();
 
-        const touch = e.touches ? e.touches[0] : e;
+        // v0.35.1: Multi-touch ID check
+        let touch = null;
+        if (e.touches) {
+            for (let i = 0; i < e.touches.length; i++) {
+                if (e.touches[i].identifier === this.joystickTouchId) {
+                    touch = e.touches[i];
+                    break;
+                }
+            }
+        } else {
+            touch = e; // Mouse fallback
+        }
+
+        if (!touch) return; // Touch ID not found (another finger moved)
+
         const rect = this.base.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
@@ -131,12 +148,25 @@ export default class TouchHandler extends EventEmitter {
         this.emit('joystickMove', { x: this.joystick.x, y: this.joystick.y, active: true });
     }
 
-    _handleEnd() {
+    _handleEnd(e) {
         if (!this.joystick.active) return;
+
+        // v0.35.1: Multi-touch End check
+        if (e.changedTouches) {
+            let found = false;
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === this.joystickTouchId) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) return; // Another finger ended, keep joystick active
+        }
 
         this.joystick.active = false;
         this.joystick.x = 0;
         this.joystick.y = 0;
+        this.joystickTouchId = null;
 
         this.stick.style.left = '50%';
         this.stick.style.top = '50%';

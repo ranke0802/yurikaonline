@@ -268,6 +268,9 @@ export default class NetworkManager extends EventEmitter {
         // this._setupHostilityListeners(); // Moved to WorldScene to ensure localPlayer exists
         this._setupEmoteListeners(); // v2.1
 
+        // v0.35.1: Mobile Background Reconnection Support
+        document.addEventListener('visibilitychange', () => this._handleVisibilityChange());
+
         Logger.log('Connected to Game Zone.');
     }
 
@@ -1353,6 +1356,19 @@ export default class NetworkManager extends EventEmitter {
         });
     }
 
+    _sendHeartbeat() {
+        if (!this.connected || !this.playerId) return;
+
+        const presenceRef = this.dbRef.child(`users/${this.playerId}`);
+        presenceRef.update({
+            lastSeen: firebase.database.ServerValue.TIMESTAMP
+        }).catch(e => {
+            // Ignore offline errors
+        });
+
+        this.lastHeartbeatTime = Date.now();
+    }
+
     _setupEmoteListeners() {
         this.dbRef.child('emotes').on('child_added', (snapshot) => {
             const data = snapshot.val();
@@ -1364,5 +1380,23 @@ export default class NetworkManager extends EventEmitter {
                 snapshot.ref.remove();
             }
         });
+    }
+
+    _handleVisibilityChange() {
+        if (document.hidden) {
+            Logger.log("[Network] App backgrounded.");
+            // Optional: Pause complex logic here if needed
+        } else {
+            Logger.log("[Network] App foregrounded. Checking connection...");
+            if (this.playerId && this.dbRef) {
+                // Force immediate heartbeat to say "I'm back!"
+                this._sendHeartbeat();
+
+                // Force sync check if needed
+                if (this.lastSyncTime < Date.now() - 5000) {
+                    Logger.log("[Network] Long absence detected, requesting sync...");
+                }
+            }
+        }
     }
 }

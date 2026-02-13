@@ -137,7 +137,7 @@ export default class ZoneManager {
         canvas.height = this.chunkSize;
         const cctx = canvas.getContext('2d');
 
-        if (this.bgImage) {
+        if (this.bgImage && this.bgImage.width > 0 && this.bgImage.height > 0) {
             // Draw tile pattern to chunk
             if (!this.bgPattern) {
                 // Temporary pattern for drawing to offscreen
