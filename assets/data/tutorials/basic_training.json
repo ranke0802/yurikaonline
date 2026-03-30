@@ -72,8 +72,13 @@
         {
             "id": "preview_status_change",
             "instruction": "아무 능력치에 1포인트를 눌러 보세요. 오른쪽 수치가 초록색으로 변하면서 저장 전 결과를 미리 보여줍니다.",
+            "instructionMobileLandscape": "왼쪽 능력치 한 줄의 + 버튼을 눌러 보세요. 오른쪽 미리보기 수치가 초록색으로 변하면서 저장 전 결과를 보여줍니다.",
             "highlightTargets": [
                 "#status-stat-main",
+                "#status-derived-panel"
+            ],
+            "highlightTargetsMobileLandscape": [
+                "#status-vitality-row",
                 "#status-derived-panel"
             ],
             "trigger": "stat_allocated",

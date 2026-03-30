@@ -348,7 +348,7 @@
             <div id="inventory-popup" class="game-popup hidden">
                 <div class="popup-header">
                     <h2>가방 (Inventory)</h2>
-                    <button class="close-popup pc-only">✕</button>
+                    <button id="inventory-close-btn-top" class="close-popup pc-only">✕</button>
                 </div>
                 <div class="inventory-grid">
                     <div class="grid-item"></div>
@@ -409,7 +409,7 @@
                             <div class="stat-point-info">
                                 <span>보유 포인트 <strong id="stat-points">0</strong></span>
                             </div>
-                            <div class="stat-row-ui">
+                            <div id="status-vitality-row" class="stat-row-ui">
                                 <label>❤️ 체력 (VIT)</label>
                                 <div class="stat-value-container">
                                     <span id="val-vitality" class="stat-value">5</span>
@@ -481,7 +481,7 @@
             <div id="skill-popup" class="game-popup hidden">
                 <div class="popup-header">
                     <h2>스킬 트리 (Skill Tree)</h2>
-                    <button class="close-popup pc-only">✕</button>
+                    <button id="skill-close-btn-top" class="close-popup pc-only">✕</button>
                 </div>
                 <div class="skill-content-wrapper">
                     <div class="skill-point-info">

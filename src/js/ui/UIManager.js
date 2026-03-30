@@ -184,15 +184,15 @@ export class UIManager {
         guide.style.pointerEvents = 'none';
         guide.style.zIndex = '4600';
         guide.style.maxWidth = isLandscape ? 'min(70vw, 320px)' : (isPortrait ? 'min(84vw, 560px)' : 'min(92vw, 760px)');
-        guide.style.maxHeight = isLandscape ? 'calc(100vh - 16px)' : 'none';
+        guide.style.maxHeight = isLandscape ? 'calc(100dvh - 44px)' : 'none';
         guide.style.overflowY = isLandscape ? 'auto' : 'visible';
         guide.style.lineHeight = '1.45';
 
         if (isLandscape) {
-            guide.style.top = 'calc(env(safe-area-inset-top, 0px) + 8px)';
+            guide.style.top = 'max(20px, calc(env(safe-area-inset-top, 0px) + 20px))';
             guide.style.transform = 'translateX(-50%)';
-            guide.style.padding = '8px 12px';
-            guide.style.fontSize = '12px';
+            guide.style.padding = '8px 10px';
+            guide.style.fontSize = '11px';
         } else if (isPortrait) {
             guide.style.top = 'calc(env(safe-area-inset-top, 0px) + 118px)';
             guide.style.transform = 'translateX(-50%)';
@@ -1407,7 +1407,8 @@ export class UIManager {
         const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
         const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
         const isTouch = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
-        const padding = isTouch ? 10 : 8;
+        const isLandscape = window.matchMedia?.('(orientation: landscape)')?.matches ?? (window.innerWidth > window.innerHeight);
+        const padding = isTouch ? (isLandscape ? 6 : 10) : 8;
 
         this.tutorialHighlightTargets.forEach((target) => {
             const element = this.resolveTutorialHighlightTarget(target);

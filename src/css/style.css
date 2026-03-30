@@ -5093,3 +5093,520 @@ body.is-fullscreen .version-info {
         z-index: 4600 !important;
     }
 }
+
+@media screen and (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
+    .scene-overlay {
+        padding:
+            calc(10px + env(safe-area-inset-top))
+            calc(10px + env(safe-area-inset-right))
+            calc(10px + env(safe-area-inset-bottom))
+            calc(10px + env(safe-area-inset-left)) !important;
+        overflow: hidden !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .scene-title {
+        margin: 0 !important;
+        font-size: clamp(22px, 4vw, 30px) !important;
+        line-height: 1.08 !important;
+        text-align: left !important;
+    }
+
+    #login-scene-ui .login-card,
+    #char-select-ui .char-card {
+        width: min(94vw, 820px) !important;
+        max-width: 94vw !important;
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px) !important;
+        min-height: 0 !important;
+        padding: 18px 20px !important;
+        border-radius: 24px !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        text-align: left !important;
+        display: grid !important;
+        gap: 12px 18px !important;
+        align-items: center !important;
+    }
+
+    #login-scene-ui .login-card {
+        grid-template-columns: minmax(0, 1.08fr) minmax(220px, 0.92fr) !important;
+    }
+
+    #login-scene-ui .game-logo {
+        grid-column: 1 !important;
+        margin: 0 !important;
+        font-size: clamp(28px, 5vw, 38px) !important;
+        line-height: 1.04 !important;
+    }
+
+    #login-scene-ui .game-subtitle {
+        grid-column: 1 !important;
+        margin: 0 !important;
+        font-size: 11px !important;
+        letter-spacing: 0.22em !important;
+    }
+
+    #login-scene-ui .login-options {
+        grid-column: 2 !important;
+        grid-row: 1 / span 3 !important;
+        display: grid !important;
+        gap: 12px !important;
+        align-self: center !important;
+    }
+
+    #login-scene-ui .version-tag {
+        grid-column: 1 !important;
+        margin-top: 0 !important;
+        font-size: 11px !important;
+        opacity: 0.55 !important;
+        align-self: end !important;
+    }
+
+    #char-select-ui .char-card.creation {
+        grid-template-columns: minmax(0, 1fr) 170px !important;
+    }
+
+    #char-select-ui .char-card.creation .scene-title,
+    #char-select-ui .char-card.creation .creation-desc,
+    #char-select-ui .char-card.creation .input-group {
+        grid-column: 1 !important;
+    }
+
+    #char-select-ui .char-card.creation .character-preview.small {
+        grid-column: 2 !important;
+        grid-row: 1 / span 3 !important;
+        margin: 0 !important;
+        padding: 10px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        align-self: center !important;
+        justify-self: center !important;
+    }
+
+    #char-select-ui .char-card.creation .char-actions {
+        grid-column: 1 / -1 !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+    }
+
+    #char-select-ui .char-card:not(.creation) {
+        grid-template-columns: minmax(0, 1.12fr) 220px !important;
+    }
+
+    #char-select-ui .char-card:not(.creation) .scene-title {
+        grid-column: 1 / -1 !important;
+    }
+
+    #char-select-ui .char-card:not(.creation) .character-preview {
+        grid-column: 1 !important;
+        margin: 0 !important;
+        padding: 12px 14px !important;
+        min-width: 0 !important;
+    }
+
+    #char-select-ui .char-card:not(.creation) .char-actions {
+        grid-column: 2 !important;
+        display: grid !important;
+        gap: 12px !important;
+        align-self: center !important;
+    }
+
+    #char-select-ui .character-preview,
+    #char-select-ui .character-preview.small {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 12px !important;
+        margin: 0 !important;
+        padding: 12px 14px !important;
+        border-radius: 18px !important;
+        min-height: 0 !important;
+    }
+
+    #char-select-ui .char-avatar-container {
+        width: 118px !important;
+        height: 118px !important;
+        flex: 0 0 118px !important;
+    }
+
+    #char-select-ui .char-glow {
+        width: 84px !important;
+        height: 84px !important;
+    }
+
+    #char-select-ui #char-preview-canvas {
+        width: 108px !important;
+        height: 108px !important;
+    }
+
+    #char-select-ui .character-preview.small #char-preview-canvas {
+        width: 96px !important;
+        height: 96px !important;
+    }
+
+    #char-select-ui .char-name {
+        font-size: 18px !important;
+    }
+
+    #char-select-ui .char-level,
+    #char-select-ui .char-stats,
+    #char-select-ui .creation-desc,
+    #char-select-ui .status-msg {
+        font-size: 11px !important;
+        line-height: 1.4 !important;
+    }
+
+    #char-select-ui .input-group {
+        margin: 0 !important;
+        gap: 6px !important;
+        align-items: flex-start !important;
+    }
+
+    #char-select-ui #name-input {
+        width: min(100%, 280px) !important;
+        min-height: 44px !important;
+        font-size: 14px !important;
+    }
+
+    #login-scene-ui .login-btn,
+    #login-scene-ui .action-btn,
+    #char-select-ui .login-btn,
+    #char-select-ui .action-btn {
+        min-height: 48px !important;
+        padding: 12px 16px !important;
+        border-radius: 16px !important;
+        font-size: 14px !important;
+    }
+
+    #popup-overlay {
+        align-items: center !important;
+        justify-content: center !important;
+        padding:
+            calc(8px + env(safe-area-inset-top))
+            calc(10px + env(safe-area-inset-right))
+            calc(8px + env(safe-area-inset-bottom))
+            calc(10px + env(safe-area-inset-left)) !important;
+        overflow: auto !important;
+    }
+
+    .confirm-modal-overlay,
+    #confirm-modal,
+    #death-modal {
+        align-items: center !important;
+        justify-content: center !important;
+        padding:
+            calc(10px + env(safe-area-inset-top))
+            calc(10px + env(safe-area-inset-right))
+            calc(10px + env(safe-area-inset-bottom))
+            calc(10px + env(safe-area-inset-left)) !important;
+    }
+
+    .game-popup {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        width: min(95vw, 720px) !important;
+        max-width: 95vw !important;
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 18px) !important;
+        margin: 0 auto !important;
+        padding: 14px 16px !important;
+        border-radius: 20px !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    .game-popup .popup-header {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 10px !important;
+        margin: 0 0 8px !important;
+        padding: 0 0 8px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .game-popup .popup-header h2 {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        font-size: 16px !important;
+        line-height: 1.2 !important;
+    }
+
+    .game-popup .popup-header .close-popup,
+    .game-popup .popup-header .close-popup.pc-only {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 30px !important;
+        height: 30px !important;
+        flex: 0 0 30px !important;
+        border-radius: 10px !important;
+    }
+
+    .game-popup .popup-footer {
+        margin-top: 8px !important;
+        padding-top: 8px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .close-btn-bottom {
+        min-height: 36px !important;
+        padding: 8px 16px !important;
+        font-size: 12px !important;
+    }
+
+    #inventory-popup {
+        width: min(94vw, 560px) !important;
+    }
+
+    #inventory-popup .inventory-grid {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow: auto !important;
+    }
+
+    #status-popup,
+    #skill-popup {
+        width: min(96vw, 780px) !important;
+    }
+
+    #status-popup .status-content-wrapper {
+        display: grid !important;
+        grid-template-columns: minmax(220px, 0.92fr) minmax(250px, 1.08fr) !important;
+        grid-template-areas:
+            "top stats"
+            "actions actions"
+            "footer footer" !important;
+        gap: 8px 10px !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #status-popup .status-top {
+        grid-area: top !important;
+        gap: 10px !important;
+        align-items: flex-start !important;
+    }
+
+    #status-popup .status-portrait {
+        width: 62px !important;
+        height: 62px !important;
+        flex: 0 0 62px !important;
+    }
+
+    #status-popup .status-basic-info {
+        min-width: 0 !important;
+        flex: 1 1 auto !important;
+    }
+
+    #status-popup .status-basic-info p {
+        margin: 0 0 4px !important;
+        font-size: 10px !important;
+        line-height: 1.3 !important;
+    }
+
+    #status-popup .link-google-btn {
+        margin-top: 4px !important;
+        min-height: 30px !important;
+        padding: 6px 8px !important;
+        font-size: 10px !important;
+    }
+
+    #status-popup .exp-bar-container {
+        margin-top: 4px !important;
+    }
+
+    #status-popup .exp-label,
+    #status-popup .exp-remaining,
+    #status-popup .stat-point-info {
+        font-size: 10px !important;
+        line-height: 1.25 !important;
+    }
+
+    #status-popup .exp-bar-bg {
+        height: 8px !important;
+    }
+
+    #status-popup .status-stats-grid {
+        grid-area: stats !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+
+    #status-popup .stat-main,
+    #status-popup .stat-derived {
+        min-width: 0 !important;
+        gap: 6px !important;
+    }
+
+    #status-popup .stat-main {
+        padding: 10px 10px 8px !important;
+        border-radius: 14px !important;
+        background: rgba(255, 255, 255, 0.35) !important;
+    }
+
+    #status-popup .stat-derived {
+        padding: 10px !important;
+        border-radius: 14px !important;
+    }
+
+    #status-popup .stat-row-ui {
+        min-height: 32px !important;
+        height: auto !important;
+        padding: 5px 6px !important;
+        gap: 8px !important;
+        font-size: 10px !important;
+    }
+
+    #status-popup .stat-row-ui label {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        font-size: 10px !important;
+        line-height: 1.2 !important;
+    }
+
+    #status-popup .stat-value-container {
+        gap: 6px !important;
+    }
+
+    #status-popup .stat-value {
+        min-width: 18px !important;
+        font-size: 12px !important;
+    }
+
+    #status-popup .stat-controls-row {
+        gap: 4px !important;
+        flex-shrink: 0 !important;
+        width: auto !important;
+    }
+
+    #status-popup .stat-controls-row button {
+        width: 22px !important;
+        height: 22px !important;
+        font-size: 13px !important;
+    }
+
+    #status-popup .derived-row {
+        padding: 2px 0 !important;
+        font-size: 10px !important;
+        line-height: 1.25 !important;
+    }
+
+    #status-popup .reset-actions {
+        grid-area: actions !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+        margin-top: 0 !important;
+    }
+
+    #status-popup .reset-actions .reset-btn {
+        min-height: 34px !important;
+        padding: 6px 8px !important;
+        font-size: 11px !important;
+    }
+
+    #status-popup .popup-footer {
+        grid-area: footer !important;
+        display: flex !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+        margin-top: 0 !important;
+        padding-top: 6px !important;
+    }
+
+    #skill-popup .skill-content-wrapper {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #skill-popup .skill-point-info {
+        font-size: 11px !important;
+        padding: 8px 10px !important;
+        flex-shrink: 0 !important;
+    }
+
+    #skill-popup .skill-list {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        min-height: 0 !important;
+        overflow: auto !important;
+        padding-right: 0 !important;
+    }
+
+    #skill-popup .skill-item {
+        min-height: 88px !important;
+        padding: 8px !important;
+        gap: 8px !important;
+        align-items: flex-start !important;
+    }
+
+    #skill-popup .skill-icon {
+        width: 38px !important;
+        height: 38px !important;
+        flex: 0 0 38px !important;
+        font-size: 18px !important;
+    }
+
+    #skill-popup .skill-name,
+    #skill-popup .skill-level {
+        font-size: 11px !important;
+    }
+
+    #skill-popup .skill-desc {
+        font-size: 9px !important;
+        line-height: 1.3 !important;
+    }
+
+    #skill-popup .skill-up-btn {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 16px !important;
+        flex: 0 0 28px !important;
+    }
+
+    .confirm-content,
+    .reward-content,
+    .confirm-modal-content,
+    .history-content,
+    .death-content {
+        width: min(90vw, 520px) !important;
+        max-width: 90vw !important;
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px) !important;
+        box-sizing: border-box !important;
+        overflow: auto !important;
+        padding: 16px 18px !important;
+        border-radius: 18px !important;
+    }
+
+    #tutorial-highlight-layer {
+        z-index: 4550 !important;
+    }
+
+    .tutorial-highlight-box {
+        border-width: 2px !important;
+        border-radius: 12px !important;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 18px rgba(255, 77, 79, 0.38) !important;
+    }
+
+    #tutorial-guide {
+        top: max(20px, calc(env(safe-area-inset-top, 0px) + 20px)) !important;
+        max-width: min(68vw, 340px) !important;
+        max-height: calc(100dvh - 44px) !important;
+        padding: 8px 10px !important;
+        font-size: 11px !important;
+        line-height: 1.4 !important;
+        overflow: auto !important;
+    }
+}
