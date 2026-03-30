@@ -3667,3 +3667,457 @@ body.is-fullscreen .version-info {
 .emote-btn:hover {
     transform: scale(1.1);
 }
+
+@media screen and (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 600px) {
+    .scene-overlay,
+    #popup-overlay,
+    .confirm-modal-overlay,
+    #confirm-modal,
+    #death-modal {
+        position: fixed !important;
+        inset: 0 !important;
+        box-sizing: border-box;
+        padding:
+            calc(12px + env(safe-area-inset-top))
+            calc(14px + env(safe-area-inset-right))
+            calc(12px + env(safe-area-inset-bottom))
+            calc(14px + env(safe-area-inset-left));
+    }
+
+    .scene-overlay {
+        z-index: 3200 !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #popup-overlay,
+    .confirm-modal-overlay,
+    #confirm-modal,
+    #death-modal {
+        z-index: 3300 !important;
+        align-items: center;
+        justify-content: center;
+        background: rgba(4, 8, 14, 0.78) !important;
+        backdrop-filter: blur(10px);
+    }
+
+    #login-scene-ui .login-card,
+    #char-select-ui .char-card {
+        width: min(88vw, 860px);
+        max-width: 88vw;
+        max-height: 100%;
+        padding: 26px 28px;
+        border-radius: 30px;
+        box-sizing: border-box;
+        overflow: auto;
+    }
+
+    #login-scene-ui .login-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(220px, 0.95fr);
+        gap: 16px 24px;
+        align-items: center;
+        text-align: left;
+    }
+
+    #login-scene-ui .game-logo {
+        grid-column: 1;
+        margin: 0;
+        font-size: clamp(28px, 5vw, 38px);
+        line-height: 1.04;
+        letter-spacing: 0.06em;
+    }
+
+    #login-scene-ui .game-subtitle {
+        grid-column: 1;
+        margin: 0;
+        font-size: 11px;
+        letter-spacing: 0.28em;
+    }
+
+    #login-scene-ui .login-options {
+        grid-column: 2;
+        grid-row: 1 / span 3;
+        align-self: stretch;
+        justify-content: center;
+    }
+
+    #login-scene-ui .version-tag {
+        grid-column: 1;
+        margin-top: 0;
+        font-size: 11px;
+        opacity: 0.55;
+        align-self: end;
+    }
+
+    .scene-title {
+        margin: 0;
+        font-size: clamp(24px, 4.4vw, 34px);
+        line-height: 1.05;
+        text-align: left;
+    }
+
+    #char-select-ui .char-card {
+        display: grid;
+        gap: 16px 22px;
+        align-items: center;
+        text-align: left;
+    }
+
+    #char-select-ui .char-card:not(.creation) {
+        grid-template-columns: minmax(0, 1.12fr) minmax(220px, 0.82fr);
+    }
+
+    #char-select-ui .char-card:not(.creation) .scene-title {
+        grid-column: 1 / -1;
+    }
+
+    #char-select-ui .char-card:not(.creation) .character-preview {
+        grid-column: 1;
+        margin: 0;
+        padding: 18px;
+        min-width: 0;
+    }
+
+    #char-select-ui .char-card:not(.creation) .char-actions {
+        grid-column: 2;
+        align-self: center;
+    }
+
+    #char-select-ui .char-card.creation {
+        grid-template-columns: minmax(0, 1fr) minmax(200px, 0.84fr);
+    }
+
+    #char-select-ui .char-card.creation .scene-title,
+    #char-select-ui .char-card.creation .creation-desc,
+    #char-select-ui .char-card.creation .input-group {
+        grid-column: 1;
+    }
+
+    #char-select-ui .char-card.creation .character-preview.small {
+        grid-column: 2;
+        grid-row: 1 / span 3;
+        margin: 0;
+        align-self: center;
+        justify-self: center;
+        padding: 14px;
+    }
+
+    #char-select-ui .char-card.creation .char-actions {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #char-select-ui .creation-desc {
+        margin: 0;
+        max-width: 34ch;
+        font-size: 13px;
+    }
+
+    #char-select-ui .input-group {
+        margin: 0;
+        align-items: flex-start;
+    }
+
+    #char-select-ui #name-input {
+        width: min(100%, 260px);
+    }
+
+    #char-select-ui .character-preview {
+        gap: 16px;
+        border-radius: 24px;
+    }
+
+    #char-select-ui .char-avatar-container {
+        width: 150px;
+        height: 150px;
+        flex: 0 0 150px;
+    }
+
+    #char-select-ui .char-glow {
+        width: 120px;
+        height: 120px;
+    }
+
+    #char-select-ui #char-preview-canvas {
+        width: 140px;
+        height: 140px;
+    }
+
+    #char-select-ui .character-preview.small #char-preview-canvas {
+        width: 120px;
+        height: 120px;
+    }
+
+    #char-select-ui .char-name {
+        font-size: 22px;
+    }
+
+    #char-select-ui .char-level,
+    #char-select-ui .char-stats {
+        font-size: 13px;
+    }
+
+    .login-btn,
+    .action-btn {
+        min-height: 56px;
+        padding: 14px 18px;
+        border-radius: 18px;
+        font-size: 15px;
+    }
+
+    .char-actions {
+        gap: 12px;
+    }
+
+    .game-popup {
+        width: min(88vw, 760px);
+        max-width: 88vw;
+        max-height: 100%;
+        padding: 18px 20px;
+        border-radius: 28px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .game-popup > * {
+        min-width: 0;
+    }
+
+    .game-popup .popup-header {
+        margin-bottom: 0;
+        padding-bottom: 10px;
+        flex-shrink: 0;
+    }
+
+    .game-popup .popup-header h2 {
+        font-size: 20px;
+    }
+
+    .game-popup .popup-footer {
+        margin-top: 0;
+        padding: 10px 0 0;
+        flex-shrink: 0;
+    }
+
+    #inventory-popup {
+        width: min(86vw, 560px);
+    }
+
+    #inventory-popup .inventory-grid {
+        flex: 1 1 auto;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+        padding: 4px 2px 10px;
+        overflow: auto;
+    }
+
+    #status-popup {
+        width: min(90vw, 820px);
+    }
+
+    #status-popup .status-content-wrapper {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto 1fr auto auto;
+        gap: 12px;
+        overflow: hidden;
+    }
+
+    #status-popup .status-top {
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    #status-popup .status-portrait {
+        width: 88px;
+        height: 88px;
+        flex: 0 0 88px;
+    }
+
+    #status-popup .status-basic-info {
+        min-width: 0;
+        flex: 1;
+    }
+
+    #status-popup .status-basic-info p {
+        margin: 0 0 6px;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    #status-popup .status-stats-grid {
+        min-height: 0;
+        gap: 12px;
+        overflow: auto;
+        padding-top: 12px;
+        padding-right: 4px;
+    }
+
+    #status-popup .stat-row-ui {
+        min-height: 36px;
+        height: auto;
+    }
+
+    #status-popup .stat-main,
+    #status-popup .stat-derived {
+        min-width: 0;
+    }
+
+    #status-popup .reset-actions {
+        flex-direction: row !important;
+        flex-wrap: wrap;
+    }
+
+    #status-popup .reset-actions .reset-btn {
+        flex: 1 1 180px;
+    }
+
+    #skill-popup {
+        width: min(90vw, 860px);
+    }
+
+    #skill-popup .skill-content-wrapper {
+        flex: 1 1 auto;
+        min-height: 0;
+        gap: 12px;
+        overflow: hidden;
+    }
+
+    #skill-popup .skill-list {
+        min-height: 0;
+        overflow: auto;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding-right: 4px;
+    }
+
+    #skill-popup .skill-item {
+        align-items: flex-start;
+        min-height: 94px;
+        padding: 10px;
+        gap: 10px;
+    }
+
+    #skill-popup .skill-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+    }
+
+    #skill-popup .skill-name {
+        font-size: 13px;
+    }
+
+    #skill-popup .skill-desc {
+        font-size: 10px;
+    }
+
+    .confirm-content,
+    .reward-content,
+    .confirm-modal-content,
+    .death-content {
+        width: min(86vw, 560px);
+        max-width: 86vw;
+        max-height: 100%;
+        padding: 20px 22px;
+        border-radius: 24px;
+        box-sizing: border-box;
+        overflow: auto;
+    }
+
+    .confirm-content,
+    .reward-content,
+    .confirm-modal-content {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .history-content {
+        width: min(90vw, 760px);
+        max-width: 90vw;
+        max-height: 100%;
+        padding: 18px 20px;
+    }
+
+    .history-header {
+        top: -18px;
+    }
+
+    .confirm-buttons,
+    .modal-buttons {
+        flex-wrap: wrap;
+    }
+
+    .confirm-buttons button,
+    .modal-buttons button,
+    .confirm-btn,
+    .cancel-btn,
+    #retry-btn {
+        min-height: 46px;
+    }
+
+    .death-content {
+        width: min(82vw, 500px);
+        padding: 24px 22px;
+    }
+
+    .death-icon {
+        font-size: 46px;
+        margin-bottom: 12px;
+    }
+
+    #death-timer-text {
+        margin-bottom: 16px;
+    }
+
+    #retry-btn {
+        font-size: 16px;
+        padding: 10px 24px;
+    }
+
+    #dialog-box {
+        bottom: calc(10px + env(safe-area-inset-bottom));
+        width: min(72vw, 760px);
+        max-width: none;
+        z-index: 3290;
+    }
+
+    .dialog-content {
+        padding: 14px 16px 18px;
+        border-radius: 18px;
+        gap: 8px;
+    }
+
+    .dialog-name {
+        font-size: 14px;
+    }
+
+    .dialog-text {
+        min-height: 0;
+        font-size: 13px;
+    }
+
+    .dialog-options {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .dialog-option-btn {
+        flex: 1 1 180px;
+    }
+
+    #tutorial-guide {
+        top: calc(env(safe-area-inset-top, 0px) + 10px) !important;
+        max-width: min(54vw, 360px) !important;
+        font-size: 13px !important;
+        padding: 10px 14px !important;
+    }
+}
