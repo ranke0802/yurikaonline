@@ -76,7 +76,7 @@ export default class WorldScene extends Scene {
 
             // 3. Setup Monster Spawns
             if (this.net.isHost && this.monsterManager) {
-                this.monsterManager.setSpawnRules(zoneData.spawns);
+                this.monsterManager.setSpawnRules(zoneData.monsterSpawns || zoneData.spawns || []);
                 this.monsterManager.clearAll(); // Clear old monsters on zone change
             }
 

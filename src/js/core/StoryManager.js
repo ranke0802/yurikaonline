@@ -316,12 +316,8 @@ export default class StoryManager {
     _handleAction(action) {
         Logger.log(`[Story] Triggering action: ${action}`);
         if (action === 'start_quest_1') {
-            if (this.game.localPlayer) {
-                this.game.localPlayer.questData.slimeQuestClaimed = true;
-                this.game.localPlayer.saveState();
-                this.game.ui.logSystemMessage('퀘스트가 시작되었습니다: 슬라임 토벌');
-                if (this.game.ui.updateQuestUI) this.game.ui.updateQuestUI();
-            }
+            this.game.ui?.logSystemMessage('기초 훈련을 마치면 첫 슬라임 퀘스트가 열립니다.');
+            if (this.game.ui?.updateQuestUI) this.game.ui.updateQuestUI();
         }
     }
 }

@@ -27,6 +27,12 @@ export default class TutorialManager {
                 this.activeTutorial = data;
                 this.currentStepIndex = 0;
                 this.progress = { count: 0 };
+                if (this.game.monsterManager?.setTutorialMode) {
+                    this.game.monsterManager.setTutorialMode(true);
+                }
+                if (this.game.ui?.updateQuestUI) {
+                    this.game.ui.updateQuestUI();
+                }
                 Logger.log(`[Tutorial] Started: ${data.title}`);
                 this._showCurrentStep();
             }
@@ -38,7 +44,13 @@ export default class TutorialManager {
             Logger.log(`[Tutorial] Stopped: ${this.activeTutorial.title}`);
             this.activeTutorial = null;
             this.currentStepIndex = -1;
+            if (this.game.monsterManager?.setTutorialMode) {
+                this.game.monsterManager.setTutorialMode(false);
+            }
             if (this.game.ui) this.game.ui.hideTutorialGuide();
+            if (this.game.ui?.updateQuestUI) {
+                this.game.ui.updateQuestUI();
+            }
         }
     }
 
@@ -59,11 +71,13 @@ export default class TutorialManager {
     _handleAction(action) {
         if (action.type === 'spawn_monster') {
             const player = this.game.localPlayer;
-            if (player) {
+            if (player && this.game.monsterManager?.spawnMonster) {
                 // Spawn near player
                 const x = player.x + (action.offsetX || 200);
                 const y = player.y + (action.offsetY || 0);
-                this.game.monsterManager.spawnMonster(action.monsterId, x, y);
+                this.game.monsterManager.spawnMonster(action.monsterId, x, y, {
+                    tutorialOnly: true
+                });
             }
         }
     }
@@ -118,6 +132,9 @@ export default class TutorialManager {
 
         this.currentStepIndex++;
         this.progress = { count: 0 };
+        if (this.game.ui?.updateQuestUI) {
+            this.game.ui.updateQuestUI();
+        }
 
         if (this.currentStepIndex >= this.activeTutorial.steps.length) {
             this._completeTutorial();
@@ -134,7 +151,15 @@ export default class TutorialManager {
 
         if (this.game.ui) {
             this.game.ui.hideTutorialGuide();
-            this.game.ui.logSystemMessage(`🎓 튜토리얼 완료: ${this.activeTutorial.title}`);
+            this.game.ui.logSystemMessage(`튜토리얼 완료: ${this.activeTutorial.title}`);
+        }
+
+        if (this.game.monsterManager?.setTutorialMode) {
+            this.game.monsterManager.setTutorialMode(false);
+        }
+
+        if (this.activeTutorial.id === 'basic_training' && this.game.quests?.acceptQuest) {
+            this.game.quests.acceptQuest('quest_slime_10');
         }
 
         // Save state
@@ -143,5 +168,9 @@ export default class TutorialManager {
         }
 
         this.activeTutorial = null;
+        this.currentStepIndex = -1;
+        if (this.game.ui?.updateQuestUI) {
+            this.game.ui.updateQuestUI();
+        }
     }
 }

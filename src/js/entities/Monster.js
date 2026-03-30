@@ -42,6 +42,8 @@ export default class Monster extends CharacterBase {
         this.skillCooldowns = new Map();
         this.drops = definition.drops || [];
         this.sounds = definition.sounds || {};
+        this.behavior = definition.behavior || {};
+        this.fallbackShape = definition.visual?.fallbackShape || null;
 
         // States
         this.sprite = null;
@@ -393,6 +395,7 @@ export default class Monster extends CharacterBase {
     update(dt) {
         // v1.99.9: Hard cap on dt to prevent physics tunneling or explosions during lag
         const safeDt = Math.min(0.1, dt);
+        const isPassive = !!this.behavior?.passive || this.typeId === 'training_dummy';
 
         // v0.00.85: Pause AI/Movement if UI is in a modal or Story is active
         const isPaused = window.game?.ui?.isPaused;
@@ -424,7 +427,7 @@ export default class Monster extends CharacterBase {
         // v0.00.43: Charge Logic (Returns true if overriding AI)
         const isCharging = this._updateCharge(safeDt);
 
-        if (!this.ready) {
+        if (!this.ready && !isPassive) {
             // v1.99.13: If host, we MUST load assets even if off-screen to run AI pathing
             if (!this.loadingRequested) {
                 this.loadingRequested = true;
@@ -462,7 +465,7 @@ export default class Monster extends CharacterBase {
             }
 
             const candidates = getAllPlayers();
-            if (this.spawnGraceTimer <= 0 && candidates.length > 0) {
+            if (!isPassive && this.spawnGraceTimer <= 0 && candidates.length > 0) {
                 let nearest = null;
                 let minDist = Infinity;
                 candidates.forEach(p => {
@@ -493,7 +496,10 @@ export default class Monster extends CharacterBase {
                 let aiVy = 0;
 
                 // Base Velocity from AI
-                if (target) {
+                if (isPassive) {
+                    aiVx = 0;
+                    aiVy = 0;
+                } else if (target) {
                     const dist = Math.sqrt((target.x - this.x) ** 2 + (target.y - this.y) ** 2);
                     if (dist > 55) {
                         // Chase mode
@@ -783,8 +789,10 @@ export default class Monster extends CharacterBase {
 
         // v0.29.17: Removed internal sendMonsterDamage call (it's now handled by attack code)
 
-        // Death check (host authority)
-        if (window.game?.net?.isHost && this.hp <= 0) {
+        const allowLocalTutorialKill = this.typeId === 'training_dummy' && !!this.isLocalOnly;
+
+        // Death check (host authority + local tutorial dummy fallback)
+        if ((window.game?.net?.isHost || allowLocalTutorialKill) && this.hp <= 0) {
             if (!this.isDead) {
                 Logger.log(`[Monster] ${this.id || 'unknown'} died`);
                 this.isDead = true;
@@ -792,7 +800,7 @@ export default class Monster extends CharacterBase {
                 this.vx = 0;
                 this.vy = 0;
                 // v1.86: Ensure immediate sync for death state
-                if (window.game && window.game.monsterManager) {
+                if (window.game?.net?.isHost && window.game?.monsterManager) {
                     window.game.monsterManager.forceSync(this.id);
                 }
 
@@ -900,8 +908,53 @@ export default class Monster extends CharacterBase {
         }
     }
 
+    _renderTrainingDummy(ctx, x, y) {
+        ctx.save();
+
+        // Wooden pole
+        ctx.fillStyle = '#7c4a1d';
+        ctx.fillRect(x - 7, y - 8, 14, this.height * 0.58);
+
+        // Cross arm
+        ctx.fillStyle = '#8b5a2b';
+        ctx.fillRect(x - this.width * 0.32, y - this.height * 0.18, this.width * 0.64, 12);
+
+        // Straw body
+        ctx.fillStyle = '#c08a43';
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(x - this.width * 0.2, y - this.height * 0.34, this.width * 0.4, this.height * 0.42, 12);
+        } else {
+            ctx.rect(x - this.width * 0.2, y - this.height * 0.34, this.width * 0.4, this.height * 0.42);
+        }
+        ctx.fill();
+
+        // Head
+        ctx.fillStyle = '#d8b36a';
+        ctx.beginPath();
+        ctx.arc(x, y - this.height * 0.4, 18, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Target mark
+        ctx.strokeStyle = '#dc2626';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(x, y - this.height * 0.12, 16, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x - 10, y - this.height * 0.12);
+        ctx.lineTo(x + 10, y - this.height * 0.12);
+        ctx.moveTo(x, y - this.height * 0.22);
+        ctx.lineTo(x, y - this.height * 0.02);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
     render(ctx, camera) {
-        if (!this.ready) {
+        const useTrainingDummyRender = this.fallbackShape === 'training_dummy' || this.typeId === 'training_dummy';
+
+        if (!this.ready && !useTrainingDummyRender) {
             if (!this.loadingRequested) {
                 this.loadingRequested = true;
                 this.init(this.assetPath);
@@ -936,7 +989,9 @@ export default class Monster extends CharacterBase {
         this.renderTelegraph(ctx);
 
         // Fallback or Sprite Draw
-        if (this.sprite) {
+        if (useTrainingDummyRender) {
+            this._renderTrainingDummy(ctx, screenX, drawY);
+        } else if (this.sprite) {
             this.sprite.draw(ctx, 0, this.frame, screenX - this.width / 2, drawY - this.height / 2, this.width, this.height);
         } else {
             // Fallback: Red Circle

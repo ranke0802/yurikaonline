@@ -1229,6 +1229,28 @@ export class UIManager {
             return;
         }
 
+        const tutorial = this.game.tutorial;
+        const tutorialStep = tutorial?.activeTutorial?.steps?.[tutorial.currentStepIndex];
+        if (tutorialStep) {
+            const targetCount = tutorialStep.count || 1;
+            const currentCount = Math.min(targetCount, tutorial.progress?.count || 0);
+            const existingBtn = taskDisplay.querySelector('.quest-claim-btn');
+            if (existingBtn) existingBtn.remove();
+
+            taskDisplay.style.display = 'flex';
+            rewardDisplay.style.display = 'flex';
+            taskTitle.textContent = `튜토리얼 · ${tutorial.activeTutorial.title}`;
+            taskProgress.textContent = tutorialStep.instruction;
+            rewardDisplay.classList.remove('quest-reward-claimable');
+            if (rewardIcon) rewardIcon.textContent = 'T';
+            if (rewardTitle) rewardTitle.textContent = '진행 안내';
+            rewardText.textContent = targetCount > 1
+                ? `진행도 ${currentCount}/${targetCount} · 튜토리얼 중에는 슬라임이 등장하지 않습니다.`
+                : '허수아비를 마치면 기본 슬라임 퀘스트가 시작됩니다.';
+            rewardDisplay.onclick = null;
+            return;
+        }
+
         // Determine Active Quest
         let currentQuest = null;
         if (!p.questData.slimeQuestClaimed) {

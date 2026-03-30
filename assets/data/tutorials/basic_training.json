@@ -4,35 +4,28 @@
     "steps": [
         {
             "id": "move_check",
-            "instruction": "WASD 키나 화면 터치로 캐릭터를 이동해보세요.",
+            "instruction": "WASD 또는 이동 조작으로 잠깐 움직여 보세요.",
             "trigger": "move",
             "count": 60
         },
         {
             "id": "spawn_dummy",
-            "instruction": "전방에 훈련용 허수아비가 나타났습니다!",
+            "instruction": "좋아요. 이제 허수아비를 소환하겠습니다.",
             "onStart": {
                 "type": "spawn_monster",
                 "monsterId": "training_dummy",
-                "offsetX": 150,
+                "offsetX": 170,
                 "offsetY": 0
             },
             "trigger": "auto_next",
             "count": 1,
-            "duration": 2000
+            "duration": 1200
         },
         {
             "id": "attack_scarecrow",
-            "instruction": "Space 키나 공격 버튼을 눌러 허수아비를 처치하세요.",
+            "instruction": "Space 또는 공격 버튼으로 허수아비를 처치하세요.",
             "trigger": "kill",
             "target": "training_dummy",
-            "count": 1
-        },
-        {
-            "id": "loot_check",
-            "instruction": "잘했습니다! 이제 가이드에게 말을 걸어 퀘스트를 받아보세요.",
-            "trigger": "quest_accept",
-            "target": "quest_slime_10",
             "count": 1
         }
     ]

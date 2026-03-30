@@ -1,30 +1,26 @@
 {
     "id": "training_dummy",
-    "name": "허수아비",
-    "type": "dummy",
-    "stats": {
-        "hp": 20,
-        "maxHp": 20,
-        "attack": 0,
-        "defense": 0,
+    "name": "훈련용 허수아비",
+    "type": "monster",
+    "baseStats": {
+        "hp": 35,
+        "maxHp": 35,
+        "atk": 0,
+        "def": 0,
         "speed": 0,
-        "exp": 10
-    },
-    "sprite": {
-        "texture": "monster_slime",
-        "tint": "0x888888",
-        "scale": 1.2
+        "exp": 0
     },
     "behavior": {
-        "aggroRange": 0,
-        "attackRange": 0,
-        "type": "passive"
+        "passive": true
     },
-    "rewards": {
-        "gold": {
-            "min": 0,
-            "max": 0
-        },
-        "items": []
-    }
+    "visual": {
+        "width": 92,
+        "height": 120,
+        "frameSpeed": 0.25,
+        "frameCount": 1,
+        "fallbackShape": "training_dummy"
+    },
+    "sounds": {},
+    "skills": [],
+    "drops": []
 }

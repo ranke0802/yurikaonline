@@ -13,6 +13,8 @@ export default class MonsterManager {
         this.spawnInterval = 3000; // v1.97: Balanced (3s)
         this.maxMonsters = 15;     // v1.97: Balanced (15)
         this.totalLevelSum = 1;
+        this.tutorialMode = false;
+        this.tutorialMonsterIds = new Set();
 
         // Bandwidth Optimization (v0.20.0)
         this.syncTimer = 0;
@@ -166,6 +168,39 @@ export default class MonsterManager {
         Logger.log('[MonsterManager] Spawn rules updated:', this.spawnRules);
     }
 
+    setTutorialMode(active) {
+        const nextState = !!active;
+        if (this.tutorialMode === nextState) return;
+
+        this.tutorialMode = nextState;
+        this.spawnTimer = 0;
+
+        if (nextState) {
+            this.clearAll();
+        } else {
+            this.clearTutorialMonsters();
+        }
+    }
+
+    clearTutorialMonsters() {
+        const tutorialIds = Array.from(this.tutorialMonsterIds);
+        tutorialIds.forEach((id) => {
+            if (this.net.isHost) {
+                this.net.removeMonster(id);
+            }
+            this.monsters.delete(id);
+            this.lastSyncState.delete(id);
+        });
+        this.tutorialMonsterIds.clear();
+    }
+
+    spawnMonster(type = 'slime', x = null, y = null, options = {}) {
+        if (!this.net.isHost && options.tutorialOnly) {
+            return this._spawnLocalMonster(x, y, type, options);
+        }
+        return this._spawnMonster(x, y, type, options);
+    }
+
     _updateHostLogic(dt, localPlayer, remotePlayers) {
         const isProtectedPlayer = (player) => {
             const currentScene = this.game.sceneManager?.currentScene;
@@ -175,7 +210,7 @@ export default class MonsterManager {
 
         // v1.99: Level sum already calculated in update()
 
-        if (this.spawnRules && this.spawnRules.length > 0) {
+        if (!this.tutorialMode && this.spawnRules && this.spawnRules.length > 0) {
             // Zone-based Spawning Logic
             this.spawnTimer += dt;
             if (this.spawnTimer >= 1.0) { // Check every 1s
@@ -199,7 +234,7 @@ export default class MonsterManager {
                     }
                 });
             }
-        } else {
+        } else if (!this.tutorialMode) {
             // Legacy Random Spawning Logic
             // v1.97: Dynamic Spawning: 15 + 1 per 5 levels (Balanced)
             const maxMonsters = 15 + Math.floor(this.totalLevelSum / 5);
@@ -245,26 +280,29 @@ export default class MonsterManager {
                 this._handleMonsterDeath(m);
 
                 // Spawn Drops (v0.00.70: 분열된 슬라임 드롭 조정)
-                let xpAmount = 25;
-                let goldAmount = 50;
-                if (m.typeId === 'king_slime') {
-                    xpAmount = 500;
-                    goldAmount = 2000;
-                } else if (m.typeId === 'slime_split') {
-                    xpAmount = 100;
-                    goldAmount = 150;
-                } else if (m.isBoss) {
-                    xpAmount = 500;
-                    goldAmount = 5000;
-                }
-                this.net.spawnDrop({ x: m.x, y: m.y, type: 'gold', amount: goldAmount });
-                this.net.spawnDrop({ x: m.x + 20, y: m.y - 10, type: 'exp', amount: xpAmount });
-                if (Math.random() > 0.5 || m.isBoss) {
-                    this.net.spawnDrop({ x: m.x - 20, y: m.y + 10, type: 'hp', amount: 30 });
+                const shouldProcessRewards = m.typeId !== 'training_dummy';
+                if (shouldProcessRewards) {
+                    let xpAmount = 25;
+                    let goldAmount = 50;
+                    if (m.typeId === 'king_slime') {
+                        xpAmount = 500;
+                        goldAmount = 2000;
+                    } else if (m.typeId === 'slime_split') {
+                        xpAmount = 100;
+                        goldAmount = 150;
+                    } else if (m.isBoss) {
+                        xpAmount = 500;
+                        goldAmount = 5000;
+                    }
+                    this.net.spawnDrop({ x: m.x, y: m.y, type: 'gold', amount: goldAmount });
+                    this.net.spawnDrop({ x: m.x + 20, y: m.y - 10, type: 'exp', amount: xpAmount });
+                    if (Math.random() > 0.5 || m.isBoss) {
+                        this.net.spawnDrop({ x: m.x - 20, y: m.y + 10, type: 'hp', amount: 30 });
+                    }
                 }
 
                 // Quest & Splitting Logic (v0.00.14)
-                if (localPlayer) {
+                if (localPlayer && shouldProcessRewards) {
                     const attackerId = m.lastAttackerId || this.net.playerId;
 
                     // Identify Killer & Party
@@ -543,7 +581,40 @@ export default class MonsterManager {
             chargeOnly: options.chargeOnly || false // v0.00.70: chargeOnly 옵션 지원
         };
 
+        if (options.tutorialOnly) {
+            this.tutorialMonsterIds.add(id);
+        }
+
         this.net.sendMonsterUpdate(id, data);
+        return id;
+    }
+
+    async _spawnLocalMonster(fixedX = null, fixedY = null, type = 'slime', options = {}) {
+        const currentScene = this.game.sceneManager?.currentScene;
+        const isSafePoint = (x, y) => typeof currentScene?.isPointInSafeZone === 'function' && currentScene.isPointInSafeZone(x, y, 80);
+        let x = fixedX ?? 400;
+        let y = fixedY ?? 400;
+
+        if (isSafePoint(x, y) && type !== 'training_dummy') {
+            x += 140;
+        }
+
+        let definition = await this.game.monsterData.loadDefinition(type);
+        if (!definition) definition = {};
+
+        const monster = new Monster(Math.round(x), Math.round(y), definition);
+        monster.id = `local_tutorial_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        monster.hp = definition.baseStats?.hp || 100;
+        monster.maxHp = definition.baseStats?.maxHp || 100;
+        monster.ready = true;
+        monster.isLocalOnly = true;
+
+        if (options.tutorialOnly) {
+            this.tutorialMonsterIds.add(monster.id);
+        }
+
+        this.monsters.set(monster.id, monster);
+        return monster.id;
     }
 
     async _spawnBoss(isFirstBoss = true) {
@@ -584,6 +655,7 @@ export default class MonsterManager {
     }
 
     async _onRemoteMonsterAdded(data) {
+        if (this.tutorialMode && data.type !== 'training_dummy') return;
         if (this.monsters.has(data.id)) return;
 
         // v0.00.01: Map legacy types or handle direct typeId
@@ -629,6 +701,7 @@ export default class MonsterManager {
     _onRemoteMonsterUpdated(data) {
         const m = this.monsters.get(data.id);
         if (!m) {
+            if (this.tutorialMode && data.type !== 'training_dummy') return;
             this._onRemoteMonsterAdded(data);
             return;
         }
@@ -658,6 +731,8 @@ export default class MonsterManager {
     }
 
     _onRemoteMonsterRemoved(id) {
+        this.tutorialMonsterIds.delete(id);
+        this.lastSyncState.delete(id);
         this.monsters.delete(id);
     }
 
@@ -737,9 +812,15 @@ export default class MonsterManager {
     }
 
     clearAll() {
+        if (this.net.isHost) {
+            this.monsters.forEach((_, id) => this.net.removeMonster(id));
+            this.drops.forEach((_, id) => this.net.removeDrop(id));
+        }
+
         this.monsters.clear();
         this.drops.clear();
         this.lastSyncState.clear();
+        this.tutorialMonsterIds.clear();
         Logger.info("[MonsterManager] Local world state cleared.");
     }
 
