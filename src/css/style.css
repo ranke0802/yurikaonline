@@ -4646,6 +4646,15 @@ body.is-fullscreen .version-info {
         z-index: 3450 !important;
     }
 
+    .scene-overlay.hidden,
+    #popup-overlay.hidden,
+    .confirm-modal-overlay.hidden,
+    #confirm-modal.hidden,
+    #death-modal.hidden,
+    .game-popup.hidden {
+        display: none !important;
+    }
+
     .game-popup {
         display: block !important;
         width: min(92vw, 420px) !important;
