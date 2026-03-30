@@ -58,7 +58,7 @@ export default class LoginScene extends Scene {
         this.loginUI = document.createElement('div');
         this.loginUI.id = 'login-scene-ui';
         this.loginUI.className = 'scene-overlay';
-        const version = window.GAME_VERSION || '0.01.03';
+        const version = window.GAME_VERSION || '0.01.04';
 
         this.loginUI.innerHTML = `
             <div class="login-card glass">
@@ -67,10 +67,10 @@ export default class LoginScene extends Scene {
 
                 <div class="login-options">
                     <button id="google-login-btn" class="login-btn google">
-                        <span class="btn-icon">G</span> Google濡?濡쒓렇??
+                        <span class="btn-icon">G</span> Google로 로그인
                     </button>
                     <button id="guest-login-btn" class="login-btn guest">
-                        寃뚯뒪?몃줈 ?쒖옉?섍린
+                        게스트로 시작하기
                     </button>
                 </div>
 
@@ -96,7 +96,7 @@ export default class LoginScene extends Scene {
         try {
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = `<span class="btn-icon">...</span> 援ш? 濡쒓렇??以?..`;
+                btn.innerHTML = `<span class="btn-icon">...</span> 구글 로그인 중...`;
             }
             await this.game.auth.loginGoogle();
         } catch (e) {
@@ -104,16 +104,16 @@ export default class LoginScene extends Scene {
 
             // Special handling for domain issues
             if (e.code === 'auth/unauthorized-domain') {
-                alert(`?뱀씤?섏? ?딆? ?꾨찓?몄엯?덈떎 (${window.location.hostname}).\nFirebase 肄섏넄?먯꽌 ?뱀씤???꾨찓?몄뿉 異붽??댁＜?몄슂.`);
+                alert(`승인되지 않은 도메인입니다 (${window.location.hostname}).\nFirebase 콘솔에서 승인된 도메인에 추가해주세요.`);
             } else if (e.code === 'auth/popup-closed-by-user') {
                 Logger.log("User closed the popup.");
             } else {
-                alert("濡쒓렇??以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎: " + (e.message || "?????녿뒗 ?ㅻ쪟"));
+                alert("로그인 중 오류가 발생했습니다: " + (e.message || "알 수 없는 오류"));
             }
 
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = `<span class="btn-icon">G</span> Google濡?濡쒓렇??;
+                btn.innerHTML = `<span class="btn-icon">G</span> Google로 로그인`;
             }
         }
     }

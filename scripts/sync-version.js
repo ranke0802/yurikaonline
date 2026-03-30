@@ -133,6 +133,18 @@ function syncFiles(version, changedFiles) {
         `navigator.serviceWorker.register('./sw.js?v=${version}')`,
         'index.html service worker registration'
     );
+    indexHtml = replaceOrThrow(
+        indexHtml,
+        /<link rel="stylesheet" href="src\/css\/style\.css\?v=[^"]+">/,
+        `<link rel="stylesheet" href="src/css/style.css?v=${version}">`,
+        'index.html stylesheet version'
+    );
+    indexHtml = replaceOrThrow(
+        indexHtml,
+        /<script type="module" src="\.\/src\/js\/main\.js\?v=[^"]+"><\/script>/,
+        `<script type="module" src="./src/js/main.js?v=${version}"></script>`,
+        'index.html main module version'
+    );
     writeFile('index.html', indexHtml, changedFiles);
 
     let swJs = readFile('sw.js');

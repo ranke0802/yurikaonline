@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.GAME_VERSION = '0.01.03'; // Synced with version.txt
+window.GAME_VERSION = '0.01.04'; // Synced with version.txt
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';
@@ -194,12 +194,12 @@ class Game {
     }
 
     async init() {
-        this.updateLoading('由ъ냼???ㅼ슫濡쒕뱶 以?..', 0);
+        this.updateLoading('리소스 다운로드 중...', 0);
 
         // v0.30.0: Centralized Pre-loading
         try {
             await this.resources.preloadCriticalAssets((pct) => {
-                this.updateLoading('由ъ냼???ㅼ슫濡쒕뱶 以?..', pct);
+                this.updateLoading('리소스 다운로드 중...', pct);
             });
 
             // v2.1: Load Emotes
@@ -213,7 +213,7 @@ class Game {
             Logger.error('Asset Preloading Partial failure', e);
         }
 
-        this.updateLoading('?쒖뒪??珥덇린??以?..', 100);
+        this.updateLoading('시스템 초기화 중...', 100);
 
         // Bind UI Popups (Global Key Listener)
         this.input.on('keydown', (action) => {
@@ -232,7 +232,7 @@ class Game {
             if (!this.auth.isAuthenticated()) {
                 // If not logged in, go to Login Scene
                 this.sceneManager.changeScene('login');
-                this.updateLoading('?꾨즺', 100);
+                this.updateLoading('완료', 100);
                 this._hideLoader();
             }
         });
@@ -248,7 +248,7 @@ class Game {
 
                 // If logged in, go to Char Select
                 this.sceneManager.changeScene('charSelect', { user });
-                this.updateLoading('?꾨즺', 100);
+                this.updateLoading('완료', 100);
                 this._hideLoader();
             } else {
                 // Return to login on logout
@@ -256,7 +256,7 @@ class Game {
             }
         });
 
-        this.updateLoading('濡쒓렇???곹깭 ?뺤씤 以?..');
+        this.updateLoading('로그인 상태 확인 중...');
         this.auth.init();
     }
 

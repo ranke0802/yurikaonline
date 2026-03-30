@@ -31,7 +31,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.01.03')
+                navigator.serviceWorker.register('./sw.js?v=0.01.04')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -77,7 +77,7 @@
                 document.title = `Yurika Online ${displayVersion}`;
                 const versionInfo = document.querySelector('.version-info');
                 if (versionInfo) {
-                    versionInfo.innerHTML = `?벀 ${displayVersion}`;
+                    versionInfo.innerHTML = `📜 ${displayVersion}`;
                 }
 
                 // Only reload if:
@@ -102,7 +102,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.00.19">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.04">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -113,7 +113,7 @@
         <div id="loading-overlay">
             <div class="loading-content">
                 <div class="loading-spinner"></div>
-                <div class="loading-text">Yurika Online 濡쒕뵫 以?..</div>
+                <div class="loading-text">Yurika Online 로딩 중...</div>
                 <div class="loading-progress-bar">
                     <div id="loading-progress-fill"></div>
                 </div>
@@ -171,24 +171,24 @@
                 </div>
 
                 <div class="minimap-menu">
-                    <div class="menu-btn inventory-trigger" id="btn-inventory" data-key="shift-b" title="媛諛?>
-                        <div class="menu-icon">?럲</div>
+                    <div class="menu-btn inventory-trigger" id="btn-inventory" data-key="shift-b" title="가방">
+                        <div class="menu-icon">🎒</div>
                     </div>
-                    <div class="menu-btn skill-trigger" id="btn-skill" data-key="shift-s" title="?ㅽ궗">
-                        <div class="menu-icon">?뱶</div>
+                    <div class="menu-btn skill-trigger" id="btn-skill" data-key="shift-s" title="스킬">
+                        <div class="menu-icon">📜</div>
                     </div>
-                    <div class="menu-btn status-trigger" id="btn-status" data-key="shift-i" title="???뺣낫">
-                        <div class="menu-icon">?뫀</div>
+                    <div class="menu-btn status-trigger" id="btn-status" data-key="shift-i" title="내 정보">
+                        <div class="menu-icon">👤</div>
                     </div>
                 </div>
 
-                <div class="menu-btn fullscreen-toggle" id="btn-fullscreen" title="?꾩껜?붾㈃">
-                    <div class="menu-icon">??/div>
+                <div class="menu-btn fullscreen-toggle" id="btn-fullscreen" title="전체화면">
+                    <div class="menu-icon">⛶</div>
                 </div>
 
                 <!-- Hostility Panel (Right Side) -->
                 <div id="hostility-panel" class="hidden">
-                    <div class="panel-header">?뷂툘 ?곷? 紐⑸줉</div>
+                    <div class="panel-header">적대 대상 목록</div>
                     <ul id="hostility-list"></ul>
                 </div>
 
@@ -196,30 +196,30 @@
                 <div class="left-ui-container">
                     <!-- Party Panel (Left Side, Above Quest) -->
                     <div id="party-panel" class="hidden">
-                        <div class="panel-header">?썳截??뚰떚??/div>
+                        <div class="panel-header">파티 목록</div>
                         <ul id="party-list"></ul>
                     </div>
 
                     <!-- Quest List (Left) -->
                     <div class="quest-list-panel">
                         <div class="quest-panel-header">
-                            <span class="quest-header-icon">?뱶</span>
-                            <h3>吏꾪뻾 以묒씤 ?섏뒪??/h3>
+                            <span class="quest-header-icon">📜</span>
+                            <h3>진행 중인 퀘스트</h3>
                         </div>
                         <div class="quest-content">
                             <!-- Slot 1: Mission Task -->
                             <div class="quest-item" id="quest-task-display">
-                                <span class="quest-icon">?뷂툘</span>
+                                <span class="quest-icon">⚔️</span>
                                 <div class="quest-details">
-                                    <div class="quest-title" id="active-quest-title">?쒖꽦 ?섏뒪???뺣낫</div>
-                                    <div class="quest-progress" id="active-quest-task">?섏뒪?몃? 吏꾪뻾?댁＜?몄슂.</div>
+                                    <div class="quest-title" id="active-quest-title">활성 퀘스트 정보</div>
+                                    <div class="quest-progress" id="active-quest-task">퀘스트를 진행해주세요.</div>
                                 </div>
                             </div>
                             <!-- Slot 2: Reward Info -->
                             <div class="quest-item" id="quest-reward-display">
-                                <span class="quest-icon">?럞</span>
+                                <span class="quest-icon">🎁</span>
                                 <div class="quest-details">
-                                    <div class="quest-title">?섏뒪??蹂댁긽</div>
+                                    <div class="quest-title">퀘스트 보상</div>
                                     <div class="quest-progress" id="active-quest-reward">-</div>
                                 </div>
                             </div>
@@ -230,22 +230,22 @@
                     <!-- Chat Window -->
                     <div class="chat-window">
                         <div class="chat-header">
-                            <span>?뮠 Chat</span>
+                            <span>💬 Chat</span>
                             <div class="chat-controls">
-                                <span class="emote-btn" title="?대え?곗퐯">??/span>
+                                <span class="emote-btn" title="이모티콘">😊</span>
                                 <span class="minimize-btn">_</span>
                             </div>
                         </div>
                         <div class="chat-messages">
-                            <div class="message incoming">?좊━移??⑤씪??Yurika Online)???ㅼ떊寃껋쓣 ?섏쁺?⑸땲?? ??/div>
+                            <div class="message incoming">유리카 온라인(Yurika Online)에 오신 것을 환영합니다! ✨</div>
                         </div>
                         <!-- Emote Picker (Hidden by default) -->
                         <div id="emote-picker" class="emote-picker hidden">
                             <!-- Emotes injected here -->
                         </div>
                         <div class="chat-input-area">
-                            <input type="text" placeholder="硫붿꽭吏瑜??낅젰?섏꽭??..">
-                            <button class="send-btn">??/button>
+                            <input type="text" placeholder="메세지를 입력하세요...">
+                            <button class="send-btn">➔</button>
                         </div>
                     </div>
                 </div>
@@ -264,13 +264,13 @@
                     <div class="skill-row top-skills">
                         <div id="action-skill-u" class="skill-btn skill-u" data-key="u">
                             <div class="shortcut-badge">U</div>
-                            <div class="inner-icon">?뵦</div>
+                            <div class="inner-icon">🔥</div>
                             <div class="cooldown-overlay"></div>
                             <div class="cooldown-time"></div>
                         </div>
                         <div id="action-skill-k" class="skill-btn skill-k" data-key="k">
                             <div class="shortcut-badge">K</div>
-                            <div class="inner-icon">?썳截?/div>
+                            <div class="inner-icon">🛡️</div>
                             <div class="cooldown-overlay"></div>
                             <div class="cooldown-time"></div>
                         </div>
@@ -278,13 +278,13 @@
                     <div class="skill-row bottom-skills">
                         <div id="action-skill-h" class="skill-btn skill-h" data-key="h">
                             <div class="shortcut-badge">H</div>
-                            <div class="inner-icon">?챷</div>
+                            <div class="inner-icon">🪄</div>
                             <div class="cooldown-overlay"></div>
                             <div class="cooldown-time"></div>
                         </div>
                         <div id="action-attack-j" class="attack-btn" data-key="j">
                             <div class="shortcut-badge">J</div>
-                            <div class="inner-icon">?뷂툘</div>
+                            <div class="inner-icon">⚔️</div>
                             <div class="cooldown-overlay"></div>
                             <div class="cooldown-time"></div>
                         </div>
@@ -295,7 +295,7 @@
 
         <!-- Hostility Panel (Right Side Hostile Targets) -->
         <div id="hostility-panel" class="hidden">
-            <div class="panel-header">?곷? ???(PvP)</div>
+            <div class="panel-header">적대 대상 (PvP)</div>
             <div id="hostile-list">
                 <!-- Hostile targets injected here -->
             </div>
@@ -303,7 +303,7 @@
 
         <!-- Party Status Panel (Left Side Party Members) -->
         <div id="party-panel" class="hidden">
-            <div class="panel-header">?뚰떚??紐⑸줉</div>
+            <div class="panel-header">파티 목록</div>
             <div id="party-list">
                 <!-- Party members injected here -->
             </div>
@@ -317,7 +317,7 @@
                 <div id="dialog-options" class="dialog-options">
                     <!-- Options injected here -->
                 </div>
-                <button id="dialog-next" class="dialog-next-btn">Next ??/button>
+                <button id="dialog-next" class="dialog-next-btn">다음 ▶</button>
             </div>
         </div>
 
@@ -326,11 +326,11 @@
             <!-- Generic Confirm/Cancel Modal (Reuse for Party/PvP) -->
             <div id="generic-modal" class="confirm-modal-overlay hidden">
                 <div class="confirm-modal-content">
-                    <h2 id="generic-modal-title">?뚮┝</h2>
-                    <p id="generic-modal-message">硫붿떆吏 ?댁슜</p>
+                    <h2 id="generic-modal-title">알림</h2>
+                    <p id="generic-modal-message">메시지 내용</p>
                     <div class="modal-buttons">
-                        <button id="generic-btn-yes" class="confirm-btn">?뺤씤</button>
-                        <button id="generic-btn-no" class="cancel-btn">痍⑥냼</button>
+                        <button id="generic-btn-yes" class="confirm-btn">확인</button>
+                        <button id="generic-btn-no" class="cancel-btn">취소</button>
                     </div>
                 </div>
             </div>
@@ -338,8 +338,8 @@
             <!-- Inventory Popup -->
             <div id="inventory-popup" class="game-popup hidden">
                 <div class="popup-header">
-                    <h2>媛諛?(Inventory)</h2>
-                    <button class="close-popup pc-only">??/button>
+                    <h2>가방 (Inventory)</h2>
+                    <button class="close-popup pc-only">✕</button>
                 </div>
                 <div class="inventory-grid">
                     <div class="grid-item"></div>
@@ -353,32 +353,32 @@
                     <div class="grid-item"></div>
                 </div>
                 <div class="popup-footer">
-                    <button id="inventory-close-btn-bottom" class="close-btn-bottom close-popup">?リ린</button>
+                    <button id="inventory-close-btn-bottom" class="close-btn-bottom close-popup">닫기</button>
                 </div>
             </div>
 
             <!-- Status Popup -->
             <div id="status-popup" class="game-popup hidden">
                 <div class="popup-header">
-                    <h2>???뺣낫 (Status)</h2>
-                    <button class="close-popup pc-only">??/button>
+                    <h2>내 정보 (Status)</h2>
+                    <button class="close-popup pc-only">✕</button>
                 </div>
                 <div class="status-content-wrapper">
                     <div class="status-top">
                         <div class="status-portrait"></div>
                         <div class="status-basic-info">
-                            <p id="name-display-row"><strong>?대쫫:</strong> <span id="player-name-display"></span> <button
+                            <p id="name-display-row"><strong>이름:</strong> <span id="player-name-display"></span> <button
                                     id="player-name-edit-btn"
-                                    style="margin-left: 8px; padding: 2px 8px; font-size: 11px; border: 1px solid #ddd; border-radius: 4px; background: #f5f5f5; cursor: pointer;">?섏젙</button>
+                                    style="margin-left: 8px; padding: 2px 8px; font-size: 11px; border: 1px solid #ddd; border-radius: 4px; background: #f5f5f5; cursor: pointer;">수정</button>
                             </p>
-                            <p id="name-input-row" style="display: none;"><strong>?대쫫:</strong> <input type="text"
+                            <p id="name-input-row" style="display: none;"><strong>이름:</strong> <input type="text"
                                     id="player-name-input" maxlength="12"
                                     style="width: 120px; padding: 2px 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;" />
                                 <button id="player-name-save-btn"
-                                    style="padding: 2px 8px; font-size: 11px; border: 1px solid #4ade80; border-radius: 4px; background: #4ade80; color: white; cursor: pointer;">???/button>
+                                    style="padding: 2px 8px; font-size: 11px; border: 1px solid #4ade80; border-radius: 4px; background: #4ade80; color: white; cursor: pointer;">저장</button>
                             </p>
-                            <p><strong>吏곸뾽:</strong> 珥덈낫 留덈쾿??/p>
-                            <p><strong>?덈꺼:</strong> <span id="stat-level">1</span></p>
+                            <p><strong>직업:</strong> 초보 마법사</p>
+                            <p><strong>레벨:</strong> <span id="stat-level">1</span></p>
                             <div class="auth-link-row" style="margin-top: 5px;">
                                 <button id="btn-link-google" class="link-google-btn"
                                     style="width: 100%; border: 1px solid #4285f4; background: white; color: #4285f4; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-weight: bold;">
@@ -390,7 +390,7 @@
                                 <div class="exp-bar-bg">
                                     <div class="exp-bar-fill" id="stat-exp-fill"></div>
                                 </div>
-                                <p class="exp-remaining">?⑥? 寃쏀뿕移? <span id="stat-exp-remain">100</span></p>
+                                <p class="exp-remaining">다음 경험치 <span id="stat-exp-remain">100</span></p>
                             </div>
                         </div>
                     </div>
@@ -398,10 +398,10 @@
                     <div class="status-stats-grid">
                         <div class="stat-main" id="status-stat-main">
                             <div class="stat-point-info">
-                                <span>蹂댁쑀 ?ъ씤?? <strong id="stat-points">0</strong></span>
+                                <span>보유 포인트 <strong id="stat-points">0</strong></span>
                             </div>
                             <div class="stat-row-ui">
-                                <label>?ㅿ툘 泥대젰 (VIT)</label>
+                                <label>❤️ 체력 (VIT)</label>
                                 <div class="stat-value-container">
                                     <span id="val-vitality" class="stat-value">5</span>
                                     <div class="stat-controls-row">
@@ -411,7 +411,7 @@
                                 </div>
                             </div>
                             <div class="stat-row-ui">
-                                <label>?쭬 吏??(INT)</label>
+                                <label>🧠 지능 (INT)</label>
                                 <div class="stat-value-container">
                                     <span id="val-intelligence" class="stat-value">5</span>
                                     <div class="stat-controls-row">
@@ -421,7 +421,7 @@
                                 </div>
                             </div>
                             <div class="stat-row-ui">
-                                <label>??吏??(WIS)</label>
+                                <label>🔮 지혜 (WIS)</label>
                                 <div class="stat-value-container">
                                     <span id="val-wisdom" class="stat-value">5</span>
                                     <div class="stat-controls-row">
@@ -431,7 +431,7 @@
                                 </div>
                             </div>
                             <div class="stat-row-ui">
-                                <label>???쒕컻??(AGI)</label>
+                                <label>⚡ 순발력 (AGI)</label>
                                 <div class="stat-value-container">
                                     <span id="val-agility" class="stat-value">5</span>
                                     <div class="stat-controls-row">
@@ -442,29 +442,28 @@
                             </div>
                         </div>
                         <div class="stat-derived" id="status-derived-panel">
-                            <div class="derived-row"><span>?꾩옱 HP:</span> <span id="val-hp-range">100/100</span></div>
-                            <div class="derived-row"><span>?꾩옱 MP:</span> <span id="val-mp-range">100/100</span></div>
-                            <div class="derived-row"><span>怨듦꺽??</span> <span id="val-atk">10</span></div>
-                            <div class="derived-row"><span>諛⑹뼱??</span> <span id="val-def">0</span></div>
-                            <div class="derived-row"><span>泥대젰 ?뚮났??</span> <span id="val-hp-regen">0</span>
+                            <div class="derived-row"><span>현재 HP:</span> <span id="val-hp-range">100/100</span></div>
+                            <div class="derived-row"><span>현재 MP:</span> <span id="val-mp-range">100/100</span></div>
+                            <div class="derived-row"><span>공격력:</span> <span id="val-atk">10</span></div>
+                            <div class="derived-row"><span>방어력:</span> <span id="val-def">0</span></div>
+                            <div class="derived-row"><span>체력 회복력:</span> <span id="val-hp-regen">0</span>
                             </div>
-                            <div class="derived-row"><span>留덈굹 ?뚮났??</span> <span id="val-mp-regen">0</span>
+                            <div class="derived-row"><span>마나 회복력:</span> <span id="val-mp-regen">0</span>
                             </div>
-                            <div class="derived-row"><span>怨듦꺽?띾룄:</span> <span id="val-atk-spd">1.0</span>
+                            <div class="derived-row"><span>공격속도:</span> <span id="val-atk-spd">1.0</span>
                             </div>
-                            <div class="derived-row"><span>移섎챸?뺣쪧:</span> <span id="val-crit">10%</span></div>
-                            <div class="derived-row"><span>?대룞?띾룄:</span> <span id="val-move-spd">100%</span>
+                            <div class="derived-row"><span>치명확률:</span> <span id="val-crit">10%</span></div>
+                            <div class="derived-row"><span>이동속도:</span> <span id="val-move-spd">100%</span>
                             </div>
                         </div>
                     </div>
                     <div class="reset-actions"
                         style="display: flex; flex-direction: column; gap: 5px; margin-top: 10px;">
-                        <button id="reset-account-btn" class="reset-btn hidden">怨꾩젙 珥덇린??/button>
-                        <button id="reset-stat-btn" class="reset-btn hidden" style="background: #e17055;">罹먮┃??
-                            珥덇린??/button>
+                        <button id="reset-account-btn" class="reset-btn hidden">계정 초기화</button>
+                        <button id="reset-stat-btn" class="reset-btn hidden" style="background: #e17055;">캐릭터 초기화</button>
                     </div>
                     <div class="popup-footer">
-                        <button id="status-close-btn-bottom" class="close-btn-bottom close-popup">?リ린</button>
+                        <button id="status-close-btn-bottom" class="close-btn-bottom close-popup">닫기</button>
                     </div>
                 </div>
             </div>
@@ -472,62 +471,62 @@
             <!-- Skill Popup -->
             <div id="skill-popup" class="game-popup hidden">
                 <div class="popup-header">
-                    <h2>?ㅽ궗 ?몃━ (Skill Tree)</h2>
-                    <button class="close-popup pc-only">??/button>
+                    <h2>스킬 트리 (Skill Tree)</h2>
+                    <button class="close-popup pc-only">✕</button>
                 </div>
                 <div class="skill-content-wrapper">
                     <div class="skill-point-info">
-                        蹂댁쑀 怨⑤뱶: <strong id="ui-skill-gold">0</strong>
+                        보유 골드: <strong id="ui-skill-gold">0</strong>
                     </div>
                     <div class="skill-list">
                         <!-- Skill Item: Laser -->
                         <div class="skill-item" id="skill-item-laser" data-skill-item="laser">
-                            <div class="skill-icon">?뷂툘</div>
+                            <div class="skill-icon">⚔️</div>
                             <div class="skill-info">
                                 <div class="skill-name-row">
-                                    <span class="skill-name">泥댁씤 ?쇱씠?몃떇</span>
+                                    <span class="skill-name">체인 라이트닝</span>
                                     <span class="skill-level">Lv.<span id="lvl-laser">1</span></span>
                                 </div>
-                                <p class="skill-desc">?곗뇙??湲곕낯怨듦꺽 (?꾧린?띿꽦). <br>?곸쨷 ?????蹂?+1 ?뚮났. <small>?꾩슂:
+                                <p class="skill-desc">연쇄형 기본공격 (전기속성). <br>적중 시 대상 별 +1 회복. <small>필요:
                                         <span class="skill-cost" data-skill="laser">300</span>G</small></p>
                             </div>
                             <button class="skill-up-btn" data-skill="laser">+</button>
                         </div>
                         <!-- Skill Item: Missile -->
                         <div class="skill-item" id="skill-item-missile" data-skill-item="missile">
-                            <div class="skill-icon">?챷</div>
+                            <div class="skill-icon">🪄</div>
                             <div class="skill-info">
                                 <div class="skill-name-row">
-                                    <span class="skill-name">留ㅼ쭅 誘몄궗??/span>
+                                    <span class="skill-name">매직 미사일</span>
                                     <span class="skill-level">Lv.<span id="lvl-missile">1</span></span>
                                 </div>
-                                <p class="skill-desc">?좊룄 ?⑥씪 怨듦꺽. <br><small>?꾩슂: <span class="skill-cost"
+                                <p class="skill-desc">유도 단일 공격. <br><small>필요: <span class="skill-cost"
                                             data-skill="missile">300</span>G</small></p>
                             </div>
                             <button id="skill-up-missile" class="skill-up-btn" data-skill="missile">+</button>
                         </div>
                         <!-- Skill Item: Fireball -->
                         <div class="skill-item" id="skill-item-fireball" data-skill-item="fireball">
-                            <div class="skill-icon">?뵦</div>
+                            <div class="skill-icon">🔥</div>
                             <div class="skill-info">
                                 <div class="skill-name-row">
-                                    <span class="skill-name">?뚯씠?대낵</span>
+                                    <span class="skill-name">파이어볼</span>
                                     <span class="skill-level">Lv.<span id="lvl-fireball">1</span></span>
                                 </div>
-                                <p class="skill-desc">愿묒뿭 ??컻 諛??붿긽 怨듦꺽. <br><small>?꾩슂: <span class="skill-cost"
+                                <p class="skill-desc">광역 폭발 및 화상 공격. <br><small>필요: <span class="skill-cost"
                                             data-skill="fireball">300</span>G</small></p>
                             </div>
                             <button id="skill-up-fireball" class="skill-up-btn" data-skill="fireball">+</button>
                         </div>
                         <!-- Skill Item: Shield -->
                         <div class="skill-item" id="skill-item-shield" data-skill-item="shield">
-                            <div class="skill-icon">?썳截?/div>
+                            <div class="skill-icon">🛡️</div>
                             <div class="skill-info">
                                 <div class="skill-name-row">
-                                    <span class="skill-name">?깆넄猷⑦듃 踰좊━??/span>
+                                    <span class="skill-name">앱솔루트 베리어</span>
                                     <span class="skill-level">Lv.<span id="lvl-shield">1</span></span>
                                 </div>
-                                <p class="skill-desc">?곕?吏 留덈굹 ?≪닔 諛?諛⑹뼱. <br><small>?꾩슂: <span class="skill-cost"
+                                <p class="skill-desc">데미지 마나 흡수 및 방어. <br><small>필요: <span class="skill-cost"
                                             data-skill="shield">300</span>G</small>
                                 </p>
                             </div>
@@ -536,7 +535,7 @@
                     </div>
                 </div>
                 <div class="popup-footer">
-                    <button class="close-btn-bottom close-popup">?リ린</button>
+                    <button class="close-btn-bottom close-popup">닫기</button>
                 </div>
             </div>
         </div>
@@ -544,28 +543,28 @@
         <!-- Death Modal -->
         <div id="death-modal" class="hidden">
             <div class="death-content">
-                <div class="death-icon">??</div>
-                <h2>?щ쭩?섏뀲?듬땲??/h2>
-                <p id="death-timer-text">3珥???遺??媛?ν빀?덈떎...</p>
-                <button id="retry-btn" class="hidden">?щ룄??/button>
+                <div class="death-icon">💀</div>
+                <h2>사망하셨습니다</h2>
+                <p id="death-timer-text">3초 후 부활 가능합니다...</p>
+                <button id="retry-btn" class="hidden">재도전</button>
             </div>
         </div>
 
         <!-- Confirm Modal (Modern UI) -->
         <div id="confirm-modal" class="hidden">
             <div class="confirm-content">
-                <p id="confirm-message">?ㅽ뀩????ν븯?쒓쿋?듬땲源?<br><small>?쒕쾲 ??ν븯硫?蹂寃쏀븷 ???놁뒿?덈떎.</small></p>
+                <p id="confirm-message">스텟을 저장하시겠습니까?<br><small>한번 저장하면 변경할 수 없습니다.</small></p>
                 <div class="confirm-buttons">
-                    <button id="confirm-yes">?뺤씤</button>
-                    <button id="confirm-no">痍⑥냼</button>
+                    <button id="confirm-yes">확인</button>
+                    <button id="confirm-no">취소</button>
                 </div>
             </div>
         </div>
 
         <!-- Skill Tooltip -->
         <div id="skill-tooltip" class="hidden">
-            <div class="tooltip-name">?ㅽ궗 ?대쫫</div>
-            <div class="tooltip-desc">?ㅻ챸</div>
+            <div class="tooltip-name">스킬 이름</div>
+            <div class="tooltip-desc">설명</div>
         </div>
 
         <!-- Touch Feedback -->
@@ -578,15 +577,15 @@
     <!-- Reward Modal -->
     <div id="reward-modal" class="confirm-modal-overlay hidden">
         <div class="confirm-modal-content reward-content">
-            <h2 id="reward-title">?섏뒪???꾨즺!</h2>
-            <p id="reward-message">蹂댁긽???띾뱷?덉뒿?덈떎.</p>
-            <button class="confirm-btn" onclick="window.game.ui.hideRewardModal()">?뺤씤</button>
+            <h2 id="reward-title">퀘스트 완료!</h2>
+            <p id="reward-message">보상을 획득했습니다.</p>
+            <button class="confirm-btn" onclick="window.game.ui.hideRewardModal()">확인</button>
         </div>
     </div>
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        ?벀 v0.00.70
+        📜 v0.01.03
     </div>
 
 
@@ -596,8 +595,8 @@
     <div id="history-modal" class="confirm-modal-overlay hidden">
         <div class="confirm-modal-content history-content">
             <div class="history-header">
-                <h2>?낅뜲?댄듃 ?덉뒪?좊━ ?뱶</h2>
-                <button class="close-history" onclick="window.game.ui.toggleUpdateHistory()">횞</button>
+                <h2>업데이트 히스토리 📜</h2>
+                <button class="close-history" onclick="window.game.ui.toggleUpdateHistory()">×</button>
             </div>
             <div id="history-list" class="history-list">
                 <!-- Content injected by JS -->
@@ -605,42 +604,42 @@
         </div>
     </div>
 
-    <!-- Generic Modal (v0.00.70: history-modal 諛뽰쑝濡?遺꾨━) -->
+    <!-- Generic Modal (v0.00.70: history-modal 바깥으로 분리) -->
     <div id="generic-modal" class="confirm-modal-overlay hidden">
         <div class="confirm-modal-content">
-            <h2 id="generic-modal-title">?뚮┝</h2>
-            <p id="generic-modal-message">硫붿꽭吏 ?댁슜</p>
+            <h2 id="generic-modal-title">알림</h2>
+            <p id="generic-modal-message">메시지 내용</p>
             <div class="modal-buttons" style="display: flex; justify-content: center; gap: 12px; margin-top: 16px;">
                 <button id="generic-modal-yes" class="confirm-btn"
-                    style="background: linear-gradient(135deg, #4ade80, #22c55e);">?섎씫</button>
+                    style="background: linear-gradient(135deg, #4ade80, #22c55e);">수락</button>
                 <button id="generic-modal-no" class="confirm-btn"
-                    style="background: linear-gradient(135deg, #f87171, #ef4444);">嫄곗젅</button>
+                    style="background: linear-gradient(135deg, #f87171, #ef4444);">거절</button>
             </div>
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.00"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.04"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">
         <div class="dev-stat">Monsters: <span id="dev-m-count">0</span>/<span id="dev-m-max">10</span></div>
         <div class="dev-stat">Respawn: <span id="dev-m-interval">5s</span></div>
         <div class="dev-lookup" style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px;">
-            <input type="text" id="dev-name-search" placeholder="?대쫫?쇰줈 UID 議고쉶"
+            <input type="text" id="dev-name-search" placeholder="이름으로 UID 조회"
                 style="width: 100px; font-size: 10px; background: rgba(0,0,0,0.5); border: 1px solid #555; color: white; border-radius: 4px; padding: 2px 4px;">
             <button id="dev-btn-search"
-                style="font-size: 10px; height: 18px; line-height: 1; vertical-align: middle; cursor: pointer; background: #4285f4; border: none; color: white; border-radius: 2px;">寃??/button>
+                style="font-size: 10px; height: 18px; line-height: 1; vertical-align: middle; cursor: pointer; background: #4285f4; border: none; color: white; border-radius: 2px;">검색</button>
             <div id="dev-search-result"
                 style="font-size: 9px; margin-top: 4px; color: #4ade80; word-break: break-all; max-width: 140px;"></div>
         </div>
         <div class="dev-reset"
             style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px; display: flex; gap: 4px;">
             <button id="dev-btn-reset-char"
-                style="flex: 1; font-size: 10px; background: #e17055; border: none; color: white; border-radius: 4px; padding: 4px; cursor: pointer;">罹먮┃??
-                珥덇린??/button>
+                style="flex: 1; font-size: 10px; background: #e17055; border: none; color: white; border-radius: 4px; padding: 4px; cursor: pointer;">캐릭터
+                초기화</button>
             <button id="dev-btn-reset-account"
-                style="flex: 1; font-size: 10px; background: #d63031; border: none; color: white; border-radius: 4px; padding: 4px; cursor: pointer;">怨꾩젙
-                珥덇린??/button>
+                style="flex: 1; font-size: 10px; background: #d63031; border: none; color: white; border-radius: 4px; padding: 4px; cursor: pointer;">계정
+                초기화</button>
         </div>
     </div>
 </body>
