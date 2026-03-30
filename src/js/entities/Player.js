@@ -115,6 +115,7 @@ export default class Player extends CharacterBase {
 
         this.chatMessage = null;
         this.chatTimer = 0;
+        this.spawnProtectionTimer = 0;
 
         this.updateDerivedStats();
     }
@@ -193,6 +194,10 @@ export default class Player extends CharacterBase {
         }
 
         if (this.isDead) return;
+
+        if (this.spawnProtectionTimer > 0) {
+            this.spawnProtectionTimer = Math.max(0, this.spawnProtectionTimer - dt);
+        }
 
         this._handleMovement(dt);
         this._updateCooldowns(dt);
@@ -608,6 +613,7 @@ export default class Player extends CharacterBase {
         if (this.isDead) return 0;
         // v0.00.54: Prevent damage while in modals (Character Status, Inventory, etc.)
         if (window.game?.ui?.isPaused) return 0;
+        if (this.isProtected()) return 0;
 
         // v0.29.31: Improved Absolute Barrier (Blocks any immediate damage source)
         // v0.00.42: Also blocks status effects (burn, shock)
@@ -679,6 +685,21 @@ export default class Player extends CharacterBase {
         // I must explicitly declare hostility (/e name) to fight back.
 
         return finalDmg;
+    }
+
+    isProtected() {
+        if (this.spawnProtectionTimer > 0) return true;
+
+        const currentScene = window.game?.sceneManager?.currentScene;
+        if (typeof currentScene?.isPlayerProtected === 'function') {
+            return currentScene.isPlayerProtected(this);
+        }
+
+        return false;
+    }
+
+    grantSpawnProtection(duration = 5) {
+        this.spawnProtectionTimer = Math.max(this.spawnProtectionTimer || 0, duration);
     }
 
     // v1.99.36: Enhanced Mutual Hostility Check
@@ -1913,11 +1934,16 @@ export default class Player extends CharacterBase {
         this.deathTimer = 0;
         this.hp = this.maxHp;
         this.mp = this.maxMp;
+        this.moveTarget = null;
+        this.vx = 0;
+        this.vy = 0;
+        this.currentTarget = null;
 
         // v0.00.41: Clear all status effects on respawn
         this.statusEffects = [];
         this.electrocutedTimer = 0;
         this.slowRatio = 0;
+        this.grantSpawnProtection(5);
 
         // v2.3.6: Spawn at zone's default spawn point to avoid getting stuck in collision
         if (window.game && window.game.zone) {

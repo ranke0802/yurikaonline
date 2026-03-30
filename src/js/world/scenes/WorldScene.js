@@ -30,6 +30,7 @@ export default class WorldScene extends Scene {
         // v0.33.0: Monster Attack Queue
         this.monsterMissileQueue = [];
         this.monsterMissileTimer = 0;
+        this.safeZone = null;
     }
 
     /**
@@ -66,6 +67,12 @@ export default class WorldScene extends Scene {
         // 2. Setup Camera Bounds
         if (zoneData) {
             this.camera.setWorldBounds(this.game.zone.width, this.game.zone.height);
+            const defaultSpawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
+            this.safeZone = {
+                x: defaultSpawn.x,
+                y: defaultSpawn.y,
+                radius: 260
+            };
 
             // 3. Setup Monster Spawns
             if (this.net.isHost && this.monsterManager) {
@@ -205,6 +212,7 @@ export default class WorldScene extends Scene {
         }
 
         this.player.init(this.input, this.resources, this.net);
+        this.player.grantSpawnProtection(5);
 
         // v0.00.03: Spawn players already in the buffer (Multiplayer Fix)
         if (this.net.remotePlayers) {
@@ -266,6 +274,24 @@ export default class WorldScene extends Scene {
                 }
             }, 1000);
         }
+    }
+
+    isPointInSafeZone(x, y, padding = 0) {
+        if (!this.safeZone) return false;
+        const dx = x - this.safeZone.x;
+        const dy = y - this.safeZone.y;
+        return Math.sqrt(dx * dx + dy * dy) <= (this.safeZone.radius + padding);
+    }
+
+    isPlayerProtected(player) {
+        if (!player) return false;
+
+        if (this.game.story?.isStoryActive) return true;
+        if (this.game.tutorial?.activeTutorial) return true;
+
+        const px = player.x + ((player.width || 0) / 2);
+        const py = player.y + ((player.height || 0) / 2);
+        return this.isPointInSafeZone(px, py, 24);
     }
 
     // v2.3.4: Effect Bridge

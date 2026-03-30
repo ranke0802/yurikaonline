@@ -167,6 +167,12 @@ export default class MonsterManager {
     }
 
     _updateHostLogic(dt, localPlayer, remotePlayers) {
+        const isProtectedPlayer = (player) => {
+            const currentScene = this.game.sceneManager?.currentScene;
+            if (!player || typeof currentScene?.isPlayerProtected !== 'function') return false;
+            return currentScene.isPlayerProtected(player);
+        };
+
         // v1.99: Level sum already calculated in update()
 
         if (this.spawnRules && this.spawnRules.length > 0) {
@@ -228,7 +234,7 @@ export default class MonsterManager {
         // Boss is now spawned directly via _handleMonsterDeath based on Kill Count
 
         // --- Host Authority: Monster AI & Sync ---
-        const candidates = [localPlayer, ...Array.from(remotePlayers.values())].filter(p => !p.isDead);
+        const candidates = [localPlayer, ...Array.from(remotePlayers.values())].filter(p => !p.isDead && !isProtectedPlayer(p));
 
         this.monsters.forEach((m, id) => {
             // v1.88: Handle Quest Rewards & Drops IMMEDIATELY when isDead flips (Host only)
@@ -508,9 +514,20 @@ export default class MonsterManager {
         const id = `mob_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         const worldW = this.zone.width || 6400;
         const worldH = this.zone.height || 6400;
+        const currentScene = this.game.sceneManager?.currentScene;
+        const isSafePoint = (x, y) => typeof currentScene?.isPointInSafeZone === 'function' && currentScene.isPointInSafeZone(x, y, 80);
 
         let x = fixedX ?? (200 + Math.random() * (worldW - 400));
         let y = fixedY ?? (200 + Math.random() * (worldH - 400));
+
+        if (isSafePoint(x, y)) {
+            let attempts = 0;
+            while (attempts < 12 && isSafePoint(x, y)) {
+                x = 200 + Math.random() * (worldW - 400);
+                y = 200 + Math.random() * (worldH - 400);
+                attempts++;
+            }
+        }
 
         // Load definition first
         let definition = await this.game.monsterData.loadDefinition(type);

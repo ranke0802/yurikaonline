@@ -90,6 +90,12 @@ export default class Monster extends CharacterBase {
         this.loadingRequested = false;
     }
 
+    _isProtectedPlayer(player) {
+        const currentScene = window.game?.sceneManager?.currentScene;
+        if (!player || typeof currentScene?.isPlayerProtected !== 'function') return false;
+        return currentScene.isPlayerProtected(player);
+    }
+
 
 
     static spriteCache = {};
@@ -435,12 +441,12 @@ export default class Monster extends CharacterBase {
                 const players = [];
                 // v0.00.55: Filter candidates who are viewing modals (isPaused)
                 const isLocalPaused = !!window.game?.ui?.isPaused;
-                if (window.game?.localPlayer && !window.game.localPlayer.isDead && !isLocalPaused) {
+                if (window.game?.localPlayer && !window.game.localPlayer.isDead && !isLocalPaused && !this._isProtectedPlayer(window.game.localPlayer)) {
                     players.push(window.game.localPlayer);
                 }
                 if (window.game?.remotePlayers) {
                     window.game.remotePlayers.forEach(p => {
-                        if (!p.isDead && !p.isPaused) players.push(p);
+                        if (!p.isDead && !p.isPaused && !this._isProtectedPlayer(p)) players.push(p);
                     });
                 }
                 return players;
@@ -586,9 +592,11 @@ export default class Monster extends CharacterBase {
                 // Check collision with ANY player
                 // Optimization: iterate players
                 const players = [];
-                if (window.game?.localPlayer && !window.game.localPlayer.isDead) players.push(window.game.localPlayer);
+                if (window.game?.localPlayer && !window.game.localPlayer.isDead && !this._isProtectedPlayer(window.game.localPlayer)) players.push(window.game.localPlayer);
                 if (window.game?.remotePlayers) {
-                    window.game.remotePlayers.forEach(p => { if (!p.isDead) players.push(p); });
+                    window.game.remotePlayers.forEach(p => {
+                        if (!p.isDead && !this._isProtectedPlayer(p)) players.push(p);
+                    });
                 }
 
                 players.forEach(p => {
