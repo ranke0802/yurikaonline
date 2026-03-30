@@ -235,7 +235,7 @@ export class UIManager {
             laser: { name: '체인 라이트닝 (J)', desc: '연쇄형 기본공격 (전기속성). 적중한 적 하나당 마나 1을 회복합니다. [연쇄: Lv당 +1] [기본 10% / 공격 1회당 증폭 / 마나 회복 +1]' },
             missile: { name: '매직 미사일 (H)', desc: '자동 추적 미사일을 발사합니다. [데미지: 공격력의 45%] [발사 수: 레벨당 2발] [마나 소모: 4 / 레벨당 +3]' },
             fireball: { name: '파이어볼 (U)', desc: '폭발하는 화염구를 던집니다. [직격 데미지: 공격력의 180% / 레벨당 +30% 추가] [마나 소모: 12 / 레벨당 +4] [화상: 2초 이상 지속 / 레벨당 +0.5초] [폭발 범위: 투사체의 2.5배]' },
-            shield: { name: '앱솔루트 베리어 (K)', desc: '절대 방어막을 전개하여 다음 1회의 피격을 완전히 무효화합니다. [마나 소모: 30] [재사용 대기시간: 15초] [레벨업 불가]' }
+            shield: { name: '앱솔루트 베리어 (K)', desc: '절대 방어막을 전개하여 다음 1회의 피격을 완전히 무효화합니다. [마나 소모: 20] [재사용 대기시간: 3초] [레벨업 불가]' }
         };
 
         const keyToSkill = { 'j': 'laser', 'h': 'missile', 'u': 'fireball', 'k': 'shield' };
@@ -809,14 +809,14 @@ export class UIManager {
                 const minDmg = Math.floor(p.attackPower * baseRatio);
                 const maxDmg = Math.floor(p.attackPower * 1.0);
                 const slow = 80;
-                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>연쇄: ${baseChain}마리 | 위력: ${minDmg} ~ ${maxDmg} (+틱당 ${(increment * 100).toFixed(0)}%) | 둔화: ${slow}%</div>`;
+                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>연쇄: ${baseChain}마리 | 사거리: ${Math.floor(p.attackRange)} | 위력: ${minDmg} ~ ${maxDmg} (+틱당 ${(increment * 100).toFixed(0)}%) | 둔화: ${slow}%</div>`;
                 break;
             case 'missile':
-                const mCount = lv;
+                const mCount = lv * 2;
                 // v0.00.42: Fixed to match actual damage (45%, not 90%)
                 const mDmg = Math.floor(p.attackPower * 0.45);
                 const mCost = 4 + (mCount - 1) * 3;
-                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>발사 수: ${mCount}개 | 발당 데미지: ${mDmg} | 마나 소모: ${mCost}</div>`;
+                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>발사 수: ${mCount}발 | 발당 데미지: ${mDmg} | 마나 소모: ${mCost}</div>`;
                 break;
             case 'fireball':
                 const fDmg = Math.floor(p.attackPower * (1.8 + (lv - 1) * 0.3));
@@ -826,7 +826,7 @@ export class UIManager {
                 currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>위력: ${fDmg} (180% + 30%/lv) | 마나 소모: ${fCost} | 화상: ${fBurn}초</div>`;
                 break;
             case 'shield':
-                currentEffect = `<div class="current-effect">현재 효과:<br>다음 1회 피격 데미지 0 (BLOCK)</div>`;
+                currentEffect = `<div class="current-effect">현재 효과:<br>다음 1회 피격 무효화 | 마나 소모: 20 | 재사용 대기시간: 3초</div>`;
                 break;
         }
 
@@ -835,6 +835,7 @@ export class UIManager {
         this.tooltip.style.left = `${x}px`;
         this.tooltip.style.top = `${y}px`;
         this.tooltip.classList.remove('hidden');
+        this.game.tutorial?.trigger?.('skill_tooltip', { target: skillId });
     }
 
     hideTooltip() {
@@ -1257,9 +1258,11 @@ export class UIManager {
             rewardDisplay.classList.remove('quest-reward-claimable');
             if (rewardIcon) rewardIcon.textContent = 'T';
             if (rewardTitle) rewardTitle.textContent = '진행 안내';
+            const totalSteps = tutorial.activeTutorial.steps.length;
+            const stepNumber = tutorial.currentStepIndex + 1;
             rewardText.textContent = targetCount > 1
-                ? `진행도 ${currentCount}/${targetCount} · 튜토리얼 중에는 슬라임이 등장하지 않습니다.`
-                : '허수아비를 마치면 기본 슬라임 퀘스트가 시작됩니다.';
+                ? `단계 ${stepNumber}/${totalSteps} · 진행도 ${currentCount}/${targetCount}`
+                : `단계 ${stepNumber}/${totalSteps} · 튜토리얼 완료 후 슬라임 퀘스트가 시작됩니다.`;
             rewardDisplay.onclick = null;
             return;
         }

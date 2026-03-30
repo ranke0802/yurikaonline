@@ -69,7 +69,7 @@ export default class Player extends CharacterBase {
         this.skillMaxCooldowns = { j: 0, h: 0, u: 0, k: 0 };
 
         // Combat & Channeling
-        this.attackRange = 700; // v0.00.75: Reverted back to 700 as requested
+        this.attackRange = 400; // v2.4.2: Tighten basic attack range to match combat feel and remote visuals
 
         this.isAttacking = false;
         this.isChanneling = false;

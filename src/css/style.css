@@ -2434,8 +2434,10 @@ body.is-fullscreen .version-info {
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    background: radial-gradient(circle at center, rgba(45, 52, 54, 0.4) 0%, rgba(0, 0, 0, 0.8) 100%);
-    backdrop-filter: blur(5px);
+    background:
+        radial-gradient(circle at top, rgba(82, 109, 130, 0.18) 0%, rgba(82, 109, 130, 0) 28%),
+        linear-gradient(180deg, rgba(16, 20, 29, 0.97) 0%, rgba(7, 10, 16, 0.99) 55%, rgba(3, 5, 9, 1) 100%);
+    backdrop-filter: none;
     animation: fadeIn 0.5s ease-out;
 }
 

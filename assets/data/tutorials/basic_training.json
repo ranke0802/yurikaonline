@@ -44,7 +44,7 @@
         },
         {
             "id": "open_status",
-            "instruction": "이번에는 스탯 창을 열어 주세요. `I` 키나 하단 스탯 버튼을 사용할 수 있어요.",
+            "instruction": "이번에는 스탯 창을 열어 주세요. `I` 키나 하단 스탯 버튼을 사용할 수 있어요. 스탯을 올리기 전에 오른쪽 수치가 어떻게 바뀌는지도 바로 확인할 수 있습니다.",
             "onStart": [
                 {
                     "type": "grant_stat_points",
@@ -62,8 +62,23 @@
             ]
         },
         {
+            "id": "preview_status_change",
+            "instruction": "아무 능력치에 1포인트를 눌러 보세요. 오른쪽 수치가 초록색으로 변하면서 저장 전 결과를 미리 보여줍니다.",
+            "trigger": "stat_allocated",
+            "target": [
+                "vitality",
+                "intelligence",
+                "wisdom",
+                "agility"
+            ],
+            "count": 1,
+            "allowedActions": [
+                "OPEN_STATUS"
+            ]
+        },
+        {
             "id": "save_status",
-            "instruction": "원하는 능력치에 1포인트를 투자하고 창을 닫아 저장해 주세요.",
+            "instruction": "좋아요. 방금 오른쪽 미리보기로 변화를 확인했어요. 이제 창을 닫아 스탯을 저장해 주세요.",
             "trigger": "stats_saved",
             "count": 1,
             "allowedActions": [
@@ -72,7 +87,7 @@
         },
         {
             "id": "open_skill",
-            "instruction": "좋아요. 이제 스킬 창을 열어 주세요. `Shift+S` 또는 하단 스킬 버튼을 사용하면 됩니다.",
+            "instruction": "좋아요. 이제 스킬 창을 열어 주세요. `Shift+S` 또는 하단 스킬 버튼을 사용하면 됩니다. 스킬 아이콘에 마우스를 올리거나 터치하면 상세 효과를 볼 수 있어요.",
             "onStart": [
                 {
                     "type": "grant_gold",
@@ -90,8 +105,18 @@
             ]
         },
         {
+            "id": "inspect_skill_detail",
+            "instruction": "매직 미사일 아이콘에 마우스를 올리거나 터치해 보세요. 현재 레벨 효과와 상세 설명이 툴팁으로 표시됩니다.",
+            "trigger": "skill_tooltip",
+            "target": "missile",
+            "count": 1,
+            "allowedActions": [
+                "OPEN_SKILL"
+            ]
+        },
+        {
             "id": "upgrade_skill",
-            "instruction": "매직 미사일을 한 번 강화해 보세요.",
+            "instruction": "상세 정보를 확인했으니, 이제 매직 미사일을 한 번 강화해 보세요.",
             "trigger": "skill_upgrade",
             "target": "missile",
             "count": 1,
