@@ -11,6 +11,9 @@ export class UIManager {
         this.pendingLandscapeFullscreen = false;
         this.landscapeFullscreenDismissed = false;
         this._wasFullscreenActive = false;
+        this.pcQuestClaimHandler = null;
+        this.handleDesktopShortcutKeydown = this.handleDesktopShortcutKeydown.bind(this);
+        this.refreshDesktopShortcutHints = this.refreshDesktopShortcutHints.bind(this);
         this.setupEventListeners();
         this.setupFullscreenListeners();
         this.setupDevModeListeners();
@@ -22,6 +25,7 @@ export class UIManager {
         const refreshTutorialOverlays = () => {
             this.refreshTutorialHighlight();
             this.refreshTutorialGuideLayout();
+            this.refreshDesktopShortcutHints();
         };
         window.addEventListener('resize', refreshTutorialOverlays);
         window.addEventListener('orientationchange', refreshTutorialOverlays);
@@ -242,9 +246,11 @@ export class UIManager {
     setupFullscreenListeners() {
         const updateClass = () => {
             const isFull = this.isFullscreenActive();
+            const isStandalone = this.isStandaloneDisplayMode();
             document.body.classList.toggle('is-fullscreen', isFull);
+            document.body.classList.toggle('is-standalone', isStandalone);
 
-            if (isFull) {
+            if (isFull || isStandalone) {
                 this.syncOrientationLock();
                 this.pendingLandscapeFullscreen = false;
                 this.landscapeFullscreenDismissed = false;
@@ -256,9 +262,13 @@ export class UIManager {
             this._wasFullscreenActive = isFull;
         };
         const handleViewportChange = () => {
-            window.requestAnimationFrame(() => this.updateLandscapeAutoFullscreen());
+            window.requestAnimationFrame(() => {
+                this.syncOrientationLock();
+                this.updateLandscapeAutoFullscreen();
+            });
         };
         const handleOrientationChange = () => {
+            this.syncOrientationLock();
             window.setTimeout(handleViewportChange, 120);
         };
         const tryPendingLandscapeFullscreen = () => {
@@ -282,7 +292,9 @@ export class UIManager {
 
     syncOrientationLock() {
         if (screen.orientation && screen.orientation.lock) {
-            screen.orientation.lock('any').catch(() => { });
+            const isTouch = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
+            const shouldPreferLandscape = isTouch && (this.isStandaloneDisplayMode() || this.isFullscreenActive());
+            screen.orientation.lock(shouldPreferLandscape ? 'landscape' : 'any').catch(() => { });
         }
     }
 
@@ -300,6 +312,161 @@ export class UIManager {
         const isNarrow = window.innerWidth <= 1024;
         const isLandscape = window.matchMedia?.('(orientation: landscape)')?.matches ?? (window.innerWidth > window.innerHeight);
         return isTouch && isNarrow && isLandscape;
+    }
+
+    isDesktopShortcutMode() {
+        const hasFinePointer = window.matchMedia?.('(pointer: fine)')?.matches ?? false;
+        const canHover = window.matchMedia?.('(hover: hover)')?.matches ?? false;
+        return (hasFinePointer || canHover) && !this.isMobileLandscapeViewport();
+    }
+
+    isTextEntryFocused() {
+        const active = document.activeElement;
+        if (!active) return false;
+
+        const tagName = active.tagName;
+        if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') {
+            return true;
+        }
+
+        return !!active.closest?.('[contenteditable="true"]');
+    }
+
+    isShortcutVisible(element) {
+        return !!element && !element.classList.contains('hidden') && element.style.display !== 'none';
+    }
+
+    upsertShortcutHint(container, key, label, extraClass = '') {
+        if (!container) return;
+
+        const existingHint = container.querySelector('.pc-shortcut-hint');
+        const shouldShow = this.isDesktopShortcutMode() && key && label;
+
+        if (!shouldShow) {
+            existingHint?.remove();
+            container.classList.remove('has-shortcut-hint');
+            return;
+        }
+
+        let hint = existingHint;
+        if (!hint) {
+            hint = document.createElement('div');
+            container.appendChild(hint);
+        }
+
+        hint.className = `pc-shortcut-hint ${extraClass}`.trim();
+        hint.innerHTML = `<kbd>${key}</kbd><span>${label}</span>`;
+        container.classList.add('has-shortcut-hint');
+    }
+
+    refreshDesktopShortcutHints() {
+        const openPopup = document.querySelector('.game-popup:not(.hidden)');
+        const confirmContent = document.querySelector('#confirm-modal .confirm-content');
+        const rewardContent = document.querySelector('#reward-modal .reward-content');
+        const historyContent = document.querySelector('#history-modal .history-content');
+        const genericContent = document.querySelector('#generic-modal .confirm-modal-content');
+        const questDetails = document.querySelector('#quest-reward-display .quest-details');
+
+        this.upsertShortcutHint(openPopup?.querySelector('.popup-footer'), 'F', '닫기', 'popup-shortcut-hint');
+        this.upsertShortcutHint(
+            this.isShortcutVisible(this.confirmModal) ? confirmContent : null,
+            'F',
+            '취소',
+            'modal-shortcut-hint'
+        );
+        this.upsertShortcutHint(
+            this.isShortcutVisible(document.getElementById('reward-modal')) ? rewardContent : null,
+            'F',
+            '닫기',
+            'modal-shortcut-hint'
+        );
+        this.upsertShortcutHint(
+            this.isShortcutVisible(document.getElementById('history-modal')) ? historyContent : null,
+            'F',
+            '닫기',
+            'modal-shortcut-hint'
+        );
+        this.upsertShortcutHint(
+            this.isShortcutVisible(document.getElementById('generic-modal')) ? genericContent : null,
+            'F',
+            '거절',
+            'modal-shortcut-hint'
+        );
+        this.upsertShortcutHint(
+            questDetails,
+            typeof this.pcQuestClaimHandler === 'function' ? 'Q' : '',
+            typeof this.pcQuestClaimHandler === 'function' ? '수령' : '',
+            'quest-shortcut-hint'
+        );
+    }
+
+    hasBlockingShortcutModalOpen() {
+        return !!(
+            document.querySelector('.game-popup:not(.hidden)')
+            || this.isShortcutVisible(this.confirmModal)
+            || this.isShortcutVisible(document.getElementById('reward-modal'))
+            || this.isShortcutVisible(document.getElementById('history-modal'))
+            || this.isShortcutVisible(document.getElementById('generic-modal'))
+        );
+    }
+
+    tryClaimQuestWithShortcut() {
+        if (!this.isDesktopShortcutMode() || this.hasBlockingShortcutModalOpen()) return false;
+        if (typeof this.pcQuestClaimHandler !== 'function') return false;
+
+        const claimHandler = this.pcQuestClaimHandler;
+        this.pcQuestClaimHandler = null;
+        this.refreshDesktopShortcutHints();
+        claimHandler();
+        return true;
+    }
+
+    tryCloseUiWithShortcut() {
+        if (!this.isDesktopShortcutMode()) return false;
+
+        const genericModal = document.getElementById('generic-modal');
+        if (this.isShortcutVisible(genericModal)) {
+            document.getElementById('generic-modal-no')?.click();
+            return true;
+        }
+
+        if (this.isShortcutVisible(this.confirmModal)) {
+            this.confirmNo?.click();
+            return true;
+        }
+
+        if (this.isShortcutVisible(document.getElementById('reward-modal'))) {
+            this.hideRewardModal();
+            return true;
+        }
+
+        if (this.isShortcutVisible(document.getElementById('history-modal'))) {
+            this.toggleUpdateHistory();
+            return true;
+        }
+
+        const openPopup = document.querySelector('.game-popup:not(.hidden)');
+        if (openPopup?.id) {
+            this.togglePopup(openPopup.id);
+            return true;
+        }
+
+        return false;
+    }
+
+    handleDesktopShortcutKeydown(e) {
+        if (!this.isDesktopShortcutMode() || this.isTextEntryFocused() || e.repeat) return;
+
+        if (e.code === 'KeyQ' && this.tryClaimQuestWithShortcut()) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+
+        if (e.code === 'KeyF' && this.tryCloseUiWithShortcut()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
     }
 
     setLandscapeChatActive(active, options = {}) {
@@ -439,6 +606,8 @@ export class UIManager {
     }
 
     setupEventListeners() {
+        document.addEventListener('keydown', this.handleDesktopShortcutKeydown);
+
         const handleClose = (e) => {
             e.preventDefault();
             e.stopImmediatePropagation();
@@ -858,6 +1027,7 @@ export class UIManager {
 
         modal.classList.remove('hidden');
         modal.classList.add('visible');
+        this.refreshDesktopShortcutHints();
     }
 
     updateHostilityUI() {
@@ -938,6 +1108,7 @@ export class UIManager {
             modal.classList.remove('visible');
             modal.classList.add('hidden');
         }
+        this.refreshDesktopShortcutHints();
     }
 
     setPortrait(processedImage) {
@@ -1020,16 +1191,20 @@ export class UIManager {
             this.isPaused = false;
             this.game.tutorial?.trigger?.('popup_close', { target: id });
         }
+
+        this.refreshDesktopShortcutHints();
     }
 
     showConfirm(message, callback) {
         document.getElementById('confirm-message').innerHTML = message;
         this.confirmModal.classList.remove('hidden');
         this.confirmCallback = callback;
+        this.refreshDesktopShortcutHints();
     }
 
     hideConfirm() {
         this.confirmModal.classList.add('hidden');
+        this.refreshDesktopShortcutHints();
     }
 
     bindSkillTooltipTargets() {
@@ -1275,6 +1450,7 @@ export class UIManager {
             document.body.classList.remove('popup-open');
             this.isPaused = false;
         }
+        this.refreshDesktopShortcutHints();
     }
 
     updateStatusPopup() {
@@ -1642,6 +1818,8 @@ export class UIManager {
             return;
         }
 
+        this.pcQuestClaimHandler = null;
+
         const tutorial = this.game.tutorial;
         const tutorialStep = tutorial?.activeTutorial?.steps?.[tutorial.currentStepIndex];
         if (tutorialStep) {
@@ -1663,6 +1841,7 @@ export class UIManager {
                 ? `단계 ${stepNumber}/${totalSteps} · 진행도 ${currentCount}/${targetCount}`
                 : `단계 ${stepNumber}/${totalSteps} · 튜토리얼 완료 후 슬라임 퀘스트가 시작됩니다.`;
             rewardDisplay.onclick = null;
+            this.refreshDesktopShortcutHints();
             return;
         }
 
@@ -1672,6 +1851,7 @@ export class UIManager {
         if (isIntroPending) {
             taskDisplay.style.display = 'none';
             rewardDisplay.style.display = 'none';
+            this.refreshDesktopShortcutHints();
             return;
         }
 
@@ -1757,7 +1937,10 @@ export class UIManager {
                 rewardDisplay.classList.add('quest-reward-claimable');
                 if (rewardIcon) rewardIcon.textContent = '🎉';
                 if (rewardTitle) rewardTitle.textContent = '보상 수령하기!';
-                rewardText.textContent = `클릭하여 ${currentQuest.reward} 획득`;
+                rewardText.textContent = this.isDesktopShortcutMode()
+                    ? `클릭 또는 Q로 ${currentQuest.reward} 획득`
+                    : `클릭하여 ${currentQuest.reward} 획득`;
+                this.pcQuestClaimHandler = currentQuest.claimFn;
 
                 // 클릭 이벤트 (중복 방지)
                 rewardDisplay.onclick = (e) => {
@@ -1778,6 +1961,8 @@ export class UIManager {
             rewardDisplay.classList.remove('quest-reward-claimable');
             rewardDisplay.onclick = null;
         }
+
+        this.refreshDesktopShortcutHints();
     }
 
     renderQuestButtons(p) {
@@ -1907,6 +2092,7 @@ export class UIManager {
         if (msgEl) msgEl.innerHTML = message;
         if (modal) modal.classList.remove('hidden');
         this.isPaused = true;
+        this.refreshDesktopShortcutHints();
     }
 
     // v0.29.22: 레벨업 이펙트 - 화면 플래시 + 플로팅 텍스트
@@ -1944,6 +2130,7 @@ export class UIManager {
         const modal = document.getElementById('reward-modal');
         if (modal) modal.classList.add('hidden');
         this.isPaused = false;
+        this.refreshDesktopShortcutHints();
     }
 
     updatePartyUI() {
@@ -2306,6 +2493,8 @@ export class UIManager {
             modal.classList.add('hidden');
             this.isPaused = false;
         }
+
+        this.refreshDesktopShortcutHints();
     }
 
     async renderHistory() {

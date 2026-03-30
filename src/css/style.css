@@ -1240,6 +1240,54 @@ button:active,
     color: #7f8c8d;
 }
 
+.pc-shortcut-hint {
+    display: none;
+}
+
+@media (pointer: fine) and (hover: hover) {
+    .pc-shortcut-hint {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        color: rgba(74, 62, 53, 0.78);
+        letter-spacing: -0.02em;
+    }
+
+    .pc-shortcut-hint kbd {
+        min-width: 22px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        border: 1px solid rgba(131, 52, 113, 0.16);
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        color: #833471;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1.2;
+        font-family: inherit;
+        text-align: center;
+    }
+
+    .popup-footer.has-shortcut-hint {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .quest-shortcut-hint {
+        margin-top: 6px;
+        justify-content: flex-start;
+    }
+
+    .modal-shortcut-hint {
+        display: flex;
+        width: 100%;
+    }
+}
+
 .chat-window {
     width: 250px;
     height: 180px;
@@ -1252,6 +1300,12 @@ button:active,
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     border: 3px solid rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(10px);
+}
+
+@media (pointer: coarse) {
+    body.is-standalone #ui-layer #btn-fullscreen {
+        display: none !important;
+    }
 }
 
 .chat-header {
@@ -4139,11 +4193,11 @@ body.is-fullscreen .version-info {
         max-width: 186px !important;
         padding: 6px 10px 7px !important;
         gap: 8px !important;
-        background: rgba(255, 255, 255, 0.85) !important;
-        border: 2px solid rgba(255, 255, 255, 0.5) !important;
+        background: rgba(255, 255, 255, 0.56) !important;
+        border: 2px solid rgba(255, 255, 255, 0.24) !important;
         border-radius: 24px !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
-        backdrop-filter: blur(8px) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+        backdrop-filter: blur(6px) !important;
         z-index: 1300 !important;
     }
 
@@ -4190,8 +4244,8 @@ body.is-fullscreen .version-info {
         min-width: 112px !important;
         height: 12px !important;
         border-radius: 7px !important;
-        border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        background: rgba(0, 0, 0, 0.18) !important;
+        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        background: rgba(0, 0, 0, 0.12) !important;
         box-shadow: none !important;
     }
 
@@ -4232,20 +4286,20 @@ body.is-fullscreen .version-info {
         width: 140px !important;
         max-width: 140px !important;
         border-radius: 18px !important;
-        border: 3px solid rgba(255, 255, 255, 0.5) !important;
-        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12) !important;
-        backdrop-filter: blur(10px) !important;
+        border: 2px solid rgba(255, 255, 255, 0.22) !important;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important;
+        backdrop-filter: blur(8px) !important;
     }
 
     .quest-list-panel {
-        background: rgba(253, 250, 246, 0.56) !important;
+        background: rgba(253, 250, 246, 0.28) !important;
         overflow: hidden !important;
     }
 
     .quest-panel-header {
         padding: 6px 10px !important;
-        background: rgba(255, 236, 210, 0.6) !important;
-        border-bottom: 2px solid rgba(255, 214, 165, 0.3) !important;
+        background: rgba(255, 236, 210, 0.26) !important;
+        border-bottom: 1px solid rgba(255, 214, 165, 0.16) !important;
     }
 
     .quest-panel-header h3 {
@@ -4262,8 +4316,8 @@ body.is-fullscreen .version-info {
     .quest-item {
         gap: 7px !important;
         padding: 6px 7px !important;
-        background: rgba(0, 0, 0, 0.03) !important;
-        border: 1px solid rgba(0, 0, 0, 0.02) !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
         border-radius: 12px !important;
         transform: none !important;
     }
@@ -4299,8 +4353,8 @@ body.is-fullscreen .version-info {
         max-width: clamp(250px, 32vw, 320px) !important;
         min-height: 56px !important;
         height: auto !important;
-        background: rgba(13, 18, 28, 0.18) !important;
-        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        background: rgba(13, 18, 28, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
         box-shadow: none !important;
         z-index: 1260 !important;
     }
@@ -4346,8 +4400,8 @@ body.is-fullscreen .version-info {
     }
 
     .chat-window.chat-active {
-        background: rgba(13, 18, 28, 0.34) !important;
-        border-color: rgba(255, 255, 255, 0.24) !important;
+        background: rgba(13, 18, 28, 0.18) !important;
+        border-color: rgba(255, 255, 255, 0.18) !important;
     }
 
     .chat-window.chat-active .chat-input-area {
@@ -4365,12 +4419,12 @@ body.is-fullscreen .version-info {
         width: 96px !important;
         min-width: 96px !important;
         transform: none !important;
-        background: rgba(44, 62, 80, 0.6) !important;
+        background: rgba(44, 62, 80, 0.34) !important;
         border-radius: 12px !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
         border: none !important;
         overflow: hidden !important;
-        backdrop-filter: blur(5px) !important;
+        backdrop-filter: blur(4px) !important;
         z-index: 1350 !important;
     }
 
@@ -4409,11 +4463,11 @@ body.is-fullscreen .version-info {
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
         gap: 0 !important;
         transform: none !important;
-        background: rgba(255, 255, 255, 0.6) !important;
-        border: 3px solid #fff !important;
+        background: rgba(255, 255, 255, 0.32) !important;
+        border: 2px solid rgba(255, 255, 255, 0.48) !important;
         border-radius: 4px !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
-        backdrop-filter: blur(5px) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
+        backdrop-filter: blur(4px) !important;
         z-index: 1350 !important;
     }
 
@@ -4439,24 +4493,7 @@ body.is-fullscreen .version-info {
     }
 
     body #ui-layer #btn-fullscreen {
-        position: fixed !important;
-        top: calc(159px + env(safe-area-inset-top)) !important;
-        right: calc(8px + env(safe-area-inset-right)) !important;
-        left: auto !important;
-        bottom: auto !important;
-        width: 34px !important;
-        height: 34px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 0 !important;
-        transform: none !important;
-        background: rgba(255, 255, 255, 0.78) !important;
-        border: 3px solid #fff !important;
-        border-radius: 10px !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.22) !important;
-        backdrop-filter: blur(5px) !important;
-        z-index: 1350 !important;
+        display: none !important;
     }
 
     body #ui-layer #btn-emote-shortcut {
@@ -4482,8 +4519,8 @@ body.is-fullscreen .version-info {
     #joystick-base {
         width: 96px !important;
         height: 96px !important;
-        background: rgba(255, 255, 255, 0.3) !important;
-        border: 2px solid rgba(255, 255, 255, 0.5) !important;
+        background: rgba(255, 255, 255, 0.18) !important;
+        border: 2px solid rgba(255, 255, 255, 0.28) !important;
         box-shadow: none !important;
         backdrop-filter: blur(2px) !important;
     }
@@ -4524,8 +4561,8 @@ body.is-fullscreen .version-info {
         margin: 0 !important;
         border-width: 3px !important;
         border-radius: 50% !important;
-        background: rgba(255, 255, 255, 0.92) !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.18) !important;
+        background: rgba(255, 255, 255, 0.68) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14) !important;
     }
 
     .action-buttons .skill-btn {
@@ -4538,8 +4575,8 @@ body.is-fullscreen .version-info {
         width: 104px !important;
         height: 104px !important;
         font-size: 34px !important;
-        background: #fff4ba !important;
-        border-color: #fff !important;
+        background: rgba(255, 244, 186, 0.78) !important;
+        border-color: rgba(255, 255, 255, 0.72) !important;
     }
 
     .action-buttons .skill-u,

@@ -6,13 +6,13 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="manifest.json?v=0.01.13">
     <meta name="theme-color" content="#2d3436">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Yurika Online">
-    <!-- v0.01.12: 모바일 가로 조작성 및 팝업 레이아웃 2차 보정 -->
+    <!-- v0.01.13: 모바일 가로 HUD 투명도 및 PWA 가로/전체화면 보정 -->
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
@@ -33,7 +33,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.01.12')
+                navigator.serviceWorker.register('./sw.js?v=0.01.13')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -58,7 +58,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.01.12</title>
+    <title>Yurika Online v0.01.13</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
@@ -112,7 +112,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.12">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.13">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -587,7 +587,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📜 v0.01.12
+        📜 v0.01.13
     </div>
 
 
@@ -620,7 +620,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.12"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.13"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

@@ -2,10 +2,16 @@
     "name": "Yurika Online",
     "short_name": "YurikaOnline",
     "start_url": "./index.html",
-    "display": "standalone",
+    "display": "fullscreen",
+    "display_override": [
+        "fullscreen",
+        "standalone"
+    ],
     "background_color": "#2d3436",
     "theme_color": "#2d3436",
-    "orientation": "any",
+    "orientation": "landscape",
+    "scope": "./",
+    "id": "./index.html",
     "icons": [
         {
             "src": "src/assets/icon_192.webp",
