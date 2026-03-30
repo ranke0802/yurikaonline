@@ -292,10 +292,12 @@ export default class StoryManager {
     endStory() {
         // v2.3: Start Tutorial after Prologue
         if (this.currentStory && this.currentStory.id === 'prologue') {
+            if (this.game.localPlayer?.questData) {
+                this.game.localPlayer.questData.prologueCompleted = true;
+                this.game.localPlayer.saveState();
+            }
             if (this.game.tutorial) {
-                setTimeout(() => {
-                    this.game.tutorial.startTutorial('basic_training');
-                }, 1000);
+                this.game.tutorial.startTutorial('basic_training');
             }
         }
 

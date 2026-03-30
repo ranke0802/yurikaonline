@@ -49,14 +49,21 @@ export default class QuestManager {
      */
     restoreFromLegacy(questData) {
         if (!questData || !this._loaded) return;
+        const slimeKills = questData.slimeKills || 0;
+        const firstQuestUnlocked = !!questData.basicTrainingCompleted ||
+            slimeKills > 0 ||
+            !!questData.slimeQuestClaimed ||
+            !!questData.slime30QuestClaimed ||
+            !!questData.bossQuestClaimed ||
+            (questData.bossClearCount || 0) > 0;
 
         // Quest 1: 슬라임 10마리
         if (questData.slimeQuestClaimed) {
             this.completedQuests.add('quest_slime_10');
-        } else {
+        } else if (firstQuestUnlocked) {
             this._activateQuest('quest_slime_10', [{
-                current: Math.min(questData.slimeKills || 0, 10),
-                complete: (questData.slimeKills || 0) >= 10
+                current: Math.min(slimeKills, 10),
+                complete: slimeKills >= 10
             }]);
         }
 

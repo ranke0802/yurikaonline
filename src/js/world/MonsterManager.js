@@ -168,12 +168,16 @@ export default class MonsterManager {
         Logger.log('[MonsterManager] Spawn rules updated:', this.spawnRules);
     }
 
+    isSpawnSuppressed() {
+        return this.tutorialMode || !!this.game.story?.isStoryActive || !!this.game.tutorial?.pendingTutorialId;
+    }
+
     setTutorialMode(active) {
         const nextState = !!active;
         if (this.tutorialMode === nextState) return;
 
         this.tutorialMode = nextState;
-        this.spawnTimer = 0;
+        this.spawnTimer = nextState ? 0 : 1.0;
 
         if (nextState) {
             this.clearAll();
@@ -195,10 +199,14 @@ export default class MonsterManager {
     }
 
     spawnMonster(type = 'slime', x = null, y = null, options = {}) {
-        if (!this.net.isHost && options.tutorialOnly) {
+        if (options.tutorialOnly) {
             return this._spawnLocalMonster(x, y, type, options);
         }
         return this._spawnMonster(x, y, type, options);
+    }
+
+    primeSpawnCycle() {
+        this.spawnTimer = 1.0;
     }
 
     _updateHostLogic(dt, localPlayer, remotePlayers) {
@@ -210,7 +218,7 @@ export default class MonsterManager {
 
         // v1.99: Level sum already calculated in update()
 
-        if (!this.tutorialMode && this.spawnRules && this.spawnRules.length > 0) {
+        if (!this.isSpawnSuppressed() && this.spawnRules && this.spawnRules.length > 0) {
             // Zone-based Spawning Logic
             this.spawnTimer += dt;
             if (this.spawnTimer >= 1.0) { // Check every 1s
@@ -234,7 +242,7 @@ export default class MonsterManager {
                     }
                 });
             }
-        } else if (!this.tutorialMode) {
+        } else if (!this.isSpawnSuppressed()) {
             // Legacy Random Spawning Logic
             // v1.97: Dynamic Spawning: 15 + 1 per 5 levels (Balanced)
             const maxMonsters = 15 + Math.floor(this.totalLevelSum / 5);
@@ -655,7 +663,7 @@ export default class MonsterManager {
     }
 
     async _onRemoteMonsterAdded(data) {
-        if (this.tutorialMode && data.type !== 'training_dummy') return;
+        if (this.isSpawnSuppressed() && data.type !== 'training_dummy') return;
         if (this.monsters.has(data.id)) return;
 
         // v0.00.01: Map legacy types or handle direct typeId
@@ -701,7 +709,7 @@ export default class MonsterManager {
     _onRemoteMonsterUpdated(data) {
         const m = this.monsters.get(data.id);
         if (!m) {
-            if (this.tutorialMode && data.type !== 'training_dummy') return;
+            if (this.isSpawnSuppressed() && data.type !== 'training_dummy') return;
             this._onRemoteMonsterAdded(data);
             return;
         }

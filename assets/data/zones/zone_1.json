@@ -1,6 +1,6 @@
 {
     "id": "zone_1",
-    "name": "바람의 언덕 (Starting Field)",
+    "name": "바람 언덕 (Starting Field)",
     "width": 3200,
     "height": 3200,
     "background": {
@@ -21,35 +21,38 @@
             "y": 1900
         },
         {
-            "id": "cabin_entrance",
+            "id": "field_path",
             "x": 1550,
             "y": 1550
         }
     ],
-    "objects": [
+    "monsterSpawns": [
         {
-            "type": "structure",
-            "id": "cabin",
-            "x": 1600,
-            "y": 1400,
-            "visual": {
-                "image": "assets/resource/magicion_front/1.webp",
-                "width": 64,
-                "height": 64,
-                "scale": 4.0
-            },
-            "collision": {
-                "enabled": true,
-                "width": 360,
-                "height": 150,
-                "offsetX": 20,
-                "offsetY": 180
+            "monsterId": "slime",
+            "count": 6,
+            "area": {
+                "x": 1880,
+                "y": 1660,
+                "w": 420,
+                "h": 520
             }
         },
         {
+            "monsterId": "slime",
+            "count": 4,
+            "area": {
+                "x": 980,
+                "y": 2120,
+                "w": 360,
+                "h": 420
+            }
+        }
+    ],
+    "objects": [
+        {
             "type": "npc",
             "id": "guide",
-            "name": "엘라 (가이드)",
+            "name": "세라 (가이드)",
             "x": 1650,
             "y": 1650,
             "visual": {

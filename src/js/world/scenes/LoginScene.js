@@ -9,6 +9,8 @@ export default class LoginScene extends Scene {
 
     async enter() {
         Logger.info("[LoginScene] Entered");
+        this.game.ui?.hideHUD();
+        this.game.ui?.hideAllPopups();
 
         // v0.00.64: Preload BGM immediately to eliminate "slow start" feeling on click
         this.game.resources.loadJSON('/assets/data/music/bgm_intro.json').catch(e => { });

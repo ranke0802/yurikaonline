@@ -52,6 +52,7 @@ export default class WorldScene extends Scene {
 
     async enter(params) {
         Logger.info("[WorldScene] Entering game world...");
+        this.ui?.showHUD();
 
         // v0.35.0: Ensure Story Fade is reset to prevent black screen
         if (this.game.story) {
@@ -158,17 +159,24 @@ export default class WorldScene extends Scene {
 
             if (profile.questData) {
                 console.log('[WorldScene] Restoring Quest Data:', profile.questData);
-                this.player.questData = { ...this.player.questData, ...profile.questData };
-                // v2.2: Sync to QuestManager
-                if (this.game.quests) {
-                    this.game.quests.restoreFromLegacy(this.player.questData);
-                }
             } else {
                 console.warn('[WorldScene] No Quest Data found in profile.');
-                // v2.2: Initialize first quest
-                if (this.game.quests) {
-                    this.game.quests.acceptQuest('quest_slime_10');
+            }
+
+            this.player.questData = { ...this.player.questData, ...(profile.questData || {}) };
+
+            // v2.4: Restore tutorial completion before intro flow resumes.
+            if (this.game.tutorial) {
+                if (this.player.questData.basicTrainingCompleted) {
+                    this.game.tutorial.completedTutorials.add('basic_training');
+                } else {
+                    this.game.tutorial.completedTutorials.delete('basic_training');
                 }
+            }
+
+            // v2.2: Sync to QuestManager
+            if (this.game.quests) {
+                this.game.quests.restoreFromLegacy(this.player.questData);
             }
 
             this.player.refreshStats();
@@ -211,26 +219,14 @@ export default class WorldScene extends Scene {
             }
         }
 
+        const shouldDeferZoneParticipation = !this.player.questData.basicTrainingCompleted &&
+            !this.player.questData.slimeQuestClaimed &&
+            (((this.player.questData.slimeKills || 0) === 0) || !!this.player.questData.prologueCompleted);
+
+        this.net.setZoneParticipationEnabled(!shouldDeferZoneParticipation);
+
         this.player.init(this.input, this.resources, this.net);
         this.player.grantSpawnProtection(5);
-
-        // v0.00.03: Spawn players already in the buffer (Multiplayer Fix)
-        if (this.net.remotePlayers) {
-            this.net.remotePlayers.forEach(data => {
-                if (data.id === this.player.id) return;
-                const rp = new RemotePlayer(data.id, data.x, data.y, this.resources);
-                rp.name = data.name || "Unknown";
-
-                // Sync Initial Stats if available in buffer
-                if (data.h) {
-                    rp.hp = data.h[0];
-                    rp.maxHp = data.h[1];
-                }
-
-                this.remotePlayers.set(data.id, rp);
-                Logger.log(`[WorldScene] Spawned buffered player: ${rp.name}`);
-            });
-        }
 
         // Setup Network Handlers
         this._setupNetworkHandlers();
@@ -252,27 +248,15 @@ export default class WorldScene extends Scene {
                 console.log(`[WorldScene] Claimed name mapping: ${this.player.name} -> ${this.player.id}`);
             }
         }
-        // v0.00.15: Start Hostility Listeners now that player is ready
-        this.net.startHostilityListeners();
-
         // v0.00.57: Play BGM
         if (this.game.sound) {
             this.game.sound.loadAndPlayBgm('bgm_cabin');
         }
 
-        // v2.0: Trigger Prologue Story if new player (or just test it)
-        // Check if quest data is empty to assume new player?
-        // For now, let's trigger it if slimeKills is 0.
-        if (this.player && this.player.level === 1 && this.player.questData.slimeKills === 0 && !this.player.questData.slimeQuestClaimed) {
-            // Delay slightly to allow fade-in
-            // v2.1: Robust Story Trigger
-            setTimeout(() => {
-                if (this.game.story && this.game.story.startStory) {
-                    this.game.story.startStory('prologue');
-                } else {
-                    Logger.warn('[WorldScene] StoryManager not ready, skipping prologue.');
-                }
-            }, 1000);
+        if (shouldDeferZoneParticipation) {
+            this.game.tutorial?.startTutorial?.('basic_training');
+        } else {
+            this.activateZoneParticipation();
         }
     }
 
@@ -292,6 +276,46 @@ export default class WorldScene extends Scene {
         const px = player.x + ((player.width || 0) / 2);
         const py = player.y + ((player.height || 0) / 2);
         return this.isPointInSafeZone(px, py, 24);
+    }
+
+    _spawnRemotePlayerFromData(data) {
+        if (!data || !this.player || data.id === this.player.id || this.remotePlayers.has(data.id)) return;
+
+        const rp = new RemotePlayer(data.id, data.x, data.y, this.resources);
+        rp.name = data.name || "Unknown";
+        if (data.h) {
+            rp.hp = data.h[0];
+            rp.maxHp = data.h[1];
+        }
+        if (data.hostility) {
+            rp.hostility = data.hostility;
+        }
+        if (data.party) {
+            rp.party = data.party;
+        }
+
+        this.remotePlayers.set(data.id, rp);
+        Logger.log(`[WorldScene] Spawned buffered player: ${rp.name}`);
+    }
+
+    _syncRemotePlayersFromBuffer() {
+        if (!this.net?.remotePlayers) return;
+
+        this.net.remotePlayers.forEach((data) => {
+            this._spawnRemotePlayerFromData(data);
+        });
+    }
+
+    activateZoneParticipation() {
+        if (!this.player) return;
+
+        this.net.setZoneParticipationEnabled(true);
+        this._syncRemotePlayersFromBuffer();
+        this.net.startHostilityListeners();
+        this.player.saveState(true);
+        this.net.sendPlayerHp(this.player.hp, this.player.maxHp);
+        this.net.sendMovePacket(this.player.x, this.player.y, this.player.vx, this.player.vy, this.player.name);
+        this.net.sendHeartbeat();
     }
 
     // v2.3.4: Effect Bridge
@@ -377,15 +401,15 @@ export default class WorldScene extends Scene {
         });
 
         this.net.on('playerJoined', (data) => {
-            if (this.remotePlayers.has(data.id)) return;
-            const rp = new RemotePlayer(data.id, data.x, data.y, this.resources);
-            rp.name = data.name || "Unknown";
-            // v0.00.20: Sync initial hostility
-            if (data.hostility) rp.hostility = data.hostility;
-            this.remotePlayers.set(data.id, rp);
+            if (!this.net.isZoneParticipationEnabled()) return;
+            this._spawnRemotePlayerFromData(data);
         });
 
         this.net.on('playerUpdate', (data) => {
+            if (!this.net.isZoneParticipationEnabled()) return;
+            if (!this.remotePlayers.has(data.id)) {
+                this._spawnRemotePlayerFromData(this.net.remotePlayers.get(data.id) || data);
+            }
             const rp = this.remotePlayers.get(data.id);
             if (rp) rp.onServerUpdate(data);
         });
@@ -395,17 +419,20 @@ export default class WorldScene extends Scene {
         });
 
         this.net.on('playerAttack', (data) => {
+            if (!this.net.isZoneParticipationEnabled()) return;
             const rp = this.remotePlayers.get(data.id);
             if (rp) rp.triggerAttack(data);
         });
 
         // v0.00.37: Channeling sync for casting effects (spark, magic circle, attack motion)
         this.net.on('playerChanneling', (data) => {
+            if (!this.net.isZoneParticipationEnabled()) return;
             const rp = this.remotePlayers.get(data.id);
             if (rp) rp.triggerChanneling(data);
         });
 
         this.net.on('playerHpUpdate', (data) => {
+            if (!this.net.isZoneParticipationEnabled()) return;
             const rp = this.remotePlayers.get(data.id);
             if (rp) rp.onHpUpdate(data);
         });

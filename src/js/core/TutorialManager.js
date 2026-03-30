@@ -4,99 +4,196 @@ export default class TutorialManager {
     constructor(game) {
         this.game = game;
         this.activeTutorial = null;
+        this.pendingTutorialId = null;
         this.currentStepIndex = -1;
         this.completedTutorials = new Set();
-        this.progress = { count: 0 }; // Current step progress
+        this.progress = { count: 0 };
     }
 
     async loadTutorial(id) {
         try {
-            const data = await this.game.resources.loadJSON(`/assets/data/tutorials/${id}.json`);
-            return data;
+            return await this.game.resources.loadJSON(`/assets/data/tutorials/${id}.json`);
         } catch (e) {
             Logger.error(`[Tutorial] Failed to load tutorial: ${id}`, e);
             return null;
         }
     }
 
-    startTutorial(id) {
-        if (this.completedTutorials.has(id)) return;
+    getCurrentStep() {
+        return this.activeTutorial?.steps?.[this.currentStepIndex] || null;
+    }
 
-        this.loadTutorial(id).then(data => {
-            if (data) {
-                this.activeTutorial = data;
-                this.currentStepIndex = 0;
-                this.progress = { count: 0 };
-                if (this.game.monsterManager?.setTutorialMode) {
-                    this.game.monsterManager.setTutorialMode(true);
-                }
-                if (this.game.ui?.updateQuestUI) {
-                    this.game.ui.updateQuestUI();
-                }
-                Logger.log(`[Tutorial] Started: ${data.title}`);
-                this._showCurrentStep();
+    isActionAllowed(action) {
+        if (this.pendingTutorialId && !this.activeTutorial) return false;
+
+        const step = this.getCurrentStep();
+        if (!step || !Array.isArray(step.allowedActions)) return true;
+
+        return step.allowedActions.includes(action);
+    }
+
+    startTutorial(id) {
+        if (this.completedTutorials.has(id) || this.activeTutorial || this.pendingTutorialId) return;
+
+        this.pendingTutorialId = id;
+        this.game.input?.setAllowedActions([]);
+        this.game.net?.setZoneParticipationEnabled?.(false);
+
+        this.loadTutorial(id).then((data) => {
+            if (!data) {
+                this.pendingTutorialId = null;
+                this.game.input?.setAllowedActions(null);
+                this.game.net?.setZoneParticipationEnabled?.(true);
+                this.game.sceneManager?.currentScene?.activateZoneParticipation?.();
+                return;
             }
+
+            this.activeTutorial = data;
+            this.pendingTutorialId = null;
+            this.currentStepIndex = 0;
+            this.progress = { count: 0 };
+
+            if (id === 'basic_training' && this.game.localPlayer?.questData) {
+                this.game.localPlayer.questData.prologueCompleted = true;
+                this.game.localPlayer.saveState();
+            }
+
+            if (this.game.monsterManager?.setTutorialMode) {
+                this.game.monsterManager.setTutorialMode(true);
+            }
+            if (this.game.ui?.updateQuestUI) {
+                this.game.ui.updateQuestUI();
+            }
+
+            Logger.log(`[Tutorial] Started: ${data.title}`);
+            this._showCurrentStep();
         });
     }
 
     stopTutorial() {
-        if (this.activeTutorial) {
-            Logger.log(`[Tutorial] Stopped: ${this.activeTutorial.title}`);
-            this.activeTutorial = null;
-            this.currentStepIndex = -1;
-            if (this.game.monsterManager?.setTutorialMode) {
-                this.game.monsterManager.setTutorialMode(false);
-            }
-            if (this.game.ui) this.game.ui.hideTutorialGuide();
-            if (this.game.ui?.updateQuestUI) {
-                this.game.ui.updateQuestUI();
-            }
+        if (!this.activeTutorial) return;
+
+        Logger.log(`[Tutorial] Stopped: ${this.activeTutorial.title}`);
+        this.activeTutorial = null;
+        this.pendingTutorialId = null;
+        this.currentStepIndex = -1;
+        this.progress = { count: 0 };
+        this.game.input?.setAllowedActions(null);
+
+        if (this.game.monsterManager?.setTutorialMode) {
+            this.game.monsterManager.setTutorialMode(false);
+        }
+        if (this.game.ui) {
+            this.game.ui.hideTutorialGuide();
+        }
+        if (this.game.ui?.updateQuestUI) {
+            this.game.ui.updateQuestUI();
         }
     }
 
     _showCurrentStep() {
-        if (!this.activeTutorial) return;
-        const step = this.activeTutorial.steps[this.currentStepIndex];
+        const step = this.getCurrentStep();
+        if (!step) {
+            this._completeTutorial();
+            return;
+        }
+
+        step._timer = 0;
+        this.progress = { count: 0 };
+        this.game.input?.setAllowedActions(step.allowedActions || null);
 
         if (this.game.ui) {
             this.game.ui.showTutorialGuide(step.instruction);
         }
 
-        // Action on step start (e.g., spawn monster)
-        if (step.onStart) {
-            this._handleAction(step.onStart);
-        }
+        this._runActions(step.onStart);
+    }
+
+    _runActions(actions) {
+        if (!actions) return;
+
+        const actionList = Array.isArray(actions) ? actions : [actions];
+        actionList.forEach((action) => this._handleAction(action));
     }
 
     _handleAction(action) {
-        if (action.type === 'spawn_monster') {
-            const player = this.game.localPlayer;
-            if (player && this.game.monsterManager?.spawnMonster) {
-                // Spawn near player
-                const x = player.x + (action.offsetX || 200);
-                const y = player.y + (action.offsetY || 0);
-                this.game.monsterManager.spawnMonster(action.monsterId, x, y, {
+        if (!action || !action.type) return;
+
+        const player = this.game.localPlayer;
+
+        switch (action.type) {
+            case 'spawn_monster': {
+                if (!player || !this.game.monsterManager?.spawnMonster) return;
+
+                const x = action.x ?? (player.x + (action.offsetX || 200));
+                const y = action.y ?? (player.y + (action.offsetY || 0));
+                const spawnResult = this.game.monsterManager.spawnMonster(action.monsterId, x, y, {
                     tutorialOnly: true
                 });
+
+                Promise.resolve(spawnResult).then((monsterId) => {
+                    const monster = this.game.monsterManager?.monsters?.get(monsterId);
+                    if (monster && this.game.localPlayer) {
+                        this.game.localPlayer.currentTarget = monster;
+                    }
+                });
+                break;
             }
+
+            case 'clear_tutorial_monsters':
+                this.game.monsterManager?.clearTutorialMonsters?.();
+                if (player) {
+                    player.currentTarget = null;
+                }
+                break;
+
+            case 'grant_gold':
+                if (!player) return;
+                player.gold += action.amount || 0;
+                player.updateGoldInventory?.();
+                this.game.ui?.updateInventory?.();
+                this.game.ui?.updateSkillPopup?.();
+                this.game.ui?.updateStatusPopup?.();
+                break;
+
+            case 'grant_stat_points':
+                if (!player) return;
+                player.statPoints += action.amount || 0;
+                this.game.ui?.updateStatusPopup?.();
+                break;
+
+            case 'close_popups':
+                this.game.ui?.hideAllPopups?.();
+                break;
+
+            case 'center_message':
+                if (action.text) {
+                    this.game.ui?.showCenterMessage?.(action.text, action.color || '#ffeb3b');
+                }
+                break;
+
+            case 'log_message':
+                if (action.text) {
+                    this.game.ui?.logSystemMessage?.(action.text);
+                }
+                break;
+
+            default:
+                Logger.warn(`[Tutorial] Unknown action type: ${action.type}`);
         }
     }
 
-    /**
-     * Trigger tutorial progress based on game events
-     * @param {string} eventType - e.g., 'move', 'kill', 'quest_accept'
-     * @param {Object} data - Context data
-     */
+    _matchesTarget(expected, actual) {
+        if (expected === undefined || expected === null) return true;
+        if (Array.isArray(expected)) return expected.includes(actual);
+        return expected === actual;
+    }
+
     trigger(eventType, data = {}) {
-        if (!this.activeTutorial) return;
-
-        const step = this.activeTutorial.steps[this.currentStepIndex];
+        const step = this.getCurrentStep();
         if (!step || step.trigger !== eventType) return;
+        if (!this._matchesTarget(step.target, data.target)) return;
 
-        // Check specific conditions
-        if (step.target && data.target !== step.target) return;
-
-        // Update progress
         this.progress.count++;
 
         if (this.progress.count >= (step.count || 1)) {
@@ -105,16 +202,11 @@ export default class TutorialManager {
     }
 
     update(dt) {
-        if (!this.activeTutorial || this.currentStepIndex < 0) return;
-
-        const step = this.activeTutorial.steps[this.currentStepIndex];
+        const step = this.getCurrentStep();
         if (!step) return;
 
-        // TIme-based trigger (auto_next)
         if (step.trigger === 'auto_next') {
-            if (!step._timer) step._timer = 0;
-            step._timer += dt * 1000;
-
+            step._timer = (step._timer || 0) + (dt * 1000);
             if (step._timer >= (step.duration || 1000)) {
                 this._completeStep();
             }
@@ -122,53 +214,64 @@ export default class TutorialManager {
     }
 
     _completeStep() {
-        const step = this.activeTutorial.steps[this.currentStepIndex];
-        Logger.log(`[Tutorial] Step completed: ${step.id}`);
+        const step = this.getCurrentStep();
+        if (!step) return;
 
-        // Action on step complete
-        if (step.onComplete) {
-            this._handleAction(step.onComplete);
-        }
+        Logger.log(`[Tutorial] Step completed: ${step.id}`);
+        this._runActions(step.onComplete);
 
         this.currentStepIndex++;
-        this.progress = { count: 0 };
         if (this.game.ui?.updateQuestUI) {
             this.game.ui.updateQuestUI();
         }
 
-        if (this.currentStepIndex >= this.activeTutorial.steps.length) {
-            this._completeTutorial();
-        } else {
-            this._showCurrentStep();
-        }
+        this._showCurrentStep();
     }
 
     _completeTutorial() {
         if (!this.activeTutorial) return;
 
+        const tutorialId = this.activeTutorial.id;
         Logger.log(`[Tutorial] Completed: ${this.activeTutorial.title}`);
-        this.completedTutorials.add(this.activeTutorial.id);
+        this.completedTutorials.add(tutorialId);
 
         if (this.game.ui) {
             this.game.ui.hideTutorialGuide();
             this.game.ui.logSystemMessage(`튜토리얼 완료: ${this.activeTutorial.title}`);
         }
 
+        this.game.input?.setAllowedActions(null);
+
         if (this.game.monsterManager?.setTutorialMode) {
             this.game.monsterManager.setTutorialMode(false);
         }
 
-        if (this.activeTutorial.id === 'basic_training' && this.game.quests?.acceptQuest) {
-            this.game.quests.acceptQuest('quest_slime_10');
+        if (tutorialId === 'basic_training') {
+            if (this.game.localPlayer?.questData) {
+                this.game.localPlayer.questData.prologueCompleted = true;
+                this.game.localPlayer.questData.basicTrainingCompleted = true;
+            }
+
+            this.game.net?.setZoneParticipationEnabled?.(true);
+            this.game.sceneManager?.currentScene?.activateZoneParticipation?.();
+
+            if (this.game.quests?.acceptQuest) {
+                this.game.quests.acceptQuest('quest_slime_10');
+            }
+
+            this.game.monsterManager?.primeSpawnCycle?.();
+            this.game.ui?.logSystemMessage('튜토리얼이 끝났습니다. 이제 슬라임 사냥을 시작해 보세요.');
         }
 
-        // Save state
         if (this.game.localPlayer) {
             this.game.localPlayer.saveState();
         }
 
         this.activeTutorial = null;
+        this.pendingTutorialId = null;
         this.currentStepIndex = -1;
+        this.progress = { count: 0 };
+
         if (this.game.ui?.updateQuestUI) {
             this.game.ui.updateQuestUI();
         }

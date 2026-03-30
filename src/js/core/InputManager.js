@@ -5,9 +5,10 @@ export default class InputManager extends EventEmitter {
     constructor() {
         super();
         this.handlers = [];
-        this.actions = new Set(); // 현재 활성화된 액션들 (예: 'MOVE_UP', 'ATTACK')
+        this.actions = new Set();
         this.enabled = true;
         this._lockedActions = new Set();
+        this._allowedActions = null;
     }
 
     setEnabled(enabled) {
@@ -17,22 +18,40 @@ export default class InputManager extends EventEmitter {
         }
     }
 
+    setAllowedActions(actions = null) {
+        this._allowedActions = Array.isArray(actions) ? new Set(actions) : null;
+
+        if (!this._allowedActions) return;
+
+        Array.from(this.actions).forEach((action) => {
+            if (!this._allowedActions.has(action)) {
+                this.actions.delete(action);
+                this.emit('keyup', action);
+            }
+        });
+    }
+
+    isActionAllowed(action) {
+        return !this._allowedActions || this._allowedActions.has(action);
+    }
+
     addHandler(handler) {
         this.handlers.push(handler);
         handler.on('actionDown', (action) => this._onActionDown(action));
         handler.on('actionUp', (action) => this._onActionUp(action));
-        handler.on('joystickMove', (data) => this.emit('joystickMove', data)); // 조이스틱 아날로그 데이터
+        handler.on('joystickMove', (data) => this.emit('joystickMove', data));
     }
 
     _onActionDown(action) {
         if (!this.enabled) return;
-        // v0.00.44: Prevent actions if Character Selection/Creation is active
+
         const sceneName = window.game?.sceneManager?.currentScene?.constructor?.name;
         if (sceneName === 'CharacterSelectionScene') return;
+        if (!this.isActionAllowed(action)) return;
 
         if (!this.actions.has(action)) {
             this.actions.add(action);
-            this.emit('keydown', action); // 하위 호환성 또는 이벤트 기반 로직용
+            this.emit('keydown', action);
             Logger.log(`Action Down: ${action}`);
         }
     }
@@ -44,9 +63,8 @@ export default class InputManager extends EventEmitter {
         }
     }
 
-    // Polling 방식 지원 (매 프레임 확인용)
     isPressed(action) {
-        return this.enabled && this.actions.has(action);
+        return this.enabled && this.isActionAllowed(action) && this.actions.has(action);
     }
 
     cleanup() {

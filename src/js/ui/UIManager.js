@@ -293,6 +293,7 @@ export class UIManager {
                 if (stat && p && p.statPoints > 0) {
                     p.statPoints--;
                     this.pendingStats[stat]++;
+                    this.game.tutorial?.trigger?.('stat_allocated', { target: stat });
                     this.updateStatusPopup();
                 }
             };
@@ -337,6 +338,7 @@ export class UIManager {
                     p.gold -= cost;
                     p.updateGoldInventory(); // v0.22.9
                     p.skillLevels[skillId]++;
+                    this.game.tutorial?.trigger?.('skill_upgrade', { target: skillId });
                     this.logSystemMessage(`✨ [SKILL] ${this.skillData[skillId].name} 레벨이 상승했습니다! (현재: ${p.skillLevels[skillId]})`);
                     this.updateSkillPopup();
                     this.updateStatusPopup();
@@ -727,6 +729,15 @@ export class UIManager {
         if (!popup) return;
 
         const isCurrentlyHidden = popup.classList.contains('hidden');
+        const popupActionMap = {
+            'inventory-popup': 'OPEN_INVENTORY',
+            'skill-popup': 'OPEN_SKILL',
+            'status-popup': 'OPEN_STATUS'
+        };
+        const requiredAction = popupActionMap[id];
+        if (isCurrentlyHidden && requiredAction && !this.game.tutorial?.isActionAllowed?.(requiredAction)) {
+            return;
+        }
 
         // If closing status popup, check for pending stats
         if (!isCurrentlyHidden && id === 'status-popup') {
@@ -763,6 +774,7 @@ export class UIManager {
             if (id === 'inventory-popup') this.updateInventory();
             if (id === 'skill-popup') this.updateSkillPopup();
             this.isPaused = true;
+            this.game.tutorial?.trigger?.('popup_open', { target: id });
         } else {
             if (this.game.sound) this.game.sound.playSfx('ui_close');
             this.overlay.classList.add('hidden');
@@ -842,6 +854,7 @@ export class UIManager {
         p.mp = Math.min(p.mp, p.maxMp);
         this.pendingStats = { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
         p.saveState(); // v0.00.01: Persist stats to DB
+        this.game.tutorial?.trigger?.('stats_saved');
     }
 
     cancelPendingStats() {
@@ -1248,6 +1261,15 @@ export class UIManager {
                 ? `진행도 ${currentCount}/${targetCount} · 튜토리얼 중에는 슬라임이 등장하지 않습니다.`
                 : '허수아비를 마치면 기본 슬라임 퀘스트가 시작됩니다.';
             rewardDisplay.onclick = null;
+            return;
+        }
+
+        const isIntroPending = !p.questData.basicTrainingCompleted &&
+            !p.questData.slimeQuestClaimed &&
+            (p.questData.slimeKills || 0) === 0;
+        if (isIntroPending) {
+            taskDisplay.style.display = 'none';
+            rewardDisplay.style.display = 'none';
             return;
         }
 

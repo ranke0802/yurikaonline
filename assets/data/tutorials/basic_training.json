@@ -4,29 +4,160 @@
     "steps": [
         {
             "id": "move_check",
-            "instruction": "WASD 또는 이동 조작으로 잠깐 움직여 보세요.",
+            "instruction": "WASD 또는 이동 패드로 조금 걸어 보세요. 지금 단계에서는 이동만 할 수 있어요.",
             "trigger": "move",
-            "count": 60
+            "count": 36,
+            "allowedActions": [
+                "MOVE_UP",
+                "MOVE_DOWN",
+                "MOVE_LEFT",
+                "MOVE_RIGHT"
+            ]
         },
         {
-            "id": "spawn_dummy",
-            "instruction": "좋아요. 이제 허수아비를 소환하겠습니다.",
-            "onStart": {
-                "type": "spawn_monster",
-                "monsterId": "training_dummy",
-                "offsetX": 170,
-                "offsetY": 0
-            },
-            "trigger": "auto_next",
-            "count": 1,
-            "duration": 1200
-        },
-        {
-            "id": "attack_scarecrow",
-            "instruction": "Space 또는 공격 버튼으로 허수아비를 처치하세요.",
+            "id": "attack_dummy",
+            "instruction": "좋아요. 이제 기본 공격으로 허수아비를 쓰러뜨려 보세요.",
+            "onStart": [
+                {
+                    "type": "close_popups"
+                },
+                {
+                    "type": "clear_tutorial_monsters"
+                },
+                {
+                    "type": "spawn_monster",
+                    "monsterId": "training_dummy",
+                    "offsetX": 170,
+                    "offsetY": 0
+                }
+            ],
             "trigger": "kill",
             "target": "training_dummy",
-            "count": 1
+            "count": 1,
+            "allowedActions": [
+                "MOVE_UP",
+                "MOVE_DOWN",
+                "MOVE_LEFT",
+                "MOVE_RIGHT",
+                "ATTACK"
+            ]
+        },
+        {
+            "id": "open_status",
+            "instruction": "이번에는 스탯 창을 열어 주세요. `I` 키나 하단 스탯 버튼을 사용할 수 있어요.",
+            "onStart": [
+                {
+                    "type": "grant_stat_points",
+                    "amount": 1
+                },
+                {
+                    "type": "close_popups"
+                }
+            ],
+            "trigger": "popup_open",
+            "target": "status-popup",
+            "count": 1,
+            "allowedActions": [
+                "OPEN_STATUS"
+            ]
+        },
+        {
+            "id": "save_status",
+            "instruction": "원하는 능력치에 1포인트를 투자하고 창을 닫아 저장해 주세요.",
+            "trigger": "stats_saved",
+            "count": 1,
+            "allowedActions": [
+                "OPEN_STATUS"
+            ]
+        },
+        {
+            "id": "open_skill",
+            "instruction": "좋아요. 이제 스킬 창을 열어 주세요. `Shift+S` 또는 하단 스킬 버튼을 사용하면 됩니다.",
+            "onStart": [
+                {
+                    "type": "grant_gold",
+                    "amount": 400
+                },
+                {
+                    "type": "close_popups"
+                }
+            ],
+            "trigger": "popup_open",
+            "target": "skill-popup",
+            "count": 1,
+            "allowedActions": [
+                "OPEN_SKILL"
+            ]
+        },
+        {
+            "id": "upgrade_skill",
+            "instruction": "매직 미사일을 한 번 강화해 보세요.",
+            "trigger": "skill_upgrade",
+            "target": "missile",
+            "count": 1,
+            "allowedActions": [
+                "OPEN_SKILL"
+            ]
+        },
+        {
+            "id": "use_skill",
+            "instruction": "강화한 매직 미사일을 사용해 보세요. `H` 키나 1번 슬롯을 눌러도 됩니다.",
+            "onStart": [
+                {
+                    "type": "close_popups"
+                },
+                {
+                    "type": "clear_tutorial_monsters"
+                },
+                {
+                    "type": "spawn_monster",
+                    "monsterId": "training_dummy",
+                    "offsetX": 200,
+                    "offsetY": -20
+                }
+            ],
+            "trigger": "skill_use",
+            "target": "missile",
+            "count": 1,
+            "allowedActions": [
+                "MOVE_UP",
+                "MOVE_DOWN",
+                "MOVE_LEFT",
+                "MOVE_RIGHT",
+                "SKILL_1"
+            ]
+        },
+        {
+            "id": "open_inventory",
+            "instruction": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. `B` 키나 가방 버튼을 사용하세요.",
+            "onStart": [
+                {
+                    "type": "close_popups"
+                }
+            ],
+            "trigger": "popup_open",
+            "target": "inventory-popup",
+            "count": 1,
+            "allowedActions": [
+                "OPEN_INVENTORY"
+            ]
+        },
+        {
+            "id": "finish",
+            "instruction": "준비 완료. 이제 실제 전투를 시작해 볼까요?",
+            "onStart": [
+                {
+                    "type": "close_popups"
+                },
+                {
+                    "type": "center_message",
+                    "text": "튜토리얼 완료 준비"
+                }
+            ],
+            "trigger": "auto_next",
+            "duration": 1000,
+            "count": 1,
+            "allowedActions": []
         }
     ]
 }

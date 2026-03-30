@@ -11,6 +11,8 @@ export default class CharacterSelectionScene extends Scene {
 
     async enter(params) {
         Logger.info("[CharacterSelectionScene] Entered");
+        this.game.ui?.hideHUD();
+        this.game.ui?.hideAllPopups();
         this.user = params.user;
 
         // Fetch User Data from Firestore/Realtime DB
@@ -251,6 +253,8 @@ export default class CharacterSelectionScene extends Scene {
                 mp: 50,
                 maxMp: 50,
                 questData: {
+                    prologueCompleted: false,
+                    basicTrainingCompleted: false,
                     slimeKills: 0,
                     slimeQuestClaimed: false,
                     slime30QuestClaimed: false,

@@ -8,6 +8,7 @@ export default class NetworkManager extends EventEmitter {
         this.roomId = 'zone_1'; // Currently hardcoded zone
         this.playerId = null;
         this.dbRef = null;
+        this.zoneParticipationEnabled = true;
 
         // Remote Players buffer
         this.remotePlayers = new Map();
@@ -274,6 +275,38 @@ export default class NetworkManager extends EventEmitter {
         Logger.log('Connected to Game Zone.');
     }
 
+    isZoneParticipationEnabled() {
+        return this.zoneParticipationEnabled;
+    }
+
+    setZoneParticipationEnabled(enabled) {
+        const nextState = !!enabled;
+        if (this.zoneParticipationEnabled === nextState) return;
+
+        this.zoneParticipationEnabled = nextState;
+        this.lastPacketData = null;
+        this.isPlayerMoving = false;
+
+        if (!nextState) {
+            if (this.playerId) {
+                this.connectedUsers = this.connectedUsers.filter((uid) => uid !== this.playerId);
+                this.userLastSeen.delete(this.playerId);
+            }
+
+            if (this.isHost) {
+                this.isHost = false;
+                this.emit('hostChanged', false);
+                this._stopCleanupLoop();
+            }
+
+            if (this.dbRef && this.playerId) {
+                this.dbRef.child(`users/${this.playerId}`).remove().catch(() => { });
+            }
+        } else {
+            this.sendHeartbeat();
+        }
+    }
+
     /**
      * Phase 1: Batch processor for damage/events
      */
@@ -333,7 +366,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     sendHeartbeat() {
-        if (!this.connected || !this.playerId) return;
+        if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         // v0.00.05: Use ServerValue.TIMESTAMP to eliminate clock skew issues
         this.dbRef.child(`users/${this.playerId}/ts`).set(firebase.database.ServerValue.TIMESTAMP);
         this.lastHeartbeatTime = Date.now();
@@ -352,7 +385,7 @@ export default class NetworkManager extends EventEmitter {
      * v0.00.23: Dynamic heartbeat - reduces frequency when idle
      */
     _dynamicHeartbeat() {
-        if (!this.connected || !this.playerId) return;
+        if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         const now = Date.now();
         const interval = this.isPlayerMoving ? this.activeHeartbeatInterval : this.idleHeartbeatInterval;
 
@@ -410,7 +443,7 @@ export default class NetworkManager extends EventEmitter {
 
             // v0.00.04: Zone-specific update ONLY IF requested and in a zone
             // This prevents players in character selection from appearing in the map
-            if (syncToZone && this.dbRef) {
+            if (syncToZone && this.dbRef && this.zoneParticipationEnabled) {
                 await this.dbRef.child(`users/${uid}/profile`).set(data);
             }
         } catch (e) {
@@ -626,6 +659,14 @@ export default class NetworkManager extends EventEmitter {
     // --- Host Logic ---
     _checkHostStatus() {
         if (!this.playerId || !this.connected) return;
+        if (!this.zoneParticipationEnabled) {
+            if (this.isHost) {
+                this.isHost = false;
+                this.emit('hostChanged', false);
+                this._stopCleanupLoop();
+            }
+            return;
+        }
 
         const now = Date.now();
         const timeout = 12000; // 12s for takeover
@@ -732,7 +773,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     collectDrop(dropId) {
-        if (!this.connected || !this.playerId) return;
+        if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         // Request collection: { did: dropId, cid: collectorId }
         this.dbRef.child('drop_collection').push({
             did: dropId,
@@ -744,7 +785,7 @@ export default class NetworkManager extends EventEmitter {
     // Phase 1: Delta synchronization for bandwidth optimization
     // Only sync changed fields instead of full packet
     sendMovePacket(x, y, vx, vy, name) {
-        if (!this.connected || !this.playerId) return;
+        if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
 
         const now = Date.now();
 
@@ -806,7 +847,7 @@ export default class NetworkManager extends EventEmitter {
 
     // v0.28.0: Detailed attack sync [ts, x, y, direction, skillType]
     sendPlayerAttack(x, y, dir, skillType, extraData = null) {
-        if (!this.connected || !this.playerId) return;
+        if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         const payload = [
             Date.now(),
             Math.round(x),
@@ -820,13 +861,13 @@ export default class NetworkManager extends EventEmitter {
 
     // v0.00.37: Send channeling state for casting effects (independent of attack hit)
     sendChanneling(skillType) {
-        if (!this.connected || !this.playerId) return;
+        if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         const payload = [Date.now(), skillType];
         this.dbRef.child(`users/${this.playerId}/ch`).set(payload);
     }
 
     sendMonsterDamage(monsterId, damage) {
-        if (!this.connected || !this.playerId) return;
+        if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         this.queueBatchUpdate('monster_damage', {
             mid: monsterId,
             dmg: Math.round(damage),
@@ -846,7 +887,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     sendPlayerDamage(targetId, damage) {
-        if (!this.connected || !this.playerId) return;
+        if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         // Optimization: Use batch queue for player damage
         this.queueBatchUpdate('player_damage', {
             tid: targetId,
@@ -869,12 +910,12 @@ export default class NetworkManager extends EventEmitter {
 
     // v0.28.0: Sync player HP status
     sendPlayerHp(hp, maxHp) {
-        if (!this.connected || !this.playerId) return;
+        if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         this.dbRef.child(`users/${this.playerId}/h`).set([Math.round(hp), Math.round(maxHp), Date.now()]);
     }
 
     sendChat(text, senderName) {
-        if (!this.connected || !this.playerId) return;
+        if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         this.dbRef.child('chat').push({
             uid: this.playerId,
             name: senderName || "Unknown",
@@ -1210,7 +1251,7 @@ export default class NetworkManager extends EventEmitter {
 
     // v0.00.14: Send PvP Damage with Status Effects
     sendPlayerDamage(targetId, amount, effectType = null, effectDuration = 0, effectDamage = 0) {
-        if (!this.connected || !this.playerId) return;
+        if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
 
         // Push damage event to target's inbox
         this.dbRef.child(`damage_events/${targetId}`).push({
@@ -1280,7 +1321,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     startHostilityListeners() {
-        if (!this.playerId) return;
+        if (!this.playerId || !this.zoneParticipationEnabled) return;
         if (this._hostilityListenerActive) return;
 
         this._hostilityListenerActive = true;
@@ -1348,7 +1389,7 @@ export default class NetworkManager extends EventEmitter {
     }
     // v2.1: Emote System
     sendEmote(emoteId) {
-        if (!this.connected || !this.playerId) return;
+        if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         this.dbRef.child('emotes').push({
             uid: this.playerId,
             emoteId: emoteId,

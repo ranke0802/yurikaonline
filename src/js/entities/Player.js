@@ -41,6 +41,8 @@ export default class Player extends CharacterBase {
         for (let i = 0; i < 20; i++) this.inventory.push(null); // 20 slots
         // Quest Data (v0.22.4+)
         this.questData = {
+            prologueCompleted: false,
+            basicTrainingCompleted: false,
             slimeKills: 0,
             slimeQuestClaimed: false,
             slime30QuestClaimed: false, // v0.00.75+
@@ -582,10 +584,15 @@ export default class Player extends CharacterBase {
         this.agility = 1;
         this.gold = 0;
         this.questData = {
+            prologueCompleted: false,
+            basicTrainingCompleted: false,
             slimeKills: 0,
             slimeQuestClaimed: false,
+            slime30QuestClaimed: false,
+            slimeRepeatKills: 0,
             bossKilled: false,
-            bossQuestClaimed: false
+            bossQuestClaimed: false,
+            bossClearCount: 0
         };
         this.skillLevels = {
             laser: 1,
@@ -839,11 +846,13 @@ export default class Player extends CharacterBase {
     }
 
     attack() {
+        if (!window.game?.tutorial?.isActionAllowed?.('ATTACK')) return;
         // Handled by update loop for channeling
     }
 
     performLaserAttack(dt) {
         if (this.isDead) return;
+        if (!window.game?.tutorial?.isActionAllowed?.('ATTACK')) return;
 
         // Cooldown check for start of attack
         if (!this.isChanneling && this.skillCooldowns.j > 0) return;
@@ -856,6 +865,9 @@ export default class Player extends CharacterBase {
 
         if (!wasChanneling && this.net) {
             this.net.sendChanneling('laser');
+        }
+        if (!wasChanneling) {
+            window.game?.tutorial?.trigger?.('attack', { target: 'normal' });
         }
 
         this.chargeTime += dt;
@@ -1000,6 +1012,8 @@ export default class Player extends CharacterBase {
 
     useSkill(slot) {
         if (this.isDead || !window.game) return;
+        const tutorialAction = { 1: 'SKILL_1', 2: 'SKILL_2', 3: 'SKILL_3', 4: 'SKILL_4' }[slot];
+        if (tutorialAction && !window.game?.tutorial?.isActionAllowed?.(tutorialAction)) return;
 
         const skills = { 1: 'missile', 2: 'fireball', 3: 'shield' };
         const keys = { 1: 'h', 2: 'u', 3: 'k' };
@@ -1081,6 +1095,8 @@ export default class Player extends CharacterBase {
                 }
 
                 if (nearest) {
+                    window.game?.tutorial?.trigger?.('skill_use', { target: skillId, slot });
+
                     // v0.00.35: Only sync if we have a valid target
                     if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'missile', count);
 
@@ -1130,6 +1146,7 @@ export default class Player extends CharacterBase {
         } else if (skillId === 'fireball') {
             const cost = 12 + (lv - 1) * 4; // v1.99.32: 12 base, +4 per level
             if (this.useMana(cost)) {
+                window.game?.tutorial?.trigger?.('skill_use', { target: skillId, slot });
                 this.triggerAction(`${this.name} : 파이어볼 !!`);
                 if (window.game?.sound) window.game.sound.playSfx('fireball_cast');
                 if (window.game?.sound) window.game.sound.playSfx('magic_cast');
@@ -1170,6 +1187,7 @@ export default class Player extends CharacterBase {
         } else if (skillId === 'shield') {
             // v0.00.42: Adjusted mana cost (20) and cooldown (3s)
             if (this.useMana(20)) {
+                window.game?.tutorial?.trigger?.('skill_use', { target: skillId, slot });
                 this.triggerAction(`${this.name} : 앱솔루트 베리어 !!`);
                 if (window.game?.sound) window.game.sound.playSfx('shield_activate');
                 if (window.game?.sound) window.game.sound.playSfx('magic_cast');
