@@ -8,6 +8,9 @@ export class UIManager {
         this.initialPoints = 0;
         this.isPaused = false;
         this.devMode = false;
+        this.pendingLandscapeFullscreen = false;
+        this.landscapeFullscreenDismissed = false;
+        this._wasFullscreenActive = false;
         this.setupEventListeners();
         this.setupFullscreenListeners();
         this.setupDevModeListeners();
@@ -237,27 +240,111 @@ export class UIManager {
 
     setupFullscreenListeners() {
         const updateClass = () => {
-            const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement ||
-                document.mozFullScreenElement || document.msFullscreenElement);
+            const isFull = this.isFullscreenActive();
             document.body.classList.toggle('is-fullscreen', isFull);
 
             if (isFull) {
                 this.syncOrientationLock();
+                this.pendingLandscapeFullscreen = false;
+                this.landscapeFullscreenDismissed = false;
+            } else if (this._wasFullscreenActive && this.isMobileLandscapeViewport()) {
+                this.pendingLandscapeFullscreen = false;
+                this.landscapeFullscreenDismissed = true;
             }
+
+            this._wasFullscreenActive = isFull;
         };
+        const handleViewportChange = () => {
+            window.requestAnimationFrame(() => this.updateLandscapeAutoFullscreen());
+        };
+        const handleOrientationChange = () => {
+            window.setTimeout(handleViewportChange, 120);
+        };
+        const tryPendingLandscapeFullscreen = () => {
+            if (!this.pendingLandscapeFullscreen) return;
+            this.requestLandscapeAutoFullscreenIfPending();
+        };
+
         document.addEventListener('fullscreenchange', updateClass);
         document.addEventListener('webkitfullscreenchange', updateClass);
         document.addEventListener('mozfullscreenchange', updateClass);
         document.addEventListener('MSFullscreenChange', updateClass);
+        window.addEventListener('resize', handleViewportChange);
+        window.addEventListener('orientationchange', handleOrientationChange);
+        document.addEventListener('touchstart', tryPendingLandscapeFullscreen, { passive: true });
+        document.addEventListener('click', tryPendingLandscapeFullscreen);
 
         // Initial check on load
         updateClass();
+        this.updateLandscapeAutoFullscreen();
     }
 
     syncOrientationLock() {
         if (screen.orientation && screen.orientation.lock) {
             screen.orientation.lock('any').catch(() => { });
         }
+    }
+
+    isFullscreenActive() {
+        return !!(document.fullscreenElement || document.webkitFullscreenElement ||
+            document.mozFullScreenElement || document.msFullscreenElement);
+    }
+
+    isStandaloneDisplayMode() {
+        return !!(window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone);
+    }
+
+    isMobileLandscapeViewport() {
+        const isTouch = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
+        const isNarrow = window.innerWidth <= 900;
+        const isLandscape = window.matchMedia?.('(orientation: landscape)')?.matches ?? (window.innerWidth > window.innerHeight);
+        return isTouch && isNarrow && isLandscape;
+    }
+
+    enterFullscreen() {
+        if (this.isFullscreenActive() || this.isStandaloneDisplayMode()) return Promise.resolve(true);
+
+        const elem = document.documentElement;
+        const request = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.mozRequestFullScreen || elem.msRequestFullscreen;
+        if (!request) {
+            this.pendingLandscapeFullscreen = false;
+            return Promise.resolve(false);
+        }
+
+        try {
+            const result = request.call(elem);
+            if (result && typeof result.then === 'function') {
+                return result.then(() => true).catch(() => false);
+            }
+            return Promise.resolve(true);
+        } catch {
+            return Promise.resolve(false);
+        }
+    }
+
+    requestLandscapeAutoFullscreenIfPending() {
+        if (!this.pendingLandscapeFullscreen || this.landscapeFullscreenDismissed) return;
+        this.enterFullscreen().then((entered) => {
+            if (entered) {
+                this.pendingLandscapeFullscreen = false;
+            }
+        });
+    }
+
+    updateLandscapeAutoFullscreen() {
+        if (!this.isMobileLandscapeViewport()) {
+            this.pendingLandscapeFullscreen = false;
+            this.landscapeFullscreenDismissed = false;
+            return;
+        }
+
+        if (this.isStandaloneDisplayMode() || this.isFullscreenActive() || this.landscapeFullscreenDismissed) {
+            this.pendingLandscapeFullscreen = false;
+            return;
+        }
+
+        this.pendingLandscapeFullscreen = true;
+        this.requestLandscapeAutoFullscreenIfPending();
     }
 
     setupEventListeners() {

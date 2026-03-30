@@ -2585,6 +2585,7 @@ body.is-fullscreen .version-info {
     .left-ui-container {
         top: calc(86px + env(safe-area-inset-top));
         left: calc(12px + env(safe-area-inset-left));
+        width: clamp(170px, 22vw, 210px);
         gap: 8px;
         transform: none !important;
         transform-origin: top left;
@@ -2593,7 +2594,8 @@ body.is-fullscreen .version-info {
 
     .quest-list-panel,
     .left-ui-container #party-panel {
-        width: min(30vw, 240px) !important;
+        width: 100% !important;
+        max-width: none !important;
         border-radius: 18px;
         border: 2px solid rgba(255, 255, 255, 0.18) !important;
         background:
@@ -2669,44 +2671,45 @@ body.is-fullscreen .version-info {
         bottom: calc(10px + env(safe-area-inset-bottom)) !important;
         top: auto !important;
         transform: translateX(-50%) !important;
-        width: min(34vw, 300px) !important;
-        height: 92px !important;
-        border-radius: 18px;
-        border: 2px solid rgba(255, 255, 255, 0.12) !important;
+        width: clamp(220px, 28vw, 300px) !important;
+        height: 84px !important;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
         background:
-            linear-gradient(180deg, rgba(15, 22, 36, 0.88) 0%, rgba(10, 15, 26, 0.92) 100%) !important;
-        box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
-        backdrop-filter: blur(12px);
-        z-index: 1320;
+            linear-gradient(180deg, rgba(15, 22, 36, 0.42) 0%, rgba(10, 15, 26, 0.5) 100%) !important;
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+        backdrop-filter: blur(16px);
+        z-index: 1285;
     }
 
     .chat-header {
-        padding: 5px 10px;
+        padding: 4px 10px;
         font-size: 11px;
         color: #ffe9b0;
-        background: rgba(255, 191, 82, 0.12);
+        background: rgba(255, 191, 82, 0.08);
     }
 
     .chat-messages {
-        padding: 6px 10px;
+        padding: 4px 10px;
         font-size: 10px !important;
-        line-height: 1.35;
+        line-height: 1.3;
+        color: rgba(238, 245, 255, 0.92);
     }
 
     .chat-input-area {
         gap: 6px;
-        padding: 6px 8px;
-        background: rgba(255, 255, 255, 0.04);
+        padding: 5px 8px;
+        background: rgba(255, 255, 255, 0.02);
         border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .chat-input-area input {
-        padding: 6px 10px;
+        padding: 5px 10px;
         border-radius: 999px;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(5, 10, 19, 0.7);
+        background: rgba(5, 10, 19, 0.45);
         color: #eef5ff;
-        font-size: 11px;
+        font-size: 10px;
     }
 
     .chat-input-area input::placeholder {
@@ -2714,8 +2717,8 @@ body.is-fullscreen .version-info {
     }
 
     .send-btn {
-        width: 28px;
-        height: 28px;
+        width: 26px;
+        height: 26px;
         flex-shrink: 0;
         background: linear-gradient(180deg, #ffe07b 0%, #ffac31 100%);
         box-shadow: 0 4px 0 rgba(132, 73, 0, 0.35);
@@ -2857,12 +2860,12 @@ body.is-fullscreen .version-info {
     }
 
     .action-buttons {
-        right: calc(18px + env(safe-area-inset-right)) !important;
-        bottom: calc(16px + env(safe-area-inset-bottom)) !important;
-        width: 230px;
-        height: 188px;
+        right: calc(14px + env(safe-area-inset-right)) !important;
+        bottom: calc(34px + env(safe-area-inset-bottom)) !important;
+        width: clamp(250px, 32vw, 340px);
+        height: clamp(220px, 30vw, 280px);
         transform: none !important;
-        transform-origin: bottom right;
+        transform-origin: center right;
         opacity: 1;
         z-index: 1320;
     }
@@ -2885,43 +2888,44 @@ body.is-fullscreen .version-info {
     }
 
     .action-buttons .skill-btn {
-        width: 64px !important;
-        height: 64px !important;
-        font-size: 24px !important;
+        width: 72px !important;
+        height: 72px !important;
+        font-size: 26px !important;
     }
 
     .action-buttons .attack-btn {
-        width: 98px !important;
-        height: 98px !important;
-        font-size: 32px !important;
+        width: 118px !important;
+        height: 118px !important;
+        font-size: 36px !important;
         background: radial-gradient(circle at 35% 30%, #fff3a8 0%, #ffb126 62%, #ff7b00 100%);
         border-color: #fff3b5;
     }
 
     .action-buttons .skill-u {
         top: 8px;
-        right: 76px;
+        right: 124px;
         background: radial-gradient(circle at 35% 30%, #ffc693 0%, #ff7d47 60%, #b82d12 100%);
         border-color: #ffe2c4;
     }
 
     .action-buttons .skill-k {
-        top: 50px;
-        right: 0;
+        top: 72px;
+        right: 18px;
         background: radial-gradient(circle at 35% 30%, #b9d5ff 0%, #5487ff 58%, #1f3ea3 100%);
         border-color: #dfeaff;
     }
 
     .action-buttons .skill-h {
-        bottom: 18px;
-        right: 124px;
+        bottom: 28px;
+        left: 8px;
+        right: auto;
         background: radial-gradient(circle at 35% 30%, #c0f6ff 0%, #37b6ff 58%, #1551b2 100%);
         border-color: #e0fbff;
     }
 
     .action-buttons .attack-btn {
         bottom: 0;
-        right: 0;
+        right: 8px;
     }
 
     .action-buttons .shortcut-badge {
@@ -2943,7 +2947,7 @@ body.is-fullscreen .version-info {
     }
 
     .action-buttons .attack-btn .inner-icon {
-        font-size: 38px;
+        font-size: 44px;
     }
 
     .action-buttons .cooldown-overlay {
@@ -2953,6 +2957,17 @@ body.is-fullscreen .version-info {
     .action-buttons .cooldown-time {
         font-size: 17px;
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+    }
+
+    .version-info,
+    body.is-fullscreen .version-info {
+        right: calc(env(safe-area-inset-right) + 22px + clamp(250px, 32vw, 340px));
+        bottom: calc(10px + env(safe-area-inset-bottom));
+        left: auto;
+        transform: scale(0.84);
+        transform-origin: bottom right;
+        opacity: 0.82;
+        z-index: 1280;
     }
 
     #hostility-panel {
