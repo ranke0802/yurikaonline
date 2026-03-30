@@ -13,12 +13,12 @@
         "exp": 35
     },
     "visual": {
-        "assetPath": "assets/resource/monster_split",
-        "width": 120,
-        "height": 120,
+        "assetPath": "assets/resource/monster_slime",
+        "width": 112,
+        "height": 112,
         "frameSpeed": 0.12,
         "frameCount": 5,
-        "scale": 2.0
+        "scale": 1.4
     },
     "sounds": {
         "attack": "sfx_slime_attack",
@@ -35,16 +35,6 @@
             "data": {
                 "damage": 30,
                 "speed": 300
-            }
-        },
-        {
-            "id": "missile",
-            "trigger": "cooldown",
-            "chance": 1.0,
-            "cooldown": 15000,
-            "data": {
-                "count": 4,
-                "damage": 7
             }
         }
     ],

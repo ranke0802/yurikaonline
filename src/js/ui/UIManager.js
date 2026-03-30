@@ -32,8 +32,8 @@ export class UIManager {
         document.addEventListener('fullscreenchange', refreshTutorialOverlays);
         document.addEventListener('webkitfullscreenchange', refreshTutorialOverlays);
 
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            this.syncOrientationLock();
+        if (this.isStandaloneDisplayMode()) {
+            this.scheduleOrientationLockRefresh();
         }
 
         // v0.00.63: Global UI Audio & Visual Feedback
@@ -251,7 +251,7 @@ export class UIManager {
             document.body.classList.toggle('is-standalone', isStandalone);
 
             if (isFull || isStandalone) {
-                this.syncOrientationLock();
+                this.scheduleOrientationLockRefresh();
                 this.pendingLandscapeFullscreen = false;
                 this.landscapeFullscreenDismissed = false;
             } else if (this._wasFullscreenActive && this.isMobileLandscapeViewport()) {
@@ -282,6 +282,12 @@ export class UIManager {
         document.addEventListener('MSFullscreenChange', updateClass);
         window.addEventListener('resize', handleViewportChange);
         window.addEventListener('orientationchange', handleOrientationChange);
+        window.addEventListener('pageshow', handleViewportChange);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                handleViewportChange();
+            }
+        });
         document.addEventListener('touchstart', tryPendingLandscapeFullscreen, { passive: true });
         document.addEventListener('click', tryPendingLandscapeFullscreen);
 
@@ -290,11 +296,22 @@ export class UIManager {
         this.updateLandscapeAutoFullscreen();
     }
 
+    scheduleOrientationLockRefresh() {
+        [0, 120, 360, 900].forEach((delay) => {
+            window.setTimeout(() => this.syncOrientationLock(), delay);
+        });
+    }
+
     syncOrientationLock() {
         if (screen.orientation && screen.orientation.lock) {
             const isTouch = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
             const shouldPreferLandscape = isTouch && (this.isStandaloneDisplayMode() || this.isFullscreenActive());
-            screen.orientation.lock(shouldPreferLandscape ? 'landscape' : 'any').catch(() => { });
+            const preferredMode = shouldPreferLandscape ? 'landscape-primary' : 'any';
+            screen.orientation.lock(preferredMode).catch(() => {
+                if (shouldPreferLandscape) {
+                    screen.orientation.lock('landscape').catch(() => { });
+                }
+            });
         }
     }
 
@@ -304,7 +321,12 @@ export class UIManager {
     }
 
     isStandaloneDisplayMode() {
-        return !!(window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone);
+        return !!(
+            window.matchMedia?.('(display-mode: standalone)')?.matches
+            || window.matchMedia?.('(display-mode: fullscreen)')?.matches
+            || window.matchMedia?.('(display-mode: minimal-ui)')?.matches
+            || window.navigator.standalone
+        );
     }
 
     isMobileLandscapeViewport() {
@@ -371,7 +393,7 @@ export class UIManager {
         this.upsertShortcutHint(
             this.isShortcutVisible(this.confirmModal) ? confirmContent : null,
             'F',
-            '취소',
+            '확인 · Esc 취소',
             'modal-shortcut-hint'
         );
         this.upsertShortcutHint(
@@ -389,7 +411,7 @@ export class UIManager {
         this.upsertShortcutHint(
             this.isShortcutVisible(document.getElementById('generic-modal')) ? genericContent : null,
             'F',
-            '거절',
+            '수락 · Esc 거절',
             'modal-shortcut-hint'
         );
         this.upsertShortcutHint(
@@ -421,7 +443,40 @@ export class UIManager {
         return true;
     }
 
-    tryCloseUiWithShortcut() {
+    tryPrimaryUiShortcut() {
+        if (!this.isDesktopShortcutMode()) return false;
+
+        const genericModal = document.getElementById('generic-modal');
+        if (this.isShortcutVisible(genericModal)) {
+            document.getElementById('generic-modal-yes')?.click();
+            return true;
+        }
+
+        if (this.isShortcutVisible(this.confirmModal)) {
+            this.confirmYes?.click();
+            return true;
+        }
+
+        if (this.isShortcutVisible(document.getElementById('reward-modal'))) {
+            this.hideRewardModal();
+            return true;
+        }
+
+        if (this.isShortcutVisible(document.getElementById('history-modal'))) {
+            this.toggleUpdateHistory();
+            return true;
+        }
+
+        const openPopup = document.querySelector('.game-popup:not(.hidden)');
+        if (openPopup?.id) {
+            this.togglePopup(openPopup.id);
+            return true;
+        }
+
+        return false;
+    }
+
+    trySecondaryUiShortcut() {
         if (!this.isDesktopShortcutMode()) return false;
 
         const genericModal = document.getElementById('generic-modal');
@@ -463,7 +518,13 @@ export class UIManager {
             return;
         }
 
-        if (e.code === 'KeyF' && this.tryCloseUiWithShortcut()) {
+        if (e.code === 'KeyF' && this.tryPrimaryUiShortcut()) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+
+        if (e.code === 'Escape' && this.trySecondaryUiShortcut()) {
             e.preventDefault();
             e.stopPropagation();
         }
@@ -2024,6 +2085,9 @@ export class UIManager {
         if (this.game.monsterManager && !this.game.monsterManager.bossSpawned) {
             this.game.monsterManager._spawnBoss(true);
             this.game.monsterManager.slimeKillCount = 0;
+            if (this.game.monsterManager.net?.dbRef) {
+                this.game.monsterManager.net.dbRef.child('world_state/slime_kill_count').set(0);
+            }
         }
 
         this.logSystemMessage('QUEST 완료: 슬라임 30마리 토벌 보상 지급 (체력 +3)');

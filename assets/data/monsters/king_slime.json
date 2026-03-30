@@ -29,16 +29,6 @@
     },
     "skills": [
         {
-            "id": "missile",
-            "trigger": "cooldown",
-            "chance": 1.0,
-            "cooldown": 15000,
-            "data": {
-                "count": 4,
-                "damage": 7
-            }
-        },
-        {
             "id": "shield",
             "trigger": "damage_received",
             "chance": 0.3,

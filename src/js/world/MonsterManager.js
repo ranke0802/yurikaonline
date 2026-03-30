@@ -22,6 +22,7 @@ export default class MonsterManager {
 
         this.bossSpawned = false;
         this.shouldSpawnBoss = false;
+        this.firstBossDefeated = false;
         this.slimeKillCount = 0; // v0.00.43: Track kills for boss spawn
 
         // v0.00.44: Persistence for Slime Kill Count
@@ -417,64 +418,11 @@ export default class MonsterManager {
             // to avoid double-update conflicts on the Host.
             // We just fall through to the Sync part below.
 
-            // v0.33.0: Host-side Boss AI (Magic Missile + Shield)
-            // v0.00.76: chargeOnly면 미사일/쉴드 비활성화 (돌진만 사용)
+            // v0.33.0: Host-side Boss AI (Shield)
+            // v0.00.76: chargeOnly면 쉴드 비활성화 (돌진만 사용)
             if (!m.isDead && m.typeId === 'king_slime' && !m.chargeOnly) {
-                if (m.missileCooldown > 0) m.missileCooldown -= dt * 1000;
                 // v0.00.47: Boss Shield Logic
                 if (m.shieldCooldown > 0) m.shieldCooldown -= dt * 1000;
-
-                // Simple Target Selection (Closest)
-                let target = m.targetPlayer;
-                if (!target && candidates.length > 0) {
-                    let minDist = 9999;
-                    candidates.forEach(p => {
-                        const d = Math.sqrt((m.x - p.x) ** 2 + (m.y - p.y) ** 2);
-                        if (d < minDist) {
-                            minDist = d;
-                            target = p;
-                        }
-                    });
-                    m.targetPlayer = target;
-                }
-
-                // Attack Trigger (Missile)
-                if (target && m.missileCooldown <= 0) {
-                    const dist = Math.sqrt((m.x - target.x) ** 2 + (m.y - target.y) ** 2);
-                    if (dist < 600) { // Range check 800 -> 600
-                        m.missileCooldown = m.missileMaxCooldown;
-                        // Send Attack Sync
-                        this.net.sendMonsterAttack(m.id, 'missile', { count: 4, targetId: target.id });
-                    }
-                }
-            }
-
-            // v0.33.0: Split Slime AI (Magic Missile Lv 1)
-            // v0.00.70: chargeOnly면 미사일 비활성화
-            if (!m.isDead && m.typeId === 'slime_split' && !m.chargeOnly) {
-                if (m.missileCooldown > 0) m.missileCooldown -= dt * 1000;
-
-                // Find Target
-                let target = m.targetPlayer;
-                if (!target && candidates.length > 0) {
-                    let minDist = 9999;
-                    candidates.forEach(p => {
-                        const d = Math.sqrt((m.x - p.x) ** 2 + (m.y - p.y) ** 2);
-                        if (d < minDist) {
-                            minDist = d;
-                            target = p;
-                        }
-                    });
-                    m.targetPlayer = target;
-                }
-
-                if (target && m.missileCooldown <= 0) {
-                    const dist = Math.sqrt((m.x - target.x) ** 2 + (m.y - target.y) ** 2);
-                    if (dist < 600) {
-                        m.missileCooldown = 6000; // Slower than boss
-                        this.net.sendMonsterAttack(m.id, 'missile', { count: 2, targetId: target.id });
-                    }
-                }
             }
 
             // v0.00.43: Charge Skill (All Slimes: slime, slime_split, king_slime)
@@ -632,6 +580,13 @@ export default class MonsterManager {
     }
 
     async _spawnBoss(isFirstBoss = true) {
+        const existingBoss = Array.from(this.monsters.values()).find((monster) => monster.typeId === 'king_slime' && !monster.isDead);
+        if (this.bossSpawned || existingBoss) {
+            return null;
+        }
+
+        this.bossSpawned = true;
+
         const id = `boss_${Date.now()}`;
         const worldW = this.zone.width || 6400;
         const worldH = this.zone.height || 6400;
@@ -639,6 +594,10 @@ export default class MonsterManager {
         const y = worldH / 2;
 
         const definition = await this.game.monsterData.loadDefinition('king_slime');
+        if (!definition) {
+            this.bossSpawned = false;
+            return null;
+        }
 
         // v0.00.70: 첫 대왕 슬라임(퀘스트용)은 HP 1000, 돌진만 사용
         const hp = isFirstBoss ? 1000 : (definition.baseStats?.hp || 1500);
@@ -666,6 +625,8 @@ export default class MonsterManager {
                 window.game.ui.logSystemMessage('분노한 대왕 슬라임이 나타났습니다!');
             }
         }
+
+        return id;
     }
 
     async _onRemoteMonsterAdded(data) {
@@ -851,12 +812,10 @@ export default class MonsterManager {
 
     // v0.00.43: Kill Count & Boss Spawn Logic
     _handleMonsterDeath(m) {
-        // Only count basic slimes or split slimes (minions)
+        // Only the first king slime uses the global 30-kill buildup.
         if (m.typeId === 'slime' || m.typeId === 'slime_split') {
-            // v0.00.44: Pause count while Boss is active
-            if (!this.bossSpawned) {
+            if (!this.firstBossDefeated && !this.bossSpawned && this.slimeKillCount < 30) {
                 this.slimeKillCount++;
-                // Sync to DB
                 if (this.net.dbRef) {
                     this.net.dbRef.child('world_state/slime_kill_count').set(this.slimeKillCount);
                 }
@@ -866,18 +825,8 @@ export default class MonsterManager {
                     this.net.sendSystemMessage("슬라임의 왕이 백성의 죽음에 슬퍼하고 있습니다. (10/30)", "#ffeb3b");
                 } else if (this.slimeKillCount === 20) {
                     this.net.sendSystemMessage("슬라임의 왕이 백성의 죽음에 분노하고 있습니다. (20/30)", "#ffeb3b");
-                } else if (this.slimeKillCount >= 30) {
-                    this.net.sendSystemMessage("슬라임의 왕이 슬픔과 분노를 삼키고 복수를 위해 강림합니다.(30/30)", "#ff4757");
-
-                    if (!this.bossSpawned) {
-                        // v0.00.70: 첫 대왕 슬라임 처치 전까지는 isFirstBoss: true
-                        const isFirst = !this.firstBossDefeated;
-                        this._spawnBoss(isFirst);
-                        this.bossSpawned = true;
-                        // v0.00.82: Reset after 30 total kills (starts loop over)
-                        this.slimeKillCount = 0;
-                        if (this.net.dbRef) this.net.dbRef.child('world_state/slime_kill_count').set(0);
-                    }
+                } else if (this.slimeKillCount === 30) {
+                    this.net.sendSystemMessage("대왕 슬라임이 강림할 준비를 마쳤습니다. 퀘스트 보상을 수령해 소환하세요. (30/30)", "#ff4757");
                 }
             }
         } else if (m.typeId === 'king_slime') {

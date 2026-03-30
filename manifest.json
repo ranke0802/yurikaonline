@@ -9,7 +9,7 @@
     ],
     "background_color": "#2d3436",
     "theme_color": "#2d3436",
-    "orientation": "landscape",
+    "orientation": "landscape-primary",
     "scope": "./",
     "id": "./index.html",
     "icons": [

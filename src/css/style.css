@@ -4353,9 +4353,10 @@ body.is-fullscreen .version-info {
         max-width: clamp(250px, 32vw, 320px) !important;
         min-height: 56px !important;
         height: auto !important;
-        background: rgba(13, 18, 28, 0.1) !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        background: transparent !important;
+        border: none !important;
         box-shadow: none !important;
+        backdrop-filter: none !important;
         z-index: 1260 !important;
     }
 
@@ -4400,8 +4401,9 @@ body.is-fullscreen .version-info {
     }
 
     .chat-window.chat-active {
-        background: rgba(13, 18, 28, 0.18) !important;
-        border-color: rgba(255, 255, 255, 0.18) !important;
+        background: transparent !important;
+        border-color: transparent !important;
+        backdrop-filter: none !important;
     }
 
     .chat-window.chat-active .chat-input-area {
@@ -4793,6 +4795,13 @@ body.is-fullscreen .version-info {
         padding-bottom: 8px !important;
     }
 
+    .game-popup .popup-header .close-popup {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex: 0 0 28px !important;
+    }
+
     .game-popup .popup-header h2 {
         font-size: 17px !important;
     }
@@ -4817,41 +4826,41 @@ body.is-fullscreen .version-info {
             "top stats"
             "actions actions"
             "footer footer" !important;
-        gap: 12px 16px !important;
+        gap: 8px 12px !important;
         align-items: start !important;
     }
 
     #status-popup .status-top {
         grid-area: top;
-        gap: 12px !important;
+        gap: 10px !important;
         align-items: flex-start !important;
     }
 
     #status-popup .status-portrait {
-        width: 72px !important;
-        height: 72px !important;
-        flex: 0 0 72px !important;
+        width: 64px !important;
+        height: 64px !important;
+        flex: 0 0 64px !important;
     }
 
     #status-popup .status-basic-info p,
     #status-popup .exp-label,
     #status-popup .exp-remaining,
     #status-popup .stat-point-info {
-        font-size: 11px !important;
+        font-size: 10px !important;
         line-height: 1.35 !important;
     }
 
     #status-popup .status-stats-grid {
         grid-area: stats;
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 10px !important;
+        gap: 8px !important;
         padding-top: 0 !important;
         border-top: none !important;
     }
 
     #status-popup .stat-main,
     #status-popup .stat-derived {
-        gap: 7px !important;
+        gap: 6px !important;
         min-width: 0 !important;
     }
 
@@ -4860,10 +4869,10 @@ body.is-fullscreen .version-info {
     }
 
     #status-popup .stat-row-ui {
-        min-height: 32px !important;
+        min-height: 28px !important;
         height: auto !important;
-        padding: 6px 8px !important;
-        font-size: 11px !important;
+        padding: 5px 7px !important;
+        font-size: 10px !important;
     }
 
     #status-popup .stat-value-container {
@@ -4886,6 +4895,7 @@ body.is-fullscreen .version-info {
     #status-popup .popup-footer {
         grid-area: footer;
         margin-top: 0 !important;
+        padding-top: 8px !important;
     }
 
     #status-popup .reset-actions .reset-btn {

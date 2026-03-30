@@ -91,7 +91,9 @@
         {
             "id": "save_status",
             "instruction": "좋아요. 방금 오른쪽 미리보기로 변화를 확인했어요. 이제 창을 닫아 스탯을 저장해 주세요.",
+            "instructionMobileLandscape": "좋아요. 방금 오른쪽 미리보기로 변화를 확인했어요. 이제 오른쪽 위 X 버튼으로 창을 닫아 스탯을 저장해 주세요.",
             "highlightTarget": "#status-close-btn-bottom",
+            "highlightTargetMobileLandscape": "#status-close-btn-top",
             "trigger": "stats_saved",
             "count": 1,
             "allowedActions": [
