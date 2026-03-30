@@ -251,6 +251,7 @@ class Game {
                 this.updateLoading('완료', 100);
                 this._hideLoader();
             } else {
+                this.net.disconnect();
                 // Return to login on logout
                 this.sceneManager.changeScene('login');
             }

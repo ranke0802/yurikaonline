@@ -36,13 +36,28 @@ export default class NetworkManager extends EventEmitter {
         this.batchQueue = [];
         this.batchInterval = 100; // 100ms batch window
         this.startBatchProcessor();
+
+        // Lifecycle guards
+        this._boundVisibilityChange = this._handleVisibilityChange.bind(this);
+        this._hostilityListenerActive = false;
+        this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
     }
 
     connect(user) {
         if (!user || !window.firebase) return;
+        if (this.connected) {
+            if (this.playerId === user.uid && this.dbRef) return;
+            this.disconnect();
+        }
 
         this.playerId = user.uid;
         this.dbRef = firebase.database().ref(`zones/${this.roomId}`);
+        this.connectedUsers = [];
+        this.userLastSeen.clear();
+        this.remotePlayers.clear();
+        this._hostilityListenerActive = false;
+        this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
+        this.startBatchProcessor();
 
         Logger.log(`Network Coordinates: connecting to ${this.roomId}...`);
 
@@ -230,6 +245,10 @@ export default class NetworkManager extends EventEmitter {
         // chat Sync
         this.dbRef.child('chat').on('child_added', (snapshot) => {
             const data = snapshot.val();
+            if (!data || typeof data.ts !== 'number' || typeof data.text !== 'string') {
+                if (this.isHost) snapshot.ref.remove();
+                return;
+            }
             if (data && data.ts > Date.now() - 30000) { // Only recent chats
                 this.emit('chatReceived', data);
             }
@@ -243,6 +262,10 @@ export default class NetworkManager extends EventEmitter {
         // v0.00.43: System Message Listener (Center Screen Warnings)
         this.dbRef.child('system_messages').on('child_added', (snapshot) => {
             const data = snapshot.val();
+            if (!data || typeof data.ts !== 'number' || typeof data.message !== 'string') {
+                if (this.isHost) snapshot.ref.remove();
+                return;
+            }
             if (data && data.ts > Date.now() - 5000) { // Only very recent (5s)
                 this.emit('systemMessage', data);
             }
@@ -270,7 +293,8 @@ export default class NetworkManager extends EventEmitter {
         this._setupEmoteListeners(); // v2.1
 
         // v0.35.1: Mobile Background Reconnection Support
-        document.addEventListener('visibilitychange', () => this._handleVisibilityChange());
+        document.removeEventListener('visibilitychange', this._boundVisibilityChange);
+        document.addEventListener('visibilitychange', this._boundVisibilityChange);
 
         Logger.log('Connected to Game Zone.');
     }
@@ -357,12 +381,67 @@ export default class NetworkManager extends EventEmitter {
     }
 
     disconnect() {
-        if (this._hbInterval) clearInterval(this._hbInterval);
-        this.stopBatchProcessor();
-        this.connected = false;
-        if (this.playerId && this.dbRef) {
-            this.dbRef.child(`users/${this.playerId}`).remove();
+        if (this._hbInterval) {
+            clearInterval(this._hbInterval);
+            this._hbInterval = null;
         }
+        if (this._localCleanupTimer) {
+            clearInterval(this._localCleanupTimer);
+            this._localCleanupTimer = null;
+        }
+        this._stopCleanupLoop();
+        this.stopBatchProcessor();
+        this.batchQueue.length = 0;
+        document.removeEventListener('visibilitychange', this._boundVisibilityChange);
+        this._detachAllDbListeners();
+
+        if (this.playerId && this.dbRef) {
+            this.dbRef.child(`users/${this.playerId}`).remove().catch(() => { });
+        }
+
+        this.connected = false;
+        this.isHost = false;
+        this.currentHostId = null;
+        this.connectedUsers = [];
+        this.userLastSeen.clear();
+        this.remotePlayers.clear();
+        this._hostilityListenerActive = false;
+        this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
+        this.lastPacketData = null;
+        this.lastSyncTime = 0;
+        this.lastHeartbeatTime = 0;
+        this.playerId = null;
+        this.dbRef = null;
+    }
+
+    _detachAllDbListeners() {
+        if (!this.dbRef) return;
+
+        const fixedPaths = [
+            'users',
+            'monsters',
+            'monster_attack',
+            'monster_damage',
+            'monster_damage_batch',
+            'player_damage',
+            'player_damage_batch',
+            'drops',
+            'drop_collection',
+            'chat',
+            'system_messages',
+            'emotes'
+        ];
+        fixedPaths.forEach(path => this.dbRef.child(path).off());
+
+        if (!this.playerId) return;
+        const playerPaths = [
+            `rewards/${this.playerId}`,
+            `party_invites/${this.playerId}`,
+            `party_responses/${this.playerId}`,
+            `damage_events/${this.playerId}`,
+            `users/${this.playerId}/hostility_inbox`
+        ];
+        playerPaths.forEach(path => this.dbRef.child(path).off());
     }
 
     sendHeartbeat() {
@@ -591,30 +670,17 @@ export default class NetworkManager extends EventEmitter {
     }
 
     async respondToInvite(inviteId, fromUid, accept) {
-        if (!this.connected) return;
+        if (!this.connected || !this.playerId || !this.dbRef) return;
 
         // Remove the invite first
-        await this.dbRef.child(`users/${this.playerId}/invites/${inviteId}`).remove();
+        await this.dbRef.child(`party_invites/${this.playerId}/${inviteId}`).remove();
 
-        if (accept) {
-            // Add self to target's party (Simple implementation: Party is just a list of ID under the Host)
-            // Or better: Party is a separate node `parties/{partyId}`?
-            // For simplicity in this codebase, let's assume the "Host" holds the party data, 
-            // or we make a `parties` node.
-
-            // Let's use a `parties` node for better sync
-            // Check if sender is already in a party
-            // This is complex without a dedicated PartyManager on server-side.
-            // We will use a "Request" model to the Host.
-
-            // Send 'party_accept' signal to the sender
-            await this.dbRef.child(`users/${fromUid}/party_responses`).push({
-                from: this.playerId,
-                fromName: this.game.localPlayer.name,
-                accept: true,
-                ts: Date.now()
-            });
-        }
+        await this.dbRef.child(`party_responses/${fromUid}`).push({
+            from: this.playerId,
+            fromName: window.game?.localPlayer?.name || 'Unknown',
+            accept: !!accept,
+            ts: Date.now()
+        });
     }
 
     async leaveParty() {
@@ -911,7 +977,17 @@ export default class NetworkManager extends EventEmitter {
     // v0.28.0: Sync player HP status
     sendPlayerHp(hp, maxHp) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
-        this.dbRef.child(`users/${this.playerId}/h`).set([Math.round(hp), Math.round(maxHp), Date.now()]);
+        const now = Date.now();
+        const nextHp = Math.round(hp);
+        const nextMaxHp = Math.round(maxHp);
+
+        if (this._lastHpSync.hp === nextHp && this._lastHpSync.maxHp === nextMaxHp && (now - this._lastHpSync.ts) < 500) {
+            return;
+        }
+        if ((now - this._lastHpSync.ts) < 120) return;
+
+        this._lastHpSync = { hp: nextHp, maxHp: nextMaxHp, ts: now };
+        this.dbRef.child(`users/${this.playerId}/h`).set([nextHp, nextMaxHp, now]);
     }
 
     sendChat(text, senderName) {
@@ -1268,7 +1344,7 @@ export default class NetworkManager extends EventEmitter {
         // Listen for Incoming Damage
         this.dbRef.child(`damage_events/${this.playerId}`).on('child_added', (snapshot) => {
             const val = snapshot.val();
-            if (val) {
+            if (val && typeof val.ts === 'number') {
                 // Validate timestamp (ignore old attacks > 5s)
                 if (Date.now() - val.ts < 5000) {
                     if (window.game && window.game.localPlayer) {
@@ -1413,7 +1489,7 @@ export default class NetworkManager extends EventEmitter {
     _setupEmoteListeners() {
         this.dbRef.child('emotes').on('child_added', (snapshot) => {
             const data = snapshot.val();
-            if (data && data.ts > Date.now() - 5000) { // Recent only
+            if (data && typeof data.ts === 'number' && data.ts > Date.now() - 5000) { // Recent only
                 this.emit('emoteReceived', data);
             }
             // Host cleans up

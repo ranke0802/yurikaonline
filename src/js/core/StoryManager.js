@@ -194,10 +194,12 @@ export default class StoryManager {
 
                     case 'sound':
                         if (this.game.sound && action.id) {
-                            if (action.id.startsWith('bgm_')) {
-                                this.game.sound.loadAndPlayBgm(action.id);
+                            const soundId = String(action.id);
+                            if (soundId.startsWith('bgm_')) {
+                                this.game.sound.loadAndPlayBgm(soundId);
                             } else {
-                                this.game.sound.playSfx(action.id);
+                                const sfxId = soundId.startsWith('sfx_') ? soundId.substring(4) : soundId;
+                                this.game.sound.playSfx(sfxId);
                             }
                         }
                         resolve();

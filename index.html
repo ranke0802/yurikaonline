@@ -8,9 +8,7 @@
     <!-- PWA Manifest & Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2d3436">
-    <!-- v0.00.50: Force Portrait Mode -->
-    <meta name="screen-orientation" content="portrait">
-    <meta name="x5-orientation" content="portrait">
+    <!-- v0.01.05: Allow portrait and landscape battle HUD -->
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
@@ -56,7 +54,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.01.00</title>
+    <title>Yurika Online v0.01.05</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
@@ -74,10 +72,18 @@
                 // Fix: Check if serverVersion already starts with 'v' to avoid "vv0.00.57"
                 const displayVersion = serverVersion.startsWith('v') ? serverVersion : `v${serverVersion}`;
 
-                document.title = `Yurika Online ${displayVersion}`;
-                const versionInfo = document.querySelector('.version-info');
-                if (versionInfo) {
-                    versionInfo.innerHTML = `📜 ${displayVersion}`;
+                const applyVersionUi = () => {
+                    document.title = `Yurika Online ${displayVersion}`;
+                    const versionInfo = document.querySelector('.version-info');
+                    if (versionInfo) {
+                        versionInfo.innerHTML = `📜 ${displayVersion}`;
+                    }
+                };
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', applyVersionUi, { once: true });
+                } else {
+                    applyVersionUi();
                 }
 
                 // Only reload if:
@@ -585,7 +591,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📜 v0.01.03
+        📜 v0.01.05
     </div>
 
 

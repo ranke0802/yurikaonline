@@ -92,7 +92,7 @@ export default class QuestManager {
             this.completedQuests.add('quest_boss_king_slime');
             this._activateQuest('quest_slime_repeat', [{
                 current: questData.slimeRepeatKills || 0,
-                complete: (questData.slimeRepeatKills || 0) >= 10
+                complete: (questData.slimeRepeatKills || 0) >= 30
             }]);
         }
 

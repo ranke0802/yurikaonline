@@ -1,7 +1,7 @@
 {
     "id": "quest_slime_repeat",
     "title": "슬라임 반복 토벌",
-    "description": "슬라임 10마리를 처치하세요. (반복 퀘스트)",
+    "description": "슬라임 30마리를 처치하세요. (반복 퀘스트)",
     "type": "repeat",
     "prerequisites": [
         "quest_boss_king_slime"
@@ -10,7 +10,7 @@
         {
             "type": "kill",
             "target": "slime",
-            "count": 10,
+            "count": 30,
             "description": "슬라임 처치: {current}/{count}"
         }
     ],

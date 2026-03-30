@@ -25,6 +25,10 @@ export class UIManager {
         document.addEventListener('fullscreenchange', refreshTutorialOverlays);
         document.addEventListener('webkitfullscreenchange', refreshTutorialOverlays);
 
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            this.syncOrientationLock();
+        }
+
         // v0.00.63: Global UI Audio & Visual Feedback
         if (this.tooltip) {
             this.tooltip.style.opacity = '0';
@@ -237,6 +241,9 @@ export class UIManager {
                 document.mozFullScreenElement || document.msFullscreenElement);
             document.body.classList.toggle('is-fullscreen', isFull);
 
+            if (isFull) {
+                this.syncOrientationLock();
+            }
         };
         document.addEventListener('fullscreenchange', updateClass);
         document.addEventListener('webkitfullscreenchange', updateClass);
@@ -245,6 +252,12 @@ export class UIManager {
 
         // Initial check on load
         updateClass();
+    }
+
+    syncOrientationLock() {
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('any').catch(() => { });
+        }
     }
 
     setupEventListeners() {
