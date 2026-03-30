@@ -781,9 +781,12 @@ export default class WorldScene extends Scene {
             if (isMonsterTarget && !this.monsterManager?.monsters?.has(t.id)) {
                 this.player.currentTarget = null;
             } else {
-                const tx = t.x + t.width / 2;
-                const ty = t.y + t.height;
-                SkillRenderer.drawTargetMarker(ctx, tx, ty, t.width || 48, t.height || 48);
+                const isTutorialDummyTarget = t.typeId === 'training_dummy' && !!this.game?.tutorial?.activeTutorial;
+                if (!isTutorialDummyTarget) {
+                    const tx = t.x + t.width / 2;
+                    const ty = t.y + t.height;
+                    SkillRenderer.drawTargetMarker(ctx, tx, ty, t.width || 48, t.height || 48);
+                }
             }
         }
 
