@@ -36,6 +36,8 @@ export class UIManager {
         }
 
         this.currentDialogQueue = [];
+        this.waitingForOption = false;
+        this.storyDialogActive = false;
 
         // v0.00.63: Global UI Audio & Visual Feedback Delegation
         this.setupGlobalInteractions();
@@ -45,7 +47,7 @@ export class UIManager {
     }
 
     // v2.1: Dialog System Methods
-    showDialog(dialogData) {
+    showDialog(dialogData, options = {}) {
         if (!this.dialogBox) return;
 
         if (Array.isArray(dialogData)) {
@@ -54,6 +56,8 @@ export class UIManager {
             this.currentDialogQueue = [dialogData];
         }
 
+        this.waitingForOption = false;
+        this.storyDialogActive = !!options.storyControlled;
         this.dialogBox.style.display = 'block';
         this.dialogBox.classList.remove('hidden');
         this.advanceDialog();
@@ -61,7 +65,11 @@ export class UIManager {
 
     advanceDialog() {
         if (this.currentDialogQueue.length === 0 && !this.waitingForOption) {
+            const shouldAdvanceStory = this.storyDialogActive && this.game.story?.isStoryActive;
             this.hideDialog();
+            if (shouldAdvanceStory) {
+                this.game.story.advance();
+            }
             return;
         }
 
@@ -99,7 +107,12 @@ export class UIManager {
 
     hideDialog() {
         if (this.dialogBox) this.dialogBox.style.display = 'none';
+        if (this.dialogNext) this.dialogNext.style.display = 'block';
+        const optionsContainer = document.getElementById('dialog-options');
+        if (optionsContainer) optionsContainer.innerHTML = '';
         this.currentDialogQueue = [];
+        this.waitingForOption = false;
+        this.storyDialogActive = false;
     }
 
     // v2.3: Tutorial UI

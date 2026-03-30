@@ -92,7 +92,7 @@ export default class StoryManager {
     _showSequenceDialog(seq) {
         // Show dialog if sequence has text
         if (seq.text && this.game.ui) {
-            this.game.ui.showDialog([seq]);
+            this.game.ui.showDialog([seq], { storyControlled: true });
         } else if (!seq.text) {
             // No dialog, auto-advance
             if (seq.next) {
@@ -120,104 +120,109 @@ export default class StoryManager {
      */
     _executeAction(action) {
         return new Promise((resolve) => {
-            // v2.2.1: Robust duration handling (allow 0)
-            const duration = action.duration !== undefined ? action.duration : 1000;
+            try {
+                // v2.2.1: Robust duration handling (allow 0)
+                const duration = action.duration !== undefined ? action.duration : 1000;
 
-            switch (action.type) {
-                case 'delay':
-                    if (duration <= 0) resolve();
-                    else setTimeout(resolve, duration);
-                    break;
+                switch (action.type) {
+                    case 'delay':
+                        if (duration <= 0) resolve();
+                        else setTimeout(resolve, duration);
+                        break;
 
-                case 'fade_out':
-                    this._startFade(1, duration, resolve);
-                    break;
+                    case 'fade_out':
+                        this._startFade(1, duration, resolve);
+                        break;
 
-                case 'fade_in':
-                    this._startFade(0, duration, resolve);
-                    break;
+                    case 'fade_in':
+                        this._startFade(0, duration, resolve);
+                        break;
 
-                case 'camera_pan': {
-                    const camera = this.game.camera;
-                    if (camera && action.target) {
-                        const targetX = action.target.x - camera.width / 2;
-                        const targetY = action.target.y - camera.height / 2;
+                    case 'camera_pan': {
+                        const camera = this.game.camera;
+                        if (camera && action.target) {
+                            const targetX = action.target.x - camera.width / 2;
+                            const targetY = action.target.y - camera.height / 2;
 
-                        if (duration <= 0) {
-                            camera.x = targetX;
-                            camera.y = targetY;
-                            camera.clampToBounds();
-                            resolve();
-                            return;
-                        }
-
-                        const startX = camera.x;
-                        const startY = camera.y;
-                        const startTime = performance.now();
-
-                        const animate = () => {
-                            const elapsed = performance.now() - startTime;
-                            const t = Math.min(1, elapsed / duration);
-                            // Ease-in-out
-                            const ease = t < 0.5
-                                ? 2 * t * t
-                                : -1 + (4 - 2 * t) * t;
-
-                            camera.x = startX + (targetX - startX) * ease;
-                            camera.y = startY + (targetY - startY) * ease;
-                            camera.clampToBounds();
-
-                            if (t < 1) {
-                                requestAnimationFrame(animate);
-                            } else {
+                            if (duration <= 0) {
+                                camera.x = targetX;
+                                camera.y = targetY;
+                                camera.clampToBounds();
                                 resolve();
+                                return;
                             }
-                        };
-                        requestAnimationFrame(animate);
-                    } else {
-                        resolve();
-                    }
-                    break;
-                }
 
-                case 'shake':
-                    if (this.game.camera?.shake) {
-                        this.game.camera.shake(
-                            action.intensity || 10,
-                            duration ? duration / 1000 : 0.3
-                        );
-                    }
-                    if (duration <= 0) resolve();
-                    else setTimeout(resolve, duration);
-                    break;
+                            const startX = camera.x;
+                            const startY = camera.y;
+                            const startTime = performance.now();
 
-                case 'sound':
-                    if (this.game.sound && action.id) {
-                        if (action.id.startsWith('bgm_')) {
-                            this.game.sound.playBGM(action.id);
+                            const animate = () => {
+                                const elapsed = performance.now() - startTime;
+                                const t = Math.min(1, elapsed / duration);
+                                // Ease-in-out
+                                const ease = t < 0.5
+                                    ? 2 * t * t
+                                    : -1 + (4 - 2 * t) * t;
+
+                                camera.x = startX + (targetX - startX) * ease;
+                                camera.y = startY + (targetY - startY) * ease;
+                                camera.clampToBounds();
+
+                                if (t < 1) {
+                                    requestAnimationFrame(animate);
+                                } else {
+                                    resolve();
+                                }
+                            };
+                            requestAnimationFrame(animate);
                         } else {
-                            this.game.sound.playSfx(action.id);
+                            resolve();
                         }
+                        break;
                     }
-                    resolve();
-                    break;
 
-                case 'message':
-                    if (this.game.ui && action.text) {
-                        this.game.ui.showCenterMessage(action.text, duration || 3000);
-                    }
-                    if (duration <= 0) resolve();
-                    else setTimeout(resolve, duration);
-                    break;
+                    case 'shake':
+                        if (this.game.camera?.shake) {
+                            this.game.camera.shake(
+                                action.intensity || 10,
+                                duration ? duration / 1000 : 0.3
+                            );
+                        }
+                        if (duration <= 0) resolve();
+                        else setTimeout(resolve, duration);
+                        break;
 
-                case 'action':
-                    this._handleAction(action.id);
-                    resolve();
-                    break;
+                    case 'sound':
+                        if (this.game.sound && action.id) {
+                            if (action.id.startsWith('bgm_')) {
+                                this.game.sound.loadAndPlayBgm(action.id);
+                            } else {
+                                this.game.sound.playSfx(action.id);
+                            }
+                        }
+                        resolve();
+                        break;
 
-                default:
-                    Logger.warn(`[StoryManager] Unknown action type: ${action.type}`);
-                    resolve();
+                    case 'message':
+                        if (this.game.ui && action.text) {
+                            this.game.ui.showCenterMessage(action.text, action.color || '#ffeb3b');
+                        }
+                        if (duration <= 0) resolve();
+                        else setTimeout(resolve, duration);
+                        break;
+
+                    case 'action':
+                        this._handleAction(action.id);
+                        resolve();
+                        break;
+
+                    default:
+                        Logger.warn(`[StoryManager] Unknown action type: ${action.type}`);
+                        resolve();
+                }
+            } catch (e) {
+                Logger.error(`[StoryManager] Cutscene action failed: ${action?.type || 'unknown'}`, e);
+                resolve();
             }
         });
     }
