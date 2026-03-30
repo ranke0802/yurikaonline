@@ -16,10 +16,14 @@ export class UIManager {
         this.tutorialHighlightTargets = [];
         this.refreshTutorialHighlight = this.refreshTutorialHighlight.bind(this);
         this.refreshTutorialGuideLayout = this.refreshTutorialGuideLayout.bind(this);
-        window.addEventListener('resize', () => {
+        const refreshTutorialOverlays = () => {
             this.refreshTutorialHighlight();
             this.refreshTutorialGuideLayout();
-        });
+        };
+        window.addEventListener('resize', refreshTutorialOverlays);
+        window.addEventListener('orientationchange', refreshTutorialOverlays);
+        document.addEventListener('fullscreenchange', refreshTutorialOverlays);
+        document.addEventListener('webkitfullscreenchange', refreshTutorialOverlays);
 
         // v0.00.63: Global UI Audio & Visual Feedback
         if (this.tooltip) {
@@ -128,6 +132,7 @@ export class UIManager {
     applyTutorialGuideLayout(guide) {
         const mode = this.getTutorialViewportMode();
         const isLandscape = mode === 'mobile-landscape';
+        const isPortrait = mode === 'mobile-portrait';
 
         guide.style.position = 'fixed';
         guide.style.left = '50%';
@@ -136,7 +141,7 @@ export class UIManager {
         guide.style.boxSizing = 'border-box';
         guide.style.pointerEvents = 'none';
         guide.style.zIndex = '1000';
-        guide.style.maxWidth = isLandscape ? 'calc(100vw - 16px)' : 'min(92vw, 760px)';
+        guide.style.maxWidth = isLandscape ? 'calc(100vw - 16px)' : (isPortrait ? 'min(84vw, 560px)' : 'min(92vw, 760px)');
         guide.style.maxHeight = isLandscape ? 'calc(100vh - 24px)' : 'none';
         guide.style.overflowY = isLandscape ? 'auto' : 'visible';
         guide.style.lineHeight = '1.45';
@@ -146,11 +151,11 @@ export class UIManager {
             guide.style.transform = 'translateX(-50%)';
             guide.style.padding = '10px 14px';
             guide.style.fontSize = '15px';
-        } else if (mode === 'mobile-portrait') {
-            guide.style.top = '18%';
-            guide.style.transform = 'translate(-50%, -50%)';
-            guide.style.padding = '14px 20px';
-            guide.style.fontSize = '17px';
+        } else if (isPortrait) {
+            guide.style.top = 'calc(env(safe-area-inset-top, 0px) + 118px)';
+            guide.style.transform = 'translateX(-50%)';
+            guide.style.padding = '13px 18px';
+            guide.style.fontSize = '16px';
         } else {
             guide.style.top = '20%';
             guide.style.transform = 'translate(-50%, -50%)';

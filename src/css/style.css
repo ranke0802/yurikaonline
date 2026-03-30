@@ -1750,10 +1750,164 @@ button:active,
     }
 }
 
+@media screen and (max-width: 900px) and (orientation: portrait) {
+    .top-bar {
+        position: fixed !important;
+        top: calc(10px + env(safe-area-inset-top)) !important;
+        left: 10px !important;
+        transform: scale(0.68) !important;
+        transform-origin: top left !important;
+        z-index: 1200 !important;
+    }
+
+    .left-ui-container {
+        position: fixed !important;
+        top: calc(76px + env(safe-area-inset-top)) !important;
+        left: 10px !important;
+        width: min(48vw, 220px) !important;
+        gap: 8px !important;
+        transform: none !important;
+        transform-origin: top left !important;
+        z-index: 1100 !important;
+    }
+
+    .quest-list-panel {
+        width: 100% !important;
+        max-width: none !important;
+        max-height: min(28vh, 220px) !important;
+        border-width: 3px !important;
+    }
+
+    .quest-list-panel .quest-content {
+        max-height: calc(min(28vh, 220px) - 62px);
+        overflow-y: auto;
+    }
+
+    .chat-window {
+        width: 100% !important;
+        max-width: none !important;
+        min-height: 132px !important;
+        height: min(24vh, 172px) !important;
+        border-width: 3px !important;
+        background: rgba(253, 250, 246, 0.78) !important;
+    }
+
+    .chat-messages {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: auto !important;
+        max-height: none !important;
+        font-size: 11px !important;
+        line-height: 1.35 !important;
+    }
+
+    #minimap-container {
+        position: fixed !important;
+        top: calc(10px + env(safe-area-inset-top)) !important;
+        right: calc(10px + env(safe-area-inset-right)) !important;
+        width: 110px !important;
+        transform: scale(0.95) !important;
+        transform-origin: top right !important;
+        z-index: 1400 !important;
+        overflow: hidden !important;
+    }
+
+    body #ui-layer .minimap-menu {
+        position: fixed !important;
+        top: auto !important;
+        right: auto !important;
+        bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 16px !important;
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        width: auto !important;
+        z-index: 1450 !important;
+    }
+
+    body.is-fullscreen #ui-layer .minimap-menu {
+        bottom: calc(28px + env(safe-area-inset-bottom)) !important;
+    }
+
+    body #ui-layer .minimap-menu .menu-btn {
+        width: 48px !important;
+        height: 48px !important;
+        background: rgba(253, 250, 246, 0.86) !important;
+        border: 2px solid rgba(255, 255, 255, 0.92) !important;
+        border-radius: 14px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    body #ui-layer .minimap-menu .menu-icon,
+    body #ui-layer #btn-fullscreen .menu-icon {
+        font-size: 22px !important;
+        filter: none !important;
+    }
+
+    body #ui-layer #btn-fullscreen {
+        position: fixed !important;
+        top: calc(148px + env(safe-area-inset-top)) !important;
+        right: calc(10px + env(safe-area-inset-right)) !important;
+        left: auto !important;
+        bottom: auto !important;
+        width: 42px !important;
+        height: 42px !important;
+        background: rgba(253, 250, 246, 0.86) !important;
+        border: 2px solid rgba(255, 255, 255, 0.92) !important;
+        border-radius: 12px !important;
+        box-shadow: none !important;
+        backdrop-filter: blur(2px) !important;
+        z-index: 1450 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
+        transform: none !important;
+    }
+
+    body.is-fullscreen #ui-layer #btn-fullscreen {
+        top: calc(168px + env(safe-area-inset-top)) !important;
+    }
+
+    #joystick-area {
+        top: 56px !important;
+        width: 50vw !important;
+        height: calc(100vh - 150px - env(safe-area-inset-bottom)) !important;
+    }
+
+    .action-buttons {
+        position: fixed !important;
+        right: calc(14px + env(safe-area-inset-right));
+        bottom: calc(96px + env(safe-area-inset-bottom));
+        transform: scale(0.94) !important;
+        transform-origin: bottom right;
+        opacity: 1;
+        z-index: 1500;
+    }
+
+    #tutorial-guide {
+        top: calc(env(safe-area-inset-top, 0px) + 118px) !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        max-width: min(84vw, 560px) !important;
+        z-index: 1600 !important;
+    }
+}
+
 /* Mobile Landscape HUD Layout */
 @media screen and (max-width: 900px) and (orientation: landscape) {
     .top-bar {
-        top: 8px;
+        top: calc(8px + env(safe-area-inset-top));
         left: 8px;
         transform: scale(0.62);
         transform-origin: top left;
@@ -1762,9 +1916,9 @@ button:active,
 
     .left-ui-container {
         position: fixed;
-        top: 56px;
+        top: calc(56px + env(safe-area-inset-top));
         left: 8px;
-        bottom: 8px;
+        bottom: calc(8px + env(safe-area-inset-bottom));
         width: min(32vw, 250px);
         display: flex;
         flex-direction: column;
@@ -1817,8 +1971,8 @@ button:active,
 
     #minimap-container {
         position: fixed;
-        top: 8px;
-        right: 8px;
+        top: calc(8px + env(safe-area-inset-top));
+        right: calc(8px + env(safe-area-inset-right));
         width: min(16vw, 132px);
         min-width: 104px;
         transform: none;
@@ -1854,8 +2008,8 @@ button:active,
 
     body #ui-layer .minimap-menu {
         position: fixed !important;
-        top: 8px !important;
-        right: calc(8px + min(16vw, 132px) + 10px) !important;
+        top: calc(8px + env(safe-area-inset-top)) !important;
+        right: calc(8px + env(safe-area-inset-right) + min(16vw, 132px) + 10px) !important;
         left: auto !important;
         bottom: auto !important;
         transform: none !important;
@@ -1890,8 +2044,8 @@ button:active,
 
     #btn-fullscreen {
         position: fixed !important;
-        top: calc(8px + 3 * 44px) !important;
-        right: 8px !important;
+        top: calc(8px + env(safe-area-inset-top) + 132px + 12px) !important;
+        right: calc(8px + env(safe-area-inset-right)) !important;
         left: auto !important;
         bottom: auto !important;
         width: 38px !important;
@@ -1928,8 +2082,8 @@ button:active,
 
     .action-buttons {
         position: fixed !important;
-        right: 8px;
-        bottom: 8px;
+        right: calc(8px + env(safe-area-inset-right));
+        bottom: calc(8px + env(safe-area-inset-bottom));
         transform: none !important;
         transform-origin: bottom right;
         opacity: 1;
