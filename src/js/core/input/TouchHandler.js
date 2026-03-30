@@ -21,6 +21,23 @@ export default class TouchHandler extends EventEmitter {
         this.init();
     }
 
+    _showJoystickAt(x, y) {
+        if (!this.container) return;
+
+        // Landscape HUD styles use !important, so the runtime position needs to
+        // be applied with the same priority for the joystick to actually appear.
+        this.container.style.setProperty('display', 'flex', 'important');
+        this.container.style.setProperty('left', `${x - 75}px`, 'important');
+        this.container.style.setProperty('top', `${y - 75}px`, 'important');
+        this.container.style.setProperty('right', 'auto', 'important');
+        this.container.style.setProperty('bottom', 'auto', 'important');
+    }
+
+    _hideJoystick() {
+        if (!this.container) return;
+        this.container.style.setProperty('display', 'none', 'important');
+    }
+
     init() {
         if (!this.base || !this.stick || !this.container) return;
 
@@ -93,9 +110,7 @@ export default class TouchHandler extends EventEmitter {
         const x = touch.clientX;
         const y = touch.clientY;
 
-        this.container.style.display = 'flex';
-        this.container.style.left = `${x - 75}px`;
-        this.container.style.top = `${y - 75}px`;
+        this._showJoystickAt(x, y);
 
         // Reset stick visually
         this.stick.style.left = '50%';
@@ -170,7 +185,7 @@ export default class TouchHandler extends EventEmitter {
 
         this.stick.style.left = '50%';
         this.stick.style.top = '50%';
-        this.container.style.display = 'none';
+        this._hideJoystick();
 
         this.emit('joystickMove', { x: 0, y: 0, active: false });
     }
