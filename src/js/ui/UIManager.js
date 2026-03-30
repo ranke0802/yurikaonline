@@ -56,6 +56,7 @@ export class UIManager {
 
         // v2.1: Emote UI
         this.setupEmoteUI();
+        this.setupLandscapeChatInteractions();
     }
 
     // v2.1: Dialog System Methods
@@ -301,6 +302,92 @@ export class UIManager {
         return isTouch && isNarrow && isLandscape;
     }
 
+    setLandscapeChatActive(active, options = {}) {
+        const { focusInput = false } = options;
+        const chatWindow = document.querySelector('.chat-window');
+        const chatInput = document.querySelector('.chat-input-area input');
+
+        if (!chatWindow) return;
+
+        const shouldActivate = active && this.isMobileLandscapeViewport();
+        chatWindow.classList.toggle('chat-active', shouldActivate);
+        document.body.classList.toggle('landscape-chat-active', shouldActivate);
+
+        if (!shouldActivate && chatInput && document.activeElement === chatInput) {
+            chatInput.blur();
+        }
+
+        if (shouldActivate && focusInput && chatInput && document.activeElement !== chatInput) {
+            window.requestAnimationFrame(() => {
+                chatInput.focus({ preventScroll: true });
+            });
+        }
+    }
+
+    syncLandscapeChatLayout() {
+        if (!this.isMobileLandscapeViewport()) {
+            this.setLandscapeChatActive(false);
+        }
+    }
+
+    setupLandscapeChatInteractions() {
+        const chatWindow = document.querySelector('.chat-window');
+        const chatInput = document.querySelector('.chat-input-area input');
+
+        if (!chatWindow || !chatInput) return;
+
+        const shouldIgnoreTarget = (target) => {
+            if (!(target instanceof Element)) return false;
+            return !!target.closest('.chat-input-area, .send-btn, #emote-picker, #btn-emote-shortcut, .emote-btn');
+        };
+
+        const activateChat = (e) => {
+            if (!this.isMobileLandscapeViewport() || shouldIgnoreTarget(e.target)) return;
+            e.preventDefault();
+            e.stopPropagation();
+            this.setLandscapeChatActive(true, { focusInput: true });
+        };
+
+        const maybeCollapseChat = () => {
+            if (!this.isMobileLandscapeViewport()) {
+                this.setLandscapeChatActive(false);
+                return;
+            }
+
+            window.setTimeout(() => {
+                const picker = document.getElementById('emote-picker');
+                if (document.activeElement === chatInput) return;
+                if (picker && !picker.classList.contains('hidden')) return;
+                if (chatInput.value.trim()) return;
+                this.setLandscapeChatActive(false);
+            }, 120);
+        };
+
+        chatWindow.addEventListener('click', activateChat);
+        chatWindow.addEventListener('touchstart', activateChat, { passive: false });
+        chatInput.addEventListener('focus', () => {
+            if (this.isMobileLandscapeViewport()) {
+                this.setLandscapeChatActive(true);
+            }
+        });
+        chatInput.addEventListener('blur', maybeCollapseChat);
+
+        document.addEventListener('click', (e) => {
+            if (!this.isMobileLandscapeViewport()) return;
+            const picker = document.getElementById('emote-picker');
+            const emoteShortcut = document.getElementById('btn-emote-shortcut');
+            if (chatWindow.contains(e.target) || picker?.contains(e.target) || emoteShortcut?.contains(e.target)) return;
+            maybeCollapseChat();
+        });
+
+        window.addEventListener('resize', () => this.syncLandscapeChatLayout());
+        window.addEventListener('orientationchange', () => {
+            window.setTimeout(() => this.syncLandscapeChatLayout(), 120);
+        });
+
+        this.syncLandscapeChatLayout();
+    }
+
     enterFullscreen() {
         if (this.isFullscreenActive() || this.isStandaloneDisplayMode()) return Promise.resolve(true);
 
@@ -394,13 +481,16 @@ export class UIManager {
 
         // Chat send button
         const sendBtn = document.querySelector('.send-btn');
-        const handleSend = (e) => {
+        const handleSend = async (e) => {
             if (e) {
                 e.preventDefault();
                 e.stopImmediatePropagation();
             }
             if (this.game.sound) this.game.sound.playSfx('ui_chat_send');
-            this.sendMessage();
+            await this.sendMessage();
+            if (this.isMobileLandscapeViewport()) {
+                this.setLandscapeChatActive(false);
+            }
         };
         if (sendBtn) {
             sendBtn.addEventListener('click', handleSend);
@@ -2495,17 +2585,22 @@ export class UIManager {
     // v2.1: Emote System
     setupEmoteUI() {
         const emoteBtn = document.querySelector('.emote-btn');
+        const emoteShortcutBtn = document.getElementById('btn-emote-shortcut');
         const emotePicker = document.getElementById('emote-picker');
+        const emoteTriggers = [emoteBtn, emoteShortcutBtn].filter(Boolean);
 
-        if (emoteBtn && emotePicker) {
-            emoteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.toggleEmotePicker();
+        if (emoteTriggers.length > 0 && emotePicker) {
+            emoteTriggers.forEach((trigger) => {
+                trigger.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.toggleEmotePicker();
+                });
             });
 
-            // Close picker when clicking outside
             document.addEventListener('click', (e) => {
-                if (!emotePicker.contains(e.target) && !emoteBtn.contains(e.target)) {
+                const clickedTrigger = emoteTriggers.some(trigger => trigger.contains(e.target));
+                if (!emotePicker.contains(e.target) && !clickedTrigger) {
                     emotePicker.classList.add('hidden');
                 }
             });

@@ -551,6 +551,10 @@ export default class WorldScene extends Scene {
                 this.player.name
             );
 
+            const landscapeFramingOffsetY = this.ui?.isMobileLandscapeViewport?.()
+                ? Math.min(42, Math.max(24, this.camera.height * 0.09))
+                : 0;
+            this.camera.setFramingOffset(0, landscapeFramingOffsetY);
             this.camera.follow(this.player, this.game.zone.width, this.game.zone.height);
 
             if (this.ui) {

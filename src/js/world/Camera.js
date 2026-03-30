@@ -31,6 +31,10 @@ export default class Camera {
         // Bounds margin for culling
         this.cullingMargin = 100;
 
+        // Framing offset lets us bias the target position without touching entity data.
+        this.framingOffsetX = 0;
+        this.framingOffsetY = 0;
+
         // Debug info
         this.debug = false;
     }
@@ -43,8 +47,8 @@ export default class Camera {
      */
     update(targetX, targetY, dt = 1 / 60) {
         // Calculate desired camera position (centered on target)
-        const desiredX = targetX - this.width / 2;
-        const desiredY = targetY - this.height / 2;
+        const desiredX = targetX - this.width / 2 - this.framingOffsetX;
+        const desiredY = targetY - this.height / 2 - this.framingOffsetY;
 
         // Apply dead zone
         const dx = desiredX - this.x;
@@ -191,6 +195,11 @@ export default class Camera {
 
         // Re-clamp to bounds
         this.clampToBounds();
+    }
+
+    setFramingOffset(x = 0, y = 0) {
+        this.framingOffsetX = x;
+        this.framingOffsetY = y;
     }
 
     /**
