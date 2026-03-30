@@ -318,9 +318,14 @@ export class UIManager {
         }
 
         if (shouldActivate && focusInput && chatInput && document.activeElement !== chatInput) {
-            window.requestAnimationFrame(() => {
-                chatInput.focus({ preventScroll: true });
-            });
+            // Mobile browsers often reject async focus after touch. Focus immediately
+            // once the input becomes visible to keep chat activation reliable.
+            void chatWindow.offsetHeight;
+            chatInput.focus({ preventScroll: true });
+            if (typeof chatInput.setSelectionRange === 'function') {
+                const caret = chatInput.value.length;
+                chatInput.setSelectionRange(caret, caret);
+            }
         }
     }
 
@@ -338,7 +343,7 @@ export class UIManager {
 
         const shouldIgnoreTarget = (target) => {
             if (!(target instanceof Element)) return false;
-            return !!target.closest('.chat-input-area, .send-btn, #emote-picker, #btn-emote-shortcut, .emote-btn');
+            return !!target.closest('.chat-input-area, .send-btn, #emote-picker, #btn-emote, .emote-btn');
         };
 
         const activateChat = (e) => {
@@ -375,8 +380,7 @@ export class UIManager {
         document.addEventListener('click', (e) => {
             if (!this.isMobileLandscapeViewport()) return;
             const picker = document.getElementById('emote-picker');
-            const emoteShortcut = document.getElementById('btn-emote-shortcut');
-            if (chatWindow.contains(e.target) || picker?.contains(e.target) || emoteShortcut?.contains(e.target)) return;
+            if (chatWindow.contains(e.target) || picker?.contains(e.target)) return;
             maybeCollapseChat();
         });
 

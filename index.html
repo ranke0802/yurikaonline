@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Yurika Online">
-    <!-- v0.01.11: 모바일 가로 HUD/채팅/카메라 프레이밍 보정 -->
+    <!-- v0.01.12: 모바일 가로 조작성 및 팝업 레이아웃 2차 보정 -->
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
@@ -33,7 +33,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.01.11')
+                navigator.serviceWorker.register('./sw.js?v=0.01.12')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -58,7 +58,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.01.11</title>
+    <title>Yurika Online v0.01.12</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
@@ -112,7 +112,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.11">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.12">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -587,7 +587,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📜 v0.01.11
+        📜 v0.01.12
     </div>
 
 
@@ -620,7 +620,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.11"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.12"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">
