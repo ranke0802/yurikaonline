@@ -5609,4 +5609,55 @@ body.is-fullscreen .version-info {
         line-height: 1.4 !important;
         overflow: auto !important;
     }
+
+    body #ui-layer .left-ui-container #party-panel {
+        position: fixed !important;
+        top: calc(8px + env(safe-area-inset-top)) !important;
+        right: calc(112px + env(safe-area-inset-right)) !important;
+        left: auto !important;
+        width: min(34vw, 168px) !important;
+        max-height: calc(42dvh - env(safe-area-inset-top)) !important;
+        margin: 0 !important;
+        padding: 8px !important;
+        z-index: 1345 !important;
+        overflow-y: auto !important;
+        pointer-events: auto !important;
+    }
+
+    body #ui-layer #hostility-panel {
+        position: fixed !important;
+        top: calc(102px + env(safe-area-inset-top)) !important;
+        right: calc(112px + env(safe-area-inset-right)) !important;
+        left: auto !important;
+        transform: none !important;
+        width: min(34vw, 168px) !important;
+        max-height: calc(32dvh - env(safe-area-inset-top)) !important;
+        margin: 0 !important;
+        padding: 8px !important;
+        z-index: 1344 !important;
+        overflow-y: auto !important;
+        pointer-events: auto !important;
+    }
+
+    body #ui-layer #hostility-panel .panel-header,
+    body #ui-layer .left-ui-container #party-panel .panel-header {
+        margin-bottom: 6px !important;
+        padding-bottom: 5px !important;
+        font-size: 11px !important;
+        line-height: 1.2 !important;
+    }
+
+    body #ui-layer #hostility-panel #hostility-list,
+    body #ui-layer .left-ui-container #party-panel #party-list {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+    }
+
+    body #ui-layer #hostility-panel .hostility-item,
+    body #ui-layer .left-ui-container #party-panel .party-item,
+    body #ui-layer .left-ui-container #party-panel .party-row {
+        margin-bottom: 0 !important;
+        font-size: 11px !important;
+    }
 }
