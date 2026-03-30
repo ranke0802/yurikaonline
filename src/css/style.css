@@ -1750,179 +1750,26 @@ button:active,
     }
 }
 
-@media screen and (max-width: 900px) and (orientation: portrait) {
-    .top-bar {
-        position: fixed !important;
-        top: calc(10px + env(safe-area-inset-top)) !important;
-        left: 10px !important;
-        transform: scale(0.68) !important;
-        transform-origin: top left !important;
-        z-index: 1200 !important;
-    }
-
-    .left-ui-container {
-        position: fixed !important;
-        top: calc(76px + env(safe-area-inset-top)) !important;
-        left: 10px !important;
-        width: min(48vw, 220px) !important;
-        gap: 8px !important;
-        transform: none !important;
-        transform-origin: top left !important;
-        z-index: 1100 !important;
-    }
-
-    .quest-list-panel {
-        width: 100% !important;
-        max-width: none !important;
-        max-height: min(28vh, 220px) !important;
-        border-width: 3px !important;
-    }
-
-    .quest-list-panel .quest-content {
-        max-height: calc(min(28vh, 220px) - 62px);
-        overflow-y: auto;
-    }
-
-    .chat-window {
-        width: 100% !important;
-        max-width: none !important;
-        min-height: 132px !important;
-        height: min(24vh, 172px) !important;
-        border-width: 3px !important;
-        background: rgba(253, 250, 246, 0.78) !important;
-    }
-
-    .chat-messages {
-        flex: 1 1 auto;
-        min-height: 0;
-        height: auto !important;
-        max-height: none !important;
-        font-size: 11px !important;
-        line-height: 1.35 !important;
-    }
-
-    #minimap-container {
-        position: fixed !important;
-        top: calc(10px + env(safe-area-inset-top)) !important;
-        right: calc(10px + env(safe-area-inset-right)) !important;
-        width: 110px !important;
-        transform: scale(0.95) !important;
-        transform-origin: top right !important;
-        z-index: 1400 !important;
-        overflow: hidden !important;
-    }
-
-    body #ui-layer .minimap-menu {
-        position: fixed !important;
-        top: auto !important;
-        right: auto !important;
-        bottom: calc(18px + env(safe-area-inset-bottom)) !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        display: flex !important;
-        flex-direction: row !important;
-        gap: 16px !important;
-        background: none !important;
-        border: none !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        width: auto !important;
-        z-index: 1450 !important;
-    }
-
-    body.is-fullscreen #ui-layer .minimap-menu {
-        bottom: calc(28px + env(safe-area-inset-bottom)) !important;
-    }
-
-    body #ui-layer .minimap-menu .menu-btn {
-        width: 48px !important;
-        height: 48px !important;
-        background: rgba(253, 250, 246, 0.86) !important;
-        border: 2px solid rgba(255, 255, 255, 0.92) !important;
-        border-radius: 14px !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-
-    body #ui-layer .minimap-menu .menu-icon,
-    body #ui-layer #btn-fullscreen .menu-icon {
-        font-size: 22px !important;
-        filter: none !important;
-    }
-
-    body #ui-layer #btn-fullscreen {
-        position: fixed !important;
-        top: calc(148px + env(safe-area-inset-top)) !important;
-        right: calc(10px + env(safe-area-inset-right)) !important;
-        left: auto !important;
-        bottom: auto !important;
-        width: 42px !important;
-        height: 42px !important;
-        background: rgba(253, 250, 246, 0.86) !important;
-        border: 2px solid rgba(255, 255, 255, 0.92) !important;
-        border-radius: 12px !important;
-        box-shadow: none !important;
-        backdrop-filter: blur(2px) !important;
-        z-index: 1450 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 0 !important;
-        transform: none !important;
-    }
-
-    body.is-fullscreen #ui-layer #btn-fullscreen {
-        top: calc(168px + env(safe-area-inset-top)) !important;
-    }
-
-    #joystick-area {
-        top: 56px !important;
-        width: 50vw !important;
-        height: calc(100vh - 150px - env(safe-area-inset-bottom)) !important;
-    }
-
-    .action-buttons {
-        position: fixed !important;
-        right: calc(14px + env(safe-area-inset-right));
-        bottom: calc(96px + env(safe-area-inset-bottom));
-        transform: scale(0.94) !important;
-        transform-origin: bottom right;
-        opacity: 1;
-        z-index: 1500;
-    }
-
-    #tutorial-guide {
-        top: calc(env(safe-area-inset-top, 0px) + 118px) !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        max-width: min(84vw, 560px) !important;
-        z-index: 1600 !important;
-    }
-}
-
 /* Mobile Landscape HUD Layout */
 @media screen and (max-width: 900px) and (orientation: landscape) {
     .top-bar {
+        position: fixed !important;
         top: calc(8px + env(safe-area-inset-top));
-        left: 8px;
-        transform: scale(0.62);
+        left: calc(8px + env(safe-area-inset-left));
+        transform: scale(0.6);
         transform-origin: top left;
-        z-index: 120;
+        z-index: 1200;
     }
 
     .left-ui-container {
         position: fixed;
         top: calc(56px + env(safe-area-inset-top));
-        left: 8px;
-        bottom: calc(8px + env(safe-area-inset-bottom));
-        width: min(32vw, 250px);
+        left: calc(8px + env(safe-area-inset-left));
+        bottom: auto;
+        width: clamp(172px, 22vw, 208px);
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
         transform: none;
         transform-origin: top left;
         z-index: 1100;
@@ -1933,53 +1780,116 @@ button:active,
         pointer-events: auto;
     }
 
+    #party-panel {
+        width: 100% !important;
+        max-width: none !important;
+        margin-bottom: 0;
+        padding: 8px;
+    }
+
+    #party-panel .panel-header,
+    #party-panel .party-item {
+        font-size: 11px;
+    }
+
     .quest-list-panel {
         width: 100% !important;
         max-width: none !important;
-        max-height: 42vh !important;
+        max-height: none !important;
+        background: rgba(253, 250, 246, 0.58) !important;
+        border-width: 3px !important;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12) !important;
+        backdrop-filter: blur(8px) !important;
     }
 
     .quest-list-panel .quest-content {
-        max-height: calc(42vh - 62px);
-        overflow-y: auto;
+        max-height: none;
+        padding: 8px;
+        gap: 6px;
+        overflow: visible;
+    }
+
+    .quest-panel-header {
+        padding: 6px 10px;
+    }
+
+    .quest-panel-header h3 {
+        font-size: 12px;
+    }
+
+    .quest-item {
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: 10px;
+    }
+
+    .quest-title {
+        font-size: 10px;
+    }
+
+    .quest-progress {
+        font-size: 9px;
     }
 
     .chat-window {
         width: 100% !important;
         max-width: none !important;
-        height: auto !important;
-        min-height: 0 !important;
-        flex: 1 1 auto;
+        height: 122px !important;
+        min-height: 122px !important;
+        flex: 0 0 auto;
         display: flex;
         flex-direction: column;
-        background: rgba(253, 250, 246, 0.78) !important;
+        background: rgba(253, 250, 246, 0.58) !important;
         border-width: 3px !important;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12) !important;
+        backdrop-filter: blur(8px) !important;
+    }
+
+    .chat-header {
+        padding: 4px 10px;
+        font-size: 11px;
     }
 
     .chat-messages {
         flex: 1 1 auto;
-        min-height: 0;
-        height: auto !important;
-        max-height: none !important;
-        font-size: 11px !important;
-        line-height: 1.35 !important;
+        height: 58px !important;
+        min-height: 58px;
+        max-height: 58px !important;
+        padding: 8px;
+        font-size: 10px !important;
+        line-height: 1.25 !important;
     }
 
     .chat-input-area {
         flex: 0 0 auto;
+        gap: 6px;
+        padding: 8px;
+    }
+
+    .chat-input-area input {
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+
+    .send-btn {
+        width: 28px;
+        height: 28px;
+        flex: 0 0 28px;
     }
 
     #minimap-container {
         position: fixed;
         top: calc(8px + env(safe-area-inset-top));
         right: calc(8px + env(safe-area-inset-right));
-        width: min(16vw, 132px);
-        min-width: 104px;
+        width: clamp(96px, 14vw, 112px);
+        min-width: 96px;
         transform: none;
         transform-origin: top right;
         z-index: 1400;
-        background: rgba(30, 39, 46, 0.35) !important;
+        background: rgba(30, 39, 46, 0.28) !important;
         backdrop-filter: blur(2px) !important;
+        border: none !important;
+        overflow: hidden !important;
     }
 
     #minimap-container::after {
@@ -1994,14 +1904,14 @@ button:active,
     }
 
     .minimap-header {
-        font-size: 11px;
+        font-size: 10px;
         padding: 4px 6px;
     }
 
     .minimap-footer {
-        font-size: 9px;
-        padding: 4px 6px;
-        background: rgba(0, 0, 0, 0.28);
+        font-size: 8px;
+        padding: 3px 5px;
+        background: rgba(0, 0, 0, 0.22);
         color: #fff;
         text-align: center;
     }
@@ -2009,7 +1919,7 @@ button:active,
     body #ui-layer .minimap-menu {
         position: fixed !important;
         top: calc(8px + env(safe-area-inset-top)) !important;
-        right: calc(8px + env(safe-area-inset-right) + min(16vw, 132px) + 10px) !important;
+        right: calc(12px + env(safe-area-inset-right) + clamp(96px, 14vw, 112px)) !important;
         left: auto !important;
         bottom: auto !important;
         transform: none !important;
@@ -2025,34 +1935,36 @@ button:active,
     }
 
     body #ui-layer .minimap-menu .menu-btn {
-        background: rgba(253, 250, 246, 0.82) !important;
-        border: 2px solid rgba(255, 255, 255, 0.9) !important;
+        background: rgba(253, 250, 246, 0.72) !important;
+        border: 2px solid rgba(255, 255, 255, 0.85) !important;
         border-radius: 10px !important;
-        width: 38px !important;
-        height: 38px !important;
+        width: 36px !important;
+        height: 36px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         margin: 0 !important;
         position: static !important;
-        padding: 5px !important;
+        padding: 0 !important;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12) !important;
     }
 
     body #ui-layer .minimap-menu .menu-icon {
         font-size: 18px !important;
+        filter: none !important;
     }
 
     #btn-fullscreen {
         position: fixed !important;
-        top: calc(8px + env(safe-area-inset-top) + 132px + 12px) !important;
+        top: calc(env(safe-area-inset-top) + clamp(124px, 18vw, 140px)) !important;
         right: calc(8px + env(safe-area-inset-right)) !important;
         left: auto !important;
         bottom: auto !important;
-        width: 38px !important;
-        height: 38px !important;
-        background: rgba(253, 250, 246, 0.82) !important;
-        border: 2px solid rgba(255, 255, 255, 0.9) !important;
-        box-shadow: none !important;
+        width: 36px !important;
+        height: 36px !important;
+        background: rgba(253, 250, 246, 0.72) !important;
+        border: 2px solid rgba(255, 255, 255, 0.85) !important;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12) !important;
         backdrop-filter: blur(2px) !important;
         z-index: 1450 !important;
         display: flex !important;
@@ -2068,7 +1980,7 @@ button:active,
         position: fixed !important;
         left: 0 !important;
         bottom: 0 !important;
-        width: 38vw !important;
+        width: 44vw !important;
         height: 100vh !important;
         z-index: 200 !important;
     }
@@ -2082,11 +1994,11 @@ button:active,
 
     .action-buttons {
         position: fixed !important;
-        right: calc(8px + env(safe-area-inset-right));
-        bottom: calc(8px + env(safe-area-inset-bottom));
-        transform: none !important;
+        right: calc(10px + env(safe-area-inset-right));
+        bottom: calc(10px + env(safe-area-inset-bottom));
+        transform: scale(0.84) !important;
         transform-origin: bottom right;
-        opacity: 1;
+        opacity: 0.9;
         z-index: 1500;
         display: flex;
         flex-direction: column;
@@ -2098,14 +2010,14 @@ button:active,
     }
 
     .skill-btn {
-        width: 46px !important;
-        height: 46px !important;
+        width: 44px !important;
+        height: 44px !important;
         font-size: 18px !important;
     }
 
     .attack-btn {
-        width: 72px !important;
-        height: 72px !important;
+        width: 70px !important;
+        height: 70px !important;
         font-size: 24px !important;
     }
 
@@ -2114,12 +2026,12 @@ button:active,
     }
 
     #tutorial-guide {
-        top: 50% !important;
+        top: calc(50% + 4px) !important;
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
-        max-width: min(54vw, 520px) !important;
-        font-size: clamp(14px, 2vw, 18px) !important;
-        padding: 14px 18px !important;
+        max-width: min(46vw, 440px) !important;
+        font-size: clamp(13px, 1.8vw, 17px) !important;
+        padding: 12px 16px !important;
         z-index: 1600 !important;
     }
 }
