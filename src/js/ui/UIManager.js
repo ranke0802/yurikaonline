@@ -211,6 +211,14 @@ export class UIManager {
     setupEventListeners() {
         const handleClose = (e) => {
             e.preventDefault();
+            e.stopImmediatePropagation();
+
+            const popup = e.currentTarget?.closest?.('.game-popup');
+            if (popup?.id) {
+                this.togglePopup(popup.id);
+                return;
+            }
+
             this.hideAllPopups();
         };
         document.querySelectorAll('.close-popup').forEach(btn => {
@@ -236,10 +244,10 @@ export class UIManager {
         // Skill Tooltips
         this.tooltip = document.getElementById('skill-tooltip');
         this.skillData = {
-            laser: { name: '체인 라이트닝 (J)', desc: '연쇄형 기본공격 (전기속성). 적중한 적 하나당 마나 1을 회복합니다. [연쇄: Lv당 +1] [기본 10% / 공격 1회당 증폭 / 마나 회복 +1]' },
-            missile: { name: '매직 미사일 (H)', desc: '자동 추적 미사일을 발사합니다. [데미지: 공격력의 45%] [발사 수: 레벨당 2발] [마나 소모: 4 / 레벨당 +3]' },
-            fireball: { name: '파이어볼 (U)', desc: '폭발하는 화염구를 던집니다. [직격 데미지: 공격력의 180% / 레벨당 +30% 추가] [마나 소모: 12 / 레벨당 +4] [화상: 2초 이상 지속 / 레벨당 +0.5초] [폭발 범위: 투사체의 2.5배]' },
-            shield: { name: '앱솔루트 베리어 (K)', desc: '절대 방어막을 전개하여 다음 1회의 피격을 완전히 무효화합니다. [마나 소모: 20] [재사용 대기시간: 3초] [레벨업 불가]' }
+            laser: { name: '체인 라이트닝 (J)', desc: '특징: 기본 공격이 가까운 적에게 연쇄되는 번개로 바뀌고, 적중한 적 수만큼 마나를 회복합니다.<br>성장: 레벨이 오를수록 연쇄 대상 수와 충전당 피해 상승폭이 함께 커집니다.' },
+            missile: { name: '매직 미사일 (H)', desc: '특징: 가까운 적을 자동 추적하는 미사일을 순차 발사합니다.<br>성장: 레벨이 오를수록 한 번에 발사되는 미사일 수가 늘고 마나 소모도 함께 증가합니다.' },
+            fireball: { name: '파이어볼 (U)', desc: '특징: 직선으로 날아가 폭발하며 범위 피해와 화상을 남기는 광역 스킬입니다.<br>성장: 레벨이 오를수록 직격 피해, 폭발 반경, 화상 지속시간이 함께 증가합니다.' },
+            shield: { name: '앱솔루트 베리어 (K)', desc: '특징: 다음 1회의 피격을 완전히 막는 생존용 방어막입니다.<br>성장: 레벨업이 없는 고정 성능 스킬이며, 항상 같은 성능으로 유지됩니다.' }
         };
 
         this.bindSkillTooltipTargets();
@@ -913,21 +921,21 @@ export class UIManager {
                 const minDmg = Math.floor(p.attackPower * baseRatio);
                 const maxDmg = Math.floor(p.attackPower * 1.0);
                 const slow = 80;
-                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>연쇄: ${baseChain}마리 | 사거리: ${Math.floor(p.attackRange)} | 위력: ${minDmg} ~ ${maxDmg} (+틱당 ${(increment * 100).toFixed(0)}%) | 둔화: ${slow}%</div>`;
+                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>연쇄: ${baseChain}마리 | 사거리: ${Math.floor(p.attackRange)} | 위력: ${minDmg} ~ ${maxDmg} | 충전당 증가: ${(increment * 100).toFixed(0)}% | 둔화: ${slow}%</div>`;
                 break;
             case 'missile':
                 const mCount = lv * 2;
                 // v0.00.42: Fixed to match actual damage (45%, not 90%)
                 const mDmg = Math.floor(p.attackPower * 0.45);
-                const mCost = 4 + (mCount - 1) * 3;
-                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>발사 수: ${mCount}발 | 발당 데미지: ${mDmg} | 마나 소모: ${mCost}</div>`;
+                const mCost = 4 + (lv - 1) * 3;
+                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>발사 수: ${mCount}발 | 발당 데미지: ${mDmg} | 유도 거리: 600 | 마나 소모: ${mCost}</div>`;
                 break;
             case 'fireball':
                 const fDmg = Math.floor(p.attackPower * (1.8 + (lv - 1) * 0.3));
                 const fRad = 20 + (lv - 1) * 20;
                 const fBurn = 2.0 + (lv - 1) * 0.5;
                 const fCost = 12 + (lv - 1) * 4;
-                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>위력: ${fDmg} (180% + 30%/lv) | 마나 소모: ${fCost} | 화상: ${fBurn}초</div>`;
+                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>직격 피해: ${fDmg} | 폭발 반경: ${fRad} | 화상: ${fBurn}초 | 마나 소모: ${fCost}</div>`;
                 break;
             case 'shield':
                 currentEffect = `<div class="current-effect">현재 효과:<br>다음 1회 피격 무효화 | 마나 소모: 20 | 재사용 대기시간: 3초</div>`;

@@ -159,6 +159,39 @@ export default class TutorialManager {
         actionList.forEach((action) => this._handleAction(action));
     }
 
+    _resolveTutorialSpawnPosition(action, player) {
+        const worldW = this.game.zone?.width || 3200;
+        const worldH = this.game.zone?.height || 3200;
+        const fallbackPadding = action.monsterId === 'training_dummy' ? 120 : 96;
+
+        let x = action.x ?? (player.x + (action.offsetX || 200));
+        let y = action.y ?? (player.y + (action.offsetY || 0));
+
+        const scene = this.game.sceneManager?.currentScene;
+        const camera = scene?.camera;
+        const canvas = this.game.canvas;
+        const dpr = this.game.dpr || 1;
+        const zoom = this.game.zoom || 1;
+
+        if (camera && canvas) {
+            const viewportW = (canvas.width / dpr) / zoom;
+            const viewportH = (canvas.height / dpr) / zoom;
+            const padX = action.spawnPaddingX || fallbackPadding;
+            const padY = action.spawnPaddingY || fallbackPadding;
+            const minX = camera.x + padX;
+            const maxX = camera.x + viewportW - padX;
+            const minY = camera.y + padY;
+            const maxY = camera.y + viewportH - padY;
+
+            if (minX < maxX) x = Math.min(maxX, Math.max(minX, x));
+            if (minY < maxY) y = Math.min(maxY, Math.max(minY, y));
+        }
+
+        x = Math.min(worldW - fallbackPadding, Math.max(fallbackPadding, x));
+        y = Math.min(worldH - fallbackPadding, Math.max(fallbackPadding, y));
+        return { x, y };
+    }
+
     _handleAction(action) {
         if (!action || !action.type) return;
 
@@ -168,8 +201,7 @@ export default class TutorialManager {
             case 'spawn_monster': {
                 if (!player || !this.game.monsterManager?.spawnMonster) return;
 
-                const x = action.x ?? (player.x + (action.offsetX || 200));
-                const y = action.y ?? (player.y + (action.offsetY || 0));
+                const { x, y } = this._resolveTutorialSpawnPosition(action, player);
                 const spawnResult = this.game.monsterManager.spawnMonster(action.monsterId, x, y, {
                     tutorialOnly: true
                 });
