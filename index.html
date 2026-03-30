@@ -8,7 +8,7 @@
     <!-- PWA Manifest & Settings -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2d3436">
-    <!-- v0.01.07: 모바일 가로 모달 전반을 가로형 레이아웃으로 정비 -->
+    <!-- v0.01.08: 모바일 가로 모달 판정 범위를 넓혀 실기기 적용성 개선 -->
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
@@ -29,7 +29,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.01.07')
+                navigator.serviceWorker.register('./sw.js?v=0.01.08')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -54,7 +54,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.01.07</title>
+    <title>Yurika Online v0.01.08</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192.webp">
     <script>
@@ -108,7 +108,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.07">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.08">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -591,7 +591,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📜 v0.01.07
+        📜 v0.01.08
     </div>
 
 
@@ -624,7 +624,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.07"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.08"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

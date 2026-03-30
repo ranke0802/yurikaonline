@@ -24,7 +24,7 @@ export default class TutorialManager {
     }
 
     getTutorialLayoutMode() {
-        const isNarrow = window.innerWidth <= 900;
+        const isNarrow = window.innerWidth <= 1024;
         if (!isNarrow) return 'desktop';
 
         const isPortrait = window.matchMedia?.('(orientation: portrait)')?.matches

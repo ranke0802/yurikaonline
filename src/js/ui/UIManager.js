@@ -129,7 +129,7 @@ export class UIManager {
 
     // v2.3: Tutorial UI
     getTutorialViewportMode() {
-        const isNarrow = window.innerWidth <= 900;
+        const isNarrow = window.innerWidth <= 1024;
         if (!isNarrow) return 'desktop';
 
         const isPortrait = window.matchMedia?.('(orientation: portrait)')?.matches ?? (window.innerHeight >= window.innerWidth);
@@ -296,7 +296,7 @@ export class UIManager {
 
     isMobileLandscapeViewport() {
         const isTouch = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
-        const isNarrow = window.innerWidth <= 900;
+        const isNarrow = window.innerWidth <= 1024;
         const isLandscape = window.matchMedia?.('(orientation: landscape)')?.matches ?? (window.innerWidth > window.innerHeight);
         return isTouch && isNarrow && isLandscape;
     }

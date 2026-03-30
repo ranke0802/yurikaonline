@@ -1751,7 +1751,7 @@ button:active,
 }
 
 /* Mobile Landscape HUD Layout */
-@media screen and (max-width: 900px) and (orientation: landscape) {
+@media screen and (max-width: 1024px) and (orientation: landscape) {
     .top-bar {
         position: fixed !important;
         top: calc(8px + env(safe-area-inset-top));
@@ -2485,7 +2485,7 @@ body.is-fullscreen .version-info {
 }
 
 /* Mobile Landscape Battle HUD */
-@media screen and (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 600px) {
+@media screen and (max-width: 1024px) and (orientation: landscape) {
     #game-viewport::after {
         content: none !important;
         display: none !important;
@@ -3668,7 +3668,7 @@ body.is-fullscreen .version-info {
     transform: scale(1.1);
 }
 
-@media screen and (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 600px) {
+@media screen and (max-width: 1024px) and (orientation: landscape) {
     .scene-overlay,
     #popup-overlay,
     .confirm-modal-overlay,
