@@ -16,7 +16,9 @@
         },
         {
             "id": "attack_dummy",
-            "instruction": "좋아요. 이제 기본 공격으로 허수아비를 쓰러뜨려 보세요.",
+            "instructionDesktop": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. `J` 키나 우측 하단 공격 버튼을 사용할 수 있어요.",
+            "instructionMobile": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. 우측 하단 공격 버튼이나 `J` 키를 사용할 수 있어요.",
+            "highlightTarget": "#action-attack-j",
             "onStart": [
                 {
                     "type": "close_popups"
@@ -45,6 +47,9 @@
         {
             "id": "open_status",
             "instruction": "이번에는 스탯 창을 열어 주세요. `I` 키나 하단 스탯 버튼을 사용할 수 있어요. 스탯을 올리기 전에 오른쪽 수치가 어떻게 바뀌는지도 바로 확인할 수 있습니다.",
+            "instructionDesktop": "이번에는 스탯 창을 열어 주세요. PC에서는 우측 상단 미니맵 왼쪽의 내 정보 아이콘이나 `I` 키를 사용하면 됩니다.",
+            "instructionMobile": "이번에는 스탯 창을 열어 주세요. 모바일에서는 하단 중앙의 내 정보 아이콘이나 `I` 키를 사용할 수 있어요.",
+            "highlightTarget": "#btn-status",
             "onStart": [
                 {
                     "type": "grant_stat_points",
@@ -64,6 +69,10 @@
         {
             "id": "preview_status_change",
             "instruction": "아무 능력치에 1포인트를 눌러 보세요. 오른쪽 수치가 초록색으로 변하면서 저장 전 결과를 미리 보여줍니다.",
+            "highlightTargets": [
+                "#status-stat-main",
+                "#status-derived-panel"
+            ],
             "trigger": "stat_allocated",
             "target": [
                 "vitality",
@@ -79,6 +88,7 @@
         {
             "id": "save_status",
             "instruction": "좋아요. 방금 오른쪽 미리보기로 변화를 확인했어요. 이제 창을 닫아 스탯을 저장해 주세요.",
+            "highlightTarget": "#status-close-btn-bottom",
             "trigger": "stats_saved",
             "count": 1,
             "allowedActions": [
@@ -87,11 +97,14 @@
         },
         {
             "id": "open_skill",
-            "instruction": "좋아요. 이제 스킬 창을 열어 주세요. `Shift+S` 또는 하단 스킬 버튼을 사용하면 됩니다. 스킬 아이콘에 마우스를 올리거나 터치하면 상세 효과를 볼 수 있어요.",
+            "instruction": "좋아요. 이제 스킬 창을 열어 주세요. `Shift+S` 또는 스킬 버튼을 사용하면 됩니다. 이 창에서는 아이콘 위에 마우스를 올리거나 터치해서 특징과 성장 포인트를 확인할 수 있어요.",
+            "instructionDesktop": "좋아요. 이제 스킬 창을 열어 주세요. PC에서는 우측 상단 미니맵 왼쪽의 스킬 아이콘이나 `Shift+S`를 사용하면 됩니다.",
+            "instructionMobile": "좋아요. 이제 스킬 창을 열어 주세요. 모바일에서는 하단 중앙의 스킬 아이콘을 누르거나 `Shift+S`를 사용할 수 있어요.",
+            "highlightTarget": "#btn-skill",
             "onStart": [
                 {
                     "type": "grant_gold",
-                    "amount": 400
+                    "amount": 1000
                 },
                 {
                     "type": "close_popups"
@@ -105,8 +118,20 @@
             ]
         },
         {
-            "id": "inspect_skill_detail",
-            "instruction": "매직 미사일 아이콘에 마우스를 올리거나 터치해 보세요. 현재 레벨 효과와 상세 설명이 툴팁으로 표시됩니다.",
+            "id": "inspect_laser_detail",
+            "instruction": "먼저 기본 공격인 체인 라이트닝을 살펴보세요. 연쇄 타격형 기본 공격이고, 강화하면 연쇄 횟수와 충전당 피해 상승폭이 커집니다.",
+            "highlightTarget": "#skill-item-laser",
+            "trigger": "skill_tooltip",
+            "target": "laser",
+            "count": 1,
+            "allowedActions": [
+                "OPEN_SKILL"
+            ]
+        },
+        {
+            "id": "inspect_missile_detail",
+            "instruction": "다음은 매직 미사일입니다. 자동 추적형 스킬이며, 강화할수록 한 번에 발사되는 미사일 수가 늘어납니다.",
+            "highlightTarget": "#skill-item-missile",
             "trigger": "skill_tooltip",
             "target": "missile",
             "count": 1,
@@ -115,8 +140,9 @@
             ]
         },
         {
-            "id": "upgrade_skill",
-            "instruction": "상세 정보를 확인했으니, 이제 매직 미사일을 한 번 강화해 보세요.",
+            "id": "upgrade_missile",
+            "instruction": "상세 정보를 확인했으니 매직 미사일을 한 번 강화해 보세요. 강화 직후 발사 수가 바로 늘어납니다.",
+            "highlightTarget": "#skill-up-missile",
             "trigger": "skill_upgrade",
             "target": "missile",
             "count": 1,
@@ -125,8 +151,10 @@
             ]
         },
         {
-            "id": "use_skill",
-            "instruction": "강화한 매직 미사일을 사용해 보세요. `H` 키나 1번 슬롯을 눌러도 됩니다.",
+            "id": "use_missile",
+            "instructionDesktop": "강화한 매직 미사일을 사용해 보세요. `H` 키나 우측 하단 매직 미사일 버튼을 누르면 됩니다.",
+            "instructionMobile": "강화한 매직 미사일을 사용해 보세요. 우측 하단 매직 미사일 버튼이나 `H` 키를 누르면 됩니다.",
+            "highlightTarget": "#action-skill-h",
             "onStart": [
                 {
                     "type": "close_popups"
@@ -153,8 +181,122 @@
             ]
         },
         {
+            "id": "reopen_skill_for_fireball",
+            "instructionDesktop": "좋아요. 이제 다시 스킬 창을 열어 파이어볼을 살펴볼게요. PC에서는 우측 상단 미니맵 왼쪽의 스킬 아이콘이나 `Shift+S`를 사용하면 됩니다.",
+            "instructionMobile": "좋아요. 이제 다시 스킬 창을 열어 파이어볼을 살펴볼게요. 모바일에서는 하단 중앙의 스킬 아이콘이나 `Shift+S`를 사용하세요.",
+            "highlightTarget": "#btn-skill",
+            "trigger": "popup_open",
+            "target": "skill-popup",
+            "count": 1,
+            "allowedActions": [
+                "OPEN_SKILL"
+            ]
+        },
+        {
+            "id": "inspect_fireball_detail",
+            "instruction": "파이어볼은 직선으로 날아가 폭발하고 화상을 남기는 광역 스킬입니다. 강화하면 직격 피해, 폭발 반경, 화상 지속시간이 함께 커져요.",
+            "highlightTarget": "#skill-item-fireball",
+            "trigger": "skill_tooltip",
+            "target": "fireball",
+            "count": 1,
+            "allowedActions": [
+                "OPEN_SKILL"
+            ]
+        },
+        {
+            "id": "upgrade_fireball",
+            "instruction": "이번에는 파이어볼을 한 번 강화해 보세요. 한 번만 강화해도 폭발 반경과 지속 화상 시간이 더 좋아집니다.",
+            "highlightTarget": "#skill-up-fireball",
+            "trigger": "skill_upgrade",
+            "target": "fireball",
+            "count": 1,
+            "allowedActions": [
+                "OPEN_SKILL"
+            ]
+        },
+        {
+            "id": "use_fireball",
+            "instructionDesktop": "강화한 파이어볼을 사용해 보세요. `U` 키나 우측 하단 파이어볼 버튼을 누르면 됩니다.",
+            "instructionMobile": "강화한 파이어볼을 사용해 보세요. 우측 하단 파이어볼 버튼이나 `U` 키를 누르면 됩니다.",
+            "highlightTarget": "#action-skill-u",
+            "onStart": [
+                {
+                    "type": "close_popups"
+                },
+                {
+                    "type": "clear_tutorial_monsters"
+                },
+                {
+                    "type": "spawn_monster",
+                    "monsterId": "training_dummy",
+                    "offsetX": 220,
+                    "offsetY": 0
+                }
+            ],
+            "trigger": "skill_use",
+            "target": "fireball",
+            "count": 1,
+            "allowedActions": [
+                "MOVE_UP",
+                "MOVE_DOWN",
+                "MOVE_LEFT",
+                "MOVE_RIGHT",
+                "SKILL_2"
+            ]
+        },
+        {
+            "id": "reopen_skill_for_shield",
+            "instructionDesktop": "마지막으로 스킬 창을 다시 열어 앱솔루트 베리어를 확인해 볼게요. PC에서는 우측 상단 미니맵 왼쪽의 스킬 아이콘이나 `Shift+S`를 사용하세요.",
+            "instructionMobile": "마지막으로 스킬 창을 다시 열어 앱솔루트 베리어를 확인해 볼게요. 모바일에서는 하단 중앙의 스킬 아이콘이나 `Shift+S`를 사용하세요.",
+            "highlightTarget": "#btn-skill",
+            "trigger": "popup_open",
+            "target": "skill-popup",
+            "count": 1,
+            "allowedActions": [
+                "OPEN_SKILL"
+            ]
+        },
+        {
+            "id": "inspect_shield_detail",
+            "instruction": "앱솔루트 베리어는 다음 1회의 피해를 완전히 막는 생존 스킬입니다. 이 스킬은 성장형이 아니라 레벨업 없이 고정 성능으로 사용됩니다.",
+            "highlightTarget": "#skill-item-shield",
+            "trigger": "skill_tooltip",
+            "target": "shield",
+            "count": 1,
+            "allowedActions": [
+                "OPEN_SKILL"
+            ]
+        },
+        {
+            "id": "use_shield",
+            "instructionDesktop": "이제 앱솔루트 베리어를 한 번 사용해 보세요. `K` 키나 우측 하단 보호막 버튼을 누르면 됩니다.",
+            "instructionMobile": "이제 앱솔루트 베리어를 한 번 사용해 보세요. 우측 하단 보호막 버튼이나 `K` 키를 누르면 됩니다.",
+            "highlightTarget": "#action-skill-k",
+            "onStart": [
+                {
+                    "type": "close_popups"
+                },
+                {
+                    "type": "clear_tutorial_monsters"
+                }
+            ],
+            "trigger": "skill_use",
+            "target": "shield",
+            "count": 1,
+            "allowedActions": [
+                "MOVE_UP",
+                "MOVE_DOWN",
+                "MOVE_LEFT",
+                "MOVE_RIGHT",
+                "SKILL_3"
+            ]
+        },
+        {
             "id": "open_inventory",
             "instruction": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. `B` 키나 가방 버튼을 사용하세요.",
+            "instructionDesktop": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. PC에서는 우측 상단 미니맵 왼쪽의 가방 아이콘이나 `B` 키를 사용하세요.",
+            "instructionMobile": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. 모바일에서는 하단 중앙의 가방 아이콘이나 `B` 키를 사용하세요.",
+            "highlightTarget": "#btn-inventory",
             "onStart": [
                 {
                     "type": "close_popups"
@@ -168,12 +310,20 @@
             ]
         },
         {
+            "id": "close_inventory",
+            "instruction": "좋아요. 인벤토리를 확인했어요. 이제 `B` 키나 닫기 버튼으로 다시 닫아 주세요.",
+            "highlightTarget": "#inventory-close-btn-bottom",
+            "trigger": "popup_close",
+            "target": "inventory-popup",
+            "count": 1,
+            "allowedActions": [
+                "OPEN_INVENTORY"
+            ]
+        },
+        {
             "id": "finish",
             "instruction": "준비 완료. 이제 실제 전투를 시작해 볼까요?",
             "onStart": [
-                {
-                    "type": "close_popups"
-                },
                 {
                     "type": "center_message",
                     "text": "튜토리얼 완료 준비"

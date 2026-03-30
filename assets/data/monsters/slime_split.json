@@ -14,8 +14,8 @@
     },
     "visual": {
         "assetPath": "assets/resource/monster_split",
-        "width": 96,
-        "height": 96,
+        "width": 120,
+        "height": 120,
         "frameSpeed": 0.12,
         "frameCount": 5,
         "scale": 2.0

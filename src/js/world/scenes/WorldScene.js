@@ -53,6 +53,7 @@ export default class WorldScene extends Scene {
     async enter(params) {
         Logger.info("[WorldScene] Entering game world...");
         this.ui?.showHUD();
+        this.remotePlayers.clear();
 
         // v0.35.0: Ensure Story Fade is reset to prevent black screen
         if (this.game.story) {
@@ -310,6 +311,7 @@ export default class WorldScene extends Scene {
         if (!this.player) return;
 
         this.net.setZoneParticipationEnabled(true);
+        this.remotePlayers.clear();
         this._syncRemotePlayersFromBuffer();
         this.net.startHostilityListeners();
         this.player.saveState(true);
@@ -503,7 +505,7 @@ export default class WorldScene extends Scene {
     }
 
     async exit() {
-        // ... any other cleanup
+        this.remotePlayers.clear();
     }
 
     update(dt) {
@@ -570,9 +572,11 @@ export default class WorldScene extends Scene {
         this.minimapUpdateTimer += dt;
 
         // v0.00.39: Always update all remote players for proper sync
-        this.remotePlayers.forEach(rp => {
-            rp.update(dt);
-        });
+        if (this.net.isZoneParticipationEnabled()) {
+            this.remotePlayers.forEach(rp => {
+                rp.update(dt);
+            });
+        }
 
         if (this.monsterManager && this.player) {
             this.monsterManager.update(dt, this.player, this.remotePlayers);
@@ -712,7 +716,9 @@ export default class WorldScene extends Scene {
         if (this.player && !this.player.isDead) renderList.push(this.player);
 
         // Remote Players
-        this.remotePlayers.forEach(rp => renderList.push(rp));
+        if (this.net.isZoneParticipationEnabled()) {
+            this.remotePlayers.forEach(rp => renderList.push(rp));
+        }
 
         // Monsters
         if (this.monsterManager) {
@@ -749,19 +755,26 @@ export default class WorldScene extends Scene {
         // v0.00.21: Target Lock-on Marker
         if (this.player && this.player.currentTarget && !this.player.currentTarget.isDead) {
             const t = this.player.currentTarget;
-            const tx = t.x + t.width / 2;
-            const ty = t.y + t.height;
-            import('../../skills/renderers/SkillRenderer.js').then(m => {
-                m.default.drawTargetMarker(ctx, tx, ty, t.width || 48, t.height || 48);
-            });
+            const isMonsterTarget = !!t.isMonster || t.type === 'monster' || !!t.typeId;
+            if (isMonsterTarget && !this.monsterManager?.monsters?.has(t.id)) {
+                this.player.currentTarget = null;
+            } else {
+                const tx = t.x + t.width / 2;
+                const ty = t.y + t.height;
+                import('../../skills/renderers/SkillRenderer.js').then(m => {
+                    m.default.drawTargetMarker(ctx, tx, ty, t.width || 48, t.height || 48);
+                });
+            }
         }
 
         // v0.00.22: Off-screen culling for RemotePlayers render
-        this.remotePlayers.forEach(rp => {
-            if (this.isOnScreen(rp)) {
-                rp.render(ctx, this.camera);
-            }
-        });
+        if (this.net.isZoneParticipationEnabled()) {
+            this.remotePlayers.forEach(rp => {
+                if (this.isOnScreen(rp)) {
+                    rp.render(ctx, this.camera);
+                }
+            });
+        }
 
         if (this.monsterManager) this.monsterManager.render(ctx, this.camera);
         // this.projectiles.forEach(p => p.render(ctx, this.camera)); 

@@ -23,6 +23,29 @@ export default class TutorialManager {
         return this.activeTutorial?.steps?.[this.currentStepIndex] || null;
     }
 
+    isMobileTutorialLayout() {
+        const isNarrow = window.innerWidth <= 900;
+        const isPortrait = window.matchMedia?.('(orientation: portrait)')?.matches;
+        return isNarrow && !!isPortrait;
+    }
+
+    getStepInstruction(step = this.getCurrentStep()) {
+        if (!step) return '';
+        return this.isMobileTutorialLayout()
+            ? (step.instructionMobile || step.instruction)
+            : (step.instructionDesktop || step.instruction);
+    }
+
+    getStepHighlightTargets(step = this.getCurrentStep()) {
+        if (!step) return null;
+
+        if (this.isMobileTutorialLayout()) {
+            return step.highlightTargetsMobile || step.highlightTargetMobile || step.highlightTargets || step.highlightTarget || null;
+        }
+
+        return step.highlightTargetsDesktop || step.highlightTargetDesktop || step.highlightTargets || step.highlightTarget || null;
+    }
+
     isActionAllowed(action) {
         if (this.pendingTutorialId && !this.activeTutorial) return false;
 
@@ -32,12 +55,28 @@ export default class TutorialManager {
         return step.allowedActions.includes(action);
     }
 
+    isSkillUpgradeAllowed(skillId) {
+        const step = this.getCurrentStep();
+        if (!step) return true;
+
+        if (step.trigger === 'skill_upgrade') {
+            return this._matchesTarget(step.target, skillId);
+        }
+
+        if (Array.isArray(step.allowedActions) && step.allowedActions.includes('OPEN_SKILL')) {
+            return false;
+        }
+
+        return true;
+    }
+
     startTutorial(id) {
         if (this.completedTutorials.has(id) || this.activeTutorial || this.pendingTutorialId) return;
 
         this.pendingTutorialId = id;
         this.game.input?.setAllowedActions([]);
         this.game.net?.setZoneParticipationEnabled?.(false);
+        this.game.sceneManager?.currentScene?.remotePlayers?.clear?.();
 
         this.loadTutorial(id).then((data) => {
             if (!data) {
@@ -85,6 +124,7 @@ export default class TutorialManager {
         }
         if (this.game.ui) {
             this.game.ui.hideTutorialGuide();
+            this.game.ui.clearTutorialHighlight?.();
         }
         if (this.game.ui?.updateQuestUI) {
             this.game.ui.updateQuestUI();
@@ -103,10 +143,13 @@ export default class TutorialManager {
         this.game.input?.setAllowedActions(step.allowedActions || null);
 
         if (this.game.ui) {
-            this.game.ui.showTutorialGuide(step.instruction);
+            this.game.ui.showTutorialGuide(this.getStepInstruction(step));
+            this.game.ui.updateSkillPopup?.();
+            this.game.ui.updateStatusPopup?.();
         }
 
         this._runActions(step.onStart);
+        this.game.ui?.highlightTutorialTargets?.(this.getStepHighlightTargets(step));
     }
 
     _runActions(actions) {
@@ -237,6 +280,7 @@ export default class TutorialManager {
 
         if (this.game.ui) {
             this.game.ui.hideTutorialGuide();
+            this.game.ui.clearTutorialHighlight?.();
             this.game.ui.logSystemMessage(`튜토리얼 완료: ${this.activeTutorial.title}`);
         }
 

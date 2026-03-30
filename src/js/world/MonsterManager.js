@@ -189,6 +189,7 @@ export default class MonsterManager {
     clearTutorialMonsters() {
         const tutorialIds = Array.from(this.tutorialMonsterIds);
         tutorialIds.forEach((id) => {
+            this._clearPlayerTargetIfMatches(id);
             if (this.net.isHost) {
                 this.net.removeMonster(id);
             }
@@ -401,6 +402,7 @@ export default class MonsterManager {
             if (m.isDead && m.deathTimer >= m.deathDuration) {
                 // v1.86: Only remove after fade duration
                 Logger.info(`[HOST] REMOVING Monster after death fade: ${id} (${m.name})`);
+                this._clearPlayerTargetIfMatches(m);
                 this.net.removeMonster(id);
                 this.monsters.delete(id);
                 this.lastSyncState.delete(id);
@@ -739,9 +741,20 @@ export default class MonsterManager {
     }
 
     _onRemoteMonsterRemoved(id) {
+        this._clearPlayerTargetIfMatches(id);
         this.tutorialMonsterIds.delete(id);
         this.lastSyncState.delete(id);
         this.monsters.delete(id);
+    }
+
+    _clearPlayerTargetIfMatches(monsterOrId) {
+        const targetId = typeof monsterOrId === 'string' ? monsterOrId : monsterOrId?.id;
+        if (!targetId) return;
+
+        const player = this.game?.localPlayer;
+        if (player?.currentTarget && (player.currentTarget.id === targetId || player.currentTarget === monsterOrId)) {
+            player.currentTarget = null;
+        }
     }
 
     _onMonsterDamageReceived(data) {

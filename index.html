@@ -262,13 +262,13 @@
 
                 <div class="action-buttons">
                     <div class="skill-row top-skills">
-                        <div class="skill-btn skill-u" data-key="u">
+                        <div id="action-skill-u" class="skill-btn skill-u" data-key="u">
                             <div class="shortcut-badge">U</div>
                             <div class="inner-icon">🔥</div>
                             <div class="cooldown-overlay"></div>
                             <div class="cooldown-time"></div>
                         </div>
-                        <div class="skill-btn skill-k" data-key="k">
+                        <div id="action-skill-k" class="skill-btn skill-k" data-key="k">
                             <div class="shortcut-badge">K</div>
                             <div class="inner-icon">🛡️</div>
                             <div class="cooldown-overlay"></div>
@@ -276,13 +276,13 @@
                         </div>
                     </div>
                     <div class="skill-row bottom-skills">
-                        <div class="skill-btn skill-h" data-key="h">
+                        <div id="action-skill-h" class="skill-btn skill-h" data-key="h">
                             <div class="shortcut-badge">H</div>
                             <div class="inner-icon">🪄</div>
                             <div class="cooldown-overlay"></div>
                             <div class="cooldown-time"></div>
                         </div>
-                        <div class="attack-btn" data-key="j">
+                        <div id="action-attack-j" class="attack-btn" data-key="j">
                             <div class="shortcut-badge">J</div>
                             <div class="inner-icon">⚔️</div>
                             <div class="cooldown-overlay"></div>
@@ -353,7 +353,7 @@
                     <div class="grid-item"></div>
                 </div>
                 <div class="popup-footer">
-                    <button class="close-btn-bottom close-popup">닫기</button>
+                    <button id="inventory-close-btn-bottom" class="close-btn-bottom close-popup">닫기</button>
                 </div>
             </div>
 
@@ -396,7 +396,7 @@
                     </div>
 
                     <div class="status-stats-grid">
-                        <div class="stat-main">
+                        <div class="stat-main" id="status-stat-main">
                             <div class="stat-point-info">
                                 <span>보유 포인트: <strong id="stat-points">0</strong></span>
                             </div>
@@ -441,7 +441,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="stat-derived">
+                        <div class="stat-derived" id="status-derived-panel">
                             <div class="derived-row"><span>현재 HP:</span> <span id="val-hp-range">100/100</span></div>
                             <div class="derived-row"><span>현재 MP:</span> <span id="val-mp-range">100/100</span></div>
                             <div class="derived-row"><span>공격력:</span> <span id="val-atk">10</span></div>
@@ -464,7 +464,7 @@
                             초기화</button>
                     </div>
                     <div class="popup-footer">
-                        <button class="close-btn-bottom close-popup">닫기</button>
+                        <button id="status-close-btn-bottom" class="close-btn-bottom close-popup">닫기</button>
                     </div>
                 </div>
             </div>
@@ -481,7 +481,7 @@
                     </div>
                     <div class="skill-list">
                         <!-- Skill Item: Laser -->
-                        <div class="skill-item">
+                        <div class="skill-item" id="skill-item-laser" data-skill-item="laser">
                             <div class="skill-icon">⚔️</div>
                             <div class="skill-info">
                                 <div class="skill-name-row">
@@ -494,7 +494,7 @@
                             <button class="skill-up-btn" data-skill="laser">+</button>
                         </div>
                         <!-- Skill Item: Missile -->
-                        <div class="skill-item">
+                        <div class="skill-item" id="skill-item-missile" data-skill-item="missile">
                             <div class="skill-icon">🪄</div>
                             <div class="skill-info">
                                 <div class="skill-name-row">
@@ -504,10 +504,10 @@
                                 <p class="skill-desc">유도 단일 공격. <br><small>필요: <span class="skill-cost"
                                             data-skill="missile">300</span>G</small></p>
                             </div>
-                            <button class="skill-up-btn" data-skill="missile">+</button>
+                            <button id="skill-up-missile" class="skill-up-btn" data-skill="missile">+</button>
                         </div>
                         <!-- Skill Item: Fireball -->
-                        <div class="skill-item">
+                        <div class="skill-item" id="skill-item-fireball" data-skill-item="fireball">
                             <div class="skill-icon">🔥</div>
                             <div class="skill-info">
                                 <div class="skill-name-row">
@@ -517,10 +517,10 @@
                                 <p class="skill-desc">광역 폭발 및 화상 공격. <br><small>필요: <span class="skill-cost"
                                             data-skill="fireball">300</span>G</small></p>
                             </div>
-                            <button class="skill-up-btn" data-skill="fireball">+</button>
+                            <button id="skill-up-fireball" class="skill-up-btn" data-skill="fireball">+</button>
                         </div>
                         <!-- Skill Item: Shield -->
-                        <div class="skill-item">
+                        <div class="skill-item" id="skill-item-shield" data-skill-item="shield">
                             <div class="skill-icon">🛡️</div>
                             <div class="skill-info">
                                 <div class="skill-name-row">

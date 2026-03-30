@@ -284,9 +284,24 @@ export default class Player extends CharacterBase {
         }
 
         // Process Status Effects
-        // v0.00.21: Cleanup target if dead
-        if (this.currentTarget && this.currentTarget.isDead) {
-            this.currentTarget = null;
+        // v2.4.3: Cleanup stale target references (dead or removed tutorial targets).
+        if (this.currentTarget) {
+            const target = this.currentTarget;
+            const isMonsterTarget = !!target.isMonster || target.type === 'monster' || !!target.typeId;
+            if (target.isDead) {
+                this.currentTarget = null;
+            } else if (isMonsterTarget) {
+                const monsters = window.game?.monsterManager?.monsters;
+                if (!target.id || !monsters?.has(target.id)) {
+                    this.currentTarget = null;
+                }
+            } else if (target.type === 'player' && target !== this) {
+                const remotePlayers = window.game?.remotePlayers;
+                const localPlayer = window.game?.localPlayer;
+                if (target !== localPlayer && (!target.id || !remotePlayers?.has(target.id))) {
+                    this.currentTarget = null;
+                }
+            }
         }
         this.statusEffects = this.statusEffects.filter(eff => {
             eff.timer -= dt;

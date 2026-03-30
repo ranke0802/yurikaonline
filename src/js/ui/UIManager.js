@@ -12,6 +12,10 @@ export class UIManager {
         this.setupFullscreenListeners();
         this.setupDevModeListeners();
         this.inputManager = game.input; // Local reference
+        this.tutorialHighlightLayer = null;
+        this.tutorialHighlightTargets = [];
+        this.refreshTutorialHighlight = this.refreshTutorialHighlight.bind(this);
+        window.addEventListener('resize', this.refreshTutorialHighlight);
 
         // v0.00.50: Check Standalone (PWA) on init and force lock
         if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -238,31 +242,7 @@ export class UIManager {
             shield: { name: '앱솔루트 베리어 (K)', desc: '절대 방어막을 전개하여 다음 1회의 피격을 완전히 무효화합니다. [마나 소모: 20] [재사용 대기시간: 3초] [레벨업 불가]' }
         };
 
-        const keyToSkill = { 'j': 'laser', 'h': 'missile', 'u': 'fireball', 'k': 'shield' };
-
-        const showTooltipHandler = (e, skillId) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            this.showTooltip(skillId, rect.left, rect.top);
-        };
-
-        const hideTooltipHandler = () => this.hideTooltip();
-
-        // DELETED Action Bar Tooltips (User requested only inside skill window)
-
-        // Skill popup icons
-        document.querySelectorAll('.skill-icon').forEach(icon => {
-            const skillItem = icon.closest('.skill-item');
-            const upBtn = skillItem ? skillItem.querySelector('.skill-up-btn') : null;
-            const skillId = upBtn ? upBtn.getAttribute('data-skill') : null;
-            if (!skillId) return;
-
-            icon.addEventListener('mouseenter', (e) => showTooltipHandler(e, skillId));
-            icon.addEventListener('mouseleave', hideTooltipHandler);
-            icon.addEventListener('touchstart', (e) => {
-                showTooltipHandler(e, skillId);
-            }, { passive: true });
-            icon.addEventListener('touchend', hideTooltipHandler, { passive: true });
-        });
+        this.bindSkillTooltipTargets();
 
         // Chat send button
         const sendBtn = document.querySelector('.send-btn');
@@ -326,9 +306,23 @@ export class UIManager {
         document.querySelectorAll('.skill-up-btn').forEach(btn => {
             const handleSkillUp = (e) => {
                 e.preventDefault();
+                if (btn.disabled || btn.classList.contains('disabled')) return;
                 const skillId = btn.getAttribute('data-skill');
                 const p = this.game.localPlayer;
                 if (!p || !skillId) return;
+
+                if (!this.game.tutorial?.isSkillUpgradeAllowed?.(skillId)) {
+                    const tutorialStep = this.game.tutorial?.getCurrentStep?.();
+                    if (tutorialStep?.trigger === 'skill_upgrade') {
+                        const requiredSkill = tutorialStep.target;
+                        const requiredName = this.skillData[requiredSkill]?.name || '지정된 스킬';
+                        this.logSystemMessage(`📘 지금은 ${requiredName}만 강화할 수 있습니다.`);
+                    } else {
+                        this.logSystemMessage('📘 아직은 스킬 설명을 확인하는 단계입니다. 아이콘에 마우스를 올려 보세요.');
+                    }
+                    this.updateSkillPopup();
+                    return;
+                }
 
                 // Exponential Cost: 300 * 2^(lv-1)
                 const lv = p.skillLevels[skillId] || 1;
@@ -760,6 +754,7 @@ export class UIManager {
 
     executePopupClose(id, isCurrentlyHidden, popup) {
         if (!popup) popup = document.getElementById(id);
+        this.hideTooltip();
 
         document.querySelectorAll('.game-popup').forEach(p => p.classList.add('hidden'));
 
@@ -779,6 +774,7 @@ export class UIManager {
             if (this.game.sound) this.game.sound.playSfx('ui_close');
             this.overlay.classList.add('hidden');
             this.isPaused = false;
+            this.game.tutorial?.trigger?.('popup_close', { target: id });
         }
     }
 
@@ -790,6 +786,114 @@ export class UIManager {
 
     hideConfirm() {
         this.confirmModal.classList.add('hidden');
+    }
+
+    bindSkillTooltipTargets() {
+        const skillPopup = document.getElementById('skill-popup');
+        if (!skillPopup || skillPopup.dataset.tooltipBound === 'true') return;
+
+        const resolveSkillItem = (target) => {
+            const item = target?.closest?.('.skill-item');
+            return item && skillPopup.contains(item) ? item : null;
+        };
+
+        const resolveSkillId = (item) => {
+            const upBtn = item?.querySelector?.('.skill-up-btn');
+            return upBtn?.getAttribute('data-skill') || null;
+        };
+
+        const showFromItem = (item, x, y) => {
+            const skillId = resolveSkillId(item);
+            if (!skillId) return;
+
+            const rect = item.getBoundingClientRect();
+            this.showTooltip(skillId, x ?? rect.left, y ?? rect.top);
+        };
+
+        skillPopup.addEventListener('mouseover', (e) => {
+            const item = resolveSkillItem(e.target);
+            if (!item) return;
+            showFromItem(item, e.clientX, e.clientY);
+        });
+
+        skillPopup.addEventListener('mousemove', (e) => {
+            const item = resolveSkillItem(e.target);
+            if (!item) {
+                this.hideTooltip();
+                return;
+            }
+            showFromItem(item, e.clientX, e.clientY);
+        });
+
+        skillPopup.addEventListener('mouseleave', () => this.hideTooltip());
+
+        skillPopup.addEventListener('touchstart', (e) => {
+            const item = resolveSkillItem(e.target);
+            if (!item) return;
+
+            const touch = e.touches?.[0];
+            showFromItem(item, touch?.clientX, touch?.clientY);
+        }, { passive: true });
+
+        skillPopup.dataset.tooltipBound = 'true';
+    }
+
+    ensureTutorialHighlightLayer() {
+        if (this.tutorialHighlightLayer) return this.tutorialHighlightLayer;
+
+        const layer = document.createElement('div');
+        layer.id = 'tutorial-highlight-layer';
+        document.body.appendChild(layer);
+        this.tutorialHighlightLayer = layer;
+        return layer;
+    }
+
+    resolveTutorialHighlightTarget(target) {
+        if (!target) return null;
+        if (target instanceof Element) return target;
+        if (typeof target !== 'string') return null;
+
+        try {
+            return document.querySelector(target);
+        } catch {
+            return null;
+        }
+    }
+
+    highlightTutorialTargets(targets) {
+        this.tutorialHighlightTargets = Array.isArray(targets)
+            ? targets.filter(Boolean)
+            : (targets ? [targets] : []);
+        this.refreshTutorialHighlight();
+    }
+
+    refreshTutorialHighlight() {
+        const layer = this.ensureTutorialHighlightLayer();
+        layer.innerHTML = '';
+
+        this.tutorialHighlightTargets.forEach((target) => {
+            const element = this.resolveTutorialHighlightTarget(target);
+            if (!element) return;
+            if (element.classList?.contains('hidden')) return;
+
+            const rect = element.getBoundingClientRect();
+            if (!rect.width || !rect.height) return;
+
+            const box = document.createElement('div');
+            box.className = 'tutorial-highlight-box';
+            box.style.left = `${Math.max(0, rect.left - 8)}px`;
+            box.style.top = `${Math.max(0, rect.top - 8)}px`;
+            box.style.width = `${rect.width + 16}px`;
+            box.style.height = `${rect.height + 16}px`;
+            layer.appendChild(box);
+        });
+    }
+
+    clearTutorialHighlight() {
+        this.tutorialHighlightTargets = [];
+        if (this.tutorialHighlightLayer) {
+            this.tutorialHighlightLayer.innerHTML = '';
+        }
     }
 
     showTooltip(skillId, x, y) {
@@ -868,6 +972,7 @@ export class UIManager {
     }
 
     hideAllPopups() {
+        this.hideTooltip();
         const statusPopup = document.getElementById('status-popup');
         if (statusPopup && !statusPopup.classList.contains('hidden')) {
             // Status popup has special handling due to confirm modal
@@ -1219,8 +1324,9 @@ export class UIManager {
                     btn.classList.add('disabled');
                     btn.disabled = true;
                 } else {
-                    btn.disabled = p.gold < cost;
-                    btn.classList.toggle('disabled', p.gold < cost);
+                    const tutorialLocked = !this.game.tutorial?.isSkillUpgradeAllowed?.(skillId);
+                    btn.disabled = tutorialLocked || p.gold < cost;
+                    btn.classList.toggle('disabled', tutorialLocked || p.gold < cost);
                 }
             }
         });
@@ -1254,7 +1360,7 @@ export class UIManager {
             taskDisplay.style.display = 'flex';
             rewardDisplay.style.display = 'flex';
             taskTitle.textContent = `튜토리얼 · ${tutorial.activeTutorial.title}`;
-            taskProgress.textContent = tutorialStep.instruction;
+            taskProgress.textContent = tutorial.getStepInstruction?.(tutorialStep) || tutorialStep.instruction;
             rewardDisplay.classList.remove('quest-reward-claimable');
             if (rewardIcon) rewardIcon.textContent = 'T';
             if (rewardTitle) rewardTitle.textContent = '진행 안내';
