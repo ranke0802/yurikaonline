@@ -91,6 +91,58 @@ export default class MonsterManager {
             ey >= cam.y - margin && ey <= cam.y + vh + margin;
     }
 
+    _normalizePartyMembers(members) {
+        return Array.from(new Set((members || []).filter(Boolean)));
+    }
+
+    _getPartyMembersForPlayer(uid) {
+        if (!uid) return [];
+        if (uid === this.net.playerId) {
+            return this._normalizePartyMembers(window.game?.localPlayer?.party?.members || [uid]);
+        }
+
+        const remote = this.net.remotePlayers.get(uid) || this.game.remotePlayers?.get(uid);
+        return this._normalizePartyMembers(remote?.party?.members || [uid]);
+    }
+
+    _buildRewardItem(itemId, dropDef = {}) {
+        const itemMeta = {
+            slime_gel: { name: '슬라임 젤', icon: '🟢' },
+            potion_hp_small: { name: '소형 HP 포션', icon: '🧪' },
+            royal_jelly: { name: '로열 젤리', icon: '🍯' },
+            king_crown: { name: '킹 크라운', icon: '👑' }
+        };
+
+        const fallback = itemMeta[itemId] || { name: itemId, icon: '🎁' };
+        const minAmount = Math.max(1, dropDef.min || 1);
+        const maxAmount = Math.max(minAmount, dropDef.max || minAmount);
+        return {
+            id: itemId,
+            type: itemId,
+            amount: Math.floor(Math.random() * (maxAmount - minAmount + 1)) + minAmount,
+            name: fallback.name,
+            icon: fallback.icon
+        };
+    }
+
+    _grantMonsterItemDrops(monster, attackerId) {
+        if (!attackerId || !monster?.drops?.length) return;
+
+        const rewardedItems = [];
+        monster.drops.forEach((dropDef) => {
+            if (!dropDef?.itemId || dropDef.itemId === 'gold') return;
+            if (Math.random() > (dropDef.chance ?? 1)) return;
+            rewardedItems.push(this._buildRewardItem(dropDef.itemId, dropDef));
+        });
+
+        if (rewardedItems.length > 0) {
+            this.net.sendReward(attackerId, {
+                monsterName: monster.name,
+                items: rewardedItems
+            });
+        }
+    }
+
     update(dt) {
         const localPlayer = this.game.localPlayer;
         const remotePlayers = this.game.remotePlayers;
@@ -151,15 +203,8 @@ export default class MonsterManager {
     }
 
     render(ctx, camera) {
-        // 1. Render Monsters (v0.00.22: Off-screen culling)
-        this.monsters.forEach(m => {
-            if (this.isOnScreen(m)) {
-                m.render(ctx, camera);
-            }
-            // Off-screen: Skip rendering entirely
-        });
-
-        // 2. Render Drops
+        // Monsters are rendered in WorldScene's Y-sorted render list.
+        // Only draw drops here to avoid double-rendering the same entities every frame.
         this.drops.forEach(d => d.render(ctx, camera));
     }
 
@@ -292,6 +337,8 @@ export default class MonsterManager {
                 // Spawn Drops (v0.00.70: 분열된 슬라임 드롭 조정)
                 const shouldProcessRewards = m.typeId !== 'training_dummy';
                 if (shouldProcessRewards) {
+                    const attackerId = m.lastAttackerId || this.net.playerId;
+                    const killerPartyMembers = this._getPartyMembersForPlayer(attackerId);
                     let xpAmount = 25;
                     let goldAmount = 50;
                     if (m.typeId === 'king_slime') {
@@ -304,11 +351,26 @@ export default class MonsterManager {
                         xpAmount = 500;
                         goldAmount = 5000;
                     }
-                    this.net.spawnDrop({ x: m.x, y: m.y, type: 'gold', amount: goldAmount });
-                    this.net.spawnDrop({ x: m.x + 20, y: m.y - 10, type: 'exp', amount: xpAmount });
+                    this.net.spawnDrop({
+                        x: m.x,
+                        y: m.y,
+                        type: 'gold',
+                        amount: goldAmount,
+                        ownerId: attackerId,
+                        partyMembers: killerPartyMembers
+                    });
+                    this.net.spawnDrop({
+                        x: m.x + 20,
+                        y: m.y - 10,
+                        type: 'exp',
+                        amount: xpAmount,
+                        ownerId: attackerId,
+                        partyMembers: killerPartyMembers
+                    });
                     if (Math.random() > 0.5 || m.isBoss) {
                         this.net.spawnDrop({ x: m.x - 20, y: m.y + 10, type: 'hp', amount: 30 });
                     }
+                    this._grantMonsterItemDrops(m, attackerId);
                 }
 
                 // Quest & Splitting Logic (v0.00.14)
@@ -737,7 +799,10 @@ export default class MonsterManager {
     async _onDropAdded(data) {
         if (this.drops.has(data.id)) return;
         const { default: Drop } = await import('../entities/Drop.js');
-        const d = new Drop(data.id, data.x, data.y, data.type, data.amount);
+        const d = new Drop(data.id, data.x, data.y, data.type, data.amount, {
+            ownerId: data.ownerId,
+            partyMembers: data.partyMembers
+        });
         this.drops.set(data.id, d);
     }
 
@@ -749,38 +814,32 @@ export default class MonsterManager {
         if (!this.net.isHost) return;
         const drop = this.drops.get(data.dropId);
         if (drop) {
-            const reward = {};
-            if (drop.type === 'gold') reward.gold = drop.amount;
-            else if (drop.type === 'exp') reward.exp = drop.amount;
-            else if (drop.type === 'hp') reward.hp = drop.amount; // HP usually not split? "Healing (1/N distribution)" per prompt.
+            const collectorAllowed = !drop.ownerId
+                || drop.ownerId === data.collectorId
+                || drop.partyMembers?.includes(data.collectorId);
+            if (!collectorAllowed) return;
 
-            // v0.00.14: Party Splitting Logic
-            let collector = null;
-            if (data.collectorId === this.net.playerId) {
-                collector = window.game.localPlayer;
-            } else {
-                collector = this.net.remotePlayers.get(data.collectorId);
-            }
+            if (drop.type === 'gold' || drop.type === 'exp') {
+                const ownerId = drop.ownerId || data.collectorId;
+                const ownerReward = {};
+                const allyReward = {};
 
-            const party = collector ? collector.party : null;
+                if (drop.type === 'gold') {
+                    ownerReward.gold = drop.amount;
+                    allyReward.gold = Math.max(1, Math.floor(drop.amount * 0.6));
+                } else {
+                    ownerReward.exp = drop.amount;
+                    allyReward.exp = Math.max(1, Math.floor(drop.amount * 0.6));
+                }
 
-            if (party && party.members && party.members.length > 1) {
-                // Split Logic
-                const count = party.members.length;
-                const splitReward = {};
-                if (reward.gold) splitReward.gold = Math.floor(reward.gold / count);
-                if (reward.exp) splitReward.exp = Math.floor(reward.exp / count);
-                if (reward.hp) splitReward.hp = Math.floor(reward.hp / count);
+                this.net.sendReward(ownerId, ownerReward);
 
-                party.members.forEach(uid => {
-                    this.net.sendReward(uid, splitReward);
-                });
-
-                // Remainder? Lost or given to collector? 
-                // Simple 1/N floor is fine.
-            } else {
-                // Solo
-                this.net.sendReward(data.collectorId, reward);
+                const partyMembers = this._normalizePartyMembers(drop.partyMembers || []);
+                partyMembers
+                    .filter((uid) => uid !== ownerId)
+                    .forEach((uid) => this.net.sendReward(uid, allyReward));
+            } else if (drop.type === 'hp') {
+                this.net.sendReward(data.collectorId, { hp: drop.amount });
             }
 
             this.net.removeDrop(data.dropId);

@@ -24,8 +24,11 @@ export default class WorldScene extends Scene {
 
         // v0.00.22: Off-screen entity culling
         this.minimapUpdateTimer = 0;
-        this.minimapUpdateInterval = 3; // seconds
+        this.minimapUpdateInterval = 0.2;
+        this.hudUpdateTimer = 0;
+        this.hudUpdateInterval = 0.05;
         this.viewMargin = 500; // v0.00.24: Increased for smoother player sync
+        this._lastLandscapeFramingOffsetY = 0;
 
         // v0.33.0: Monster Attack Queue
         this.monsterMissileQueue = [];
@@ -510,6 +513,12 @@ export default class WorldScene extends Scene {
 
     update(dt) {
         this.time += dt;
+        this.hudUpdateTimer += dt;
+        this.minimapUpdateTimer += dt;
+
+        const useMobileIntervals = !!this.game.isMobilePerformanceMode;
+        this.hudUpdateInterval = useMobileIntervals ? 0.08 : 0.05;
+        this.minimapUpdateInterval = useMobileIntervals ? 0.25 : 0.16;
 
         if (this.player) {
             if (this.input.isPressed('SKILL_1')) this.player.useSkill(1);
@@ -554,26 +563,33 @@ export default class WorldScene extends Scene {
             const landscapeFramingOffsetY = this.ui?.isMobileLandscapeViewport?.()
                 ? Math.min(58, Math.max(34, this.camera.height * 0.12))
                 : 0;
-            this.camera.setFramingOffset(0, landscapeFramingOffsetY);
+            if (Math.abs(landscapeFramingOffsetY - this._lastLandscapeFramingOffsetY) > 0.5) {
+                this.camera.setFramingOffset(0, landscapeFramingOffsetY);
+                this._lastLandscapeFramingOffsetY = landscapeFramingOffsetY;
+            }
             this.camera.follow(this.player, this.game.zone.width, this.game.zone.height);
 
-            if (this.ui) {
+            if (this.ui && this.hudUpdateTimer >= this.hudUpdateInterval) {
+                this.hudUpdateTimer = 0;
                 this.ui.updateStats(
                     (this.player.hp / this.player.maxHp) * 100,
                     (this.player.mp / this.player.maxMp) * 100,
                     this.player.level,
                     (this.player.exp / this.player.maxExp) * 100
                 );
+            }
 
-                const hpMax = document.getElementById('ui-hp-max');
-                const mpMax = document.getElementById('ui-mp-max');
-                if (hpMax) hpMax.textContent = Math.floor(this.player.maxHp);
-                if (mpMax) mpMax.textContent = Math.floor(this.player.maxMp);
+            if (this.ui && this.minimapUpdateTimer >= this.minimapUpdateInterval) {
+                this.minimapUpdateTimer = 0;
+                this.ui.updateMinimap(
+                    this.player,
+                    this.remotePlayers,
+                    this.monsterManager ? this.monsterManager.monsters : [],
+                    this.game.zone.width,
+                    this.game.zone.height
+                );
             }
         }
-
-        // v0.00.22: Minimap-only update timer
-        this.minimapUpdateTimer += dt;
 
         // v0.00.39: Always update all remote players for proper sync
         if (this.net.isZoneParticipationEnabled()) {
@@ -753,6 +769,8 @@ export default class WorldScene extends Scene {
             }
         });
 
+        if (this.monsterManager) this.monsterManager.render(ctx, this.camera);
+
         // Effect Layers
         this.projectiles.forEach(p => p.render(ctx, this.camera));
 
@@ -765,27 +783,11 @@ export default class WorldScene extends Scene {
             } else {
                 const tx = t.x + t.width / 2;
                 const ty = t.y + t.height;
-                import('../../skills/renderers/SkillRenderer.js').then(m => {
-                    m.default.drawTargetMarker(ctx, tx, ty, t.width || 48, t.height || 48);
-                });
+                SkillRenderer.drawTargetMarker(ctx, tx, ty, t.width || 48, t.height || 48);
             }
         }
 
-        // v0.00.22: Off-screen culling for RemotePlayers render
-        if (this.net.isZoneParticipationEnabled()) {
-            this.remotePlayers.forEach(rp => {
-                if (this.isOnScreen(rp)) {
-                    rp.render(ctx, this.camera);
-                }
-            });
-        }
-
-        if (this.monsterManager) this.monsterManager.render(ctx, this.camera);
-        // this.projectiles.forEach(p => p.render(ctx, this.camera)); 
-
         if (this.player) {
-            this.player.render(ctx, this.camera);
-
             // 렌더링 순서: 플레이어 위에 이펙트
             this.sparks.forEach(s => {
                 ctx.globalAlpha = s.life / 0.5; // Fade out
@@ -828,16 +830,6 @@ export default class WorldScene extends Scene {
                 ctx.restore();
             });
 
-            // 2. Minimap (UI Sync)
-            if (this.ui) {
-                this.ui.updateMinimap(
-                    this.player,
-                    this.remotePlayers,
-                    this.monsterManager ? this.monsterManager.monsters : [],
-                    this.game.zone.width,
-                    this.game.zone.height
-                );
-            }
         }
 
         ctx.restore();

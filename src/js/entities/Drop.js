@@ -1,11 +1,13 @@
 import Entity from './core/Entity.js';
 
 export default class Drop extends Entity {
-    constructor(id, x, y, type, amount) {
+    constructor(id, x, y, type, amount, options = {}) {
         super(x, y);
         this.id = id;
         this.type = type; // 'gold', 'exp', 'hp'
         this.amount = amount;
+        this.ownerId = options.ownerId || null;
+        this.partyMembers = Array.isArray(options.partyMembers) ? options.partyMembers : null;
         this.radius = 15;
         this.isCollected = false;
         this.isLocallyCollected = false; // Prevent spam
@@ -27,7 +29,12 @@ export default class Drop extends Entity {
         if (this.isCollected) return true;
 
         // Simple magnetic follow
-        if (player && !player.isDead && !this.isLocallyCollected) {
+        const canCollect = !this.ownerId
+            || !player?.id
+            || player.id === this.ownerId
+            || this.partyMembers?.includes(player.id);
+
+        if (player && !player.isDead && !this.isLocallyCollected && canCollect) {
             const dx = player.x - this.x;
             const dy = player.y - this.y;
             const dist = Math.sqrt(dx * dx + dy * dy);

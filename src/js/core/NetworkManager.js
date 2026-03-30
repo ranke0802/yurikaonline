@@ -439,7 +439,8 @@ export default class NetworkManager extends EventEmitter {
             `party_invites/${this.playerId}`,
             `party_responses/${this.playerId}`,
             `damage_events/${this.playerId}`,
-            `users/${this.playerId}/hostility_inbox`
+            `users/${this.playerId}/hostility_inbox`,
+            `users/${this.playerId}/party_inbox`
         ];
         playerPaths.forEach(path => this.dbRef.child(path).off());
     }
@@ -654,11 +655,19 @@ export default class NetworkManager extends EventEmitter {
                 return 'SELF';
             }
 
+            const localPartyMembers = Array.isArray(window.game?.localPlayer?.party?.members)
+                ? window.game.localPlayer.party.members
+                : [this.playerId];
+            if (localPartyMembers.includes(targetUid)) {
+                return 'ALREADY_IN_PARTY';
+            }
+
             // Push invite to target's inbox (Correct Path: party_invites)
             const inviteRef = this.dbRef.child(`party_invites/${targetUid}`).push();
             await inviteRef.set({
                 from: this.playerId,
                 fromName: window.game.localPlayer ? window.game.localPlayer.name : "Unknown",
+                partyMembers: Array.from(new Set(localPartyMembers.filter(Boolean))),
                 ts: Date.now()
             });
 
@@ -669,27 +678,90 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
-    async respondToInvite(inviteId, fromUid, accept) {
-        if (!this.connected || !this.playerId || !this.dbRef) return;
+    _normalizePartyMembers(members) {
+        return Array.from(new Set((members || []).filter(Boolean)));
+    }
 
-        // Remove the invite first
+    _applyLocalPartyMembers(members) {
+        const normalized = this._normalizePartyMembers(members);
+        const localPlayer = window.game?.localPlayer;
+        if (!localPlayer) return normalized;
+
+        if (typeof localPlayer.setPartyMembers === 'function') {
+            localPlayer.setPartyMembers(normalized);
+        } else {
+            localPlayer.party = { members: normalized };
+            localPlayer.saveState(true);
+            window.game?.ui?.updatePartyUI?.();
+        }
+
+        return normalized;
+    }
+
+    async _loadPartyMembersFor(uid, fallbackMembers = null) {
+        if (Array.isArray(fallbackMembers) && fallbackMembers.length > 0) {
+            return this._normalizePartyMembers(fallbackMembers);
+        }
+
+        const data = await this.getPlayerData(uid);
+        const members = data?.profile?.party?.members;
+        return this._normalizePartyMembers(Array.isArray(members) && members.length > 0 ? members : [uid]);
+    }
+
+    async _broadcastPartySync(members, recipients, action = 'SYNC') {
+        if (!this.dbRef) return;
+
+        const normalizedMembers = this._normalizePartyMembers(members);
+        const targetMembers = this._normalizePartyMembers(recipients);
+        await Promise.all(targetMembers.map((uid) => this.dbRef.child(`users/${uid}/party_inbox`).push({
+            type: action,
+            members: normalizedMembers,
+            actorId: this.playerId,
+            actorName: window.game?.localPlayer?.name || 'Unknown',
+            ts: Date.now()
+        })));
+    }
+
+    async respondToInvite(inviteId, fromUid, accept, invitePartyMembers = null) {
+        if (!this.connected || !this.playerId || !this.dbRef) return null;
+
         await this.dbRef.child(`party_invites/${this.playerId}/${inviteId}`).remove();
 
-        await this.dbRef.child(`party_responses/${fromUid}`).push({
+        const responsePayload = {
             from: this.playerId,
             fromName: window.game?.localPlayer?.name || 'Unknown',
             accept: !!accept,
             ts: Date.now()
-        });
+        };
+
+        if (accept) {
+            const baseMembers = await this._loadPartyMembersFor(fromUid, invitePartyMembers);
+            const mergedMembers = this._normalizePartyMembers([...baseMembers, this.playerId]);
+            this._applyLocalPartyMembers(mergedMembers);
+            responsePayload.partyMembers = mergedMembers;
+
+            const recipients = mergedMembers.filter((uid) => uid !== this.playerId && uid !== fromUid);
+            await this._broadcastPartySync(mergedMembers, recipients, 'SYNC');
+        }
+
+        await this.dbRef.child(`party_responses/${fromUid}`).push(responsePayload);
+        return responsePayload.partyMembers || null;
     }
 
     async leaveParty() {
-        if (!this.connected || !this.playerId) return;
-        // Logic depends on party structure.
-        // Assuming we have a local `partyId` reference.
-        // For now, just clear local party state and notify others?
-        // Since we don't have a full server-side party manager, we'll implement a basic one.
+        if (!this.connected || !this.playerId) return false;
+
+        const currentMembers = this._normalizePartyMembers(window.game?.localPlayer?.party?.members || [this.playerId]);
+        const remainingMembers = currentMembers.filter((uid) => uid !== this.playerId);
+
+        this._applyLocalPartyMembers([this.playerId]);
+
+        if (remainingMembers.length > 0) {
+            await this._broadcastPartySync(remainingMembers, remainingMembers, 'LEAVE');
+        }
+
         this.emit('leftParty');
+        return true;
     }
 
     // Listener for invites (v0.00.70: 중복 정의 통합, 올바른 경로 사용)
@@ -705,7 +777,8 @@ export default class NetworkManager extends EventEmitter {
                 this.emit('partyInviteReceived', {
                     id: snapshot.key,
                     from: val.from,
-                    fromName: val.fromName
+                    fromName: val.fromName,
+                    partyMembers: val.partyMembers || [val.from]
                 });
             }
             // Auto-remove invite after processing
@@ -719,6 +792,14 @@ export default class NetworkManager extends EventEmitter {
                 this.emit('partyResponseReceived', val);
                 snapshot.ref.remove();
             }
+        });
+
+        this.dbRef.child(`users/${this.playerId}/party_inbox`).on('child_added', (snapshot) => {
+            const val = snapshot.val();
+            if (val && Array.isArray(val.members) && window.game?.localPlayer) {
+                this._applyLocalPartyMembers(val.members);
+            }
+            snapshot.ref.remove();
         });
     }
 
@@ -829,6 +910,8 @@ export default class NetworkManager extends EventEmitter {
             y: Math.round(data.y),
             type: data.type,
             amount: data.amount,
+            ownerId: data.ownerId || null,
+            partyMembers: Array.isArray(data.partyMembers) ? data.partyMembers : null,
             ts: Date.now()
         }).catch(e => { });
     }

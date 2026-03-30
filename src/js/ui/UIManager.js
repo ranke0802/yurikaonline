@@ -12,6 +12,11 @@ export class UIManager {
         this.landscapeFullscreenDismissed = false;
         this._wasFullscreenActive = false;
         this.pcQuestClaimHandler = null;
+        this.hudRefs = {};
+        this.cooldownRefs = {};
+        this.minimapCtx = null;
+        this.minimapCanvas = null;
+        this.lastHudSnapshot = null;
         this.handleDesktopShortcutKeydown = this.handleDesktopShortcutKeydown.bind(this);
         this.refreshDesktopShortcutHints = this.refreshDesktopShortcutHints.bind(this);
         this.setupEventListeners();
@@ -61,6 +66,31 @@ export class UIManager {
         // v2.1: Emote UI
         this.setupEmoteUI();
         this.setupLandscapeChatInteractions();
+    }
+
+    getHudRef(key, selector, lookup = 'query') {
+        const current = this.hudRefs[key];
+        if (current && current.isConnected) return current;
+
+        const next = lookup === 'id'
+            ? document.getElementById(selector)
+            : document.querySelector(selector);
+        this.hudRefs[key] = next || null;
+        return next || null;
+    }
+
+    getCooldownRefs(key) {
+        const cached = this.cooldownRefs[key];
+        if (cached?.button?.isConnected) return cached;
+
+        const button = document.querySelector(`[data-key="${key}"]`);
+        const refs = {
+            button: button || null,
+            overlay: button?.querySelector('.cooldown-overlay') || null,
+            timeText: button?.querySelector('.cooldown-time') || null
+        };
+        this.cooldownRefs[key] = refs;
+        return refs;
     }
 
     // v2.1: Dialog System Methods
@@ -387,6 +417,8 @@ export class UIManager {
         const rewardContent = document.querySelector('#reward-modal .reward-content');
         const historyContent = document.querySelector('#history-modal .history-content');
         const genericContent = document.querySelector('#generic-modal .confirm-modal-content');
+        const genericYes = document.getElementById('generic-modal-yes');
+        const genericNo = document.getElementById('generic-modal-no');
         const questDetails = document.querySelector('#quest-reward-display .quest-details');
 
         this.upsertShortcutHint(openPopup?.querySelector('.popup-footer'), 'F', '닫기', 'popup-shortcut-hint');
@@ -411,7 +443,9 @@ export class UIManager {
         this.upsertShortcutHint(
             this.isShortcutVisible(document.getElementById('generic-modal')) ? genericContent : null,
             'F',
-            '수락 · Esc 거절',
+            this.isShortcutVisible(genericNo)
+                ? `${genericYes?.textContent?.trim() || '수락'} · Esc ${genericNo?.textContent?.trim() || '거절'}`
+                : `${genericYes?.textContent?.trim() || '확인'} · Esc 닫기`,
             'modal-shortcut-hint'
         );
         this.upsertShortcutHint(
@@ -685,6 +719,18 @@ export class UIManager {
         document.querySelectorAll('.close-popup').forEach(btn => {
             btn.addEventListener('click', handleClose);
             btn.addEventListener('touchstart', handleClose, { passive: false });
+        });
+
+        document.querySelectorAll('.party-leave-btn').forEach((btn) => {
+            const handleLeaveParty = async (e) => {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                if (!this.game.net || !this.game.localPlayer?.party || this.game.localPlayer.party.members.length < 2) return;
+                await this.game.net.leaveParty();
+                this.updatePartyUI();
+            };
+            btn.addEventListener('click', handleLeaveParty);
+            btn.addEventListener('touchstart', handleLeaveParty, { passive: false });
         });
 
         // Confirmation Modal
@@ -987,31 +1033,34 @@ export class UIManager {
             this.game.net.on('partyInviteReceived', (data) => {
                 this.showGenericModal(
                     '파티 초대',
-                    `${data.fromName}님이 파티에 초대했습니다.`,
-                    () => {
-                        this.game.net.respondToInvite(data.id, data.from, true);
-                        // v0.00.66: Acceptor also adds requester to their own party list immediately
-                        if (this.game.localPlayer) {
-                            this.game.localPlayer.addToParty(data.from);
-                        }
+                    `"${data.fromName}"님이 파티에 초대했습니다.`,
+                    async () => {
+                        await this.game.net.respondToInvite(data.id, data.from, true, data.partyMembers);
+                        this.updatePartyUI();
                     },
-                    () => this.game.net.respondToInvite(data.id, data.from, false)
+                    async () => {
+                        await this.game.net.respondToInvite(data.id, data.from, false, data.partyMembers);
+                    },
+                    { yesText: '수락', noText: '거절' }
                 );
             });
 
             this.game.net.on('partyResponseReceived', (data) => {
                 if (data.accept) {
-                    this.logSystemMessage(`✅ ${data.fromName}님이 파티 초대를 수락했습니다.`);
-                    if (this.game.localPlayer) this.game.localPlayer.addToParty(data.from);
+                    if (Array.isArray(data.partyMembers) && this.game.localPlayer?.setPartyMembers) {
+                        this.game.localPlayer.setPartyMembers(data.partyMembers);
+                    } else if (this.game.localPlayer) {
+                        this.game.localPlayer.addToParty(data.from);
+                    }
+                    this.updatePartyUI();
                 } else {
-                    // v0.00.66: Show Modal for Rejection instead of just log
                     this.showGenericModal(
                         '파티 초대 거절',
-                        `${data.fromName}님이 파티 초대를 거절했습니다.`,
-                        null, // Only OK button
-                        null
+                        `"${data.fromName}"님이 파티 초대를 거절했습니다.`,
+                        null,
+                        null,
+                        { yesText: '확인', hideNo: true }
                     );
-                    this.logSystemMessage(`❌ ${data.fromName}님이 파티 초대를 거절했습니다.`);
                 }
             });
         }
@@ -1059,7 +1108,7 @@ export class UIManager {
         if (modal) modal.classList.add('hidden');
     }
 
-    showGenericModal(title, message, onYes, onNo) {
+    showGenericModal(title, message, onYes, onNo, options = {}) {
         const modal = document.getElementById('generic-modal');
         if (!modal) return;
 
@@ -1067,6 +1116,7 @@ export class UIManager {
         const msgEl = document.getElementById('generic-modal-message');
         const yesBtn = document.getElementById('generic-modal-yes');
         const noBtn = document.getElementById('generic-modal-no');
+        const { yesText, noText, hideNo = !onNo } = options;
 
         if (titleEl) titleEl.textContent = title;
         if (msgEl) msgEl.textContent = message;
@@ -1075,14 +1125,17 @@ export class UIManager {
         const newNo = noBtn.cloneNode(true);
         yesBtn.parentNode.replaceChild(newYes, yesBtn);
         noBtn.parentNode.replaceChild(newNo, noBtn);
+        newYes.textContent = yesText || (hideNo ? '확인' : '수락');
+        newNo.textContent = noText || '거절';
+        newNo.style.display = hideNo ? 'none' : '';
 
-        newYes.onclick = () => {
-            if (onYes) onYes();
-            else this.hideGenericModal();
+        newYes.onclick = async () => {
+            if (onYes) await onYes();
+            this.hideGenericModal();
         };
 
-        newNo.onclick = () => {
-            if (onNo) onNo();
+        newNo.onclick = async () => {
+            if (onNo) await onNo();
             this.hideGenericModal();
         };
 
@@ -2274,28 +2327,61 @@ export class UIManager {
     }
 
     updateStats(hp, mp, level, expPerc) {
-        const hpFill = document.querySelector('.hp-fill');
-        const mpFill = document.querySelector('.mp-fill');
-        const expFill = document.querySelector('.exp-fill');
-        const levelEl = document.getElementById('ui-level');
+        const hpFill = this.getHudRef('hpFill', '.hp-fill');
+        const mpFill = this.getHudRef('mpFill', '.mp-fill');
+        const expFill = this.getHudRef('expFill', '.exp-fill');
+        const levelEl = this.getHudRef('level', 'ui-level', 'id');
 
-        if (hpFill) hpFill.style.width = `${hp}%`;
-        if (mpFill) mpFill.style.width = `${mp}%`;
-        if (expFill) expFill.style.width = `${expPerc}%`;
-        if (levelEl) levelEl.textContent = level;
+        const nextSnapshot = {
+            hp: Number(hp).toFixed(2),
+            mp: Number(mp).toFixed(2),
+            exp: Number(expPerc).toFixed(2),
+            level: String(level)
+        };
+
+        if (!this.lastHudSnapshot || this.lastHudSnapshot.hp !== nextSnapshot.hp) {
+            if (hpFill) hpFill.style.width = `${hp}%`;
+        }
+        if (!this.lastHudSnapshot || this.lastHudSnapshot.mp !== nextSnapshot.mp) {
+            if (mpFill) mpFill.style.width = `${mp}%`;
+        }
+        if (!this.lastHudSnapshot || this.lastHudSnapshot.exp !== nextSnapshot.exp) {
+            if (expFill) expFill.style.width = `${expPerc}%`;
+        }
+        if (!this.lastHudSnapshot || this.lastHudSnapshot.level !== nextSnapshot.level) {
+            if (levelEl) levelEl.textContent = level;
+        }
 
         // Update bar text
         const p = this.game.localPlayer;
         if (p) {
-            const hpc = document.getElementById('ui-hp-cur');
-            const hpm = document.getElementById('ui-hp-max');
-            const mpc = document.getElementById('ui-mp-cur');
-            const mpm = document.getElementById('ui-mp-max');
-            if (hpc) hpc.textContent = Math.floor(p.hp);
-            if (hpm) hpm.textContent = p.maxHp;
-            if (mpc) mpc.textContent = Math.floor(p.mp);
-            if (mpm) mpm.textContent = p.maxMp;
+            const hpc = this.getHudRef('hpCur', 'ui-hp-cur', 'id');
+            const hpm = this.getHudRef('hpMax', 'ui-hp-max', 'id');
+            const mpc = this.getHudRef('mpCur', 'ui-mp-cur', 'id');
+            const mpm = this.getHudRef('mpMax', 'ui-mp-max', 'id');
+            const nextHpCur = String(Math.floor(p.hp));
+            const nextHpMax = String(p.maxHp);
+            const nextMpCur = String(Math.floor(p.mp));
+            const nextMpMax = String(p.maxMp);
+            if (!this.lastHudSnapshot || this.lastHudSnapshot.hpCur !== nextHpCur) {
+                if (hpc) hpc.textContent = nextHpCur;
+            }
+            if (!this.lastHudSnapshot || this.lastHudSnapshot.hpMax !== nextHpMax) {
+                if (hpm) hpm.textContent = nextHpMax;
+            }
+            if (!this.lastHudSnapshot || this.lastHudSnapshot.mpCur !== nextMpCur) {
+                if (mpc) mpc.textContent = nextMpCur;
+            }
+            if (!this.lastHudSnapshot || this.lastHudSnapshot.mpMax !== nextMpMax) {
+                if (mpm) mpm.textContent = nextMpMax;
+            }
+            nextSnapshot.hpCur = nextHpCur;
+            nextSnapshot.hpMax = nextHpMax;
+            nextSnapshot.mpCur = nextMpCur;
+            nextSnapshot.mpMax = nextMpMax;
         }
+
+        this.lastHudSnapshot = nextSnapshot;
 
         this.updateCooldowns();
 
@@ -2310,34 +2396,46 @@ export class UIManager {
         // Cooldown keys: u, k, h, j
         const skillKeys = ['u', 'k', 'h', 'j'];
         skillKeys.forEach(key => {
-            const btn = document.querySelector(`[data-key="${key}"]`);
+            const { button: btn, overlay, timeText } = this.getCooldownRefs(key);
             if (!btn) return;
 
             const cdTime = p.skillCooldowns[key];
             const maxCd = p.skillMaxCooldowns[key];
-            const overlay = btn.querySelector('.cooldown-overlay');
-            const timeText = btn.querySelector('.cooldown-time');
+            const nextDisabled = cdTime > 0;
+            const nextText = cdTime > 0 ? cdTime.toFixed(1) : '';
 
-            if (cdTime > 0) {
+            if (nextDisabled) {
                 const angle = (cdTime / maxCd) * 360;
-                if (overlay) overlay.style.setProperty('--cd-angle', `${angle}deg`);
-                if (timeText) timeText.textContent = cdTime.toFixed(1);
-                btn.classList.add('disabled');
+                if (overlay && overlay.dataset.cdAngle !== `${angle}`) {
+                    overlay.style.setProperty('--cd-angle', `${angle}deg`);
+                    overlay.dataset.cdAngle = `${angle}`;
+                }
+                if (timeText && timeText.textContent !== nextText) timeText.textContent = nextText;
+                if (!btn.classList.contains('disabled')) btn.classList.add('disabled');
             } else {
-                if (overlay) overlay.style.setProperty('--cd-angle', '0deg');
-                if (timeText) timeText.textContent = '';
-                btn.classList.remove('disabled');
+                if (overlay && overlay.dataset.cdAngle !== '0') {
+                    overlay.style.setProperty('--cd-angle', '0deg');
+                    overlay.dataset.cdAngle = '0';
+                }
+                if (timeText && timeText.textContent) timeText.textContent = '';
+                if (btn.classList.contains('disabled')) btn.classList.remove('disabled');
             }
         });
     }
 
     updateMinimap(player, remotePlayers, monsters, mapWidth, mapHeight) {
-        const canvas = document.getElementById('minimapCanvas');
+        const canvas = this.minimapCanvas && this.minimapCanvas.isConnected
+            ? this.minimapCanvas
+            : document.getElementById('minimapCanvas');
         if (!canvas) return;
 
-        const ctx = canvas.getContext('2d');
-        const w = canvas.width = 150;
-        const h = canvas.height = 150;
+        this.minimapCanvas = canvas;
+        const ctx = this.minimapCtx || canvas.getContext('2d', { alpha: true, desynchronized: true }) || canvas.getContext('2d');
+        this.minimapCtx = ctx;
+        const w = 150;
+        const h = 150;
+        if (canvas.width !== w) canvas.width = w;
+        if (canvas.height !== h) canvas.height = h;
 
         // Clear Map (Make it transparent)
         ctx.clearRect(0, 0, w, h);
@@ -2382,10 +2480,12 @@ export class UIManager {
         ctx.fill();
 
         // Update footer
-        const posX = document.getElementById('mini-pos-x');
-        const posY = document.getElementById('mini-pos-y');
-        if (posX) posX.textContent = Math.round(player.x);
-        if (posY) posY.textContent = Math.round(player.y);
+        const posX = this.getHudRef('miniPosX', 'mini-pos-x', 'id');
+        const posY = this.getHudRef('miniPosY', 'mini-pos-y', 'id');
+        const nextPosX = String(Math.round(player.x));
+        const nextPosY = String(Math.round(player.y));
+        if (posX && posX.textContent !== nextPosX) posX.textContent = nextPosX;
+        if (posY && posY.textContent !== nextPosY) posY.textContent = nextPosY;
     }
 
     async sendMessage() {
@@ -2437,12 +2537,21 @@ export class UIManager {
                 return;
             } else if (cmd === '/p') {
                 if (!param) {
-                    this.logSystemMessage('사용법: /p [닉네임] (파티 초대)');
+                    this.logSystemMessage('사용법: /p [아이디] (파티 초대)');
                     input.value = '';
                     return;
                 }
                 const result = await this.game.net.inviteToParty(param);
-                if (result === 'SENT') this.logSystemMessage(`📩 ${param}님에게 파티 초대를 보냈습니다.`);
+                if (result === 'SENT') {
+                    this.showGenericModal(
+                        '파티 초대',
+                        `"${param}"님에게 파티를 초대했습니다.`,
+                        null,
+                        null,
+                        { yesText: '확인', hideNo: true }
+                    );
+                }
+                else if (result === 'ALREADY_IN_PARTY') this.logSystemMessage(`이미 같은 파티에 있는 유저입니다.`);
                 else if (result === 'SELF') this.logSystemMessage(`🚫 자기 자신을 초대할 수 없습니다.`);
                 else if (result === 'NOT_FOUND') this.logSystemMessage(`🚫 사용자를 찾을 수 없습니다: ${param}`);
                 else this.logSystemMessage(`🚫 오류가 발생했습니다.`);

@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.GAME_VERSION = '0.01.14'; // Synced with version.txt
+window.GAME_VERSION = '0.01.15'; // Synced with version.txt
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';
@@ -37,7 +37,10 @@ class Game {
         };
 
         this.canvas = document.getElementById('gameCanvas');
-        this.ctx = this.canvas.getContext('2d');
+        this.ctx = this.canvas.getContext('2d', { alpha: false, desynchronized: true })
+            || this.canvas.getContext('2d');
+        this.isMobilePerformanceMode = false;
+        this.maxMobileDpr = 1.5;
 
         // Mobile Quality: Disable image smoothing for crisp pixel art
         this.ctx.imageSmoothingEnabled = false;
@@ -48,6 +51,11 @@ class Game {
 
         // Initial resize will be called after camera creation for full sync
         window.addEventListener('resize', () => this.resize());
+        document.addEventListener('visibilitychange', () => {
+            if (!this.loop) return;
+            if (document.visibilityState === 'hidden') this.loop.pause();
+            else this.loop.resume();
+        });
 
         // Input Focus Management
         this.canvas.addEventListener('mousedown', (e) => {
@@ -144,8 +152,16 @@ class Game {
             },
             () => this.sceneManager.render(this.ctx)
         );
+        this.loop.setMaxRenderFps(this.isTouchDevice() ? 60 : 0);
 
         this.init();
+    }
+
+    isTouchDevice() {
+        return !!(
+            window.matchMedia?.('(pointer: coarse)')?.matches
+            || navigator.maxTouchPoints > 0
+        );
     }
 
     updateLoading(msg, percent = null) {
@@ -170,11 +186,14 @@ class Game {
         const displayHeight = container ? container.clientHeight : window.innerHeight;
 
         // Match yurikaonline-master logic: 900px threshold, 0.7/1.0 zoom
-        const isMobile = window.innerWidth <= 900;
+        const isTouchDevice = this.isTouchDevice();
+        const isMobile = isTouchDevice && window.innerWidth <= 1024;
         // v0.28.6: Adjust PC zoom to 0.8 for wider view (User Feedback)
         this.zoom = isMobile ? 0.7 : 0.8;
+        this.isMobilePerformanceMode = isMobile;
 
-        const ratio = window.devicePixelRatio || 1;
+        const rawRatio = window.devicePixelRatio || 1;
+        const ratio = isMobile ? Math.min(rawRatio, this.maxMobileDpr) : rawRatio;
         this.dpr = ratio; // Store for render loop
 
         // Internal resolution for HiDPI
@@ -185,8 +204,15 @@ class Game {
         this.canvas.style.width = displayWidth + 'px';
         this.canvas.style.height = displayHeight + 'px';
 
-        // Re-enable smoothing for better HiDPI filtering (matches master source behavior)
-        this.ctx.imageSmoothingEnabled = true;
+        // Mobile uses a slightly lower internal resolution to cut heat while preserving pixel-art sharpness.
+        this.ctx.imageSmoothingEnabled = !isMobile;
+        this.ctx.webkitImageSmoothingEnabled = !isMobile;
+        this.ctx.mozImageSmoothingEnabled = !isMobile;
+        this.ctx.msImageSmoothingEnabled = !isMobile;
+
+        if (this.loop) {
+            this.loop.setMaxRenderFps(isTouchDevice ? 60 : 0);
+        }
 
         if (this.camera) {
             this.camera.resize(displayWidth / this.zoom, displayHeight / this.zoom);

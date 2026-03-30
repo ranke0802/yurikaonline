@@ -3489,6 +3489,10 @@ body.is-fullscreen .version-info {
 #party-panel .panel-header {
     color: #74b9ff;
     border-color: rgba(116, 185, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 .party-row {
@@ -3524,6 +3528,43 @@ body.is-fullscreen .version-info {
     height: 100%;
     background: #00b894;
     transition: width 0.2s;
+}
+
+.party-leave-btn {
+    width: 24px;
+    height: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: #dfe6e9;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    flex: 0 0 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
+}
+
+.party-leave-btn:hover {
+    background: rgba(255, 118, 117, 0.2);
+    color: #ff7675;
+}
+
+@media screen and (min-width: 901px) {
+    #party-panel {
+        position: fixed;
+        top: 18px;
+        left: auto;
+        right: 182px;
+        width: 188px;
+        max-height: 240px;
+        overflow-y: auto;
+        margin-bottom: 0;
+        z-index: 89;
+    }
 }
 
 /* Generic Modal (Confirm/Cancel) */

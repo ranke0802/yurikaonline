@@ -7,6 +7,7 @@ export default class CharacterSelectionScene extends Scene {
         this.charSelectUI = null;
         this.user = null;
         this.profile = null;
+        this.previewAnimationFrame = null;
     }
 
     async enter(params) {
@@ -56,6 +57,10 @@ export default class CharacterSelectionScene extends Scene {
     }
 
     async exit() {
+        if (this.previewAnimationFrame) {
+            cancelAnimationFrame(this.previewAnimationFrame);
+            this.previewAnimationFrame = null;
+        }
         if (this.charSelectUI) {
             this.charSelectUI.remove();
             this.charSelectUI = null;
@@ -327,9 +332,9 @@ export default class CharacterSelectionScene extends Scene {
                     0, offsetY, drawSize, drawSize
                 );
             }
-            requestAnimationFrame(animate);
+            this.previewAnimationFrame = requestAnimationFrame(animate);
         };
-        requestAnimationFrame(animate);
+        this.previewAnimationFrame = requestAnimationFrame(animate);
     }
 
     async handleStartGame() {

@@ -3,6 +3,13 @@ import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
 import SkillRenderer from '../skills/renderers/SkillRenderer.js';
 
+const ITEM_DEFINITIONS = {
+    slime_gel: { name: '슬라임 젤', icon: '🟢' },
+    potion_hp_small: { name: '소형 HP 포션', icon: '🧪' },
+    royal_jelly: { name: '로열 젤리', icon: '🍯' },
+    king_crown: { name: '킹 크라운', icon: '👑' }
+};
+
 export default class Player extends CharacterBase {
     constructor(x, y, name = "유리카", definition = null) {
         super(x, y, definition?.baseStats?.speed || 180); // Speed from JSON or Default 180
@@ -1280,12 +1287,24 @@ export default class Player extends CharacterBase {
     }
 
     receiveReward(data) {
+        const itemMessages = [];
+
         if (data.exp) this.gainExp(data.exp);
         if (data.gold) {
             this.gold += data.gold;
             this.updateGoldInventory();
         }
         if (data.hp) this.recoverHp(data.hp);
+        if (Array.isArray(data.items)) {
+            data.items.forEach((item) => {
+                const itemId = item.id || item.type;
+                const amount = Math.max(1, item.amount || 1);
+                const added = this.addInventoryItem(itemId, amount, item);
+                if (added) {
+                    itemMessages.push(`${added.name || itemId} x${amount}`);
+                }
+            });
+        }
 
         // v0.00.01: Process Quest Kills sent by Host
         if (data.questKill) {
@@ -1365,6 +1384,11 @@ export default class Player extends CharacterBase {
             } else if (data.questKill) {
                 msg = `퀘스트 몬스터 처치! (${msg})`;
                 window.game.ui.logSystemMessage(msg);
+            }
+
+            if (itemMessages.length > 0) {
+                window.game.ui.logSystemMessage(`🎁 아이템 획득: ${itemMessages.join(', ')}`);
+                if (window.game.sound) window.game.sound.playSfx('item_loot');
             }
 
             window.game.ui.updateInventory();
@@ -1800,12 +1824,51 @@ export default class Player extends CharacterBase {
     }
 
     addToParty(uid) {
-        if (!this.party.members.includes(uid)) {
-            this.party.members.push(uid);
-            // Sync party state to network so others see it (via profile)
-            this.saveState();
-            if (window.game && window.game.ui) window.game.ui.updatePartyUI();
+        this.setPartyMembers([...(this.party?.members || []), uid]);
+    }
+
+    setPartyMembers(memberIds, syncToWorld = true) {
+        const normalized = Array.from(new Set((memberIds || []).filter(Boolean)));
+        if (this.id && !normalized.includes(this.id)) {
+            normalized.unshift(this.id);
         }
+
+        this.party = { members: normalized };
+        this.saveState(syncToWorld);
+        if (window.game?.ui) window.game.ui.updatePartyUI();
+    }
+
+    getItemMeta(itemId) {
+        return ITEM_DEFINITIONS[itemId] || {
+            name: itemId,
+            icon: '🎁'
+        };
+    }
+
+    addInventoryItem(itemId, amount = 1, meta = {}) {
+        if (!itemId || amount <= 0) return null;
+
+        const definition = {
+            ...this.getItemMeta(itemId),
+            ...meta
+        };
+
+        let slotIndex = this.inventory.findIndex((item, idx) => idx > 0 && item && item.type === itemId);
+        if (slotIndex < 0) {
+            slotIndex = this.inventory.findIndex((item, idx) => idx > 0 && !item);
+        }
+        if (slotIndex < 0) return null;
+
+        const existing = this.inventory[slotIndex];
+        const nextAmount = (existing?.amount || 0) + amount;
+        this.inventory[slotIndex] = {
+            type: itemId,
+            amount: nextAmount,
+            icon: definition.icon,
+            name: definition.name
+        };
+
+        return this.inventory[slotIndex];
     }
 
     drawHUD(ctx, centerX, y) {

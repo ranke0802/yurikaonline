@@ -12,6 +12,9 @@ export default class GameLoop {
         this.running = false;
         this.paused = false;
         this.rafId = null;
+        this.maxRenderFps = 0;
+        this.minRenderIntervalMs = 0;
+        this.lastRenderTime = 0;
 
         // v2.2: Hitstop
         this.hitstopTimer = 0;
@@ -23,6 +26,7 @@ export default class GameLoop {
         if (this.running) return;
         this.running = true;
         this.lastTime = performance.now();
+        this.lastRenderTime = this.lastTime;
         this.rafId = requestAnimationFrame(this._loop);
         Logger.log('GameLoop started');
     }
@@ -44,7 +48,15 @@ export default class GameLoop {
     resume() {
         this.paused = false;
         this.lastTime = performance.now(); // Reset time to prevent huge delta
+        this.lastRenderTime = this.lastTime;
         Logger.log('GameLoop resumed');
+    }
+
+    setMaxRenderFps(fps = 0) {
+        const nextFps = Number.isFinite(fps) ? Math.max(0, fps) : 0;
+        this.maxRenderFps = nextFps;
+        this.minRenderIntervalMs = nextFps > 0 ? (1000 / nextFps) : 0;
+        this.lastRenderTime = performance.now();
     }
 
     /**
@@ -86,6 +98,9 @@ export default class GameLoop {
 
         // Render Phase (Interpolation alpha could be passed here)
         // alpha = this.accumulator / this.deltaTime
-        this.renderFn();
+        if (!this.minRenderIntervalMs || (currentTime - this.lastRenderTime) >= this.minRenderIntervalMs) {
+            this.lastRenderTime = currentTime;
+            this.renderFn();
+        }
     }
 }
