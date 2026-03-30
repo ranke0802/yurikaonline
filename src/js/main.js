@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.GAME_VERSION = '0.01.08'; // version.txt와 동기화
+window.GAME_VERSION = '0.01.09'; // Synced with version.txt
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';
