@@ -19,6 +19,7 @@
             "id": "attack_dummy",
             "instructionDesktop": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. `J` 키나 우측 하단 공격 버튼을 사용할 수 있어요.",
             "instructionMobile": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. 우측 하단 공격 버튼을 사용하면 됩니다.",
+            "instructionMobileLandscape": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. 오른쪽 아래 공격 버튼을 사용하면 됩니다.",
             "highlightTarget": "#action-attack-j",
             "onStart": [
                 {
@@ -50,6 +51,7 @@
             "instruction": "이번에는 스탯 창을 열어 주세요. `I` 키나 하단 스탯 버튼을 사용할 수 있어요. 스탯을 올리기 전에 오른쪽 수치가 어떻게 바뀌는지도 바로 확인할 수 있습니다.",
             "instructionDesktop": "이번에는 스탯 창을 열어 주세요. PC에서는 우측 상단 미니맵 왼쪽의 내 정보 아이콘이나 `I` 키를 사용하면 됩니다.",
             "instructionMobile": "이번에는 스탯 창을 열어 주세요. 모바일에서는 하단 중앙의 내 정보 아이콘을 누르면 됩니다.",
+            "instructionMobileLandscape": "이번에는 스탯 창을 열어 주세요. 모바일 가로에서는 오른쪽 위 내 정보 아이콘을 누르면 됩니다.",
             "highlightTarget": "#btn-status",
             "onStart": [
                 {
@@ -101,6 +103,7 @@
             "instruction": "좋아요. 이제 스킬 창을 열어 주세요. `Shift+S` 또는 스킬 버튼을 사용하면 됩니다. 이 창에서는 아이콘 위에 마우스를 올리거나 터치해서 특징과 성장 포인트를 확인할 수 있어요.",
             "instructionDesktop": "좋아요. 이제 스킬 창을 열어 주세요. PC에서는 우측 상단 미니맵 왼쪽의 스킬 아이콘이나 `Shift+S`를 사용하면 됩니다.",
             "instructionMobile": "좋아요. 이제 스킬 창을 열어 주세요. 모바일에서는 하단 중앙의 스킬 아이콘을 누르면 됩니다.",
+            "instructionMobileLandscape": "좋아요. 이제 스킬 창을 열어 주세요. 모바일 가로에서는 오른쪽 위 스킬 아이콘을 누르면 됩니다. 이 창에서는 아이콘을 탭하거나 마우스를 올려 특징과 성장 포인트를 확인할 수 있어요.",
             "highlightTarget": "#btn-skill",
             "onStart": [
                 {
@@ -121,6 +124,7 @@
         {
             "id": "inspect_laser_detail",
             "instruction": "먼저 체인 라이트닝 아이콘에 마우스를 올렸을 때 뜨는 상세 툴팁을 확인해 보세요. 연쇄 타격형 기본 공격이고, 강화하면 연쇄 횟수와 충전당 피해 상승폭이 커집니다.",
+            "instructionMobileLandscape": "먼저 체인 라이트닝 아이콘을 탭하거나 마우스를 올려 뜨는 상세 툴팁을 확인해 보세요. 연쇄 타격형 기본 공격이고, 강화하면 연쇄 횟수와 충전당 피해 상승폭이 커집니다.",
             "highlightTarget": "#skill-item-laser",
             "trigger": "skill_tooltip",
             "target": "laser",
@@ -132,6 +136,7 @@
         {
             "id": "inspect_missile_detail",
             "instruction": "다음은 매직 미사일 아이콘에 마우스를 올렸을 때 뜨는 상세 툴팁입니다. 자동 추적형 스킬이며, 강화할수록 한 번에 발사되는 미사일 수가 늘어납니다.",
+            "instructionMobileLandscape": "다음은 매직 미사일 아이콘을 탭하거나 마우스를 올렸을 때 뜨는 상세 툴팁입니다. 자동 추적형 스킬이며, 강화할수록 한 번에 발사되는 미사일 수가 늘어납니다.",
             "highlightTarget": "#skill-item-missile",
             "trigger": "skill_tooltip",
             "target": "missile",
@@ -155,6 +160,7 @@
             "id": "use_missile",
             "instructionDesktop": "강화한 매직 미사일을 사용해 보세요. `H` 키나 우측 하단 매직 미사일 버튼을 누르면 됩니다.",
             "instructionMobile": "강화한 매직 미사일을 사용해 보세요. 우측 하단 매직 미사일 버튼을 누르면 됩니다.",
+            "instructionMobileLandscape": "강화한 매직 미사일을 사용해 보세요. 오른쪽 아래 매직 미사일 버튼을 누르면 됩니다.",
             "highlightTarget": "#action-skill-h",
             "onStart": [
                 {
@@ -185,6 +191,7 @@
             "id": "reopen_skill_for_fireball",
             "instructionDesktop": "좋아요. 이제 다시 스킬 창을 열어 파이어볼을 살펴볼게요. PC에서는 우측 상단 미니맵 왼쪽의 스킬 아이콘이나 `Shift+S`를 사용하면 됩니다.",
             "instructionMobile": "좋아요. 이제 다시 스킬 창을 열어 파이어볼을 살펴볼게요. 모바일에서는 하단 중앙의 스킬 아이콘을 누르세요.",
+            "instructionMobileLandscape": "좋아요. 이제 다시 스킬 창을 열어 파이어볼을 살펴볼게요. 모바일 가로에서는 오른쪽 위 스킬 아이콘을 누르세요.",
             "highlightTarget": "#btn-skill",
             "trigger": "popup_open",
             "target": "skill-popup",
@@ -196,6 +203,7 @@
         {
             "id": "inspect_fireball_detail",
             "instruction": "파이어볼 아이콘에 마우스를 올려 상세 툴팁을 확인해 보세요. 직선으로 날아가 폭발하고 화상을 남기는 광역 스킬이며, 강화하면 직격 피해와 폭발 반경, 화상 지속시간이 함께 커져요.",
+            "instructionMobileLandscape": "파이어볼 아이콘을 탭하거나 마우스를 올려 상세 툴팁을 확인해 보세요. 직선으로 날아가 폭발하고 화상을 남기는 광역 스킬이며, 강화하면 직격 피해와 폭발 반경, 화상 지속시간이 함께 커져요.",
             "highlightTarget": "#skill-item-fireball",
             "trigger": "skill_tooltip",
             "target": "fireball",
@@ -219,6 +227,7 @@
             "id": "use_fireball",
             "instructionDesktop": "강화한 파이어볼을 사용해 보세요. `U` 키나 우측 하단 파이어볼 버튼을 누르면 됩니다.",
             "instructionMobile": "강화한 파이어볼을 사용해 보세요. 우측 하단 파이어볼 버튼을 누르면 됩니다.",
+            "instructionMobileLandscape": "강화한 파이어볼을 사용해 보세요. 오른쪽 아래 파이어볼 버튼을 누르면 됩니다.",
             "highlightTarget": "#action-skill-u",
             "onStart": [
                 {
@@ -249,6 +258,7 @@
             "id": "reopen_skill_for_shield",
             "instructionDesktop": "마지막으로 스킬 창을 다시 열어 앱솔루트 베리어를 확인해 볼게요. PC에서는 우측 상단 미니맵 왼쪽의 스킬 아이콘이나 `Shift+S`를 사용하세요.",
             "instructionMobile": "마지막으로 스킬 창을 다시 열어 앱솔루트 베리어를 확인해 볼게요. 모바일에서는 하단 중앙의 스킬 아이콘을 누르세요.",
+            "instructionMobileLandscape": "마지막으로 스킬 창을 다시 열어 앱솔루트 베리어를 확인해 볼게요. 모바일 가로에서는 오른쪽 위 스킬 아이콘을 누르세요.",
             "highlightTarget": "#btn-skill",
             "trigger": "popup_open",
             "target": "skill-popup",
@@ -260,6 +270,7 @@
         {
             "id": "inspect_shield_detail",
             "instruction": "앱솔루트 베리어 아이콘에 마우스를 올려 상세 툴팁을 확인해 보세요. 다음 1회의 피해를 완전히 막는 생존 스킬이며, 레벨업 없이 고정 성능으로 사용됩니다.",
+            "instructionMobileLandscape": "앱솔루트 베리어 아이콘을 탭하거나 마우스를 올려 상세 툴팁을 확인해 보세요. 다음 1회의 피해를 완전히 막는 생존 스킬이며, 레벨업 없이 고정 성능으로 사용됩니다.",
             "highlightTarget": "#skill-item-shield",
             "trigger": "skill_tooltip",
             "target": "shield",
@@ -272,6 +283,7 @@
             "id": "use_shield",
             "instructionDesktop": "이제 앱솔루트 베리어를 한 번 사용해 보세요. `K` 키나 우측 하단 보호막 버튼을 누르면 됩니다.",
             "instructionMobile": "이제 앱솔루트 베리어를 한 번 사용해 보세요. 우측 하단 보호막 버튼을 누르면 됩니다.",
+            "instructionMobileLandscape": "이제 앱솔루트 베리어를 한 번 사용해 보세요. 오른쪽 아래 보호막 버튼을 누르면 됩니다.",
             "highlightTarget": "#action-skill-k",
             "onStart": [
                 {
@@ -297,6 +309,7 @@
             "instruction": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. `B` 키나 가방 버튼을 사용하세요.",
             "instructionDesktop": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. PC에서는 우측 상단 미니맵 왼쪽의 가방 아이콘이나 `B` 키를 사용하세요.",
             "instructionMobile": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. 모바일에서는 하단 중앙의 가방 아이콘을 누르세요.",
+            "instructionMobileLandscape": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. 모바일 가로에서는 오른쪽 위 가방 아이콘을 누르세요.",
             "highlightTarget": "#btn-inventory",
             "onStart": [
                 {
@@ -314,6 +327,7 @@
             "id": "close_inventory",
             "instruction": "좋아요. 인벤토리를 확인했어요. 이제 `B` 키나 닫기 버튼으로 다시 닫아 주세요.",
             "instructionMobile": "좋아요. 인벤토리를 확인했어요. 이제 닫기 버튼으로 다시 닫아 주세요.",
+            "instructionMobileLandscape": "좋아요. 인벤토리를 확인했어요. 이제 닫기 버튼으로 다시 닫아 주세요.",
             "highlightTarget": "#inventory-close-btn-bottom",
             "trigger": "popup_close",
             "target": "inventory-popup",

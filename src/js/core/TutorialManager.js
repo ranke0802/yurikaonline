@@ -23,23 +23,55 @@ export default class TutorialManager {
         return this.activeTutorial?.steps?.[this.currentStepIndex] || null;
     }
 
-    isMobileTutorialLayout() {
+    getTutorialLayoutMode() {
         const isNarrow = window.innerWidth <= 900;
-        const isPortrait = window.matchMedia?.('(orientation: portrait)')?.matches;
-        return isNarrow && !!isPortrait;
+        if (!isNarrow) return 'desktop';
+
+        const isPortrait = window.matchMedia?.('(orientation: portrait)')?.matches
+            ?? (window.innerHeight >= window.innerWidth);
+        return isPortrait ? 'mobile-portrait' : 'mobile-landscape';
+    }
+
+    isMobileTutorialLayout() {
+        return this.getTutorialLayoutMode() !== 'desktop';
+    }
+
+    isMobileLandscapeTutorialLayout() {
+        return this.getTutorialLayoutMode() === 'mobile-landscape';
     }
 
     getStepInstruction(step = this.getCurrentStep()) {
         if (!step) return '';
-        return this.isMobileTutorialLayout()
-            ? (step.instructionMobile || step.instruction)
-            : (step.instructionDesktop || step.instruction);
+
+        const layoutMode = this.getTutorialLayoutMode();
+        if (layoutMode === 'mobile-landscape') {
+            return step.instructionMobileLandscape
+                || step.instructionMobile
+                || step.instruction;
+        }
+
+        if (layoutMode === 'mobile-portrait') {
+            return step.instructionMobile || step.instruction;
+        }
+
+        return step.instructionDesktop || step.instruction;
     }
 
     getStepHighlightTargets(step = this.getCurrentStep()) {
         if (!step) return null;
 
-        if (this.isMobileTutorialLayout()) {
+        const layoutMode = this.getTutorialLayoutMode();
+        if (layoutMode === 'mobile-landscape') {
+            return step.highlightTargetsMobileLandscape
+                || step.highlightTargetMobileLandscape
+                || step.highlightTargetsMobile
+                || step.highlightTargetMobile
+                || step.highlightTargets
+                || step.highlightTarget
+                || null;
+        }
+
+        if (layoutMode === 'mobile-portrait') {
             return step.highlightTargetsMobile || step.highlightTargetMobile || step.highlightTargets || step.highlightTarget || null;
         }
 

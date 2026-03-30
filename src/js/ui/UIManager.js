@@ -15,14 +15,11 @@ export class UIManager {
         this.tutorialHighlightLayer = null;
         this.tutorialHighlightTargets = [];
         this.refreshTutorialHighlight = this.refreshTutorialHighlight.bind(this);
-        window.addEventListener('resize', this.refreshTutorialHighlight);
-
-        // v0.00.50: Check Standalone (PWA) on init and force lock
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('portrait').catch(() => { });
-            }
-        }
+        this.refreshTutorialGuideLayout = this.refreshTutorialGuideLayout.bind(this);
+        window.addEventListener('resize', () => {
+            this.refreshTutorialHighlight();
+            this.refreshTutorialGuideLayout();
+        });
 
         // v0.00.63: Global UI Audio & Visual Feedback
         if (this.tooltip) {
@@ -120,31 +117,72 @@ export class UIManager {
     }
 
     // v2.3: Tutorial UI
+    getTutorialViewportMode() {
+        const isNarrow = window.innerWidth <= 900;
+        if (!isNarrow) return 'desktop';
+
+        const isPortrait = window.matchMedia?.('(orientation: portrait)')?.matches ?? (window.innerHeight >= window.innerWidth);
+        return isPortrait ? 'mobile-portrait' : 'mobile-landscape';
+    }
+
+    applyTutorialGuideLayout(guide) {
+        const mode = this.getTutorialViewportMode();
+        const isLandscape = mode === 'mobile-landscape';
+
+        guide.style.position = 'fixed';
+        guide.style.left = '50%';
+        guide.style.right = 'auto';
+        guide.style.bottom = 'auto';
+        guide.style.boxSizing = 'border-box';
+        guide.style.pointerEvents = 'none';
+        guide.style.zIndex = '1000';
+        guide.style.maxWidth = isLandscape ? 'calc(100vw - 16px)' : 'min(92vw, 760px)';
+        guide.style.maxHeight = isLandscape ? 'calc(100vh - 24px)' : 'none';
+        guide.style.overflowY = isLandscape ? 'auto' : 'visible';
+        guide.style.lineHeight = '1.45';
+
+        if (isLandscape) {
+            guide.style.top = 'calc(env(safe-area-inset-top, 0px) + 12px)';
+            guide.style.transform = 'translateX(-50%)';
+            guide.style.padding = '10px 14px';
+            guide.style.fontSize = '15px';
+        } else if (mode === 'mobile-portrait') {
+            guide.style.top = '18%';
+            guide.style.transform = 'translate(-50%, -50%)';
+            guide.style.padding = '14px 20px';
+            guide.style.fontSize = '17px';
+        } else {
+            guide.style.top = '20%';
+            guide.style.transform = 'translate(-50%, -50%)';
+            guide.style.padding = '16px 24px';
+            guide.style.fontSize = '18px';
+        }
+    }
+
+    refreshTutorialGuideLayout() {
+        const guide = document.getElementById('tutorial-guide');
+        if (!guide || guide.classList.contains('hidden')) return;
+        this.applyTutorialGuideLayout(guide);
+    }
+
     showTutorialGuide(text) {
         let guide = document.getElementById('tutorial-guide');
         if (!guide) {
             guide = document.createElement('div');
             guide.id = 'tutorial-guide';
-            guide.style.position = 'absolute';
-            guide.style.top = '20%';
-            guide.style.left = '50%';
-            guide.style.transform = 'translate(-50%, -50%)';
             guide.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
             guide.style.color = '#ffffff';
-            guide.style.padding = '16px 24px';
             guide.style.borderRadius = '12px';
             guide.style.fontFamily = "'Noto Sans KR', sans-serif";
-            guide.style.fontSize = '18px';
             guide.style.fontWeight = 'bold';
-            guide.style.pointerEvents = 'none';
             guide.style.display = 'none';
-            guide.style.zIndex = '1000';
             guide.style.border = '2px solid #ffd700';
             guide.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.3)';
             guide.style.textAlign = 'center';
             guide.style.textShadow = '0 2px 4px rgba(0,0,0,0.5)';
             document.body.appendChild(guide);
         }
+        this.applyTutorialGuideLayout(guide);
         guide.innerHTML = `<div style="font-size:14px; color:#ffd700; margin-bottom:4px;">TUTORIAL</div>${text}`;
         guide.style.display = 'block';
     }
@@ -194,10 +232,6 @@ export class UIManager {
                 document.mozFullScreenElement || document.msFullscreenElement);
             document.body.classList.toggle('is-fullscreen', isFull);
 
-            // v0.00.50: Force Portrait Lock when in Fullscreen (Mobile/PWA support)
-            if (isFull && screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('portrait').catch(err => { });
-            }
         };
         document.addEventListener('fullscreenchange', updateClass);
         document.addEventListener('webkitfullscreenchange', updateClass);
@@ -213,7 +247,8 @@ export class UIManager {
             e.preventDefault();
             e.stopImmediatePropagation();
 
-            const popup = e.currentTarget?.closest?.('.game-popup');
+            const popup = e.currentTarget?.closest?.('.game-popup')
+                || document.querySelector('.game-popup:not(.hidden)');
             if (popup?.id) {
                 this.togglePopup(popup.id);
                 return;
@@ -879,6 +914,11 @@ export class UIManager {
         const layer = this.ensureTutorialHighlightLayer();
         layer.innerHTML = '';
 
+        const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
+        const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+        const isTouch = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
+        const padding = isTouch ? 10 : 8;
+
         this.tutorialHighlightTargets.forEach((target) => {
             const element = this.resolveTutorialHighlightTarget(target);
             if (!element) return;
@@ -887,12 +927,20 @@ export class UIManager {
             const rect = element.getBoundingClientRect();
             if (!rect.width || !rect.height) return;
 
+            const left = Math.max(0, rect.left - padding);
+            const top = Math.max(0, rect.top - padding);
+            const right = Math.min(viewportW, rect.right + padding);
+            const bottom = Math.min(viewportH, rect.bottom + padding);
+            const width = Math.max(0, right - left);
+            const height = Math.max(0, bottom - top);
+            if (!width || !height) return;
+
             const box = document.createElement('div');
             box.className = 'tutorial-highlight-box';
-            box.style.left = `${Math.max(0, rect.left - 8)}px`;
-            box.style.top = `${Math.max(0, rect.top - 8)}px`;
-            box.style.width = `${rect.width + 16}px`;
-            box.style.height = `${rect.height + 16}px`;
+            box.style.left = `${left}px`;
+            box.style.top = `${top}px`;
+            box.style.width = `${width}px`;
+            box.style.height = `${height}px`;
             layer.appendChild(box);
         });
     }
@@ -909,6 +957,7 @@ export class UIManager {
         if (!p) return;
         const data = this.skillData[skillId];
         if (!data) return;
+        if (!this.tooltip) return;
 
         const lv = p.skillLevels[skillId] || 1;
         let currentEffect = "";
@@ -942,11 +991,45 @@ export class UIManager {
                 break;
         }
 
-        this.tooltip.querySelector('.tooltip-name').textContent = data.name;
-        this.tooltip.querySelector('.tooltip-desc').innerHTML = data.desc + currentEffect;
-        this.tooltip.style.left = `${x}px`;
-        this.tooltip.style.top = `${y}px`;
-        this.tooltip.classList.remove('hidden');
+        const tooltip = this.tooltip;
+        const tooltipName = tooltip.querySelector('.tooltip-name');
+        const tooltipDesc = tooltip.querySelector('.tooltip-desc');
+        if (tooltipName) tooltipName.textContent = data.name;
+        if (tooltipDesc) tooltipDesc.innerHTML = data.desc + currentEffect;
+
+        const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
+        const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+        const touchLike = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
+        const margin = touchLike ? 12 : 8;
+
+        tooltip.style.position = 'fixed';
+        tooltip.style.right = 'auto';
+        tooltip.style.bottom = 'auto';
+        tooltip.style.transform = 'none';
+        tooltip.style.boxSizing = 'border-box';
+        tooltip.style.maxWidth = `min(320px, calc(100vw - ${margin * 2}px))`;
+        tooltip.classList.remove('hidden');
+        tooltip.style.visibility = 'hidden';
+        tooltip.style.left = '0px';
+        tooltip.style.top = '0px';
+
+        const rect = tooltip.getBoundingClientRect();
+        const anchorX = Number.isFinite(x) ? x : (viewportW / 2);
+        const anchorY = Number.isFinite(y) ? y : (viewportH / 2);
+
+        let left = touchLike ? (anchorX - rect.width / 2) : (anchorX + 16);
+        let top = touchLike ? (anchorY + 18) : (anchorY + 16);
+        if (!Number.isFinite(left)) left = margin;
+        if (!Number.isFinite(top)) top = margin;
+
+        const maxLeft = Math.max(margin, viewportW - rect.width - margin);
+        const maxTop = Math.max(margin, viewportH - rect.height - margin);
+        left = Math.min(Math.max(margin, left), maxLeft);
+        top = Math.min(Math.max(margin, top), maxTop);
+
+        tooltip.style.left = `${Math.round(left)}px`;
+        tooltip.style.top = `${Math.round(top)}px`;
+        tooltip.style.visibility = 'visible';
         this.game.tutorial?.trigger?.('skill_tooltip', { target: skillId });
     }
 
