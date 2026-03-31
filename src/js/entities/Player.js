@@ -2,6 +2,7 @@ import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
 import SkillRenderer from '../skills/renderers/SkillRenderer.js';
+import { INVENTORY_TOTAL_SLOTS } from '../constants/inventory.js';
 
 const ITEM_DEFINITIONS = {
     slime_gel: { name: '슬라임 젤', icon: '🟢' },
@@ -46,8 +47,7 @@ export default class Player extends CharacterBase {
         this.exp = 0;
         this.maxExp = 100;
         this.gold = 0;
-        this.inventory = [];
-        for (let i = 0; i < 20; i++) this.inventory.push(null); // 20 slots
+        this.inventory = Array.from({ length: INVENTORY_TOTAL_SLOTS }, () => null);
         this.equipment = { weapon: null };
         // Quest Data (v0.22.4+)
         this.questData = {
@@ -612,8 +612,7 @@ export default class Player extends CharacterBase {
         this.agility = 1;
         this.gold = 0;
         this.equipment = { weapon: null };
-        this.inventory = [];
-        for (let i = 0; i < 20; i++) this.inventory.push(null);
+        this.inventory = Array.from({ length: INVENTORY_TOTAL_SLOTS }, () => null);
         this.questData = {
             prologueCompleted: false,
             basicTrainingCompleted: false,
@@ -1903,7 +1902,7 @@ export default class Player extends CharacterBase {
     normalizeInventoryState(savedInventory = null, savedEquipment = null) {
         const itemData = this.getItemDataManager();
         const sourceInventory = Array.isArray(savedInventory) ? savedInventory : this.inventory;
-        this.inventory = Array.from({ length: 20 }, (_, index) => {
+        this.inventory = Array.from({ length: INVENTORY_TOTAL_SLOTS }, (_, index) => {
             const raw = sourceInventory[index] || null;
             return itemData?.normalizeInventoryItem(raw) || raw || null;
         });

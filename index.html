@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json?v=0.01.16">
+    <link rel="manifest" href="manifest.json?v=0.01.20">
     <meta name="theme-color" content="#2d3436">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -33,7 +33,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.01.19')
+                navigator.serviceWorker.register('./sw.js?v=0.01.20')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -58,7 +58,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.01.16</title>
+    <title>Yurika Online v0.01.20</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=20260331">
     <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=20260331">
@@ -113,7 +113,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.19">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.20">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -350,31 +350,28 @@
                     <h2>가방 (Inventory)</h2>
                     <button id="inventory-close-btn-top" class="close-popup pc-only">✕</button>
                 </div>
-                <div class="inventory-layout">
-                    <div class="inventory-main-panel">
-                        <div class="equipment-panel">
-                            <button type="button" id="equipment-slot-weapon" class="equipment-slot-card">
-                                <span class="equipment-slot-label">무기 슬롯</span>
-                                <span class="equipment-slot-icon">⚪</span>
-                                <span class="equipment-slot-name">장착 없음</span>
-                                <span class="equipment-slot-level"></span>
-                            </button>
-                        </div>
-                        <div class="inventory-grid">
-                            <div class="grid-item"></div>
-                            <div class="grid-item"></div>
-                            <div class="grid-item"></div>
-                            <div class="grid-item"></div>
-                            <div class="grid-item"></div>
-                            <div class="grid-item"></div>
-                            <div class="grid-item"></div>
-                            <div class="grid-item"></div>
-                            <div class="grid-item"></div>
+                <div class="inventory-shell">
+                    <div class="inventory-summary-strip">
+                        <button type="button" id="equipment-slot-weapon" class="equipment-slot-card">
+                            <span class="equipment-slot-label">장착 무기</span>
+                            <span class="equipment-slot-icon">⚪</span>
+                            <span class="equipment-slot-name">장착 없음</span>
+                            <span class="equipment-slot-level"></span>
+                        </button>
+                        <div class="inventory-gold-card">
+                            <span class="inventory-gold-icon">💰</span>
+                            <div class="inventory-gold-copy">
+                                <span class="inventory-gold-label">보유 골드</span>
+                                <strong id="inventory-gold-amount">0</strong>
+                            </div>
                         </div>
                     </div>
-                    <div class="inventory-detail-panel">
-                        <div id="inventory-detail-empty" class="inventory-detail-empty">아이템을 선택하면 장착, 강화, 상세 옵션을 볼 수 있습니다.</div>
-                        <div id="inventory-detail-card" class="inventory-detail-card hidden">
+                    <div class="inventory-scroll-shell">
+                        <div id="inventory-grid" class="inventory-grid"></div>
+                    </div>
+                    <div id="inventory-item-modal" class="inventory-item-modal hidden">
+                        <div class="inventory-item-modal-card">
+                            <button type="button" id="inventory-item-modal-close" class="inventory-item-modal-close" aria-label="상세 닫기">✕</button>
                             <div class="inventory-detail-head">
                                 <div id="inventory-detail-icon" class="inventory-detail-icon"></div>
                                 <div class="inventory-detail-title-block">
@@ -393,7 +390,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="popup-footer">
+                <div class="popup-footer inventory-popup-footer">
+                    <div id="inventory-count-display" class="inventory-count-display">0 / 300</div>
                     <button id="inventory-close-btn-bottom" class="close-btn-bottom close-popup">닫기</button>
                 </div>
             </div>
@@ -626,7 +624,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📜 v0.01.16
+        📜 v0.01.20
     </div>
 
 
@@ -659,7 +657,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.19"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.20"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

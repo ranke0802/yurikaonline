@@ -7,6 +7,24 @@ export default class SkillRenderer {
         return !!window.game?.useReducedEffects;
     }
 
+    static withAlpha(color, alpha = 1) {
+        const normalizedAlpha = Math.max(0, Math.min(1, alpha));
+        if (!color) return `rgba(255,255,255,${normalizedAlpha})`;
+        if (color.startsWith('rgba(') || color.startsWith('rgb(')) return color;
+
+        const hex = color.startsWith('#') ? color.slice(1) : color;
+        if (![3, 6].includes(hex.length)) return color;
+
+        const fullHex = hex.length === 3
+            ? hex.split('').map((ch) => ch + ch).join('')
+            : hex;
+
+        const r = parseInt(fullHex.slice(0, 2), 16);
+        const g = parseInt(fullHex.slice(2, 4), 16);
+        const b = parseInt(fullHex.slice(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${normalizedAlpha})`;
+    }
+
     /**
      * High-quality Magic Circle (Used for Channeling and Shield)
      */
@@ -513,59 +531,76 @@ export default class SkillRenderer {
         if (!auraState) return;
 
         const intensityMap = {
-            soft: { radius: 30, alpha: 0.16, core: 0.08 },
-            strong: { radius: 36, alpha: 0.24, core: 0.12 },
-            stronger: { radius: 40, alpha: 0.3, core: 0.15 },
-            epic: { radius: 44, alpha: 0.36, core: 0.18 },
-            ascended: { radius: 48, alpha: 0.44, core: 0.24 }
+            soft: { radius: 34, alpha: 0.22, core: 0.1, ring: 0.24 },
+            strong: { radius: 40, alpha: 0.32, core: 0.14, ring: 0.32 },
+            stronger: { radius: 45, alpha: 0.4, core: 0.18, ring: 0.4 },
+            epic: { radius: 50, alpha: 0.48, core: 0.22, ring: 0.48 },
+            ascended: { radius: 56, alpha: 0.58, core: 0.3, ring: 0.58 }
         };
         const profile = intensityMap[auraState.intensity] || intensityMap.soft;
         const time = Date.now() / 220;
         const pulse = Math.sin(time) * 2.5;
         const radius = profile.radius + pulse;
+        const bodyY = y - 2;
+        const groundY = y + 20;
 
         ctx.save();
 
         if (this.isReducedEffectsMode()) {
             ctx.fillStyle = auraState.whiteCore
-                ? 'rgba(255,255,255,0.18)'
-                : `${auraState.baseColor}${Math.round(profile.alpha * 255).toString(16).padStart(2, '0')}`;
+                ? 'rgba(255,255,255,0.24)'
+                : this.withAlpha(auraState.baseColor, profile.alpha * 0.7);
             ctx.beginPath();
-            ctx.ellipse(x, y + 8, radius * 0.8, radius * 0.38, 0, 0, Math.PI * 2);
+            ctx.ellipse(x, groundY, radius * 0.92, radius * 0.34, 0, 0, Math.PI * 2);
             ctx.fill();
+
+            ctx.strokeStyle = this.withAlpha(auraState.secondaryColor, profile.ring);
+            ctx.lineWidth = auraState.spark ? 2.4 : 1.8;
+            ctx.beginPath();
+            ctx.arc(x, bodyY, radius * 0.72, 0, Math.PI * 2);
+            ctx.stroke();
             ctx.restore();
             return;
         }
 
-        const outer = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
-        outer.addColorStop(0, auraState.whiteCore ? 'rgba(255,255,255,0.24)' : `${auraState.secondaryColor}55`);
-        outer.addColorStop(0.55, `${auraState.baseColor}${Math.round(profile.alpha * 255).toString(16).padStart(2, '0')}`);
-        outer.addColorStop(1, `${auraState.baseColor}00`);
+        const outer = ctx.createRadialGradient(x, bodyY, radius * 0.16, x, bodyY, radius);
+        outer.addColorStop(0, auraState.whiteCore ? 'rgba(255,255,255,0.3)' : this.withAlpha(auraState.secondaryColor, 0.24));
+        outer.addColorStop(0.55, this.withAlpha(auraState.baseColor, profile.alpha));
+        outer.addColorStop(1, this.withAlpha(auraState.baseColor, 0));
 
         ctx.fillStyle = outer;
         ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.arc(x, bodyY, radius, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.strokeStyle = `${auraState.secondaryColor}${Math.round((profile.alpha + 0.08) * 255).toString(16).padStart(2, '0')}`;
-        ctx.lineWidth = auraState.spark ? 2.5 : 1.5;
+        const floorGlow = ctx.createRadialGradient(x, groundY, radius * 0.1, x, groundY, radius * 1.05);
+        floorGlow.addColorStop(0, this.withAlpha(auraState.secondaryColor, profile.alpha * 0.42));
+        floorGlow.addColorStop(0.7, this.withAlpha(auraState.baseColor, profile.alpha * 0.18));
+        floorGlow.addColorStop(1, this.withAlpha(auraState.baseColor, 0));
+        ctx.fillStyle = floorGlow;
         ctx.beginPath();
-        ctx.arc(x, y, radius * 0.78, 0, Math.PI * 2);
+        ctx.ellipse(x, groundY, radius * 0.98, radius * 0.34, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = this.withAlpha(auraState.secondaryColor, profile.ring);
+        ctx.lineWidth = auraState.spark ? 2.7 : 1.9;
+        ctx.beginPath();
+        ctx.arc(x, bodyY, radius * 0.78, 0, Math.PI * 2);
         ctx.stroke();
 
         if (auraState.whiteCore) {
             ctx.fillStyle = `rgba(255,255,255,${profile.core})`;
             ctx.beginPath();
-            ctx.arc(x, y - 4, radius * 0.48, 0, Math.PI * 2);
+            ctx.arc(x, bodyY - 4, radius * 0.48, 0, Math.PI * 2);
             ctx.fill();
         }
 
         if (auraState.spark) {
             for (let i = 0; i < 4; i++) {
                 const angle = (Math.PI * 2 * i) / 4 + (Date.now() / 500);
-                const px = x + Math.cos(angle) * (radius * 0.85);
-                const py = y + Math.sin(angle) * (radius * 0.55);
-                ctx.strokeStyle = auraState.baseColor;
+                const px = x + Math.cos(angle) * (radius * 0.88);
+                const py = bodyY + Math.sin(angle) * (radius * 0.58);
+                ctx.strokeStyle = this.withAlpha(auraState.baseColor, 0.95);
                 ctx.lineWidth = 1.4;
                 ctx.beginPath();
                 ctx.moveTo(px - 5, py);
@@ -579,8 +614,8 @@ export default class SkillRenderer {
         if (auraState.glitter) {
             for (let i = 0; i < 6; i++) {
                 const angle = (Math.PI * 2 * i) / 6 + (Date.now() / 800);
-                const px = x + Math.cos(angle) * (radius * 1.1);
-                const py = y + Math.sin(angle) * (radius * 0.8);
+                const px = x + Math.cos(angle) * (radius * 1.08);
+                const py = bodyY + Math.sin(angle) * (radius * 0.78);
                 ctx.fillStyle = auraState.whiteCore ? '#ffffff' : auraState.secondaryColor;
                 ctx.beginPath();
                 ctx.arc(px, py, 1.8, 0, Math.PI * 2);

@@ -1,5 +1,6 @@
 import Scene from '../../core/Scene.js';
 import Logger from '../../utils/Logger.js';
+import { INVENTORY_TOTAL_SLOTS } from '../../constants/inventory.js';
 
 export default class CharacterSelectionScene extends Scene {
     constructor(game) {
@@ -257,7 +258,7 @@ export default class CharacterSelectionScene extends Scene {
                 maxHp: 30,
                 mp: 50,
                 maxMp: 50,
-                inventory: new Array(20).fill(null),
+                inventory: new Array(INVENTORY_TOTAL_SLOTS).fill(null),
                 equipment: { weapon: null },
                 questData: {
                     prologueCompleted: false,

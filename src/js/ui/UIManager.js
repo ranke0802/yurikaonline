@@ -419,11 +419,14 @@ export class UIManager {
         const rewardContent = document.querySelector('#reward-modal .reward-content');
         const historyContent = document.querySelector('#history-modal .history-content');
         const genericContent = document.querySelector('#generic-modal .confirm-modal-content');
+        const inventoryItemModal = document.getElementById('inventory-item-modal');
+        const inventoryItemContent = document.querySelector('#inventory-item-modal .inventory-item-modal-card');
         const genericYes = document.getElementById('generic-modal-yes');
         const genericNo = document.getElementById('generic-modal-no');
         const questDetails = document.querySelector('#quest-reward-display .quest-details');
+        const isInventoryItemModalOpen = this.isShortcutVisible(inventoryItemModal);
 
-        this.upsertShortcutHint(openPopup?.querySelector('.popup-footer'), 'F', '닫기', 'popup-shortcut-hint');
+        this.upsertShortcutHint(isInventoryItemModalOpen ? null : openPopup?.querySelector('.popup-footer'), 'F', '닫기', 'popup-shortcut-hint');
         this.upsertShortcutHint(
             this.isShortcutVisible(this.confirmModal) ? confirmContent : null,
             'F',
@@ -448,6 +451,12 @@ export class UIManager {
             this.isShortcutVisible(genericNo)
                 ? `${genericYes?.textContent?.trim() || '수락'} · Esc ${genericNo?.textContent?.trim() || '거절'}`
                 : `${genericYes?.textContent?.trim() || '확인'} · Esc 닫기`,
+            'modal-shortcut-hint'
+        );
+        this.upsertShortcutHint(
+            isInventoryItemModalOpen ? inventoryItemContent : null,
+            'F',
+            '닫기',
             'modal-shortcut-hint'
         );
         this.upsertShortcutHint(
@@ -503,6 +512,12 @@ export class UIManager {
             return true;
         }
 
+        if (this.isShortcutVisible(document.getElementById('inventory-item-modal'))) {
+            this.closeInventoryItemModal(true);
+            this.updateInventory();
+            return true;
+        }
+
         const openPopup = document.querySelector('.game-popup:not(.hidden)');
         if (openPopup?.id) {
             this.togglePopup(openPopup.id);
@@ -533,6 +548,12 @@ export class UIManager {
 
         if (this.isShortcutVisible(document.getElementById('history-modal'))) {
             this.toggleUpdateHistory();
+            return true;
+        }
+
+        if (this.isShortcutVisible(document.getElementById('inventory-item-modal'))) {
+            this.closeInventoryItemModal(true);
+            this.updateInventory();
             return true;
         }
 
@@ -1286,6 +1307,9 @@ export class UIManager {
         this.hideTooltip();
 
         document.querySelectorAll('.game-popup').forEach(p => p.classList.add('hidden'));
+        if (id !== 'inventory-popup' || !isCurrentlyHidden) {
+            this.closeInventoryItemModal(true);
+        }
 
         if (isCurrentlyHidden) {
             if (this.game.sound) this.game.sound.playSfx('ui_open');
@@ -1296,7 +1320,11 @@ export class UIManager {
                 this.pendingStats = { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
                 this.updateStatusPopup();
             }
-            if (id === 'inventory-popup') this.updateInventory();
+            if (id === 'inventory-popup') {
+                this.selectedInventoryRef = null;
+                this.closeInventoryItemModal(true);
+                this.updateInventory();
+            }
             if (id === 'skill-popup') this.updateSkillPopup();
             this.isPaused = true;
             this.game.tutorial?.trigger?.('popup_open', { target: id });
@@ -1304,6 +1332,7 @@ export class UIManager {
             if (this.game.sound) this.game.sound.playSfx('ui_close');
             this.overlay.classList.add('hidden');
             document.body.classList.remove('popup-open');
+            this.closeInventoryItemModal(true);
             this.isPaused = false;
             this.game.tutorial?.trigger?.('popup_close', { target: id });
         }
@@ -1565,6 +1594,7 @@ export class UIManager {
             if (this.overlay) this.overlay.classList.add('hidden');
             document.querySelectorAll('.game-popup').forEach(p => p.classList.add('hidden'));
             document.body.classList.remove('popup-open');
+            this.closeInventoryItemModal(true);
             this.isPaused = false;
         }
         this.refreshDesktopShortcutHints();
@@ -1631,17 +1661,32 @@ export class UIManager {
         const predWis = p.wisdom + this.pendingStats.wisdom;
         const predAgi = p.agility + this.pendingStats.agility;
 
-        // Compare pred vs base for green highlight
-        const updateDerived = (id, baseVal, predVal, isPercentage = false, decimal = 0) => {
+        const formatDerivedValue = (value, isPercentage = false, decimal = 0) => {
+            if (isPercentage) return `${(value * 100).toFixed(decimal)}%`;
+            if (decimal === 0) return `${Math.floor(value)}`;
+            return value.toFixed(decimal);
+        };
+
+        const getEquipmentBonus = (actualTotal, baseValue) => {
+            const raw = Number(actualTotal) - Number(baseValue);
+            if (!Number.isFinite(raw) || raw <= 0.0001) return 0;
+            return Math.round(raw * 1000) / 1000;
+        };
+
+        // Compare predicted base stat vs current base stat for pending highlight,
+        // while showing weapon bonuses as a separate green + value.
+        const updateDerived = (id, currentBaseVal, predBaseVal, isPercentage = false, decimal = 0, equipmentBonus = 0) => {
             const el = document.getElementById(id);
             if (!el) return;
 
-            let displayVal = isPercentage ? `${(predVal * 100).toFixed(decimal)}%` : predVal.toFixed(decimal);
-            if (decimal === 0 && !isPercentage) displayVal = Math.floor(predVal);
+            const totalVal = predBaseVal + equipmentBonus;
+            const totalText = formatDerivedValue(totalVal, isPercentage, decimal);
+            const bonusText = equipmentBonus > 0 ? formatDerivedValue(equipmentBonus, isPercentage, decimal) : '';
+            const totalClass = predBaseVal > currentBaseVal ? 'stat-predict-inc' : '';
 
-            el.textContent = displayVal;
-            if (predVal > baseVal) el.classList.add('stat-predict-inc');
-            else el.classList.remove('stat-predict-inc');
+            el.innerHTML = totalClass
+                ? `<span class="${totalClass}">${totalText}</span>${equipmentBonus > 0 ? ` <span class="stat-equip-bonus">+${bonusText}</span>` : ''}`
+                : `${totalText}${equipmentBonus > 0 ? ` <span class="stat-equip-bonus">+${bonusText}</span>` : ''}`;
         };
 
         // HP/MP Range special handling
@@ -1683,10 +1728,20 @@ export class UIManager {
         const predHpRegen = bHpRegen + (predVit * 1);
         const predMpRegen = bMpRegen + (predWis * 1);
 
-        updateDerived('val-atk', p.attackPower, predAtk);
-        updateDerived('val-def', p.defense, predDef);
-        updateDerived('val-hp-regen', p.hpRegen, predHpRegen);
-        updateDerived('val-mp-regen', p.mpRegen, predMpRegen);
+        const currentAtkBase = bAtk + (baseInt * gAtk) + Math.floor(baseWis / 2);
+        const currentDefBase = bDef + (baseVit * gDef);
+        const currentHpRegenBase = bHpRegen + (baseVit * 1);
+        const currentMpRegenBase = bMpRegen + (baseWis * 1);
+
+        const equipAtkBonus = getEquipmentBonus(p.attackPower, currentAtkBase);
+        const equipDefBonus = getEquipmentBonus(p.defense, currentDefBase);
+        const equipHpRegenBonus = getEquipmentBonus(p.hpRegen, currentHpRegenBase);
+        const equipMpRegenBonus = getEquipmentBonus(p.mpRegen, currentMpRegenBase);
+
+        updateDerived('val-atk', currentAtkBase, predAtk, false, 0, equipAtkBonus);
+        updateDerived('val-def', currentDefBase, predDef, false, 0, equipDefBonus);
+        updateDerived('val-hp-regen', currentHpRegenBase, predHpRegen, false, 0, equipHpRegenBonus);
+        updateDerived('val-mp-regen', currentMpRegenBase, predMpRegen, false, 0, equipMpRegenBonus);
 
         // v0.00.40: INT bonuses: +5% attack speed per INT, +1% crit rate per INT
         // Note: These are multiplier bonuses, not additive base stats usually.
@@ -1695,9 +1750,17 @@ export class UIManager {
         const predCrit = 0.1 + (predAgi * 0.01) + (predInt * 0.01);
         const predMoveSpd = 1.0 + (predAgi * 0.05); // Base 1.0
 
-        updateDerived('val-atk-spd', p.attackSpeed, predAtkSpd, false, 2);
-        updateDerived('val-crit', p.critRate, predCrit, true);
-        updateDerived('val-move-spd', p.moveSpeedBonus, predMoveSpd, true);
+        const currentAtkSpdBase = 1.0 + (baseAgi * 0.1) + (baseInt * 0.05);
+        const currentCritBase = 0.1 + (baseAgi * 0.01) + (baseInt * 0.01);
+        const currentMoveSpdBase = 1.0 + (baseAgi * 0.05);
+
+        const equipAtkSpdBonus = getEquipmentBonus(p.attackSpeed, currentAtkSpdBase);
+        const equipCritBonus = getEquipmentBonus(p.critRate, currentCritBase);
+        const equipMoveSpdBonus = getEquipmentBonus(p.moveSpeedBonus, currentMoveSpdBase);
+
+        updateDerived('val-atk-spd', currentAtkSpdBase, predAtkSpd, false, 2, equipAtkSpdBonus);
+        updateDerived('val-crit', currentCritBase, predCrit, true, 0, equipCritBonus);
+        updateDerived('val-move-spd', currentMoveSpdBase, predMoveSpd, true, 0, equipMoveSpdBonus);
 
         // v1.92: Bind & Update Link Google Button
         const linkBtn = document.getElementById('btn-link-google');
@@ -2258,6 +2321,8 @@ export class UIManager {
         const unequipBtn = document.getElementById('inventory-action-unequip');
         const enhanceBtn = document.getElementById('inventory-action-enhance');
         const weaponSlotBtn = document.getElementById('equipment-slot-weapon');
+        const itemModal = document.getElementById('inventory-item-modal');
+        const itemModalCloseBtn = document.getElementById('inventory-item-modal-close');
 
         const bindPress = (element, handler) => {
             if (!element) return;
@@ -2270,7 +2335,22 @@ export class UIManager {
 
         bindPress(weaponSlotBtn, () => {
             const weapon = this.game.localPlayer?.getEquippedWeapon?.();
-            this.selectedInventoryRef = weapon ? { kind: 'equipment', slot: 'weapon' } : null;
+            if (!weapon) {
+                this.closeInventoryItemModal(true);
+                this.updateInventory();
+                return;
+            }
+            this.openInventoryItemModal({ kind: 'equipment', slot: 'weapon' });
+        });
+
+        bindPress(itemModalCloseBtn, () => {
+            this.closeInventoryItemModal(true);
+            this.updateInventory();
+        });
+
+        itemModal?.addEventListener('click', (e) => {
+            if (e.target !== itemModal) return;
+            this.closeInventoryItemModal(true);
             this.updateInventory();
         });
 
@@ -2330,6 +2410,7 @@ export class UIManager {
                 } else if (result.destroyed) {
                     this.showGenericModal('강화 파괴', '강화에 실패해 장비가 파괴되었습니다.', null, null, { hideNo: true, yesText: '확인' });
                     this.logSystemMessage('💥 강화 실패로 장비가 파괴되었습니다.');
+                    this.closeInventoryItemModal(true);
                     this.selectedInventoryRef = null;
                 } else {
                     this.showGenericModal('강화 실패', '강화에 실패했습니다. 장비는 유지됩니다.', null, null, { hideNo: true, yesText: '확인' });
@@ -2433,6 +2514,21 @@ export class UIManager {
         return iconEl;
     }
 
+    openInventoryItemModal(ref) {
+        const modal = document.getElementById('inventory-item-modal');
+        if (!modal || !ref) return;
+        this.selectedInventoryRef = ref;
+        modal.classList.remove('hidden');
+        this.updateInventory();
+    }
+
+    closeInventoryItemModal(clearSelection = false) {
+        const modal = document.getElementById('inventory-item-modal');
+        if (modal) modal.classList.add('hidden');
+        if (clearSelection) this.selectedInventoryRef = null;
+        this.refreshDesktopShortcutHints();
+    }
+
     buildInventoryDetail(player, item) {
         const itemData = this.game.itemData;
         const definition = itemData?.getItemDefinition(item.type) || null;
@@ -2484,7 +2580,7 @@ export class UIManager {
         const p = this.game.localPlayer;
         if (!p) return;
 
-        const grid = document.querySelector('.inventory-grid');
+        const grid = document.getElementById('inventory-grid');
         if (!grid) return;
         p.normalizeInventoryState();
 
@@ -2493,13 +2589,17 @@ export class UIManager {
         const selected = this.resolveSelectedInventoryItem(p);
         if (this.selectedInventoryRef && !selected) {
             this.selectedInventoryRef = null;
+            this.closeInventoryItemModal(true);
         }
 
         grid.innerHTML = '';
-        p.inventory.forEach((item, index) => {
+        const fragment = document.createDocumentFragment();
+        for (let index = 1; index < p.inventory.length; index++) {
+            const item = p.inventory[index];
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'grid-item';
+            button.setAttribute('aria-label', item?.name || `빈 슬롯 ${index}`);
             if (this.isInventorySelection(this.selectedInventoryRef, 'inventory', index)) {
                 button.classList.add('selected');
             }
@@ -2528,16 +2628,41 @@ export class UIManager {
                     button.appendChild(badge);
                 }
             } else {
-                button.appendChild(this.createInventoryIconElement({ icon: '' }));
+                const emptyLabel = document.createElement('span');
+                emptyLabel.className = 'grid-item-slot-index';
+                emptyLabel.textContent = `${index}`;
+                button.appendChild(emptyLabel);
             }
 
             button.addEventListener('click', () => {
-                this.selectedInventoryRef = item ? { kind: 'inventory', index } : null;
+                if (!item) {
+                    this.closeInventoryItemModal(true);
+                    this.updateInventory();
+                    return;
+                }
+                this.selectedInventoryRef = { kind: 'inventory', index };
+                document.getElementById('inventory-item-modal')?.classList.remove('hidden');
                 this.updateInventory();
             });
 
-            grid.appendChild(button);
-        });
+            fragment.appendChild(button);
+        }
+        grid.appendChild(fragment);
+
+        const goldAmountEl = document.getElementById('inventory-gold-amount');
+        if (goldAmountEl) {
+            goldAmountEl.textContent = `${Math.max(0, p.gold || 0).toLocaleString('ko-KR')} G`;
+        }
+
+        const countEl = document.getElementById('inventory-count-display');
+        if (countEl) {
+            const usedSlots = p.inventory.reduce((total, item, index) => {
+                if (index === 0 || !item) return total;
+                return total + 1;
+            }, 0);
+            const capacity = Math.max(0, p.inventory.length - 1);
+            countEl.textContent = `${usedSlots}/${capacity}`;
+        }
 
         const equippedWeapon = p.getEquippedWeapon?.();
         const weaponSlot = document.getElementById('equipment-slot-weapon');
@@ -2555,17 +2680,13 @@ export class UIManager {
             if (slotLevel) slotLevel.textContent = equippedWeapon ? `+${equippedWeapon.enhancementLevel || 0}` : '';
         }
 
-        const detailEmpty = document.getElementById('inventory-detail-empty');
-        const detailCard = document.getElementById('inventory-detail-card');
+        const detailModal = document.getElementById('inventory-item-modal');
         const detail = this.resolveSelectedInventoryItem(p);
-        if (!detail || !detail.item) {
-            detailEmpty?.classList.remove('hidden');
-            detailCard?.classList.add('hidden');
+        if (!detail || !detail.item || detailModal?.classList.contains('hidden')) {
+            if (!detail) this.closeInventoryItemModal(true);
+            this.refreshDesktopShortcutHints();
             return;
         }
-
-        detailEmpty?.classList.add('hidden');
-        detailCard?.classList.remove('hidden');
 
         const detailIconWrap = document.getElementById('inventory-detail-icon');
         if (detailIconWrap) {
@@ -2584,7 +2705,11 @@ export class UIManager {
         const enhanceBtn = document.getElementById('inventory-action-enhance');
 
         if (nameEl) nameEl.textContent = detailData.title;
-        if (subtitleEl) subtitleEl.textContent = detailData.subtitle;
+        if (subtitleEl) {
+            subtitleEl.textContent = detail.location === 'equipment'
+                ? `${detailData.subtitle} · 착용 중`
+                : detailData.subtitle;
+        }
         if (descEl) descEl.textContent = detailData.description || '';
 
         if (statsEl) {
@@ -2610,6 +2735,8 @@ export class UIManager {
         if (enhanceBtn) {
             enhanceBtn.classList.toggle('hidden', detail.item.slot !== 'weapon');
         }
+
+        this.refreshDesktopShortcutHints();
     }
 
     updateStats(hp, mp, level, expPerc) {
