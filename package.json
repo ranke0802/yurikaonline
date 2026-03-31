@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "start": "npx -y live-server . --port=8081",
+    "start": "npx -y live-server . --host=127.0.0.1 --port=8081 --no-browser",
     "version:sync": "node scripts/sync-version.js",
     "version:bump": "node scripts/sync-version.js --bump patch"
   },

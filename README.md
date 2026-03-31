@@ -3,13 +3,13 @@
 
 <!-- AUTO_VERSION_BLOCK_START -->
 ## Build Metadata
-- 배포 버전: **0.01.16**
+- 배포 버전: **0.01.17**
 - 마지막 버전 갱신: 2026-03-31
 <!-- AUTO_VERSION_BLOCK_END -->
 
 Yurika Online은 HTML5 Canvas와 Firebase를 기반으로 만든 실시간 웹 MMORPG입니다. 로그인, 캐릭터 성장, 튜토리얼, 멀티플레이어 동기화, 전투 UI를 한 프로젝트 안에서 다루고 있습니다.
 
-현재 버전: **0.01.16**
+현재 버전: **0.01.17**
 
 ## 핵심 기능
 
@@ -54,15 +54,106 @@ Yurika Online은 HTML5 Canvas와 Firebase를 기반으로 만든 실시간 웹 M
 
 ## 실행 방법
 
-1. 저장소를 클론합니다.
-2. 루트 디렉터리에서 정적 서버를 실행합니다.
-3. 브라우저에서 로컬 주소로 접속합니다.
+이 프로젝트는 정적 웹 서버로 실행하면 됩니다. `live-server` 기준으로 점검했고, Windows PowerShell에서 `npx live-server --port=8080`처럼 실행하면 환경에 따라 `listen EACCES: permission denied 0.0.0.0:8080`가 날 수 있습니다.
 
-예시:
+원인:
+
+- `8080` 포트가 로컬 환경에서 막혀 있거나 다른 정책에 걸릴 수 있습니다.
+- `live-server`가 기본적으로 `0.0.0.0`에 바인딩하려고 해서, Windows 환경에서 더 까다롭게 막히는 경우가 있습니다.
+
+권장 기준:
+
+- 같은 PC에서만 실행할 때는 `127.0.0.1`
+- 기본 포트는 `8081` 또는 `5500`
+- 가장 쉬운 방법은 `npm start`
+
+### Windows PowerShell
+
+프로젝트 루트에서:
 
 ```powershell
-npx live-server --port=8080
+npm start
 ```
+
+브라우저에서 접속:
+
+```text
+http://127.0.0.1:8081
+```
+
+수동 실행이 필요하면:
+
+```powershell
+npx -y live-server . --host=127.0.0.1 --port=8081 --no-browser
+```
+
+`8081`이 이미 사용 중이면:
+
+```powershell
+npx -y live-server . --host=127.0.0.1 --port=5500 --no-browser
+```
+
+### Windows CMD
+
+프로젝트 루트에서:
+
+```cmd
+npm start
+```
+
+수동 실행:
+
+```cmd
+npx -y live-server . --host=127.0.0.1 --port=8081 --no-browser
+```
+
+### macOS / Linux
+
+프로젝트 루트에서:
+
+```bash
+npm start
+```
+
+수동 실행:
+
+```bash
+npx -y live-server . --host=127.0.0.1 --port=8081 --no-browser
+```
+
+포트를 바꾸고 싶다면:
+
+```bash
+npx -y live-server . --host=127.0.0.1 --port=5500 --no-browser
+```
+
+### WSL
+
+WSL에서도 같은 방식으로 실행하면 됩니다.
+
+```bash
+npm start
+```
+
+또는:
+
+```bash
+npx -y live-server . --host=127.0.0.1 --port=8081 --no-browser
+```
+
+Windows 브라우저에서는 보통 아래 주소로 접속하면 됩니다.
+
+```text
+http://127.0.0.1:8081
+```
+
+### 실기기 확인
+
+휴대폰이나 태블릿에서 확인할 때는 로컬 LAN 서버 대신 Firebase 배포 주소를 사용합니다.
+
+- 로컬 실행 방법은 개발 PC에서 브라우저로 확인하는 용도입니다.
+- 모바일 실기기 확인은 배포 후 서비스 링크로 접속하는 흐름을 기준으로 합니다.
+- 이 README에서는 휴대폰용 로컬 서버 실행 방법은 안내하지 않습니다.
 
 ## 버전 관리
 
