@@ -157,6 +157,7 @@ export default class ItemDataManager {
     createEquipmentInstance(itemId, seedData = {}) {
         const definition = this.getItemDefinition(itemId);
         if (!definition) return null;
+        const instanceId = seedData.instanceId || this._createInstanceId();
 
         const pool = this.getAffixPool(definition.prefixPool);
         const affix = seedData.prefixId
@@ -164,13 +165,13 @@ export default class ItemDataManager {
             : this._pickRandom(pool?.affixes || []);
 
         const rolledValues = seedData.rolledValues
-            ? { ...seedData.rolledValues }
-            : this._rollAffixValues(affix);
+            ? { ...this._rollAffixValues(affix, instanceId), ...seedData.rolledValues }
+            : this._rollAffixValues(affix, instanceId);
 
         const instance = {
             id: definition.id,
             type: definition.id,
-            instanceId: seedData.instanceId || this._createInstanceId(),
+            instanceId,
             name: affix?.displayName || definition.name,
             baseName: definition.name,
             icon: definition.icon?.fallbackEmoji || DEFAULT_EQUIPMENT_ICON,
@@ -302,13 +303,14 @@ export default class ItemDataManager {
         return `${Math.round((value || 0) * 100)}%`;
     }
 
-    _rollAffixValues(affix) {
+    _rollAffixValues(affix, seed = null) {
         const rolledValues = {};
         const entries = Object.entries(affix?.rolledEffects || {});
         entries.forEach(([key, rule]) => {
             const min = typeof rule.min === 'number' ? rule.min : 0;
             const max = typeof rule.max === 'number' ? rule.max : min;
-            const raw = min + (Math.random() * (max - min));
+            const randomUnit = seed ? this._seededUnitRandom(`${seed}:${affix?.id || 'affix'}:${key}`) : Math.random();
+            const raw = min + (randomUnit * (max - min));
             rolledValues[key] = Math.round(raw * 100) / 100;
         });
         return rolledValues;
@@ -324,5 +326,15 @@ export default class ItemDataManager {
             return crypto.randomUUID();
         }
         return `item_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    }
+
+    _seededUnitRandom(seedText) {
+        let hash = 2166136261;
+        const text = String(seedText || 'seed');
+        for (let i = 0; i < text.length; i++) {
+            hash ^= text.charCodeAt(i);
+            hash = Math.imul(hash, 16777619);
+        }
+        return ((hash >>> 0) % 1000000) / 1000000;
     }
 }

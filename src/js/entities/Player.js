@@ -1186,7 +1186,7 @@ export default class Player extends CharacterBase {
                                 isCrit: isCrit,
                                 radius: 5,
                                 variant: weaponCombat.missileVariant || null,
-                                visualTint: weaponCombat.projectileTint || null
+                                visualTint: weaponCombat.missileTint || null
                             }
                         });
                     }
@@ -1222,7 +1222,8 @@ export default class Player extends CharacterBase {
                 const speed = 800;
                 const vx = Math.cos(angle) * speed;
                 const vy = Math.sin(angle) * speed;
-                const dmg = Math.ceil(this.attackPower * (1.8 + (lv - 1) * 0.3)); // v1.99.31: 180% + 30% per level
+                const fireballDamageMultiplier = 1 + (weaponCombat.fireballDamageBonus || 0);
+                const dmg = Math.ceil(this.attackPower * (1.8 + (lv - 1) * 0.3) * fireballDamageMultiplier); // v1.99.31: 180% + 30% per level
                 const baseRad = 20 + (lv - 1) * 20;
                 const aoeRad = baseRad * 2.5; // v1.99.35: Increased to 2.5x for better coverage
 
@@ -1231,7 +1232,7 @@ export default class Player extends CharacterBase {
                         vx, vy, speed, damage: dmg, radius: baseRad, aoeRadius: aoeRad, lifeTime: 1.5,
                         ownerId: this.id,
                         variant: weaponCombat.fireballVariant || null,
-                        visualTint: weaponCombat.projectileTint || null,
+                        visualTint: weaponCombat.fireballTint || null,
                         targetX: this.x + Math.cos(angle) * 1200,
                         targetY: this.y + Math.sin(angle) * 1200,
                         burnDuration: 2.0 + (lv - 1) * 0.5,
@@ -1940,13 +1941,15 @@ export default class Player extends CharacterBase {
         const baseProfile = {
             prefixId: null,
             missileDamageBonus: 0,
+            fireballDamageBonus: 0,
             fireExplosionDamageRatio: 0,
             laserDamageBonus: 0,
             restoreHpPerLaserHit: 0,
             missileVariant: null,
             fireballVariant: null,
             laserVariant: null,
-            projectileTint: null,
+            missileTint: null,
+            fireballTint: null,
             auraState: null
         };
 
@@ -1963,13 +1966,15 @@ export default class Player extends CharacterBase {
         return {
             prefixId: affix.id,
             missileDamageBonus: weapon.rolledValues?.missileDamageBonus || 0,
+            fireballDamageBonus: weapon.rolledValues?.fireballDamageBonus || 0,
             fireExplosionDamageRatio: weapon.rolledValues?.fireExplosionDamageRatio || 0,
             laserDamageBonus: weapon.rolledValues?.laserDamageBonus || 0,
             restoreHpPerLaserHit: affix.combatHooks?.restoreHpPerLaserHit || 0,
             missileVariant: affix.skillOverrides?.missileVisualVariant || null,
             fireballVariant: affix.skillOverrides?.fireballVisualVariant || null,
             laserVariant: affix.skillOverrides?.laserVisualVariant || null,
-            projectileTint: affix.visuals?.projectileTint || null,
+            missileTint: affix.skillOverrides?.missileVisualVariant ? (affix.visuals?.projectileTint || null) : null,
+            fireballTint: affix.skillOverrides?.fireballVisualVariant ? (affix.visuals?.projectileTint || null) : null,
             auraState: itemData.getAuraState(weapon)
         };
     }

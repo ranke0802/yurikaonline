@@ -4,7 +4,7 @@
     {
       "itemId": "weapon_upgrade_stone",
       "source": "all_monsters",
-      "chance": 0.5
+      "chance": 0.1
     }
   ],
   "bossDrops": [

@@ -5601,6 +5601,51 @@ body.is-fullscreen .version-info {
         gap: 12px !important;
     }
 
+    #inventory-popup .inventory-detail-panel {
+        min-height: 0 !important;
+    }
+
+    #inventory-popup .inventory-detail-card,
+    #inventory-popup .inventory-detail-empty {
+        min-height: 0 !important;
+        max-height: 100% !important;
+    }
+
+    #inventory-popup .inventory-detail-card {
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+
+    #inventory-popup .inventory-detail-stats {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow: auto !important;
+    }
+
+    #inventory-popup .inventory-enhance-hint {
+        margin-top: 8px !important;
+        font-size: 11px !important;
+        line-height: 1.35 !important;
+        white-space: normal !important;
+        word-break: keep-all !important;
+    }
+
+    #inventory-popup .inventory-detail-actions {
+        margin-top: 10px !important;
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+        flex-shrink: 0 !important;
+    }
+
+    #inventory-popup .inventory-action-btn {
+        min-width: 0 !important;
+        padding: 8px 6px !important;
+        font-size: 12px !important;
+        white-space: nowrap !important;
+    }
+
     #inventory-popup .inventory-grid {
         flex: 1 1 auto !important;
         min-height: 0 !important;

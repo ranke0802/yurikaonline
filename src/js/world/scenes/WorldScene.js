@@ -339,6 +339,17 @@ export default class WorldScene extends Scene {
         }
     }
 
+    addExplosion(x, y, radius, options = {}) {
+        this.explosions.push({
+            x,
+            y,
+            radius,
+            variant: options.variant || 'default',
+            life: options.duration || 0.45,
+            duration: options.duration || 0.45
+        });
+    }
+
     // v0.00.55: Floating Text Bridge
     addDamageText(x, y, text, color, isCrit, label) {
         this.floatingTexts.push({
@@ -779,6 +790,17 @@ export default class WorldScene extends Scene {
             if (this.isOnScreen(p)) {
                 p.render(ctx, this.camera);
             }
+        });
+
+        this.explosions.forEach((explosion) => {
+            SkillRenderer.drawExplosion(
+                ctx,
+                explosion.x,
+                explosion.y,
+                explosion.radius,
+                1 - (explosion.life / (explosion.duration || 0.45)),
+                { variant: explosion.variant || 'default' }
+            );
         });
 
         // v0.00.21: Target Lock-on Marker

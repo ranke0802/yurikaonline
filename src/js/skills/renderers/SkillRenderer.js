@@ -331,18 +331,32 @@ export default class SkillRenderer {
     /**
      * Fireball Explosion Effect
      */
-    static drawExplosion(ctx, x, y, radius, progress) {
+    static drawExplosion(ctx, x, y, radius, progress, options = {}) {
         ctx.save();
         const alpha = 1 - progress;
         const currentRad = radius * (0.5 + progress * 0.5);
+        const variant = options.variant || 'default';
+        const palette = variant === 'blue_flame'
+            ? {
+                core: [235, 248, 255],
+                mid: [88, 187, 255],
+                outer: [18, 82, 196],
+                ember: '#93c5fd'
+            }
+            : {
+                core: [255, 255, 255],
+                mid: [255, 165, 0],
+                outer: [255, 69, 0],
+                ember: '#ff4757'
+            };
 
         if (this.isReducedEffectsMode()) {
-            ctx.fillStyle = `rgba(255, 120, 40, ${alpha * 0.45})`;
+            ctx.fillStyle = `rgba(${palette.mid[0]}, ${palette.mid[1]}, ${palette.mid[2]}, ${alpha * 0.45})`;
             ctx.beginPath();
             ctx.arc(x, y, currentRad, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.strokeStyle = `rgba(255, 240, 200, ${alpha * 0.8})`;
+            ctx.strokeStyle = `rgba(${palette.core[0]}, ${palette.core[1]}, ${palette.core[2]}, ${alpha * 0.8})`;
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.arc(x, y, currentRad * 0.8, 0, Math.PI * 2);
@@ -353,9 +367,9 @@ export default class SkillRenderer {
 
         // Radial Shockwave
         const grad = ctx.createRadialGradient(x, y, 0, x, y, currentRad);
-        grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
-        grad.addColorStop(0.4, `rgba(255, 165, 0, ${alpha * 0.8})`);
-        grad.addColorStop(1, `rgba(255, 69, 0, 0)`);
+        grad.addColorStop(0, `rgba(${palette.core[0]}, ${palette.core[1]}, ${palette.core[2]}, ${alpha})`);
+        grad.addColorStop(0.4, `rgba(${palette.mid[0]}, ${palette.mid[1]}, ${palette.mid[2]}, ${alpha * 0.8})`);
+        grad.addColorStop(1, `rgba(${palette.outer[0]}, ${palette.outer[1]}, ${palette.outer[2]}, 0)`);
 
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -363,7 +377,7 @@ export default class SkillRenderer {
         ctx.fill();
 
         // Debris / Embers
-        ctx.fillStyle = '#ff4757';
+        ctx.fillStyle = palette.ember;
         for (let i = 0; i < 8; i++) {
             const ang = (i / 8) * Math.PI * 2 + progress * 2;
             const dist = currentRad * 0.8;

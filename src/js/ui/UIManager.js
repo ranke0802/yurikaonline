@@ -2453,6 +2453,7 @@ export class UIManager {
             if (affix?.id === 'starlight') {
                 lines.push(`별빛 매직 미사일 피해 +${Math.round((item.rolledValues?.missileDamageBonus || 0) * 100)}%`);
             } else if (affix?.id === 'blue_flame') {
+                lines.push(`푸른 파이어볼 피해 +${Math.round((item.rolledValues?.fireballDamageBonus || 0) * 100)}%`);
                 lines.push(`푸른 불꽃 폭발 피해 ${Math.round((item.rolledValues?.fireExplosionDamageRatio || 0) * 100)}%`);
                 lines.push('파이어볼/화상 처치 시 주변 폭발');
             } else if (affix?.id === 'crimson_flash') {
@@ -2465,7 +2466,7 @@ export class UIManager {
 
         const config = item.slot === 'weapon' ? itemData?.getEnhancementConfig(item) : null;
         const enhanceHint = config
-            ? `다음 강화: +${config.nextLevel} 성공 ${Math.round(config.successRate * 100)}%${config.destroyChanceOnFail > 0 ? ` / 실패 시 파괴 ${Math.round(config.destroyChanceOnFail * 100)}%` : ' / 안전 강화'}`
+            ? `다음 +${config.nextLevel} | 성공 ${Math.round(config.successRate * 100)}%${config.destroyChanceOnFail > 0 ? ` | 파괴 ${Math.round(config.destroyChanceOnFail * 100)}%` : ' | 안전'}`
             : '';
 
         return {

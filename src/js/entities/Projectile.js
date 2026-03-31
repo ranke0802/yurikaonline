@@ -376,7 +376,8 @@ export class Projectile {
 
         // v1.99.15: Visual Explosion
         if (window.game) {
-            window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3);
+            const explosionVariant = this.variant === 'blue_fireball' ? 'blue_flame' : 'default';
+            window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3, { variant: explosionVariant });
             for (let i = 0; i < 15; i++) window.game.addSpark(this.x, this.y);
             // v0.00.63: Explosion SFX
             if (this.type === 'fireball' && window.game.sound) {

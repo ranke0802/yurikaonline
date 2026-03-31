@@ -154,11 +154,23 @@ export default class MonsterManager {
         });
 
         if (rewardedItems.length > 0) {
-            this.net.sendReward(attackerId, {
+            const rewardPayload = {
                 monsterName: monster.name,
                 items: rewardedItems
-            });
+            };
+
+            // Host-local kills should not depend on the reward sync roundtrip.
+            // Gold/EXP are handled by world drops, but item rewards are direct grants,
+            // so deliver them immediately to avoid host-side reward validation timing issues.
+            if (attackerId === this.net.playerId && window.game?.localPlayer) {
+                window.game.localPlayer.receiveReward(rewardPayload);
+                return rewardedItems;
+            }
+
+            this.net.sendReward(attackerId, rewardPayload);
         }
+
+        return rewardedItems;
     }
 
     update(dt) {
@@ -900,7 +912,10 @@ export default class MonsterManager {
         const radius = Math.max(90, meta.explosionRadius || 120);
         const burnDuration = Math.max(1, meta.burnDuration || 2);
 
-        window.game?.addExplosion?.(monster.x, monster.y, radius);
+        window.game?.addExplosion?.(monster.x, monster.y, radius, { variant: 'blue_flame', duration: 0.55 });
+        if (window.game?.sound) {
+            window.game.sound.playSfx('fireball_explosion');
+        }
 
         this.monsters.forEach((other) => {
             if (!other || other.id === monster.id || other.isDead) return;

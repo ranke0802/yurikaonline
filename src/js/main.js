@@ -371,9 +371,9 @@ class Game {
         }
     }
 
-    addExplosion(x, y, radius) {
+    addExplosion(x, y, radius, options = {}) {
         if (this.sceneManager?.currentScene?.addExplosion) {
-            this.sceneManager.currentScene.addExplosion(x, y, radius);
+            this.sceneManager.currentScene.addExplosion(x, y, radius, options);
         }
     }
 
