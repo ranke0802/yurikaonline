@@ -2320,7 +2320,6 @@ export class UIManager {
         const equipBtn = document.getElementById('inventory-action-equip');
         const unequipBtn = document.getElementById('inventory-action-unequip');
         const enhanceBtn = document.getElementById('inventory-action-enhance');
-        const weaponSlotBtn = document.getElementById('equipment-slot-weapon');
         const itemModal = document.getElementById('inventory-item-modal');
         const itemModalCloseBtn = document.getElementById('inventory-item-modal-close');
 
@@ -2332,16 +2331,6 @@ export class UIManager {
                 handler(e);
             }, { passive: false });
         };
-
-        bindPress(weaponSlotBtn, () => {
-            const weapon = this.game.localPlayer?.getEquippedWeapon?.();
-            if (!weapon) {
-                this.closeInventoryItemModal(true);
-                this.updateInventory();
-                return;
-            }
-            this.openInventoryItemModal({ kind: 'equipment', slot: 'weapon' });
-        });
 
         bindPress(itemModalCloseBtn, () => {
             this.closeInventoryItemModal(true);
@@ -2594,6 +2583,66 @@ export class UIManager {
 
         grid.innerHTML = '';
         const fragment = document.createDocumentFragment();
+        const compactNumber = (value) => {
+            const amount = Math.max(0, Number(value) || 0);
+            if (amount >= 1000000) return `${(amount / 1000000).toFixed(amount >= 10000000 ? 0 : 1)}M`;
+            if (amount >= 1000) return `${(amount / 1000).toFixed(amount >= 10000 ? 0 : 1)}K`;
+            return `${amount}`;
+        };
+
+        const createUtilityLabel = (text, className = 'utility-slot-label') => {
+            const label = document.createElement('span');
+            label.className = className;
+            label.textContent = text;
+            return label;
+        };
+
+        const goldSlot = document.createElement('button');
+        goldSlot.type = 'button';
+        goldSlot.className = 'grid-item utility-slot gold-slot';
+        goldSlot.setAttribute('aria-label', `골드 ${Math.max(0, p.gold || 0).toLocaleString('ko-KR')} G`);
+        goldSlot.appendChild(createUtilityLabel('골드'));
+        goldSlot.appendChild(this.createInventoryIconElement(p.inventory[0] || { icon: '💰', name: '골드' }));
+        const goldAmount = document.createElement('span');
+        goldAmount.className = 'utility-slot-meta';
+        goldAmount.textContent = compactNumber(p.gold || 0);
+        goldSlot.appendChild(goldAmount);
+        goldSlot.addEventListener('click', () => {
+            this.showGenericModal('골드', `보유 골드: ${Math.max(0, p.gold || 0).toLocaleString('ko-KR')} G`, null, null, { hideNo: true, yesText: '확인' });
+        });
+        fragment.appendChild(goldSlot);
+
+        const equippedWeapon = p.getEquippedWeapon?.();
+        const equippedSlot = document.createElement('button');
+        equippedSlot.type = 'button';
+        equippedSlot.className = 'grid-item utility-slot equipped-weapon-slot';
+        equippedSlot.setAttribute('aria-label', equippedWeapon ? `${equippedWeapon.name} 장착 중` : '장착 무기 없음');
+        equippedSlot.appendChild(createUtilityLabel('착용'));
+        if (this.isInventorySelection(this.selectedInventoryRef, 'equipment', 'weapon')) {
+            equippedSlot.classList.add('selected');
+        }
+        if (equippedWeapon) {
+            equippedSlot.classList.add('equipped');
+            equippedSlot.appendChild(this.createInventoryIconElement(equippedWeapon));
+            const level = document.createElement('span');
+            level.className = 'item-enhancement';
+            level.textContent = `+${equippedWeapon.enhancementLevel || 0}`;
+            equippedSlot.appendChild(level);
+            equippedSlot.addEventListener('click', () => {
+                this.openInventoryItemModal({ kind: 'equipment', slot: 'weapon' });
+            });
+        } else {
+            const emptyLabel = document.createElement('span');
+            emptyLabel.className = 'utility-slot-empty';
+            emptyLabel.textContent = '무기';
+            equippedSlot.appendChild(emptyLabel);
+            equippedSlot.addEventListener('click', () => {
+                this.closeInventoryItemModal(true);
+                this.updateInventory();
+            });
+        }
+        fragment.appendChild(equippedSlot);
+
         for (let index = 1; index < p.inventory.length; index++) {
             const item = p.inventory[index];
             const button = document.createElement('button');
@@ -2620,13 +2669,6 @@ export class UIManager {
                     level.textContent = `+${item.enhancementLevel || 0}`;
                     button.appendChild(level);
                 }
-
-                if (p.equipment?.weapon?.instanceId && item.instanceId === p.equipment.weapon.instanceId) {
-                    const badge = document.createElement('span');
-                    badge.className = 'item-equipped-badge';
-                    badge.textContent = '착용';
-                    button.appendChild(badge);
-                }
             } else {
                 const emptyLabel = document.createElement('span');
                 emptyLabel.className = 'grid-item-slot-index';
@@ -2649,11 +2691,6 @@ export class UIManager {
         }
         grid.appendChild(fragment);
 
-        const goldAmountEl = document.getElementById('inventory-gold-amount');
-        if (goldAmountEl) {
-            goldAmountEl.textContent = `${Math.max(0, p.gold || 0).toLocaleString('ko-KR')} G`;
-        }
-
         const countEl = document.getElementById('inventory-count-display');
         if (countEl) {
             const usedSlots = p.inventory.reduce((total, item, index) => {
@@ -2662,22 +2699,6 @@ export class UIManager {
             }, 0);
             const capacity = Math.max(0, p.inventory.length - 1);
             countEl.textContent = `${usedSlots}/${capacity}`;
-        }
-
-        const equippedWeapon = p.getEquippedWeapon?.();
-        const weaponSlot = document.getElementById('equipment-slot-weapon');
-        if (weaponSlot) {
-            weaponSlot.classList.toggle('selected', this.isInventorySelection(this.selectedInventoryRef, 'equipment', 'weapon'));
-            const slotIcon = weaponSlot.querySelector('.equipment-slot-icon');
-            const slotName = weaponSlot.querySelector('.equipment-slot-name');
-            const slotLevel = weaponSlot.querySelector('.equipment-slot-level');
-            if (slotIcon) {
-                slotIcon.replaceWith(this.createInventoryIconElement(equippedWeapon || { icon: '⚪' }, 'equipment-slot-icon'));
-            }
-            const refreshedIcon = weaponSlot.querySelector('.equipment-slot-icon');
-            if (refreshedIcon && !equippedWeapon) refreshedIcon.textContent = '⚪';
-            if (slotName) slotName.textContent = equippedWeapon ? equippedWeapon.name : '장착 없음';
-            if (slotLevel) slotLevel.textContent = equippedWeapon ? `+${equippedWeapon.enhancementLevel || 0}` : '';
         }
 
         const detailModal = document.getElementById('inventory-item-modal');

@@ -394,13 +394,16 @@ button:active,
     width: min(92vw, 1040px);
     max-width: 92vw;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .inventory-shell {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
     flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
@@ -504,8 +507,10 @@ button:active,
 .inventory-scroll-shell {
     flex: 1 1 auto;
     min-height: 0;
-    overflow: auto;
-    padding: 12px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 10px;
     background: rgba(255, 255, 255, 0.58);
     border: 2px solid rgba(255, 214, 165, 0.34);
     border-radius: 22px;
@@ -753,6 +758,52 @@ button:active,
     color: rgba(110, 91, 72, 0.5);
 }
 
+.utility-slot {
+    background: linear-gradient(180deg, rgba(255, 250, 241, 0.96), rgba(248, 235, 212, 0.82));
+}
+
+.utility-slot-label {
+    position: absolute;
+    top: 4px;
+    left: 6px;
+    font-size: 9px;
+    font-weight: 800;
+    color: rgba(110, 91, 72, 0.78);
+    letter-spacing: 0.03em;
+}
+
+.utility-slot-meta {
+    position: absolute;
+    bottom: 4px;
+    right: 6px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #6e5b48;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 0 4px;
+    border-radius: 5px;
+}
+
+.utility-slot-empty {
+    font-size: 12px;
+    font-weight: 800;
+    color: rgba(110, 91, 72, 0.62);
+}
+
+.gold-slot {
+    border-color: rgba(212, 159, 43, 0.26);
+}
+
+.equipped-weapon-slot {
+    border-style: dashed;
+    border-color: rgba(245, 199, 67, 0.36);
+}
+
+.grid-item.equipped {
+    border-color: rgba(245, 199, 67, 0.92);
+    box-shadow: 0 0 0 3px rgba(245, 199, 67, 0.22);
+}
+
 .item-icon {
     font-size: 28px;
     width: 36px;
@@ -785,15 +836,7 @@ button:active,
 }
 
 .item-equipped-badge {
-    position: absolute;
-    top: 4px;
-    right: 6px;
-    font-size: 10px;
-    font-weight: 800;
-    color: #fff;
-    background: #4caf50;
-    padding: 1px 5px;
-    border-radius: 5px;
+    display: none;
 }
 
 .grid-item.selected,
@@ -6077,17 +6120,28 @@ body #ui-layer #hostility-panel .hostility-item,
 }
 
 /* Inventory redesign */
+#inventory-popup {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
 #inventory-popup .inventory-shell {
+    flex: 1 1 auto !important;
     min-height: 0 !important;
 }
 
 #inventory-popup .inventory-scroll-shell {
     flex: 1 1 auto !important;
     min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
 }
 
 #inventory-popup .inventory-grid {
     padding: 0 !important;
+    align-content: start !important;
 }
 
 #inventory-popup .inventory-item-modal-card .pc-shortcut-hint {
@@ -6099,10 +6153,7 @@ body #ui-layer #hostility-panel .hostility-item,
     #inventory-popup {
         width: min(94vw, 1180px) !important;
         max-width: 94vw !important;
-    }
-
-    #inventory-popup .inventory-summary-strip {
-        grid-template-columns: minmax(0, 1.28fr) minmax(240px, 0.72fr) !important;
+        max-height: min(88vh, 860px) !important;
     }
 
     #inventory-popup .inventory-scroll-shell {
@@ -6134,21 +6185,8 @@ body #ui-layer #hostility-panel .hostility-item,
     #inventory-popup {
         width: min(95vw, 560px) !important;
         max-width: 95vw !important;
-    }
-
-    #inventory-popup .inventory-shell {
-        gap: 10px !important;
-    }
-
-    #inventory-popup .inventory-summary-strip {
-        grid-template-columns: 1fr !important;
-        gap: 10px !important;
-    }
-
-    #inventory-popup .equipment-slot-card,
-    #inventory-popup .inventory-gold-card {
-        padding: 10px 12px !important;
-        border-radius: 16px !important;
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 14px) !important;
+        overflow: hidden !important;
     }
 
     #inventory-popup .inventory-scroll-shell {
@@ -6169,6 +6207,14 @@ body #ui-layer #hostility-panel .hostility-item,
         width: 32px !important;
         height: 32px !important;
         font-size: 24px !important;
+    }
+
+    #inventory-popup .utility-slot-label {
+        font-size: 8px !important;
+    }
+
+    #inventory-popup .utility-slot-meta {
+        font-size: 9px !important;
     }
 
     #inventory-popup .inventory-item-modal {
@@ -6204,21 +6250,8 @@ body #ui-layer #hostility-panel .hostility-item,
     #inventory-popup {
         width: min(96vw, 980px) !important;
         max-width: 96vw !important;
-    }
-
-    #inventory-popup .inventory-shell {
-        gap: 10px !important;
-    }
-
-    #inventory-popup .inventory-summary-strip {
-        grid-template-columns: minmax(0, 1.18fr) minmax(180px, 0.82fr) !important;
-        gap: 10px !important;
-    }
-
-    #inventory-popup .equipment-slot-card,
-    #inventory-popup .inventory-gold-card {
-        padding: 10px 12px !important;
-        min-height: 74px !important;
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px) !important;
+        overflow: hidden !important;
     }
 
     #inventory-popup .inventory-scroll-shell {
@@ -6239,6 +6272,14 @@ body #ui-layer #hostility-panel .hostility-item,
         width: 30px !important;
         height: 30px !important;
         font-size: 24px !important;
+    }
+
+    #inventory-popup .utility-slot-label {
+        font-size: 8px !important;
+    }
+
+    #inventory-popup .utility-slot-meta {
+        font-size: 9px !important;
     }
 
     #inventory-popup .inventory-item-modal {
