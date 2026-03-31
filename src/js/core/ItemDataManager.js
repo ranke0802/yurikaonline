@@ -8,6 +8,41 @@ const ITEM_FILES = {
     equipment_drop_rules: '/assets/data/items/equipment_drop_rules.json'
 };
 
+const LEGACY_ITEM_DEFINITIONS = {
+    slime_gel: {
+        id: 'slime_gel',
+        name: '슬라임 젤',
+        stackable: true,
+        icon: { fallbackEmoji: '🟢' },
+        rarity: 'common',
+        description: ''
+    },
+    potion_hp_small: {
+        id: 'potion_hp_small',
+        name: '소형 HP 포션',
+        stackable: true,
+        icon: { fallbackEmoji: '🧪' },
+        rarity: 'common',
+        description: ''
+    },
+    royal_jelly: {
+        id: 'royal_jelly',
+        name: '로열 젤리',
+        stackable: true,
+        icon: { fallbackEmoji: '🍯' },
+        rarity: 'rare',
+        description: ''
+    },
+    king_crown: {
+        id: 'king_crown',
+        name: '킹 크라운',
+        stackable: true,
+        icon: { fallbackEmoji: '👑' },
+        rarity: 'boss',
+        description: ''
+    }
+};
+
 const DEFAULT_STACKABLE_ICON = '🎁';
 const DEFAULT_EQUIPMENT_ICON = '🪄';
 
@@ -64,7 +99,7 @@ export default class ItemDataManager {
     }
 
     getItemDefinition(id) {
-        return this.itemDefinitions.get(id) || null;
+        return this.itemDefinitions.get(id) || LEGACY_ITEM_DEFINITIONS[id] || null;
     }
 
     getAffixPool(id) {
@@ -170,6 +205,7 @@ export default class ItemDataManager {
         if (!definition) {
             return {
                 ...item,
+                name: item.name || item.type || item.id || '',
                 icon: item.icon || DEFAULT_STACKABLE_ICON,
                 amount: Math.max(1, item.amount || 1)
             };
@@ -179,12 +215,18 @@ export default class ItemDataManager {
             return this.createEquipmentInstance(definition.id, item);
         }
 
+        const isLegacyDefinition = LEGACY_ITEM_DEFINITIONS[definition.id] === definition;
+        const shouldRestoreLegacyName = isLegacyDefinition
+            && (!item.name || item.name === item.type || item.name === item.id || item.name === definition.id);
+        const shouldRestoreLegacyIcon = isLegacyDefinition
+            && (!item.icon || item.icon === DEFAULT_STACKABLE_ICON);
+
         return {
             id: definition.id,
             type: definition.id,
             amount: Math.max(1, item.amount || 1),
-            name: item.name || definition.name,
-            icon: item.icon || definition.icon?.fallbackEmoji || DEFAULT_STACKABLE_ICON,
+            name: shouldRestoreLegacyName ? definition.name : (item.name || definition.name),
+            icon: shouldRestoreLegacyIcon ? (definition.icon?.fallbackEmoji || DEFAULT_STACKABLE_ICON) : (item.icon || definition.icon?.fallbackEmoji || DEFAULT_STACKABLE_ICON),
             iconPath: item.iconPath || definition.icon?.path || null,
             stackable: true,
             rarity: item.rarity || definition.rarity || 'common',
