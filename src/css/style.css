@@ -6120,6 +6120,12 @@ body #ui-layer #hostility-panel .hostility-item,
 }
 
 /* Inventory redesign */
+#inventory-popup.hidden,
+#status-popup.hidden,
+#skill-popup.hidden {
+    display: none !important;
+}
+
 #inventory-popup {
     display: flex !important;
     flex-direction: column !important;

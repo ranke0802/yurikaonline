@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json?v=0.01.21">
+    <link rel="manifest" href="manifest.json?v=0.01.22">
     <meta name="theme-color" content="#2d3436">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -33,7 +33,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.01.21')
+                navigator.serviceWorker.register('./sw.js?v=0.01.22')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -58,7 +58,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.01.21</title>
+    <title>Yurika Online v0.01.22</title>
 
     <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=20260331">
     <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=20260331">
@@ -113,7 +113,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.21">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.22">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -609,7 +609,7 @@
 
     <!-- Update History UI -->
     <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📜 v0.01.21
+        📜 v0.01.22
     </div>
 
 
@@ -642,7 +642,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.21"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.22"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">
