@@ -2,6 +2,7 @@ import Scene from '../../core/Scene.js';
 import Logger from '../../utils/Logger.js';
 import Player from '../../entities/Player.js';
 import RemotePlayer from '../../entities/RemotePlayer.js';
+import { Projectile } from '../../entities/Projectile.js';
 import SkillRenderer from '../../skills/renderers/SkillRenderer.js';
 
 export default class WorldScene extends Scene {
@@ -517,8 +518,9 @@ export default class WorldScene extends Scene {
         this.minimapUpdateTimer += dt;
 
         const useMobileIntervals = !!this.game.isMobilePerformanceMode;
-        this.hudUpdateInterval = useMobileIntervals ? 0.08 : 0.05;
-        this.minimapUpdateInterval = useMobileIntervals ? 0.25 : 0.16;
+        const useAggressiveHudOptimization = !!this.game.useAggressiveHudOptimization;
+        this.hudUpdateInterval = useAggressiveHudOptimization ? 0.12 : (useMobileIntervals ? 0.08 : 0.05);
+        this.minimapUpdateInterval = useAggressiveHudOptimization ? 0.4 : (useMobileIntervals ? 0.25 : 0.16);
 
         if (this.player) {
             if (this.input.isPressed('SKILL_1')) this.player.useSkill(1);
@@ -594,6 +596,7 @@ export default class WorldScene extends Scene {
         // v0.00.39: Always update all remote players for proper sync
         if (this.net.isZoneParticipationEnabled()) {
             this.remotePlayers.forEach(rp => {
+                if (this.game.useReducedEffects && !this.isOnScreen(rp)) return;
                 rp.update(dt);
             });
         }
@@ -631,10 +634,7 @@ export default class WorldScene extends Scene {
             if (this.monsterMissileTimer <= 0) {
                 this.monsterMissileTimer = 0.1;
                 const data = this.monsterMissileQueue.shift();
-
-                import('../../entities/Projectile.js').then(({ Projectile }) => {
-                    this.projectiles.push(new Projectile(data.x, data.y, data.target, 'missile', data.options));
-                });
+                this.projectiles.push(new Projectile(data.x, data.y, data.target, 'missile', data.options));
             }
         }
 
@@ -647,11 +647,14 @@ export default class WorldScene extends Scene {
         }
 
         // Update Projectiles
-        this.projectiles = this.projectiles.filter(p => {
-            const monsters = this.monsterManager ? Array.from(this.monsterManager.monsters.values()) : [];
-            p.update(dt, monsters);
-            return !p.isDead;
-        });
+        const monsters = this.monsterManager ? Array.from(this.monsterManager.monsters.values()) : [];
+        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+            const projectile = this.projectiles[i];
+            projectile.update(dt, monsters);
+            if (projectile.isDead) {
+                this.projectiles.splice(i, 1);
+            }
+        }
     }
 
     _createMapObject(def) {
@@ -772,7 +775,11 @@ export default class WorldScene extends Scene {
         if (this.monsterManager) this.monsterManager.render(ctx, this.camera);
 
         // Effect Layers
-        this.projectiles.forEach(p => p.render(ctx, this.camera));
+        this.projectiles.forEach(p => {
+            if (this.isOnScreen(p)) {
+                p.render(ctx, this.camera);
+            }
+        });
 
         // v0.00.21: Target Lock-on Marker
         if (this.player && this.player.currentTarget && !this.player.currentTarget.isDead) {

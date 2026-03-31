@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.GAME_VERSION = '0.01.17'; // Synced with version.txt
+window.GAME_VERSION = '0.01.18'; // Synced with version.txt
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';
@@ -40,6 +40,9 @@ class Game {
         this.ctx = this.canvas.getContext('2d', { alpha: false, desynchronized: true })
             || this.canvas.getContext('2d');
         this.isMobilePerformanceMode = false;
+        this.useReducedEffects = false;
+        this.useAggressiveHudOptimization = false;
+        this.lowPowerPwaMode = false;
         this.maxMobileDpr = 1.5;
 
         // Mobile Quality: Disable image smoothing for crisp pixel art
@@ -152,7 +155,7 @@ class Game {
             },
             () => this.sceneManager.render(this.ctx)
         );
-        this.loop.setMaxRenderFps(this.isTouchDevice() ? 60 : 0);
+        this.loop.setMaxRenderFps(this.getPerformanceProfile().maxRenderFps);
 
         this.init();
     }
@@ -162,6 +165,37 @@ class Game {
             window.matchMedia?.('(pointer: coarse)')?.matches
             || navigator.maxTouchPoints > 0
         );
+    }
+
+    isStandaloneLike() {
+        return !!(
+            window.matchMedia?.('(display-mode: standalone)')?.matches
+            || window.matchMedia?.('(display-mode: fullscreen)')?.matches
+            || window.matchMedia?.('(display-mode: minimal-ui)')?.matches
+            || window.navigator.standalone
+        );
+    }
+
+    isAppleMobileDevice() {
+        const ua = navigator.userAgent || '';
+        return /iPhone|iPad|iPod/i.test(ua)
+            || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+
+    getPerformanceProfile() {
+        const isTouchDevice = this.isTouchDevice();
+        const isMobile = isTouchDevice && window.innerWidth <= 1024;
+        const isStandalone = this.isStandaloneLike();
+        const isAppleMobile = this.isAppleMobileDevice();
+        const lowPowerPwaMode = isMobile && isStandalone && isAppleMobile;
+
+        return {
+            isTouchDevice,
+            isMobile,
+            lowPowerPwaMode,
+            maxMobileDpr: lowPowerPwaMode ? 1.2 : 1.5,
+            maxRenderFps: isTouchDevice ? (lowPowerPwaMode ? 45 : 60) : 0
+        };
     }
 
     updateLoading(msg, percent = null) {
@@ -186,11 +220,16 @@ class Game {
         const displayHeight = container ? container.clientHeight : window.innerHeight;
 
         // Match yurikaonline-master logic: 900px threshold, 0.7/1.0 zoom
-        const isTouchDevice = this.isTouchDevice();
-        const isMobile = isTouchDevice && window.innerWidth <= 1024;
+        const perfProfile = this.getPerformanceProfile();
+        const { isTouchDevice, isMobile, lowPowerPwaMode, maxMobileDpr, maxRenderFps } = perfProfile;
         // v0.28.6: Adjust PC zoom to 0.8 for wider view (User Feedback)
         this.zoom = isMobile ? 0.7 : 0.8;
         this.isMobilePerformanceMode = isMobile;
+        this.useReducedEffects = lowPowerPwaMode;
+        this.useAggressiveHudOptimization = lowPowerPwaMode;
+        this.lowPowerPwaMode = lowPowerPwaMode;
+        this.maxMobileDpr = maxMobileDpr;
+        document.body?.classList.toggle('low-power-pwa', lowPowerPwaMode);
 
         const rawRatio = window.devicePixelRatio || 1;
         const ratio = isMobile ? Math.min(rawRatio, this.maxMobileDpr) : rawRatio;
@@ -211,7 +250,7 @@ class Game {
         this.ctx.msImageSmoothingEnabled = !isMobile;
 
         if (this.loop) {
-            this.loop.setMaxRenderFps(isTouchDevice ? 60 : 0);
+            this.loop.setMaxRenderFps(maxRenderFps);
         }
 
         if (this.camera) {

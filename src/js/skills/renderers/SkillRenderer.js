@@ -3,6 +3,9 @@
  * This centralizes visual code that was previously duplicated in Player.js and RemotePlayer.js.
  */
 export default class SkillRenderer {
+    static isReducedEffectsMode() {
+        return !!window.game?.useReducedEffects;
+    }
 
     /**
      * High-quality Magic Circle (Used for Channeling and Shield)
@@ -18,6 +21,23 @@ export default class SkillRenderer {
         } = options;
 
         ctx.save();
+        if (this.isReducedEffectsMode()) {
+            ctx.translate(sx, sy);
+            ctx.scale(1, yScale);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 0.75;
+            ctx.beginPath();
+            ctx.arc(0, 0, radiusOuter, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(0, 0, radiusInner, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+            return;
+        }
+
         const time = Date.now() * rotationSpeed;
         const timeSeed = Math.floor(Date.now() / 100);
 
@@ -140,6 +160,18 @@ export default class SkillRenderer {
         const pulse = Math.sin(Date.now() / 200) * 0.15;
         const radius = baseRadius + pulse * 10;
 
+        if (this.isReducedEffectsMode()) {
+            ctx.fillStyle = color2;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = color3;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+            return;
+        }
+
         // 1. Outer Glow
         ctx.beginPath();
         ctx.arc(x, y, radius + 5, 0, Math.PI * 2);
@@ -179,6 +211,35 @@ export default class SkillRenderer {
      */
     static drawFireball(ctx, x, y, radius, angle, trail = []) {
         ctx.save();
+
+        if (this.isReducedEffectsMode()) {
+            const sampledTrail = trail.slice(0, 4);
+            sampledTrail.forEach((p, i) => {
+                const alpha = 0.2 + ((sampledTrail.length - i) / Math.max(1, sampledTrail.length)) * 0.2;
+                ctx.fillStyle = `rgba(255, 140, 0, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, radius * 0.45, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.fillStyle = 'rgba(255, 90, 0, 0.25)';
+            ctx.beginPath();
+            ctx.arc(x, y, radius * 1.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffedd5';
+            ctx.beginPath();
+            ctx.arc(x, y, radius * 0.45, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#f97316';
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+            return;
+        }
 
         // 1. Trail (Dynamic Flame)
         trail.forEach((p, i) => {
@@ -240,6 +301,21 @@ export default class SkillRenderer {
         const alpha = 1 - progress;
         const currentRad = radius * (0.5 + progress * 0.5);
 
+        if (this.isReducedEffectsMode()) {
+            ctx.fillStyle = `rgba(255, 120, 40, ${alpha * 0.45})`;
+            ctx.beginPath();
+            ctx.arc(x, y, currentRad, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = `rgba(255, 240, 200, ${alpha * 0.8})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(x, y, currentRad * 0.8, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+            return;
+        }
+
         // Radial Shockwave
         const grad = ctx.createRadialGradient(x, y, 0, x, y, currentRad);
         grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
@@ -270,10 +346,11 @@ export default class SkillRenderer {
      */
     static drawLightning(ctx, x1, y1, x2, y2, intensity = 1) {
         ctx.save();
+        const reducedEffects = this.isReducedEffectsMode();
 
         const dist = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-        const segments = Math.max(3, Math.floor(dist / 15)); // v0.00.79: Denser segments
-        const spread = 12 * intensity; // High voltage spread
+        const segments = Math.max(reducedEffects ? 2 : 3, Math.floor(dist / (reducedEffects ? 28 : 15)));
+        const spread = (reducedEffects ? 6 : 12) * intensity;
 
         // Path generator for organic lightning
         const getJaggedPoints = (startX, startY, endX, endY, segs, spr) => {
@@ -284,7 +361,9 @@ export default class SkillRenderer {
                 const ratio = i / segs;
                 const px = startX + (endX - startX) * ratio;
                 const py = startY + (endY - startY) * ratio;
-                const offset = (Math.random() - 0.5) * spr * 2;
+                const offset = reducedEffects
+                    ? Math.sin((i + 1) * 12.9898 + startX * 0.01 + endY * 0.01) * spr
+                    : (Math.random() - 0.5) * spr * 2;
                 pts.push({
                     x: px + Math.cos(perpAngle) * offset,
                     y: py + Math.sin(perpAngle) * offset
@@ -303,6 +382,22 @@ export default class SkillRenderer {
         };
 
         const mainPoints = getJaggedPoints(x1, y1, x2, y2, segments, spread);
+
+        if (reducedEffects) {
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = 'rgba(72, 219, 251, 0.5)';
+            ctx.lineWidth = 4 * intensity;
+            drawPath(mainPoints);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5 * intensity;
+            drawPath(mainPoints);
+            ctx.stroke();
+            ctx.restore();
+            return;
+        }
 
         // 1. Layer 1: Distant Glow (Atmospheric)
         ctx.lineCap = 'round';

@@ -2433,8 +2433,9 @@ export class UIManager {
         this.minimapCanvas = canvas;
         const ctx = this.minimapCtx || canvas.getContext('2d', { alpha: true, desynchronized: true }) || canvas.getContext('2d');
         this.minimapCtx = ctx;
-        const w = 150;
-        const h = 150;
+        const simpleMode = !!this.game.useAggressiveHudOptimization;
+        const w = simpleMode ? 96 : 150;
+        const h = simpleMode ? 96 : 150;
         if (canvas.width !== w) canvas.width = w;
         if (canvas.height !== h) canvas.height = h;
 
@@ -2444,6 +2445,17 @@ export class UIManager {
         // Scaling factors
         const scaleX = w / mapWidth;
         const scaleY = h / mapHeight;
+        const drawDot = (x, y, radius) => {
+            if (simpleMode) {
+                const size = Math.max(2, Math.round(radius * 2));
+                ctx.fillRect(Math.round(x - size / 2), Math.round(y - size / 2), size, size);
+                return;
+            }
+
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        };
 
         // 1. Draw Remote Players (White)
         ctx.fillStyle = '#ffffff';
@@ -2451,9 +2463,7 @@ export class UIManager {
             remotePlayers.forEach(rp => {
                 const px = rp.x * scaleX;
                 const py = rp.y * scaleY;
-                ctx.beginPath();
-                ctx.arc(px, py, 3, 0, Math.PI * 2);
-                ctx.fill();
+                drawDot(px, py, 3);
             });
         }
 
@@ -2464,11 +2474,9 @@ export class UIManager {
                 if (m.isDead) return;
                 const mx = m.x * scaleX;
                 const my = m.y * scaleY;
-                ctx.beginPath();
                 // v0.33.0: Boss is bigger
                 const radius = (m.isBoss || m.typeId === 'king_slime') ? 6 : 2;
-                ctx.arc(mx, my, radius, 0, Math.PI * 2);
-                ctx.fill();
+                drawDot(mx, my, radius);
             });
         }
 
@@ -2476,9 +2484,7 @@ export class UIManager {
         ctx.fillStyle = '#4ade80';
         const px = player.x * scaleX;
         const py = player.y * scaleY;
-        ctx.beginPath();
-        ctx.arc(px, py, 3, 0, Math.PI * 2);
-        ctx.fill();
+        drawDot(px, py, 3);
 
         // Update footer
         const posX = this.getHudRef('miniPosX', 'mini-pos-x', 'id');

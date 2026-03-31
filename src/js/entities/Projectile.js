@@ -39,11 +39,14 @@ export class Projectile {
         // v0.00.05: Owner ID for PvP safety
         this.ownerId = options.ownerId || null;
         this.isMonsterAttack = options.isMonsterAttack || false; // v0.33.0: Monster Attack Flag
+        this.reducedEffects = !!window.game?.useReducedEffects;
 
         // Visuals
         this.color = type === 'missile' ? '#00d2ff' : '#f97316';
         this.trail = [];
-        this.trailLength = type === 'missile' ? 20 : 10;
+        this.trailLength = type === 'missile'
+            ? (this.reducedEffects ? 10 : 20)
+            : (this.reducedEffects ? 6 : 10);
         this.particles = [];
 
         // Missile-specific
@@ -102,7 +105,9 @@ export class Projectile {
 
         if (this.type === 'missile') {
             // Exhaust Particles
-            if (Math.random() < 0.3) {
+            const particleChance = this.reducedEffects ? 0.12 : 0.3;
+            const maxParticles = this.reducedEffects ? 6 : 18;
+            if (this.particles.length < maxParticles && Math.random() < particleChance) {
                 const angle = Math.atan2(this.vy, this.vx) + Math.PI + (Math.random() - 0.5);
                 const pSpeed = Math.random() * 150;
                 this.particles.push({
@@ -504,9 +509,14 @@ export class Projectile {
         this.particles.forEach(p => {
             ctx.fillStyle = this.color;
             ctx.globalAlpha = p.life * 2;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            ctx.fill();
+            if (this.reducedEffects) {
+                const size = Math.max(1, Math.round(p.size));
+                ctx.fillRect(Math.round(p.x), Math.round(p.y), size, size);
+            } else {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
         });
         ctx.globalAlpha = 1.0;
 

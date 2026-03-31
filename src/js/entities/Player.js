@@ -1506,42 +1506,50 @@ export default class Player extends CharacterBase {
             // --- Spark Effect during Normal Attack (Chain Lightning) ---
             if (this.isChanneling && !this.isDead) {
                 ctx.save();
-                const now = Date.now();
-                if (!this.auraBolts || (now - (this.auraLastUpdate || 0) > 100)) {
-                    this.auraBolts = [];
-                    this.auraLastUpdate = now;
-                    for (let i = 0; i < 2; i++) {
-                        const rx = centerX + (Math.random() - 0.5) * 80;
-                        const ry = centerY + (Math.random() - 0.5) * 80;
-                        const steps = 3 + Math.floor(Math.random() * 2);
-                        const boltPoints = [{ x: rx, y: ry }];
-                        for (let j = 0; j < steps; j++) {
-                            const last = boltPoints[boltPoints.length - 1];
-                            boltPoints.push({
-                                x: last.x + (Math.random() - 0.5) * 40,
-                                y: last.y + (Math.random() - 0.5) * 40
-                            });
-                        }
-                        this.auraBolts.push(boltPoints);
-                    }
-                }
-
-                this.auraBolts.forEach(boltPoints => {
+                if (window.game?.useReducedEffects) {
+                    ctx.strokeStyle = 'rgba(72, 219, 251, 0.75)';
+                    ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.moveTo(boltPoints[0].x, boltPoints[0].y);
-                    for (let j = 1; j < boltPoints.length; j++) {
-                        ctx.lineTo(boltPoints[j].x, boltPoints[j].y);
+                    ctx.arc(centerX, centerY, 26, 0, Math.PI * 2);
+                    ctx.stroke();
+                } else {
+                    const now = Date.now();
+                    if (!this.auraBolts || (now - (this.auraLastUpdate || 0) > 100)) {
+                        this.auraBolts = [];
+                        this.auraLastUpdate = now;
+                        for (let i = 0; i < 2; i++) {
+                            const rx = centerX + (Math.random() - 0.5) * 80;
+                            const ry = centerY + (Math.random() - 0.5) * 80;
+                            const steps = 3 + Math.floor(Math.random() * 2);
+                            const boltPoints = [{ x: rx, y: ry }];
+                            for (let j = 0; j < steps; j++) {
+                                const last = boltPoints[boltPoints.length - 1];
+                                boltPoints.push({
+                                    x: last.x + (Math.random() - 0.5) * 40,
+                                    y: last.y + (Math.random() - 0.5) * 40
+                                });
+                            }
+                            this.auraBolts.push(boltPoints);
+                        }
                     }
-                    ctx.strokeStyle = '#48dbfb';
-                    ctx.lineWidth = 4;
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = '#00d2ff';
-                    ctx.stroke();
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 1.5;
-                    ctx.shadowBlur = 0;
-                    ctx.stroke();
-                });
+
+                    this.auraBolts.forEach(boltPoints => {
+                        ctx.beginPath();
+                        ctx.moveTo(boltPoints[0].x, boltPoints[0].y);
+                        for (let j = 1; j < boltPoints.length; j++) {
+                            ctx.lineTo(boltPoints[j].x, boltPoints[j].y);
+                        }
+                        ctx.strokeStyle = '#48dbfb';
+                        ctx.lineWidth = 4;
+                        ctx.shadowBlur = 15;
+                        ctx.shadowColor = '#00d2ff';
+                        ctx.stroke();
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1.5;
+                        ctx.shadowBlur = 0;
+                        ctx.stroke();
+                    });
+                }
             }
         } else if (this.state === 'die' || this.isDying) {
             // v0.28.0: Tombstone visual for LOCAL player
