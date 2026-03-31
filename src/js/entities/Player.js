@@ -7,7 +7,9 @@ const ITEM_DEFINITIONS = {
     slime_gel: { name: '슬라임 젤', icon: '🟢' },
     potion_hp_small: { name: '소형 HP 포션', icon: '🧪' },
     royal_jelly: { name: '로열 젤리', icon: '🍯' },
-    king_crown: { name: '킹 크라운', icon: '👑' }
+    king_crown: { name: '킹 크라운', icon: '👑' },
+    weapon_upgrade_stone: { name: '무기 강화석', icon: '💎' },
+    magic_staff: { name: '마력의 지팡이', icon: '🪄' }
 };
 
 export default class Player extends CharacterBase {
@@ -46,6 +48,7 @@ export default class Player extends CharacterBase {
         this.gold = 0;
         this.inventory = [];
         for (let i = 0; i < 20; i++) this.inventory.push(null); // 20 slots
+        this.equipment = { weapon: null };
         // Quest Data (v0.22.4+)
         this.questData = {
             prologueCompleted: false,
@@ -583,10 +586,13 @@ export default class Player extends CharacterBase {
         this.skillCDR = Math.min(0.75, (this.intelligence + this.wisdom) * 0.01);
 
         this.speed = (base.speed || 180) * this.moveSpeedBonus;
+        this.applyEquipmentStats();
     }
 
     updateDerivedStats() {
         this.refreshStats();
+        this.hp = Math.min(this.hp, this.maxHp);
+        this.mp = Math.min(this.mp, this.maxMp);
         // v0.00.03: Ensure maxExp is correct based on level if somehow corrupted
         const expectedMaxExp = Math.floor(100 * Math.pow(1.5, this.level - 1));
         if (this.maxExp < expectedMaxExp) {
@@ -605,6 +611,9 @@ export default class Player extends CharacterBase {
         this.wisdom = 2;
         this.agility = 1;
         this.gold = 0;
+        this.equipment = { weapon: null };
+        this.inventory = [];
+        for (let i = 0; i < 20; i++) this.inventory.push(null);
         this.questData = {
             prologueCompleted: false,
             basicTrainingCompleted: false,
@@ -789,6 +798,7 @@ export default class Player extends CharacterBase {
             statPoints: this.statPoints,
             skillLevels: this.skillLevels,
             inventory: this.inventory, // v0.00.75: Save Inventory (Fixed Persistence Bug)
+            equipment: this.equipment,
             questData: this.questData, // Added in v0.22.4
             name: this.name,
             party: this.party, // v0.00.14: Sync party state
@@ -864,7 +874,11 @@ export default class Player extends CharacterBase {
     }
 
     recoverHp(amount) {
+        const previous = this.hp;
         this.hp = Math.min(this.maxHp, this.hp + amount);
+        if (this.net && this.hp !== previous) {
+            this.net.sendPlayerHp(this.hp, this.maxHp);
+        }
     }
 
     attack() {
@@ -875,6 +889,7 @@ export default class Player extends CharacterBase {
     performLaserAttack(dt) {
         if (this.isDead) return;
         if (!window.game?.tutorial?.isActionAllowed?.('ATTACK')) return;
+        const weaponCombat = this.getWeaponCombatProfile();
 
         // Cooldown check for start of attack
         if (!this.isChanneling && this.skillCooldowns.j > 0) return;
@@ -975,7 +990,7 @@ export default class Player extends CharacterBase {
                 if (isTick) {
                     // v0.00.40: Damage formula: (Skill Damage - Defense), min 1
                     // Then apply crit multiplier to reduced damage
-                    const baseDmg = Math.ceil(this.attackPower * finalDmgRatio);
+                    const baseDmg = Math.ceil(this.attackPower * finalDmgRatio * (1 + (weaponCombat.laserDamageBonus || 0)));
                     const targetDef = nextTarget.defense || 0;
                     let dmg = Math.max(1, baseDmg - targetDef);
                     let isCrit = Math.random() < this.critRate;
@@ -1004,6 +1019,9 @@ export default class Player extends CharacterBase {
 
                     // v0.00.28: Mana recovery per hit (+1 MP per chain target)
                     this.recoverMana(1);
+                    if (weaponCombat.restoreHpPerLaserHit > 0) {
+                        this.recoverHp(weaponCombat.restoreHpPerLaserHit);
+                    }
                 }
                 currentSource = { x: nextTarget.x, y: nextTarget.y };
             } else {
@@ -1018,13 +1036,14 @@ export default class Player extends CharacterBase {
             if (targetIds.length > 0 && this.net) {
                 this.net.sendPlayerAttack(this.x, this.y, this.direction, 'laser', {
                     angle: this.facingAngle,
-                    targets: targetIds
+                    targets: targetIds,
+                    variant: weaponCombat.laserVariant || null
                 });
             }
         }
 
         if (chains.length > 0) {
-            this.lightningEffect = { chains: chains, timer: 0.1 };
+            this.lightningEffect = { chains: chains, timer: 0.1, variant: weaponCombat.laserVariant || null };
         } else {
             // v0.29.11: No target = no lightning (no longer force visual on empty space)
             this.lightningEffect = null;
@@ -1046,6 +1065,7 @@ export default class Player extends CharacterBase {
         if (this.skillCooldowns[key] > 0) return;
 
         const lv = this.skillLevels[skillId] || 1;
+        const weaponCombat = this.getWeaponCombatProfile();
 
         if (skillId === 'missile') {
             const cost = 4 + (lv - 1) * 3;
@@ -1120,7 +1140,12 @@ export default class Player extends CharacterBase {
                     window.game?.tutorial?.trigger?.('skill_use', { target: skillId, slot });
 
                     // v0.00.35: Only sync if we have a valid target
-                    if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'missile', count);
+                    if (this.net) {
+                        this.net.sendPlayerAttack(this.x, this.y, this.direction, 'missile', {
+                            count,
+                            variant: weaponCombat.missileVariant || null
+                        });
+                    }
 
                     // count is already defined above
                     // Get base firing angle (opposite of movement/facing)
@@ -1146,7 +1171,7 @@ export default class Player extends CharacterBase {
                         const vy = Math.sin(angle) * burstSpeed;
 
                         // v0.00.32: Balance Update (Damage 45%)
-                        let dmg = this.attackPower * 0.45;
+                        let dmg = this.attackPower * 0.45 * (1 + (weaponCombat.missileDamageBonus || 0));
                         console.log(`[MissileDMG] AP:${this.attackPower} x0.45 = ${dmg}`);
                         let isCrit = Math.random() < this.critRate;
                         if (isCrit) dmg *= 2;
@@ -1159,7 +1184,9 @@ export default class Player extends CharacterBase {
                                 vx, vy,
                                 damage: dmg,
                                 isCrit: isCrit,
-                                radius: 5 // Thicker, beefier laser beam
+                                radius: 5,
+                                variant: weaponCombat.missileVariant || null,
+                                visualTint: weaponCombat.projectileTint || null
                             }
                         });
                     }
@@ -1182,7 +1209,13 @@ export default class Player extends CharacterBase {
 
                 // v0.28.0: Sync Fireball skill
                 // v0.29.0: Updates to sendPlayerAttack
-                if (this.net) this.net.sendPlayerAttack(this.x, this.y, this.direction, 'fireball', { level: lv, angle: this.facingAngle });
+                if (this.net) {
+                    this.net.sendPlayerAttack(this.x, this.y, this.direction, 'fireball', {
+                        level: lv,
+                        angle: this.facingAngle,
+                        variant: weaponCombat.fireballVariant || null
+                    });
+                }
 
                 // v0.29.13: 8-direction firing using facingAngle
                 const angle = this.facingAngle !== undefined ? this.facingAngle : 0;
@@ -1197,11 +1230,17 @@ export default class Player extends CharacterBase {
                     window.game.projectiles.push(new Projectile(this.x, this.y, null, 'fireball', {
                         vx, vy, speed, damage: dmg, radius: baseRad, aoeRadius: aoeRad, lifeTime: 1.5,
                         ownerId: this.id,
+                        variant: weaponCombat.fireballVariant || null,
+                        visualTint: weaponCombat.projectileTint || null,
                         targetX: this.x + Math.cos(angle) * 1200,
                         targetY: this.y + Math.sin(angle) * 1200,
                         burnDuration: 2.0 + (lv - 1) * 0.5,
                         penetrationDelay: (lv - 1) * 0.05, // v1.99.33: Scaled delay
-                        critRate: this.critRate
+                        critRate: this.critRate,
+                        weaponEffect: {
+                            prefixId: weaponCombat.prefixId,
+                            fireExplosionDamageRatio: weaponCombat.fireExplosionDamageRatio || 0
+                        }
                     }));
                 });
 
@@ -1302,6 +1341,8 @@ export default class Player extends CharacterBase {
                 const added = this.addInventoryItem(itemId, amount, item);
                 if (added) {
                     itemMessages.push(`${added.name || itemId} x${amount}`);
+                } else {
+                    itemMessages.push(`${item.name || itemId} 획득 실패(가방 가득 참)`);
                 }
             });
         }
@@ -1401,7 +1442,10 @@ export default class Player extends CharacterBase {
         this.inventory[0] = {
             type: 'gold',
             amount: this.gold,
-            icon: '💰'
+            icon: '💰',
+            name: '골드',
+            stackable: true,
+            description: '상점과 강화에 사용하는 기본 화폐입니다.'
         };
     }
 
@@ -1457,6 +1501,11 @@ export default class Player extends CharacterBase {
         ctx.ellipse(centerX, y + this.height - 4, this.width / 2 * 0.7, 5, 0, 0, Math.PI * 2);
         ctx.fill();
 
+        const auraState = this.getEquipmentAuraState();
+        if (auraState) {
+            SkillRenderer.drawEquipmentAura(ctx, centerX, centerY - 8, auraState);
+        }
+
         // 2. Magic Circle & Run Particles (Drawn BEFORE character)
         if (this.isAttacking) {
             this.drawMagicCircle(ctx, centerX, y + this.height + 5);
@@ -1474,7 +1523,7 @@ export default class Player extends CharacterBase {
         // And "Lightning effect from behind the character"
         if (this.lightningEffect && Array.isArray(this.lightningEffect.chains)) {
             this.lightningEffect.chains.forEach((c, idx) => {
-                this.drawLightningSegment(ctx, c.x1, c.y1, c.x2, c.y2, 1.0, idx);
+                this.drawLightningSegment(ctx, c.x1, c.y1, c.x2, c.y2, 1.0, this.lightningEffect.variant, idx);
             });
         }
 
@@ -1846,7 +1895,256 @@ export default class Player extends CharacterBase {
         if (window.game?.ui) window.game.ui.updatePartyUI();
     }
 
+    getItemDataManager() {
+        return window.game?.itemData || null;
+    }
+
+    normalizeInventoryState(savedInventory = null, savedEquipment = null) {
+        const itemData = this.getItemDataManager();
+        const sourceInventory = Array.isArray(savedInventory) ? savedInventory : this.inventory;
+        this.inventory = Array.from({ length: 20 }, (_, index) => {
+            const raw = sourceInventory[index] || null;
+            return itemData?.normalizeInventoryItem(raw) || raw || null;
+        });
+        const sourceEquipment = savedEquipment || this.equipment || { weapon: null };
+        this.equipment = itemData?.normalizeEquipmentData(sourceEquipment) || { weapon: sourceEquipment.weapon || null };
+        this.updateGoldInventory();
+    }
+
+    getEquippedWeapon() {
+        return this.equipment?.weapon || null;
+    }
+
+    getEquippedWeaponDefinition() {
+        const weapon = this.getEquippedWeapon();
+        return weapon ? this.getItemDataManager()?.getItemDefinition(weapon.type) || null : null;
+    }
+
+    applyEquipmentStats() {
+        const weapon = this.getEquippedWeapon();
+        if (!weapon) return;
+
+        const definition = this.getEquippedWeaponDefinition();
+        const baseStats = weapon.baseStats || definition?.baseStats || {};
+        const enhancementLevel = Math.max(0, weapon.enhancementLevel || 0);
+        const enhancementBonuses = weapon.enhancementBonuses || definition?.enhancementBonuses || {};
+
+        this.attackPower += (baseStats.attackPower || 0)
+            + (enhancementLevel * (enhancementBonuses.attackPowerPerLevel || 0));
+        this.critRate += (baseStats.critRate || 0)
+            + (enhancementLevel * (enhancementBonuses.critRatePerLevel || 0));
+        this.mpRegen += (baseStats.mpRegen || 0);
+    }
+
+    getWeaponCombatProfile() {
+        const baseProfile = {
+            prefixId: null,
+            missileDamageBonus: 0,
+            fireExplosionDamageRatio: 0,
+            laserDamageBonus: 0,
+            restoreHpPerLaserHit: 0,
+            missileVariant: null,
+            fireballVariant: null,
+            laserVariant: null,
+            projectileTint: null,
+            auraState: null
+        };
+
+        const weapon = this.getEquippedWeapon();
+        const itemData = this.getItemDataManager();
+        if (!weapon || !itemData) return baseProfile;
+
+        const affix = itemData.getAffixDefinition(weapon.prefixId);
+        if (!affix) {
+            baseProfile.auraState = itemData.getAuraState(weapon);
+            return baseProfile;
+        }
+
+        return {
+            prefixId: affix.id,
+            missileDamageBonus: weapon.rolledValues?.missileDamageBonus || 0,
+            fireExplosionDamageRatio: weapon.rolledValues?.fireExplosionDamageRatio || 0,
+            laserDamageBonus: weapon.rolledValues?.laserDamageBonus || 0,
+            restoreHpPerLaserHit: affix.combatHooks?.restoreHpPerLaserHit || 0,
+            missileVariant: affix.skillOverrides?.missileVisualVariant || null,
+            fireballVariant: affix.skillOverrides?.fireballVisualVariant || null,
+            laserVariant: affix.skillOverrides?.laserVisualVariant || null,
+            projectileTint: affix.visuals?.projectileTint || null,
+            auraState: itemData.getAuraState(weapon)
+        };
+    }
+
+    getEquipmentAuraState() {
+        return this.getWeaponCombatProfile().auraState;
+    }
+
+    _buildWeaponDamageMeta(cause, extra = {}) {
+        const weapon = this.getEquippedWeapon();
+        if (!weapon) return null;
+
+        const combatProfile = this.getWeaponCombatProfile();
+        return {
+            cause,
+            weaponType: weapon.type,
+            prefixId: weapon.prefixId || combatProfile.prefixId || null,
+            fireExplosionDamageRatio: combatProfile.fireExplosionDamageRatio || 0,
+            burnDuration: extra.burnDuration || 0,
+            sourceDamage: extra.sourceDamage || 0,
+            explosionRadius: extra.explosionRadius || 0
+        };
+    }
+
+    getInventoryItemCount(itemId) {
+        return this.inventory.reduce((total, item, index) => {
+            if (index === 0 || !item || item.type !== itemId) return total;
+            return total + Math.max(1, item.amount || 1);
+        }, 0);
+    }
+
+    consumeInventoryItem(itemId, amount = 1) {
+        let remaining = Math.max(1, amount);
+        for (let i = 1; i < this.inventory.length; i++) {
+            const item = this.inventory[i];
+            if (!item || item.type !== itemId) continue;
+
+            const currentAmount = Math.max(1, item.amount || 1);
+            if (currentAmount <= remaining) {
+                remaining -= currentAmount;
+                this.inventory[i] = null;
+            } else {
+                item.amount = currentAmount - remaining;
+                remaining = 0;
+            }
+
+            if (remaining <= 0) break;
+        }
+
+        return remaining <= 0;
+    }
+
+    equipWeaponFromInventory(slotIndex) {
+        if (slotIndex <= 0 || slotIndex >= this.inventory.length) {
+            return { ok: false, message: '장착할 아이템을 찾지 못했습니다.' };
+        }
+
+        const item = this.inventory[slotIndex];
+        if (!item || item.slot !== 'weapon') {
+            return { ok: false, message: '무기만 장착할 수 있습니다.' };
+        }
+
+        const previous = this.equipment.weapon;
+        this.equipment.weapon = item;
+        this.inventory[slotIndex] = previous || null;
+        this.updateDerivedStats();
+        if (window.game?.ui) {
+            window.game.ui.updateStatusPopup();
+            window.game.ui.updateInventory();
+        }
+        return { ok: true, weapon: this.equipment.weapon };
+    }
+
+    unequipWeapon() {
+        const weapon = this.getEquippedWeapon();
+        if (!weapon) {
+            return { ok: false, message: '장착한 무기가 없습니다.' };
+        }
+
+        const emptySlot = this.inventory.findIndex((item, index) => index > 0 && !item);
+        if (emptySlot < 0) {
+            return { ok: false, message: '가방이 가득 차 있어 해제할 수 없습니다.' };
+        }
+
+        this.inventory[emptySlot] = weapon;
+        this.equipment.weapon = null;
+        this.updateDerivedStats();
+        if (window.game?.ui) {
+            window.game.ui.updateStatusPopup();
+            window.game.ui.updateInventory();
+        }
+        return { ok: true, slotIndex: emptySlot };
+    }
+
+    resolveWeaponSelection(selection = null) {
+        if (selection?.kind === 'inventory') {
+            const item = this.inventory[selection.index];
+            return item?.slot === 'weapon' ? { location: 'inventory', index: selection.index, item } : null;
+        }
+
+        if (selection?.kind === 'equipment') {
+            const item = this.getEquippedWeapon();
+            return item ? { location: 'equipment', slot: 'weapon', item } : null;
+        }
+
+        const equipped = this.getEquippedWeapon();
+        if (equipped) return { location: 'equipment', slot: 'weapon', item: equipped };
+        return null;
+    }
+
+    enhanceWeapon(selection = null) {
+        const itemData = this.getItemDataManager();
+        const target = this.resolveWeaponSelection(selection);
+        if (!itemData || !target?.item) {
+            return { ok: false, message: '강화할 무기를 선택해 주세요.' };
+        }
+
+        if (this.getInventoryItemCount('weapon_upgrade_stone') < 1) {
+            return { ok: false, message: '무기 강화석이 부족합니다.' };
+        }
+
+        const config = itemData.getEnhancementConfig(target.item);
+        if (!config) {
+            return { ok: false, message: '이 장비는 더 이상 강화할 수 없습니다.' };
+        }
+
+        this.consumeInventoryItem('weapon_upgrade_stone', 1);
+
+        const success = Math.random() <= config.successRate;
+        const result = {
+            ok: true,
+            success,
+            destroyed: false,
+            item: target.item,
+            nextLevel: config.nextLevel
+        };
+
+        if (success) {
+            target.item.enhancementLevel = config.nextLevel;
+        } else if (config.destroyChanceOnFail > 0 && Math.random() <= config.destroyChanceOnFail) {
+            result.destroyed = true;
+            if (target.location === 'inventory') {
+                this.inventory[target.index] = null;
+            } else {
+                this.equipment.weapon = null;
+            }
+        }
+
+        if (target.location === 'equipment' || result.destroyed) {
+            this.updateDerivedStats();
+        } else {
+            this.saveState();
+        }
+
+        if (window.game?.ui) {
+            window.game.ui.updateStatusPopup();
+            window.game.ui.updateInventory();
+        }
+
+        return result;
+    }
+
     getItemMeta(itemId) {
+        const definition = this.getItemDataManager()?.getItemDefinition(itemId);
+        if (definition) {
+            return {
+                name: definition.name,
+                icon: definition.icon?.fallbackEmoji || '🎁',
+                iconPath: definition.icon?.path || null,
+                stackable: definition.stackable !== false,
+                slot: definition.slot || null,
+                description: definition.description || ''
+            };
+        }
+
         return ITEM_DEFINITIONS[itemId] || {
             name: itemId,
             icon: '🎁'
@@ -1861,7 +2159,31 @@ export default class Player extends CharacterBase {
             ...meta
         };
 
-        let slotIndex = this.inventory.findIndex((item, idx) => idx > 0 && item && item.type === itemId);
+        const isEquipmentInstance = definition.stackable === false || !!definition.instanceId || !!definition.slot;
+        if (isEquipmentInstance) {
+            const itemData = this.getItemDataManager();
+            let firstAdded = null;
+            for (let i = 0; i < amount; i++) {
+                const slotIndex = this.inventory.findIndex((item, idx) => idx > 0 && !item);
+                if (slotIndex < 0) break;
+
+                const instance = itemData?.normalizeInventoryItem({ type: itemId, amount: 1, ...meta }) || {
+                    type: itemId,
+                    amount: 1,
+                    icon: definition.icon,
+                    iconPath: definition.iconPath || null,
+                    name: definition.name,
+                    slot: definition.slot || 'weapon',
+                    stackable: false,
+                    instanceId: definition.instanceId || `item_${Date.now()}_${slotIndex}`
+                };
+                this.inventory[slotIndex] = instance;
+                if (!firstAdded) firstAdded = instance;
+            }
+            return firstAdded;
+        }
+
+        let slotIndex = this.inventory.findIndex((item, idx) => idx > 0 && item && item.type === itemId && item.stackable !== false);
         if (slotIndex < 0) {
             slotIndex = this.inventory.findIndex((item, idx) => idx > 0 && !item);
         }
@@ -1873,7 +2195,10 @@ export default class Player extends CharacterBase {
             type: itemId,
             amount: nextAmount,
             icon: definition.icon,
-            name: definition.name
+            iconPath: definition.iconPath || null,
+            name: definition.name,
+            stackable: true,
+            description: definition.description || ''
         };
 
         return this.inventory[slotIndex];
@@ -1948,8 +2273,8 @@ export default class Player extends CharacterBase {
         ctx.restore();
     }
 
-    drawLightningSegment(ctx, x1, y1, x2, y2, intensity) {
-        SkillRenderer.drawLightning(ctx, x1, y1, x2, y2, intensity);
+    drawLightningSegment(ctx, x1, y1, x2, y2, intensity, variant = null) {
+        SkillRenderer.drawLightning(ctx, x1, y1, x2, y2, intensity, { variant });
     }
 
     getHostileUidByName(name) {

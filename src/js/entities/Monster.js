@@ -71,6 +71,7 @@ export default class Monster extends CharacterBase {
         this.sparkTimer = 0;
         this.regenTimer = 0;
         this.lastAttackerId = null;
+        this.lastDamageMeta = null;
         this.targetX = x;
         this.targetY = y;
         this.targetPlayer = null;
@@ -691,7 +692,10 @@ export default class Monster extends CharacterBase {
                 eff.tickTimer += dt;
                 if (eff.tickTimer >= 0.5) {
                     eff.tickTimer = 0;
-                    this.takeDamage(eff.damage, false);
+                    this.takeDamage(eff.damage, false, false, null, null, {
+                        ...(eff.sourceMeta || {}),
+                        cause: 'burn'
+                    });
                 }
             }
             return eff.timer > 0;
@@ -702,18 +706,19 @@ export default class Monster extends CharacterBase {
         return this.statusEffects.some(e => e.type === type);
     }
 
-    applyEffect(type, duration, damage) {
+    applyEffect(type, duration, damage, sourceMeta = null) {
         if (this.isDead) return;
         const existing = this.statusEffects.find(e => e.type === type);
         if (existing) {
             existing.timer = duration; // Refresh duration
             existing.damage = Math.max(existing.damage, damage);
+            if (sourceMeta) existing.sourceMeta = { ...(existing.sourceMeta || {}), ...sourceMeta };
         } else {
-            this.statusEffects.push({ type, timer: duration, damage });
+            this.statusEffects.push({ type, timer: duration, damage, sourceMeta });
         }
     }
 
-    takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null) {
+    takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null, damageMeta = null) {
         if (this.isDead) return;
 
         // v0.00.34: Ensure minimum 0 damage (allow full block)
@@ -721,6 +726,11 @@ export default class Monster extends CharacterBase {
         if (isNaN(dmg)) {
             Logger.warn(`[Monster] Invalid damage: ${amount}`);
             return;
+        }
+        if (damageMeta) {
+            this.lastDamageMeta = { ...damageMeta };
+        } else if (dmg > 0) {
+            this.lastDamageMeta = null;
         }
 
         // v0.33.0: Reactive Absolute Barrier (Shield)

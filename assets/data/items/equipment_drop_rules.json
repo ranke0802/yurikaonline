@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "globalDrops": [
+    {
+      "itemId": "weapon_upgrade_stone",
+      "source": "all_monsters",
+      "chance": 0.001
+    }
+  ],
+  "bossDrops": [
+    {
+      "monsterId": "king_slime",
+      "itemId": "magic_staff",
+      "chance": 0.2,
+      "rollAffixFromPool": "magic_staff_affixes",
+      "quantity": 1
+    }
+  ]
+}

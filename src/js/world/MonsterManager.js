@@ -105,7 +105,18 @@ export default class MonsterManager {
         return this._normalizePartyMembers(remote?.party?.members || [uid]);
     }
 
-    _buildRewardItem(itemId, dropDef = {}) {
+    _buildRewardItem(itemId, dropDef = {}, context = {}) {
+        const itemData = this.game.itemData;
+        if (itemData) {
+            const minAmount = Math.max(1, dropDef.min || dropDef.quantity || 1);
+            const maxAmount = Math.max(minAmount, dropDef.max || minAmount);
+            const amount = Math.floor(Math.random() * (maxAmount - minAmount + 1)) + minAmount;
+            return itemData.createRewardItem(itemId, {
+                amount,
+                monsterId: context.monster?.typeId || null
+            });
+        }
+
         const itemMeta = {
             slime_gel: { name: '슬라임 젤', icon: '🟢' },
             potion_hp_small: { name: '소형 HP 포션', icon: '🧪' },
@@ -126,13 +137,20 @@ export default class MonsterManager {
     }
 
     _grantMonsterItemDrops(monster, attackerId) {
-        if (!attackerId || !monster?.drops?.length) return;
+        if (!attackerId || !monster) return;
 
         const rewardedItems = [];
-        monster.drops.forEach((dropDef) => {
+        const allDrops = [
+            ...(Array.isArray(monster.drops) ? monster.drops : []),
+            ...(this.game.itemData?.getGlobalDrops() || []),
+            ...(this.game.itemData?.getBossDrops(monster.typeId) || [])
+        ];
+
+        allDrops.forEach((dropDef) => {
             if (!dropDef?.itemId || dropDef.itemId === 'gold') return;
             if (Math.random() > (dropDef.chance ?? 1)) return;
-            rewardedItems.push(this._buildRewardItem(dropDef.itemId, dropDef));
+            const reward = this._buildRewardItem(dropDef.itemId, dropDef, { monster });
+            if (reward) rewardedItems.push(reward);
         });
 
         if (rewardedItems.length > 0) {
@@ -792,7 +810,7 @@ export default class MonsterManager {
         const m = this.monsters.get(data.mid);
         if (m && !m.isDead) {
             m.lastAttackerId = data.aid;
-            m.takeDamage(data.dmg, true);
+            m.takeDamage(data.dmg, true, false, null, null, data.meta || null);
         }
     }
 
@@ -869,8 +887,55 @@ export default class MonsterManager {
         Logger.info("[MonsterManager] Local world state cleared.");
     }
 
+    _handleBlueFlameDeathExplosion(monster) {
+        const meta = monster?.lastDamageMeta;
+        if (!meta || meta.prefixId !== 'blue_flame') return;
+        if (!['fireball', 'burn'].includes(meta.cause)) return;
+
+        const ratio = Math.max(0, meta.fireExplosionDamageRatio || 0);
+        if (ratio <= 0) return;
+
+        const sourceDamage = Math.max(1, meta.sourceDamage || 1);
+        const explosionDamage = Math.max(1, Math.ceil(sourceDamage * ratio));
+        const radius = Math.max(90, meta.explosionRadius || 120);
+        const burnDuration = Math.max(1, meta.burnDuration || 2);
+
+        window.game?.addExplosion?.(monster.x, monster.y, radius);
+
+        this.monsters.forEach((other) => {
+            if (!other || other.id === monster.id || other.isDead) return;
+            const dist = Math.sqrt((other.x - monster.x) ** 2 + (other.y - monster.y) ** 2);
+            const collisionRadius = radius + ((other.width || 80) / 2);
+            if (dist > collisionRadius) return;
+
+            const damageMeta = {
+                cause: 'blue_flame_explosion',
+                prefixId: 'blue_flame',
+                fireExplosionDamageRatio: ratio,
+                burnDuration,
+                sourceDamage: explosionDamage,
+                explosionRadius: radius
+            };
+
+            if (this.net) {
+                this.net.sendMonsterDamage(other.id, explosionDamage, damageMeta);
+                other.lastAttackerId = monster.lastAttackerId;
+            }
+            other.takeDamage(explosionDamage, true, false, monster.x, monster.y, damageMeta);
+            other.applyEffect('burn', burnDuration, Math.max(1, Math.ceil(explosionDamage * 0.15)), {
+                cause: 'burn',
+                prefixId: 'blue_flame',
+                fireExplosionDamageRatio: ratio,
+                burnDuration,
+                sourceDamage: explosionDamage,
+                explosionRadius: radius
+            });
+        });
+    }
+
     // v0.00.43: Kill Count & Boss Spawn Logic
     _handleMonsterDeath(m) {
+        this._handleBlueFlameDeathExplosion(m);
         // Only the first king slime uses the global 30-kill buildup.
         if (m.typeId === 'slime' || m.typeId === 'slime_split') {
             if (!this.firstBossDefeated && !this.bossSpawned && this.slimeKillCount < 30) {

@@ -139,10 +139,6 @@ export default class WorldScene extends Scene {
             this.player.agility = profile.agility || 1;
             this.player.statPoints = profile.statPoints || 0;
             this.player.skillLevels = profile.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
-            // v0.00.75: Restore Inventory
-            if (profile.inventory && Array.isArray(profile.inventory)) {
-                this.player.inventory = profile.inventory;
-            }
             this.player.name = profile.name || localName || user.displayName || "유리카";
 
             // v0.00.15: Restore Hostility
@@ -169,6 +165,7 @@ export default class WorldScene extends Scene {
             }
 
             this.player.questData = { ...this.player.questData, ...(profile.questData || {}) };
+            this.player.normalizeInventoryState(profile.inventory, profile.equipment);
 
             // v2.4: Restore tutorial completion before intro flow resumes.
             if (this.game.tutorial) {
@@ -291,6 +288,9 @@ export default class WorldScene extends Scene {
         if (data.h) {
             rp.hp = data.h[0];
             rp.maxHp = data.h[1];
+        }
+        if (data.equipment) {
+            rp.equipment = data.equipment;
         }
         if (data.hostility) {
             rp.hostility = data.hostility;

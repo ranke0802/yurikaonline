@@ -12,6 +12,7 @@ import NetworkManager from './core/NetworkManager.js';
 import MonsterManager from './world/MonsterManager.js';
 import MonsterDataManager from './core/MonsterDataManager.js';
 import CharacterDataManager from './core/CharacterDataManager.js';
+import ItemDataManager from './core/ItemDataManager.js';
 import StoryManager from './core/StoryManager.js';
 import { UIManager } from './ui/UIManager.js';
 import SoundManager from './core/SoundManager.js';
@@ -88,6 +89,7 @@ class Game {
         this.resources = new ResourceManager();
         this.monsterData = new MonsterDataManager(this.resources); // Initialize MonsterDataManager
         this.characterData = new CharacterDataManager(this.resources);
+        this.itemData = new ItemDataManager(this.resources);
         this.story = new StoryManager(this); // Initialize StoryManager
         this.sound = new SoundManager(this.resources); // Initialize SoundManager
         this.quests = new QuestManager(this); // v2.2: Initialize QuestManager
@@ -273,6 +275,7 @@ class Game {
 
             // v2.2: Load Quest Definitions
             await this.quests.loadQuests();
+            await this.itemData.loadAll();
 
         } catch (e) {
             Logger.error('Asset Preloading Partial failure', e);

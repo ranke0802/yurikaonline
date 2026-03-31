@@ -209,30 +209,65 @@ export default class SkillRenderer {
      * @param {number} angle 
      * @param {Array} trail 
      */
-    static drawFireball(ctx, x, y, radius, angle, trail = []) {
+    static drawFireball(ctx, x, y, radius, angle, trail = [], options = {}) {
+        const variant = options.variant || 'fireball';
+        const palette = variant === 'blue_fireball'
+            ? {
+                trailCore: 'rgba(170, 240, 255, 0.4)',
+                trailMid: 'rgba(79, 195, 247, 0.32)',
+                trailOuter: 'rgba(15, 118, 255, 0)',
+                outerGlowInner: 'rgba(91, 192, 255, 0.82)',
+                outerGlowOuter: 'rgba(0, 82, 212, 0)',
+                main0: '#ffffff',
+                main1: '#d7f3ff',
+                main2: '#6dd3ff',
+                main3: '#2563eb',
+                shadow: '#2563eb',
+                flicker: '#dff7ff',
+                indicatorStroke: 'rgba(76, 183, 255, 0.4)',
+                indicatorFill: 'rgba(76, 183, 255, 0.12)'
+            }
+            : {
+                trailCore: 'rgba(255, 255, 255, 0.4)',
+                trailMid: 'rgba(255, 165, 0, 0.3)',
+                trailOuter: 'rgba(255, 69, 0, 0)',
+                outerGlowInner: 'rgba(255, 69, 0, 0.8)',
+                outerGlowOuter: 'rgba(255, 0, 0, 0)',
+                main0: '#ffffff',
+                main1: '#fff200',
+                main2: '#f39c12',
+                main3: '#e67e22',
+                shadow: '#e67e22',
+                flicker: '#ffffff',
+                indicatorStroke: 'rgba(249, 115, 22, 0.4)',
+                indicatorFill: 'rgba(249, 115, 22, 0.1)'
+            };
+
         ctx.save();
 
         if (this.isReducedEffectsMode()) {
             const sampledTrail = trail.slice(0, 4);
             sampledTrail.forEach((p, i) => {
                 const alpha = 0.2 + ((sampledTrail.length - i) / Math.max(1, sampledTrail.length)) * 0.2;
-                ctx.fillStyle = `rgba(255, 140, 0, ${alpha})`;
+                ctx.fillStyle = variant === 'blue_fireball'
+                    ? `rgba(76, 183, 255, ${alpha})`
+                    : `rgba(255, 140, 0, ${alpha})`;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, radius * 0.45, 0, Math.PI * 2);
                 ctx.fill();
             });
 
-            ctx.fillStyle = 'rgba(255, 90, 0, 0.25)';
+            ctx.fillStyle = variant === 'blue_fireball' ? 'rgba(58, 131, 255, 0.25)' : 'rgba(255, 90, 0, 0.25)';
             ctx.beginPath();
             ctx.arc(x, y, radius * 1.2, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.fillStyle = '#ffedd5';
+            ctx.fillStyle = variant === 'blue_fireball' ? '#e0f2fe' : '#ffedd5';
             ctx.beginPath();
             ctx.arc(x, y, radius * 0.45, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.fillStyle = '#f97316';
+            ctx.fillStyle = variant === 'blue_fireball' ? '#38bdf8' : '#f97316';
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2);
             ctx.fill();
@@ -247,9 +282,9 @@ export default class SkillRenderer {
             const pRadius = radius * (0.4 + ratio * 0.6);
 
             const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, pRadius);
-            grad.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
-            grad.addColorStop(0.3, 'rgba(255, 165, 0, 0.3)');
-            grad.addColorStop(1, 'rgba(255, 69, 0, 0)');
+            grad.addColorStop(0, palette.trailCore);
+            grad.addColorStop(0.3, palette.trailMid);
+            grad.addColorStop(1, palette.trailOuter);
 
             ctx.fillStyle = grad;
             ctx.beginPath();
@@ -259,8 +294,8 @@ export default class SkillRenderer {
 
         // 2. Outer Glow (Corona)
         const outerGrad = ctx.createRadialGradient(x, y, radius * 0.5, x, y, radius * 1.5);
-        outerGrad.addColorStop(0, 'rgba(255, 69, 0, 0.8)');
-        outerGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+        outerGrad.addColorStop(0, palette.outerGlowInner);
+        outerGrad.addColorStop(1, palette.outerGlowOuter);
 
         ctx.fillStyle = outerGrad;
         ctx.beginPath();
@@ -269,13 +304,13 @@ export default class SkillRenderer {
 
         // 3. Main Orb
         const mainGrad = ctx.createRadialGradient(x, y, 0, x, y, radius);
-        mainGrad.addColorStop(0, '#ffffff'); // White hot core
-        mainGrad.addColorStop(0.2, '#fff200'); // Yellow
-        mainGrad.addColorStop(0.5, '#f39c12'); // Orange
-        mainGrad.addColorStop(1, '#e67e22'); // Dark Orange
+        mainGrad.addColorStop(0, palette.main0);
+        mainGrad.addColorStop(0.2, palette.main1);
+        mainGrad.addColorStop(0.5, palette.main2);
+        mainGrad.addColorStop(1, palette.main3);
 
         ctx.shadowBlur = 20;
-        ctx.shadowColor = '#e67e22';
+        ctx.shadowColor = palette.shadow;
         ctx.fillStyle = mainGrad;
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -283,7 +318,7 @@ export default class SkillRenderer {
 
         // 4. Inner Detail (Flicker)
         const flicker = Math.sin(Date.now() * 0.02) * (radius * 0.1);
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = palette.flicker;
         ctx.lineWidth = Math.max(1, radius * 0.05);
         ctx.globalAlpha = 0.5;
         ctx.beginPath();
@@ -344,9 +379,33 @@ export default class SkillRenderer {
     /**
      * High-quality Lightning Rendering
      */
-    static drawLightning(ctx, x1, y1, x2, y2, intensity = 1) {
+    static drawLightning(ctx, x1, y1, x2, y2, intensity = 1, options = {}) {
         ctx.save();
         const reducedEffects = this.isReducedEffectsMode();
+        const variant = options.variant || 'default';
+        const palette = variant === 'crimson_chain'
+            ? {
+                glow: '#ff5d66',
+                main: '#ff6b81',
+                core: '#fff5f5',
+                sideA: '#ff8fa3',
+                sideB: '#ffd1d8'
+            }
+            : variant === 'golden_missile'
+                ? {
+                    glow: '#f5cf5b',
+                    main: '#f8d46a',
+                    core: '#fff8d6',
+                    sideA: '#ffe08a',
+                    sideB: '#fff3bf'
+                }
+                : {
+                    glow: '#00d2ff',
+                    main: '#48dbfb',
+                    core: '#ffffff',
+                    sideA: '#00d2ff',
+                    sideB: '#74b9ff'
+                };
 
         const dist = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
         const segments = Math.max(reducedEffects ? 2 : 3, Math.floor(dist / (reducedEffects ? 28 : 15)));
@@ -386,12 +445,12 @@ export default class SkillRenderer {
         if (reducedEffects) {
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            ctx.strokeStyle = 'rgba(72, 219, 251, 0.5)';
+            ctx.strokeStyle = palette.main;
             ctx.lineWidth = 4 * intensity;
             drawPath(mainPoints);
             ctx.stroke();
 
-            ctx.strokeStyle = '#ffffff';
+            ctx.strokeStyle = palette.core;
             ctx.lineWidth = 1.5 * intensity;
             drawPath(mainPoints);
             ctx.stroke();
@@ -403,22 +462,22 @@ export default class SkillRenderer {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.shadowBlur = 25 * intensity;
-        ctx.shadowColor = '#00d2ff';
-        ctx.strokeStyle = 'rgba(72, 219, 251, 0.2)';
+        ctx.shadowColor = palette.glow;
+        ctx.strokeStyle = `${palette.main}33`;
         ctx.lineWidth = 10 * intensity;
         drawPath(mainPoints);
         ctx.stroke();
 
         // 2. Layer 2: Main High-Voltage Trunk (Cyan)
         ctx.shadowBlur = 10 * intensity;
-        ctx.strokeStyle = '#48dbfb';
+        ctx.strokeStyle = palette.main;
         ctx.lineWidth = 4.5 * intensity;
         drawPath(mainPoints);
         ctx.stroke();
 
         // 3. Layer 3: Ultra-bright Core (Pure White)
         ctx.shadowBlur = 0;
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = palette.core;
         ctx.lineWidth = 1.8 * intensity;
         drawPath(mainPoints);
         ctx.stroke();
@@ -427,10 +486,92 @@ export default class SkillRenderer {
         ctx.globalAlpha = 0.6;
         for (let s = 0; s < 2; s++) {
             const subPoints = getJaggedPoints(x1, y1, x2, y2, segments, spread * 1.8);
-            ctx.strokeStyle = s === 0 ? '#00d2ff' : '#74b9ff';
+            ctx.strokeStyle = s === 0 ? palette.sideA : palette.sideB;
             ctx.lineWidth = 0.8 * intensity;
             drawPath(subPoints);
             ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    static drawEquipmentAura(ctx, x, y, auraState) {
+        if (!auraState) return;
+
+        const intensityMap = {
+            soft: { radius: 30, alpha: 0.16, core: 0.08 },
+            strong: { radius: 36, alpha: 0.24, core: 0.12 },
+            stronger: { radius: 40, alpha: 0.3, core: 0.15 },
+            epic: { radius: 44, alpha: 0.36, core: 0.18 },
+            ascended: { radius: 48, alpha: 0.44, core: 0.24 }
+        };
+        const profile = intensityMap[auraState.intensity] || intensityMap.soft;
+        const time = Date.now() / 220;
+        const pulse = Math.sin(time) * 2.5;
+        const radius = profile.radius + pulse;
+
+        ctx.save();
+
+        if (this.isReducedEffectsMode()) {
+            ctx.fillStyle = auraState.whiteCore
+                ? 'rgba(255,255,255,0.18)'
+                : `${auraState.baseColor}${Math.round(profile.alpha * 255).toString(16).padStart(2, '0')}`;
+            ctx.beginPath();
+            ctx.ellipse(x, y + 8, radius * 0.8, radius * 0.38, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            return;
+        }
+
+        const outer = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
+        outer.addColorStop(0, auraState.whiteCore ? 'rgba(255,255,255,0.24)' : `${auraState.secondaryColor}55`);
+        outer.addColorStop(0.55, `${auraState.baseColor}${Math.round(profile.alpha * 255).toString(16).padStart(2, '0')}`);
+        outer.addColorStop(1, `${auraState.baseColor}00`);
+
+        ctx.fillStyle = outer;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = `${auraState.secondaryColor}${Math.round((profile.alpha + 0.08) * 255).toString(16).padStart(2, '0')}`;
+        ctx.lineWidth = auraState.spark ? 2.5 : 1.5;
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 0.78, 0, Math.PI * 2);
+        ctx.stroke();
+
+        if (auraState.whiteCore) {
+            ctx.fillStyle = `rgba(255,255,255,${profile.core})`;
+            ctx.beginPath();
+            ctx.arc(x, y - 4, radius * 0.48, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        if (auraState.spark) {
+            for (let i = 0; i < 4; i++) {
+                const angle = (Math.PI * 2 * i) / 4 + (Date.now() / 500);
+                const px = x + Math.cos(angle) * (radius * 0.85);
+                const py = y + Math.sin(angle) * (radius * 0.55);
+                ctx.strokeStyle = auraState.baseColor;
+                ctx.lineWidth = 1.4;
+                ctx.beginPath();
+                ctx.moveTo(px - 5, py);
+                ctx.lineTo(px + 5, py);
+                ctx.moveTo(px, py - 5);
+                ctx.lineTo(px, py + 5);
+                ctx.stroke();
+            }
+        }
+
+        if (auraState.glitter) {
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI * 2 * i) / 6 + (Date.now() / 800);
+                const px = x + Math.cos(angle) * (radius * 1.1);
+                const py = y + Math.sin(angle) * (radius * 0.8);
+                ctx.fillStyle = auraState.whiteCore ? '#ffffff' : auraState.secondaryColor;
+                ctx.beginPath();
+                ctx.arc(px, py, 1.8, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         ctx.restore();

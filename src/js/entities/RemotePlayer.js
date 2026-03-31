@@ -10,6 +10,7 @@ export default class RemotePlayer extends CharacterBase {
         this.name = "Unknown";
         this.type = 'player';
         this.hostility = {};
+        this.equipment = { weapon: null };
 
         this.targetX = x;
         this.targetY = y;
@@ -163,6 +164,7 @@ export default class RemotePlayer extends CharacterBase {
         // Update profile fields (v0.00.70: 조기 반환 이전에 처리)
         if (packet.name) this.name = packet.name;
         if (packet.level !== undefined) this.level = packet.level;
+        if (packet.equipment !== undefined) this.equipment = packet.equipment;
         if (packet.party !== undefined) this.party = packet.party;
         if (packet.hostility !== undefined) this.hostility = packet.hostility;
 
@@ -478,7 +480,7 @@ export default class RemotePlayer extends CharacterBase {
         // v0.00.39: Only show lightning if there are actual chain targets
         // No more forced fallback visual - prevents fake lightning on remote screens
         if (chains.length > 0) {
-            this.lightningEffect = { chains: chains, timer: 0.25 };
+            this.lightningEffect = { chains: chains, timer: 0.25, variant: this.lastAttackVariant || null };
         } else {
             // No targets = no lightning effect
             this.lightningEffect = null;
@@ -538,6 +540,11 @@ export default class RemotePlayer extends CharacterBase {
         ctx.ellipse(centerX, this.y + this.height - 4, this.width / 2 * 0.7, 5, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
+
+        const auraState = window.game?.itemData?.getAuraState?.(this.equipment?.weapon || null);
+        if (auraState) {
+            SkillRenderer.drawEquipmentAura(ctx, centerX, centerY - 8, auraState);
+        }
 
         // 2. Magic Circle - v0.29.23: 쉴드 활성화 시에도 표시
         if (this.state === 'attack' || this.isAttacking || (this.shieldEffect && this.shieldEffect.timer > 0)) {
@@ -756,6 +763,7 @@ export default class RemotePlayer extends CharacterBase {
         this.lastAttackTime = data.ts;
         this.lastAttackAngle = data.extraData?.angle; // v0.00.01: Store precision angle
         this.lastAttackTargets = data.extraData?.targets; // v0.00.01: Store target IDs
+        this.lastAttackVariant = data.extraData?.variant || null;
         this.isAttacking = true;
         this.state = 'attack';
         this.animTimer = 0;
@@ -805,14 +813,15 @@ export default class RemotePlayer extends CharacterBase {
 
                     window.game.projectiles.push(new Projectile(centerX, centerY, null, 'fireball', {
                         vx, vy, speed, damage: 0, ownerId: this.id, radius: baseRad, aoeRadius: aoeRad,
-                        penetrationDelay: (attackerLevel - 1) * 0.05 // v1.99.33: Sync delay
+                        penetrationDelay: (attackerLevel - 1) * 0.05,
+                        variant: data.extraData?.variant || null
                     }));
                 } else if (skillType === 'missile') {
                     // v0.29.2: Ensure at least 1 missile and validate count
-                    let count = Number(data.extraData);
+                    let count = Number(data.extraData?.count ?? data.extraData);
                     if (isNaN(count) || count < 1) count = 1;
                     if (count > 20) count = 20; // v0.00.32: Increased Cap to 20 for multi-shot
-                    this._triggerRemoteMissileVisual(centerX, centerY, count);
+                    this._triggerRemoteMissileVisual(centerX, centerY, count, data.extraData?.variant || null);
                 }
             });
         }
@@ -834,7 +843,7 @@ export default class RemotePlayer extends CharacterBase {
         this.actionTimer = 2.0;
     }
 
-    _triggerRemoteMissileVisual(centerX, centerY, count = 1) {
+    _triggerRemoteMissileVisual(centerX, centerY, count = 1, variant = null) {
         RemotePlayer.projectilePromise.then(({ Projectile }) => {
             if (!window.game) return;
 
@@ -891,7 +900,7 @@ export default class RemotePlayer extends CharacterBase {
                 // v0.00.72: Pass the found nearest target
                 window.game.projectiles.push(new Projectile(centerX, centerY, nearest, 'missile', {
                     vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-                    speed: 600, damage: 0, ownerId: this.id
+                    speed: 600, damage: 0, ownerId: this.id, variant
                 }));
             }
         });
@@ -1022,7 +1031,7 @@ export default class RemotePlayer extends CharacterBase {
     drawLightningEffect(ctx, centerX, centerY) {
         if (!this.lightningEffect || !this.lightningEffect.chains.length) return;
         this.lightningEffect.chains.forEach(c => {
-            SkillRenderer.drawLightning(ctx, c.x1, c.y1, c.x2, c.y2, 1);
+            SkillRenderer.drawLightning(ctx, c.x1, c.y1, c.x2, c.y2, 1, { variant: this.lightningEffect.variant || null });
             if (window.game && Math.random() < 0.3) {
                 window.game.addSpark(c.x2, c.y2);
             }

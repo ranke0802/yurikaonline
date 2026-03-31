@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "weapon_upgrade_stone",
+  "name": "무기 강화석",
+  "type": "material",
+  "stackable": true,
+  "maxStack": 999,
+  "rarity": "rare",
+  "description": "무기를 +1부터 +10까지 강화할 때 사용하는 재료.",
+  "icon": {
+    "fallbackEmoji": "💎"
+  },
+  "useTarget": {
+    "slot": "weapon"
+  },
+  "dropRules": {
+    "globalMonsterDropChance": 0.001
+  }
+}

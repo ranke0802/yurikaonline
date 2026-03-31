@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "id": "magic_staff",
+  "name": "마력의 지팡이",
+  "slot": "weapon",
+  "rarity": "boss",
+  "stackable": false,
+  "dropSource": [
+    "king_slime"
+  ],
+  "baseStats": {
+    "attackPower": 5,
+    "critRate": 0.05,
+    "mpRegen": 3
+  },
+  "icon": {
+    "type": "image",
+    "path": "src/assets/items/magic_staff_inventory.png",
+    "fallbackEmoji": "🪄"
+  },
+  "prefixPool": "magic_staff_affixes",
+  "enhancementRuleSet": "weapon_standard_1_to_10",
+  "enhancementBonuses": {
+    "attackPowerPerLevel": 1,
+    "critRatePerLevel": 0.01
+  },
+  "visuals": {
+    "equipAura": {
+      "mode": "prefix_plus_enhancement",
+      "prefixAuraProfiles": {
+        "starlight": {
+          "baseColor": "#f7d774",
+          "secondaryColor": "#fff7c2",
+          "particleStyle": "stardust"
+        },
+        "blue_flame": {
+          "baseColor": "#4cb7ff",
+          "secondaryColor": "#9ee6ff",
+          "particleStyle": "blue_flame"
+        },
+        "crimson_flash": {
+          "baseColor": "#ff5b5b",
+          "secondaryColor": "#ffc0c0",
+          "particleStyle": "red_spark"
+        }
+      },
+      "enhancementStages": [
+        {
+          "minLevel": 0,
+          "maxLevel": 6,
+          "intensity": "soft",
+          "spark": false,
+          "glitter": false,
+          "whiteCore": false
+        },
+        {
+          "minLevel": 7,
+          "maxLevel": 7,
+          "intensity": "strong",
+          "spark": false,
+          "glitter": false,
+          "whiteCore": false
+        },
+        {
+          "minLevel": 8,
+          "maxLevel": 8,
+          "intensity": "stronger",
+          "spark": true,
+          "glitter": false,
+          "whiteCore": false
+        },
+        {
+          "minLevel": 9,
+          "maxLevel": 9,
+          "intensity": "epic",
+          "spark": true,
+          "glitter": true,
+          "whiteCore": false
+        },
+        {
+          "minLevel": 10,
+          "maxLevel": 10,
+          "intensity": "ascended",
+          "spark": true,
+          "glitter": true,
+          "whiteCore": true
+        }
+      ]
+    }
+  },
+  "instanceData": {
+    "prefixId": "random_from_pool",
+    "rolledValues": "from_affix_roll_ranges",
+    "enhancementLevel": 0
+  }
+}

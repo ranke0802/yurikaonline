@@ -17,6 +17,9 @@ export class Projectile {
         this.targetX = options.targetX || null;
         this.targetY = options.targetY || null;
         this.isCrit = options.isCrit || false;
+        this.variant = options.variant || null;
+        this.visualTint = options.visualTint || null;
+        this.weaponEffect = options.weaponEffect || null;
 
         // v1.99.16: Separate hit detection radius from AOE/visual radius
         this.aoeRadius = options.aoeRadius || this.radius * 2; // v1.99.30: Explosion 2x wider than projectile (balanced)
@@ -42,7 +45,17 @@ export class Projectile {
         this.reducedEffects = !!window.game?.useReducedEffects;
 
         // Visuals
-        this.color = type === 'missile' ? '#00d2ff' : '#f97316';
+        if (this.visualTint) {
+            this.color = this.visualTint;
+        } else if (this.variant === 'golden_missile') {
+            this.color = '#f5cf5b';
+        } else if (this.variant === 'blue_fireball') {
+            this.color = '#4cb7ff';
+        } else if (type === 'missile') {
+            this.color = '#00d2ff';
+        } else {
+            this.color = '#f97316';
+        }
         this.trail = [];
         this.trailLength = type === 'missile'
             ? (this.reducedEffects ? 10 : 20)
@@ -487,16 +500,43 @@ export class Projectile {
             }
 
             if (this.damage > 0) {
-                net.sendMonsterDamage(m.id, Math.ceil(finalDmg));
+                const damageMeta = this.type === 'fireball'
+                    ? {
+                        cause: 'fireball',
+                        prefixId: this.weaponEffect?.prefixId || null,
+                        fireExplosionDamageRatio: this.weaponEffect?.fireExplosionDamageRatio || 0,
+                        burnDuration: this.burnDuration,
+                        sourceDamage: Math.ceil(finalDmg),
+                        explosionRadius: Math.ceil((this.aoeRadius || this.radius * 2) * 0.75)
+                    }
+                    : null;
+                net.sendMonsterDamage(m.id, Math.ceil(finalDmg), damageMeta);
                 m.lastAttackerId = net.playerId;
             }
         }
 
-        m.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y);
+        const damageMeta = this.type === 'fireball'
+            ? {
+                cause: 'fireball',
+                prefixId: this.weaponEffect?.prefixId || null,
+                fireExplosionDamageRatio: this.weaponEffect?.fireExplosionDamageRatio || 0,
+                burnDuration: this.burnDuration,
+                sourceDamage: Math.ceil(finalDmg),
+                explosionRadius: Math.ceil((this.aoeRadius || this.radius * 2) * 0.75)
+            }
+            : null;
+        m.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y, damageMeta);
 
         // v0.00.42: Apply burn locally for visual, host syncs to DB
         if (this.type === 'fireball' && isMonster) {
-            m.applyEffect('burn', this.burnDuration, Math.ceil(finalDmg * 0.15));
+            m.applyEffect('burn', this.burnDuration, Math.ceil(finalDmg * 0.15), {
+                cause: 'burn',
+                prefixId: this.weaponEffect?.prefixId || null,
+                fireExplosionDamageRatio: this.weaponEffect?.fireExplosionDamageRatio || 0,
+                burnDuration: this.burnDuration,
+                sourceDamage: Math.ceil(finalDmg),
+                explosionRadius: Math.ceil((this.aoeRadius || this.radius * 2) * 0.75)
+            });
         }
     }
 
@@ -521,7 +561,7 @@ export class Projectile {
         ctx.globalAlpha = 1.0;
 
         if (this.type === 'missile') {
-            SkillRenderer.drawLightning(ctx, this.trail[0]?.x || sx, this.trail[0]?.y || sy, sx, sy, 1);
+            SkillRenderer.drawLightning(ctx, this.trail[0]?.x || sx, this.trail[0]?.y || sy, sx, sy, 1, { variant: this.variant });
             // Keep existing beam fallback for trail logic
             ctx.save();
             if (this.trail.length > 2) {
@@ -538,19 +578,19 @@ export class Projectile {
             // v1.99.15: Premium Fireball Visuals
             const angle = Math.atan2(this.vy, this.vx);
             // v1.99.20: Visual radius matches hitRadius for intuitive collision
-            SkillRenderer.drawFireball(ctx, sx, sy, this.radius, angle, this.trail);
+            SkillRenderer.drawFireball(ctx, sx, sy, this.radius, angle, this.trail, { variant: this.variant });
         }
 
         // Fireball Landing Indicator
         if (this.type === 'fireball' && this.targetX !== null && this.targetY !== null) {
             ctx.save();
-            ctx.strokeStyle = 'rgba(249, 115, 22, 0.4)';
+            ctx.strokeStyle = this.variant === 'blue_fireball' ? 'rgba(76, 183, 255, 0.4)' : 'rgba(249, 115, 22, 0.4)';
             ctx.lineWidth = 2;
             ctx.setLineDash([5, 5]);
             ctx.beginPath();
             ctx.arc(this.targetX, this.targetY, this.aoeRadius, 0, Math.PI * 2);
             ctx.stroke();
-            ctx.fillStyle = 'rgba(249, 115, 22, 0.1)';
+            ctx.fillStyle = this.variant === 'blue_fireball' ? 'rgba(76, 183, 255, 0.12)' : 'rgba(249, 115, 22, 0.1)';
             ctx.fill();
             ctx.restore();
         }

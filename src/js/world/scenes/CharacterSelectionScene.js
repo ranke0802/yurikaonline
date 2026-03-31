@@ -257,6 +257,8 @@ export default class CharacterSelectionScene extends Scene {
                 maxHp: 30,
                 mp: 50,
                 maxMp: 50,
+                inventory: new Array(20).fill(null),
+                equipment: { weapon: null },
                 questData: {
                     prologueCompleted: false,
                     basicTrainingCompleted: false,

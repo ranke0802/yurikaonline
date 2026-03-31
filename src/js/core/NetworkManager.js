@@ -123,7 +123,8 @@ export default class NetworkManager extends EventEmitter {
                 this.emit('monsterDamage', {
                     monsterId: data.mid,
                     damage: data.dmg,
-                    attackerId: data.aid
+                    attackerId: data.aid,
+                    meta: data.meta || null
                 });
             }
         };
@@ -1015,12 +1016,13 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child(`users/${this.playerId}/ch`).set(payload);
     }
 
-    sendMonsterDamage(monsterId, damage) {
+    sendMonsterDamage(monsterId, damage, meta = null) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         this.queueBatchUpdate('monster_damage', {
             mid: monsterId,
             dmg: Math.round(damage),
-            aid: this.playerId
+            aid: this.playerId,
+            meta: meta || null
         });
     }
 
@@ -1154,6 +1156,7 @@ export default class NetworkManager extends EventEmitter {
             h: val.h,
             a: val.a,
             level: profile.level || 1,
+            equipment: profile.equipment || null,
             party: profile.party || null,
             hostility: profile.hostility || val.hostility || {}
         };
@@ -1210,6 +1213,7 @@ export default class NetworkManager extends EventEmitter {
         const hostility = profile.hostility || val.hostility || null;
         const level = profile.level || null;
         const party = profile.party || null;
+        const equipment = profile.equipment || null;
 
         // 1. Profile Sync (Level, Party)
         if (val.profile) {
@@ -1218,6 +1222,7 @@ export default class NetworkManager extends EventEmitter {
                 if (val.profile.level) existing.level = val.profile.level;
                 if (val.profile.defense !== undefined) existing.defense = val.profile.defense; // v0.00.53: Sync defense to RemotePlayer
                 if (val.profile.isPaused !== undefined) existing.isPaused = val.profile.isPaused; // v0.00.55: Sync safety state
+                if (val.profile.equipment !== undefined) existing.equipment = val.profile.equipment;
                 if (val.profile.party !== undefined) existing.party = val.profile.party;
                 if (val.profile.hostility !== undefined) existing.hostility = val.profile.hostility;
             }
@@ -1285,6 +1290,7 @@ export default class NetworkManager extends EventEmitter {
 
                         // v1.99.38: Sync profile fields in the same update
                         if (level) update.level = level;
+                        if (equipment !== undefined) update.equipment = equipment;
                         if (party !== undefined) update.party = party;
                         if (hostility) update.hostility = hostility;
 

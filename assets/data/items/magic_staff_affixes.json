@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "magic_staff_affixes",
+  "affixes": [
+    {
+      "id": "starlight",
+      "prefix": "별빛의",
+      "displayName": "별빛의 마력의 지팡이",
+      "skillOverrides": {
+        "missileVisualVariant": "golden_missile"
+      },
+      "rolledEffects": {
+        "missileDamageBonus": {
+          "type": "multiplier_bonus",
+          "min": 0.2,
+          "max": 0.5,
+          "displayAsPercent": true
+        }
+      },
+      "visuals": {
+        "auraProfile": "starlight",
+        "projectileTint": "#f5cf5b"
+      }
+    },
+    {
+      "id": "blue_flame",
+      "prefix": "푸른 불꽃의",
+      "displayName": "푸른 불꽃의 마력의 지팡이",
+      "skillOverrides": {
+        "fireballVisualVariant": "blue_fireball"
+      },
+      "rolledEffects": {
+        "fireExplosionDamageRatio": {
+          "type": "death_explosion_ratio",
+          "min": 0.2,
+          "max": 0.5,
+          "displayAsPercent": true
+        }
+      },
+      "combatHooks": {
+        "explodeOnDeathBy": [
+          "fireball",
+          "burn"
+        ],
+        "applyBurnOnExplosion": true
+      },
+      "visuals": {
+        "auraProfile": "blue_flame",
+        "projectileTint": "#59c7ff"
+      }
+    },
+    {
+      "id": "crimson_flash",
+      "prefix": "붉은 섬광의",
+      "displayName": "붉은 섬광의 마력의 지팡이",
+      "skillOverrides": {
+        "laserVisualVariant": "crimson_chain"
+      },
+      "rolledEffects": {
+        "laserDamageBonus": {
+          "type": "multiplier_bonus",
+          "min": 0.2,
+          "max": 0.5,
+          "displayAsPercent": true
+        }
+      },
+      "combatHooks": {
+        "restoreHpPerLaserHit": 1,
+        "keepMpRestore": true,
+        "beamStyle": "thick_red_arc"
+      },
+      "visuals": {
+        "auraProfile": "crimson_flash",
+        "projectileTint": "#ff5d66"
+      }
+    }
+  ]
+}
