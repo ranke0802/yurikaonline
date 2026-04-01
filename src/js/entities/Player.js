@@ -1388,9 +1388,13 @@ export default class Player extends CharacterBase {
                     rewardMsg = `대왕 슬라임 처치! (${this.questData.bossClearCount}회차) (EXP+300, Gold+1000)`;
                 }
 
-                // Show Modal
-                if (window.game?.ui?.showRewardModal) {
-                    window.game.ui.showRewardModal(modalTitle, modalDesc);
+                // 첫 처치 연출은 유지하고, 반복 처치는 모달 없이 보상만 지급한다.
+                if (window.game?.ui) {
+                    if (this.questData.bossClearCount === 1 && window.game.ui.showRewardModal) {
+                        window.game.ui.showRewardModal(modalTitle, modalDesc);
+                    } else if (rewardMsg) {
+                        window.game.ui.logSystemMessage(`QUEST 완료: ${rewardMsg}`);
+                    }
                 }
 
                 // Reset for Repeatable Cycle
