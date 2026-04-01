@@ -473,19 +473,86 @@ export default class SkillRenderer {
         };
 
         const mainPoints = getJaggedPoints(x1, y1, x2, y2, segments, spread);
+        const isCrimsonChain = variant === 'crimson_chain';
+        const buildCrimsonBranches = () => {
+            const branches = [];
+            const branchCount = Math.min(5, Math.max(3, Math.floor(dist / 90)));
+
+            for (let i = 0; i < branchCount; i++) {
+                const ratio = (i + 1) / (branchCount + 1);
+                const anchorIndex = Math.min(
+                    mainPoints.length - 2,
+                    Math.max(1, Math.round(ratio * (mainPoints.length - 2)))
+                );
+                const start = mainPoints[anchorIndex];
+                const next = mainPoints[Math.min(anchorIndex + 1, mainPoints.length - 1)];
+                const dx = next.x - start.x;
+                const dy = next.y - start.y;
+                const length = Math.hypot(dx, dy) || 1;
+                const dirX = dx / length;
+                const dirY = dy / length;
+                const perpX = -dirY;
+                const perpY = dirX;
+                const side = i % 2 === 0 ? 1 : -1;
+                const branchLength = Math.min(84, 28 + (dist * 0.09) + i * 5);
+                const tipX = start.x + perpX * branchLength * side + dirX * (10 + i * 4);
+                const tipY = start.y + perpY * branchLength * side + dirY * (10 + i * 4);
+                branches.push({
+                    color: i % 2 === 0 ? palette.sideA : palette.sideB,
+                    width: 0.95 * intensity,
+                    alpha: 0.82,
+                    points: getJaggedPoints(
+                        start.x,
+                        start.y,
+                        tipX,
+                        tipY,
+                        Math.max(2, Math.floor(segments * 0.45)),
+                        spread * 0.55
+                    )
+                });
+
+                const crackleLength = Math.min(34, branchLength * 0.42);
+                const crackleX = start.x - perpX * crackleLength * side + dirX * 8;
+                const crackleY = start.y - perpY * crackleLength * side + dirY * 8;
+                branches.push({
+                    color: palette.sideB,
+                    width: 0.65 * intensity,
+                    alpha: 0.55,
+                    points: getJaggedPoints(
+                        start.x,
+                        start.y,
+                        crackleX,
+                        crackleY,
+                        2,
+                        spread * 0.32
+                    )
+                });
+            }
+
+            return branches;
+        };
 
         if (reducedEffects) {
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.strokeStyle = palette.main;
-            ctx.lineWidth = 4 * intensity;
+            ctx.lineWidth = (isCrimsonChain ? 5.5 : 4) * intensity;
             drawPath(mainPoints);
             ctx.stroke();
 
             ctx.strokeStyle = palette.core;
-            ctx.lineWidth = 1.5 * intensity;
+            ctx.lineWidth = (isCrimsonChain ? 1.8 : 1.5) * intensity;
             drawPath(mainPoints);
             ctx.stroke();
+            if (isCrimsonChain) {
+                ctx.globalAlpha = 0.72;
+                buildCrimsonBranches().slice(0, 4).forEach((branch) => {
+                    ctx.strokeStyle = branch.color;
+                    ctx.lineWidth = branch.width;
+                    drawPath(branch.points);
+                    ctx.stroke();
+                });
+            }
             ctx.restore();
             return;
         }
@@ -493,33 +560,51 @@ export default class SkillRenderer {
         // 1. Layer 1: Distant Glow (Atmospheric)
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.shadowBlur = 25 * intensity;
+        ctx.shadowBlur = (isCrimsonChain ? 32 : 25) * intensity;
         ctx.shadowColor = palette.glow;
         ctx.strokeStyle = `${palette.main}33`;
-        ctx.lineWidth = 10 * intensity;
+        ctx.lineWidth = (isCrimsonChain ? 14 : 10) * intensity;
         drawPath(mainPoints);
         ctx.stroke();
 
         // 2. Layer 2: Main High-Voltage Trunk (Cyan)
-        ctx.shadowBlur = 10 * intensity;
+        ctx.shadowBlur = (isCrimsonChain ? 14 : 10) * intensity;
         ctx.strokeStyle = palette.main;
-        ctx.lineWidth = 4.5 * intensity;
+        ctx.lineWidth = (isCrimsonChain ? 6.4 : 4.5) * intensity;
         drawPath(mainPoints);
         ctx.stroke();
 
         // 3. Layer 3: Ultra-bright Core (Pure White)
         ctx.shadowBlur = 0;
         ctx.strokeStyle = palette.core;
-        ctx.lineWidth = 1.8 * intensity;
+        ctx.lineWidth = (isCrimsonChain ? 2.3 : 1.8) * intensity;
         drawPath(mainPoints);
         ctx.stroke();
 
+        if (isCrimsonChain) {
+            buildCrimsonBranches().forEach((branch) => {
+                ctx.globalAlpha = branch.alpha;
+                ctx.shadowBlur = 10 * intensity;
+                ctx.shadowColor = palette.glow;
+                ctx.strokeStyle = branch.color;
+                ctx.lineWidth = branch.width;
+                drawPath(branch.points);
+                ctx.stroke();
+
+                ctx.shadowBlur = 0;
+                ctx.strokeStyle = palette.core;
+                ctx.lineWidth = Math.max(0.5, branch.width * 0.35);
+                drawPath(branch.points);
+                ctx.stroke();
+            });
+        }
+
         // 4. Side Arcs (Minor jittery bolts)
-        ctx.globalAlpha = 0.6;
-        for (let s = 0; s < 2; s++) {
-            const subPoints = getJaggedPoints(x1, y1, x2, y2, segments, spread * 1.8);
+        ctx.globalAlpha = isCrimsonChain ? 0.82 : 0.6;
+        for (let s = 0; s < (isCrimsonChain ? 3 : 2); s++) {
+            const subPoints = getJaggedPoints(x1, y1, x2, y2, segments, spread * (isCrimsonChain ? 1.2 : 1.8));
             ctx.strokeStyle = s === 0 ? palette.sideA : palette.sideB;
-            ctx.lineWidth = 0.8 * intensity;
+            ctx.lineWidth = (isCrimsonChain ? 1.05 : 0.8) * intensity;
             drawPath(subPoints);
             ctx.stroke();
         }

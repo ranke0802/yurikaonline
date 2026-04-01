@@ -99,6 +99,24 @@ export class UIManager {
         return refs;
     }
 
+    updateAutoAttackToggle(forceState = null) {
+        const button = this.getHudRef('autoAttackToggle', 'action-auto-toggle', 'id');
+        if (!button) return;
+
+        const enabled = typeof forceState === 'boolean'
+            ? forceState
+            : !!this.game.localPlayer?.autoAttackEnabled;
+        const nextText = enabled ? 'AUTO ON' : 'AUTO OFF';
+
+        if (button.textContent !== nextText) {
+            button.textContent = nextText;
+        }
+
+        button.classList.toggle('active', enabled);
+        button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+        button.setAttribute('title', enabled ? 'Normal attack auto enabled' : 'Normal attack auto disabled');
+    }
+
     // v2.1: Dialog System Methods
     showDialog(dialogData, options = {}) {
         if (!this.dialogBox) return;
@@ -785,6 +803,18 @@ export class UIManager {
         };
 
         this.bindSkillTooltipTargets();
+
+        const autoAttackToggle = document.getElementById('action-auto-toggle');
+        const handleAutoAttackToggle = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.game.localPlayer?.toggleAutoAttack?.();
+        };
+        if (autoAttackToggle) {
+            autoAttackToggle.addEventListener('click', handleAutoAttackToggle);
+            autoAttackToggle.addEventListener('touchstart', handleAutoAttackToggle, { passive: false });
+            this.updateAutoAttackToggle();
+        }
 
         // Chat send button
         const sendBtn = document.querySelector('.send-btn');
@@ -3109,10 +3139,15 @@ export class UIManager {
             if (!this.lastHudSnapshot || this.lastHudSnapshot.mpMax !== nextMpMax) {
                 if (mpm) mpm.textContent = nextMpMax;
             }
+            const nextAutoAttack = p.autoAttackEnabled ? '1' : '0';
+            if (!this.lastHudSnapshot || this.lastHudSnapshot.autoAttack !== nextAutoAttack) {
+                this.updateAutoAttackToggle(p.autoAttackEnabled);
+            }
             nextSnapshot.hpCur = nextHpCur;
             nextSnapshot.hpMax = nextHpMax;
             nextSnapshot.mpCur = nextMpCur;
             nextSnapshot.mpMax = nextMpMax;
+            nextSnapshot.autoAttack = nextAutoAttack;
         }
 
         this.lastHudSnapshot = nextSnapshot;

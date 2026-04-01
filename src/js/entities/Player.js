@@ -80,6 +80,7 @@ export default class Player extends CharacterBase {
 
         // Combat & Channeling
         this.attackRange = 400; // v2.4.2: Tighten basic attack range to match combat feel and remote visuals
+        this.autoAttackEnabled = false;
 
         this.isAttacking = false;
         this.isChanneling = false;
@@ -160,6 +161,7 @@ export default class Player extends CharacterBase {
             this.moveTarget = null;
 
             if (action === 'ATTACK') this.attack();
+            if (action === 'TOGGLE_AUTO_ATTACK') this.toggleAutoAttack();
             if (action === 'SKILL_1') this.useSkill(1);
             if (action === 'SKILL_2') this.useSkill(2);
             if (action === 'SKILL_3') this.useSkill(3);
@@ -217,21 +219,15 @@ export default class Player extends CharacterBase {
         this._handleRegen(dt);
 
         // v0.29.9: Chain Lightning Full Restore
-        // Call performLaserAttack when ATTACK key is held, OR when already channeling
-        if (this.input && this.input.isPressed('ATTACK')) {
-            this.performLaserAttack(dt);
-        } else {
-            // Key released - stop channeling Chain Lightning only (not other skills)
-            // skillAttackTimer > 0 means Missile/Fireball/Shield is animating
-            if (this.isChanneling && this.skillAttackTimer <= 0) {
-                // v0.00.38: Notify remote players that channeling stopped
-                if (this.net) this.net.sendChanneling('stop');
-
-                this.isChanneling = false;
-                this.isAttacking = false; // v0.29.10: Also reset attacking state
-                this.chargeTime = 0;
-                this.lightningEffect = null;
-                this.state = 'idle';
+        const isManualAttackPressed = !!(this.input && this.input.isPressed('ATTACK'));
+        const shouldAutoAttack = !isManualAttackPressed
+            && this.autoAttackEnabled
+            && this.canAutoAttackCurrentTarget();
+        if (this.skillAttackTimer <= 0) {
+            if (isManualAttackPressed || shouldAutoAttack) {
+                this.performLaserAttack(dt);
+            } else {
+                this.stopBasicAttackChanneling();
             }
         }
 
@@ -796,6 +792,7 @@ export default class Player extends CharacterBase {
             agility: this.agility,
             statPoints: this.statPoints,
             skillLevels: this.skillLevels,
+            autoAttackEnabled: !!this.autoAttackEnabled,
             inventory: this.inventory, // v0.00.75: Save Inventory (Fixed Persistence Bug)
             equipment: this.equipment,
             questData: this.questData, // Added in v0.22.4
@@ -883,6 +880,74 @@ export default class Player extends CharacterBase {
     attack() {
         if (!window.game?.tutorial?.isActionAllowed?.('ATTACK')) return;
         // Handled by update loop for channeling
+    }
+
+    stopBasicAttackChanneling() {
+        if (!this.isChanneling || this.skillAttackTimer > 0) return;
+        if (this.net) this.net.sendChanneling('stop');
+
+        this.isChanneling = false;
+        this.isAttacking = false;
+        this.chargeTime = 0;
+        this.lightningTickTimer = 0;
+        this.lightningEffect = null;
+        this.state = 'idle';
+    }
+
+    isAttackTargetStillValid(target) {
+        if (!target || target.isDead) return false;
+
+        const isMonsterTarget = !!target.isMonster || target.type === 'monster' || !!target.typeId;
+        if (isMonsterTarget) {
+            const monsters = window.game?.monsterManager?.monsters;
+            return !!(target.id && monsters?.has(target.id));
+        }
+
+        if (target.type === 'player' && target !== this) {
+            const remotePlayers = window.game?.remotePlayers;
+            const localPlayer = window.game?.localPlayer;
+            return target === localPlayer || !!(target.id && remotePlayers?.has(target.id));
+        }
+
+        return true;
+    }
+
+    canAutoAttackCurrentTarget() {
+        const target = this.currentTarget;
+        if (!this.isAttackTargetStillValid(target)) return false;
+        if (!this.canAttackTarget(target)) return false;
+
+        const sourceX = this.x + this.width / 2;
+        const sourceY = this.y + this.height / 2;
+        const targetX = target.x + ((target.width || 0) / 2);
+        const targetY = target.y + ((target.height || 0) / 2);
+        return Math.hypot(targetX - sourceX, targetY - sourceY) <= this.attackRange;
+    }
+
+    toggleAutoAttack(force = null, options = {}) {
+        const nextState = typeof force === 'boolean' ? force : !this.autoAttackEnabled;
+        const shouldPersist = options.persist !== false;
+        const shouldNotify = options.notify !== false;
+
+        if (this.autoAttackEnabled === nextState) {
+            window.game?.ui?.updateAutoAttackToggle?.(nextState);
+            return nextState;
+        }
+
+        this.autoAttackEnabled = nextState;
+        if (!nextState && !(this.input && this.input.isPressed('ATTACK'))) {
+            this.stopBasicAttackChanneling();
+        }
+
+        window.game?.ui?.updateAutoAttackToggle?.(nextState);
+        if (shouldNotify) {
+            window.game?.ui?.logSystemMessage?.(nextState ? '[AUTO] Normal attack ON' : '[AUTO] Normal attack OFF');
+        }
+        if (shouldPersist) {
+            this.saveState();
+        }
+
+        return nextState;
     }
 
     performLaserAttack(dt) {

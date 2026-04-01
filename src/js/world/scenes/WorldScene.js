@@ -139,6 +139,7 @@ export default class WorldScene extends Scene {
             this.player.agility = profile.agility || 1;
             this.player.statPoints = profile.statPoints || 0;
             this.player.skillLevels = profile.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
+            this.player.autoAttackEnabled = !!profile.autoAttackEnabled;
             this.player.name = profile.name || localName || user.displayName || "유리카";
 
             // v0.00.15: Restore Hostility
@@ -217,6 +218,7 @@ export default class WorldScene extends Scene {
             if (this.ui) {
                 this.ui.updateQuestUI();
                 this.ui.updateStatusPopup();
+                this.ui.updateAutoAttackToggle(this.player.autoAttackEnabled);
                 this.ui.updateSkillPopup();
             }
         }
@@ -237,6 +239,7 @@ export default class WorldScene extends Scene {
         if (this.ui) {
             this.ui.updateQuestUI();
             this.ui.updateStatusPopup();
+            this.ui.updateAutoAttackToggle(this.player?.autoAttackEnabled);
         }
 
         // v0.00.03: Ensure data is synchronized to the zone database on entry

@@ -231,6 +231,37 @@ button:active,
     background: #fff4ba;
 }
 
+.attack-auto-toggle {
+    position: absolute;
+    right: 86px;
+    bottom: 92px;
+    min-width: 74px;
+    height: 34px;
+    padding: 0 12px;
+    border: 2px solid rgba(255, 255, 255, 0.92);
+    border-radius: 999px;
+    background: rgba(18, 24, 38, 0.88);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Outfit', 'Nanum Gothic', sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 130;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.24);
+}
+
+.attack-auto-toggle.active {
+    background: linear-gradient(135deg, #ff9f43 0%, #ff5f6d 100%);
+    color: #fffdf4;
+    border-color: #fff0d8;
+    box-shadow: 0 8px 18px rgba(255, 96, 109, 0.34);
+}
+
 .shortcut-badge {
     position: absolute;
     top: -10px;
@@ -3414,6 +3445,18 @@ body.is-fullscreen .version-info {
         right: 8px;
     }
 
+    .action-buttons .attack-auto-toggle {
+        right: 82px;
+        bottom: 120px;
+        min-width: 84px;
+        height: 38px;
+        font-size: 11px;
+        border-width: 3px;
+        box-shadow:
+            0 8px 0 rgba(23, 16, 8, 0.28),
+            0 12px 24px rgba(0, 0, 0, 0.28);
+    }
+
     .action-buttons .shortcut-badge {
         display: flex !important;
         align-items: center;
@@ -5052,6 +5095,15 @@ body.is-fullscreen .version-info {
         font-size: 34px !important;
         background: rgba(255, 244, 186, 0.78) !important;
         border-color: rgba(255, 255, 255, 0.72) !important;
+    }
+
+    .action-buttons .attack-auto-toggle {
+        right: 76px !important;
+        bottom: 100px !important;
+        min-width: 78px !important;
+        height: 34px !important;
+        font-size: 10px !important;
+        border-width: 2px !important;
     }
 
     .action-buttons .skill-u,
