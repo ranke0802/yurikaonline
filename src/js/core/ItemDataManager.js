@@ -5,6 +5,7 @@ const ITEM_FILES = {
     magic_staff_affixes: '/assets/data/items/magic_staff_affixes.json',
     equipment_enhancement_rules: '/assets/data/items/equipment_enhancement_rules.json',
     weapon_upgrade_stone: '/assets/data/items/weapon_upgrade_stone.json',
+    blessed_weapon_upgrade_stone: '/assets/data/items/blessed_weapon_upgrade_stone.json',
     equipment_drop_rules: '/assets/data/items/equipment_drop_rules.json'
 };
 
@@ -158,16 +159,18 @@ export default class ItemDataManager {
 
     async loadAll() {
         try {
-            const [magicStaff, affixPool, enhancementRules, upgradeStone, dropRules] = await Promise.all([
+            const [magicStaff, affixPool, enhancementRules, upgradeStone, blessedUpgradeStone, dropRules] = await Promise.all([
                 this.resourceManager.loadJSON(ITEM_FILES.magic_staff),
                 this.resourceManager.loadJSON(ITEM_FILES.magic_staff_affixes),
                 this.resourceManager.loadJSON(ITEM_FILES.equipment_enhancement_rules),
                 this.resourceManager.loadJSON(ITEM_FILES.weapon_upgrade_stone),
+                this.resourceManager.loadJSON(ITEM_FILES.blessed_weapon_upgrade_stone),
                 this.resourceManager.loadJSON(ITEM_FILES.equipment_drop_rules)
             ]);
 
             if (magicStaff?.id) this.itemDefinitions.set(magicStaff.id, magicStaff);
             if (upgradeStone?.id) this.itemDefinitions.set(upgradeStone.id, upgradeStone);
+            if (blessedUpgradeStone?.id) this.itemDefinitions.set(blessedUpgradeStone.id, blessedUpgradeStone);
 
             if (affixPool?.id && Array.isArray(affixPool.affixes)) {
                 this.affixPools.set(affixPool.id, affixPool);

@@ -2937,45 +2937,78 @@ export class UIManager {
             this.updateInventory();
         });
 
-        bindPress(enhanceBtn, () => {
+        const executeWeaponEnhance = (stoneType = 'normal') => {
             const player = this.game.localPlayer;
             const itemData = this.game.itemData;
             if (!player || !itemData) return;
 
             const target = player.resolveWeaponSelection(this.selectedInventoryRef);
             if (!target?.item) {
-                this.showGenericModal('강화', '강화할 무기를 선택해 주세요.', null, null, { hideNo: true, yesText: '확인' });
+                this.showGenericModal(stoneType === 'blessed' ? '축복 강화' : '강화', '강화할 무기를 선택해 주세요.', null, null, { hideNo: true, yesText: '확인' });
                 return;
             }
 
             const config = itemData.getEnhancementConfig(target.item);
             if (!config) {
-                this.showGenericModal('강화', '이 장비는 더 이상 강화할 수 없습니다.', null, null, { hideNo: true, yesText: '확인' });
+                this.showGenericModal(stoneType === 'blessed' ? '축복 강화' : '강화', '이 장비는 더 이상 강화할 수 없습니다.', null, null, { hideNo: true, yesText: '확인' });
+                return;
+            }
+
+            const requiredStoneId = stoneType === 'blessed' ? 'blessed_weapon_upgrade_stone' : 'weapon_upgrade_stone';
+            const requiredStoneLabel = stoneType === 'blessed' ? '축복받은 무기 강화석' : '무기 강화석';
+            if ((player.getInventoryItemCount?.(requiredStoneId) || 0) < 1) {
+                this.showGenericModal(stoneType === 'blessed' ? '축복 강화' : '강화', `${requiredStoneLabel}이 부족합니다.`, null, null, { hideNo: true, yesText: '확인' });
                 return;
             }
 
             const executeEnhance = () => {
-                const result = player.enhanceWeapon(this.selectedInventoryRef);
+                const result = player.enhanceWeapon(this.selectedInventoryRef, { stoneType });
                 if (!result.ok) {
-                    this.showGenericModal('강화 실패', result.message, null, null, { hideNo: true, yesText: '확인' });
+                    this.showGenericModal(stoneType === 'blessed' ? '축복 강화 실패' : '강화 실패', result.message, null, null, { hideNo: true, yesText: '확인' });
                     return;
                 }
 
                 if (result.success) {
-                    this.showGenericModal('강화 성공', `${target.item.name}이(가) +${result.nextLevel} 강화에 성공했습니다.`, null, null, { hideNo: true, yesText: '확인' });
-                    this.logSystemMessage(`✨ ${target.item.name} +${result.nextLevel} 강화 성공`);
+                    if (stoneType === 'blessed') {
+                        this.showGenericModal(
+                            '축복 강화 성공',
+                            `${target.item.name}이(가) +${result.nextLevel} 강화에 성공했습니다. (${result.gain > 0 ? `+${result.gain}` : '유지'})`,
+                            null,
+                            null,
+                            { hideNo: true, yesText: '확인' }
+                        );
+                        this.logSystemMessage(`✨ ${target.item.name} 축복 강화 성공 (${result.gain > 0 ? `+${result.gain}` : '유지'})`);
+                    } else {
+                        this.showGenericModal('강화 성공', `${target.item.name}이(가) +${result.nextLevel} 강화에 성공했습니다.`, null, null, { hideNo: true, yesText: '확인' });
+                        this.logSystemMessage(`✨ ${target.item.name} +${result.nextLevel} 강화 성공`);
+                    }
                 } else if (result.destroyed) {
                     this.showGenericModal('강화 파괴', '강화에 실패해 장비가 파괴되었습니다.', null, null, { hideNo: true, yesText: '확인' });
                     this.logSystemMessage('💥 강화 실패로 장비가 파괴되었습니다.');
                     this.closeInventoryItemModal(true);
                     this.selectedInventoryRef = null;
                 } else {
-                    this.showGenericModal('강화 실패', '강화에 실패했습니다. 장비는 유지됩니다.', null, null, { hideNo: true, yesText: '확인' });
-                    this.logSystemMessage('강화에 실패했습니다. 장비는 유지되었습니다.');
+                    if (stoneType === 'blessed') {
+                        this.showGenericModal('축복 강화 실패', '축복의 힘으로 강화는 실패했지만 현재 강화 수치는 유지되었습니다.', null, null, { hideNo: true, yesText: '확인' });
+                        this.logSystemMessage('✨ 축복 강화 실패, 장비는 유지되었습니다.');
+                    } else {
+                        this.showGenericModal('강화 실패', '강화에 실패했습니다. 장비는 유지됩니다.', null, null, { hideNo: true, yesText: '확인' });
+                        this.logSystemMessage('강화에 실패했습니다. 장비는 유지되었습니다.');
+                    }
                 }
 
                 this.updateInventory();
             };
+
+            if (stoneType === 'blessed') {
+                this.showConfirm(
+                    `축복받은 무기 강화석으로 강화하시겠습니까?<br><small>성공 50% / 실패 시 유지 / 성공 시 +1~2 (최대 +${config.maxLevel})</small>`,
+                    (confirmed) => {
+                        if (confirmed) executeEnhance();
+                    }
+                );
+                return;
+            }
 
             if (config.destroyChanceOnFail > 0) {
                 this.showConfirm(`+${config.nextLevel} 강화는 실패 시 장비가 파괴될 수 있습니다.<br><small>성공 ${Math.round(config.successRate * 100)}% / 파괴 ${Math.round(config.destroyChanceOnFail * 100)}%</small>`, (confirmed) => {
@@ -2985,6 +3018,15 @@ export class UIManager {
             }
 
             executeEnhance();
+        };
+
+        bindPress(enhanceBtn, () => {
+            executeWeaponEnhance('normal');
+        });
+
+        const blessedEnhanceBtn = document.getElementById('inventory-action-enhance-blessed');
+        bindPress(blessedEnhanceBtn, () => {
+            executeWeaponEnhance('blessed');
         });
 
         bindPress(dismantleBtn, () => {
@@ -3104,6 +3146,9 @@ export class UIManager {
     createInventoryIconElement(item, className = 'item-icon') {
         const iconEl = document.createElement(item?.iconPath ? 'img' : 'span');
         iconEl.className = className;
+        if ((item?.type || item?.id) === 'blessed_weapon_upgrade_stone') {
+            iconEl.classList.add('item-icon-blessed-stone');
+        }
         if (item?.iconPath) {
             iconEl.src = item.iconPath;
             iconEl.alt = item.name || item.type || 'item';
@@ -3295,6 +3340,10 @@ export class UIManager {
                 lines.push(`붉은 전격 피해 +${Math.round((item.rolledValues?.laserDamageBonus || 0) * 100)}%`);
                 lines.push('체인 라이트닝 적중 시 HP 흡수');
             }
+        } else if (item.type === 'blessed_weapon_upgrade_stone') {
+            lines.push('축복 강화에 사용하는 희귀 재료');
+            lines.push('성공 50% / 실패 시 강화 단계 유지');
+            lines.push('성공 시 강화 수치 +1~2 증가');
         } else if (item.type === 'weapon_upgrade_stone') {
             lines.push('무기 강화에 사용되는 재료');
         }
@@ -3442,6 +3491,9 @@ export class UIManager {
             }
 
             if (item) {
+                if (item.type === 'blessed_weapon_upgrade_stone') {
+                    button.classList.add('item-special-blessed-stone');
+                }
                 button.appendChild(this.createInventoryIconElement(item));
 
                 if (item.stackable !== false) {
@@ -3506,6 +3558,7 @@ export class UIManager {
         const detailIconWrap = document.getElementById('inventory-detail-icon');
         if (detailIconWrap) {
             detailIconWrap.innerHTML = '';
+            detailIconWrap.classList.toggle('item-special-blessed-stone', detail.item.type === 'blessed_weapon_upgrade_stone');
             detailIconWrap.appendChild(this.createInventoryIconElement(detail.item, 'inventory-detail-icon-asset'));
         }
 
@@ -3518,6 +3571,7 @@ export class UIManager {
         const equipBtn = document.getElementById('inventory-action-equip');
         const unequipBtn = document.getElementById('inventory-action-unequip');
         const enhanceBtn = document.getElementById('inventory-action-enhance');
+        const blessedEnhanceBtn = document.getElementById('inventory-action-enhance-blessed');
         const dismantleBtn = document.getElementById('inventory-action-dismantle');
 
         if (nameEl) nameEl.textContent = detailData.title;
@@ -3539,9 +3593,11 @@ export class UIManager {
 
         if (hintEl) {
             const stoneCount = p.getInventoryItemCount?.('weapon_upgrade_stone') || 0;
+            const blessedStoneCount = p.getInventoryItemCount?.('blessed_weapon_upgrade_stone') || 0;
             const hints = [];
             if (detailData.enhanceHint) {
                 hints.push(`${detailData.enhanceHint} / 강화석 ${stoneCount}개 보유`);
+                hints.push(`축복 강화석 ${blessedStoneCount}개 보유 / 성공 50% / 실패 시 유지 / 성공 시 +1~2`);
             }
             if (detailData.dismantleHint) {
                 hints.push(detailData.dismantleHint);
@@ -3557,6 +3613,9 @@ export class UIManager {
         }
         if (enhanceBtn) {
             enhanceBtn.classList.toggle('hidden', detail.item.slot !== 'weapon');
+        }
+        if (blessedEnhanceBtn) {
+            blessedEnhanceBtn.classList.toggle('hidden', detail.item.slot !== 'weapon');
         }
         if (dismantleBtn) {
             dismantleBtn.classList.toggle('hidden', detail.item.slot !== 'weapon');

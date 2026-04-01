@@ -108,10 +108,17 @@ export default class MonsterManager {
     _buildRewardItem(itemId, dropDef = {}, context = {}) {
         const itemData = this.game.itemData;
         if (itemData) {
+            const sourceDefinition = itemData.getItemDefinition(itemId);
+            const blessedVariantChance = itemId === 'weapon_upgrade_stone'
+                ? Math.max(0, Math.min(1, sourceDefinition?.dropRules?.blessedVariantChance ?? 0))
+                : 0;
+            const resolvedItemId = blessedVariantChance > 0 && Math.random() < blessedVariantChance
+                ? 'blessed_weapon_upgrade_stone'
+                : itemId;
             const minAmount = Math.max(1, dropDef.min || dropDef.quantity || 1);
             const maxAmount = Math.max(minAmount, dropDef.max || minAmount);
             const amount = Math.floor(Math.random() * (maxAmount - minAmount + 1)) + minAmount;
-            return itemData.createRewardItem(itemId, {
+            return itemData.createRewardItem(resolvedItemId, {
                 amount,
                 monsterId: context.monster?.typeId || null
             });
@@ -121,7 +128,9 @@ export default class MonsterManager {
             slime_gel: { name: '슬라임 젤', icon: '🟢' },
             potion_hp_small: { name: '소형 HP 포션', icon: '🧪' },
             royal_jelly: { name: '로열 젤리', icon: '🍯' },
-            king_crown: { name: '킹 크라운', icon: '👑' }
+            king_crown: { name: '킹 크라운', icon: '👑' },
+            weapon_upgrade_stone: { name: '무기 강화석', icon: '💎' },
+            blessed_weapon_upgrade_stone: { name: '축복받은 무기 강화석', icon: '💎' }
         };
 
         const fallback = itemMeta[itemId] || { name: itemId, icon: '🎁' };

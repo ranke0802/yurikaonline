@@ -10,8 +10,16 @@ const ITEM_DEFINITIONS = {
     royal_jelly: { name: '로열 젤리', icon: '🍯' },
     king_crown: { name: '킹 크라운', icon: '👑' },
     weapon_upgrade_stone: { name: '무기 강화석', icon: '💎' },
+    blessed_weapon_upgrade_stone: { name: '축복받은 무기 강화석', icon: '💎' },
     magic_staff: { name: '마력의 지팡이', icon: '🪄' }
 };
+
+const BLESSED_WEAPON_UPGRADE_STONE_ID = 'blessed_weapon_upgrade_stone';
+const BLESSED_WEAPON_ENHANCEMENT = Object.freeze({
+    successRate: 0.5,
+    minGain: 1,
+    maxGain: 2
+});
 
 export default class Player extends CharacterBase {
     constructor(x, y, name = "유리카", definition = null) {
@@ -85,7 +93,8 @@ export default class Player extends CharacterBase {
         this.fireballAimActive = false;
         this.fireballAimGuide = null;
         this.fireballMaxRange = 1200;
-        this.fireballPointerTarget = null;
+        this.fireballAimAngle = null;
+        this.fireballAimTouchOrigin = null;
 
         this.isAttacking = false;
         this.isChanneling = false;
@@ -175,7 +184,7 @@ export default class Player extends CharacterBase {
         });
 
         this.input.on('aimStart', (data) => {
-            if (data?.action === 'SKILL_2') this.startFireballAim();
+            if (data?.action === 'SKILL_2') this.startFireballAim(data);
         });
 
         this.input.on('aimMove', (data) => {
@@ -432,23 +441,11 @@ export default class Player extends CharacterBase {
         const level = this.skillLevels.fireball || 1;
         const weaponCombat = this.getWeaponCombatProfile();
         const range = this.getFireballRange();
-        let targetX;
-        let targetY;
-        let angle;
-
-        if (this.fireballPointerTarget) {
-            const dx = this.fireballPointerTarget.x - originX;
-            const dy = this.fireballPointerTarget.y - originY;
-            const distance = Math.sqrt(dx * dx + dy * dy) || 1;
-            const clampedDistance = Math.min(distance, range);
-            angle = Math.atan2(dy, dx);
-            targetX = originX + Math.cos(angle) * clampedDistance;
-            targetY = originY + Math.sin(angle) * clampedDistance;
-        } else {
-            angle = this.getCurrentFacingAngle();
-            targetX = originX + Math.cos(angle) * range;
-            targetY = originY + Math.sin(angle) * range;
-        }
+        const angle = Number.isFinite(this.fireballAimAngle)
+            ? this.fireballAimAngle
+            : this.getCurrentFacingAngle();
+        const targetX = originX + Math.cos(angle) * range;
+        const targetY = originY + Math.sin(angle) * range;
 
         this.fireballAimGuide = {
             originX,
@@ -464,40 +461,26 @@ export default class Player extends CharacterBase {
     }
 
     updateFireballAimGuideFromScreenPoint(clientX, clientY) {
-        const canvas = window.game?.canvas;
-        const camera = window.game?.camera;
-        if (!canvas || !camera) return;
+        if (!this.fireballAimTouchOrigin) return;
 
-        const rect = canvas.getBoundingClientRect();
-        if (!rect.width || !rect.height) return;
+        const dx = clientX - this.fireballAimTouchOrigin.x;
+        const dy = clientY - this.fireballAimTouchOrigin.y;
+        const deadzone = 10;
+        if ((dx * dx) + (dy * dy) < (deadzone * deadzone)) {
+            return;
+        }
 
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        const dpr = window.game?.dpr || 1;
-        const zoom = window.game?.zoom || 1;
-        const camPos = camera.getPosition ? camera.getPosition() : camera;
-
-        const canvasX = (clientX - rect.left) * scaleX;
-        const canvasY = (clientY - rect.top) * scaleY;
-
-        this.fireballPointerTarget = {
-            x: camPos.x + (canvasX / (dpr * zoom)),
-            y: camPos.y + (canvasY / (dpr * zoom))
-        };
+        this.fireballAimAngle = Math.atan2(dy, dx);
         this.updateFireballAimGuide();
     }
 
-    startFireballAim() {
+    startFireballAim(pointerData = null) {
         if (!this.canStartFireballAim()) return;
-        const angle = this.getCurrentFacingAngle();
-        const originX = this.x + this.width / 2;
-        const originY = this.y + this.height / 2;
-        const range = this.getFireballRange();
         this.fireballAimActive = true;
-        this.fireballPointerTarget = {
-            x: originX + Math.cos(angle) * range,
-            y: originY + Math.sin(angle) * range
-        };
+        this.fireballAimAngle = this.getCurrentFacingAngle();
+        this.fireballAimTouchOrigin = Number.isFinite(pointerData?.clientX) && Number.isFinite(pointerData?.clientY)
+            ? { x: pointerData.clientX, y: pointerData.clientY }
+            : null;
         this.updateFireballAimGuide();
     }
 
@@ -519,7 +502,8 @@ export default class Player extends CharacterBase {
     cancelFireballAim() {
         this.fireballAimActive = false;
         this.fireballAimGuide = null;
-        this.fireballPointerTarget = null;
+        this.fireballAimAngle = null;
+        this.fireballAimTouchOrigin = null;
     }
 
     getFireballAimGuide() {
@@ -2490,15 +2474,18 @@ export default class Player extends CharacterBase {
         return null;
     }
 
-    enhanceWeapon(selection = null) {
+    enhanceWeapon(selection = null, options = {}) {
         const itemData = this.getItemDataManager();
         const target = this.resolveWeaponSelection(selection);
+        const stoneType = options?.stoneType === 'blessed' ? 'blessed' : 'normal';
+        const stoneItemId = stoneType === 'blessed' ? BLESSED_WEAPON_UPGRADE_STONE_ID : 'weapon_upgrade_stone';
+        const stoneLabel = stoneType === 'blessed' ? '축복받은 무기 강화석' : '무기 강화석';
         if (!itemData || !target?.item) {
             return { ok: false, message: '강화할 무기를 선택해 주세요.' };
         }
 
-        if (this.getInventoryItemCount('weapon_upgrade_stone') < 1) {
-            return { ok: false, message: '무기 강화석이 부족합니다.' };
+        if (this.getInventoryItemCount(stoneItemId) < 1) {
+            return { ok: false, message: `${stoneLabel}이 부족합니다.` };
         }
 
         const config = itemData.getEnhancementConfig(target.item);
@@ -2506,25 +2493,47 @@ export default class Player extends CharacterBase {
             return { ok: false, message: '이 장비는 더 이상 강화할 수 없습니다.' };
         }
 
-        this.consumeInventoryItem('weapon_upgrade_stone', 1);
+        this.consumeInventoryItem(stoneItemId, 1);
 
-        const success = Math.random() <= config.successRate;
+        const currentLevel = Math.max(0, target.item.enhancementLevel || 0);
         const result = {
             ok: true,
-            success,
+            success: false,
             destroyed: false,
             item: target.item,
-            nextLevel: config.nextLevel
+            nextLevel: config.nextLevel,
+            stoneType,
+            stoneItemId,
+            stoneLabel,
+            gain: 0,
+            keptLevel: false
         };
 
-        if (success) {
-            target.item.enhancementLevel = config.nextLevel;
-        } else if (config.destroyChanceOnFail > 0 && Math.random() <= config.destroyChanceOnFail) {
-            result.destroyed = true;
-            if (target.location === 'inventory') {
-                this.inventory[target.index] = null;
+        if (stoneType === 'blessed') {
+            const rolledGain = BLESSED_WEAPON_ENHANCEMENT.minGain
+                + Math.floor(Math.random() * ((BLESSED_WEAPON_ENHANCEMENT.maxGain - BLESSED_WEAPON_ENHANCEMENT.minGain) + 1));
+            result.success = Math.random() <= BLESSED_WEAPON_ENHANCEMENT.successRate;
+            result.nextLevel = Math.min(config.maxLevel, currentLevel + rolledGain);
+            result.gain = Math.max(0, result.nextLevel - currentLevel);
+            result.keptLevel = !result.success;
+
+            if (result.success) {
+                target.item.enhancementLevel = result.nextLevel;
+            }
+        } else {
+            result.success = Math.random() <= config.successRate;
+            if (result.success) {
+                target.item.enhancementLevel = config.nextLevel;
+                result.gain = Math.max(0, config.nextLevel - currentLevel);
+            } else if (config.destroyChanceOnFail > 0 && Math.random() <= config.destroyChanceOnFail) {
+                result.destroyed = true;
+                if (target.location === 'inventory') {
+                    this.inventory[target.index] = null;
+                } else {
+                    this.equipment.weapon = null;
+                }
             } else {
-                this.equipment.weapon = null;
+                result.keptLevel = true;
             }
         }
 

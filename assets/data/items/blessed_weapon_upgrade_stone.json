@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "blessed_weapon_upgrade_stone",
+  "name": "축복받은 무기 강화석",
+  "type": "material",
+  "stackable": true,
+  "maxStack": 999,
+  "rarity": "epic",
+  "description": "축복의 힘이 담긴 희귀 재료. 성공 확률 50%, 실패 시 강화 수치 유지, 성공 시 +1~2 강화됩니다.",
+  "icon": {
+    "fallbackEmoji": "💎"
+  },
+  "useTarget": {
+    "slot": "weapon"
+  }
+}

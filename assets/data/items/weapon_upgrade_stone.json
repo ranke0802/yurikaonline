@@ -14,6 +14,7 @@
     "slot": "weapon"
   },
   "dropRules": {
-    "globalMonsterDropChance": 0.001
+    "globalMonsterDropChance": 0.001,
+    "blessedVariantChance": 0.2
   }
 }
