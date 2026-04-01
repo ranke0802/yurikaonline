@@ -1557,6 +1557,9 @@ export default class Player extends CharacterBase {
             return;
         }
 
+        // Keep player-specific canvas mutations from leaking into world rendering.
+        ctx.save();
+
         const x = this.x;
         const y = this.y;
         const centerX = x + this.width / 2;
@@ -1671,6 +1674,7 @@ export default class Player extends CharacterBase {
                         ctx.stroke();
                     });
                 }
+                ctx.restore();
             }
         } else if (this.state === 'die' || this.isDying) {
             // v0.28.0: Tombstone visual for LOCAL player
@@ -1761,6 +1765,8 @@ export default class Player extends CharacterBase {
 
         // 9. v0.00.26: Status Effect Icons (Burn/Electrocuted)
         this._drawStatusIcons(ctx, centerX, y + this.height);
+
+        ctx.restore();
     }
 
     // v0.00.26: Draw status effect icons for local player
