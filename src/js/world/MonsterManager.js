@@ -291,6 +291,7 @@ export default class MonsterManager {
     }
 
     _updateHostLogic(dt, localPlayer, remotePlayers) {
+        const mobileThermalMode = !!this.game?.isMobilePerformanceMode;
         const isProtectedPlayer = (player) => {
             const currentScene = this.game.sceneManager?.currentScene;
             if (!player || typeof currentScene?.isPlayerProtected !== 'function') return false;
