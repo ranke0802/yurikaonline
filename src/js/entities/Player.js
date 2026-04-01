@@ -82,6 +82,9 @@ export default class Player extends CharacterBase {
         // Combat & Channeling
         this.attackRange = 400; // v2.4.2: Tighten basic attack range to match combat feel and remote visuals
         this.autoAttackEnabled = false;
+        this.fireballAimActive = false;
+        this.fireballAimGuide = null;
+        this.fireballMaxRange = 1200;
 
         this.isAttacking = false;
         this.isChanneling = false;
@@ -165,9 +168,13 @@ export default class Player extends CharacterBase {
             if (action === 'ATTACK') this.attack();
             if (action === 'TOGGLE_AUTO_ATTACK') this.toggleAutoAttack();
             if (action === 'SKILL_1') this.useSkill(1);
-            if (action === 'SKILL_2') this.useSkill(2);
+            if (action === 'SKILL_2') this.startFireballAim();
             if (action === 'SKILL_3') this.useSkill(3);
             if (action === 'SKILL_4') this.useSkill(4);
+        });
+
+        this.input.on('keyup', (action) => {
+            if (action === 'SKILL_2') this.releaseFireballAim();
         });
 
         this.input.on('joystickMove', (data) => {
@@ -203,19 +210,30 @@ export default class Player extends CharacterBase {
     update(dt) {
         // v0.28.0: Handle Death Timer even if isDead is true
         if (this.isDying) {
+            this.cancelFireballAim();
             this.deathTimer -= dt;
             if (this.deathTimer <= 0) {
                 this.respawn();
             }
         }
 
-        if (this.isDead) return;
+        if (this.isDead) {
+            this.cancelFireballAim();
+            return;
+        }
 
         if (this.spawnProtectionTimer > 0) {
             this.spawnProtectionTimer = Math.max(0, this.spawnProtectionTimer - dt);
         }
 
         this._handleMovement(dt);
+        if (this.fireballAimActive) {
+            if (this.canStartFireballAim()) {
+                this.updateFireballAimGuide();
+            } else {
+                this.cancelFireballAim();
+            }
+        }
         this._updateCooldowns(dt);
         this._updateAnimation(dt);
         this._handleRegen(dt);
@@ -354,6 +372,98 @@ export default class Player extends CharacterBase {
         } else {
             this.statusEffects.push({ type, timer: duration, damage });
         }
+    }
+
+    getFallbackFacingAngle() {
+        const angles = {
+            0: -Math.PI / 2,
+            1: Math.PI / 2,
+            2: Math.PI,
+            3: 0
+        };
+        return angles[this.direction] ?? 0;
+    }
+
+    getCurrentFacingAngle() {
+        return Number.isFinite(this.facingAngle) ? this.facingAngle : this.getFallbackFacingAngle();
+    }
+
+    getFireballManaCost(level = this.skillLevels.fireball || 1) {
+        return 12 + (level - 1) * 4;
+    }
+
+    getFireballRange() {
+        return this.fireballMaxRange;
+    }
+
+    getFireballProjectileRadius(level = this.skillLevels.fireball || 1) {
+        return 20 + (level - 1) * 20;
+    }
+
+    getFireballAoeRadius(level = this.skillLevels.fireball || 1) {
+        return this.getFireballProjectileRadius(level) * 2.5;
+    }
+
+    canStartFireballAim() {
+        if (this.isDead || this.isDying) return false;
+        if (this.isChanneling) return false;
+        if (this.skillCooldowns.u > 0) return false;
+
+        const tutorial = window.game?.tutorial;
+        if (tutorial && !tutorial.isActionAllowed?.('SKILL_2')) return false;
+
+        return this.mp >= this.getFireballManaCost();
+    }
+
+    updateFireballAimGuide() {
+        const angle = this.getCurrentFacingAngle();
+        const range = this.getFireballRange();
+        const originX = this.x + this.width / 2;
+        const originY = this.y + this.height / 2;
+        const level = this.skillLevels.fireball || 1;
+        const weaponCombat = this.getWeaponCombatProfile();
+
+        this.fireballAimGuide = {
+            originX,
+            originY,
+            targetX: originX + Math.cos(angle) * range,
+            targetY: originY + Math.sin(angle) * range,
+            angle,
+            range,
+            widthRadius: this.getFireballProjectileRadius(level),
+            aoeRadius: this.getFireballAoeRadius(level),
+            variant: weaponCombat.fireballVariant || null
+        };
+    }
+
+    startFireballAim() {
+        if (!this.canStartFireballAim()) return;
+        this.fireballAimActive = true;
+        this.updateFireballAimGuide();
+    }
+
+    releaseFireballAim() {
+        if (!this.fireballAimActive) return;
+
+        const aimGuide = this.fireballAimGuide;
+        this.cancelFireballAim();
+        if (!aimGuide) return;
+
+        this.useSkill(2, {
+            angle: aimGuide.angle,
+            targetX: aimGuide.targetX,
+            targetY: aimGuide.targetY,
+            range: aimGuide.range
+        });
+    }
+
+    cancelFireballAim() {
+        this.fireballAimActive = false;
+        this.fireballAimGuide = null;
+    }
+
+    getFireballAimGuide() {
+        return this.fireballAimActive ? this.fireballAimGuide : null;
     }
 
     applyElectrocuted(duration, ratio) {
@@ -1191,7 +1301,7 @@ export default class Player extends CharacterBase {
 
     }
 
-    useSkill(slot) {
+    useSkill(slot, castOptions = null) {
         if (this.isDead || !window.game) return;
         const tutorialAction = { 1: 'SKILL_1', 2: 'SKILL_2', 3: 'SKILL_3', 4: 'SKILL_4' }[slot];
         if (tutorialAction && !window.game?.tutorial?.isActionAllowed?.(tutorialAction)) return;
@@ -1333,7 +1443,7 @@ export default class Player extends CharacterBase {
                 }
             }
         } else if (skillId === 'fireball') {
-            const cost = 12 + (lv - 1) * 4; // v1.99.32: 12 base, +4 per level
+            const cost = this.getFireballManaCost(lv); // v1.99.32: 12 base, +4 per level
             if (this.useMana(cost)) {
                 window.game?.tutorial?.trigger?.('skill_use', { target: skillId, slot });
                 this.triggerAction(`${this.name} : 파이어볼 !!`);
@@ -1349,23 +1459,40 @@ export default class Player extends CharacterBase {
 
                 // v0.28.0: Sync Fireball skill
                 // v0.29.0: Updates to sendPlayerAttack
+                const angle = Number.isFinite(castOptions?.angle)
+                    ? castOptions.angle
+                    : this.getCurrentFacingAngle();
+                const range = Number.isFinite(castOptions?.range)
+                    ? castOptions.range
+                    : this.getFireballRange();
+                const originX = this.x + this.width / 2;
+                const originY = this.y + this.height / 2;
+                const targetX = Number.isFinite(castOptions?.targetX)
+                    ? castOptions.targetX
+                    : originX + Math.cos(angle) * range;
+                const targetY = Number.isFinite(castOptions?.targetY)
+                    ? castOptions.targetY
+                    : originY + Math.sin(angle) * range;
+
                 if (this.net) {
                     this.net.sendPlayerAttack(this.x, this.y, this.direction, 'fireball', {
                         level: lv,
-                        angle: this.facingAngle,
+                        angle,
+                        targetX,
+                        targetY,
+                        range,
                         variant: weaponCombat.fireballVariant || null
                     });
                 }
 
                 // v0.29.13: 8-direction firing using facingAngle
-                const angle = this.facingAngle !== undefined ? this.facingAngle : 0;
                 const speed = 800;
                 const vx = Math.cos(angle) * speed;
                 const vy = Math.sin(angle) * speed;
                 const fireballDamageMultiplier = 1 + (weaponCombat.fireballDamageBonus || 0);
                 const dmg = Math.ceil(this.attackPower * (1.8 + (lv - 1) * 0.3) * fireballDamageMultiplier); // v1.99.31: 180% + 30% per level
-                const baseRad = 20 + (lv - 1) * 20;
-                const aoeRad = baseRad * 2.5; // v1.99.35: Increased to 2.5x for better coverage
+                const baseRad = this.getFireballProjectileRadius(lv);
+                const aoeRad = this.getFireballAoeRadius(lv); // v1.99.35: Increased to 2.5x for better coverage
 
                 import('./Projectile.js').then(({ Projectile }) => {
                     window.game.projectiles.push(new Projectile(this.x, this.y, null, 'fireball', {
@@ -1373,8 +1500,8 @@ export default class Player extends CharacterBase {
                         ownerId: this.id,
                         variant: weaponCombat.fireballVariant || null,
                         visualTint: weaponCombat.fireballTint || null,
-                        targetX: this.x + Math.cos(angle) * 1200,
-                        targetY: this.y + Math.sin(angle) * 1200,
+                        targetX,
+                        targetY,
                         burnDuration: 2.0 + (lv - 1) * 0.5,
                         penetrationDelay: (lv - 1) * 0.05, // v1.99.33: Scaled delay
                         critRate: this.critRate,

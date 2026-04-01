@@ -549,7 +549,6 @@ export default class WorldScene extends Scene {
 
         if (this.player) {
             if (this.input.isPressed('SKILL_1')) this.player.useSkill(1);
-            if (this.input.isPressed('SKILL_2')) this.player.useSkill(2);
             if (this.input.isPressed('SKILL_3')) this.player.useSkill(3);
 
             // v2.0: Predictive Collision (Check before update or after?)
@@ -839,6 +838,11 @@ export default class WorldScene extends Scene {
                 { variant: explosion.variant || 'default' }
             );
         });
+
+        const fireballAimGuide = this.player?.getFireballAimGuide?.();
+        if (fireballAimGuide) {
+            SkillRenderer.drawFireballAimGuide(ctx, fireballAimGuide);
+        }
 
         // v0.00.21: Target Lock-on Marker
         if (this.player && this.player.currentTarget && !this.player.currentTarget.isDead) {

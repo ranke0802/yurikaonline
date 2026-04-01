@@ -805,7 +805,12 @@ export default class RemotePlayer extends CharacterBase {
                 if (skillType === 'fireball') {
                     let vx = 0, vy = 0, speed = 800;
                     // v0.29.13: Use angle from extraData if available (8-direction)
-                    const angle = data.extraData?.angle;
+                    let angle = data.extraData?.angle;
+                    const targetX = Number.isFinite(data.extraData?.targetX) ? data.extraData.targetX : null;
+                    const targetY = Number.isFinite(data.extraData?.targetY) ? data.extraData.targetY : null;
+                    if (angle === undefined && targetX !== null && targetY !== null) {
+                        angle = Math.atan2(targetY - centerY, targetX - centerX);
+                    }
                     if (angle !== undefined) {
                         vx = Math.cos(angle) * speed;
                         vy = Math.sin(angle) * speed;
@@ -823,7 +828,9 @@ export default class RemotePlayer extends CharacterBase {
                     window.game.projectiles.push(new Projectile(centerX, centerY, null, 'fireball', {
                         vx, vy, speed, damage: 0, ownerId: this.id, radius: baseRad, aoeRadius: aoeRad,
                         penetrationDelay: (attackerLevel - 1) * 0.05,
-                        variant: data.extraData?.variant || null
+                        variant: data.extraData?.variant || null,
+                        targetX,
+                        targetY
                     }));
                 } else if (skillType === 'missile') {
                     // v0.29.2: Ensure at least 1 missile and validate count
