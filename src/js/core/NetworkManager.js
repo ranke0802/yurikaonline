@@ -41,6 +41,7 @@ export default class NetworkManager extends EventEmitter {
         this._boundVisibilityChange = this._handleVisibilityChange.bind(this);
         this._hostilityListenerActive = false;
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
+        this._lastProfileSaveTs = 0;
     }
 
     connect(user) {
@@ -57,6 +58,7 @@ export default class NetworkManager extends EventEmitter {
         this.remotePlayers.clear();
         this._hostilityListenerActive = false;
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
+        this._lastProfileSaveTs = 0;
         this.startBatchProcessor();
 
         Logger.log(`Network Coordinates: connecting to ${this.roomId}...`);
@@ -503,8 +505,122 @@ export default class NetworkManager extends EventEmitter {
     onDropRemoved(callback) { this.on('dropRemoved', callback); }
     onDropCollectionRequested(callback) { this.on('dropCollectionRequested', callback); }
 
+    getUserRootRef(uid) {
+        return uid && window.firebase ? firebase.database().ref(`users/${uid}`) : null;
+    }
+
+    getProfileRef(uid) {
+        return uid && window.firebase ? firebase.database().ref(`users/${uid}/profile`) : null;
+    }
+
+    getProfileBackupsRef(uid) {
+        return uid && window.firebase ? firebase.database().ref(`users/${uid}/profileBackups`) : null;
+    }
+
+    _cloneProfileData(data) {
+        if (!data) return null;
+        try {
+            return JSON.parse(JSON.stringify(data));
+        } catch (error) {
+            Logger.error('Failed to clone profile data', error);
+            return null;
+        }
+    }
+
+    _normalizeProfileSnapshot(data, fallbackTs = Date.now()) {
+        const snapshot = this._cloneProfileData(data) || {};
+        const existingTs = Number(snapshot.ts || 0);
+        snapshot.ts = existingTs > 0 ? existingTs : fallbackTs;
+        return snapshot;
+    }
+
+    async getLatestProfileSnapshot(uid) {
+        if (!uid || !window.firebase) return null;
+
+        try {
+            const [profileSnapshot, backupSnapshot] = await Promise.all([
+                this.getProfileRef(uid)?.once('value'),
+                this.getProfileBackupsRef(uid)?.orderByChild('ts').limitToLast(1).once('value')
+            ]);
+
+            const profile = profileSnapshot?.val() || null;
+            const normalizedProfile = profile ? this._normalizeProfileSnapshot(profile) : null;
+
+            let latestBackup = null;
+            backupSnapshot?.forEach((child) => {
+                latestBackup = { id: child.key, ...(child.val() || {}) };
+            });
+
+            const backupProfile = latestBackup?.profile
+                ? this._normalizeProfileSnapshot(latestBackup.profile, latestBackup.ts || Date.now())
+                : null;
+
+            if (backupProfile && (!normalizedProfile || (backupProfile.ts || 0) > (normalizedProfile.ts || 0))) {
+                return {
+                    profile: backupProfile,
+                    ts: backupProfile.ts || 0,
+                    source: 'backup',
+                    backupId: latestBackup.id || null
+                };
+            }
+
+            if (normalizedProfile) {
+                return {
+                    profile: normalizedProfile,
+                    ts: normalizedProfile.ts || 0,
+                    source: 'profile',
+                    backupId: null
+                };
+            }
+
+            return null;
+        } catch (error) {
+            Logger.error('Failed to get latest profile snapshot', error);
+            return null;
+        }
+    }
+
+    async _writeProfileBackup(uid, profile, options = {}) {
+        const backupsRef = this.getProfileBackupsRef(uid);
+        if (!backupsRef || !profile) return null;
+
+        const keepCount = Math.max(5, options.keepCount || 20);
+        const createdAt = Date.now();
+        const backupRef = backupsRef.push();
+        const backupPayload = {
+            ts: Number(profile.ts || createdAt),
+            createdAt,
+            reason: options.reason || 'profile_save',
+            sourceUid: options.sourceUid || uid,
+            sourceTs: Number(options.sourceTs || profile.ts || createdAt),
+            profile: this._cloneProfileData(profile)
+        };
+
+        await backupRef.set(backupPayload);
+
+        const existingSnapshot = await backupsRef.once('value');
+        const backups = [];
+        existingSnapshot.forEach((child) => {
+            const value = child.val() || {};
+            backups.push({
+                id: child.key,
+                ts: Number(value.ts || 0)
+            });
+        });
+
+        if (backups.length > keepCount) {
+            const staleRemovals = backups
+                .sort((a, b) => a.ts - b.ts)
+                .slice(0, backups.length - keepCount)
+                .map((entry) => backupsRef.child(entry.id).remove());
+            await Promise.all(staleRemovals);
+        }
+
+        return backupRef.key;
+    }
+
     async getPlayerData(uid) {
-        if (!this.dbRef) return null;
+        if (!uid || !window.firebase) return null;
         try {
             // v0.00.03: Unify with AuthManager root path
             const snapshot = await firebase.database().ref(`users/${uid}`).once('value');
@@ -515,21 +631,107 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
-    async savePlayerData(uid, data, syncToZone = false) {
-        if (!uid) return;
+    async savePlayerData(uid, data, syncToZone = false, options = {}) {
+        if (!uid || !window.firebase || !data) return { ok: false, reason: 'invalid_args' };
         try {
+            const nextProfile = this._normalizeProfileSnapshot(data, Date.now());
+            nextProfile.ts = Math.max(Number(nextProfile.ts || 0), Date.now(), this._lastProfileSaveTs + 1);
+            this._lastProfileSaveTs = nextProfile.ts;
+            const profileRef = this.getProfileRef(uid);
+            const allowStaleWrite = !!options.allowStaleWrite;
+            let committedProfile = null;
+
             // v0.00.04: Root profile update (Persistent across logins)
-            console.log(`[Network] Saving Player Data to users/${uid}/profile:`, data);
-            await firebase.database().ref(`users/${uid}/profile`).set(data);
+            console.log(`[Network] Saving Player Data to users/${uid}/profile:`, nextProfile);
+            const transactionResult = await profileRef.transaction((current) => {
+                const currentTs = Number(current?.ts || 0);
+                const nextTs = Number(nextProfile.ts || 0);
+                if (!allowStaleWrite && currentTs > nextTs) {
+                    return;
+                }
+                return nextProfile;
+            });
+
+            if (!transactionResult.committed) {
+                const currentProfile = transactionResult.snapshot?.val() || null;
+                Logger.warn(`[Network] Skipped stale profile save for ${uid}. incoming=${nextProfile.ts} current=${currentProfile?.ts || 0}`);
+                return {
+                    ok: false,
+                    reason: 'stale_profile',
+                    currentProfile
+                };
+            }
+
+            committedProfile = transactionResult.snapshot?.val()
+                ? this._normalizeProfileSnapshot(transactionResult.snapshot.val(), nextProfile.ts)
+                : nextProfile;
+
+            await this._writeProfileBackup(uid, committedProfile, {
+                keepCount: options.keepBackupCount || 20,
+                reason: options.backupReason || 'profile_save',
+                sourceUid: options.sourceUid || uid,
+                sourceTs: options.sourceTs || committedProfile.ts
+            });
 
             // v0.00.04: Zone-specific update ONLY IF requested and in a zone
             // This prevents players in character selection from appearing in the map
             if (syncToZone && this.dbRef && this.zoneParticipationEnabled) {
-                await this.dbRef.child(`users/${uid}/profile`).set(data);
+                await this.dbRef.child(`users/${uid}/profile`).set(committedProfile);
             }
+            return { ok: true, profile: committedProfile };
         } catch (e) {
             Logger.error('Failed to save player profile', e);
+            return { ok: false, reason: 'save_failed', error: e };
         }
+    }
+
+    async recoverPlayerProfile(targetUid, sourceUid) {
+        if (!targetUid || !sourceUid || !window.firebase) {
+            return { ok: false, reason: 'invalid_args' };
+        }
+
+        const [sourceSnapshot, targetSnapshot] = await Promise.all([
+            this.getLatestProfileSnapshot(sourceUid),
+            this.getLatestProfileSnapshot(targetUid)
+        ]);
+
+        if (!sourceSnapshot?.profile) {
+            return { ok: false, reason: 'source_missing', sourceSnapshot, targetSnapshot };
+        }
+
+        const sourceTs = Number(sourceSnapshot.ts || 0);
+        const targetTs = Number(targetSnapshot?.ts || 0);
+        if (targetSnapshot?.profile && sourceTs < targetTs) {
+            return {
+                ok: false,
+                reason: 'source_older_than_target',
+                sourceSnapshot,
+                targetSnapshot
+            };
+        }
+
+        const recoveredProfile = this._cloneProfileData(sourceSnapshot.profile) || {};
+        recoveredProfile.recoveredFromUid = sourceUid;
+        recoveredProfile.recoveredFromTs = sourceTs;
+        recoveredProfile.ts = Date.now();
+
+        const saveResult = await this.savePlayerData(targetUid, recoveredProfile, false, {
+            allowStaleWrite: true,
+            backupReason: 'profile_recovery',
+            sourceUid,
+            sourceTs
+        });
+
+        if (!saveResult.ok) {
+            return { ok: false, reason: saveResult.reason || 'recovery_save_failed', sourceSnapshot, targetSnapshot };
+        }
+
+        return {
+            ok: true,
+            profile: saveResult.profile,
+            sourceSnapshot,
+            targetSnapshot
+        };
     }
 
     async resetWorldData() {

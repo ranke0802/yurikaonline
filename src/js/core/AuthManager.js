@@ -157,12 +157,17 @@ export default class AuthManager extends EventEmitter {
                 await firebase.database().ref(`users/${googleUser.uid}/profile`).set({
                     ...currentData,
                     displayName: googleUser.displayName,
+                    ts: Date.now(),
                     linkedAt: firebase.database.ServerValue.TIMESTAMP
                 });
             }
 
             Logger.info(`Migration Authorized for ${googleUser.uid}`);
-            return { success: true };
+            return {
+                success: true,
+                googleUid: googleUser.uid,
+                googleDisplayName: googleUser.displayName || ''
+            };
         } catch (error) {
             Logger.error("Migration Error:", error);
             throw error;

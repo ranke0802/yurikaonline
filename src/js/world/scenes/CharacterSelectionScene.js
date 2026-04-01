@@ -17,9 +17,14 @@ export default class CharacterSelectionScene extends Scene {
         this.game.ui?.hideAllPopups();
         this.user = params.user;
 
-        // Fetch User Data from Firestore/Realtime DB
-        const savedData = await this.game.net.getPlayerData(this.user.uid);
-        this.profile = savedData ? savedData.profile : null;
+        // Fetch the newest profile snapshot first so backup versions can self-heal stale roots.
+        const latestSnapshot = await this.game.net.getLatestProfileSnapshot?.(this.user.uid);
+        if (latestSnapshot?.profile) {
+            this.profile = latestSnapshot.profile;
+        } else {
+            const savedData = await this.game.net.getPlayerData(this.user.uid);
+            this.profile = savedData ? savedData.profile : null;
+        }
 
         this.createUI();
 
@@ -206,12 +211,23 @@ export default class CharacterSelectionScene extends Scene {
             status.textContent = "UID로 계정 데이터를 찾는 중...";
             status.style.color = "#fdcb6e";
 
-            const oldData = await this.game.net.getPlayerData(targetUID);
-            if (oldData && oldData.profile) {
+            const sourceSnapshot = await this.game.net.getLatestProfileSnapshot?.(targetUID);
+            const oldData = sourceSnapshot?.profile ? { profile: sourceSnapshot.profile } : null;
+            if (sourceSnapshot?.profile) {
                 const proceed = confirm(`기존 계정(${oldData.profile.name}, Lv.${oldData.profile.level}) 데이터를 발견했습니다!\n현재 계정으로 복구하시겠습니까?`);
                 if (proceed) {
-                    await this.game.net.savePlayerData(this.user.uid, oldData.profile);
-                    this.profile = oldData.profile;
+                    const recoveryResult = await this.game.net.recoverPlayerProfile(this.user.uid, targetUID);
+                    if (!recoveryResult.ok) {
+                        if (recoveryResult.reason === 'source_older_than_target') {
+                            status.textContent = "복구 대상이 현재 계정보다 오래된 데이터라 복구를 막았습니다.";
+                        } else {
+                            status.textContent = "복구 중 오류가 발생했습니다.";
+                        }
+                        status.style.color = "#ff7675";
+                        btn.disabled = false;
+                        return;
+                    }
+                    this.profile = recoveryResult.profile;
                     status.textContent = "복구 완료! 잠시만 기다려주세요...";
                     status.style.color = "#55efc4";
                     setTimeout(() => this.createUI(), 1000);

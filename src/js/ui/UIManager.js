@@ -1781,14 +1781,23 @@ export class UIManager {
                     linkBtn.disabled = true;
                     linkBtn.textContent = '🔄 구글 로그인 중...';
 
+                    const guestUid = this.game.auth.getUid();
+                    const guestSnapshot = await this.game.net.getLatestProfileSnapshot?.(guestUid);
+                    if (!guestSnapshot?.profile) {
+                        alert("현재 게스트 캐릭터 데이터를 찾을 수 없습니다.");
+                        linkBtn.disabled = false;
+                        linkBtn.textContent = '🔗 구글 계정 연동하기';
+                        return;
+                    }
+
                     // v1.93: Trigger popup FIRST for immediate user feedback and faster cancellation recovery
                     const result = await this.game.auth.migrateToGoogle(); // Call WITHOUT data first
 
                     if (result && result.success) {
                         linkBtn.textContent = '🔄 데이터 전송 중...';
 
-                        // Current profile data (Fetch only after successful auth to save time on cancel)
-                        const currentProfile = await this.game.net.getPlayerData(this.game.auth.getUid());
+                        // Use the guest snapshot captured before auth switches to the Google account.
+                        const currentProfile = { profile: guestSnapshot.profile };
                         if (!currentProfile || !currentProfile.profile) {
                             alert("현재 데이터를 불러오지 못했습니다.");
                             linkBtn.disabled = false;
@@ -1796,20 +1805,19 @@ export class UIManager {
                             return;
                         }
 
-                        // Now finalize migration with the data
-                        // (Wait, migrateToGoogle in AuthManager should handle the UI flow better)
-                        // Actually, I'll refactor migrateToGoogle to handle the data internally or split it.
-                        // For now, let's just make the catch block faster.
-
-                        // Re-running migrate with data (This logic needs sync with AuthManager)
-                        // I will update AuthManager to accept data later or handle it here.
-                        // Let's keep it simple: Popup first, then DB, then Finish.
-
-                        const googleUser = firebase.auth().currentUser;
-                        await firebase.database().ref(`users/${googleUser.uid}/profile`).set({
+                        const migratedProfile = {
                             ...currentProfile.profile,
-                            displayName: googleUser.displayName,
-                            linkedAt: firebase.database.ServerValue.TIMESTAMP
+                            displayName: result.googleDisplayName || currentProfile.profile.displayName || currentProfile.profile.name,
+                            migratedFromUid: guestUid,
+                            migratedFromTs: guestSnapshot.ts || currentProfile.profile.ts || 0,
+                            linkedAt: Date.now(),
+                            ts: Date.now()
+                        };
+                        await this.game.net.savePlayerData(result.googleUid, migratedProfile, false, {
+                            allowStaleWrite: true,
+                            backupReason: 'google_migration',
+                            sourceUid: guestUid,
+                            sourceTs: guestSnapshot.ts || migratedProfile.ts
                         });
 
                         alert("연동이 완료되었습니다! 새로운 계정으로 다시 로그인합니다.");
