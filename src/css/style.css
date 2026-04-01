@@ -6254,53 +6254,134 @@ body #ui-layer #hostility-panel .hostility-item,
 
 @media screen and (max-width: 1024px) and (orientation: landscape) {
     #inventory-popup {
-        width: min(96vw, 980px) !important;
-        max-width: 96vw !important;
-        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px) !important;
+        width: min(98vw, 1240px) !important;
+        max-width: 98vw !important;
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8px) !important;
         overflow: hidden !important;
     }
 
+    #inventory-popup .popup-header {
+        margin-bottom: 6px !important;
+        padding-bottom: 8px !important;
+    }
+
+    #inventory-popup .inventory-shell {
+        gap: 8px !important;
+    }
+
     #inventory-popup .inventory-scroll-shell {
-        padding: 10px !important;
+        flex: 0 0 auto !important;
+        height: calc(52px * 4 + 6px * 3 + 16px) !important;
+        max-height: calc(52px * 4 + 6px * 3 + 16px) !important;
+        padding: 8px !important;
         border-radius: 18px !important;
     }
 
     #inventory-popup .inventory-grid {
-        grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
-        gap: 8px !important;
+        grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+        gap: 6px !important;
     }
 
     #inventory-popup .grid-item {
-        min-height: 54px !important;
+        aspect-ratio: auto !important;
+        height: 52px !important;
+        min-height: 52px !important;
+        border-radius: 10px !important;
     }
 
     #inventory-popup .item-icon {
-        width: 30px !important;
-        height: 30px !important;
-        font-size: 24px !important;
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 19px !important;
+    }
+
+    #inventory-popup .item-enhancement {
+        top: 3px !important;
+        left: 4px !important;
+        font-size: 9px !important;
+        padding: 0 4px !important;
     }
 
     #inventory-popup .utility-slot-label {
-        font-size: 8px !important;
+        top: 3px !important;
+        left: 4px !important;
+        font-size: 7px !important;
     }
 
     #inventory-popup .utility-slot-meta {
-        font-size: 9px !important;
+        right: 4px !important;
+        bottom: 3px !important;
+        font-size: 8px !important;
     }
 
     #inventory-popup .inventory-item-modal {
-        padding: 10px !important;
+        padding: 8px !important;
+        align-items: stretch !important;
     }
 
     #inventory-popup .inventory-item-modal-card {
-        width: min(72vw, 520px) !important;
-        max-height: calc(100% - 6px) !important;
-        padding: 16px !important;
-        border-radius: 20px !important;
+        width: min(84vw, 760px) !important;
+        min-height: min(58vh, 330px) !important;
+        max-height: calc(100% - 2px) !important;
+        padding: 18px 18px 16px !important;
+        border-radius: 22px !important;
+        justify-content: flex-start !important;
+    }
+
+    #inventory-popup .inventory-detail-head {
+        align-items: flex-start !important;
+        gap: 14px !important;
+        margin-bottom: 14px !important;
+    }
+
+    #inventory-popup .inventory-detail-icon {
+        width: 68px !important;
+        height: 68px !important;
+        flex: 0 0 68px !important;
+        border-radius: 18px !important;
+    }
+
+    #inventory-popup .inventory-detail-title-block h3 {
+        font-size: 22px !important;
+        line-height: 1.2 !important;
+    }
+
+    #inventory-popup .inventory-detail-title-block p {
+        margin-top: 6px !important;
+        font-size: 14px !important;
+        line-height: 1.35 !important;
+    }
+
+    #inventory-popup .inventory-detail-desc {
+        margin-bottom: 12px !important;
+        font-size: 14px !important;
+        line-height: 1.5 !important;
     }
 
     #inventory-popup .inventory-detail-stats {
-        max-height: 130px !important;
+        min-height: 120px !important;
+        max-height: none !important;
+        font-size: 14px !important;
+        line-height: 1.45 !important;
+        gap: 8px !important;
+        padding-left: 20px !important;
+    }
+
+    #inventory-popup .inventory-enhance-hint {
+        margin-top: 10px !important;
+        font-size: 13px !important;
+        line-height: 1.45 !important;
+    }
+
+    #inventory-popup .inventory-detail-actions {
+        margin-top: 12px !important;
+        gap: 8px !important;
+    }
+
+    #inventory-popup .inventory-action-btn {
+        min-height: 42px !important;
+        padding: 10px 8px !important;
+        font-size: 13px !important;
     }
 
     #inventory-popup .inventory-popup-footer {
