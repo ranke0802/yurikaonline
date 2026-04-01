@@ -1878,6 +1878,7 @@ export class UIManager {
         }
 
         modal.classList.remove('hidden');
+        this.game?.tutorial?.trigger?.('skill_tooltip', { target: skillId, source: 'modal' });
         this.refreshDesktopShortcutHints();
     }
 
