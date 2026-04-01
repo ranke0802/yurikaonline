@@ -655,10 +655,11 @@ button:active,
 }
 
 .inventory-popup-footer {
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
     gap: 12px;
-    flex-wrap: wrap;
+    width: 100%;
 }
 
 .inventory-count-display {
@@ -695,8 +696,20 @@ button:active,
     padding: 15px 0 5px 0;
     display: flex;
     justify-content: center;
+    align-items: center;
+    width: 100%;
     border-top: 2px dashed rgba(255, 214, 165, 0.5);
     margin-top: 10px;
+}
+
+.inventory-popup-footer .inventory-count-display {
+    grid-column: 1;
+    justify-self: start;
+}
+
+.inventory-popup-footer .close-btn-bottom {
+    grid-column: 2;
+    justify-self: center;
 }
 
 .close-btn-bottom {
@@ -5986,7 +5999,7 @@ body.is-fullscreen .version-info {
     #status-popup .popup-footer {
         grid-area: footer !important;
         display: flex !important;
-        justify-content: flex-end !important;
+        justify-content: center !important;
         align-items: center !important;
         margin-top: 0 !important;
         padding-top: 6px !important;
@@ -6437,6 +6450,22 @@ body #ui-layer #hostility-panel .hostility-item,
     }
 
     #inventory-popup .inventory-popup-footer {
-        justify-content: space-between !important;
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+        justify-content: stretch !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
+
+    #inventory-popup .inventory-count-display {
+        grid-column: 1 !important;
+        justify-self: start !important;
+        width: auto !important;
+    }
+
+    #inventory-popup .close-btn-bottom {
+        grid-column: 2 !important;
+        justify-self: center !important;
+        width: 160px !important;
     }
 }
