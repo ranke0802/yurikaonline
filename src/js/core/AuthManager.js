@@ -14,7 +14,7 @@ export default class AuthManager extends EventEmitter {
 
     init() {
         if (!window.firebase) {
-            Logger.error("Firebase SDK not loaded!");
+            Logger.error('Firebase SDK not loaded!');
             return;
         }
 
@@ -36,10 +36,10 @@ export default class AuthManager extends EventEmitter {
                 firebase.auth().onAuthStateChanged(this._onAuthStateChanged);
             })
             .catch((error) => {
-                Logger.error("[Auth] Initialization/Redirect Error:", error.code, error.message);
+                Logger.error('[Auth] Initialization/Redirect Error:', error.code, error.message);
 
                 if (error.code === 'auth/unauthorized-domain') {
-                    const msg = `[Auth] 도메인 오류: '${window.location.hostname}'가 Firebase 승인 도메인에 없습니다. (Console > Auth > Settings)`;
+                    const msg = `[Auth] 도메인 오류: '${window.location.hostname}'가 Firebase 인증 허용 도메인에 없습니다. (Console > Auth > Settings)`;
                     alert(msg);
                 }
 
@@ -63,14 +63,14 @@ export default class AuthManager extends EventEmitter {
             } catch (popupError) {
                 // If popup is blocked or other error, fallback to Redirect
                 if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/cancelled-popup-request') {
-                    Logger.warn("[Auth] Popup blocked or cancelled. Falling back to Redirect mode...");
+                    Logger.warn('[Auth] Popup blocked or cancelled. Falling back to Redirect mode...');
                     await firebase.auth().signInWithRedirect(provider);
                 } else {
                     throw popupError;
                 }
             }
         } catch (error) {
-            Logger.error("Google Login Initialization Failed:", error);
+            Logger.error('Google Login Initialization Failed:', error);
             throw error; // Propagate to UI for notice
         }
     }
@@ -80,7 +80,7 @@ export default class AuthManager extends EventEmitter {
             Logger.log('Attempting Anonymous Login...');
             await firebase.auth().signInAnonymously();
         } catch (error) {
-            Logger.error("Anonymous Login Failed:", error);
+            Logger.error('Anonymous Login Failed:', error);
         }
     }
 
@@ -89,7 +89,7 @@ export default class AuthManager extends EventEmitter {
             await firebase.auth().signOut();
             Logger.log('Logged out successfully');
         } catch (error) {
-            Logger.error("Logout Failed:", error);
+            Logger.error('Logout Failed:', error);
         }
     }
 
@@ -129,49 +129,77 @@ export default class AuthManager extends EventEmitter {
         */
     }
 
-    async migrateToGoogle(currentData = null) {
+    async migrateToGoogle() {
         try {
             Logger.log('Starting Google Migration...');
             const provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
 
-            // 1. Get Google Credentials
-            const result = await firebase.auth().signInWithPopup(provider);
-            const googleUser = result.user;
-
-            if (!googleUser) throw new Error("Google login failed");
-
-            // 2. Check if this Google Account already has data
-            const googleDataSnapshot = await firebase.database().ref(`users/${googleUser.uid}/profile`).once('value');
-            const googleData = googleDataSnapshot.val();
-
-            if (googleData) {
-                const proceed = confirm(`선택한 구글 계정에 이미 레벨 ${googleData.level} 캐릭터(${googleData.name})가 있습니다.\n현재 데이터를 덮어씌우시겠습니까? (기존 데이터는 삭제됩니다)`);
-                if (!proceed) {
-                    Logger.log("Migration cancelled by user (Existing data found)");
-                    return { success: false, cancelled: true };
-                }
+            const currentUser = firebase.auth().currentUser;
+            if (!currentUser) {
+                return { success: false, cancelled: true, reason: 'no_current_user' };
             }
 
-            // 3. Overwrite Google UID with Current Guest Data (if provided)
-            if (currentData) {
-                await firebase.database().ref(`users/${googleUser.uid}/profile`).set({
-                    ...currentData,
-                    displayName: googleUser.displayName,
-                    ts: Date.now(),
-                    linkedAt: firebase.database.ServerValue.TIMESTAMP
-                });
+            if (!currentUser.isAnonymous) {
+                return { success: false, cancelled: true, reason: 'already_linked' };
             }
 
-            Logger.info(`Migration Authorized for ${googleUser.uid}`);
+            const result = await currentUser.linkWithPopup(provider);
+            const linkedUser = result?.user || firebase.auth().currentUser;
+
+            if (!linkedUser) {
+                throw new Error('Google link failed');
+            }
+
+            Logger.info(`Migration Linked for ${linkedUser.uid}`);
             return {
                 success: true,
-                googleUid: googleUser.uid,
-                googleDisplayName: googleUser.displayName || ''
+                mode: 'linked',
+                googleUid: linkedUser.uid,
+                googleDisplayName: linkedUser.displayName || '',
+                googleEmail: linkedUser.email || ''
             };
         } catch (error) {
-            Logger.error("Migration Error:", error);
+            const conflictCodes = new Set([
+                'auth/credential-already-in-use',
+                'auth/account-exists-with-different-credential',
+                'auth/email-already-in-use'
+            ]);
+
+            if (error?.code === 'auth/popup-closed-by-user') {
+                Logger.info('Google migration popup closed by user');
+                return { success: false, cancelled: true, reason: 'popup_closed' };
+            }
+
+            if (conflictCodes.has(error?.code)) {
+                Logger.warn('Google migration found an existing linked account', error);
+                return {
+                    success: false,
+                    cancelled: false,
+                    reason: 'existing_google_account',
+                    code: error.code,
+                    credential: error.credential || null,
+                    email: error.email || '',
+                    message: error.message || ''
+                };
+            }
+
+            Logger.error('Migration Error:', error);
             throw error;
         }
+    }
+
+    async signInToExistingGoogle(credential = null) {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+
+        if (credential) {
+            const result = await firebase.auth().signInWithCredential(credential);
+            return result?.user || firebase.auth().currentUser;
+        }
+
+        const result = await firebase.auth().signInWithPopup(provider);
+        return result?.user || firebase.auth().currentUser;
     }
 
     getUid() {

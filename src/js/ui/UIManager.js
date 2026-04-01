@@ -1171,6 +1171,22 @@ export class UIManager {
         this.refreshDesktopShortcutHints();
     }
 
+    requestGenericDecision(title, message, options = {}) {
+        return new Promise((resolve) => {
+            this.showGenericModal(
+                title,
+                message,
+                () => resolve(true),
+                () => resolve(false),
+                {
+                    hideNo: false,
+                    yesText: options.yesText || '확인',
+                    noText: options.noText || '취소'
+                }
+            );
+        });
+    }
+
     updateHostilityUI() {
         if (!this.game.localPlayer) return;
         const panel = document.getElementById('hostility-panel');
@@ -1769,77 +1785,124 @@ export class UIManager {
         // v1.92: Bind & Update Link Google Button
         const linkBtn = document.getElementById('btn-link-google');
         if (linkBtn) {
+            const guestLabel = '게스트 데이터를 구글 계정에 연동하기';
+            const loadingLabel = '구글 계정 연동 중...';
+            const transferringLabel = '데이터 이전 중...';
+            const linkedLabel = '이미 구글 계정과 연동됨';
+            const setLinkButtonState = (disabled, text) => {
+                linkBtn.disabled = disabled;
+                linkBtn.textContent = text;
+            };
             const isGuest = this.game.auth.currentUser?.isAnonymous;
-            linkBtn.textContent = isGuest ? '🔗 구글 계정 연동하기' : '✅ 구글 로그인 중';
+
+            setLinkButtonState(false, isGuest ? guestLabel : linkedLabel);
             if (!isGuest) linkBtn.classList.add('linked');
             else linkBtn.classList.remove('linked');
 
             linkBtn.onclick = async () => {
-                if (!this.game.auth.currentUser.isAnonymous) return;
+                if (!this.game.auth.currentUser?.isAnonymous) return;
 
                 try {
-                    linkBtn.disabled = true;
-                    linkBtn.textContent = '🔄 구글 로그인 중...';
+                    setLinkButtonState(true, loadingLabel);
 
                     const guestUid = this.game.auth.getUid();
                     const guestSnapshot = await this.game.net.getLatestProfileSnapshot?.(guestUid);
                     if (!guestSnapshot?.profile) {
-                        alert("현재 게스트 캐릭터 데이터를 찾을 수 없습니다.");
-                        linkBtn.disabled = false;
-                        linkBtn.textContent = '🔗 구글 계정 연동하기';
+                        alert('현재 게스트 캐릭터 데이터를 찾을 수 없습니다.');
+                        setLinkButtonState(false, guestLabel);
                         return;
                     }
 
-                    // v1.93: Trigger popup FIRST for immediate user feedback and faster cancellation recovery
-                    const result = await this.game.auth.migrateToGoogle(); // Call WITHOUT data first
+                    const result = await this.game.auth.migrateToGoogle();
+                    if (!result) {
+                        setLinkButtonState(false, guestLabel);
+                        return;
+                    }
 
-                    if (result && result.success) {
-                        linkBtn.textContent = '🔄 데이터 전송 중...';
+                    if (!result.success && result.reason === 'existing_google_account') {
+                        const shouldOverwrite = await this.requestGenericDecision(
+                            '기존 구글 데이터 발견',
+                            '선택한 구글 계정에 이미 저장된 캐릭터 데이터가 있습니다. 기존 구글 데이터를 삭제하고 현재 게스트 데이터를 연동할까요?',
+                            {
+                                yesText: '현재 데이터로 덮어쓰기',
+                                noText: '연동 취소'
+                            }
+                        );
 
-                        // Use the guest snapshot captured before auth switches to the Google account.
-                        const currentProfile = { profile: guestSnapshot.profile };
-                        if (!currentProfile || !currentProfile.profile) {
-                            alert("현재 데이터를 불러오지 못했습니다.");
-                            linkBtn.disabled = false;
-                            linkBtn.textContent = '🔗 구글 계정 연동하기';
+                        if (!shouldOverwrite) {
+                            Logger.info('Google migration cancelled by user because the target account already has data.');
+                            setLinkButtonState(false, guestLabel);
                             return;
                         }
 
-                        const migratedProfile = {
-                            ...currentProfile.profile,
-                            displayName: result.googleDisplayName || currentProfile.profile.displayName || currentProfile.profile.name,
-                            migratedFromUid: guestUid,
-                            migratedFromTs: guestSnapshot.ts || currentProfile.profile.ts || 0,
-                            linkedAt: Date.now(),
-                            ts: Date.now()
-                        };
-                        await this.game.net.savePlayerData(result.googleUid, migratedProfile, false, {
-                            allowStaleWrite: true,
-                            backupReason: 'google_migration',
-                            sourceUid: guestUid,
-                            sourceTs: guestSnapshot.ts || migratedProfile.ts
-                        });
+                        setLinkButtonState(true, loadingLabel);
+                        const googleUser = await this.game.auth.signInToExistingGoogle(result.credential);
+                        if (!googleUser?.uid) {
+                            throw new Error('기존 구글 계정으로 로그인하지 못했습니다.');
+                        }
 
-                        alert("연동이 완료되었습니다! 새로운 계정으로 다시 로그인합니다.");
-                        window.location.reload();
-                    } else {
-                        // result.cancelled === true
-                        linkBtn.disabled = false;
-                        linkBtn.textContent = '🔗 구글 계정 연동하기';
+                        const archived = await this.game.net.archiveLatestProfile?.(googleUser.uid, {
+                            reason: 'google_migration_overwrite_archive',
+                            sourceUid: googleUser.uid
+                        });
+                        if (archived && !archived.ok && archived.reason !== 'profile_missing') {
+                            throw archived.error || new Error('기존 구글 데이터 백업에 실패했습니다.');
+                        }
+
+                        result.success = true;
+                        result.mode = 'overwrite_existing_google';
+                        result.googleUid = googleUser.uid;
+                        result.googleDisplayName = googleUser.displayName || '';
+                        result.googleEmail = googleUser.email || '';
                     }
+
+                    if (!result.success) {
+                        setLinkButtonState(false, guestLabel);
+                        return;
+                    }
+
+                    setLinkButtonState(true, transferringLabel);
+                    const currentProfile = { profile: guestSnapshot.profile };
+                    if (!currentProfile?.profile) {
+                        alert('현재 데이터를 불러오지 못했습니다.');
+                        setLinkButtonState(false, guestLabel);
+                        return;
+                    }
+
+                    const migratedProfile = {
+                        ...currentProfile.profile,
+                        displayName: result.googleDisplayName || currentProfile.profile.displayName || currentProfile.profile.name,
+                        migratedFromUid: guestUid,
+                        migratedFromTs: guestSnapshot.ts || currentProfile.profile.ts || 0,
+                        linkedGoogleEmail: result.googleEmail || '',
+                        linkedAt: Date.now(),
+                        ts: Date.now()
+                    };
+
+                    const saveResult = await this.game.net.savePlayerData(result.googleUid, migratedProfile, false, {
+                        allowStaleWrite: true,
+                        backupReason: result.mode === 'overwrite_existing_google' ? 'google_migration_overwrite' : 'google_migration',
+                        sourceUid: guestUid,
+                        sourceTs: guestSnapshot.ts || migratedProfile.ts
+                    });
+
+                    if (!saveResult?.ok) {
+                        throw saveResult?.error || new Error('연동 데이터 저장에 실패했습니다.');
+                    }
+
+                    alert('구글 계정 연동이 완료되었습니다. 새 계정 상태로 다시 불러옵니다.');
+                    window.location.reload();
                 } catch (e) {
                     if (e.code === 'auth/popup-closed-by-user') {
-                        console.log("User cancelled Google login popup.");
+                        Logger.info('User cancelled Google login popup.');
                     } else {
-                        console.error("Migration Error:", e);
+                        console.error('Migration Error:', e);
                         alert("오류가 발생했습니다: " + e.message);
                     }
-                    linkBtn.disabled = false;
-                    linkBtn.textContent = '🔗 구글 계정 연동하기';
+                    setLinkButtonState(false, guestLabel);
                 }
             };
         }
-    }
 
     // --- Dialogue System (v2.0) ---
     showDialogue(sequence) {

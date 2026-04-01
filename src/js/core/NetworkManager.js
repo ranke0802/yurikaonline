@@ -580,6 +580,33 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
+    async archiveLatestProfile(uid, options = {}) {
+        if (!uid || !window.firebase) return { ok: false, reason: 'invalid_args' };
+
+        try {
+            const latestSnapshot = await this.getLatestProfileSnapshot(uid);
+            if (!latestSnapshot?.profile) {
+                return { ok: false, reason: 'profile_missing' };
+            }
+
+            const backupId = await this._writeProfileBackup(uid, latestSnapshot.profile, {
+                keepCount: options.keepBackupCount || 20,
+                reason: options.reason || 'profile_archive',
+                sourceUid: options.sourceUid || uid,
+                sourceTs: options.sourceTs || latestSnapshot.ts || latestSnapshot.profile.ts || Date.now()
+            });
+
+            return {
+                ok: true,
+                backupId,
+                snapshot: latestSnapshot
+            };
+        } catch (error) {
+            Logger.error('Failed to archive latest profile', error);
+            return { ok: false, reason: 'archive_failed', error };
+        }
+    }
+
     async _writeProfileBackup(uid, profile, options = {}) {
         const backupsRef = this.getProfileBackupsRef(uid);
         if (!backupsRef || !profile) return null;
