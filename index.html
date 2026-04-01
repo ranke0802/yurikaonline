@@ -33,7 +33,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.01.32')
+                navigator.serviceWorker.register('./sw.js?v=0.01.33')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -113,7 +113,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.32">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.33">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -593,6 +593,23 @@
             <div class="tooltip-desc">설명</div>
         </div>
 
+        <div id="skill-detail-modal" class="confirm-modal-overlay hidden">
+            <div class="confirm-modal-content skill-detail-modal-content">
+                <button type="button" id="skill-detail-modal-close" class="skill-detail-modal-close" aria-label="스킬 상세 닫기">✕</button>
+                <div class="skill-detail-modal-header">
+                    <div id="skill-detail-modal-hotkey" class="skill-detail-modal-hotkey">J</div>
+                    <div class="skill-detail-modal-heading">
+                        <h2 id="skill-detail-modal-title">스킬 상세</h2>
+                        <p id="skill-detail-modal-subtitle">현재 적용 공식과 수치</p>
+                    </div>
+                </div>
+                <div id="skill-detail-modal-body" class="skill-detail-modal-body"></div>
+                <div class="modal-buttons skill-detail-modal-actions">
+                    <button id="skill-detail-modal-close-bottom" class="confirm-btn">닫기</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Touch Feedback -->
         <div id="touch-pointer" class="hidden"></div>
 
@@ -644,7 +661,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.32"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.33"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

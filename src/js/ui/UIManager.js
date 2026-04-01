@@ -441,6 +441,8 @@ export class UIManager {
         const rewardContent = document.querySelector('#reward-modal .reward-content');
         const historyContent = document.querySelector('#history-modal .history-content');
         const genericContent = document.querySelector('#generic-modal .confirm-modal-content');
+        const skillDetailModal = document.getElementById('skill-detail-modal');
+        const skillDetailContent = document.querySelector('#skill-detail-modal .skill-detail-modal-content');
         const inventoryItemModal = document.getElementById('inventory-item-modal');
         const inventoryItemContent = document.querySelector('#inventory-item-modal .inventory-item-modal-card');
         const genericYes = document.getElementById('generic-modal-yes');
@@ -476,6 +478,12 @@ export class UIManager {
             'modal-shortcut-hint'
         );
         this.upsertShortcutHint(
+            this.isShortcutVisible(skillDetailModal) ? skillDetailContent : null,
+            'F',
+            '닫기',
+            'modal-shortcut-hint'
+        );
+        this.upsertShortcutHint(
             isInventoryItemModalOpen ? inventoryItemContent : null,
             'F',
             '닫기',
@@ -496,6 +504,7 @@ export class UIManager {
             || this.isShortcutVisible(document.getElementById('reward-modal'))
             || this.isShortcutVisible(document.getElementById('history-modal'))
             || this.isShortcutVisible(document.getElementById('generic-modal'))
+            || this.isShortcutVisible(document.getElementById('skill-detail-modal'))
         );
     }
 
@@ -531,6 +540,11 @@ export class UIManager {
 
         if (this.isShortcutVisible(document.getElementById('history-modal'))) {
             this.toggleUpdateHistory();
+            return true;
+        }
+
+        if (this.isShortcutVisible(document.getElementById('skill-detail-modal'))) {
+            this.hideSkillDetailModal();
             return true;
         }
 
@@ -570,6 +584,11 @@ export class UIManager {
 
         if (this.isShortcutVisible(document.getElementById('history-modal'))) {
             this.toggleUpdateHistory();
+            return true;
+        }
+
+        if (this.isShortcutVisible(document.getElementById('skill-detail-modal'))) {
+            this.hideSkillDetailModal();
             return true;
         }
 
@@ -815,6 +834,26 @@ export class UIManager {
             autoAttackToggle.addEventListener('touchstart', handleAutoAttackToggle, { passive: false });
             this.updateAutoAttackToggle();
         }
+
+        const skillDetailModal = document.getElementById('skill-detail-modal');
+        const skillDetailCloseBtn = document.getElementById('skill-detail-modal-close');
+        const skillDetailCloseBottomBtn = document.getElementById('skill-detail-modal-close-bottom');
+        const handleSkillDetailClose = (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            this.hideSkillDetailModal();
+        };
+        skillDetailCloseBtn?.addEventListener('click', handleSkillDetailClose);
+        skillDetailCloseBtn?.addEventListener('touchstart', handleSkillDetailClose, { passive: false });
+        skillDetailCloseBottomBtn?.addEventListener('click', handleSkillDetailClose);
+        skillDetailCloseBottomBtn?.addEventListener('touchstart', handleSkillDetailClose, { passive: false });
+        skillDetailModal?.addEventListener('click', (e) => {
+            if (e.target === skillDetailModal) {
+                handleSkillDetailClose(e);
+            }
+        });
 
         // Chat send button
         const sendBtn = document.querySelector('.send-btn');
@@ -1357,6 +1396,7 @@ export class UIManager {
         this.hideTooltip();
 
         document.querySelectorAll('.game-popup').forEach(p => p.classList.add('hidden'));
+        this.hideSkillDetailModal();
         if (id !== 'inventory-popup' || !isCurrentlyHidden) {
             this.closeInventoryItemModal(true);
         }
@@ -1402,9 +1442,451 @@ export class UIManager {
         this.refreshDesktopShortcutHints();
     }
 
+    formatSkillPercent(value, digits = 0) {
+        const safe = Number.isFinite(Number(value)) ? Number(value) : 0;
+        return `${(safe * 100).toFixed(digits)}%`;
+    }
+
+    escapeHtml(value = '') {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    renderReadmeInlineMarkdown(text = '') {
+        let html = this.escapeHtml(text);
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+        html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        return html;
+    }
+
+    renderReadmeMarkdownFallback(markdown = '') {
+        const lines = String(markdown).replace(/\r\n/g, '\n').split('\n');
+        const html = [];
+        let inCodeBlock = false;
+        let codeLines = [];
+        let paragraphLines = [];
+        let listItems = [];
+        let listTag = null;
+
+        const flushParagraph = () => {
+            if (paragraphLines.length === 0) return;
+            html.push(`<p>${this.renderReadmeInlineMarkdown(paragraphLines.join(' '))}</p>`);
+            paragraphLines = [];
+        };
+
+        const flushList = () => {
+            if (!listTag || listItems.length === 0) return;
+            html.push(`<${listTag}>${listItems.join('')}</${listTag}>`);
+            listItems = [];
+            listTag = null;
+        };
+
+        const flushCode = () => {
+            if (!inCodeBlock) return;
+            html.push(`<pre><code>${this.escapeHtml(codeLines.join('\n'))}</code></pre>`);
+            inCodeBlock = false;
+            codeLines = [];
+        };
+
+        lines.forEach((rawLine) => {
+            const line = rawLine ?? '';
+            const trimmed = line.trim();
+
+            if (trimmed.startsWith('```')) {
+                flushParagraph();
+                flushList();
+                if (inCodeBlock) {
+                    flushCode();
+                } else {
+                    inCodeBlock = true;
+                    codeLines = [];
+                }
+                return;
+            }
+
+            if (inCodeBlock) {
+                codeLines.push(line);
+                return;
+            }
+
+            if (!trimmed) {
+                flushParagraph();
+                flushList();
+                return;
+            }
+
+            const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
+            if (headingMatch) {
+                flushParagraph();
+                flushList();
+                const level = Math.min(6, headingMatch[1].length);
+                html.push(`<h${level}>${this.renderReadmeInlineMarkdown(headingMatch[2])}</h${level}>`);
+                return;
+            }
+
+            if (trimmed.startsWith('> ')) {
+                flushParagraph();
+                flushList();
+                html.push(`<blockquote>${this.renderReadmeInlineMarkdown(trimmed.slice(2))}</blockquote>`);
+                return;
+            }
+
+            const orderedMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+            if (orderedMatch) {
+                flushParagraph();
+                if (listTag && listTag !== 'ol') flushList();
+                listTag = 'ol';
+                listItems.push(`<li>${this.renderReadmeInlineMarkdown(orderedMatch[2])}</li>`);
+                return;
+            }
+
+            const unorderedMatch = trimmed.match(/^[-*]\s+(.*)$/);
+            if (unorderedMatch) {
+                flushParagraph();
+                if (listTag && listTag !== 'ul') flushList();
+                listTag = 'ul';
+                listItems.push(`<li>${this.renderReadmeInlineMarkdown(unorderedMatch[1])}</li>`);
+                return;
+            }
+
+            flushList();
+            paragraphLines.push(trimmed);
+        });
+
+        flushParagraph();
+        flushList();
+        flushCode();
+
+        return html.join('');
+    }
+
+    renderReadmeContent(markdown = '') {
+        const text = String(markdown || '').trim();
+        if (!text) {
+            return '<div class="readme-empty">README 내용이 비어 있습니다.</div>';
+        }
+
+        try {
+            if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+                return marked.parse(text, {
+                    gfm: true,
+                    breaks: true,
+                    headerIds: false,
+                    mangle: false
+                });
+            }
+        } catch (error) {
+            console.error('Failed to parse README.md with marked:', error);
+        }
+
+        return this.renderReadmeMarkdownFallback(text);
+    }
+
+    getSkillHotkey(skillId) {
+        return {
+            laser: 'J',
+            missile: 'H',
+            fireball: 'U',
+            shield: 'K'
+        }[skillId] || '-';
+    }
+
+    buildSkillDetailSection(title, items = []) {
+        if (!Array.isArray(items) || items.length === 0) return '';
+        return `
+            <section class="skill-detail-section">
+                <h3>${title}</h3>
+                <ul>
+                    ${items.map((item) => `<li>${item}</li>`).join('')}
+                </ul>
+            </section>
+        `;
+    }
+
+    buildSkillSummaryMetrics(metrics = []) {
+        if (!Array.isArray(metrics) || metrics.length === 0) return '';
+        return `
+            <section class="skill-detail-summary-grid">
+                ${metrics.map((metric) => `
+                    <div class="skill-detail-metric-card">
+                        <span class="skill-detail-metric-label">${metric.label}</span>
+                        <strong class="skill-detail-metric-value">${metric.value}</strong>
+                    </div>
+                `).join('')}
+            </section>
+        `;
+    }
+
+    getSkillDetailData(skillId) {
+        const p = this.game.localPlayer;
+        const data = this.skillData[skillId];
+        if (!p || !data) return null;
+
+        const lv = p.skillLevels[skillId] || 1;
+        const attackPower = Math.round(p.attackPower || 0);
+        const critRateText = this.formatSkillPercent(p.critRate || 0, 1);
+        const weaponCombat = p.getWeaponCombatProfile?.() || {};
+        const equippedWeapon = p.getEquippedWeapon?.();
+        const weaponName = equippedWeapon?.name || '장착 무기 없음';
+        const hotkey = this.getSkillHotkey(skillId);
+        const currentStats = [];
+        const formulaItems = [];
+        const settingItems = [];
+        const weaponItems = [];
+        const summaryMetrics = [];
+        const upgradeCost = skillId === 'shield'
+            ? null
+            : (p.getSkillUpgradeCost ? p.getSkillUpgradeCost(skillId) : (300 * Math.pow(2, lv - 1)));
+        let tooltipCurrentEffectHtml = '';
+
+        switch (skillId) {
+            case 'laser': {
+                const baseRatio = 0.10 + (lv - 1) * 0.05;
+                const increment = 0.10 + (lv - 1) * 0.05;
+                const maxRatio = 1.0;
+                const maxChains = 1 + lv;
+                const weaponMultiplier = 1 + (weaponCombat.laserDamageBonus || 0);
+                const minBaseDamage = Math.ceil(attackPower * baseRatio * weaponMultiplier);
+                const maxBaseDamage = Math.ceil(attackPower * maxRatio * weaponMultiplier);
+                const statBonus = (p.intelligence + p.wisdom) * 0.05;
+                const tickInterval = 0.7 / ((p.attackSpeed || 1) + statBonus);
+
+                currentStats.push(
+                    `현재 공격력 ${attackPower} 기준 시작 피해는 <strong>${minBaseDamage}</strong>, 완전 충전 기준 최대 피해는 <strong>${maxBaseDamage}</strong>입니다. 둘 다 방어력 적용 전 수치입니다.`,
+                    `한 번의 틱에 최대 <strong>${maxChains}명</strong>까지 연쇄되고, 사거리는 <strong>${Math.round(p.attackRange)}</strong>입니다.`,
+                    `현재 틱 간격은 약 <strong>${tickInterval.toFixed(2)}초</strong>이며, 치명타는 <strong>${critRateText}</strong> 확률로 <strong>x2</strong>가 적용됩니다.`,
+                    `적중한 대상마다 MP <strong>+1</strong>을 회복합니다.${weaponCombat.restoreHpPerLaserHit > 0 ? ` 장착 무기 효과로 HP도 <strong>+${weaponCombat.restoreHpPerLaserHit}</strong> 회복합니다.` : ''}`
+                );
+
+                summaryMetrics.push(
+                    { label: '현재 레벨', value: `Lv.${lv}` },
+                    { label: '연쇄 수', value: `${maxChains}명` },
+                    { label: '사거리', value: `${Math.round(p.attackRange)}` },
+                    { label: '방어 전 피해', value: `${minBaseDamage} ~ ${maxBaseDamage}` },
+                    { label: '틱 간격', value: `${tickInterval.toFixed(2)}초` },
+                    { label: '치명타', value: `${critRateText} / x2` }
+                );
+
+                formulaItems.push(
+                    `<code>시작 비율 = 0.10 + 0.05 × (레벨 - 1)</code> → 현재 <strong>${this.formatSkillPercent(baseRatio)}</strong>`,
+                    `<code>충전 증가 = 0.10 + 0.05 × (레벨 - 1)</code>를 <strong>0.3초</strong>마다 누적합니다. 현재 증가폭은 <strong>${this.formatSkillPercent(increment)}</strong>입니다.`,
+                    `<code>최종 비율 = min(1.0, 시작 비율 + 충전 단계 × 증가 비율)</code>`,
+                    `<code>방어 전 피해 = ceil(공격력 × 최종 비율 × 무기 보정)</code>`,
+                    `<code>최종 피해 = max(1, 방어 전 피해 - 대상 방어력)</code>`,
+                    `<code>치명타 발생 시 최종 피해 × 2</code>`
+                );
+
+                settingItems.push(
+                    `첫 연쇄는 현재 선택한 타겟을 우선합니다.`,
+                    `한 틱 안에서는 이미 맞은 대상에게 다시 연쇄되지 않습니다.`,
+                    `실제 감전 적용은 코드 기준으로 <strong>4.0초 동안 50% 둔화</strong>입니다.`,
+                    `자동 공격을 켜면 현재 선택한 타겟이 살아 있고 사거리 안에 있을 때만 이 스킬을 자동으로 사용합니다.`
+                );
+
+                if ((weaponCombat.laserDamageBonus || 0) > 0) {
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 체인 라이트닝 피해 <strong>+${this.formatSkillPercent(weaponCombat.laserDamageBonus)}</strong>`);
+                }
+                if ((weaponCombat.restoreHpPerLaserHit || 0) > 0) {
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 적중 대상당 HP <strong>+${weaponCombat.restoreHpPerLaserHit}</strong> 회복`);
+                }
+
+                tooltipCurrentEffectHtml = `<div class="current-effect">현재 효과 (Lv.${lv}): 연쇄 ${maxChains}명 | 사거리 ${Math.round(p.attackRange)} | 방어 전 피해 ${minBaseDamage} ~ ${maxBaseDamage} | 충전 증가 ${this.formatSkillPercent(increment)} | 감전 4초/50% 둔화</div>`;
+                break;
+            }
+            case 'missile': {
+                const missileCount = lv * 2;
+                const manaCost = 4 + (lv - 1) * 3;
+                const weaponMultiplier = 1 + (weaponCombat.missileDamageBonus || 0);
+                const baseMissileDamage = Math.ceil(attackPower * 0.45 * weaponMultiplier);
+                const critMissileDamage = Math.ceil(attackPower * 0.45 * weaponMultiplier * 2);
+
+                currentStats.push(
+                    `한 번 시전하면 <strong>${missileCount}발</strong>이 순차 발사되고, 현재 공격력 ${attackPower} 기준 미사일 1발의 방어 전 피해는 <strong>${baseMissileDamage}</strong>입니다.`,
+                    `치명타가 터지면 미사일 1발의 방어 전 피해는 <strong>${critMissileDamage}</strong>까지 올라갑니다.`,
+                    `타겟 탐색 반경은 <strong>600</strong>, 마나 소모는 <strong>${manaCost}</strong>, 재사용 대기시간은 <strong>1.0초</strong>입니다.`
+                );
+
+                summaryMetrics.push(
+                    { label: '현재 레벨', value: `Lv.${lv}` },
+                    { label: '발사 수', value: `${missileCount}발` },
+                    { label: '1발 피해', value: `${baseMissileDamage}` },
+                    { label: '치명타 피해', value: `${critMissileDamage}` },
+                    { label: '마나 소모', value: `${manaCost}` },
+                    { label: '쿨다운', value: '1.0초' }
+                );
+
+                formulaItems.push(
+                    `<code>발사 수 = 레벨 × 2</code> → 현재 <strong>${missileCount}발</strong>`,
+                    `<code>방어 전 피해 = 공격력 × 0.45 × 무기 보정</code>`,
+                    `<code>최종 피해 = max(1, 방어 전 피해 - 대상 방어력)</code>`,
+                    `<code>치명타 발생 시 방어 전 피해 × 2 후 방어력 적용</code>`,
+                    `<code>마나 소모 = 4 + 3 × (레벨 - 1)</code>`
+                );
+
+                settingItems.push(
+                    `현재 선택한 타겟이 유효하면 먼저 노리고, 없으면 반경 600 안의 가장 가까운 적을 찾습니다.`,
+                    `미사일은 <strong>0.05초 간격</strong>으로 순차 발사됩니다.`,
+                    `초기 <strong>0.1~0.3초</strong> 동안 퍼져 나간 뒤 속도 <strong>800</strong>으로 유도 비행합니다.`,
+                    `타겟이 도중에 죽어도 다른 적으로 갈아타지 않고 마지막 추적 좌표를 향해 날아갑니다.`
+                );
+
+                if ((weaponCombat.missileDamageBonus || 0) > 0) {
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 매직 미사일 피해 <strong>+${this.formatSkillPercent(weaponCombat.missileDamageBonus)}</strong>`);
+                }
+
+                tooltipCurrentEffectHtml = `<div class="current-effect">현재 효과 (Lv.${lv}): ${missileCount}발 | 방어 전 피해 ${baseMissileDamage} | 탐색 600 | 마나 ${manaCost} | 쿨다운 1.0초</div>`;
+                break;
+            }
+            case 'fireball': {
+                const manaCost = 12 + (lv - 1) * 4;
+                const weaponMultiplier = 1 + (weaponCombat.fireballDamageBonus || 0);
+                const directDamage = Math.ceil(attackPower * (1.8 + (lv - 1) * 0.3) * weaponMultiplier);
+                const baseRadius = 20 + (lv - 1) * 20;
+                const aoeRadius = Math.round(baseRadius * 2.5);
+                const burnDuration = 2.0 + (lv - 1) * 0.5;
+                const noDefBurnTick = Math.max(1, Math.ceil(directDamage * 0.15));
+
+                currentStats.push(
+                    `현재 공격력 ${attackPower} 기준 직격 피해는 방어 전 <strong>${directDamage}</strong>입니다.`,
+                    `폭발 반경은 <strong>${aoeRadius}</strong>, 화상 지속시간은 <strong>${burnDuration.toFixed(1)}초</strong>, 방어력 0 기준 화상 틱은 <strong>${noDefBurnTick}</strong>입니다.`,
+                    `마나 소모는 <strong>${manaCost}</strong>, 재사용 대기시간은 <strong>2.0초</strong>입니다.`
+                );
+
+                summaryMetrics.push(
+                    { label: '현재 레벨', value: `Lv.${lv}` },
+                    { label: '직격 피해', value: `${directDamage}` },
+                    { label: '폭발 반경', value: `${aoeRadius}` },
+                    { label: '화상 지속', value: `${burnDuration.toFixed(1)}초` },
+                    { label: '화상 틱', value: `${noDefBurnTick}` },
+                    { label: '마나 소모', value: `${manaCost}` }
+                );
+
+                formulaItems.push(
+                    `<code>직격 피해 = ceil(공격력 × (1.8 + 0.3 × (레벨 - 1)) × 무기 보정)</code>`,
+                    `<code>최종 피해 = max(1, 직격 피해 - 대상 방어력)</code>`,
+                    `<code>폭발 기본 반경 = 20 + 20 × (레벨 - 1)</code>`,
+                    `<code>실제 폭발 반경 = 폭발 기본 반경 × 2.5</code>`,
+                    `<code>화상 지속 = 2.0 + 0.5 × (레벨 - 1)초</code>`,
+                    `<code>화상 틱 피해 = ceil(최종 피해 × 0.15)</code>가 <strong>0.5초마다</strong> 들어갑니다.`
+                );
+
+                settingItems.push(
+                    `투사체는 현재 바라보는 방향으로 속도 <strong>800</strong>으로 날아가며, 최대 <strong>1.5초</strong> 동안 유지됩니다.`,
+                    `발사 직후 발밑 폭발을 막기 위해 최소 <strong>50px</strong> 이상 이동해야 충돌 판정이 납니다.`,
+                    `현재 코드 기준으로 파이어볼은 <strong>치명타가 적용되지 않습니다.</strong>`,
+                    `명중 또는 범위 피해 대상 모두 화상을 적용할 수 있습니다.`
+                );
+
+                if ((weaponCombat.fireballDamageBonus || 0) > 0) {
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 파이어볼 피해 <strong>+${this.formatSkillPercent(weaponCombat.fireballDamageBonus)}</strong>`);
+                }
+                if ((weaponCombat.fireExplosionDamageRatio || 0) > 0) {
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 파이어볼/화상으로 처치 시 주변에 추가 폭발 피해 <strong>${this.formatSkillPercent(weaponCombat.fireExplosionDamageRatio)}</strong>가 발생합니다.`);
+                }
+
+                tooltipCurrentEffectHtml = `<div class="current-effect">현재 효과 (Lv.${lv}): 직격 ${directDamage} | 폭발 반경 ${aoeRadius} | 화상 ${burnDuration.toFixed(1)}초 | 마나 ${manaCost}</div>`;
+                break;
+            }
+            case 'shield': {
+                const shieldState = p.shieldTimer > 0
+                    ? (p.shieldTimer > 1.5 ? '대기 중' : `피격 후 무적 ${p.shieldTimer.toFixed(1)}초 남음`)
+                    : '비활성';
+
+                currentStats.push(
+                    `현재 상태는 <strong>${shieldState}</strong>입니다.`,
+                    `마나 소모는 <strong>20</strong>, 재사용 대기시간은 <strong>3.0초</strong>입니다.`,
+                    `실드는 강화되지 않는 고정 성능 스킬이라 현재도 <strong>MAX</strong> 상태입니다.`
+                );
+
+                summaryMetrics.push(
+                    { label: '현재 상태', value: shieldState },
+                    { label: '마나 소모', value: '20' },
+                    { label: '쿨다운', value: '3.0초' },
+                    { label: '피격 차단', value: '1회' },
+                    { label: '무적 시간', value: '1.5초' },
+                    { label: '강화 여부', value: '고정 성능' }
+                );
+
+                formulaItems.push(
+                    `<code>시전 시 shieldTimer = 9999</code>로 유지되어 첫 피격 전까지 준비 상태가 계속됩니다.`,
+                    `<code>피격 시 shieldTimer가 1.5초로 전환</code>되며, 그 동안 들어오는 피해와 상태이상을 모두 막습니다.`,
+                    `<code>shieldTimer > 0</code>인 동안 <code>takeDamage()</code>는 항상 <strong>0</strong>을 반환합니다.`
+                );
+
+                settingItems.push(
+                    `첫 공격만 막고 끝나는 단발 보호막이 아니라, 첫 피격 전까지 대기했다가 맞는 순간 <strong>1.5초 무적 구간</strong>으로 바뀝니다.`,
+                    `불타는 상태나 감전 같은 상태이상도 함께 차단합니다.`,
+                    `레벨업 버튼은 비활성화되어 있고 강화 비용도 없습니다.`
+                );
+
+                tooltipCurrentEffectHtml = `<div class="current-effect">현재 효과: 다음 피격 차단 준비 | 피격 후 1.5초 무적 | 마나 20 | 쿨다운 3.0초</div>`;
+                break;
+            }
+            default:
+                return null;
+        }
+
+        const sectionsHtml = [
+            this.buildSkillSummaryMetrics(summaryMetrics),
+            this.buildSkillDetailSection('핵심 설명', [data.desc]),
+            this.buildSkillDetailSection('현재 적용 수치', currentStats),
+            this.buildSkillDetailSection('실제 데미지/효과 공식', formulaItems),
+            this.buildSkillDetailSection('코드 기준 적용 설정', settingItems),
+            this.buildSkillDetailSection('현재 장착 무기 보정', weaponItems),
+            this.buildSkillDetailSection('다음 강화 비용', [upgradeCost == null ? '이 스킬은 추가 강화가 없습니다.' : `현재 다음 레벨 업 비용은 <strong>${upgradeCost.toLocaleString('ko-KR')} G</strong>입니다.`])
+        ].filter(Boolean).join('');
+
+        return {
+            name: data.name,
+            level: lv,
+            hotkey,
+            subtitle: `Lv.${lv} · 단축키 ${hotkey} · 현재 공격력 ${attackPower}${equippedWeapon ? ` · 무기 ${weaponName}` : ''}`,
+            tooltipCurrentEffectHtml,
+            modalHtml: sectionsHtml
+        };
+    }
+
+    showSkillDetailModal(skillId) {
+        const detail = this.getSkillDetailData(skillId);
+        const modal = document.getElementById('skill-detail-modal');
+        if (!detail || !modal) return;
+
+        this.hideTooltip();
+        const title = document.getElementById('skill-detail-modal-title');
+        const subtitle = document.getElementById('skill-detail-modal-subtitle');
+        const hotkey = document.getElementById('skill-detail-modal-hotkey');
+        const body = document.getElementById('skill-detail-modal-body');
+
+        if (title) title.textContent = detail.name;
+        if (subtitle) subtitle.textContent = detail.subtitle;
+        if (hotkey) hotkey.textContent = detail.hotkey;
+        if (body) {
+            body.innerHTML = detail.modalHtml;
+            body.scrollTop = 0;
+        }
+
+        modal.classList.remove('hidden');
+        this.refreshDesktopShortcutHints();
+    }
+
+    hideSkillDetailModal() {
+        const modal = document.getElementById('skill-detail-modal');
+        if (modal) modal.classList.add('hidden');
+        this.refreshDesktopShortcutHints();
+    }
+
     bindSkillTooltipTargets() {
         const skillPopup = document.getElementById('skill-popup');
         if (!skillPopup || skillPopup.dataset.tooltipBound === 'true') return;
+        const canHover = window.matchMedia?.('(hover: hover)')?.matches ?? false;
+        const hasFinePointer = window.matchMedia?.('(pointer: fine)')?.matches ?? false;
+        const shouldUseHoverTooltip = canHover && hasFinePointer;
 
         const resolveSkillItem = (target) => {
             const item = target?.closest?.('.skill-item');
@@ -1424,30 +1906,36 @@ export class UIManager {
             this.showTooltip(skillId, x ?? rect.left, y ?? rect.top);
         };
 
-        skillPopup.addEventListener('mouseover', (e) => {
+        if (shouldUseHoverTooltip) {
+            skillPopup.addEventListener('mouseover', (e) => {
+                const item = resolveSkillItem(e.target);
+                if (!item) return;
+                showFromItem(item, e.clientX, e.clientY);
+            });
+
+            skillPopup.addEventListener('mousemove', (e) => {
+                const item = resolveSkillItem(e.target);
+                if (!item) {
+                    this.hideTooltip();
+                    return;
+                }
+                showFromItem(item, e.clientX, e.clientY);
+            });
+
+            skillPopup.addEventListener('mouseleave', () => this.hideTooltip());
+        } else {
+            skillPopup.addEventListener('touchstart', () => this.hideTooltip(), { passive: true });
+        }
+
+        skillPopup.addEventListener('click', (e) => {
             const item = resolveSkillItem(e.target);
             if (!item) return;
-            showFromItem(item, e.clientX, e.clientY);
+            if (e.target.closest('.skill-up-btn')) return;
+
+            const skillId = resolveSkillId(item);
+            if (!skillId) return;
+            this.showSkillDetailModal(skillId);
         });
-
-        skillPopup.addEventListener('mousemove', (e) => {
-            const item = resolveSkillItem(e.target);
-            if (!item) {
-                this.hideTooltip();
-                return;
-            }
-            showFromItem(item, e.clientX, e.clientY);
-        });
-
-        skillPopup.addEventListener('mouseleave', () => this.hideTooltip());
-
-        skillPopup.addEventListener('touchstart', (e) => {
-            const item = resolveSkillItem(e.target);
-            if (!item) return;
-
-            const touch = e.touches?.[0];
-            showFromItem(item, touch?.clientX, touch?.clientY);
-        }, { passive: true });
 
         skillPopup.dataset.tooltipBound = 'true';
     }
@@ -1525,49 +2013,14 @@ export class UIManager {
     }
 
     showTooltip(skillId, x, y) {
-        const p = this.game.localPlayer;
-        if (!p) return;
-        const data = this.skillData[skillId];
-        if (!data) return;
-        if (!this.tooltip) return;
-
-        const lv = p.skillLevels[skillId] || 1;
-        let currentEffect = "";
-
-        switch (skillId) {
-            case 'laser':
-                const baseChain = 1 + lv;
-                const baseRatio = 0.10 + (lv - 1) * 0.05;
-                const increment = 0.10 + (lv - 1) * 0.05;
-                const minDmg = Math.floor(p.attackPower * baseRatio);
-                const maxDmg = Math.floor(p.attackPower * 1.0);
-                const slow = 80;
-                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>연쇄: ${baseChain}마리 | 사거리: ${Math.floor(p.attackRange)} | 위력: ${minDmg} ~ ${maxDmg} | 충전당 증가: ${(increment * 100).toFixed(0)}% | 둔화: ${slow}%</div>`;
-                break;
-            case 'missile':
-                const mCount = lv * 2;
-                // v0.00.42: Fixed to match actual damage (45%, not 90%)
-                const mDmg = Math.floor(p.attackPower * 0.45);
-                const mCost = 4 + (lv - 1) * 3;
-                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>발사 수: ${mCount}발 | 발당 데미지: ${mDmg} | 유도 거리: 600 | 마나 소모: ${mCost}</div>`;
-                break;
-            case 'fireball':
-                const fDmg = Math.floor(p.attackPower * (1.8 + (lv - 1) * 0.3));
-                const fRad = 20 + (lv - 1) * 20;
-                const fBurn = 2.0 + (lv - 1) * 0.5;
-                const fCost = 12 + (lv - 1) * 4;
-                currentEffect = `<div class="current-effect">현재 효과 (Lv.${lv}):<br>직격 피해: ${fDmg} | 폭발 반경: ${fRad} | 화상: ${fBurn}초 | 마나 소모: ${fCost}</div>`;
-                break;
-            case 'shield':
-                currentEffect = `<div class="current-effect">현재 효과:<br>다음 1회 피격 무효화 | 마나 소모: 20 | 재사용 대기시간: 3초</div>`;
-                break;
-        }
+        const detail = this.getSkillDetailData(skillId);
+        if (!detail || !this.tooltip) return;
 
         const tooltip = this.tooltip;
         const tooltipName = tooltip.querySelector('.tooltip-name');
         const tooltipDesc = tooltip.querySelector('.tooltip-desc');
-        if (tooltipName) tooltipName.textContent = data.name;
-        if (tooltipDesc) tooltipDesc.innerHTML = data.desc + currentEffect;
+        if (tooltipName) tooltipName.textContent = detail.name;
+        if (tooltipDesc) tooltipDesc.innerHTML = `${this.skillData[skillId].desc}${detail.tooltipCurrentEffectHtml}`;
 
         const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
         const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
@@ -1643,6 +2096,7 @@ export class UIManager {
         } else {
             if (this.overlay) this.overlay.classList.add('hidden');
             document.querySelectorAll('.game-popup').forEach(p => p.classList.add('hidden'));
+            this.hideSkillDetailModal();
             document.body.classList.remove('popup-open');
             this.closeInventoryItemModal(true);
             this.isPaused = false;
@@ -2860,6 +3314,18 @@ export class UIManager {
         };
     }
 
+    applyInventoryEnhancementVisual(button, item, badgeEl = null) {
+        if (!button || !item || item.slot !== 'weapon') return;
+
+        const visualStyle = this.game.itemData?.getEnhancementVisualStyle?.(item);
+        if (!visualStyle) return;
+
+        button.classList.add('enhancement-tier', visualStyle.cssClass);
+        if (badgeEl) {
+            badgeEl.classList.add(visualStyle.cssClass);
+        }
+    }
+
     updateInventory() {
         const p = this.game.localPlayer;
         if (!p) return;
@@ -2941,6 +3407,7 @@ export class UIManager {
             level.className = 'item-enhancement';
             level.textContent = `+${equippedWeapon.enhancementLevel || 0}`;
             equippedSlot.appendChild(level);
+            this.applyInventoryEnhancementVisual(equippedSlot, equippedWeapon, level);
             equippedSlot.addEventListener('click', () => {
                 this.openInventoryItemModal({ kind: 'equipment', slot: 'weapon' });
             });
@@ -2982,6 +3449,7 @@ export class UIManager {
                     level.className = 'item-enhancement';
                     level.textContent = `+${item.enhancementLevel || 0}`;
                     button.appendChild(level);
+                    this.applyInventoryEnhancementVisual(button, item, level);
                 }
 
                 button.addEventListener('pointerdown', (event) => {
@@ -3449,13 +3917,21 @@ export class UIManager {
         const listEl = document.getElementById('history-list');
         if (!listEl) return;
 
+        listEl.innerHTML = '<div class="readme-loading">README.md 불러오는 중...</div>';
+
         try {
             const v = window.GAME_VERSION || Date.now();
-            const response = await fetch(`README.md?v=${v}`);
+            const response = await fetch(`./README.md?v=${v}`, { cache: 'no-store' });
+            if (!response.ok) {
+                throw new Error(`README fetch failed: ${response.status}`);
+            }
             const text = await response.text();
-
-            if (typeof marked !== 'undefined') {
-                listEl.innerHTML = `<div class="readme-content">${marked.parse(text)}</div>`;
+            if (/^\s*<!doctype html/i.test(text) || /^\s*<html/i.test(text)) {
+                throw new Error('README fetch returned HTML document instead of markdown');
+            }
+            const rendered = this.renderReadmeContent(text);
+            if (rendered) {
+                listEl.innerHTML = `<div class="readme-content">${rendered}</div>`;
                 return;
             }
         } catch (e) {
@@ -3463,19 +3939,23 @@ export class UIManager {
         }
 
         // Fallback to updateHistory array if fetch fails or marked is missing
-        if (!this.game.updateHistory) return;
-        listEl.innerHTML = this.game.updateHistory.map(item => `
-            <div class="history-item">
-                <div class="history-v-row">
-                    <span class="history-v">${item.version}</span>
-                    <span class="history-date">${item.date}</span>
+        if (this.game.updateHistory?.length) {
+            listEl.innerHTML = this.game.updateHistory.map(item => `
+                <div class="history-item">
+                    <div class="history-v-row">
+                        <span class="history-v">${item.version}</span>
+                        <span class="history-date">${item.date}</span>
+                    </div>
+                    <div class="history-title">${item.title}</div>
+                    <ul class="history-logs">
+                        ${item.logs.map(log => `<li>${log}</li>`).join('')}
+                    </ul>
                 </div>
-                <div class="history-title">${item.title}</div>
-                <ul class="history-logs">
-                    ${item.logs.map(log => `<li>${log}</li>`).join('')}
-                </ul>
-            </div>
-        `).join('');
+            `).join('');
+            return;
+        }
+
+        listEl.innerHTML = '<div class="readme-empty">업데이트 히스토리를 불러오지 못했습니다.</div>';
     }
 
     setupDevModeListeners() {
@@ -3751,7 +4231,7 @@ export class UIManager {
     }
 
     async loadEmotes() {
-        // Simple fetch or use ResourceManager if ready. 
+        // Simple fetch or use ResourceManager if ready.
         // For now, fetch direct since ResourceManager loads assets, not raw json for UI list usually.
         // Actually ResourceManager has loadJSON.
         try {
@@ -3796,7 +4276,7 @@ export class UIManager {
         if (this.game.net) {
             // this.game.net.sendEmote(emoteId); // Implement this in NetworkManager
             // Fallback: Send via chat
-            // this.game.net.sendChat(`/emote ${emoteId}`); 
+            // this.game.net.sendChat(`/emote ${emoteId}`);
             // Actually let's assume direct packet for now or use chat.
             // Let's use chat input injection for now as immediate feedback?
             // No, direct send.
@@ -3831,4 +4311,3 @@ export class UIManager {
         }
     }
 }
-

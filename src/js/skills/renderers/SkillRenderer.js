@@ -612,100 +612,178 @@ export default class SkillRenderer {
         ctx.restore();
     }
 
-    static drawEquipmentAura(ctx, x, y, auraState) {
+    static drawAuraRibbon(ctx, x, y, width, height, color, side, lane, time, alpha = 0.8, lineWidth = 2) {
+        const footX = x + side * (width * 0.18 + lane * 2.4);
+        const footY = y + height * 0.42 - lane * 1.5;
+        const swing = Math.sin(time * 1.2 + lane * 0.9 + (side > 0 ? 0.3 : 0)) * 5;
+        const crestX = x + side * (width * 0.72 + lane * 2.6) + swing;
+        const crestY = y - height * (0.12 + lane * 0.04);
+        const tipX = x + side * (width * 0.28 + lane * 2.2) + Math.cos(time * 1.5 + lane) * 4;
+        const tipY = y - height * (0.62 + lane * 0.06);
+
+        ctx.strokeStyle = this.withAlpha(color, alpha);
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(footX, footY);
+        ctx.quadraticCurveTo(
+            x + side * (width * 0.5 + lane * 2.4) + swing * 0.6,
+            y + height * 0.12,
+            crestX,
+            crestY
+        );
+        ctx.quadraticCurveTo(
+            x + side * (width * 0.46 + lane * 2.2) - swing * 0.3,
+            y - height * 0.42,
+            tipX,
+            tipY
+        );
+        ctx.stroke();
+    }
+
+    static drawEquipmentAura(ctx, x, y, auraState, frame = {}) {
         if (!auraState) return;
 
         const intensityMap = {
-            soft: { radius: 34, alpha: 0.22, core: 0.1, ring: 0.24 },
-            strong: { radius: 40, alpha: 0.32, core: 0.14, ring: 0.32 },
-            stronger: { radius: 45, alpha: 0.4, core: 0.18, ring: 0.4 },
-            epic: { radius: 50, alpha: 0.48, core: 0.22, ring: 0.48 },
-            ascended: { radius: 56, alpha: 0.58, core: 0.3, ring: 0.58 }
+            soft: { shellW: 0.82, shellH: 1.02, alpha: 0.22, core: 0.08, ring: 0.22, floor: 0.18, line: 1.8, pulse: 1.6 },
+            strong: { shellW: 0.9, shellH: 1.08, alpha: 0.3, core: 0.11, ring: 0.28, floor: 0.24, line: 2.05, pulse: 2.1 },
+            stronger: { shellW: 0.96, shellH: 1.14, alpha: 0.38, core: 0.14, ring: 0.36, floor: 0.28, line: 2.25, pulse: 2.5 },
+            epic: { shellW: 1.03, shellH: 1.2, alpha: 0.46, core: 0.18, ring: 0.46, floor: 0.34, line: 2.45, pulse: 2.9 },
+            ascended: { shellW: 1.1, shellH: 1.28, alpha: 0.56, core: 0.24, ring: 0.58, floor: 0.4, line: 2.7, pulse: 3.3 }
         };
         const profile = intensityMap[auraState.intensity] || intensityMap.soft;
-        const time = Date.now() / 220;
-        const pulse = Math.sin(time) * 2.5;
-        const radius = profile.radius + pulse;
-        const bodyY = y - 2;
-        const groundY = y + 20;
+        const entityWidth = Math.max(24, frame.width || 32);
+        const entityHeight = Math.max(28, frame.height || 32);
+        const time = Date.now() / 260;
+        const pulse = Math.sin(time) * profile.pulse;
+        const bodyY = y - entityHeight * 0.06;
+        const groundY = y + entityHeight * 0.48;
+        const shellWidth = entityWidth * profile.shellW + pulse * 0.35;
+        const shellHeight = entityHeight * profile.shellH + pulse * 0.45;
+        const accentColor = auraState.accentColor || auraState.secondaryColor;
+        const ribbonCount = Math.max(0, auraState.ribbonCount || 0);
+        const sparkCount = Math.max(0, auraState.sparkCount || (auraState.spark ? 4 : 0));
+        const moteCount = Math.max(0, auraState.moteCount || (auraState.glitter ? 6 : 0));
+        const shellAlpha = auraState.shellOpacity ?? profile.alpha;
+        const floorAlpha = auraState.floorOpacity ?? profile.floor;
 
         ctx.save();
 
         if (this.isReducedEffectsMode()) {
             ctx.fillStyle = auraState.whiteCore
                 ? 'rgba(255,255,255,0.24)'
-                : this.withAlpha(auraState.baseColor, profile.alpha * 0.7);
+                : this.withAlpha(auraState.baseColor, shellAlpha * 0.8);
             ctx.beginPath();
-            ctx.ellipse(x, groundY, radius * 0.92, radius * 0.34, 0, 0, Math.PI * 2);
+            ctx.ellipse(x, groundY, shellWidth * 0.94, entityHeight * 0.2, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.strokeStyle = this.withAlpha(auraState.secondaryColor, profile.ring);
-            ctx.lineWidth = auraState.spark ? 2.4 : 1.8;
+            ctx.strokeStyle = this.withAlpha(accentColor, profile.ring);
+            ctx.lineWidth = auraState.spark ? 2.3 : 1.8;
             ctx.beginPath();
-            ctx.arc(x, bodyY, radius * 0.72, 0, Math.PI * 2);
+            ctx.ellipse(x, bodyY, shellWidth * 0.74, shellHeight * 0.88, 0, 0, Math.PI * 2);
             ctx.stroke();
             ctx.restore();
             return;
         }
 
-        const outer = ctx.createRadialGradient(x, bodyY, radius * 0.16, x, bodyY, radius);
-        outer.addColorStop(0, auraState.whiteCore ? 'rgba(255,255,255,0.3)' : this.withAlpha(auraState.secondaryColor, 0.24));
-        outer.addColorStop(0.55, this.withAlpha(auraState.baseColor, profile.alpha));
+        const outer = ctx.createRadialGradient(x, bodyY - shellHeight * 0.18, entityWidth * 0.2, x, bodyY, shellHeight * 1.06);
+        outer.addColorStop(0, auraState.whiteCore ? 'rgba(255,255,255,0.34)' : this.withAlpha(accentColor, shellAlpha * 0.34));
+        outer.addColorStop(0.38, this.withAlpha(auraState.baseColor, shellAlpha));
         outer.addColorStop(1, this.withAlpha(auraState.baseColor, 0));
 
         ctx.fillStyle = outer;
         ctx.beginPath();
-        ctx.arc(x, bodyY, radius, 0, Math.PI * 2);
+        ctx.ellipse(x, bodyY, shellWidth, shellHeight, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        const floorGlow = ctx.createRadialGradient(x, groundY, radius * 0.1, x, groundY, radius * 1.05);
-        floorGlow.addColorStop(0, this.withAlpha(auraState.secondaryColor, profile.alpha * 0.42));
-        floorGlow.addColorStop(0.7, this.withAlpha(auraState.baseColor, profile.alpha * 0.18));
+        const innerShell = ctx.createRadialGradient(x, bodyY - shellHeight * 0.12, entityWidth * 0.08, x, bodyY, shellHeight * 0.76);
+        innerShell.addColorStop(0, auraState.whiteCore ? 'rgba(255,255,255,0.2)' : this.withAlpha(accentColor, profile.core * 0.9));
+        innerShell.addColorStop(0.55, this.withAlpha(auraState.baseColor, shellAlpha * 0.45));
+        innerShell.addColorStop(1, this.withAlpha(auraState.baseColor, 0));
+        ctx.fillStyle = innerShell;
+        ctx.beginPath();
+        ctx.ellipse(x, bodyY + 1, shellWidth * 0.78, shellHeight * 0.86, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        const floorGlow = ctx.createRadialGradient(x, groundY, entityWidth * 0.12, x, groundY, shellWidth * 1.16);
+        floorGlow.addColorStop(0, this.withAlpha(accentColor, floorAlpha));
+        floorGlow.addColorStop(0.62, this.withAlpha(auraState.baseColor, floorAlpha * 0.5));
         floorGlow.addColorStop(1, this.withAlpha(auraState.baseColor, 0));
         ctx.fillStyle = floorGlow;
         ctx.beginPath();
-        ctx.ellipse(x, groundY, radius * 0.98, radius * 0.34, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, groundY, shellWidth * 1.02, entityHeight * 0.24, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.strokeStyle = this.withAlpha(auraState.secondaryColor, profile.ring);
-        ctx.lineWidth = auraState.spark ? 2.7 : 1.9;
+        ctx.strokeStyle = this.withAlpha(accentColor, profile.ring);
+        ctx.lineWidth = profile.line;
         ctx.beginPath();
-        ctx.arc(x, bodyY, radius * 0.78, 0, Math.PI * 2);
+        ctx.ellipse(x, bodyY - 1, shellWidth * 0.7, shellHeight * 0.88, 0, 0, Math.PI * 2);
         ctx.stroke();
+
+        if (ribbonCount > 0) {
+            for (let i = 0; i < ribbonCount; i++) {
+                const side = i % 2 === 0 ? -1 : 1;
+                const lane = Math.floor(i / 2);
+                this.drawAuraRibbon(
+                    ctx,
+                    x,
+                    bodyY + 2,
+                    shellWidth,
+                    shellHeight,
+                    lane % 2 === 0 ? accentColor : auraState.baseColor,
+                    side,
+                    lane,
+                    time,
+                    0.62 + (lane * 0.08),
+                    1.4 + Math.max(0, profile.line - 0.4) - lane * 0.1
+                );
+            }
+        }
 
         if (auraState.whiteCore) {
             ctx.fillStyle = `rgba(255,255,255,${profile.core})`;
             ctx.beginPath();
-            ctx.arc(x, bodyY - 4, radius * 0.48, 0, Math.PI * 2);
+            ctx.ellipse(x, bodyY - 4, shellWidth * 0.42, shellHeight * 0.54, 0, 0, Math.PI * 2);
             ctx.fill();
         }
 
-        if (auraState.spark) {
-            for (let i = 0; i < 4; i++) {
-                const angle = (Math.PI * 2 * i) / 4 + (Date.now() / 500);
-                const px = x + Math.cos(angle) * (radius * 0.88);
-                const py = bodyY + Math.sin(angle) * (radius * 0.58);
-                ctx.strokeStyle = this.withAlpha(auraState.baseColor, 0.95);
-                ctx.lineWidth = 1.4;
+        if (sparkCount > 0) {
+            for (let i = 0; i < sparkCount; i++) {
+                const angle = (Math.PI * 2 * i) / sparkCount + time * 0.75;
+                const px = x + Math.cos(angle) * (shellWidth * (0.84 + (i % 2) * 0.08));
+                const py = bodyY + Math.sin(angle) * (shellHeight * (0.62 + (i % 3) * 0.05));
+                const sparkLength = 3.6 + (i % 3) * 1.4;
+                ctx.strokeStyle = this.withAlpha(i % 2 === 0 ? auraState.baseColor : accentColor, 0.92);
+                ctx.lineWidth = 1.2 + (i % 2) * 0.25;
                 ctx.beginPath();
-                ctx.moveTo(px - 5, py);
-                ctx.lineTo(px + 5, py);
-                ctx.moveTo(px, py - 5);
-                ctx.lineTo(px, py + 5);
+                ctx.moveTo(px - sparkLength, py);
+                ctx.lineTo(px + sparkLength, py);
+                ctx.moveTo(px, py - sparkLength);
+                ctx.lineTo(px, py + sparkLength);
                 ctx.stroke();
             }
         }
 
-        if (auraState.glitter) {
-            for (let i = 0; i < 6; i++) {
-                const angle = (Math.PI * 2 * i) / 6 + (Date.now() / 800);
-                const px = x + Math.cos(angle) * (radius * 1.08);
-                const py = bodyY + Math.sin(angle) * (radius * 0.78);
-                ctx.fillStyle = auraState.whiteCore ? '#ffffff' : auraState.secondaryColor;
+        if (moteCount > 0) {
+            for (let i = 0; i < moteCount; i++) {
+                const angle = (Math.PI * 2 * i) / moteCount + time * 0.52;
+                const px = x + Math.cos(angle) * (shellWidth * (0.92 + (i % 2) * 0.12));
+                const py = bodyY + Math.sin(angle) * (shellHeight * (0.68 + (i % 3) * 0.05)) - (i % 2) * 3;
+                const size = auraState.glitter ? 1.8 + (i % 3) * 0.25 : 1.2 + (i % 2) * 0.25;
+                ctx.fillStyle = auraState.whiteCore ? '#ffffff' : (i % 2 === 0 ? accentColor : auraState.secondaryColor);
                 ctx.beginPath();
-                ctx.arc(px, py, 1.8, 0, Math.PI * 2);
+                ctx.arc(px, py, size, 0, Math.PI * 2);
                 ctx.fill();
             }
+        }
+
+        if (auraState.enhancementTier === 'gold') {
+            ctx.strokeStyle = this.withAlpha(accentColor, 0.52);
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.ellipse(x, bodyY - shellHeight * 0.74, shellWidth * 0.4, entityHeight * 0.12, 0, 0, Math.PI * 2);
+            ctx.stroke();
         }
 
         ctx.restore();

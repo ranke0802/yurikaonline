@@ -1572,7 +1572,10 @@ export default class Player extends CharacterBase {
 
         const auraState = this.getEquipmentAuraState();
         if (auraState) {
-            SkillRenderer.drawEquipmentAura(ctx, centerX, centerY - 8, auraState);
+            SkillRenderer.drawEquipmentAura(ctx, centerX, centerY - 8, auraState, {
+                width: this.width,
+                height: this.height
+            });
         }
 
         // 2. Magic Circle & Run Particles (Drawn BEFORE character)

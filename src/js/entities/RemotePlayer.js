@@ -543,7 +543,10 @@ export default class RemotePlayer extends CharacterBase {
 
         const auraState = window.game?.itemData?.getAuraState?.(this.equipment?.weapon || null);
         if (auraState) {
-            SkillRenderer.drawEquipmentAura(ctx, centerX, centerY - 8, auraState);
+            SkillRenderer.drawEquipmentAura(ctx, centerX, centerY - 8, auraState, {
+                width: this.width,
+                height: this.height
+            });
         }
 
         // 2. Magic Circle - v0.29.23: 쉴드 활성화 시에도 표시
