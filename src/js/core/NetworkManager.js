@@ -22,19 +22,22 @@ export default class NetworkManager extends EventEmitter {
 
         // Phase 1: Optimized sync settings
         this.lastSyncTime = 0;
-        this.syncInterval = 60; // 16Hz when moving
-        this.idleSyncInterval = 200; // 5Hz when idle (reduced from 60ms)
+        this.syncInterval = 90; // Fast movement sync
+        this.walkSyncInterval = 140; // Walking / minor movement sync
+        this.idleSyncInterval = 450; // Idle state sync
 
         // Dynamic Heartbeat Optimization
         this.isPlayerMoving = false;
         this.lastHeartbeatTime = 0;
-        this.idleHeartbeatInterval = 5000; // 5s when idle
-        this.activeHeartbeatInterval = 1000; // 1s when moving
+        this.lastNetworkActivityTime = 0;
+        this.idleHeartbeatInterval = 12000; // 12s when idle
+        this.activeHeartbeatInterval = 4000; // 4s when moving
+        this.backgroundHeartbeatInterval = 20000; // 20s when backgrounded
         this.lastPacketData = null;
 
         // Batch update queue for damage/events
         this.batchQueue = [];
-        this.batchInterval = 100; // 100ms batch window
+        this.batchInterval = 140; // Wider batch window to reduce write frequency
         this.startBatchProcessor();
 
         // Lifecycle guards
@@ -42,6 +45,7 @@ export default class NetworkManager extends EventEmitter {
         this._hostilityListenerActive = false;
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
         this._lastProfileSaveTs = 0;
+        this._queuedProfileSaves = new Map();
     }
 
     connect(user) {
@@ -351,6 +355,7 @@ export default class NetworkManager extends EventEmitter {
 
     queueBatchUpdate(type, data) {
         this.batchQueue.push({ type, data, ts: Date.now() });
+        this._markNetworkActivity();
     }
 
     async flushBatchQueue() {
@@ -384,6 +389,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     disconnect() {
+        this.flushQueuedProfileSaves().catch(() => { });
         if (this._hbInterval) {
             clearInterval(this._hbInterval);
             this._hbInterval = null;
@@ -464,13 +470,35 @@ export default class NetworkManager extends EventEmitter {
         this._checkHostStatus();
     }
 
+    _markNetworkActivity(ts = Date.now()) {
+        this.lastNetworkActivityTime = Math.max(this.lastNetworkActivityTime || 0, ts);
+    }
+
+    _getMoveSyncInterval(vx = 0, vy = 0) {
+        const speed = Math.hypot(vx || 0, vy || 0);
+        if (speed <= 0.1) return this.idleSyncInterval;
+        if (speed < 90) return this.walkSyncInterval;
+        return this.syncInterval;
+    }
+
     /**
      * v0.00.23: Dynamic heartbeat - reduces frequency when idle
      */
     _dynamicHeartbeat() {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         const now = Date.now();
-        const interval = this.isPlayerMoving ? this.activeHeartbeatInterval : this.idleHeartbeatInterval;
+        const isBackgrounded = typeof document !== 'undefined' && document.hidden;
+        const interval = isBackgrounded
+            ? this.backgroundHeartbeatInterval
+            : (this.isPlayerMoving ? this.activeHeartbeatInterval : this.idleHeartbeatInterval);
+
+        if (!isBackgrounded) {
+            const recentActivityWindow = Math.max(1500, Math.floor(interval * 0.75));
+            if (now - this.lastNetworkActivityTime < recentActivityWindow) {
+                this._checkHostStatus();
+                return;
+            }
+        }
 
         if (now - this.lastHeartbeatTime >= interval) {
             this.sendHeartbeat();
@@ -659,6 +687,92 @@ export default class NetworkManager extends EventEmitter {
     }
 
     async savePlayerData(uid, data, syncToZone = false, options = {}) {
+        const debounceMs = Number(options.debounceMs || 0);
+        if (debounceMs > 0 && !options.forceImmediate) {
+            return this._queueProfileSave(uid, data, syncToZone, options);
+        }
+
+        let pendingWaiters = null;
+        if (this._queuedProfileSaves.has(uid)) {
+            const queued = this._queuedProfileSaves.get(uid);
+            if (queued?.timer) clearTimeout(queued.timer);
+            this._queuedProfileSaves.delete(uid);
+            pendingWaiters = queued?.waiters || null;
+            syncToZone = syncToZone || !!queued?.syncToZone;
+        }
+
+        const result = await this._commitPlayerData(uid, data, syncToZone, options);
+        pendingWaiters?.forEach(({ resolve }) => resolve(result));
+        return result;
+    }
+
+    _queueProfileSave(uid, data, syncToZone = false, options = {}) {
+        if (!uid || !window.firebase || !data) {
+            return Promise.resolve({ ok: false, reason: 'invalid_args' });
+        }
+
+        const debounceMs = Math.max(100, Number(options.debounceMs || 0));
+        const existing = this._queuedProfileSaves.get(uid) || {
+            data: null,
+            syncToZone: false,
+            options: {},
+            timer: null,
+            waiters: []
+        };
+
+        existing.data = data;
+        existing.syncToZone = existing.syncToZone || syncToZone;
+        existing.options = { ...existing.options, ...options, debounceMs };
+
+        if (existing.timer) clearTimeout(existing.timer);
+
+        const promise = new Promise((resolve, reject) => {
+            existing.waiters.push({ resolve, reject });
+        });
+
+        existing.timer = setTimeout(async () => {
+            try {
+                const result = await this._flushQueuedProfileSave(uid);
+                return result;
+            } catch (error) {
+                Logger.error('Queued profile save failed', error);
+            }
+        }, debounceMs);
+
+        this._queuedProfileSaves.set(uid, existing);
+        return promise;
+    }
+
+    async _flushQueuedProfileSave(uid) {
+        const entry = this._queuedProfileSaves.get(uid);
+        if (!entry) return { ok: false, reason: 'queue_missing' };
+
+        if (entry.timer) clearTimeout(entry.timer);
+        this._queuedProfileSaves.delete(uid);
+
+        try {
+            const result = await this._commitPlayerData(uid, entry.data, entry.syncToZone, {
+                ...entry.options,
+                forceImmediate: true
+            });
+            entry.waiters.forEach(({ resolve }) => resolve(result));
+            return result;
+        } catch (error) {
+            entry.waiters.forEach(({ reject }) => reject(error));
+            throw error;
+        }
+    }
+
+    async flushQueuedProfileSaves() {
+        const pendingUids = Array.from(this._queuedProfileSaves.keys());
+        if (pendingUids.length === 0) return [];
+        return Promise.all(pendingUids.map((uid) => this._flushQueuedProfileSave(uid).catch((error) => {
+            Logger.error('Failed to flush queued profile save', error);
+            return { ok: false, reason: 'flush_failed', error };
+        })));
+    }
+
+    async _commitPlayerData(uid, data, syncToZone = false, options = {}) {
         if (!uid || !window.firebase || !data) return { ok: false, reason: 'invalid_args' };
         try {
             const nextProfile = this._normalizeProfileSnapshot(data, Date.now());
@@ -1172,7 +1286,7 @@ export default class NetworkManager extends EventEmitter {
         const isMoving = Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1;
         this.isPlayerMoving = isMoving;
 
-        const currentInterval = isMoving ? this.syncInterval : this.idleSyncInterval;
+        const currentInterval = this._getMoveSyncInterval(vx, vy);
         if (now - this.lastSyncTime < currentInterval) return;
 
         // Validation
@@ -1180,6 +1294,8 @@ export default class NetworkManager extends EventEmitter {
         const safeY = Math.round(y) || 0;
         const safeVx = parseFloat((vx || 0).toFixed(2));
         const safeVy = parseFloat((vy || 0).toFixed(2));
+        const positionThreshold = window.game?.isMobilePerformanceMode ? 4 : 2;
+        const velocityThreshold = window.game?.isMobilePerformanceMode ? 0.08 : 0.05;
 
         // Delta calculation - only send changed fields
         const updates = {};
@@ -1187,11 +1303,11 @@ export default class NetworkManager extends EventEmitter {
         const basePath = `users/${this.playerId}`;
 
         // Position delta (threshold: 2 pixels)
-        if (!this.lastPacketData || Math.abs(safeX - this.lastPacketData.x) > 2) {
+        if (!this.lastPacketData || Math.abs(safeX - this.lastPacketData.x) >= positionThreshold) {
             updates[`${basePath}/p/x`] = safeX;
             hasChanges = true;
         }
-        if (!this.lastPacketData || Math.abs(safeY - this.lastPacketData.y) > 2) {
+        if (!this.lastPacketData || Math.abs(safeY - this.lastPacketData.y) >= positionThreshold) {
             updates[`${basePath}/p/y`] = safeY;
             hasChanges = true;
         }
@@ -1199,8 +1315,8 @@ export default class NetworkManager extends EventEmitter {
         // Velocity - only when moving
         if (isMoving) {
             if (!this.lastPacketData ||
-                Math.abs(safeVx - (this.lastPacketData.vx || 0)) > 0.05 ||
-                Math.abs(safeVy - (this.lastPacketData.vy || 0)) > 0.05) {
+                Math.abs(safeVx - (this.lastPacketData.vx || 0)) >= velocityThreshold ||
+                Math.abs(safeVy - (this.lastPacketData.vy || 0)) >= velocityThreshold) {
                 updates[`${basePath}/p/vx`] = safeVx;
                 updates[`${basePath}/p/vy`] = safeVy;
                 hasChanges = true;
@@ -1219,6 +1335,7 @@ export default class NetworkManager extends EventEmitter {
         if (hasChanges) {
             this.dbRef.update(updates).catch(e => { });
             this.lastPacketData = { x: safeX, y: safeY, vx: safeVx, vy: safeVy, name };
+            this._markNetworkActivity(now);
         }
 
         this.lastSyncTime = now;
@@ -1227,8 +1344,9 @@ export default class NetworkManager extends EventEmitter {
     // v0.28.0: Detailed attack sync [ts, x, y, direction, skillType]
     sendPlayerAttack(x, y, dir, skillType, extraData = null) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        const now = Date.now();
         const payload = [
-            Date.now(),
+            now,
             Math.round(x),
             Math.round(y),
             dir,
@@ -1236,13 +1354,16 @@ export default class NetworkManager extends EventEmitter {
             extraData // v0.29.0: Added for skill specifics (e.g. missile count)
         ];
         this.dbRef.child(`users/${this.playerId}/a`).set(payload);
+        this._markNetworkActivity(now);
     }
 
     // v0.00.37: Send channeling state for casting effects (independent of attack hit)
     sendChanneling(skillType) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
-        const payload = [Date.now(), skillType];
+        const now = Date.now();
+        const payload = [now, skillType];
         this.dbRef.child(`users/${this.playerId}/ch`).set(payload);
+        this._markNetworkActivity(now);
     }
 
     sendMonsterDamage(monsterId, damage, meta = null) {
@@ -1302,16 +1423,19 @@ export default class NetworkManager extends EventEmitter {
 
         this._lastHpSync = { hp: nextHp, maxHp: nextMaxHp, ts: now };
         this.dbRef.child(`users/${this.playerId}/h`).set([nextHp, nextMaxHp, now]);
+        this._markNetworkActivity(now);
     }
 
     sendChat(text, senderName) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        const now = Date.now();
         this.dbRef.child('chat').push({
             uid: this.playerId,
             name: senderName || "Unknown",
             text: text,
-            ts: Date.now()
+            ts: now
         });
+        this._markNetworkActivity(now);
     }
 
     _onPlayerAdded(snapshot) {
@@ -1820,7 +1944,7 @@ export default class NetworkManager extends EventEmitter {
     _handleVisibilityChange() {
         if (document.hidden) {
             Logger.log("[Network] App backgrounded.");
-            // Optional: Pause complex logic here if needed
+            this.flushQueuedProfileSaves().catch(() => { });
         } else {
             Logger.log("[Network] App foregrounded. Checking connection...");
             if (this.playerId && this.dbRef) {

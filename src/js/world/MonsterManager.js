@@ -18,7 +18,7 @@ export default class MonsterManager {
 
         // Bandwidth Optimization (v0.20.0)
         this.syncTimer = 0;
-        this.syncInterval = 0.1; // 10Hz Sync (100ms)
+        this.syncInterval = 0.1; // Desktop baseline, adjusted dynamically per frame
 
         this.bossSpawned = false;
         this.shouldSpawnBoss = false;
@@ -176,6 +176,8 @@ export default class MonsterManager {
     update(dt) {
         const localPlayer = this.game.localPlayer;
         const remotePlayers = this.game.remotePlayers;
+        const mobileThermalMode = !!this.game?.isMobilePerformanceMode;
+        this.syncInterval = mobileThermalMode ? 0.16 : 0.1;
 
         // v1.99: Calculate total level for all clients (for UI/Dev Mode)
         let currentTotalLevel = localPlayer?.level || 1;
@@ -205,7 +207,9 @@ export default class MonsterManager {
         if (this.net.isHost) {
             this.monsters.forEach((m, id) => {
                 const onScreen = this.isOnScreen(m);
-                const syncInterval = onScreen ? 2.0 : 5.0;
+                const syncInterval = onScreen
+                    ? (mobileThermalMode ? 2.5 : 2.0)
+                    : (mobileThermalMode ? 6.0 : 5.0);
                 const timer = onScreen ? this.fullSyncTimer : this.offscreenSyncTimer;
 
                 if (timer >= syncInterval) {
@@ -568,8 +572,11 @@ export default class MonsterManager {
                 // Lower threshold for smoother movement
                 const dist = last ? Math.sqrt((m.x - last.x) ** 2 + (m.y - last.y) ** 2) : 999;
                 const hpChanged = last ? (m.hp !== last.hp) : true;
+                const positionThreshold = mobileThermalMode
+                    ? (this.isOnScreen(m) ? 2.5 : 4.0)
+                    : 1.0;
 
-                if (dist > 1 || hpChanged) {
+                if (dist > positionThreshold || hpChanged) {
                     this.net.sendMonsterUpdate(id, {
                         x: Math.round(m.x),
                         y: Math.round(m.y),

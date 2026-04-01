@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.GAME_VERSION = '0.01.34'; // Synced with version.txt
+window.GAME_VERSION = '0.01.35'; // Synced with version.txt
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';
@@ -157,7 +157,9 @@ class Game {
             },
             () => this.sceneManager.render(this.ctx)
         );
-        this.loop.setMaxRenderFps(this.getPerformanceProfile().maxRenderFps);
+        const initialPerfProfile = this.getPerformanceProfile();
+        this.loop.setMaxRenderFps(initialPerfProfile.maxRenderFps);
+        this.loop.setUpdateFps(initialPerfProfile.maxUpdateFps);
 
         this.init();
     }
@@ -189,14 +191,16 @@ class Game {
         const isMobile = isTouchDevice && window.innerWidth <= 1024;
         const isStandalone = this.isStandaloneLike();
         const isAppleMobile = this.isAppleMobileDevice();
-        const lowPowerPwaMode = isMobile && isStandalone && isAppleMobile;
+        const lowPowerPwaMode = isMobile;
+        const aggressiveThermalMode = lowPowerPwaMode && (isStandalone || isAppleMobile);
 
         return {
             isTouchDevice,
             isMobile,
             lowPowerPwaMode,
-            maxMobileDpr: lowPowerPwaMode ? 1.2 : 1.5,
-            maxRenderFps: isTouchDevice ? (lowPowerPwaMode ? 45 : 60) : 0
+            maxMobileDpr: lowPowerPwaMode ? (aggressiveThermalMode ? 1.2 : 1.3) : 1.5,
+            maxRenderFps: isTouchDevice ? (lowPowerPwaMode ? (aggressiveThermalMode ? 45 : 50) : 60) : 0,
+            maxUpdateFps: lowPowerPwaMode ? (aggressiveThermalMode ? 45 : 50) : 60
         };
     }
 
@@ -223,7 +227,7 @@ class Game {
 
         // Match yurikaonline-master logic: 900px threshold, 0.7/1.0 zoom
         const perfProfile = this.getPerformanceProfile();
-        const { isTouchDevice, isMobile, lowPowerPwaMode, maxMobileDpr, maxRenderFps } = perfProfile;
+        const { isTouchDevice, isMobile, lowPowerPwaMode, maxMobileDpr, maxRenderFps, maxUpdateFps } = perfProfile;
         // v0.28.6: Adjust PC zoom to 0.8 for wider view (User Feedback)
         this.zoom = isMobile ? 0.7 : 0.8;
         this.isMobilePerformanceMode = isMobile;
@@ -253,6 +257,7 @@ class Game {
 
         if (this.loop) {
             this.loop.setMaxRenderFps(maxRenderFps);
+            this.loop.setUpdateFps(maxUpdateFps);
         }
 
         if (this.camera) {

@@ -7,7 +7,8 @@ export default class GameLoop {
 
         this.lastTime = 0;
         this.accumulator = 0;
-        this.deltaTime = 1 / 60; // Fixed time step (60 FPS)
+        this.updateFps = 60;
+        this.deltaTime = 1 / this.updateFps;
 
         this.running = false;
         this.paused = false;
@@ -15,6 +16,7 @@ export default class GameLoop {
         this.maxRenderFps = 0;
         this.minRenderIntervalMs = 0;
         this.lastRenderTime = 0;
+        this.maxUpdateStepsPerFrame = 5;
 
         // v2.2: Hitstop
         this.hitstopTimer = 0;
@@ -59,6 +61,13 @@ export default class GameLoop {
         this.lastRenderTime = performance.now();
     }
 
+    setUpdateFps(fps = 60) {
+        const nextFps = Number.isFinite(fps) ? Math.max(15, fps) : 60;
+        this.updateFps = nextFps;
+        this.deltaTime = 1 / nextFps;
+        this.accumulator = Math.min(this.accumulator, this.deltaTime * this.maxUpdateStepsPerFrame);
+    }
+
     /**
      * v2.2: Trigger hitstop (freeze updates for visual impact)
      * @param {number} durationMs - Duration in milliseconds (e.g., 50~120ms)
@@ -91,9 +100,16 @@ export default class GameLoop {
         this.accumulator += safeFrameTime;
 
         // Update Phase (Fixed Time Step)
-        while (this.accumulator >= this.deltaTime) {
+        let updateSteps = 0;
+        while (this.accumulator >= this.deltaTime && updateSteps < this.maxUpdateStepsPerFrame) {
             this.updateFn(this.deltaTime);
             this.accumulator -= this.deltaTime;
+            updateSteps++;
+        }
+
+        // Drop excessive backlog instead of burning CPU to catch up after a hitch.
+        if (updateSteps >= this.maxUpdateStepsPerFrame && this.accumulator >= this.deltaTime) {
+            this.accumulator = 0;
         }
 
         // Render Phase (Interpolation alpha could be passed here)
