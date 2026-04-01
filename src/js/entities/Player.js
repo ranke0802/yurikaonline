@@ -85,6 +85,7 @@ export default class Player extends CharacterBase {
         this.fireballAimActive = false;
         this.fireballAimGuide = null;
         this.fireballMaxRange = 1200;
+        this.fireballPointerTarget = null;
 
         this.isAttacking = false;
         this.isChanneling = false;
@@ -175,6 +176,12 @@ export default class Player extends CharacterBase {
 
         this.input.on('keyup', (action) => {
             if (action === 'SKILL_2') this.releaseFireballAim();
+        });
+
+        this.input.on('aimMove', (data) => {
+            if (data?.action === 'SKILL_2' && this.fireballAimActive) {
+                this.updateFireballAimGuideFromScreenPoint(data.clientX, data.clientY);
+            }
         });
 
         this.input.on('joystickMove', (data) => {
@@ -416,18 +423,34 @@ export default class Player extends CharacterBase {
     }
 
     updateFireballAimGuide() {
-        const angle = this.getCurrentFacingAngle();
-        const range = this.getFireballRange();
         const originX = this.x + this.width / 2;
         const originY = this.y + this.height / 2;
         const level = this.skillLevels.fireball || 1;
         const weaponCombat = this.getWeaponCombatProfile();
+        const range = this.getFireballRange();
+        let targetX;
+        let targetY;
+        let angle;
+
+        if (this.fireballPointerTarget) {
+            const dx = this.fireballPointerTarget.x - originX;
+            const dy = this.fireballPointerTarget.y - originY;
+            const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+            const clampedDistance = Math.min(distance, range);
+            angle = Math.atan2(dy, dx);
+            targetX = originX + Math.cos(angle) * clampedDistance;
+            targetY = originY + Math.sin(angle) * clampedDistance;
+        } else {
+            angle = this.getCurrentFacingAngle();
+            targetX = originX + Math.cos(angle) * range;
+            targetY = originY + Math.sin(angle) * range;
+        }
 
         this.fireballAimGuide = {
             originX,
             originY,
-            targetX: originX + Math.cos(angle) * range,
-            targetY: originY + Math.sin(angle) * range,
+            targetX,
+            targetY,
             angle,
             range,
             widthRadius: this.getFireballProjectileRadius(level),
@@ -436,9 +459,34 @@ export default class Player extends CharacterBase {
         };
     }
 
+    updateFireballAimGuideFromScreenPoint(clientX, clientY) {
+        const canvas = window.game?.canvas;
+        const camera = window.game?.camera;
+        if (!canvas || !camera) return;
+
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const dpr = window.game?.dpr || 1;
+        const zoom = window.game?.zoom || 1;
+        const camPos = camera.getPosition ? camera.getPosition() : camera;
+
+        const canvasX = (clientX - rect.left) * scaleX;
+        const canvasY = (clientY - rect.top) * scaleY;
+
+        this.fireballPointerTarget = {
+            x: camPos.x + (canvasX / (dpr * zoom)),
+            y: camPos.y + (canvasY / (dpr * zoom))
+        };
+        this.updateFireballAimGuide();
+    }
+
     startFireballAim() {
         if (!this.canStartFireballAim()) return;
         this.fireballAimActive = true;
+        this.fireballPointerTarget = null;
         this.updateFireballAimGuide();
     }
 
@@ -460,6 +508,7 @@ export default class Player extends CharacterBase {
     cancelFireballAim() {
         this.fireballAimActive = false;
         this.fireballAimGuide = null;
+        this.fireballPointerTarget = null;
     }
 
     getFireballAimGuide() {

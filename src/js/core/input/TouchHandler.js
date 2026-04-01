@@ -6,6 +6,7 @@ export default class TouchHandler extends EventEmitter {
         this.joystick = { x: 0, y: 0, active: false };
         this.joystickTouchId = null; // v0.35.1: Multi-touch support
         this.maxRadius = 50;
+        this.activeAimAction = null;
 
         // DOM Elements
         this.base = document.getElementById('joystick-base');
@@ -17,6 +18,8 @@ export default class TouchHandler extends EventEmitter {
         this._handleStart = this._handleStart.bind(this);
         this._handleMove = this._handleMove.bind(this);
         this._handleEnd = this._handleEnd.bind(this);
+        this._handleActionMove = this._handleActionMove.bind(this);
+        this._handleActionEnd = this._handleActionEnd.bind(this);
 
         this.init();
     }
@@ -53,11 +56,71 @@ export default class TouchHandler extends EventEmitter {
         // Global Move/End Listeners
         window.addEventListener('touchmove', this._handleMove, { passive: false });
         window.addEventListener('touchend', this._handleEnd);
+        window.addEventListener('touchcancel', this._handleEnd);
         window.addEventListener('mousemove', this._handleMove);
         window.addEventListener('mouseup', this._handleEnd);
+        window.addEventListener('touchmove', this._handleActionMove, { passive: false });
+        window.addEventListener('touchend', this._handleActionEnd);
+        window.addEventListener('touchcancel', this._handleActionEnd);
+        window.addEventListener('mousemove', this._handleActionMove);
+        window.addEventListener('mouseup', this._handleActionEnd);
 
         // UI Buttons (Skill/Attack) binding
         this._bindUiButtons();
+    }
+
+    _getPointerFromEvent(e, pointerId = null) {
+        if (e.touches || e.changedTouches) {
+            const list = e.touches?.length ? e.touches : e.changedTouches;
+            for (let i = 0; i < list.length; i++) {
+                if (pointerId === null || list[i].identifier === pointerId) {
+                    return list[i];
+                }
+            }
+            return null;
+        }
+
+        return e;
+    }
+
+    _startAimActionTracking(e, action) {
+        if (action !== 'SKILL_2') return;
+        const pointer = this._getPointerFromEvent(e);
+        if (!pointer) return;
+
+        this.activeAimAction = {
+            action,
+            pointerId: pointer.identifier ?? 'mouse'
+        };
+    }
+
+    _clearAimActionTracking() {
+        this.activeAimAction = null;
+    }
+
+    _handleActionMove(e) {
+        if (!this.activeAimAction) return;
+
+        const pointer = this._getPointerFromEvent(e, this.activeAimAction.pointerId);
+        if (!pointer) return;
+
+        if (e.cancelable) e.preventDefault();
+        this.emit('aimMove', {
+            action: this.activeAimAction.action,
+            clientX: pointer.clientX,
+            clientY: pointer.clientY
+        });
+    }
+
+    _handleActionEnd(e) {
+        if (!this.activeAimAction) return;
+
+        const pointer = this._getPointerFromEvent(e, this.activeAimAction.pointerId);
+        if (!pointer) return;
+
+        const action = this.activeAimAction.action;
+        this._clearAimActionTracking();
+        this.emit('actionUp', action);
     }
 
     _bindUiButtons() {
@@ -78,10 +141,14 @@ export default class TouchHandler extends EventEmitter {
             const startAction = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                this._startAimActionTracking(e, action);
                 this.emit('actionDown', action);
             };
 
             const endAction = (e) => {
+                if (action === 'SKILL_2') {
+                    this._clearAimActionTracking();
+                }
                 this.emit('actionUp', action);
             };
 
@@ -194,6 +261,14 @@ export default class TouchHandler extends EventEmitter {
         // Remove listeners
         window.removeEventListener('touchmove', this._handleMove);
         window.removeEventListener('touchend', this._handleEnd);
+        window.removeEventListener('touchcancel', this._handleEnd);
+        window.removeEventListener('mousemove', this._handleMove);
+        window.removeEventListener('mouseup', this._handleEnd);
+        window.removeEventListener('touchmove', this._handleActionMove);
+        window.removeEventListener('touchend', this._handleActionEnd);
+        window.removeEventListener('touchcancel', this._handleActionEnd);
+        window.removeEventListener('mousemove', this._handleActionMove);
+        window.removeEventListener('mouseup', this._handleActionEnd);
         // ... (remove other listeners)
     }
 }
