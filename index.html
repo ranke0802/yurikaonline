@@ -33,7 +33,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.01.44')
+                navigator.serviceWorker.register('./sw.js?v=0.01.45')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -113,7 +113,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.44">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.45">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -661,7 +661,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.44"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.45"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">
@@ -672,13 +672,6 @@
         <div class="dev-stat">RTDB: <span id="dev-net-writes">0</span>/m | <span id="dev-net-bytes">0.0 KB</span>/m</div>
         <div class="dev-stat">Move/Monster/Profile: <span id="dev-net-move">0</span>/<span id="dev-net-monster">0</span>/<span id="dev-net-profile">0</span></div>
         <div class="dev-stat">HUD/Mini/Remote: <span id="dev-ui-hud">0</span>/<span id="dev-ui-minimap">0</span>/<span id="dev-ui-remote">0</span></div>
-        <div class="dev-lookup">
-            <div class="dev-lookup-row">
-                <input type="text" id="dev-name-search" placeholder="이름으로 UID 조회">
-                <button id="dev-btn-search" type="button">검색</button>
-            </div>
-            <div id="dev-search-result" class="dev-search-result"></div>
-        </div>
     </div>
 </body>
 

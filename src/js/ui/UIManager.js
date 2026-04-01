@@ -4063,37 +4063,6 @@ export class UIManager {
             });
         }
 
-        // v1.94: Handle Name-to-UID Lookup in Dev Overlay
-        const searchInput = document.getElementById('dev-name-search');
-        const searchBtn = document.getElementById('dev-btn-search');
-        const resultEl = document.getElementById('dev-search-result');
-
-        if (searchInput && searchBtn && resultEl) {
-            searchBtn.onclick = async () => {
-                const name = searchInput.value.trim();
-                if (!name) return;
-
-                resultEl.textContent = '조회 중...';
-                resultEl.style.color = '#fdcb6e';
-
-                const uid = await this.game.net.getUidByName(name);
-                if (uid) {
-                    resultEl.textContent = `UID: ${uid}`;
-                    resultEl.style.color = '#55efc4';
-                } else {
-                    resultEl.textContent = '찾을 수 없음';
-                    resultEl.style.color = '#ff7675';
-                }
-            };
-
-            searchInput.onkeydown = (e) => {
-                if (e.key === 'Enter') {
-                    e.stopPropagation();
-                    searchBtn.click();
-                }
-            };
-        }
-
     }
 
     // v0.00.15: Dev Mode - Character Reset (Refund)
