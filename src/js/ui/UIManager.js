@@ -109,7 +109,7 @@ export class UIManager {
         const enabled = typeof forceState === 'boolean'
             ? forceState
             : !!this.game.localPlayer?.autoAttackEnabled;
-        const nextText = enabled ? 'AUTO ON' : 'AUTO OFF';
+        const nextText = '[Auto]';
 
         if (button.textContent !== nextText) {
             button.textContent = nextText;
@@ -117,7 +117,7 @@ export class UIManager {
 
         button.classList.toggle('active', enabled);
         button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-        button.setAttribute('title', enabled ? 'Normal attack auto enabled' : 'Normal attack auto disabled');
+        button.setAttribute('title', enabled ? '자동 일반공격 활성화' : '자동 일반공격 비활성화');
     }
 
     // v2.1: Dialog System Methods
@@ -832,9 +832,11 @@ export class UIManager {
             e.stopPropagation();
             this.game.localPlayer?.toggleAutoAttack?.();
         };
+        if (autoAttackToggle && !autoAttackToggle.dataset.bound) {
+            autoAttackToggle.addEventListener('pointerdown', handleAutoAttackToggle);
+            autoAttackToggle.dataset.bound = 'true';
+        }
         if (autoAttackToggle) {
-            autoAttackToggle.addEventListener('click', handleAutoAttackToggle);
-            autoAttackToggle.addEventListener('touchstart', handleAutoAttackToggle, { passive: false });
             this.updateAutoAttackToggle();
         }
 
@@ -1658,7 +1660,8 @@ export class UIManager {
                 const minBaseDamage = Math.ceil(attackPower * baseRatio * weaponMultiplier);
                 const maxBaseDamage = Math.ceil(attackPower * maxRatio * weaponMultiplier);
                 const statBonus = (p.intelligence + p.wisdom) * 0.05;
-                const tickInterval = 0.7 / ((p.attackSpeed || 1) + statBonus);
+                const effectiveAttackSpeed = Math.min(2.0, (p.attackSpeed || 1) + statBonus);
+                const tickInterval = (0.7 / Math.max(0.1, effectiveAttackSpeed)) * 1.15;
 
                 currentStats.push(
                     `현재 공격력 ${attackPower} 기준 시작 피해는 <strong>${minBaseDamage}</strong>, 완전 충전 기준 최대 피해는 <strong>${maxBaseDamage}</strong>입니다. 둘 다 방어력 적용 전 수치입니다.`,
@@ -2253,11 +2256,11 @@ export class UIManager {
         // v0.00.40: INT bonuses: +5% attack speed per INT, +1% crit rate per INT
         // Note: These are multiplier bonuses, not additive base stats usually.
         // Player.js: 1.0 + (agi * 0.1) + (int * 0.05)
-        const predAtkSpd = 1.0 + (predAgi * 0.1) + (predInt * 0.05);
+        const predAtkSpd = Math.min(2.0, 1.0 + (predAgi * 0.1) + (predInt * 0.05));
         const predCrit = 0.1 + (predAgi * 0.01) + (predInt * 0.01);
         const predMoveSpd = 1.0 + (predAgi * 0.05); // Base 1.0
 
-        const currentAtkSpdBase = 1.0 + (baseAgi * 0.1) + (baseInt * 0.05);
+        const currentAtkSpdBase = Math.min(2.0, 1.0 + (baseAgi * 0.1) + (baseInt * 0.05));
         const currentCritBase = 0.1 + (baseAgi * 0.01) + (baseInt * 0.01);
         const currentMoveSpdBase = 1.0 + (baseAgi * 0.05);
 
@@ -4034,12 +4037,14 @@ export class UIManager {
             portrait.addEventListener('click', () => {
                 this.devMode = !this.devMode;
                 const overlay = document.getElementById('dev-overlay');
+                const statusLookup = document.getElementById('status-dev-lookup');
 
                 // Status Popup Buttons
                 const btnAccount = document.getElementById('reset-account-btn');
                 const btnStat = document.getElementById('reset-stat-btn');
 
                 if (overlay) overlay.classList.toggle('hidden', !this.devMode);
+                if (statusLookup) statusLookup.classList.toggle('hidden', !this.devMode);
 
                 if (btnAccount) {
                     btnAccount.classList.toggle('hidden', !this.devMode);
@@ -4062,7 +4067,7 @@ export class UIManager {
             });
         }
 
-        // v1.94: Handle Name-to-UID Lookup in Dev Overlay
+        // v1.94: Handle Name-to-UID Lookup in Status Popup
         const searchInput = document.getElementById('dev-name-search');
         const searchBtn = document.getElementById('dev-btn-search');
         const resultEl = document.getElementById('dev-search-result');
@@ -4093,19 +4098,6 @@ export class UIManager {
             };
         }
 
-        // v0.00.15: Developer Mode Reset UI
-        const btnCharReset = document.getElementById('dev-btn-reset-char');
-        const btnAccountReset = document.getElementById('dev-btn-reset-account');
-
-        if (btnCharReset && !btnCharReset.dataset.bound) {
-            btnCharReset.onclick = () => this.handleDevCharacterReset();
-            btnCharReset.dataset.bound = "true";
-        }
-
-        if (btnAccountReset && !btnAccountReset.dataset.bound) {
-            btnAccountReset.onclick = () => this.handleDevAccountReset();
-            btnAccountReset.dataset.bound = "true";
-        }
     }
 
     // v0.00.15: Dev Mode - Character Reset (Refund)

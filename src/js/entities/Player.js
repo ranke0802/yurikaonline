@@ -40,6 +40,7 @@ export default class Player extends CharacterBase {
         this.hpRegen = base.hpRegen ?? 1;
         this.mpRegen = base.mpRegen ?? 2;
         this.attackSpeed = 1.0;
+        this.maxAttackSpeed = 2.0;
         this.critRate = 0.1;
         this.moveSpeedBonus = 1.0;
 
@@ -220,9 +221,12 @@ export default class Player extends CharacterBase {
 
         // v0.29.9: Chain Lightning Full Restore
         const isManualAttackPressed = !!(this.input && this.input.isPressed('ATTACK'));
+        const autoTarget = !isManualAttackPressed && this.autoAttackEnabled
+            ? this.refreshAutoAttackTarget()
+            : null;
         const shouldAutoAttack = !isManualAttackPressed
             && this.autoAttackEnabled
-            && this.canAutoAttackCurrentTarget();
+            && !!autoTarget;
         if (this.skillAttackTimer <= 0) {
             if (isManualAttackPressed || shouldAutoAttack) {
                 this.performLaserAttack(dt);
@@ -573,7 +577,7 @@ export default class Player extends CharacterBase {
         this.mpRegen = this.wisdom; // v1.1: Wis contributes 1:1 to MP regen
 
         // v0.00.40: INT bonuses: +5% attack speed per INT, +1% crit rate per INT
-        this.attackSpeed = 1.0 + (this.agility * 0.1) + (this.intelligence * 0.05);
+        this.attackSpeed = Math.min(this.maxAttackSpeed, 1.0 + (this.agility * 0.1) + (this.intelligence * 0.05));
         this.moveSpeedBonus = 1.0 + (this.agility * 0.05);
         // v0.00.40: Base 10% crit, +1% per AGI, +1% per INT
         this.critRate = 0.1 + (this.agility * 0.01) + (this.intelligence * 0.01);
@@ -920,11 +924,64 @@ export default class Player extends CharacterBase {
         if (!this.isAttackTargetStillValid(target)) return false;
         if (!this.canAttackTarget(target)) return false;
 
+        return this.getDistanceToTarget(target) <= this.attackRange;
+    }
+
+    getDistanceToTarget(target) {
+        if (!target) return Number.POSITIVE_INFINITY;
+
         const sourceX = this.x + this.width / 2;
         const sourceY = this.y + this.height / 2;
         const targetX = target.x + ((target.width || 0) / 2);
         const targetY = target.y + ((target.height || 0) / 2);
-        return Math.hypot(targetX - sourceX, targetY - sourceY) <= this.attackRange;
+        return Math.hypot(targetX - sourceX, targetY - sourceY);
+    }
+
+    findNearestAutoAttackTarget() {
+        const candidates = [];
+
+        if (window.game?.monsterManager?.monsters) {
+            candidates.push(...window.game.monsterManager.monsters.values());
+        }
+
+        if (window.game?.remotePlayers) {
+            candidates.push(...window.game.remotePlayers.values());
+        }
+
+        let nearest = null;
+        let minDist = this.attackRange;
+
+        for (const target of candidates) {
+            if (!target || target === this || target.isDead) continue;
+            if (!this.isAttackTargetStillValid(target)) continue;
+            if (!this.canAttackTarget(target)) continue;
+
+            const distance = this.getDistanceToTarget(target);
+            if (distance <= this.attackRange && distance < minDist) {
+                minDist = distance;
+                nearest = target;
+            }
+        }
+
+        return nearest;
+    }
+
+    refreshAutoAttackTarget() {
+        if (this.canAutoAttackCurrentTarget()) {
+            return this.currentTarget;
+        }
+
+        const nearest = this.findNearestAutoAttackTarget();
+        if (nearest) {
+            this.currentTarget = nearest;
+            return nearest;
+        }
+
+        if (!this.isAttackTargetStillValid(this.currentTarget)) {
+            this.currentTarget = null;
+        }
+
+        return null;
     }
 
     toggleAutoAttack(force = null, options = {}) {
@@ -980,7 +1037,8 @@ export default class Player extends CharacterBase {
         const baseTickInterval = 0.7; // v0.00.78: Adjusted from 0.5 to 0.7
         // v0.00.78: WIS/INT factor: 0.05 per point
         const statBonus = (this.intelligence + this.wisdom) * 0.05;
-        const tickInterval = baseTickInterval / (this.attackSpeed + statBonus);
+        const effectiveAttackSpeed = Math.min(this.maxAttackSpeed, this.attackSpeed + statBonus);
+        const tickInterval = (baseTickInterval / Math.max(0.1, effectiveAttackSpeed)) * 1.15;
         const isTick = this.lightningTickTimer <= 0;
 
         if (isTick) {

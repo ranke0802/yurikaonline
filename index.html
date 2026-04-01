@@ -33,7 +33,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.01.41')
+                navigator.serviceWorker.register('./sw.js?v=0.01.42')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -113,7 +113,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.41">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.42">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -307,7 +307,7 @@
                             <div class="cooldown-time"></div>
                         </div>
                     </div>
-                    <button id="action-auto-toggle" class="attack-auto-toggle" type="button" aria-pressed="false">AUTO OFF</button>
+                    <button id="action-auto-toggle" class="attack-auto-toggle" type="button" aria-pressed="false">[Auto]</button>
                 </div>
             </div>
         </div>
@@ -488,6 +488,14 @@
                         <button id="reset-account-btn" class="reset-btn hidden">계정 초기화</button>
                         <button id="reset-stat-btn" class="reset-btn hidden" style="background: #e17055;">캐릭터 초기화</button>
                     </div>
+                    <div id="status-dev-lookup" class="dev-status-lookup hidden">
+                        <div class="dev-status-lookup-title">개발자 UID 검색</div>
+                        <div class="dev-status-lookup-row">
+                            <input type="text" id="dev-name-search" placeholder="이름으로 UID 조회">
+                            <button id="dev-btn-search" type="button">UID 검색</button>
+                        </div>
+                        <div id="dev-search-result" class="dev-status-lookup-result"></div>
+                    </div>
                     <div class="popup-footer">
                         <button id="status-close-btn-bottom" class="close-btn-bottom close-popup">닫기</button>
                     </div>
@@ -661,7 +669,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.41"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.42"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">
@@ -672,23 +680,6 @@
         <div class="dev-stat">RTDB: <span id="dev-net-writes">0</span>/m | <span id="dev-net-bytes">0.0 KB</span>/m</div>
         <div class="dev-stat">Move/Monster/Profile: <span id="dev-net-move">0</span>/<span id="dev-net-monster">0</span>/<span id="dev-net-profile">0</span></div>
         <div class="dev-stat">HUD/Mini/Remote: <span id="dev-ui-hud">0</span>/<span id="dev-ui-minimap">0</span>/<span id="dev-ui-remote">0</span></div>
-        <div class="dev-lookup" style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px;">
-            <input type="text" id="dev-name-search" placeholder="이름으로 UID 조회"
-                style="width: 100px; font-size: 10px; background: rgba(0,0,0,0.5); border: 1px solid #555; color: white; border-radius: 4px; padding: 2px 4px;">
-            <button id="dev-btn-search"
-                style="font-size: 10px; height: 18px; line-height: 1; vertical-align: middle; cursor: pointer; background: #4285f4; border: none; color: white; border-radius: 2px;">검색</button>
-            <div id="dev-search-result"
-                style="font-size: 9px; margin-top: 4px; color: #4ade80; word-break: break-all; max-width: 140px;"></div>
-        </div>
-        <div class="dev-reset"
-            style="margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px; display: flex; gap: 4px;">
-            <button id="dev-btn-reset-char"
-                style="flex: 1; font-size: 10px; background: #e17055; border: none; color: white; border-radius: 4px; padding: 4px; cursor: pointer;">캐릭터
-                초기화</button>
-            <button id="dev-btn-reset-account"
-                style="flex: 1; font-size: 10px; background: #d63031; border: none; color: white; border-radius: 4px; padding: 4px; cursor: pointer;">계정
-                초기화</button>
-        </div>
     </div>
 </body>
 
