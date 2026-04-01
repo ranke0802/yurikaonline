@@ -3,13 +3,13 @@
 
 <!-- AUTO_VERSION_BLOCK_START -->
 ## Build Metadata
-- 배포 버전: **0.01.39**
+- 배포 버전: **0.01.40**
 - 마지막 버전 갱신: 2026-04-01
 <!-- AUTO_VERSION_BLOCK_END -->
 
 Yurika Online은 HTML5 Canvas와 Firebase를 기반으로 만든 실시간 웹 MMORPG입니다. 로그인, 캐릭터 성장, 튜토리얼, 멀티플레이어 동기화, 전투 UI를 한 프로젝트 안에서 다루고 있습니다.
 
-현재 버전: **0.01.39**
+현재 버전: **0.01.40**
 
 ## 핵심 기능
 
@@ -21,6 +21,14 @@ Yurika Online은 HTML5 Canvas와 Firebase를 기반으로 만든 실시간 웹 M
 - 배포 안정화: 서비스 워커와 버전 기반 캐시 무효화
 
 ## 최근 업데이트
+
+### 0.01.40
+
+- 모바일 저전력 모드에서 미니맵, 미니맵 메뉴, 인벤토리 상세 오버레이, 확인/사망 모달에 남아 있던 `backdrop-filter` 경로를 더 정리해 합성 비용을 줄였습니다.
+- 미니맵에 상태 기반 dirty redraw 캐시를 추가해, 플레이어/원격 플레이어/몬스터 배치가 눈에 띄게 바뀌지 않았을 때는 실제 캔버스 redraw를 건너뛰도록 개선했습니다.
+- 미니맵 캔버스가 교체되거나 해상도가 바뀐 경우에는 캐시를 무시하고 다시 그리도록 보완해, 화면 전환 후 빈 미니맵이 남지 않게 했습니다.
+- 인코딩 깨짐을 다시 점검해 조이스틱 발바닥 아이콘 문자열이 깨져 있던 `index.html` 한 곳을 정상 복구했습니다.
+- 이번 UI 경량화와 인코딩 점검 내용은 [`plans/mobile_thermal_packet_optimization_report_2026-04-01_phase7_ui_polish.md`](plans/mobile_thermal_packet_optimization_report_2026-04-01_phase7_ui_polish.md)에 별도 보고서로 정리했습니다.
 
 ### 0.01.39
 

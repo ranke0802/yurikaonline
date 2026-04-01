@@ -16,6 +16,7 @@ export class UIManager {
         this.cooldownRefs = {};
         this.minimapCtx = null;
         this.minimapCanvas = null;
+        this.lastMinimapSignature = null;
         this.lastHudSnapshot = null;
         this.lastCooldownUiUpdate = 0;
         this.lastDevOverlayUpdate = 0;
@@ -3671,12 +3672,59 @@ export class UIManager {
         });
     }
 
+    buildMinimapStateSignature(player, remotePlayers, monsters, mapWidth, mapHeight, width, height, simpleMode) {
+        let hash = 2166136261;
+        const step = Math.max(
+            10,
+            Math.round(Math.max(mapWidth / Math.max(width, 1), mapHeight / Math.max(height, 1)) * (simpleMode ? 0.9 : 0.65))
+        );
+        const quantize = (value) => Math.round((Number(value) || 0) / step);
+        const mix = (value) => {
+            const normalized = Number.isFinite(value) ? Math.trunc(value) : 0;
+            hash ^= normalized;
+            hash = Math.imul(hash, 16777619);
+            hash >>>= 0;
+        };
+
+        let remoteCount = 0;
+        let aliveMonsterCount = 0;
+
+        mix(width);
+        mix(height);
+        mix(quantize(player?.x));
+        mix(quantize(player?.y));
+
+        if (remotePlayers?.forEach) {
+            remotePlayers.forEach((rp) => {
+                remoteCount++;
+                mix(quantize(rp?.x));
+                mix(quantize(rp?.y));
+            });
+        }
+
+        if (monsters?.forEach) {
+            monsters.forEach((m) => {
+                if (!m || m.isDead) return;
+                aliveMonsterCount++;
+                mix(m.isBoss || m.typeId === 'king_slime' ? 11 : 5);
+                mix(quantize(m.x));
+                mix(quantize(m.y));
+            });
+        }
+
+        mix(remoteCount);
+        mix(aliveMonsterCount);
+
+        return `${width}x${height}:${step}:${remoteCount}:${aliveMonsterCount}:${hash.toString(36)}`;
+    }
+
     updateMinimap(player, remotePlayers, monsters, mapWidth, mapHeight) {
         const canvas = this.minimapCanvas && this.minimapCanvas.isConnected
             ? this.minimapCanvas
             : document.getElementById('minimapCanvas');
         if (!canvas) return;
 
+        const canvasChanged = this.minimapCanvas !== canvas;
         this.minimapCanvas = canvas;
         const ctx = this.minimapCtx || canvas.getContext('2d', { alpha: true, desynchronized: true }) || canvas.getContext('2d');
         this.minimapCtx = ctx;
@@ -3685,6 +3733,21 @@ export class UIManager {
         const h = simpleMode ? 96 : 150;
         if (canvas.width !== w) canvas.width = w;
         if (canvas.height !== h) canvas.height = h;
+
+        // Update footer
+        const posX = this.getHudRef('miniPosX', 'mini-pos-x', 'id');
+        const posY = this.getHudRef('miniPosY', 'mini-pos-y', 'id');
+        const nextPosX = String(Math.round(player.x));
+        const nextPosY = String(Math.round(player.y));
+        if (posX && posX.textContent !== nextPosX) posX.textContent = nextPosX;
+        if (posY && posY.textContent !== nextPosY) posY.textContent = nextPosY;
+
+        const signature = this.buildMinimapStateSignature(player, remotePlayers, monsters, mapWidth, mapHeight, w, h, simpleMode);
+        if (!canvasChanged && this.lastMinimapSignature === signature) {
+            return;
+        }
+
+        this.lastMinimapSignature = signature;
 
         // Clear Map (Make it transparent)
         ctx.clearRect(0, 0, w, h);
@@ -3733,13 +3796,6 @@ export class UIManager {
         const py = player.y * scaleY;
         drawDot(px, py, 3);
 
-        // Update footer
-        const posX = this.getHudRef('miniPosX', 'mini-pos-x', 'id');
-        const posY = this.getHudRef('miniPosY', 'mini-pos-y', 'id');
-        const nextPosX = String(Math.round(player.x));
-        const nextPosY = String(Math.round(player.y));
-        if (posX && posX.textContent !== nextPosX) posX.textContent = nextPosX;
-        if (posY && posY.textContent !== nextPosY) posY.textContent = nextPosY;
         this.game.recordUiTick?.('minimap');
     }
 
