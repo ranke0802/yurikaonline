@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.GAME_VERSION = '0.01.40'; // Synced with version.txt
+window.GAME_VERSION = '0.01.41'; // Synced with version.txt
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';
@@ -194,11 +194,13 @@ class Game {
         const isAppleMobile = this.isAppleMobileDevice();
         const lowPowerPwaMode = isMobile;
         const aggressiveThermalMode = lowPowerPwaMode && (isStandalone || isAppleMobile);
+        const reduceCombatEffects = false;
 
         return {
             isTouchDevice,
             isMobile,
             lowPowerPwaMode,
+            reduceCombatEffects,
             maxMobileDpr: lowPowerPwaMode ? (aggressiveThermalMode ? 1.2 : 1.3) : 1.5,
             maxRenderFps: isTouchDevice ? (lowPowerPwaMode ? (aggressiveThermalMode ? 45 : 50) : 60) : 0,
             maxUpdateFps: lowPowerPwaMode ? (aggressiveThermalMode ? 45 : 50) : 60
@@ -355,11 +357,11 @@ class Game {
 
         // Match yurikaonline-master logic: 900px threshold, 0.7/1.0 zoom
         const perfProfile = this.getPerformanceProfile();
-        const { isTouchDevice, isMobile, lowPowerPwaMode, maxMobileDpr, maxRenderFps, maxUpdateFps } = perfProfile;
+        const { isTouchDevice, isMobile, lowPowerPwaMode, reduceCombatEffects, maxMobileDpr, maxRenderFps, maxUpdateFps } = perfProfile;
         // v0.28.6: Adjust PC zoom to 0.8 for wider view (User Feedback)
         this.zoom = isMobile ? 0.7 : 0.8;
         this.isMobilePerformanceMode = isMobile;
-        this.useReducedEffects = lowPowerPwaMode;
+        this.useReducedEffects = reduceCombatEffects;
         this.useAggressiveHudOptimization = lowPowerPwaMode;
         this.lowPowerPwaMode = lowPowerPwaMode;
         this.maxMobileDpr = maxMobileDpr;

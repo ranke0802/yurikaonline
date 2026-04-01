@@ -3,13 +3,13 @@
 
 <!-- AUTO_VERSION_BLOCK_START -->
 ## Build Metadata
-- 배포 버전: **0.01.40**
+- 배포 버전: **0.01.41**
 - 마지막 버전 갱신: 2026-04-01
 <!-- AUTO_VERSION_BLOCK_END -->
 
 Yurika Online은 HTML5 Canvas와 Firebase를 기반으로 만든 실시간 웹 MMORPG입니다. 로그인, 캐릭터 성장, 튜토리얼, 멀티플레이어 동기화, 전투 UI를 한 프로젝트 안에서 다루고 있습니다.
 
-현재 버전: **0.01.40**
+현재 버전: **0.01.41**
 
 ## 핵심 기능
 
@@ -21,6 +21,13 @@ Yurika Online은 HTML5 Canvas와 Firebase를 기반으로 만든 실시간 웹 M
 - 배포 안정화: 서비스 워커와 버전 기반 캐시 무효화
 
 ## 최근 업데이트
+
+### 0.01.41
+
+- 모바일 최적화 프로필에서 전투 이펙트 저하 플래그를 분리해, HUD/미니맵/네트워크 최적화는 유지하면서 스킬 모션과 전투 연출은 다시 기존 품질에 가깝게 복구했습니다.
+- 기존에는 모바일 저전력 모드가 켜지면 `useReducedEffects`도 함께 활성화되어 체인 라이트닝, 투사체, 마법진, 보호막 연출이 과하게 단순화되고 있었는데, 이제는 전투 이펙트는 기본적으로 축소하지 않도록 정리했습니다.
+- 최근 적용한 blur 제거, 미니맵 dirty redraw, 패킷 최적화는 그대로 유지돼 전투 연출만 되살리고 나머지 발열/네트워크 개선은 계속 가져가도록 맞췄습니다.
+- 이번 조정 내용은 [`plans/mobile_thermal_packet_optimization_report_2026-04-01_effect_quality_recovery.md`](plans/mobile_thermal_packet_optimization_report_2026-04-01_effect_quality_recovery.md)에 별도 메모로 정리했습니다.
 
 ### 0.01.40
 
