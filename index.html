@@ -33,7 +33,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.01.42')
+                navigator.serviceWorker.register('./sw.js?v=0.01.43')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -113,7 +113,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.42">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.43">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -488,14 +488,6 @@
                         <button id="reset-account-btn" class="reset-btn hidden">계정 초기화</button>
                         <button id="reset-stat-btn" class="reset-btn hidden" style="background: #e17055;">캐릭터 초기화</button>
                     </div>
-                    <div id="status-dev-lookup" class="dev-status-lookup hidden">
-                        <div class="dev-status-lookup-title">개발자 UID 검색</div>
-                        <div class="dev-status-lookup-row">
-                            <input type="text" id="dev-name-search" placeholder="이름으로 UID 조회">
-                            <button id="dev-btn-search" type="button">UID 검색</button>
-                        </div>
-                        <div id="dev-search-result" class="dev-status-lookup-result"></div>
-                    </div>
                     <div class="popup-footer">
                         <button id="status-close-btn-bottom" class="close-btn-bottom close-popup">닫기</button>
                     </div>
@@ -669,7 +661,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.42"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.43"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

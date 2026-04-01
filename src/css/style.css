@@ -232,12 +232,12 @@ button:active,
 }
 
 .attack-auto-toggle {
-    position: static;
-    align-self: center;
-    margin-top: 2px;
-    min-width: 60px;
-    height: 28px;
-    padding: 0 10px;
+    position: fixed;
+    top: calc(276px + env(safe-area-inset-top));
+    right: calc(42px + env(safe-area-inset-right));
+    min-width: 58px;
+    height: 26px;
+    padding: 0 9px;
     border: 1px solid rgba(255, 255, 255, 0.38);
     border-radius: 999px;
     background: rgba(86, 93, 108, 0.82);
@@ -251,7 +251,7 @@ button:active,
     letter-spacing: 0.03em;
     line-height: 1;
     cursor: pointer;
-    z-index: 130;
+    z-index: 1370;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
 }
 
@@ -2375,6 +2375,19 @@ body.low-power-pwa .minimap-menu {
         transform-origin: bottom right;
         opacity: 0.6;
     }
+
+    .dev-overlay {
+        top: calc(12px + env(safe-area-inset-top));
+        right: calc(128px + env(safe-area-inset-right));
+        max-width: 132px;
+        font-size: 9px;
+        line-height: 1.3;
+    }
+
+    .attack-auto-toggle {
+        top: calc(274px + env(safe-area-inset-top));
+        right: calc(24px + env(safe-area-inset-right));
+    }
 }
 
 /* Mobile Landscape HUD Layout */
@@ -2630,6 +2643,19 @@ body.low-power-pwa .minimap-menu {
         display: flex;
         flex-direction: column;
         gap: 6px;
+    }
+
+    .dev-overlay {
+        top: calc(10px + env(safe-area-inset-top));
+        right: calc(126px + env(safe-area-inset-right));
+        max-width: 132px;
+        font-size: 9px;
+        line-height: 1.3;
+    }
+
+    .attack-auto-toggle {
+        top: calc(154px + env(safe-area-inset-top));
+        right: calc(18px + env(safe-area-inset-right));
     }
 
     .skill-row {
@@ -3613,6 +3639,14 @@ body.is-fullscreen .version-info {
         z-index: 1310;
     }
 
+    .dev-overlay {
+        top: calc(12px + env(safe-area-inset-top));
+        right: calc(140px + env(safe-area-inset-right));
+        max-width: 150px;
+        font-size: 9px;
+        line-height: 1.3;
+    }
+
     #minimap-container::after {
         border-width: 2px;
         border-radius: 18px;
@@ -3802,14 +3836,14 @@ body.is-fullscreen .version-info {
     }
 
     .action-buttons .attack-auto-toggle {
-        position: static;
-        align-self: center;
-        margin-top: 2px;
-        min-width: 64px;
-        height: 28px;
-        padding: 0 12px;
+        position: fixed;
+        top: calc(182px + env(safe-area-inset-top));
+        right: calc(38px + env(safe-area-inset-right));
+        min-width: 60px;
+        height: 25px;
+        padding: 0 10px;
         font-size: 10px;
-        border-width: 2px;
+        border-width: 1px;
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24);
     }
 
@@ -4226,10 +4260,10 @@ body.is-fullscreen .version-info {
 /* Developer Mode UI */
 .dev-overlay {
     position: fixed;
-    top: calc(112px + env(safe-area-inset-top));
-    left: calc(12px + env(safe-area-inset-left));
-    right: auto;
-    max-width: 210px;
+    top: calc(22px + env(safe-area-inset-top));
+    right: calc(184px + env(safe-area-inset-right));
+    left: auto;
+    max-width: 190px;
     background: transparent;
     color: rgba(219, 255, 231, 0.78);
     padding: 0;
@@ -4243,6 +4277,7 @@ body.is-fullscreen .version-info {
     box-shadow: none;
     backdrop-filter: none;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.82);
+    text-align: right;
 }
 
 .dev-stat {
@@ -4255,61 +4290,6 @@ body.is-fullscreen .version-info {
     color: #ffffff;
 }
 
-#status-popup .dev-status-lookup {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 4px;
-    padding: 12px 14px;
-    border-radius: 16px;
-    background: rgba(255, 248, 231, 0.66);
-    border: 1px solid rgba(230, 190, 130, 0.4);
-}
-
-#status-popup .dev-status-lookup-title {
-    font-size: 12px;
-    font-weight: 800;
-    color: #7b4a00;
-}
-
-#status-popup .dev-status-lookup-row {
-    display: flex;
-    gap: 8px;
-}
-
-#status-popup .dev-status-lookup input {
-    flex: 1 1 auto;
-    min-width: 0;
-    height: 36px;
-    padding: 0 12px;
-    border: 1px solid rgba(155, 111, 60, 0.32);
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.88);
-    color: #4a3424;
-    font-size: 13px;
-}
-
-#status-popup .dev-status-lookup button {
-    flex: 0 0 auto;
-    min-width: 86px;
-    height: 36px;
-    padding: 0 12px;
-    border: none;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #4f8cff 0%, #3b6be3 100%);
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-#status-popup .dev-status-lookup-result {
-    min-height: 16px;
-    font-size: 12px;
-    line-height: 1.4;
-    color: #2f6b46;
-    word-break: break-all;
-}
 
 /* v0.00.14: Party & PvP Styles */
 
@@ -5407,6 +5387,14 @@ body.is-fullscreen .version-info {
         z-index: 1350 !important;
     }
 
+    .dev-overlay {
+        top: calc(10px + env(safe-area-inset-top));
+        right: calc(112px + env(safe-area-inset-right));
+        max-width: 118px;
+        font-size: 8px;
+        line-height: 1.28;
+    }
+
     body #ui-layer .minimap-menu .menu-btn {
         width: auto !important;
         height: 34px !important;
@@ -5516,11 +5504,12 @@ body.is-fullscreen .version-info {
     }
 
     .action-buttons .attack-auto-toggle {
-        position: static !important;
-        right: auto !important;
+        position: fixed !important;
+        top: calc(156px + env(safe-area-inset-top)) !important;
+        right: calc(28px + env(safe-area-inset-right)) !important;
         bottom: auto !important;
-        align-self: center !important;
-        margin-top: 2px !important;
+        align-self: auto !important;
+        margin-top: 0 !important;
         min-width: 58px !important;
         height: 24px !important;
         padding: 0 9px !important;
@@ -5777,7 +5766,6 @@ body.is-fullscreen .version-info {
         grid-template-areas:
             "top stats"
             "actions actions"
-            "lookup lookup"
             "footer footer" !important;
         gap: 8px 12px !important;
         align-items: start !important;
@@ -5853,27 +5841,6 @@ body.is-fullscreen .version-info {
 
     #status-popup .reset-actions .reset-btn {
         flex: 1 1 160px !important;
-    }
-
-    #status-popup .dev-status-lookup {
-        grid-area: lookup;
-        gap: 6px !important;
-        padding: 10px 12px !important;
-    }
-
-    #status-popup .dev-status-lookup-title,
-    #status-popup .dev-status-lookup-result {
-        font-size: 11px !important;
-    }
-
-    #status-popup .dev-status-lookup-row {
-        gap: 6px !important;
-    }
-
-    #status-popup .dev-status-lookup input,
-    #status-popup .dev-status-lookup button {
-        height: 32px !important;
-        font-size: 11px !important;
     }
 
     #skill-popup .skill-point-info {
@@ -6362,7 +6329,6 @@ body.is-fullscreen .version-info {
         grid-template-areas:
             "top stats"
             "actions actions"
-            "lookup lookup"
             "footer footer" !important;
         gap: 8px 10px !important;
         min-height: 0 !important;
@@ -6496,28 +6462,6 @@ body.is-fullscreen .version-info {
         min-height: 34px !important;
         padding: 6px 8px !important;
         font-size: 11px !important;
-    }
-
-    #status-popup .dev-status-lookup {
-        grid-area: lookup !important;
-        gap: 6px !important;
-        margin-top: 0 !important;
-        padding: 10px 12px !important;
-    }
-
-    #status-popup .dev-status-lookup-title,
-    #status-popup .dev-status-lookup-result {
-        font-size: 10px !important;
-    }
-
-    #status-popup .dev-status-lookup-row {
-        gap: 6px !important;
-    }
-
-    #status-popup .dev-status-lookup input,
-    #status-popup .dev-status-lookup button {
-        height: 30px !important;
-        font-size: 10px !important;
     }
 
     #status-popup .popup-footer {

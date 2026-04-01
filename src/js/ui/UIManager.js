@@ -4037,65 +4037,12 @@ export class UIManager {
             portrait.addEventListener('click', () => {
                 this.devMode = !this.devMode;
                 const overlay = document.getElementById('dev-overlay');
-                const statusLookup = document.getElementById('status-dev-lookup');
-
-                // Status Popup Buttons
-                const btnAccount = document.getElementById('reset-account-btn');
-                const btnStat = document.getElementById('reset-stat-btn');
 
                 if (overlay) overlay.classList.toggle('hidden', !this.devMode);
-                if (statusLookup) statusLookup.classList.toggle('hidden', !this.devMode);
-
-                if (btnAccount) {
-                    btnAccount.classList.toggle('hidden', !this.devMode);
-                    if (!btnAccount.dataset.bound) {
-                        btnAccount.onclick = () => this.handleDevAccountReset(); // Wipe
-                        btnAccount.dataset.bound = "true";
-                    }
-                }
-
-                if (btnStat) {
-                    btnStat.classList.toggle('hidden', !this.devMode);
-                    if (!btnStat.dataset.bound) {
-                        btnStat.onclick = () => this.handleDevCharacterReset(); // Refund
-                        btnStat.dataset.bound = "true";
-                    }
-                }
 
                 this.logSystemMessage(`개발자 모드 ${this.devMode ? '활성화' : '비활성화'}`);
                 if (this.devMode) this.updateDevOverlay();
             });
-        }
-
-        // v1.94: Handle Name-to-UID Lookup in Status Popup
-        const searchInput = document.getElementById('dev-name-search');
-        const searchBtn = document.getElementById('dev-btn-search');
-        const resultEl = document.getElementById('dev-search-result');
-
-        if (searchInput && searchBtn && resultEl) {
-            searchBtn.onclick = async () => {
-                const name = searchInput.value.trim();
-                if (!name) return;
-
-                resultEl.textContent = '조회 중...';
-                resultEl.style.color = '#fdcb6e';
-
-                const uid = await this.game.net.getUidByName(name);
-                if (uid) {
-                    resultEl.textContent = `UID: ${uid}`;
-                    resultEl.style.color = '#55efc4';
-                } else {
-                    resultEl.textContent = '찾을 수 없음';
-                    resultEl.style.color = '#ff7675';
-                }
-            };
-
-            searchInput.onkeydown = (e) => {
-                if (e.key === 'Enter') {
-                    e.stopPropagation();
-                    searchBtn.click();
-                }
-            };
         }
 
     }
