@@ -442,27 +442,36 @@ export default class SoundManager {
 
             // Combat Sounds - Skills (Epic Enhanced)
             case 'fireball_cast':
-                // Epic fire spell casting - building up power
-                this._slide(now, 'sawtooth', 200, 100, 0.4, 0.25, gain);
-                this._noise(now, 0.3, 0.2, gain, 400);
-                this._playInstrument('fm_brass', 220, now, 0.5, 0.2);
+                // Heavy ignition with low-end rumble
+                this._noise(now, 0.22, 0.2, gain, 900);
+                this._noise(now + 0.04, 0.18, 0.16, gain, 520);
+                this._slide(now, 'sawtooth', 170, 78, 0.28, 0.28, gain);
+                this._slide(now + 0.03, 'triangle', 240, 120, 0.24, 0.16, gain);
+                this._tone(now + 0.02, 'square', 92, 0.18, 0.12, gain);
                 break;
             case 'fireball_explosion':
-                // Massive explosion
-                this._noise(now, 0.6, 0.5, gain, 200);
-                this._slide(now, 'sawtooth', 150, 50, 0.5, 0.35, gain);
-                this._playInstrument('fm_brass', 110, now, 0.6, 0.3);
+                // Deep explosive boom with debris crack
+                this._noise(now, 0.42, 0.46, gain, 260);
+                this._noise(now + 0.02, 0.28, 0.24, gain, 1800);
+                this._slide(now, 'sawtooth', 140, 42, 0.48, 0.34, gain);
+                this._slide(now + 0.01, 'triangle', 96, 34, 0.55, 0.22, gain);
+                this._tone(now + 0.015, 'square', 68, 0.24, 0.14, gain);
                 break;
             case 'lightning':
-                // Thunder crack
-                this._noise(now, 0.15, 0.4, gain, 3000);
-                this._slide(now, 'sawtooth', 2000, 500, 0.25, 0.25, gain);
-                this._tone(now + 0.05, 'square', 800, 0.1, 0.2, gain);
+                // Main electric discharge
+                this._noise(now, 0.05, 0.24, gain, 6400);
+                this._noise(now + 0.018, 0.06, 0.2, gain, 4200);
+                this._noise(now + 0.043, 0.07, 0.16, gain, 2400);
+                this._slide(now, 'square', 2600, 1100, 0.08, 0.18, gain);
+                this._slide(now + 0.02, 'sawtooth', 1800, 620, 0.12, 0.14, gain);
+                this._tone(now + 0.028, 'square', 1320, 0.05, 0.1, gain);
                 break;
             case 'lightning_chain':
-                // Electric chain reaction
-                this._tone(now, 'sawtooth', 1500, 0.08, 0.2, gain);
-                this._tone(now + 0.03, 'square', 2000, 0.06, 0.15, gain);
+                // Secondary crackle around the main bolt
+                this._noise(now, 0.035, 0.14, gain, 7200);
+                this._noise(now + 0.015, 0.03, 0.12, gain, 5200);
+                this._tone(now, 'square', 1840, 0.045, 0.12, gain);
+                this._tone(now + 0.022, 'square', 2360, 0.03, 0.1, gain);
                 break;
             case 'magic_cast':
                 // Mystical casting sound
@@ -470,15 +479,18 @@ export default class SoundManager {
                 this._playInstrument('fm_bell', 1100, now + 0.1, 0.3, 0.1);
                 break;
             case 'missile_launch':
-                // Powerful missile launch - whoosh + power up
-                this._slide(now, 'sawtooth', 600, 1400, 0.25, 0.2, gain);
-                this._noise(now, 0.15, 0.15, gain, 2000);
-                this._playInstrument('fm_bell', 1320, now, 0.2, 0.12);
+                // Sharp burst volley with punchy launch
+                this._noise(now, 0.04, 0.12, gain, 3200);
+                this._tone(now, 'square', 420, 0.035, 0.14, gain);
+                this._tone(now + 0.032, 'square', 520, 0.03, 0.11, gain);
+                this._tone(now + 0.064, 'square', 640, 0.028, 0.09, gain);
+                this._slide(now, 'sawtooth', 740, 1220, 0.12, 0.12, gain);
                 break;
             case 'missile_hit':
-                // Impact explosion
-                this._noise(now, 0.2, 0.25, gain, 1500);
-                this._tone(now, 'square', 800, 0.12, 0.2, gain);
+                // Focused hit with punch and spark
+                this._noise(now, 0.08, 0.18, gain, 2400);
+                this._slide(now, 'square', 980, 420, 0.1, 0.13, gain);
+                this._tone(now + 0.015, 'triangle', 210, 0.08, 0.09, gain);
                 break;
             case 'shield_activate':
                 // Epic barrier activation - angelic choir-like
@@ -488,9 +500,9 @@ export default class SoundManager {
                 this._tone(now, 'sine', 220, 0.6, 0.15, gain);
                 break;
             case 'laser_shot':
-                // Powerful laser beam
-                this._slide(now, 'sawtooth', 3000, 1500, 0.2, 0.25, gain);
-                this._noise(now, 0.1, 0.15, gain, 4000);
+                // Reserved lightning beam accent
+                this._noise(now, 0.05, 0.16, gain, 5200);
+                this._slide(now, 'square', 2400, 900, 0.09, 0.14, gain);
                 break;
             case 'heal':
                 // Healing chime

@@ -1366,7 +1366,6 @@ export default class Player extends CharacterBase {
             if (this.useMana(cost)) {
                 this.triggerAction(`${this.name} : 매직 미사일 !!`);
                 if (window.game?.sound) window.game.sound.playSfx('missile_launch');
-                if (window.game?.sound) window.game.sound.playSfx('magic_cast');
 
                 // v0.00.75: Fixed casting speed to 1.0s, removed CDR/Stat influence
                 const baseCD = 1.0;
@@ -1492,7 +1491,6 @@ export default class Player extends CharacterBase {
                 window.game?.tutorial?.trigger?.('skill_use', { target: skillId, slot });
                 this.triggerAction(`${this.name} : 파이어볼 !!`);
                 if (window.game?.sound) window.game.sound.playSfx('fireball_cast');
-                if (window.game?.sound) window.game.sound.playSfx('magic_cast');
                 this.skillCooldowns.u = 2.0; // v1.99.31: Reduced to 2s
 
                 // v0.22.3: Visual Attack FeedBack
