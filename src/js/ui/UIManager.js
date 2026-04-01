@@ -18,8 +18,12 @@ export class UIManager {
         this.minimapCanvas = null;
         this.lastHudSnapshot = null;
         this.selectedInventoryRef = null;
+        this.inventoryDragState = null;
+        this.inventoryClickSuppressUntil = 0;
         this.handleDesktopShortcutKeydown = this.handleDesktopShortcutKeydown.bind(this);
         this.refreshDesktopShortcutHints = this.refreshDesktopShortcutHints.bind(this);
+        this.handleInventorySlotPointerMove = this.handleInventorySlotPointerMove.bind(this);
+        this.handleInventorySlotPointerUp = this.handleInventorySlotPointerUp.bind(this);
         this.setupEventListeners();
         this.setupFullscreenListeners();
         this.setupDevModeListeners();
@@ -2518,6 +2522,146 @@ export class UIManager {
         this.refreshDesktopShortcutHints();
     }
 
+    getInventoryItemIdentity(item) {
+        if (!item) return null;
+        return {
+            instanceId: item.instanceId || null,
+            type: item.type || item.id || null,
+            slot: item.slot || null,
+            enhancementLevel: item.enhancementLevel || 0,
+            amount: Math.max(1, item.amount || 1)
+        };
+    }
+
+    findInventoryIndexByIdentity(player, identity) {
+        if (!player || !identity) return -1;
+
+        if (identity.instanceId) {
+            return player.inventory.findIndex((item, index) => index > 0 && item?.instanceId === identity.instanceId);
+        }
+
+        return player.inventory.findIndex((item, index) => index > 0
+            && !!item
+            && (item.type || item.id) === identity.type
+            && (item.slot || null) === (identity.slot || null)
+            && (item.enhancementLevel || 0) === (identity.enhancementLevel || 0)
+            && Math.max(1, item.amount || 1) === Math.max(1, identity.amount || 1));
+    }
+
+    clearInventoryDragVisualState() {
+        document.querySelectorAll('#inventory-grid .grid-item.dragging, #inventory-grid .grid-item.drop-target').forEach((element) => {
+            element.classList.remove('dragging', 'drop-target');
+        });
+    }
+
+    tearDownInventoryDrag() {
+        document.removeEventListener('pointermove', this.handleInventorySlotPointerMove);
+        document.removeEventListener('pointerup', this.handleInventorySlotPointerUp);
+        document.removeEventListener('pointercancel', this.handleInventorySlotPointerUp);
+
+        const sourceElement = this.inventoryDragState?.sourceElement;
+        const pointerId = this.inventoryDragState?.pointerId;
+        if (sourceElement && pointerId != null) {
+            try {
+                sourceElement.releasePointerCapture?.(pointerId);
+            } catch (_error) {
+                // Pointer capture can already be released by the browser.
+            }
+        }
+
+        this.clearInventoryDragVisualState();
+        this.inventoryDragState = null;
+    }
+
+    getInventoryDropIndexFromPoint(clientX, clientY) {
+        const target = document.elementFromPoint(clientX, clientY)?.closest?.('#inventory-grid .grid-item[data-inventory-index]');
+        const dropIndex = Number.parseInt(target?.dataset?.inventoryIndex || '', 10);
+        return Number.isInteger(dropIndex) ? dropIndex : null;
+    }
+
+    startInventorySlotDrag(event, index, button) {
+        if (!button || !Number.isInteger(index) || index <= 0) return;
+        if (event.button != null && event.button !== 0) return;
+
+        this.tearDownInventoryDrag();
+        this.inventoryDragState = {
+            pointerId: event.pointerId,
+            sourceIndex: index,
+            sourceElement: button,
+            startX: event.clientX,
+            startY: event.clientY,
+            dragActive: false,
+            hoverIndex: index
+        };
+
+        button.setPointerCapture?.(event.pointerId);
+        document.addEventListener('pointermove', this.handleInventorySlotPointerMove);
+        document.addEventListener('pointerup', this.handleInventorySlotPointerUp);
+        document.addEventListener('pointercancel', this.handleInventorySlotPointerUp);
+    }
+
+    handleInventorySlotPointerMove(event) {
+        const state = this.inventoryDragState;
+        if (!state || event.pointerId !== state.pointerId) return;
+
+        const movedX = event.clientX - state.startX;
+        const movedY = event.clientY - state.startY;
+        if (!state.dragActive && Math.hypot(movedX, movedY) < 10) return;
+
+        if (!state.dragActive) {
+            state.dragActive = true;
+            this.inventoryClickSuppressUntil = performance.now() + 180;
+        }
+
+        const hoverIndex = this.getInventoryDropIndexFromPoint(event.clientX, event.clientY);
+        state.hoverIndex = Number.isInteger(hoverIndex) ? hoverIndex : state.sourceIndex;
+
+        this.clearInventoryDragVisualState();
+        state.sourceElement?.classList.add('dragging');
+
+        if (Number.isInteger(hoverIndex) && hoverIndex !== state.sourceIndex) {
+            document.querySelector(`#inventory-grid .grid-item[data-inventory-index="${hoverIndex}"]`)?.classList.add('drop-target');
+        }
+
+        event.preventDefault();
+    }
+
+    handleInventorySlotPointerUp(event) {
+        const state = this.inventoryDragState;
+        if (!state || event.pointerId !== state.pointerId) return;
+
+        const wasDragging = state.dragActive;
+        const dropIndex = wasDragging
+            ? (this.getInventoryDropIndexFromPoint(event.clientX, event.clientY) ?? state.hoverIndex)
+            : null;
+
+        this.tearDownInventoryDrag();
+        if (!wasDragging) return;
+
+        this.inventoryClickSuppressUntil = performance.now() + 220;
+
+        const player = this.game.localPlayer;
+        if (!player || !Number.isInteger(dropIndex) || dropIndex <= 0 || dropIndex === state.sourceIndex) return;
+
+        const selectedIdentity = this.selectedInventoryRef?.kind === 'inventory'
+            ? this.getInventoryItemIdentity(player.inventory[this.selectedInventoryRef.index])
+            : null;
+        const moveResult = player.moveInventoryItem(state.sourceIndex, dropIndex);
+        if (!moveResult.ok) return;
+
+        if (selectedIdentity) {
+            const remappedIndex = this.findInventoryIndexByIdentity(player, selectedIdentity);
+            if (remappedIndex > 0) {
+                this.selectedInventoryRef = { kind: 'inventory', index: remappedIndex };
+            } else {
+                this.selectedInventoryRef = null;
+            }
+        }
+
+        player.saveState();
+        this.updateInventory();
+    }
+
     buildInventoryDetail(player, item) {
         const itemData = this.game.itemData;
         const definition = itemData?.getItemDefinition(item.type) || null;
@@ -2571,7 +2715,25 @@ export class UIManager {
 
         const grid = document.getElementById('inventory-grid');
         if (!grid) return;
-        p.normalizeInventoryState();
+        const selectedInventoryIdentity = this.selectedInventoryRef?.kind === 'inventory'
+            ? this.getInventoryItemIdentity(p.inventory[this.selectedInventoryRef.index])
+            : null;
+        if (this.selectedInventoryRef?.kind === 'inventory' && !selectedInventoryIdentity) {
+            this.selectedInventoryRef = null;
+        }
+
+        const normalizationResult = p.normalizeInventoryState();
+        if (selectedInventoryIdentity) {
+            const remappedIndex = this.findInventoryIndexByIdentity(p, selectedInventoryIdentity);
+            if (remappedIndex > 0) {
+                this.selectedInventoryRef = { kind: 'inventory', index: remappedIndex };
+            } else {
+                this.selectedInventoryRef = null;
+            }
+        }
+        if (normalizationResult?.changed) {
+            p.saveState();
+        }
 
         // Update Quest UI alongside Inventory
         this.updateQuestUI();
@@ -2648,6 +2810,7 @@ export class UIManager {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'grid-item';
+            button.dataset.inventoryIndex = `${index}`;
             button.setAttribute('aria-label', item?.name || `빈 슬롯 ${index}`);
             if (this.isInventorySelection(this.selectedInventoryRef, 'inventory', index)) {
                 button.classList.add('selected');
@@ -2669,6 +2832,10 @@ export class UIManager {
                     level.textContent = `+${item.enhancementLevel || 0}`;
                     button.appendChild(level);
                 }
+
+                button.addEventListener('pointerdown', (event) => {
+                    this.startInventorySlotDrag(event, index, button);
+                });
             } else {
                 const emptyLabel = document.createElement('span');
                 emptyLabel.className = 'grid-item-slot-index';
@@ -2677,6 +2844,7 @@ export class UIManager {
             }
 
             button.addEventListener('click', () => {
+                if (performance.now() < this.inventoryClickSuppressUntil) return;
                 if (!item) {
                     this.closeInventoryItemModal(true);
                     this.updateInventory();

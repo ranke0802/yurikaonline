@@ -1908,7 +1908,72 @@ export default class Player extends CharacterBase {
         });
         const sourceEquipment = savedEquipment || this.equipment || { weapon: null };
         this.equipment = itemData?.normalizeEquipmentData(sourceEquipment) || { weapon: sourceEquipment.weapon || null };
+        const compacted = this.compactInventory();
         this.updateGoldInventory();
+        return compacted;
+    }
+
+    compactInventory() {
+        const goldSlot = this.inventory[0] || null;
+        const compactedItems = [];
+        const indexMap = new Map();
+
+        for (let index = 1; index < this.inventory.length; index++) {
+            const item = this.inventory[index];
+            if (!item) continue;
+            const nextIndex = compactedItems.length + 1;
+            compactedItems.push(item);
+            indexMap.set(index, nextIndex);
+        }
+
+        const nextInventory = Array.from({ length: INVENTORY_TOTAL_SLOTS }, (_, index) => {
+            if (index === 0) return goldSlot;
+            return compactedItems[index - 1] || null;
+        });
+
+        let changed = nextInventory.length !== this.inventory.length;
+        if (!changed) {
+            for (let index = 0; index < nextInventory.length; index++) {
+                if (nextInventory[index] !== this.inventory[index]) {
+                    changed = true;
+                    break;
+                }
+            }
+        }
+
+        this.inventory = nextInventory;
+        return { changed, indexMap };
+    }
+
+    moveInventoryItem(fromIndex, toIndex) {
+        if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex)) return { ok: false, newIndex: -1 };
+        if (fromIndex <= 0 || fromIndex >= this.inventory.length) return { ok: false, newIndex: -1 };
+
+        const sourceItem = this.inventory[fromIndex];
+        if (!sourceItem) return { ok: false, newIndex: -1 };
+
+        const compactedItems = this.inventory.slice(1).filter(Boolean);
+        const sourcePosition = compactedItems.findIndex((item) => {
+            if (sourceItem.instanceId && item?.instanceId) {
+                return item.instanceId === sourceItem.instanceId;
+            }
+            return item === sourceItem;
+        });
+
+        if (sourcePosition < 0) return { ok: false, newIndex: -1 };
+
+        const [movedItem] = compactedItems.splice(sourcePosition, 1);
+        const targetPosition = Math.max(0, Math.min(toIndex - 1, compactedItems.length));
+        compactedItems.splice(targetPosition, 0, movedItem);
+
+        const goldSlot = this.inventory[0] || null;
+        this.inventory = Array.from({ length: INVENTORY_TOTAL_SLOTS }, (_, index) => {
+            if (index === 0) return goldSlot;
+            return compactedItems[index - 1] || null;
+        });
+        this.updateGoldInventory();
+
+        return { ok: true, newIndex: targetPosition + 1 };
     }
 
     getEquippedWeapon() {
