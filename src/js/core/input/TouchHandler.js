@@ -69,12 +69,18 @@ export default class TouchHandler extends EventEmitter {
         this._bindUiButtons();
     }
 
-    _getPointerFromEvent(e, pointerId = null) {
+    _getPointerFromEvent(e, pointerId = null, preferChangedTouches = false) {
         if (e.touches || e.changedTouches) {
-            const list = e.touches?.length ? e.touches : e.changedTouches;
-            for (let i = 0; i < list.length; i++) {
-                if (pointerId === null || list[i].identifier === pointerId) {
-                    return list[i];
+            const candidateLists = [];
+            if (preferChangedTouches && e.changedTouches?.length) candidateLists.push(e.changedTouches);
+            if (e.touches?.length) candidateLists.push(e.touches);
+            if (!preferChangedTouches && e.changedTouches?.length) candidateLists.push(e.changedTouches);
+
+            for (const list of candidateLists) {
+                for (let i = 0; i < list.length; i++) {
+                    if (pointerId === null || list[i].identifier === pointerId) {
+                        return list[i];
+                    }
                 }
             }
             return null;
@@ -85,7 +91,7 @@ export default class TouchHandler extends EventEmitter {
 
     _startAimActionTracking(e, action) {
         if (action !== 'SKILL_2') return;
-        const pointer = this._getPointerFromEvent(e);
+        const pointer = this._getPointerFromEvent(e, null, true);
         if (!pointer) return;
 
         this.activeAimAction = {
@@ -115,7 +121,7 @@ export default class TouchHandler extends EventEmitter {
     _handleActionEnd(e) {
         if (!this.activeAimAction) return;
 
-        const pointer = this._getPointerFromEvent(e, this.activeAimAction.pointerId);
+        const pointer = this._getPointerFromEvent(e, this.activeAimAction.pointerId, true);
         if (!pointer) return;
 
         const action = this.activeAimAction.action;
@@ -148,7 +154,7 @@ export default class TouchHandler extends EventEmitter {
                 const isTouchEvent = e.type.startsWith('touch');
                 if (action === 'SKILL_2' && isTouchEvent) {
                     this._startAimActionTracking(e, action);
-                    const pointer = this._getPointerFromEvent(e);
+                    const pointer = this._getPointerFromEvent(e, null, true);
                     if (pointer) {
                         this.emit('aimStart', {
                             action,
