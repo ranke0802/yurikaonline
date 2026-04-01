@@ -3,13 +3,13 @@
 
 <!-- AUTO_VERSION_BLOCK_START -->
 ## Build Metadata
-- 배포 버전: **0.01.38**
+- 배포 버전: **0.01.39**
 - 마지막 버전 갱신: 2026-04-01
 <!-- AUTO_VERSION_BLOCK_END -->
 
 Yurika Online은 HTML5 Canvas와 Firebase를 기반으로 만든 실시간 웹 MMORPG입니다. 로그인, 캐릭터 성장, 튜토리얼, 멀티플레이어 동기화, 전투 UI를 한 프로젝트 안에서 다루고 있습니다.
 
-현재 버전: **0.01.38**
+현재 버전: **0.01.39**
 
 ## 핵심 기능
 
@@ -21,6 +21,14 @@ Yurika Online은 HTML5 Canvas와 Firebase를 기반으로 만든 실시간 웹 M
 - 배포 안정화: 서비스 워커와 버전 기반 캐시 무효화
 
 ## 최근 업데이트
+
+### 0.01.39
+
+- 플레이어 zone 동기화에서 루트 `users` `child_changed` 의존을 걷어내고, 위치·presence·프로필·전투 상태를 유저별 하위 필드 리스너로 분리해 hot path 수신 부담을 줄였습니다.
+- 원격 플레이어별 zone user cache를 추가해, 프로필과 위치가 다른 타이밍으로 도착하더라도 버퍼를 조합해 더 안정적으로 생성·복원되도록 정리했습니다.
+- 프로필-only 변경도 `playerUpdate` 이벤트로 흘려 보내도록 보강해 이름, 레벨, 방어력, 안전 상태, 장비, 파티, 적대 관계가 원격 플레이어에 더 안정적으로 반영되게 했습니다.
+- `RemotePlayer`가 `defense`, `isPaused`까지 즉시 반영하도록 보강해 프로필-only 업데이트 시 실제 월드 표현과 내부 상태가 더 잘 맞도록 했습니다.
+- 이번 플레이어 hot path 분리 작업은 [`plans/mobile_thermal_packet_optimization_report_2026-04-01_phase1_hot_path.md`](plans/mobile_thermal_packet_optimization_report_2026-04-01_phase1_hot_path.md)에 별도 보고서로 정리했습니다.
 
 ### 0.01.38
 

@@ -49,6 +49,8 @@ export default class NetworkManager extends EventEmitter {
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
         this._lastProfileSaveTs = 0;
         this._queuedProfileSaves = new Map();
+        this._zoneUserCache = new Map();
+        this._zoneUserListeners = new Map();
     }
 
     connect(user) {
@@ -66,13 +68,14 @@ export default class NetworkManager extends EventEmitter {
         this._hostilityListenerActive = false;
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
         this._lastProfileSaveTs = 0;
+        this._zoneUserCache.clear();
+        this._detachZoneUserListeners();
         this.startBatchProcessor();
 
         Logger.log(`Network Coordinates: connecting to ${this.roomId}...`);
 
         // 1. Listen for other players moving
         this.dbRef.child('users').on('child_added', (snapshot) => this._onPlayerAdded(snapshot));
-        this.dbRef.child('users').on('child_changed', (snapshot) => this._onPlayerChanged(snapshot));
         this.dbRef.child('users').on('child_removed', (snapshot) => this._onPlayerRemoved(snapshot));
 
         // Monster Sync
@@ -425,6 +428,8 @@ export default class NetworkManager extends EventEmitter {
         this.remotePlayers.clear();
         this._hostilityListenerActive = false;
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
+        this._zoneUserCache.clear();
+        this._detachZoneUserListeners();
         this.lastPacketData = null;
         this.lastSyncTime = 0;
         this.lastHeartbeatTime = 0;
@@ -463,6 +468,20 @@ export default class NetworkManager extends EventEmitter {
         playerPaths.forEach(path => this.dbRef.child(path).off());
     }
 
+    _detachZoneUserListeners(uid = null) {
+        if (uid) {
+            const listeners = this._zoneUserListeners.get(uid) || [];
+            listeners.forEach(({ ref, callback }) => ref.off('value', callback));
+            this._zoneUserListeners.delete(uid);
+            return;
+        }
+
+        this._zoneUserListeners.forEach((listeners, targetUid) => {
+            listeners.forEach(({ ref, callback }) => ref.off('value', callback));
+            this._zoneUserListeners.delete(targetUid);
+        });
+    }
+
     sendHeartbeat() {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         const updates = {
@@ -497,6 +516,383 @@ export default class NetworkManager extends EventEmitter {
     _extractPresenceTs(value) {
         if (!value || typeof value !== 'object') return 0;
         return value?.presence?.ts || value?.lastSeen || value?.ts || 0;
+    }
+
+    _extractPositionData(value) {
+        if (!value) return null;
+        if (Array.isArray(value)) return value;
+        if (typeof value !== 'object') return null;
+        if (value.p) return value.p;
+        if (value[0] !== undefined) return [value[0], value[1], value[2], value[3], value[4], value[5]];
+        if (value.x !== undefined && value.y !== undefined) {
+            return { x: value.x, y: value.y, vx: value.vx, vy: value.vy, ts: value.ts, n: value.n };
+        }
+        return null;
+    }
+
+    _normalizeZoneUserSnapshot(value) {
+        const normalized = {};
+        const posData = this._extractPositionData(value);
+        if (posData) normalized.p = posData;
+
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            if (value.profile) normalized.profile = value.profile;
+            if (value.presence) normalized.presence = value.presence;
+            if (value.h && Array.isArray(value.h)) normalized.h = value.h;
+            if (value.a && Array.isArray(value.a)) normalized.a = value.a;
+            if (value.ch && Array.isArray(value.ch)) normalized.ch = value.ch;
+            if (value.hostility !== undefined) normalized.hostility = value.hostility;
+        }
+
+        return normalized;
+    }
+
+    _getZoneUserCache(uid) {
+        let cache = this._zoneUserCache.get(uid);
+        if (!cache) {
+            cache = {};
+            this._zoneUserCache.set(uid, cache);
+        }
+        return cache;
+    }
+
+    _mergeZoneUserCache(uid, patch) {
+        const cache = this._getZoneUserCache(uid);
+        Object.entries(patch || {}).forEach(([key, value]) => {
+            if (value === undefined || value === null) {
+                delete cache[key];
+            } else {
+                cache[key] = value;
+            }
+        });
+        return cache;
+    }
+
+    _registerConnectedUser(uid) {
+        if (!uid || this.connectedUsers.includes(uid)) return;
+        this.connectedUsers.push(uid);
+        this.connectedUsers.sort();
+    }
+
+    _sanitizeActivityTs(ts) {
+        const nextTs = Number(ts) || 0;
+        if (!nextTs || nextTs < Date.now() - 100000) return Date.now();
+        return nextTs;
+    }
+
+    _resolveZoneUserActivityTs(state = {}) {
+        const posData = state.p;
+        let ts = 0;
+
+        if (posData) {
+            ts = Array.isArray(posData) ? (posData[4] || 0) : (posData.ts || 0);
+        }
+
+        if (!ts && state.presence) {
+            ts = this._extractPresenceTs({ presence: state.presence });
+        }
+
+        return this._sanitizeActivityTs(ts);
+    }
+
+    _buildRemotePlayerFromCache(uid) {
+        const state = this._zoneUserCache.get(uid);
+        if (!state || !state.p) return null;
+
+        const posData = state.p;
+        const profile = state.profile || {};
+        const ts = this._resolveZoneUserActivityTs(state);
+
+        let x = 0;
+        let y = 0;
+        let vx = 0;
+        let vy = 0;
+        let fallbackName = "Unknown";
+
+        if (Array.isArray(posData)) {
+            x = posData[0] ?? 0;
+            y = posData[1] ?? 0;
+            vx = posData[2] ?? 0;
+            vy = posData[3] ?? 0;
+            fallbackName = posData[5] || fallbackName;
+        } else {
+            x = posData.x ?? 0;
+            y = posData.y ?? 0;
+            vx = posData.vx ?? 0;
+            vy = posData.vy ?? 0;
+            fallbackName = posData.n || fallbackName;
+        }
+
+        return {
+            id: uid,
+            x,
+            y,
+            vx,
+            vy,
+            ts,
+            name: profile.name || fallbackName,
+            h: state.h,
+            a: state.a,
+            level: profile.level || 1,
+            defense: profile.defense ?? 0,
+            isPaused: !!profile.isPaused,
+            equipment: profile.equipment || null,
+            party: profile.party || null,
+            hostility: profile.hostility || state.hostility || {}
+        };
+    }
+
+    _emitRemoteAttack(uid, attackData) {
+        if (!Array.isArray(attackData)) return;
+        const attackTs = attackData[0];
+        if (attackTs <= Date.now() - 10000) return;
+
+        const now = Date.now();
+        const existing = this.remotePlayers.get(uid);
+        if (existing) existing.ts = now;
+        this.userLastSeen.set(uid, now);
+
+        this.emit('playerAttack', {
+            id: uid,
+            ts: attackTs,
+            x: attackData[1],
+            y: attackData[2],
+            dir: attackData[3],
+            skillType: attackData[4] || 'normal',
+            extraData: attackData[5] || null
+        });
+    }
+
+    _emitRemoteChanneling(uid, channelData) {
+        if (!Array.isArray(channelData)) return;
+        const channelTs = channelData[0];
+        if (channelTs <= Date.now() - 5000) return;
+
+        this.emit('playerChanneling', {
+            id: uid,
+            ts: channelTs,
+            skillType: channelData[1]
+        });
+    }
+
+    _emitRemoteHpUpdate(uid, hpData) {
+        if (!Array.isArray(hpData)) return;
+
+        const now = Date.now();
+        const existing = this.remotePlayers.get(uid);
+        if (existing) {
+            existing.h = hpData;
+            existing.ts = now;
+        }
+        this.userLastSeen.set(uid, now);
+
+        this.emit('playerHpUpdate', {
+            id: uid,
+            hp: hpData[0],
+            maxHp: hpData[1],
+            ts: hpData[2]
+        });
+    }
+
+    _ensureRemotePlayerBuffered(uid, options = {}) {
+        if (!uid || uid === this.playerId) return null;
+
+        const existing = this.remotePlayers.get(uid);
+        if (existing) return existing;
+
+        const newPlayer = this._buildRemotePlayerFromCache(uid);
+        if (!newPlayer) return null;
+
+        this.remotePlayers.set(uid, newPlayer);
+        this.emit('playerJoined', newPlayer);
+        this.emit('playerUpdate', {
+            id: uid,
+            x: newPlayer.x,
+            y: newPlayer.y,
+            vx: newPlayer.vx || 0,
+            vy: newPlayer.vy || 0,
+            ts: newPlayer.ts,
+            name: newPlayer.name,
+            level: newPlayer.level,
+            defense: newPlayer.defense,
+            isPaused: newPlayer.isPaused,
+            equipment: newPlayer.equipment,
+            party: newPlayer.party,
+            hostility: newPlayer.hostility
+        });
+
+        if (options.emitTransientState) {
+            if (newPlayer.h) this._emitRemoteHpUpdate(uid, newPlayer.h);
+            if ((this._zoneUserCache.get(uid) || {}).a) this._emitRemoteAttack(uid, this._zoneUserCache.get(uid).a);
+            if ((this._zoneUserCache.get(uid) || {}).ch) this._emitRemoteChanneling(uid, this._zoneUserCache.get(uid).ch);
+        }
+
+        return newPlayer;
+    }
+
+    _emitRemoteProfileUpdate(uid, profile, hostilityOverride = undefined) {
+        const existing = this.remotePlayers.get(uid);
+        if (!existing) return;
+
+        const hostility = hostilityOverride !== undefined ? hostilityOverride : (profile.hostility !== undefined ? profile.hostility : existing.hostility);
+        if (profile.name !== undefined) existing.name = profile.name || existing.name;
+        if (profile.level !== undefined) existing.level = profile.level;
+        if (profile.defense !== undefined) existing.defense = profile.defense;
+        if (profile.isPaused !== undefined) existing.isPaused = !!profile.isPaused;
+        if (profile.equipment !== undefined) existing.equipment = profile.equipment;
+        if (profile.party !== undefined) existing.party = profile.party;
+        if (hostility !== undefined) existing.hostility = hostility;
+
+        this.emit('playerUpdate', {
+            id: uid,
+            name: existing.name,
+            level: existing.level,
+            defense: existing.defense,
+            isPaused: existing.isPaused,
+            equipment: existing.equipment,
+            party: existing.party,
+            hostility: existing.hostility
+        });
+    }
+
+    _handleZoneUserPositionValue(uid, posData) {
+        if (!posData) return;
+        const state = this._mergeZoneUserCache(uid, { p: posData });
+        const ts = this._resolveZoneUserActivityTs(state);
+        this.userLastSeen.set(uid, ts);
+
+        const existing = this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
+        if (!existing) return;
+
+        const update = { id: uid, ts };
+        existing.ts = ts;
+
+        if (Array.isArray(posData)) {
+            update.x = posData[0];
+            update.y = posData[1];
+            update.vx = posData[2];
+            update.vy = posData[3];
+            update.name = posData[5];
+            existing.x = update.x;
+            existing.y = update.y;
+            if (update.name) existing.name = update.name;
+        } else {
+            if (posData.x !== undefined) { update.x = posData.x; existing.x = posData.x; }
+            if (posData.y !== undefined) { update.y = posData.y; existing.y = posData.y; }
+            if (posData.vx !== undefined) update.vx = posData.vx;
+            if (posData.vy !== undefined) update.vy = posData.vy;
+            if (posData.n !== undefined) {
+                update.name = posData.n;
+                existing.name = posData.n;
+            }
+        }
+
+        this.emit('playerUpdate', update);
+    }
+
+    _handleZoneUserPresenceValue(uid, presence) {
+        if (!presence) return;
+        const state = this._mergeZoneUserCache(uid, { presence });
+        const ts = this._resolveZoneUserActivityTs(state);
+        this.userLastSeen.set(uid, ts);
+
+        const existing = this.remotePlayers.get(uid);
+        if (existing) {
+            existing.ts = ts;
+        } else {
+            this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
+        }
+    }
+
+    _handleZoneUserProfileValue(uid, profile) {
+        if (!profile || typeof profile !== 'object') return;
+        const state = this._mergeZoneUserCache(uid, { profile });
+        this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
+        this._emitRemoteProfileUpdate(uid, state.profile || {});
+    }
+
+    _handleZoneUserHostilityValue(uid, hostility) {
+        const state = this._mergeZoneUserCache(uid, { hostility });
+        this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
+        this._emitRemoteProfileUpdate(uid, state.profile || {}, state.hostility || {});
+    }
+
+    _handleZoneUserAttackValue(uid, attackData) {
+        if (!Array.isArray(attackData)) return;
+        this._mergeZoneUserCache(uid, { a: attackData });
+        this._ensureRemotePlayerBuffered(uid, { emitTransientState: false });
+        this._emitRemoteAttack(uid, attackData);
+    }
+
+    _handleZoneUserChannelValue(uid, channelData) {
+        if (!Array.isArray(channelData)) return;
+        this._mergeZoneUserCache(uid, { ch: channelData });
+        this._ensureRemotePlayerBuffered(uid, { emitTransientState: false });
+        this._emitRemoteChanneling(uid, channelData);
+    }
+
+    _handleZoneUserHpValue(uid, hpData) {
+        if (!Array.isArray(hpData)) return;
+        this._mergeZoneUserCache(uid, { h: hpData });
+        this._ensureRemotePlayerBuffered(uid, { emitTransientState: false });
+        this._emitRemoteHpUpdate(uid, hpData);
+    }
+
+    _handleZoneUserFieldValue(uid, fieldKey, value) {
+        if (!uid || uid === this.playerId) return;
+
+        switch (fieldKey) {
+            case 'p':
+                this._handleZoneUserPositionValue(uid, value);
+                break;
+            case 'presence':
+                this._handleZoneUserPresenceValue(uid, value);
+                break;
+            case 'profile':
+                this._handleZoneUserProfileValue(uid, value);
+                break;
+            case 'hostility':
+                this._handleZoneUserHostilityValue(uid, value);
+                break;
+            case 'a':
+                this._handleZoneUserAttackValue(uid, value);
+                break;
+            case 'ch':
+                this._handleZoneUserChannelValue(uid, value);
+                break;
+            case 'h':
+                this._handleZoneUserHpValue(uid, value);
+                break;
+            default:
+                break;
+        }
+    }
+
+    _attachZoneUserHotPathListeners(uid, initialState = {}) {
+        if (!this.dbRef || !uid || uid === this.playerId) return;
+
+        this._detachZoneUserListeners(uid);
+
+        const userRef = this.dbRef.child(`users/${uid}`);
+        const listeners = [];
+        const watchKeys = ['p', 'presence', 'profile', 'hostility', 'a', 'ch', 'h'];
+
+        watchKeys.forEach((fieldKey) => {
+            let skipInitial = Object.prototype.hasOwnProperty.call(initialState, fieldKey);
+            const ref = userRef.child(fieldKey);
+            const callback = (snapshot) => {
+                if (skipInitial) {
+                    skipInitial = false;
+                    return;
+                }
+                this._handleZoneUserFieldValue(uid, fieldKey, snapshot.val());
+            };
+
+            ref.on('value', callback);
+            listeners.push({ ref, callback });
+        });
+
+        this._zoneUserListeners.set(uid, listeners);
     }
 
     _buildZoneProfileSnapshot(profile) {
@@ -1529,121 +1925,21 @@ export default class NetworkManager extends EventEmitter {
     _onPlayerAdded(snapshot) {
         const uid = snapshot.key;
         const val = snapshot.val();
+        if (!val) return;
 
-        // v0.28.2: Enhanced hybrid data parsing
-        let posData = null;
-        if (Array.isArray(val)) {
-            posData = val;
-        } else if (val && typeof val === 'object') {
-            if (val.p) {
-                // v0.00.64: Support both Array (Legacy) and Object (Delta Sync) formats
-                posData = val.p;
-            } else if (val[0] !== undefined) {
-                posData = [val[0], val[1], val[2], val[3], val[4], val[5]];
-            }
-        }
-
-        const presenceTs = this._extractPresenceTs(val);
-        let ts = Date.now();
-        if (posData) {
-            // Check if Array or Object
-            if (Array.isArray(posData)) {
-                ts = posData[4] || Date.now();
-            } else {
-                ts = posData.ts || Date.now();
-            }
-        } else if (presenceTs) {
-            ts = presenceTs;
-        }
-
-        // Ensure TS is valid to prevent immediate ghost cleanup
-        if (!ts || ts < Date.now() - 100000) ts = Date.now();
-
-        this.userLastSeen.set(uid, ts);
-
-        if (!this.connectedUsers.includes(uid)) {
-            this.connectedUsers.push(uid);
-            this.connectedUsers.sort();
-            this._checkHostStatus();
-        }
+        const initialState = this._normalizeZoneUserSnapshot(val);
+        this._zoneUserCache.set(uid, initialState);
+        this.userLastSeen.set(uid, this._resolveZoneUserActivityTs(initialState));
+        this._registerConnectedUser(uid);
+        this._checkHostStatus();
 
         if (uid === this.playerId) return;
 
-        if (!posData) {
-            Logger.warn(`[Network] _onPlayerAdded rejected ${uid}: No posData. val:`, val);
-            // Attempt to recover if val itself has coordinates (Legacy/Fallback)
-            if (val.x !== undefined && val.y !== undefined) {
-                Logger.warn(`[Network] Recovering position from root val for ${uid}`);
-                posData = { x: val.x, y: val.y, ts: val.ts, n: val.n };
-            } else {
-                return;
-            }
-        }
+        this._attachZoneUserHotPathListeners(uid, initialState);
 
-        // v0.00.03: Buffer player data with fallback for missing name/profile
-        const profile = val.profile || {};
-
-        // Normalize position data
-        let pX, pY, pName;
-        if (Array.isArray(posData)) {
-            pX = posData[0]; pY = posData[1]; pName = posData[5];
-        } else {
-            pX = posData.x; pY = posData.y; pName = posData.n;
-        }
-
-        const newPlayer = {
-            id: uid,
-            x: pX,
-            y: pY,
-            ts: ts,
-            name: profile.name || pName || "Unknown",
-            h: val.h,
-            a: val.a,
-            level: profile.level || 1,
-            defense: profile.defense ?? 0,
-            isPaused: !!profile.isPaused,
-            equipment: profile.equipment || null,
-            party: profile.party || null,
-            hostility: profile.hostility || val.hostility || {}
-        };
-
-        this.remotePlayers.set(uid, newPlayer);
-
-        // Logger.log(`[NetworkManager] Remote player joined: ${uid} (TS: ${ts})`);
-        this.emit('playerJoined', newPlayer);
-
-        // Explicitly fire an update event to sync initial position immediately
-        this.emit('playerUpdate', { id: uid, x: pX, y: pY, vx: 0, vy: 0, ts: ts });
-
-        // v0.29.24: Sync Initial HP and Attack state on join
-        if (val && val.h && Array.isArray(val.h)) {
-            this.emit('playerHpUpdate', {
-                id: uid,
-                hp: val.h[0],
-                maxHp: val.h[1],
-                ts: val.h[2]
-            });
-        }
-
-        if (val && val.a && Array.isArray(val.a)) {
-            const now = Date.now();
-            const existing = this.remotePlayers.get(uid);
-            if (existing) existing.ts = now; // v0.00.03: Activity!
-            this.userLastSeen.set(uid, now);
-
-            // v0.00.01: Filter stale attacks (ignore if older than 10s)
-            const attackTs = val.a[0];
-            if (attackTs > Date.now() - 10000) {
-                this.emit('playerAttack', {
-                    id: uid,
-                    ts: attackTs,
-                    x: val.a[1],
-                    y: val.a[2],
-                    dir: val.a[3],
-                    skillType: val.a[4] || 'normal',
-                    extraData: val.a[5] || null
-                });
-            }
+        const remotePlayer = this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
+        if (!remotePlayer && !initialState.p) {
+            Logger.warn(`[Network] Waiting for initial position for remote player ${uid}.`);
         }
     }
 
@@ -1827,6 +2123,8 @@ export default class NetworkManager extends EventEmitter {
         this.connectedUsers = this.connectedUsers.filter(id => id !== uid);
         this.connectedUsers.sort();
         this.userLastSeen.delete(uid);
+        this._zoneUserCache.delete(uid);
+        this._detachZoneUserListeners(uid);
         this.remotePlayers.delete(uid); // v0.00.03
         this._checkHostStatus();
 
