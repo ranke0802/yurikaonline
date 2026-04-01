@@ -186,8 +186,6 @@ export default class MonsterManager {
         }
         this.totalLevelSum = currentTotalLevel;
 
-        this.syncTimer += dt;
-
         if (this.net.isHost) {
             this._updateHostLogic(dt, localPlayer, remotePlayers);
         }
@@ -199,34 +197,6 @@ export default class MonsterManager {
             }
             // Off-screen: Skip update (minimap will still show position)
         });
-
-        // v0.00.23: Full Monster Sync - Optimized (on-screen: 2s, off-screen: 5s)
-        this.fullSyncTimer = (this.fullSyncTimer || 0) + dt;
-        this.offscreenSyncTimer = (this.offscreenSyncTimer || 0) + dt;
-
-        if (this.net.isHost) {
-            this.monsters.forEach((m, id) => {
-                const onScreen = this.isOnScreen(m);
-                const syncInterval = onScreen
-                    ? (mobileThermalMode ? 2.5 : 2.0)
-                    : (mobileThermalMode ? 6.0 : 5.0);
-                const timer = onScreen ? this.fullSyncTimer : this.offscreenSyncTimer;
-
-                if (timer >= syncInterval) {
-                    this.net.sendMonsterUpdate(id, {
-                        x: Math.round(m.x),
-                        y: Math.round(m.y),
-                        hp: m.hp,
-                        maxHp: m.maxHp,
-                        type: m.typeId || m.name,
-                        fullSync: true
-                    });
-                }
-            });
-
-            if (this.fullSyncTimer >= 2.0) this.fullSyncTimer = 0;
-            if (this.offscreenSyncTimer >= 5.0) this.offscreenSyncTimer = 0;
-        }
 
         // Update drops (Magnet logic)
         this.drops.forEach((d, id) => {
@@ -288,6 +258,90 @@ export default class MonsterManager {
 
     primeSpawnCycle() {
         this.spawnTimer = 1.0;
+    }
+
+    _getInterestedPlayers(localPlayer, remotePlayers, isProtectedPlayer) {
+        const players = [];
+        if (localPlayer && !localPlayer.isDead && !isProtectedPlayer(localPlayer)) {
+            players.push(localPlayer);
+        }
+        if (remotePlayers) {
+            remotePlayers.forEach((player) => {
+                if (player && !player.isDead && !isProtectedPlayer(player)) {
+                    players.push(player);
+                }
+            });
+        }
+        return players;
+    }
+
+    _isMonsterNearAnyPlayer(monster, players, radius = 1100) {
+        if (!monster || !players || players.length === 0) return false;
+        const radiusSq = radius * radius;
+        for (const player of players) {
+            const dx = monster.x - player.x;
+            const dy = monster.y - player.y;
+            if ((dx * dx) + (dy * dy) <= radiusSq) return true;
+        }
+        return false;
+    }
+
+    _getMonsterSyncProfile(monster, interestedPlayers, mobileThermalMode) {
+        const now = Date.now();
+        const activityWindowMs = monster.isBoss ? 6000 : 3500;
+        const lastActivityTs = Math.max(monster.lastHitAt || 0, monster.lastNetworkEventAt || 0);
+        const recentlyActive = lastActivityTs > 0 && (now - lastActivityTs) <= activityWindowMs;
+        const engaged = monster.chargeState !== 'idle'
+            || (!!monster.targetPlayer && !monster.targetPlayer.isDead)
+            || !!monster.isAggro
+            || !!monster.isDead;
+        const nearby = this.isOnScreen(monster)
+            || this._isMonsterNearAnyPlayer(monster, interestedPlayers, monster.isBoss ? 1600 : 1100);
+
+        if (monster.isBoss || engaged || recentlyActive) {
+            return {
+                deltaIntervalMs: mobileThermalMode ? 120 : 90,
+                positionThreshold: mobileThermalMode ? 1.75 : 1.25,
+                fullSyncIntervalMs: mobileThermalMode ? 1800 : 1500
+            };
+        }
+
+        if (nearby) {
+            return {
+                deltaIntervalMs: mobileThermalMode ? 180 : 140,
+                positionThreshold: mobileThermalMode ? 2.75 : 1.75,
+                fullSyncIntervalMs: mobileThermalMode ? 3200 : 2600
+            };
+        }
+
+        return {
+            deltaIntervalMs: mobileThermalMode ? 480 : 360,
+            positionThreshold: mobileThermalMode ? 5.5 : 3.5,
+            fullSyncIntervalMs: mobileThermalMode ? 8500 : 6500
+        };
+    }
+
+    _buildMonsterSyncPayload(monster, { fullSync = false, immediate = false } = {}) {
+        const payload = {
+            x: Math.round(monster.x),
+            y: Math.round(monster.y),
+            hp: monster.hp,
+            maxHp: monster.maxHp,
+            type: monster.typeId || monster.name,
+            chargeOnly: !!monster.chargeOnly
+        };
+
+        if (fullSync) {
+            payload.fullSync = true;
+            payload.isBoss = !!monster.isBoss;
+            payload.w = monster.width;
+            payload.h = monster.height;
+        }
+        if (immediate) {
+            payload.immediate = true;
+        }
+
+        return payload;
     }
 
     _updateHostLogic(dt, localPlayer, remotePlayers) {
@@ -359,7 +413,8 @@ export default class MonsterManager {
         // Boss is now spawned directly via _handleMonsterDeath based on Kill Count
 
         // --- Host Authority: Monster AI & Sync ---
-        const candidates = [localPlayer, ...Array.from(remotePlayers.values())].filter(p => !p.isDead && !isProtectedPlayer(p));
+        const candidates = this._getInterestedPlayers(localPlayer, remotePlayers, isProtectedPlayer);
+        const now = Date.now();
 
         this.monsters.forEach((m, id) => {
             // v1.88: Handle Quest Rewards & Drops IMMEDIATELY when isDead flips (Host only)
@@ -567,47 +622,65 @@ export default class MonsterManager {
                 }
             }
 
-            // --- Bandwidth Throttling (v0.20.0) ---
-            if (this.syncTimer >= this.syncInterval) {
-                const last = this.lastSyncState.get(id);
-                // Lower threshold for smoother movement
-                const dist = last ? Math.sqrt((m.x - last.x) ** 2 + (m.y - last.y) ** 2) : 999;
-                const hpChanged = last ? (m.hp !== last.hp) : true;
-                const positionThreshold = mobileThermalMode
-                    ? (this.isOnScreen(m) ? 2.5 : 4.0)
-                    : 1.0;
+            // --- Bandwidth Throttling (Priority/AOI aware) ---
+            const last = this.lastSyncState.get(id);
+            const profile = this._getMonsterSyncProfile(m, candidates, mobileThermalMode);
+            const lastNetTs = last?.netTs || 0;
+            if (last && (now - lastNetTs) < profile.deltaIntervalMs) {
+                return;
+            }
 
-                if (dist > positionThreshold || hpChanged) {
-                    this.net.sendMonsterUpdate(id, {
-                        x: Math.round(m.x),
-                        y: Math.round(m.y),
-                        hp: m.hp,
-                        maxHp: m.maxHp,
-                        type: m.typeId || m.name,
-                        chargeOnly: m.chargeOnly || false // v0.00.76: Sync special patterns
-                    });
-                    this.lastSyncState.set(id, { x: m.x, y: m.y, hp: m.hp });
-                }
+            const dist = last ? Math.sqrt((m.x - last.x) ** 2 + (m.y - last.y) ** 2) : 999;
+            const hpChanged = !last || m.hp !== last.hp || m.maxHp !== last.maxHp;
+            const stateChanged = !last
+                || last.chargeState !== m.chargeState
+                || last.isDead !== !!m.isDead
+                || last.chargeOnly !== !!m.chargeOnly
+                || last.isBoss !== !!m.isBoss;
+            const fullSyncDue = !last
+                || stateChanged
+                || (now - (last.fullSyncAt || 0)) >= profile.fullSyncIntervalMs;
+
+            if (dist > profile.positionThreshold || hpChanged || stateChanged || fullSyncDue) {
+                const immediate = stateChanged || !last;
+                this.net.sendMonsterUpdate(id, this._buildMonsterSyncPayload(m, {
+                    fullSync: fullSyncDue,
+                    immediate
+                }));
+                this.lastSyncState.set(id, {
+                    x: m.x,
+                    y: m.y,
+                    hp: m.hp,
+                    maxHp: m.maxHp,
+                    chargeState: m.chargeState,
+                    isDead: !!m.isDead,
+                    chargeOnly: !!m.chargeOnly,
+                    isBoss: !!m.isBoss,
+                    netTs: now,
+                    fullSyncAt: fullSyncDue ? now : (last?.fullSyncAt || 0)
+                });
             }
         });
-
-        if (this.syncTimer >= this.syncInterval) {
-            this.syncTimer = 0;
-        }
     }
 
     forceSync(id) {
         const m = this.monsters.get(id);
         if (!m || !this.net.isHost) return;
 
-        this.net.sendMonsterUpdate(id, {
-            x: Math.round(m.x),
-            y: Math.round(m.y),
+        this.net.sendMonsterUpdate(id, this._buildMonsterSyncPayload(m, { fullSync: true, immediate: true }));
+        const now = Date.now();
+        this.lastSyncState.set(id, {
+            x: m.x,
+            y: m.y,
             hp: m.hp,
             maxHp: m.maxHp,
-            type: m.typeId || m.name
+            chargeState: m.chargeState,
+            isDead: !!m.isDead,
+            chargeOnly: !!m.chargeOnly,
+            isBoss: !!m.isBoss,
+            netTs: now,
+            fullSyncAt: now
         });
-        this.lastSyncState.set(id, { x: m.x, y: m.y, hp: m.hp });
     }
 
     async _spawnMonster(fixedX = null, fixedY = null, type = 'slime', options = {}) {
@@ -647,7 +720,7 @@ export default class MonsterManager {
             this.tutorialMonsterIds.add(id);
         }
 
-        this.net.sendMonsterUpdate(id, data);
+        this.net.sendMonsterUpdate(id, { ...data, fullSync: true, immediate: true });
         return id;
     }
 
@@ -717,7 +790,7 @@ export default class MonsterManager {
         };
 
         // v0.00.76: Ensure clients know this is a limited pattern boss
-        this.net.sendMonsterUpdate(id, data);
+        this.net.sendMonsterUpdate(id, { ...data, fullSync: true, immediate: true });
         if (window.game && window.game.ui) {
             if (isFirstBoss) {
                 window.game.ui.logSystemMessage('초보 모험가를 위한 대왕 슬라임이 나타났습니다! (돌진 공격만 사용)');

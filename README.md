@@ -3,13 +3,13 @@
 
 <!-- AUTO_VERSION_BLOCK_START -->
 ## Build Metadata
-- 배포 버전: **0.01.37**
+- 배포 버전: **0.01.38**
 - 마지막 버전 갱신: 2026-04-01
 <!-- AUTO_VERSION_BLOCK_END -->
 
 Yurika Online은 HTML5 Canvas와 Firebase를 기반으로 만든 실시간 웹 MMORPG입니다. 로그인, 캐릭터 성장, 튜토리얼, 멀티플레이어 동기화, 전투 UI를 한 프로젝트 안에서 다루고 있습니다.
 
-현재 버전: **0.01.37**
+현재 버전: **0.01.38**
 
 ## 핵심 기능
 
@@ -21,6 +21,14 @@ Yurika Online은 HTML5 Canvas와 Firebase를 기반으로 만든 실시간 웹 M
 - 배포 안정화: 서비스 워커와 버전 기반 캐시 무효화
 
 ## 최근 업데이트
+
+### 0.01.38
+
+- 몬스터 동기화를 우선순위 기반 cadence로 재설계해, 보스·전투 중·피격 직후 몬스터는 빠르게 유지하고 멀리 떨어진 idle 몬스터는 더 느리게 전송하도록 조정했습니다.
+- 로컬/원격 플레이어 주변까지 함께 보는 AOI(관심 영역) 판단을 추가해, 호스트 화면 밖이더라도 실제 전투 중인 몬스터는 더 자주 동기화되도록 보완했습니다.
+- 몬스터 스폰, 보스 스폰, 강제 sync, 주요 상태 변화는 queued write를 기다리지 않고 즉시 flush 하도록 바꿔 체감 지연 없이 네트워크 write만 줄이도록 정리했습니다.
+- 몬스터 activity timestamp와 full sync 메타 보존을 추가해, 최근 전투가 있었던 몬스터와 보스 메타 정보가 게스트 쪽에서도 더 안정적으로 반영되게 했습니다.
+- 이번 몬스터 동기화 최적화 내용은 [`plans/mobile_thermal_packet_optimization_report_2026-04-01_phase4.md`](plans/mobile_thermal_packet_optimization_report_2026-04-01_phase4.md)에 별도 보고서로 정리했습니다.
 
 ### 0.01.36
 

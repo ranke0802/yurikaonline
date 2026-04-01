@@ -78,6 +78,8 @@ export default class Monster extends CharacterBase {
         this.spawnGraceTimer = 3.0;
         this.isMonster = true;
         this.type = 'monster';
+        this.lastHitAt = 0;
+        this.lastNetworkEventAt = 0;
 
         // Specific Skill Cooldowns (Legacy Support)
         this.missileCooldown = 0;
@@ -307,6 +309,7 @@ export default class Monster extends CharacterBase {
         if (this.isDead || this.chargeState !== 'idle') return;
 
         this.chargeState = 'casting';
+        this.lastNetworkEventAt = Date.now();
         this.chargeTimer = 1.0; // 1s Casting
         this.chargeTarget = { x: targetX, y: targetY };
         this.vx = 0;
@@ -327,6 +330,7 @@ export default class Monster extends CharacterBase {
             this.vy = 0; // Freeze movement
             if (this.chargeTimer <= 0) {
                 this.chargeState = 'charging';
+                this.lastNetworkEventAt = Date.now();
                 // Lock target vector
                 const angle = Math.atan2(this.chargeTarget.y - this.y, this.chargeTarget.x - this.x);
                 const speed = 300;
@@ -353,6 +357,7 @@ export default class Monster extends CharacterBase {
             const distToTarget = Math.sqrt((this.chargeTarget.x - this.x) ** 2 + (this.chargeTarget.y - this.y) ** 2);
             if (distToTarget < 10 || this.chargeTimer <= 0) {
                 this.chargeState = 'idle';
+                this.lastNetworkEventAt = Date.now();
                 this.chargeCooldown = 15000; // v0.00.85: Increased to 15s for balance
                 this.vx = 0;
                 this.vy = 0;
@@ -720,6 +725,8 @@ export default class Monster extends CharacterBase {
 
     takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null, damageMeta = null) {
         if (this.isDead) return;
+        this.lastHitAt = Date.now();
+        this.lastNetworkEventAt = this.lastHitAt;
 
         // v0.00.34: Ensure minimum 0 damage (allow full block)
         let dmg = Math.max(0, Math.ceil(parseFloat(amount))); // Changed const to let
@@ -750,6 +757,7 @@ export default class Monster extends CharacterBase {
             if (this.shieldCooldown <= 0) {
                 // Trigger Shield!
                 this.shieldCooldown = this.shieldMaxCooldown;
+                this.lastNetworkEventAt = Date.now();
                 // 1.0s duration (v0.00.51: Reduced from 1.5s as requested)
                 this.applyEffect('shield', 1.0, 0);
                 // Sync to network

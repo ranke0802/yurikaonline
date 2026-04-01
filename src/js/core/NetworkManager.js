@@ -1301,8 +1301,16 @@ export default class NetworkManager extends EventEmitter {
             type: data.type || 'slime',
             chargeOnly: data.chargeOnly || false // v0.00.76+
         };
+        if (data.fullSync) safeData.fullSync = true;
+        if (data.isBoss) safeData.isBoss = true;
+        if (Number.isFinite(data.w)) safeData.w = Math.round(data.w);
+        if (Number.isFinite(data.h)) safeData.h = Math.round(data.h);
 
         this.monsterUpdateQueue.set(id, safeData);
+        if (data.immediate) {
+            this.flushMonsterUpdates();
+            return;
+        }
         this._scheduleMonsterUpdateFlush();
     }
 
