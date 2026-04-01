@@ -654,6 +654,11 @@ button:active,
     box-shadow: 0 4px 12px rgba(255, 112, 67, 0.2);
 }
 
+.inventory-action-btn.warning {
+    background: linear-gradient(135deg, #ff7a59, #d64541);
+    box-shadow: 0 4px 12px rgba(214, 69, 65, 0.22);
+}
+
 .inventory-popup-footer {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);

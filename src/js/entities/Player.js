@@ -2201,6 +2201,92 @@ export default class Player extends CharacterBase {
         return result;
     }
 
+    getWeaponDismantleRewardInfo(item) {
+        if (!item || item.slot !== 'weapon') return null;
+
+        const enhancementLevel = Math.max(0, item.enhancementLevel || 0);
+        if (enhancementLevel <= 0) {
+            return {
+                itemId: 'weapon_upgrade_stone',
+                min: 1,
+                max: 2,
+                displayText: '1~2개'
+            };
+        }
+
+        return {
+            itemId: 'weapon_upgrade_stone',
+            min: enhancementLevel,
+            max: enhancementLevel,
+            displayText: `${enhancementLevel}개`
+        };
+    }
+
+    canReceiveStackableItem(itemId) {
+        if (!itemId) return false;
+        const hasExistingStack = this.inventory.some((item, index) => (
+            index > 0 && item && item.type === itemId && item.stackable !== false
+        ));
+        const hasEmptySlot = this.inventory.some((item, index) => index > 0 && !item);
+        return hasExistingStack || hasEmptySlot;
+    }
+
+    dismantleWeapon(selection = null) {
+        const target = this.resolveWeaponSelection(selection);
+        if (!target?.item || target.item.slot !== 'weapon') {
+            return { ok: false, message: '분해할 무기를 선택해 주세요.' };
+        }
+
+        const rewardInfo = this.getWeaponDismantleRewardInfo(target.item);
+        if (!rewardInfo) {
+            return { ok: false, message: '이 무기는 분해할 수 없습니다.' };
+        }
+
+        if (target.location === 'equipment' && !this.canReceiveStackableItem(rewardInfo.itemId)) {
+            return { ok: false, message: '가방이 가득 차 있어 분해 보상을 받을 수 없습니다.' };
+        }
+
+        const rewardAmount = rewardInfo.min === rewardInfo.max
+            ? rewardInfo.max
+            : (rewardInfo.min + Math.floor(Math.random() * ((rewardInfo.max - rewardInfo.min) + 1)));
+        const dismantledItem = target.item;
+
+        if (target.location === 'inventory') {
+            this.inventory[target.index] = null;
+        } else {
+            this.equipment.weapon = null;
+        }
+
+        const rewardItem = this.addInventoryItem(rewardInfo.itemId, rewardAmount);
+        if (!rewardItem) {
+            if (target.location === 'inventory') {
+                this.inventory[target.index] = dismantledItem;
+            } else {
+                this.equipment.weapon = dismantledItem;
+            }
+            return { ok: false, message: '분해 보상을 인벤토리에 추가하지 못했습니다.' };
+        }
+
+        if (target.location === 'equipment') {
+            this.updateDerivedStats();
+        } else {
+            this.saveState();
+        }
+
+        if (window.game?.ui) {
+            window.game.ui.updateStatusPopup();
+            window.game.ui.updateInventory();
+        }
+
+        return {
+            ok: true,
+            rewardAmount,
+            rewardItemId: rewardInfo.itemId,
+            enhancementLevel: Math.max(0, dismantledItem.enhancementLevel || 0),
+            itemName: dismantledItem.name || '무기'
+        };
+    }
+
     getItemMeta(itemId) {
         const definition = this.getItemDataManager()?.getItemDefinition(itemId);
         if (definition) {

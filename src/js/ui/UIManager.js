@@ -2396,6 +2396,7 @@ export class UIManager {
         const equipBtn = document.getElementById('inventory-action-equip');
         const unequipBtn = document.getElementById('inventory-action-unequip');
         const enhanceBtn = document.getElementById('inventory-action-enhance');
+        const dismantleBtn = document.getElementById('inventory-action-dismantle');
         const itemModal = document.getElementById('inventory-item-modal');
         const itemModalCloseBtn = document.getElementById('inventory-item-modal-close');
 
@@ -2493,6 +2494,48 @@ export class UIManager {
             }
 
             executeEnhance();
+        });
+
+        bindPress(dismantleBtn, () => {
+            const player = this.game.localPlayer;
+            if (!player) return;
+
+            const target = player.resolveWeaponSelection(this.selectedInventoryRef);
+            if (!target?.item) {
+                this.showGenericModal('분해', '분해할 무기를 선택해 주세요.', null, null, { hideNo: true, yesText: '확인' });
+                return;
+            }
+
+            const rewardInfo = player.getWeaponDismantleRewardInfo?.(target.item);
+            if (!rewardInfo) {
+                this.showGenericModal('분해', '이 무기는 분해할 수 없습니다.', null, null, { hideNo: true, yesText: '확인' });
+                return;
+            }
+
+            this.showConfirm(
+                `${target.item.name}을(를) 분해하시겠습니까?<br><small>분해 시 무기 강화석 ${rewardInfo.displayText}를 획득합니다.</small>`,
+                (confirmed) => {
+                    if (!confirmed) return;
+
+                    const result = player.dismantleWeapon(this.selectedInventoryRef);
+                    if (!result.ok) {
+                        this.showGenericModal('분해 실패', result.message, null, null, { hideNo: true, yesText: '확인' });
+                        return;
+                    }
+
+                    this.selectedInventoryRef = null;
+                    this.closeInventoryItemModal(true);
+                    this.showGenericModal(
+                        '분해 완료',
+                        `${result.itemName}을(를) 분해해 무기 강화석 ${result.rewardAmount}개를 획득했습니다.`,
+                        null,
+                        null,
+                        { hideNo: true, yesText: '확인' }
+                    );
+                    this.logSystemMessage(`🛠️ ${result.itemName} 분해: 무기 강화석 ${result.rewardAmount}개 획득`);
+                    this.updateInventory();
+                }
+            );
         });
     }
 
@@ -2766,8 +2809,13 @@ export class UIManager {
         }
 
         const config = item.slot === 'weapon' ? itemData?.getEnhancementConfig(item) : null;
+        const dismantleReward = item.slot === 'weapon' ? player.getWeaponDismantleRewardInfo?.(item) : null;
         const enhanceHint = config
             ? `다음 +${config.nextLevel} | 성공 ${Math.round(config.successRate * 100)}%${config.destroyChanceOnFail > 0 ? ` | 파괴 ${Math.round(config.destroyChanceOnFail * 100)}%` : ' | 안전'}`
+            : '';
+
+        const dismantleHint = dismantleReward
+            ? `분해 시 무기 강화석 ${dismantleReward.displayText} 획득`
             : '';
 
         return {
@@ -2777,7 +2825,8 @@ export class UIManager {
                 : `${definition?.rarity || item.rarity || 'common'}`.toUpperCase(),
             description: item.description || definition?.description || '',
             lines,
-            enhanceHint
+            enhanceHint,
+            dismantleHint
         };
     }
 
@@ -2964,6 +3013,7 @@ export class UIManager {
         const equipBtn = document.getElementById('inventory-action-equip');
         const unequipBtn = document.getElementById('inventory-action-unequip');
         const enhanceBtn = document.getElementById('inventory-action-enhance');
+        const dismantleBtn = document.getElementById('inventory-action-dismantle');
 
         if (nameEl) nameEl.textContent = detailData.title;
         if (subtitleEl) {
@@ -2984,7 +3034,14 @@ export class UIManager {
 
         if (hintEl) {
             const stoneCount = p.getInventoryItemCount?.('weapon_upgrade_stone') || 0;
-            hintEl.textContent = detailData.enhanceHint ? `${detailData.enhanceHint} / 강화석 ${stoneCount}개` : '';
+            const hints = [];
+            if (detailData.enhanceHint) {
+                hints.push(`${detailData.enhanceHint} / 강화석 ${stoneCount}개 보유`);
+            }
+            if (detailData.dismantleHint) {
+                hints.push(detailData.dismantleHint);
+            }
+            hintEl.innerHTML = hints.join('<br>');
         }
 
         if (equipBtn) {
@@ -2995,6 +3052,9 @@ export class UIManager {
         }
         if (enhanceBtn) {
             enhanceBtn.classList.toggle('hidden', detail.item.slot !== 'weapon');
+        }
+        if (dismantleBtn) {
+            dismantleBtn.classList.toggle('hidden', detail.item.slot !== 'weapon');
         }
 
         this.refreshDesktopShortcutHints();
