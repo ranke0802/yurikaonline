@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.GAME_VERSION = '0.01.35'; // Synced with version.txt
+window.GAME_VERSION = '0.01.36'; // Synced with version.txt
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';
@@ -52,6 +52,7 @@ class Game {
         this.ctx.mozImageSmoothingEnabled = false;
         this.ctx.msImageSmoothingEnabled = false;
         this.zoom = 1.0;
+        this.performanceTelemetry = this.createPerformanceTelemetryState();
 
         // Initial resize will be called after camera creation for full sync
         window.addEventListener('resize', () => this.resize());
@@ -202,6 +203,133 @@ class Game {
             maxRenderFps: isTouchDevice ? (lowPowerPwaMode ? (aggressiveThermalMode ? 45 : 50) : 60) : 0,
             maxUpdateFps: lowPowerPwaMode ? (aggressiveThermalMode ? 45 : 50) : 60
         };
+    }
+
+    createPerformanceTelemetryState() {
+        return {
+            windowMs: 60000,
+            loopBuckets: new Map(),
+            networkBuckets: new Map(),
+            uiBuckets: new Map()
+        };
+    }
+
+    _getTelemetryBucket(bucketMap, now = Date.now()) {
+        const bucketTs = Math.floor(now / 1000) * 1000;
+        let bucket = bucketMap.get(bucketTs);
+        if (!bucket) {
+            bucket = { ts: bucketTs };
+            bucketMap.set(bucketTs, bucket);
+        }
+        this._pruneTelemetryBuckets(bucketMap, now);
+        return bucket;
+    }
+
+    _pruneTelemetryBuckets(bucketMap, now = Date.now()) {
+        const cutoff = now - this.performanceTelemetry.windowMs;
+        for (const ts of bucketMap.keys()) {
+            if (ts < cutoff) bucketMap.delete(ts);
+        }
+    }
+
+    estimatePayloadBytes(payload) {
+        try {
+            const serialized = JSON.stringify(payload);
+            if (!serialized) return 0;
+            return (new TextEncoder()).encode(serialized).length;
+        } catch (error) {
+            return 0;
+        }
+    }
+
+    recordLoopTelemetry({
+        updateMs = 0,
+        renderMs = 0,
+        frameGapMs = 0,
+        updateSteps = 0,
+        backlogDrops = 0
+    } = {}) {
+        const bucket = this._getTelemetryBucket(this.performanceTelemetry.loopBuckets);
+        bucket.updateMsTotal = (bucket.updateMsTotal || 0) + updateMs;
+        bucket.renderMsTotal = (bucket.renderMsTotal || 0) + renderMs;
+        bucket.updateSamples = (bucket.updateSamples || 0) + (updateSteps > 0 ? 1 : 0);
+        bucket.renderSamples = (bucket.renderSamples || 0) + 1;
+        bucket.maxFrameGapMs = Math.max(bucket.maxFrameGapMs || 0, frameGapMs || 0);
+        bucket.backlogDrops = (bucket.backlogDrops || 0) + (backlogDrops || 0);
+    }
+
+    recordNetworkWrite(kind, payload, count = 1) {
+        const bucket = this._getTelemetryBucket(this.performanceTelemetry.networkBuckets);
+        const bytes = this.estimatePayloadBytes(payload);
+        bucket.rtdbWrites = (bucket.rtdbWrites || 0) + count;
+        bucket.estimatedBytes = (bucket.estimatedBytes || 0) + bytes;
+        bucket.byType = bucket.byType || {};
+        bucket.byType[kind] = (bucket.byType[kind] || 0) + count;
+    }
+
+    recordUiTick(kind, count = 1) {
+        const bucket = this._getTelemetryBucket(this.performanceTelemetry.uiBuckets);
+        bucket[kind] = (bucket[kind] || 0) + count;
+    }
+
+    getPerformanceSnapshot() {
+        const aggregateNetworkByType = {};
+        const now = Date.now();
+        this._pruneTelemetryBuckets(this.performanceTelemetry.loopBuckets, now);
+        this._pruneTelemetryBuckets(this.performanceTelemetry.networkBuckets, now);
+        this._pruneTelemetryBuckets(this.performanceTelemetry.uiBuckets, now);
+        const snapshot = {
+            avgUpdateMs: 0,
+            avgRenderMs: 0,
+            maxFrameGapMs: 0,
+            droppedFrameBursts: 0,
+            rtdbWritesPerMin: 0,
+            estimatedBytesPerMin: 0,
+            movePacketsPerMin: 0,
+            monsterWritesPerMin: 0,
+            profileSavesPerMin: 0,
+            hudUpdatesPerMin: 0,
+            minimapUpdatesPerMin: 0,
+            remoteUpdatesPerMin: 0
+        };
+
+        let totalUpdateMs = 0;
+        let totalRenderMs = 0;
+        let updateSamples = 0;
+        let renderSamples = 0;
+
+        this.performanceTelemetry.loopBuckets.forEach((bucket) => {
+            totalUpdateMs += bucket.updateMsTotal || 0;
+            totalRenderMs += bucket.renderMsTotal || 0;
+            updateSamples += bucket.updateSamples || 0;
+            renderSamples += bucket.renderSamples || 0;
+            snapshot.maxFrameGapMs = Math.max(snapshot.maxFrameGapMs, bucket.maxFrameGapMs || 0);
+            snapshot.droppedFrameBursts += bucket.backlogDrops || 0;
+        });
+
+        this.performanceTelemetry.networkBuckets.forEach((bucket) => {
+            snapshot.rtdbWritesPerMin += bucket.rtdbWrites || 0;
+            snapshot.estimatedBytesPerMin += bucket.estimatedBytes || 0;
+            if (bucket.byType) {
+                Object.entries(bucket.byType).forEach(([kind, value]) => {
+                    aggregateNetworkByType[kind] = (aggregateNetworkByType[kind] || 0) + value;
+                });
+            }
+        });
+
+        this.performanceTelemetry.uiBuckets.forEach((bucket) => {
+            snapshot.hudUpdatesPerMin += bucket.hud || 0;
+            snapshot.minimapUpdatesPerMin += bucket.minimap || 0;
+            snapshot.remoteUpdatesPerMin += bucket.remoteUpdates || 0;
+        });
+
+        snapshot.avgUpdateMs = updateSamples > 0 ? totalUpdateMs / updateSamples : 0;
+        snapshot.avgRenderMs = renderSamples > 0 ? totalRenderMs / renderSamples : 0;
+        snapshot.movePacketsPerMin = aggregateNetworkByType.move || 0;
+        snapshot.monsterWritesPerMin = aggregateNetworkByType.monsterUpdate || 0;
+        snapshot.profileSavesPerMin = aggregateNetworkByType.profileSave || 0;
+
+        return snapshot;
     }
 
     updateLoading(msg, percent = null) {

@@ -21,6 +21,7 @@ export default class RemotePlayer extends CharacterBase {
         this.adaptiveDelay = 100;
         this.packetJitterHistory = [];
         this.lastPacketTime = 0;
+        this.lastPacketInterval = 100;
 
         // Extrapolation state
         this.isExtrapolating = false;
@@ -170,7 +171,9 @@ export default class RemotePlayer extends CharacterBase {
 
         // Calculate packet jitter for adaptive delay
         if (this.lastPacketTime > 0) {
-            const jitter = Math.abs(now - this.lastPacketTime - 60); // Expected 60ms interval
+            const observedInterval = Math.max(16, now - this.lastPacketTime);
+            const expectedInterval = Math.max(60, this.lastPacketInterval || observedInterval);
+            const jitter = Math.abs(observedInterval - expectedInterval);
             this.packetJitterHistory.push(jitter);
             if (this.packetJitterHistory.length > 30) this.packetJitterHistory.shift();
 
@@ -178,8 +181,9 @@ export default class RemotePlayer extends CharacterBase {
             if (this.packetJitterHistory.length >= 10) {
                 const sorted = [...this.packetJitterHistory].sort((a, b) => a - b);
                 const p90 = sorted[Math.floor(sorted.length * 0.9)];
-                this.adaptiveDelay = Math.max(50, Math.min(300, p90 * 2 + 30));
+                this.adaptiveDelay = Math.max(70, Math.min(320, Math.max(p90 * 2 + 30, observedInterval * 1.25)));
             }
+            this.lastPacketInterval = observedInterval;
         }
         this.lastPacketTime = now;
 

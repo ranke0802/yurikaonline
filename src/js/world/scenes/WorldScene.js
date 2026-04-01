@@ -30,6 +30,7 @@ export default class WorldScene extends Scene {
         this.hudUpdateInterval = 0.05;
         this.viewMargin = 500; // v0.00.24: Increased for smoother player sync
         this._lastLandscapeFramingOffsetY = 0;
+        this.remoteOffscreenUpdateInterval = 0;
 
         // v0.33.0: Monster Attack Queue
         this.monsterMissileQueue = [];
@@ -288,9 +289,18 @@ export default class WorldScene extends Scene {
 
         const rp = new RemotePlayer(data.id, data.x, data.y, this.resources);
         rp.name = data.name || "Unknown";
+        if (typeof data.level === 'number') {
+            rp.level = data.level;
+        }
         if (data.h) {
             rp.hp = data.h[0];
             rp.maxHp = data.h[1];
+        }
+        if (typeof data.defense === 'number') {
+            rp.defense = data.defense;
+        }
+        if (typeof data.isPaused === 'boolean') {
+            rp.isPaused = data.isPaused;
         }
         if (data.equipment) {
             rp.equipment = data.equipment;
@@ -535,6 +545,7 @@ export default class WorldScene extends Scene {
         const useAggressiveHudOptimization = !!this.game.useAggressiveHudOptimization;
         this.hudUpdateInterval = useAggressiveHudOptimization ? 0.12 : (useMobileIntervals ? 0.08 : 0.05);
         this.minimapUpdateInterval = useAggressiveHudOptimization ? 0.4 : (useMobileIntervals ? 0.25 : 0.16);
+        this.remoteOffscreenUpdateInterval = useAggressiveHudOptimization ? 0.22 : (useMobileIntervals ? 0.14 : 0);
 
         if (this.player) {
             if (this.input.isPressed('SKILL_1')) this.player.useSkill(1);
@@ -609,10 +620,27 @@ export default class WorldScene extends Scene {
 
         // v0.00.39: Always update all remote players for proper sync
         if (this.net.isZoneParticipationEnabled()) {
+            let remoteUpdatesThisTick = 0;
             this.remotePlayers.forEach(rp => {
-                if (this.game.useReducedEffects && !this.isOnScreen(rp)) return;
+                const onScreen = this.isOnScreen(rp);
+                if (!onScreen && this.remoteOffscreenUpdateInterval > 0) {
+                    rp._offscreenUpdateAccumulator = (rp._offscreenUpdateAccumulator || 0) + dt;
+                    if (rp._offscreenUpdateAccumulator < this.remoteOffscreenUpdateInterval) return;
+                    const offscreenDt = rp._offscreenUpdateAccumulator;
+                    rp._offscreenUpdateAccumulator = 0;
+                    rp.update(offscreenDt);
+                    remoteUpdatesThisTick++;
+                    return;
+                }
+
+                rp._offscreenUpdateAccumulator = 0;
                 rp.update(dt);
+                remoteUpdatesThisTick++;
             });
+
+            if (remoteUpdatesThisTick > 0) {
+                this.game.recordUiTick?.('remoteUpdates', remoteUpdatesThisTick);
+            }
         }
 
         if (this.monsterManager && this.player) {
@@ -747,14 +775,20 @@ export default class WorldScene extends Scene {
         const renderList = [];
 
         // Map Objects
-        if (this.mapObjects) renderList.push(...this.mapObjects);
+        if (this.mapObjects) {
+            this.mapObjects.forEach((obj) => {
+                if (this.isOnScreen(obj)) renderList.push(obj);
+            });
+        }
 
         // Local Player
         if (this.player && !this.player.isDead) renderList.push(this.player);
 
         // Remote Players
         if (this.net.isZoneParticipationEnabled()) {
-            this.remotePlayers.forEach(rp => renderList.push(rp));
+            this.remotePlayers.forEach(rp => {
+                if (this.isOnScreen(rp)) renderList.push(rp);
+            });
         }
 
         // Monsters

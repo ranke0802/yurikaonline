@@ -17,6 +17,8 @@ export class UIManager {
         this.minimapCtx = null;
         this.minimapCanvas = null;
         this.lastHudSnapshot = null;
+        this.lastCooldownUiUpdate = 0;
+        this.lastDevOverlayUpdate = 0;
         this.selectedInventoryRef = null;
         this.inventoryDragState = null;
         this.inventoryClickSuppressUntil = 0;
@@ -3619,11 +3621,20 @@ export class UIManager {
         }
 
         this.lastHudSnapshot = nextSnapshot;
+        this.game.recordUiTick?.('hud');
 
-        this.updateCooldowns();
+        const now = performance.now();
+        const cooldownInterval = this.game.useAggressiveHudOptimization ? 120 : (this.game.isMobilePerformanceMode ? 80 : 40);
+        if ((now - this.lastCooldownUiUpdate) >= cooldownInterval) {
+            this.lastCooldownUiUpdate = now;
+            this.updateCooldowns();
+        }
 
         // v1.98: Live update developer overlay if active
-        if (this.devMode) this.updateDevOverlay();
+        if (this.devMode && (now - this.lastDevOverlayUpdate) >= 250) {
+            this.lastDevOverlayUpdate = now;
+            this.updateDevOverlay();
+        }
     }
 
     updateCooldowns() {
@@ -3729,6 +3740,7 @@ export class UIManager {
         const nextPosY = String(Math.round(player.y));
         if (posX && posX.textContent !== nextPosX) posX.textContent = nextPosX;
         if (posY && posY.textContent !== nextPosY) posY.textContent = nextPosY;
+        this.game.recordUiTick?.('minimap');
     }
 
     async sendMessage() {
@@ -4113,15 +4125,38 @@ export class UIManager {
     updateDevOverlay() {
         if (!this.game.monsterManager) return;
         const stats = this.game.monsterManager.getStats();
+        const perf = this.game.getPerformanceSnapshot?.() || {};
         const mCount = document.getElementById('dev-m-count');
         const mMax = document.getElementById('dev-m-max');
         const mInterval = document.getElementById('dev-m-interval');
         const pSum = document.getElementById('dev-p-sum');
+        const loopUpdate = document.getElementById('dev-loop-update');
+        const loopRender = document.getElementById('dev-loop-render');
+        const loopGap = document.getElementById('dev-loop-gap');
+        const netWrites = document.getElementById('dev-net-writes');
+        const netBytes = document.getElementById('dev-net-bytes');
+        const netMove = document.getElementById('dev-net-move');
+        const netMonster = document.getElementById('dev-net-monster');
+        const netProfile = document.getElementById('dev-net-profile');
+        const hudTicks = document.getElementById('dev-ui-hud');
+        const minimapTicks = document.getElementById('dev-ui-minimap');
+        const remoteTicks = document.getElementById('dev-ui-remote');
 
         if (mCount) mCount.textContent = stats.count;
         if (mMax) mMax.textContent = stats.max;
         if (mInterval) mInterval.textContent = stats.interval + 's';
         if (pSum) pSum.textContent = stats.totalLevel;
+        if (loopUpdate) loopUpdate.textContent = Number(perf.avgUpdateMs || 0).toFixed(2);
+        if (loopRender) loopRender.textContent = Number(perf.avgRenderMs || 0).toFixed(2);
+        if (loopGap) loopGap.textContent = Math.round(perf.maxFrameGapMs || 0);
+        if (netWrites) netWrites.textContent = Math.round(perf.rtdbWritesPerMin || 0);
+        if (netBytes) netBytes.textContent = `${((perf.estimatedBytesPerMin || 0) / 1024).toFixed(1)} KB`;
+        if (netMove) netMove.textContent = Math.round(perf.movePacketsPerMin || 0);
+        if (netMonster) netMonster.textContent = Math.round(perf.monsterWritesPerMin || 0);
+        if (netProfile) netProfile.textContent = Math.round(perf.profileSavesPerMin || 0);
+        if (hudTicks) hudTicks.textContent = Math.round(perf.hudUpdatesPerMin || 0);
+        if (minimapTicks) minimapTicks.textContent = Math.round(perf.minimapUpdatesPerMin || 0);
+        if (remoteTicks) remoteTicks.textContent = Math.round(perf.remoteUpdatesPerMin || 0);
     }
 
     showRegenHint(type, amount) {

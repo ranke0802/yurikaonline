@@ -148,12 +148,21 @@ function syncFiles(version, changedFiles) {
     writeFile('index.html', indexHtml, changedFiles);
 
     let swJs = readFile('sw.js');
-    swJs = replaceOrThrow(
-        swJs,
-        /const CACHE_NAME = 'yurika-online-[^']+';/,
-        `const CACHE_NAME = 'yurika-online-${version}';`,
-        'sw.js cache name'
-    );
+    if (/const APP_VERSION = '[^']+';/.test(swJs)) {
+        swJs = replaceOrThrow(
+            swJs,
+            /const APP_VERSION = '[^']+';/,
+            `const APP_VERSION = '${version}';`,
+            'sw.js app version'
+        );
+    } else {
+        swJs = replaceOrThrow(
+            swJs,
+            /const CACHE_NAME = 'yurika-online-[^']+';/,
+            `const CACHE_NAME = 'yurika-online-${version}';`,
+            'sw.js cache name'
+        );
+    }
     writeFile('sw.js', swJs, changedFiles);
 
     syncReadme(version, dateText, changedFiles);

@@ -89,20 +89,34 @@ export default class GameLoop {
         // Prevent spiral of death if lag allows frameTime to be too large
         // Cap it at 0.25 seconds
         const safeFrameTime = Math.min(frameTime, 0.25);
+        let totalUpdateMs = 0;
+        let renderMs = 0;
+        let backlogDrops = 0;
+        let updateSteps = 0;
 
         // v2.2: Hitstop — skip updates but still render
         if (this.hitstopTimer > 0) {
             this.hitstopTimer -= safeFrameTime * 1000;
+            const renderStart = performance.now();
             this.renderFn();
+            renderMs = performance.now() - renderStart;
+            window.game?.recordLoopTelemetry?.({
+                updateMs: 0,
+                renderMs,
+                frameGapMs: safeFrameTime * 1000,
+                updateSteps: 0,
+                backlogDrops: 0
+            });
             return;
         }
 
         this.accumulator += safeFrameTime;
 
         // Update Phase (Fixed Time Step)
-        let updateSteps = 0;
         while (this.accumulator >= this.deltaTime && updateSteps < this.maxUpdateStepsPerFrame) {
+            const updateStart = performance.now();
             this.updateFn(this.deltaTime);
+            totalUpdateMs += performance.now() - updateStart;
             this.accumulator -= this.deltaTime;
             updateSteps++;
         }
@@ -110,13 +124,24 @@ export default class GameLoop {
         // Drop excessive backlog instead of burning CPU to catch up after a hitch.
         if (updateSteps >= this.maxUpdateStepsPerFrame && this.accumulator >= this.deltaTime) {
             this.accumulator = 0;
+            backlogDrops = 1;
         }
 
         // Render Phase (Interpolation alpha could be passed here)
         // alpha = this.accumulator / this.deltaTime
         if (!this.minRenderIntervalMs || (currentTime - this.lastRenderTime) >= this.minRenderIntervalMs) {
             this.lastRenderTime = currentTime;
+            const renderStart = performance.now();
             this.renderFn();
+            renderMs = performance.now() - renderStart;
         }
+
+        window.game?.recordLoopTelemetry?.({
+            updateMs: totalUpdateMs,
+            renderMs,
+            frameGapMs: safeFrameTime * 1000,
+            updateSteps,
+            backlogDrops
+        });
     }
 }

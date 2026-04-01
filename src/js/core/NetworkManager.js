@@ -38,6 +38,9 @@ export default class NetworkManager extends EventEmitter {
         // Batch update queue for damage/events
         this.batchQueue = [];
         this.batchInterval = 140; // Wider batch window to reduce write frequency
+        this.monsterUpdateQueue = new Map();
+        this.monsterUpdateFlushDelay = 90;
+        this._monsterUpdateTimer = null;
         this.startBatchProcessor();
 
         // Lifecycle guards
@@ -382,6 +385,7 @@ export default class NetworkManager extends EventEmitter {
         });
 
         try {
+            this._recordNetworkWrite('batchUpdate', updates, Object.keys(updates).length);
             await this.dbRef.update(updates);
         } catch (e) {
             Logger.error('Batch update failed:', e);
@@ -398,9 +402,14 @@ export default class NetworkManager extends EventEmitter {
             clearInterval(this._localCleanupTimer);
             this._localCleanupTimer = null;
         }
+        if (this._monsterUpdateTimer) {
+            clearTimeout(this._monsterUpdateTimer);
+            this._monsterUpdateTimer = null;
+        }
         this._stopCleanupLoop();
         this.stopBatchProcessor();
         this.batchQueue.length = 0;
+        this.monsterUpdateQueue.clear();
         document.removeEventListener('visibilitychange', this._boundVisibilityChange);
         this._detachAllDbListeners();
 
@@ -456,8 +465,15 @@ export default class NetworkManager extends EventEmitter {
 
     sendHeartbeat() {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
-        // v0.00.05: Use ServerValue.TIMESTAMP to eliminate clock skew issues
-        this.dbRef.child(`users/${this.playerId}/ts`).set(firebase.database.ServerValue.TIMESTAMP);
+        const updates = {
+            [`users/${this.playerId}/presence/ts`]: firebase.database.ServerValue.TIMESTAMP,
+            [`users/${this.playerId}/lastSeen`]: firebase.database.ServerValue.TIMESTAMP
+        };
+        this._recordNetworkWrite('heartbeat', {
+            presence: true,
+            lastSeen: true
+        });
+        this.dbRef.update(updates).catch(() => { });
         this.lastHeartbeatTime = Date.now();
 
         // v0.00.03: Ensure resonance of local user list
@@ -472,6 +488,28 @@ export default class NetworkManager extends EventEmitter {
 
     _markNetworkActivity(ts = Date.now()) {
         this.lastNetworkActivityTime = Math.max(this.lastNetworkActivityTime || 0, ts);
+    }
+
+    _recordNetworkWrite(kind, payload, count = 1) {
+        window.game?.recordNetworkWrite?.(kind, payload, count);
+    }
+
+    _extractPresenceTs(value) {
+        if (!value || typeof value !== 'object') return 0;
+        return value?.presence?.ts || value?.lastSeen || value?.ts || 0;
+    }
+
+    _buildZoneProfileSnapshot(profile) {
+        if (!profile) return null;
+        return {
+            name: profile.name || 'Unknown',
+            level: profile.level || 1,
+            equipment: profile.equipment || null,
+            party: profile.party || null,
+            hostility: profile.hostility || {},
+            defense: profile.defense ?? 0,
+            isPaused: !!profile.isPaused
+        };
     }
 
     _getMoveSyncInterval(vx = 0, vy = 0) {
@@ -651,6 +689,7 @@ export default class NetworkManager extends EventEmitter {
             profile: this._cloneProfileData(profile)
         };
 
+        this._recordNetworkWrite('profileBackup', backupPayload);
         await backupRef.set(backupPayload);
 
         const existingSnapshot = await backupsRef.once('value');
@@ -784,6 +823,7 @@ export default class NetworkManager extends EventEmitter {
 
             // v0.00.04: Root profile update (Persistent across logins)
             console.log(`[Network] Saving Player Data to users/${uid}/profile:`, nextProfile);
+            this._recordNetworkWrite('profileSave', nextProfile);
             const transactionResult = await profileRef.transaction((current) => {
                 const currentTs = Number(current?.ts || 0);
                 const nextTs = Number(nextProfile.ts || 0);
@@ -817,7 +857,9 @@ export default class NetworkManager extends EventEmitter {
             // v0.00.04: Zone-specific update ONLY IF requested and in a zone
             // This prevents players in character selection from appearing in the map
             if (syncToZone && this.dbRef && this.zoneParticipationEnabled) {
-                await this.dbRef.child(`users/${uid}/profile`).set(committedProfile);
+                const zoneProfile = this._buildZoneProfileSnapshot(committedProfile);
+                this._recordNetworkWrite('zoneProfileSync', zoneProfile);
+                await this.dbRef.child(`users/${uid}/profile`).set(zoneProfile);
             }
             return { ok: true, profile: committedProfile };
         } catch (e) {
@@ -1223,6 +1265,29 @@ export default class NetworkManager extends EventEmitter {
         });
     }
 
+    _scheduleMonsterUpdateFlush() {
+        if (this._monsterUpdateTimer) return;
+        this._monsterUpdateTimer = setTimeout(() => {
+            this._monsterUpdateTimer = null;
+            this.flushMonsterUpdates();
+        }, this.monsterUpdateFlushDelay);
+    }
+
+    flushMonsterUpdates() {
+        if (!this.connected || !this.isHost || !this.dbRef || this.monsterUpdateQueue.size === 0) return;
+
+        const updates = {};
+        this.monsterUpdateQueue.forEach((payload, id) => {
+            updates[`monsters/${id}`] = payload;
+        });
+        this.monsterUpdateQueue.clear();
+
+        this._recordNetworkWrite('monsterUpdate', updates, Object.keys(updates).length);
+        this.dbRef.update(updates).catch((e) => {
+            Logger.error('Monster batch update failed:', e);
+        });
+    }
+
     sendMonsterUpdate(id, data) {
         if (!this.connected || !this.isHost) return;
         if (!id || !data) return;
@@ -1237,11 +1302,13 @@ export default class NetworkManager extends EventEmitter {
             chargeOnly: data.chargeOnly || false // v0.00.76+
         };
 
-        this.dbRef.child(`monsters/${id}`).set(safeData).catch(e => { });
+        this.monsterUpdateQueue.set(id, safeData);
+        this._scheduleMonsterUpdateFlush();
     }
 
     removeMonster(id) {
         if (!this.connected || !this.isHost) return;
+        this.monsterUpdateQueue.delete(id);
         this.dbRef.child(`monsters/${id}`).remove().catch(e => { });
     }
 
@@ -1249,7 +1316,7 @@ export default class NetworkManager extends EventEmitter {
     spawnDrop(data) {
         if (!this.connected || !this.isHost) return;
         const ref = this.dbRef.child('drops').push();
-        ref.set({
+        const payload = {
             x: Math.round(data.x),
             y: Math.round(data.y),
             type: data.type,
@@ -1257,7 +1324,9 @@ export default class NetworkManager extends EventEmitter {
             ownerId: data.ownerId || null,
             partyMembers: Array.isArray(data.partyMembers) ? data.partyMembers : null,
             ts: Date.now()
-        }).catch(e => { });
+        };
+        this._recordNetworkWrite('dropSpawn', payload);
+        ref.set(payload).catch(e => { });
     }
 
     removeDrop(id) {
@@ -1268,11 +1337,13 @@ export default class NetworkManager extends EventEmitter {
     collectDrop(dropId) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         // Request collection: { did: dropId, cid: collectorId }
-        this.dbRef.child('drop_collection').push({
+        const payload = {
             did: dropId,
             cid: this.playerId,
             ts: Date.now()
-        });
+        };
+        this._recordNetworkWrite('dropCollect', payload);
+        this.dbRef.child('drop_collection').push(payload);
     }
 
     // Phase 1: Delta synchronization for bandwidth optimization
@@ -1333,6 +1404,7 @@ export default class NetworkManager extends EventEmitter {
         updates[`${basePath}/p/ts`] = now;
 
         if (hasChanges) {
+            this._recordNetworkWrite('move', updates);
             this.dbRef.update(updates).catch(e => { });
             this.lastPacketData = { x: safeX, y: safeY, vx: safeVx, vy: safeVy, name };
             this._markNetworkActivity(now);
@@ -1353,6 +1425,7 @@ export default class NetworkManager extends EventEmitter {
             skillType,
             extraData // v0.29.0: Added for skill specifics (e.g. missile count)
         ];
+        this._recordNetworkWrite('attack', payload);
         this.dbRef.child(`users/${this.playerId}/a`).set(payload);
         this._markNetworkActivity(now);
     }
@@ -1362,6 +1435,7 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         const now = Date.now();
         const payload = [now, skillType];
+        this._recordNetworkWrite('channel', payload);
         this.dbRef.child(`users/${this.playerId}/ch`).set(payload);
         this._markNetworkActivity(now);
     }
@@ -1379,12 +1453,14 @@ export default class NetworkManager extends EventEmitter {
     // v0.33.0: Send Monster Attack (Host Only)
     sendMonsterAttack(monsterId, skillType, extraData = null) {
         if (!this.connected || !this.isHost) return;
-        this.dbRef.child('monster_attack').push({
+        const payload = {
             mid: monsterId,
             skill: skillType,
             extra: extraData,
             ts: Date.now()
-        });
+        };
+        this._recordNetworkWrite('monsterAttack', payload);
+        this.dbRef.child('monster_attack').push(payload);
     }
 
     sendPlayerDamage(targetId, damage) {
@@ -1406,6 +1482,7 @@ export default class NetworkManager extends EventEmitter {
             hostId: this.playerId,  // Host signature
             ts: Date.now()
         };
+        this._recordNetworkWrite('reward', safeData);
         this.dbRef.child(`rewards/${playerId}`).push(safeData).catch(e => { });
     }
 
@@ -1422,6 +1499,7 @@ export default class NetworkManager extends EventEmitter {
         if ((now - this._lastHpSync.ts) < 120) return;
 
         this._lastHpSync = { hp: nextHp, maxHp: nextMaxHp, ts: now };
+        this._recordNetworkWrite('hp', [nextHp, nextMaxHp, now]);
         this.dbRef.child(`users/${this.playerId}/h`).set([nextHp, nextMaxHp, now]);
         this._markNetworkActivity(now);
     }
@@ -1429,12 +1507,14 @@ export default class NetworkManager extends EventEmitter {
     sendChat(text, senderName) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         const now = Date.now();
-        this.dbRef.child('chat').push({
+        const payload = {
             uid: this.playerId,
             name: senderName || "Unknown",
             text: text,
             ts: now
-        });
+        };
+        this._recordNetworkWrite('chat', payload);
+        this.dbRef.child('chat').push(payload);
         this._markNetworkActivity(now);
     }
 
@@ -1455,6 +1535,7 @@ export default class NetworkManager extends EventEmitter {
             }
         }
 
+        const presenceTs = this._extractPresenceTs(val);
         let ts = Date.now();
         if (posData) {
             // Check if Array or Object
@@ -1463,6 +1544,8 @@ export default class NetworkManager extends EventEmitter {
             } else {
                 ts = posData.ts || Date.now();
             }
+        } else if (presenceTs) {
+            ts = presenceTs;
         }
 
         // Ensure TS is valid to prevent immediate ghost cleanup
@@ -1509,6 +1592,8 @@ export default class NetworkManager extends EventEmitter {
             h: val.h,
             a: val.a,
             level: profile.level || 1,
+            defense: profile.defense ?? 0,
+            isPaused: !!profile.isPaused,
             equipment: profile.equipment || null,
             party: profile.party || null,
             hostility: profile.hostility || val.hostility || {}
@@ -1589,6 +1674,7 @@ export default class NetworkManager extends EventEmitter {
 
         // v0.28.2: Enhanced hybrid data parsing (Array <-> Object transition)
         let posData = null;
+        const presenceTs = this._extractPresenceTs(val);
         if (Array.isArray(val)) {
             posData = val;
         } else if (val && typeof val === 'object') {
@@ -1601,12 +1687,12 @@ export default class NetworkManager extends EventEmitter {
             }
         }
 
-        if (posData || val.ts) {
+        if (posData || presenceTs) {
             let ts = 0;
             if (posData) {
                 ts = Array.isArray(posData) ? (posData[4] || 0) : (posData.ts || 0);
             } else {
-                ts = val.ts || 0;
+                ts = presenceTs || 0;
             }
 
             // LOGGING: Check why users are stale
@@ -1648,12 +1734,14 @@ export default class NetworkManager extends EventEmitter {
                         if (hostility) update.hostility = hostility;
 
                         this.emit('playerUpdate', update);
+                    } else {
+                        existing.ts = ts;
                     }
                 } else {
                     // Packet arrived for unknown player -> Treat as Add
                     // v0.00.67: Only attempt add if we have some position data
                     console.warn(`[Network] Received update for unknown player ${uid}, treating as ADD.`);
-                    if (posData && (Array.isArray(posData) || posData.x !== undefined || posData.y !== undefined || val.ts)) {
+                    if (posData && (Array.isArray(posData) || posData.x !== undefined || posData.y !== undefined || presenceTs)) {
                         // v0.00.74: Update userLastSeen to NOW to give grace period
                         this.userLastSeen.set(uid, Date.now());
                         this._onPlayerAdded(snapshot);
@@ -1916,16 +2004,8 @@ export default class NetworkManager extends EventEmitter {
     }
 
     _sendHeartbeat() {
-        if (!this.connected || !this.playerId) return;
-
-        const presenceRef = this.dbRef.child(`users/${this.playerId}`);
-        presenceRef.update({
-            lastSeen: firebase.database.ServerValue.TIMESTAMP
-        }).catch(e => {
-            // Ignore offline errors
-        });
-
-        this.lastHeartbeatTime = Date.now();
+        if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        this.sendHeartbeat();
     }
 
     _setupEmoteListeners() {
