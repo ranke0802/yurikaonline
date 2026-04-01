@@ -126,6 +126,7 @@ export default class Player extends CharacterBase {
         this.joystick = { x: 0, y: 0, active: false };
         this.moveTarget = null; // Target position for Click-to-Move
         this.currentTarget = null; // v0.00.20: Explicitly selected target (Monster or RemotePlayer)
+        this.currentTargetMode = null;
 
         this.chatMessage = null;
         this.chatTimer = 0;
@@ -299,17 +300,17 @@ export default class Player extends CharacterBase {
             const target = this.currentTarget;
             const isMonsterTarget = !!target.isMonster || target.type === 'monster' || !!target.typeId;
             if (target.isDead) {
-                this.currentTarget = null;
+                this.clearCurrentTarget();
             } else if (isMonsterTarget) {
                 const monsters = window.game?.monsterManager?.monsters;
                 if (!target.id || !monsters?.has(target.id)) {
-                    this.currentTarget = null;
+                    this.clearCurrentTarget();
                 }
             } else if (target.type === 'player' && target !== this) {
                 const remotePlayers = window.game?.remotePlayers;
                 const localPlayer = window.game?.localPlayer;
                 if (target !== localPlayer && (!target.id || !remotePlayers?.has(target.id))) {
-                    this.currentTarget = null;
+                    this.clearCurrentTarget();
                 }
             }
         }
@@ -937,6 +938,17 @@ export default class Player extends CharacterBase {
         return Math.hypot(targetX - sourceX, targetY - sourceY);
     }
 
+    setCurrentTarget(target, options = {}) {
+        this.currentTarget = target || null;
+        this.currentTargetMode = target ? (options.mode || 'manual') : null;
+        return this.currentTarget;
+    }
+
+    clearCurrentTarget() {
+        this.currentTarget = null;
+        this.currentTargetMode = null;
+    }
+
     findNearestAutoAttackTarget() {
         const candidates = [];
 
@@ -973,12 +985,12 @@ export default class Player extends CharacterBase {
 
         const nearest = this.findNearestAutoAttackTarget();
         if (nearest) {
-            this.currentTarget = nearest;
+            this.setCurrentTarget(nearest, { mode: 'auto' });
             return nearest;
         }
 
         if (!this.isAttackTargetStillValid(this.currentTarget)) {
-            this.currentTarget = null;
+            this.clearCurrentTarget();
         }
 
         return null;
@@ -995,6 +1007,9 @@ export default class Player extends CharacterBase {
         }
 
         this.autoAttackEnabled = nextState;
+        if (!nextState && this.currentTargetMode === 'auto') {
+            this.clearCurrentTarget();
+        }
         if (!nextState && !(this.input && this.input.isPressed('ATTACK'))) {
             this.stopBasicAttackChanneling();
         }
@@ -2660,7 +2675,7 @@ export default class Player extends CharacterBase {
         this.moveTarget = null;
         this.vx = 0;
         this.vy = 0;
-        this.currentTarget = null;
+        this.clearCurrentTarget();
 
         // v0.00.41: Clear all status effects on respawn
         this.statusEffects = [];

@@ -843,12 +843,13 @@ export default class WorldScene extends Scene {
         // v0.00.21: Target Lock-on Marker
         if (this.player && this.player.currentTarget && !this.player.currentTarget.isDead) {
             const t = this.player.currentTarget;
+            const isAutoTarget = this.player.currentTargetMode === 'auto';
             const isMonsterTarget = !!t.isMonster || t.type === 'monster' || !!t.typeId;
             if (isMonsterTarget && !this.monsterManager?.monsters?.has(t.id)) {
-                this.player.currentTarget = null;
+                this.player.clearCurrentTarget?.();
             } else {
                 const isTutorialDummyTarget = t.typeId === 'training_dummy' && !!this.game?.tutorial?.activeTutorial;
-                if (!isTutorialDummyTarget) {
+                if (!isTutorialDummyTarget && !isAutoTarget) {
                     const tx = t.x + t.width / 2;
                     const ty = t.y + t.height;
                     SkillRenderer.drawTargetMarker(ctx, tx, ty, t.width || 48, t.height || 48);

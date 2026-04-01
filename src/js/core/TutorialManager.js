@@ -241,7 +241,7 @@ export default class TutorialManager {
                 Promise.resolve(spawnResult).then((monsterId) => {
                     const monster = this.game.monsterManager?.monsters?.get(monsterId);
                     if (monster && this.game.localPlayer) {
-                        this.game.localPlayer.currentTarget = monster;
+                        this.game.localPlayer.setCurrentTarget?.(monster, { mode: 'script' });
                     }
                 });
                 break;
@@ -250,7 +250,7 @@ export default class TutorialManager {
             case 'clear_tutorial_monsters':
                 this.game.monsterManager?.clearTutorialMonsters?.();
                 if (player) {
-                    player.currentTarget = null;
+                    player.clearCurrentTarget?.();
                 }
                 break;
 

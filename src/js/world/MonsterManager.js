@@ -891,7 +891,7 @@ export default class MonsterManager {
 
         const player = this.game?.localPlayer;
         if (player?.currentTarget && (player.currentTarget.id === targetId || player.currentTarget === monsterOrId)) {
-            player.currentTarget = null;
+            player.clearCurrentTarget?.();
         }
     }
 
