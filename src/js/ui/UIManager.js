@@ -1903,6 +1903,7 @@ export class UIManager {
                 }
             };
         }
+    }
 
     // --- Dialogue System (v2.0) ---
     showDialogue(sequence) {
