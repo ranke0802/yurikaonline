@@ -40,7 +40,9 @@ export default class InputManager extends EventEmitter {
         handler.on('actionDown', (action) => this._onActionDown(action));
         handler.on('actionUp', (action) => this._onActionUp(action));
         handler.on('joystickMove', (data) => this.emit('joystickMove', data));
+        handler.on('aimStart', (data) => this.emit('aimStart', data));
         handler.on('aimMove', (data) => this.emit('aimMove', data));
+        handler.on('aimEnd', (data) => this.emit('aimEnd', data));
     }
 
     _onActionDown(action) {

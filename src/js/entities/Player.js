@@ -169,19 +169,23 @@ export default class Player extends CharacterBase {
             if (action === 'ATTACK') this.attack();
             if (action === 'TOGGLE_AUTO_ATTACK') this.toggleAutoAttack();
             if (action === 'SKILL_1') this.useSkill(1);
-            if (action === 'SKILL_2') this.startFireballAim();
+            if (action === 'SKILL_2') this.useSkill(2);
             if (action === 'SKILL_3') this.useSkill(3);
             if (action === 'SKILL_4') this.useSkill(4);
         });
 
-        this.input.on('keyup', (action) => {
-            if (action === 'SKILL_2') this.releaseFireballAim();
+        this.input.on('aimStart', (data) => {
+            if (data?.action === 'SKILL_2') this.startFireballAim();
         });
 
         this.input.on('aimMove', (data) => {
             if (data?.action === 'SKILL_2' && this.fireballAimActive) {
                 this.updateFireballAimGuideFromScreenPoint(data.clientX, data.clientY);
             }
+        });
+
+        this.input.on('aimEnd', (data) => {
+            if (data?.action === 'SKILL_2') this.releaseFireballAim();
         });
 
         this.input.on('joystickMove', (data) => {
@@ -411,16 +415,6 @@ export default class Player extends CharacterBase {
         return this.getFireballProjectileRadius(level) * 2.5;
     }
 
-    hasDirectionalAimInput() {
-        if (this.joystick?.active) return true;
-        if (!this.input) return false;
-
-        return this.input.isPressed('MOVE_UP')
-            || this.input.isPressed('MOVE_DOWN')
-            || this.input.isPressed('MOVE_LEFT')
-            || this.input.isPressed('MOVE_RIGHT');
-    }
-
     canStartFireballAim() {
         if (this.isDead || this.isDying) return false;
         if (this.isChanneling) return false;
@@ -441,9 +435,8 @@ export default class Player extends CharacterBase {
         let targetX;
         let targetY;
         let angle;
-        const directionalAimInputActive = this.hasDirectionalAimInput();
 
-        if (this.fireballPointerTarget && !directionalAimInputActive) {
+        if (this.fireballPointerTarget) {
             const dx = this.fireballPointerTarget.x - originX;
             const dy = this.fireballPointerTarget.y - originY;
             const distance = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -453,22 +446,8 @@ export default class Player extends CharacterBase {
             targetY = originY + Math.sin(angle) * clampedDistance;
         } else {
             angle = this.getCurrentFacingAngle();
-            let clampedDistance = range;
-            if (this.fireballPointerTarget) {
-                const dx = this.fireballPointerTarget.x - originX;
-                const dy = this.fireballPointerTarget.y - originY;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance > 0) {
-                    clampedDistance = Math.min(distance, range);
-                }
-            }
-
-            targetX = originX + Math.cos(angle) * clampedDistance;
-            targetY = originY + Math.sin(angle) * clampedDistance;
-
-            if (directionalAimInputActive) {
-                this.fireballPointerTarget = { x: targetX, y: targetY };
-            }
+            targetX = originX + Math.cos(angle) * range;
+            targetY = originY + Math.sin(angle) * range;
         }
 
         this.fireballAimGuide = {
@@ -510,8 +489,15 @@ export default class Player extends CharacterBase {
 
     startFireballAim() {
         if (!this.canStartFireballAim()) return;
+        const angle = this.getCurrentFacingAngle();
+        const originX = this.x + this.width / 2;
+        const originY = this.y + this.height / 2;
+        const range = this.getFireballRange();
         this.fireballAimActive = true;
-        this.fireballPointerTarget = null;
+        this.fireballPointerTarget = {
+            x: originX + Math.cos(angle) * range,
+            y: originY + Math.sin(angle) * range
+        };
         this.updateFireballAimGuide();
     }
 

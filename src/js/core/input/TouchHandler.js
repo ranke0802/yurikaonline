@@ -120,7 +120,11 @@ export default class TouchHandler extends EventEmitter {
 
         const action = this.activeAimAction.action;
         this._clearAimActionTracking();
-        this.emit('actionUp', action);
+        this.emit('aimEnd', {
+            action,
+            clientX: pointer.clientX,
+            clientY: pointer.clientY
+        });
     }
 
     _bindUiButtons() {
@@ -141,13 +145,27 @@ export default class TouchHandler extends EventEmitter {
             const startAction = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                this._startAimActionTracking(e, action);
+                const isTouchEvent = e.type.startsWith('touch');
+                if (action === 'SKILL_2' && isTouchEvent) {
+                    this._startAimActionTracking(e, action);
+                    const pointer = this._getPointerFromEvent(e);
+                    if (pointer) {
+                        this.emit('aimStart', {
+                            action,
+                            clientX: pointer.clientX,
+                            clientY: pointer.clientY
+                        });
+                    }
+                    return;
+                }
+
                 this.emit('actionDown', action);
             };
 
             const endAction = (e) => {
-                if (action === 'SKILL_2') {
-                    this._clearAimActionTracking();
+                const isTouchEvent = e.type.startsWith('touch');
+                if (action === 'SKILL_2' && isTouchEvent) {
+                    return;
                 }
                 this.emit('actionUp', action);
             };
