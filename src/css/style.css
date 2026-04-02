@@ -1058,6 +1058,15 @@ button:active,
     box-shadow: 0 0 0 3px rgba(255, 190, 92, 0.2);
 }
 
+.grid-item.enhancement-selectable {
+    border-color: rgba(255, 168, 43, 0.82);
+    box-shadow:
+        0 0 0 2px rgba(255, 205, 96, 0.22),
+        0 10px 18px rgba(255, 176, 59, 0.14);
+    outline: 1px solid rgba(255, 221, 140, 0.78);
+    outline-offset: -3px;
+}
+
 @media screen and (max-width: 900px) {
     .inventory-layout {
         grid-template-columns: 1fr;
@@ -1772,6 +1781,7 @@ button:active,
     transform: scale(0.55);
     transition: opacity 0.18s ease, transform 0.18s ease;
     pointer-events: none;
+    display: none !important;
 }
 
 .quest-header-alert-dot.active {
@@ -2738,13 +2748,7 @@ body.low-power-pwa .minimap-menu {
     }
 
     #tutorial-guide {
-        top: calc(50% + 4px) !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        max-width: min(46vw, 440px) !important;
-        font-size: clamp(13px, 1.8vw, 17px) !important;
-        padding: 12px 16px !important;
-        z-index: 1600 !important;
+        z-index: 4600 !important;
     }
 }
 
@@ -3092,30 +3096,149 @@ body.low-power-pwa .minimap-menu {
     }
 }
 
+#tutorial-guide {
+    position: fixed;
+    display: none;
+    box-sizing: border-box;
+    pointer-events: none;
+    z-index: 4600;
+    padding: 12px 14px;
+    border-radius: 18px;
+    background:
+        linear-gradient(180deg, rgba(9, 14, 26, 0.92), rgba(13, 21, 37, 0.88));
+    border: 1px solid rgba(255, 215, 122, 0.52);
+    box-shadow:
+        0 18px 36px rgba(4, 8, 18, 0.32),
+        0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+    color: #f7f3ea;
+    font-family: 'Noto Sans KR', sans-serif;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+#tutorial-guide.tutorial-guide-compact {
+    padding: 10px 12px;
+    border-radius: 16px;
+}
+
+#tutorial-guide[data-step-type="combat"] {
+    border-color: rgba(255, 196, 88, 0.64);
+}
+
+#tutorial-guide[data-step-type="inspect"] {
+    border-color: rgba(255, 122, 122, 0.5);
+}
+
+#tutorial-guide[data-step-type="interact"] {
+    border-color: rgba(255, 164, 76, 0.52);
+}
+
+.tutorial-guide-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.tutorial-guide-eyebrow {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    color: #ffd76a;
+    text-transform: uppercase;
+}
+
+.tutorial-guide-step {
+    flex: 0 0 auto;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.62);
+}
+
+.tutorial-guide-body {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.58;
+    white-space: pre-line;
+    text-align: left;
+}
+
+#tutorial-guide[data-align="center"] .tutorial-guide-body {
+    text-align: center;
+}
+
 #tutorial-highlight-layer {
     position: fixed;
     inset: 0;
     pointer-events: none;
-    z-index: 1550;
+    z-index: 4550;
 }
 
 .tutorial-highlight-box {
     position: fixed;
-    border: 3px solid #ff4d4f;
-    border-radius: 14px;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 0 24px rgba(255, 77, 79, 0.45);
     animation: tutorial-highlight-pulse 1s ease-in-out infinite;
+}
+
+.tutorial-highlight-ring {
+    border: 3px solid #ff5a5f;
+    border-radius: 16px;
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.92),
+        0 0 24px rgba(255, 90, 95, 0.42);
+}
+
+.tutorial-highlight-frame {
+    border: 2px solid rgba(255, 99, 71, 0.95);
+    border-radius: 16px;
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.9),
+        0 0 18px rgba(255, 99, 71, 0.24);
+}
+
+.tutorial-highlight-spotlight {
+    position: fixed;
+    border-radius: 18px;
+    box-shadow:
+        0 0 0 9999px rgba(6, 8, 14, 0.58),
+        0 0 0 2px rgba(255, 255, 255, 0.95),
+        0 0 28px rgba(255, 87, 87, 0.28);
+}
+
+.tutorial-highlight-spotlight {
+    animation: tutorial-highlight-pulse 1s ease-in-out infinite;
+}
+
+.tutorial-highlight-spotlight+.tutorial-highlight-box,
+.tutorial-highlight-box.tutorial-highlight-spotlight {
+    border: 2px solid rgba(255, 94, 98, 0.92);
+    border-radius: 18px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.92);
+}
+
+.tutorial-highlight-callout {
+    position: fixed;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(14, 20, 33, 0.94);
+    border: 1px solid rgba(255, 126, 126, 0.68);
+    box-shadow: 0 10px 22px rgba(5, 7, 14, 0.24);
+    color: #fff4f4;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.3;
+    white-space: nowrap;
 }
 
 @keyframes tutorial-highlight-pulse {
     0%,
     100% {
         transform: scale(1);
-        opacity: 0.9;
+        opacity: 0.92;
     }
 
     50% {
-        transform: scale(1.02);
+        transform: scale(1.018);
         opacity: 1;
     }
 }
@@ -5209,10 +5332,7 @@ body.is-fullscreen .version-info {
     }
 
     #tutorial-guide {
-        top: calc(env(safe-area-inset-top, 0px) + 10px) !important;
-        max-width: min(54vw, 360px) !important;
-        font-size: 13px !important;
-        padding: 10px 14px !important;
+        z-index: 4600 !important;
     }
 }
 
@@ -6099,11 +6219,6 @@ body.is-fullscreen .version-info {
     }
 
     #tutorial-guide {
-        top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
-        max-width: min(70vw, 320px) !important;
-        max-height: calc(100vh - 16px) !important;
-        padding: 8px 12px !important;
-        font-size: 12px !important;
         z-index: 4600 !important;
     }
 }
@@ -6667,19 +6782,11 @@ body.is-fullscreen .version-info {
     }
 
     .tutorial-highlight-box {
-        border-width: 2px !important;
         border-radius: 12px !important;
-        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 18px rgba(255, 77, 79, 0.38) !important;
     }
 
     #tutorial-guide {
-        top: max(20px, calc(env(safe-area-inset-top, 0px) + 20px)) !important;
-        max-width: min(68vw, 340px) !important;
-        max-height: calc(100dvh - 44px) !important;
-        padding: 8px 10px !important;
-        font-size: 11px !important;
-        line-height: 1.4 !important;
-        overflow: auto !important;
+        z-index: 4600 !important;
     }
 
     body #ui-layer .left-ui-container #party-panel {

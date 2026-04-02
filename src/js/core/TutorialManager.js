@@ -40,7 +40,45 @@ export default class TutorialManager {
         return this.getTutorialLayoutMode() === 'mobile-landscape';
     }
 
-    getStepInstruction(step = this.getCurrentStep()) {
+    getTutorialLayoutKey() {
+        const layoutMode = this.getTutorialLayoutMode();
+        if (layoutMode === 'mobile-portrait') return 'mobilePortrait';
+        if (layoutMode === 'mobile-landscape') return 'mobileLandscape';
+        return 'desktop';
+    }
+
+    resolveResponsiveValue(value, legacyResolver = null) {
+        if (value === undefined || value === null) {
+            return typeof legacyResolver === 'function' ? legacyResolver() : null;
+        }
+
+        if (
+            typeof value === 'string'
+            || Array.isArray(value)
+            || value instanceof Element
+        ) {
+            return value;
+        }
+
+        if (typeof value !== 'object') {
+            return value;
+        }
+
+        const layoutMode = this.getTutorialLayoutMode();
+        const layoutKey = this.getTutorialLayoutKey();
+        const fallbackMobile = layoutMode === 'mobile-landscape'
+            ? value.mobileLandscape ?? value.mobile
+            : value.mobilePortrait ?? value.mobile;
+
+        return value[layoutMode]
+            ?? value[layoutKey]
+            ?? fallbackMobile
+            ?? value.desktop
+            ?? value.default
+            ?? (typeof legacyResolver === 'function' ? legacyResolver() : null);
+    }
+
+    getLegacyInstruction(step) {
         if (!step) return '';
 
         const layoutMode = this.getTutorialLayoutMode();
@@ -57,7 +95,93 @@ export default class TutorialManager {
         return step.instructionDesktop || step.instruction;
     }
 
-    getStepHighlightTargets(step = this.getCurrentStep()) {
+    getStepInstruction(step = this.getCurrentStep()) {
+        return this.resolveResponsiveValue(step?.instruction, () => this.getLegacyInstruction(step)) || '';
+    }
+
+    getDefaultStepType(step = this.getCurrentStep()) {
+        if (!step) return 'info';
+        if (step.type) return step.type;
+
+        if (['move', 'kill', 'skill_use'].includes(step.trigger)) {
+            return 'combat';
+        }
+
+        if (['popup_open', 'popup_close', 'skill_upgrade', 'stats_saved'].includes(step.trigger)) {
+            return 'interact';
+        }
+
+        if (['skill_tooltip', 'stat_allocated'].includes(step.trigger)) {
+            return 'inspect';
+        }
+
+        return 'info';
+    }
+
+    getStepGuideTitle(step = this.getCurrentStep()) {
+        if (!step) return '튜토리얼';
+
+        if (step.guideTitle) return step.guideTitle;
+
+        const titleMap = {
+            move_check: '이동 연습',
+            attack_dummy: '기본 공격',
+            open_status: '스탯 창',
+            preview_status_change: '수치 미리보기',
+            save_status: '스탯 저장',
+            open_skill: '스킬 창',
+            inspect_laser_detail: '기본 공격 설명',
+            inspect_missile_detail: '매직 미사일 설명',
+            upgrade_missile: '매직 미사일 강화',
+            use_missile: '매직 미사일 사용',
+            reopen_skill_for_fireball: '파이어볼 준비',
+            inspect_fireball_detail: '파이어볼 설명',
+            upgrade_fireball: '파이어볼 강화',
+            use_fireball: '파이어볼 사용',
+            reopen_skill_for_shield: '베리어 준비',
+            inspect_shield_detail: '베리어 설명',
+            use_shield: '베리어 사용',
+            open_inventory: '인벤토리',
+            close_inventory: '인벤토리 닫기',
+            finish: '튜토리얼 마무리'
+        };
+
+        return titleMap[step.id] || '튜토리얼';
+    }
+
+    getStepQuestText(step = this.getCurrentStep()) {
+        if (!step) return '';
+
+        const responsiveQuestText = this.resolveResponsiveValue(step.questText);
+        if (responsiveQuestText) return responsiveQuestText;
+
+        const defaultQuestText = {
+            move_check: '조금 이동해 보세요.',
+            attack_dummy: '허수아비를 기본 공격으로 처치하세요.',
+            open_status: '스탯 창을 열어 주세요.',
+            preview_status_change: '스탯을 1포인트 찍어 보세요.',
+            save_status: '스탯 창을 닫아 저장해 주세요.',
+            open_skill: '스킬 창을 열어 주세요.',
+            inspect_laser_detail: '체인 라이트닝 설명을 확인해 주세요.',
+            inspect_missile_detail: '매직 미사일 설명을 확인해 주세요.',
+            upgrade_missile: '매직 미사일을 1회 강화하세요.',
+            use_missile: '매직 미사일을 사용해 보세요.',
+            reopen_skill_for_fireball: '스킬 창을 다시 열어 주세요.',
+            inspect_fireball_detail: '파이어볼 설명을 확인해 주세요.',
+            upgrade_fireball: '파이어볼을 1회 강화하세요.',
+            use_fireball: '파이어볼을 사용해 보세요.',
+            reopen_skill_for_shield: '스킬 창을 다시 열어 주세요.',
+            inspect_shield_detail: '앱솔루트 베리어 설명을 확인해 주세요.',
+            use_shield: '앱솔루트 베리어를 사용해 보세요.',
+            open_inventory: '인벤토리를 열어 주세요.',
+            close_inventory: '인벤토리를 닫아 주세요.',
+            finish: '튜토리얼 마무리'
+        };
+
+        return defaultQuestText[step.id] || this.getStepInstruction(step);
+    }
+
+    getLegacyHighlightTargets(step) {
         if (!step) return null;
 
         const layoutMode = this.getTutorialLayoutMode();
@@ -76,6 +200,114 @@ export default class TutorialManager {
         }
 
         return step.highlightTargetsDesktop || step.highlightTargetDesktop || step.highlightTargets || step.highlightTarget || null;
+    }
+
+    getDefaultStepPresentation(step = this.getCurrentStep()) {
+        const stepType = this.getDefaultStepType(step);
+        const layoutKey = this.getTutorialLayoutKey();
+
+        const defaults = {
+            info: {
+                desktop: { guideMode: 'top-card', highlightMode: 'frame', align: 'left' },
+                mobilePortrait: { guideMode: 'top-card', highlightMode: 'frame', align: 'left' },
+                mobileLandscape: { guideMode: 'left-card', highlightMode: 'frame', align: 'left', compact: true }
+            },
+            inspect: {
+                desktop: { guideMode: 'dock-left', highlightMode: 'spotlight', align: 'left' },
+                mobilePortrait: { guideMode: 'bottom-sheet', highlightMode: 'spotlight', align: 'left' },
+                mobileLandscape: { guideMode: 'left-card', highlightMode: 'spotlight', align: 'left', compact: true }
+            },
+            interact: {
+                desktop: { guideMode: 'dock-left', highlightMode: 'ring', align: 'left' },
+                mobilePortrait: { guideMode: 'bottom-sheet', highlightMode: 'ring', align: 'left' },
+                mobileLandscape: { guideMode: 'left-card', highlightMode: 'ring', align: 'left', compact: true }
+            },
+            combat: {
+                desktop: { guideMode: 'floating-compact', highlightMode: 'ring', align: 'left', compact: true },
+                mobilePortrait: { guideMode: 'top-card', highlightMode: 'ring', align: 'left', compact: true },
+                mobileLandscape: { guideMode: 'top-card', highlightMode: 'ring', align: 'left', compact: true }
+            }
+        };
+
+        return defaults[stepType]?.[layoutKey] || defaults.info.desktop;
+    }
+
+    getStepPresentation(step = this.getCurrentStep()) {
+        if (!step) return this.getDefaultStepPresentation();
+
+        const defaults = this.getDefaultStepPresentation(step);
+        const responsivePresentation = this.resolveResponsiveValue(step.presentation);
+        if (!responsivePresentation || typeof responsivePresentation !== 'object' || Array.isArray(responsivePresentation)) {
+            return defaults;
+        }
+
+        return {
+            ...defaults,
+            ...responsivePresentation
+        };
+    }
+
+    getStepHighlightTargets(step = this.getCurrentStep()) {
+        return this.resolveResponsiveValue(step?.focus, () => this.getLegacyHighlightTargets(step));
+    }
+
+    getStepHighlightConfig(step = this.getCurrentStep()) {
+        if (!step) return null;
+
+        const presentation = this.getStepPresentation(step);
+        const responsiveFocus = this.getStepHighlightTargets(step);
+        const baseConfig = {
+            mode: presentation.highlightMode || 'ring',
+            targets: [],
+            label: presentation.calloutText || '',
+            padding: presentation.highlightPadding
+        };
+
+        if (!responsiveFocus) return baseConfig;
+
+        if (
+            typeof responsiveFocus === 'string'
+            || Array.isArray(responsiveFocus)
+            || responsiveFocus instanceof Element
+        ) {
+            return {
+                ...baseConfig,
+                targets: responsiveFocus
+            };
+        }
+
+        if (typeof responsiveFocus !== 'object') {
+            return baseConfig;
+        }
+
+        return {
+            ...baseConfig,
+            ...responsiveFocus,
+            targets: responsiveFocus.targets
+                || responsiveFocus.target
+                || responsiveFocus.selectors
+                || baseConfig.targets
+        };
+    }
+
+    getStepGuidePayload(step = this.getCurrentStep()) {
+        if (!step) return null;
+
+        const presentation = this.getStepPresentation(step);
+        const highlight = this.getStepHighlightConfig(step);
+
+        return {
+            title: presentation.guideTitle || this.getStepGuideTitle(step),
+            text: this.getStepInstruction(step),
+            mode: presentation.guideMode || 'top-card',
+            align: presentation.align || 'left',
+            compact: !!presentation.compact,
+            stepType: this.getDefaultStepType(step),
+            stepId: step.id,
+            stepNumber: this.currentStepIndex + 1,
+            totalSteps: this.activeTutorial?.steps?.length || 0,
+            focusTargets: highlight?.targets || []
+        };
     }
 
     isActionAllowed(action) {
@@ -175,13 +407,13 @@ export default class TutorialManager {
         this.game.input?.setAllowedActions(step.allowedActions || null);
 
         if (this.game.ui) {
-            this.game.ui.showTutorialGuide(this.getStepInstruction(step));
+            this.game.ui.showTutorialGuide(this.getStepGuidePayload(step));
             this.game.ui.updateSkillPopup?.();
             this.game.ui.updateStatusPopup?.();
         }
 
         this._runActions(step.onStart);
-        this.game.ui?.highlightTutorialTargets?.(this.getStepHighlightTargets(step));
+        this.game.ui?.highlightTutorialTargets?.(this.getStepHighlightConfig(step));
     }
 
     _runActions(actions) {

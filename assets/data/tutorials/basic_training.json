@@ -6,6 +6,47 @@
             "id": "move_check",
             "instruction": "WASD 또는 이동 패드로 조금 걸어 보세요. 지금 단계에서는 이동만 할 수 있어요.",
             "instructionMobile": "이동 패드로 조금 걸어 보세요. 지금 단계에서는 이동만 할 수 있어요.",
+            "questText": {
+                "desktop": "이동 키로 잠깐 걸어 보세요.",
+                "mobilePortrait": "왼쪽 이동 패드로 잠깐 움직여 보세요.",
+                "mobileLandscape": "왼쪽 조이스틱으로 잠깐 움직여 보세요."
+            },
+            "focus": {
+                "mobilePortrait": {
+                    "targets": [
+                        "#joystick-container"
+                    ],
+                    "mode": "ring",
+                    "label": "여기로 이동해요"
+                },
+                "mobileLandscape": {
+                    "targets": [
+                        "#joystick-container"
+                    ],
+                    "mode": "ring",
+                    "label": "이동 조이스틱"
+                }
+            },
+            "presentation": {
+                "desktop": {
+                    "guideMode": "top-card",
+                    "highlightMode": "frame",
+                    "guideTitle": "이동 연습",
+                    "compact": true
+                },
+                "mobilePortrait": {
+                    "guideMode": "top-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "이동 연습",
+                    "compact": true
+                },
+                "mobileLandscape": {
+                    "guideMode": "top-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "이동 연습",
+                    "compact": true
+                }
+            },
             "trigger": "move",
             "count": 36,
             "allowedActions": [
@@ -20,6 +61,27 @@
             "instructionDesktop": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. `J` 키나 우측 하단 공격 버튼을 사용할 수 있어요.",
             "instructionMobile": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. 우측 하단 공격 버튼을 사용하면 됩니다.",
             "instructionMobileLandscape": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. 오른쪽 아래 공격 버튼을 사용하면 됩니다.",
+            "questText": "허수아비를 기본 공격으로 처치하세요.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "floating-compact",
+                    "highlightMode": "ring",
+                    "guideTitle": "기본 공격",
+                    "compact": true
+                },
+                "mobilePortrait": {
+                    "guideMode": "top-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "기본 공격",
+                    "compact": true
+                },
+                "mobileLandscape": {
+                    "guideMode": "top-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "기본 공격",
+                    "compact": true
+                }
+            },
             "highlightTarget": "#action-attack-j",
             "onStart": [
                 {
@@ -52,6 +114,25 @@
             "instructionDesktop": "이번에는 스탯 창을 열어 주세요. PC에서는 우측 상단 미니맵 왼쪽의 내 정보 아이콘이나 `I` 키를 사용하면 됩니다.",
             "instructionMobile": "이번에는 스탯 창을 열어 주세요. 모바일에서는 하단 중앙의 내 정보 아이콘을 누르면 됩니다.",
             "instructionMobileLandscape": "이번에는 스탯 창을 열어 주세요. 모바일 가로에서는 오른쪽 위 내 정보 아이콘을 누르면 됩니다.",
+            "questText": "스탯 창을 열어 주세요.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "dock-left",
+                    "highlightMode": "ring",
+                    "guideTitle": "스탯 창"
+                },
+                "mobilePortrait": {
+                    "guideMode": "bottom-sheet",
+                    "highlightMode": "ring",
+                    "guideTitle": "스탯 창"
+                },
+                "mobileLandscape": {
+                    "guideMode": "left-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "스탯 창",
+                    "compact": true
+                }
+            },
             "highlightTarget": "#btn-status",
             "onStart": [
                 {
@@ -73,6 +154,48 @@
             "id": "preview_status_change",
             "instruction": "아무 능력치에 1포인트를 눌러 보세요. 오른쪽 수치가 초록색으로 변하면서 저장 전 결과를 미리 보여줍니다.",
             "instructionMobileLandscape": "왼쪽 능력치 한 줄의 + 버튼을 눌러 보세요. 오른쪽 미리보기 수치가 초록색으로 변하면서 저장 전 결과를 보여줍니다.",
+            "questText": "아무 스탯 + 버튼을 눌러 미리보기를 확인하세요.",
+            "focus": {
+                "desktop": {
+                    "targets": [
+                        "#status-stat-main",
+                        "#status-derived-panel"
+                    ],
+                    "mode": "frame"
+                },
+                "mobilePortrait": {
+                    "targets": [
+                        "#status-stat-main",
+                        "#status-derived-panel"
+                    ],
+                    "mode": "frame"
+                },
+                "mobileLandscape": {
+                    "targets": [
+                        "#status-vitality-row",
+                        "#status-derived-panel"
+                    ],
+                    "mode": "frame"
+                }
+            },
+            "presentation": {
+                "desktop": {
+                    "guideMode": "dock-left",
+                    "highlightMode": "frame",
+                    "guideTitle": "수치 미리보기"
+                },
+                "mobilePortrait": {
+                    "guideMode": "bottom-sheet",
+                    "highlightMode": "frame",
+                    "guideTitle": "수치 미리보기"
+                },
+                "mobileLandscape": {
+                    "guideMode": "left-card",
+                    "highlightMode": "frame",
+                    "guideTitle": "수치 미리보기",
+                    "compact": true
+                }
+            },
             "highlightTargets": [
                 "#status-stat-main",
                 "#status-derived-panel"
@@ -97,6 +220,25 @@
             "id": "save_status",
             "instruction": "좋아요. 방금 오른쪽 미리보기로 변화를 확인했어요. 이제 창을 닫아 스탯을 저장해 주세요.",
             "instructionMobileLandscape": "좋아요. 방금 오른쪽 미리보기로 변화를 확인했어요. 이제 오른쪽 위 X 버튼으로 창을 닫아 스탯을 저장해 주세요.",
+            "questText": "스탯 창을 닫아 저장해 주세요.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "dock-left",
+                    "highlightMode": "ring",
+                    "guideTitle": "스탯 저장"
+                },
+                "mobilePortrait": {
+                    "guideMode": "bottom-sheet",
+                    "highlightMode": "ring",
+                    "guideTitle": "스탯 저장"
+                },
+                "mobileLandscape": {
+                    "guideMode": "left-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "스탯 저장",
+                    "compact": true
+                }
+            },
             "highlightTarget": "#status-close-btn-bottom",
             "highlightTargetMobileLandscape": "#status-close-btn-top",
             "trigger": "stats_saved",
@@ -111,6 +253,25 @@
             "instructionDesktop": "좋아요. 이제 스킬 창을 열어 주세요. PC에서는 우측 상단 미니맵 왼쪽의 스킬 아이콘이나 `Shift+S`를 사용하면 됩니다.",
             "instructionMobile": "좋아요. 이제 스킬 창을 열어 주세요. 모바일에서는 하단 중앙의 스킬 아이콘을 누르면 됩니다.",
             "instructionMobileLandscape": "좋아요. 이제 스킬 창을 열어 주세요. 모바일 가로에서는 오른쪽 위 스킬 아이콘을 누르면 됩니다. 이 창에서는 아이콘을 탭하거나 마우스를 올려 특징과 성장 포인트를 확인할 수 있어요.",
+            "questText": "스킬 창을 열어 주세요.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "dock-left",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 창"
+                },
+                "mobilePortrait": {
+                    "guideMode": "bottom-sheet",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 창"
+                },
+                "mobileLandscape": {
+                    "guideMode": "left-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 창",
+                    "compact": true
+                }
+            },
             "highlightTarget": "#btn-skill",
             "onStart": [
                 {
@@ -132,6 +293,25 @@
             "id": "inspect_laser_detail",
             "instruction": "먼저 체인 라이트닝 아이콘에 마우스를 올렸을 때 뜨는 상세 툴팁을 확인해 보세요. 연쇄 타격형 기본 공격이고, 강화하면 연쇄 횟수와 충전당 피해 상승폭이 커집니다.",
             "instructionMobileLandscape": "먼저 체인 라이트닝 아이콘을 탭하거나 마우스를 올려 뜨는 상세 툴팁을 확인해 보세요. 연쇄 타격형 기본 공격이고, 강화하면 연쇄 횟수와 충전당 피해 상승폭이 커집니다.",
+            "questText": "체인 라이트닝 설명을 확인하세요.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "dock-left",
+                    "highlightMode": "spotlight",
+                    "guideTitle": "설명 확인"
+                },
+                "mobilePortrait": {
+                    "guideMode": "bottom-sheet",
+                    "highlightMode": "spotlight",
+                    "guideTitle": "설명 확인"
+                },
+                "mobileLandscape": {
+                    "guideMode": "left-card",
+                    "highlightMode": "spotlight",
+                    "guideTitle": "설명 확인",
+                    "compact": true
+                }
+            },
             "highlightTarget": "#skill-item-laser",
             "trigger": "skill_tooltip",
             "target": "laser",
@@ -144,6 +324,25 @@
             "id": "inspect_missile_detail",
             "instruction": "다음은 매직 미사일 아이콘에 마우스를 올렸을 때 뜨는 상세 툴팁입니다. 자동 추적형 스킬이며, 강화할수록 한 번에 발사되는 미사일 수가 늘어납니다.",
             "instructionMobileLandscape": "다음은 매직 미사일 아이콘을 탭하거나 마우스를 올렸을 때 뜨는 상세 툴팁입니다. 자동 추적형 스킬이며, 강화할수록 한 번에 발사되는 미사일 수가 늘어납니다.",
+            "questText": "매직 미사일 설명을 확인하세요.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "dock-left",
+                    "highlightMode": "spotlight",
+                    "guideTitle": "설명 확인"
+                },
+                "mobilePortrait": {
+                    "guideMode": "bottom-sheet",
+                    "highlightMode": "spotlight",
+                    "guideTitle": "설명 확인"
+                },
+                "mobileLandscape": {
+                    "guideMode": "left-card",
+                    "highlightMode": "spotlight",
+                    "guideTitle": "설명 확인",
+                    "compact": true
+                }
+            },
             "highlightTarget": "#skill-item-missile",
             "trigger": "skill_tooltip",
             "target": "missile",
@@ -155,6 +354,25 @@
         {
             "id": "upgrade_missile",
             "instruction": "상세 정보를 확인했으니 매직 미사일을 한 번 강화해 보세요. 강화 직후 발사 수가 바로 늘어납니다.",
+            "questText": "매직 미사일을 1회 강화하세요.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "dock-left",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 강화"
+                },
+                "mobilePortrait": {
+                    "guideMode": "bottom-sheet",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 강화"
+                },
+                "mobileLandscape": {
+                    "guideMode": "left-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 강화",
+                    "compact": true
+                }
+            },
             "highlightTarget": "#skill-up-missile",
             "trigger": "skill_upgrade",
             "target": "missile",
@@ -168,6 +386,27 @@
             "instructionDesktop": "강화한 매직 미사일을 사용해 보세요. `H` 키나 우측 하단 매직 미사일 버튼을 누르면 됩니다.",
             "instructionMobile": "강화한 매직 미사일을 사용해 보세요. 우측 하단 매직 미사일 버튼을 누르면 됩니다.",
             "instructionMobileLandscape": "강화한 매직 미사일을 사용해 보세요. 오른쪽 아래 매직 미사일 버튼을 누르면 됩니다.",
+            "questText": "매직 미사일을 사용해 보세요.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "floating-compact",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 사용",
+                    "compact": true
+                },
+                "mobilePortrait": {
+                    "guideMode": "top-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 사용",
+                    "compact": true
+                },
+                "mobileLandscape": {
+                    "guideMode": "top-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 사용",
+                    "compact": true
+                }
+            },
             "highlightTarget": "#action-skill-h",
             "onStart": [
                 {
@@ -211,6 +450,25 @@
             "id": "inspect_fireball_detail",
             "instruction": "파이어볼 아이콘에 마우스를 올려 상세 툴팁을 확인해 보세요. 직선으로 날아가 폭발하고 화상을 남기는 광역 스킬이며, 강화하면 직격 피해와 폭발 반경, 화상 지속시간이 함께 커져요.",
             "instructionMobileLandscape": "파이어볼 아이콘을 탭하거나 마우스를 올려 상세 툴팁을 확인해 보세요. 직선으로 날아가 폭발하고 화상을 남기는 광역 스킬이며, 강화하면 직격 피해와 폭발 반경, 화상 지속시간이 함께 커져요.",
+            "questText": "파이어볼 설명을 확인하세요.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "dock-left",
+                    "highlightMode": "spotlight",
+                    "guideTitle": "설명 확인"
+                },
+                "mobilePortrait": {
+                    "guideMode": "bottom-sheet",
+                    "highlightMode": "spotlight",
+                    "guideTitle": "설명 확인"
+                },
+                "mobileLandscape": {
+                    "guideMode": "left-card",
+                    "highlightMode": "spotlight",
+                    "guideTitle": "설명 확인",
+                    "compact": true
+                }
+            },
             "highlightTarget": "#skill-item-fireball",
             "trigger": "skill_tooltip",
             "target": "fireball",
@@ -235,6 +493,27 @@
             "instructionDesktop": "강화한 파이어볼을 사용해 보세요. `U` 키나 우측 하단 파이어볼 버튼을 누르면 됩니다.",
             "instructionMobile": "강화한 파이어볼을 사용해 보세요. 우측 하단 파이어볼 버튼을 누르면 됩니다.",
             "instructionMobileLandscape": "강화한 파이어볼을 사용해 보세요. 오른쪽 아래 파이어볼 버튼을 누르면 됩니다.",
+            "questText": "파이어볼을 사용해 보세요.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "floating-compact",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 사용",
+                    "compact": true
+                },
+                "mobilePortrait": {
+                    "guideMode": "top-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 사용",
+                    "compact": true
+                },
+                "mobileLandscape": {
+                    "guideMode": "top-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 사용",
+                    "compact": true
+                }
+            },
             "highlightTarget": "#action-skill-u",
             "onStart": [
                 {
@@ -278,6 +557,25 @@
             "id": "inspect_shield_detail",
             "instruction": "앱솔루트 베리어 아이콘에 마우스를 올려 상세 툴팁을 확인해 보세요. 다음 1회의 피해를 완전히 막는 생존 스킬이며, 레벨업 없이 고정 성능으로 사용됩니다.",
             "instructionMobileLandscape": "앱솔루트 베리어 아이콘을 탭하거나 마우스를 올려 상세 툴팁을 확인해 보세요. 다음 1회의 피해를 완전히 막는 생존 스킬이며, 레벨업 없이 고정 성능으로 사용됩니다.",
+            "questText": "앱솔루트 베리어 설명을 확인하세요.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "dock-left",
+                    "highlightMode": "spotlight",
+                    "guideTitle": "설명 확인"
+                },
+                "mobilePortrait": {
+                    "guideMode": "bottom-sheet",
+                    "highlightMode": "spotlight",
+                    "guideTitle": "설명 확인"
+                },
+                "mobileLandscape": {
+                    "guideMode": "left-card",
+                    "highlightMode": "spotlight",
+                    "guideTitle": "설명 확인",
+                    "compact": true
+                }
+            },
             "highlightTarget": "#skill-item-shield",
             "trigger": "skill_tooltip",
             "target": "shield",
@@ -291,6 +589,27 @@
             "instructionDesktop": "이제 앱솔루트 베리어를 한 번 사용해 보세요. `K` 키나 우측 하단 보호막 버튼을 누르면 됩니다.",
             "instructionMobile": "이제 앱솔루트 베리어를 한 번 사용해 보세요. 우측 하단 보호막 버튼을 누르면 됩니다.",
             "instructionMobileLandscape": "이제 앱솔루트 베리어를 한 번 사용해 보세요. 오른쪽 아래 보호막 버튼을 누르면 됩니다.",
+            "questText": "앱솔루트 베리어를 사용해 보세요.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "floating-compact",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 사용",
+                    "compact": true
+                },
+                "mobilePortrait": {
+                    "guideMode": "top-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 사용",
+                    "compact": true
+                },
+                "mobileLandscape": {
+                    "guideMode": "top-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "스킬 사용",
+                    "compact": true
+                }
+            },
             "highlightTarget": "#action-skill-k",
             "onStart": [
                 {
@@ -317,6 +636,25 @@
             "instructionDesktop": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. PC에서는 우측 상단 미니맵 왼쪽의 가방 아이콘이나 `B` 키를 사용하세요.",
             "instructionMobile": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. 모바일에서는 하단 중앙의 가방 아이콘을 누르세요.",
             "instructionMobileLandscape": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. 모바일 가로에서는 오른쪽 위 가방 아이콘을 누르세요.",
+            "questText": "인벤토리를 열어 주세요.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "dock-left",
+                    "highlightMode": "ring",
+                    "guideTitle": "인벤토리"
+                },
+                "mobilePortrait": {
+                    "guideMode": "bottom-sheet",
+                    "highlightMode": "ring",
+                    "guideTitle": "인벤토리"
+                },
+                "mobileLandscape": {
+                    "guideMode": "left-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "인벤토리",
+                    "compact": true
+                }
+            },
             "highlightTarget": "#btn-inventory",
             "onStart": [
                 {
@@ -335,6 +673,25 @@
             "instruction": "좋아요. 인벤토리를 확인했어요. 이제 `B` 키나 닫기 버튼으로 다시 닫아 주세요.",
             "instructionMobile": "좋아요. 인벤토리를 확인했어요. 이제 닫기 버튼으로 다시 닫아 주세요.",
             "instructionMobileLandscape": "좋아요. 인벤토리를 확인했어요. 이제 닫기 버튼으로 다시 닫아 주세요.",
+            "questText": "인벤토리를 닫아 주세요.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "dock-left",
+                    "highlightMode": "ring",
+                    "guideTitle": "인벤토리 닫기"
+                },
+                "mobilePortrait": {
+                    "guideMode": "bottom-sheet",
+                    "highlightMode": "ring",
+                    "guideTitle": "인벤토리 닫기"
+                },
+                "mobileLandscape": {
+                    "guideMode": "left-card",
+                    "highlightMode": "ring",
+                    "guideTitle": "인벤토리 닫기",
+                    "compact": true
+                }
+            },
             "highlightTarget": "#inventory-close-btn-bottom",
             "trigger": "popup_close",
             "target": "inventory-popup",
@@ -346,6 +703,27 @@
         {
             "id": "finish",
             "instruction": "준비 완료. 이제 실제 전투를 시작해 볼까요?",
+            "questText": "튜토리얼 마무리 중입니다.",
+            "presentation": {
+                "desktop": {
+                    "guideMode": "floating-compact",
+                    "highlightMode": "frame",
+                    "guideTitle": "튜토리얼 마무리",
+                    "compact": true
+                },
+                "mobilePortrait": {
+                    "guideMode": "top-card",
+                    "highlightMode": "frame",
+                    "guideTitle": "튜토리얼 마무리",
+                    "compact": true
+                },
+                "mobileLandscape": {
+                    "guideMode": "top-card",
+                    "highlightMode": "frame",
+                    "guideTitle": "튜토리얼 마무리",
+                    "compact": true
+                }
+            },
             "onStart": [
                 {
                     "type": "center_message",

@@ -21,6 +21,7 @@ export class UIManager {
         this.lastCooldownUiUpdate = 0;
         this.lastDevOverlayUpdate = 0;
         this.selectedInventoryRef = null;
+        this.pendingEnhancementStoneType = null;
         this.inventoryDragState = null;
         this.inventoryClickSuppressUntil = 0;
         this.questClaimAvailable = false;
@@ -32,8 +33,10 @@ export class UIManager {
         this.setupFullscreenListeners();
         this.setupDevModeListeners();
         this.inputManager = game.input; // Local reference
+        this.tutorialGuideState = null;
         this.tutorialHighlightLayer = null;
         this.tutorialHighlightTargets = [];
+        this.tutorialHighlightState = { targets: [], mode: 'ring', label: '' };
         this.refreshTutorialHighlight = this.refreshTutorialHighlight.bind(this);
         this.refreshTutorialGuideLayout = this.refreshTutorialGuideLayout.bind(this);
         const refreshTutorialOverlays = () => {
@@ -148,11 +151,189 @@ export class UIManager {
 
         const statusAvailable = overrides.statusAvailable ?? !!player.statPoints;
         const skillAvailable = overrides.skillAvailable ?? this.hasAnySkillUpgradeAvailable(player);
-        const questAvailable = overrides.questAvailable ?? this.questClaimAvailable;
 
         this.setAlertDotState('status-alert-dot', statusAvailable);
         this.setAlertDotState('skill-alert-dot', skillAvailable);
-        this.setAlertDotState('quest-alert-dot', questAvailable);
+        this.setAlertDotState('quest-alert-dot', false);
+    }
+
+    getEnhancementStoneMeta(stoneType = this.pendingEnhancementStoneType) {
+        const normalized = stoneType === 'blessed'
+            ? 'blessed'
+            : stoneType === 'normal'
+                ? 'normal'
+                : null;
+
+        if (!normalized) return null;
+
+        if (normalized === 'blessed') {
+            return {
+                stoneType: 'blessed',
+                stoneItemId: 'blessed_weapon_upgrade_stone',
+                modalTitle: '축복 강화',
+                actionLabel: '축복 강화할 무기 선택',
+                selectionMessage: '축복 강화할 무기를 선택해 주세요.',
+                shortageMessage: '축복받은 무기 강화석이 부족합니다.'
+            };
+        }
+
+        return {
+            stoneType: 'normal',
+            stoneItemId: 'weapon_upgrade_stone',
+            modalTitle: '강화',
+            actionLabel: '강화할 무기 선택',
+            selectionMessage: '강화할 무기를 선택해 주세요.',
+            shortageMessage: '무기 강화석이 부족합니다.'
+        };
+    }
+
+    isWeaponEnhancementSelectionActive() {
+        return !!this.getEnhancementStoneMeta();
+    }
+
+    clearWeaponEnhancementSelection(options = {}) {
+        const hadPendingSelection = this.isWeaponEnhancementSelectionActive();
+        this.pendingEnhancementStoneType = null;
+
+        if (hadPendingSelection && !options.silent) {
+            this.logSystemMessage('무기 강화 대상 선택을 취소했습니다.');
+        }
+
+        if (options.refresh !== false) {
+            this.updateInventory();
+        }
+    }
+
+    startWeaponEnhancementSelection(stoneType = 'normal') {
+        const player = this.game.localPlayer;
+        const meta = this.getEnhancementStoneMeta(stoneType);
+        if (!player || !meta) return false;
+
+        const stoneCount = player.getInventoryItemCount?.(meta.stoneItemId) || 0;
+        if (stoneCount < 1) {
+            this.showGenericModal(meta.modalTitle, meta.shortageMessage, null, null, { hideNo: true, yesText: '확인' });
+            return false;
+        }
+
+        const hasTargetWeapon = !!player.getEquippedWeapon?.()
+            || player.inventory.some((item, index) => index > 0 && item?.slot === 'weapon');
+
+        if (!hasTargetWeapon) {
+            this.showGenericModal(meta.modalTitle, '강화할 무기가 없습니다.', null, null, { hideNo: true, yesText: '확인' });
+            return false;
+        }
+
+        this.pendingEnhancementStoneType = meta.stoneType;
+        this.selectedInventoryRef = null;
+        this.closeInventoryItemModal(true);
+        this.logSystemMessage(meta.selectionMessage);
+        this.updateInventory();
+        return true;
+    }
+
+    executeWeaponEnhancementForSelection(selection) {
+        const player = this.game.localPlayer;
+        const itemData = this.game.itemData;
+        const meta = this.getEnhancementStoneMeta();
+        if (!player || !itemData || !meta) return;
+
+        const target = player.resolveWeaponSelection(selection);
+        if (!target?.item) {
+            this.showGenericModal(meta.modalTitle, '강화할 무기를 선택해 주세요.', null, null, { hideNo: true, yesText: '확인' });
+            return;
+        }
+
+        const config = itemData.getEnhancementConfig(target.item);
+        if (!config) {
+            this.showGenericModal(meta.modalTitle, '이 장비는 더 이상 강화할 수 없습니다.', null, null, { hideNo: true, yesText: '확인' });
+            return;
+        }
+
+        if ((player.getInventoryItemCount?.(meta.stoneItemId) || 0) < 1) {
+            this.pendingEnhancementStoneType = null;
+            this.showGenericModal(meta.modalTitle, meta.shortageMessage, null, null, { hideNo: true, yesText: '확인' });
+            this.updateInventory();
+            return;
+        }
+
+        const finalizeSelectionState = (result) => {
+            this.pendingEnhancementStoneType = null;
+
+            if (result?.destroyed) {
+                this.selectedInventoryRef = null;
+                this.closeInventoryItemModal(true);
+                return;
+            }
+
+            if (selection?.kind === 'equipment') {
+                this.selectedInventoryRef = { kind: 'equipment', slot: 'weapon' };
+            } else if (selection?.kind === 'inventory') {
+                this.selectedInventoryRef = { kind: 'inventory', index: selection.index };
+            }
+
+            document.getElementById('inventory-item-modal')?.classList.remove('hidden');
+        };
+
+        const executeEnhance = () => {
+            const result = player.enhanceWeapon(selection, { stoneType: meta.stoneType });
+            if (!result.ok) {
+                this.pendingEnhancementStoneType = null;
+                this.showGenericModal(`${meta.modalTitle} 실패`, result.message, null, null, { hideNo: true, yesText: '확인' });
+                this.updateInventory();
+                return;
+            }
+
+            finalizeSelectionState(result);
+
+            if (result.success) {
+                if (meta.stoneType === 'blessed') {
+                    this.showGenericModal(
+                        '축복 강화 성공',
+                        `${target.item.name}이(가) +${result.nextLevel} 강화에 성공했습니다. (${result.gain > 0 ? `+${result.gain}` : '유지'})`,
+                        null,
+                        null,
+                        { hideNo: true, yesText: '확인' }
+                    );
+                    this.logSystemMessage(`✨ ${target.item.name} 축복 강화 성공 (${result.gain > 0 ? `+${result.gain}` : '유지'})`);
+                } else {
+                    this.showGenericModal('강화 성공', `${target.item.name}이(가) +${result.nextLevel} 강화에 성공했습니다.`, null, null, { hideNo: true, yesText: '확인' });
+                    this.logSystemMessage(`✨ ${target.item.name} +${result.nextLevel} 강화 성공`);
+                }
+            } else if (result.destroyed) {
+                this.showGenericModal('강화 파괴', '강화에 실패해 장비가 파괴되었습니다.', null, null, { hideNo: true, yesText: '확인' });
+                this.logSystemMessage('💥 강화 실패로 장비가 파괴되었습니다.');
+            } else if (meta.stoneType === 'blessed') {
+                this.showGenericModal('축복 강화 실패', '축복의 힘으로 강화는 실패했지만 현재 강화 수치는 유지되었습니다.', null, null, { hideNo: true, yesText: '확인' });
+                this.logSystemMessage('✨ 축복 강화 실패, 장비는 유지되었습니다.');
+            } else {
+                this.showGenericModal('강화 실패', '강화에 실패했습니다. 장비는 유지됩니다.', null, null, { hideNo: true, yesText: '확인' });
+                this.logSystemMessage('강화에 실패했습니다. 장비는 유지되었습니다.');
+            }
+
+            this.updateInventory();
+        };
+
+        if (meta.stoneType === 'blessed') {
+            this.showConfirm(
+                `축복받은 무기 강화석으로 ${target.item.name}을(를) 강화하시겠습니까?<br><small>성공 50% / 실패 시 수치 유지 / 성공 시 +1~2 (최대 +${config.maxLevel})</small>`,
+                (confirmed) => {
+                    if (confirmed) executeEnhance();
+                }
+            );
+            return;
+        }
+
+        if (config.destroyChanceOnFail > 0) {
+            this.showConfirm(
+                `+${config.nextLevel} 강화는 실패 시 장비가 파괴될 수 있습니다.<br><small>성공 ${Math.round(config.successRate * 100)}% / 파괴 ${Math.round(config.destroyChanceOnFail * 100)}%</small>`,
+                (confirmed) => {
+                    if (confirmed) executeEnhance();
+                }
+            );
+            return;
+        }
+
+        executeEnhance();
     }
 
     // v2.1: Dialog System Methods
@@ -233,72 +414,314 @@ export class UIManager {
         return isPortrait ? 'mobile-portrait' : 'mobile-landscape';
     }
 
-    applyTutorialGuideLayout(guide) {
+    getVisibleElementRect(target) {
+        const element = target instanceof Element
+            ? target
+            : (typeof target === 'string' ? document.querySelector(target) : null);
+        if (!element) return null;
+        if (!element.isConnected) return null;
+
+        const style = window.getComputedStyle(element);
+        if (
+            style.display === 'none'
+            || style.visibility === 'hidden'
+            || Number.parseFloat(style.opacity || '1') < 0.05
+        ) {
+            return null;
+        }
+
+        const rect = element.getBoundingClientRect();
+        if (!rect.width || !rect.height) return null;
+
+        return {
+            left: rect.left,
+            top: rect.top,
+            right: rect.right,
+            bottom: rect.bottom,
+            width: rect.width,
+            height: rect.height
+        };
+    }
+
+    getTutorialFocusRects(targets = []) {
+        const normalizedTargets = Array.isArray(targets) ? targets : [targets];
+        return normalizedTargets
+            .map((target) => this.resolveTutorialHighlightTarget(target))
+            .map((element) => this.getVisibleElementRect(element))
+            .filter(Boolean);
+    }
+
+    getTutorialForbiddenZones() {
+        const selectors = [
+            '#minimap-container',
+            '.minimap-menu',
+            '#btn-fullscreen',
+            '#btn-emote-shortcut',
+            '.quest-list-panel',
+            '.chat-window',
+            '.action-buttons',
+            '#joystick-container',
+            '#dialog-box:not(.hidden)'
+        ];
+
+        const zones = selectors
+            .map((selector) => this.getVisibleElementRect(selector))
+            .filter(Boolean);
+
+        const activePopup = document.querySelector('#popup-overlay:not(.hidden) .game-popup:not(.hidden)');
+        const popupRect = this.getVisibleElementRect(activePopup);
+        if (popupRect) zones.push(popupRect);
+
+        return zones;
+    }
+
+    getTutorialGuideDimensions(payload) {
         const mode = this.getTutorialViewportMode();
-        const isLandscape = mode === 'mobile-landscape';
-        const isPortrait = mode === 'mobile-portrait';
+        const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
+        const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+        const compactRatio = payload?.compact ? 0.9 : 1;
+
+        if (mode === 'mobile-landscape') {
+            return {
+                width: Math.min(Math.round(viewportW * 0.3 * compactRatio), payload?.compact ? 280 : 320),
+                maxHeight: Math.round(viewportH * 0.44)
+            };
+        }
+
+        if (mode === 'mobile-portrait') {
+            return {
+                width: Math.min(Math.round(viewportW * 0.84), payload?.compact ? 320 : 360),
+                maxHeight: Math.round(viewportH * 0.28)
+            };
+        }
+
+        return {
+            width: Math.min(Math.round(viewportW * (payload?.compact ? 0.28 : 0.32)), 420),
+            maxHeight: Math.round(viewportH * 0.38)
+        };
+    }
+
+    buildTutorialGuideCandidates(guideMode, width, height, focusRects = []) {
+        const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
+        const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+        const margin = 16;
+        const clampLeft = (value) => Math.min(Math.max(margin, value), Math.max(margin, viewportW - width - margin));
+        const clampTop = (value) => Math.min(Math.max(margin, value), Math.max(margin, viewportH - height - margin));
+        const candidates = [];
+        const pushCandidate = (left, top, kind = guideMode) => {
+            candidates.push({
+                left: Math.round(clampLeft(left)),
+                top: Math.round(clampTop(top)),
+                width,
+                height,
+                kind
+            });
+        };
+
+        const centerLeft = (viewportW - width) / 2;
+        const bottomTop = viewportH - height - margin;
+        const rightLeft = viewportW - width - margin;
+        const leftLeft = margin;
+
+        if (focusRects[0]) {
+            const focus = focusRects[0];
+            pushCandidate(focus.left + (focus.width / 2) - (width / 2), focus.top - height - 14, 'target-top');
+            pushCandidate(focus.left + (focus.width / 2) - (width / 2), focus.bottom + 14, 'target-bottom');
+            pushCandidate(focus.right + 14, focus.top + (focus.height / 2) - (height / 2), 'target-right');
+            pushCandidate(focus.left - width - 14, focus.top + (focus.height / 2) - (height / 2), 'target-left');
+        }
+
+        switch (guideMode) {
+            case 'dock-left':
+                pushCandidate(leftLeft, viewportH * 0.16);
+                pushCandidate(leftLeft, margin);
+                pushCandidate(centerLeft, margin);
+                pushCandidate(rightLeft, margin);
+                break;
+            case 'left-card':
+                pushCandidate(leftLeft, viewportH * 0.22);
+                pushCandidate(leftLeft, margin);
+                pushCandidate(leftLeft, viewportH - height - 96);
+                pushCandidate(centerLeft, margin);
+                break;
+            case 'bottom-sheet':
+                pushCandidate(centerLeft, bottomTop);
+                pushCandidate(leftLeft, bottomTop);
+                pushCandidate(rightLeft, bottomTop);
+                pushCandidate(centerLeft, viewportH - height - 96);
+                break;
+            case 'floating-compact':
+                pushCandidate(centerLeft, margin);
+                pushCandidate(centerLeft, viewportH * 0.18);
+                pushCandidate(rightLeft, margin);
+                pushCandidate(leftLeft, margin);
+                break;
+            case 'top-card':
+            default:
+                pushCandidate(centerLeft, margin);
+                pushCandidate(leftLeft, margin);
+                pushCandidate(rightLeft, margin);
+                pushCandidate(centerLeft, viewportH * 0.18);
+                break;
+        }
+
+        return candidates;
+    }
+
+    getRectOverlapArea(a, b) {
+        const width = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+        const height = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+        return width * height;
+    }
+
+    scoreTutorialGuideCandidate(candidate, forbiddenZones = [], focusRects = [], order = 0) {
+        const rect = {
+            left: candidate.left,
+            top: candidate.top,
+            right: candidate.left + candidate.width,
+            bottom: candidate.top + candidate.height,
+            width: candidate.width,
+            height: candidate.height
+        };
+
+        let score = order;
+        forbiddenZones.forEach((zone) => {
+            score += this.getRectOverlapArea(rect, zone) * 1.15;
+        });
+        focusRects.forEach((zone) => {
+            score += this.getRectOverlapArea(rect, zone) * 2.4;
+        });
+
+        const centerPenaltyZone = {
+            left: window.innerWidth * 0.22,
+            top: window.innerHeight * 0.2,
+            right: window.innerWidth * 0.78,
+            bottom: window.innerHeight * 0.8
+        };
+        score += this.getRectOverlapArea(rect, centerPenaltyZone) * 0.05;
+
+        return score;
+    }
+
+    applyTutorialGuideLayout(guide, payload = this.tutorialGuideState) {
+        if (!guide || !payload) return;
+
+        const mode = this.getTutorialViewportMode();
+        const guideMode = payload.mode || 'top-card';
+        const guideDimensions = this.getTutorialGuideDimensions(payload);
+        const focusRects = this.getTutorialFocusRects(payload.focusTargets || this.tutorialHighlightTargets);
+        const forbiddenZones = this.getTutorialForbiddenZones();
+
+        guide.dataset.guideMode = guideMode;
+        guide.dataset.stepType = payload.stepType || 'info';
+        guide.dataset.align = payload.align || 'left';
+        guide.classList.toggle('tutorial-guide-compact', !!payload.compact);
 
         guide.style.position = 'fixed';
-        guide.style.left = '50%';
+        guide.style.left = '-9999px';
+        guide.style.top = '-9999px';
         guide.style.right = 'auto';
         guide.style.bottom = 'auto';
+        guide.style.transform = 'none';
         guide.style.boxSizing = 'border-box';
         guide.style.pointerEvents = 'none';
         guide.style.zIndex = '4600';
-        guide.style.maxWidth = isLandscape ? 'min(70vw, 320px)' : (isPortrait ? 'min(84vw, 560px)' : 'min(92vw, 760px)');
-        guide.style.maxHeight = isLandscape ? 'calc(100dvh - 44px)' : 'none';
-        guide.style.overflowY = isLandscape ? 'auto' : 'visible';
-        guide.style.lineHeight = '1.45';
+        guide.style.width = `${guideDimensions.width}px`;
+        guide.style.maxWidth = `${guideDimensions.width}px`;
+        guide.style.maxHeight = `${guideDimensions.maxHeight}px`;
+        guide.style.overflowY = 'auto';
+        guide.style.display = 'block';
+        guide.style.visibility = 'hidden';
 
-        if (isLandscape) {
-            guide.style.top = 'max(20px, calc(env(safe-area-inset-top, 0px) + 20px))';
-            guide.style.transform = 'translateX(-50%)';
-            guide.style.padding = '8px 10px';
-            guide.style.fontSize = '11px';
-        } else if (isPortrait) {
-            guide.style.top = 'calc(env(safe-area-inset-top, 0px) + 118px)';
-            guide.style.transform = 'translateX(-50%)';
-            guide.style.padding = '13px 18px';
-            guide.style.fontSize = '16px';
-        } else {
-            guide.style.top = '20%';
-            guide.style.transform = 'translate(-50%, -50%)';
-            guide.style.padding = '16px 24px';
-            guide.style.fontSize = '18px';
-        }
+        const rect = guide.getBoundingClientRect();
+        const width = Math.min(guideDimensions.width, rect.width || guideDimensions.width);
+        const height = Math.min(guideDimensions.maxHeight, rect.height || guideDimensions.maxHeight);
+        const candidates = this.buildTutorialGuideCandidates(guideMode, width, height, focusRects);
+        const bestCandidate = candidates.reduce((best, candidate, index) => {
+            const score = this.scoreTutorialGuideCandidate(candidate, forbiddenZones, focusRects, index);
+            if (!best || score < best.score) {
+                return { ...candidate, score };
+            }
+            return best;
+        }, null);
+
+        guide.style.left = `${bestCandidate?.left ?? 16}px`;
+        guide.style.top = `${bestCandidate?.top ?? 16}px`;
+        guide.style.visibility = 'visible';
     }
 
     refreshTutorialGuideLayout() {
         const guide = document.getElementById('tutorial-guide');
-        if (!guide || guide.classList.contains('hidden')) return;
-        this.applyTutorialGuideLayout(guide);
+        if (!guide || guide.classList.contains('hidden') || !this.tutorialGuideState) return;
+        this.applyTutorialGuideLayout(guide, this.tutorialGuideState);
     }
 
-    showTutorialGuide(text) {
+    showTutorialGuide(payload) {
+        const normalizedPayload = typeof payload === 'string'
+            ? {
+                title: '튜토리얼',
+                text: payload,
+                mode: 'top-card',
+                align: 'left',
+                compact: false,
+                stepType: 'info',
+                focusTargets: []
+            }
+            : {
+                title: payload?.title || '튜토리얼',
+                text: payload?.text || '',
+                mode: payload?.mode || 'top-card',
+                align: payload?.align || 'left',
+                compact: !!payload?.compact,
+                stepType: payload?.stepType || 'info',
+                stepId: payload?.stepId || '',
+                stepNumber: payload?.stepNumber || 0,
+                totalSteps: payload?.totalSteps || 0,
+                focusTargets: payload?.focusTargets || []
+            };
+
         let guide = document.getElementById('tutorial-guide');
         if (!guide) {
             guide = document.createElement('div');
             guide.id = 'tutorial-guide';
-            guide.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-            guide.style.color = '#ffffff';
-            guide.style.borderRadius = '12px';
-            guide.style.fontFamily = "'Noto Sans KR', sans-serif";
-            guide.style.fontWeight = 'bold';
-            guide.style.display = 'none';
-            guide.style.border = '2px solid #ffd700';
-            guide.style.boxShadow = '0 0 15px rgba(255, 215, 0, 0.3)';
-            guide.style.textAlign = 'center';
-            guide.style.textShadow = '0 2px 4px rgba(0,0,0,0.5)';
             document.body.appendChild(guide);
         }
-        this.applyTutorialGuideLayout(guide);
-        guide.innerHTML = `<div style="font-size:14px; color:#ffd700; margin-bottom:4px;">TUTORIAL</div>${text}`;
+
+        this.tutorialGuideState = normalizedPayload;
+        guide.innerHTML = '';
+
+        const head = document.createElement('div');
+        head.className = 'tutorial-guide-head';
+
+        const eyebrow = document.createElement('div');
+        eyebrow.className = 'tutorial-guide-eyebrow';
+        eyebrow.textContent = normalizedPayload.title;
+        head.appendChild(eyebrow);
+
+        if (normalizedPayload.stepNumber && normalizedPayload.totalSteps) {
+            const stepCounter = document.createElement('div');
+            stepCounter.className = 'tutorial-guide-step';
+            stepCounter.textContent = `${normalizedPayload.stepNumber}/${normalizedPayload.totalSteps}`;
+            head.appendChild(stepCounter);
+        }
+
+        const body = document.createElement('div');
+        body.className = 'tutorial-guide-body';
+        body.textContent = normalizedPayload.text;
+
+        guide.appendChild(head);
+        guide.appendChild(body);
+
+        guide.dataset.align = normalizedPayload.align;
+        guide.dataset.stepType = normalizedPayload.stepType;
         guide.style.display = 'block';
+        this.applyTutorialGuideLayout(guide, normalizedPayload);
     }
 
     hideTutorialGuide() {
         const guide = document.getElementById('tutorial-guide');
         if (guide) guide.style.display = 'none';
+        this.tutorialGuideState = null;
     }
 
     // v2.3.1: HUD Visibility Control for Cutscenes
@@ -1451,6 +1874,7 @@ export class UIManager {
                 this.updateStatusPopup();
             }
             if (id === 'inventory-popup') {
+                this.pendingEnhancementStoneType = null;
                 this.selectedInventoryRef = null;
                 this.closeInventoryItemModal(true);
                 this.updateInventory();
@@ -1462,6 +1886,9 @@ export class UIManager {
             if (this.game.sound) this.game.sound.playSfx('ui_close');
             this.overlay.classList.add('hidden');
             document.body.classList.remove('popup-open');
+            if (id === 'inventory-popup') {
+                this.pendingEnhancementStoneType = null;
+            }
             this.closeInventoryItemModal(true);
             this.isPaused = false;
             this.game.tutorial?.trigger?.('popup_close', { target: id });
@@ -2004,24 +2431,61 @@ export class UIManager {
         }
     }
 
-    highlightTutorialTargets(targets) {
-        this.tutorialHighlightTargets = Array.isArray(targets)
-            ? targets.filter(Boolean)
-            : (targets ? [targets] : []);
+    normalizeTutorialHighlightConfig(config) {
+        if (!config) {
+            return {
+                targets: [],
+                mode: 'ring',
+                label: '',
+                padding: null
+            };
+        }
+
+        if (
+            typeof config === 'string'
+            || Array.isArray(config)
+            || config instanceof Element
+        ) {
+            return {
+                targets: Array.isArray(config) ? config.filter(Boolean) : [config],
+                mode: 'ring',
+                label: '',
+                padding: null
+            };
+        }
+
+        const targets = config.targets || config.target || config.selectors || [];
+        return {
+            mode: config.mode || 'ring',
+            label: config.label || '',
+            padding: Number.isFinite(config.padding) ? config.padding : null,
+            targets: Array.isArray(targets) ? targets.filter(Boolean) : (targets ? [targets] : [])
+        };
+    }
+
+    highlightTutorialTargets(config) {
+        this.tutorialHighlightState = this.normalizeTutorialHighlightConfig(config);
+        this.tutorialHighlightTargets = this.tutorialHighlightState.targets;
         this.refreshTutorialHighlight();
     }
 
     refreshTutorialHighlight() {
         const layer = this.ensureTutorialHighlightLayer();
         layer.innerHTML = '';
+        const state = this.tutorialHighlightState || { targets: this.tutorialHighlightTargets, mode: 'ring', label: '' };
+        if (!state.targets?.length) {
+            this.refreshTutorialGuideLayout();
+            return;
+        }
 
         const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
         const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
         const isTouch = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
         const isLandscape = window.matchMedia?.('(orientation: landscape)')?.matches ?? (window.innerWidth > window.innerHeight);
-        const padding = isTouch ? (isLandscape ? 6 : 10) : 8;
+        const defaultPadding = state.padding ?? (isTouch ? (isLandscape ? 8 : 10) : 8);
+        const rects = [];
 
-        this.tutorialHighlightTargets.forEach((target) => {
+        state.targets.forEach((target) => {
             const element = this.resolveTutorialHighlightTarget(target);
             if (!element) return;
             if (element.classList?.contains('hidden')) return;
@@ -2029,6 +2493,7 @@ export class UIManager {
             const rect = element.getBoundingClientRect();
             if (!rect.width || !rect.height) return;
 
+            const padding = defaultPadding + (state.mode === 'spotlight' ? 4 : 0);
             const left = Math.max(0, rect.left - padding);
             const top = Math.max(0, rect.top - padding);
             const right = Math.min(viewportW, rect.right + padding);
@@ -2037,18 +2502,51 @@ export class UIManager {
             const height = Math.max(0, bottom - top);
             if (!width || !height) return;
 
+            rects.push({ left, top, right, bottom, width, height });
+        });
+
+        if (!rects.length) {
+            this.refreshTutorialGuideLayout();
+            return;
+        }
+
+        if (state.mode === 'spotlight') {
+            const spotlightRect = rects[0];
+            const dim = document.createElement('div');
+            dim.className = 'tutorial-highlight-spotlight';
+            dim.style.left = `${spotlightRect.left}px`;
+            dim.style.top = `${spotlightRect.top}px`;
+            dim.style.width = `${spotlightRect.width}px`;
+            dim.style.height = `${spotlightRect.height}px`;
+            layer.appendChild(dim);
+        }
+
+        rects.forEach((rect) => {
             const box = document.createElement('div');
-            box.className = 'tutorial-highlight-box';
-            box.style.left = `${left}px`;
-            box.style.top = `${top}px`;
-            box.style.width = `${width}px`;
-            box.style.height = `${height}px`;
+            box.className = `tutorial-highlight-box tutorial-highlight-${state.mode}`;
+            box.style.left = `${rect.left}px`;
+            box.style.top = `${rect.top}px`;
+            box.style.width = `${rect.width}px`;
+            box.style.height = `${rect.height}px`;
             layer.appendChild(box);
         });
+
+        if (state.label) {
+            const primaryRect = rects[0];
+            const callout = document.createElement('div');
+            callout.className = 'tutorial-highlight-callout';
+            callout.textContent = state.label;
+            callout.style.left = `${Math.max(12, primaryRect.left)}px`;
+            callout.style.top = `${Math.max(12, primaryRect.top - 34)}px`;
+            layer.appendChild(callout);
+        }
+
+        this.refreshTutorialGuideLayout();
     }
 
     clearTutorialHighlight() {
         this.tutorialHighlightTargets = [];
+        this.tutorialHighlightState = { targets: [], mode: 'ring', label: '' };
         if (this.tutorialHighlightLayer) {
             this.tutorialHighlightLayer.innerHTML = '';
         }
@@ -2624,7 +3122,7 @@ export class UIManager {
             taskDisplay.style.display = 'flex';
             rewardDisplay.style.display = 'flex';
             taskTitle.textContent = `튜토리얼 · ${tutorial.activeTutorial.title}`;
-            taskProgress.textContent = tutorial.getStepInstruction?.(tutorialStep) || tutorialStep.instruction;
+            taskProgress.textContent = tutorial.getStepQuestText?.(tutorialStep) || tutorial.getStepInstruction?.(tutorialStep) || tutorialStep.instruction;
             rewardDisplay.classList.remove('quest-reward-claimable');
             syncQuestAttention(false, false);
             if (rewardIcon) rewardIcon.textContent = 'T';
@@ -2993,96 +3491,13 @@ export class UIManager {
             this.updateInventory();
         });
 
-        const executeWeaponEnhance = (stoneType = 'normal') => {
-            const player = this.game.localPlayer;
-            const itemData = this.game.itemData;
-            if (!player || !itemData) return;
-
-            const target = player.resolveWeaponSelection(this.selectedInventoryRef);
-            if (!target?.item) {
-                this.showGenericModal(stoneType === 'blessed' ? '축복 강화' : '강화', '강화할 무기를 선택해 주세요.', null, null, { hideNo: true, yesText: '확인' });
-                return;
-            }
-
-            const config = itemData.getEnhancementConfig(target.item);
-            if (!config) {
-                this.showGenericModal(stoneType === 'blessed' ? '축복 강화' : '강화', '이 장비는 더 이상 강화할 수 없습니다.', null, null, { hideNo: true, yesText: '확인' });
-                return;
-            }
-
-            const requiredStoneId = stoneType === 'blessed' ? 'blessed_weapon_upgrade_stone' : 'weapon_upgrade_stone';
-            const requiredStoneLabel = stoneType === 'blessed' ? '축복받은 무기 강화석' : '무기 강화석';
-            if ((player.getInventoryItemCount?.(requiredStoneId) || 0) < 1) {
-                this.showGenericModal(stoneType === 'blessed' ? '축복 강화' : '강화', `${requiredStoneLabel}이 부족합니다.`, null, null, { hideNo: true, yesText: '확인' });
-                return;
-            }
-
-            const executeEnhance = () => {
-                const result = player.enhanceWeapon(this.selectedInventoryRef, { stoneType });
-                if (!result.ok) {
-                    this.showGenericModal(stoneType === 'blessed' ? '축복 강화 실패' : '강화 실패', result.message, null, null, { hideNo: true, yesText: '확인' });
-                    return;
-                }
-
-                if (result.success) {
-                    if (stoneType === 'blessed') {
-                        this.showGenericModal(
-                            '축복 강화 성공',
-                            `${target.item.name}이(가) +${result.nextLevel} 강화에 성공했습니다. (${result.gain > 0 ? `+${result.gain}` : '유지'})`,
-                            null,
-                            null,
-                            { hideNo: true, yesText: '확인' }
-                        );
-                        this.logSystemMessage(`✨ ${target.item.name} 축복 강화 성공 (${result.gain > 0 ? `+${result.gain}` : '유지'})`);
-                    } else {
-                        this.showGenericModal('강화 성공', `${target.item.name}이(가) +${result.nextLevel} 강화에 성공했습니다.`, null, null, { hideNo: true, yesText: '확인' });
-                        this.logSystemMessage(`✨ ${target.item.name} +${result.nextLevel} 강화 성공`);
-                    }
-                } else if (result.destroyed) {
-                    this.showGenericModal('강화 파괴', '강화에 실패해 장비가 파괴되었습니다.', null, null, { hideNo: true, yesText: '확인' });
-                    this.logSystemMessage('💥 강화 실패로 장비가 파괴되었습니다.');
-                    this.closeInventoryItemModal(true);
-                    this.selectedInventoryRef = null;
-                } else {
-                    if (stoneType === 'blessed') {
-                        this.showGenericModal('축복 강화 실패', '축복의 힘으로 강화는 실패했지만 현재 강화 수치는 유지되었습니다.', null, null, { hideNo: true, yesText: '확인' });
-                        this.logSystemMessage('✨ 축복 강화 실패, 장비는 유지되었습니다.');
-                    } else {
-                        this.showGenericModal('강화 실패', '강화에 실패했습니다. 장비는 유지됩니다.', null, null, { hideNo: true, yesText: '확인' });
-                        this.logSystemMessage('강화에 실패했습니다. 장비는 유지되었습니다.');
-                    }
-                }
-
-                this.updateInventory();
-            };
-
-            if (stoneType === 'blessed') {
-                this.showConfirm(
-                    `축복받은 무기 강화석으로 강화하시겠습니까?<br><small>성공 50% / 실패 시 유지 / 성공 시 +1~2 (최대 +${config.maxLevel})</small>`,
-                    (confirmed) => {
-                        if (confirmed) executeEnhance();
-                    }
-                );
-                return;
-            }
-
-            if (config.destroyChanceOnFail > 0) {
-                this.showConfirm(`+${config.nextLevel} 강화는 실패 시 장비가 파괴될 수 있습니다.<br><small>성공 ${Math.round(config.successRate * 100)}% / 파괴 ${Math.round(config.destroyChanceOnFail * 100)}%</small>`, (confirmed) => {
-                    if (confirmed) executeEnhance();
-                });
-                return;
-            }
-
-            executeEnhance();
-        };
-
         bindPress(enhanceBtn, () => {
-            executeWeaponEnhance('normal');
+            this.startWeaponEnhancementSelection('normal');
         });
 
         const blessedEnhanceBtn = document.getElementById('inventory-action-enhance-blessed');
         bindPress(blessedEnhanceBtn, () => {
-            executeWeaponEnhance('blessed');
+            this.startWeaponEnhancementSelection('blessed');
         });
 
         bindPress(dismantleBtn, () => {
@@ -3442,6 +3857,12 @@ export class UIManager {
         const p = this.game.localPlayer;
         if (!p) return;
 
+        const pendingEnhancementMeta = this.getEnhancementStoneMeta();
+        if (pendingEnhancementMeta && (p.getInventoryItemCount?.(pendingEnhancementMeta.stoneItemId) || 0) < 1) {
+            this.pendingEnhancementStoneType = null;
+        }
+        const enhancementSelectionActive = this.isWeaponEnhancementSelectionActive();
+
         const grid = document.getElementById('inventory-grid');
         if (!grid) return;
         const selectedInventoryIdentity = this.selectedInventoryRef?.kind === 'inventory'
@@ -3507,6 +3928,7 @@ export class UIManager {
         const equippedSlot = document.createElement('button');
         equippedSlot.type = 'button';
         equippedSlot.className = 'grid-item utility-slot equipped-weapon-slot';
+        equippedSlot.classList.toggle('enhancement-selectable', enhancementSelectionActive && !!equippedWeapon);
         equippedSlot.setAttribute('aria-label', equippedWeapon ? `${equippedWeapon.name} 장착 중` : '장착 무기 없음');
         equippedSlot.appendChild(createUtilityLabel('착용'));
         if (this.isInventorySelection(this.selectedInventoryRef, 'equipment', 'weapon')) {
@@ -3521,6 +3943,10 @@ export class UIManager {
             equippedSlot.appendChild(level);
             this.applyInventoryEnhancementVisual(equippedSlot, equippedWeapon, level);
             equippedSlot.addEventListener('click', () => {
+                if (this.isWeaponEnhancementSelectionActive()) {
+                    this.executeWeaponEnhancementForSelection({ kind: 'equipment', slot: 'weapon' });
+                    return;
+                }
                 this.openInventoryItemModal({ kind: 'equipment', slot: 'weapon' });
             });
         } else {
@@ -3529,6 +3955,7 @@ export class UIManager {
             emptyLabel.textContent = '무기';
             equippedSlot.appendChild(emptyLabel);
             equippedSlot.addEventListener('click', () => {
+                if (this.isWeaponEnhancementSelectionActive()) return;
                 this.closeInventoryItemModal(true);
                 this.updateInventory();
             });
@@ -3541,6 +3968,7 @@ export class UIManager {
             button.type = 'button';
             button.className = 'grid-item';
             button.dataset.inventoryIndex = `${index}`;
+            button.classList.toggle('enhancement-selectable', enhancementSelectionActive && item?.slot === 'weapon');
             button.setAttribute('aria-label', item?.name || `빈 슬롯 ${index}`);
             if (this.isInventorySelection(this.selectedInventoryRef, 'inventory', index)) {
                 button.classList.add('selected');
@@ -3567,9 +3995,11 @@ export class UIManager {
                     this.applyInventoryEnhancementVisual(button, item, level);
                 }
 
-                button.addEventListener('pointerdown', (event) => {
-                    this.startInventorySlotDrag(event, index, button);
-                });
+                if (!enhancementSelectionActive) {
+                    button.addEventListener('pointerdown', (event) => {
+                        this.startInventorySlotDrag(event, index, button);
+                    });
+                }
             } else {
                 const emptyLabel = document.createElement('span');
                 emptyLabel.className = 'grid-item-slot-index';
@@ -3579,9 +4009,19 @@ export class UIManager {
 
             button.addEventListener('click', () => {
                 if (performance.now() < this.inventoryClickSuppressUntil) return;
+                if (this.isWeaponEnhancementSelectionActive()) {
+                    if (item?.slot === 'weapon') {
+                        this.executeWeaponEnhancementForSelection({ kind: 'inventory', index });
+                    }
+                    return;
+                }
                 if (!item) {
                     this.closeInventoryItemModal(true);
                     this.updateInventory();
+                    return;
+                }
+                if (item.type === 'weapon_upgrade_stone' || item.type === 'blessed_weapon_upgrade_stone') {
+                    this.startWeaponEnhancementSelection(item.type === 'blessed_weapon_upgrade_stone' ? 'blessed' : 'normal');
                     return;
                 }
                 this.selectedInventoryRef = { kind: 'inventory', index };
@@ -3661,6 +4101,33 @@ export class UIManager {
             hintEl.innerHTML = hints.join('<br>');
         }
 
+        if (hintEl) {
+            const stoneCount = p.getInventoryItemCount?.('weapon_upgrade_stone') || 0;
+            const blessedStoneCount = p.getInventoryItemCount?.('blessed_weapon_upgrade_stone') || 0;
+            const hints = [];
+
+            if (detail.item.slot === 'weapon') {
+                if (detailData.enhanceHint) {
+                    hints.push(detailData.enhanceHint);
+                }
+                hints.push(`강화석 ${stoneCount}개 / 축복 강화석 ${blessedStoneCount}개 보유`);
+                hints.push('강화석을 선택한 뒤 강화할 무기를 지정해 주세요.');
+            } else if (detail.item.type === 'weapon_upgrade_stone') {
+                hints.push(`보유 강화석 ${stoneCount}개`);
+                hints.push('사용 후 강화할 무기를 선택합니다.');
+            } else if (detail.item.type === 'blessed_weapon_upgrade_stone') {
+                hints.push(`보유 축복 강화석 ${blessedStoneCount}개`);
+                hints.push('성공 50% / 실패 시 유지 / 성공 시 +1~2');
+                hints.push('사용 후 강화할 무기를 선택합니다.');
+            }
+
+            if (detailData.dismantleHint) {
+                hints.push(detailData.dismantleHint);
+            }
+
+            hintEl.innerHTML = hints.join('<br>');
+        }
+
         if (equipBtn) {
             equipBtn.classList.toggle('hidden', !(detail.location === 'inventory' && detail.item.slot === 'weapon'));
         }
@@ -3675,6 +4142,15 @@ export class UIManager {
         }
         if (dismantleBtn) {
             dismantleBtn.classList.toggle('hidden', detail.item.slot !== 'weapon');
+        }
+
+        if (enhanceBtn) {
+            enhanceBtn.textContent = '강화할 무기 선택';
+            enhanceBtn.classList.toggle('hidden', detail.item.type !== 'weapon_upgrade_stone');
+        }
+        if (blessedEnhanceBtn) {
+            blessedEnhanceBtn.textContent = '축복 강화할 무기 선택';
+            blessedEnhanceBtn.classList.toggle('hidden', detail.item.type !== 'blessed_weapon_upgrade_stone');
         }
 
         this.refreshDesktopShortcutHints();

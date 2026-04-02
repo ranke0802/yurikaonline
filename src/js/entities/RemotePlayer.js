@@ -45,6 +45,8 @@ export default class RemotePlayer extends CharacterBase {
         this.maxHp = 100;
         this.deathTimer = 0;
         this.isDying = false;
+        this.missileVisualQueue = [];
+        this.missileVisualTimer = 0;
 
         // Status Effect Timers
         this.electrocutedTimer = 0;
@@ -234,6 +236,15 @@ export default class RemotePlayer extends CharacterBase {
             } else {
                 if (this.deathTimer > 0) this.deathTimer -= dt;
                 return;
+            }
+        }
+
+        if (this.missileVisualQueue.length > 0) {
+            this.missileVisualTimer -= dt;
+            if (this.missileVisualTimer <= 0) {
+                this.missileVisualTimer = 0.05;
+                const data = this.missileVisualQueue.shift();
+                this._launchRemoteMissileVisual(data);
             }
         }
 
@@ -838,6 +849,8 @@ export default class RemotePlayer extends CharacterBase {
                     if (isNaN(count) || count < 1) count = 1;
                     if (count > 20) count = 20; // v0.00.32: Increased Cap to 20 for multi-shot
                     this._triggerRemoteMissileVisual(centerX, centerY, count, {
+                        targetId: data.extraData?.targetId,
+                        targetType: data.extraData?.targetType,
                         targetX: data.extraData?.targetX,
                         targetY: data.extraData?.targetY,
                         targetWidth: data.extraData?.targetWidth,
@@ -866,30 +879,85 @@ export default class RemotePlayer extends CharacterBase {
     }
 
     _triggerRemoteMissileVisual(centerX, centerY, count = 1, options = {}) {
+        const angles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
+        const baseAngle = angles[this.direction] + Math.PI;
+
+        for (let i = 0; i < count; i++) {
+            const spread = (Math.PI * 4) / 9;
+            const angleOffset = (Math.random() - 0.5) * 0.4;
+            const angle = baseAngle + (i - (count - 1) / 2) * (spread / Math.max(1, count - 1)) + angleOffset;
+
+            this.missileVisualQueue.push({
+                angle,
+                variant: options.variant || null,
+                targetId: options.targetId || null,
+                targetType: options.targetType || null,
+                fallbackTargetX: Number.isFinite(options.targetX) ? options.targetX : null,
+                fallbackTargetY: Number.isFinite(options.targetY) ? options.targetY : null
+            });
+        }
+
+        if (this.missileVisualQueue.length > 0 && this.missileVisualTimer <= 0) {
+            this.missileVisualTimer = 0;
+        }
+    }
+
+    _resolveRemoteMissileTargetById(targetId, targetType = null) {
+        if (!targetId) return null;
+
+        if (targetType === 'monster') {
+            return window.game?.monsterManager?.monsters?.get(targetId) || null;
+        }
+
+        if (targetType === 'player') {
+            if (window.game?.localPlayer?.id === targetId) return window.game.localPlayer;
+            return window.game?.remotePlayers?.get(targetId) || null;
+        }
+
+        return window.game?.monsterManager?.monsters?.get(targetId)
+            || window.game?.remotePlayers?.get(targetId)
+            || (window.game?.localPlayer?.id === targetId ? window.game.localPlayer : null);
+    }
+
+    _resolveRemoteMissilePoint(data) {
+        const liveTarget = this._resolveRemoteMissileTargetById(data?.targetId, data?.targetType);
+        if (liveTarget && !liveTarget.isDead) {
+            return {
+                x: liveTarget.x + ((liveTarget.width || 0) / 2),
+                y: liveTarget.y + ((liveTarget.height || 0) / 2)
+            };
+        }
+
+        if (Number.isFinite(data?.fallbackTargetX) && Number.isFinite(data?.fallbackTargetY)) {
+            return {
+                x: data.fallbackTargetX,
+                y: data.fallbackTargetY
+            };
+        }
+
+        return null;
+    }
+
+    _launchRemoteMissileVisual(data) {
         RemotePlayer.projectilePromise.then(({ Projectile }) => {
             if (!window.game) return;
 
-            const angles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
-            const baseAngle = angles[this.direction] + Math.PI;
-            const hasLockedTarget = Number.isFinite(options.targetX) && Number.isFinite(options.targetY);
+            const originX = this.x + this.width / 2;
+            const originY = this.y + this.height / 2;
+            const targetPoint = this._resolveRemoteMissilePoint(data);
+            const speed = 350 + Math.random() * 300;
 
-            for (let i = 0; i < count; i++) {
-                const spread = (Math.PI * 4) / 9;
-                const angleOffset = (Math.random() - 0.5) * 0.4;
-                const angle = baseAngle + (i - (count - 1) / 2) * (spread / Math.max(1, count - 1)) + angleOffset;
-
-                const speed = 350 + Math.random() * 300;
-                window.game.projectiles.push(new Projectile(centerX, centerY, null, 'missile', {
-                    vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-                    speed: 600,
-                    damage: 0,
-                    ownerId: this.id,
-                    variant: options.variant || null,
-                    targetX: hasLockedTarget ? options.targetX : null,
-                    targetY: hasLockedTarget ? options.targetY : null,
-                    lockTargetPosition: hasLockedTarget
-                }));
-            }
+            window.game.projectiles.push(new Projectile(originX, originY, null, 'missile', {
+                vx: Math.cos(data.angle) * speed,
+                vy: Math.sin(data.angle) * speed,
+                speed: 600,
+                damage: 0,
+                ownerId: this.id,
+                variant: data.variant || null,
+                targetX: targetPoint?.x ?? null,
+                targetY: targetPoint?.y ?? null,
+                lockTargetPosition: Number.isFinite(targetPoint?.x) && Number.isFinite(targetPoint?.y)
+            }));
         });
     }
 

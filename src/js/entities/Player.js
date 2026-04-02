@@ -285,8 +285,22 @@ export default class Player extends CharacterBase {
                     if (window.game) {
                         const spawnX = this.x + this.width / 2 + (data.options.spawnOffsetX || 0);
                         const spawnY = this.y + this.height / 2 + (data.options.spawnOffsetY || 0);
+                        const launchTarget = this.resolveQueuedMagicMissilePoint(data);
+                        const targetX = Number.isFinite(launchTarget?.x)
+                            ? launchTarget.x
+                            : data.options.fallbackTargetX;
+                        const targetY = Number.isFinite(launchTarget?.y)
+                            ? launchTarget.y
+                            : data.options.fallbackTargetY;
+
                         // v0.00.05: Inject ownerId for PvP safety
-                        window.game.projectiles.push(new Projectile(spawnX, spawnY, data.target, 'missile', { ...data.options, ownerId: this.id }));
+                        window.game.projectiles.push(new Projectile(spawnX, spawnY, null, 'missile', {
+                            ...data.options,
+                            ownerId: this.id,
+                            targetX,
+                            targetY,
+                            lockTargetPosition: Number.isFinite(targetX) && Number.isFinite(targetY)
+                        }));
                     }
                 });
             }
@@ -1094,6 +1108,98 @@ export default class Player extends CharacterBase {
         return Math.hypot(targetX - sourceX, targetY - sourceY);
     }
 
+    getCombatTargetPoint(target) {
+        if (!target) return null;
+
+        return {
+            x: target?.width ? target.x + target.width / 2 : target?.x,
+            y: target?.height ? target.y + target.height / 2 : target?.y
+        };
+    }
+
+    isValidMagicMissileTarget(target) {
+        if (!target || target === this || target.isDead) return false;
+        if (!this.isAttackTargetStillValid(target)) return false;
+        return this.canAttackTarget(target);
+    }
+
+    findMagicMissileTarget(sourceX = this.x + this.width / 2, sourceY = this.y + this.height / 2) {
+        const candidates = [];
+
+        if (window.game?.monsterManager?.monsters) {
+            candidates.push(...window.game.monsterManager.monsters.values());
+        }
+
+        if (window.game?.remotePlayers) {
+            candidates.push(...window.game.remotePlayers.values());
+        }
+
+        let nearest = null;
+        let minDist = 600;
+
+        if (this.isValidMagicMissileTarget(this.currentTarget)) {
+            const targetPoint = this.getCombatTargetPoint(this.currentTarget);
+            const distance = Math.hypot(sourceX - targetPoint.x, sourceY - targetPoint.y);
+            if (distance < minDist) {
+                minDist = distance;
+                nearest = this.currentTarget;
+            }
+        }
+
+        if (nearest) return nearest;
+
+        for (const target of candidates) {
+            if (!this.isValidMagicMissileTarget(target)) continue;
+
+            const targetPoint = this.getCombatTargetPoint(target);
+            const distance = Math.hypot(sourceX - targetPoint.x, sourceY - targetPoint.y);
+            if (distance < minDist) {
+                minDist = distance;
+                nearest = target;
+            }
+        }
+
+        return nearest;
+    }
+
+    resolveMagicMissileTargetById(targetId, targetType = null) {
+        if (!targetId) return null;
+
+        if (targetType === 'monster') {
+            return window.game?.monsterManager?.monsters?.get(targetId) || null;
+        }
+
+        if (targetType === 'player') {
+            if (window.game?.localPlayer?.id === targetId) return window.game.localPlayer;
+            return window.game?.remotePlayers?.get(targetId) || null;
+        }
+
+        return window.game?.monsterManager?.monsters?.get(targetId)
+            || window.game?.remotePlayers?.get(targetId)
+            || (window.game?.localPlayer?.id === targetId ? window.game.localPlayer : null);
+    }
+
+    resolveQueuedMagicMissilePoint(data) {
+        if (!data) return null;
+
+        const liveTarget = this.isValidMagicMissileTarget(data.targetRef)
+            ? data.targetRef
+            : this.resolveMagicMissileTargetById(data.targetId, data.targetType);
+
+        if (this.isValidMagicMissileTarget(liveTarget)) {
+            return this.getCombatTargetPoint(liveTarget);
+        }
+
+        const fallbackX = Number.isFinite(data.options?.fallbackTargetX) ? data.options.fallbackTargetX : null;
+        const fallbackY = Number.isFinite(data.options?.fallbackTargetY) ? data.options.fallbackTargetY : null;
+
+        if (Number.isFinite(fallbackX) && Number.isFinite(fallbackY)) {
+            return { x: fallbackX, y: fallbackY };
+        }
+
+        return null;
+    }
+
     setCurrentTarget(target, options = {}) {
         this.currentTarget = target || null;
         this.currentTargetMode = target ? (options.mode || 'manual') : null;
@@ -1387,67 +1493,22 @@ export default class Player extends CharacterBase {
                 // v0.00.33: Balance Update (2 missiles per level)
                 const count = lv * 2;
 
-                const candidates = [];
                 const sourceX = this.x + this.width / 2;
                 const sourceY = this.y + this.height / 2;
-                const resolveTargetPoint = (target) => ({
-                    x: target?.width ? target.x + target.width / 2 : target?.x,
-                    y: target?.height ? target.y + target.height / 2 : target?.y
-                });
-                // 1. Monsters
-                if (window.game.monsterManager) {
-                    candidates.push(...window.game.monsterManager.monsters.values());
-                }
-                // 2. Remote Players
-                if (window.game.remotePlayers) {
-                    candidates.push(...window.game.remotePlayers.values());
-                }
-
-                let nearest = null;
-                // v0.00.45: Reduced Missile Range to 600
-                let minDist = 600;
-
-                // v0.00.20: Prioritize currentTarget if valid
-                if (this.currentTarget && !this.currentTarget.isDead && this.canAttackTarget(this.currentTarget)) {
-                    const targetPoint = resolveTargetPoint(this.currentTarget);
-                    const d = Math.hypot(sourceX - targetPoint.x, sourceY - targetPoint.y);
-                    if (d < minDist) {
-                        minDist = d;
-                        nearest = this.currentTarget;
-                    }
-                }
-
-                if (!nearest) {
-                    candidates.forEach(t => {
-                        if (!t || t.isDead) return;
-                        if (t.id === this.id) return; // Skip self
-
-                        // v1.99.37: Filter valid targets (Monsters or Hostile Players)
-                        // v1.99.38: Robust check using both .type and .isMonster
-                        const isPossiblePlayer = (t.type === 'player' || (!t.isMonster && t.id !== undefined));
-                        if (isPossiblePlayer && !this.canAttackTarget(t)) return;
-
-                        // Use center position if available, else x/y
-                        const targetPoint = resolveTargetPoint(t);
-                        const tx = targetPoint.x;
-                        const ty = targetPoint.y;
-
-                        const d = Math.hypot(sourceX - tx, sourceY - ty);
-                        if (d < minDist) {
-                            minDist = d;
-                            nearest = t;
-                        }
-                    });
-                }
+                const nearest = this.findMagicMissileTarget(sourceX, sourceY);
 
                 if (nearest) {
                     window.game?.tutorial?.trigger?.('skill_use', { target: skillId, slot });
-                    const targetPoint = resolveTargetPoint(nearest);
+                    const targetPoint = this.getCombatTargetPoint(nearest);
+                    const targetType = nearest.type === 'monster' || nearest.isMonster ? 'monster' : 'player';
+                    const targetId = nearest.id || null;
 
                     // v0.00.35: Only sync if we have a valid target
                     if (this.net) {
                         this.net.sendPlayerAttack(this.x, this.y, this.direction, 'missile', {
                             count,
+                            targetId,
+                            targetType,
                             targetX: targetPoint.x,
                             targetY: targetPoint.y,
                             targetWidth: nearest.width || 0,
@@ -1487,12 +1548,14 @@ export default class Player extends CharacterBase {
 
                         // Push to queue for sequential launch (Fixed from previous attempt)
                         this.missileFireQueue.push({
-                            target: null,
+                            targetRef: nearest,
+                            targetId,
+                            targetType,
                             options: {
                                 speed: 800 + (Math.random() * 100),
                                 vx, vy,
-                                targetX: targetPoint.x,
-                                targetY: targetPoint.y,
+                                fallbackTargetX: targetPoint.x,
+                                fallbackTargetY: targetPoint.y,
                                 lockTargetPosition: true,
                                 spawnOffsetX: 0,
                                 spawnOffsetY: 0,
