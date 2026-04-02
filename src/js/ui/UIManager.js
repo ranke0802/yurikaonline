@@ -578,6 +578,10 @@ export class UIManager {
             .map((selector) => this.getVisibleElementRect(selector))
             .filter(Boolean);
 
+        if (payload?.avoidTargets) {
+            zones.push(...this.getTutorialFocusRects(payload.avoidTargets));
+        }
+
         const popupRect = this.getActivePopupRect();
         const shouldReservePopup = popupRect && !focusRects.some((rect) => this.getRectContains(rect, popupRect));
         if (shouldReservePopup && payload?.mode !== 'dock-left') zones.push(popupRect);

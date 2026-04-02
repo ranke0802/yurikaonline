@@ -261,6 +261,10 @@ export default class TutorialManager {
         return this.resolveResponsiveValue(step?.focus, () => this.getLegacyHighlightTargets(step));
     }
 
+    getStepAvoidTargets(step = this.getCurrentStep()) {
+        return this.resolveResponsiveValue(step?.avoidTargets || step?.forbiddenTargets, () => null);
+    }
+
     getStepHighlightConfig(step = this.getCurrentStep()) {
         if (!step) return null;
 
@@ -316,7 +320,8 @@ export default class TutorialManager {
             stepId: step.id,
             stepNumber: this.currentStepIndex + 1,
             totalSteps: this.activeTutorial?.steps?.length || 0,
-            focusTargets: highlight?.targets || []
+            focusTargets: highlight?.targets || [],
+            avoidTargets: this.getStepAvoidTargets(step)
         };
     }
 

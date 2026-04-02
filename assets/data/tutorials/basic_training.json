@@ -208,9 +208,10 @@
         },
         {
             "id": "save_status",
-            "instruction": "좋아요. 방금 오른쪽 미리보기로 변화를 확인했어요. 이제 창을 닫아 스탯을 저장해 주세요.",
-            "instructionMobileLandscape": "좋아요. 방금 오른쪽 미리보기로 변화를 확인했어요. 이제 오른쪽 위 X 버튼으로 창을 닫아 스탯을 저장해 주세요.",
-            "questText": "스탯 창을 닫아 저장해 주세요.",
+            "instruction": "좋아요. 방금 오른쪽 미리보기를 확인했어요. 이제 오른쪽 위 X 또는 아래 닫기 버튼으로 창을 닫아 스탯을 저장해 주세요.",
+            "instructionMobile": "좋아요. 방금 오른쪽 미리보기를 확인했어요. 이제 아래 닫기 버튼으로 창을 닫아 스탯을 저장해 주세요.",
+            "instructionMobileLandscape": "좋아요. 방금 오른쪽 미리보기를 확인했어요. 이제 오른쪽 위 X 또는 아래 닫기 버튼으로 창을 닫아 스탯을 저장해 주세요.",
+            "questText": "닫기 버튼으로 스탯 창을 닫아 저장해 주세요.",
             "presentation": {
                 "desktop": {
                     "guideMode": "dock-left",
@@ -229,8 +230,13 @@
                     "compact": true
                 }
             },
-            "highlightTarget": "#status-close-btn-bottom",
-            "highlightTargetMobileLandscape": "#status-close-btn-top",
+            "focus": [
+                "#status-close-btn-top",
+                "#status-close-btn-bottom"
+            ],
+            "avoidTargets": [
+                "#status-derived-panel"
+            ],
             "trigger": "stats_saved",
             "count": 1,
             "allowedActions": [
