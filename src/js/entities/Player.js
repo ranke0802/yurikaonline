@@ -1772,6 +1772,7 @@ export default class Player extends CharacterBase {
 
                 if (this.questData.bossClearCount === 1) {
                     // First Kill Reward
+                    this.questData.slimeRepeatKills = 0;
                     this.statPoints += 5;
                     this.gainExp(500);
                     this.gold += 2000;

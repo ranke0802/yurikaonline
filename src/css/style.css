@@ -218,6 +218,27 @@ button:active,
     background: #ffd6a5;
 }
 
+.skill-btn.is-pressed,
+.attack-btn.is-pressed,
+.action-btn.is-pressed,
+.menu-btn.is-pressed {
+    transform: translateY(4px) scale(0.9) !important;
+    filter: brightness(0.94) saturate(1.06);
+    box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.14),
+        inset 0 4px 10px rgba(255, 255, 255, 0.18) !important;
+}
+
+.skill-btn.is-pressed::after,
+.attack-btn.is-pressed::after {
+    content: '';
+    position: absolute;
+    inset: 10%;
+    border-radius: inherit;
+    background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+    pointer-events: none;
+}
+
 .skill-btn.disabled,
 .attack-btn.disabled {
     cursor: default;
@@ -3144,6 +3165,8 @@ body.low-power-pwa .minimap-menu {
 #tutorial-guide.tutorial-guide-popup-inline .tutorial-guide-body {
     font-size: 13px;
     line-height: 1.45;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
 }
 
 #tutorial-guide[data-step-type="combat"] {

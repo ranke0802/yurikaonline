@@ -158,22 +158,19 @@
             "focus": {
                 "desktop": {
                     "targets": [
-                        "#status-stat-main",
-                        "#status-derived-panel"
+                        "#status-intelligence-row"
                     ],
                     "mode": "frame"
                 },
                 "mobilePortrait": {
                     "targets": [
-                        "#status-stat-main",
-                        "#status-derived-panel"
+                        "#status-intelligence-row"
                     ],
                     "mode": "frame"
                 },
                 "mobileLandscape": {
                     "targets": [
-                        "#status-vitality-row",
-                        "#status-derived-panel"
+                        "#status-intelligence-row"
                     ],
                     "mode": "frame"
                 }
@@ -197,20 +194,13 @@
                 }
             },
             "highlightTargets": [
-                "#status-stat-main",
-                "#status-derived-panel"
+                "#status-intelligence-row"
             ],
             "highlightTargetsMobileLandscape": [
-                "#status-vitality-row",
-                "#status-derived-panel"
+                "#status-intelligence-row"
             ],
             "trigger": "stat_allocated",
-            "target": [
-                "vitality",
-                "intelligence",
-                "wisdom",
-                "agility"
-            ],
+            "target": "intelligence",
             "count": 1,
             "allowedActions": [
                 "OPEN_STATUS"

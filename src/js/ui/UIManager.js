@@ -515,8 +515,8 @@ export class UIManager {
         if (popupInline) {
             if (mode === 'mobile-landscape') {
                 return {
-                    width: Math.min(Math.round(viewportW * 0.24 * compactRatio), 240),
-                    maxHeight: Math.min(Math.round(viewportH * 0.3), payload?.compact ? 116 : 132)
+                    width: Math.min(Math.round(viewportW * 0.22 * compactRatio), 220),
+                    maxHeight: Math.min(Math.round(viewportH * 0.34), payload?.compact ? 144 : 156)
                 };
             }
 
@@ -525,7 +525,7 @@ export class UIManager {
                 const availableWidth = Math.max(176, popupWidth - 28);
                 return {
                     width: Math.min(Math.round(availableWidth * 0.72 * compactRatio), 244),
-                    maxHeight: Math.min(Math.round(viewportH * 0.16), payload?.compact ? 104 : 118)
+                    maxHeight: Math.min(Math.round(viewportH * 0.22), payload?.compact ? 134 : 152)
                 };
             }
 
@@ -618,6 +618,13 @@ export class UIManager {
                 orderedBandCandidates.forEach((candidate) => pushCandidate(candidate.left, candidate.top, candidate.kind));
                 pushCandidate(popupCenterLeft, popup.top - height - 12, 'popup-top');
                 pushCandidate(popupCenterLeft, popup.bottom + 12, 'popup-bottom');
+            } else if (viewportMode === 'mobile-landscape') {
+                pushCandidate(popupCenterLeft, popup.top - height - 14, 'popup-top');
+                pushCandidate(popupCenterLeft, popup.bottom + 14, 'popup-bottom');
+                pushCandidate(popup.right + 14, popup.top + 12, 'popup-right-top');
+                pushCandidate(popup.right + 14, popup.bottom - height - 12, 'popup-right-bottom');
+                pushCandidate(popup.left - width - 14, popup.top + 12, 'popup-left-top');
+                pushCandidate(popup.left - width - 14, popup.bottom - height - 12, 'popup-left-bottom');
             } else {
                 pushCandidate(popupCenterLeft, popup.top - height - 18, 'popup-top');
                 pushCandidate(popupCenterLeft, popup.bottom + 18, 'popup-bottom');
@@ -733,6 +740,9 @@ export class UIManager {
         const guideDimensions = this.getTutorialGuideDimensions(payload, { focusInsidePopup, popupRect });
         const forbiddenZones = this.getTutorialForbiddenZones(focusRects, payload);
         const disableTargetAnchors = !!focusInsidePopup && guideMode !== 'floating-compact';
+        if (focusInsidePopup && mode === 'mobile-landscape' && popupRect) {
+            forbiddenZones.push(popupRect);
+        }
         if (!focusInsidePopup && popupRect) {
             forbiddenZones.push(popupRect);
         }
@@ -867,6 +877,18 @@ export class UIManager {
 
     setupGlobalInteractions() {
         const INTERACTIVE_SELECTORS = 'button, .btn, .skill-icon, .item-slot, .stat-up-btn, .stat-down-btn, .close-popup, .login-btn, .action-btn';
+        const PRESS_FEEDBACK_SELECTORS = '.skill-btn, .attack-btn, .action-btn, .menu-btn, .close-popup, .confirm-btn, .reset-btn';
+        const pressedElements = new Set();
+        const addPressedState = (target) => {
+            const pressable = target?.closest?.(PRESS_FEEDBACK_SELECTORS);
+            if (!pressable || pressable.disabled || pressable.classList.contains('disabled')) return;
+            pressable.classList.add('is-pressed');
+            pressedElements.add(pressable);
+        };
+        const clearPressedState = () => {
+            pressedElements.forEach((element) => element.classList.remove('is-pressed'));
+            pressedElements.clear();
+        };
 
         document.body.addEventListener('mouseover', (e) => {
             const target = e.target.closest(INTERACTIVE_SELECTORS);
@@ -885,6 +907,16 @@ export class UIManager {
             if (target && !target.disabled && !target.classList.contains('disabled')) {
                 if (this.game.sound) this.game.sound.playSfx('ui_click');
             }
+        });
+
+        document.body.addEventListener('pointerdown', (e) => {
+            addPressedState(e.target);
+        }, true);
+
+        ['pointerup', 'pointercancel', 'touchend', 'touchcancel', 'mouseup', 'dragend', 'mouseleave'].forEach((eventName) => {
+            document.body.addEventListener(eventName, () => {
+                window.setTimeout(clearPressedState, 70);
+            }, true);
         });
     }
 
@@ -2009,7 +2041,14 @@ export class UIManager {
                 this.closeInventoryItemModal(true);
                 this.updateInventory();
             }
-            if (id === 'skill-popup') this.updateSkillPopup();
+            if (id === 'skill-popup') {
+                this.updateSkillPopup();
+                popup.scrollTop = 0;
+                const skillContentWrapper = popup.querySelector('.skill-content-wrapper');
+                const skillList = popup.querySelector('.skill-list');
+                if (skillContentWrapper) skillContentWrapper.scrollTop = 0;
+                if (skillList) skillList.scrollTop = 0;
+            }
             this.isPaused = true;
             this.game.tutorial?.trigger?.('popup_open', { target: id });
         } else {
@@ -2460,6 +2499,7 @@ export class UIManager {
         const subtitle = document.getElementById('skill-detail-modal-subtitle');
         const hotkey = document.getElementById('skill-detail-modal-hotkey');
         const body = document.getElementById('skill-detail-modal-body');
+        const content = modal.querySelector('.skill-detail-modal-content');
 
         if (title) title.textContent = detail.name;
         if (subtitle) subtitle.textContent = detail.subtitle;
@@ -2468,6 +2508,8 @@ export class UIManager {
             body.innerHTML = detail.modalHtml;
             body.scrollTop = 0;
         }
+        if (content) content.scrollTop = 0;
+        modal.scrollTop = 0;
 
         modal.classList.remove('hidden');
         this.activeSkillDetailId = skillId;
@@ -2478,6 +2520,10 @@ export class UIManager {
     hideSkillDetailModal() {
         const modal = document.getElementById('skill-detail-modal');
         if (modal) modal.classList.add('hidden');
+        const body = document.getElementById('skill-detail-modal-body');
+        const content = modal?.querySelector?.('.skill-detail-modal-content');
+        if (body) body.scrollTop = 0;
+        if (content) content.scrollTop = 0;
         if (this.activeSkillDetailId) {
             this.game?.tutorial?.trigger?.('skill_detail_close', { target: this.activeSkillDetailId });
         }
