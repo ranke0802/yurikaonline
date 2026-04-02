@@ -4158,6 +4158,13 @@ body.is-fullscreen .version-info {
     pointer-events: none;
 }
 
+@media (hover: hover) and (pointer: fine) {
+    #joystick-area,
+    #joystick-container {
+        display: none !important;
+    }
+}
+
 #quest-reward-display.quest-reward-claimable .quest-title,
 #quest-reward-display.quest-reward-claimable .quest-progress {
     display: block !important;

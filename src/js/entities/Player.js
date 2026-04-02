@@ -488,6 +488,7 @@ export default class Player extends CharacterBase {
 
         this.fireballAimAngle = Math.atan2(dy, dx);
         this.updateFireballAimGuide();
+        window.game?.tutorial?.trigger?.('skill_aim_adjust', { target: 'fireball' });
     }
 
     startFireballAim(pointerData = null) {

@@ -55,6 +55,39 @@ export default class WorldScene extends Scene {
             ey >= cam.y - margin && ey <= cam.y + vh + margin;
     }
 
+    onPointerDown(e) {
+        const isCoarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
+        if (isCoarsePointer) return;
+        if (!this.player || !this.camera) return;
+        if (this.ui?.isPaused || this.player.isDead || this.player.isDying) return;
+        if (this.player.isChanneling) return;
+        if (typeof e.button === 'number' && e.button !== 0) return;
+
+        const tutorial = this.game.tutorial;
+        if (tutorial?.activeTutorial) {
+            const canMove = ['MOVE_UP', 'MOVE_DOWN', 'MOVE_LEFT', 'MOVE_RIGHT']
+                .some((action) => tutorial.isActionAllowed?.(action));
+            if (!canMove) return;
+        }
+
+        const rect = this.game.canvas?.getBoundingClientRect?.();
+        if (!rect) return;
+
+        const clientX = Number.isFinite(e.clientX) ? e.clientX : null;
+        const clientY = Number.isFinite(e.clientY) ? e.clientY : null;
+        if (clientX === null || clientY === null) return;
+
+        const localX = clientX - rect.left;
+        const localY = clientY - rect.top;
+        const worldX = this.camera.x + (localX / this.game.zoom);
+        const worldY = this.camera.y + (localY / this.game.zoom);
+
+        this.player.setMoveTarget(
+            worldX - (this.player.width / 2),
+            worldY - (this.player.height / 2)
+        );
+    }
+
     async enter(params) {
         Logger.info("[WorldScene] Entering game world...");
         this.ui?.showHUD();

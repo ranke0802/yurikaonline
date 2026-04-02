@@ -103,7 +103,7 @@ export default class TutorialManager {
         if (!step) return 'info';
         if (step.type) return step.type;
 
-        if (['move', 'kill', 'skill_use'].includes(step.trigger)) {
+        if (['move', 'kill', 'skill_use', 'skill_aim_adjust'].includes(step.trigger)) {
             return 'combat';
         }
 
@@ -137,6 +137,7 @@ export default class TutorialManager {
             reopen_skill_for_fireball: '파이어볼 준비',
             inspect_fireball_detail: '파이어볼 설명',
             upgrade_fireball: '파이어볼 강화',
+            aim_fireball_mobile: '파이어볼 조준',
             use_fireball: '파이어볼 사용',
             reopen_skill_for_shield: '베리어 준비',
             inspect_shield_detail: '베리어 설명',
@@ -169,6 +170,7 @@ export default class TutorialManager {
             reopen_skill_for_fireball: '스킬 창을 다시 열어 주세요.',
             inspect_fireball_detail: '파이어볼 설명을 확인해 주세요.',
             upgrade_fireball: '파이어볼을 1회 강화하세요.',
+            aim_fireball_mobile: '파이어볼 버튼을 누른 채 조준해 보세요.',
             use_fireball: '파이어볼을 사용해 보세요.',
             reopen_skill_for_shield: '스킬 창을 다시 열어 주세요.',
             inspect_shield_detail: '앱솔루트 베리어 설명을 확인해 주세요.',
@@ -210,17 +212,17 @@ export default class TutorialManager {
             info: {
                 desktop: { guideMode: 'top-card', highlightMode: 'frame', align: 'left' },
                 mobilePortrait: { guideMode: 'top-card', highlightMode: 'frame', align: 'left' },
-                mobileLandscape: { guideMode: 'left-card', highlightMode: 'frame', align: 'left', compact: true }
+                mobileLandscape: { guideMode: 'top-card', highlightMode: 'frame', align: 'left', compact: true }
             },
             inspect: {
                 desktop: { guideMode: 'dock-left', highlightMode: 'spotlight', align: 'left' },
                 mobilePortrait: { guideMode: 'bottom-sheet', highlightMode: 'spotlight', align: 'left' },
-                mobileLandscape: { guideMode: 'left-card', highlightMode: 'spotlight', align: 'left', compact: true }
+                mobileLandscape: { guideMode: 'top-card', highlightMode: 'spotlight', align: 'left', compact: true }
             },
             interact: {
                 desktop: { guideMode: 'dock-left', highlightMode: 'ring', align: 'left' },
                 mobilePortrait: { guideMode: 'bottom-sheet', highlightMode: 'ring', align: 'left' },
-                mobileLandscape: { guideMode: 'left-card', highlightMode: 'ring', align: 'left', compact: true }
+                mobileLandscape: { guideMode: 'top-card', highlightMode: 'ring', align: 'left', compact: true }
             },
             combat: {
                 desktop: { guideMode: 'floating-compact', highlightMode: 'ring', align: 'left', compact: true },
@@ -310,6 +312,21 @@ export default class TutorialManager {
         };
     }
 
+    isStepAvailable(step = this.getCurrentStep()) {
+        if (!step) return false;
+
+        const layoutMode = this.getTutorialLayoutMode();
+        if (Array.isArray(step.layouts) && step.layouts.length > 0) {
+            return step.layouts.includes(layoutMode);
+        }
+
+        if (Array.isArray(step.excludeLayouts) && step.excludeLayouts.includes(layoutMode)) {
+            return false;
+        }
+
+        return true;
+    }
+
     isActionAllowed(action) {
         if (this.pendingTutorialId && !this.activeTutorial) return false;
 
@@ -396,7 +413,12 @@ export default class TutorialManager {
     }
 
     _showCurrentStep() {
-        const step = this.getCurrentStep();
+        let step = this.getCurrentStep();
+        while (step && !this.isStepAvailable(step)) {
+            this.currentStepIndex++;
+            step = this.getCurrentStep();
+        }
+
         if (!step) {
             this._completeTutorial();
             return;

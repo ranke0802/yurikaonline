@@ -7,6 +7,7 @@ export default class TouchHandler extends EventEmitter {
         this.joystickTouchId = null; // v0.35.1: Multi-touch support
         this.maxRadius = 50;
         this.activeAimAction = null;
+        this.useMouseJoystick = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
 
         // DOM Elements
         this.base = document.getElementById('joystick-base');
@@ -47,18 +48,24 @@ export default class TouchHandler extends EventEmitter {
         // Joystick Area Event Listeners
         if (this.area) {
             this.area.addEventListener('touchstart', this._handleStart, { passive: false });
-            this.area.addEventListener('mousedown', this._handleStart);
+            if (this.useMouseJoystick) {
+                this.area.addEventListener('mousedown', this._handleStart);
+            }
         } else {
             this.container.addEventListener('touchstart', this._handleStart, { passive: false });
-            this.container.addEventListener('mousedown', this._handleStart);
+            if (this.useMouseJoystick) {
+                this.container.addEventListener('mousedown', this._handleStart);
+            }
         }
 
         // Global Move/End Listeners
         window.addEventListener('touchmove', this._handleMove, { passive: false });
         window.addEventListener('touchend', this._handleEnd);
         window.addEventListener('touchcancel', this._handleEnd);
-        window.addEventListener('mousemove', this._handleMove);
-        window.addEventListener('mouseup', this._handleEnd);
+        if (this.useMouseJoystick) {
+            window.addEventListener('mousemove', this._handleMove);
+            window.addEventListener('mouseup', this._handleEnd);
+        }
         window.addEventListener('touchmove', this._handleActionMove, { passive: false });
         window.addEventListener('touchend', this._handleActionEnd);
         window.addEventListener('touchcancel', this._handleActionEnd);
@@ -286,8 +293,10 @@ export default class TouchHandler extends EventEmitter {
         window.removeEventListener('touchmove', this._handleMove);
         window.removeEventListener('touchend', this._handleEnd);
         window.removeEventListener('touchcancel', this._handleEnd);
-        window.removeEventListener('mousemove', this._handleMove);
-        window.removeEventListener('mouseup', this._handleEnd);
+        if (this.useMouseJoystick) {
+            window.removeEventListener('mousemove', this._handleMove);
+            window.removeEventListener('mouseup', this._handleEnd);
+        }
         window.removeEventListener('touchmove', this._handleActionMove);
         window.removeEventListener('touchend', this._handleActionEnd);
         window.removeEventListener('touchcancel', this._handleActionEnd);

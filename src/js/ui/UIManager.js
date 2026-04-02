@@ -451,7 +451,15 @@ export class UIManager {
             .filter(Boolean);
     }
 
-    getTutorialForbiddenZones() {
+    getRectContains(inner, outer) {
+        if (!inner || !outer) return false;
+        return inner.left >= outer.left
+            && inner.right <= outer.right
+            && inner.top >= outer.top
+            && inner.bottom <= outer.bottom;
+    }
+
+    getTutorialForbiddenZones(focusRects = [], payload = this.tutorialGuideState) {
         const selectors = [
             '#minimap-container',
             '.minimap-menu',
@@ -461,6 +469,7 @@ export class UIManager {
             '.chat-window',
             '.action-buttons',
             '#joystick-container',
+            '#joystick-area',
             '#dialog-box:not(.hidden)'
         ];
 
@@ -470,7 +479,8 @@ export class UIManager {
 
         const activePopup = document.querySelector('#popup-overlay:not(.hidden) .game-popup:not(.hidden)');
         const popupRect = this.getVisibleElementRect(activePopup);
-        if (popupRect) zones.push(popupRect);
+        const shouldReservePopup = popupRect && !focusRects.some((rect) => this.getRectContains(rect, popupRect));
+        if (shouldReservePopup && payload?.mode !== 'dock-left') zones.push(popupRect);
 
         return zones;
     }
@@ -610,7 +620,7 @@ export class UIManager {
         const guideMode = payload.mode || 'top-card';
         const guideDimensions = this.getTutorialGuideDimensions(payload);
         const focusRects = this.getTutorialFocusRects(payload.focusTargets || this.tutorialHighlightTargets);
-        const forbiddenZones = this.getTutorialForbiddenZones();
+        const forbiddenZones = this.getTutorialForbiddenZones(focusRects, payload);
 
         guide.dataset.guideMode = guideMode;
         guide.dataset.stepType = payload.stepType || 'info';
