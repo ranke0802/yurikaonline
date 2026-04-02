@@ -107,11 +107,11 @@ export default class TutorialManager {
             return 'combat';
         }
 
-        if (['popup_open', 'popup_close', 'skill_upgrade', 'stats_saved'].includes(step.trigger)) {
+        if (['popup_open', 'popup_close', 'skill_upgrade', 'stats_saved', 'skill_detail_close'].includes(step.trigger)) {
             return 'interact';
         }
 
-        if (['skill_tooltip', 'stat_allocated'].includes(step.trigger)) {
+        if (['skill_tooltip', 'skill_detail_open', 'stat_allocated'].includes(step.trigger)) {
             return 'inspect';
         }
 
@@ -131,16 +131,20 @@ export default class TutorialManager {
             save_status: '스탯 저장',
             open_skill: '스킬 창',
             inspect_laser_detail: '기본 공격 설명',
+            close_laser_detail: '설명 닫기',
             inspect_missile_detail: '매직 미사일 설명',
+            close_missile_detail: '설명 닫기',
             upgrade_missile: '매직 미사일 강화',
             use_missile: '매직 미사일 사용',
             reopen_skill_for_fireball: '파이어볼 준비',
             inspect_fireball_detail: '파이어볼 설명',
+            close_fireball_detail: '설명 닫기',
             upgrade_fireball: '파이어볼 강화',
             aim_fireball_mobile: '파이어볼 조준',
             use_fireball: '파이어볼 사용',
             reopen_skill_for_shield: '베리어 준비',
             inspect_shield_detail: '베리어 설명',
+            close_shield_detail: '설명 닫기',
             use_shield: '베리어 사용',
             open_inventory: '인벤토리',
             close_inventory: '인벤토리 닫기',
@@ -164,16 +168,20 @@ export default class TutorialManager {
             save_status: '스탯 창을 닫아 저장해 주세요.',
             open_skill: '스킬 창을 열어 주세요.',
             inspect_laser_detail: '체인 라이트닝 설명을 확인해 주세요.',
+            close_laser_detail: '체인 라이트닝 설명 창을 닫아 주세요.',
             inspect_missile_detail: '매직 미사일 설명을 확인해 주세요.',
+            close_missile_detail: '매직 미사일 설명 창을 닫아 주세요.',
             upgrade_missile: '매직 미사일을 1회 강화하세요.',
             use_missile: '매직 미사일을 사용해 보세요.',
             reopen_skill_for_fireball: '스킬 창을 다시 열어 주세요.',
             inspect_fireball_detail: '파이어볼 설명을 확인해 주세요.',
+            close_fireball_detail: '파이어볼 설명 창을 닫아 주세요.',
             upgrade_fireball: '파이어볼을 1회 강화하세요.',
             aim_fireball_mobile: '파이어볼 버튼을 누른 채 조준해 보세요.',
             use_fireball: '파이어볼을 사용해 보세요.',
             reopen_skill_for_shield: '스킬 창을 다시 열어 주세요.',
             inspect_shield_detail: '앱솔루트 베리어 설명을 확인해 주세요.',
+            close_shield_detail: '앱솔루트 베리어 설명 창을 닫아 주세요.',
             use_shield: '앱솔루트 베리어를 사용해 보세요.',
             open_inventory: '인벤토리를 열어 주세요.',
             close_inventory: '인벤토리를 닫아 주세요.',
@@ -441,7 +449,8 @@ export default class TutorialManager {
     _runActions(actions) {
         if (!actions) return;
 
-        const actionList = Array.isArray(actions) ? actions : [actions];
+        const resolvedActions = this.resolveResponsiveValue(actions, () => actions);
+        const actionList = Array.isArray(resolvedActions) ? resolvedActions : [resolvedActions];
         actionList.forEach((action) => this._handleAction(action));
     }
 

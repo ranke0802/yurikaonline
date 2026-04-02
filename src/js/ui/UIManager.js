@@ -37,6 +37,7 @@ export class UIManager {
         this.tutorialHighlightLayer = null;
         this.tutorialHighlightTargets = [];
         this.tutorialHighlightState = { targets: [], mode: 'ring', label: '' };
+        this.activeSkillDetailId = null;
         this.refreshTutorialHighlight = this.refreshTutorialHighlight.bind(this);
         this.refreshTutorialGuideLayout = this.refreshTutorialGuideLayout.bind(this);
         const refreshTutorialOverlays = () => {
@@ -451,6 +452,11 @@ export class UIManager {
             .filter(Boolean);
     }
 
+    getActivePopupRect() {
+        const activePopup = document.querySelector('#popup-overlay:not(.hidden) .game-popup:not(.hidden)');
+        return this.getVisibleElementRect(activePopup);
+    }
+
     getRectContains(inner, outer) {
         if (!inner || !outer) return false;
         return inner.left >= outer.left
@@ -477,8 +483,7 @@ export class UIManager {
             .map((selector) => this.getVisibleElementRect(selector))
             .filter(Boolean);
 
-        const activePopup = document.querySelector('#popup-overlay:not(.hidden) .game-popup:not(.hidden)');
-        const popupRect = this.getVisibleElementRect(activePopup);
+        const popupRect = this.getActivePopupRect();
         const shouldReservePopup = popupRect && !focusRects.some((rect) => this.getRectContains(rect, popupRect));
         if (shouldReservePopup && payload?.mode !== 'dock-left') zones.push(popupRect);
 
@@ -511,7 +516,7 @@ export class UIManager {
         };
     }
 
-    buildTutorialGuideCandidates(guideMode, width, height, focusRects = []) {
+    buildTutorialGuideCandidates(guideMode, width, height, focusRects = [], options = {}) {
         const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
         const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
         const margin = 16;
@@ -533,12 +538,20 @@ export class UIManager {
         const rightLeft = viewportW - width - margin;
         const leftLeft = margin;
 
-        if (focusRects[0]) {
+        if (focusRects[0] && !options.disableTargetAnchors) {
             const focus = focusRects[0];
             pushCandidate(focus.left + (focus.width / 2) - (width / 2), focus.top - height - 14, 'target-top');
             pushCandidate(focus.left + (focus.width / 2) - (width / 2), focus.bottom + 14, 'target-bottom');
             pushCandidate(focus.right + 14, focus.top + (focus.height / 2) - (height / 2), 'target-right');
             pushCandidate(focus.left - width - 14, focus.top + (focus.height / 2) - (height / 2), 'target-left');
+        }
+
+        if (options.popupRect) {
+            const popup = options.popupRect;
+            pushCandidate(popup.left + (popup.width / 2) - (width / 2), popup.top - height - 18, 'popup-top');
+            pushCandidate(popup.left + (popup.width / 2) - (width / 2), popup.bottom + 18, 'popup-bottom');
+            pushCandidate(popup.right + 18, popup.top + (popup.height / 2) - (height / 2), 'popup-right');
+            pushCandidate(popup.left - width - 18, popup.top + (popup.height / 2) - (height / 2), 'popup-left');
         }
 
         switch (guideMode) {
@@ -621,6 +634,12 @@ export class UIManager {
         const guideDimensions = this.getTutorialGuideDimensions(payload);
         const focusRects = this.getTutorialFocusRects(payload.focusTargets || this.tutorialHighlightTargets);
         const forbiddenZones = this.getTutorialForbiddenZones(focusRects, payload);
+        const popupRect = this.getActivePopupRect();
+        const focusInsidePopup = popupRect && focusRects.some((rect) => this.getRectContains(rect, popupRect));
+        const disableTargetAnchors = !!focusInsidePopup && guideMode !== 'floating-compact';
+        if (focusInsidePopup && popupRect) {
+            forbiddenZones.push(popupRect);
+        }
 
         guide.dataset.guideMode = guideMode;
         guide.dataset.stepType = payload.stepType || 'info';
@@ -646,7 +665,10 @@ export class UIManager {
         const rect = guide.getBoundingClientRect();
         const width = Math.min(guideDimensions.width, rect.width || guideDimensions.width);
         const height = Math.min(guideDimensions.maxHeight, rect.height || guideDimensions.maxHeight);
-        const candidates = this.buildTutorialGuideCandidates(guideMode, width, height, focusRects);
+        const candidates = this.buildTutorialGuideCandidates(guideMode, width, height, focusRects, {
+            disableTargetAnchors,
+            popupRect: focusInsidePopup ? popupRect : null
+        });
         const bestCandidate = candidates.reduce((best, candidate, index) => {
             const score = this.scoreTutorialGuideCandidate(candidate, forbiddenZones, focusRects, index);
             if (!best || score < best.score) {
@@ -2350,13 +2372,18 @@ export class UIManager {
         }
 
         modal.classList.remove('hidden');
-        this.game?.tutorial?.trigger?.('skill_tooltip', { target: skillId, source: 'modal' });
+        this.activeSkillDetailId = skillId;
+        this.game?.tutorial?.trigger?.('skill_detail_open', { target: skillId });
         this.refreshDesktopShortcutHints();
     }
 
     hideSkillDetailModal() {
         const modal = document.getElementById('skill-detail-modal');
         if (modal) modal.classList.add('hidden');
+        if (this.activeSkillDetailId) {
+            this.game?.tutorial?.trigger?.('skill_detail_close', { target: this.activeSkillDetailId });
+        }
+        this.activeSkillDetailId = null;
         this.refreshDesktopShortcutHints();
     }
 
