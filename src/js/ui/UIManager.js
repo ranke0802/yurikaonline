@@ -22,6 +22,7 @@ export class UIManager {
         this.lastDevOverlayUpdate = 0;
         this.selectedInventoryRef = null;
         this.pendingEnhancementStoneType = null;
+        this.inventoryEnhancementAnimating = false;
         this.inventoryDragState = null;
         this.inventoryClickSuppressUntil = 0;
         this.questClaimAvailable = false;
@@ -205,10 +206,96 @@ export class UIManager {
         }
     }
 
+    isActiveEnhancementStone(item, stoneType = this.pendingEnhancementStoneType) {
+        if (!item || !stoneType) return false;
+        const itemId = item.type || item.id;
+        return stoneType === 'blessed'
+            ? itemId === 'blessed_weapon_upgrade_stone'
+            : itemId === 'weapon_upgrade_stone';
+    }
+
+    getInventoryEnhancementTargetElement(selection) {
+        if (selection?.kind === 'equipment') {
+            return document.querySelector('.equipped-weapon-slot');
+        }
+
+        if (selection?.kind === 'inventory' && Number.isInteger(selection.index)) {
+            return document.querySelector(`#inventory-grid .grid-item[data-inventory-index="${selection.index}"]`);
+        }
+
+        return null;
+    }
+
+    ensureInventoryFxLayer(element) {
+        if (!element) return null;
+        let layer = element.querySelector('.inventory-fx-layer');
+        if (!layer) {
+            layer = document.createElement('span');
+            layer.className = 'inventory-fx-layer';
+            element.appendChild(layer);
+        }
+        return layer;
+    }
+
+    playInventoryEnhancementPhase(element, phaseClass, sfxName, duration = 300) {
+        if (!element || !phaseClass) {
+            if (sfxName && this.game.sound) this.game.sound.playSfx(sfxName);
+            return new Promise((resolve) => window.setTimeout(resolve, duration));
+        }
+
+        this.ensureInventoryFxLayer(element);
+        element.classList.remove(
+            'enhance-fx-priming',
+            'enhance-fx-success',
+            'enhance-fx-keep',
+            'enhance-fx-fail',
+            'enhance-fx-tier-7',
+            'enhance-fx-tier-8',
+            'enhance-fx-tier-9',
+            'enhance-fx-tier-10'
+        );
+        void element.offsetWidth;
+        element.classList.add(phaseClass);
+        if (sfxName && this.game.sound) this.game.sound.playSfx(sfxName);
+
+        return new Promise((resolve) => {
+            window.setTimeout(() => {
+                element.classList.remove(phaseClass);
+                resolve();
+            }, duration);
+        });
+    }
+
+    async playWeaponEnhancementSequence(selection, result) {
+        const element = this.getInventoryEnhancementTargetElement(selection);
+        await this.playInventoryEnhancementPhase(element, 'enhance-fx-priming', 'enhance_charge', 300);
+
+        if (result.success) {
+            await this.playInventoryEnhancementPhase(element, 'enhance-fx-success', 'enhance_success', 300);
+            if (result.nextLevel >= 10) {
+                await this.playInventoryEnhancementPhase(element, 'enhance-fx-tier-10', 'enhance_tier_10', 300);
+            } else if (result.nextLevel === 9) {
+                await this.playInventoryEnhancementPhase(element, 'enhance-fx-tier-9', 'enhance_tier_9', 300);
+            } else if (result.nextLevel === 8) {
+                await this.playInventoryEnhancementPhase(element, 'enhance-fx-tier-8', 'enhance_tier_8', 300);
+            } else if (result.nextLevel === 7) {
+                await this.playInventoryEnhancementPhase(element, 'enhance-fx-tier-7', 'enhance_tier_7', 300);
+            }
+            return;
+        }
+
+        if (result.keptLevel) {
+            await this.playInventoryEnhancementPhase(element, 'enhance-fx-keep', 'enhance_keep', 300);
+            return;
+        }
+
+        await this.playInventoryEnhancementPhase(element, 'enhance-fx-fail', 'enhance_fail', 300);
+    }
+
     startWeaponEnhancementSelection(stoneType = 'normal') {
         const player = this.game.localPlayer;
         const meta = this.getEnhancementStoneMeta(stoneType);
-        if (!player || !meta) return false;
+        if (!player || !meta || this.inventoryEnhancementAnimating) return false;
 
         const stoneCount = player.getInventoryItemCount?.(meta.stoneItemId) || 0;
         if (stoneCount < 1) {
@@ -236,11 +323,21 @@ export class UIManager {
         const player = this.game.localPlayer;
         const itemData = this.game.itemData;
         const meta = this.getEnhancementStoneMeta();
-        if (!player || !itemData || !meta) return;
+        if (!player || !itemData || !meta || this.inventoryEnhancementAnimating) return;
 
         const target = player.resolveWeaponSelection(selection);
         if (!target?.item) {
             this.showGenericModal(meta.modalTitle, '강화할 무기를 선택해 주세요.', null, null, { hideNo: true, yesText: '확인' });
+            return;
+        }
+
+        const definition = itemData.getItemDefinition?.(target.item.type || target.item.id);
+        const ruleSetId = target.item.enhancementRuleSet || definition?.enhancementRuleSet;
+        const ruleSet = itemData.getEnhancementRuleSet?.(ruleSetId);
+        const currentLevel = Math.max(0, target.item.enhancementLevel || 0);
+        const maxLevel = Math.max(0, ruleSet?.maxLevel || 10);
+        if (currentLevel >= maxLevel) {
+            this.showGenericModal(meta.modalTitle, '해당 무기는 이미 최종 강화된 상태입니다.', null, null, { hideNo: true, yesText: '확인' });
             return;
         }
 
@@ -257,25 +354,14 @@ export class UIManager {
             return;
         }
 
-        const finalizeSelectionState = (result) => {
+        const finalizeSelectionState = () => {
             this.pendingEnhancementStoneType = null;
-
-            if (result?.destroyed) {
-                this.selectedInventoryRef = null;
-                this.closeInventoryItemModal(true);
-                return;
-            }
-
-            if (selection?.kind === 'equipment') {
-                this.selectedInventoryRef = { kind: 'equipment', slot: 'weapon' };
-            } else if (selection?.kind === 'inventory') {
-                this.selectedInventoryRef = { kind: 'inventory', index: selection.index };
-            }
-
-            document.getElementById('inventory-item-modal')?.classList.remove('hidden');
+            this.selectedInventoryRef = null;
+            this.closeInventoryItemModal(true);
         };
 
-        const executeEnhance = () => {
+        const executeEnhance = async () => {
+            const targetName = target.item.name;
             const result = player.enhanceWeapon(selection, { stoneType: meta.stoneType });
             if (!result.ok) {
                 this.pendingEnhancementStoneType = null;
@@ -284,31 +370,26 @@ export class UIManager {
                 return;
             }
 
-            finalizeSelectionState(result);
+            finalizeSelectionState();
+            this.inventoryEnhancementAnimating = true;
+            try {
+                await this.playWeaponEnhancementSequence(selection, result);
+            } finally {
+                this.inventoryEnhancementAnimating = false;
+            }
 
             if (result.success) {
                 if (meta.stoneType === 'blessed') {
-                    this.showGenericModal(
-                        '축복 강화 성공',
-                        `${target.item.name}이(가) +${result.nextLevel} 강화에 성공했습니다. (${result.gain > 0 ? `+${result.gain}` : '유지'})`,
-                        null,
-                        null,
-                        { hideNo: true, yesText: '확인' }
-                    );
-                    this.logSystemMessage(`✨ ${target.item.name} 축복 강화 성공 (${result.gain > 0 ? `+${result.gain}` : '유지'})`);
+                    this.logSystemMessage(`✨ ${targetName} 축복 강화 성공 (${result.gain > 0 ? `+${result.gain}` : '유지'})`);
                 } else {
-                    this.showGenericModal('강화 성공', `${target.item.name}이(가) +${result.nextLevel} 강화에 성공했습니다.`, null, null, { hideNo: true, yesText: '확인' });
-                    this.logSystemMessage(`✨ ${target.item.name} +${result.nextLevel} 강화 성공`);
+                    this.logSystemMessage(`✨ ${targetName} +${result.nextLevel} 강화 성공`);
                 }
             } else if (result.destroyed) {
-                this.showGenericModal('강화 파괴', '강화에 실패해 장비가 파괴되었습니다.', null, null, { hideNo: true, yesText: '확인' });
-                this.logSystemMessage('💥 강화 실패로 장비가 파괴되었습니다.');
+                this.logSystemMessage(`💥 ${targetName} 강화 실패로 장비가 파괴되었습니다.`);
             } else if (meta.stoneType === 'blessed') {
-                this.showGenericModal('축복 강화 실패', '축복의 힘으로 강화는 실패했지만 현재 강화 수치는 유지되었습니다.', null, null, { hideNo: true, yesText: '확인' });
-                this.logSystemMessage('✨ 축복 강화 실패, 장비는 유지되었습니다.');
+                this.logSystemMessage(`✨ ${targetName} 축복 강화 유지`);
             } else {
-                this.showGenericModal('강화 실패', '강화에 실패했습니다. 장비는 유지됩니다.', null, null, { hideNo: true, yesText: '확인' });
-                this.logSystemMessage('강화에 실패했습니다. 장비는 유지되었습니다.');
+                this.logSystemMessage(`⚠️ ${targetName} 강화 실패, 장비는 유지됩니다.`);
             }
 
             this.updateInventory();
@@ -3883,6 +3964,7 @@ export class UIManager {
     }
 
     startInventorySlotDrag(event, index, button) {
+        if (this.inventoryEnhancementAnimating) return;
         if (!button || !Number.isInteger(index) || index <= 0) return;
         if (event.button != null && event.button !== 0) return;
 
@@ -4109,6 +4191,7 @@ export class UIManager {
         const equippedSlot = document.createElement('button');
         equippedSlot.type = 'button';
         equippedSlot.className = 'grid-item utility-slot equipped-weapon-slot';
+        this.ensureInventoryFxLayer(equippedSlot);
         equippedSlot.classList.toggle('enhancement-selectable', enhancementSelectionActive && !!equippedWeapon);
         equippedSlot.setAttribute('aria-label', equippedWeapon ? `${equippedWeapon.name} 장착 중` : '장착 무기 없음');
         equippedSlot.appendChild(createUtilityLabel('착용'));
@@ -4124,6 +4207,7 @@ export class UIManager {
             equippedSlot.appendChild(level);
             this.applyInventoryEnhancementVisual(equippedSlot, equippedWeapon, level);
             equippedSlot.addEventListener('click', () => {
+                if (this.inventoryEnhancementAnimating) return;
                 if (this.isWeaponEnhancementSelectionActive()) {
                     this.executeWeaponEnhancementForSelection({ kind: 'equipment', slot: 'weapon' });
                     return;
@@ -4149,7 +4233,9 @@ export class UIManager {
             button.type = 'button';
             button.className = 'grid-item';
             button.dataset.inventoryIndex = `${index}`;
+            this.ensureInventoryFxLayer(button);
             button.classList.toggle('enhancement-selectable', enhancementSelectionActive && item?.slot === 'weapon');
+            button.classList.toggle('enhancement-stone-active', this.isActiveEnhancementStone(item));
             button.setAttribute('aria-label', item?.name || `빈 슬롯 ${index}`);
             if (this.isInventorySelection(this.selectedInventoryRef, 'inventory', index)) {
                 button.classList.add('selected');
@@ -4189,6 +4275,7 @@ export class UIManager {
             }
 
             button.addEventListener('click', () => {
+                if (this.inventoryEnhancementAnimating) return;
                 if (performance.now() < this.inventoryClickSuppressUntil) return;
                 if (this.isWeaponEnhancementSelectionActive()) {
                     if (item?.slot === 'weapon') {
@@ -4266,20 +4353,6 @@ export class UIManager {
                 li.textContent = line;
                 statsEl.appendChild(li);
             });
-        }
-
-        if (hintEl) {
-            const stoneCount = p.getInventoryItemCount?.('weapon_upgrade_stone') || 0;
-            const blessedStoneCount = p.getInventoryItemCount?.('blessed_weapon_upgrade_stone') || 0;
-            const hints = [];
-            if (detailData.enhanceHint) {
-                hints.push(`${detailData.enhanceHint} / 강화석 ${stoneCount}개 보유`);
-                hints.push(`축복 강화석 ${blessedStoneCount}개 보유 / 성공 50% / 실패 시 유지 / 성공 시 +1~2`);
-            }
-            if (detailData.dismantleHint) {
-                hints.push(detailData.dismantleHint);
-            }
-            hintEl.innerHTML = hints.join('<br>');
         }
 
         if (hintEl) {

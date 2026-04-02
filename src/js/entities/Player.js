@@ -2584,6 +2584,15 @@ export default class Player extends CharacterBase {
             return { ok: false, message: `${stoneLabel}이 부족합니다.` };
         }
 
+        const definition = itemData.getItemDefinition?.(target.item.type || target.item.id);
+        const ruleSetId = target.item.enhancementRuleSet || definition?.enhancementRuleSet;
+        const ruleSet = itemData.getEnhancementRuleSet?.(ruleSetId);
+        const currentLevel = Math.max(0, target.item.enhancementLevel || 0);
+        const maxLevel = Math.max(0, ruleSet?.maxLevel || 10);
+        if (currentLevel >= maxLevel) {
+            return { ok: false, message: '해당 무기는 이미 최종 강화된 상태입니다.' };
+        }
+
         const config = itemData.getEnhancementConfig(target.item);
         if (!config) {
             return { ok: false, message: '이 장비는 더 이상 강화할 수 없습니다.' };
@@ -2591,7 +2600,6 @@ export default class Player extends CharacterBase {
 
         this.consumeInventoryItem(stoneItemId, 1);
 
-        const currentLevel = Math.max(0, target.item.enhancementLevel || 0);
         const result = {
             ok: true,
             success: false,

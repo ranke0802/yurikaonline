@@ -397,6 +397,47 @@ export default class SoundManager {
             case 'item_loot': this._tone(now, 'sine', 1500, 0.1, 0.2, gain); this._tone(now + 0.1, 'sine', 2000, 0.2, 0.2, gain); break;
             case 'item_pickup': this._tone(now, 'fm_bell', 2000, 0.1, 0.15, gain); break;
             case 'inventory_open': this._tone(now, 'sine', 500, 0.1, 0.08, gain); break;
+            case 'enhance_charge':
+                this._noise(now, 0.06, 0.12, gain, 4200);
+                this._slide(now, 'triangle', 520, 1180, 0.24, 0.14, gain);
+                this._tone(now + 0.04, 'sine', 1320, 0.12, 0.08, gain);
+                break;
+            case 'enhance_success':
+                this._noise(now, 0.05, 0.1, gain, 6800);
+                this._tone(now, 'sine', 1480, 0.12, 0.11, gain);
+                this._tone(now + 0.06, 'triangle', 1980, 0.14, 0.08, gain);
+                break;
+            case 'enhance_keep':
+                this._noise(now, 0.04, 0.08, gain, 2600);
+                this._slide(now, 'sine', 1240, 560, 0.28, 0.1, gain);
+                this._tone(now + 0.03, 'triangle', 780, 0.16, 0.06, gain);
+                break;
+            case 'enhance_fail':
+                this._noise(now, 0.16, 0.22, gain, 1800);
+                this._slide(now, 'sawtooth', 420, 120, 0.28, 0.16, gain);
+                this._tone(now + 0.02, 'square', 160, 0.12, 0.09, gain);
+                break;
+            case 'enhance_tier_7':
+                this._tone(now, 'sine', 980, 0.18, 0.1, gain);
+                this._tone(now + 0.05, 'triangle', 1280, 0.16, 0.08, gain);
+                this._noise(now, 0.04, 0.08, gain, 5200);
+                break;
+            case 'enhance_tier_8':
+                this._tone(now, 'sine', 1120, 0.18, 0.09, gain);
+                this._tone(now + 0.04, 'sine', 1680, 0.18, 0.08, gain);
+                this._noise(now, 0.04, 0.08, gain, 6200);
+                break;
+            case 'enhance_tier_9':
+                this._noise(now, 0.08, 0.12, gain, 3400);
+                this._slide(now, 'sawtooth', 960, 1480, 0.22, 0.12, gain);
+                this._tone(now + 0.05, 'square', 620, 0.18, 0.08, gain);
+                break;
+            case 'enhance_tier_10':
+                this._tone(now, 'sine', 1320, 0.2, 0.12, gain);
+                this._tone(now + 0.05, 'sine', 1760, 0.18, 0.1, gain);
+                this._tone(now + 0.1, 'triangle', 2240, 0.18, 0.08, gain);
+                this._noise(now, 0.05, 0.09, gain, 7600);
+                break;
 
             // Environmental Sounds
             case 'footstep_grass':
