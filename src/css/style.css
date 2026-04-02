@@ -2199,6 +2199,7 @@ body.low-power-pwa .minimap-menu {
     transform: scale(0.55);
     transition: opacity 0.18s ease, transform 0.18s ease;
     pointer-events: none;
+    z-index: 3;
 }
 
 .menu-alert-dot.active {
@@ -2929,6 +2930,7 @@ body.low-power-pwa .minimap-menu {
     align-items: flex-start;
     gap: 14px;
     padding-right: 52px;
+    text-align: left;
 }
 
 .skill-detail-modal-hotkey {
@@ -2948,6 +2950,7 @@ body.low-power-pwa .minimap-menu {
 
 .skill-detail-modal-heading {
     min-width: 0;
+    text-align: left;
 }
 
 .skill-detail-modal-heading h2 {
@@ -2971,6 +2974,7 @@ body.low-power-pwa .minimap-menu {
     flex-direction: column;
     gap: 12px;
     padding-right: 4px;
+    text-align: left;
 }
 
 .skill-detail-summary-grid {
@@ -2988,6 +2992,7 @@ body.low-power-pwa .minimap-menu {
     flex-direction: column;
     gap: 6px;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+    text-align: left;
 }
 
 .skill-detail-metric-label {
@@ -3008,6 +3013,7 @@ body.low-power-pwa .minimap-menu {
     border-radius: 18px;
     padding: 14px 16px;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+    text-align: left;
 }
 
 .skill-detail-section h3 {
@@ -3984,7 +3990,7 @@ body.is-fullscreen .version-info {
 }
 
 /* 퀘스트 보상 수령 가능 상태 - 화려한 버튼화 */
-.quest-reward-claimable {
+#quest-reward-display.quest-reward-claimable {
     background: linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%) !important;
     border: 3px solid #fbbf24 !important;
     cursor: pointer !important;
@@ -3993,27 +3999,40 @@ body.is-fullscreen .version-info {
     transition: transform 0.2s, box-shadow 0.2s !important;
 }
 
-.quest-reward-claimable:hover {
+#quest-reward-display.quest-reward-claimable:hover {
     transform: scale(1.05) !important;
     box-shadow: 0 0 30px rgba(74, 222, 128, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.4) !important;
 }
 
-.quest-reward-claimable .quest-icon {
+#quest-reward-display.quest-reward-claimable .quest-icon {
     font-size: 24px !important;
     animation: bounce-icon 0.6s ease-in-out infinite alternate !important;
 }
 
-.quest-reward-claimable .quest-title {
+#quest-reward-display.quest-reward-claimable .quest-title {
     color: white !important;
     font-weight: bold !important;
     font-size: 14px !important;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3) !important;
 }
 
-.quest-reward-claimable .quest-progress {
+#quest-reward-display.quest-reward-claimable .quest-progress {
     color: #fef3c7 !important;
     font-weight: bold !important;
     font-size: 12px !important;
+}
+
+#quest-reward-display.quest-reward-claimable::before {
+    content: '';
+    position: absolute;
+    top: 7px;
+    right: 9px;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #ef4444;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.92), 0 0 10px rgba(239, 68, 68, 0.55);
+    pointer-events: none;
 }
 
 #quest-reward-display.quest-reward-claimable .quest-title,
@@ -7057,4 +7076,33 @@ body.low-power-pwa #ui-layer #minimap-container {
 body.low-power-pwa #ui-layer .minimap-menu {
     background: rgba(255, 255, 255, 0.86) !important;
     border-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+@media screen and (max-width: 1024px) and (orientation: landscape) {
+    body #ui-layer .minimap-menu .menu-btn {
+        position: relative !important;
+        overflow: visible !important;
+    }
+
+    body #ui-layer .minimap-menu .menu-alert-dot {
+        top: 4px !important;
+        right: 4px !important;
+        z-index: 4 !important;
+    }
+
+    #quest-reward-display.quest-reward-claimable {
+        background: linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%) !important;
+        border: 2px solid #fbbf24 !important;
+        box-shadow: 0 0 18px rgba(74, 222, 128, 0.55), inset 0 0 12px rgba(255, 255, 255, 0.26) !important;
+    }
+
+    #quest-reward-display.quest-reward-claimable .quest-title {
+        color: #f0fdf4 !important;
+        font-size: 10px !important;
+    }
+
+    #quest-reward-display.quest-reward-claimable .quest-progress {
+        color: #dcfce7 !important;
+        font-size: 9px !important;
+    }
 }
