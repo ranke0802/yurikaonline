@@ -1112,6 +1112,13 @@ export default class Player extends CharacterBase {
     getCombatTargetPoint(target) {
         if (!target) return null;
 
+        if (target.isMonster || target.type === 'monster') {
+            return {
+                x: target.x,
+                y: target.y
+            };
+        }
+
         return {
             x: target?.width ? target.x + target.width / 2 : target?.x,
             y: target?.height ? target.y + target.height / 2 : target?.y
@@ -1563,6 +1570,7 @@ export default class Player extends CharacterBase {
                                 damage: dmg,
                                 isCrit: isCrit,
                                 radius: 5,
+                                hitRadius: 14,
                                 variant: weaponCombat.missileVariant || null,
                                 visualTint: weaponCombat.missileTint || null
                             }

@@ -26,6 +26,8 @@ export class Projectile {
         this.aoeRadius = options.aoeRadius || this.radius * 2; // v1.99.30: Explosion 2x wider than projectile (balanced)
         if (this.type === 'fireball') {
             this.hitRadius = this.radius; // v1.99.20: Sync hitbox with visible radius
+        } else if (this.type === 'missile') {
+            this.hitRadius = options.hitRadius || Math.max(this.radius * 2.8, 12);
         } else {
             this.hitRadius = this.radius;
         }

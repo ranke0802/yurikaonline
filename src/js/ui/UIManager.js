@@ -453,8 +453,22 @@ export class UIManager {
     }
 
     getActivePopupRect() {
-        const activePopup = document.querySelector('#popup-overlay:not(.hidden) .game-popup:not(.hidden)');
-        return this.getVisibleElementRect(activePopup);
+        const popupSelectors = [
+            '#skill-detail-modal:not(.hidden) .skill-detail-modal-content',
+            '#inventory-item-modal:not(.hidden) .inventory-item-modal-card',
+            '#confirm-modal:not(.hidden) .confirm-content',
+            '#reward-modal:not(.hidden) .confirm-modal-content',
+            '#history-modal:not(.hidden) .confirm-modal-content',
+            '#generic-modal:not(.hidden) .confirm-modal-content',
+            '#popup-overlay:not(.hidden) .game-popup:not(.hidden)'
+        ];
+
+        for (const selector of popupSelectors) {
+            const rect = this.getVisibleElementRect(selector);
+            if (rect) return rect;
+        }
+
+        return null;
     }
 
     getRectContains(inner, outer) {
@@ -490,11 +504,36 @@ export class UIManager {
         return zones;
     }
 
-    getTutorialGuideDimensions(payload) {
+    getTutorialGuideDimensions(payload, context = {}) {
         const mode = this.getTutorialViewportMode();
         const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
         const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
         const compactRatio = payload?.compact ? 0.9 : 1;
+        const popupInline = !!context.focusInsidePopup;
+        const popupRect = context.popupRect;
+
+        if (popupInline) {
+            if (mode === 'mobile-landscape') {
+                return {
+                    width: Math.min(Math.round(viewportW * 0.24 * compactRatio), 240),
+                    maxHeight: Math.min(Math.round(viewportH * 0.3), payload?.compact ? 116 : 132)
+                };
+            }
+
+            if (mode === 'mobile-portrait') {
+                const popupWidth = popupRect?.width || viewportW;
+                const availableWidth = Math.max(176, popupWidth - 28);
+                return {
+                    width: Math.min(Math.round(availableWidth * 0.72 * compactRatio), 244),
+                    maxHeight: Math.min(Math.round(viewportH * 0.16), payload?.compact ? 104 : 118)
+                };
+            }
+
+            return {
+                width: Math.min(Math.round(viewportW * 0.22), 280),
+                maxHeight: Math.min(Math.round(viewportH * 0.24), 148)
+            };
+        }
 
         if (mode === 'mobile-landscape') {
             return {
@@ -519,6 +558,7 @@ export class UIManager {
     buildTutorialGuideCandidates(guideMode, width, height, focusRects = [], options = {}) {
         const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
         const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+        const viewportMode = options.viewportMode || this.getTutorialViewportMode();
         const margin = 16;
         const clampLeft = (value) => Math.min(Math.max(margin, value), Math.max(margin, viewportW - width - margin));
         const clampTop = (value) => Math.min(Math.max(margin, value), Math.max(margin, viewportH - height - margin));
@@ -548,10 +588,66 @@ export class UIManager {
 
         if (options.popupRect) {
             const popup = options.popupRect;
-            pushCandidate(popup.left + (popup.width / 2) - (width / 2), popup.top - height - 18, 'popup-top');
-            pushCandidate(popup.left + (popup.width / 2) - (width / 2), popup.bottom + 18, 'popup-bottom');
-            pushCandidate(popup.right + 18, popup.top + (popup.height / 2) - (height / 2), 'popup-right');
-            pushCandidate(popup.left - width - 18, popup.top + (popup.height / 2) - (height / 2), 'popup-left');
+            const popupCenterLeft = popup.left + (popup.width / 2) - (width / 2);
+            const focus = focusRects[0];
+
+            if (viewportMode === 'mobile-portrait') {
+                const popupMargin = 12;
+                const headerBandOffset = Math.min(Math.max(72, popup.height * 0.14), 96);
+                const footerBandOffset = Math.min(Math.max(78, popup.height * 0.15), 108);
+                const topBandTop = popup.top + headerBandOffset;
+                const bottomBandTop = popup.bottom - footerBandOffset - height;
+                const leftBandLeft = popup.left + popupMargin;
+                const rightBandLeft = popup.right - width - popupMargin;
+                const topBandCandidates = [
+                    { left: popupCenterLeft, top: topBandTop, kind: 'popup-band-top-center' },
+                    { left: leftBandLeft, top: topBandTop, kind: 'popup-band-top-left' },
+                    { left: rightBandLeft, top: topBandTop, kind: 'popup-band-top-right' }
+                ];
+                const bottomBandCandidates = [
+                    { left: popupCenterLeft, top: bottomBandTop, kind: 'popup-band-bottom-center' },
+                    { left: leftBandLeft, top: bottomBandTop, kind: 'popup-band-bottom-left' },
+                    { left: rightBandLeft, top: bottomBandTop, kind: 'popup-band-bottom-right' }
+                ];
+                const focusCenterY = focus ? focus.top + (focus.height / 2) : popup.top + (popup.height / 2);
+                const preferBottomBand = focusCenterY < popup.top + (popup.height * 0.48);
+                const orderedBandCandidates = preferBottomBand
+                    ? [...bottomBandCandidates, ...topBandCandidates]
+                    : [...topBandCandidates, ...bottomBandCandidates];
+
+                orderedBandCandidates.forEach((candidate) => pushCandidate(candidate.left, candidate.top, candidate.kind));
+                pushCandidate(popupCenterLeft, popup.top - height - 12, 'popup-top');
+                pushCandidate(popupCenterLeft, popup.bottom + 12, 'popup-bottom');
+            } else {
+                pushCandidate(popupCenterLeft, popup.top - height - 18, 'popup-top');
+                pushCandidate(popupCenterLeft, popup.bottom + 18, 'popup-bottom');
+                pushCandidate(popup.right + 18, popup.top + (popup.height / 2) - (height / 2), 'popup-right');
+                pushCandidate(popup.left - width - 18, popup.top + (popup.height / 2) - (height / 2), 'popup-left');
+
+                const popupMargin = 18;
+                const insetCandidates = [
+                    { left: popup.left + popupMargin, top: popup.top + popupMargin, kind: 'popup-inset-top-left' },
+                    { left: popup.right - width - popupMargin, top: popup.top + popupMargin, kind: 'popup-inset-top-right' },
+                    { left: popup.left + popupMargin, top: popup.bottom - height - popupMargin, kind: 'popup-inset-bottom-left' },
+                    { left: popup.right - width - popupMargin, top: popup.bottom - height - popupMargin, kind: 'popup-inset-bottom-right' }
+                ];
+
+                if (focus) {
+                    const focusCenterX = focus.left + (focus.width / 2);
+                    const focusCenterY = focus.top + (focus.height / 2);
+                    insetCandidates.sort((a, b) => {
+                        const aCenterX = a.left + (width / 2);
+                        const aCenterY = a.top + (height / 2);
+                        const bCenterX = b.left + (width / 2);
+                        const bCenterY = b.top + (height / 2);
+                        const aDistance = Math.hypot(aCenterX - focusCenterX, aCenterY - focusCenterY);
+                        const bDistance = Math.hypot(bCenterX - focusCenterX, bCenterY - focusCenterY);
+                        return bDistance - aDistance;
+                    });
+                }
+
+                insetCandidates.forEach((candidate) => pushCandidate(candidate.left, candidate.top, candidate.kind));
+            }
         }
 
         switch (guideMode) {
@@ -631,13 +727,13 @@ export class UIManager {
 
         const mode = this.getTutorialViewportMode();
         const guideMode = payload.mode || 'top-card';
-        const guideDimensions = this.getTutorialGuideDimensions(payload);
         const focusRects = this.getTutorialFocusRects(payload.focusTargets || this.tutorialHighlightTargets);
-        const forbiddenZones = this.getTutorialForbiddenZones(focusRects, payload);
         const popupRect = this.getActivePopupRect();
         const focusInsidePopup = popupRect && focusRects.some((rect) => this.getRectContains(rect, popupRect));
+        const guideDimensions = this.getTutorialGuideDimensions(payload, { focusInsidePopup, popupRect });
+        const forbiddenZones = this.getTutorialForbiddenZones(focusRects, payload);
         const disableTargetAnchors = !!focusInsidePopup && guideMode !== 'floating-compact';
-        if (focusInsidePopup && popupRect) {
+        if (!focusInsidePopup && popupRect) {
             forbiddenZones.push(popupRect);
         }
 
@@ -645,6 +741,7 @@ export class UIManager {
         guide.dataset.stepType = payload.stepType || 'info';
         guide.dataset.align = payload.align || 'left';
         guide.classList.toggle('tutorial-guide-compact', !!payload.compact);
+        guide.classList.toggle('tutorial-guide-popup-inline', !!focusInsidePopup);
 
         guide.style.position = 'fixed';
         guide.style.left = '-9999px';
@@ -667,7 +764,8 @@ export class UIManager {
         const height = Math.min(guideDimensions.maxHeight, rect.height || guideDimensions.maxHeight);
         const candidates = this.buildTutorialGuideCandidates(guideMode, width, height, focusRects, {
             disableTargetAnchors,
-            popupRect: focusInsidePopup ? popupRect : null
+            popupRect: focusInsidePopup ? popupRect : null,
+            viewportMode: mode
         });
         const bestCandidate = candidates.reduce((best, candidate, index) => {
             const score = this.scoreTutorialGuideCandidate(candidate, forbiddenZones, focusRects, index);

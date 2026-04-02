@@ -922,6 +922,13 @@ export default class RemotePlayer extends CharacterBase {
     _resolveRemoteMissilePoint(data) {
         const liveTarget = this._resolveRemoteMissileTargetById(data?.targetId, data?.targetType);
         if (liveTarget && !liveTarget.isDead) {
+            if (liveTarget.isMonster || liveTarget.type === 'monster') {
+                return {
+                    x: liveTarget.x,
+                    y: liveTarget.y
+                };
+            }
+
             return {
                 x: liveTarget.x + ((liveTarget.width || 0) / 2),
                 y: liveTarget.y + ((liveTarget.height || 0) / 2)
