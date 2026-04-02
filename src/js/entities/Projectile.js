@@ -14,12 +14,13 @@ export class Projectile {
         this.isDead = false;
         this.lifeTime = options.lifeTime || 3.0;
         this.burnDuration = options.burnDuration || 5.0;
-        this.targetX = options.targetX || null;
-        this.targetY = options.targetY || null;
+        this.targetX = Number.isFinite(options.targetX) ? options.targetX : null;
+        this.targetY = Number.isFinite(options.targetY) ? options.targetY : null;
         this.isCrit = options.isCrit || false;
         this.variant = options.variant || null;
         this.visualTint = options.visualTint || null;
         this.weaponEffect = options.weaponEffect || null;
+        this.lockTargetPosition = !!options.lockTargetPosition;
 
         // v1.99.16: Separate hit detection radius from AOE/visual radius
         this.aoeRadius = options.aoeRadius || this.radius * 2; // v1.99.30: Explosion 2x wider than projectile (balanced)
@@ -72,7 +73,10 @@ export class Projectile {
 
             // v0.00.65: Magic Missile Logic Update
             // Lock onto initial target position
-            if (this.target) {
+            if (this.targetX !== null && this.targetY !== null) {
+                this.homingX = this.targetX;
+                this.homingY = this.targetY;
+            } else if (this.target) {
                 this.homingX = this.target.x;
                 this.homingY = this.target.y;
             } else {
@@ -138,7 +142,7 @@ export class Projectile {
                 this.vy *= 0.98;
 
                 // Keep updating homing pos while target is alive during delay
-                if (this.target && !this.target.isDead) {
+                if (!this.lockTargetPosition && this.target && !this.target.isDead) {
                     this.homingX = this.target.x;
                     this.homingY = this.target.y;
                 }
@@ -147,7 +151,7 @@ export class Projectile {
                 // If target is alive, update homing position.
                 // If target is dead/null, KEEP last homing position (Do NOT retarget).
 
-                if (this.target && !this.target.isDead) {
+                if (!this.lockTargetPosition && this.target && !this.target.isDead) {
                     this.homingX = this.target.x;
                     this.homingY = this.target.y;
                 }

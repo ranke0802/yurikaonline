@@ -33,7 +33,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.01.54')
+                navigator.serviceWorker.register('./sw.js?v=0.01.55')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -113,7 +113,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.54">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.55">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -187,9 +187,11 @@
                     </div>
                     <div class="menu-btn skill-trigger" id="btn-skill" data-key="shift-s" title="스킬">
                         <div class="menu-icon">📜</div>
+                        <span class="menu-alert-dot" id="skill-alert-dot" aria-hidden="true"></span>
                     </div>
                     <div class="menu-btn status-trigger" id="btn-status" data-key="shift-i" title="내 정보">
                         <div class="menu-icon">👤</div>
+                        <span class="menu-alert-dot" id="status-alert-dot" aria-hidden="true"></span>
                     </div>
                 </div>
 
@@ -223,6 +225,7 @@
                         <div class="quest-panel-header">
                             <span class="quest-header-icon">📜</span>
                             <h3>진행 중인 퀘스트</h3>
+                            <span class="quest-header-alert-dot" id="quest-alert-dot" aria-hidden="true"></span>
                         </div>
                         <div class="quest-content">
                             <!-- Slot 1: Mission Task -->
@@ -662,7 +665,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.54"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.55"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

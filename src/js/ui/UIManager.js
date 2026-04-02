@@ -23,6 +23,7 @@ export class UIManager {
         this.selectedInventoryRef = null;
         this.inventoryDragState = null;
         this.inventoryClickSuppressUntil = 0;
+        this.questClaimAvailable = false;
         this.handleDesktopShortcutKeydown = this.handleDesktopShortcutKeydown.bind(this);
         this.refreshDesktopShortcutHints = this.refreshDesktopShortcutHints.bind(this);
         this.handleInventorySlotPointerMove = this.handleInventorySlotPointerMove.bind(this);
@@ -118,6 +119,40 @@ export class UIManager {
         button.classList.toggle('active', enabled);
         button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
         button.setAttribute('title', enabled ? '자동 일반공격 활성화' : '자동 일반공격 비활성화');
+    }
+
+    hasAnySkillUpgradeAvailable(player = this.game.localPlayer) {
+        if (!player) return false;
+
+        return ['laser', 'missile', 'fireball'].some((skillId) => {
+            const cost = player.getSkillUpgradeCost
+                ? player.getSkillUpgradeCost(skillId)
+                : (300 * Math.pow(2, (player.skillLevels?.[skillId] || 1) - 1));
+            return Number.isFinite(cost) && player.gold >= cost;
+        });
+    }
+
+    setAlertDotState(target, active) {
+        const element = typeof target === 'string'
+            ? document.getElementById(target)
+            : target;
+        if (!element) return;
+
+        element.classList.toggle('active', !!active);
+        element.setAttribute('aria-hidden', active ? 'false' : 'true');
+    }
+
+    updateHudAttentionIndicators(overrides = {}) {
+        const player = this.game.localPlayer;
+        if (!player) return;
+
+        const statusAvailable = overrides.statusAvailable ?? !!player.statPoints;
+        const skillAvailable = overrides.skillAvailable ?? this.hasAnySkillUpgradeAvailable(player);
+        const questAvailable = overrides.questAvailable ?? this.questClaimAvailable;
+
+        this.setAlertDotState('status-alert-dot', statusAvailable);
+        this.setAlertDotState('skill-alert-dot', skillAvailable);
+        this.setAlertDotState('quest-alert-dot', questAvailable);
     }
 
     // v2.1: Dialog System Methods
@@ -819,7 +854,7 @@ export class UIManager {
         this.tooltip = document.getElementById('skill-tooltip');
         this.skillData = {
             laser: { name: '체인 라이트닝 (J)', desc: '특징: 기본 공격이 가까운 적에게 연쇄되는 번개로 바뀌고, 적중한 적 수만큼 마나를 회복합니다.<br>성장: 레벨이 오를수록 연쇄 대상 수와 충전당 피해 상승폭이 함께 커집니다.' },
-            missile: { name: '매직 미사일 (H)', desc: '특징: 가까운 적을 자동 추적하는 미사일을 순차 발사합니다.<br>성장: 레벨이 오를수록 한 번에 발사되는 미사일 수가 늘고 마나 소모도 함께 증가합니다.' },
+            missile: { name: '매직 미사일 (H)', desc: '특징: 가까운 적의 현재 위치를 먼저 고정한 뒤, 그 지점을 향해 자연스럽게 휘어 들어가는 미사일을 순차 발사합니다.<br>성장: 레벨이 오를수록 한 번에 발사되는 미사일 수가 늘고 마나 소모도 함께 증가합니다.' },
             fireball: { name: '파이어볼 (U)', desc: '특징: 직선으로 날아가 폭발하며 범위 피해와 화상을 남기는 광역 스킬입니다.<br>성장: 레벨이 오를수록 직격 피해, 폭발 반경, 화상 지속시간이 함께 증가합니다.' },
             shield: { name: '앱솔루트 베리어 (K)', desc: '특징: 다음 1회의 피격을 완전히 막는 생존용 방어막입니다.<br>성장: 레벨업이 없는 고정 성능 스킬이며, 항상 같은 성능으로 유지됩니다.' }
         };
@@ -1736,10 +1771,10 @@ export class UIManager {
                 );
 
                 settingItems.push(
-                    `현재 선택한 타겟이 유효하면 먼저 노리고, 없으면 반경 600 안의 가장 가까운 적을 찾습니다.`,
+                    `현재 선택한 타겟이 유효하면 그 적의 현재 위치를 먼저 고정하고, 없으면 반경 600 안의 가장 가까운 적 위치를 고정합니다.`,
                     `미사일은 <strong>0.05초 간격</strong>으로 순차 발사됩니다.`,
-                    `초기 <strong>0.1~0.3초</strong> 동안 퍼져 나간 뒤 속도 <strong>800</strong>으로 유도 비행합니다.`,
-                    `타겟이 도중에 죽어도 다른 적으로 갈아타지 않고 마지막 추적 좌표를 향해 날아갑니다.`
+                    `초기 <strong>0.1~0.3초</strong> 동안 뒤에서 자연스럽게 퍼져 나간 뒤, 처음 고정한 좌표를 향해 곡선으로 유도 비행합니다.`,
+                    `발사 후에는 실시간으로 타겟을 다시 추적하지 않으며, 처음 고정한 위치를 향해 날아가다가 먼저 맞은 대상에게 피해를 주고 사라집니다.`
                 );
 
                 if ((weaponCombat.missileDamageBonus || 0) > 0) {
@@ -2394,6 +2429,8 @@ export class UIManager {
                 }
             };
         }
+
+        this.updateHudAttentionIndicators();
     }
 
     // --- Dialogue System (v2.0) ---
@@ -2546,6 +2583,8 @@ export class UIManager {
                 }
             }
         });
+
+        this.updateHudAttentionIndicators();
     }
 
     updateQuestUI() {
@@ -2559,9 +2598,16 @@ export class UIManager {
         const rewardText = document.getElementById('active-quest-reward');
         const rewardIcon = rewardDisplay?.querySelector('.quest-icon');
         const rewardTitle = rewardDisplay?.querySelector('.quest-title');
+        const syncQuestAttention = (claimAvailable, firstClaimHighlight = false) => {
+            this.questClaimAvailable = !!claimAvailable;
+            rewardDisplay?.classList.toggle('quest-first-claim-highlight', !!firstClaimHighlight);
+            this.updateHudAttentionIndicators({ questAvailable: !!claimAvailable });
+        };
 
         if (!taskDisplay || !rewardDisplay) {
             // Logger.warn('[UIManager] Quest UI elements missing');
+            this.questClaimAvailable = false;
+            this.updateHudAttentionIndicators({ questAvailable: false });
             return;
         }
 
@@ -2580,6 +2626,7 @@ export class UIManager {
             taskTitle.textContent = `튜토리얼 · ${tutorial.activeTutorial.title}`;
             taskProgress.textContent = tutorial.getStepInstruction?.(tutorialStep) || tutorialStep.instruction;
             rewardDisplay.classList.remove('quest-reward-claimable');
+            syncQuestAttention(false, false);
             if (rewardIcon) rewardIcon.textContent = 'T';
             if (rewardTitle) rewardTitle.textContent = '진행 안내';
             const totalSteps = tutorial.activeTutorial.steps.length;
@@ -2598,6 +2645,7 @@ export class UIManager {
         if (isIntroPending) {
             taskDisplay.style.display = 'none';
             rewardDisplay.style.display = 'none';
+            syncQuestAttention(false, false);
             this.refreshDesktopShortcutHints();
             return;
         }
@@ -2607,6 +2655,7 @@ export class UIManager {
         if (!p.questData.slimeQuestClaimed) {
             // Quest 1: 10 Slimes (Wisdom +2)
             currentQuest = {
+                id: 'slime_intro',
                 title: "1. 슬라임 10마리 처치",
                 task: `진행도: ${Math.min(10, p.questData.slimeKills)}/10`,
                 reward: "지혜 스탯 +2",
@@ -2618,6 +2667,7 @@ export class UIManager {
             // v0.00.82: Start from 10/30 (cumulative kills), target 30
             const count = p.questData.slimeKills || 0;
             currentQuest = {
+                id: 'slime_boss_unlock',
                 title: "2. 슬라임 30마리 처치 (강림)",
                 task: `진행도: ${Math.min(30, count)}/30`,
                 reward: "체력 스탯 +3, 대왕 슬라임 소환",
@@ -2627,6 +2677,7 @@ export class UIManager {
         } else if ((p.questData.bossClearCount || 0) === 0) {
             // Quest 3: First King Slime
             currentQuest = {
+                id: 'king_slime_intro',
                 title: "3. 대왕 슬라임 처치",
                 task: `진행도: ${p.questData.bossKilled ? '1' : '0'}/1`,
                 reward: "스탯+5, EXP+500, Gold+2000",
@@ -2641,6 +2692,7 @@ export class UIManager {
             if (bossFound) {
                 // Quest 5: Boss Active (Repeatable)
                 currentQuest = {
+                    id: 'boss_repeat',
                     title: "5. 대왕 슬라임 처치 (반복)",
                     task: "진행도: 0/1",
                     reward: "EXP+300, Gold+1000",
@@ -2652,6 +2704,7 @@ export class UIManager {
                 // v0.00.83: Use individual persistent repeatable kills
                 const count = p.questData.slimeRepeatKills || 0;
                 currentQuest = {
+                    id: 'slime_repeat',
                     title: "4. 슬라임 30마리 처치 (소환)",
                     task: `진행도: ${Math.min(30, count)}/30`,
                     reward: "대왕 슬라임 소환",
@@ -2682,6 +2735,7 @@ export class UIManager {
             // v0.29.22: 보상 수령 가능 시 보상 칸 전체를 클릭 가능한 버튼으로 변경
             if (currentQuest.canClaim) {
                 rewardDisplay.classList.add('quest-reward-claimable');
+                syncQuestAttention(true, currentQuest.id === 'slime_intro');
                 if (rewardIcon) rewardIcon.textContent = '🎉';
                 if (rewardTitle) rewardTitle.textContent = '보상 수령하기!';
                 rewardText.textContent = this.isDesktopShortcutMode()
@@ -2696,6 +2750,7 @@ export class UIManager {
                 };
             } else {
                 rewardDisplay.classList.remove('quest-reward-claimable');
+                syncQuestAttention(false, false);
                 if (rewardIcon) rewardIcon.textContent = '🎁';
                 if (rewardTitle) rewardTitle.textContent = '퀘스트 보상';
                 rewardText.textContent = currentQuest.reward;
@@ -2706,6 +2761,7 @@ export class UIManager {
             taskDisplay.style.display = 'none';
             rewardDisplay.style.display = 'none';
             rewardDisplay.classList.remove('quest-reward-claimable');
+            syncQuestAttention(false, false);
             rewardDisplay.onclick = null;
         }
 

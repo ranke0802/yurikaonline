@@ -283,8 +283,10 @@ export default class Player extends CharacterBase {
 
                 import('./Projectile.js').then(({ Projectile }) => {
                     if (window.game) {
+                        const spawnX = this.x + this.width / 2 + (data.options.spawnOffsetX || 0);
+                        const spawnY = this.y + this.height / 2 + (data.options.spawnOffsetY || 0);
                         // v0.00.05: Inject ownerId for PvP safety
-                        window.game.projectiles.push(new Projectile(this.x, this.y, data.target, 'missile', { ...data.options, ownerId: this.id }));
+                        window.game.projectiles.push(new Projectile(spawnX, spawnY, data.target, 'missile', { ...data.options, ownerId: this.id }));
                     }
                 });
             }
@@ -1386,6 +1388,12 @@ export default class Player extends CharacterBase {
                 const count = lv * 2;
 
                 const candidates = [];
+                const sourceX = this.x + this.width / 2;
+                const sourceY = this.y + this.height / 2;
+                const resolveTargetPoint = (target) => ({
+                    x: target?.width ? target.x + target.width / 2 : target?.x,
+                    y: target?.height ? target.y + target.height / 2 : target?.y
+                });
                 // 1. Monsters
                 if (window.game.monsterManager) {
                     candidates.push(...window.game.monsterManager.monsters.values());
@@ -1401,8 +1409,10 @@ export default class Player extends CharacterBase {
 
                 // v0.00.20: Prioritize currentTarget if valid
                 if (this.currentTarget && !this.currentTarget.isDead && this.canAttackTarget(this.currentTarget)) {
-                    const d = Math.sqrt((this.x - this.currentTarget.x) ** 2 + (this.y - this.currentTarget.y) ** 2);
+                    const targetPoint = resolveTargetPoint(this.currentTarget);
+                    const d = Math.hypot(sourceX - targetPoint.x, sourceY - targetPoint.y);
                     if (d < minDist) {
+                        minDist = d;
                         nearest = this.currentTarget;
                     }
                 }
@@ -1418,10 +1428,11 @@ export default class Player extends CharacterBase {
                         if (isPossiblePlayer && !this.canAttackTarget(t)) return;
 
                         // Use center position if available, else x/y
-                        const tx = (t.width) ? t.x + t.width / 2 : t.x;
-                        const ty = (t.height) ? t.y + t.height / 2 : t.y;
+                        const targetPoint = resolveTargetPoint(t);
+                        const tx = targetPoint.x;
+                        const ty = targetPoint.y;
 
-                        const d = Math.sqrt((this.x - tx) ** 2 + (this.y - ty) ** 2);
+                        const d = Math.hypot(sourceX - tx, sourceY - ty);
                         if (d < minDist) {
                             minDist = d;
                             nearest = t;
@@ -1431,11 +1442,16 @@ export default class Player extends CharacterBase {
 
                 if (nearest) {
                     window.game?.tutorial?.trigger?.('skill_use', { target: skillId, slot });
+                    const targetPoint = resolveTargetPoint(nearest);
 
                     // v0.00.35: Only sync if we have a valid target
                     if (this.net) {
                         this.net.sendPlayerAttack(this.x, this.y, this.direction, 'missile', {
                             count,
+                            targetX: targetPoint.x,
+                            targetY: targetPoint.y,
+                            targetWidth: nearest.width || 0,
+                            targetHeight: nearest.height || 0,
                             variant: weaponCombat.missileVariant || null
                         });
                     }
@@ -1471,10 +1487,15 @@ export default class Player extends CharacterBase {
 
                         // Push to queue for sequential launch (Fixed from previous attempt)
                         this.missileFireQueue.push({
-                            target: nearest,
+                            target: null,
                             options: {
                                 speed: 800 + (Math.random() * 100),
                                 vx, vy,
+                                targetX: targetPoint.x,
+                                targetY: targetPoint.y,
+                                lockTargetPosition: true,
+                                spawnOffsetX: 0,
+                                spawnOffsetY: 0,
                                 damage: dmg,
                                 isCrit: isCrit,
                                 radius: 5,
@@ -1761,6 +1782,10 @@ export default class Player extends CharacterBase {
             stackable: true,
             description: '상점과 강화에 사용하는 기본 화폐입니다.'
         };
+
+        if (window.game?.ui?.updateHudAttentionIndicators) {
+            window.game.ui.updateHudAttentionIndicators();
+        }
     }
 
 
