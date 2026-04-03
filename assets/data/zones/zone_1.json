@@ -48,40 +48,5 @@
             }
         }
     ],
-    "objects": [
-        {
-            "type": "npc",
-            "id": "guide",
-            "name": "세라 (가이드)",
-            "x": 1650,
-            "y": 1650,
-            "visual": {
-                "image": "assets/resource/magicion_front/1.webp",
-                "width": 64,
-                "height": 64
-            },
-            "interaction": {
-                "type": "dialog",
-                "id": "prologue_start"
-            }
-        },
-        {
-            "type": "decoration",
-            "id": "tree_1",
-            "x": 1300,
-            "y": 1300,
-            "visual": {
-                "image": "assets/resource/magicion_front/1.webp",
-                "width": 64,
-                "height": 64
-            },
-            "collision": {
-                "enabled": true,
-                "width": 60,
-                "height": 60,
-                "offsetX": 34,
-                "offsetY": 130
-            }
-        }
-    ]
+    "objects": []
 }
