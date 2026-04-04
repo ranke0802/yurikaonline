@@ -785,6 +785,24 @@ export class UIManager {
         return width * height;
     }
 
+    isSkillPopupTutorialStep(stepId = '') {
+        return new Set([
+            'open_skill',
+            'inspect_laser_detail',
+            'close_laser_detail',
+            'inspect_missile_detail',
+            'close_missile_detail',
+            'upgrade_missile',
+            'reopen_skill_for_fireball',
+            'inspect_fireball_detail',
+            'close_fireball_detail',
+            'upgrade_fireball',
+            'reopen_skill_for_shield',
+            'inspect_shield_detail',
+            'close_shield_detail'
+        ]).has(stepId);
+    }
+
     scoreTutorialGuideCandidate(candidate, forbiddenZones = [], focusRects = [], order = 0) {
         const rect = {
             left: candidate.left,
@@ -818,7 +836,8 @@ export class UIManager {
         if (!guide || !payload) return;
 
         const mode = this.getTutorialViewportMode();
-        const guideMode = payload.mode || 'top-card';
+        const shouldProtectSkillPopup = mode === 'mobile-landscape' && this.isSkillPopupTutorialStep(payload.stepId);
+        const guideMode = shouldProtectSkillPopup ? 'left-card' : (payload.mode || 'top-card');
         const focusRects = this.getTutorialFocusRects(payload.focusTargets || this.tutorialHighlightTargets);
         const popupRect = this.getActivePopupRect();
         const focusInsidePopup = popupRect && focusRects.some((rect) => this.getRectContains(rect, popupRect));
