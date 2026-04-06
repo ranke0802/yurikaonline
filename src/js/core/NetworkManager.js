@@ -1459,7 +1459,7 @@ export default class NetworkManager extends EventEmitter {
         }
 
         const now = Date.now();
-        const minimumIntervalMs = this.isSharedFieldActive() ? 60000 : 180000;
+        const minimumIntervalMs = this.isSharedFieldActive() ? 120000 : 180000;
         const previous = this._profileBackupMeta.get(uid);
         if (previous && (now - previous.ts) < minimumIntervalMs) {
             return false;
