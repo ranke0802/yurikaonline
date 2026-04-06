@@ -3366,6 +3366,34 @@ body.low-power-pwa .minimap-menu {
     overflow-wrap: anywhere;
 }
 
+#tutorial-guide[data-guide-mode="popup-header-strip"] {
+    padding: 8px 12px;
+    border-radius: 16px;
+}
+
+#tutorial-guide[data-guide-mode="popup-header-strip"] .tutorial-guide-head {
+    margin-bottom: 5px;
+}
+
+#tutorial-guide[data-guide-mode="popup-header-strip"] .tutorial-guide-body {
+    font-size: 12.5px;
+    line-height: 1.42;
+}
+
+#tutorial-guide[data-guide-mode="viewport-bottom-sheet-safe"] {
+    padding: 10px 14px;
+    border-radius: 18px;
+}
+
+#tutorial-guide[data-guide-mode="viewport-bottom-sheet-safe"] .tutorial-guide-head {
+    margin-bottom: 6px;
+}
+
+#tutorial-guide[data-guide-mode="viewport-bottom-sheet-safe"] .tutorial-guide-body {
+    font-size: 12.5px;
+    line-height: 1.46;
+}
+
 #tutorial-guide[data-step-type="combat"] {
     border-color: rgba(255, 196, 88, 0.64);
 }

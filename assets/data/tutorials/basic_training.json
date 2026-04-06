@@ -117,7 +117,7 @@
             "questText": "스탯 창을 열어 주세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "dock-left",
+                    "guideMode": "top-card",
                     "highlightMode": "ring",
                     "guideTitle": "스탯 창"
                 },
@@ -182,12 +182,13 @@
                     "guideTitle": "수치 미리보기"
                 },
                 "mobilePortrait": {
-                    "guideMode": "popup-near-top",
+                    "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "frame",
-                    "guideTitle": "수치 미리보기"
+                    "guideTitle": "수치 미리보기",
+                    "compact": true
                 },
                 "mobileLandscape": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-header-strip",
                     "highlightMode": "frame",
                     "guideTitle": "수치 미리보기",
                     "compact": true
@@ -217,17 +218,18 @@
             "questText": "닫기 버튼으로 스탯 창을 닫아 저장해 주세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "dock-left",
+                    "guideMode": "popup-near-right",
                     "highlightMode": "ring",
                     "guideTitle": "스탯 저장"
                 },
                 "mobilePortrait": {
-                    "guideMode": "bottom-sheet",
+                    "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "ring",
-                    "guideTitle": "스탯 저장"
+                    "guideTitle": "스탯 저장",
+                    "compact": true
                 },
                 "mobileLandscape": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-header-strip",
                     "highlightMode": "ring",
                     "guideTitle": "스탯 저장",
                     "compact": true
@@ -255,7 +257,7 @@
             "questText": "스킬 창을 열어 주세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "dock-left",
+                    "guideMode": "top-card",
                     "highlightMode": "ring",
                     "guideTitle": "스킬 창"
                 },
@@ -301,12 +303,13 @@
                     "guideTitle": "설명 확인"
                 },
                 "mobilePortrait": {
-                    "guideMode": "popup-near-top",
+                    "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인"
+                    "guideTitle": "설명 확인",
+                    "compact": true
                 },
                 "mobileLandscape": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-header-strip",
                     "highlightMode": "spotlight",
                     "guideTitle": "설명 확인",
                     "compact": true
@@ -331,19 +334,19 @@
             "questText": "체인 라이트닝 설명 창을 닫아 주세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "popup-near-top",
+                    "guideMode": "popup-near-right",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
                 },
                 "mobilePortrait": {
-                    "guideMode": "popup-near-top",
+                    "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
                 },
                 "mobileLandscape": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-header-strip",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
@@ -376,12 +379,13 @@
                     "guideTitle": "설명 확인"
                 },
                 "mobilePortrait": {
-                    "guideMode": "popup-near-top",
+                    "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인"
+                    "guideTitle": "설명 확인",
+                    "compact": true
                 },
                 "mobileLandscape": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-header-strip",
                     "highlightMode": "spotlight",
                     "guideTitle": "설명 확인",
                     "compact": true
@@ -406,19 +410,19 @@
             "questText": "매직 미사일 설명 창을 닫아 주세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "popup-near-top",
+                    "guideMode": "popup-near-right",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
                 },
                 "mobilePortrait": {
-                    "guideMode": "popup-near-top",
+                    "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
                 },
                 "mobileLandscape": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-header-strip",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
@@ -444,17 +448,18 @@
             "questText": "매직 미사일을 1회 강화하세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "dock-left",
+                    "guideMode": "popup-near-left",
                     "highlightMode": "ring",
                     "guideTitle": "스킬 강화"
                 },
                 "mobilePortrait": {
-                    "guideMode": "bottom-sheet",
+                    "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "ring",
-                    "guideTitle": "스킬 강화"
+                    "guideTitle": "스킬 강화",
+                    "compact": true
                 },
                 "mobileLandscape": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-header-strip",
                     "highlightMode": "ring",
                     "guideTitle": "스킬 강화",
                     "compact": true
@@ -531,7 +536,13 @@
             "count": 1,
             "allowedActions": [
                 "OPEN_SKILL"
-            ]
+            ],
+            "presentation": {
+                "desktop": {
+                    "guideMode": "top-card",
+                    "highlightMode": "ring"
+                }
+            }
         },
         {
             "id": "inspect_fireball_detail",
@@ -546,12 +557,13 @@
                     "guideTitle": "설명 확인"
                 },
                 "mobilePortrait": {
-                    "guideMode": "popup-near-top",
+                    "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인"
+                    "guideTitle": "설명 확인",
+                    "compact": true
                 },
                 "mobileLandscape": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-header-strip",
                     "highlightMode": "spotlight",
                     "guideTitle": "설명 확인",
                     "compact": true
@@ -576,19 +588,19 @@
             "questText": "파이어볼 설명 창을 닫아 주세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "popup-near-top",
+                    "guideMode": "popup-near-right",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
                 },
                 "mobilePortrait": {
-                    "guideMode": "popup-near-top",
+                    "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
                 },
                 "mobileLandscape": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-header-strip",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
@@ -617,7 +629,21 @@
             "count": 1,
             "allowedActions": [
                 "OPEN_SKILL"
-            ]
+            ],
+            "presentation": {
+                "desktop": {
+                    "guideMode": "popup-near-left",
+                    "highlightMode": "ring"
+                },
+                "mobilePortrait": {
+                    "guideMode": "viewport-bottom-sheet-safe",
+                    "compact": true
+                },
+                "mobileLandscape": {
+                    "guideMode": "popup-header-strip",
+                    "compact": true
+                }
+            }
         },
         {
             "id": "aim_fireball_mobile",
@@ -774,7 +800,13 @@
             "count": 1,
             "allowedActions": [
                 "OPEN_SKILL"
-            ]
+            ],
+            "presentation": {
+                "desktop": {
+                    "guideMode": "top-card",
+                    "highlightMode": "ring"
+                }
+            }
         },
         {
             "id": "inspect_shield_detail",
@@ -789,12 +821,13 @@
                     "guideTitle": "설명 확인"
                 },
                 "mobilePortrait": {
-                    "guideMode": "popup-near-top",
+                    "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인"
+                    "guideTitle": "설명 확인",
+                    "compact": true
                 },
                 "mobileLandscape": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-header-strip",
                     "highlightMode": "spotlight",
                     "guideTitle": "설명 확인",
                     "compact": true
@@ -819,19 +852,19 @@
             "questText": "앱솔루트 베리어 설명 창을 닫아 주세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "popup-near-top",
+                    "guideMode": "popup-near-right",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
                 },
                 "mobilePortrait": {
-                    "guideMode": "popup-near-top",
+                    "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
                 },
                 "mobileLandscape": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-header-strip",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
@@ -948,12 +981,13 @@
                     "guideTitle": "인벤토리 닫기"
                 },
                 "mobilePortrait": {
-                    "guideMode": "bottom-sheet",
+                    "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "ring",
-                    "guideTitle": "인벤토리 닫기"
+                    "guideTitle": "인벤토리 닫기",
+                    "compact": true
                 },
                 "mobileLandscape": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-header-strip",
                     "highlightMode": "ring",
                     "guideTitle": "인벤토리 닫기",
                     "compact": true

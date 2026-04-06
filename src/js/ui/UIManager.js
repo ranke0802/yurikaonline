@@ -661,6 +661,23 @@ export class UIManager {
         const compactRatio = payload?.compact ? 0.9 : 1;
         const popupInline = !!context.focusInsidePopup;
         const popupRect = context.popupRect;
+        const requestedMode = payload?.mode || 'top-card';
+
+        if (requestedMode === 'popup-header-strip') {
+            const popupWidth = popupRect?.width || viewportW;
+            const baseWidth = Math.min(Math.round(popupWidth * 0.56 * compactRatio), mode === 'mobile-landscape' ? 300 : 340);
+            return {
+                width: Math.max(196, baseWidth),
+                maxHeight: Math.min(Math.round(viewportH * 0.17), payload?.compact ? 110 : 126)
+            };
+        }
+
+        if (requestedMode === 'viewport-bottom-sheet-safe') {
+            return {
+                width: Math.min(Math.round(viewportW * 0.84), payload?.compact ? 320 : 360),
+                maxHeight: Math.min(Math.round(viewportH * 0.18), payload?.compact ? 120 : 138)
+            };
+        }
 
         if (popupInline) {
             if (mode === 'mobile-landscape') {
@@ -833,8 +850,8 @@ export class UIManager {
                 pushCandidate(leftLeft, margin);
                 break;
             case 'popup-near-left':
-                if (options.popupRect || primaryFocusRect) {
-                    const basis = options.popupRect || primaryFocusRect;
+                if (primaryFocusRect || options.popupRect) {
+                    const basis = primaryFocusRect || options.popupRect;
                     pushCandidate(basis.left - width - 18, basis.top + 8, 'popup-near-left');
                     pushCandidate(basis.left - width - 18, basis.bottom - height - 8, 'popup-near-left-bottom');
                     pushCandidate(basis.left + 8, basis.top - height - 16, 'popup-near-left-top');
@@ -842,6 +859,52 @@ export class UIManager {
                 pushCandidate(leftLeft, margin);
                 pushCandidate(centerLeft, margin);
                 break;
+            case 'popup-near-right':
+                if (primaryFocusRect || options.popupRect) {
+                    const basis = primaryFocusRect || options.popupRect;
+                    pushCandidate(basis.right + 18, basis.top + 8, 'popup-near-right');
+                    pushCandidate(basis.right + 18, basis.bottom - height - 8, 'popup-near-right-bottom');
+                    pushCandidate(basis.right - width - 8, basis.top - height - 16, 'popup-near-right-top');
+                }
+                pushCandidate(rightLeft, margin);
+                pushCandidate(centerLeft, margin);
+                break;
+            case 'popup-header-strip':
+                if (options.popupRect || primaryFocusRect) {
+                    const basis = options.popupRect || primaryFocusRect;
+                    const centeredLeft = basis.left + (basis.width / 2) - (width / 2);
+                    pushCandidate(centeredLeft, basis.top - height - 14, 'popup-header-strip-top');
+                    pushCandidate(centeredLeft, basis.top + 10, 'popup-header-strip-inline');
+                    pushCandidate(basis.left + 10, basis.top - height - 14, 'popup-header-strip-left');
+                    pushCandidate(basis.right - width - 10, basis.top - height - 14, 'popup-header-strip-right');
+                }
+                pushCandidate(centerLeft, margin);
+                pushCandidate(centerLeft, margin + 18);
+                break;
+            case 'viewport-bottom-sheet-safe': {
+                const blockerRects = [
+                    '#joystick-container',
+                    '#joystick-area',
+                    '.action-buttons',
+                    '#dialog-box:not(.hidden)'
+                ]
+                    .map((selector) => this.getVisibleElementRect(selector))
+                    .filter(Boolean);
+                const topMostBlocker = blockerRects.reduce((minTop, rect) => Math.min(minTop, rect.top), viewportH);
+                const safeBottomTop = Math.min(bottomTop, topMostBlocker - height - 14);
+                if (options.popupRect) {
+                    const popup = options.popupRect;
+                    pushCandidate(centerLeft, popup.bottom + 14, 'viewport-bottom-sheet-gap');
+                    pushCandidate(leftLeft, popup.bottom + 14, 'viewport-bottom-sheet-gap-left');
+                    pushCandidate(rightLeft, popup.bottom + 14, 'viewport-bottom-sheet-gap-right');
+                    pushCandidate(centerLeft, popup.top - height - 14, 'viewport-bottom-sheet-above-popup');
+                }
+                pushCandidate(centerLeft, safeBottomTop, 'viewport-bottom-sheet-safe');
+                pushCandidate(leftLeft, safeBottomTop, 'viewport-bottom-sheet-safe-left');
+                pushCandidate(rightLeft, safeBottomTop, 'viewport-bottom-sheet-safe-right');
+                pushCandidate(centerLeft, bottomTop, 'viewport-bottom-sheet-bottom');
+                break;
+            }
             case 'popup-near-top':
                 if (options.popupRect || primaryFocusRect) {
                     const basis = options.popupRect || primaryFocusRect;
@@ -934,13 +997,23 @@ export class UIManager {
         if (!guide || !payload) return;
 
         const mode = this.getTutorialViewportMode();
-        const shouldProtectSkillPopup = mode === 'mobile-landscape' && this.isSkillPopupTutorialStep(payload.stepId);
-        const guideMode = shouldProtectSkillPopup ? 'left-card' : (payload.mode || 'top-card');
         const focusRects = this.getTutorialFocusRects(payload.focusTargets || this.tutorialHighlightTargets);
         const primaryFocusRect = this.getTutorialPrimaryFocusRect(focusRects);
         const popupRect = this.getActivePopupRect();
         const focusInsidePopup = popupRect && focusRects.some((rect) => this.getRectContains(rect, popupRect));
-        const guideDimensions = this.getTutorialGuideDimensions(payload, { focusInsidePopup, popupRect });
+        const shouldProtectSkillPopup = mode === 'mobile-landscape' && this.isSkillPopupTutorialStep(payload.stepId);
+        const popupGenericModes = new Set(['dock-left', 'left-card', 'bottom-sheet', 'top-card', 'popup-near-top']);
+        let guideMode = payload.mode || 'top-card';
+
+        if (focusInsidePopup) {
+            if (mode === 'mobile-portrait' && popupGenericModes.has(guideMode)) {
+                guideMode = 'viewport-bottom-sheet-safe';
+            } else if (mode === 'mobile-landscape' && (shouldProtectSkillPopup || popupGenericModes.has(guideMode))) {
+                guideMode = 'popup-header-strip';
+            }
+        }
+
+        const guideDimensions = this.getTutorialGuideDimensions({ ...payload, mode: guideMode }, { focusInsidePopup, popupRect });
         const forbiddenZones = this.getTutorialForbiddenZones(focusRects, payload);
         const disableTargetAnchors = !!focusInsidePopup && guideMode !== 'floating-compact';
         if (focusInsidePopup && mode === 'mobile-landscape' && popupRect) {
@@ -954,7 +1027,8 @@ export class UIManager {
         guide.dataset.stepType = payload.stepType || 'info';
         guide.dataset.align = payload.align || 'left';
         guide.classList.toggle('tutorial-guide-compact', !!payload.compact);
-        guide.classList.toggle('tutorial-guide-popup-inline', !!focusInsidePopup);
+        const popupInlineStyle = !!focusInsidePopup && guideMode !== 'viewport-bottom-sheet-safe';
+        guide.classList.toggle('tutorial-guide-popup-inline', popupInlineStyle);
 
         guide.style.position = 'fixed';
         guide.style.left = '-9999px';

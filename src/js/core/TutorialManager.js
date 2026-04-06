@@ -224,8 +224,8 @@ export default class TutorialManager {
             },
             inspect: {
                 desktop: { guideMode: 'popup-near-left', highlightMode: 'spotlight', align: 'left' },
-                mobilePortrait: { guideMode: 'popup-near-top', highlightMode: 'spotlight', align: 'left' },
-                mobileLandscape: { guideMode: 'top-card', highlightMode: 'spotlight', align: 'left', compact: true }
+                mobilePortrait: { guideMode: 'viewport-bottom-sheet-safe', highlightMode: 'spotlight', align: 'left', compact: true },
+                mobileLandscape: { guideMode: 'popup-header-strip', highlightMode: 'spotlight', align: 'left', compact: true }
             },
             interact: {
                 desktop: { guideMode: 'dock-left', highlightMode: 'ring', align: 'left' },
