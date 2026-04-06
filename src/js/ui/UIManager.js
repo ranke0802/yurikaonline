@@ -5331,6 +5331,10 @@ export class UIManager {
         const hudTicks = document.getElementById('dev-ui-hud');
         const minimapTicks = document.getElementById('dev-ui-minimap');
         const remoteTicks = document.getElementById('dev-ui-remote');
+        const fieldMode = document.getElementById('dev-field-mode');
+        const fieldPeers = document.getElementById('dev-field-peers');
+        const monsterSyncMode = document.getElementById('dev-monster-sync');
+        const syncSnapshot = this.game.net?.getSyncModeSnapshot?.() || {};
 
         if (mCount) mCount.textContent = stats.count;
         if (mMax) mMax.textContent = stats.max;
@@ -5347,6 +5351,9 @@ export class UIManager {
         if (hudTicks) hudTicks.textContent = Math.round(perf.hudUpdatesPerMin || 0);
         if (minimapTicks) minimapTicks.textContent = Math.round(perf.minimapUpdatesPerMin || 0);
         if (remoteTicks) remoteTicks.textContent = Math.round(perf.remoteUpdatesPerMin || 0);
+        if (fieldMode) fieldMode.textContent = syncSnapshot.sharedFieldActive ? 'shared' : 'solo-lite';
+        if (fieldPeers) fieldPeers.textContent = `${syncSnapshot.peerCount || 0}@${syncSnapshot.fieldId || 'zone_1'}`;
+        if (monsterSyncMode) monsterSyncMode.textContent = syncSnapshot.monsterQuietMode ? 'quiet' : 'realtime';
     }
 
     showRegenHint(type, amount) {

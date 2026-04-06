@@ -51,6 +51,18 @@ export default class NetworkManager extends EventEmitter {
         this._queuedProfileSaves = new Map();
         this._zoneUserCache = new Map();
         this._zoneUserListeners = new Map();
+        this._presenceCache = new Map();
+        this._lastPresenceLiteState = null;
+        this._lastPresenceLiteWriteTs = 0;
+        this._fieldPeerCount = 0;
+        this._sharedFieldActive = false;
+        this._fieldCellSize = 640;
+        this.syncOptimizationFlags = {
+            usePresenceLiteMode: true,
+            useFieldRealtimeMode: true,
+            useSoloHotWriteGating: true,
+            useMonsterQuietMode: true
+        };
     }
 
     connect(user) {
@@ -70,9 +82,18 @@ export default class NetworkManager extends EventEmitter {
         this._lastProfileSaveTs = 0;
         this._zoneUserCache.clear();
         this._detachZoneUserListeners();
+        this._presenceCache.clear();
+        this._lastPresenceLiteState = null;
+        this._lastPresenceLiteWriteTs = 0;
+        this._fieldPeerCount = 0;
+        this._sharedFieldActive = false;
         this.startBatchProcessor();
 
         Logger.log(`Network Coordinates: connecting to ${this.roomId}...`);
+
+        this.dbRef.child('presence').on('child_added', (snapshot) => this._handlePresenceSnapshot(snapshot));
+        this.dbRef.child('presence').on('child_changed', (snapshot) => this._handlePresenceSnapshot(snapshot));
+        this.dbRef.child('presence').on('child_removed', (snapshot) => this._handlePresenceRemoved(snapshot));
 
         // 1. Listen for other players moving
         this.dbRef.child('users').on('child_added', (snapshot) => this._onPlayerAdded(snapshot));
@@ -253,6 +274,7 @@ export default class NetworkManager extends EventEmitter {
 
         // 2. presence check
         const myRef = this.dbRef.child(`users/${this.playerId}`);
+        const presenceRef = this.dbRef.child(`presence/${this.playerId}`);
         // Commented out to allow position persistence on refresh.
         // Stale users are cleaned up by Host after 5 minutes of inactivity.
         // chat Sync
@@ -287,9 +309,16 @@ export default class NetworkManager extends EventEmitter {
 
         // v0.00.03: Failsafe exit logic
         myRef.onDisconnect().remove();
+        presenceRef.onDisconnect().remove();
 
         this.connected = true;
         this.emit('connected');
+        this._refreshSharedFieldState();
+        if (this.isSharedFieldActive()) {
+            this._publishLocalRealtimeSnapshot('connect');
+        } else {
+            this._publishPresenceLite({ force: true, reason: 'connect' });
+        }
 
         // v0.00.04: Heartbeat is now the primary presence method
         this._startLocalGhostCleanup();
@@ -328,6 +357,7 @@ export default class NetworkManager extends EventEmitter {
             if (this.playerId) {
                 this.connectedUsers = this.connectedUsers.filter((uid) => uid !== this.playerId);
                 this.userLastSeen.delete(this.playerId);
+                this._presenceCache.delete(this.playerId);
             }
 
             if (this.isHost) {
@@ -338,8 +368,14 @@ export default class NetworkManager extends EventEmitter {
 
             if (this.dbRef && this.playerId) {
                 this.dbRef.child(`users/${this.playerId}`).remove().catch(() => { });
+                this.dbRef.child(`presence/${this.playerId}`).remove().catch(() => { });
             }
+
+            this._fieldPeerCount = 0;
+            this._sharedFieldActive = false;
+            this.lastPacketData = null;
         } else {
+            this._publishPresenceLite({ force: true, reason: 'zone_reenabled' });
             this.sendHeartbeat();
         }
     }
@@ -418,6 +454,7 @@ export default class NetworkManager extends EventEmitter {
 
         if (this.playerId && this.dbRef) {
             this.dbRef.child(`users/${this.playerId}`).remove().catch(() => { });
+            this.dbRef.child(`presence/${this.playerId}`).remove().catch(() => { });
         }
 
         this.connected = false;
@@ -430,6 +467,11 @@ export default class NetworkManager extends EventEmitter {
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
         this._zoneUserCache.clear();
         this._detachZoneUserListeners();
+        this._presenceCache.clear();
+        this._lastPresenceLiteState = null;
+        this._lastPresenceLiteWriteTs = 0;
+        this._fieldPeerCount = 0;
+        this._sharedFieldActive = false;
         this.lastPacketData = null;
         this.lastSyncTime = 0;
         this.lastHeartbeatTime = 0;
@@ -441,6 +483,7 @@ export default class NetworkManager extends EventEmitter {
         if (!this.dbRef) return;
 
         const fixedPaths = [
+            'presence',
             'users',
             'monsters',
             'monster_attack',
@@ -458,6 +501,7 @@ export default class NetworkManager extends EventEmitter {
 
         if (!this.playerId) return;
         const playerPaths = [
+            `presence/${this.playerId}`,
             `rewards/${this.playerId}`,
             `party_invites/${this.playerId}`,
             `party_responses/${this.playerId}`,
@@ -482,8 +526,283 @@ export default class NetworkManager extends EventEmitter {
         });
     }
 
+    _normalizeFieldId(fieldId) {
+        return String(fieldId || this.roomId || 'zone_1');
+    }
+
+    _getCurrentFieldId() {
+        const zoneFieldId = window.game?.zone?.currentZone?.id;
+        return this._normalizeFieldId(zoneFieldId);
+    }
+
+    _getFieldCellId(x = null, y = null) {
+        const player = window.game?.localPlayer;
+        const cellSize = Math.max(128, this._fieldCellSize || 640);
+        const nextX = Number.isFinite(x) ? x : Number(player?.x || 0);
+        const nextY = Number.isFinite(y) ? y : Number(player?.y || 0);
+        return `${Math.floor(nextX / cellSize)}_${Math.floor(nextY / cellSize)}`;
+    }
+
+    _buildPresenceAppearance(player) {
+        if (!player) return null;
+        return {
+            weaponType: player.equipment?.weapon?.type || player.equipment?.weapon?.id || null,
+            hat: player.equipment?.armor?.type || player.equipment?.armor?.id || null
+        };
+    }
+
+    _buildPresenceLitePayload(options = {}) {
+        const player = window.game?.localPlayer || null;
+        const now = options.ts || Date.now();
+        const x = Number.isFinite(options.x) ? options.x : Number(player?.x || 0);
+        const y = Number.isFinite(options.y) ? options.y : Number(player?.y || 0);
+        const fieldId = options.fieldId || this._getCurrentFieldId();
+        const peerCount = Math.max(0, Number(this._fieldPeerCount || 0));
+        const mode = (this.syncOptimizationFlags.useFieldRealtimeMode && peerCount > 0)
+            ? 'shared_realtime'
+            : 'presence_lite';
+
+        return {
+            fieldId,
+            cellId: this._getFieldCellId(x, y),
+            mode,
+            ts: now,
+            name: player?.name || player?.displayName || 'Unknown',
+            level: Number(player?.level || 1),
+            appearance: this._buildPresenceAppearance(player)
+        };
+    }
+
+    _publishPresenceLite(options = {}) {
+        if (!this.connected || !this.playerId || !this.dbRef || !this.zoneParticipationEnabled) return;
+        if (!this.syncOptimizationFlags.usePresenceLiteMode) return;
+
+        const now = Date.now();
+        const nextPayload = this._buildPresenceLitePayload({ ...options, ts: now });
+        const force = !!options.force;
+        const last = this._lastPresenceLiteState;
+        const changed = !last
+            || last.fieldId !== nextPayload.fieldId
+            || last.cellId !== nextPayload.cellId
+            || last.mode !== nextPayload.mode
+            || last.name !== nextPayload.name
+            || last.level !== nextPayload.level
+            || JSON.stringify(last.appearance || null) !== JSON.stringify(nextPayload.appearance || null);
+        const shouldWrite = force || changed || (now - this._lastPresenceLiteWriteTs) >= 1200;
+        if (!shouldWrite) return;
+
+        this._recordNetworkWrite('presenceLite', nextPayload);
+        this.dbRef.child(`presence/${this.playerId}`).set(nextPayload).catch(() => { });
+        this._lastPresenceLiteState = nextPayload;
+        this._lastPresenceLiteWriteTs = now;
+    }
+
+    _normalizePresenceSnapshot(uid, value) {
+        if (!uid || !value || typeof value !== 'object') return null;
+        return {
+            uid,
+            fieldId: this._normalizeFieldId(value.fieldId),
+            cellId: typeof value.cellId === 'string' ? value.cellId : '0_0',
+            mode: value.mode === 'shared_realtime' ? 'shared_realtime' : 'presence_lite',
+            ts: Number(value.ts || 0),
+            name: value.name || 'Unknown',
+            level: Number(value.level || 1)
+        };
+    }
+
+    _isPresenceEntryActive(entry, now = Date.now()) {
+        if (!entry) return false;
+        const ts = Number(entry.ts || 0);
+        return ts > 0 && (now - ts) < 12000;
+    }
+
+    _handlePresenceSnapshot(snapshot) {
+        const uid = snapshot?.key;
+        const entry = this._normalizePresenceSnapshot(uid, snapshot?.val());
+        if (!uid || !entry) return;
+        this._presenceCache.set(uid, entry);
+        this._refreshSharedFieldState();
+    }
+
+    _handlePresenceRemoved(snapshot) {
+        const uid = snapshot?.key;
+        if (!uid) return;
+        this._presenceCache.delete(uid);
+        this._removeRemoteIfOutOfField(uid, null);
+        this._refreshSharedFieldState();
+    }
+
+    _removeRemoteIfOutOfField(uid, presenceEntry) {
+        if (!uid || uid === this.playerId) return;
+        const currentFieldId = this._getCurrentFieldId();
+        const hasPresence = !!presenceEntry;
+        const active = hasPresence ? this._isPresenceEntryActive(presenceEntry) : false;
+        const sameField = hasPresence ? presenceEntry.fieldId === currentFieldId : true;
+        if (hasPresence && active && sameField) return;
+        if (!this.remotePlayers.has(uid)) return;
+
+        this.remotePlayers.delete(uid);
+        this.emit('playerLeft', uid);
+    }
+
+    _refreshSharedFieldState() {
+        const fieldId = this._getCurrentFieldId();
+        const now = Date.now();
+        let peerCount = 0;
+
+        this._presenceCache.forEach((entry, uid) => {
+            if (!entry || uid === this.playerId) return;
+            if (!this._isPresenceEntryActive(entry, now)) return;
+            if (entry.fieldId !== fieldId) return;
+            peerCount += 1;
+        });
+
+        this._presenceCache.forEach((entry, uid) => {
+            this._removeRemoteIfOutOfField(uid, entry);
+        });
+
+        const nextActive = this.zoneParticipationEnabled
+            && this.syncOptimizationFlags.useFieldRealtimeMode
+            && peerCount > 0;
+
+        if (this._fieldPeerCount !== peerCount) {
+            this._fieldPeerCount = peerCount;
+            this.emit('fieldPeerCountChanged', {
+                fieldId,
+                peerCount
+            });
+        }
+
+        if (this._sharedFieldActive !== nextActive) {
+            const previousActive = this._sharedFieldActive;
+            this._sharedFieldActive = nextActive;
+            this.emit('sharedFieldChanged', {
+                fieldId,
+                active: nextActive,
+                previousActive,
+                peerCount
+            });
+
+            if (nextActive) {
+                this._publishLocalRealtimeSnapshot('shared_field_join');
+            } else {
+                this.lastPacketData = null;
+            }
+        }
+
+        this._publishPresenceLite({ force: false, fieldId });
+    }
+
+    getSameFieldPeerCount() {
+        return this._fieldPeerCount;
+    }
+
+    isSharedFieldActive() {
+        return !!this._sharedFieldActive;
+    }
+
+    _shouldSendRealtimeUserState() {
+        if (!this.zoneParticipationEnabled) return false;
+        if (!this.syncOptimizationFlags.useSoloHotWriteGating) return true;
+        return this.isSharedFieldActive();
+    }
+
+    shouldUseMonsterQuietMode() {
+        if (!this.zoneParticipationEnabled) return false;
+        if (!this.syncOptimizationFlags.useMonsterQuietMode) return false;
+        return !this.isSharedFieldActive();
+    }
+
+    getSyncModeSnapshot() {
+        return {
+            fieldId: this._getCurrentFieldId(),
+            peerCount: this._fieldPeerCount,
+            sharedFieldActive: this.isSharedFieldActive(),
+            monsterQuietMode: this.shouldUseMonsterQuietMode(),
+            zoneParticipationEnabled: this.zoneParticipationEnabled
+        };
+    }
+
+    _buildLocalZoneProfileSnapshot(player) {
+        if (!player) return null;
+        return {
+            name: player.name || 'Unknown',
+            level: Number(player.level || 1),
+            equipment: player.equipment || null,
+            party: player.party || null,
+            hostility: player.hostilityTargets
+                ? Object.fromEntries(player.hostilityTargets.entries())
+                : (player.hostility || {}),
+            defense: Number(player.defense || 0),
+            isPaused: !!player.isPaused
+        };
+    }
+
+    _publishLocalRealtimeSnapshot(reason = 'shared_field_sync') {
+        if (!this.connected || !this.playerId || !this.dbRef || !this.zoneParticipationEnabled) return;
+
+        const player = window.game?.localPlayer || null;
+        const now = Date.now();
+        const updates = {
+            [`users/${this.playerId}/presence/ts`]: now,
+            [`users/${this.playerId}/lastSeen`]: now
+        };
+
+        if (player) {
+            const safeX = Math.round(player.x || 0);
+            const safeY = Math.round(player.y || 0);
+            const safeVx = parseFloat(((player.vx || 0)).toFixed(2));
+            const safeVy = parseFloat(((player.vy || 0)).toFixed(2));
+            updates[`users/${this.playerId}/p/x`] = safeX;
+            updates[`users/${this.playerId}/p/y`] = safeY;
+            updates[`users/${this.playerId}/p/vx`] = safeVx;
+            updates[`users/${this.playerId}/p/vy`] = safeVy;
+            updates[`users/${this.playerId}/p/ts`] = now;
+            updates[`users/${this.playerId}/p/n`] = player.name || 'Unknown';
+            updates[`users/${this.playerId}/h`] = [
+                Math.round(player.hp || 0),
+                Math.round(player.maxHp || 0),
+                now
+            ];
+
+            const zoneProfile = this._buildLocalZoneProfileSnapshot(player);
+            if (zoneProfile) {
+                updates[`users/${this.playerId}/profile`] = zoneProfile;
+            }
+
+            this.lastPacketData = {
+                x: safeX,
+                y: safeY,
+                vx: safeVx,
+                vy: safeVy,
+                name: player.name || 'Unknown'
+            };
+            this._lastHpSync = {
+                hp: Math.round(player.hp || 0),
+                maxHp: Math.round(player.maxHp || 0),
+                ts: now
+            };
+        }
+
+        this._recordNetworkWrite('realtimeBootstrap', { reason, updates });
+        this.dbRef.update(updates).catch(() => { });
+        this._registerConnectedUser(this.playerId);
+        this.userLastSeen.set(this.playerId, now);
+        this.lastHeartbeatTime = now;
+        this._markNetworkActivity(now);
+        this._checkHostStatus();
+        this._publishPresenceLite({ force: true, reason });
+    }
+
     sendHeartbeat() {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        this._publishPresenceLite({ force: false, reason: 'heartbeat' });
+        if (!this._shouldSendRealtimeUserState()) {
+            this.lastHeartbeatTime = Date.now();
+            this._registerConnectedUser(this.playerId);
+            this._checkHostStatus();
+            return;
+        }
         const updates = {
             [`users/${this.playerId}/presence/ts`]: firebase.database.ServerValue.TIMESTAMP,
             [`users/${this.playerId}/lastSeen`]: firebase.database.ServerValue.TIMESTAMP
@@ -497,9 +816,9 @@ export default class NetworkManager extends EventEmitter {
 
         // v0.00.03: Ensure resonance of local user list
         if (!this.connectedUsers.includes(this.playerId)) {
-            this.connectedUsers.push(this.playerId);
-            this.connectedUsers.sort();
-        }
+        this.connectedUsers.push(this.playerId);
+        this.connectedUsers.sort();
+    }
 
         // v1.99.14: Aggressive host re-check every second
         this._checkHostStatus();
@@ -1252,7 +1571,7 @@ export default class NetworkManager extends EventEmitter {
 
             // v0.00.04: Zone-specific update ONLY IF requested and in a zone
             // This prevents players in character selection from appearing in the map
-            if (syncToZone && this.dbRef && this.zoneParticipationEnabled) {
+            if (syncToZone && this.dbRef && this.zoneParticipationEnabled && this._shouldSendRealtimeUserState()) {
                 const zoneProfile = this._buildZoneProfileSnapshot(committedProfile);
                 this._recordNetworkWrite('zoneProfileSync', zoneProfile);
                 await this.dbRef.child(`users/${uid}/profile`).set(zoneProfile);
@@ -1756,10 +2075,12 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
 
         const now = Date.now();
+        this._publishPresenceLite({ x, y, reason: 'move' });
 
         // Adaptive sync interval based on movement state
         const isMoving = Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1;
         this.isPlayerMoving = isMoving;
+        if (!this._shouldSendRealtimeUserState()) return;
 
         const currentInterval = this._getMoveSyncInterval(vx, vy);
         if (now - this.lastSyncTime < currentInterval) return;
@@ -1820,6 +2141,7 @@ export default class NetworkManager extends EventEmitter {
     // v0.28.0: Detailed attack sync [ts, x, y, direction, skillType]
     sendPlayerAttack(x, y, dir, skillType, extraData = null) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        if (!this._shouldSendRealtimeUserState()) return;
         const now = Date.now();
         const payload = [
             now,
@@ -1837,6 +2159,7 @@ export default class NetworkManager extends EventEmitter {
     // v0.00.37: Send channeling state for casting effects (independent of attack hit)
     sendChanneling(skillType) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        if (!this._shouldSendRealtimeUserState()) return;
         const now = Date.now();
         const payload = [now, skillType];
         this._recordNetworkWrite('channel', payload);
@@ -1846,6 +2169,18 @@ export default class NetworkManager extends EventEmitter {
 
     sendMonsterDamage(monsterId, damage, meta = null) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        if (this.isHost && this.shouldUseMonsterQuietMode()) {
+            const payload = {
+                mid: monsterId,
+                dmg: Math.round(damage),
+                aid: this.playerId,
+                meta: meta || null
+            };
+            this._recordNetworkWrite('monsterDamageLocal', payload);
+            this.emit('monsterDamageReceived', payload);
+            this._markNetworkActivity();
+            return;
+        }
         this.queueBatchUpdate('monster_damage', {
             mid: monsterId,
             dmg: Math.round(damage),
@@ -1857,6 +2192,7 @@ export default class NetworkManager extends EventEmitter {
     // v0.33.0: Send Monster Attack (Host Only)
     sendMonsterAttack(monsterId, skillType, extraData = null) {
         if (!this.connected || !this.isHost) return;
+        if (this.shouldUseMonsterQuietMode()) return;
         const payload = {
             mid: monsterId,
             skill: skillType,
@@ -1893,6 +2229,7 @@ export default class NetworkManager extends EventEmitter {
     // v0.28.0: Sync player HP status
     sendPlayerHp(hp, maxHp) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        if (!this._shouldSendRealtimeUserState()) return;
         const now = Date.now();
         const nextHp = Math.round(hp);
         const nextMaxHp = Math.round(maxHp);

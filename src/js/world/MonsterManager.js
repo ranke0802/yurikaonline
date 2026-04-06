@@ -68,6 +68,14 @@ export default class MonsterManager {
         this.net.onDropAdded(this._onDropAdded.bind(this));
         this.net.onDropRemoved(this._onDropRemoved.bind(this));
         this.net.onDropCollectionRequested(this._onDropCollectionRequested.bind(this));
+        this.net.on('sharedFieldChanged', ({ active }) => {
+            if (!this.net.isHost) return;
+            if (active) {
+                this.forceSyncAll();
+                return;
+            }
+            this.lastSyncState.clear();
+        });
 
         // v0.00.24: Increased for smoother sync
         this.viewMargin = 500;
@@ -296,6 +304,14 @@ export default class MonsterManager {
     }
 
     _getMonsterSyncProfile(monster, interestedPlayers, mobileThermalMode) {
+        if (this.net?.shouldUseMonsterQuietMode?.()) {
+            return {
+                deltaIntervalMs: monster.isBoss ? 1400 : 2200,
+                positionThreshold: monster.isBoss ? 12 : 20,
+                fullSyncIntervalMs: monster.isBoss ? 5200 : 7600
+            };
+        }
+
         const now = Date.now();
         const activityWindowMs = monster.isBoss ? 6000 : 3500;
         const lastActivityTs = Math.max(monster.lastHitAt || 0, monster.lastNetworkEventAt || 0);
@@ -689,6 +705,14 @@ export default class MonsterManager {
             isBoss: !!m.isBoss,
             netTs: now,
             fullSyncAt: now
+        });
+    }
+
+    forceSyncAll() {
+        if (!this.net.isHost) return;
+        this.monsters.forEach((monster, id) => {
+            if (!monster || monster.isDead) return;
+            this.forceSync(id);
         });
     }
 

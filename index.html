@@ -33,7 +33,7 @@
                 }
             });
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=0.01.74')
+                navigator.serviceWorker.register('./sw.js?v=0.01.76')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -113,7 +113,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.74">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.76">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -665,7 +665,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.74"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.76"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">
@@ -675,6 +675,8 @@
         <div class="dev-stat">Frame Gap: <span id="dev-loop-gap">0</span>ms</div>
         <div class="dev-stat">RTDB: <span id="dev-net-writes">0</span>/m | <span id="dev-net-bytes">0.0 KB</span>/m</div>
         <div class="dev-stat">Move/Monster/Profile: <span id="dev-net-move">0</span>/<span id="dev-net-monster">0</span>/<span id="dev-net-profile">0</span></div>
+        <div class="dev-stat">Field/Peers: <span id="dev-field-mode">solo-lite</span> | <span id="dev-field-peers">0@zone_1</span></div>
+        <div class="dev-stat">Monster Sync: <span id="dev-monster-sync">quiet</span></div>
         <div class="dev-stat">HUD/Mini/Remote: <span id="dev-ui-hud">0</span>/<span id="dev-ui-minimap">0</span>/<span id="dev-ui-remote">0</span></div>
     </div>
 </body>
