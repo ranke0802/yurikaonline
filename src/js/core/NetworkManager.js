@@ -50,6 +50,8 @@ export default class NetworkManager extends EventEmitter {
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
         this._lastProfileSaveTs = 0;
         this._queuedProfileSaves = new Map();
+        this._profileBackupMeta = new Map();
+        this._profileBackupPruneMeta = new Map();
         this._zoneUserCache = new Map();
         this._zoneUserListeners = new Map();
         this._presenceCache = new Map();
@@ -83,6 +85,8 @@ export default class NetworkManager extends EventEmitter {
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
         this._lastProfileSaveTs = 0;
         this._zoneUserCache.clear();
+        this._profileBackupMeta.clear();
+        this._profileBackupPruneMeta.clear();
         this._detachZoneUserListeners();
         this._presenceCache.clear();
         this._networkDropIds.clear();
@@ -1405,12 +1409,17 @@ export default class NetworkManager extends EventEmitter {
         if (!backupsRef || !profile) return null;
 
         const keepCount = Math.max(5, options.keepCount || 20);
+        const reason = options.reason || 'profile_save';
+        if (!this._shouldWriteProfileBackup(uid, reason)) {
+            return null;
+        }
+
         const createdAt = Date.now();
         const backupRef = backupsRef.push();
         const backupPayload = {
             ts: Number(profile.ts || createdAt),
             createdAt,
-            reason: options.reason || 'profile_save',
+            reason,
             sourceUid: options.sourceUid || uid,
             sourceTs: Number(options.sourceTs || profile.ts || createdAt),
             profile: this._cloneProfileData(profile)
@@ -1419,25 +1428,63 @@ export default class NetworkManager extends EventEmitter {
         this._recordNetworkWrite('profileBackup', backupPayload);
         await backupRef.set(backupPayload);
 
-        const existingSnapshot = await backupsRef.once('value');
-        const backups = [];
-        existingSnapshot.forEach((child) => {
-            const value = child.val() || {};
-            backups.push({
-                id: child.key,
-                ts: Number(value.ts || 0)
+        if (this._shouldPruneProfileBackups(uid, reason)) {
+            const existingSnapshot = await backupsRef.once('value');
+            const backups = [];
+            existingSnapshot.forEach((child) => {
+                const value = child.val() || {};
+                backups.push({
+                    id: child.key,
+                    ts: Number(value.ts || 0)
+                });
             });
-        });
 
-        if (backups.length > keepCount) {
-            const staleRemovals = backups
-                .sort((a, b) => a.ts - b.ts)
-                .slice(0, backups.length - keepCount)
-                .map((entry) => backupsRef.child(entry.id).remove());
-            await Promise.all(staleRemovals);
+            if (backups.length > keepCount) {
+                const staleRemovals = backups
+                    .sort((a, b) => a.ts - b.ts)
+                    .slice(0, backups.length - keepCount)
+                    .map((entry) => backupsRef.child(entry.id).remove());
+                await Promise.all(staleRemovals);
+            }
         }
 
         return backupRef.key;
+    }
+
+    _shouldWriteProfileBackup(uid, reason = 'profile_save') {
+        if (!uid) return false;
+        if (reason !== 'profile_save') {
+            this._profileBackupMeta.set(uid, { ts: Date.now(), reason });
+            return true;
+        }
+
+        const now = Date.now();
+        const minimumIntervalMs = this.isSharedFieldActive() ? 60000 : 180000;
+        const previous = this._profileBackupMeta.get(uid);
+        if (previous && (now - previous.ts) < minimumIntervalMs) {
+            return false;
+        }
+
+        this._profileBackupMeta.set(uid, { ts: now, reason });
+        return true;
+    }
+
+    _shouldPruneProfileBackups(uid, reason = 'profile_save') {
+        if (!uid) return false;
+        if (reason !== 'profile_save') {
+            this._profileBackupPruneMeta.set(uid, Date.now());
+            return true;
+        }
+
+        const now = Date.now();
+        const previous = this._profileBackupPruneMeta.get(uid) || 0;
+        const minimumIntervalMs = 10 * 60 * 1000;
+        if ((now - previous) < minimumIntervalMs) {
+            return false;
+        }
+
+        this._profileBackupPruneMeta.set(uid, now);
+        return true;
     }
 
     async getPlayerData(uid) {

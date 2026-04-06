@@ -953,6 +953,7 @@ export default class Player extends CharacterBase {
 
     saveState(syncToWorld = false) {
         if (!this.net || !this.id) return;
+        const soloLiteDebounceMs = (!syncToWorld && !this.net.isSharedFieldActive?.()) ? 1000 : 350;
         const data = {
             level: this.level,
             exp: this.exp,
@@ -985,7 +986,7 @@ export default class Player extends CharacterBase {
         // Debug
         console.log('[Player] Saving State:', { level: data.level, exp: data.exp, maxExp: data.maxExp, quest: data.questData });
         this.net.savePlayerData(this.id, data, syncToWorld, {
-            debounceMs: syncToWorld ? 0 : 350,
+            debounceMs: syncToWorld ? 0 : soloLiteDebounceMs,
             forceImmediate: !!syncToWorld
         });
     }
