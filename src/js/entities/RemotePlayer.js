@@ -841,7 +841,8 @@ export default class RemotePlayer extends CharacterBase {
                         penetrationDelay: (attackerLevel - 1) * 0.05,
                         variant: data.extraData?.variant || null,
                         targetX,
-                        targetY
+                        targetY,
+                        weaponEffect: data.extraData?.weaponEffect || null
                     }));
                 } else if (skillType === 'missile') {
                     // v0.29.2: Ensure at least 1 missile and validate count

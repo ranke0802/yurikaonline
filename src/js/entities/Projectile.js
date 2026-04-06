@@ -21,6 +21,11 @@ export class Projectile {
         this.visualTint = options.visualTint || null;
         this.weaponEffect = options.weaponEffect || null;
         this.lockTargetPosition = !!options.lockTargetPosition;
+        this.fireballChainChance = Math.max(0, Math.min(1, this.weaponEffect?.fireballChainChance || 0));
+        this.fireballChainDamageRatio = Math.max(0, this.weaponEffect?.fireballChainDamageRatio || 0);
+        this.fireballChainRandomState = Number.isFinite(this.weaponEffect?.chainSeed)
+            ? (Number(this.weaponEffect.chainSeed) >>> 0)
+            : ((Date.now() ^ Math.round(x) ^ Math.round(y)) >>> 0);
 
         // v1.99.16: Separate hit detection radius from AOE/visual radius
         this.aoeRadius = options.aoeRadius || this.radius * 2; // v1.99.30: Explosion 2x wider than projectile (balanced)
@@ -461,7 +466,104 @@ export class Projectile {
             }
         }
 
+        if (this.type === 'fireball') {
+            this._tryTriggerBlueFlameChainExplosions(target, monsters, net, targetIsMonster);
+        }
+
         this.isDead = true;
+    }
+
+    _nextFireballChainRoll() {
+        this.fireballChainRandomState = ((this.fireballChainRandomState * 1664525) + 1013904223) >>> 0;
+        return this.fireballChainRandomState / 4294967296;
+    }
+
+    _buildFireballDamageMeta(cause, damageValue, extra = {}) {
+        return {
+            cause,
+            prefixId: this.weaponEffect?.prefixId || null,
+            fireballChainChance: this.fireballChainChance || 0,
+            fireballChainDamageRatio: this.fireballChainDamageRatio || 0,
+            burnDuration: this.burnDuration,
+            sourceDamage: Math.ceil(damageValue),
+            explosionRadius: Math.ceil((this.aoeRadius || this.radius * 2) * 0.75),
+            ...extra
+        };
+    }
+
+    _tryTriggerBlueFlameChainExplosions(target, monsters, net, targetIsMonster) {
+        if (this.variant !== 'blue_fireball') return;
+        if (this.fireballChainChance <= 0 || this.fireballChainDamageRatio <= 0) return;
+
+        const chainDamage = Math.ceil(this.damage * this.fireballChainDamageRatio);
+        const maxChains = 12;
+
+        for (let chainIndex = 1; chainIndex <= maxChains; chainIndex++) {
+            if (this._nextFireballChainRoll() >= this.fireballChainChance) break;
+
+            if (window.game) {
+                window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3, { variant: 'blue_flame', duration: 0.45 });
+                for (let i = 0; i < 10; i++) window.game.addSpark(this.x, this.y);
+                if (window.game.sound) {
+                    window.game.sound.playSfx('fireball_explosion');
+                }
+            }
+
+            if (targetIsMonster) {
+                this._applyBlueFlameChainToMonsters(monsters, net, chainDamage, chainIndex);
+            } else {
+                this._applyBlueFlameChainToPlayers(target, net, chainDamage, chainIndex);
+            }
+        }
+    }
+
+    _applyBlueFlameChainToMonsters(monsters, net, chainDamage, chainIndex) {
+        if (!monsters || chainDamage <= 0) return;
+        const aoeRadius = this.aoeRadius || 100;
+        monsters.forEach((m) => {
+            if (!m || m.isDead) return;
+            const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
+            const monsterRadius = (m.width || 80) / 2;
+            if (dist >= (aoeRadius + monsterRadius)) return;
+
+            const targetDef = m.defense || 0;
+            const finalDmg = Math.max(1, chainDamage - targetDef);
+            const damageMeta = this._buildFireballDamageMeta('blue_fireball_chain', finalDmg, { chainIndex });
+
+            if (net && chainDamage > 0) {
+                net.sendMonsterDamage(m.id, Math.ceil(finalDmg), damageMeta);
+                m.lastAttackerId = net.playerId;
+            }
+
+            m.takeDamage(Math.ceil(finalDmg), true, false, this.x, this.y, damageMeta);
+            m.applyEffect('burn', this.burnDuration, Math.max(1, Math.ceil(finalDmg * 0.15)), {
+                ...damageMeta,
+                cause: 'burn'
+            });
+        });
+    }
+
+    _applyBlueFlameChainToPlayers(target, net, chainDamage, chainIndex) {
+        if (target === window.game?.localPlayer) return;
+        if (this.ownerId !== window.game?.localPlayer?.id || !net || chainDamage <= 0) return;
+
+        const burnDuration = this.burnDuration;
+        const burnDamage = Math.max(1, Math.ceil(chainDamage * 0.15));
+        if (target?.applyBurn) {
+            target.applyBurn(burnDuration, burnDamage);
+        }
+
+        const rps = window.game?.remotePlayers;
+        if (rps) {
+            rps.forEach((rp) => {
+                if (!rp || rp.isDead || rp.id === this.ownerId) return;
+                if (!window.game?.localPlayer?.canAttackTarget(rp)) return;
+                const dist = Math.sqrt((this.x - rp.x) ** 2 + (this.y - rp.y) ** 2);
+                const rpRadius = (rp.width || 48) / 2;
+                if (dist >= (this.aoeRadius + rpRadius)) return;
+                net.sendPlayerDamage(rp.id, Math.ceil(chainDamage), 'burn', burnDuration, burnDamage);
+            });
+        }
     }
 
     _applyDamage(m, net, isMonster) {
@@ -508,14 +610,7 @@ export class Projectile {
 
             if (this.damage > 0) {
                 const damageMeta = this.type === 'fireball'
-                    ? {
-                        cause: 'fireball',
-                        prefixId: this.weaponEffect?.prefixId || null,
-                        fireExplosionDamageRatio: this.weaponEffect?.fireExplosionDamageRatio || 0,
-                        burnDuration: this.burnDuration,
-                        sourceDamage: Math.ceil(finalDmg),
-                        explosionRadius: Math.ceil((this.aoeRadius || this.radius * 2) * 0.75)
-                    }
+                    ? this._buildFireballDamageMeta('fireball', finalDmg)
                     : null;
                 net.sendMonsterDamage(m.id, Math.ceil(finalDmg), damageMeta);
                 m.lastAttackerId = net.playerId;
@@ -523,26 +618,14 @@ export class Projectile {
         }
 
         const damageMeta = this.type === 'fireball'
-            ? {
-                cause: 'fireball',
-                prefixId: this.weaponEffect?.prefixId || null,
-                fireExplosionDamageRatio: this.weaponEffect?.fireExplosionDamageRatio || 0,
-                burnDuration: this.burnDuration,
-                sourceDamage: Math.ceil(finalDmg),
-                explosionRadius: Math.ceil((this.aoeRadius || this.radius * 2) * 0.75)
-            }
+            ? this._buildFireballDamageMeta('fireball', finalDmg)
             : null;
         m.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y, damageMeta);
 
         // v0.00.42: Apply burn locally for visual, host syncs to DB
         if (this.type === 'fireball' && isMonster) {
             m.applyEffect('burn', this.burnDuration, Math.ceil(finalDmg * 0.15), {
-                cause: 'burn',
-                prefixId: this.weaponEffect?.prefixId || null,
-                fireExplosionDamageRatio: this.weaponEffect?.fireExplosionDamageRatio || 0,
-                burnDuration: this.burnDuration,
-                sourceDamage: Math.ceil(finalDmg),
-                explosionRadius: Math.ceil((this.aoeRadius || this.radius * 2) * 0.75)
+                ...this._buildFireballDamageMeta('burn', finalDmg)
             });
         }
     }

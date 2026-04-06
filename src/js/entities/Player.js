@@ -1612,6 +1612,7 @@ export default class Player extends CharacterBase {
                 const targetY = Number.isFinite(castOptions?.targetY)
                     ? castOptions.targetY
                     : originY + Math.sin(angle) * range;
+                const chainSeed = (Date.now() ^ Math.round(originX) ^ Math.round(originY)) >>> 0;
 
                 if (this.net) {
                     this.net.sendPlayerAttack(this.x, this.y, this.direction, 'fireball', {
@@ -1620,7 +1621,13 @@ export default class Player extends CharacterBase {
                         targetX,
                         targetY,
                         range,
-                        variant: weaponCombat.fireballVariant || null
+                        variant: weaponCombat.fireballVariant || null,
+                        weaponEffect: {
+                            prefixId: weaponCombat.prefixId,
+                            fireballChainChance: weaponCombat.fireballChainChance || 0,
+                            fireballChainDamageRatio: weaponCombat.fireballChainDamageRatio || 0,
+                            chainSeed
+                        }
                     });
                 }
 
@@ -1628,8 +1635,7 @@ export default class Player extends CharacterBase {
                 const speed = 800;
                 const vx = Math.cos(angle) * speed;
                 const vy = Math.sin(angle) * speed;
-                const fireballDamageMultiplier = 1 + (weaponCombat.fireballDamageBonus || 0);
-                const dmg = Math.ceil(this.attackPower * (1.8 + (lv - 1) * 0.3) * fireballDamageMultiplier); // v1.99.31: 180% + 30% per level
+                const dmg = Math.ceil(this.attackPower * (1.8 + (lv - 1) * 0.3)); // v1.99.31: 180% + 30% per level
                 const baseRad = this.getFireballProjectileRadius(lv);
                 const aoeRad = this.getFireballAoeRadius(lv); // v1.99.35: Increased to 2.5x for better coverage
 
@@ -1646,7 +1652,9 @@ export default class Player extends CharacterBase {
                         critRate: this.critRate,
                         weaponEffect: {
                             prefixId: weaponCombat.prefixId,
-                            fireExplosionDamageRatio: weaponCombat.fireExplosionDamageRatio || 0
+                            fireballChainChance: weaponCombat.fireballChainChance || 0,
+                            fireballChainDamageRatio: weaponCombat.fireballChainDamageRatio || 0,
+                            chainSeed
                         }
                     }));
                 });
@@ -2430,8 +2438,8 @@ export default class Player extends CharacterBase {
         const baseProfile = {
             prefixId: null,
             missileDamageBonus: 0,
-            fireballDamageBonus: 0,
-            fireExplosionDamageRatio: 0,
+            fireballChainChance: 0,
+            fireballChainDamageRatio: 0,
             laserDamageBonus: 0,
             restoreHpPerLaserHit: 0,
             missileVariant: null,
@@ -2455,8 +2463,8 @@ export default class Player extends CharacterBase {
         return {
             prefixId: affix.id,
             missileDamageBonus: weapon.rolledValues?.missileDamageBonus || 0,
-            fireballDamageBonus: weapon.rolledValues?.fireballDamageBonus || 0,
-            fireExplosionDamageRatio: weapon.rolledValues?.fireExplosionDamageRatio || 0,
+            fireballChainChance: weapon.rolledValues?.fireballChainChance ?? weapon.rolledValues?.fireballDamageBonus ?? 0,
+            fireballChainDamageRatio: weapon.rolledValues?.fireballChainDamageRatio ?? weapon.rolledValues?.fireExplosionDamageRatio ?? 0,
             laserDamageBonus: weapon.rolledValues?.laserDamageBonus || 0,
             restoreHpPerLaserHit: affix.combatHooks?.restoreHpPerLaserHit || 0,
             missileVariant: affix.skillOverrides?.missileVisualVariant || null,
@@ -2481,7 +2489,8 @@ export default class Player extends CharacterBase {
             cause,
             weaponType: weapon.type,
             prefixId: weapon.prefixId || combatProfile.prefixId || null,
-            fireExplosionDamageRatio: combatProfile.fireExplosionDamageRatio || 0,
+            fireballChainChance: combatProfile.fireballChainChance || 0,
+            fireballChainDamageRatio: combatProfile.fireballChainDamageRatio || 0,
             burnDuration: extra.burnDuration || 0,
             sourceDamage: extra.sourceDamage || 0,
             explosionRadius: extra.explosionRadius || 0

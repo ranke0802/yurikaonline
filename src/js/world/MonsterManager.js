@@ -1089,7 +1089,6 @@ export default class MonsterManager {
 
     // v0.00.43: Kill Count & Boss Spawn Logic
     _handleMonsterDeath(m) {
-        this._handleBlueFlameDeathExplosion(m);
         // Only the first king slime uses the global 30-kill buildup.
         if (m.typeId === 'slime' || m.typeId === 'slime_split') {
             if (!this.firstBossDefeated && !this.bossSpawned && this.slimeKillCount < 30) {

@@ -2794,8 +2794,7 @@ export class UIManager {
             }
             case 'fireball': {
                 const manaCost = 12 + (lv - 1) * 4;
-                const weaponMultiplier = 1 + (weaponCombat.fireballDamageBonus || 0);
-                const directDamage = Math.ceil(attackPower * (1.8 + (lv - 1) * 0.3) * weaponMultiplier);
+                const directDamage = Math.ceil(attackPower * (1.8 + (lv - 1) * 0.3));
                 const baseRadius = 20 + (lv - 1) * 20;
                 const aoeRadius = Math.round(baseRadius * 2.5);
                 const burnDuration = 2.0 + (lv - 1) * 0.5;
@@ -2817,7 +2816,7 @@ export class UIManager {
                 );
 
                 formulaItems.push(
-                    `<code>직격 피해 = ceil(공격력 × (1.8 + 0.3 × (레벨 - 1)) × 무기 보정)</code>`,
+                    `<code>직격 피해 = ceil(공격력 × (1.8 + 0.3 × (레벨 - 1)))</code>`,
                     `<code>최종 피해 = max(1, 직격 피해 - 대상 방어력)</code>`,
                     `<code>폭발 기본 반경 = 20 + 20 × (레벨 - 1)</code>`,
                     `<code>실제 폭발 반경 = 폭발 기본 반경 × 2.5</code>`,
@@ -2832,11 +2831,11 @@ export class UIManager {
                     `명중 또는 범위 피해 대상 모두 화상을 적용할 수 있습니다.`
                 );
 
-                if ((weaponCombat.fireballDamageBonus || 0) > 0) {
-                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 파이어볼 피해 <strong>+${this.formatSkillPercent(weaponCombat.fireballDamageBonus)}</strong>`);
+                if ((weaponCombat.fireballChainChance || 0) > 0) {
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 파이어볼 폭발 후 <strong>${this.formatSkillPercent(weaponCombat.fireballChainChance)}</strong> 확률로 같은 위치에서 연속 폭발이 다시 발생합니다.`);
                 }
-                if ((weaponCombat.fireExplosionDamageRatio || 0) > 0) {
-                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 파이어볼/화상으로 처치 시 주변에 추가 폭발 피해 <strong>${this.formatSkillPercent(weaponCombat.fireExplosionDamageRatio)}</strong>가 발생합니다.`);
+                if ((weaponCombat.fireballChainDamageRatio || 0) > 0) {
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 연속 폭발 피해는 기본 파이어볼의 <strong>${this.formatSkillPercent(weaponCombat.fireballChainDamageRatio)}</strong>입니다.`);
                 }
 
                 tooltipCurrentEffectHtml = `<div class="current-effect">현재 효과 (Lv.${lv}): 직격 ${directDamage} | 폭발 반경 ${aoeRadius} | 화상 ${burnDuration.toFixed(1)}초 | 마나 ${manaCost}</div>`;
@@ -4398,9 +4397,11 @@ export class UIManager {
             if (affix?.id === 'starlight') {
                 lines.push(`별빛 매직 미사일 피해 +${Math.round((item.rolledValues?.missileDamageBonus || 0) * 100)}%`);
             } else if (affix?.id === 'blue_flame') {
-                lines.push(`푸른 파이어볼 피해 +${Math.round((item.rolledValues?.fireballDamageBonus || 0) * 100)}%`);
-                lines.push(`푸른 불꽃 폭발 피해 ${Math.round((item.rolledValues?.fireExplosionDamageRatio || 0) * 100)}%`);
-                lines.push('파이어볼/화상 처치 시 주변 폭발');
+                const chainChance = Math.round(((item.rolledValues?.fireballChainChance ?? item.rolledValues?.fireballDamageBonus ?? 0)) * 100);
+                const chainDamage = Math.round(((item.rolledValues?.fireballChainDamageRatio ?? item.rolledValues?.fireExplosionDamageRatio ?? 0)) * 100);
+                lines.push(`푸른 파이어볼 연속 폭발 확률 ${chainChance}%`);
+                lines.push(`연속 폭발 데미지 ${chainDamage}%`);
+                lines.push('파이어볼이 같은 위치에서 연속으로 폭발');
             } else if (affix?.id === 'crimson_flash') {
                 lines.push(`붉은 전격 피해 +${Math.round((item.rolledValues?.laserDamageBonus || 0) * 100)}%`);
                 lines.push('체인 라이트닝 적중 시 HP 흡수');
