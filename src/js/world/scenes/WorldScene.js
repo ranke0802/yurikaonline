@@ -36,6 +36,8 @@ export default class WorldScene extends Scene {
         this.monsterMissileQueue = [];
         this.monsterMissileTimer = 0;
         this.safeZone = null;
+        this.zoneSpawnRules = [];
+        this._handleHostChanged = null;
     }
 
     /**
@@ -106,6 +108,7 @@ export default class WorldScene extends Scene {
 
         // 2. Setup Camera Bounds
         if (zoneData) {
+            this.zoneSpawnRules = zoneData.monsterSpawns || zoneData.spawns || [];
             this.camera.setWorldBounds(this.game.zone.width, this.game.zone.height);
             const defaultSpawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
             this.safeZone = {
@@ -116,8 +119,7 @@ export default class WorldScene extends Scene {
 
             // 3. Setup Monster Spawns
             if (this.net.isHost && this.monsterManager) {
-                this.monsterManager.setSpawnRules(zoneData.monsterSpawns || zoneData.spawns || []);
-                this.monsterManager.clearAll(); // Clear old monsters on zone change
+                this._ensureHostSpawnRulesLoaded({ clearExisting: true, primeSpawn: false });
             }
 
             // 4. Place Objects
@@ -361,6 +363,7 @@ export default class WorldScene extends Scene {
         if (!this.player) return;
 
         this.net.setZoneParticipationEnabled(true);
+        this._ensureHostSpawnRulesLoaded();
         this.remotePlayers.clear();
         this._syncRemotePlayersFromBuffer();
         this.net.startHostilityListeners();
@@ -368,6 +371,30 @@ export default class WorldScene extends Scene {
         this.net.sendPlayerHp(this.player.hp, this.player.maxHp);
         this.net.sendMovePacket(this.player.x, this.player.y, this.player.vx, this.player.vy, this.player.name);
         this.net.sendHeartbeat();
+    }
+
+    _ensureHostSpawnRulesLoaded(options = {}) {
+        if (!this.net?.isHost || !this.monsterManager) return false;
+
+        const spawnRules = Array.isArray(this.zoneSpawnRules) && this.zoneSpawnRules.length > 0
+            ? this.zoneSpawnRules
+            : (this.game.zone?.currentZone?.monsterSpawns || this.game.zone?.currentZone?.spawns || []);
+
+        if (!Array.isArray(spawnRules) || spawnRules.length === 0) {
+            return false;
+        }
+
+        this.monsterManager.setSpawnRules(spawnRules);
+
+        if (options.clearExisting) {
+            this.monsterManager.clearAll();
+        }
+
+        if (options.primeSpawn !== false && !this.monsterManager.isSpawnSuppressed?.()) {
+            this.monsterManager.primeSpawnCycle();
+        }
+
+        return true;
     }
 
     // v2.3.4: Effect Bridge
@@ -411,6 +438,14 @@ export default class WorldScene extends Scene {
     }
 
     _setupNetworkHandlers() {
+        if (!this._handleHostChanged) {
+            this._handleHostChanged = (isHost) => {
+                if (!isHost) return;
+                this._ensureHostSpawnRulesLoaded();
+            };
+            this.net.on('hostChanged', this._handleHostChanged);
+        }
+
         this.net.on('rewardReceived', (data) => {
             if (this.player) this.player.receiveReward(data);
         });
@@ -566,6 +601,10 @@ export default class WorldScene extends Scene {
     }
 
     async exit() {
+        if (this._handleHostChanged) {
+            this.net.off('hostChanged', this._handleHostChanged);
+            this._handleHostChanged = null;
+        }
         this.remotePlayers.clear();
     }
 
