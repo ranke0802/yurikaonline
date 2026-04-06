@@ -223,8 +223,8 @@ export default class TutorialManager {
                 mobileLandscape: { guideMode: 'top-card', highlightMode: 'frame', align: 'left', compact: true }
             },
             inspect: {
-                desktop: { guideMode: 'dock-left', highlightMode: 'spotlight', align: 'left' },
-                mobilePortrait: { guideMode: 'bottom-sheet', highlightMode: 'spotlight', align: 'left' },
+                desktop: { guideMode: 'popup-near-left', highlightMode: 'spotlight', align: 'left' },
+                mobilePortrait: { guideMode: 'popup-near-top', highlightMode: 'spotlight', align: 'left' },
                 mobileLandscape: { guideMode: 'top-card', highlightMode: 'spotlight', align: 'left', compact: true }
             },
             interact: {

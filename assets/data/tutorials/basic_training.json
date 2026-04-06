@@ -177,12 +177,12 @@
             },
             "presentation": {
                 "desktop": {
-                    "guideMode": "dock-left",
+                    "guideMode": "popup-near-left",
                     "highlightMode": "frame",
                     "guideTitle": "수치 미리보기"
                 },
                 "mobilePortrait": {
-                    "guideMode": "bottom-sheet",
+                    "guideMode": "popup-near-top",
                     "highlightMode": "frame",
                     "guideTitle": "수치 미리보기"
                 },
@@ -198,6 +198,9 @@
             ],
             "highlightTargetsMobileLandscape": [
                 "#status-intelligence-row"
+            ],
+            "avoidTargets": [
+                "#status-derived-panel"
             ],
             "trigger": "stat_allocated",
             "target": "intelligence",
@@ -293,12 +296,12 @@
             "questText": "체인 라이트닝 설명을 확인하세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "dock-left",
+                    "guideMode": "popup-near-left",
                     "highlightMode": "spotlight",
                     "guideTitle": "설명 확인"
                 },
                 "mobilePortrait": {
-                    "guideMode": "bottom-sheet",
+                    "guideMode": "popup-near-top",
                     "highlightMode": "spotlight",
                     "guideTitle": "설명 확인"
                 },
@@ -310,6 +313,9 @@
                 }
             },
             "highlightTarget": "#skill-item-laser",
+            "avoidTargets": [
+                "#skill-popup .skill-content-wrapper"
+            ],
             "trigger": "skill_detail_open",
             "target": "laser",
             "count": 1,
@@ -325,13 +331,13 @@
             "questText": "체인 라이트닝 설명 창을 닫아 주세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-near-top",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
                 },
                 "mobilePortrait": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-near-top",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
@@ -343,7 +349,13 @@
                     "compact": true
                 }
             },
-            "highlightTarget": "#skill-detail-modal-close",
+            "focus": [
+                "#skill-detail-modal-close",
+                "#skill-detail-modal-close-bottom"
+            ],
+            "avoidTargets": [
+                "#skill-detail-modal-body"
+            ],
             "trigger": "skill_detail_close",
             "target": "laser",
             "count": 1,
@@ -359,12 +371,12 @@
             "questText": "매직 미사일 설명을 확인하세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "dock-left",
+                    "guideMode": "popup-near-left",
                     "highlightMode": "spotlight",
                     "guideTitle": "설명 확인"
                 },
                 "mobilePortrait": {
-                    "guideMode": "bottom-sheet",
+                    "guideMode": "popup-near-top",
                     "highlightMode": "spotlight",
                     "guideTitle": "설명 확인"
                 },
@@ -376,6 +388,9 @@
                 }
             },
             "highlightTarget": "#skill-item-missile",
+            "avoidTargets": [
+                "#skill-popup .skill-content-wrapper"
+            ],
             "trigger": "skill_detail_open",
             "target": "missile",
             "count": 1,
@@ -391,13 +406,13 @@
             "questText": "매직 미사일 설명 창을 닫아 주세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-near-top",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
                 },
                 "mobilePortrait": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-near-top",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
@@ -409,7 +424,13 @@
                     "compact": true
                 }
             },
-            "highlightTarget": "#skill-detail-modal-close",
+            "focus": [
+                "#skill-detail-modal-close",
+                "#skill-detail-modal-close-bottom"
+            ],
+            "avoidTargets": [
+                "#skill-detail-modal-body"
+            ],
             "trigger": "skill_detail_close",
             "target": "missile",
             "count": 1,
@@ -520,12 +541,12 @@
             "questText": "파이어볼 설명을 확인하세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "dock-left",
+                    "guideMode": "popup-near-left",
                     "highlightMode": "spotlight",
                     "guideTitle": "설명 확인"
                 },
                 "mobilePortrait": {
-                    "guideMode": "bottom-sheet",
+                    "guideMode": "popup-near-top",
                     "highlightMode": "spotlight",
                     "guideTitle": "설명 확인"
                 },
@@ -537,6 +558,9 @@
                 }
             },
             "highlightTarget": "#skill-item-fireball",
+            "avoidTargets": [
+                "#skill-popup .skill-content-wrapper"
+            ],
             "trigger": "skill_detail_open",
             "target": "fireball",
             "count": 1,
@@ -552,13 +576,13 @@
             "questText": "파이어볼 설명 창을 닫아 주세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-near-top",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
                 },
                 "mobilePortrait": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-near-top",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
@@ -570,7 +594,13 @@
                     "compact": true
                 }
             },
-            "highlightTarget": "#skill-detail-modal-close",
+            "focus": [
+                "#skill-detail-modal-close",
+                "#skill-detail-modal-close-bottom"
+            ],
+            "avoidTargets": [
+                "#skill-detail-modal-body"
+            ],
             "trigger": "skill_detail_close",
             "target": "fireball",
             "count": 1,
@@ -754,12 +784,12 @@
             "questText": "앱솔루트 베리어 설명을 확인하세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "dock-left",
+                    "guideMode": "popup-near-left",
                     "highlightMode": "spotlight",
                     "guideTitle": "설명 확인"
                 },
                 "mobilePortrait": {
-                    "guideMode": "bottom-sheet",
+                    "guideMode": "popup-near-top",
                     "highlightMode": "spotlight",
                     "guideTitle": "설명 확인"
                 },
@@ -771,6 +801,9 @@
                 }
             },
             "highlightTarget": "#skill-item-shield",
+            "avoidTargets": [
+                "#skill-popup .skill-content-wrapper"
+            ],
             "trigger": "skill_detail_open",
             "target": "shield",
             "count": 1,
@@ -786,13 +819,13 @@
             "questText": "앱솔루트 베리어 설명 창을 닫아 주세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-near-top",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
                 },
                 "mobilePortrait": {
-                    "guideMode": "top-card",
+                    "guideMode": "popup-near-top",
                     "highlightMode": "ring",
                     "guideTitle": "설명 닫기",
                     "compact": true
@@ -804,7 +837,13 @@
                     "compact": true
                 }
             },
-            "highlightTarget": "#skill-detail-modal-close",
+            "focus": [
+                "#skill-detail-modal-close",
+                "#skill-detail-modal-close-bottom"
+            ],
+            "avoidTargets": [
+                "#skill-detail-modal-body"
+            ],
             "trigger": "skill_detail_close",
             "target": "shield",
             "count": 1,

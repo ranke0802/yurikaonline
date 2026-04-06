@@ -38,9 +38,19 @@ export class UIManager {
         this.tutorialHighlightLayer = null;
         this.tutorialHighlightTargets = [];
         this.tutorialHighlightState = { targets: [], mode: 'ring', label: '' };
+        this.tutorialGuideManualPosition = null;
+        this.tutorialGuideDragState = {
+            active: false,
+            pointerId: null,
+            offsetX: 0,
+            offsetY: 0,
+            stepId: ''
+        };
         this.activeSkillDetailId = null;
         this.refreshTutorialHighlight = this.refreshTutorialHighlight.bind(this);
         this.refreshTutorialGuideLayout = this.refreshTutorialGuideLayout.bind(this);
+        this.handleTutorialGuideDragMove = this.handleTutorialGuideDragMove.bind(this);
+        this.handleTutorialGuideDragEnd = this.handleTutorialGuideDragEnd.bind(this);
         const refreshTutorialOverlays = () => {
             this.refreshTutorialHighlight();
             this.refreshTutorialGuideLayout();
@@ -560,6 +570,58 @@ export class UIManager {
             && inner.bottom <= outer.bottom;
     }
 
+    getTutorialPrimaryFocusRect(focusRects = []) {
+        if (!focusRects.length) return null;
+        if (focusRects.length === 1) return focusRects[0];
+
+        const left = Math.min(...focusRects.map((rect) => rect.left));
+        const top = Math.min(...focusRects.map((rect) => rect.top));
+        const right = Math.max(...focusRects.map((rect) => rect.right));
+        const bottom = Math.max(...focusRects.map((rect) => rect.bottom));
+
+        return {
+            left,
+            top,
+            right,
+            bottom,
+            width: right - left,
+            height: bottom - top
+        };
+    }
+
+    getActivePopupAvoidZones() {
+        const popupZoneSelectors = [
+            '#status-popup:not(.hidden) #status-derived-panel',
+            '#status-popup:not(.hidden) #status-stat-main',
+            '#status-popup:not(.hidden) .status-basic-info',
+            '#skill-popup:not(.hidden) .skill-content-wrapper',
+            '#skill-popup:not(.hidden) .skill-point-info',
+            '#skill-detail-modal:not(.hidden) .skill-detail-modal-header',
+            '#skill-detail-modal:not(.hidden) #skill-detail-modal-body',
+            '#inventory-popup:not(.hidden) #inventory-grid',
+            '#inventory-item-modal:not(.hidden) .inventory-detail-head',
+            '#inventory-item-modal:not(.hidden) #inventory-detail-desc',
+            '#inventory-item-modal:not(.hidden) #inventory-detail-stats',
+            '#confirm-modal:not(.hidden) .confirm-content',
+            '#reward-modal:not(.hidden) .reward-content',
+            '#history-modal:not(.hidden) .history-content',
+            '#generic-modal:not(.hidden) .confirm-modal-content'
+        ];
+
+        return popupZoneSelectors
+            .map((selector) => this.getVisibleElementRect(selector))
+            .filter(Boolean);
+    }
+
+    clampTutorialGuidePosition(left, top, width, height, margin = 16) {
+        const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
+        const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+        return {
+            left: Math.round(Math.min(Math.max(margin, left), Math.max(margin, viewportW - width - margin))),
+            top: Math.round(Math.min(Math.max(margin, top), Math.max(margin, viewportH - height - margin)))
+        };
+    }
+
     getTutorialForbiddenZones(focusRects = [], payload = this.tutorialGuideState) {
         const selectors = [
             '#minimap-container',
@@ -581,6 +643,8 @@ export class UIManager {
         if (payload?.avoidTargets) {
             zones.push(...this.getTutorialFocusRects(payload.avoidTargets));
         }
+
+        zones.push(...this.getActivePopupAvoidZones());
 
         const popupRect = this.getActivePopupRect();
         const shouldReservePopup = popupRect && !focusRects.some((rect) => this.getRectContains(rect, popupRect));
@@ -662,9 +726,10 @@ export class UIManager {
         const bottomTop = viewportH - height - margin;
         const rightLeft = viewportW - width - margin;
         const leftLeft = margin;
+        const primaryFocusRect = options.primaryFocusRect || this.getTutorialPrimaryFocusRect(focusRects);
 
-        if (focusRects[0] && !options.disableTargetAnchors) {
-            const focus = focusRects[0];
+        if (primaryFocusRect && !options.disableTargetAnchors) {
+            const focus = primaryFocusRect;
             pushCandidate(focus.left + (focus.width / 2) - (width / 2), focus.top - height - 14, 'target-top');
             pushCandidate(focus.left + (focus.width / 2) - (width / 2), focus.bottom + 14, 'target-bottom');
             pushCandidate(focus.right + 14, focus.top + (focus.height / 2) - (height / 2), 'target-right');
@@ -674,7 +739,7 @@ export class UIManager {
         if (options.popupRect) {
             const popup = options.popupRect;
             const popupCenterLeft = popup.left + (popup.width / 2) - (width / 2);
-            const focus = focusRects[0];
+            const focus = primaryFocusRect;
 
             if (viewportMode === 'mobile-portrait') {
                 const popupMargin = 12;
@@ -696,13 +761,12 @@ export class UIManager {
                 ];
                 const focusCenterY = focus ? focus.top + (focus.height / 2) : popup.top + (popup.height / 2);
                 const preferBottomBand = focusCenterY < popup.top + (popup.height * 0.48);
+                pushCandidate(popupCenterLeft, popup.top - height - 12, 'popup-top');
+                pushCandidate(popupCenterLeft, popup.bottom + 12, 'popup-bottom');
                 const orderedBandCandidates = preferBottomBand
                     ? [...bottomBandCandidates, ...topBandCandidates]
                     : [...topBandCandidates, ...bottomBandCandidates];
-
                 orderedBandCandidates.forEach((candidate) => pushCandidate(candidate.left, candidate.top, candidate.kind));
-                pushCandidate(popupCenterLeft, popup.top - height - 12, 'popup-top');
-                pushCandidate(popupCenterLeft, popup.bottom + 12, 'popup-bottom');
             } else if (viewportMode === 'mobile-landscape') {
                 pushCandidate(popupCenterLeft, popup.top - height - 14, 'popup-top');
                 pushCandidate(popupCenterLeft, popup.bottom + 14, 'popup-bottom');
@@ -767,6 +831,25 @@ export class UIManager {
                 pushCandidate(rightLeft, margin);
                 pushCandidate(leftLeft, margin);
                 break;
+            case 'popup-near-left':
+                if (options.popupRect || primaryFocusRect) {
+                    const basis = options.popupRect || primaryFocusRect;
+                    pushCandidate(basis.left - width - 18, basis.top + 8, 'popup-near-left');
+                    pushCandidate(basis.left - width - 18, basis.bottom - height - 8, 'popup-near-left-bottom');
+                    pushCandidate(basis.left + 8, basis.top - height - 16, 'popup-near-left-top');
+                }
+                pushCandidate(leftLeft, margin);
+                pushCandidate(centerLeft, margin);
+                break;
+            case 'popup-near-top':
+                if (options.popupRect || primaryFocusRect) {
+                    const basis = options.popupRect || primaryFocusRect;
+                    pushCandidate(basis.left + (basis.width / 2) - (width / 2), basis.top - height - 16, 'popup-near-top');
+                    pushCandidate(basis.left + (basis.width / 2) - (width / 2), basis.bottom + 16, 'popup-near-bottom');
+                }
+                pushCandidate(centerLeft, margin);
+                pushCandidate(centerLeft, bottomTop);
+                break;
             case 'top-card':
             default:
                 pushCandidate(centerLeft, margin);
@@ -813,13 +896,27 @@ export class UIManager {
             height: candidate.height
         };
 
-        let score = order;
+        let score = order * 24;
         forbiddenZones.forEach((zone) => {
             score += this.getRectOverlapArea(rect, zone) * 1.15;
         });
         focusRects.forEach((zone) => {
             score += this.getRectOverlapArea(rect, zone) * 2.4;
         });
+
+        const primaryFocusRect = this.getTutorialPrimaryFocusRect(focusRects);
+        if (primaryFocusRect) {
+            const rectCenterX = rect.left + (rect.width / 2);
+            const rectCenterY = rect.top + (rect.height / 2);
+            const focusCenterX = primaryFocusRect.left + (primaryFocusRect.width / 2);
+            const focusCenterY = primaryFocusRect.top + (primaryFocusRect.height / 2);
+            const distance = Math.hypot(rectCenterX - focusCenterX, rectCenterY - focusCenterY);
+            score += distance * 3.2;
+
+            if (distance > Math.max(window.innerWidth, window.innerHeight) * 0.45) {
+                score += 900;
+            }
+        }
 
         const centerPenaltyZone = {
             left: window.innerWidth * 0.22,
@@ -839,6 +936,7 @@ export class UIManager {
         const shouldProtectSkillPopup = mode === 'mobile-landscape' && this.isSkillPopupTutorialStep(payload.stepId);
         const guideMode = shouldProtectSkillPopup ? 'left-card' : (payload.mode || 'top-card');
         const focusRects = this.getTutorialFocusRects(payload.focusTargets || this.tutorialHighlightTargets);
+        const primaryFocusRect = this.getTutorialPrimaryFocusRect(focusRects);
         const popupRect = this.getActivePopupRect();
         const focusInsidePopup = popupRect && focusRects.some((rect) => this.getRectContains(rect, popupRect));
         const guideDimensions = this.getTutorialGuideDimensions(payload, { focusInsidePopup, popupRect });
@@ -864,7 +962,7 @@ export class UIManager {
         guide.style.bottom = 'auto';
         guide.style.transform = 'none';
         guide.style.boxSizing = 'border-box';
-        guide.style.pointerEvents = 'none';
+        guide.style.pointerEvents = 'auto';
         guide.style.zIndex = '4600';
         guide.style.width = `${guideDimensions.width}px`;
         guide.style.maxWidth = `${guideDimensions.width}px`;
@@ -876,22 +974,106 @@ export class UIManager {
         const rect = guide.getBoundingClientRect();
         const width = Math.min(guideDimensions.width, rect.width || guideDimensions.width);
         const height = Math.min(guideDimensions.maxHeight, rect.height || guideDimensions.maxHeight);
-        const candidates = this.buildTutorialGuideCandidates(guideMode, width, height, focusRects, {
-            disableTargetAnchors,
-            popupRect: focusInsidePopup ? popupRect : null,
-            viewportMode: mode
-        });
-        const bestCandidate = candidates.reduce((best, candidate, index) => {
-            const score = this.scoreTutorialGuideCandidate(candidate, forbiddenZones, focusRects, index);
-            if (!best || score < best.score) {
-                return { ...candidate, score };
-            }
-            return best;
-        }, null);
+        const manualPosition = this.tutorialGuideManualPosition?.stepId === payload.stepId
+            ? this.clampTutorialGuidePosition(
+                this.tutorialGuideManualPosition.left,
+                this.tutorialGuideManualPosition.top,
+                width,
+                height
+            )
+            : null;
 
-        guide.style.left = `${bestCandidate?.left ?? 16}px`;
-        guide.style.top = `${bestCandidate?.top ?? 16}px`;
+        if (manualPosition) {
+            guide.style.left = `${manualPosition.left}px`;
+            guide.style.top = `${manualPosition.top}px`;
+            this.tutorialGuideManualPosition = {
+                ...this.tutorialGuideManualPosition,
+                ...manualPosition
+            };
+        } else {
+            const candidates = this.buildTutorialGuideCandidates(guideMode, width, height, focusRects, {
+                disableTargetAnchors,
+                popupRect: focusInsidePopup ? popupRect : null,
+                viewportMode: mode,
+                primaryFocusRect
+            });
+            const bestCandidate = candidates.reduce((best, candidate, index) => {
+                const score = this.scoreTutorialGuideCandidate(candidate, forbiddenZones, focusRects, index);
+                if (!best || score < best.score) {
+                    return { ...candidate, score };
+                }
+                return best;
+            }, null);
+
+            guide.style.left = `${bestCandidate?.left ?? 16}px`;
+            guide.style.top = `${bestCandidate?.top ?? 16}px`;
+        }
         guide.style.visibility = 'visible';
+    }
+
+    beginTutorialGuideDrag(e) {
+        const guide = document.getElementById('tutorial-guide');
+        if (!guide || guide.style.display === 'none' || !this.tutorialGuideState) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const rect = guide.getBoundingClientRect();
+        this.tutorialGuideDragState = {
+            active: true,
+            pointerId: e.pointerId,
+            offsetX: e.clientX - rect.left,
+            offsetY: e.clientY - rect.top,
+            stepId: this.tutorialGuideState.stepId || ''
+        };
+
+        guide.classList.add('tutorial-guide-dragging');
+    }
+
+    handleTutorialGuideDragMove(e) {
+        if (!this.tutorialGuideDragState.active) return;
+        if (this.tutorialGuideDragState.pointerId !== null && e.pointerId !== this.tutorialGuideDragState.pointerId) return;
+
+        const guide = document.getElementById('tutorial-guide');
+        if (!guide || !this.tutorialGuideState) return;
+
+        e.preventDefault();
+
+        const rect = guide.getBoundingClientRect();
+        const nextLeft = e.clientX - this.tutorialGuideDragState.offsetX;
+        const nextTop = e.clientY - this.tutorialGuideDragState.offsetY;
+        const clamped = this.clampTutorialGuidePosition(nextLeft, nextTop, rect.width, rect.height);
+
+        this.tutorialGuideManualPosition = {
+            left: clamped.left,
+            top: clamped.top,
+            stepId: this.tutorialGuideState.stepId || ''
+        };
+
+        guide.style.left = `${clamped.left}px`;
+        guide.style.top = `${clamped.top}px`;
+    }
+
+    handleTutorialGuideDragEnd(e) {
+        if (!this.tutorialGuideDragState.active) return;
+        if (
+            this.tutorialGuideDragState.pointerId !== null
+            && e?.pointerId !== undefined
+            && e.pointerId !== this.tutorialGuideDragState.pointerId
+        ) {
+            return;
+        }
+
+        this.tutorialGuideDragState = {
+            active: false,
+            pointerId: null,
+            offsetX: 0,
+            offsetY: 0,
+            stepId: ''
+        };
+
+        document.getElementById('tutorial-guide')?.classList.remove('tutorial-guide-dragging');
     }
 
     refreshTutorialGuideLayout() {
@@ -909,7 +1091,8 @@ export class UIManager {
                 align: 'left',
                 compact: false,
                 stepType: 'info',
-                focusTargets: []
+                focusTargets: [],
+                avoidTargets: []
             }
             : {
                 title: payload?.title || '튜토리얼',
@@ -921,7 +1104,8 @@ export class UIManager {
                 stepId: payload?.stepId || '',
                 stepNumber: payload?.stepNumber || 0,
                 totalSteps: payload?.totalSteps || 0,
-                focusTargets: payload?.focusTargets || []
+                focusTargets: payload?.focusTargets || [],
+                avoidTargets: payload?.avoidTargets || []
             };
 
         let guide = document.getElementById('tutorial-guide');
@@ -931,11 +1115,20 @@ export class UIManager {
             document.body.appendChild(guide);
         }
 
+        const shouldResetManualPosition = this.tutorialGuideState?.stepId !== normalizedPayload.stepId;
+        if (shouldResetManualPosition) {
+            this.tutorialGuideManualPosition = null;
+            this.handleTutorialGuideDragEnd();
+        }
+
         this.tutorialGuideState = normalizedPayload;
         guide.innerHTML = '';
 
         const head = document.createElement('div');
         head.className = 'tutorial-guide-head';
+        head.setAttribute('role', 'button');
+        head.setAttribute('aria-label', '튜토리얼 가이드 이동');
+        head.tabIndex = 0;
 
         const eyebrow = document.createElement('div');
         eyebrow.className = 'tutorial-guide-eyebrow';
@@ -949,6 +1142,11 @@ export class UIManager {
             head.appendChild(stepCounter);
         }
 
+        const dragHandle = document.createElement('div');
+        dragHandle.className = 'tutorial-guide-drag-handle';
+        dragHandle.textContent = '::';
+        head.appendChild(dragHandle);
+
         const body = document.createElement('div');
         body.className = 'tutorial-guide-body';
         body.textContent = normalizedPayload.text;
@@ -956,8 +1154,31 @@ export class UIManager {
         guide.appendChild(head);
         guide.appendChild(body);
 
+        head.onpointerdown = (e) => this.beginTutorialGuideDrag(e);
+        head.onkeydown = (e) => {
+            if (!this.tutorialGuideState) return;
+            const guideRect = guide.getBoundingClientRect();
+            const current = this.tutorialGuideManualPosition?.stepId === this.tutorialGuideState.stepId
+                ? this.tutorialGuideManualPosition
+                : { left: guideRect.left, top: guideRect.top, stepId: this.tutorialGuideState.stepId || '' };
+            const delta = e.shiftKey ? 24 : 12;
+            let moved = false;
+            const next = { ...current };
+            if (e.key === 'ArrowLeft') { next.left -= delta; moved = true; }
+            if (e.key === 'ArrowRight') { next.left += delta; moved = true; }
+            if (e.key === 'ArrowUp') { next.top -= delta; moved = true; }
+            if (e.key === 'ArrowDown') { next.top += delta; moved = true; }
+            if (!moved) return;
+            e.preventDefault();
+            const clamped = this.clampTutorialGuidePosition(next.left, next.top, guideRect.width, guideRect.height);
+            this.tutorialGuideManualPosition = { ...clamped, stepId: this.tutorialGuideState.stepId || '' };
+            guide.style.left = `${clamped.left}px`;
+            guide.style.top = `${clamped.top}px`;
+        };
+
         guide.dataset.align = normalizedPayload.align;
         guide.dataset.stepType = normalizedPayload.stepType;
+        guide.dataset.stepId = normalizedPayload.stepId;
         guide.style.display = 'block';
         this.applyTutorialGuideLayout(guide, normalizedPayload);
     }
@@ -966,6 +1187,8 @@ export class UIManager {
         const guide = document.getElementById('tutorial-guide');
         if (guide) guide.style.display = 'none';
         this.tutorialGuideState = null;
+        this.tutorialGuideManualPosition = null;
+        this.handleTutorialGuideDragEnd();
     }
 
     // v2.3.1: HUD Visibility Control for Cutscenes
@@ -1493,6 +1716,9 @@ export class UIManager {
 
     setupEventListeners() {
         document.addEventListener('keydown', this.handleDesktopShortcutKeydown);
+        document.addEventListener('pointermove', this.handleTutorialGuideDragMove, { passive: false });
+        document.addEventListener('pointerup', this.handleTutorialGuideDragEnd, true);
+        document.addEventListener('pointercancel', this.handleTutorialGuideDragEnd, true);
 
         const handleClose = (e) => {
             e.preventDefault();

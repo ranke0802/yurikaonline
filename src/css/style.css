@@ -3383,6 +3383,10 @@ body.low-power-pwa .minimap-menu {
     justify-content: space-between;
     gap: 10px;
     margin-bottom: 8px;
+    pointer-events: auto;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
 }
 
 .tutorial-guide-eyebrow {
@@ -3406,6 +3410,21 @@ body.low-power-pwa .minimap-menu {
     line-height: 1.58;
     white-space: pre-line;
     text-align: left;
+    pointer-events: none;
+}
+
+#tutorial-guide.tutorial-guide-dragging .tutorial-guide-head {
+    cursor: grabbing;
+}
+
+.tutorial-guide-drag-handle {
+    flex: 0 0 auto;
+    min-width: 18px;
+    text-align: right;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.46);
 }
 
 @media screen and (max-width: 1024px) and (orientation: portrait) {
