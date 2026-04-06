@@ -64,7 +64,7 @@
             "questText": "허수아비를 기본 공격으로 처치하세요.",
             "presentation": {
                 "desktop": {
-                    "guideMode": "floating-compact",
+                    "guideMode": "top-card",
                     "highlightMode": "ring",
                     "guideTitle": "기본 공격",
                     "compact": true

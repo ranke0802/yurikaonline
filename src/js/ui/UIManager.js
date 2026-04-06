@@ -1015,7 +1015,7 @@ export class UIManager {
 
         const guideDimensions = this.getTutorialGuideDimensions({ ...payload, mode: guideMode }, { focusInsidePopup, popupRect });
         const forbiddenZones = this.getTutorialForbiddenZones(focusRects, payload);
-        const disableTargetAnchors = !!focusInsidePopup && guideMode !== 'floating-compact';
+        const disableTargetAnchors = guideMode !== 'floating-compact';
         if (focusInsidePopup && mode === 'mobile-landscape' && popupRect) {
             forbiddenZones.push(popupRect);
         }
