@@ -30,9 +30,6 @@ export class UIManager {
         this.refreshDesktopShortcutHints = this.refreshDesktopShortcutHints.bind(this);
         this.handleInventorySlotPointerMove = this.handleInventorySlotPointerMove.bind(this);
         this.handleInventorySlotPointerUp = this.handleInventorySlotPointerUp.bind(this);
-        this.setupEventListeners();
-        this.setupFullscreenListeners();
-        this.setupDevModeListeners();
         this.inputManager = game.input; // Local reference
         this.tutorialGuideState = null;
         this.tutorialHighlightLayer = null;
@@ -44,13 +41,17 @@ export class UIManager {
             pointerId: null,
             offsetX: 0,
             offsetY: 0,
-            stepId: ''
+            stepId: '',
+            captureTarget: null
         };
         this.activeSkillDetailId = null;
         this.refreshTutorialHighlight = this.refreshTutorialHighlight.bind(this);
         this.refreshTutorialGuideLayout = this.refreshTutorialGuideLayout.bind(this);
         this.handleTutorialGuideDragMove = this.handleTutorialGuideDragMove.bind(this);
         this.handleTutorialGuideDragEnd = this.handleTutorialGuideDragEnd.bind(this);
+        this.setupEventListeners();
+        this.setupFullscreenListeners();
+        this.setupDevModeListeners();
         const refreshTutorialOverlays = () => {
             this.refreshTutorialHighlight();
             this.refreshTutorialGuideLayout();
@@ -1025,14 +1026,16 @@ export class UIManager {
             pointerId: e.pointerId,
             offsetX: e.clientX - rect.left,
             offsetY: e.clientY - rect.top,
-            stepId: this.tutorialGuideState.stepId || ''
+            stepId: this.tutorialGuideState.stepId || '',
+            captureTarget: e.currentTarget || guide
         };
 
+        this.tutorialGuideDragState.captureTarget?.setPointerCapture?.(e.pointerId);
         guide.classList.add('tutorial-guide-dragging');
     }
 
     handleTutorialGuideDragMove(e) {
-        if (!this.tutorialGuideDragState.active) return;
+        if (!this?.tutorialGuideDragState?.active) return;
         if (this.tutorialGuideDragState.pointerId !== null && e.pointerId !== this.tutorialGuideDragState.pointerId) return;
 
         const guide = document.getElementById('tutorial-guide');
@@ -1056,7 +1059,7 @@ export class UIManager {
     }
 
     handleTutorialGuideDragEnd(e) {
-        if (!this.tutorialGuideDragState.active) return;
+        if (!this?.tutorialGuideDragState?.active) return;
         if (
             this.tutorialGuideDragState.pointerId !== null
             && e?.pointerId !== undefined
@@ -1065,14 +1068,17 @@ export class UIManager {
             return;
         }
 
+        const captureTarget = this.tutorialGuideDragState.captureTarget;
         this.tutorialGuideDragState = {
             active: false,
             pointerId: null,
             offsetX: 0,
             offsetY: 0,
-            stepId: ''
+            stepId: '',
+            captureTarget: null
         };
 
+        captureTarget?.releasePointerCapture?.(e?.pointerId);
         document.getElementById('tutorial-guide')?.classList.remove('tutorial-guide-dragging');
     }
 
@@ -1154,7 +1160,9 @@ export class UIManager {
         guide.appendChild(head);
         guide.appendChild(body);
 
-        head.onpointerdown = (e) => this.beginTutorialGuideDrag(e);
+        const beginDrag = (e) => this.beginTutorialGuideDrag(e);
+        guide.onpointerdown = beginDrag;
+        head.onpointerdown = beginDrag;
         head.onkeydown = (e) => {
             if (!this.tutorialGuideState) return;
             const guideRect = guide.getBoundingClientRect();

@@ -3317,7 +3317,8 @@ body.low-power-pwa .minimap-menu {
     position: fixed;
     display: none;
     box-sizing: border-box;
-    pointer-events: none;
+    pointer-events: auto;
+    touch-action: none;
     z-index: 4600;
     padding: 12px 14px;
     border-radius: 18px;
@@ -3410,7 +3411,8 @@ body.low-power-pwa .minimap-menu {
     line-height: 1.58;
     white-space: pre-line;
     text-align: left;
-    pointer-events: none;
+    pointer-events: auto;
+    user-select: none;
 }
 
 #tutorial-guide.tutorial-guide-dragging .tutorial-guide-head {
