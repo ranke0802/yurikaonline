@@ -770,7 +770,11 @@ export default class MonsterManager {
             this.tutorialMonsterIds.add(id);
         }
 
-        this.net.sendMonsterUpdate(id, { ...data, fullSync: true, immediate: true });
+        if (this.net?.shouldUseMonsterQuietMode?.()) {
+            await this._onRemoteMonsterAdded({ ...data, fullSync: true, immediate: true });
+        } else {
+            this.net.sendMonsterUpdate(id, { ...data, fullSync: true, immediate: true });
+        }
         return id;
     }
 
@@ -840,7 +844,11 @@ export default class MonsterManager {
         };
 
         // v0.00.76: Ensure clients know this is a limited pattern boss
-        this.net.sendMonsterUpdate(id, { ...data, fullSync: true, immediate: true });
+        if (this.net?.shouldUseMonsterQuietMode?.()) {
+            await this._onRemoteMonsterAdded({ ...data, fullSync: true, immediate: true });
+        } else {
+            this.net.sendMonsterUpdate(id, { ...data, fullSync: true, immediate: true });
+        }
         if (window.game && window.game.ui) {
             if (isFirstBoss) {
                 window.game.ui.logSystemMessage('초보 모험가를 위한 대왕 슬라임이 나타났습니다! (돌진 공격만 사용)');
