@@ -33,7 +33,7 @@
         "fireballChainChance": {
           "type": "multiplier_bonus",
           "min": 0.1,
-          "max": 0.3,
+          "max": 0.5,
           "displayAsPercent": true
         },
         "fireballChainDamageRatio": {

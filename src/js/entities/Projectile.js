@@ -497,24 +497,31 @@ export class Projectile {
 
         const chainDamage = Math.ceil(this.damage * this.fireballChainDamageRatio);
         const maxChains = 12;
+        const chainDelayMs = 300;
+        const triggerNextChain = (chainIndex = 1) => {
+            if (chainIndex > maxChains) return;
+            if (this._nextFireballChainRoll() >= this.fireballChainChance) return;
 
-        for (let chainIndex = 1; chainIndex <= maxChains; chainIndex++) {
-            if (this._nextFireballChainRoll() >= this.fireballChainChance) break;
-
-            if (window.game) {
-                window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3, { variant: 'blue_flame', duration: 0.45 });
-                for (let i = 0; i < 10; i++) window.game.addSpark(this.x, this.y);
-                if (window.game.sound) {
-                    window.game.sound.playSfx('fireball_explosion');
+            window.setTimeout(() => {
+                if (window.game) {
+                    window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3, { variant: 'blue_flame', duration: 0.45 });
+                    for (let i = 0; i < 10; i++) window.game.addSpark(this.x, this.y);
+                    if (window.game.sound) {
+                        window.game.sound.playSfx('fireball_explosion');
+                    }
                 }
-            }
 
-            if (targetIsMonster) {
-                this._applyBlueFlameChainToMonsters(monsters, net, chainDamage, chainIndex);
-            } else {
-                this._applyBlueFlameChainToPlayers(target, net, chainDamage, chainIndex);
-            }
-        }
+                if (targetIsMonster) {
+                    this._applyBlueFlameChainToMonsters(monsters, net, chainDamage, chainIndex);
+                } else {
+                    this._applyBlueFlameChainToPlayers(target, net, chainDamage, chainIndex);
+                }
+
+                triggerNextChain(chainIndex + 1);
+            }, chainDelayMs);
+        };
+
+        triggerNextChain(1);
     }
 
     _applyBlueFlameChainToMonsters(monsters, net, chainDamage, chainIndex) {

@@ -2832,7 +2832,7 @@ export class UIManager {
                 );
 
                 if ((weaponCombat.fireballChainChance || 0) > 0) {
-                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 파이어볼 폭발 후 <strong>${this.formatSkillPercent(weaponCombat.fireballChainChance)}</strong> 확률로 같은 위치에서 연속 폭발이 다시 발생합니다.`);
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 파이어볼 폭발 후 <strong>${this.formatSkillPercent(weaponCombat.fireballChainChance)}</strong> 확률로 <strong>0.3초 뒤</strong> 같은 위치에서 연속 폭발이 다시 발생합니다.`);
                 }
                 if ((weaponCombat.fireballChainDamageRatio || 0) > 0) {
                     weaponItems.push(`<strong>${weaponName}</strong> 효과: 연속 폭발 피해는 기본 파이어볼의 <strong>${this.formatSkillPercent(weaponCombat.fireballChainDamageRatio)}</strong>입니다.`);
@@ -4401,7 +4401,7 @@ export class UIManager {
                 const chainDamage = Math.round(((item.rolledValues?.fireballChainDamageRatio ?? item.rolledValues?.fireExplosionDamageRatio ?? 0)) * 100);
                 lines.push(`푸른 파이어볼 연속 폭발 확률 ${chainChance}%`);
                 lines.push(`연속 폭발 데미지 ${chainDamage}%`);
-                lines.push('파이어볼이 같은 위치에서 연속으로 폭발');
+                lines.push('파이어볼이 0.3초 뒤 같은 위치에서 다시 폭발');
             } else if (affix?.id === 'crimson_flash') {
                 lines.push(`붉은 전격 피해 +${Math.round((item.rolledValues?.laserDamageBonus || 0) * 100)}%`);
                 lines.push('체인 라이트닝 적중 시 HP 흡수');
