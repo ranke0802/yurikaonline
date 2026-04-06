@@ -441,14 +441,20 @@ export default class TutorialManager {
         this.progress = { count: 0 };
         this.game.input?.setAllowedActions(step.allowedActions || null);
 
-        if (this.game.ui) {
-            this.game.ui.showTutorialGuide(this.getStepGuidePayload(step));
-            this.game.ui.updateSkillPopup?.();
-            this.game.ui.updateStatusPopup?.();
-        }
-
+        // Run step-start actions first so tutorial-critical logic such as
+        // monster spawning or popup cleanup never depends on guide UI render success.
         this._runActions(step.onStart);
-        this.game.ui?.highlightTutorialTargets?.(this.getStepHighlightConfig(step));
+
+        if (this.game.ui) {
+            try {
+                this.game.ui.showTutorialGuide(this.getStepGuidePayload(step));
+                this.game.ui.updateSkillPopup?.();
+                this.game.ui.updateStatusPopup?.();
+                this.game.ui.highlightTutorialTargets?.(this.getStepHighlightConfig(step));
+            } catch (error) {
+                Logger.error(`[Tutorial] Failed to render guide for step ${step.id}`, error);
+            }
+        }
     }
 
     _runActions(actions) {
