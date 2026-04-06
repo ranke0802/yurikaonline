@@ -72,6 +72,7 @@ export default class MonsterManager {
             if (!this.net.isHost) return;
             if (active) {
                 this.forceSyncAll();
+                this.forceSyncAllDrops();
                 return;
             }
             this.lastSyncState.clear();
@@ -713,6 +714,22 @@ export default class MonsterManager {
         this.monsters.forEach((monster, id) => {
             if (!monster || monster.isDead) return;
             this.forceSync(id);
+        });
+    }
+
+    forceSyncAllDrops() {
+        if (!this.net.isHost) return;
+        this.drops.forEach((drop, id) => {
+            if (!drop || !id) return;
+            this.net.publishDropSnapshot(id, {
+                x: drop.x,
+                y: drop.y,
+                type: drop.type,
+                amount: drop.amount,
+                ownerId: drop.ownerId,
+                partyMembers: drop.partyMembers,
+                ts: Date.now()
+            });
         });
     }
 

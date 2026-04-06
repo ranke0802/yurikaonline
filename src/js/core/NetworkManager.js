@@ -30,6 +30,7 @@ export default class NetworkManager extends EventEmitter {
         this.isPlayerMoving = false;
         this.lastHeartbeatTime = 0;
         this.lastNetworkActivityTime = 0;
+        this.sharedHeartbeatInterval = 2500; // Shared field presence must stay tighter than stale cleanup
         this.idleHeartbeatInterval = 12000; // 12s when idle
         this.activeHeartbeatInterval = 4000; // 4s when moving
         this.backgroundHeartbeatInterval = 20000; // 20s when backgrounded
@@ -52,6 +53,7 @@ export default class NetworkManager extends EventEmitter {
         this._zoneUserCache = new Map();
         this._zoneUserListeners = new Map();
         this._presenceCache = new Map();
+        this._networkDropIds = new Set();
         this._lastPresenceLiteState = null;
         this._lastPresenceLiteWriteTs = 0;
         this._fieldPeerCount = 0;
@@ -83,6 +85,7 @@ export default class NetworkManager extends EventEmitter {
         this._zoneUserCache.clear();
         this._detachZoneUserListeners();
         this._presenceCache.clear();
+        this._networkDropIds.clear();
         this._lastPresenceLiteState = null;
         this._lastPresenceLiteWriteTs = 0;
         this._fieldPeerCount = 0;
@@ -256,8 +259,14 @@ export default class NetworkManager extends EventEmitter {
         });
 
         // Drop Sync
-        this.dbRef.child('drops').on('child_added', (s) => this.emit('dropAdded', { id: s.key, ...s.val() }));
-        this.dbRef.child('drops').on('child_removed', (s) => this.emit('dropRemoved', s.key));
+        this.dbRef.child('drops').on('child_added', (s) => {
+            this._networkDropIds.add(s.key);
+            this.emit('dropAdded', { id: s.key, ...s.val() });
+        });
+        this.dbRef.child('drops').on('child_removed', (s) => {
+            this._networkDropIds.delete(s.key);
+            this.emit('dropRemoved', s.key);
+        });
 
         // Drop Collection Listener (Host only)
         this.dbRef.child('drop_collection').on('child_added', (snapshot) => {
@@ -1241,11 +1250,14 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         const now = Date.now();
         const isBackgrounded = typeof document !== 'undefined' && document.hidden;
+        const isSharedField = this.isSharedFieldActive();
         const interval = isBackgrounded
             ? this.backgroundHeartbeatInterval
-            : (this.isPlayerMoving ? this.activeHeartbeatInterval : this.idleHeartbeatInterval);
+            : (isSharedField
+                ? this.sharedHeartbeatInterval
+                : (this.isPlayerMoving ? this.activeHeartbeatInterval : this.idleHeartbeatInterval));
 
-        if (!isBackgrounded) {
+        if (!isBackgrounded && !isSharedField) {
             const recentActivityWindow = Math.max(1500, Math.floor(interval * 0.75));
             if (now - this.lastNetworkActivityTime < recentActivityWindow) {
                 this._checkHostStatus();
@@ -1265,7 +1277,7 @@ export default class NetworkManager extends EventEmitter {
         if (this._localCleanupTimer) clearInterval(this._localCleanupTimer);
         this._localCleanupTimer = setInterval(() => {
             const now = Date.now();
-            const ghostTimeout = 6000; // v0.00.05: Relaxed 6s heartbeat timeout (more stable)
+            const ghostTimeout = this.isSharedFieldActive() ? 12000 : 6000;
 
             this.remotePlayers.forEach((rp, uid) => {
                 if (now - rp.ts > ghostTimeout) {
@@ -1966,7 +1978,7 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.isHost) return;
 
         const now = Date.now();
-        const staleTimeout = 8000; // v0.00.05: Balanced 8s timeout
+        const staleTimeout = this.isSharedFieldActive() ? 12000 : 8000;
 
         // v0.00.05: Use LOCAL userLastSeen map for cleanup to avoid Server/Host clock skew
         this.userLastSeen.forEach((lastTs, uid) => {
@@ -2006,6 +2018,7 @@ export default class NetworkManager extends EventEmitter {
     sendMonsterUpdate(id, data) {
         if (!this.connected || !this.isHost) return;
         if (!id || !data) return;
+        if (this.shouldUseMonsterQuietMode()) return;
 
         // Validation to prevent Firebase Errors (No Spread to avoid undefined fields)
         const safeData = {
@@ -2038,7 +2051,6 @@ export default class NetworkManager extends EventEmitter {
     // --- Drop Methods ---
     spawnDrop(data) {
         if (!this.connected || !this.isHost) return;
-        const ref = this.dbRef.child('drops').push();
         const payload = {
             x: Math.round(data.x),
             y: Math.round(data.y),
@@ -2048,17 +2060,60 @@ export default class NetworkManager extends EventEmitter {
             partyMembers: Array.isArray(data.partyMembers) ? data.partyMembers : null,
             ts: Date.now()
         };
+        if (this.shouldUseMonsterQuietMode()) {
+            const id = data.id || `drop_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+            this._recordNetworkWrite('dropSpawnLocal', { id, ...payload });
+            this.emit('dropAdded', { id, ...payload });
+            this._markNetworkActivity(payload.ts);
+            return id;
+        }
+        const ref = this.dbRef.child('drops').push();
         this._recordNetworkWrite('dropSpawn', payload);
         ref.set(payload).catch(e => { });
+        this._networkDropIds.add(ref.key);
+        return ref.key;
     }
 
     removeDrop(id) {
         if (!this.connected || !this.isHost) return;
+        if (this.shouldUseMonsterQuietMode() && !this._networkDropIds.has(id)) {
+            this._recordNetworkWrite('dropRemoveLocal', { id });
+            this.emit('dropRemoved', id);
+            this._markNetworkActivity();
+            return;
+        }
+        this._networkDropIds.delete(id);
         this.dbRef.child(`drops/${id}`).remove().catch(e => { });
+    }
+
+    publishDropSnapshot(id, data) {
+        if (!this.connected || !this.isHost || !this.dbRef || !id || !data) return;
+        const payload = {
+            x: Math.round(data.x),
+            y: Math.round(data.y),
+            type: data.type,
+            amount: data.amount,
+            ownerId: data.ownerId || null,
+            partyMembers: Array.isArray(data.partyMembers) ? data.partyMembers : null,
+            ts: Number(data.ts || Date.now())
+        };
+        this._recordNetworkWrite('dropPublish', payload);
+        this._networkDropIds.add(id);
+        this.dbRef.child(`drops/${id}`).set(payload).catch(() => { });
     }
 
     collectDrop(dropId) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        if (this.isHost && this.shouldUseMonsterQuietMode()) {
+            const payload = {
+                dropId,
+                collectorId: this.playerId
+            };
+            this._recordNetworkWrite('dropCollectLocal', payload);
+            this.emit('dropCollectionRequested', payload);
+            this._markNetworkActivity();
+            return;
+        }
         // Request collection: { did: dropId, cid: collectorId }
         const payload = {
             did: dropId,
@@ -2192,7 +2247,18 @@ export default class NetworkManager extends EventEmitter {
     // v0.33.0: Send Monster Attack (Host Only)
     sendMonsterAttack(monsterId, skillType, extraData = null) {
         if (!this.connected || !this.isHost) return;
-        if (this.shouldUseMonsterQuietMode()) return;
+        if (this.shouldUseMonsterQuietMode()) {
+            const payload = {
+                mid: monsterId,
+                skill: skillType,
+                extra: extraData,
+                ts: Date.now()
+            };
+            this._recordNetworkWrite('monsterAttackLocal', payload);
+            this.emit('monsterAttack', payload);
+            this._markNetworkActivity(payload.ts);
+            return;
+        }
         const payload = {
             mid: monsterId,
             skill: skillType,
@@ -2215,6 +2281,17 @@ export default class NetworkManager extends EventEmitter {
 
     sendReward(playerId, data) {
         if (!this.connected || !this.isHost) return;
+        if (this.shouldUseMonsterQuietMode() && playerId === this.playerId) {
+            const safeData = {
+                ...data,
+                hostId: this.playerId,
+                ts: Date.now()
+            };
+            this._recordNetworkWrite('rewardLocal', safeData);
+            this.emit('rewardReceived', safeData);
+            this._markNetworkActivity(safeData.ts);
+            return;
+        }
         // v0.00.42: Include hostId for anti-cheat validation
         // data: { exp: number, gold: number, items: [] }
         const safeData = {
