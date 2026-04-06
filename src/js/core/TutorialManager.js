@@ -8,6 +8,8 @@ export default class TutorialManager {
         this.currentStepIndex = -1;
         this.completedTutorials = new Set();
         this.progress = { count: 0 };
+        this.pendingStepSpawnKeys = new Set();
+        this.stepSpawnRetryTimer = 0;
     }
 
     async loadTutorial(id) {
@@ -385,6 +387,8 @@ export default class TutorialManager {
             this.pendingTutorialId = null;
             this.currentStepIndex = 0;
             this.progress = { count: 0 };
+            this.pendingStepSpawnKeys.clear();
+            this.stepSpawnRetryTimer = 0;
 
             if (id === 'basic_training' && this.game.localPlayer?.questData) {
                 this.game.localPlayer.questData.prologueCompleted = true;
@@ -411,6 +415,8 @@ export default class TutorialManager {
         this.pendingTutorialId = null;
         this.currentStepIndex = -1;
         this.progress = { count: 0 };
+        this.pendingStepSpawnKeys.clear();
+        this.stepSpawnRetryTimer = 0;
         this.game.input?.setAllowedActions(null);
 
         if (this.game.monsterManager?.setTutorialMode) {
@@ -439,11 +445,13 @@ export default class TutorialManager {
 
         step._timer = 0;
         this.progress = { count: 0 };
+        this.stepSpawnRetryTimer = 0;
         this.game.input?.setAllowedActions(step.allowedActions || null);
 
         // Run step-start actions first so tutorial-critical logic such as
         // monster spawning or popup cleanup never depends on guide UI render success.
-        this._runActions(step.onStart);
+        this._runActions(step.onStart, step.id);
+        this._ensureStepTutorialSpawns(step);
 
         if (this.game.ui) {
             try {
@@ -457,12 +465,48 @@ export default class TutorialManager {
         }
     }
 
-    _runActions(actions) {
+    _resolveActionList(actions) {
         if (!actions) return;
 
         const resolvedActions = this.resolveResponsiveValue(actions, () => actions);
-        const actionList = Array.isArray(resolvedActions) ? resolvedActions : [resolvedActions];
-        actionList.forEach((action) => this._handleAction(action));
+        return (Array.isArray(resolvedActions) ? resolvedActions : [resolvedActions]).filter(Boolean);
+    }
+
+    _runActions(actions, stepId = this.getCurrentStep()?.id || 'tutorial') {
+        const actionList = this._resolveActionList(actions);
+        if (!actionList?.length) return;
+
+        actionList.forEach((action) => this._handleAction(action, stepId));
+    }
+
+    _getStepSpawnKey(stepId, action) {
+        return `${stepId || 'tutorial'}:${action?.monsterId || 'monster'}`;
+    }
+
+    _hasAliveTutorialMonster(monsterId) {
+        if (!monsterId || !this.game.monsterManager?.monsters) return false;
+
+        for (const monster of this.game.monsterManager.monsters.values()) {
+            if (monster?.typeId === monsterId && !monster.isDead) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    _ensureStepTutorialSpawns(step = this.getCurrentStep()) {
+        const actionList = this._resolveActionList(step?.onStart);
+        if (!actionList?.length) return;
+
+        actionList
+            .filter((action) => action?.type === 'spawn_monster' && action.monsterId)
+            .forEach((action) => {
+                const spawnKey = this._getStepSpawnKey(step?.id, action);
+                if (this.pendingStepSpawnKeys.has(spawnKey)) return;
+                if (this._hasAliveTutorialMonster(action.monsterId)) return;
+                this._handleAction(action, step?.id || 'tutorial');
+            });
     }
 
     _resolveTutorialSpawnPosition(action, player) {
@@ -498,7 +542,7 @@ export default class TutorialManager {
         return { x, y };
     }
 
-    _handleAction(action) {
+    _handleAction(action, stepId = this.getCurrentStep()?.id || 'tutorial') {
         if (!action || !action.type) return;
 
         const player = this.game.localPlayer;
@@ -508,6 +552,8 @@ export default class TutorialManager {
                 if (!player || !this.game.monsterManager?.spawnMonster) return;
 
                 const { x, y } = this._resolveTutorialSpawnPosition(action, player);
+                const spawnKey = this._getStepSpawnKey(stepId, action);
+                this.pendingStepSpawnKeys.add(spawnKey);
                 const spawnResult = this.game.monsterManager.spawnMonster(action.monsterId, x, y, {
                     tutorialOnly: true
                 });
@@ -517,6 +563,10 @@ export default class TutorialManager {
                     if (monster && this.game.localPlayer) {
                         this.game.localPlayer.setCurrentTarget?.(monster, { mode: 'script' });
                     }
+                }).catch((error) => {
+                    Logger.error(`[Tutorial] Failed to spawn tutorial monster: ${action.monsterId}`, error);
+                }).finally(() => {
+                    this.pendingStepSpawnKeys.delete(spawnKey);
                 });
                 break;
             }
@@ -586,6 +636,12 @@ export default class TutorialManager {
         const step = this.getCurrentStep();
         if (!step) return;
 
+        this.stepSpawnRetryTimer += dt;
+        if (this.stepSpawnRetryTimer >= 0.35) {
+            this.stepSpawnRetryTimer = 0;
+            this._ensureStepTutorialSpawns(step);
+        }
+
         if (step.trigger === 'auto_next') {
             step._timer = (step._timer || 0) + (dt * 1000);
             if (step._timer >= (step.duration || 1000)) {
@@ -653,6 +709,8 @@ export default class TutorialManager {
         this.pendingTutorialId = null;
         this.currentStepIndex = -1;
         this.progress = { count: 0 };
+        this.pendingStepSpawnKeys.clear();
+        this.stepSpawnRetryTimer = 0;
 
         if (this.game.ui?.updateQuestUI) {
             this.game.ui.updateQuestUI();
