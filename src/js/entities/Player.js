@@ -2438,9 +2438,14 @@ export default class Player extends CharacterBase {
         const baseProfile = {
             prefixId: null,
             missileDamageBonus: 0,
+            missileDamageBonusEnhancementBonus: 0,
             fireballChainChance: 0,
+            fireballChainChanceBase: 0,
+            fireballChainChanceEnhancementBonus: 0,
             fireballChainDamageRatio: 0,
+            fireballChainDamageRatioEnhancementBonus: 0,
             laserDamageBonus: 0,
+            laserDamageBonusEnhancementBonus: 0,
             restoreHpPerLaserHit: 0,
             missileVariant: null,
             fireballVariant: null,
@@ -2460,12 +2465,23 @@ export default class Player extends CharacterBase {
             return baseProfile;
         }
 
+        const missileDamageBonusEnhancementBonus = this.getWeaponAffixEnhancementBonus(weapon, 'missileDamageBonus');
+        const fireballChainChanceBase = this.getWeaponAffixBaseValue(weapon, 'fireballChainChance');
+        const fireballChainChanceEnhancementBonus = this.getWeaponAffixEnhancementBonus(weapon, 'fireballChainChance');
+        const fireballChainDamageRatioEnhancementBonus = this.getWeaponAffixEnhancementBonus(weapon, 'fireballChainDamageRatio');
+        const laserDamageBonusEnhancementBonus = this.getWeaponAffixEnhancementBonus(weapon, 'laserDamageBonus');
+
         return {
             prefixId: affix.id,
-            missileDamageBonus: weapon.rolledValues?.missileDamageBonus || 0,
-            fireballChainChance: weapon.rolledValues?.fireballChainChance ?? weapon.rolledValues?.fireballDamageBonus ?? 0,
-            fireballChainDamageRatio: weapon.rolledValues?.fireballChainDamageRatio ?? weapon.rolledValues?.fireExplosionDamageRatio ?? 0,
-            laserDamageBonus: weapon.rolledValues?.laserDamageBonus || 0,
+            missileDamageBonus: this.getWeaponAffixEffectiveValue(weapon, 'missileDamageBonus'),
+            missileDamageBonusEnhancementBonus,
+            fireballChainChance: this.getWeaponAffixEffectiveValue(weapon, 'fireballChainChance'),
+            fireballChainChanceBase,
+            fireballChainChanceEnhancementBonus,
+            fireballChainDamageRatio: this.getWeaponAffixEffectiveValue(weapon, 'fireballChainDamageRatio'),
+            fireballChainDamageRatioEnhancementBonus,
+            laserDamageBonus: this.getWeaponAffixEffectiveValue(weapon, 'laserDamageBonus'),
+            laserDamageBonusEnhancementBonus,
             restoreHpPerLaserHit: affix.combatHooks?.restoreHpPerLaserHit || 0,
             missileVariant: affix.skillOverrides?.missileVisualVariant || null,
             fireballVariant: affix.skillOverrides?.fireballVisualVariant || null,
@@ -2474,6 +2490,49 @@ export default class Player extends CharacterBase {
             fireballTint: affix.skillOverrides?.fireballVisualVariant ? (affix.visuals?.projectileTint || null) : null,
             auraState: itemData.getAuraState(weapon)
         };
+    }
+
+    getWeaponAffixBaseValue(weapon, key) {
+        if (!weapon) return 0;
+
+        switch (key) {
+            case 'fireballChainChance':
+                return weapon.rolledValues?.fireballChainChance ?? weapon.rolledValues?.fireballDamageBonus ?? 0;
+            case 'fireballChainDamageRatio':
+                return weapon.rolledValues?.fireballChainDamageRatio ?? weapon.rolledValues?.fireExplosionDamageRatio ?? 0;
+            case 'missileDamageBonus':
+                return weapon.rolledValues?.missileDamageBonus || 0;
+            case 'laserDamageBonus':
+                return weapon.rolledValues?.laserDamageBonus || 0;
+            default:
+                return weapon.rolledValues?.[key] || 0;
+        }
+    }
+
+    getWeaponAffixEnhancementBonus(weapon, key) {
+        if (!weapon) return 0;
+
+        const enhancementLevel = Math.max(0, weapon.enhancementLevel || 0);
+        if (enhancementLevel <= 0) return 0;
+
+        const itemData = this.getItemDataManager?.();
+        const affix = itemData?.getAffixDefinition?.(weapon.prefixId);
+        if (!affix?.rolledEffects?.[key]?.displayAsPercent) return 0;
+
+        return enhancementLevel * 0.01;
+    }
+
+    getWeaponAffixEffectiveValue(weapon, key) {
+        const baseValue = this.getWeaponAffixBaseValue(weapon, key);
+        const enhancementBonus = this.getWeaponAffixEnhancementBonus(weapon, key);
+        const totalValue = baseValue + enhancementBonus;
+
+        switch (key) {
+            case 'fireballChainChance':
+                return Math.min(1, totalValue);
+            default:
+                return totalValue;
+        }
     }
 
     getEquipmentAuraState() {

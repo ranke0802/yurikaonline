@@ -2495,6 +2495,20 @@ export class UIManager {
         return `${(safe * 100).toFixed(digits)}%`;
     }
 
+    createInventoryDetailStatLineElement(line) {
+        const li = document.createElement('li');
+        if (line && typeof line === 'object') {
+            li.textContent = line.text || '';
+            if (line.className) {
+                li.classList.add(...String(line.className).split(/\s+/).filter(Boolean));
+            }
+            return li;
+        }
+
+        li.textContent = line;
+        return li;
+    }
+
     escapeHtml(value = '') {
         return String(value)
             .replace(/&/g, '&amp;')
@@ -2739,7 +2753,10 @@ export class UIManager {
                 );
 
                 if ((weaponCombat.laserDamageBonus || 0) > 0) {
-                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 체인 라이트닝 피해 <strong>+${this.formatSkillPercent(weaponCombat.laserDamageBonus)}</strong>`);
+                    const enhancementBonusText = (weaponCombat.laserDamageBonusEnhancementBonus || 0) > 0
+                        ? ` <span class="enhancement-option-bonus">[강화 보너스 +${this.formatSkillPercent(weaponCombat.laserDamageBonusEnhancementBonus)}]</span>`
+                        : '';
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 체인 라이트닝 피해 <strong>+${this.formatSkillPercent(weaponCombat.laserDamageBonus)}</strong>${enhancementBonusText}`);
                 }
                 if ((weaponCombat.restoreHpPerLaserHit || 0) > 0) {
                     weaponItems.push(`<strong>${weaponName}</strong> 효과: 적중 대상당 HP <strong>+${weaponCombat.restoreHpPerLaserHit}</strong> 회복`);
@@ -2786,7 +2803,10 @@ export class UIManager {
                 );
 
                 if ((weaponCombat.missileDamageBonus || 0) > 0) {
-                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 매직 미사일 피해 <strong>+${this.formatSkillPercent(weaponCombat.missileDamageBonus)}</strong>`);
+                    const enhancementBonusText = (weaponCombat.missileDamageBonusEnhancementBonus || 0) > 0
+                        ? ` <span class="enhancement-option-bonus">[강화 보너스 +${this.formatSkillPercent(weaponCombat.missileDamageBonusEnhancementBonus)}]</span>`
+                        : '';
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 매직 미사일 피해 <strong>+${this.formatSkillPercent(weaponCombat.missileDamageBonus)}</strong>${enhancementBonusText}`);
                 }
 
                 tooltipCurrentEffectHtml = `<div class="current-effect">현재 효과 (Lv.${lv}): ${missileCount}발 | 방어 전 피해 ${baseMissileDamage} | 탐색 600 | 마나 ${manaCost} | 쿨다운 1.0초</div>`;
@@ -2832,10 +2852,16 @@ export class UIManager {
                 );
 
                 if ((weaponCombat.fireballChainChance || 0) > 0) {
-                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 파이어볼 폭발 후 <strong>${this.formatSkillPercent(weaponCombat.fireballChainChance)}</strong> 확률로 <strong>0.3초 뒤</strong> 같은 위치에서 연속 폭발이 다시 발생합니다.`);
+                    const enhancementBonusText = (weaponCombat.fireballChainChanceEnhancementBonus || 0) > 0
+                        ? ` <span class="enhancement-option-bonus">[강화 보너스 +${this.formatSkillPercent(weaponCombat.fireballChainChanceEnhancementBonus)}]</span>`
+                        : '';
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 파이어볼 폭발 후 <strong>${this.formatSkillPercent(weaponCombat.fireballChainChance)}</strong> 확률로 <strong>0.3초 뒤</strong> 같은 위치에서 연속 폭발이 다시 발생합니다.${enhancementBonusText}`);
                 }
                 if ((weaponCombat.fireballChainDamageRatio || 0) > 0) {
-                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 연속 폭발 피해는 기본 파이어볼의 <strong>${this.formatSkillPercent(weaponCombat.fireballChainDamageRatio)}</strong>입니다.`);
+                    const enhancementBonusText = (weaponCombat.fireballChainDamageRatioEnhancementBonus || 0) > 0
+                        ? ` <span class="enhancement-option-bonus">[강화 보너스 +${this.formatSkillPercent(weaponCombat.fireballChainDamageRatioEnhancementBonus)}]</span>`
+                        : '';
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 연속 폭발 피해는 기본 파이어볼의 <strong>${this.formatSkillPercent(weaponCombat.fireballChainDamageRatio)}</strong>입니다.${enhancementBonusText}`);
                 }
 
                 tooltipCurrentEffectHtml = `<div class="current-effect">현재 효과 (Lv.${lv}): 직격 ${directDamage} | 폭발 반경 ${aoeRadius} | 화상 ${burnDuration.toFixed(1)}초 | 마나 ${manaCost}</div>`;
@@ -4384,6 +4410,14 @@ export class UIManager {
         const lines = [];
 
         if (item.slot === 'weapon') {
+            const pushEnhancementBonusLine = (value) => {
+                const roundedValue = Math.round((value || 0) * 100);
+                if (roundedValue <= 0) return;
+                lines.push({
+                    text: `무기 강화 보너스 +${roundedValue}%`,
+                    className: 'inventory-detail-enhance-bonus'
+                });
+            };
             const attackBonus = (item.baseStats?.attackPower || definition?.baseStats?.attackPower || 0)
                 + ((item.enhancementLevel || 0) * (item.enhancementBonuses?.attackPowerPerLevel || definition?.enhancementBonuses?.attackPowerPerLevel || 0));
             const critBonus = (item.baseStats?.critRate || definition?.baseStats?.critRate || 0)
@@ -4395,15 +4429,23 @@ export class UIManager {
             lines.push(`마나 회복력 +${mpRegenBonus}`);
 
             if (affix?.id === 'starlight') {
-                lines.push(`별빛 매직 미사일 피해 +${Math.round((item.rolledValues?.missileDamageBonus || 0) * 100)}%`);
+                lines.push(`별빛 매직 미사일 피해 +${Math.round((player.getWeaponAffixEffectiveValue?.(item, 'missileDamageBonus')
+                    ?? (item.rolledValues?.missileDamageBonus || 0)) * 100)}%`);
+                pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'missileDamageBonus') || 0);
             } else if (affix?.id === 'blue_flame') {
-                const chainChance = Math.round(((item.rolledValues?.fireballChainChance ?? item.rolledValues?.fireballDamageBonus ?? 0)) * 100);
-                const chainDamage = Math.round(((item.rolledValues?.fireballChainDamageRatio ?? item.rolledValues?.fireExplosionDamageRatio ?? 0)) * 100);
+                const chainChance = Math.round((player.getWeaponAffixEffectiveValue?.(item, 'fireballChainChance')
+                    ?? (item.rolledValues?.fireballChainChance ?? item.rolledValues?.fireballDamageBonus ?? 0)) * 100);
+                const chainDamage = Math.round((player.getWeaponAffixEffectiveValue?.(item, 'fireballChainDamageRatio')
+                    ?? (item.rolledValues?.fireballChainDamageRatio ?? item.rolledValues?.fireExplosionDamageRatio ?? 0)) * 100);
                 lines.push(`푸른 파이어볼 연속 폭발 확률 ${chainChance}%`);
+                pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'fireballChainChance') || 0);
                 lines.push(`연속 폭발 데미지 ${chainDamage}%`);
+                pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'fireballChainDamageRatio') || 0);
                 lines.push('파이어볼이 0.3초 뒤 같은 위치에서 다시 폭발');
             } else if (affix?.id === 'crimson_flash') {
-                lines.push(`붉은 전격 피해 +${Math.round((item.rolledValues?.laserDamageBonus || 0) * 100)}%`);
+                lines.push(`붉은 전격 피해 +${Math.round((player.getWeaponAffixEffectiveValue?.(item, 'laserDamageBonus')
+                    ?? (item.rolledValues?.laserDamageBonus || 0)) * 100)}%`);
+                pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'laserDamageBonus') || 0);
                 lines.push('체인 라이트닝 적중 시 HP 흡수');
             }
         } else if (item.type === 'blessed_weapon_upgrade_stone') {
@@ -4681,9 +4723,7 @@ export class UIManager {
         if (statsEl) {
             statsEl.innerHTML = '';
             detailData.lines.forEach((line) => {
-                const li = document.createElement('li');
-                li.textContent = line;
-                statsEl.appendChild(li);
+                statsEl.appendChild(this.createInventoryDetailStatLineElement(line));
             });
         }
 

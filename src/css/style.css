@@ -675,6 +675,12 @@ button:active,
     min-height: 0;
 }
 
+.inventory-detail-enhance-bonus,
+.enhancement-option-bonus {
+    color: #1f9d55;
+    font-weight: 700;
+}
+
 .inventory-enhance-hint {
     margin-top: 12px;
     font-size: 12px;
