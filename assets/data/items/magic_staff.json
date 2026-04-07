@@ -24,6 +24,13 @@
     "attackPowerPerLevel": 1,
     "critRatePerLevel": 0.01
   },
+  "inventoryTooltip": {
+    "className": "마법사",
+    "material": "마석",
+    "weight": 10,
+    "tradeable": false,
+    "dismantleable": true
+  },
   "visuals": {
     "equipAura": {
       "mode": "prefix_plus_enhancement",

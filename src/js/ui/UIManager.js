@@ -28,6 +28,7 @@ export class UIManager {
         this.questClaimAvailable = false;
         this.handleDesktopShortcutKeydown = this.handleDesktopShortcutKeydown.bind(this);
         this.refreshDesktopShortcutHints = this.refreshDesktopShortcutHints.bind(this);
+        this.positionInventoryItemModal = this.positionInventoryItemModal.bind(this);
         this.handleInventorySlotPointerMove = this.handleInventorySlotPointerMove.bind(this);
         this.handleInventorySlotPointerUp = this.handleInventorySlotPointerUp.bind(this);
         this.inputManager = game.input; // Local reference
@@ -53,6 +54,7 @@ export class UIManager {
         this.setupFullscreenListeners();
         this.setupDevModeListeners();
         const refreshTutorialOverlays = () => {
+            this.positionInventoryItemModal();
             this.refreshTutorialHighlight();
             this.refreshTutorialGuideLayout();
             this.refreshDesktopShortcutHints();
@@ -4292,6 +4294,44 @@ export class UIManager {
         return iconEl;
     }
 
+    positionInventoryItemModal() {
+        const modal = document.getElementById('inventory-item-modal');
+        const card = modal?.querySelector('.inventory-item-modal-card');
+        const shell = modal?.parentElement;
+        const anchor = this.getInventoryEnhancementTargetElement(this.selectedInventoryRef);
+        const useBottomSheet = window.matchMedia('(max-width: 1024px) and (orientation: portrait)').matches;
+
+        if (!modal || !card) return;
+
+        if (modal.classList.contains('hidden') || useBottomSheet || !shell || !anchor) {
+            modal.style.removeProperty('--inventory-modal-left');
+            modal.style.removeProperty('--inventory-modal-top');
+            return;
+        }
+
+        const shellRect = shell.getBoundingClientRect();
+        const anchorRect = anchor.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+        const margin = 8;
+        const gap = 12;
+        const availableRight = shellRect.right - anchorRect.right;
+        const availableLeft = anchorRect.left - shellRect.left;
+        const maxLeft = Math.max(margin, shellRect.width - cardRect.width - margin);
+        const maxTop = Math.max(margin, shellRect.height - cardRect.height - margin);
+
+        let left = anchorRect.right - shellRect.left + gap;
+        if (availableRight < (cardRect.width + gap) && availableLeft >= (cardRect.width + gap)) {
+            left = anchorRect.left - shellRect.left - cardRect.width - gap;
+        }
+
+        let top = anchorRect.top - shellRect.top + ((anchorRect.height - cardRect.height) / 2);
+        left = Math.min(maxLeft, Math.max(margin, left));
+        top = Math.min(maxTop, Math.max(margin, top));
+
+        modal.style.setProperty('--inventory-modal-left', `${Math.round(left)}px`);
+        modal.style.setProperty('--inventory-modal-top', `${Math.round(top)}px`);
+    }
+
     openInventoryItemModal(ref) {
         const modal = document.getElementById('inventory-item-modal');
         if (!modal || !ref) return;
@@ -4302,9 +4342,33 @@ export class UIManager {
 
     closeInventoryItemModal(clearSelection = false) {
         const modal = document.getElementById('inventory-item-modal');
-        if (modal) modal.classList.add('hidden');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.style.removeProperty('--inventory-modal-left');
+            modal.style.removeProperty('--inventory-modal-top');
+        }
         if (clearSelection) this.selectedInventoryRef = null;
         this.refreshDesktopShortcutHints();
+    }
+
+    buildInventoryMetaLines(definition, options = {}) {
+        const meta = definition?.inventoryTooltip || null;
+        if (!meta) return [];
+
+        const lines = [];
+        const className = meta.className || meta.classLabel || meta.class || '';
+        const tradeable = meta.tradeable;
+        const dismantleable = options.canDismantle ?? meta.dismantleable;
+
+        if (className) lines.push(`클래스 : [${className}]`);
+        if (meta.material) lines.push(`재질 : ${meta.material}`);
+        if (meta.weight != null && meta.weight !== '') lines.push(`무게 : ${meta.weight}`);
+        if (tradeable === false) lines.push('교환불가');
+        if (tradeable === true) lines.push('교환가능');
+        if (dismantleable === true) lines.push('분해가능');
+        if (dismantleable === false) lines.push('분해불가');
+
+        return lines;
     }
 
     getInventoryItemIdentity(item) {
@@ -4453,6 +4517,28 @@ export class UIManager {
         const definition = itemData?.getItemDefinition(item.type) || null;
         const affix = itemData?.getAffixDefinition(item.prefixId) || null;
         const lines = [];
+        const titleBase = item.name || definition?.name || item.type;
+        const enhancementLevel = Math.max(0, item.enhancementLevel || 0);
+        const amount = Math.max(1, item.amount || 1);
+        const config = item.slot === 'weapon' ? itemData?.getEnhancementConfig(item) : null;
+        const dismantleReward = item.slot === 'weapon' ? player.getWeaponDismantleRewardInfo?.(item) : null;
+        const enhanceHint = config
+            ? `다음 +${config.nextLevel} | 성공 ${Math.round(config.successRate * 100)}%${config.destroyChanceOnFail > 0 ? ` | 파괴 ${Math.round(config.destroyChanceOnFail * 100)}%` : ' | 안전'}`
+            : '';
+        const dismantleHint = dismantleReward
+            ? `분해 시 무기 강화석 ${dismantleReward.displayText} 획득`
+            : '';
+
+        if (item.stackable !== false && item.slot !== 'weapon') {
+            return {
+                title: `${titleBase} [${amount}]`,
+                subtitle: '',
+                description: '',
+                lines,
+                enhanceHint: '',
+                dismantleHint: ''
+            };
+        }
 
         if (item.slot === 'weapon') {
             const pushEnhancementBonusLine = (value) => {
@@ -4482,9 +4568,9 @@ export class UIManager {
                     ?? (item.rolledValues?.fireballChainChance ?? item.rolledValues?.fireballDamageBonus ?? 0)) * 100);
                 const chainDamage = Math.round((player.getWeaponAffixEffectiveValue?.(item, 'fireballChainDamageRatio')
                     ?? (item.rolledValues?.fireballChainDamageRatio ?? item.rolledValues?.fireExplosionDamageRatio ?? 0)) * 100);
-                lines.push(`푸른 파이어볼 연속 폭발 확률 ${chainChance}%`);
+                lines.push(`푸른 파이어볼 연속 폭발 확률 +${chainChance}%`);
                 pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'fireballChainChance') || 0);
-                lines.push(`연속 폭발 데미지 ${chainDamage}%`);
+                lines.push(`연속 폭발 데미지 +${chainDamage}%`);
                 pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'fireballChainDamageRatio') || 0);
                 lines.push('파이어볼이 0.3초 뒤 같은 위치에서 다시 폭발');
             } else if (affix?.id === 'crimson_flash') {
@@ -4493,30 +4579,18 @@ export class UIManager {
                 pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'laserDamageBonus') || 0);
                 lines.push('체인 라이트닝 적중 시 HP 흡수');
             }
-        } else if (item.type === 'blessed_weapon_upgrade_stone') {
-            lines.push('축복 강화에 사용하는 희귀 재료');
-            lines.push('성공 50% / 실패 시 강화 단계 유지');
-            lines.push('성공 시 강화 수치 +1~2 증가');
-        } else if (item.type === 'weapon_upgrade_stone') {
-            lines.push('무기 강화에 사용되는 재료');
+
+            lines.push(...this.buildInventoryMetaLines(definition, {
+                canDismantle: definition?.inventoryTooltip?.dismantleable ?? !!dismantleReward
+            }));
         }
 
-        const config = item.slot === 'weapon' ? itemData?.getEnhancementConfig(item) : null;
-        const dismantleReward = item.slot === 'weapon' ? player.getWeaponDismantleRewardInfo?.(item) : null;
-        const enhanceHint = config
-            ? `다음 +${config.nextLevel} | 성공 ${Math.round(config.successRate * 100)}%${config.destroyChanceOnFail > 0 ? ` | 파괴 ${Math.round(config.destroyChanceOnFail * 100)}%` : ' | 안전'}`
-            : '';
-
-        const dismantleHint = dismantleReward
-            ? `분해 시 무기 강화석 ${dismantleReward.displayText} 획득`
-            : '';
-
         return {
-            title: item.name || definition?.name || item.type,
-            subtitle: item.slot === 'weapon'
-                ? `${item.prefix || '무기'} / 현재 +${item.enhancementLevel || 0}`
-                : `${definition?.rarity || item.rarity || 'common'}`.toUpperCase(),
-            description: item.description || definition?.description || '',
+            title: item.slot === 'weapon' && enhancementLevel > 0
+                ? `+${enhancementLevel} ${titleBase}`
+                : titleBase,
+            subtitle: '',
+            description: '',
             lines,
             enhanceHint,
             dismantleHint
@@ -4620,11 +4694,7 @@ export class UIManager {
         if (equippedWeapon) {
             equippedSlot.classList.add('equipped');
             equippedSlot.appendChild(this.createInventoryIconElement(equippedWeapon));
-            const level = document.createElement('span');
-            level.className = 'item-enhancement';
-            level.textContent = `+${equippedWeapon.enhancementLevel || 0}`;
-            equippedSlot.appendChild(level);
-            this.applyInventoryEnhancementVisual(equippedSlot, equippedWeapon, level);
+            this.applyInventoryEnhancementVisual(equippedSlot, equippedWeapon);
             equippedSlot.addEventListener('click', () => {
                 if (this.inventoryEnhancementAnimating) return;
                 if (this.isWeaponEnhancementSelectionActive()) {
@@ -4674,11 +4744,7 @@ export class UIManager {
                 }
 
                 if (item.slot === 'weapon') {
-                    const level = document.createElement('span');
-                    level.className = 'item-enhancement';
-                    level.textContent = `+${item.enhancementLevel || 0}`;
-                    button.appendChild(level);
-                    this.applyInventoryEnhancementVisual(button, item, level);
+                    this.applyInventoryEnhancementVisual(button, item);
                 }
 
                 if (!enhancementSelectionActive) {
@@ -4705,10 +4771,6 @@ export class UIManager {
                 if (!item) {
                     this.closeInventoryItemModal(true);
                     this.updateInventory();
-                    return;
-                }
-                if (item.type === 'weapon_upgrade_stone' || item.type === 'blessed_weapon_upgrade_stone') {
-                    this.startWeaponEnhancementSelection(item.type === 'blessed_weapon_upgrade_stone' ? 'blessed' : 'normal');
                     return;
                 }
                 this.selectedInventoryRef = { kind: 'inventory', index };
@@ -4741,8 +4803,8 @@ export class UIManager {
         const detailIconWrap = document.getElementById('inventory-detail-icon');
         if (detailIconWrap) {
             detailIconWrap.innerHTML = '';
-            detailIconWrap.classList.toggle('item-special-blessed-stone', detail.item.type === 'blessed_weapon_upgrade_stone');
-            detailIconWrap.appendChild(this.createInventoryIconElement(detail.item, 'inventory-detail-icon-asset'));
+            detailIconWrap.classList.remove('item-special-blessed-stone');
+            detailIconWrap.classList.add('hidden');
         }
 
         const detailData = this.buildInventoryDetail(p, detail.item);
@@ -4760,36 +4822,30 @@ export class UIManager {
         if (nameEl) nameEl.textContent = detailData.title;
         if (subtitleEl) {
             subtitleEl.textContent = detail.location === 'equipment'
-                ? `${detailData.subtitle} · 착용 중`
+                ? '장착 중'
                 : detailData.subtitle;
+            subtitleEl.classList.toggle('hidden', !subtitleEl.textContent);
         }
-        if (descEl) descEl.textContent = detailData.description || '';
+        if (descEl) {
+            descEl.textContent = detailData.description || '';
+            descEl.classList.toggle('hidden', !detailData.description);
+        }
 
         if (statsEl) {
             statsEl.innerHTML = '';
             this.mergeInventoryEnhancementBonusLines(detailData.lines).forEach((line) => {
                 statsEl.appendChild(this.createInventoryDetailStatLineElement(line));
             });
+            statsEl.classList.toggle('hidden', detailData.lines.length === 0);
         }
 
         if (hintEl) {
-            const stoneCount = p.getInventoryItemCount?.('weapon_upgrade_stone') || 0;
-            const blessedStoneCount = p.getInventoryItemCount?.('blessed_weapon_upgrade_stone') || 0;
             const hints = [];
 
             if (detail.item.slot === 'weapon') {
                 if (detailData.enhanceHint) {
                     hints.push(detailData.enhanceHint);
                 }
-                hints.push(`강화석 ${stoneCount}개 / 축복 강화석 ${blessedStoneCount}개 보유`);
-                hints.push('강화석을 선택한 뒤 강화할 무기를 지정해 주세요.');
-            } else if (detail.item.type === 'weapon_upgrade_stone') {
-                hints.push(`보유 강화석 ${stoneCount}개`);
-                hints.push('사용 후 강화할 무기를 선택합니다.');
-            } else if (detail.item.type === 'blessed_weapon_upgrade_stone') {
-                hints.push(`보유 축복 강화석 ${blessedStoneCount}개`);
-                hints.push('성공 50% / 실패 시 유지 / 성공 시 +1~2');
-                hints.push('사용 후 강화할 무기를 선택합니다.');
             }
 
             if (detailData.dismantleHint) {
@@ -4797,6 +4853,7 @@ export class UIManager {
             }
 
             hintEl.innerHTML = hints.join('<br>');
+            hintEl.classList.toggle('hidden', hints.length === 0);
         }
 
         if (equipBtn) {
@@ -4816,14 +4873,19 @@ export class UIManager {
         }
 
         if (enhanceBtn) {
-            enhanceBtn.textContent = '강화할 무기 선택';
-            enhanceBtn.classList.toggle('hidden', detail.item.type !== 'weapon_upgrade_stone');
+            enhanceBtn.textContent = detail.item.type === 'weapon_upgrade_stone'
+                ? '강화할 무기 선택'
+                : '강화';
+            enhanceBtn.classList.toggle('hidden', !(detail.item.slot === 'weapon' || detail.item.type === 'weapon_upgrade_stone'));
         }
         if (blessedEnhanceBtn) {
-            blessedEnhanceBtn.textContent = '축복 강화할 무기 선택';
-            blessedEnhanceBtn.classList.toggle('hidden', detail.item.type !== 'blessed_weapon_upgrade_stone');
+            blessedEnhanceBtn.textContent = detail.item.type === 'blessed_weapon_upgrade_stone'
+                ? '축복 강화할 무기 선택'
+                : '축복 강화';
+            blessedEnhanceBtn.classList.toggle('hidden', !(detail.item.slot === 'weapon' || detail.item.type === 'blessed_weapon_upgrade_stone'));
         }
 
+        this.positionInventoryItemModal();
         this.refreshDesktopShortcutHints();
     }
 
