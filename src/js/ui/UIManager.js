@@ -5391,10 +5391,9 @@ export class UIManager {
                 if (m.isDead) return;
                 const mx = m.x * scaleX;
                 const my = m.y * scaleY;
-                const bodyScale = Math.max(1, Math.max(m.width || 48, m.height || 48) / 48);
                 const radius = (m.isBoss || m.typeId === 'king_slime')
-                    ? Math.max(5, Math.min(10, 4 * bodyScale))
-                    : Math.max(3, Math.min(5, 2.7 * bodyScale));
+                    ? 6
+                    : 2;
                 drawDot(mx, my, radius);
             });
         }
