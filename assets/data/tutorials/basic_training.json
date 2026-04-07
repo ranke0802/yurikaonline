@@ -328,9 +328,9 @@
         },
         {
             "id": "close_laser_detail",
-            "instructionDesktop": "설명을 확인했으면 오른쪽 위 X나 아래 닫기 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobile": "설명을 확인했으면 X나 아래 닫기 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobileLandscape": "설명을 확인했으면 X나 아래 닫기 버튼으로 상세 설명 창을 닫아 주세요.",
+            "instructionDesktop": "설명을 확인했으면 오른쪽 위 X 버튼으로 상세 설명 창을 닫아 주세요.",
+            "instructionMobile": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
+            "instructionMobileLandscape": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
             "questText": "체인 라이트닝 설명 창을 닫아 주세요.",
             "presentation": {
                 "desktop": {
@@ -353,8 +353,7 @@
                 }
             },
             "focus": [
-                "#skill-detail-modal-close",
-                "#skill-detail-modal-close-bottom"
+                "#skill-detail-modal-close"
             ],
             "avoidTargets": [
                 "#skill-detail-modal-body"
@@ -404,9 +403,9 @@
         },
         {
             "id": "close_missile_detail",
-            "instructionDesktop": "설명을 확인했으면 오른쪽 위 X나 아래 닫기 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobile": "설명을 확인했으면 X나 아래 닫기 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobileLandscape": "설명을 확인했으면 X나 아래 닫기 버튼으로 상세 설명 창을 닫아 주세요.",
+            "instructionDesktop": "설명을 확인했으면 오른쪽 위 X 버튼으로 상세 설명 창을 닫아 주세요.",
+            "instructionMobile": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
+            "instructionMobileLandscape": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
             "questText": "매직 미사일 설명 창을 닫아 주세요.",
             "presentation": {
                 "desktop": {
@@ -429,8 +428,7 @@
                 }
             },
             "focus": [
-                "#skill-detail-modal-close",
-                "#skill-detail-modal-close-bottom"
+                "#skill-detail-modal-close"
             ],
             "avoidTargets": [
                 "#skill-detail-modal-body"
@@ -582,9 +580,9 @@
         },
         {
             "id": "close_fireball_detail",
-            "instructionDesktop": "설명을 확인했으면 오른쪽 위 X나 아래 닫기 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobile": "설명을 확인했으면 X나 아래 닫기 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobileLandscape": "설명을 확인했으면 X나 아래 닫기 버튼으로 상세 설명 창을 닫아 주세요.",
+            "instructionDesktop": "설명을 확인했으면 오른쪽 위 X 버튼으로 상세 설명 창을 닫아 주세요.",
+            "instructionMobile": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
+            "instructionMobileLandscape": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
             "questText": "파이어볼 설명 창을 닫아 주세요.",
             "presentation": {
                 "desktop": {
@@ -607,8 +605,7 @@
                 }
             },
             "focus": [
-                "#skill-detail-modal-close",
-                "#skill-detail-modal-close-bottom"
+                "#skill-detail-modal-close"
             ],
             "avoidTargets": [
                 "#skill-detail-modal-body"
@@ -846,9 +843,9 @@
         },
         {
             "id": "close_shield_detail",
-            "instructionDesktop": "설명을 확인했으면 오른쪽 위 X나 아래 닫기 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobile": "설명을 확인했으면 X나 아래 닫기 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobileLandscape": "설명을 확인했으면 X나 아래 닫기 버튼으로 상세 설명 창을 닫아 주세요.",
+            "instructionDesktop": "설명을 확인했으면 오른쪽 위 X 버튼으로 상세 설명 창을 닫아 주세요.",
+            "instructionMobile": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
+            "instructionMobileLandscape": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
             "questText": "앱솔루트 베리어 설명 창을 닫아 주세요.",
             "presentation": {
                 "desktop": {
@@ -871,8 +868,7 @@
                 }
             },
             "focus": [
-                "#skill-detail-modal-close",
-                "#skill-detail-modal-close-bottom"
+                "#skill-detail-modal-close"
             ],
             "avoidTargets": [
                 "#skill-detail-modal-body"

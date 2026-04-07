@@ -29,6 +29,7 @@ export class UIManager {
         this.handleDesktopShortcutKeydown = this.handleDesktopShortcutKeydown.bind(this);
         this.refreshDesktopShortcutHints = this.refreshDesktopShortcutHints.bind(this);
         this.positionInventoryItemModal = this.positionInventoryItemModal.bind(this);
+        this.positionSkillDetailModal = this.positionSkillDetailModal.bind(this);
         this.handleInventorySlotPointerMove = this.handleInventorySlotPointerMove.bind(this);
         this.handleInventorySlotPointerUp = this.handleInventorySlotPointerUp.bind(this);
         this.inputManager = game.input; // Local reference
@@ -55,6 +56,7 @@ export class UIManager {
         this.setupDevModeListeners();
         const refreshTutorialOverlays = () => {
             this.positionInventoryItemModal();
+            this.positionSkillDetailModal();
             this.refreshTutorialHighlight();
             this.refreshTutorialGuideLayout();
             this.refreshDesktopShortcutHints();
@@ -1876,7 +1878,6 @@ export class UIManager {
 
         const skillDetailModal = document.getElementById('skill-detail-modal');
         const skillDetailCloseBtn = document.getElementById('skill-detail-modal-close');
-        const skillDetailCloseBottomBtn = document.getElementById('skill-detail-modal-close-bottom');
         const handleSkillDetailClose = (e) => {
             if (e) {
                 e.preventDefault();
@@ -1886,8 +1887,6 @@ export class UIManager {
         };
         skillDetailCloseBtn?.addEventListener('click', handleSkillDetailClose);
         skillDetailCloseBtn?.addEventListener('touchstart', handleSkillDetailClose, { passive: false });
-        skillDetailCloseBottomBtn?.addEventListener('click', handleSkillDetailClose);
-        skillDetailCloseBottomBtn?.addEventListener('touchstart', handleSkillDetailClose, { passive: false });
         skillDetailModal?.addEventListener('click', (e) => {
             if (e.target === skillDetailModal) {
                 handleSkillDetailClose(e);
@@ -2967,7 +2966,7 @@ export class UIManager {
             name: data.name,
             level: lv,
             hotkey,
-            subtitle: `Lv.${lv} · 단축키 ${hotkey} · 현재 공격력 ${attackPower}${equippedWeapon ? ` · 무기 ${weaponName}` : ''}`,
+            subtitle: `Lv.${lv} · 단축키 ${hotkey}${equippedWeapon ? ` · ${weaponName}` : ''}`,
             tooltipCurrentEffectHtml,
             modalHtml: sectionsHtml
         };
@@ -2989,7 +2988,7 @@ export class UIManager {
         if (subtitle) subtitle.textContent = detail.subtitle;
         if (hotkey) hotkey.textContent = detail.hotkey;
         if (body) {
-            body.innerHTML = detail.modalHtml;
+            body.innerHTML = `${detail.tooltipCurrentEffectHtml || ''}${detail.modalHtml}`;
             body.scrollTop = 0;
         }
         if (content) content.scrollTop = 0;
@@ -2997,6 +2996,8 @@ export class UIManager {
 
         modal.classList.remove('hidden');
         this.activeSkillDetailId = skillId;
+        this.positionSkillDetailModal(skillId);
+        window.requestAnimationFrame(() => this.positionSkillDetailModal(skillId));
         this.game?.tutorial?.trigger?.('skill_detail_open', { target: skillId });
         this.refreshDesktopShortcutHints();
     }
@@ -3004,6 +3005,8 @@ export class UIManager {
     hideSkillDetailModal() {
         const modal = document.getElementById('skill-detail-modal');
         if (modal) modal.classList.add('hidden');
+        modal?.style.removeProperty('--skill-detail-left');
+        modal?.style.removeProperty('--skill-detail-top');
         const body = document.getElementById('skill-detail-modal-body');
         const content = modal?.querySelector?.('.skill-detail-modal-content');
         if (body) body.scrollTop = 0;
@@ -4332,6 +4335,51 @@ export class UIManager {
         modal.style.setProperty('--inventory-modal-top', `${Math.round(top)}px`);
     }
 
+    getSkillDetailAnchorElement(skillId = this.activeSkillDetailId) {
+        if (!skillId) return null;
+        const skillPopup = document.getElementById('skill-popup');
+        if (skillPopup?.classList.contains('hidden')) return null;
+        return skillPopup?.querySelector(`.skill-item[data-skill-item="${skillId}"]`)
+            || document.getElementById(`skill-item-${skillId}`);
+    }
+
+    positionSkillDetailModal(skillId = this.activeSkillDetailId) {
+        const modal = document.getElementById('skill-detail-modal');
+        const content = modal?.querySelector('.skill-detail-modal-content');
+        const anchor = this.getSkillDetailAnchorElement(skillId);
+        const useBottomSheet = window.matchMedia('(max-width: 1024px) and (orientation: portrait)').matches;
+
+        if (!modal || !content) return;
+
+        if (modal.classList.contains('hidden') || useBottomSheet || !anchor) {
+            modal.style.removeProperty('--skill-detail-left');
+            modal.style.removeProperty('--skill-detail-top');
+            return;
+        }
+
+        const modalRect = modal.getBoundingClientRect();
+        const anchorRect = anchor.getBoundingClientRect();
+        const contentRect = content.getBoundingClientRect();
+        const margin = 12;
+        const gap = 12;
+        const availableRight = modalRect.right - anchorRect.right;
+        const availableLeft = anchorRect.left - modalRect.left;
+        const maxLeft = Math.max(margin, modalRect.width - contentRect.width - margin);
+        const maxTop = Math.max(margin, modalRect.height - contentRect.height - margin);
+
+        let left = anchorRect.right - modalRect.left + gap;
+        if (availableRight < (contentRect.width + gap) && availableLeft >= (contentRect.width + gap)) {
+            left = anchorRect.left - modalRect.left - contentRect.width - gap;
+        }
+
+        let top = anchorRect.top - modalRect.top + ((anchorRect.height - contentRect.height) / 2);
+        left = Math.min(maxLeft, Math.max(margin, left));
+        top = Math.min(maxTop, Math.max(margin, top));
+
+        modal.style.setProperty('--skill-detail-left', `${Math.round(left)}px`);
+        modal.style.setProperty('--skill-detail-top', `${Math.round(top)}px`);
+    }
+
     openInventoryItemModal(ref) {
         const modal = document.getElementById('inventory-item-modal');
         if (!modal || !ref) return;
@@ -4763,6 +4811,10 @@ export class UIManager {
                 if (this.inventoryEnhancementAnimating) return;
                 if (performance.now() < this.inventoryClickSuppressUntil) return;
                 if (this.isWeaponEnhancementSelectionActive()) {
+                    if (item?.type === 'weapon_upgrade_stone' || item?.type === 'blessed_weapon_upgrade_stone') {
+                        this.clearWeaponEnhancementSelection();
+                        return;
+                    }
                     if (item?.slot === 'weapon') {
                         this.executeWeaponEnhancementForSelection({ kind: 'inventory', index });
                     }
@@ -4863,10 +4915,10 @@ export class UIManager {
             unequipBtn.classList.toggle('hidden', !(detail.location === 'equipment' && detail.item.slot === 'weapon'));
         }
         if (enhanceBtn) {
-            enhanceBtn.classList.toggle('hidden', detail.item.slot !== 'weapon');
+            enhanceBtn.classList.toggle('hidden', true);
         }
         if (blessedEnhanceBtn) {
-            blessedEnhanceBtn.classList.toggle('hidden', detail.item.slot !== 'weapon');
+            blessedEnhanceBtn.classList.toggle('hidden', true);
         }
         if (dismantleBtn) {
             dismantleBtn.classList.toggle('hidden', detail.item.slot !== 'weapon');
@@ -4876,13 +4928,13 @@ export class UIManager {
             enhanceBtn.textContent = detail.item.type === 'weapon_upgrade_stone'
                 ? '강화할 무기 선택'
                 : '강화';
-            enhanceBtn.classList.toggle('hidden', !(detail.item.slot === 'weapon' || detail.item.type === 'weapon_upgrade_stone'));
+            enhanceBtn.classList.toggle('hidden', detail.item.type !== 'weapon_upgrade_stone');
         }
         if (blessedEnhanceBtn) {
             blessedEnhanceBtn.textContent = detail.item.type === 'blessed_weapon_upgrade_stone'
                 ? '축복 강화할 무기 선택'
                 : '축복 강화';
-            blessedEnhanceBtn.classList.toggle('hidden', !(detail.item.slot === 'weapon' || detail.item.type === 'blessed_weapon_upgrade_stone'));
+            blessedEnhanceBtn.classList.toggle('hidden', detail.item.type !== 'blessed_weapon_upgrade_stone');
         }
 
         this.positionInventoryItemModal();
