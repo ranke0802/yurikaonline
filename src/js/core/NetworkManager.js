@@ -31,9 +31,12 @@ export default class NetworkManager extends EventEmitter {
         this.lastHeartbeatTime = 0;
         this.lastNetworkActivityTime = 0;
         this.sharedHeartbeatInterval = 2500; // Shared field presence must stay tighter than stale cleanup
-        this.idleHeartbeatInterval = 12000; // 12s when idle
+        this.idleHeartbeatInterval = 5000; // Keep idle peers comfortably below stale cleanup windows
         this.activeHeartbeatInterval = 4000; // 4s when moving
-        this.backgroundHeartbeatInterval = 20000; // 20s when backgrounded
+        this.backgroundHeartbeatInterval = 9000; // Hidden tabs should remain visible to other peers
+        this.presenceStaleTimeout = 15000;
+        this.sharedGhostTimeout = 15000;
+        this.soloGhostTimeout = 9000;
         this.lastPacketData = null;
 
         // Batch update queue for damage/events
@@ -669,7 +672,7 @@ export default class NetworkManager extends EventEmitter {
     _isPresenceEntryActive(entry, now = Date.now()) {
         if (!entry) return false;
         const ts = Number(entry.ts || 0);
-        return ts > 0 && (now - ts) < 12000;
+        return ts > 0 && (now - ts) < this.presenceStaleTimeout;
     }
 
     _emitFieldPeerPresenceChanged(uid, previousEntry, nextEntry) {
@@ -711,9 +714,15 @@ export default class NetworkManager extends EventEmitter {
         const entry = this._normalizePresenceSnapshot(uid, snapshot?.val());
         if (!uid || !entry) return;
         const previousEntry = this._presenceCache.get(uid) || null;
+        const presenceTs = this._sanitizeActivityTs(entry.ts || Date.now());
         this._presenceCache.set(uid, entry);
+        this._registerConnectedUser(uid);
+        this.userLastSeen.set(uid, presenceTs);
+        const existing = this.remotePlayers.get(uid);
+        if (existing) existing.ts = presenceTs;
         this._emitFieldPeerPresenceChanged(uid, previousEntry, entry);
         this._refreshSharedFieldState();
+        this._checkHostStatus();
     }
 
     _handlePresenceRemoved(snapshot) {
@@ -721,9 +730,13 @@ export default class NetworkManager extends EventEmitter {
         if (!uid) return;
         const previousEntry = this._presenceCache.get(uid) || null;
         this._presenceCache.delete(uid);
+        this.connectedUsers = this.connectedUsers.filter((id) => id !== uid);
+        this.connectedUsers.sort();
+        this.userLastSeen.delete(uid);
         this._emitFieldPeerPresenceChanged(uid, previousEntry, null);
         this._removeRemoteIfOutOfField(uid, null);
         this._refreshSharedFieldState();
+        this._checkHostStatus();
     }
 
     _removeRemoteIfOutOfField(uid, presenceEntry) {
@@ -894,6 +907,7 @@ export default class NetworkManager extends EventEmitter {
         if (!this._shouldSendRealtimeUserState()) {
             this.lastHeartbeatTime = Date.now();
             this._registerConnectedUser(this.playerId);
+            this.userLastSeen.set(this.playerId, this.lastHeartbeatTime);
             this._checkHostStatus();
             return;
         }
@@ -910,9 +924,10 @@ export default class NetworkManager extends EventEmitter {
 
         // v0.00.03: Ensure resonance of local user list
         if (!this.connectedUsers.includes(this.playerId)) {
-        this.connectedUsers.push(this.playerId);
-        this.connectedUsers.sort();
-    }
+            this.connectedUsers.push(this.playerId);
+            this.connectedUsers.sort();
+        }
+        this.userLastSeen.set(this.playerId, this.lastHeartbeatTime);
 
         // v1.99.14: Aggressive host re-check every second
         this._checkHostStatus();
@@ -1362,7 +1377,7 @@ export default class NetworkManager extends EventEmitter {
         if (this._localCleanupTimer) clearInterval(this._localCleanupTimer);
         this._localCleanupTimer = setInterval(() => {
             const now = Date.now();
-            const ghostTimeout = this.isSharedFieldActive() ? 12000 : 6000;
+            const ghostTimeout = this.isSharedFieldActive() ? this.sharedGhostTimeout : this.soloGhostTimeout;
 
             this.remotePlayers.forEach((rp, uid) => {
                 if (now - rp.ts > ghostTimeout) {
@@ -2239,7 +2254,7 @@ export default class NetworkManager extends EventEmitter {
         }
 
         const now = Date.now();
-        const timeout = 12000; // 12s for takeover
+        const timeout = this.presenceStaleTimeout;
 
         // Update self Activity
         this.userLastSeen.set(this.playerId, now);
@@ -2288,7 +2303,7 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.isHost) return;
 
         const now = Date.now();
-        const staleTimeout = this.isSharedFieldActive() ? 12000 : 8000;
+        const staleTimeout = this.isSharedFieldActive() ? this.sharedGhostTimeout : this.soloGhostTimeout;
 
         // v0.00.05: Use LOCAL userLastSeen map for cleanup to avoid Server/Host clock skew
         this.userLastSeen.forEach((lastTs, uid) => {

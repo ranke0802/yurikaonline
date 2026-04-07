@@ -262,12 +262,12 @@
                     "guideTitle": "스킬 창"
                 },
                 "mobilePortrait": {
-                    "guideMode": "bottom-sheet",
+                    "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "ring",
                     "guideTitle": "스킬 창"
                 },
                 "mobileLandscape": {
-                    "guideMode": "top-card",
+                    "guideMode": "left-card",
                     "highlightMode": "ring",
                     "guideTitle": "스킬 창",
                     "compact": true
@@ -539,6 +539,16 @@
                 "desktop": {
                     "guideMode": "top-card",
                     "highlightMode": "ring"
+                },
+                "mobilePortrait": {
+                    "guideMode": "viewport-bottom-sheet-safe",
+                    "highlightMode": "ring",
+                    "compact": true
+                },
+                "mobileLandscape": {
+                    "guideMode": "left-card",
+                    "highlightMode": "ring",
+                    "compact": true
                 }
             }
         },
@@ -802,6 +812,16 @@
                 "desktop": {
                     "guideMode": "top-card",
                     "highlightMode": "ring"
+                },
+                "mobilePortrait": {
+                    "guideMode": "viewport-bottom-sheet-safe",
+                    "highlightMode": "ring",
+                    "compact": true
+                },
+                "mobileLandscape": {
+                    "guideMode": "left-card",
+                    "highlightMode": "ring",
+                    "compact": true
                 }
             }
         },

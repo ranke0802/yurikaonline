@@ -633,6 +633,8 @@ export class UIManager {
             '.minimap-menu',
             '#btn-fullscreen',
             '#btn-emote-shortcut',
+            '#party-panel:not(.hidden)',
+            '#hostility-panel:not(.hidden)',
             '.quest-list-panel',
             '.chat-window',
             '.action-buttons',
@@ -1005,6 +1007,20 @@ export class UIManager {
         const primaryFocusRect = this.getTutorialPrimaryFocusRect(focusRects);
         const popupRect = this.getActivePopupRect();
         const focusInsidePopup = popupRect && focusRects.some((rect) => this.getRectContains(rect, popupRect));
+        const actionButtonsRect = this.getVisibleElementRect('.action-buttons');
+        const hudRects = [
+            actionButtonsRect,
+            this.getVisibleElementRect('.minimap-menu'),
+            this.getVisibleElementRect('#minimap-container'),
+            this.getVisibleElementRect('#btn-fullscreen'),
+            this.getVisibleElementRect('#btn-emote-shortcut'),
+            this.getVisibleElementRect('#party-panel:not(.hidden)'),
+            this.getVisibleElementRect('#hostility-panel:not(.hidden)')
+        ].filter(Boolean);
+        const focusTouchesHud = !!primaryFocusRect && hudRects.some((rect) => this.getRectOverlapArea(primaryFocusRect, rect) > 0);
+        const focusTouchesActionButtons = !!primaryFocusRect
+            && !!actionButtonsRect
+            && this.getRectOverlapArea(primaryFocusRect, actionButtonsRect) > 0;
         const shouldProtectSkillPopup = mode === 'mobile-landscape' && this.isSkillPopupTutorialStep(payload.stepId);
         const popupGenericModes = new Set(['dock-left', 'left-card', 'bottom-sheet', 'top-card', 'popup-near-top']);
         let guideMode = payload.mode || 'top-card';
@@ -1014,6 +1030,12 @@ export class UIManager {
                 guideMode = 'viewport-bottom-sheet-safe';
             } else if (mode === 'mobile-landscape' && (shouldProtectSkillPopup || popupGenericModes.has(guideMode))) {
                 guideMode = 'popup-header-strip';
+            }
+        } else if (focusTouchesHud) {
+            if (mode === 'mobile-portrait') {
+                guideMode = focusTouchesActionButtons ? 'top-card' : 'viewport-bottom-sheet-safe';
+            } else if (mode === 'mobile-landscape') {
+                guideMode = 'left-card';
             }
         }
 

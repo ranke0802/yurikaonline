@@ -158,8 +158,7 @@ export default class TouchHandler extends EventEmitter {
             const startAction = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                const isTouchEvent = e.type.startsWith('touch');
-                if (action === 'SKILL_2' && isTouchEvent) {
+                if (action === 'SKILL_2') {
                     this._startAimActionTracking(e, action);
                     const pointer = this._getPointerFromEvent(e, null, true);
                     if (pointer) {
@@ -176,8 +175,7 @@ export default class TouchHandler extends EventEmitter {
             };
 
             const endAction = (e) => {
-                const isTouchEvent = e.type.startsWith('touch');
-                if (action === 'SKILL_2' && isTouchEvent) {
+                if (action === 'SKILL_2') {
                     return;
                 }
                 this.emit('actionUp', action);
