@@ -571,13 +571,12 @@ export default class Player extends CharacterBase {
         if (!this.input) return;
 
         const isManualAttackPressed = !!this.input.isPressed('ATTACK');
-        const allowAutoLaserMove = this.isChanneling
-            && this.autoAttackEnabled
-            && !isManualAttackPressed
-            && this.skillAttackTimer <= 0;
+        const allowLaserChannelMove = this.isChanneling
+            && this.skillAttackTimer <= 0
+            && (this.autoAttackEnabled || isManualAttackPressed);
 
-        // v0.26.1: Block movement while channeling (Magic Missile, Chain Lightning)
-        if (this.isChanneling && !allowAutoLaserMove) {
+        // Block movement while channeling, except for sustained Chain Lightning movement.
+        if (this.isChanneling && !allowLaserChannelMove) {
             this.vx = 0;
             this.vy = 0;
             this.moveTarget = null;
@@ -644,7 +643,7 @@ export default class Player extends CharacterBase {
             if (this.turnGraceTimer > 0) this.turnGraceTimer -= dt;
 
             const runMult = (this.isRunning || this.turnGraceTimer > 0) ? 1.3 : 1.0;
-            const channelMoveMultiplier = allowAutoLaserMove ? 0.7 : 1.0;
+            const channelMoveMultiplier = allowLaserChannelMove ? 0.7 : 1.0;
             const finalSpeed = this.speed * runMult * channelMoveMultiplier;
 
             this.vx = vx * finalSpeed;
