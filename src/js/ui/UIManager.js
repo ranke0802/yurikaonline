@@ -5828,27 +5828,26 @@ export class UIManager {
         if (!el) {
             el = document.createElement('div');
             el.id = 'center-message';
-            el.style.position = 'absolute';
+            el.style.position = 'fixed';
             el.style.top = '30%'; // Slightly above center
             el.style.left = '50%';
             el.style.transform = 'translate(-50%, -50%)';
-            el.style.color = color;
             el.style.fontSize = '24px';
             el.style.fontWeight = 'bold';
-            el.style.textShadow = '2px 2px 2px #000';
+            el.style.textShadow = '0 3px 10px rgba(0, 0, 0, 0.72), 0 0 2px rgba(0, 0, 0, 0.95)';
             el.style.pointerEvents = 'none';
             el.style.opacity = '0';
-            el.style.transition = 'opacity 0.5s';
-            el.style.zIndex = '2000';
+            el.style.transition = 'opacity 0.28s ease';
+            el.style.zIndex = '5200';
             el.style.textAlign = 'center';
-            el.style.width = '80%';
-
-            const uiLayer = document.getElementById('ui-layer');
-            if (uiLayer) {
-                uiLayer.appendChild(el);
-            } else {
-                document.body.appendChild(el);
-            }
+            el.style.width = 'min(86vw, 980px)';
+            el.style.maxWidth = '86vw';
+            el.style.whiteSpace = 'normal';
+            el.style.lineHeight = '1.3';
+            el.style.padding = '0 12px';
+            document.body.appendChild(el);
+        } else if (el.parentElement !== document.body && document.body) {
+            document.body.appendChild(el);
         }
 
         el.textContent = text;
