@@ -332,6 +332,13 @@ export default class MonsterManager {
         return { x, y };
     }
 
+    _getCellChebyshevDistance(fromCellId, toCellId) {
+        const from = this._parseCellId(fromCellId);
+        const to = this._parseCellId(toCellId);
+        if (!from || !to) return Number.POSITIVE_INFINITY;
+        return Math.max(Math.abs(from.x - to.x), Math.abs(from.y - to.y));
+    }
+
     _getMonsterCellId(monster) {
         if (!monster) return '0_0';
         const cellId = this._getCellIdFromPosition(monster.x, monster.y);
@@ -372,6 +379,10 @@ export default class MonsterManager {
         const now = Date.now();
         const previous = this.peerMonsterKeyframeMeta.get(uid) || null;
         if (previous?.cellId === entry.cellId && (now - previous.ts) < 1200) return;
+        if (reason === 'peer_cell_changed' && previous?.cellId) {
+            const cellShift = this._getCellChebyshevDistance(previous.cellId, entry.cellId);
+            if (cellShift <= 1 && (now - previous.ts) < 5000) return;
+        }
 
         this.peerMonsterKeyframeMeta.set(uid, {
             cellId: entry.cellId,

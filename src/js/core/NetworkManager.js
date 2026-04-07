@@ -58,6 +58,7 @@ export default class NetworkManager extends EventEmitter {
         this._zoneUserCache = new Map();
         this._zoneUserListeners = new Map();
         this._presenceCache = new Map();
+        this._presenceTsCache = new Map();
         this._networkDropIds = new Set();
         this._lastPresenceLiteState = null;
         this._lastPresenceLiteWriteTs = 0;
@@ -99,6 +100,7 @@ export default class NetworkManager extends EventEmitter {
         this._profileBackupPruneMeta.clear();
         this._detachZoneUserListeners();
         this._presenceCache.clear();
+        this._presenceTsCache.clear();
         this._networkDropIds.clear();
         this._lastPresenceLiteState = null;
         this._lastPresenceLiteWriteTs = 0;
@@ -111,6 +113,9 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child('presence').on('child_added', (snapshot) => this._handlePresenceSnapshot(snapshot));
         this.dbRef.child('presence').on('child_changed', (snapshot) => this._handlePresenceSnapshot(snapshot));
         this.dbRef.child('presence').on('child_removed', (snapshot) => this._handlePresenceRemoved(snapshot));
+        this.dbRef.child('presence_ts').on('child_added', (snapshot) => this._handlePresenceTsSnapshot(snapshot));
+        this.dbRef.child('presence_ts').on('child_changed', (snapshot) => this._handlePresenceTsSnapshot(snapshot));
+        this.dbRef.child('presence_ts').on('child_removed', (snapshot) => this._handlePresenceTsRemoved(snapshot));
 
         // 1. Listen for other players moving
         this.dbRef.child('users').on('child_added', (snapshot) => this._onPlayerAdded(snapshot));
@@ -287,6 +292,7 @@ export default class NetworkManager extends EventEmitter {
         // 2. presence check
         const myRef = this.dbRef.child(`users/${this.playerId}`);
         const presenceRef = this.dbRef.child(`presence/${this.playerId}`);
+        const presenceTsRef = this.dbRef.child(`presence_ts/${this.playerId}`);
         // Commented out to allow position persistence on refresh.
         // Stale users are cleaned up by Host after 5 minutes of inactivity.
         // chat Sync
@@ -322,6 +328,7 @@ export default class NetworkManager extends EventEmitter {
         // v0.00.03: Failsafe exit logic
         myRef.onDisconnect().remove();
         presenceRef.onDisconnect().remove();
+        presenceTsRef.onDisconnect().remove();
 
         this.connected = true;
         this.emit('connected');
@@ -330,6 +337,7 @@ export default class NetworkManager extends EventEmitter {
             this._publishLocalRealtimeSnapshot('connect');
         } else {
             this._publishPresenceLite({ force: true, reason: 'connect' });
+            this._writePresenceTsOnly('connect');
         }
 
         // v0.00.04: Heartbeat is now the primary presence method
@@ -370,6 +378,7 @@ export default class NetworkManager extends EventEmitter {
                 this.connectedUsers = this.connectedUsers.filter((uid) => uid !== this.playerId);
                 this.userLastSeen.delete(this.playerId);
                 this._presenceCache.delete(this.playerId);
+                this._presenceTsCache.delete(this.playerId);
             }
 
             if (this.isHost) {
@@ -381,6 +390,7 @@ export default class NetworkManager extends EventEmitter {
             if (this.dbRef && this.playerId) {
                 this.dbRef.child(`users/${this.playerId}`).remove().catch(() => { });
                 this.dbRef.child(`presence/${this.playerId}`).remove().catch(() => { });
+                this.dbRef.child(`presence_ts/${this.playerId}`).remove().catch(() => { });
             }
 
             this._fieldPeerCount = 0;
@@ -469,6 +479,7 @@ export default class NetworkManager extends EventEmitter {
         if (this.playerId && this.dbRef) {
             this.dbRef.child(`users/${this.playerId}`).remove().catch(() => { });
             this.dbRef.child(`presence/${this.playerId}`).remove().catch(() => { });
+            this.dbRef.child(`presence_ts/${this.playerId}`).remove().catch(() => { });
         }
 
         this.connected = false;
@@ -482,6 +493,7 @@ export default class NetworkManager extends EventEmitter {
         this._zoneUserCache.clear();
         this._detachZoneUserListeners();
         this._presenceCache.clear();
+        this._presenceTsCache.clear();
         this._lastPresenceLiteState = null;
         this._lastPresenceLiteWriteTs = 0;
         this._fieldPeerCount = 0;
@@ -502,6 +514,7 @@ export default class NetworkManager extends EventEmitter {
 
         const fixedPaths = [
             'presence',
+            'presence_ts',
             'users',
             'monsters',
             'monster_attack',
@@ -521,6 +534,7 @@ export default class NetworkManager extends EventEmitter {
         if (!this.playerId) return;
         const playerPaths = [
             `presence/${this.playerId}`,
+            `presence_ts/${this.playerId}`,
             `rewards/${this.playerId}`,
             `party_invites/${this.playerId}`,
             `party_responses/${this.playerId}`,
@@ -646,7 +660,7 @@ export default class NetworkManager extends EventEmitter {
             || last.name !== nextPayload.name
             || last.level !== nextPayload.level
             || JSON.stringify(last.appearance || null) !== JSON.stringify(nextPayload.appearance || null);
-        const shouldWrite = force || changed || (now - this._lastPresenceLiteWriteTs) >= 1200;
+        const shouldWrite = force || changed;
         if (!shouldWrite) return;
 
         this._recordNetworkWrite('presenceLite', nextPayload);
@@ -658,12 +672,14 @@ export default class NetworkManager extends EventEmitter {
 
     _normalizePresenceSnapshot(uid, value) {
         if (!uid || !value || typeof value !== 'object') return null;
+        const cachedTs = Number(this._presenceTsCache.get(uid) || 0);
+        const snapshotTs = Number(value.ts || 0);
         return {
             uid,
             fieldId: this._normalizeFieldId(value.fieldId),
             cellId: typeof value.cellId === 'string' ? value.cellId : '0_0',
             mode: value.mode === 'shared_realtime' ? 'shared_realtime' : 'presence_lite',
-            ts: Number(value.ts || 0),
+            ts: cachedTs > 0 ? cachedTs : snapshotTs,
             name: value.name || 'Unknown',
             level: Number(value.level || 1)
         };
@@ -725,11 +741,61 @@ export default class NetworkManager extends EventEmitter {
         this._checkHostStatus();
     }
 
+    _handlePresenceTsSnapshot(snapshot) {
+        const uid = snapshot?.key;
+        const rawTs = Number(snapshot?.val() || 0);
+        if (!uid || !rawTs) return;
+
+        const presenceTs = this._sanitizeActivityTs(rawTs);
+        const previousEntry = this._presenceCache.get(uid) || null;
+        const nextEntry = previousEntry
+            ? { ...previousEntry, ts: presenceTs }
+            : null;
+
+        this._presenceTsCache.set(uid, presenceTs);
+        this._registerConnectedUser(uid);
+        this.userLastSeen.set(uid, presenceTs);
+
+        const existing = this.remotePlayers.get(uid);
+        if (existing) existing.ts = presenceTs;
+
+        if (!nextEntry) {
+            this._checkHostStatus();
+            return;
+        }
+
+        this._presenceCache.set(uid, nextEntry);
+        this._emitFieldPeerPresenceChanged(uid, previousEntry, nextEntry);
+        this._refreshSharedFieldState();
+        this._checkHostStatus();
+    }
+
+    _handlePresenceTsRemoved(snapshot) {
+        const uid = snapshot?.key;
+        if (!uid) return;
+
+        this._presenceTsCache.delete(uid);
+        this.userLastSeen.delete(uid);
+
+        const previousEntry = this._presenceCache.get(uid) || null;
+        if (!previousEntry) {
+            this._checkHostStatus();
+            return;
+        }
+
+        const nextEntry = { ...previousEntry, ts: 0 };
+        this._presenceCache.set(uid, nextEntry);
+        this._emitFieldPeerPresenceChanged(uid, previousEntry, nextEntry);
+        this._refreshSharedFieldState();
+        this._checkHostStatus();
+    }
+
     _handlePresenceRemoved(snapshot) {
         const uid = snapshot?.key;
         if (!uid) return;
         const previousEntry = this._presenceCache.get(uid) || null;
         this._presenceCache.delete(uid);
+        this._presenceTsCache.delete(uid);
         this.connectedUsers = this.connectedUsers.filter((id) => id !== uid);
         this.connectedUsers.sort();
         this.userLastSeen.delete(uid);
@@ -851,6 +917,7 @@ export default class NetworkManager extends EventEmitter {
         const player = window.game?.localPlayer || null;
         const now = Date.now();
         const updates = {
+            [`presence_ts/${this.playerId}`]: firebase.database.ServerValue.TIMESTAMP,
             [`users/${this.playerId}/presence/ts`]: now,
             [`users/${this.playerId}/lastSeen`]: now
         };
@@ -893,44 +960,52 @@ export default class NetworkManager extends EventEmitter {
 
         this._recordNetworkWrite('realtimeBootstrap', { reason, updates });
         this.dbRef.update(updates).catch(() => { });
+        this._commitLocalSelfHeartbeat(now);
+        this._markNetworkActivity(now);
+        this._publishPresenceLite({ force: true, reason });
+    }
+
+    _commitLocalSelfHeartbeat(now = Date.now()) {
+        if (!this.playerId) return;
+        this.lastHeartbeatTime = now;
         this._registerConnectedUser(this.playerId);
         this.userLastSeen.set(this.playerId, now);
-        this.lastHeartbeatTime = now;
-        this._markNetworkActivity(now);
+        this._presenceTsCache.set(this.playerId, now);
         this._checkHostStatus();
-        this._publishPresenceLite({ force: true, reason });
+    }
+
+    _writePresenceTsOnly(reason = 'heartbeat') {
+        if (!this.connected || !this.playerId || !this.dbRef || !this.zoneParticipationEnabled) return;
+        const now = Date.now();
+        const updates = {
+            [`presence_ts/${this.playerId}`]: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        this._recordNetworkWrite('presenceHeartbeat', { reason });
+        this.dbRef.update(updates).catch(() => { });
+        this._commitLocalSelfHeartbeat(now);
+        this._markNetworkActivity(now);
     }
 
     sendHeartbeat() {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         this._publishPresenceLite({ force: false, reason: 'heartbeat' });
         if (!this._shouldSendRealtimeUserState()) {
-            this.lastHeartbeatTime = Date.now();
-            this._registerConnectedUser(this.playerId);
-            this.userLastSeen.set(this.playerId, this.lastHeartbeatTime);
-            this._checkHostStatus();
+            this._writePresenceTsOnly('heartbeat');
             return;
         }
         const updates = {
+            [`presence_ts/${this.playerId}`]: firebase.database.ServerValue.TIMESTAMP,
             [`users/${this.playerId}/presence/ts`]: firebase.database.ServerValue.TIMESTAMP,
             [`users/${this.playerId}/lastSeen`]: firebase.database.ServerValue.TIMESTAMP
         };
         this._recordNetworkWrite('heartbeat', {
+            presenceTs: true,
             presence: true,
             lastSeen: true
         });
         this.dbRef.update(updates).catch(() => { });
-        this.lastHeartbeatTime = Date.now();
-
-        // v0.00.03: Ensure resonance of local user list
-        if (!this.connectedUsers.includes(this.playerId)) {
-            this.connectedUsers.push(this.playerId);
-            this.connectedUsers.sort();
-        }
-        this.userLastSeen.set(this.playerId, this.lastHeartbeatTime);
-
-        // v1.99.14: Aggressive host re-check every second
-        this._checkHostStatus();
+        this._commitLocalSelfHeartbeat(Date.now());
     }
 
     _markNetworkActivity(ts = Date.now()) {
@@ -2507,7 +2582,14 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
 
         const now = Date.now();
-        this._publishPresenceLite({ x, y, reason: 'move' });
+        const nextCellId = this._getFieldCellId(x, y);
+        const nextFieldId = this._getCurrentFieldId();
+        this._refreshMonsterCellSubscriptions(nextCellId);
+        if (!this._lastPresenceLiteState
+            || this._lastPresenceLiteState.cellId !== nextCellId
+            || this._lastPresenceLiteState.fieldId !== nextFieldId) {
+            this._publishPresenceLite({ x, y, fieldId: nextFieldId, reason: 'move' });
+        }
 
         // Adaptive sync interval based on movement state
         const isMoving = Math.abs(vx) > 0.1 || Math.abs(vy) > 0.1;
