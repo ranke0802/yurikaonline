@@ -368,7 +368,7 @@ export class Projectile {
 
     _executeActualExplosion(manualTarget = null, manualMonsters = null) {
         const target = manualTarget || (this.explosionContext ? this.explosionContext.target : null);
-        const monsters = manualMonsters || (this.explosionContext ? this.explosionContext.monsters : null);
+        const monsters = this._getCurrentMonsters(manualMonsters || (this.explosionContext ? this.explosionContext.monsters : null));
 
         if (!target) {
             this.isDead = true;
@@ -535,6 +535,14 @@ export class Projectile {
         };
     }
 
+    _getCurrentMonsters(fallbackMonsters = null) {
+        const liveMonsters = window.game?.monsterManager?.monsters;
+        if (liveMonsters?.size) {
+            return Array.from(liveMonsters.values());
+        }
+        return Array.isArray(fallbackMonsters) ? fallbackMonsters : [];
+    }
+
     _tryTriggerBlueFlameChainExplosions(target, monsters, net, targetIsMonster) {
         if (this.variant !== 'blue_fireball') return;
         if (this.fireballChainChance <= 0 || this.fireballChainDamageRatio <= 0) return;
@@ -560,7 +568,7 @@ export class Projectile {
                 }
 
                 if (targetIsMonster) {
-                    this._applyBlueFlameChainToMonsters(monsters, net, chainDamage, chainIndex);
+                    this._applyBlueFlameChainToMonsters(this._getCurrentMonsters(monsters), net, chainDamage, chainIndex);
                 } else {
                     this._applyBlueFlameChainToPlayers(target, net, chainDamage, chainIndex);
                 }

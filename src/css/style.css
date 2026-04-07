@@ -7520,6 +7520,29 @@ body.low-power-pwa #ui-layer .minimap-menu {
     border-color: rgba(255, 255, 255, 0.7) !important;
 }
 
+/* Stabilize transparent minimap rendering across mobile browsers */
+#ui-layer #minimap-container {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+#ui-layer #minimapCanvas {
+    display: block;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+#ui-layer .minimap-header,
+#ui-layer .minimap-footer {
+    background: rgba(8, 12, 18, 0.12) !important;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
+body.low-power-pwa #ui-layer #minimap-container {
+    background: transparent !important;
+}
+
 @media screen and (max-width: 1024px) and (orientation: landscape) {
     body #ui-layer .minimap-menu .menu-btn {
         position: relative !important;

@@ -5054,13 +5054,17 @@ export class UIManager {
 
         const canvasChanged = this.minimapCanvas !== canvas;
         this.minimapCanvas = canvas;
-        const ctx = this.minimapCtx || canvas.getContext('2d', { alpha: true, desynchronized: true }) || canvas.getContext('2d');
+        const ctx = this.minimapCtx || canvas.getContext('2d', { alpha: true }) || canvas.getContext('2d');
+        if (!ctx) return;
         this.minimapCtx = ctx;
         const simpleMode = !!this.game.useAggressiveHudOptimization;
         const w = simpleMode ? 96 : 150;
         const h = simpleMode ? 96 : 150;
         if (canvas.width !== w) canvas.width = w;
         if (canvas.height !== h) canvas.height = h;
+        canvas.style.background = 'transparent';
+        canvas.style.backgroundColor = 'transparent';
+        ctx.imageSmoothingEnabled = false;
 
         // Update footer
         const posX = this.getHudRef('miniPosX', 'mini-pos-x', 'id');
@@ -5078,6 +5082,8 @@ export class UIManager {
         this.lastMinimapSignature = signature;
 
         // Clear Map (Make it transparent)
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalCompositeOperation = 'source-over';
         ctx.clearRect(0, 0, w, h);
 
         // Scaling factors
