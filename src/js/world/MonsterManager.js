@@ -59,6 +59,11 @@ export default class MonsterManager {
         }
 
         this.lastSyncState = new Map();
+        this.monsterRegionMap = new Map();
+        this.monsterRevisionMap = new Map();
+        this.peerMonsterKeyframeMeta = new Map();
+        this._hostSnapshotRestorePromise = null;
+        this._lastHostSnapshotRestoreTs = 0;
 
         // Register Network Handlers
         this.net.onRemoteMonsterAdded(this._onRemoteMonsterAdded.bind(this));
@@ -68,14 +73,15 @@ export default class MonsterManager {
         this.net.onDropAdded(this._onDropAdded.bind(this));
         this.net.onDropRemoved(this._onDropRemoved.bind(this));
         this.net.onDropCollectionRequested(this._onDropCollectionRequested.bind(this));
+        this.net.on('fieldPeerPresenceChanged', this._handleFieldPeerPresenceChanged.bind(this));
         this.net.on('sharedFieldChanged', ({ active }) => {
             if (!this.net.isHost) return;
             if (active) {
-                this.forceSyncAll();
                 this.forceSyncAllDrops();
                 return;
             }
             this.lastSyncState.clear();
+            this.peerMonsterKeyframeMeta.clear();
         });
 
         // v0.00.24: Increased for smoother sync
@@ -263,6 +269,8 @@ export default class MonsterManager {
             }
             this.monsters.delete(id);
             this.lastSyncState.delete(id);
+            this.monsterRegionMap.delete(id);
+            this.monsterRevisionMap.delete(id);
         });
         this.tutorialMonsterIds.clear();
     }
@@ -302,6 +310,74 @@ export default class MonsterManager {
             if ((dx * dx) + (dy * dy) <= radiusSq) return true;
         }
         return false;
+    }
+
+    _getFieldCellSize() {
+        return Math.max(128, this.net?._fieldCellSize || 640);
+    }
+
+    _getCellIdFromPosition(x = 0, y = 0) {
+        const cellSize = this._getFieldCellSize();
+        const safeX = Number.isFinite(x) ? x : 0;
+        const safeY = Number.isFinite(y) ? y : 0;
+        return `${Math.floor(safeX / cellSize)}_${Math.floor(safeY / cellSize)}`;
+    }
+
+    _parseCellId(cellId) {
+        if (typeof cellId !== 'string') return null;
+        const [rawX, rawY] = cellId.split('_');
+        const x = Number.parseInt(rawX, 10);
+        const y = Number.parseInt(rawY, 10);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+        return { x, y };
+    }
+
+    _getMonsterCellId(monster) {
+        if (!monster) return '0_0';
+        const cellId = this._getCellIdFromPosition(monster.x, monster.y);
+        if (monster.id) {
+            this.monsterRegionMap.set(monster.id, cellId);
+        }
+        return cellId;
+    }
+
+    _isMonsterInCellNeighborhood(monster, cellId, range = 1) {
+        const monsterCell = this._parseCellId(this._getMonsterCellId(monster));
+        const targetCell = this._parseCellId(cellId);
+        if (!monsterCell || !targetCell) return false;
+        return Math.abs(monsterCell.x - targetCell.x) <= range
+            && Math.abs(monsterCell.y - targetCell.y) <= range;
+    }
+
+    _getMonsterNetworkState(monster) {
+        if (!monster || monster.isDead || monster.hp <= 0) return 'dead';
+        if (monster.chargeState === 'casting' || monster.chargeState === 'charging') {
+            return monster.chargeState;
+        }
+        if (monster.isAggro) return 'aggro';
+        return 'idle';
+    }
+
+    _nextMonsterRevision(monsterId) {
+        const nextRev = (this.monsterRevisionMap.get(monsterId) || 0) + 1;
+        this.monsterRevisionMap.set(monsterId, nextRev);
+        return nextRev;
+    }
+
+    _handleFieldPeerPresenceChanged({ uid, entry, reason } = {}) {
+        if (!this.net?.isHost || !uid || !entry) return;
+        if (entry.fieldId !== this.net?._getCurrentFieldId?.()) return;
+        if (reason !== 'peer_joined_field' && reason !== 'peer_cell_changed') return;
+
+        const now = Date.now();
+        const previous = this.peerMonsterKeyframeMeta.get(uid) || null;
+        if (previous?.cellId === entry.cellId && (now - previous.ts) < 1200) return;
+
+        this.peerMonsterKeyframeMeta.set(uid, {
+            cellId: entry.cellId,
+            ts: now
+        });
+        this.forceSyncAroundCell(entry.cellId, { neighborhood: 1 });
     }
 
     _getMonsterSyncProfile(monster, interestedPlayers, mobileThermalMode) {
@@ -348,13 +424,21 @@ export default class MonsterManager {
     }
 
     _buildMonsterSyncPayload(monster, { fullSync = false, immediate = false } = {}) {
+        const rev = this._nextMonsterRevision(monster.id);
+        const cellId = this._getMonsterCellId(monster);
+        const state = this._getMonsterNetworkState(monster);
+        const now = Date.now();
         const payload = {
             x: Math.round(monster.x),
             y: Math.round(monster.y),
             hp: monster.hp,
             maxHp: monster.maxHp,
             type: monster.typeId || monster.name,
-            chargeOnly: !!monster.chargeOnly
+            chargeOnly: !!monster.chargeOnly,
+            rev,
+            ts: now,
+            state,
+            cellId
         };
 
         if (fullSync) {
@@ -589,6 +673,8 @@ export default class MonsterManager {
                 this.net.removeMonster(id);
                 this.monsters.delete(id);
                 this.lastSyncState.delete(id);
+                this.monsterRegionMap.delete(id);
+                this.monsterRevisionMap.delete(id);
                 return;
             }
 
@@ -649,6 +735,10 @@ export default class MonsterManager {
             }
 
             // --- Bandwidth Throttling (Priority/AOI aware) ---
+            if (this.net?.shouldUseMonsterQuietMode?.()) {
+                return;
+            }
+
             const last = this.lastSyncState.get(id);
             const profile = this._getMonsterSyncProfile(m, candidates, mobileThermalMode);
             const lastNetTs = last?.netTs || 0;
@@ -659,29 +749,35 @@ export default class MonsterManager {
             const dist = last ? Math.sqrt((m.x - last.x) ** 2 + (m.y - last.y) ** 2) : 999;
             const hpChanged = !last || m.hp !== last.hp || m.maxHp !== last.maxHp;
             const stateChanged = !last
-                || last.chargeState !== m.chargeState
+                || last.state !== this._getMonsterNetworkState(m)
                 || last.isDead !== !!m.isDead
                 || last.chargeOnly !== !!m.chargeOnly
                 || last.isBoss !== !!m.isBoss;
+            const currentCellId = this._getMonsterCellId(m);
+            const cellChanged = !last || last.cellId !== currentCellId;
             const fullSyncDue = !last
                 || stateChanged
+                || cellChanged
                 || (now - (last.fullSyncAt || 0)) >= profile.fullSyncIntervalMs;
 
             if (dist > profile.positionThreshold || hpChanged || stateChanged || fullSyncDue) {
                 const immediate = stateChanged || !last;
-                this.net.sendMonsterUpdate(id, this._buildMonsterSyncPayload(m, {
+                const payload = this._buildMonsterSyncPayload(m, {
                     fullSync: fullSyncDue,
                     immediate
-                }));
+                });
+                this.net.sendMonsterUpdate(id, payload);
                 this.lastSyncState.set(id, {
                     x: m.x,
                     y: m.y,
                     hp: m.hp,
                     maxHp: m.maxHp,
-                    chargeState: m.chargeState,
+                    state: payload.state,
                     isDead: !!m.isDead,
                     chargeOnly: !!m.chargeOnly,
                     isBoss: !!m.isBoss,
+                    cellId: payload.cellId,
+                    rev: payload.rev,
                     netTs: now,
                     fullSyncAt: fullSyncDue ? now : (last?.fullSyncAt || 0)
                 });
@@ -693,20 +789,38 @@ export default class MonsterManager {
         const m = this.monsters.get(id);
         if (!m || !this.net.isHost) return;
 
-        this.net.sendMonsterUpdate(id, this._buildMonsterSyncPayload(m, { fullSync: true, immediate: true }));
+        const payload = this._buildMonsterSyncPayload(m, { fullSync: true, immediate: true });
+        this.net.sendMonsterUpdate(id, payload);
         const now = Date.now();
         this.lastSyncState.set(id, {
             x: m.x,
             y: m.y,
             hp: m.hp,
             maxHp: m.maxHp,
-            chargeState: m.chargeState,
+            state: payload.state,
             isDead: !!m.isDead,
             chargeOnly: !!m.chargeOnly,
             isBoss: !!m.isBoss,
+            cellId: payload.cellId,
+            rev: payload.rev,
             netTs: now,
             fullSyncAt: now
         });
+    }
+
+    forceSyncAroundCell(cellId, options = {}) {
+        if (!this.net.isHost || !cellId) return 0;
+        const neighborhood = Math.max(0, Number(options.neighborhood || 1));
+        let syncedCount = 0;
+
+        this.monsters.forEach((monster, id) => {
+            if (!monster || monster.isDead) return;
+            if (!this._isMonsterInCellNeighborhood(monster, cellId, neighborhood)) return;
+            this.forceSync(id);
+            syncedCount += 1;
+        });
+
+        return syncedCount;
     }
 
     forceSyncAll() {
@@ -731,6 +845,132 @@ export default class MonsterManager {
                 ts: Date.now()
             });
         });
+    }
+
+    _applyAuthoritativeSnapshotToMonster(monster, data) {
+        if (!monster || !data) return;
+
+        if (Number.isFinite(data.x)) {
+            monster.x = data.x;
+            monster.targetX = data.x;
+        }
+        if (Number.isFinite(data.y)) {
+            monster.y = data.y;
+            monster.targetY = data.y;
+        }
+        if (Number.isFinite(data.hp)) monster.hp = data.hp;
+        if (Number.isFinite(data.maxHp)) monster.maxHp = data.maxHp;
+        if (data.isBoss) {
+            monster.isBoss = true;
+            if (Number.isFinite(data.w)) monster.width = data.w;
+            if (Number.isFinite(data.h)) monster.height = data.h;
+        }
+        monster.chargeOnly = !!data.chargeOnly;
+        monster.isDead = false;
+        monster.deathTimer = 0;
+        monster.lastNetworkEventAt = Number(data.ts || Date.now());
+
+        this._applyRemoteMonsterNetworkState(monster, data);
+        this.monsterRevisionMap.set(
+            monster.id,
+            Math.max(Number(data.rev || 0), Number(this.monsterRevisionMap.get(monster.id) || 0))
+        );
+    }
+
+    _removeMonsterLocalState(id) {
+        if (!id) return;
+        this._clearPlayerTargetIfMatches(id);
+        this.tutorialMonsterIds.delete(id);
+        this.lastSyncState.delete(id);
+        this.monsterRegionMap.delete(id);
+        this.monsterRevisionMap.delete(id);
+        this.monsters.delete(id);
+    }
+
+    async restoreAuthoritativeMonstersFromHostSnapshot(options = {}) {
+        if (!this.net?.isHost || typeof this.net?.readMonsterHostSnapshot !== 'function') {
+            return { restored: 0, updated: 0, removed: 0, total: 0, skipped: true };
+        }
+        const now = Date.now();
+        if (!options.force && this._lastHostSnapshotRestoreTs > 0 && (now - this._lastHostSnapshotRestoreTs) < 600) {
+            return { restored: 0, updated: 0, removed: 0, total: 0, skipped: true };
+        }
+        if (this._hostSnapshotRestorePromise && !options.force) {
+            return this._hostSnapshotRestorePromise;
+        }
+
+        const restorePromise = (async () => {
+            const snapshotData = await this.net.readMonsterHostSnapshot();
+            const entries = Object.entries(snapshotData || {}).filter(([id, data]) => {
+                if (!id || !data || typeof data !== 'object') return false;
+                if (Number(data.hp || 0) <= 0) return false;
+                if (data.state === 'dead') return false;
+                return true;
+            });
+
+            const snapshotIds = new Set(entries.map(([id]) => id));
+            let restored = 0;
+            let updated = 0;
+            let removed = 0;
+
+            if (entries.length > 0) {
+                Array.from(this.monsters.keys()).forEach((monsterId) => {
+                    const monster = this.monsters.get(monsterId);
+                    if (!monster || monster.isLocalOnly || this.tutorialMonsterIds.has(monsterId)) return;
+                    if (snapshotIds.has(monsterId)) return;
+                    this._removeMonsterLocalState(monsterId);
+                    removed += 1;
+                });
+            }
+
+            for (const [id, data] of entries) {
+                const payload = {
+                    id,
+                    ...data,
+                    fullSync: true,
+                    immediate: true
+                };
+                const existing = this.monsters.get(id);
+                if (!existing) {
+                    await this._onRemoteMonsterAdded(payload);
+                    const added = this.monsters.get(id);
+                    if (added) {
+                        this.monsterRevisionMap.set(id, Math.max(Number(data.rev || 0), Number(this.monsterRevisionMap.get(id) || 0)));
+                    }
+                    restored += 1;
+                    continue;
+                }
+
+                this._applyAuthoritativeSnapshotToMonster(existing, payload);
+                updated += 1;
+            }
+
+            if (entries.length > 0) {
+                this.lastSyncState.clear();
+                if (!this.net?.shouldUseMonsterQuietMode?.()) {
+                    this.forceSyncAll();
+                }
+            }
+
+            return {
+                restored,
+                updated,
+                removed,
+                total: entries.length,
+                skipped: false
+            };
+        })();
+
+        this._hostSnapshotRestorePromise = restorePromise;
+        this._lastHostSnapshotRestoreTs = now;
+
+        try {
+            return await restorePromise;
+        } finally {
+            if (this._hostSnapshotRestorePromise === restorePromise) {
+                this._hostSnapshotRestorePromise = null;
+            }
+        }
     }
 
     async _spawnMonster(fixedX = null, fixedY = null, type = 'slime', options = {}) {
@@ -763,16 +1003,19 @@ export default class MonsterManager {
             hp: definition.baseStats?.hp || 100,
             maxHp: definition.baseStats?.maxHp || 100,
             type: type,
-            chargeOnly: options.chargeOnly || false // v0.00.70: chargeOnly 옵션 지원
+            chargeOnly: options.chargeOnly || false, // v0.00.70: chargeOnly 옵션 지원
+            rev: this._nextMonsterRevision(id),
+            ts: Date.now(),
+            state: 'idle',
+            cellId: this._getCellIdFromPosition(x, y)
         };
 
         if (options.tutorialOnly) {
             this.tutorialMonsterIds.add(id);
         }
 
-        if (this.net?.shouldUseMonsterQuietMode?.()) {
-            await this._onRemoteMonsterAdded({ ...data, fullSync: true, immediate: true });
-        } else {
+        await this._onRemoteMonsterAdded({ ...data, fullSync: true, immediate: true });
+        if (!this.net?.shouldUseMonsterQuietMode?.()) {
             this.net.sendMonsterUpdate(id, { ...data, fullSync: true, immediate: true });
         }
         return id;
@@ -840,13 +1083,16 @@ export default class MonsterManager {
             isBoss: true,
             chargeOnly: isFirstBoss, // v0.00.70: 첫 대왕 슬라임은 돌진만 사용
             w: definition.visual?.width || 320,
-            h: definition.visual?.height || 320
+            h: definition.visual?.height || 320,
+            rev: this._nextMonsterRevision(id),
+            ts: Date.now(),
+            state: 'idle',
+            cellId: this._getCellIdFromPosition(x, y)
         };
 
         // v0.00.76: Ensure clients know this is a limited pattern boss
-        if (this.net?.shouldUseMonsterQuietMode?.()) {
-            await this._onRemoteMonsterAdded({ ...data, fullSync: true, immediate: true });
-        } else {
+        await this._onRemoteMonsterAdded({ ...data, fullSync: true, immediate: true });
+        if (!this.net?.shouldUseMonsterQuietMode?.()) {
             this.net.sendMonsterUpdate(id, { ...data, fullSync: true, immediate: true });
         }
         if (window.game && window.game.ui) {
@@ -882,6 +1128,8 @@ export default class MonsterManager {
             m.id = data.id;
             m.hp = data.hp;
             m.maxHp = data.maxHp;
+            m.targetX = data.x;
+            m.targetY = data.y;
 
             if (data.isBoss || data.type === '대왕 슬라임') {
                 m.isBoss = true;
@@ -893,6 +1141,7 @@ export default class MonsterManager {
             if (data.chargeOnly) {
                 m.chargeOnly = true;
             }
+            this._applyRemoteMonsterNetworkState(m, data);
             this.monsters.set(data.id, m);
         } catch (e) {
             Logger.warn(`Defaulting to fallback for monster ${data.id} (${typeId})`);
@@ -900,7 +1149,50 @@ export default class MonsterManager {
             m.id = data.id;
             m.hp = data.hp;
             m.maxHp = data.maxHp;
+            m.targetX = data.x;
+            m.targetY = data.y;
+            this._applyRemoteMonsterNetworkState(m, data);
             this.monsters.set(data.id, m);
+        }
+    }
+
+    _shouldAcceptRemoteMonsterUpdate(monster, data) {
+        if (!monster || !data) return false;
+
+        const incomingRev = Number(data.rev || 0);
+        const incomingTs = Number(data.ts || 0);
+        const currentRev = Number(monster.remoteSyncRev || 0);
+        const currentTs = Number(monster.remoteSyncTs || 0);
+
+        if (incomingRev > 0 && currentRev > 0) {
+            if (incomingRev < currentRev) return false;
+            if (incomingRev === currentRev && incomingTs > 0 && currentTs > 0 && incomingTs <= currentTs) return false;
+        } else if (incomingTs > 0 && currentTs > 0 && incomingTs < currentTs) {
+            return false;
+        }
+
+        return true;
+    }
+
+    _applyRemoteMonsterNetworkState(monster, data) {
+        if (!monster || !data) return;
+
+        monster.remoteSyncRev = Math.max(Number(monster.remoteSyncRev || 0), Number(data.rev || 0));
+        monster.remoteSyncTs = Math.max(Number(monster.remoteSyncTs || 0), Number(data.ts || 0));
+        monster.remoteSyncState = data.state || monster.remoteSyncState || 'idle';
+        monster.remoteCellId = data.cellId || monster.remoteCellId || this._getCellIdFromPosition(monster.x, monster.y);
+        if (data.cellId) {
+            this.monsterRegionMap.set(monster.id, data.cellId);
+        }
+
+        const nextState = monster.remoteSyncState;
+        monster.chargeState = (nextState === 'casting' || nextState === 'charging') ? nextState : 'idle';
+        monster.isAggro = nextState === 'aggro' || nextState === 'casting' || nextState === 'charging';
+        if (nextState === 'dead' || monster.hp <= 0) {
+            monster.isDead = true;
+            monster.hp = 0;
+            monster.vx = 0;
+            monster.vy = 0;
         }
     }
 
@@ -912,6 +1204,7 @@ export default class MonsterManager {
             return;
         }
         if (this.net.isHost) return;
+        if (!this._shouldAcceptRemoteMonsterUpdate(m, data)) return;
         m.hp = data.hp;
         if (data.maxHp) m.maxHp = data.maxHp;
 
@@ -928,19 +1221,12 @@ export default class MonsterManager {
             m.targetY = data.y;
         }
 
-        // v1.87: Force death state on Guest if HP is 0
-        if (m.hp <= 0 && !m.isDead) {
-            m.isDead = true;
-            m.vx = 0;
-            m.vy = 0;
-        }
+        this._applyRemoteMonsterNetworkState(m, data);
     }
 
     _onRemoteMonsterRemoved(id) {
-        this._clearPlayerTargetIfMatches(id);
-        this.tutorialMonsterIds.delete(id);
-        this.lastSyncState.delete(id);
-        this.monsters.delete(id);
+        if (this.net.isHost) return;
+        this._removeMonsterLocalState(id);
     }
 
     _clearPlayerTargetIfMatches(monsterOrId) {
@@ -1036,6 +1322,9 @@ export default class MonsterManager {
         this.monsters.clear();
         this.drops.clear();
         this.lastSyncState.clear();
+        this.monsterRegionMap.clear();
+        this.monsterRevisionMap.clear();
+        this.peerMonsterKeyframeMeta.clear();
         this.tutorialMonsterIds.clear();
         Logger.info("[MonsterManager] Local world state cleared.");
     }

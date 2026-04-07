@@ -2956,8 +2956,6 @@ export class UIManager {
             this.buildSkillSummaryMetrics(summaryMetrics),
             this.buildSkillDetailSection('핵심 설명', [data.desc]),
             this.buildSkillDetailSection('현재 적용 수치', currentStats),
-            this.buildSkillDetailSection('실제 데미지/효과 공식', formulaItems),
-            this.buildSkillDetailSection('코드 기준 적용 설정', settingItems),
             this.buildSkillDetailSection('현재 장착 무기 보정', weaponItems),
             this.buildSkillDetailSection('다음 강화 비용', [upgradeCost == null ? '이 스킬은 추가 강화가 없습니다.' : `현재 다음 레벨 업 비용은 <strong>${upgradeCost.toLocaleString('ko-KR')} G</strong>입니다.`])
         ].filter(Boolean).join('');

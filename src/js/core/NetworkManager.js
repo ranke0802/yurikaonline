@@ -61,11 +61,18 @@ export default class NetworkManager extends EventEmitter {
         this._fieldPeerCount = 0;
         this._sharedFieldActive = false;
         this._fieldCellSize = 640;
+        this._monsterCellListeners = new Map();
+        this._subscribedMonsterCells = new Set();
+        this._monsterCellPayloadCache = new Map();
+        this._monsterPendingRemovalTimers = new Map();
+        this._publishedMonsterCellMap = new Map();
         this.syncOptimizationFlags = {
             usePresenceLiteMode: true,
             useFieldRealtimeMode: true,
             useSoloHotWriteGating: true,
-            useMonsterQuietMode: true
+            useMonsterQuietMode: true,
+            useMonsterCellSync: true,
+            useMonsterHostSnapshot: true
         };
     }
 
@@ -107,30 +114,19 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child('users').on('child_removed', (snapshot) => this._onPlayerRemoved(snapshot));
 
         // Monster Sync
-        this.dbRef.child('monsters').on('child_added', (s) => {
-            const val = s.val();
-            this.emit('monsterAdded', { id: s.key, ...val });
-
-            // v0.00.57: Boss BGM Trigger
-            if (val && val.type === 'king_slime') {
-                if (window.game && window.game.sound) {
-                    window.game.sound.loadAndPlayBgm('bgm_boss');
-                    window.game.sound.playSfx('boss_spawn');
-                }
-            }
-        });
-        this.dbRef.child('monsters').on('child_changed', (s) => this.emit('monsterUpdated', { id: s.key, ...s.val() }));
-        this.dbRef.child('monsters').on('child_removed', (s) => {
-            const val = s.val();
-            this.emit('monsterRemoved', s.key);
-
-            // v0.00.59: Boss Defeated - Revert BGM
-            if (val && val.type === 'king_slime') {
-                if (window.game && window.game.sound) {
-                    window.game.sound.loadAndPlayBgm('bgm_cabin');
-                }
-            }
-        });
+        if (this.shouldUseMonsterCellSync()) {
+            this._refreshMonsterCellSubscriptions(this._resolveMonsterSubscriptionAnchorCellId());
+        } else {
+            this.dbRef.child('monsters').on('child_added', (s) => {
+                this._emitMonsterAddedEvent(s.key, s.val());
+            });
+            this.dbRef.child('monsters').on('child_changed', (s) => {
+                this.emit('monsterUpdated', { id: s.key, ...s.val() });
+            });
+            this.dbRef.child('monsters').on('child_removed', (s) => {
+                this._emitMonsterRemovedEvent(s.key, s.val());
+            });
+        }
 
         // v0.33.0: Monster Attack Sync (Boss Skills)
         this.dbRef.child('monster_attack').on('child_added', (snapshot) => {
@@ -387,8 +383,10 @@ export default class NetworkManager extends EventEmitter {
             this._fieldPeerCount = 0;
             this._sharedFieldActive = false;
             this.lastPacketData = null;
+            this._clearMonsterCellSubscriptions({ emitRemovals: true });
         } else {
             this._publishPresenceLite({ force: true, reason: 'zone_reenabled' });
+            this._refreshMonsterCellSubscriptions(this._resolveMonsterSubscriptionAnchorCellId());
             this.sendHeartbeat();
         }
     }
@@ -485,6 +483,10 @@ export default class NetworkManager extends EventEmitter {
         this._lastPresenceLiteWriteTs = 0;
         this._fieldPeerCount = 0;
         this._sharedFieldActive = false;
+        this._clearMonsterCellSubscriptions({ emitRemovals: true });
+        this._clearPendingMonsterRemovalTimers();
+        this._monsterCellPayloadCache.clear();
+        this._publishedMonsterCellMap.clear();
         this.lastPacketData = null;
         this.lastSyncTime = 0;
         this.lastHeartbeatTime = 0;
@@ -511,6 +513,7 @@ export default class NetworkManager extends EventEmitter {
             'emotes'
         ];
         fixedPaths.forEach(path => this.dbRef.child(path).off());
+        this._clearMonsterCellSubscriptions({ emitRemovals: true });
 
         if (!this.playerId) return;
         const playerPaths = [
@@ -554,6 +557,45 @@ export default class NetworkManager extends EventEmitter {
         const nextX = Number.isFinite(x) ? x : Number(player?.x || 0);
         const nextY = Number.isFinite(y) ? y : Number(player?.y || 0);
         return `${Math.floor(nextX / cellSize)}_${Math.floor(nextY / cellSize)}`;
+    }
+
+    _parseFieldCellId(cellId) {
+        if (typeof cellId !== 'string') return null;
+        const [xRaw, yRaw] = cellId.split('_');
+        const x = Number(xRaw);
+        const y = Number(yRaw);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+        return { x, y };
+    }
+
+    _getFieldCellNeighborhood(cellId, range = 1) {
+        const parsed = this._parseFieldCellId(cellId);
+        if (!parsed) return [];
+
+        const cells = [];
+        for (let dy = -range; dy <= range; dy++) {
+            for (let dx = -range; dx <= range; dx++) {
+                cells.push(`${parsed.x + dx}_${parsed.y + dy}`);
+            }
+        }
+        return cells;
+    }
+
+    _resolveMonsterSubscriptionAnchorCellId(options = {}) {
+        if (Number.isFinite(options.x) || Number.isFinite(options.y)) {
+            return this._getFieldCellId(options.x, options.y);
+        }
+        const player = window.game?.localPlayer;
+        if (!player) return null;
+        return this._getFieldCellId(player.x, player.y);
+    }
+
+    shouldUseMonsterCellSync() {
+        return !!this.syncOptimizationFlags.useMonsterCellSync;
+    }
+
+    shouldUseMonsterHostSnapshot() {
+        return !!this.syncOptimizationFlags.useMonsterHostSnapshot;
     }
 
     _buildPresenceAppearance(player) {
@@ -608,6 +650,7 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child(`presence/${this.playerId}`).set(nextPayload).catch(() => { });
         this._lastPresenceLiteState = nextPayload;
         this._lastPresenceLiteWriteTs = now;
+        this._refreshMonsterCellSubscriptions(this._resolveMonsterSubscriptionAnchorCellId(options));
     }
 
     _normalizePresenceSnapshot(uid, value) {
@@ -629,18 +672,56 @@ export default class NetworkManager extends EventEmitter {
         return ts > 0 && (now - ts) < 12000;
     }
 
+    _emitFieldPeerPresenceChanged(uid, previousEntry, nextEntry) {
+        if (!uid || uid === this.playerId) return;
+
+        const fieldId = this._getCurrentFieldId();
+        const now = Date.now();
+        const prevActiveSameField = !!previousEntry
+            && this._isPresenceEntryActive(previousEntry, now)
+            && previousEntry.fieldId === fieldId;
+        const nextActiveSameField = !!nextEntry
+            && this._isPresenceEntryActive(nextEntry, now)
+            && nextEntry.fieldId === fieldId;
+
+        let reason = null;
+        if (!prevActiveSameField && nextActiveSameField) {
+            reason = 'peer_joined_field';
+        } else if (prevActiveSameField && !nextActiveSameField) {
+            reason = 'peer_left_field';
+        } else if (prevActiveSameField && nextActiveSameField && previousEntry?.cellId !== nextEntry?.cellId) {
+            reason = 'peer_cell_changed';
+        } else if (prevActiveSameField && nextActiveSameField && previousEntry?.mode !== nextEntry?.mode) {
+            reason = 'peer_mode_changed';
+        }
+
+        if (!reason) return;
+
+        this.emit('fieldPeerPresenceChanged', {
+            uid,
+            fieldId,
+            reason,
+            previousEntry: previousEntry || null,
+            entry: nextEntry || null
+        });
+    }
+
     _handlePresenceSnapshot(snapshot) {
         const uid = snapshot?.key;
         const entry = this._normalizePresenceSnapshot(uid, snapshot?.val());
         if (!uid || !entry) return;
+        const previousEntry = this._presenceCache.get(uid) || null;
         this._presenceCache.set(uid, entry);
+        this._emitFieldPeerPresenceChanged(uid, previousEntry, entry);
         this._refreshSharedFieldState();
     }
 
     _handlePresenceRemoved(snapshot) {
         const uid = snapshot?.key;
         if (!uid) return;
+        const previousEntry = this._presenceCache.get(uid) || null;
         this._presenceCache.delete(uid);
+        this._emitFieldPeerPresenceChanged(uid, previousEntry, null);
         this._removeRemoteIfOutOfField(uid, null);
         this._refreshSharedFieldState();
     }
@@ -1302,6 +1383,186 @@ export default class NetworkManager extends EventEmitter {
     onDropRemoved(callback) { this.on('dropRemoved', callback); }
     onDropCollectionRequested(callback) { this.on('dropCollectionRequested', callback); }
 
+    _handleBossMonsterAudio(type, action = 'spawn') {
+        if (type !== 'king_slime' || !window.game?.sound) return;
+        if (action === 'spawn') {
+            window.game.sound.loadAndPlayBgm('bgm_boss');
+            window.game.sound.playSfx('boss_spawn');
+            return;
+        }
+        window.game.sound.loadAndPlayBgm('bgm_cabin');
+    }
+
+    _emitMonsterAddedEvent(id, payload) {
+        if (!id || !payload || typeof payload !== 'object') return;
+        this.emit('monsterAdded', { id, ...payload });
+        this._handleBossMonsterAudio(payload.type, 'spawn');
+    }
+
+    _emitMonsterRemovedEvent(id, payload = null) {
+        if (!id) return;
+        this.emit('monsterRemoved', id);
+        this._handleBossMonsterAudio(payload?.type, 'remove');
+    }
+
+    _clearPendingMonsterRemoval(monsterId) {
+        const timer = this._monsterPendingRemovalTimers.get(monsterId);
+        if (timer) {
+            clearTimeout(timer);
+            this._monsterPendingRemovalTimers.delete(monsterId);
+        }
+    }
+
+    _clearPendingMonsterRemovalTimers() {
+        this._monsterPendingRemovalTimers.forEach((timer) => clearTimeout(timer));
+        this._monsterPendingRemovalTimers.clear();
+    }
+
+    _onMonsterCellAdded(cellId, snapshot) {
+        const monsterId = snapshot?.key;
+        const payload = snapshot?.val();
+        if (!monsterId || !payload || typeof payload !== 'object') return;
+
+        this._clearPendingMonsterRemoval(monsterId);
+        const previous = this._monsterCellPayloadCache.get(monsterId) || null;
+        this._monsterCellPayloadCache.set(monsterId, { cellId, payload });
+
+        if (!previous) {
+            this._emitMonsterAddedEvent(monsterId, payload);
+            return;
+        }
+
+        this.emit('monsterUpdated', { id: monsterId, ...payload });
+    }
+
+    _onMonsterCellChanged(cellId, snapshot) {
+        const monsterId = snapshot?.key;
+        const payload = snapshot?.val();
+        if (!monsterId || !payload || typeof payload !== 'object') return;
+
+        this._clearPendingMonsterRemoval(monsterId);
+        const previous = this._monsterCellPayloadCache.get(monsterId) || null;
+        this._monsterCellPayloadCache.set(monsterId, { cellId, payload });
+
+        if (!previous) {
+            this._emitMonsterAddedEvent(monsterId, payload);
+            return;
+        }
+
+        this.emit('monsterUpdated', { id: monsterId, ...payload });
+    }
+
+    _onMonsterCellRemoved(cellId, snapshot) {
+        const monsterId = snapshot?.key;
+        if (!monsterId) return;
+
+        const previous = this._monsterCellPayloadCache.get(monsterId) || null;
+        if (!previous || previous.cellId !== cellId) return;
+
+        const payload = snapshot?.val() || previous.payload || null;
+        this._clearPendingMonsterRemoval(monsterId);
+
+        const timer = setTimeout(() => {
+            this._monsterPendingRemovalTimers.delete(monsterId);
+            const latest = this._monsterCellPayloadCache.get(monsterId) || null;
+            if (!latest || latest.cellId !== cellId) return;
+
+            this._monsterCellPayloadCache.delete(monsterId);
+            this._emitMonsterRemovedEvent(monsterId, payload || latest.payload || null);
+        }, 160);
+
+        this._monsterPendingRemovalTimers.set(monsterId, timer);
+    }
+
+    _attachMonsterCellListener(cellId) {
+        if (!this.dbRef || !cellId || this._monsterCellListeners.has(cellId)) return;
+
+        const ref = this.dbRef.child(`monster_cells/${cellId}`);
+        const added = (snapshot) => this._onMonsterCellAdded(cellId, snapshot);
+        const changed = (snapshot) => this._onMonsterCellChanged(cellId, snapshot);
+        const removed = (snapshot) => this._onMonsterCellRemoved(cellId, snapshot);
+
+        ref.on('child_added', added);
+        ref.on('child_changed', changed);
+        ref.on('child_removed', removed);
+
+        this._monsterCellListeners.set(cellId, {
+            ref,
+            added,
+            changed,
+            removed
+        });
+        this._subscribedMonsterCells.add(cellId);
+    }
+
+    _detachMonsterCellListener(cellId) {
+        const listener = this._monsterCellListeners.get(cellId);
+        if (!listener) return;
+
+        listener.ref.off('child_added', listener.added);
+        listener.ref.off('child_changed', listener.changed);
+        listener.ref.off('child_removed', listener.removed);
+        this._monsterCellListeners.delete(cellId);
+        this._subscribedMonsterCells.delete(cellId);
+    }
+
+    _pruneMonsterCellCacheOutsideSubscriptions() {
+        if (this.isHost) return;
+
+        this._monsterCellPayloadCache.forEach((entry, monsterId) => {
+            if (!entry || this._subscribedMonsterCells.has(entry.cellId)) return;
+            this._clearPendingMonsterRemoval(monsterId);
+            this._monsterCellPayloadCache.delete(monsterId);
+            this.emit('monsterRemoved', monsterId);
+        });
+    }
+
+    _clearMonsterCellSubscriptions({ emitRemovals = false } = {}) {
+        Array.from(this._monsterCellListeners.keys()).forEach((cellId) => this._detachMonsterCellListener(cellId));
+        this._clearPendingMonsterRemovalTimers();
+
+        if (emitRemovals && !this.isHost) {
+            Array.from(this._monsterCellPayloadCache.keys()).forEach((monsterId) => {
+                this.emit('monsterRemoved', monsterId);
+            });
+        }
+
+        this._monsterCellPayloadCache.clear();
+        this._subscribedMonsterCells.clear();
+    }
+
+    _refreshMonsterCellSubscriptions(anchorCellId = null) {
+        if (!this.shouldUseMonsterCellSync()) {
+            this._clearMonsterCellSubscriptions({ emitRemovals: true });
+            return;
+        }
+        if (!this.connected || !this.dbRef || !this.zoneParticipationEnabled) return;
+
+        const nextAnchor = anchorCellId || this._resolveMonsterSubscriptionAnchorCellId();
+        if (!nextAnchor) return;
+
+        const desiredCells = new Set(this._getFieldCellNeighborhood(nextAnchor, 1));
+        Array.from(this._subscribedMonsterCells)
+            .filter((cellId) => !desiredCells.has(cellId))
+            .forEach((cellId) => this._detachMonsterCellListener(cellId));
+        desiredCells.forEach((cellId) => this._attachMonsterCellListener(cellId));
+        this._pruneMonsterCellCacheOutsideSubscriptions();
+    }
+
+    async readMonsterHostSnapshot() {
+        if (!this.connected || !this.dbRef || !this.shouldUseMonsterHostSnapshot()) {
+            return {};
+        }
+
+        try {
+            const snapshot = await this.dbRef.child('monster_host_snapshot').once('value');
+            return snapshot.val() || {};
+        } catch (error) {
+            Logger.error('Failed to read monster host snapshot:', error);
+            return {};
+        }
+    }
+
     getUserRootRef(uid) {
         return uid && window.firebase ? firebase.database().ref(`users/${uid}`) : null;
     }
@@ -1698,6 +1959,8 @@ export default class NetworkManager extends EventEmitter {
             // Clear World Nodes
             await Promise.all([
                 this.dbRef.child('monsters').remove(),
+                this.dbRef.child('monster_cells').remove(),
+                this.dbRef.child('monster_host_snapshot').remove(),
                 this.dbRef.child('drops').remove(),
                 this.dbRef.child('monster_damage').remove(),
                 this.dbRef.child('player_damage').remove()
@@ -2052,6 +2315,28 @@ export default class NetworkManager extends EventEmitter {
 
         const updates = {};
         this.monsterUpdateQueue.forEach((payload, id) => {
+            if (this.shouldUseMonsterCellSync()) {
+                const nextCellId = typeof payload.cellId === 'string'
+                    ? payload.cellId
+                    : this._getFieldCellId(payload.x, payload.y);
+                const previousCellId = this._publishedMonsterCellMap.get(id) || null;
+
+                if (previousCellId && previousCellId !== nextCellId) {
+                    updates[`monster_cells/${previousCellId}/${id}`] = null;
+                }
+
+                updates[`monster_cells/${nextCellId}/${id}`] = payload;
+                this._publishedMonsterCellMap.set(id, nextCellId);
+
+                if (this.shouldUseMonsterHostSnapshot()) {
+                    updates[`monster_host_snapshot/${id}`] = {
+                        id,
+                        ...payload
+                    };
+                }
+                return;
+            }
+
             updates[`monsters/${id}`] = payload;
         });
         this.monsterUpdateQueue.clear();
@@ -2067,14 +2352,26 @@ export default class NetworkManager extends EventEmitter {
         if (!id || !data) return;
         if (this.shouldUseMonsterQuietMode()) return;
 
+        const nextHp = Math.round(data.hp || 0);
+        const nextState = data.state
+            || (nextHp <= 0 ? 'dead' : 'idle');
+        const nextTs = Number(data.ts || Date.now());
+        const nextCellId = typeof data.cellId === 'string'
+            ? data.cellId
+            : this._getFieldCellId(data.x, data.y);
+
         // Validation to prevent Firebase Errors (No Spread to avoid undefined fields)
         const safeData = {
             x: Math.round(data.x || 0),
             y: Math.round(data.y || 0),
-            hp: Math.round(data.hp || 0),
+            hp: nextHp,
             maxHp: Math.round(data.maxHp || 100),
             type: data.type || 'slime',
-            chargeOnly: data.chargeOnly || false // v0.00.76+
+            chargeOnly: data.chargeOnly || false, // v0.00.76+
+            rev: Math.max(0, Math.round(data.rev || 0)),
+            ts: nextTs,
+            state: nextState,
+            cellId: nextCellId
         };
         if (data.fullSync) safeData.fullSync = true;
         if (data.isBoss) safeData.isBoss = true;
@@ -2091,8 +2388,26 @@ export default class NetworkManager extends EventEmitter {
 
     removeMonster(id) {
         if (!this.connected || !this.isHost) return;
+        const queuedPayload = this.monsterUpdateQueue.get(id) || null;
         this.monsterUpdateQueue.delete(id);
-        this.dbRef.child(`monsters/${id}`).remove().catch(e => { });
+
+        if (this.shouldUseMonsterCellSync()) {
+            const removalPaths = {};
+            const cellId = queuedPayload?.cellId || this._publishedMonsterCellMap.get(id) || null;
+            if (cellId) {
+                removalPaths[`monster_cells/${cellId}/${id}`] = null;
+            }
+            if (this.shouldUseMonsterHostSnapshot()) {
+                removalPaths[`monster_host_snapshot/${id}`] = null;
+            }
+            this._publishedMonsterCellMap.delete(id);
+            if (Object.keys(removalPaths).length > 0) {
+                this.dbRef.update(removalPaths).catch(() => { });
+            }
+            return;
+        }
+
+        this.dbRef.child(`monsters/${id}`).remove().catch(() => { });
     }
 
     // --- Drop Methods ---

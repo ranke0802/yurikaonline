@@ -440,11 +440,20 @@ export default class WorldScene extends Scene {
 
     _setupNetworkHandlers() {
         if (!this._handleHostChanged) {
+            const promoteToHost = () => {
+                this._ensureHostSpawnRulesLoaded();
+                this.monsterManager?.restoreAuthoritativeMonstersFromHostSnapshot?.().catch((error) => {
+                    Logger.warn('[WorldScene] Failed to restore monster host snapshot', error);
+                });
+            };
             this._handleHostChanged = (isHost) => {
                 if (!isHost) return;
-                this._ensureHostSpawnRulesLoaded();
+                promoteToHost();
             };
             this.net.on('hostChanged', this._handleHostChanged);
+            if (this.net.isHost) {
+                promoteToHost();
+            }
         }
 
         this.net.on('rewardReceived', (data) => {

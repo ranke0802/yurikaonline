@@ -80,6 +80,10 @@ export default class Monster extends CharacterBase {
         this.type = 'monster';
         this.lastHitAt = 0;
         this.lastNetworkEventAt = 0;
+        this.remoteSyncRev = 0;
+        this.remoteSyncTs = 0;
+        this.remoteSyncState = 'idle';
+        this.remoteCellId = '0_0';
 
         // Specific Skill Cooldowns (Legacy Support)
         this.missileCooldown = 0;
