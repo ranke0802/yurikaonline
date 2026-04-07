@@ -757,7 +757,11 @@ export default class NetworkManager extends EventEmitter {
         this.userLastSeen.set(uid, presenceTs);
 
         const existing = this.remotePlayers.get(uid);
-        if (existing) existing.ts = presenceTs;
+        if (existing) {
+            existing.ts = presenceTs;
+        } else if (nextEntry) {
+            this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
+        }
 
         if (!nextEntry) {
             this._checkHostStatus();
@@ -916,11 +920,7 @@ export default class NetworkManager extends EventEmitter {
 
         const player = window.game?.localPlayer || null;
         const now = Date.now();
-        const updates = {
-            [`presence_ts/${this.playerId}`]: firebase.database.ServerValue.TIMESTAMP,
-            [`users/${this.playerId}/presence/ts`]: now,
-            [`users/${this.playerId}/lastSeen`]: now
-        };
+        const updates = {};
 
         if (player) {
             const safeX = Math.round(player.x || 0);
@@ -963,6 +963,7 @@ export default class NetworkManager extends EventEmitter {
         this._commitLocalSelfHeartbeat(now);
         this._markNetworkActivity(now);
         this._publishPresenceLite({ force: true, reason });
+        this._writePresenceHeartbeatFallback({ reason: `${reason}_bootstrap`, includePresenceLiteTs: false });
     }
 
     _commitLocalSelfHeartbeat(now = Date.now()) {
@@ -976,13 +977,29 @@ export default class NetworkManager extends EventEmitter {
 
     _writePresenceTsOnly(reason = 'heartbeat') {
         if (!this.connected || !this.playerId || !this.dbRef || !this.zoneParticipationEnabled) return;
-        const now = Date.now();
-        const updates = {
-            [`presence_ts/${this.playerId}`]: firebase.database.ServerValue.TIMESTAMP
-        };
+        this._writePresenceHeartbeatFallback({ reason, includePresenceLiteTs: true });
+    }
 
-        this._recordNetworkWrite('presenceHeartbeat', { reason });
-        this.dbRef.update(updates).catch(() => { });
+    _writePresenceHeartbeatFallback({ reason = 'heartbeat', includePresenceLiteTs = true } = {}) {
+        if (!this.connected || !this.playerId || !this.dbRef || !this.zoneParticipationEnabled) return;
+
+        const now = Date.now();
+        const fallbackUpdates = {};
+        if (includePresenceLiteTs || this._lastPresenceLiteState) {
+            fallbackUpdates[`presence/${this.playerId}/ts`] = firebase.database.ServerValue.TIMESTAMP;
+        }
+
+        if (Object.keys(fallbackUpdates).length > 0) {
+            this._recordNetworkWrite('presenceHeartbeatFallback', { reason, paths: Object.keys(fallbackUpdates) });
+            this.dbRef.update(fallbackUpdates).catch((error) => {
+                Logger.warn('[Network] Failed to update presence heartbeat fallback', error);
+            });
+        }
+
+        this.dbRef.child(`presence_ts/${this.playerId}`).set(firebase.database.ServerValue.TIMESTAMP).catch((error) => {
+            Logger.warn('[Network] Failed to update presence_ts heartbeat', error);
+        });
+
         this._commitLocalSelfHeartbeat(now);
         this._markNetworkActivity(now);
     }
@@ -990,22 +1007,7 @@ export default class NetworkManager extends EventEmitter {
     sendHeartbeat() {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         this._publishPresenceLite({ force: false, reason: 'heartbeat' });
-        if (!this._shouldSendRealtimeUserState()) {
-            this._writePresenceTsOnly('heartbeat');
-            return;
-        }
-        const updates = {
-            [`presence_ts/${this.playerId}`]: firebase.database.ServerValue.TIMESTAMP,
-            [`users/${this.playerId}/presence/ts`]: firebase.database.ServerValue.TIMESTAMP,
-            [`users/${this.playerId}/lastSeen`]: firebase.database.ServerValue.TIMESTAMP
-        };
-        this._recordNetworkWrite('heartbeat', {
-            presenceTs: true,
-            presence: true,
-            lastSeen: true
-        });
-        this.dbRef.update(updates).catch(() => { });
-        this._commitLocalSelfHeartbeat(Date.now());
+        this._writePresenceTsOnly('heartbeat');
     }
 
     _markNetworkActivity(ts = Date.now()) {
@@ -1040,7 +1042,6 @@ export default class NetworkManager extends EventEmitter {
 
         if (value && typeof value === 'object' && !Array.isArray(value)) {
             if (value.profile) normalized.profile = value.profile;
-            if (value.presence) normalized.presence = value.presence;
             if (value.h && Array.isArray(value.h)) normalized.h = value.h;
             if (value.a && Array.isArray(value.a)) normalized.a = value.a;
             if (value.ch && Array.isArray(value.ch)) normalized.ch = value.ch;
@@ -1089,10 +1090,6 @@ export default class NetworkManager extends EventEmitter {
 
         if (posData) {
             ts = Array.isArray(posData) ? (posData[4] || 0) : (posData.ts || 0);
-        }
-
-        if (!ts && state.presence) {
-            ts = this._extractPresenceTs({ presence: state.presence });
         }
 
         return this._sanitizeActivityTs(ts);
@@ -1293,20 +1290,6 @@ export default class NetworkManager extends EventEmitter {
         this.emit('playerUpdate', update);
     }
 
-    _handleZoneUserPresenceValue(uid, presence) {
-        if (!presence) return;
-        const state = this._mergeZoneUserCache(uid, { presence });
-        const ts = this._resolveZoneUserActivityTs(state);
-        this.userLastSeen.set(uid, ts);
-
-        const existing = this.remotePlayers.get(uid);
-        if (existing) {
-            existing.ts = ts;
-        } else {
-            this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
-        }
-    }
-
     _handleZoneUserProfileValue(uid, profile) {
         if (!profile || typeof profile !== 'object') return;
         const state = this._mergeZoneUserCache(uid, { profile });
@@ -1348,9 +1331,6 @@ export default class NetworkManager extends EventEmitter {
             case 'p':
                 this._handleZoneUserPositionValue(uid, value);
                 break;
-            case 'presence':
-                this._handleZoneUserPresenceValue(uid, value);
-                break;
             case 'profile':
                 this._handleZoneUserProfileValue(uid, value);
                 break;
@@ -1378,7 +1358,7 @@ export default class NetworkManager extends EventEmitter {
 
         const userRef = this.dbRef.child(`users/${uid}`);
         const listeners = [];
-        const watchKeys = ['p', 'presence', 'profile', 'hostility', 'a', 'ch', 'h'];
+        const watchKeys = ['p', 'profile', 'hostility', 'a', 'ch', 'h'];
 
         watchKeys.forEach((fieldKey) => {
             let skipInitial = Object.prototype.hasOwnProperty.call(initialState, fieldKey);
@@ -1455,10 +1435,13 @@ export default class NetworkManager extends EventEmitter {
             const ghostTimeout = this.isSharedFieldActive() ? this.sharedGhostTimeout : this.soloGhostTimeout;
 
             this.remotePlayers.forEach((rp, uid) => {
-                if (now - rp.ts > ghostTimeout) {
-                    Logger.warn(`[Presence] Removing timed-out user: ${uid}, LastSeen: ${rp.ts}, Now: ${now}, Diff: ${now - rp.ts}`);
+                const lastSeen = Math.max(Number(rp?.ts || 0), Number(this.userLastSeen.get(uid) || 0));
+                if (now - lastSeen > ghostTimeout) {
+                    Logger.warn(`[Presence] Removing timed-out user: ${uid}, LastSeen: ${lastSeen}, Now: ${now}, Diff: ${now - lastSeen}`);
                     this.remotePlayers.delete(uid);
                     this.emit('playerLeft', uid);
+                } else if (rp && lastSeen > Number(rp.ts || 0)) {
+                    rp.ts = lastSeen;
                 }
             });
         }, 2000); // Check every 2s
