@@ -243,7 +243,11 @@ export default class Player extends CharacterBase {
         }
 
         if (this.spawnProtectionTimer > 0) {
+            const hadSpawnProtection = this.spawnProtectionTimer > 0;
             this.spawnProtectionTimer = Math.max(0, this.spawnProtectionTimer - dt);
+            if (hadSpawnProtection && this.spawnProtectionTimer <= 0) {
+                this.net?.syncLocalZoneProfile?.('spawn_protection_end');
+            }
         }
 
         this._handleMovement(dt);
@@ -260,10 +264,12 @@ export default class Player extends CharacterBase {
 
         // v0.29.9: Chain Lightning Full Restore
         const isManualAttackPressed = !!(this.input && this.input.isPressed('ATTACK'));
-        const autoTarget = !isManualAttackPressed && this.autoAttackEnabled
+        const isFireballAimBlockingAutoAttack = this.fireballAimActive;
+        const autoTarget = !isManualAttackPressed && !isFireballAimBlockingAutoAttack && this.autoAttackEnabled
             ? this.refreshAutoAttackTarget()
             : null;
         const shouldAutoAttack = !isManualAttackPressed
+            && !isFireballAimBlockingAutoAttack
             && this.autoAttackEnabled
             && !!autoTarget;
         if (this.skillAttackTimer <= 0) {
@@ -492,6 +498,11 @@ export default class Player extends CharacterBase {
     }
 
     startFireballAim(pointerData = null) {
+        // Fireball aiming should interrupt sustained lightning before validation.
+        if (this.isChanneling && this.skillAttackTimer <= 0) {
+            this.stopBasicAttackChanneling();
+        }
+
         if (!this.canStartFireballAim()) return;
         this.fireballAimActive = true;
         this.fireballAimAngle = this.getCurrentFacingAngle();
@@ -643,7 +654,7 @@ export default class Player extends CharacterBase {
             if (this.turnGraceTimer > 0) this.turnGraceTimer -= dt;
 
             const runMult = (this.isRunning || this.turnGraceTimer > 0) ? 1.3 : 1.0;
-            const channelMoveMultiplier = allowLaserChannelMove ? 0.7 : 1.0;
+            const channelMoveMultiplier = allowLaserChannelMove ? 0.4 : 1.0;
             const finalSpeed = this.speed * runMult * channelMoveMultiplier;
 
             this.vx = vx * finalSpeed;
@@ -907,6 +918,7 @@ export default class Player extends CharacterBase {
 
         // v0.28.0: Sync HP to DB
         if (this.net) this.net.sendPlayerHp(this.hp, this.maxHp);
+        window.game?.ui?.updatePartyUI?.();
 
         Logger.log(`[Player] HP: ${this.hp}`);
 
@@ -935,6 +947,7 @@ export default class Player extends CharacterBase {
 
     grantSpawnProtection(duration = 5) {
         this.spawnProtectionTimer = Math.max(this.spawnProtectionTimer || 0, duration);
+        this.net?.syncLocalZoneProfile?.('spawn_protection_start');
     }
 
     // v1.99.36: Enhanced Mutual Hostility Check
@@ -942,6 +955,8 @@ export default class Player extends CharacterBase {
         if (!target) return false; // 타겟이 없으면 공격 불가
         // 1. 몬스터 체크
         if (target.type === 'monster') return true;
+        if (typeof target.isProtected === 'function' && target.isProtected()) return false;
+        if (Number.isFinite(target.protectedUntil) && target.protectedUntil > Date.now()) return false;
         // 타겟이 몬스터인 경우, 다른 조건 없이 즉시 true를 반환하여 공격을 허용합니다.
         // 2. 플레이어(PvP) 체크
         if (target.type === 'player') {
@@ -1442,18 +1457,16 @@ export default class Player extends CharacterBase {
 
                     // Support both Monster and RemotePlayer takeDamage
                     if (nextTarget.takeDamage) {
-                        // v0.29.12: Send monster damage to network for sync
-                        if (nextTarget.isMonster && this.net) {
-                            this.net.sendMonsterDamage(nextTarget.id, Math.ceil(dmg));
-                            nextTarget.lastAttackerId = this.net.playerId;
-                        }
-                        // PvP damage handled by attacker
-                        if (!nextTarget.isMonster && this.net) {
-                            // v0.00.14: Send Shock Effect
+                        if (nextTarget.isMonster) {
+                            if (this.net) {
+                                this.net.sendMonsterDamage(nextTarget.id, Math.ceil(dmg));
+                                nextTarget.lastAttackerId = this.net.playerId;
+                            }
+                            nextTarget.takeDamage(Math.ceil(dmg), true, isCrit, null, null);
+                        } else if (this.net) {
+                            // PvP damage is resolved on the target client after protection checks.
                             this.net.sendPlayerDamage(nextTarget.id, Math.ceil(dmg), 'shock', 3.0, 0);
                         }
-                        // Actual HP reduction is controlled within Monster.takeDamage based on isHost
-                        nextTarget.takeDamage(Math.ceil(dmg), true, isCrit, null, null);
                     }
 
                     // Slow effect
@@ -1776,6 +1789,9 @@ export default class Player extends CharacterBase {
         if (this.net && this.hp !== previousHp) {
             this.net.sendPlayerHp(this.hp, this.maxHp);
         }
+        if (this.hp !== previousHp) {
+            window.game?.ui?.updatePartyUI?.();
+        }
     }
 
     receiveReward(data, options = {}) {
@@ -1804,11 +1820,15 @@ export default class Player extends CharacterBase {
 
         // v0.00.01: Process Quest Kills sent by Host
         if (data.questKill) {
+            const monsterManager = window.game?.monsterManager;
+            const canTrackRepeatSlimeKills = (this.questData.bossClearCount || 0) > 0
+                && !monsterManager?.bossSpawned;
+
             if (data.questKill === 'slime' || data.questKill === 'slime_split') {
                 this.questData.slimeKills++;
 
-                // v0.00.83: If already cleared first boss, track progress for repeatable summon
-                if (this.questData.bossClearCount > 0) {
+                // Repeat summon progress should pause while a king slime is active.
+                if (canTrackRepeatSlimeKills) {
                     this.questData.slimeRepeatKills++;
                 }
             }
@@ -1817,6 +1837,7 @@ export default class Player extends CharacterBase {
 
                 // v0.00.51: Boss Quest Logic (First vs Repeat)
                 this.questData.bossClearCount = (this.questData.bossClearCount || 0) + 1;
+                this.questData.slimeRepeatKills = 0;
 
                 let rewardMsg = "";
                 let modalTitle = "";
@@ -2727,6 +2748,7 @@ export default class Player extends CharacterBase {
             success: false,
             destroyed: false,
             item: target.item,
+            previousLevel: currentLevel,
             nextLevel: config.nextLevel,
             stoneType,
             stoneItemId,
@@ -3131,6 +3153,7 @@ export default class Player extends CharacterBase {
         if (this.net) {
             this.net.sendPlayerHp(this.hp, this.maxHp); // v0.29.6: Vital for tombstone cleanup
             this.net.sendMovePacket(this.x, this.y, 0, 0, this.name); // Sync position immediately
+            this.net.syncLocalZoneProfile?.('respawn');
         }
     }
 }

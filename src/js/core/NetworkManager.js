@@ -926,7 +926,10 @@ export default class NetworkManager extends EventEmitter {
                 ? Object.fromEntries(player.hostilityTargets.entries())
                 : (player.hostility || {}),
             defense: Number(player.defense || 0),
-            isPaused: !!player.isPaused
+            isPaused: !!player.isPaused,
+            protectedUntil: player.spawnProtectionTimer > 0
+                ? Date.now() + Math.round(player.spawnProtectionTimer * 1000)
+                : 0
         };
     }
 
@@ -1151,6 +1154,7 @@ export default class NetworkManager extends EventEmitter {
             level: profile.level || 1,
             defense: profile.defense ?? 0,
             isPaused: !!profile.isPaused,
+            protectedUntil: Number(profile.protectedUntil || 0),
             equipment: profile.equipment || null,
             party: profile.party || null,
             hostility: profile.hostility || state.hostility || {}
@@ -1254,6 +1258,7 @@ export default class NetworkManager extends EventEmitter {
         if (profile.level !== undefined) existing.level = profile.level;
         if (profile.defense !== undefined) existing.defense = profile.defense;
         if (profile.isPaused !== undefined) existing.isPaused = !!profile.isPaused;
+        if (profile.protectedUntil !== undefined) existing.protectedUntil = Number(profile.protectedUntil) || 0;
         if (profile.equipment !== undefined) existing.equipment = profile.equipment;
         if (profile.party !== undefined) existing.party = profile.party;
         if (hostility !== undefined) existing.hostility = hostility;
@@ -1264,6 +1269,7 @@ export default class NetworkManager extends EventEmitter {
             level: existing.level,
             defense: existing.defense,
             isPaused: existing.isPaused,
+            protectedUntil: existing.protectedUntil || 0,
             equipment: existing.equipment,
             party: existing.party,
             hostility: existing.hostility
@@ -1402,7 +1408,8 @@ export default class NetworkManager extends EventEmitter {
             party: profile.party || null,
             hostility: profile.hostility || {},
             defense: profile.defense ?? 0,
-            isPaused: !!profile.isPaused
+            isPaused: !!profile.isPaused,
+            protectedUntil: Number(profile.protectedUntil || 0)
         };
     }
 
@@ -2798,6 +2805,19 @@ export default class NetworkManager extends EventEmitter {
         this._markNetworkActivity(now);
     }
 
+    syncLocalZoneProfile(reason = 'manual_zone_profile_sync') {
+        if (!this.connected || !this.playerId || !this.dbRef || !this.zoneParticipationEnabled) return;
+        if (!this._shouldSendRealtimeUserState()) return;
+
+        const player = window.game?.localPlayer || null;
+        const zoneProfile = this._buildLocalZoneProfileSnapshot(player);
+        if (!zoneProfile) return;
+
+        this._recordNetworkWrite('zoneProfileSyncRealtime', { reason, profile: zoneProfile });
+        this.dbRef.child(`users/${this.playerId}/profile`).set(zoneProfile).catch(() => { });
+        this._markNetworkActivity();
+    }
+
     sendChat(text, senderName) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         const now = Date.now();
@@ -2854,6 +2874,7 @@ export default class NetworkManager extends EventEmitter {
                 if (val.profile.level) existing.level = val.profile.level;
                 if (val.profile.defense !== undefined) existing.defense = val.profile.defense; // v0.00.53: Sync defense to RemotePlayer
                 if (val.profile.isPaused !== undefined) existing.isPaused = val.profile.isPaused; // v0.00.55: Sync safety state
+                if (val.profile.protectedUntil !== undefined) existing.protectedUntil = Number(val.profile.protectedUntil) || 0;
                 if (val.profile.equipment !== undefined) existing.equipment = val.profile.equipment;
                 if (val.profile.party !== undefined) existing.party = val.profile.party;
                 if (val.profile.hostility !== undefined) existing.hostility = val.profile.hostility;
@@ -2925,6 +2946,7 @@ export default class NetworkManager extends EventEmitter {
                         if (level) update.level = level;
                         if (equipment !== undefined) update.equipment = equipment;
                         if (party !== undefined) update.party = party;
+                        if (val.profile?.protectedUntil !== undefined) update.protectedUntil = Number(val.profile.protectedUntil) || 0;
                         if (hostility) update.hostility = hostility;
 
                         this.emit('playerUpdate', update);

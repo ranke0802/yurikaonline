@@ -337,6 +337,9 @@ export default class WorldScene extends Scene {
         if (typeof data.isPaused === 'boolean') {
             rp.isPaused = data.isPaused;
         }
+        if (data.protectedUntil !== undefined) {
+            rp.protectedUntil = Number(data.protectedUntil) || 0;
+        }
         if (data.equipment) {
             rp.equipment = data.equipment;
         }
@@ -512,6 +515,9 @@ export default class WorldScene extends Scene {
                         data.effectDamage || 0
                     );
                 } else {
+                    if (typeof target.isProtected === 'function' && target.isProtected()) {
+                        return;
+                    }
                     // v0.00.53: Remote players also consider defense formula locally for visual consistency
                     const def = target.defense || 0;
                     const finalDmg = Math.max(1, Math.ceil(data.dmg - def));
@@ -564,7 +570,10 @@ export default class WorldScene extends Scene {
         this.net.on('playerHpUpdate', (data) => {
             if (!this.net.isZoneParticipationEnabled()) return;
             const rp = this.remotePlayers.get(data.id);
-            if (rp) rp.onHpUpdate(data);
+            if (rp) {
+                rp.onHpUpdate(data);
+                this.ui?.updatePartyUI?.();
+            }
         });
 
         // v0.33.0: Monster Attack Sync

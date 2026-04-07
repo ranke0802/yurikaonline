@@ -708,6 +708,10 @@ button:active,
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.inventory-detail-actions.inventory-detail-actions-centered {
+    justify-content: center;
+}
+
 .inventory-action-btn {
     border: 1px solid rgba(255, 242, 196, 0.18);
     border-radius: 10px;
@@ -1909,6 +1913,17 @@ button:active,
     display: flex;
     align-items: center;
     gap: 5px;
+}
+
+.draggable-panel-handle {
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+}
+
+.floating-panel-dragging .draggable-panel-handle,
+.draggable-panel-handle:active {
+    cursor: grabbing;
 }
 
 #hostility-list,
@@ -6886,6 +6901,10 @@ body.is-fullscreen .version-info {
         flex-shrink: 0 !important;
     }
 
+    #inventory-popup .inventory-detail-actions.inventory-detail-actions-centered {
+        justify-content: center !important;
+    }
+
     #inventory-popup .inventory-action-btn {
         min-width: 0 !important;
         padding: 8px 10px !important;
@@ -7485,6 +7504,10 @@ body #ui-layer #hostility-panel .hostility-item,
         flex: 0 0 auto !important;
     }
 
+    #inventory-popup .inventory-detail-actions.inventory-detail-actions-centered {
+        justify-content: center !important;
+    }
+
     #inventory-popup .inventory-action-btn {
         min-height: 36px !important;
         min-width: 0 !important;
@@ -7549,15 +7572,15 @@ body.low-power-pwa #ui-layer .minimap-menu {
 
 /* Stabilize transparent minimap rendering across mobile browsers */
 #ui-layer #minimap-container {
-    background: transparent !important;
+    background: rgba(7, 11, 16, 0.22) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
 
 #ui-layer #minimapCanvas {
     display: block;
-    background: transparent !important;
-    background-color: transparent !important;
+    background: rgba(7, 11, 16, 0.3) !important;
+    background-color: rgba(7, 11, 16, 0.3) !important;
 }
 
 #ui-layer .minimap-header,
@@ -7567,7 +7590,7 @@ body.low-power-pwa #ui-layer .minimap-menu {
 }
 
 body.low-power-pwa #ui-layer #minimap-container {
-    background: transparent !important;
+    background: rgba(7, 11, 16, 0.18) !important;
 }
 
 @media screen and (max-width: 1024px) and (orientation: landscape) {

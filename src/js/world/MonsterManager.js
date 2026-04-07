@@ -651,8 +651,8 @@ export default class MonsterManager {
                         // My Kill -> My Quest Logic
                         if (m.typeId === 'slime' || m.typeId === 'slime_split') {
                             localPlayer.questData.slimeKills++;
-                            // Keep repeat quest progress in sync for host-local kills too.
-                            if ((localPlayer.questData.bossClearCount || 0) > 0) {
+                            // Pause repeat summon buildup while a king slime is active.
+                            if ((localPlayer.questData.bossClearCount || 0) > 0 && !this.bossSpawned) {
                                 localPlayer.questData.slimeRepeatKills = (localPlayer.questData.slimeRepeatKills || 0) + 1;
                             }
                             // v0.00.43: Boss Spawn is now handled by _handleMonsterDeath (Global Count)

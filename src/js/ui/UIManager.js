@@ -46,11 +46,21 @@ export class UIManager {
             stepId: '',
             captureTarget: null
         };
+        this.floatingPanelDragState = {
+            active: false,
+            pointerId: null,
+            offsetX: 0,
+            offsetY: 0,
+            panel: null,
+            captureTarget: null
+        };
         this.activeSkillDetailId = null;
         this.refreshTutorialHighlight = this.refreshTutorialHighlight.bind(this);
         this.refreshTutorialGuideLayout = this.refreshTutorialGuideLayout.bind(this);
         this.handleTutorialGuideDragMove = this.handleTutorialGuideDragMove.bind(this);
         this.handleTutorialGuideDragEnd = this.handleTutorialGuideDragEnd.bind(this);
+        this.handleFloatingPanelDragMove = this.handleFloatingPanelDragMove.bind(this);
+        this.handleFloatingPanelDragEnd = this.handleFloatingPanelDragEnd.bind(this);
         this.setupEventListeners();
         this.setupFullscreenListeners();
         this.setupDevModeListeners();
@@ -241,6 +251,61 @@ export class UIManager {
         return null;
     }
 
+    getKoreanSubjectParticle(text = '') {
+        const trimmed = String(text || '').trim();
+        if (!trimmed) return '가';
+        const lastChar = trimmed.charCodeAt(trimmed.length - 1);
+        const HANGUL_BASE = 0xac00;
+        const HANGUL_LAST = 0xd7a3;
+        if (lastChar < HANGUL_BASE || lastChar > HANGUL_LAST) return '가';
+        return ((lastChar - HANGUL_BASE) % 28) === 0 ? '가' : '이';
+    }
+
+    buildWeaponEnhancementCenterMessage(result) {
+        if (!result?.item) return null;
+        const weaponName = result.item.name || '무기';
+        const particle = this.getKoreanSubjectParticle(weaponName);
+        const currentLevel = Math.max(0, Number(result.previousLevel) || 0);
+        const nextLevel = Math.max(0, Number(result.nextLevel) || currentLevel);
+        const displayLevel = result.success ? nextLevel : currentLevel;
+        const prefix = `+${displayLevel} ${weaponName}${particle} `;
+
+        if (result.stoneType === 'blessed') {
+            if (result.success) {
+                return {
+                    text: result.gain >= 2
+                        ? `${prefix}마석의 힘을 최대치로 흡수하였습니다.`
+                        : `${prefix}마석의 힘을 온전히 흡수하였습니다.`,
+                    color: '#ffe28a'
+                };
+            }
+
+            return {
+                text: `${prefix}마석의 힘을 받아들이지 못했습니다.`,
+                color: '#ffd694'
+            };
+        }
+
+        if (result.success) {
+            return {
+                text: `${prefix}마석의 힘을 온전히 흡수하였습니다.`,
+                color: '#8df0ad'
+            };
+        }
+
+        if (result.destroyed) {
+            return {
+                text: `${prefix}마석의 힘을 견디지 못하고 바스러졌습니다.`,
+                color: '#ff8d8d'
+            };
+        }
+
+        return {
+            text: `${prefix}마석의 힘을 받아들이지 못했습니다.`,
+            color: '#ffd694'
+        };
+    }
+
     ensureInventoryFxLayer(element) {
         if (!element) return null;
         let layer = element.querySelector('.inventory-fx-layer');
@@ -391,6 +456,11 @@ export class UIManager {
                 await this.playWeaponEnhancementSequence(selection, result);
             } finally {
                 this.inventoryEnhancementAnimating = false;
+            }
+
+            const centerMessage = this.buildWeaponEnhancementCenterMessage(result);
+            if (centerMessage) {
+                this.showCenterMessage(centerMessage.text, centerMessage.color);
             }
 
             if (result.success) {
@@ -619,6 +689,15 @@ export class UIManager {
     }
 
     clampTutorialGuidePosition(left, top, width, height, margin = 16) {
+        const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
+        const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+        return {
+            left: Math.round(Math.min(Math.max(margin, left), Math.max(margin, viewportW - width - margin))),
+            top: Math.round(Math.min(Math.max(margin, top), Math.max(margin, viewportH - height - margin)))
+        };
+    }
+
+    clampFloatingPanelPosition(left, top, width, height, margin = 12) {
         const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
         const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
         return {
@@ -1180,6 +1259,92 @@ export class UIManager {
 
         captureTarget?.releasePointerCapture?.(e?.pointerId);
         document.getElementById('tutorial-guide')?.classList.remove('tutorial-guide-dragging');
+    }
+
+    beginFloatingPanelDrag(e, panel) {
+        if (!panel || panel.classList.contains('hidden')) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        if (e.target?.closest?.('button, input, textarea, select, a')) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const rect = panel.getBoundingClientRect();
+        panel.style.position = 'fixed';
+        panel.style.left = `${Math.round(rect.left)}px`;
+        panel.style.top = `${Math.round(rect.top)}px`;
+        panel.style.right = 'auto';
+        panel.style.bottom = 'auto';
+        panel.style.transform = 'none';
+        panel.style.margin = '0';
+
+        this.floatingPanelDragState = {
+            active: true,
+            pointerId: e.pointerId,
+            offsetX: e.clientX - rect.left,
+            offsetY: e.clientY - rect.top,
+            panel,
+            captureTarget: e.currentTarget || panel
+        };
+
+        this.floatingPanelDragState.captureTarget?.setPointerCapture?.(e.pointerId);
+        panel.classList.add('floating-panel-dragging');
+    }
+
+    handleFloatingPanelDragMove(e) {
+        if (!this?.floatingPanelDragState?.active) return;
+        if (this.floatingPanelDragState.pointerId !== null && e.pointerId !== this.floatingPanelDragState.pointerId) return;
+
+        const panel = this.floatingPanelDragState.panel;
+        if (!panel?.isConnected) {
+            this.handleFloatingPanelDragEnd();
+            return;
+        }
+
+        e.preventDefault();
+
+        const rect = panel.getBoundingClientRect();
+        const nextLeft = e.clientX - this.floatingPanelDragState.offsetX;
+        const nextTop = e.clientY - this.floatingPanelDragState.offsetY;
+        const clamped = this.clampFloatingPanelPosition(nextLeft, nextTop, rect.width, rect.height);
+
+        panel.style.left = `${clamped.left}px`;
+        panel.style.top = `${clamped.top}px`;
+    }
+
+    handleFloatingPanelDragEnd(e) {
+        if (!this?.floatingPanelDragState?.active) return;
+        if (
+            this.floatingPanelDragState.pointerId !== null
+            && e?.pointerId !== undefined
+            && e.pointerId !== this.floatingPanelDragState.pointerId
+        ) {
+            return;
+        }
+
+        const { captureTarget, panel } = this.floatingPanelDragState;
+        this.floatingPanelDragState = {
+            active: false,
+            pointerId: null,
+            offsetX: 0,
+            offsetY: 0,
+            panel: null,
+            captureTarget: null
+        };
+
+        captureTarget?.releasePointerCapture?.(e?.pointerId);
+        panel?.classList.remove('floating-panel-dragging');
+    }
+
+    setupDraggableFloatingPanels() {
+        document.querySelectorAll('#party-panel, #hostility-panel').forEach((panel) => {
+            const header = panel.querySelector('.panel-header');
+            if (!header || header.dataset.dragBound === 'true') return;
+
+            header.dataset.dragBound = 'true';
+            header.classList.add('draggable-panel-handle');
+            header.addEventListener('pointerdown', (e) => this.beginFloatingPanelDrag(e, panel));
+        });
     }
 
     refreshTutorialGuideLayout() {
@@ -1825,8 +1990,12 @@ export class UIManager {
     setupEventListeners() {
         document.addEventListener('keydown', this.handleDesktopShortcutKeydown);
         document.addEventListener('pointermove', this.handleTutorialGuideDragMove, { passive: false });
+        document.addEventListener('pointermove', this.handleFloatingPanelDragMove, { passive: false });
         document.addEventListener('pointerup', this.handleTutorialGuideDragEnd, true);
         document.addEventListener('pointercancel', this.handleTutorialGuideDragEnd, true);
+        document.addEventListener('pointerup', this.handleFloatingPanelDragEnd, true);
+        document.addEventListener('pointercancel', this.handleFloatingPanelDragEnd, true);
+        this.setupDraggableFloatingPanels();
 
         const handleClose = (e) => {
             e.preventDefault();
@@ -4267,14 +4436,22 @@ export class UIManager {
             if (isSelf) {
                 data = { name: p.name, hp: p.hp, maxHp: p.maxHp, mp: p.mp, maxMp: p.maxMp, level: p.level };
             } else {
-                const rp = this.game.net.remotePlayers.get(uid);
+                const sceneRemote = this.game.sceneManager?.currentScene?.remotePlayers?.get(uid)
+                    || this.game.remotePlayers?.get?.(uid)
+                    || null;
+                const netRemote = this.game.net?.remotePlayers?.get(uid) || null;
+                const rp = sceneRemote || netRemote;
                 if (rp) {
-                    // Remote player data has h:[hp, maxHp], no mp usually unless I add it.
-                    // For now, assume remote players sync HP. MP might be missing.
+                    const hp = Number.isFinite(sceneRemote?.hp)
+                        ? sceneRemote.hp
+                        : (Array.isArray(netRemote?.h) ? netRemote.h[0] : 100);
+                    const maxHp = Number.isFinite(sceneRemote?.maxHp)
+                        ? sceneRemote.maxHp
+                        : (Array.isArray(netRemote?.h) ? netRemote.h[1] : 100);
                     data = {
                         name: rp.name,
-                        hp: rp.h ? rp.h[0] : 100,
-                        maxHp: rp.h ? rp.h[1] : 100,
+                        hp,
+                        maxHp,
                         mp: 0, // MP not synced yet
                         maxMp: 100,
                         level: rp.level || 1
@@ -4905,6 +5082,7 @@ export class UIManager {
         const enhanceBtn = document.getElementById('inventory-action-enhance');
         const blessedEnhanceBtn = document.getElementById('inventory-action-enhance-blessed');
         const dismantleBtn = document.getElementById('inventory-action-dismantle');
+        const actionsEl = document.querySelector('#inventory-popup .inventory-detail-actions');
 
         if (nameEl) nameEl.textContent = detailData.title;
         if (subtitleEl) {
@@ -4970,6 +5148,12 @@ export class UIManager {
                 ? '축복 강화할 무기 선택'
                 : '축복 강화';
             blessedEnhanceBtn.classList.toggle('hidden', detail.item.type !== 'blessed_weapon_upgrade_stone');
+        }
+
+        if (actionsEl) {
+            const isEnhancementStone = detail.item.type === 'weapon_upgrade_stone'
+                || detail.item.type === 'blessed_weapon_upgrade_stone';
+            actionsEl.classList.toggle('inventory-detail-actions-centered', isEnhancementStone);
         }
 
         this.positionInventoryItemModal();
@@ -5149,8 +5333,8 @@ export class UIManager {
         const h = simpleMode ? 96 : 150;
         if (canvas.width !== w) canvas.width = w;
         if (canvas.height !== h) canvas.height = h;
-        canvas.style.background = 'transparent';
-        canvas.style.backgroundColor = 'transparent';
+        canvas.style.background = 'rgba(7, 11, 16, 0.3)';
+        canvas.style.backgroundColor = 'rgba(7, 11, 16, 0.3)';
         ctx.imageSmoothingEnabled = false;
 
         // Update footer
@@ -5168,10 +5352,12 @@ export class UIManager {
 
         this.lastMinimapSignature = signature;
 
-        // Clear Map (Make it transparent)
+        // Clear Map and add a slightly dark transparent backdrop for readability.
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalCompositeOperation = 'source-over';
         ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = 'rgba(7, 11, 16, 0.3)';
+        ctx.fillRect(0, 0, w, h);
 
         // Scaling factors
         const scaleX = w / mapWidth;
@@ -5205,8 +5391,10 @@ export class UIManager {
                 if (m.isDead) return;
                 const mx = m.x * scaleX;
                 const my = m.y * scaleY;
-                // v0.33.0: Boss is bigger
-                const radius = (m.isBoss || m.typeId === 'king_slime') ? 6 : 2;
+                const bodyScale = Math.max(1, Math.max(m.width || 48, m.height || 48) / 48);
+                const radius = (m.isBoss || m.typeId === 'king_slime')
+                    ? Math.max(5, Math.min(10, 4 * bodyScale))
+                    : Math.max(3, Math.min(5, 2.7 * bodyScale));
                 drawDot(mx, my, radius);
             });
         }

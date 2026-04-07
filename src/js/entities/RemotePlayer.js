@@ -43,6 +43,7 @@ export default class RemotePlayer extends CharacterBase {
         // Combat States
         this.hp = 100;
         this.maxHp = 100;
+        this.protectedUntil = 0;
         this.deathTimer = 0;
         this.isDying = false;
         this.missileVisualQueue = [];
@@ -127,10 +128,16 @@ export default class RemotePlayer extends CharacterBase {
         this.slowRatio = 0;
     }
 
+    isProtected() {
+        return Number.isFinite(this.protectedUntil) && this.protectedUntil > Date.now();
+    }
+
     // v1.99.37: PvP check for RemotePlayer owner (Used by Projectile)
     canAttackTarget(target) {
         if (!target || target.isDead) return false;
         if (target.isMonster || target.type === 'monster') return true;
+        if (typeof target.isProtected === 'function' && target.isProtected()) return false;
+        if (Number.isFinite(target.protectedUntil) && target.protectedUntil > Date.now()) return false;
 
         if (target.type === 'player') {
             if (target.id === this.id) return false;
@@ -172,6 +179,7 @@ export default class RemotePlayer extends CharacterBase {
         if (packet.equipment !== undefined) this.equipment = packet.equipment;
         if (packet.party !== undefined) this.party = packet.party;
         if (packet.hostility !== undefined) this.hostility = packet.hostility;
+        if (packet.protectedUntil !== undefined) this.protectedUntil = Number(packet.protectedUntil) || 0;
 
         // Calculate packet jitter for adaptive delay
         if (this.lastPacketTime > 0) {
@@ -331,6 +339,32 @@ export default class RemotePlayer extends CharacterBase {
             }
             finalVx = p.vx;
             finalVy = p.vy;
+        }
+
+        const latestPacket = this.serverUpdates.length > 0
+            ? this.serverUpdates[this.serverUpdates.length - 1]
+            : null;
+        const latestPacketSpeed = latestPacket
+            ? Math.hypot(latestPacket.vx || 0, latestPacket.vy || 0)
+            : Number.POSITIVE_INFINITY;
+        const latestPacketAge = latestPacket
+            ? (Date.now() - (latestPacket.receivedAt || latestPacket.ts || 0))
+            : Number.POSITIVE_INFINITY;
+
+        // If the newest packet is a fresh stop packet, snap to it immediately
+        // so the remote player does not wobble forward/backward at the end.
+        if (
+            latestPacket
+            && latestPacketSpeed < 1
+            && latestPacketAge < 260
+        ) {
+            finalX = latestPacket.x;
+            finalY = latestPacket.y;
+            finalVx = 0;
+            finalVy = 0;
+            this.isExtrapolating = false;
+            this.extrapolationConfidence = 1;
+            this.serverUpdates = [latestPacket];
         }
 
         // Apply position with adaptive smoothing
