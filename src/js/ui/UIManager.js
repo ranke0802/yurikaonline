@@ -2498,7 +2498,11 @@ export class UIManager {
     createInventoryDetailStatLineElement(line) {
         const li = document.createElement('li');
         if (line && typeof line === 'object') {
-            li.textContent = line.text || '';
+            if (line.html) {
+                li.innerHTML = line.html;
+            } else {
+                li.textContent = line.text || '';
+            }
             if (line.className) {
                 li.classList.add(...String(line.className).split(/\s+/).filter(Boolean));
             }
@@ -2507,6 +2511,45 @@ export class UIManager {
 
         li.textContent = line;
         return li;
+    }
+
+    mergeInventoryEnhancementBonusLines(lines = []) {
+        const merged = [];
+
+        for (let i = 0; i < lines.length; i++) {
+            const currentLine = lines[i];
+            const nextLine = lines[i + 1];
+            const nextClassName = typeof nextLine === 'object' ? String(nextLine.className || '') : '';
+            const nextText = typeof nextLine === 'object' ? String(nextLine.text || '') : '';
+
+            if (!nextClassName.includes('inventory-detail-enhance-bonus')) {
+                merged.push(currentLine);
+                continue;
+            }
+
+            const currentText = typeof currentLine === 'object'
+                ? String(currentLine.text || '')
+                : String(currentLine || '');
+            const currentMatch = currentText.match(/^(.*?)(\d+)%$/);
+            const bonusMatch = nextText.match(/\+(\d+)%/);
+
+            if (!currentMatch || !bonusMatch) {
+                merged.push(currentLine);
+                continue;
+            }
+
+            const prefix = currentMatch[1].replace(/\s*\+\s*$/, ' ');
+            const effectivePercent = Number(currentMatch[2]) || 0;
+            const bonusPercent = Number(bonusMatch[1]) || 0;
+            const basePercent = Math.max(0, effectivePercent - bonusPercent);
+
+            merged.push({
+                html: `${this.escapeHtml(`${prefix}${basePercent}%`)}<span class="inventory-detail-enhance-bonus">+${bonusPercent}%</span>`
+            });
+            i += 1;
+        }
+
+        return merged;
     }
 
     escapeHtml(value = '') {
@@ -2754,9 +2797,9 @@ export class UIManager {
 
                 if ((weaponCombat.laserDamageBonus || 0) > 0) {
                     const enhancementBonusText = (weaponCombat.laserDamageBonusEnhancementBonus || 0) > 0
-                        ? ` <span class="enhancement-option-bonus">[강화 보너스 +${this.formatSkillPercent(weaponCombat.laserDamageBonusEnhancementBonus)}]</span>`
+                        ? `<span class="enhancement-option-bonus">+${this.formatSkillPercent(weaponCombat.laserDamageBonusEnhancementBonus)}</span>`
                         : '';
-                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 체인 라이트닝 피해 <strong>+${this.formatSkillPercent(weaponCombat.laserDamageBonus)}</strong>${enhancementBonusText}`);
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 체인 라이트닝 피해 <strong>${this.formatSkillPercent(weaponCombat.laserDamageBonus)}</strong>${enhancementBonusText}`);
                 }
                 if ((weaponCombat.restoreHpPerLaserHit || 0) > 0) {
                     weaponItems.push(`<strong>${weaponName}</strong> 효과: 적중 대상당 HP <strong>+${weaponCombat.restoreHpPerLaserHit}</strong> 회복`);
@@ -2804,9 +2847,9 @@ export class UIManager {
 
                 if ((weaponCombat.missileDamageBonus || 0) > 0) {
                     const enhancementBonusText = (weaponCombat.missileDamageBonusEnhancementBonus || 0) > 0
-                        ? ` <span class="enhancement-option-bonus">[강화 보너스 +${this.formatSkillPercent(weaponCombat.missileDamageBonusEnhancementBonus)}]</span>`
+                        ? `<span class="enhancement-option-bonus">+${this.formatSkillPercent(weaponCombat.missileDamageBonusEnhancementBonus)}</span>`
                         : '';
-                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 매직 미사일 피해 <strong>+${this.formatSkillPercent(weaponCombat.missileDamageBonus)}</strong>${enhancementBonusText}`);
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 매직 미사일 피해 <strong>${this.formatSkillPercent(weaponCombat.missileDamageBonus)}</strong>${enhancementBonusText}`);
                 }
 
                 tooltipCurrentEffectHtml = `<div class="current-effect">현재 효과 (Lv.${lv}): ${missileCount}발 | 방어 전 피해 ${baseMissileDamage} | 탐색 600 | 마나 ${manaCost} | 쿨다운 1.0초</div>`;
@@ -2853,13 +2896,13 @@ export class UIManager {
 
                 if ((weaponCombat.fireballChainChance || 0) > 0) {
                     const enhancementBonusText = (weaponCombat.fireballChainChanceEnhancementBonus || 0) > 0
-                        ? ` <span class="enhancement-option-bonus">[강화 보너스 +${this.formatSkillPercent(weaponCombat.fireballChainChanceEnhancementBonus)}]</span>`
+                        ? `<span class="enhancement-option-bonus">+${this.formatSkillPercent(weaponCombat.fireballChainChanceEnhancementBonus)}</span>`
                         : '';
                     weaponItems.push(`<strong>${weaponName}</strong> 효과: 파이어볼 폭발 후 <strong>${this.formatSkillPercent(weaponCombat.fireballChainChance)}</strong> 확률로 <strong>0.3초 뒤</strong> 같은 위치에서 연속 폭발이 다시 발생합니다.${enhancementBonusText}`);
                 }
                 if ((weaponCombat.fireballChainDamageRatio || 0) > 0) {
                     const enhancementBonusText = (weaponCombat.fireballChainDamageRatioEnhancementBonus || 0) > 0
-                        ? ` <span class="enhancement-option-bonus">[강화 보너스 +${this.formatSkillPercent(weaponCombat.fireballChainDamageRatioEnhancementBonus)}]</span>`
+                        ? `<span class="enhancement-option-bonus">+${this.formatSkillPercent(weaponCombat.fireballChainDamageRatioEnhancementBonus)}</span>`
                         : '';
                     weaponItems.push(`<strong>${weaponName}</strong> 효과: 연속 폭발 피해는 기본 파이어볼의 <strong>${this.formatSkillPercent(weaponCombat.fireballChainDamageRatio)}</strong>입니다.${enhancementBonusText}`);
                 }
@@ -4722,7 +4765,7 @@ export class UIManager {
 
         if (statsEl) {
             statsEl.innerHTML = '';
-            detailData.lines.forEach((line) => {
+            this.mergeInventoryEnhancementBonusLines(detailData.lines).forEach((line) => {
                 statsEl.appendChild(this.createInventoryDetailStatLineElement(line));
             });
         }
