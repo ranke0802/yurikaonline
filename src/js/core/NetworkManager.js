@@ -2316,13 +2316,18 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child('monster_attack').push(payload);
     }
 
-    sendPlayerDamage(targetId, damage) {
+    sendPlayerDamage(targetId, damage, effectType = null, effectDuration = 0, effectDamage = 0, meta = null) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         // Optimization: Use batch queue for player damage
         this.queueBatchUpdate('player_damage', {
             tid: targetId,
             dmg: Math.round(damage),
-            aid: this.playerId
+            aid: this.playerId,
+            effectType,
+            effectDuration,
+            effectDamage,
+            crit: !!meta?.isCrit,
+            meta: meta || null
         });
     }
 
@@ -2623,7 +2628,7 @@ export default class NetworkManager extends EventEmitter {
 
 
     // v0.00.14: Send PvP Damage with Status Effects
-    sendPlayerDamage(targetId, amount, effectType = null, effectDuration = 0, effectDamage = 0) {
+    sendPlayerDamage(targetId, amount, effectType = null, effectDuration = 0, effectDamage = 0, meta = null) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
 
         // Push damage event to target's inbox
@@ -2633,6 +2638,8 @@ export default class NetworkManager extends EventEmitter {
             effectType: effectType,
             effectDuration: effectDuration,
             effectDamage: effectDamage,
+            crit: !!meta?.isCrit,
+            meta: meta || null,
             ts: Date.now()
         });
     }
@@ -2648,13 +2655,19 @@ export default class NetworkManager extends EventEmitter {
                         // Apply damage via Player.takeDamage
                         // Signature: takeDamage(amount, fromNetwork, isCrit, sourceX, sourceY, attacker, effectType, effectDuration, effectDamage)
                         // Attacker object is simulated {id, type='player'}
-                        const attacker = { id: val.attackerId, type: 'player' };
+                        const impactX = Number.isFinite(val.meta?.impactX) ? val.meta.impactX : null;
+                        const impactY = Number.isFinite(val.meta?.impactY) ? val.meta.impactY : null;
+                        const attacker = {
+                            id: val.attackerId,
+                            type: 'player',
+                            ...(val.meta || {})
+                        };
                         window.game.localPlayer.takeDamage(
                             val.damage,
                             true,
-                            false,
-                            null,
-                            null,
+                            !!val.crit,
+                            impactX,
+                            impactY,
                             attacker,
                             val.effectType,
                             val.effectDuration,

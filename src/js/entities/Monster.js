@@ -776,13 +776,6 @@ export default class Monster extends CharacterBase {
         // Visual feedback for ALL clients
         if (triggerFlash) this.hitTimer = 0.2;
 
-        // Apply Knockback (visual only, doesn't affect sync)
-        if (sourceX !== null && sourceY !== null) {
-            const angle = Math.atan2(this.y - sourceY, this.x - sourceX);
-            const force = isCrit ? 300 : 150;
-            this.applyKnockback(Math.cos(angle) * force, Math.sin(angle) * force);
-        }
-
         // Damage text for ALL clients
         if (amount > 0 && window.game && typeof window.game.addDamageText === 'function') {
             window.game.addDamageText(this.x, this.y - 40, `-${Math.ceil(amount)}`, isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null);
@@ -802,6 +795,23 @@ export default class Monster extends CharacterBase {
             if (!this._lastHitSound || Date.now() - this._lastHitSound > 300) {
                 window.game.sound.playSfx(this.sounds.hit);
                 this._lastHitSound = Date.now();
+            }
+        }
+
+        // Apply Knockback / Combustion Collapse after survival is known.
+        if (dmg > 0 && this.hp > 0) {
+            const impactX = Number.isFinite(damageMeta?.impactX) ? damageMeta.impactX : sourceX;
+            const impactY = Number.isFinite(damageMeta?.impactY) ? damageMeta.impactY : sourceY;
+            if (damageMeta?.combustionCollapse && Number.isFinite(impactX) && Number.isFinite(impactY)) {
+                this.applyCombustionCollapse(impactX, impactY, {
+                    outwardForce: damageMeta?.collapseOutwardForce,
+                    inwardForce: damageMeta?.collapseInwardForce,
+                    delayMs: damageMeta?.collapseDelayMs
+                });
+            } else if (sourceX !== null && sourceY !== null) {
+                const angle = Math.atan2(this.y - sourceY, this.x - sourceX);
+                const force = isCrit ? 300 : 150;
+                this.applyKnockback(Math.cos(angle) * force, Math.sin(angle) * force);
             }
         }
 

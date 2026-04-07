@@ -2866,6 +2866,7 @@ export class UIManager {
                 currentStats.push(
                     `현재 공격력 ${attackPower} 기준 직격 피해는 방어 전 <strong>${directDamage}</strong>입니다.`,
                     `폭발 반경은 <strong>${aoeRadius}</strong>, 화상 지속시간은 <strong>${burnDuration.toFixed(1)}초</strong>, 방어력 0 기준 화상 틱은 <strong>${noDefBurnTick}</strong>입니다.`,
+                    `파이어볼 직격과 폭발은 <strong>${critRateText}</strong> 확률로 치명타 <strong>x2</strong>가 적용되고, 화상은 치명타가 적용되지 않습니다.`,
                     `마나 소모는 <strong>${manaCost}</strong>, 재사용 대기시간은 <strong>2.0초</strong>입니다.`
                 );
 
@@ -2881,17 +2882,18 @@ export class UIManager {
                 formulaItems.push(
                     `<code>직격 피해 = ceil(공격력 × (1.8 + 0.3 × (레벨 - 1)))</code>`,
                     `<code>최종 피해 = max(1, 직격 피해 - 대상 방어력)</code>`,
+                    `<code>치명타 최종 피해 = 최종 피해 × 2</code>`,
                     `<code>폭발 기본 반경 = 20 + 20 × (레벨 - 1)</code>`,
                     `<code>실제 폭발 반경 = 폭발 기본 반경 × 2.5</code>`,
                     `<code>화상 지속 = 2.0 + 0.5 × (레벨 - 1)초</code>`,
-                    `<code>화상 틱 피해 = ceil(최종 피해 × 0.15)</code>가 <strong>0.5초마다</strong> 들어갑니다.`
+                    `<code>화상 틱 피해 = ceil(비치명타 최종 피해 × 0.15)</code>가 <strong>0.5초마다</strong> 들어갑니다.`
                 );
 
                 settingItems.push(
                     `투사체는 현재 바라보는 방향으로 속도 <strong>800</strong>으로 날아가며, 최대 <strong>1.5초</strong> 동안 유지됩니다.`,
                     `발사 직후 발밑 폭발을 막기 위해 최소 <strong>50px</strong> 이상 이동해야 충돌 판정이 납니다.`,
-                    `현재 코드 기준으로 파이어볼은 <strong>치명타가 적용되지 않습니다.</strong>`,
-                    `명중 또는 범위 피해 대상 모두 화상을 적용할 수 있습니다.`
+                    `폭발에 살아남은 대상은 <strong>살짝 바깥으로 밀린 뒤 중심부로 빨려 들어오는 연소붕괴</strong> 효과를 받습니다.`,
+                    `명중 또는 범위 피해 대상 모두 화상을 적용할 수 있지만, <strong>화상 피해는 치명타가 적용되지 않습니다.</strong>`
                 );
 
                 if ((weaponCombat.fireballChainChance || 0) > 0) {

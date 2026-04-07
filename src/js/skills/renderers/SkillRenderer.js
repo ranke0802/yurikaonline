@@ -462,6 +462,7 @@ export default class SkillRenderer {
         const alpha = 1 - progress;
         const currentRad = radius * (0.5 + progress * 0.5);
         const variant = options.variant || 'default';
+        const collapse = !!options.collapse;
         const palette = variant === 'blue_flame'
             ? {
                 core: [235, 248, 255],
@@ -487,6 +488,12 @@ export default class SkillRenderer {
             ctx.beginPath();
             ctx.arc(x, y, currentRad * 0.8, 0, Math.PI * 2);
             ctx.stroke();
+            if (collapse) {
+                ctx.fillStyle = `rgba(10, 10, 18, ${alpha * 0.28})`;
+                ctx.beginPath();
+                ctx.arc(x, y, currentRad * 0.22, 0, Math.PI * 2);
+                ctx.fill();
+            }
             ctx.restore();
             return;
         }
@@ -501,6 +508,36 @@ export default class SkillRenderer {
         ctx.beginPath();
         ctx.arc(x, y, currentRad, 0, Math.PI * 2);
         ctx.fill();
+
+        if (collapse) {
+            const coreRadius = currentRad * (0.18 + progress * 0.06);
+            const innerVacuum = ctx.createRadialGradient(x, y, 0, x, y, currentRad * 0.65);
+            innerVacuum.addColorStop(0, `rgba(8, 10, 18, ${alpha * 0.85})`);
+            innerVacuum.addColorStop(0.35, `rgba(${palette.outer[0]}, ${palette.outer[1]}, ${palette.outer[2]}, ${alpha * 0.32})`);
+            innerVacuum.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = innerVacuum;
+            ctx.beginPath();
+            ctx.arc(x, y, currentRad * 0.72, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = `rgba(4, 6, 14, ${alpha * 0.82})`;
+            ctx.beginPath();
+            ctx.arc(x, y, coreRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            const inwardStreaks = variant === 'blue_flame' ? 9 : 8;
+            for (let i = 0; i < inwardStreaks; i++) {
+                const ang = (i / inwardStreaks) * Math.PI * 2 + progress * 0.9;
+                const outerDist = currentRad * (0.74 + 0.08 * Math.sin(progress * Math.PI + i));
+                const innerDist = coreRadius + currentRad * 0.12;
+                ctx.strokeStyle = `rgba(${palette.core[0]}, ${palette.core[1]}, ${palette.core[2]}, ${alpha * 0.32})`;
+                ctx.lineWidth = Math.max(1.5, radius * 0.03);
+                ctx.beginPath();
+                ctx.moveTo(x + Math.cos(ang) * outerDist, y + Math.sin(ang) * outerDist);
+                ctx.lineTo(x + Math.cos(ang) * innerDist, y + Math.sin(ang) * innerDist);
+                ctx.stroke();
+            }
+        }
 
         // Debris / Embers
         ctx.fillStyle = palette.ember;

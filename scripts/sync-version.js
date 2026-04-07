@@ -109,12 +109,21 @@ function syncFiles(version, changedFiles) {
     writeFile('version.txt', `${version}\n`, changedFiles);
 
     let mainJs = readFile('src/js/main.js');
-    mainJs = replaceOrThrow(
-        mainJs,
-        /window\.GAME_VERSION = '[^']+';[^\r\n]*/,
-        `window.GAME_VERSION = '${version}'; // Synced with version.txt`,
-        'main.js version declaration'
-    );
+    if (/window\.RUNTIME_BUILD_VERSION = '[^']+';[^\r\n]*/.test(mainJs)) {
+        mainJs = replaceOrThrow(
+            mainJs,
+            /window\.RUNTIME_BUILD_VERSION = '[^']+';[^\r\n]*/,
+            `window.RUNTIME_BUILD_VERSION = '${version}'; // Synced with version.txt`,
+            'main.js runtime version declaration'
+        );
+    } else {
+        mainJs = replaceOrThrow(
+            mainJs,
+            /window\.GAME_VERSION = '[^']+';[^\r\n]*/,
+            `window.RUNTIME_BUILD_VERSION = '${version}'; // Synced with version.txt\nwindow.GAME_VERSION = window.RUNTIME_BUILD_VERSION;`,
+            'main.js version declaration'
+        );
+    }
     writeFile('src/js/main.js', mainJs, changedFiles);
 
     let loginScene = readFile('src/js/world/scenes/LoginScene.js');
@@ -129,10 +138,25 @@ function syncFiles(version, changedFiles) {
     let indexHtml = readFile('index.html');
     indexHtml = replaceOrThrow(
         indexHtml,
-        /navigator\.serviceWorker\.register\('\.\/sw\.js\?v=[^']+'\)/,
-        `navigator.serviceWorker.register('./sw.js?v=${version}')`,
-        'index.html service worker registration'
+        /window\.BOOTSTRAP_VERSION = '[^']+';/,
+        `window.BOOTSTRAP_VERSION = '${version}';`,
+        'index.html bootstrap version'
     );
+    if (/navigator\.serviceWorker\.register\('\.\/sw\.js\?v=[^']+',\s*\{[^)]*\}\)/.test(indexHtml)) {
+        indexHtml = replaceOrThrow(
+            indexHtml,
+            /navigator\.serviceWorker\.register\('\.\/sw\.js\?v=[^']+',\s*\{[^)]*\}\)/,
+            `navigator.serviceWorker.register('./sw.js?v=${version}', { updateViaCache: 'none' })`,
+            'index.html service worker registration'
+        );
+    } else {
+        indexHtml = replaceOrThrow(
+            indexHtml,
+            /navigator\.serviceWorker\.register\('\.\/sw\.js\?v=[^']+'\)/,
+            `navigator.serviceWorker.register('./sw.js?v=${version}', { updateViaCache: 'none' })`,
+            'index.html service worker registration'
+        );
+    }
     indexHtml = replaceOrThrow(
         indexHtml,
         /<link rel="stylesheet" href="src\/css\/style\.css\?v=[^"]+">/,

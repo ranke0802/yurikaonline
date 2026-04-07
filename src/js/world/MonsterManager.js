@@ -961,7 +961,9 @@ export default class MonsterManager {
         const m = this.monsters.get(data.mid);
         if (m && !m.isDead) {
             m.lastAttackerId = data.aid;
-            m.takeDamage(data.dmg, true, false, null, null, data.meta || null);
+            const impactX = Number.isFinite(data.meta?.impactX) ? data.meta.impactX : null;
+            const impactY = Number.isFinite(data.meta?.impactY) ? data.meta.impactY : null;
+            m.takeDamage(data.dmg, true, !!data.meta?.isCrit, impactX, impactY, data.meta || null);
         }
     }
 

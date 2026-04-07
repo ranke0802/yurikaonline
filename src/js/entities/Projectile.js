@@ -17,6 +17,7 @@ export class Projectile {
         this.targetX = Number.isFinite(options.targetX) ? options.targetX : null;
         this.targetY = Number.isFinite(options.targetY) ? options.targetY : null;
         this.isCrit = options.isCrit || false;
+        this.critRate = Math.max(0, Math.min(1, options.critRate || 0));
         this.variant = options.variant || null;
         this.visualTint = options.visualTint || null;
         this.weaponEffect = options.weaponEffect || null;
@@ -388,7 +389,10 @@ export class Projectile {
         // v1.99.15: Visual Explosion
         if (window.game) {
             const explosionVariant = this.variant === 'blue_fireball' ? 'blue_flame' : 'default';
-            window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3, { variant: explosionVariant });
+            window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3, {
+                variant: explosionVariant,
+                collapse: this.type === 'fireball'
+            });
             for (let i = 0; i < 15; i++) window.game.addSpark(this.x, this.y);
             // v0.00.63: Explosion SFX
             if (this.type === 'fireball' && window.game.sound) {
@@ -440,11 +444,6 @@ export class Projectile {
                         eDur = this.burnDuration;
                         eDmg = Math.ceil(this.damage * 0.15);
 
-                        // v0.00.74: Apply local visual effect to RemotePlayer so I can see it immediately
-                        if (target.applyBurn) {
-                            target.applyBurn(eDur, eDmg);
-                        }
-
                         // v1.99.15: AOE for PvP (Damage other hostile players nearby)
                         const rps = window.game?.remotePlayers;
                         if (rps) {
@@ -454,14 +453,37 @@ export class Projectile {
                                     const dist = Math.sqrt((this.x - rp.x) ** 2 + (this.y - rp.y) ** 2);
                                     const rpRadius = (rp.width || 48) / 2;
                                     if (dist < (this.aoeRadius + rpRadius)) {
-                                        net.sendPlayerDamage(rp.id, Math.ceil(this.damage), eType, eDur, eDmg);
+                                        const resolved = this._resolveFireballDamage(rp, this.damage);
+                                        net.sendPlayerDamage(rp.id, Math.ceil(resolved.finalDamage), eType, eDur, Math.ceil(resolved.burnDamage), this._buildFireballDamageMeta('fireball', resolved.finalDamage, {
+                                            isCrit: resolved.isCrit
+                                        }));
                                     }
                                 }
                             });
                         }
                     }
 
-                    if (net) net.sendPlayerDamage(target.id, Math.ceil(this.damage), eType, eDur, eDmg);
+                    if (this.type === 'fireball') {
+                        const resolved = this._resolveFireballDamage(target, this.damage);
+                        const burnDamage = Math.ceil(resolved.burnDamage);
+                        if (target.applyBurn) {
+                            target.applyBurn(eDur, burnDamage);
+                        }
+                        if (typeof target.applyCombustionCollapse === 'function' && (target.hp ?? Infinity) > resolved.finalDamage) {
+                            target.applyCombustionCollapse(this.x, this.y, {
+                                outwardForce: 70,
+                                inwardForce: 190,
+                                delayMs: 80
+                            });
+                        }
+                        if (net) {
+                            net.sendPlayerDamage(target.id, Math.ceil(resolved.finalDamage), eType, eDur, burnDamage, this._buildFireballDamageMeta('fireball', resolved.finalDamage, {
+                                isCrit: resolved.isCrit
+                            }));
+                        }
+                    } else if (net) {
+                        net.sendPlayerDamage(target.id, Math.ceil(this.damage), eType, eDur, eDmg);
+                    }
                 }
             }
         }
@@ -487,7 +509,29 @@ export class Projectile {
             burnDuration: this.burnDuration,
             sourceDamage: Math.ceil(damageValue),
             explosionRadius: Math.ceil((this.aoeRadius || this.radius * 2) * 0.75),
+            impactX: this.x,
+            impactY: this.y,
+            combustionCollapse: cause !== 'burn',
+            collapseOutwardForce: 70,
+            collapseInwardForce: 190,
+            collapseDelayMs: 80,
             ...extra
+        };
+    }
+
+    _rollFireballCrit() {
+        return this.critRate > 0 && Math.random() < this.critRate;
+    }
+
+    _resolveFireballDamage(target, rawDamage) {
+        const targetDef = target?.defense || 0;
+        const baseFinalDamage = Math.max(1, Math.ceil(rawDamage - targetDef));
+        const isCrit = this._rollFireballCrit();
+        return {
+            isCrit,
+            baseFinalDamage,
+            finalDamage: isCrit ? baseFinalDamage * 2 : baseFinalDamage,
+            burnDamage: Math.max(1, Math.ceil(baseFinalDamage * 0.15))
         };
     }
 
@@ -504,7 +548,11 @@ export class Projectile {
 
             window.setTimeout(() => {
                 if (window.game) {
-                    window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3, { variant: 'blue_flame', duration: 0.45 });
+                    window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3, {
+                        variant: 'blue_flame',
+                        duration: 0.45,
+                        collapse: true
+                    });
                     for (let i = 0; i < 10; i++) window.game.addSpark(this.x, this.y);
                     if (window.game.sound) {
                         window.game.sound.playSfx('fireball_explosion');
@@ -533,19 +581,25 @@ export class Projectile {
             const monsterRadius = (m.width || 80) / 2;
             if (dist >= (aoeRadius + monsterRadius)) return;
 
-            const targetDef = m.defense || 0;
-            const finalDmg = Math.max(1, chainDamage - targetDef);
-            const damageMeta = this._buildFireballDamageMeta('blue_fireball_chain', finalDmg, { chainIndex });
+            const resolved = this._resolveFireballDamage(m, chainDamage);
+            const finalDmg = resolved.finalDamage;
+            const damageMeta = this._buildFireballDamageMeta('blue_fireball_chain', finalDmg, {
+                chainIndex,
+                isCrit: resolved.isCrit
+            });
 
             if (net && chainDamage > 0) {
                 net.sendMonsterDamage(m.id, Math.ceil(finalDmg), damageMeta);
                 m.lastAttackerId = net.playerId;
             }
 
-            m.takeDamage(Math.ceil(finalDmg), true, false, this.x, this.y, damageMeta);
-            m.applyEffect('burn', this.burnDuration, Math.max(1, Math.ceil(finalDmg * 0.15)), {
+            m.takeDamage(Math.ceil(finalDmg), true, resolved.isCrit, this.x, this.y, damageMeta);
+            m.applyEffect('burn', this.burnDuration, resolved.burnDamage, {
                 ...damageMeta,
-                cause: 'burn'
+                cause: 'burn',
+                combustionCollapse: false,
+                isCrit: false,
+                sourceDamage: resolved.baseFinalDamage
             });
         });
     }
@@ -555,7 +609,8 @@ export class Projectile {
         if (this.ownerId !== window.game?.localPlayer?.id || !net || chainDamage <= 0) return;
 
         const burnDuration = this.burnDuration;
-        const burnDamage = Math.max(1, Math.ceil(chainDamage * 0.15));
+        const resolvedPrimary = this._resolveFireballDamage(target, chainDamage);
+        const burnDamage = resolvedPrimary.burnDamage;
         if (target?.applyBurn) {
             target.applyBurn(burnDuration, burnDamage);
         }
@@ -568,7 +623,11 @@ export class Projectile {
                 const dist = Math.sqrt((this.x - rp.x) ** 2 + (this.y - rp.y) ** 2);
                 const rpRadius = (rp.width || 48) / 2;
                 if (dist >= (this.aoeRadius + rpRadius)) return;
-                net.sendPlayerDamage(rp.id, Math.ceil(chainDamage), 'burn', burnDuration, burnDamage);
+                const resolved = this._resolveFireballDamage(rp, chainDamage);
+                net.sendPlayerDamage(rp.id, Math.ceil(resolved.finalDamage), 'burn', burnDuration, Math.ceil(resolved.burnDamage), this._buildFireballDamageMeta('blue_fireball_chain', resolved.finalDamage, {
+                    chainIndex,
+                    isCrit: resolved.isCrit
+                }));
             });
         }
     }
@@ -577,9 +636,15 @@ export class Projectile {
         // v0.00.40: Damage formula: (Skill Damage - Defense), min 1
         // v0.00.42: REMOVED duplicate crit - crit already applied in Player.js
         const targetDef = m.defense || 0;
-        let finalDmg = Math.max(1, this.damage - targetDef);
+        const baseFinalDmg = Math.max(1, Math.ceil(this.damage - targetDef));
+        let finalDmg = baseFinalDmg;
         let isCrit = this.isCrit || false;
-        // Note: crit multiplier already applied in Player.js, don't apply again
+        if (this.type === 'fireball') {
+            isCrit = this._rollFireballCrit();
+            if (isCrit) {
+                finalDmg *= 2;
+            }
+        }
 
         if (isMonster && net) {
             // v0.33.0: Check Shield Effect (Optimization)
@@ -617,7 +682,7 @@ export class Projectile {
 
             if (this.damage > 0) {
                 const damageMeta = this.type === 'fireball'
-                    ? this._buildFireballDamageMeta('fireball', finalDmg)
+                    ? this._buildFireballDamageMeta('fireball', finalDmg, { isCrit })
                     : null;
                 net.sendMonsterDamage(m.id, Math.ceil(finalDmg), damageMeta);
                 m.lastAttackerId = net.playerId;
@@ -625,14 +690,17 @@ export class Projectile {
         }
 
         const damageMeta = this.type === 'fireball'
-            ? this._buildFireballDamageMeta('fireball', finalDmg)
+            ? this._buildFireballDamageMeta('fireball', finalDmg, { isCrit })
             : null;
         m.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y, damageMeta);
 
         // v0.00.42: Apply burn locally for visual, host syncs to DB
         if (this.type === 'fireball' && isMonster) {
-            m.applyEffect('burn', this.burnDuration, Math.ceil(finalDmg * 0.15), {
-                ...this._buildFireballDamageMeta('burn', finalDmg)
+            m.applyEffect('burn', this.burnDuration, Math.max(1, Math.ceil(baseFinalDmg * 0.15)), {
+                ...this._buildFireballDamageMeta('burn', baseFinalDmg, {
+                    combustionCollapse: false,
+                    isCrit: false
+                })
             });
         }
     }

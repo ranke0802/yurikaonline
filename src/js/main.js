@@ -1,5 +1,6 @@
 import Logger from './utils/Logger.js';
-window.GAME_VERSION = '0.01.90'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.01.91'; // Synced with version.txt
+window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';

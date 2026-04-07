@@ -418,6 +418,7 @@ export default class WorldScene extends Scene {
             y,
             radius,
             variant: options.variant || 'default',
+            collapse: !!options.collapse,
             life: options.duration || 0.45,
             duration: options.duration || 0.45
         });
@@ -487,13 +488,35 @@ export default class WorldScene extends Scene {
             let target = (this.player && this.player.id === data.tid) ? this.player : this.remotePlayers.get(data.tid);
             if (target) {
                 this.game.addSpark(target.x + target.width / 2, target.y + target.height / 2);
+                const impactX = Number.isFinite(data.meta?.impactX) ? data.meta.impactX : null;
+                const impactY = Number.isFinite(data.meta?.impactY) ? data.meta.impactY : null;
                 if (target === this.player) {
-                    this.player.takeDamage(data.dmg);
+                    this.player.takeDamage(
+                        data.dmg,
+                        true,
+                        !!data.crit,
+                        impactX,
+                        impactY,
+                        data.meta || null,
+                        data.effectType || null,
+                        data.effectDuration || 0,
+                        data.effectDamage || 0
+                    );
                 } else {
                     // v0.00.53: Remote players also consider defense formula locally for visual consistency
                     const def = target.defense || 0;
                     const finalDmg = Math.max(1, Math.ceil(data.dmg - def));
                     target.hp = Math.max(0, (target.hp || 100) - finalDmg);
+                    if (data.effectType === 'burn' && typeof target.applyBurn === 'function') {
+                        target.applyBurn(data.effectDuration || 0, data.effectDamage || 0);
+                    }
+                    if (data.meta?.combustionCollapse && typeof target.applyCombustionCollapse === 'function' && Number.isFinite(impactX) && Number.isFinite(impactY)) {
+                        target.applyCombustionCollapse(impactX, impactY, {
+                            outwardForce: data.meta?.collapseOutwardForce,
+                            inwardForce: data.meta?.collapseInwardForce,
+                            delayMs: data.meta?.collapseDelayMs
+                        });
+                    }
                 }
             }
         });
@@ -907,7 +930,10 @@ export default class WorldScene extends Scene {
                 explosion.y,
                 explosion.radius,
                 1 - (explosion.life / (explosion.duration || 0.45)),
-                { variant: explosion.variant || 'default' }
+                {
+                    variant: explosion.variant || 'default',
+                    collapse: !!explosion.collapse
+                }
             );
         });
 

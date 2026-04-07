@@ -38,6 +38,8 @@ export default class CharacterBase extends Actor {
         // Skill Slots
         this.skillSlots = [];
         this.skillCooldowns = {};
+        this._knockbackSequenceId = 0;
+        this._knockbackTimers = [];
     }
 
     /**
@@ -67,6 +69,61 @@ export default class CharacterBase extends Actor {
         this.isDead = true;
         this.state = 'die';
         this.deathTimer = 3.0; // Default 3s death state
+    }
+
+    _clearKnockbackSequence() {
+        this._knockbackSequenceId += 1;
+        this._knockbackTimers.forEach((timerId) => clearTimeout(timerId));
+        this._knockbackTimers = [];
+    }
+
+    _runKnockbackSequence(steps = []) {
+        this._clearKnockbackSequence();
+        const sequenceId = this._knockbackSequenceId;
+
+        steps.forEach((step) => {
+            const delayMs = Math.max(0, Math.round(step?.delayMs || 0));
+            const applyStep = () => {
+                if (this.isDead || sequenceId !== this._knockbackSequenceId) return;
+                this.applyKnockback(step?.vx || 0, step?.vy || 0);
+            };
+
+            if (delayMs === 0) {
+                applyStep();
+                return;
+            }
+
+            const timerId = setTimeout(() => {
+                applyStep();
+                this._knockbackTimers = this._knockbackTimers.filter((entry) => entry !== timerId);
+            }, delayMs);
+            this._knockbackTimers.push(timerId);
+        });
+    }
+
+    applyCombustionCollapse(sourceX, sourceY, options = {}) {
+        if (!Number.isFinite(sourceX) || !Number.isFinite(sourceY)) return;
+
+        const dx = this.x - sourceX;
+        const dy = this.y - sourceY;
+        const distance = Math.hypot(dx, dy);
+        const angle = distance > 0.001 ? Math.atan2(dy, dx) : (Math.random() * Math.PI * 2);
+        const outwardForce = Math.max(20, options.outwardForce ?? 70);
+        const inwardForce = Math.max(outwardForce + 20, options.inwardForce ?? 190);
+        const delayMs = Math.max(40, options.delayMs ?? 80);
+
+        this._runKnockbackSequence([
+            {
+                delayMs: 0,
+                vx: Math.cos(angle) * outwardForce,
+                vy: Math.sin(angle) * outwardForce
+            },
+            {
+                delayMs,
+                vx: -Math.cos(angle) * inwardForce,
+                vy: -Math.sin(angle) * inwardForce
+            }
+        ]);
     }
 
     /**

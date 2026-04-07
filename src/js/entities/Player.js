@@ -845,12 +845,6 @@ export default class Player extends CharacterBase {
             this.applyEffect(effectType, effectDuration, effectDamage || 0);
         }
 
-        // Apply Knockback
-        if (sourceX !== null && sourceY !== null) {
-            const angle = Math.atan2(this.y - sourceY, this.x - sourceX);
-            this.applyKnockback(Math.cos(angle) * 100, Math.sin(angle) * 100);
-        }
-
         // v0.00.57: Hit SFX
         if (window.game?.sound) window.game.sound.playSfx('hit');
 
@@ -877,6 +871,21 @@ export default class Player extends CharacterBase {
             window.game.addDamageText(this.x + this.width / 2, this.y - 40, `-${finalDmg}`, color, isCrit, isCrit ? 'Critical' : null);
             // v0.00.57: Crit SFX
             if (isCrit && window.game.sound) window.game.sound.playSfx('crit');
+        }
+
+        if (finalDmg > 0 && this.hp > 0) {
+            const impactX = Number.isFinite(attacker?.impactX) ? attacker.impactX : sourceX;
+            const impactY = Number.isFinite(attacker?.impactY) ? attacker.impactY : sourceY;
+            if (attacker?.combustionCollapse && Number.isFinite(impactX) && Number.isFinite(impactY)) {
+                this.applyCombustionCollapse(impactX, impactY, {
+                    outwardForce: attacker?.collapseOutwardForce,
+                    inwardForce: attacker?.collapseInwardForce,
+                    delayMs: attacker?.collapseDelayMs
+                });
+            } else if (sourceX !== null && sourceY !== null) {
+                const angle = Math.atan2(this.y - sourceY, this.x - sourceX);
+                this.applyKnockback(Math.cos(angle) * 100, Math.sin(angle) * 100);
+            }
         }
 
         // v0.28.0: Sync HP to DB
