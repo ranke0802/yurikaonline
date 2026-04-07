@@ -65,6 +65,14 @@ export default class RemotePlayer extends CharacterBase {
         }
     }
 
+    normalizeEquipmentState(equipment) {
+        const itemData = window.game?.itemData;
+        if (itemData?.normalizeEquipmentData) {
+            return itemData.normalizeEquipmentData(equipment || {});
+        }
+        return equipment || { weapon: null };
+    }
+
     onHpUpdate(data) {
         // data: { hp, maxHp, ts }
         const oldHp = this.hp;
@@ -176,7 +184,7 @@ export default class RemotePlayer extends CharacterBase {
         if (packet.level !== undefined) this.level = packet.level;
         if (packet.defense !== undefined) this.defense = packet.defense;
         if (packet.isPaused !== undefined) this.isPaused = packet.isPaused;
-        if (packet.equipment !== undefined) this.equipment = packet.equipment;
+        if (packet.equipment !== undefined) this.equipment = this.normalizeEquipmentState(packet.equipment);
         if (packet.party !== undefined) this.party = packet.party;
         if (packet.hostility !== undefined) this.hostility = packet.hostility;
         if (packet.protectedUntil !== undefined) this.protectedUntil = Number(packet.protectedUntil) || 0;

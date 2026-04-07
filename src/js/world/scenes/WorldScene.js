@@ -340,8 +340,8 @@ export default class WorldScene extends Scene {
         if (data.protectedUntil !== undefined) {
             rp.protectedUntil = Number(data.protectedUntil) || 0;
         }
-        if (data.equipment) {
-            rp.equipment = data.equipment;
+        if (data.equipment !== undefined) {
+            rp.equipment = rp.normalizeEquipmentState(data.equipment);
         }
         if (data.hostility) {
             rp.hostility = data.hostility;

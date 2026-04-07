@@ -57,6 +57,7 @@ export default class NetworkManager extends EventEmitter {
         this._profileBackupPruneMeta = new Map();
         this._zoneUserCache = new Map();
         this._zoneUserListeners = new Map();
+        this._zoneUserHydrationMeta = new Map();
         this._presenceCache = new Map();
         this._presenceTsCache = new Map();
         this._networkDropIds = new Set();
@@ -96,6 +97,7 @@ export default class NetworkManager extends EventEmitter {
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
         this._lastProfileSaveTs = 0;
         this._zoneUserCache.clear();
+        this._zoneUserHydrationMeta.clear();
         this._profileBackupMeta.clear();
         this._profileBackupPruneMeta.clear();
         this._detachZoneUserListeners();
@@ -505,6 +507,7 @@ export default class NetworkManager extends EventEmitter {
         this._hostilityListenerActive = false;
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
         this._zoneUserCache.clear();
+        this._zoneUserHydrationMeta.clear();
         this._detachZoneUserListeners();
         this._presenceCache.clear();
         this._presenceTsCache.clear();
@@ -700,6 +703,98 @@ export default class NetworkManager extends EventEmitter {
         };
     }
 
+    _isMeaningfulPlayerName(name) {
+        if (typeof name !== 'string') return false;
+        const trimmed = name.trim();
+        return !!trimmed && trimmed.toLowerCase() !== 'unknown';
+    }
+
+    _getBestKnownRemoteName(uid, ...candidates) {
+        for (const candidate of candidates) {
+            if (this._isMeaningfulPlayerName(candidate)) {
+                return candidate.trim();
+            }
+        }
+
+        const state = this._zoneUserCache.get(uid) || {};
+        if (this._isMeaningfulPlayerName(state.profile?.name)) {
+            return state.profile.name.trim();
+        }
+
+        const posName = Array.isArray(state.p) ? state.p[5] : state.p?.n;
+        if (this._isMeaningfulPlayerName(posName)) {
+            return posName.trim();
+        }
+
+        const presenceName = this._presenceCache.get(uid)?.name;
+        if (this._isMeaningfulPlayerName(presenceName)) {
+            return presenceName.trim();
+        }
+
+        return 'Unknown';
+    }
+
+    _requestZoneUserHydration(uid, reason = 'presence_hydration') {
+        if (!this.dbRef || !uid || uid === this.playerId) return Promise.resolve(null);
+
+        const now = Date.now();
+        const existingMeta = this._zoneUserHydrationMeta.get(uid);
+        if (existingMeta?.pending && existingMeta.promise) {
+            return existingMeta.promise;
+        }
+        if (existingMeta && (now - existingMeta.ts) < 1500) {
+            return existingMeta.promise || Promise.resolve(null);
+        }
+
+        const promise = this.dbRef.child(`users/${uid}`).once('value')
+            .then((snapshot) => {
+                const value = snapshot.val();
+                if (!value) return null;
+
+                const nextState = this._normalizeZoneUserSnapshot(value);
+                const mergedState = {
+                    ...(this._zoneUserCache.get(uid) || {}),
+                    ...nextState
+                };
+
+                this._zoneUserCache.set(uid, mergedState);
+                this._registerConnectedUser(uid);
+                this.userLastSeen.set(uid, this._resolveZoneUserActivityTs(mergedState));
+                this._attachZoneUserHotPathListeners(uid, mergedState);
+
+                const remote = this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
+                if (remote) {
+                    this._emitRemoteProfileUpdate(uid, mergedState.profile || {}, mergedState.hostility);
+                    if (mergedState.p) {
+                        this._handleZoneUserPositionValue(uid, mergedState.p);
+                    }
+                }
+
+                return mergedState;
+            })
+            .catch((error) => {
+                Logger.warn(`[Network] Failed to hydrate zone user ${uid} (${reason})`, error);
+                return null;
+            })
+            .finally(() => {
+                this._zoneUserHydrationMeta.set(uid, {
+                    ts: Date.now(),
+                    pending: false,
+                    promise: null,
+                    reason
+                });
+            });
+
+        this._zoneUserHydrationMeta.set(uid, {
+            ts: now,
+            pending: true,
+            promise,
+            reason
+        });
+
+        return promise;
+    }
+
     _isPresenceEntryActive(entry, now = Date.now()) {
         if (!entry) return false;
         const ts = Number(entry.ts || 0);
@@ -738,6 +833,11 @@ export default class NetworkManager extends EventEmitter {
             previousEntry: previousEntry || null,
             entry: nextEntry || null
         });
+
+        const remote = this.remotePlayers.get(uid) || null;
+        if (nextActiveSameField && (!remote || !this._isMeaningfulPlayerName(remote.name))) {
+            this._requestZoneUserHydration(uid, reason);
+        }
     }
 
     _handlePresenceSnapshot(snapshot) {
@@ -750,7 +850,13 @@ export default class NetworkManager extends EventEmitter {
         this._registerConnectedUser(uid);
         this.userLastSeen.set(uid, presenceTs);
         const existing = this.remotePlayers.get(uid);
-        if (existing) existing.ts = presenceTs;
+        if (existing) {
+            existing.ts = presenceTs;
+            if (!this._isMeaningfulPlayerName(existing.name) && this._isMeaningfulPlayerName(entry.name)) {
+                existing.name = entry.name.trim();
+                this.emit('playerUpdate', { id: uid, name: existing.name });
+            }
+        }
         this._emitFieldPeerPresenceChanged(uid, previousEntry, entry);
         this._refreshSharedFieldState();
         this._checkHostStatus();
@@ -774,6 +880,13 @@ export default class NetworkManager extends EventEmitter {
         const existing = this.remotePlayers.get(uid);
         if (existing) {
             existing.ts = presenceTs;
+            if (!this._isMeaningfulPlayerName(existing.name)) {
+                const resolvedName = this._getBestKnownRemoteName(uid, existing.name);
+                if (this._isMeaningfulPlayerName(resolvedName)) {
+                    existing.name = resolvedName;
+                    this.emit('playerUpdate', { id: uid, name: existing.name });
+                }
+            }
         } else if (nextEntry) {
             this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
         }
@@ -1125,20 +1238,20 @@ export default class NetworkManager extends EventEmitter {
         let y = 0;
         let vx = 0;
         let vy = 0;
-        let fallbackName = "Unknown";
+        let fallbackName = this._getBestKnownRemoteName(uid);
 
         if (Array.isArray(posData)) {
             x = posData[0] ?? 0;
             y = posData[1] ?? 0;
             vx = posData[2] ?? 0;
             vy = posData[3] ?? 0;
-            fallbackName = posData[5] || fallbackName;
+            fallbackName = this._getBestKnownRemoteName(uid, posData[5], fallbackName);
         } else {
             x = posData.x ?? 0;
             y = posData.y ?? 0;
             vx = posData.vx ?? 0;
             vy = posData.vy ?? 0;
-            fallbackName = posData.n || fallbackName;
+            fallbackName = this._getBestKnownRemoteName(uid, posData.n, fallbackName);
         }
 
         return {
@@ -1148,7 +1261,7 @@ export default class NetworkManager extends EventEmitter {
             vx,
             vy,
             ts,
-            name: profile.name || fallbackName,
+            name: this._getBestKnownRemoteName(uid, profile.name, fallbackName),
             h: state.h,
             a: state.a,
             level: profile.level || 1,
@@ -1254,7 +1367,7 @@ export default class NetworkManager extends EventEmitter {
         if (!existing) return;
 
         const hostility = hostilityOverride !== undefined ? hostilityOverride : (profile.hostility !== undefined ? profile.hostility : existing.hostility);
-        if (profile.name !== undefined) existing.name = profile.name || existing.name;
+        existing.name = this._getBestKnownRemoteName(uid, profile.name, existing.name);
         if (profile.level !== undefined) existing.level = profile.level;
         if (profile.defense !== undefined) existing.defense = profile.defense;
         if (profile.isPaused !== undefined) existing.isPaused = !!profile.isPaused;
@@ -1296,7 +1409,6 @@ export default class NetworkManager extends EventEmitter {
             update.name = posData[5];
             existing.x = update.x;
             existing.y = update.y;
-            if (update.name) existing.name = update.name;
         } else {
             if (posData.x !== undefined) { update.x = posData.x; existing.x = posData.x; }
             if (posData.y !== undefined) { update.y = posData.y; existing.y = posData.y; }
@@ -1304,9 +1416,12 @@ export default class NetworkManager extends EventEmitter {
             if (posData.vy !== undefined) update.vy = posData.vy;
             if (posData.n !== undefined) {
                 update.name = posData.n;
-                existing.name = posData.n;
             }
         }
+
+        const resolvedName = this._getBestKnownRemoteName(uid, update.name, existing.name);
+        existing.name = resolvedName;
+        update.name = resolvedName;
 
         this.emit('playerUpdate', update);
     }
@@ -2850,6 +2965,7 @@ export default class NetworkManager extends EventEmitter {
         const remotePlayer = this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
         if (!remotePlayer && !initialState.p) {
             Logger.warn(`[Network] Waiting for initial position for remote player ${uid}.`);
+            this._requestZoneUserHydration(uid, 'player_added_missing_position');
         }
     }
 
