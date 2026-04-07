@@ -3135,7 +3135,7 @@ body.low-power-pwa .minimap-menu {
     justify-content: flex-start;
 }
 
-.skill-detail-modal-content {
+#skill-detail-modal .skill-detail-modal-content {
     position: absolute;
     left: var(--skill-detail-left, 14px);
     top: var(--skill-detail-top, 14px);
@@ -3150,15 +3150,15 @@ body.low-power-pwa .minimap-menu {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: linear-gradient(180deg, rgba(8, 8, 10, 0.82), rgba(8, 8, 10, 0.66));
-    border: 1px solid rgba(255, 242, 196, 0.18);
-    box-shadow: 0 18px 30px rgba(6, 6, 8, 0.34);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    color: #f6edd1;
+    background: linear-gradient(180deg, rgba(8, 8, 10, 0.82), rgba(8, 8, 10, 0.66)) !important;
+    border: 1px solid rgba(255, 242, 196, 0.18) !important;
+    box-shadow: 0 18px 30px rgba(6, 6, 8, 0.34) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    color: #f6edd1 !important;
 }
 
-.skill-detail-modal-close {
+#skill-detail-modal .skill-detail-modal-close {
     position: absolute;
     top: 10px;
     right: 10px;
@@ -3175,7 +3175,7 @@ body.low-power-pwa .minimap-menu {
     box-shadow: none;
 }
 
-.skill-detail-modal-header {
+#skill-detail-modal .skill-detail-modal-header {
     display: flex;
     align-items: flex-start;
     gap: 8px;
@@ -3183,7 +3183,7 @@ body.low-power-pwa .minimap-menu {
     text-align: left;
 }
 
-.skill-detail-modal-hotkey {
+#skill-detail-modal .skill-detail-modal-hotkey {
     flex: 0 0 auto;
     min-width: 30px;
     height: 24px;
@@ -3200,12 +3200,12 @@ body.low-power-pwa .minimap-menu {
     box-shadow: none;
 }
 
-.skill-detail-modal-heading {
+#skill-detail-modal .skill-detail-modal-heading {
     min-width: 0;
     text-align: left;
 }
 
-.skill-detail-modal-heading h2 {
+#skill-detail-modal .skill-detail-modal-heading h2 {
     margin: 0;
     color: #ffe7a3;
     font-size: 20px;
@@ -3213,14 +3213,14 @@ body.low-power-pwa .minimap-menu {
     text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
 }
 
-.skill-detail-modal-heading p {
+#skill-detail-modal .skill-detail-modal-heading p {
     margin: 5px 0 0;
     color: rgba(255, 237, 195, 0.72);
     font-size: 12px;
     line-height: 1.35;
 }
 
-.skill-detail-modal-body {
+#skill-detail-modal .skill-detail-modal-body {
     min-height: 0;
     overflow: auto;
     display: flex;
@@ -3229,7 +3229,7 @@ body.low-power-pwa .minimap-menu {
     text-align: left;
 }
 
-.skill-detail-modal-body .current-effect {
+#skill-detail-modal .skill-detail-modal-body .current-effect {
     margin-top: 0;
     padding: 0 0 8px;
     border-top: none;
@@ -3239,13 +3239,13 @@ body.low-power-pwa .minimap-menu {
     line-height: 1.45;
 }
 
-.skill-detail-summary-grid {
+#skill-detail-modal .skill-detail-summary-grid {
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
 
-.skill-detail-metric-card {
+#skill-detail-modal .skill-detail-metric-card {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px;
@@ -3257,20 +3257,20 @@ body.low-power-pwa .minimap-menu {
     text-align: left;
 }
 
-.skill-detail-metric-label {
+#skill-detail-modal .skill-detail-metric-label {
     color: rgba(255, 237, 195, 0.72);
     font-size: 12px;
     font-weight: 700;
 }
 
-.skill-detail-metric-value {
+#skill-detail-modal .skill-detail-metric-value {
     color: #f8f2dd;
     font-size: 14px;
     line-height: 1.35;
     text-align: right;
 }
 
-.skill-detail-section {
+#skill-detail-modal .skill-detail-section {
     background: transparent;
     border: none;
     border-radius: 0;
@@ -3279,14 +3279,14 @@ body.low-power-pwa .minimap-menu {
     text-align: left;
 }
 
-.skill-detail-section h3 {
+#skill-detail-modal .skill-detail-section h3 {
     margin: 0 0 6px;
     color: #ffe7a3;
     font-size: 13px;
     font-weight: 800;
 }
 
-.skill-detail-section ul {
+#skill-detail-modal .skill-detail-section ul {
     margin: 0;
     padding: 0;
     list-style: none;
@@ -3295,14 +3295,14 @@ body.low-power-pwa .minimap-menu {
     gap: 4px;
 }
 
-.skill-detail-section li {
+#skill-detail-modal .skill-detail-section li {
     color: #f8f2dd;
     font-size: 13px;
     line-height: 1.5;
     word-break: keep-all;
 }
 
-.skill-detail-section code {
+#skill-detail-modal .skill-detail-section code {
     background: rgba(255, 230, 155, 0.12);
     color: #fff1bd;
     padding: 2px 6px;
@@ -3312,7 +3312,7 @@ body.low-power-pwa .minimap-menu {
     font-size: 12px;
 }
 
-.skill-detail-modal-actions {
+#skill-detail-modal .skill-detail-modal-actions {
     display: none;
 }
 
@@ -3323,30 +3323,30 @@ body.low-power-pwa .minimap-menu {
         padding: 10px;
     }
 
-    .skill-detail-modal-content {
+    #skill-detail-modal .skill-detail-modal-content {
         position: relative;
         left: auto;
         top: auto;
-        width: 100%;
-        max-width: none;
-        max-height: min(68vh, 480px);
-        padding: 16px;
-        border-radius: 16px;
+        width: 100% !important;
+        max-width: none !important;
+        max-height: min(68vh, 480px) !important;
+        padding: 16px !important;
+        border-radius: 16px !important;
     }
 }
 
 @media screen and (max-width: 768px) {
-    .skill-detail-modal-heading h2 {
+    #skill-detail-modal .skill-detail-modal-heading h2 {
         font-size: 18px;
     }
 
-    .skill-detail-modal-heading p,
-    .skill-detail-section li,
-    .skill-detail-modal-body .current-effect {
+    #skill-detail-modal .skill-detail-modal-heading p,
+    #skill-detail-modal .skill-detail-section li,
+    #skill-detail-modal .skill-detail-modal-body .current-effect {
         font-size: 12px;
     }
 
-    .skill-detail-metric-value {
+    #skill-detail-modal .skill-detail-metric-value {
         font-size: 13px;
     }
 }
@@ -7298,7 +7298,7 @@ body #ui-layer #hostility-panel .hostility-item,
         font-size: 9px !important;
     }
 
-    #inventory-popup .inventory-item-modal {
+    #inventory-popup .inventory-item-modal:not(.hidden) {
         display: flex !important;
         align-items: flex-end !important;
         justify-content: stretch !important;
@@ -7395,7 +7395,7 @@ body #ui-layer #hostility-panel .hostility-item,
         font-size: 8px !important;
     }
 
-    #inventory-popup .inventory-item-modal {
+    #inventory-popup .inventory-item-modal:not(.hidden) {
         position: absolute !important;
         inset: 0 !important;
         z-index: 20 !important;
@@ -7512,6 +7512,10 @@ body #ui-layer #hostility-panel .hostility-item,
         justify-self: center !important;
         width: 160px !important;
     }
+}
+
+#inventory-popup .inventory-item-modal.hidden {
+    display: none !important;
 }
 
 body.low-power-pwa .confirm-modal-overlay,
