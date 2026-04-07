@@ -1186,8 +1186,14 @@ export default class MonsterManager {
         }
 
         const nextState = monster.remoteSyncState;
-        monster.chargeState = (nextState === 'casting' || nextState === 'charging') ? nextState : 'idle';
-        monster.isAggro = nextState === 'aggro' || nextState === 'casting' || nextState === 'charging';
+        const hasChargeTarget = Number.isFinite(monster.chargeTarget?.x) && Number.isFinite(monster.chargeTarget?.y);
+        if (nextState === 'casting' || nextState === 'charging') {
+            monster.chargeState = hasChargeTarget ? nextState : 'idle';
+        } else {
+            monster.chargeState = 'idle';
+            monster.chargeTarget = null;
+        }
+        monster.isAggro = nextState === 'aggro' || monster.chargeState === 'casting' || monster.chargeState === 'charging';
         if (nextState === 'dead' || monster.hp <= 0) {
             monster.isDead = true;
             monster.hp = 0;

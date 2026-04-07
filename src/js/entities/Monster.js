@@ -311,6 +311,10 @@ export default class Monster extends CharacterBase {
     // v0.00.43: Charge Skill Implementation
     startCharge(targetX, targetY) {
         if (this.isDead || this.chargeState !== 'idle') return;
+        if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) {
+            Logger.warn(`[Monster] Ignored invalid charge target for ${this.id || this.typeId}`);
+            return;
+        }
 
         this.chargeState = 'casting';
         this.lastNetworkEventAt = Date.now();
@@ -326,6 +330,16 @@ export default class Monster extends CharacterBase {
         if (this.chargeState === 'idle') {
             if (this.chargeCooldown > 0) this.chargeCooldown -= dt * 1000;
             return false; // Not charging, continue normal AI
+        }
+
+        const hasChargeTarget = Number.isFinite(this.chargeTarget?.x) && Number.isFinite(this.chargeTarget?.y);
+        if (!hasChargeTarget) {
+            this.chargeState = 'idle';
+            this.chargeTimer = 0;
+            this.chargeTarget = null;
+            this.vx = 0;
+            this.vy = 0;
+            return false;
         }
 
         if (this.chargeState === 'casting') {
@@ -363,6 +377,7 @@ export default class Monster extends CharacterBase {
                 this.chargeState = 'idle';
                 this.lastNetworkEventAt = Date.now();
                 this.chargeCooldown = 15000; // v0.00.85: Increased to 15s for balance
+                this.chargeTarget = null;
                 this.vx = 0;
                 this.vy = 0;
             }
@@ -640,6 +655,7 @@ export default class Monster extends CharacterBase {
                         // Stop Charging
                         this.chargeState = 'idle';
                         this.chargeCooldown = 15000; // v0.00.85: Increased to 15s for balance
+                        this.chargeTarget = null;
                         this.vx = 0;
                         this.vy = 0;
                         canMove = false;
