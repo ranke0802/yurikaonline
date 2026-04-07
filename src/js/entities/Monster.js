@@ -940,7 +940,10 @@ export default class Monster extends CharacterBase {
 
         // 2. Execute Local Logic (Host side immediate effect)
         if (skill.id === 'charge') {
-            this.startCharge(target.x, target.y);
+            this.startCharge(
+                target.x + ((target.width || 0) / 2),
+                target.y + ((target.height || 0) / 2)
+            );
         } else if (skill.id === 'shield') {
             this.applyEffect('shield', (skill.data?.duration || 1000) / 1000, 0);
         } else if (skill.id === 'missile') {

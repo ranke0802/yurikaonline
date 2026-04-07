@@ -73,6 +73,7 @@ export default class MonsterManager {
         this.net.onDropAdded(this._onDropAdded.bind(this));
         this.net.onDropRemoved(this._onDropRemoved.bind(this));
         this.net.onDropCollectionRequested(this._onDropCollectionRequested.bind(this));
+        this.net.on('bossSpawnRequested', this._handleBossSpawnRequested.bind(this));
         this.net.on('fieldPeerPresenceChanged', this._handleFieldPeerPresenceChanged.bind(this));
         this.net.on('sharedFieldChanged', ({ active }) => {
             if (!this.net.isHost) return;
@@ -202,6 +203,14 @@ export default class MonsterManager {
         const remotePlayers = this.game.remotePlayers;
         const mobileThermalMode = !!this.game?.isMobilePerformanceMode;
         this.syncInterval = mobileThermalMode ? 0.16 : 0.1;
+        const isProtectedPlayer = (player) => {
+            const currentScene = this.game.sceneManager?.currentScene;
+            if (!player || typeof currentScene?.isPlayerProtected !== 'function') return false;
+            return currentScene.isPlayerProtected(player);
+        };
+        const authorityPlayers = this.net.isHost
+            ? this._getInterestedPlayers(localPlayer, remotePlayers, isProtectedPlayer)
+            : [];
 
         // v1.99: Calculate total level for all clients (for UI/Dev Mode)
         let currentTotalLevel = localPlayer?.level || 1;
@@ -214,12 +223,22 @@ export default class MonsterManager {
             this._updateHostLogic(dt, localPlayer, remotePlayers);
         }
 
-        // Update local monster instances (v0.00.22: Off-screen culling)
+        // Update local monster instances.
+        // Host must continue simulating monsters that are relevant to remote players
+        // even when they are outside the host camera.
         this.monsters.forEach(m => {
-            if (this.isOnScreen(m)) {
+            const hostRelevantOffscreen = this.net.isHost && (
+                m.chargeState !== 'idle'
+                || !!m.isAggro
+                || !!m.targetPlayer
+                || m.isDead
+                || this._isMonsterNearAnyPlayer(m, authorityPlayers, m.isBoss ? 1600 : 1100)
+            );
+
+            if (this.isOnScreen(m) || hostRelevantOffscreen) {
                 m.update(dt); // Full update for on-screen
             }
-            // Off-screen: Skip update (minimap will still show position)
+            // Off-screen guest-only monsters are still culled locally.
         });
 
         // Update drops (Magnet logic)
@@ -719,28 +738,33 @@ export default class MonsterManager {
                 }
 
                 if (target && m.chargeCooldown <= 0 && m.chargeState === 'idle') {
-                    const dist = Math.sqrt((m.x - target.x) ** 2 + (m.y - target.y) ** 2);
+                    const targetX = target.x + ((target.width || 0) / 2);
+                    const targetY = target.y + ((target.height || 0) / 2);
+                    const dist = Math.sqrt((m.x - targetX) ** 2 + (m.y - targetY) ** 2);
 
                     // Variable Range & Cooldown Logic
                     let chargeRange = 400;
                     let cdTime = 4000;
+                    let minChargeDistance = 95;
 
                     if (m.typeId === 'slime_split') {
                         chargeRange = 500;
                         cdTime = 10000; // v1.1: 10s Cooldown
+                        minChargeDistance = 110;
                     }
                     if (m.typeId === 'king_slime') {
                         chargeRange = 800;
                         cdTime = 10000; // v1.1: 10s Cooldown
+                        minChargeDistance = 140;
                     }
 
-                    if (dist < chargeRange) {
+                    if (dist < chargeRange && dist > minChargeDistance) {
                         // Start Charge!
-                        m.startCharge(target.x, target.y);
+                        m.startCharge(targetX, targetY);
                         m.chargeCooldown = cdTime;
 
                         // Sync to Clients
-                        this.net.sendMonsterAttack(m.id, 'charge', { x: target.x, y: target.y });
+                        this.net.sendMonsterAttack(m.id, 'charge', { x: targetX, y: targetY });
                     }
                 }
             }
@@ -890,6 +914,10 @@ export default class MonsterManager {
 
     _removeMonsterLocalState(id) {
         if (!id) return;
+        const monster = this.monsters.get(id);
+        if (monster?.typeId === 'king_slime' || monster?.isBoss) {
+            this.bossSpawned = false;
+        }
         this._clearPlayerTargetIfMatches(id);
         this.tutorialMonsterIds.delete(id);
         this.lastSyncState.delete(id);
@@ -1060,7 +1088,27 @@ export default class MonsterManager {
         return monster.id;
     }
 
+    async _handleBossSpawnRequested({ isFirstBoss = true } = {}) {
+        if (!this.net?.isHost) return null;
+
+        const bossId = await this._spawnBoss(isFirstBoss);
+        if (!bossId) return null;
+
+        if (isFirstBoss) {
+            this.slimeKillCount = 0;
+            this.net?.dbRef?.child('world_state/slime_kill_count').set(0).catch(() => { });
+        }
+
+        return bossId;
+    }
+
     async _spawnBoss(isFirstBoss = true) {
+        const authoritativeHostExists = !!(this.net?.connected && !this.net.isHost && this.net.currentHostId && this.net.currentHostId !== this.net.playerId);
+        if (authoritativeHostExists) {
+            Logger.log('[MonsterManager] Boss spawn ignored on guest; host authority required.');
+            return null;
+        }
+
         const existingBoss = Array.from(this.monsters.values()).find((monster) => monster.typeId === 'king_slime' && !monster.isDead);
         if (this.bossSpawned || existingBoss) {
             return null;
@@ -1144,6 +1192,7 @@ export default class MonsterManager {
 
             if (data.isBoss || data.type === '대왕 슬라임') {
                 m.isBoss = true;
+                this.bossSpawned = true;
                 // Definition usually handles this, but sync data might override
                 m.width = data.w || m.width;
                 m.height = data.h || m.height;

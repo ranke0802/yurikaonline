@@ -3897,7 +3897,7 @@ export class UIManager {
                     canClaim: count >= 30, // v0.00.77: Shared Summon
                     claimFn: () => {
                         if (this.game.monsterManager) {
-                            this.game.monsterManager._spawnBoss(false);
+                            this._requestQuestBossSummon(false);
                             p.questData.slimeRepeatKills = 0; // Reset individual count
                             p.saveState(); // Ensure it marks as 0 in DB
                             this.updateQuestUI();
@@ -4002,6 +4002,25 @@ export class UIManager {
         p.saveState();
     }
 
+    _requestQuestBossSummon(isFirstBoss = true) {
+        const monsterManager = this.game?.monsterManager;
+        if (!monsterManager || monsterManager.bossSpawned) return;
+
+        const net = monsterManager.net;
+        if (net?.connected && !net.isHost) {
+            net.requestBossSpawn({ isFirstBoss });
+            return;
+        }
+
+        monsterManager._spawnBoss(isFirstBoss);
+        if (isFirstBoss) {
+            monsterManager.slimeKillCount = 0;
+            if (monsterManager.net?.dbRef) {
+                monsterManager.net.dbRef.child('world_state/slime_kill_count').set(0);
+            }
+        }
+    }
+
     claimSlime30Reward(p) {
         if (p.questData.slime30QuestClaimed) return;
 
@@ -4011,11 +4030,7 @@ export class UIManager {
 
         // Spawn Boss (ONLY if not already spawned by global system)
         if (this.game.monsterManager && !this.game.monsterManager.bossSpawned) {
-            this.game.monsterManager._spawnBoss(true);
-            this.game.monsterManager.slimeKillCount = 0;
-            if (this.game.monsterManager.net?.dbRef) {
-                this.game.monsterManager.net.dbRef.child('world_state/slime_kill_count').set(0);
-            }
+            this._requestQuestBossSummon(true);
         }
 
         this.logSystemMessage('QUEST 완료: 슬라임 30마리 토벌 보상 지급 (체력 +3)');

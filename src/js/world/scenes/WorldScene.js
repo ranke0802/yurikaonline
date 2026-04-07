@@ -596,8 +596,8 @@ export default class WorldScene extends Scene {
                     const vy = Math.sin(angle) * burstSpeed;
 
                     this.monsterMissileQueue.push({
-                        x: m.x + m.width / 2,
-                        y: m.y + m.height / 2,
+                        x: m.x,
+                        y: m.y,
                         target: target,
                         options: {
                             speed: 700 + (Math.random() * 100),
@@ -961,8 +961,8 @@ export default class WorldScene extends Scene {
             } else {
                 const isTutorialDummyTarget = t.typeId === 'training_dummy' && !!this.game?.tutorial?.activeTutorial;
                 if (!isTutorialDummyTarget && !isAutoTarget) {
-                    const tx = t.x + t.width / 2;
-                    const ty = t.y + t.height;
+                    const tx = isMonsterTarget ? t.x : (t.x + t.width / 2);
+                    const ty = isMonsterTarget ? (t.y + ((t.height || 48) / 2)) : (t.y + t.height);
                     SkillRenderer.drawTargetMarker(ctx, tx, ty, t.width || 48, t.height || 48);
                 }
             }

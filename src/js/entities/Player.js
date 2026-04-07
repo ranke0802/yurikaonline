@@ -570,8 +570,14 @@ export default class Player extends CharacterBase {
     _handleMovement(dt) {
         if (!this.input) return;
 
+        const isManualAttackPressed = !!this.input.isPressed('ATTACK');
+        const allowAutoLaserMove = this.isChanneling
+            && this.autoAttackEnabled
+            && !isManualAttackPressed
+            && this.skillAttackTimer <= 0;
+
         // v0.26.1: Block movement while channeling (Magic Missile, Chain Lightning)
-        if (this.isChanneling) {
+        if (this.isChanneling && !allowAutoLaserMove) {
             this.vx = 0;
             this.vy = 0;
             this.moveTarget = null;
@@ -638,7 +644,8 @@ export default class Player extends CharacterBase {
             if (this.turnGraceTimer > 0) this.turnGraceTimer -= dt;
 
             const runMult = (this.isRunning || this.turnGraceTimer > 0) ? 1.3 : 1.0;
-            const finalSpeed = this.speed * runMult;
+            const channelMoveMultiplier = allowAutoLaserMove ? 0.7 : 1.0;
+            const finalSpeed = this.speed * runMult * channelMoveMultiplier;
 
             this.vx = vx * finalSpeed;
             this.vy = vy * finalSpeed;
@@ -761,7 +768,12 @@ export default class Player extends CharacterBase {
         this.applyEquipmentStats();
     }
 
-    updateDerivedStats() {
+    updateDerivedStats(options = {}) {
+        const shouldSave = options.save !== false;
+        const syncToWorld = !!options.syncToWorld;
+        const debounceMs = Number.isFinite(options.debounceMs) ? options.debounceMs : undefined;
+        const previousHp = this.hp;
+        const previousMaxHp = this.maxHp;
         this.refreshStats();
         this.hp = Math.min(this.hp, this.maxHp);
         this.mp = Math.min(this.mp, this.maxMp);
@@ -770,7 +782,12 @@ export default class Player extends CharacterBase {
         if (this.maxExp < expectedMaxExp) {
             this.maxExp = expectedMaxExp;
         }
-        this.saveState();
+        if (this.net && (this.hp !== previousHp || this.maxHp !== previousMaxHp)) {
+            this.net.sendPlayerHp(this.hp, this.maxHp);
+        }
+        if (shouldSave) {
+            this.saveState(syncToWorld, { debounceMs });
+        }
     }
 
     fullReset() {
@@ -806,6 +823,7 @@ export default class Player extends CharacterBase {
         this.refreshStats();
         this.hp = this.maxHp;
         this.mp = this.maxMp;
+        if (this.net) this.net.sendPlayerHp(this.hp, this.maxHp);
         this.updateGoldInventory();
         this.saveState();
 
@@ -960,12 +978,13 @@ export default class Player extends CharacterBase {
         if (this.net) this.net.sendPlayerHp(0, this.maxHp);
     }
 
-    saveState(syncToWorld = false) {
+    saveState(syncToWorld = false, options = {}) {
         if (!this.net || !this.id) return;
         const isSharedFieldActive = !!this.net.isSharedFieldActive?.();
+        const overrideDebounceMs = Number.isFinite(options.debounceMs) ? Math.max(0, Number(options.debounceMs)) : null;
         const profileSaveDebounceMs = syncToWorld
             ? 0
-            : (isSharedFieldActive ? 800 : 1000);
+            : (overrideDebounceMs ?? (isSharedFieldActive ? 2500 : 3200));
         const data = {
             level: this.level,
             exp: this.exp,
@@ -999,7 +1018,8 @@ export default class Player extends CharacterBase {
         console.log('[Player] Saving State:', { level: data.level, exp: data.exp, maxExp: data.maxExp, quest: data.questData });
         this.net.savePlayerData(this.id, data, syncToWorld, {
             debounceMs: profileSaveDebounceMs,
-            forceImmediate: !!syncToWorld
+            forceImmediate: !!syncToWorld,
+            saveReason: options.reason || 'player_save'
         });
     }
 
@@ -1025,6 +1045,7 @@ export default class Player extends CharacterBase {
         // Full Heal
         this.hp = this.maxHp;
         this.mp = this.maxMp;
+        if (this.net) this.net.sendPlayerHp(this.hp, this.maxHp);
 
         this.saveState();
         if (window.game?.ui) {
@@ -1117,8 +1138,9 @@ export default class Player extends CharacterBase {
 
         const sourceX = this.x + this.width / 2;
         const sourceY = this.y + this.height / 2;
-        const targetX = target.x + ((target.width || 0) / 2);
-        const targetY = target.y + ((target.height || 0) / 2);
+        const targetPoint = this.getCombatTargetPoint(target);
+        const targetX = Number.isFinite(targetPoint?.x) ? targetPoint.x : target.x;
+        const targetY = Number.isFinite(targetPoint?.y) ? targetPoint.y : target.y;
         return Math.hypot(targetX - sourceX, targetY - sourceY);
     }
 
@@ -1737,22 +1759,32 @@ export default class Player extends CharacterBase {
         return 300 * Math.pow(2, lv - 1);
     }
 
-    addGold(amount) {
+    addGold(amount, options = {}) {
+        const shouldSave = options.save !== false;
+        const debounceMs = Number.isFinite(options.debounceMs) ? options.debounceMs : undefined;
         this.gold += amount;
         this.updateGoldInventory();
-        this.saveState();
+        if (shouldSave) {
+            this.saveState(false, { debounceMs });
+        }
         if (window.game?.ui) window.game.ui.updateInventory();
     }
 
 
     recoverHp(amount) {
+        const previousHp = this.hp;
         this.hp = Math.min(this.maxHp, this.hp + amount);
+        if (this.net && this.hp !== previousHp) {
+            this.net.sendPlayerHp(this.hp, this.maxHp);
+        }
     }
 
-    receiveReward(data) {
+    receiveReward(data, options = {}) {
+        const shouldSave = options.save !== false;
+        const saveDebounceMs = Number.isFinite(options.debounceMs) ? options.debounceMs : 3500;
         const itemMessages = [];
 
-        if (data.exp) this.gainExp(data.exp);
+        if (data.exp) this.gainExp(data.exp, { save: false });
         if (data.gold) {
             this.gold += data.gold;
             this.updateGoldInventory();
@@ -1795,7 +1827,7 @@ export default class Player extends CharacterBase {
                     // First Kill Reward
                     this.questData.slimeRepeatKills = 0;
                     this.statPoints += 5;
-                    this.gainExp(500);
+                    this.gainExp(500, { save: false });
                     this.gold += 2000;
                     this.updateGoldInventory();
 
@@ -1804,7 +1836,7 @@ export default class Player extends CharacterBase {
                     rewardMsg = "첫 대왕 슬라임 처치! (스텟+5, EXP+500, Gold+2000)";
                 } else {
                     // Repeat Kill Reward
-                    this.gainExp(300); // Reduced from 500
+                    this.gainExp(300, { save: false }); // Reduced from 500
                     this.gold += 1000; // Reduced from 2000
                     this.updateGoldInventory();
 
@@ -1827,7 +1859,6 @@ export default class Player extends CharacterBase {
                 this.questData.bossKilled = false;
             }
             if (window.game?.ui) window.game.ui.updateQuestUI();
-            this.saveState();
         }
 
         if (window.game?.ui) {
@@ -1863,7 +1894,9 @@ export default class Player extends CharacterBase {
 
             window.game.ui.updateInventory();
         }
-        this.saveState();
+        if (shouldSave) {
+            this.saveState(false, { debounceMs: saveDebounceMs });
+        }
     }
 
     updateGoldInventory() {
@@ -1883,15 +1916,22 @@ export default class Player extends CharacterBase {
     }
 
 
-    gainExp(amount) {
+    gainExp(amount, options = {}) {
+        const shouldSave = options.save !== false;
+        const debounceMs = Number.isFinite(options.debounceMs) ? options.debounceMs : undefined;
         this.exp += amount;
         while (this.exp >= this.maxExp) {
-            this.levelUp();
+            this.levelUp({ save: false });
         }
-        this.saveState();
+        if (shouldSave) {
+            this.saveState(false, { debounceMs });
+        }
     }
 
-    levelUp() {
+    levelUp(options = {}) {
+        const shouldSave = options.save !== false;
+        const syncToWorld = !!options.syncToWorld;
+        const debounceMs = Number.isFinite(options.debounceMs) ? options.debounceMs : undefined;
         this.exp -= this.maxExp;
         this.level++;
         this.maxExp = Math.floor(this.maxExp * 1.5);
@@ -1908,8 +1948,10 @@ export default class Player extends CharacterBase {
             if (window.game.sound) window.game.sound.playSfx('level_up');
         }
 
-        this.updateDerivedStats();
-        this.saveState();
+        this.updateDerivedStats({ save: false });
+        if (shouldSave) {
+            this.saveState(syncToWorld, { debounceMs });
+        }
     }
 
     render(ctx, camera) {

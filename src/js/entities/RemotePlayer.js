@@ -17,8 +17,8 @@ export default class RemotePlayer extends CharacterBase {
 
         // Phase 1: Enhanced interpolation system
         this.serverUpdates = [];
-        this.interpolationDelay = 100; // Reduced for lower latency feel
-        this.adaptiveDelay = 100;
+        this.interpolationDelay = 85; // Reduced for lower latency feel
+        this.adaptiveDelay = 85;
         this.packetJitterHistory = [];
         this.lastPacketTime = 0;
         this.lastPacketInterval = 100;
@@ -185,7 +185,7 @@ export default class RemotePlayer extends CharacterBase {
             if (this.packetJitterHistory.length >= 10) {
                 const sorted = [...this.packetJitterHistory].sort((a, b) => a - b);
                 const p90 = sorted[Math.floor(sorted.length * 0.9)];
-                this.adaptiveDelay = Math.max(70, Math.min(320, Math.max(p90 * 2 + 30, observedInterval * 1.25)));
+                this.adaptiveDelay = Math.max(60, Math.min(220, Math.max(p90 * 1.75 + 20, observedInterval * 1.1)));
             }
             this.lastPacketInterval = observedInterval;
         }
@@ -338,14 +338,21 @@ export default class RemotePlayer extends CharacterBase {
         const dy = finalY - this.y;
         const distSq = dx * dx + dy * dy;
 
+        const dist = Math.sqrt(distSq);
+        const finalSpeed = Math.hypot(finalVx || 0, finalVy || 0);
+
         if (distSq > 400 * 400) {
             // Teleport - snap immediately
             this.x = finalX;
             this.y = finalY;
+        } else if ((!this.isExtrapolating && finalSpeed < 8 && dist < 10) || dist < 3) {
+            this.x = finalX;
+            this.y = finalY;
         } else {
-            // Adaptive lerp based on distance
-            const dist = Math.sqrt(distSq);
-            const lerpFactor = Math.min(0.5, 0.1 + dist * 0.01);
+            // Adaptive lerp based on distance and extrapolation state
+            const baseLerp = this.isExtrapolating ? 0.18 : 0.25;
+            const distanceBoost = Math.min(0.55, dist * 0.018);
+            const lerpFactor = Math.min(0.8, baseLerp + distanceBoost);
             this.x += dx * lerpFactor;
             this.y += dy * lerpFactor;
         }
@@ -468,8 +475,11 @@ export default class RemotePlayer extends CharacterBase {
                 if (tid === window.game?.localPlayer?.id) target = window.game?.localPlayer;
 
                 if (target && !target.isDead) {
-                    chains.push({ x1: currentSource.x, y1: currentSource.y, x2: target.x + target.width / 2, y2: target.y + target.height / 2 });
-                    currentSource = { x: target.x + target.width / 2, y: target.y + target.height / 2 };
+                    const targetPoint = (target.isMonster || target.type === 'monster')
+                        ? { x: target.x, y: target.y }
+                        : { x: target.x + target.width / 2, y: target.y + target.height / 2 };
+                    chains.push({ x1: currentSource.x, y1: currentSource.y, x2: targetPoint.x, y2: targetPoint.y });
+                    currentSource = targetPoint;
                 }
             });
         }
@@ -487,9 +497,10 @@ export default class RemotePlayer extends CharacterBase {
                     }
                 });
                 if (next) {
-                    chains.push({ x1: currentSource.x, y1: currentSource.y, x2: next.x + (next.width / 2 || 0), y2: next.y + (next.height / 2 || 0) });
+                    const nextPoint = { x: next.x, y: next.y };
+                    chains.push({ x1: currentSource.x, y1: currentSource.y, x2: nextPoint.x, y2: nextPoint.y });
                     affected.push(next);
-                    currentSource = { x: next.x + (next.width / 2 || 0), y: next.y + (next.height / 2 || 0) };
+                    currentSource = nextPoint;
                 } else break;
             }
         }

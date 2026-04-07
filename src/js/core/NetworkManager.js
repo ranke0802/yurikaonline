@@ -289,6 +289,20 @@ export default class NetworkManager extends EventEmitter {
             snapshot.ref.remove();
         });
 
+        this.dbRef.child('boss_spawn_requests').on('child_added', (snapshot) => {
+            if (!this.isHost) return;
+            const data = snapshot.val();
+            if (data) {
+                this.emit('bossSpawnRequested', {
+                    requestId: snapshot.key,
+                    requesterId: data.requesterId || null,
+                    isFirstBoss: data.isFirstBoss !== false,
+                    ts: Number(data.ts || Date.now())
+                });
+            }
+            snapshot.ref.remove();
+        });
+
         // 2. presence check
         const myRef = this.dbRef.child(`users/${this.playerId}`);
         const presenceRef = this.dbRef.child(`presence/${this.playerId}`);
@@ -524,6 +538,7 @@ export default class NetworkManager extends EventEmitter {
             'player_damage_batch',
             'drops',
             'drop_collection',
+            'boss_spawn_requests',
             'chat',
             'system_messages',
             'emotes'
@@ -2557,6 +2572,20 @@ export default class NetworkManager extends EventEmitter {
         };
         this._recordNetworkWrite('dropCollect', payload);
         this.dbRef.child('drop_collection').push(payload);
+    }
+
+    requestBossSpawn({ isFirstBoss = true } = {}) {
+        if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+
+        const payload = {
+            requesterId: this.playerId,
+            isFirstBoss: !!isFirstBoss,
+            ts: Date.now()
+        };
+
+        this._recordNetworkWrite('bossSpawnRequest', payload);
+        this.dbRef.child('boss_spawn_requests').push(payload);
+        this._markNetworkActivity();
     }
 
     // Phase 1: Delta synchronization for bandwidth optimization
