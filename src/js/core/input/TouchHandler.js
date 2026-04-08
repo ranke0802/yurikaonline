@@ -9,6 +9,7 @@ export default class TouchHandler extends EventEmitter {
         this.activeAimAction = null;
         this.activeUiActions = new Map();
         this.useMouseJoystick = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
+        this.fixedJoystickLayout = null;
 
         // DOM Elements
         this.base = document.getElementById('joystick-base');
@@ -26,12 +27,40 @@ export default class TouchHandler extends EventEmitter {
         this.init();
     }
 
+    isUiLayoutEditModeActive() {
+        return !!window.game?.ui?.isUiLayoutEditMode?.();
+    }
+
+    setFixedJoystickLayout(layout = null) {
+        this.fixedJoystickLayout = layout;
+        if (this.base) {
+            const rect = this.base.getBoundingClientRect();
+            this.maxRadius = Math.max(28, Math.round((Math.min(rect.width || 100, rect.height || 100) || 100) * 0.45));
+        }
+
+        if (this.area) {
+            this.area.style.pointerEvents = this.fixedJoystickLayout ? 'none' : 'auto';
+        }
+        if (this.container) {
+            this.container.style.pointerEvents = 'auto';
+        }
+
+        if (this.fixedJoystickLayout) {
+            if (this.container) {
+                this.container.style.setProperty('display', 'flex', 'important');
+            }
+        } else if (!this.isUiLayoutEditModeActive()) {
+            this._hideJoystick();
+        }
+    }
+
     _showJoystickAt(x, y) {
         if (!this.container) return;
 
         // Landscape HUD styles use !important, so the runtime position needs to
         // be applied with the same priority for the joystick to actually appear.
         this.container.style.setProperty('display', 'flex', 'important');
+        if (this.fixedJoystickLayout) return;
         this.container.style.setProperty('left', `${x - 75}px`, 'important');
         this.container.style.setProperty('top', `${y - 75}px`, 'important');
         this.container.style.setProperty('right', 'auto', 'important');
@@ -40,6 +69,10 @@ export default class TouchHandler extends EventEmitter {
 
     _hideJoystick() {
         if (!this.container) return;
+        if (this.fixedJoystickLayout || this.isUiLayoutEditModeActive()) {
+            this.container.style.setProperty('display', 'flex', 'important');
+            return;
+        }
         this.container.style.setProperty('display', 'none', 'important');
     }
 
@@ -52,11 +85,10 @@ export default class TouchHandler extends EventEmitter {
             if (this.useMouseJoystick) {
                 this.area.addEventListener('mousedown', this._handleStart);
             }
-        } else {
-            this.container.addEventListener('touchstart', this._handleStart, { passive: false });
-            if (this.useMouseJoystick) {
-                this.container.addEventListener('mousedown', this._handleStart);
-            }
+        }
+        this.container.addEventListener('touchstart', this._handleStart, { passive: false });
+        if (this.useMouseJoystick) {
+            this.container.addEventListener('mousedown', this._handleStart);
         }
 
         // Global Move/End Listeners
@@ -172,6 +204,7 @@ export default class TouchHandler extends EventEmitter {
             const action = keyMap[rawKey] || rawKey;
 
             const startAction = (e) => {
+                if (this.isUiLayoutEditModeActive()) return;
                 e.preventDefault();
                 e.stopPropagation();
                 const pointer = this._getPointerFromEvent(e, null, true);
@@ -216,6 +249,7 @@ export default class TouchHandler extends EventEmitter {
         // ... (Existing logic to check button proximity) ...
         const target = e.target;
         if (target.closest('.skill-btn, .attack-btn, .menu-btn')) return;
+        if (this.isUiLayoutEditModeActive()) return;
 
         e.preventDefault();
         this.joystick.active = true;
@@ -229,6 +263,20 @@ export default class TouchHandler extends EventEmitter {
 
         const x = touch.clientX;
         const y = touch.clientY;
+
+        if (this.fixedJoystickLayout && this.container) {
+            const rect = this.container.getBoundingClientRect();
+            const activationPadding = Math.max(36, rect.width * 0.25);
+            const isInsideAnchor = x >= (rect.left - activationPadding)
+                && x <= (rect.right + activationPadding)
+                && y >= (rect.top - activationPadding)
+                && y <= (rect.bottom + activationPadding);
+            if (!isInsideAnchor) {
+                this.joystick.active = false;
+                this.joystickTouchId = null;
+                return;
+            }
+        }
 
         this._showJoystickAt(x, y);
 
@@ -263,6 +311,8 @@ export default class TouchHandler extends EventEmitter {
         const rect = this.base.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
+        const dynamicRadius = Math.max(28, Math.round((Math.min(rect.width || 100, rect.height || 100) || 100) * 0.45));
+        this.maxRadius = dynamicRadius;
 
         let dx = touch.clientX - centerX;
         let dy = touch.clientY - centerY;

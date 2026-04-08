@@ -210,7 +210,7 @@ class Game {
         const isAppleMobile = this.isAppleMobileDevice();
         const lowPowerPwaMode = isMobile;
         const aggressiveThermalMode = lowPowerPwaMode && (isStandalone || isAppleMobile);
-        const reduceCombatEffects = false;
+        const reduceCombatEffects = !!this.ui?.getSetting?.('reducedEffects');
 
         return {
             isTouchDevice,
@@ -529,6 +529,7 @@ class Game {
     }
 
     _handleCanvasInteraction(e) {
+        if (this.ui?.isUiLayoutEditMode?.()) return;
         if (!this.sceneManager || !this.sceneManager.currentScene) return;
         this.sceneManager.handlePointerDown(e);
     }

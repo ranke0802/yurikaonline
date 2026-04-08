@@ -55,12 +55,38 @@ export class UIManager {
             captureTarget: null
         };
         this.activeSkillDetailId = null;
+        this.settingsStorageKey = 'yurika_settings_v1';
+        this.settings = this.loadSettings();
+        this.uiLayoutControlDefinitions = {
+            joystick: { label: '조이스틱', selector: '#joystick-container', modes: ['mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
+            'action-skill-u': { label: '스킬 U', selector: '#action-skill-u', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
+            'action-skill-k': { label: '스킬 K', selector: '#action-skill-k', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
+            'action-skill-h': { label: '스킬 H', selector: '#action-skill-h', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
+            'action-attack-j': { label: '기본 공격', selector: '#action-attack-j', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
+            'action-auto-toggle': { label: '오토 버튼', selector: '#action-auto-toggle', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 }
+        };
+        this.uiLayoutEditMode = false;
+        this.uiLayoutDraft = null;
+        this.uiLayoutDirty = false;
+        this.uiLayoutSelectedControlId = null;
+        this.uiLayoutActiveMode = this.getUiLayoutMode();
+        this.uiLayoutDragState = {
+            active: false,
+            pointerId: null,
+            controlId: null,
+            offsetX: 0,
+            offsetY: 0,
+            captureTarget: null
+        };
         this.refreshTutorialHighlight = this.refreshTutorialHighlight.bind(this);
         this.refreshTutorialGuideLayout = this.refreshTutorialGuideLayout.bind(this);
         this.handleTutorialGuideDragMove = this.handleTutorialGuideDragMove.bind(this);
         this.handleTutorialGuideDragEnd = this.handleTutorialGuideDragEnd.bind(this);
         this.handleFloatingPanelDragMove = this.handleFloatingPanelDragMove.bind(this);
         this.handleFloatingPanelDragEnd = this.handleFloatingPanelDragEnd.bind(this);
+        this.handleUiLayoutControlPointerDown = this.handleUiLayoutControlPointerDown.bind(this);
+        this.handleUiLayoutControlPointerMove = this.handleUiLayoutControlPointerMove.bind(this);
+        this.handleUiLayoutControlPointerUp = this.handleUiLayoutControlPointerUp.bind(this);
         this.setupEventListeners();
         this.setupFullscreenListeners();
         this.setupDevModeListeners();
@@ -70,11 +96,13 @@ export class UIManager {
             this.refreshTutorialHighlight();
             this.refreshTutorialGuideLayout();
             this.refreshDesktopShortcutHints();
+            this.refreshUiLayoutForViewport();
         };
         window.addEventListener('resize', refreshTutorialOverlays);
         window.addEventListener('orientationchange', refreshTutorialOverlays);
         document.addEventListener('fullscreenchange', refreshTutorialOverlays);
         document.addEventListener('webkitfullscreenchange', refreshTutorialOverlays);
+        this.applySettings({ refreshGame: false, syncUi: true });
 
         if (this.isStandaloneDisplayMode()) {
             this.scheduleOrientationLockRefresh();
@@ -131,6 +159,674 @@ export class UIManager {
         };
         this.cooldownRefs[key] = refs;
         return refs;
+    }
+
+    clampNumericSetting(value, fallback, min, max) {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) return fallback;
+        return Math.min(max, Math.max(min, numeric));
+    }
+
+    getDefaultSettings() {
+        return {
+            masterVolume: 40,
+            muted: false,
+            autoFullscreen: true,
+            reducedEffects: false,
+            desktopShortcutHints: true,
+            chatOpacity: 100,
+            questOpacity: 100,
+            minimapOpacity: 100
+        };
+    }
+
+    sanitizeSettings(candidate = {}) {
+        const defaults = this.getDefaultSettings();
+        return {
+            masterVolume: this.clampNumericSetting(candidate.masterVolume, defaults.masterVolume, 0, 100),
+            muted: !!candidate.muted,
+            autoFullscreen: candidate.autoFullscreen !== false,
+            reducedEffects: !!candidate.reducedEffects,
+            desktopShortcutHints: candidate.desktopShortcutHints !== false,
+            chatOpacity: this.clampNumericSetting(candidate.chatOpacity, defaults.chatOpacity, 35, 100),
+            questOpacity: this.clampNumericSetting(candidate.questOpacity, defaults.questOpacity, 35, 100),
+            minimapOpacity: this.clampNumericSetting(candidate.minimapOpacity, defaults.minimapOpacity, 35, 100)
+        };
+    }
+
+    loadSettings() {
+        const defaults = this.getDefaultSettings();
+        try {
+            const raw = localStorage.getItem(this.settingsStorageKey);
+            if (!raw) return defaults;
+            return this.sanitizeSettings(JSON.parse(raw));
+        } catch (error) {
+            console.warn('[UIManager] Failed to load settings', error);
+            return defaults;
+        }
+    }
+
+    persistSettings() {
+        try {
+            localStorage.setItem(this.settingsStorageKey, JSON.stringify(this.settings));
+        } catch (error) {
+            console.warn('[UIManager] Failed to save settings', error);
+        }
+    }
+
+    getSetting(key) {
+        if (!this.settings) {
+            this.settings = this.getDefaultSettings();
+        }
+        return this.settings[key];
+    }
+
+    updateSetting(key, value, options = {}) {
+        const { refreshGame = false } = options;
+        const nextSettings = this.sanitizeSettings({
+            ...this.settings,
+            [key]: value
+        });
+        this.settings = nextSettings;
+        this.persistSettings();
+        this.applySettings({ refreshGame, syncUi: true });
+    }
+
+    applySettings(options = {}) {
+        const { refreshGame = false, syncUi = false } = options;
+        const root = document.documentElement;
+        const chatOpacity = (this.getSetting('chatOpacity') / 100).toFixed(2);
+        const questOpacity = (this.getSetting('questOpacity') / 100).toFixed(2);
+        const minimapOpacity = (this.getSetting('minimapOpacity') / 100).toFixed(2);
+
+        root.style.setProperty('--ui-chat-opacity', chatOpacity);
+        root.style.setProperty('--ui-quest-opacity', questOpacity);
+        root.style.setProperty('--ui-minimap-opacity', minimapOpacity);
+
+        this.game.sound?.setMasterVolume?.((this.getSetting('masterVolume') || 0) / 100);
+        this.game.sound?.setMuted?.(this.getSetting('muted'));
+
+        if (syncUi) {
+            this.syncSettingsUi();
+        }
+
+        this.updateLandscapeAutoFullscreen();
+        this.refreshDesktopShortcutHints();
+
+        if (refreshGame) {
+            this.game.resize?.();
+        }
+    }
+
+    syncSettingsUi() {
+        const bindings = [
+            ['settings-master-volume', 'masterVolume', 'settings-master-volume-value', '%'],
+            ['settings-chat-opacity', 'chatOpacity', 'settings-chat-opacity-value', '%'],
+            ['settings-quest-opacity', 'questOpacity', 'settings-quest-opacity-value', '%'],
+            ['settings-minimap-opacity', 'minimapOpacity', 'settings-minimap-opacity-value', '%']
+        ];
+
+        bindings.forEach(([inputId, key, valueId, suffix]) => {
+            const input = document.getElementById(inputId);
+            const valueEl = document.getElementById(valueId);
+            const value = this.getSetting(key);
+            if (input) input.value = String(value);
+            if (valueEl) valueEl.textContent = `${value}${suffix}`;
+        });
+
+        const checkboxBindings = [
+            ['settings-muted', 'muted'],
+            ['settings-auto-fullscreen', 'autoFullscreen'],
+            ['settings-reduced-effects', 'reducedEffects'],
+            ['settings-shortcut-hints', 'desktopShortcutHints']
+        ];
+
+        checkboxBindings.forEach(([inputId, key]) => {
+            const input = document.getElementById(inputId);
+            if (input) input.checked = !!this.getSetting(key);
+        });
+
+        this.syncUiLayoutEditor();
+    }
+
+    cloneStructuredData(value) {
+        if (value == null || typeof value !== 'object') return value;
+        try {
+            return JSON.parse(JSON.stringify(value));
+        } catch (error) {
+            console.warn('[UIManager] Failed to clone structured data', error);
+            return value;
+        }
+    }
+
+    getUiLayoutMode() {
+        const isTouch = this.game?.isTouchDevice?.()
+            || window.matchMedia?.('(pointer: coarse)')?.matches
+            || navigator.maxTouchPoints > 0;
+        const isMobileWidth = window.innerWidth <= 1024;
+        if (isTouch && isMobileWidth) {
+            return this.isMobileLandscapeViewport() ? 'mobileLandscape' : 'mobilePortrait';
+        }
+        return 'desktop';
+    }
+
+    getUiLayoutModeLabel(mode = this.getUiLayoutMode()) {
+        if (mode === 'mobilePortrait') return '모바일 세로';
+        if (mode === 'mobileLandscape') return '모바일 가로';
+        return '데스크톱';
+    }
+
+    isUiLayoutEditMode() {
+        return !!this.uiLayoutEditMode;
+    }
+
+    getUiLayoutControlsForMode(mode = this.getUiLayoutMode()) {
+        return Object.entries(this.uiLayoutControlDefinitions)
+            .filter(([, definition]) => definition.modes.includes(mode));
+    }
+
+    getUiLayoutControlElement(controlId) {
+        if (controlId === 'joystick') {
+            return document.getElementById('joystick-container');
+        }
+        return document.getElementById(controlId);
+    }
+
+    sanitizeUiLayoutEntry(entry, definition = {}) {
+        if (!entry || typeof entry !== 'object') return null;
+        const left = Number(entry.left);
+        const top = Number(entry.top);
+        const scale = Number(entry.scale);
+        if (!Number.isFinite(left) || !Number.isFinite(top)) return null;
+        return {
+            left: Math.min(0.97, Math.max(0.01, left)),
+            top: Math.min(0.97, Math.max(0.01, top)),
+            scale: Math.min(definition.maxScale || 1.8, Math.max(definition.minScale || 0.7, Number.isFinite(scale) ? scale : 1))
+        };
+    }
+
+    sanitizeUiLayout(layout) {
+        if (!layout || typeof layout !== 'object') return null;
+        const rawLayouts = layout.layouts && typeof layout.layouts === 'object'
+            ? layout.layouts
+            : layout;
+        const sanitizedLayouts = {};
+
+        ['desktop', 'mobilePortrait', 'mobileLandscape'].forEach((mode) => {
+            const rawMode = rawLayouts?.[mode];
+            if (!rawMode || typeof rawMode !== 'object') return;
+            const nextMode = {};
+            this.getUiLayoutControlsForMode(mode).forEach(([controlId, definition]) => {
+                const entry = this.sanitizeUiLayoutEntry(rawMode[controlId], definition);
+                if (entry) nextMode[controlId] = entry;
+            });
+            if (Object.keys(nextMode).length > 0) {
+                sanitizedLayouts[mode] = nextMode;
+            }
+        });
+
+        if (Object.keys(sanitizedLayouts).length === 0) return null;
+        return {
+            version: 1,
+            layouts: sanitizedLayouts
+        };
+    }
+
+    serializeUiLayout(layout) {
+        return JSON.stringify(this.sanitizeUiLayout(layout) || null);
+    }
+
+    getResolvedUiLayoutSource() {
+        return this.uiLayoutEditMode
+            ? this.uiLayoutDraft
+            : this.game.localPlayer?.uiLayout;
+    }
+
+    getUiLayoutModeEntries(source = this.getResolvedUiLayoutSource(), mode = this.getUiLayoutMode()) {
+        const sanitized = this.sanitizeUiLayout(source);
+        return sanitized?.layouts?.[mode] || null;
+    }
+
+    buildDefaultJoystickLayoutEntry(mode = this.getUiLayoutMode()) {
+        const viewportW = Math.max(window.innerWidth || 0, 1);
+        const viewportH = Math.max(window.innerHeight || 0, 1);
+        const isLandscape = mode === 'mobileLandscape';
+        const leftPx = isLandscape ? 28 : 24;
+        const topPx = isLandscape
+            ? Math.max(40, viewportH - 152)
+            : Math.max(40, viewportH - 196);
+        return {
+            left: leftPx / viewportW,
+            top: topPx / viewportH,
+            scale: isLandscape ? 1 : 0.96
+        };
+    }
+
+    captureCurrentUiLayoutEntry(controlId, mode = this.getUiLayoutMode()) {
+        const viewportW = Math.max(window.innerWidth || 0, 1);
+        const viewportH = Math.max(window.innerHeight || 0, 1);
+        if (controlId === 'joystick') {
+            return this.buildDefaultJoystickLayoutEntry(mode);
+        }
+
+        const element = this.getUiLayoutControlElement(controlId);
+        const rect = element?.getBoundingClientRect?.();
+        if (!rect || !rect.width || !rect.height) return null;
+
+        return {
+            left: rect.left / viewportW,
+            top: rect.top / viewportH,
+            scale: 1
+        };
+    }
+
+    clearUiLayoutRuntimeStyles() {
+        Object.keys(this.uiLayoutControlDefinitions).forEach((controlId) => {
+            const element = this.getUiLayoutControlElement(controlId);
+            if (!element) return;
+            delete element.dataset.uiLayoutEditable;
+            delete element.dataset.uiLayoutSelected;
+            ['position', 'left', 'top', 'right', 'bottom', 'margin', 'z-index', 'width', 'height', 'min-width', 'padding', 'font-size', 'display', 'transform', 'transform-origin'].forEach((property) => {
+                element.style.removeProperty(property);
+            });
+            const icon = element.querySelector('.inner-icon, .paw-icon');
+            icon?.style?.removeProperty('font-size');
+        });
+    }
+
+    measureUiLayoutElement(controlId) {
+        const element = this.getUiLayoutControlElement(controlId);
+        if (!element) return null;
+        const rect = element.getBoundingClientRect();
+        const computed = window.getComputedStyle(element);
+        const icon = element.querySelector('.inner-icon, .paw-icon');
+        const iconComputed = icon ? window.getComputedStyle(icon) : null;
+        return {
+            element,
+            width: rect.width || parseFloat(computed.width) || 0,
+            height: rect.height || parseFloat(computed.height) || 0,
+            fontSize: parseFloat(computed.fontSize) || 0,
+            paddingTop: parseFloat(computed.paddingTop) || 0,
+            paddingRight: parseFloat(computed.paddingRight) || 0,
+            paddingBottom: parseFloat(computed.paddingBottom) || 0,
+            paddingLeft: parseFloat(computed.paddingLeft) || 0,
+            iconFontSize: parseFloat(iconComputed?.fontSize) || 0
+        };
+    }
+
+    computeUiLayoutPosition(entry, width, height, margin = 12) {
+        const viewportW = Math.max(window.innerWidth || 0, 1);
+        const viewportH = Math.max(window.innerHeight || 0, 1);
+        const maxLeft = Math.max(margin, viewportW - width - margin);
+        const maxTop = Math.max(margin, viewportH - height - margin);
+        return {
+            left: Math.round(Math.min(maxLeft, Math.max(margin, entry.left * viewportW))),
+            top: Math.round(Math.min(maxTop, Math.max(margin, entry.top * viewportH)))
+        };
+    }
+
+    applyUiLayoutControl(controlId, entry) {
+        const element = this.getUiLayoutControlElement(controlId);
+        if (!element || !entry) return;
+
+        const definition = this.uiLayoutControlDefinitions[controlId];
+        const safeEntry = this.sanitizeUiLayoutEntry(entry, definition);
+        if (!safeEntry) return;
+
+        element.dataset.uiLayoutEditable = 'true';
+
+        if (controlId === 'joystick') {
+            const approxSize = 118 * safeEntry.scale;
+            const position = this.computeUiLayoutPosition(safeEntry, approxSize, approxSize, 16);
+            element.style.setProperty('position', 'fixed', 'important');
+            element.style.setProperty('left', `${position.left}px`, 'important');
+            element.style.setProperty('top', `${position.top}px`, 'important');
+            element.style.setProperty('right', 'auto', 'important');
+            element.style.setProperty('bottom', 'auto', 'important');
+            element.style.setProperty('display', 'flex', 'important');
+            element.style.setProperty('transform', `scale(${safeEntry.scale})`, 'important');
+            element.style.setProperty('transform-origin', 'top left', 'important');
+            element.style.setProperty('z-index', '1490', 'important');
+            return;
+        }
+
+        const metrics = this.measureUiLayoutElement(controlId);
+        if (!metrics) return;
+        const scaledWidth = Math.max(28, metrics.width * safeEntry.scale);
+        const scaledHeight = Math.max(24, metrics.height * safeEntry.scale);
+        const position = this.computeUiLayoutPosition(safeEntry, scaledWidth, scaledHeight);
+        element.style.setProperty('position', 'fixed', 'important');
+        element.style.setProperty('left', `${position.left}px`, 'important');
+        element.style.setProperty('top', `${position.top}px`, 'important');
+        element.style.setProperty('right', 'auto', 'important');
+        element.style.setProperty('bottom', 'auto', 'important');
+        element.style.setProperty('margin', '0', 'important');
+        element.style.setProperty('z-index', controlId === 'action-auto-toggle' ? '1495' : '1490', 'important');
+        element.style.setProperty('font-size', `${Math.max(10, metrics.fontSize * safeEntry.scale)}px`, 'important');
+
+        if (controlId === 'action-auto-toggle') {
+            element.style.setProperty('min-width', `${Math.max(48, scaledWidth)}px`, 'important');
+            element.style.setProperty('height', `${Math.max(22, scaledHeight)}px`, 'important');
+            element.style.setProperty('padding', `${Math.max(0, metrics.paddingTop * safeEntry.scale)}px ${Math.max(8, metrics.paddingRight * safeEntry.scale)}px`, 'important');
+        } else {
+            element.style.setProperty('width', `${scaledWidth}px`, 'important');
+            element.style.setProperty('height', `${scaledHeight}px`, 'important');
+            const icon = element.querySelector('.inner-icon');
+            if (icon && metrics.iconFontSize > 0) {
+                icon.style.setProperty('font-size', `${Math.max(14, metrics.iconFontSize * safeEntry.scale)}px`, 'important');
+            }
+        }
+    }
+
+    applyActiveUiLayout() {
+        this.clearUiLayoutRuntimeStyles();
+        const mode = this.getUiLayoutMode();
+        const entries = this.getUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode);
+        Object.entries(entries || {}).forEach(([controlId, entry]) => {
+            this.applyUiLayoutControl(controlId, entry);
+        });
+        this.game.touch?.setFixedJoystickLayout?.(entries?.joystick || null);
+        this.syncUiLayoutSelectionState();
+    }
+
+    captureDefaultUiLayoutForMode(mode = this.getUiLayoutMode()) {
+        this.clearUiLayoutRuntimeStyles();
+        this.game.touch?.setFixedJoystickLayout?.(null);
+        const defaults = {};
+        this.getUiLayoutControlsForMode(mode).forEach(([controlId]) => {
+            const entry = this.captureCurrentUiLayoutEntry(controlId, mode);
+            if (entry) defaults[controlId] = entry;
+        });
+        this.applyActiveUiLayout();
+        return defaults;
+    }
+
+    ensureUiLayoutDraftMode(mode = this.getUiLayoutMode()) {
+        if (!this.uiLayoutDraft || typeof this.uiLayoutDraft !== 'object') {
+            this.uiLayoutDraft = { version: 1, layouts: {} };
+        }
+        if (!this.uiLayoutDraft.layouts || typeof this.uiLayoutDraft.layouts !== 'object') {
+            this.uiLayoutDraft.layouts = {};
+        }
+
+        const existing = this.uiLayoutDraft.layouts[mode] || {};
+        const controls = this.getUiLayoutControlsForMode(mode);
+        const hasEveryEntry = controls.every(([controlId]) => !!this.sanitizeUiLayoutEntry(existing[controlId], this.uiLayoutControlDefinitions[controlId]));
+        if (hasEveryEntry) {
+            this.uiLayoutDraft.layouts[mode] = existing;
+            return existing;
+        }
+
+        const defaults = this.captureDefaultUiLayoutForMode(mode);
+        const nextMode = {};
+        controls.forEach(([controlId, definition]) => {
+            nextMode[controlId] = this.sanitizeUiLayoutEntry(existing[controlId] || defaults[controlId], definition);
+        });
+        this.uiLayoutDraft.layouts[mode] = nextMode;
+        return nextMode;
+    }
+
+    setUiLayoutDirty(dirty = true) {
+        this.uiLayoutDirty = !!dirty;
+        const modeLabel = document.getElementById('ui-layout-mode-label');
+        if (!modeLabel) return;
+        const suffix = this.uiLayoutDirty ? ' · 변경됨' : '';
+        modeLabel.textContent = `현재 화면: ${this.getUiLayoutModeLabel()}${suffix}`;
+    }
+
+    populateUiLayoutTargetSelect() {
+        const select = document.getElementById('ui-layout-target-select');
+        if (!select) return;
+
+        const options = this.getUiLayoutControlsForMode().map(([controlId, definition]) => ({ controlId, label: definition.label }));
+        select.innerHTML = options.map(({ controlId, label }) => `<option value="${controlId}">${label}</option>`).join('');
+
+        if (!options.some(({ controlId }) => controlId === this.uiLayoutSelectedControlId)) {
+            this.uiLayoutSelectedControlId = options[0]?.controlId || null;
+        }
+
+        if (this.uiLayoutSelectedControlId) {
+            select.value = this.uiLayoutSelectedControlId;
+        }
+    }
+
+    syncUiLayoutSelectionState() {
+        Object.keys(this.uiLayoutControlDefinitions).forEach((controlId) => {
+            const element = this.getUiLayoutControlElement(controlId);
+            if (!element) return;
+            if (!this.uiLayoutEditMode) {
+                delete element.dataset.uiLayoutSelected;
+                return;
+            }
+            if (controlId === this.uiLayoutSelectedControlId) {
+                element.dataset.uiLayoutSelected = 'true';
+            } else {
+                delete element.dataset.uiLayoutSelected;
+            }
+        });
+    }
+
+    syncUiLayoutEditor() {
+        const editor = document.getElementById('ui-layout-editor');
+        const isVisible = this.uiLayoutEditMode && editor && !editor.classList.contains('hidden');
+        const select = document.getElementById('ui-layout-target-select');
+        const sizeRange = document.getElementById('ui-layout-size-range');
+        const sizeValue = document.getElementById('ui-layout-size-value');
+        const modeLabel = document.getElementById('ui-layout-mode-label');
+
+        if (modeLabel) {
+            const suffix = this.uiLayoutDirty ? ' · 변경됨' : '';
+            modeLabel.textContent = `현재 화면: ${this.getUiLayoutModeLabel()}${suffix}`;
+        }
+
+        if (!isVisible) return;
+
+        this.populateUiLayoutTargetSelect();
+        if (select && this.uiLayoutSelectedControlId) {
+            select.value = this.uiLayoutSelectedControlId;
+        }
+
+        const currentModeEntries = this.getUiLayoutModeEntries(this.uiLayoutDraft, this.getUiLayoutMode()) || {};
+        const currentEntry = currentModeEntries[this.uiLayoutSelectedControlId];
+        const percent = Math.round((currentEntry?.scale || 1) * 100);
+        if (sizeRange) sizeRange.value = String(percent);
+        if (sizeValue) sizeValue.textContent = `${percent}%`;
+    }
+
+    selectUiLayoutControl(controlId) {
+        if (!controlId) return;
+        const isAllowed = this.getUiLayoutControlsForMode().some(([candidateId]) => candidateId === controlId);
+        if (!isAllowed) return;
+        this.uiLayoutSelectedControlId = controlId;
+        this.syncUiLayoutSelectionState();
+        this.syncUiLayoutEditor();
+    }
+
+    enterUiLayoutEditMode() {
+        if (!this.game.localPlayer) return;
+        if (this.uiLayoutEditMode) return;
+        const baseLayout = this.sanitizeUiLayout(this.game.localPlayer?.uiLayout) || { version: 1, layouts: {} };
+        this.uiLayoutDraft = this.cloneStructuredData(baseLayout) || { version: 1, layouts: {} };
+        this.uiLayoutEditMode = true;
+        this.uiLayoutActiveMode = this.getUiLayoutMode();
+        this.ensureUiLayoutDraftMode(this.uiLayoutActiveMode);
+        this.uiLayoutSelectedControlId = this.getUiLayoutControlsForMode(this.uiLayoutActiveMode)[0]?.[0] || null;
+        this.setUiLayoutDirty(false);
+        this.game.touch?.resetState?.();
+        this.game.input?.setEnabled?.(false);
+        this.isPaused = true;
+        document.body.classList.add('ui-layout-edit-mode');
+        document.getElementById('ui-layout-editor')?.classList.remove('hidden');
+        this.applyActiveUiLayout();
+        this.syncUiLayoutEditor();
+    }
+
+    persistUiLayoutDraft() {
+        const player = this.game.localPlayer;
+        if (!player) return false;
+
+        const sanitizedDraft = this.sanitizeUiLayout(this.uiLayoutDraft);
+        const currentSerialized = this.serializeUiLayout(player.uiLayout);
+        const nextSerialized = this.serializeUiLayout(sanitizedDraft);
+        player.uiLayout = sanitizedDraft;
+
+        if (currentSerialized === nextSerialized) {
+            return false;
+        }
+
+        player.saveProfilePatch?.(['uiLayout'], {
+            debounceMs: 0,
+            reason: 'ui_layout_save'
+        });
+        return true;
+    }
+
+    exitUiLayoutEditMode(options = {}) {
+        const { save = false } = options;
+        if (!this.uiLayoutEditMode) return;
+
+        if (save) {
+            this.persistUiLayoutDraft();
+        }
+
+        this.uiLayoutEditMode = false;
+        this.uiLayoutDraft = null;
+        this.uiLayoutSelectedControlId = null;
+        this.uiLayoutDragState.active = false;
+        this.uiLayoutDragState.pointerId = null;
+        this.uiLayoutDragState.controlId = null;
+        this.uiLayoutDragState.captureTarget = null;
+        this.setUiLayoutDirty(false);
+        document.body.classList.remove('ui-layout-edit-mode');
+        document.getElementById('ui-layout-editor')?.classList.add('hidden');
+        this.game.input?.setEnabled?.(true);
+        this.isPaused = false;
+        this.applyActiveUiLayout();
+        this.syncUiLayoutEditor();
+    }
+
+    updateUiLayoutEntry(controlId, nextEntry = {}) {
+        if (!this.uiLayoutEditMode) return;
+        const mode = this.getUiLayoutMode();
+        const modeEntries = this.ensureUiLayoutDraftMode(mode);
+        const definition = this.uiLayoutControlDefinitions[controlId];
+        modeEntries[controlId] = this.sanitizeUiLayoutEntry({
+            ...modeEntries[controlId],
+            ...nextEntry
+        }, definition);
+        this.setUiLayoutDirty(true);
+        this.applyActiveUiLayout();
+        this.selectUiLayoutControl(controlId);
+    }
+
+    resetSelectedUiLayoutControl() {
+        if (!this.uiLayoutEditMode || !this.uiLayoutSelectedControlId) return;
+        const mode = this.getUiLayoutMode();
+        const defaults = this.captureDefaultUiLayoutForMode(mode);
+        const nextDefault = defaults[this.uiLayoutSelectedControlId];
+        if (!nextDefault) return;
+        this.updateUiLayoutEntry(this.uiLayoutSelectedControlId, nextDefault);
+    }
+
+    resetUiLayoutDraftForCurrentMode() {
+        if (!this.uiLayoutEditMode) return;
+        const mode = this.getUiLayoutMode();
+        const defaults = this.captureDefaultUiLayoutForMode(mode);
+        this.uiLayoutDraft.layouts[mode] = defaults;
+        this.setUiLayoutDirty(true);
+        this.applyActiveUiLayout();
+        this.syncUiLayoutEditor();
+    }
+
+    resetStoredUiLayoutForCurrentMode() {
+        const player = this.game.localPlayer;
+        if (!player) return;
+
+        const current = this.sanitizeUiLayout(player.uiLayout) || { version: 1, layouts: {} };
+        const mode = this.getUiLayoutMode();
+        if (!current.layouts?.[mode]) return;
+
+        delete current.layouts[mode];
+        const nextLayout = this.sanitizeUiLayout(current);
+        const currentSerialized = this.serializeUiLayout(player.uiLayout);
+        const nextSerialized = this.serializeUiLayout(nextLayout);
+        player.uiLayout = nextLayout;
+        if (currentSerialized !== nextSerialized) {
+            player.saveProfilePatch?.(['uiLayout'], {
+                debounceMs: 0,
+                reason: 'ui_layout_reset'
+            });
+        }
+        this.applyActiveUiLayout();
+    }
+
+    loadPlayerUiLayout(layout) {
+        if (this.game.localPlayer) {
+            this.game.localPlayer.uiLayout = this.sanitizeUiLayout(layout);
+        }
+        if (!this.uiLayoutEditMode) {
+            this.applyActiveUiLayout();
+        }
+    }
+
+    refreshUiLayoutForViewport() {
+        const nextMode = this.getUiLayoutMode();
+        const modeChanged = nextMode !== this.uiLayoutActiveMode;
+        this.uiLayoutActiveMode = nextMode;
+        if (this.uiLayoutEditMode) {
+            this.ensureUiLayoutDraftMode(nextMode);
+            if (modeChanged || !this.uiLayoutSelectedControlId) {
+                this.uiLayoutSelectedControlId = this.getUiLayoutControlsForMode(nextMode)[0]?.[0] || null;
+            }
+            this.syncUiLayoutEditor();
+        }
+        this.applyActiveUiLayout();
+    }
+
+    handleUiLayoutControlPointerDown(e) {
+        if (!this.uiLayoutEditMode) return;
+        const controlId = e.currentTarget?.dataset?.uiLayoutControlId;
+        if (!controlId) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = e.currentTarget.getBoundingClientRect();
+        this.selectUiLayoutControl(controlId);
+        this.uiLayoutDragState.active = true;
+        this.uiLayoutDragState.pointerId = e.pointerId;
+        this.uiLayoutDragState.controlId = controlId;
+        this.uiLayoutDragState.offsetX = e.clientX - rect.left;
+        this.uiLayoutDragState.offsetY = e.clientY - rect.top;
+        this.uiLayoutDragState.captureTarget = e.currentTarget;
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+    }
+
+    handleUiLayoutControlPointerMove(e) {
+        if (!this.uiLayoutEditMode || !this.uiLayoutDragState.active) return;
+        if (this.uiLayoutDragState.pointerId !== e.pointerId) return;
+        e.preventDefault();
+        const controlId = this.uiLayoutDragState.controlId;
+        const target = this.getUiLayoutControlElement(controlId);
+        if (!target) return;
+        const rect = target.getBoundingClientRect();
+        const viewportW = Math.max(window.innerWidth || 0, 1);
+        const viewportH = Math.max(window.innerHeight || 0, 1);
+        const maxLeft = Math.max(12, viewportW - rect.width - 12);
+        const maxTop = Math.max(12, viewportH - rect.height - 12);
+        const left = Math.min(maxLeft, Math.max(12, e.clientX - this.uiLayoutDragState.offsetX));
+        const top = Math.min(maxTop, Math.max(12, e.clientY - this.uiLayoutDragState.offsetY));
+        this.updateUiLayoutEntry(controlId, {
+            left: left / viewportW,
+            top: top / viewportH
+        });
+    }
+
+    handleUiLayoutControlPointerUp(e) {
+        if (!this.uiLayoutDragState.active || this.uiLayoutDragState.pointerId !== e.pointerId) return;
+        this.uiLayoutDragState.captureTarget?.releasePointerCapture?.(e.pointerId);
+        this.uiLayoutDragState.active = false;
+        this.uiLayoutDragState.pointerId = null;
+        this.uiLayoutDragState.controlId = null;
+        this.uiLayoutDragState.captureTarget = null;
     }
 
     updateAutoAttackToggle(forceState = null) {
@@ -1473,6 +2169,7 @@ export class UIManager {
     showHUD() {
         const uiLayer = document.getElementById('ui-layer');
         if (uiLayer) uiLayer.classList.remove('hidden');
+        this.applyActiveUiLayout();
     }
 
     setupGlobalInteractions() {
@@ -1480,6 +2177,7 @@ export class UIManager {
         const PRESS_FEEDBACK_SELECTORS = '.skill-btn, .attack-btn, .action-btn, .menu-btn, .close-popup, .confirm-btn, .reset-btn';
         const pressedElements = new Set();
         const addPressedState = (target) => {
+            if (this.uiLayoutEditMode) return;
             const pressable = target?.closest?.(PRESS_FEEDBACK_SELECTORS);
             if (!pressable || pressable.disabled || pressable.classList.contains('disabled')) return;
             pressable.classList.add('is-pressed');
@@ -1616,7 +2314,10 @@ export class UIManager {
     isDesktopShortcutMode() {
         const hasFinePointer = window.matchMedia?.('(pointer: fine)')?.matches ?? false;
         const canHover = window.matchMedia?.('(hover: hover)')?.matches ?? false;
-        return (hasFinePointer || canHover) && !this.isMobileLandscapeViewport();
+        return !!this.getSetting('desktopShortcutHints')
+            && !this.uiLayoutEditMode
+            && (hasFinePointer || canHover)
+            && !this.isMobileLandscapeViewport();
     }
 
     isTextEntryFocused() {
@@ -1831,6 +2532,20 @@ export class UIManager {
     }
 
     handleDesktopShortcutKeydown(e) {
+        if (this.uiLayoutEditMode) {
+            if (e.code === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.exitUiLayoutEditMode({ save: false });
+            }
+            if (e.code === 'KeyF') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.exitUiLayoutEditMode({ save: true });
+            }
+            return;
+        }
+
         if (!this.isDesktopShortcutMode() || this.isTextEntryFocused() || e.repeat) return;
 
         if (e.code === 'KeyQ' && this.tryClaimQuestWithShortcut()) {
@@ -1972,6 +2687,11 @@ export class UIManager {
     }
 
     updateLandscapeAutoFullscreen() {
+        if (!this.getSetting('autoFullscreen')) {
+            this.pendingLandscapeFullscreen = false;
+            return;
+        }
+
         if (!this.isMobileLandscapeViewport()) {
             this.pendingLandscapeFullscreen = false;
             this.landscapeFullscreenDismissed = false;
@@ -1991,10 +2711,13 @@ export class UIManager {
         document.addEventListener('keydown', this.handleDesktopShortcutKeydown);
         document.addEventListener('pointermove', this.handleTutorialGuideDragMove, { passive: false });
         document.addEventListener('pointermove', this.handleFloatingPanelDragMove, { passive: false });
+        document.addEventListener('pointermove', this.handleUiLayoutControlPointerMove, { passive: false });
         document.addEventListener('pointerup', this.handleTutorialGuideDragEnd, true);
         document.addEventListener('pointercancel', this.handleTutorialGuideDragEnd, true);
         document.addEventListener('pointerup', this.handleFloatingPanelDragEnd, true);
         document.addEventListener('pointercancel', this.handleFloatingPanelDragEnd, true);
+        document.addEventListener('pointerup', this.handleUiLayoutControlPointerUp, true);
+        document.addEventListener('pointercancel', this.handleUiLayoutControlPointerUp, true);
         this.setupDraggableFloatingPanels();
 
         const handleClose = (e) => {
@@ -2055,6 +2778,7 @@ export class UIManager {
 
         const autoAttackToggle = document.getElementById('action-auto-toggle');
         const handleAutoAttackToggle = (e) => {
+            if (this.uiLayoutEditMode) return;
             e.preventDefault();
             e.stopPropagation();
             this.game.localPlayer?.toggleAutoAttack?.();
@@ -2066,6 +2790,17 @@ export class UIManager {
         if (autoAttackToggle) {
             this.updateAutoAttackToggle();
         }
+
+        this.getUiLayoutControlsForMode('desktop')
+            .concat(this.getUiLayoutControlsForMode('mobilePortrait'))
+            .concat(this.getUiLayoutControlsForMode('mobileLandscape'))
+            .forEach(([controlId]) => {
+                const element = this.getUiLayoutControlElement(controlId);
+                if (!element || element.dataset.uiLayoutBound === 'true') return;
+                element.dataset.uiLayoutControlId = controlId;
+                element.addEventListener('pointerdown', this.handleUiLayoutControlPointerDown);
+                element.dataset.uiLayoutBound = 'true';
+            });
 
         const skillDetailModal = document.getElementById('skill-detail-modal');
         const skillDetailCloseBtn = document.getElementById('skill-detail-modal-close');
@@ -2207,6 +2942,7 @@ export class UIManager {
         const fsBtn = document.getElementById('btn-fullscreen');
         if (fsBtn) {
             const handleFs = (e) => {
+                if (this.uiLayoutEditMode) return;
                 e.preventDefault();
                 e.stopPropagation();
                 this.toggleFullscreen();
@@ -2219,13 +2955,15 @@ export class UIManager {
         const menuBtnMap = {
             'btn-inventory': 'inventory-popup',
             'btn-skill': 'skill-popup',
-            'btn-status': 'status-popup'
+            'btn-status': 'status-popup',
+            'btn-settings': 'settings-popup'
         };
 
         Object.entries(menuBtnMap).forEach(([btnId, popupId]) => {
             const btn = document.getElementById(btnId);
             if (btn) {
                 const handleToggle = (e) => {
+                    if (this.uiLayoutEditMode) return;
                     e.preventDefault();
                     this.togglePopup(popupId);
                 };
@@ -2233,6 +2971,66 @@ export class UIManager {
                 btn.addEventListener('touchstart', handleToggle, { passive: false });
             }
         });
+
+        const rangeSettings = [
+            ['settings-master-volume', 'masterVolume', { refreshGame: false }],
+            ['settings-chat-opacity', 'chatOpacity', { refreshGame: false }],
+            ['settings-quest-opacity', 'questOpacity', { refreshGame: false }],
+            ['settings-minimap-opacity', 'minimapOpacity', { refreshGame: false }]
+        ];
+        rangeSettings.forEach(([inputId, key, options]) => {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const handleInput = (e) => {
+                this.updateSetting(key, Number(e.currentTarget.value), options);
+            };
+            input.addEventListener('input', handleInput);
+            input.addEventListener('change', handleInput);
+        });
+
+        const toggleSettings = [
+            ['settings-muted', 'muted', { refreshGame: false }],
+            ['settings-auto-fullscreen', 'autoFullscreen', { refreshGame: false }],
+            ['settings-reduced-effects', 'reducedEffects', { refreshGame: true }],
+            ['settings-shortcut-hints', 'desktopShortcutHints', { refreshGame: false }]
+        ];
+        toggleSettings.forEach(([inputId, key, options]) => {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            input.addEventListener('change', (e) => {
+                this.updateSetting(key, !!e.currentTarget.checked, options);
+            });
+        });
+
+        document.getElementById('settings-open-ui-layout')?.addEventListener('click', () => {
+            this.hideAllPopups();
+            this.enterUiLayoutEditMode();
+        });
+        document.getElementById('settings-reset-ui-layout')?.addEventListener('click', () => {
+            this.resetStoredUiLayoutForCurrentMode();
+        });
+        document.getElementById('ui-layout-target-select')?.addEventListener('change', (e) => {
+            this.selectUiLayoutControl(e.currentTarget.value);
+        });
+        document.getElementById('ui-layout-size-range')?.addEventListener('input', (e) => {
+            if (!this.uiLayoutSelectedControlId) return;
+            this.updateUiLayoutEntry(this.uiLayoutSelectedControlId, {
+                scale: Number(e.currentTarget.value) / 100
+            });
+        });
+        document.getElementById('ui-layout-reset-selected')?.addEventListener('click', () => {
+            this.resetSelectedUiLayoutControl();
+        });
+        document.getElementById('ui-layout-reset-mode')?.addEventListener('click', () => {
+            this.resetUiLayoutDraftForCurrentMode();
+        });
+        document.getElementById('ui-layout-cancel')?.addEventListener('click', () => {
+            this.exitUiLayoutEditMode({ save: false });
+        });
+        document.getElementById('ui-layout-save')?.addEventListener('click', () => {
+            this.exitUiLayoutEditMode({ save: true });
+        });
+        this.syncSettingsUi();
 
         // Player Name Edit/Save Buttons
         const nameEditBtn = document.getElementById('player-name-edit-btn');
@@ -2662,6 +3460,10 @@ export class UIManager {
                 const skillList = popup.querySelector('.skill-list');
                 if (skillContentWrapper) skillContentWrapper.scrollTop = 0;
                 if (skillList) skillList.scrollTop = 0;
+            }
+            if (id === 'settings-popup') {
+                this.syncSettingsUi();
+                popup.scrollTop = 0;
             }
             this.isPaused = true;
             this.game.tutorial?.trigger?.('popup_open', { target: id });

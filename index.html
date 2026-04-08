@@ -292,6 +292,9 @@
                         <div class="menu-icon">👤</div>
                         <span class="menu-alert-dot" id="status-alert-dot" aria-hidden="true"></span>
                     </div>
+                    <div class="menu-btn settings-trigger" id="btn-settings" title="설정">
+                        <div class="menu-icon">⚙️</div>
+                    </div>
                 </div>
 
                 <div class="menu-btn fullscreen-toggle" id="btn-fullscreen" title="전체화면">
@@ -665,6 +668,125 @@
                 </div>
                 <div class="popup-footer">
                     <button class="close-btn-bottom close-popup">닫기</button>
+                </div>
+            </div>
+
+            <div id="settings-popup" class="game-popup hidden">
+                <div class="popup-header">
+                    <h2>설정 (Settings)</h2>
+                    <button id="settings-close-btn-top" class="close-popup pc-only">✕</button>
+                </div>
+                <div class="settings-content-wrapper">
+                    <div class="settings-section">
+                        <h3>사운드</h3>
+                        <div class="settings-row">
+                            <label for="settings-master-volume">마스터 볼륨</label>
+                            <div class="settings-control settings-range-control">
+                                <input id="settings-master-volume" type="range" min="0" max="100" step="1">
+                                <span id="settings-master-volume-value">40%</span>
+                            </div>
+                        </div>
+                        <div class="settings-row settings-toggle-row">
+                            <span>전체 음소거</span>
+                            <label class="settings-switch">
+                                <input id="settings-muted" type="checkbox">
+                                <span class="settings-switch-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>게임 플레이</h3>
+                        <div class="settings-row settings-toggle-row">
+                            <span>모바일 가로 자동 전체화면</span>
+                            <label class="settings-switch">
+                                <input id="settings-auto-fullscreen" type="checkbox">
+                                <span class="settings-switch-slider"></span>
+                            </label>
+                        </div>
+                        <div class="settings-row settings-toggle-row">
+                            <span>전투 이펙트 절약 모드</span>
+                            <label class="settings-switch">
+                                <input id="settings-reduced-effects" type="checkbox">
+                                <span class="settings-switch-slider"></span>
+                            </label>
+                        </div>
+                        <div class="settings-row settings-toggle-row">
+                            <span>PC 단축키 힌트 표시</span>
+                            <label class="settings-switch">
+                                <input id="settings-shortcut-hints" type="checkbox">
+                                <span class="settings-switch-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>HUD 표시</h3>
+                        <div class="settings-row">
+                            <label for="settings-chat-opacity">채팅창 투명도</label>
+                            <div class="settings-control settings-range-control">
+                                <input id="settings-chat-opacity" type="range" min="35" max="100" step="1">
+                                <span id="settings-chat-opacity-value">100%</span>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <label for="settings-quest-opacity">퀘스트창 투명도</label>
+                            <div class="settings-control settings-range-control">
+                                <input id="settings-quest-opacity" type="range" min="35" max="100" step="1">
+                                <span id="settings-quest-opacity-value">100%</span>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <label for="settings-minimap-opacity">미니맵 투명도</label>
+                            <div class="settings-control settings-range-control">
+                                <input id="settings-minimap-opacity" type="range" min="35" max="100" step="1">
+                                <span id="settings-minimap-opacity-value">100%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>UI 변경 모드</h3>
+                        <p class="settings-help-text">현재 화면 기준으로 버튼 위치와 크기를 조정합니다. 저장한 배치는 로그인할 때 계정 DB에서 불러와 자동 적용됩니다.</p>
+                        <div class="settings-action-grid">
+                            <button id="settings-open-ui-layout" type="button" class="settings-action-btn primary">UI 변경 모드 시작</button>
+                            <button id="settings-reset-ui-layout" type="button" class="settings-action-btn secondary">현재 화면 배치 초기화</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="popup-footer">
+                    <button id="settings-close-btn-bottom" class="close-btn-bottom close-popup">닫기</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="ui-layout-editor" class="ui-layout-editor hidden">
+            <div class="ui-layout-editor-card">
+                <div class="ui-layout-editor-header">
+                    <div>
+                        <strong>UI 변경 모드</strong>
+                        <p id="ui-layout-mode-label">현재 화면: 데스크톱</p>
+                    </div>
+                </div>
+                <div class="ui-layout-editor-body">
+                    <div class="ui-layout-editor-row">
+                        <label for="ui-layout-target-select">조정 대상</label>
+                        <select id="ui-layout-target-select"></select>
+                    </div>
+                    <div class="ui-layout-editor-row">
+                        <label for="ui-layout-size-range">크기</label>
+                        <div class="settings-control settings-range-control">
+                            <input id="ui-layout-size-range" type="range" min="70" max="180" step="1">
+                            <span id="ui-layout-size-value">100%</span>
+                        </div>
+                    </div>
+                    <p class="ui-layout-editor-help">조절할 UI를 직접 터치하거나 드래그해 위치를 바꾸고, 위 슬라이더로 크기를 조정하세요. 저장할 때만 계정 DB에 반영됩니다.</p>
+                    <div class="settings-action-grid ui-layout-editor-actions">
+                        <button id="ui-layout-reset-selected" type="button" class="settings-action-btn secondary">선택 초기화</button>
+                        <button id="ui-layout-reset-mode" type="button" class="settings-action-btn secondary">이 화면 초기화</button>
+                        <button id="ui-layout-cancel" type="button" class="settings-action-btn secondary">취소</button>
+                        <button id="ui-layout-save" type="button" class="settings-action-btn primary">저장</button>
+                    </div>
                 </div>
             </div>
         </div>

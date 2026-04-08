@@ -19,6 +19,7 @@ export default class SoundManager {
         this.bgmLoopTimer = null;
 
         this.isMuted = false;
+        this.masterVolume = 0.4;
         this.isInitialized = false;
 
         this.notes = {
@@ -51,7 +52,7 @@ export default class SoundManager {
                 this.ctx = new AudioContext();
 
                 this.masterGain = this.ctx.createGain();
-                this.masterGain.gain.value = 0.4; // Slightly louder
+                this.masterGain.gain.value = this.isMuted ? 0 : this.masterVolume;
 
                 // Global Reverb (Convolver)
                 this.reverbNode = this.ctx.createConvolver();
@@ -83,6 +84,21 @@ export default class SoundManager {
             });
         }
         return Promise.resolve();
+    }
+
+    setMasterVolume(volume = 0.4) {
+        const safeVolume = Math.min(1, Math.max(0, Number(volume) || 0));
+        this.masterVolume = safeVolume;
+        if (this.masterGain) {
+            this.masterGain.gain.value = this.isMuted ? 0 : safeVolume;
+        }
+    }
+
+    setMuted(muted = false) {
+        this.isMuted = !!muted;
+        if (this.masterGain) {
+            this.masterGain.gain.value = this.isMuted ? 0 : this.masterVolume;
+        }
     }
 
     // Legacy support alias
