@@ -3746,6 +3746,7 @@ export class UIManager {
         // Listen for Network Chats (v0.26.0)
         if (this.game.net) {
             this.game.net.on('chatReceived', (data) => this._onChatReceived(data));
+            this.game.net.on('emoteReceived', (data) => this._onEmoteReceived(data));
 
             // v0.00.65: Party System Listeners (Moved from Player.js to avoid constructor errors)
             this.game.net.on('partyInviteReceived', (data) => {
@@ -5342,13 +5343,18 @@ export class UIManager {
         emotes.forEach(emote => {
             const btn = document.createElement('button');
             btn.className = 'emote-item';
-            btn.textContent = emote.icon;
-            btn.title = emote.name;
-            btn.style.cssText = 'font-size: 24px; background: none; border: none; cursor: pointer; padding: 5px;';
+            btn.title = emote.id || 'emote';
+            btn.style.cssText = 'display:flex; align-items:center; justify-content:center; background:none; border:none; cursor:pointer; padding:5px;';
+
+            const icon = document.createElement('img');
+            icon.src = emote.icon;
+            icon.alt = emote.id || 'emote';
+            icon.className = 'emote-item';
+            icon.style.pointerEvents = 'none';
+            btn.appendChild(icon);
 
             btn.onclick = () => {
-                // Send Emote Command
-                this.sendMessage(`/emote ${emote.id}`);
+                this.onEmoteClick(emote.id);
                 panel.classList.add('hidden');
                 if (this.game.sound) this.game.sound.playSfx('ui_click');
             };
@@ -6945,34 +6951,84 @@ export class UIManager {
         input.value = '';
     }
 
+    _getEmoteDefinition(emoteId) {
+        if (!emoteId || !Array.isArray(this.game?.emotes)) return null;
+        return this.game.emotes.find((emote) => emote?.id === emoteId) || null;
+    }
+
+    _resolveChatSenderName(uid, fallbackName = '') {
+        if (typeof fallbackName === 'string' && fallbackName.trim()) {
+            return fallbackName.trim();
+        }
+        if (uid && uid === this.game?.net?.playerId) {
+            return this.game?.localPlayer?.name || 'Unknown';
+        }
+
+        const sceneRemote = this.game?.sceneManager?.currentScene?.remotePlayers?.get?.(uid) || null;
+        const worldRemote = this.game?.remotePlayers?.get?.(uid) || null;
+        const netRemote = this.game?.net?.remotePlayers?.get?.(uid) || null;
+        const resolved = sceneRemote?.name || worldRemote?.name || netRemote?.name;
+        return (typeof resolved === 'string' && resolved.trim()) ? resolved.trim() : 'Unknown';
+    }
+
+    _appendChatLogEntry({ uid = '', name = '', text = '', emoteId = null } = {}) {
+        const msgArea = document.querySelector('.chat-messages');
+        if (!msgArea) return;
+
+        const isMe = uid === this.game?.net?.playerId;
+        const div = document.createElement('div');
+        div.className = isMe ? 'chat-msg-me' : 'chat-msg-other';
+
+        const sender = document.createElement('span');
+        sender.className = 'chat-sender';
+        sender.textContent = `${this._resolveChatSenderName(uid, name)}:`;
+        div.appendChild(sender);
+        div.appendChild(document.createTextNode(' '));
+
+        const content = document.createElement('span');
+        content.className = 'chat-text';
+
+        if (emoteId) {
+            const emote = this._getEmoteDefinition(emoteId);
+            if (emote?.icon) {
+                const img = document.createElement('img');
+                img.className = 'chat-inline-emote';
+                img.src = emote.icon;
+                img.alt = emote.id || 'emote';
+                img.title = emote.id || 'emote';
+                content.appendChild(img);
+            } else {
+                content.textContent = '(이모트)';
+            }
+        } else {
+            content.textContent = text || '';
+        }
+
+        div.appendChild(content);
+        msgArea.appendChild(div);
+
+        while (msgArea.children.length > 50) {
+            msgArea.removeChild(msgArea.firstChild);
+        }
+        msgArea.scrollTop = msgArea.scrollHeight;
+    }
+
     _onChatReceived(data) {
         // v2.1: Emote Handling
-        let displayMsg = data.text;
         let isEmote = false;
         let emoteId = null;
 
         if (data.text.startsWith('/emote ')) {
             emoteId = data.text.split(' ')[1];
             isEmote = true;
-
-            // Find emote icon for chat log
-            const emote = this.game.emotes?.find(e => e.id === emoteId);
-            displayMsg = emote ? `(이모트) ${emote.icon}` : '(이모트)';
         }
 
-        const msgArea = document.querySelector('.chat-messages');
-        if (msgArea) {
-            const div = document.createElement('div');
-            const isMe = data.uid === this.game.net.playerId;
-            div.className = isMe ? 'chat-msg-me' : 'chat-msg-other';
-            div.innerHTML = `<span class="chat-sender">${data.name}:</span> <span class="chat-text">${displayMsg}</span>`;
-            msgArea.appendChild(div);
-
-            while (msgArea.children.length > 50) {
-                msgArea.removeChild(msgArea.firstChild);
-            }
-            msgArea.scrollTop = msgArea.scrollHeight;
-        }
+        this._appendChatLogEntry({
+            uid: data.uid,
+            name: data.name,
+            text: data.text,
+            emoteId: isEmote ? emoteId : null
+        });
 
         // Trigger Speech Bubble or Emote on Character
         if (isEmote && emoteId) {
@@ -6991,6 +7047,15 @@ export class UIManager {
                 if (rp) rp.showSpeechBubble(bubbleText);
             }
         }
+    }
+
+    _onEmoteReceived(data) {
+        if (!data?.uid || !data?.emoteId) return;
+        this._appendChatLogEntry({
+            uid: data.uid,
+            name: data.name,
+            emoteId: data.emoteId
+        });
     }
 
     sanitizeSystemMessageText(text) {
@@ -7413,7 +7478,8 @@ export class UIManager {
                     const img = document.createElement('img');
                     img.src = emote.icon;
                     img.className = 'emote-item';
-                    img.title = emote.text;
+                    img.alt = emote.id || 'emote';
+                    img.title = emote.id || 'emote';
                     img.onclick = () => this.onEmoteClick(emote.id);
                     picker.appendChild(img);
                 });
@@ -7433,45 +7499,14 @@ export class UIManager {
     }
 
     onEmoteClick(emoteId) {
-        // Send emote command to chat or network
-        // For now, simulate chat command
-        // If we have a chat input, we could append or just send directly.
-        // Direct send is better for UX.
-        if (this.game.net) {
-            // this.game.net.sendEmote(emoteId); // Implement this in NetworkManager
-            // Fallback: Send via chat
-            // this.game.net.sendChat(`/emote ${emoteId}`);
-            // Actually let's assume direct packet for now or use chat.
-            // Let's use chat input injection for now as immediate feedback?
-            // No, direct send.
+        if (!emoteId || !this.game?.net) return;
 
-            // Checking if sendEmote exists... probably not yet.
-            // Let's use chat input logic for now to utilize existing system.
-            const chatInput = document.querySelector('.chat-input-area input');
-            const sendBtn = document.querySelector('.send-btn');
-            if (chatInput && sendBtn) {
-                // Determine if we want to send command or just text
-                // Let's send a command: /e [id]
-                // But NetworkManager needs to handle /e
-                // Or we can just handle it here?
-
-                // Let's try sending a special packet if possible, but user task says "Chat System Integration"
-                // So maybe just appending to chat is safer.
-                // But typically emotes are separate packets.
-
-                // Let's implement sendEmote in NetworkManager later.
-                // For now, let's just log or try to call a method that might not exist, or add it.
-                // I'll call this.game.player.showEmote(emoteId) directly for local, and send packet.
-
-                if (this.game.localPlayer) {
-                    this.game.localPlayer.showEmote(emoteId);
-                }
-                if (this.game.net && this.game.net.socket) {
-                    this.game.net.sendEmote(emoteId);
-                }
-            }
-
-            this.toggleEmotePicker(); // Close after pick
+        if (this.game.localPlayer) {
+            this.game.localPlayer.showEmote(emoteId);
         }
+
+        this.game.net.sendEmote(emoteId, this.game.localPlayer?.name || '');
+        document.getElementById('emote-picker')?.classList.add('hidden');
+        document.getElementById('emote-panel')?.classList.add('hidden');
     }
 }

@@ -5869,6 +5869,21 @@ body.is-fullscreen .version-info {
     background: rgba(0, 0, 0, 0.05);
 }
 
+.chat-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chat-inline-emote {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    object-fit: contain;
+    image-rendering: auto;
+    vertical-align: middle;
+}
+
 .emote-btn {
     cursor: pointer;
     font-size: 18px;

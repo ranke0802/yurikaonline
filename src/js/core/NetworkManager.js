@@ -3576,10 +3576,11 @@ export default class NetworkManager extends EventEmitter {
         this.on('systemMessage', callback);
     }
     // v2.1: Emote System
-    sendEmote(emoteId) {
+    sendEmote(emoteId, senderName = '') {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         this.dbRef.child('emotes').push({
             uid: this.playerId,
+            name: senderName || this.lastPacketData?.name || 'Unknown',
             emoteId: emoteId,
             ts: firebase.database.ServerValue.TIMESTAMP
         });
