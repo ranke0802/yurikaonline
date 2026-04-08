@@ -66,9 +66,10 @@ export class Projectile {
             this.color = '#f97316';
         }
         this.trail = [];
-        this.trailLength = type === 'missile'
+        this.baseTrailLength = type === 'missile'
             ? (this.reducedEffects ? 10 : 20)
             : (this.reducedEffects ? 6 : 10);
+        this.trailLength = this.baseTrailLength;
         this.particles = [];
 
         // Missile-specific
@@ -98,6 +99,15 @@ export class Projectile {
         }
     }
 
+    _getDynamicEffectScale() {
+        const activeProjectileCount = Number(window.game?.projectiles?.length || 0);
+        if (this.reducedEffects) return 0.45;
+        if (activeProjectileCount >= 28) return 0.4;
+        if (activeProjectileCount >= 18) return 0.58;
+        if (activeProjectileCount >= 10) return 0.78;
+        return 1;
+    }
+
     update(dt, monsters) {
         if (this.isDead) return;
 
@@ -125,13 +135,15 @@ export class Projectile {
         this.particles = this.particles.filter(p => p.life > 0);
 
         // Trail
+        const effectScale = this._getDynamicEffectScale();
+        this.trailLength = Math.max(4, Math.round(this.baseTrailLength * effectScale));
         this.trail.unshift({ x: this.x, y: this.y });
         if (this.trail.length > this.trailLength) this.trail.pop();
 
         if (this.type === 'missile') {
             // Exhaust Particles
-            const particleChance = this.reducedEffects ? 0.12 : 0.3;
-            const maxParticles = this.reducedEffects ? 6 : 18;
+            const particleChance = (this.reducedEffects ? 0.12 : 0.3) * effectScale;
+            const maxParticles = Math.max(4, Math.round((this.reducedEffects ? 6 : 18) * effectScale));
             if (this.particles.length < maxParticles && Math.random() < particleChance) {
                 const angle = Math.atan2(this.vy, this.vx) + Math.PI + (Math.random() - 0.5);
                 const pSpeed = Math.random() * 150;
@@ -393,7 +405,8 @@ export class Projectile {
                 variant: explosionVariant,
                 collapse: this.type === 'fireball'
             });
-            for (let i = 0; i < 15; i++) window.game.addSpark(this.x, this.y);
+            const sparkCount = Math.max(4, Math.round(15 * this._getDynamicEffectScale()));
+            for (let i = 0; i < sparkCount; i++) window.game.addSpark(this.x, this.y);
             // v0.00.63: Explosion SFX
             if (this.type === 'fireball' && window.game.sound) {
                 window.game.sound.playSfx('fireball_explosion');

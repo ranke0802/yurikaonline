@@ -918,6 +918,10 @@ export default class Player extends CharacterBase {
 
         // v0.28.0: Sync HP to DB
         if (this.net) this.net.sendPlayerHp(this.hp, this.maxHp);
+        this.saveProfilePatch(['hp'], {
+            debounceMs: fromNetwork ? 5200 : 4200,
+            reason: 'damage_hp_patch'
+        });
         window.game?.ui?.updatePartyUI?.();
 
         Logger.log(`[Player] HP: ${this.hp}`);
@@ -990,6 +994,10 @@ export default class Player extends CharacterBase {
         }
         // v0.29.32: Sync death state (HP 0) immediately
         if (this.net) this.net.sendPlayerHp(0, this.maxHp);
+        this.saveProfilePatch(['hp'], {
+            debounceMs: 0,
+            reason: 'death_hp_patch'
+        });
     }
 
     saveState(syncToWorld = false, options = {}) {
@@ -1034,6 +1042,97 @@ export default class Player extends CharacterBase {
             debounceMs: profileSaveDebounceMs,
             forceImmediate: !!syncToWorld,
             saveReason: options.reason || 'player_save'
+        });
+    }
+
+    _cloneProfilePatchValue(value) {
+        if (value == null || typeof value !== 'object') return value;
+        try {
+            return JSON.parse(JSON.stringify(value));
+        } catch (error) {
+            console.warn('[Player] Failed to clone profile patch value', error);
+            return value;
+        }
+    }
+
+    _buildProfilePatchFromFields(fields = []) {
+        const patch = {};
+        fields.forEach((field) => {
+            switch (field) {
+                case 'level':
+                    patch.level = this.level;
+                    break;
+                case 'exp':
+                    patch.exp = this.exp;
+                    break;
+                case 'maxExp':
+                    patch.maxExp = this.maxExp;
+                    break;
+                case 'hp':
+                    patch.hp = Math.round(this.hp);
+                    break;
+                case 'maxHp':
+                    patch.maxHp = Math.round(this.maxHp);
+                    break;
+                case 'mp':
+                    patch.mp = Math.round(this.mp);
+                    break;
+                case 'gold':
+                    patch.gold = this.gold;
+                    break;
+                case 'statPoints':
+                    patch.statPoints = this.statPoints;
+                    break;
+                case 'questData':
+                    patch.questData = this._cloneProfilePatchValue(this.questData);
+                    break;
+                case 'skillLevels':
+                    patch.skillLevels = this._cloneProfilePatchValue(this.skillLevels);
+                    break;
+                case 'party':
+                    patch.party = this._cloneProfilePatchValue(this.party);
+                    break;
+                case 'hostility':
+                    patch.hostility = Object.fromEntries(
+                        Array.from(this.hostileTargets.entries()).map(([k, v]) => [k, { name: v.name || 'Unknown', ts: v.ts || Date.now() }])
+                    );
+                    break;
+                case 'name':
+                    patch.name = this.name;
+                    break;
+                case 'defense':
+                    patch.defense = this.defense || 0;
+                    break;
+                case 'isPaused':
+                    patch.isPaused = !!window.game?.ui?.isPaused;
+                    break;
+                case 'protectedUntil':
+                    patch.protectedUntil = this.spawnProtectionTimer > 0
+                        ? Date.now() + Math.round(this.spawnProtectionTimer * 1000)
+                        : 0;
+                    break;
+                default:
+                    break;
+            }
+        });
+        return patch;
+    }
+
+    saveProfilePatch(fields = [], options = {}) {
+        if (!this.net || !this.id || !Array.isArray(fields) || fields.length === 0) return;
+        const isSharedFieldActive = !!this.net.isSharedFieldActive?.();
+        const overrideDebounceMs = Number.isFinite(options.debounceMs) ? Math.max(0, Number(options.debounceMs)) : null;
+        const profilePatchDebounceMs = options.syncToWorld
+            ? 0
+            : (overrideDebounceMs ?? (isSharedFieldActive ? 2800 : 4800));
+        const patch = this._buildProfilePatchFromFields(fields);
+        if (Object.keys(patch).length === 0) return;
+        patch.ts = Date.now();
+        this.net.savePlayerDataPatch(this.id, patch, {
+            debounceMs: profilePatchDebounceMs,
+            forceImmediate: !!options.syncToWorld,
+            syncToZone: !!options.syncToWorld,
+            saveReason: options.reason || 'player_patch'
         });
     }
 
@@ -1777,13 +1876,16 @@ export default class Player extends CharacterBase {
         this.gold += amount;
         this.updateGoldInventory();
         if (shouldSave) {
-            this.saveState(false, { debounceMs });
+            this.saveProfilePatch(['gold'], {
+                debounceMs,
+                reason: 'gold_patch'
+            });
         }
         if (window.game?.ui) window.game.ui.updateInventory();
     }
 
 
-    recoverHp(amount) {
+    recoverHp(amount, options = {}) {
         const previousHp = this.hp;
         this.hp = Math.min(this.maxHp, this.hp + amount);
         if (this.net && this.hp !== previousHp) {
@@ -1791,6 +1893,12 @@ export default class Player extends CharacterBase {
         }
         if (this.hp !== previousHp) {
             window.game?.ui?.updatePartyUI?.();
+            if (options.save !== false) {
+                this.saveProfilePatch(['hp'], {
+                    debounceMs: Number.isFinite(options.debounceMs) ? options.debounceMs : 4200,
+                    reason: options.reason || 'recover_hp_patch'
+                });
+            }
         }
     }
 
@@ -1804,7 +1912,7 @@ export default class Player extends CharacterBase {
             this.gold += data.gold;
             this.updateGoldInventory();
         }
-        if (data.hp) this.recoverHp(data.hp);
+        if (data.hp) this.recoverHp(data.hp, { save: false });
         if (Array.isArray(data.items)) {
             data.items.forEach((item) => {
                 const itemId = item.id || item.type;
@@ -1915,7 +2023,15 @@ export default class Player extends CharacterBase {
             window.game.ui.updateInventory();
         }
         if (shouldSave) {
-            this.saveState(false, { debounceMs: saveDebounceMs });
+            const hasInventoryMutation = Array.isArray(data.items) && data.items.length > 0;
+            if (hasInventoryMutation) {
+                this.saveState(false, { debounceMs: saveDebounceMs, reason: 'reward_full_save' });
+            } else {
+                this.saveProfilePatch(['exp', 'maxExp', 'level', 'statPoints', 'gold', 'hp', 'questData'], {
+                    debounceMs: saveDebounceMs,
+                    reason: 'reward_progress_patch'
+                });
+            }
         }
     }
 
@@ -1944,7 +2060,10 @@ export default class Player extends CharacterBase {
             this.levelUp({ save: false });
         }
         if (shouldSave) {
-            this.saveState(false, { debounceMs });
+            this.saveProfilePatch(['exp', 'maxExp', 'level', 'statPoints', 'hp'], {
+                debounceMs,
+                reason: 'exp_patch'
+            });
         }
     }
 
@@ -1970,7 +2089,11 @@ export default class Player extends CharacterBase {
 
         this.updateDerivedStats({ save: false });
         if (shouldSave) {
-            this.saveState(syncToWorld, { debounceMs });
+            this.saveProfilePatch(['level', 'exp', 'maxExp', 'statPoints', 'hp', 'mp'], {
+                debounceMs,
+                syncToWorld,
+                reason: 'levelup_patch'
+            });
         }
     }
 

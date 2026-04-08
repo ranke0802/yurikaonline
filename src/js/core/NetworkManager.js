@@ -31,12 +31,12 @@ export default class NetworkManager extends EventEmitter {
         this.lastHeartbeatTime = 0;
         this.lastNetworkActivityTime = 0;
         this.sharedHeartbeatInterval = 2500; // Shared field presence must stay tighter than stale cleanup
-        this.idleHeartbeatInterval = 5000; // Keep idle peers comfortably below stale cleanup windows
-        this.activeHeartbeatInterval = 4000; // 4s when moving
-        this.backgroundHeartbeatInterval = 9000; // Hidden tabs should remain visible to other peers
-        this.presenceStaleTimeout = 15000;
+        this.idleHeartbeatInterval = 8000; // Solo idle can be much cheaper without hurting UX
+        this.activeHeartbeatInterval = 6500; // Solo movement still keeps a light heartbeat
+        this.backgroundHeartbeatInterval = 12000; // Hidden solo tabs can be even lighter
+        this.presenceStaleTimeout = 18000;
         this.sharedGhostTimeout = 15000;
-        this.soloGhostTimeout = 9000;
+        this.soloGhostTimeout = 12000;
         this.lastPacketData = null;
 
         // Batch update queue for damage/events
@@ -53,6 +53,7 @@ export default class NetworkManager extends EventEmitter {
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
         this._lastProfileSaveTs = 0;
         this._queuedProfileSaves = new Map();
+        this._queuedProfilePatches = new Map();
         this._profileBackupMeta = new Map();
         this._profileBackupPruneMeta = new Map();
         this._zoneUserCache = new Map();
@@ -473,6 +474,7 @@ export default class NetworkManager extends EventEmitter {
 
     disconnect() {
         this.flushQueuedProfileSaves().catch(() => { });
+        this.flushQueuedProfilePatches().catch(() => { });
         if (this._hbInterval) {
             clearInterval(this._hbInterval);
             this._hbInterval = null;
@@ -1108,7 +1110,8 @@ export default class NetworkManager extends EventEmitter {
 
     _writePresenceTsOnly(reason = 'heartbeat') {
         if (!this.connected || !this.playerId || !this.dbRef || !this.zoneParticipationEnabled) return;
-        this._writePresenceHeartbeatFallback({ reason, includePresenceLiteTs: true });
+        const includePresenceLiteTs = this.isSharedFieldActive() || this._fieldPeerCount > 0;
+        this._writePresenceHeartbeatFallback({ reason, includePresenceLiteTs });
     }
 
     _writePresenceHeartbeatFallback({ reason = 'heartbeat', includePresenceLiteTs = true } = {}) {
@@ -1526,6 +1529,22 @@ export default class NetworkManager extends EventEmitter {
             isPaused: !!profile.isPaused,
             protectedUntil: Number(profile.protectedUntil || 0)
         };
+    }
+
+    _buildZoneProfilePatch(patch) {
+        if (!patch || typeof patch !== 'object') return null;
+        const zonePatch = {};
+
+        if (patch.name !== undefined) zonePatch.name = patch.name || 'Unknown';
+        if (patch.level !== undefined) zonePatch.level = Number(patch.level || 1);
+        if (patch.equipment !== undefined) zonePatch.equipment = patch.equipment || null;
+        if (patch.party !== undefined) zonePatch.party = patch.party || null;
+        if (patch.hostility !== undefined) zonePatch.hostility = patch.hostility || {};
+        if (patch.defense !== undefined) zonePatch.defense = Number(patch.defense || 0);
+        if (patch.isPaused !== undefined) zonePatch.isPaused = !!patch.isPaused;
+        if (patch.protectedUntil !== undefined) zonePatch.protectedUntil = Number(patch.protectedUntil || 0);
+
+        return Object.keys(zonePatch).length > 0 ? zonePatch : null;
     }
 
     _getMoveSyncInterval(vx = 0, vy = 0) {
@@ -1970,10 +1989,54 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
+    _mergeProfileData(baseData = {}, patchData = {}) {
+        const merged = this._cloneProfileData(baseData) || {};
+        const nextPatch = this._cloneProfileData(patchData) || {};
+
+        Object.entries(nextPatch).forEach(([key, value]) => {
+            if (
+                value
+                && typeof value === 'object'
+                && !Array.isArray(value)
+                && merged[key]
+                && typeof merged[key] === 'object'
+                && !Array.isArray(merged[key])
+            ) {
+                merged[key] = {
+                    ...merged[key],
+                    ...value
+                };
+                return;
+            }
+
+            merged[key] = value;
+        });
+
+        return merged;
+    }
+
     async savePlayerData(uid, data, syncToZone = false, options = {}) {
         const debounceMs = Number(options.debounceMs || 0);
+        let patchWaiters = null;
+        if (this._queuedProfilePatches.has(uid)) {
+            const queuedPatch = this._queuedProfilePatches.get(uid);
+            if (queuedPatch?.timer) clearTimeout(queuedPatch.timer);
+            this._queuedProfilePatches.delete(uid);
+            data = this._mergeProfileData(data, queuedPatch?.patch || {});
+            syncToZone = syncToZone || !!queuedPatch?.syncToZone;
+            patchWaiters = queuedPatch?.waiters || null;
+        }
+
         if (debounceMs > 0 && !options.forceImmediate) {
-            return this._queueProfileSave(uid, data, syncToZone, options);
+            const savePromise = this._queueProfileSave(uid, data, syncToZone, options);
+            if (patchWaiters?.length) {
+                savePromise.then((result) => {
+                    patchWaiters.forEach(({ resolve }) => resolve(result));
+                }).catch((error) => {
+                    patchWaiters.forEach(({ reject }) => reject(error));
+                });
+            }
+            return savePromise;
         }
 
         let pendingWaiters = null;
@@ -1986,6 +2049,41 @@ export default class NetworkManager extends EventEmitter {
         }
 
         const result = await this._commitPlayerData(uid, data, syncToZone, options);
+        pendingWaiters?.forEach(({ resolve }) => resolve(result));
+        patchWaiters?.forEach(({ resolve }) => resolve(result));
+        return result;
+    }
+
+    async savePlayerDataPatch(uid, patchData, options = {}) {
+        if (!uid || !window.firebase || !patchData || typeof patchData !== 'object') {
+            return { ok: false, reason: 'invalid_args' };
+        }
+
+        if (this._queuedProfileSaves.has(uid)) {
+            const queued = this._queuedProfileSaves.get(uid);
+            queued.data = this._mergeProfileData(queued.data || {}, patchData);
+            queued.syncToZone = queued.syncToZone || !!options.syncToZone;
+            return new Promise((resolve, reject) => {
+                queued.waiters.push({ resolve, reject });
+            });
+        }
+
+        const debounceMs = Number(options.debounceMs || 0);
+        if (debounceMs > 0 && !options.forceImmediate) {
+            return this._queueProfilePatch(uid, patchData, options);
+        }
+
+        let pendingWaiters = null;
+        let mergedPatch = patchData;
+        if (this._queuedProfilePatches.has(uid)) {
+            const queued = this._queuedProfilePatches.get(uid);
+            if (queued?.timer) clearTimeout(queued.timer);
+            this._queuedProfilePatches.delete(uid);
+            pendingWaiters = queued?.waiters || null;
+            mergedPatch = this._mergeProfileData(queued?.patch || {}, patchData);
+        }
+
+        const result = await this._commitPlayerDataPatch(uid, mergedPatch, options);
         pendingWaiters?.forEach(({ resolve }) => resolve(result));
         return result;
     }
@@ -2027,6 +2125,43 @@ export default class NetworkManager extends EventEmitter {
         return promise;
     }
 
+    _queueProfilePatch(uid, patchData, options = {}) {
+        if (!uid || !window.firebase || !patchData || typeof patchData !== 'object') {
+            return Promise.resolve({ ok: false, reason: 'invalid_args' });
+        }
+
+        const debounceMs = Math.max(100, Number(options.debounceMs || 0));
+        const existing = this._queuedProfilePatches.get(uid) || {
+            patch: null,
+            syncToZone: false,
+            options: {},
+            timer: null,
+            waiters: []
+        };
+
+        existing.patch = this._mergeProfileData(existing.patch || {}, patchData);
+        existing.syncToZone = existing.syncToZone || !!options.syncToZone;
+        existing.options = { ...existing.options, ...options, debounceMs };
+
+        if (existing.timer) clearTimeout(existing.timer);
+
+        const promise = new Promise((resolve, reject) => {
+            existing.waiters.push({ resolve, reject });
+        });
+
+        existing.timer = setTimeout(async () => {
+            try {
+                const result = await this._flushQueuedProfilePatch(uid);
+                return result;
+            } catch (error) {
+                Logger.error('Queued profile patch failed', error);
+            }
+        }, debounceMs);
+
+        this._queuedProfilePatches.set(uid, existing);
+        return promise;
+    }
+
     async _flushQueuedProfileSave(uid) {
         const entry = this._queuedProfileSaves.get(uid);
         if (!entry) return { ok: false, reason: 'queue_missing' };
@@ -2047,11 +2182,40 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
+    async _flushQueuedProfilePatch(uid) {
+        const entry = this._queuedProfilePatches.get(uid);
+        if (!entry) return { ok: false, reason: 'queue_missing' };
+
+        if (entry.timer) clearTimeout(entry.timer);
+        this._queuedProfilePatches.delete(uid);
+
+        try {
+            const result = await this._commitPlayerDataPatch(uid, entry.patch, {
+                ...entry.options,
+                forceImmediate: true
+            });
+            entry.waiters.forEach(({ resolve }) => resolve(result));
+            return result;
+        } catch (error) {
+            entry.waiters.forEach(({ reject }) => reject(error));
+            throw error;
+        }
+    }
+
     async flushQueuedProfileSaves() {
         const pendingUids = Array.from(this._queuedProfileSaves.keys());
         if (pendingUids.length === 0) return [];
         return Promise.all(pendingUids.map((uid) => this._flushQueuedProfileSave(uid).catch((error) => {
             Logger.error('Failed to flush queued profile save', error);
+            return { ok: false, reason: 'flush_failed', error };
+        })));
+    }
+
+    async flushQueuedProfilePatches() {
+        const pendingUids = Array.from(this._queuedProfilePatches.keys());
+        if (pendingUids.length === 0) return [];
+        return Promise.all(pendingUids.map((uid) => this._flushQueuedProfilePatch(uid).catch((error) => {
+            Logger.error('Failed to flush queued profile patch', error);
             return { ok: false, reason: 'flush_failed', error };
         })));
     }
@@ -2110,6 +2274,49 @@ export default class NetworkManager extends EventEmitter {
         } catch (e) {
             Logger.error('Failed to save player profile', e);
             return { ok: false, reason: 'save_failed', error: e };
+        }
+    }
+
+    async _commitPlayerDataPatch(uid, patchData, options = {}) {
+        if (!uid || !window.firebase || !patchData || typeof patchData !== 'object') {
+            return { ok: false, reason: 'invalid_args' };
+        }
+
+        try {
+            const nextPatch = this._cloneProfileData(patchData) || {};
+            nextPatch.ts = Math.max(Number(nextPatch.ts || 0), Date.now(), this._lastProfileSaveTs + 1);
+            this._lastProfileSaveTs = nextPatch.ts;
+
+            const updates = {};
+            Object.entries(nextPatch).forEach(([key, value]) => {
+                if (value === undefined) return;
+                updates[`users/${uid}/profile/${key}`] = value;
+            });
+
+            if (Object.keys(updates).length === 0) {
+                return { ok: false, reason: 'empty_patch' };
+            }
+
+            console.log(`[Network] Saving Player Data Patch to users/${uid}/profile:`, nextPatch);
+            this._recordNetworkWrite('profilePatchSave', nextPatch);
+            await firebase.database().ref().update(updates);
+
+            if (options.syncToZone && this.dbRef && this.zoneParticipationEnabled && this._shouldSendRealtimeUserState()) {
+                const zonePatch = this._buildZoneProfilePatch(nextPatch);
+                if (zonePatch) {
+                    const zoneUpdates = {};
+                    Object.entries(zonePatch).forEach(([key, value]) => {
+                        zoneUpdates[`users/${uid}/profile/${key}`] = value;
+                    });
+                    this._recordNetworkWrite('zoneProfilePatchSync', zonePatch);
+                    await this.dbRef.update(zoneUpdates);
+                }
+            }
+
+            return { ok: true, patch: nextPatch };
+        } catch (error) {
+            Logger.error('Failed to save player profile patch', error);
+            return { ok: false, reason: 'save_patch_failed', error };
         }
     }
 
@@ -3367,6 +3574,7 @@ export default class NetworkManager extends EventEmitter {
         if (document.hidden) {
             Logger.log("[Network] App backgrounded.");
             this.flushQueuedProfileSaves().catch(() => { });
+            this.flushQueuedProfilePatches().catch(() => { });
         } else {
             Logger.log("[Network] App foregrounded. Checking connection...");
             if (this.playerId && this.dbRef) {

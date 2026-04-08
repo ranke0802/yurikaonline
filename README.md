@@ -3,13 +3,13 @@
 
 <!-- AUTO_VERSION_BLOCK_START -->
 ## Build Metadata
-- 배포 버전: **0.01.106**
-- 마지막 버전 갱신: 2026-04-07
+- 배포 버전: **0.01.107**
+- 마지막 버전 갱신: 2026-04-08
 <!-- AUTO_VERSION_BLOCK_END -->
 
 Yurika Online은 HTML5 Canvas와 Firebase를 기반으로 만든 실시간 웹 MMORPG입니다. 로그인, 캐릭터 성장, 튜토리얼, 멀티플레이어 동기화, 전투 UI를 한 프로젝트 안에서 다루고 있습니다.
 
-현재 버전: **0.01.106**
+현재 버전: **0.01.107**
 
 ## 핵심 기능
 
@@ -21,6 +21,12 @@ Yurika Online은 HTML5 Canvas와 Firebase를 기반으로 만든 실시간 웹 M
 - 배포 안정화: 서비스 워커와 버전 기반 캐시 무효화
 
 ## 최근 업데이트
+
+### 0.01.107
+
+- 진행 상태 저장 경로를 전체 프로필 저장과 경량 patch 저장으로 분리해, 경험치/골드/HP/퀘스트 카운트 같은 자주 바뀌는 값은 `users/{uid}/profile` 하위 필드만 갱신하도록 최적화했습니다.
+- 싱글 기준 heartbeat 간격을 더 완화하고, shared field가 아닐 때는 `presence/{uid}/ts` fallback 갱신을 줄여 잔잔한 RTDB write와 rules evaluation을 낮추도록 조정했습니다.
+- 매직미사일/파이어볼 난사 시 활성 투사체 수에 따라 trail, 파티클, spark 수를 자동으로 줄이는 동적 이펙트 스케일을 추가해 로컬 성능과 발열 부담을 낮추는 1차 최적화를 적용했습니다.
 
 ### 0.01.106
 
