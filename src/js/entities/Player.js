@@ -2001,7 +2001,7 @@ export default class Player extends CharacterBase {
                     this.updateGoldInventory();
 
                     modalTitle = "👑 퀘스트 완료!";
-                    modalDesc = "대왕 슬라임을 처치했습니다!<br><br>보상:<br>스텟 포인트 +5<br>경험치 500<br>골드 2000<br><br>(이제 반복 퀘스트가 시작됩니다!)";
+                    modalDesc = "대왕 슬라임을 처치했습니다!<br>보상: 스탯 포인트 +5, 경험치 500, 골드 2000<br>이제 슬라임 30마리 처치 시 반복 퀘스트가 이어집니다.";
                     rewardMsg = "첫 대왕 슬라임 처치! (스텟+5, EXP+500, Gold+2000)";
                 } else {
                     // Repeat Kill Reward

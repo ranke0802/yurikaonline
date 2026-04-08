@@ -8269,3 +8269,44 @@ body.low-power-pwa #ui-layer #minimap-container {
         font-size: 9px !important;
     }
 }
+
+#generic-modal .confirm-modal-content,
+#reward-modal .confirm-modal-content {
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 14px;
+    overflow: hidden !important;
+}
+
+#generic-modal-title,
+#reward-title {
+    margin-bottom: 0;
+}
+
+#generic-modal-message,
+#reward-message {
+    min-height: 0;
+    margin: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+    scrollbar-gutter: stable;
+}
+
+#generic-modal-message {
+    line-height: 1.45;
+}
+
+#reward-message {
+    line-height: 1.45;
+}
+
+#generic-modal .modal-buttons {
+    margin-top: 0 !important;
+    padding-top: 2px;
+}
+
+#reward-modal .confirm-btn {
+    margin-top: 0;
+    justify-self: center;
+    min-width: 132px;
+}

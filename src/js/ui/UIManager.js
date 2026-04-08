@@ -3835,6 +3835,7 @@ export class UIManager {
         const msgEl = document.getElementById('generic-modal-message');
         const yesBtn = document.getElementById('generic-modal-yes');
         const noBtn = document.getElementById('generic-modal-no');
+        const contentEl = modal.querySelector('.confirm-modal-content');
         const { yesText, noText, hideNo = !onNo, allowHtml = false, onShow = null } = options;
 
         if (titleEl) titleEl.textContent = title;
@@ -3844,6 +3845,7 @@ export class UIManager {
             } else {
                 msgEl.textContent = message;
             }
+            msgEl.scrollTop = 0;
         }
 
         const newYes = yesBtn.cloneNode(true);
@@ -3872,6 +3874,7 @@ export class UIManager {
 
         modal.classList.remove('hidden');
         modal.classList.add('visible');
+        if (contentEl) contentEl.scrollTop = 0;
         if (typeof onShow === 'function') {
             onShow(modal);
         }
@@ -5729,9 +5732,14 @@ export class UIManager {
         const modal = document.getElementById('reward-modal');
         const titleEl = document.getElementById('reward-title');
         const msgEl = document.getElementById('reward-message');
+        const contentEl = modal?.querySelector('.confirm-modal-content');
 
         if (titleEl) titleEl.textContent = title;
-        if (msgEl) msgEl.innerHTML = message;
+        if (msgEl) {
+            msgEl.innerHTML = message;
+            msgEl.scrollTop = 0;
+        }
+        if (contentEl) contentEl.scrollTop = 0;
         if (modal) modal.classList.remove('hidden');
         this.isPaused = true;
         this.refreshDesktopShortcutHints();
