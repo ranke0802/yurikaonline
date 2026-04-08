@@ -1,4 +1,4 @@
-const APP_VERSION = '0.01.110';
+const APP_VERSION = '0.01.111';
 const SHELL_CACHE = `yurika-online-shell-${APP_VERSION}`;
 const STATIC_CACHE = `yurika-online-static-${APP_VERSION}`;
 const ACTIVE_CACHES = [SHELL_CACHE, STATIC_CACHE];
@@ -56,6 +56,22 @@ function isStaticAssetRequest(request, url) {
         || url.pathname.endsWith('.ogg')
         || url.pathname.endsWith('.wav')
         || url.pathname.endsWith('.woff2')
+    );
+}
+
+function isMutableAppAssetRequest(request, url) {
+    if (request.method !== 'GET') return false;
+    if (url.origin !== self.location.origin) return false;
+    if (isVersionRequest(url) || isDocumentLikeRequest(request, url)) return false;
+
+    return (
+        request.destination === 'script'
+        || request.destination === 'style'
+        || url.pathname.startsWith('/src/js/')
+        || url.pathname.startsWith('/src/css/')
+        || url.pathname.startsWith('/assets/data/')
+        || url.pathname.endsWith('/manifest.json')
+        || url.pathname.endsWith('.json')
     );
 }
 
@@ -127,6 +143,11 @@ self.addEventListener('fetch', (event) => {
 
     if (isDocumentLikeRequest(event.request, url)) {
         event.respondWith(networkFirst(event.request, SHELL_CACHE));
+        return;
+    }
+
+    if (isMutableAppAssetRequest(event.request, url)) {
+        event.respondWith(networkFirst(event.request, STATIC_CACHE));
         return;
     }
 

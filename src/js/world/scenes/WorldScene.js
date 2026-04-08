@@ -161,6 +161,7 @@ export default class WorldScene extends Scene {
         this.player = new Player(startX, startY, localName, charDef);
         this.player.id = user.uid;
         this.game.localPlayer = this.player; // Global reference for UIManager / MonsterAI
+        let shouldRecoverFromStoredDeath = false;
 
 
         if (profile) {
@@ -221,12 +222,24 @@ export default class WorldScene extends Scene {
             }
 
             this.player.refreshStats();
-            if (typeof profile.hp === 'number') this.player.hp = profile.hp;
-            if (typeof profile.mp === 'number') this.player.mp = profile.mp;
+            if (typeof profile.hp === 'number') {
+                const restoredHp = Math.min(this.player.maxHp, Math.max(0, Number(profile.hp) || 0));
+                if (restoredHp <= 0) {
+                    shouldRecoverFromStoredDeath = true;
+                    this.player.hp = this.player.maxHp;
+                    this.player.mp = this.player.maxMp;
+                } else {
+                    this.player.hp = restoredHp;
+                }
+            }
+            if (!shouldRecoverFromStoredDeath && typeof profile.mp === 'number') {
+                this.player.mp = Math.min(this.player.maxMp, Math.max(0, Number(profile.mp) || 0));
+            }
 
             // v0.00.84: Restore saved position with params priority
-            const posX = profile.x ?? params.startX;
-            const posY = profile.y ?? params.startY;
+            const fallbackSpawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
+            const posX = shouldRecoverFromStoredDeath ? fallbackSpawn.x : (profile.x ?? params.startX);
+            const posY = shouldRecoverFromStoredDeath ? fallbackSpawn.y : (profile.y ?? params.startY);
 
             if (typeof posX === 'number' && typeof posY === 'number') {
                 this.player.x = posX;
@@ -250,6 +263,13 @@ export default class WorldScene extends Scene {
                     this.player.y = spawn.y;
                     this.player.saveState();
                 }
+            }
+
+            if (shouldRecoverFromStoredDeath) {
+                Logger.warn('[WorldScene] Stored profile HP was non-positive. Recovering player at spawn with full HP/MP.');
+                this.player.isDead = false;
+                this.player.isDying = false;
+                this.player.deathTimer = 0;
             }
 
             // v1.99.12: Force UI Update after profile restoration

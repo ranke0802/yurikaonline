@@ -791,8 +791,8 @@ export default class Player extends CharacterBase {
         const previousHp = this.hp;
         const previousMaxHp = this.maxHp;
         this.refreshStats();
-        this.hp = Math.min(this.hp, this.maxHp);
-        this.mp = Math.min(this.mp, this.maxMp);
+        this.hp = Math.min(this.maxHp, Math.max(0, this.hp));
+        this.mp = Math.min(this.maxMp, Math.max(0, this.mp));
         // v0.00.03: Ensure maxExp is correct based on level if somehow corrupted
         const expectedMaxExp = Math.floor(100 * Math.pow(1.5, this.level - 1));
         if (this.maxExp < expectedMaxExp) {
@@ -898,7 +898,7 @@ export default class Player extends CharacterBase {
         const def = this.defense || 0;
         let finalDmg = Math.max(1, Math.ceil(validAmount - def)); // Minimum 1 damage
 
-        this.hp -= finalDmg;
+        this.hp = Math.max(0, this.hp - finalDmg);
         if (window.game) {
             // v0.00.40: Show crit message properly
             const color = isCrit ? '#ff9f43' : '#ff4757';
@@ -993,6 +993,7 @@ export default class Player extends CharacterBase {
     die() {
         this.isDead = true;
         this.state = 'die';
+        this.hp = 0;
         // Visual feedback
         if (window.game && window.game.ui) {
             window.game.ui.logSystemMessage('당신은 전사했습니다...');
@@ -1013,12 +1014,14 @@ export default class Player extends CharacterBase {
         const profileSaveDebounceMs = syncToWorld
             ? 0
             : (overrideDebounceMs ?? (isSharedFieldActive ? 2500 : 3200));
+        const safeHp = Math.min(this.maxHp, Math.max(0, Math.round(this.hp)));
+        const safeMp = Math.min(this.maxMp, Math.max(0, Math.round(this.mp)));
         const data = {
             level: this.level,
             exp: this.exp,
             maxExp: this.maxExp, // v0.00.03: Persist maxExp
-            hp: Math.round(this.hp),
-            mp: Math.round(this.mp),
+            hp: safeHp,
+            mp: safeMp,
             gold: this.gold,
             vitality: this.vitality,
             defense: this.defense || 0, // v0.00.53: Sync defense to others
@@ -1077,13 +1080,13 @@ export default class Player extends CharacterBase {
                     patch.maxExp = this.maxExp;
                     break;
                 case 'hp':
-                    patch.hp = Math.round(this.hp);
+                    patch.hp = Math.min(this.maxHp, Math.max(0, Math.round(this.hp)));
                     break;
                 case 'maxHp':
-                    patch.maxHp = Math.round(this.maxHp);
+                    patch.maxHp = Math.max(0, Math.round(this.maxHp));
                     break;
                 case 'mp':
-                    patch.mp = Math.round(this.mp);
+                    patch.mp = Math.min(this.maxMp, Math.max(0, Math.round(this.mp)));
                     break;
                 case 'gold':
                     patch.gold = this.gold;

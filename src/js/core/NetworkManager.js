@@ -3146,8 +3146,8 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         if (!this._shouldSendRealtimeUserState()) return;
         const now = Date.now();
-        const nextHp = Math.round(hp);
-        const nextMaxHp = Math.round(maxHp);
+        const nextMaxHp = Math.max(0, Math.round(maxHp));
+        const nextHp = Math.min(nextMaxHp, Math.max(0, Math.round(hp)));
 
         if (this._lastHpSync.hp === nextHp && this._lastHpSync.maxHp === nextMaxHp && (now - this._lastHpSync.ts) < 500) {
             return;

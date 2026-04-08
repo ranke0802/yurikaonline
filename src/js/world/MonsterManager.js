@@ -10,7 +10,7 @@ export default class MonsterManager {
         this.drops = new Map();
 
         this.spawnTimer = 0;
-        this.spawnInterval = 3000; // v1.97: Balanced (3s)
+        this.spawnInterval = 2.0; // v2.4.4: Target up to 2s respawn feel
         this.maxMonsters = 15;     // v1.97: Balanced (15)
         this.totalLevelSum = 1;
         this.tutorialMode = false;
@@ -599,7 +599,7 @@ export default class MonsterManager {
         if (!this.isSpawnSuppressed() && this.spawnRules && this.spawnRules.length > 0) {
             // Zone-based Spawning Logic
             this.spawnTimer += dt;
-            if (this.spawnTimer >= 1.0) { // Check every 1s
+            if (this.spawnTimer >= 0.5) { // Check twice per second for quicker refill
                 this.spawnTimer = 0;
 
                 this.spawnRules.forEach(rule => {
@@ -624,14 +624,20 @@ export default class MonsterManager {
             // Legacy Random Spawning Logic
             // v1.97: Dynamic Spawning: 15 + 1 per 5 levels (Balanced)
             const maxMonsters = 15 + Math.floor(this.totalLevelSum / 5);
+            let liveMonsterCount = 0;
+            this.monsters.forEach((monster) => {
+                if (monster && !monster.isDead) {
+                    liveMonsterCount += 1;
+                }
+            });
 
-            // v1.97: Balanced Respawn: 3s base, min 0.5s
-            const spawnInterval = Math.max(0.5, 3 - Math.floor(this.totalLevelSum / 5) * 0.2);
+            // v2.4.4: Bring normal-field respawns back closer to 2s after kills.
+            const spawnInterval = Math.max(0.5, 2 - Math.floor(this.totalLevelSum / 8) * 0.1);
 
             this.spawnTimer += dt;
             if (this.spawnTimer >= spawnInterval) {
                 this.spawnTimer = 0;
-                if (this.monsters.size < maxMonsters) {
+                if (liveMonsterCount < maxMonsters) {
                     this._spawnMonster();
                 }
             }
