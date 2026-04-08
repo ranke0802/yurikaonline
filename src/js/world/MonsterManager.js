@@ -23,6 +23,8 @@ export default class MonsterManager {
         this.bossSpawned = false;
         this.shouldSpawnBoss = false;
         this.firstBossDefeated = false;
+        this.firstBossPending = false;
+        this.firstBossMissingTimer = 0;
         this.slimeKillCount = 0; // v0.00.43: Track kills for boss spawn
 
         // v0.00.44: Persistence for Slime Kill Count
@@ -268,11 +270,13 @@ export default class MonsterManager {
                 || this._isMonsterNearAnyPlayer(m, authorityPlayers, m.isBoss ? 1600 : 1100)
             );
 
-            if (this.isOnScreen(m) || hostRelevantOffscreen) {
+            if (this.net.isHost || this.isOnScreen(m) || hostRelevantOffscreen) {
                 m.update(dt); // Full update for on-screen
             }
             // Off-screen guest-only monsters are still culled locally.
         });
+
+        this._checkFirstBossQuestFailure(dt, localPlayer);
 
         // Update drops (Magnet logic)
         this.drops.forEach((d, id) => {
@@ -346,14 +350,37 @@ export default class MonsterManager {
 
     _getInterestedPlayers(localPlayer, remotePlayers, isProtectedPlayer) {
         const players = [];
+        const seenIds = new Set();
+        const tryAddPlayer = (player) => {
+            if (!player?.id || seenIds.has(player.id)) return;
+            if (!this._isValidMonsterTarget(player, isProtectedPlayer)) return;
+            if (Number.isFinite(player.protectedUntil) && player.protectedUntil > Date.now()) return;
+            seenIds.add(player.id);
+            players.push(player);
+        };
         if (this._isValidMonsterTarget(localPlayer, isProtectedPlayer)) {
+            seenIds.add(localPlayer.id);
             players.push(localPlayer);
         }
         if (remotePlayers) {
             remotePlayers.forEach((player) => {
-                if (this._isValidMonsterTarget(player, isProtectedPlayer)) {
-                    players.push(player);
-                }
+                tryAddPlayer(player);
+            });
+        }
+        if (this.net?.remotePlayers) {
+            this.net.remotePlayers.forEach((player, id) => {
+                if (!player || !id) return;
+                tryAddPlayer({
+                    id: player.id || id,
+                    x: Number(player.x ?? 0),
+                    y: Number(player.y ?? 0),
+                    width: player.width || 48,
+                    height: player.height || 48,
+                    isDead: Array.isArray(player.h) ? Number(player.h[0] || 0) <= 0 : false,
+                    isPaused: !!player.isPaused,
+                    protectedUntil: Number(player.protectedUntil || 0),
+                    type: 'player'
+                });
             });
         }
         return players;
@@ -1006,6 +1033,63 @@ export default class MonsterManager {
         this.monsters.delete(id);
     }
 
+    markFirstBossPending(active = true) {
+        this.firstBossPending = !!active;
+        if (active) {
+            this.firstBossMissingTimer = 0;
+        }
+    }
+
+    _checkFirstBossQuestFailure(dt, localPlayer) {
+        const questData = localPlayer?.questData;
+        if (!questData) {
+            this.firstBossMissingTimer = 0;
+            return;
+        }
+
+        const isIntroBossQuestActive = !!questData.slime30QuestClaimed
+            && (questData.bossClearCount || 0) === 0
+            && !questData.bossKilled;
+
+        if (!isIntroBossQuestActive) {
+            this.firstBossMissingTimer = 0;
+            if ((questData.bossClearCount || 0) > 0 || questData.bossKilled) {
+                this.firstBossPending = false;
+            }
+            return;
+        }
+
+        const liveIntroBoss = Array.from(this.monsters.values()).some((monster) => monster?.typeId === 'king_slime' && !monster.isDead);
+        if (liveIntroBoss || this.bossSpawned) {
+            this.firstBossPending = true;
+            this.firstBossMissingTimer = 0;
+            return;
+        }
+
+        if (!this.firstBossPending) {
+            return;
+        }
+
+        this.firstBossMissingTimer += dt;
+        if (this.firstBossMissingTimer < 3.0) {
+            return;
+        }
+
+        this.firstBossMissingTimer = 0;
+        this.firstBossPending = false;
+        questData.slimeKills = 0;
+        questData.slime30QuestClaimed = false;
+        questData.bossKilled = false;
+        questData.bossQuestClaimed = false;
+        localPlayer.saveProfilePatch?.(['questData'], {
+            debounceMs: 0,
+            reason: 'intro_boss_quest_failed'
+        });
+        this.game.quests?.restoreFromLegacy?.(questData);
+        this.game.ui?.logSystemMessage?.('대왕 슬라임이 사라져 퀘스트가 실패했습니다. 슬라임 30마리 퀘스트부터 다시 진행합니다.');
+        this.game.ui?.updateQuestUI?.();
+    }
+
     async restoreAuthoritativeMonstersFromHostSnapshot(options = {}) {
         if (!this.net?.isHost || typeof this.net?.readMonsterHostSnapshot !== 'function') {
             return { restored: 0, updated: 0, removed: 0, total: 0, skipped: true };
@@ -1261,6 +1345,10 @@ export default class MonsterManager {
 
     async _handleBossSpawnRequested({ isFirstBoss = true } = {}) {
         if (!this.net?.isHost) return null;
+        if (isFirstBoss) {
+            this.firstBossPending = true;
+            this.firstBossMissingTimer = 0;
+        }
 
         const bossId = await this._spawnBoss(isFirstBoss);
         if (!bossId) return null;
@@ -1286,6 +1374,10 @@ export default class MonsterManager {
         }
 
         this.bossSpawned = true;
+        if (isFirstBoss) {
+            this.firstBossPending = true;
+            this.firstBossMissingTimer = 0;
+        }
 
         const id = `boss_${Date.now()}`;
         const worldW = this.zone.width || 6400;
@@ -1296,6 +1388,9 @@ export default class MonsterManager {
         const definition = await this.game.monsterData.loadDefinition('king_slime');
         if (!definition) {
             this.bossSpawned = false;
+            if (isFirstBoss) {
+                this.firstBossPending = false;
+            }
             return null;
         }
 

@@ -2965,8 +2965,13 @@ export default class NetworkManager extends EventEmitter {
         this.isPlayerMoving = isMoving;
         if (!this._shouldSendRealtimeUserState()) return;
 
+        const lastVx = Number(this.lastPacketData?.vx || 0);
+        const lastVy = Number(this.lastPacketData?.vy || 0);
+        const wasMoving = Math.abs(lastVx) > 0.1 || Math.abs(lastVy) > 0.1;
+        const movementStateChanged = !!this.lastPacketData && wasMoving !== isMoving;
+
         const currentInterval = this._getMoveSyncInterval(vx, vy);
-        if (now - this.lastSyncTime < currentInterval) return;
+        if (!movementStateChanged && now - this.lastSyncTime < currentInterval) return;
 
         // Validation
         const safeX = Math.round(x) || 0;
@@ -2982,24 +2987,24 @@ export default class NetworkManager extends EventEmitter {
         const basePath = `users/${this.playerId}`;
 
         // Position delta (threshold: 2 pixels)
-        if (!this.lastPacketData || Math.abs(safeX - this.lastPacketData.x) >= positionThreshold) {
+        if (!this.lastPacketData || movementStateChanged || Math.abs(safeX - this.lastPacketData.x) >= positionThreshold) {
             updates[`${basePath}/p/x`] = safeX;
             hasChanges = true;
         }
-        if (!this.lastPacketData || Math.abs(safeY - this.lastPacketData.y) >= positionThreshold) {
+        if (!this.lastPacketData || movementStateChanged || Math.abs(safeY - this.lastPacketData.y) >= positionThreshold) {
             updates[`${basePath}/p/y`] = safeY;
             hasChanges = true;
         }
 
-        // Velocity - only when moving
-        if (isMoving) {
-            if (!this.lastPacketData ||
-                Math.abs(safeVx - (this.lastPacketData.vx || 0)) >= velocityThreshold ||
-                Math.abs(safeVy - (this.lastPacketData.vy || 0)) >= velocityThreshold) {
-                updates[`${basePath}/p/vx`] = safeVx;
-                updates[`${basePath}/p/vy`] = safeVy;
-                hasChanges = true;
-            }
+        const nextVx = isMoving ? safeVx : 0;
+        const nextVy = isMoving ? safeVy : 0;
+        if (!this.lastPacketData
+            || movementStateChanged
+            || Math.abs(nextVx - lastVx) >= velocityThreshold
+            || Math.abs(nextVy - lastVy) >= velocityThreshold) {
+            updates[`${basePath}/p/vx`] = nextVx;
+            updates[`${basePath}/p/vy`] = nextVy;
+            hasChanges = true;
         }
 
         // Name only on first packet or change
@@ -3014,7 +3019,7 @@ export default class NetworkManager extends EventEmitter {
         if (hasChanges) {
             this._recordNetworkWrite('move', updates);
             this.dbRef.update(updates).catch(e => { });
-            this.lastPacketData = { x: safeX, y: safeY, vx: safeVx, vy: safeVy, name };
+            this.lastPacketData = { x: safeX, y: safeY, vx: nextVx, vy: nextVy, name };
             this._markNetworkActivity(now);
         }
 

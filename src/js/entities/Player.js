@@ -1759,6 +1759,7 @@ export default class Player extends CharacterBase {
                     ? castOptions.targetY
                     : originY + Math.sin(angle) * range;
                 const chainSeed = (Date.now() ^ Math.round(originX) ^ Math.round(originY)) >>> 0;
+                const travelTime = Math.max(0.25, (Math.hypot(targetX - originX, targetY - originY) / 800) + 0.08);
 
                 if (this.net) {
                     this.net.sendPlayerAttack(this.x, this.y, this.direction, 'fireball', {
@@ -1786,8 +1787,8 @@ export default class Player extends CharacterBase {
                 const aoeRad = this.getFireballAoeRadius(lv); // v1.99.35: Increased to 2.5x for better coverage
 
                 import('./Projectile.js').then(({ Projectile }) => {
-                    window.game.projectiles.push(new Projectile(this.x, this.y, null, 'fireball', {
-                        vx, vy, speed, damage: dmg, radius: baseRad, aoeRadius: aoeRad, lifeTime: 1.5,
+                    window.game.projectiles.push(new Projectile(originX, originY, null, 'fireball', {
+                        vx, vy, speed, damage: dmg, radius: baseRad, aoeRadius: aoeRad, lifeTime: travelTime,
                         ownerId: this.id,
                         variant: weaponCombat.fireballVariant || null,
                         visualTint: weaponCombat.fireballTint || null,

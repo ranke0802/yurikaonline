@@ -213,27 +213,45 @@ export default class RemotePlayer extends CharacterBase {
             return;
         }
 
-        // Add to buffer with deduplication
+        const sourceTs = Number(packet.ts || 0);
+        const last = this.serverUpdates.length > 0
+            ? this.serverUpdates[this.serverUpdates.length - 1]
+            : null;
+        if (last && sourceTs > 0 && Number(last.sourceTs || 0) > 0 && sourceTs < (last.sourceTs - 15)) {
+            return;
+        }
+
+        const timelineTs = last
+            ? Math.max(now, Number(last.ts || 0) + 1)
+            : now;
+
+        // Add to buffer with deduplication on the receiver timeline.
+        // Sender device clocks can differ, so interpolation should use
+        // local receive time instead of raw remote Date.now() values.
         const newUpdate = {
             x: packet.x,
             y: packet.y,
             vx: packet.vx || 0,
             vy: packet.vy || 0,
-            ts: packet.ts || now,
-            receivedAt: now
+            ts: timelineTs,
+            receivedAt: now,
+            sourceTs
         };
 
-        // Skip if duplicate timestamp
-        if (this.serverUpdates.length > 0) {
-            const last = this.serverUpdates[this.serverUpdates.length - 1];
-            if (Math.abs(newUpdate.ts - last.ts) < 10) return;
+        if (last) {
+            const sameSourcePacket = sourceTs > 0 && Number(last.sourceTs || 0) > 0 && sourceTs === last.sourceTs;
+            const sameState = Math.abs(newUpdate.x - last.x) < 0.01
+                && Math.abs(newUpdate.y - last.y) < 0.01
+                && Math.abs(newUpdate.vx - last.vx) < 0.01
+                && Math.abs(newUpdate.vy - last.vy) < 0.01;
+            if (sameSourcePacket || sameState) return;
         }
 
         this.serverUpdates.push(newUpdate);
 
         // Keep only last 2 seconds of updates
         const cutoff = now - 2000;
-        this.serverUpdates = this.serverUpdates.filter(u => u.ts > cutoff);
+        this.serverUpdates = this.serverUpdates.filter(u => (u.receivedAt || u.ts) > cutoff);
 
         // Sort by timestamp
         this.serverUpdates.sort((a, b) => a.ts - b.ts);
@@ -888,6 +906,9 @@ export default class RemotePlayer extends CharacterBase {
                     const attackerLevel = (data.extraData && typeof data.extraData.level === 'number') ? data.extraData.level : 1;
                     const baseRad = 20 + (attackerLevel - 1) * 20;
                     const aoeRad = baseRad * 2.5; // v1.99.35: Sync 2.5x AOE
+                    const travelTime = (targetX !== null && targetY !== null)
+                        ? Math.max(0.25, (Math.hypot(targetX - centerX, targetY - centerY) / speed) + 0.08)
+                        : 1.5;
 
                     window.game.projectiles.push(new Projectile(centerX, centerY, null, 'fireball', {
                         vx, vy, speed, damage: 0, ownerId: this.id, radius: baseRad, aoeRadius: aoeRad,
@@ -895,6 +916,8 @@ export default class RemotePlayer extends CharacterBase {
                         variant: data.extraData?.variant || null,
                         targetX,
                         targetY,
+                        lifeTime: travelTime,
+                        visualOnly: true,
                         weaponEffect: data.extraData?.weaponEffect || null
                     }));
                 } else if (skillType === 'missile') {

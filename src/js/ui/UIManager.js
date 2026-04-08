@@ -4185,6 +4185,9 @@ export class UIManager {
     _requestQuestBossSummon(isFirstBoss = true) {
         const monsterManager = this.game?.monsterManager;
         if (!monsterManager || monsterManager.bossSpawned) return;
+        if (isFirstBoss) {
+            monsterManager.markFirstBossPending?.(true);
+        }
 
         const net = monsterManager.net;
         if (net?.connected && !net.isHost) {

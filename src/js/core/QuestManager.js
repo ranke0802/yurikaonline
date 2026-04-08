@@ -49,6 +49,8 @@ export default class QuestManager {
      */
     restoreFromLegacy(questData) {
         if (!questData || !this._loaded) return;
+        this.activeQuests.clear();
+        this.completedQuests.clear();
         const slimeKills = questData.slimeKills || 0;
         const firstQuestUnlocked = !!questData.basicTrainingCompleted ||
             slimeKills > 0 ||

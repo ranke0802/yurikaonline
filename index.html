@@ -16,7 +16,7 @@
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
-        window.BOOTSTRAP_VERSION = '0.01.109';
+        window.BOOTSTRAP_VERSION = '0.01.110';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -123,7 +123,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.01.109', { updateViaCache: 'none' });
+                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.01.110', { updateViaCache: 'none' });
                     console.log('ServiceWorker registration successful with scope: ', registration.scope);
                 } catch (err) {
                     console.log('ServiceWorker registration failed: ', err);
@@ -212,7 +212,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.109">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.110">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -761,7 +761,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.109"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.110"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

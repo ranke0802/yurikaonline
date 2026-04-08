@@ -468,20 +468,44 @@ export default class Monster extends CharacterBase {
             const getAllPlayers = () => {
                 const players = [];
                 const net = window.game?.net;
+                const seenIds = new Set();
                 const isRemotePlayerActive = (player) => {
                     if (!player || player.id === window.game?.localPlayer?.id) return true;
                     return !!net?.isUserActivelyPresent?.(player.id);
                 };
+                const tryAddPlayer = (player) => {
+                    if (!player?.id || seenIds.has(player.id)) return;
+                    if (!!player.isDead || !!player.isPaused) return;
+                    if (Number.isFinite(player.protectedUntil) && player.protectedUntil > Date.now()) return;
+                    if (!isRemotePlayerActive(player) || this._isProtectedPlayer(player)) return;
+                    seenIds.add(player.id);
+                    players.push(player);
+                };
                 // v0.00.55: Filter candidates who are viewing modals (isPaused)
                 const isLocalPaused = !!window.game?.ui?.isPaused;
                 if (window.game?.localPlayer && !window.game.localPlayer.isDead && !isLocalPaused && !this._isProtectedPlayer(window.game.localPlayer)) {
+                    seenIds.add(window.game.localPlayer.id);
                     players.push(window.game.localPlayer);
                 }
                 if (window.game?.remotePlayers) {
                     window.game.remotePlayers.forEach(p => {
-                        if (!p.isDead && !p.isPaused && !this._isProtectedPlayer(p) && isRemotePlayerActive(p)) {
-                            players.push(p);
-                        }
+                        tryAddPlayer(p);
+                    });
+                }
+                if (net?.remotePlayers) {
+                    net.remotePlayers.forEach((p, id) => {
+                        if (!p || !id) return;
+                        tryAddPlayer({
+                            id: p.id || id,
+                            x: Number(p.x ?? 0),
+                            y: Number(p.y ?? 0),
+                            width: p.width || 48,
+                            height: p.height || 48,
+                            isDead: Array.isArray(p.h) ? Number(p.h[0] || 0) <= 0 : false,
+                            isPaused: !!p.isPaused,
+                            protectedUntil: Number(p.protectedUntil || 0),
+                            type: 'player'
+                        });
                     });
                 }
                 return players;

@@ -22,6 +22,7 @@ export class Projectile {
         this.visualTint = options.visualTint || null;
         this.weaponEffect = options.weaponEffect || null;
         this.lockTargetPosition = !!options.lockTargetPosition;
+        this.visualOnly = !!options.visualOnly;
         this.fireballChainChance = Math.max(0, Math.min(1, this.weaponEffect?.fireballChainChance || 0));
         this.fireballChainDamageRatio = Math.max(0, this.weaponEffect?.fireballChainDamageRatio || 0);
         this.fireballChainRandomState = Number.isFinite(this.weaponEffect?.chainSeed)
@@ -125,6 +126,16 @@ export class Projectile {
         }
 
         this.lifeTime -= dt;
+        if (this.lifeTime <= 0) {
+            if (this.visualOnly && this.type === 'fireball' && this.targetX !== null && this.targetY !== null) {
+                this.x = this.targetX;
+                this.y = this.targetY;
+                this._executeActualExplosion();
+            } else {
+                this.isDead = true;
+            }
+            return;
+        }
 
         // Particles
         this.particles.forEach(p => {
@@ -227,6 +238,19 @@ export class Projectile {
 
         this.x += this.vx * dt;
         this.y += this.vy * dt;
+
+        if (this.visualOnly) {
+            if (this.type === 'fireball' && this.targetX !== null && this.targetY !== null) {
+                const endpointDist = Math.hypot(this.targetX - this.x, this.targetY - this.y);
+                const endpointThreshold = Math.max(this.radius, (this.speed || 0) * dt);
+                if (endpointDist <= endpointThreshold) {
+                    this.x = this.targetX;
+                    this.y = this.targetY;
+                    this._executeActualExplosion();
+                }
+            }
+            return;
+        }
 
         // Collision Checks
         if (this.type === 'fireball') {
@@ -382,6 +406,12 @@ export class Projectile {
         const target = manualTarget || (this.explosionContext ? this.explosionContext.target : null);
         const monsters = this._getCurrentMonsters(manualMonsters || (this.explosionContext ? this.explosionContext.monsters : null));
 
+        if (this.visualOnly) {
+            this._playImpactEffects();
+            this.isDead = true;
+            return;
+        }
+
         if (!target) {
             this.isDead = true;
             return;
@@ -398,22 +428,7 @@ export class Projectile {
             // Continue to show explosion visuals, but effective damage is blocked logically (on host)
         }
 
-        // v1.99.15: Visual Explosion
-        if (window.game) {
-            const explosionVariant = this.variant === 'blue_fireball' ? 'blue_flame' : 'default';
-            window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3, {
-                variant: explosionVariant,
-                collapse: this.type === 'fireball'
-            });
-            const sparkCount = Math.max(4, Math.round(15 * this._getDynamicEffectScale()));
-            for (let i = 0; i < sparkCount; i++) window.game.addSpark(this.x, this.y);
-            // v0.00.63: Explosion SFX
-            if (this.type === 'fireball' && window.game.sound) {
-                window.game.sound.playSfx('fireball_explosion');
-            } else if (this.type === 'missile' && window.game.sound) {
-                window.game.sound.playSfx('missile_hit');
-            }
-        }
+        this._playImpactEffects();
 
         const net = window.game?.net;
         const targetIsMonster = target.isMonster || (target.type === 'monster');
@@ -506,6 +521,22 @@ export class Projectile {
         }
 
         this.isDead = true;
+    }
+
+    _playImpactEffects() {
+        if (!window.game) return;
+        const explosionVariant = this.variant === 'blue_fireball' ? 'blue_flame' : 'default';
+        window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3, {
+            variant: explosionVariant,
+            collapse: this.type === 'fireball'
+        });
+        const sparkCount = Math.max(4, Math.round(15 * this._getDynamicEffectScale()));
+        for (let i = 0; i < sparkCount; i++) window.game.addSpark(this.x, this.y);
+        if (this.type === 'fireball' && window.game.sound) {
+            window.game.sound.playSfx('fireball_explosion');
+        } else if (this.type === 'missile' && window.game.sound) {
+            window.game.sound.playSfx('missile_hit');
+        }
     }
 
     _nextFireballChainRoll() {
