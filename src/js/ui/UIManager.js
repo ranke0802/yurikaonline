@@ -2880,6 +2880,10 @@ export class UIManager {
             && !this.isMobileLandscapeViewport();
     }
 
+    shouldShowDesktopShortcutText() {
+        return this.getUiLayoutMode() === 'desktop';
+    }
+
     isTextEntryFocused() {
         const active = document.activeElement;
         if (!active) return false;
@@ -3344,10 +3348,10 @@ export class UIManager {
         // Skill Tooltips
         this.tooltip = document.getElementById('skill-tooltip');
         this.skillData = {
-            laser: { name: '체인 라이트닝 (J)', desc: '특징: 기본 공격이 가까운 적에게 연쇄되는 번개로 바뀌고, 적중한 적 수만큼 마나를 회복합니다.<br>성장: 레벨이 오를수록 연쇄 대상 수와 충전당 피해 상승폭이 함께 커집니다.' },
-            missile: { name: '매직 미사일 (H)', desc: '특징: 가까운 적의 현재 위치를 먼저 고정한 뒤, 그 지점을 향해 자연스럽게 휘어 들어가는 미사일을 순차 발사합니다.<br>성장: 레벨이 오를수록 한 번에 발사되는 미사일 수가 늘고 마나 소모도 함께 증가합니다.' },
-            fireball: { name: '파이어볼 (U)', desc: '특징: 직선으로 날아가 폭발하며 범위 피해와 화상을 남기는 광역 스킬입니다.<br>성장: 레벨이 오를수록 직격 피해, 폭발 반경, 화상 지속시간이 함께 증가합니다.' },
-            shield: { name: '앱솔루트 베리어 (K)', desc: '특징: 다음 1회의 피격을 완전히 막는 생존용 방어막입니다.<br>성장: 레벨업이 없는 고정 성능 스킬이며, 항상 같은 성능으로 유지됩니다.' }
+            laser: { name: '체인 라이트닝', desc: '특징: 기본 공격이 가까운 적에게 연쇄되는 번개로 바뀌고, 적중한 적 수만큼 마나를 회복합니다.<br>성장: 레벨이 오를수록 연쇄 대상 수와 충전당 피해 상승폭이 함께 커집니다.' },
+            missile: { name: '매직 미사일', desc: '특징: 가까운 적의 현재 위치를 먼저 고정한 뒤, 그 지점을 향해 자연스럽게 휘어 들어가는 미사일을 순차 발사합니다.<br>성장: 레벨이 오를수록 한 번에 발사되는 미사일 수가 늘고 마나 소모도 함께 증가합니다.' },
+            fireball: { name: '파이어볼', desc: '특징: 직선으로 날아가 폭발하며 범위 피해와 화상을 남기는 광역 스킬입니다.<br>성장: 레벨이 오를수록 직격 피해, 폭발 반경, 화상 지속시간이 함께 증가합니다.' },
+            shield: { name: '앱솔루트 베리어', desc: '특징: 다음 1회의 피격을 완전히 막는 생존용 방어막입니다.<br>성장: 레벨업이 없는 고정 성능 스킬이며, 항상 같은 성능으로 유지됩니다.' }
         };
 
         this.bindSkillTooltipTargets();
@@ -3469,10 +3473,10 @@ export class UIManager {
                     const tutorialStep = this.game.tutorial?.getCurrentStep?.();
                     if (tutorialStep?.trigger === 'skill_upgrade') {
                         const requiredSkill = tutorialStep.target;
-                        const requiredName = this.skillData[requiredSkill]?.name || '지정된 스킬';
+                        const requiredName = this.getSkillDisplayName(requiredSkill) || '지정된 스킬';
                         this.logSystemMessage(`📘 지금은 ${requiredName}만 강화할 수 있습니다.`);
                     } else {
-                        this.logSystemMessage('📘 아직은 스킬 설명을 확인하는 단계입니다. 아이콘에 마우스를 올려 보세요.');
+                        this.logSystemMessage(this.getSkillInspectGuidanceText());
                     }
                     this.updateSkillPopup();
                     return;
@@ -3487,7 +3491,7 @@ export class UIManager {
                     p.updateGoldInventory(); // v0.22.9
                     p.skillLevels[skillId]++;
                     this.game.tutorial?.trigger?.('skill_upgrade', { target: skillId });
-                    this.logSystemMessage(`✨ [SKILL] ${this.skillData[skillId].name} 레벨이 상승했습니다! (현재: ${p.skillLevels[skillId]})`);
+                    this.logSystemMessage(`✨ [SKILL] ${this.getSkillDisplayName(skillId)} 레벨이 상승했습니다! (현재: ${p.skillLevels[skillId]})`);
                     this.updateSkillPopup();
                     this.updateStatusPopup();
                     this.updateInventory(); // v0.22.9
@@ -4338,6 +4342,25 @@ export class UIManager {
         }[skillId] || '-';
     }
 
+    getSkillDisplayName(skillId, options = {}) {
+        const data = this.skillData?.[skillId];
+        if (!data) return '';
+
+        const includeHotkey = options.includeHotkey ?? this.shouldShowDesktopShortcutText();
+        const hotkey = this.getSkillHotkey(skillId);
+        if (!includeHotkey || !hotkey || hotkey === '-') {
+            return data.name;
+        }
+        return `${data.name} (${hotkey})`;
+    }
+
+    getSkillInspectGuidanceText() {
+        if (this.shouldShowDesktopShortcutText()) {
+            return '📘 아직은 스킬 설명을 확인하는 단계입니다. 아이콘에 마우스를 올려 보세요.';
+        }
+        return '📘 아직은 스킬 설명을 확인하는 단계입니다. 스킬 아이콘을 터치해 보세요.';
+    }
+
     buildSkillDetailSection(title, items = []) {
         if (!Array.isArray(items) || items.length === 0) return '';
         return `
@@ -4376,6 +4399,7 @@ export class UIManager {
         const equippedWeapon = p.getEquippedWeapon?.();
         const weaponName = equippedWeapon?.name || '장착 무기 없음';
         const hotkey = this.getSkillHotkey(skillId);
+        const showShortcutText = this.shouldShowDesktopShortcutText();
         const currentStats = [];
         const formulaItems = [];
         const settingItems = [];
@@ -4596,10 +4620,13 @@ export class UIManager {
         ].filter(Boolean).join('');
 
         return {
-            name: data.name,
+            name: this.getSkillDisplayName(skillId, { includeHotkey: showShortcutText }),
             level: lv,
-            hotkey,
-            subtitle: `Lv.${lv} · 단축키 ${hotkey}${equippedWeapon ? ` · ${weaponName}` : ''}`,
+            hotkey: showShortcutText ? hotkey : '',
+            showHotkeyBadge: showShortcutText && !!hotkey && hotkey !== '-',
+            subtitle: showShortcutText
+                ? `Lv.${lv} · 단축키 ${hotkey}${equippedWeapon ? ` · ${weaponName}` : ''}`
+                : `Lv.${lv}${equippedWeapon ? ` · ${weaponName}` : ''}`,
             tooltipCurrentEffectHtml,
             modalHtml: sectionsHtml
         };
@@ -4619,7 +4646,11 @@ export class UIManager {
 
         if (title) title.textContent = detail.name;
         if (subtitle) subtitle.textContent = detail.subtitle;
-        if (hotkey) hotkey.textContent = detail.hotkey;
+        if (hotkey) {
+            hotkey.textContent = detail.hotkey || '';
+            hotkey.style.display = detail.showHotkeyBadge ? 'inline-flex' : 'none';
+            hotkey.setAttribute('aria-hidden', detail.showHotkeyBadge ? 'false' : 'true');
+        }
         if (body) {
             body.innerHTML = `${detail.tooltipCurrentEffectHtml || ''}${detail.modalHtml}`;
             body.scrollTop = 0;

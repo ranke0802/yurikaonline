@@ -97,8 +97,37 @@ export default class TutorialManager {
         return step.instructionDesktop || step.instruction;
     }
 
+    hasLegacyResponsiveInstruction(step) {
+        return !!(step && (
+            step.instructionDesktop
+            || step.instructionMobile
+            || step.instructionMobileLandscape
+        ));
+    }
+
+    sanitizeMobileInstructionText(text) {
+        if (!this.isMobileTutorialLayout() || typeof text !== 'string' || !text) {
+            return text;
+        }
+
+        return text
+            .replace(/`[^`]+`\s*키(?:나|를)?\s*/g, '')
+            .replace(/`[^`]+`\s*(?:또는|이나)\s*/g, '')
+            .replace(/아이콘 위에 마우스를 올리거나 터치해서/g, '아이콘을 터치해서')
+            .replace(/아이콘에 마우스를 올려 보세요/g, '아이콘을 터치해 보세요')
+            .replace(/\s{2,}/g, ' ')
+            .replace(/\s+([.,!?])/g, '$1')
+            .trim();
+    }
+
     getStepInstruction(step = this.getCurrentStep()) {
-        return this.resolveResponsiveValue(step?.instruction, () => this.getLegacyInstruction(step)) || '';
+        if (!step) return '';
+
+        const instruction = this.hasLegacyResponsiveInstruction(step)
+            ? (this.getLegacyInstruction(step) || this.resolveResponsiveValue(step.instruction))
+            : this.resolveResponsiveValue(step.instruction, () => this.getLegacyInstruction(step));
+
+        return this.sanitizeMobileInstructionText(instruction || '') || '';
     }
 
     getDefaultStepType(step = this.getCurrentStep()) {

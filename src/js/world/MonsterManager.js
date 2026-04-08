@@ -700,7 +700,7 @@ export default class MonsterManager {
                 // v0.00.43: Handle Death Logic (Kill Count & Boss Spawn)
                 this._handleMonsterDeath(m);
 
-                // Spawn Drops (v0.00.70: 분열된 슬라임 드롭 조정)
+                // Spawn Drops
                 const shouldProcessRewards = m.typeId !== 'training_dummy';
                 if (shouldProcessRewards) {
                     const attackerId = m.lastAttackerId || this.net.playerId;
@@ -710,9 +710,6 @@ export default class MonsterManager {
                     if (m.typeId === 'king_slime') {
                         xpAmount = 500;
                         goldAmount = 2000;
-                    } else if (m.typeId === 'slime_split') {
-                        xpAmount = 100;
-                        goldAmount = 150;
                     } else if (m.isBoss) {
                         xpAmount = 500;
                         goldAmount = 5000;

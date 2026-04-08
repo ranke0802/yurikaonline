@@ -10,7 +10,7 @@
         "atk": 25,
         "def": 5,
         "speed": 60,
-        "exp": 35
+        "exp": 15
     },
     "visual": {
         "assetPath": "assets/resource/monster_slime",
@@ -41,13 +41,17 @@
     "drops": [
         {
             "itemId": "gold",
-            "min": 30,
-            "max": 80,
+            "min": 10,
+            "max": 50,
             "chance": 1.0
         },
         {
             "itemId": "slime_gel",
-            "chance": 0.5
+            "chance": 0.3
+        },
+        {
+            "itemId": "potion_hp_small",
+            "chance": 0.1
         }
     ]
 }
