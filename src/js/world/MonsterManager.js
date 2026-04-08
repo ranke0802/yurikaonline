@@ -78,6 +78,10 @@ export default class MonsterManager {
         this.net.on('sharedFieldChanged', ({ active }) => {
             if (!this.net.isHost) return;
             if (active) {
+                // Leaving solo quiet mode needs one authoritative keyframe pass
+                // so late joiners immediately receive the current field population.
+                this.lastSyncState.clear();
+                this.forceSyncAll();
                 this.forceSyncAllDrops();
                 return;
             }
