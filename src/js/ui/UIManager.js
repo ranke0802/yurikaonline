@@ -2360,7 +2360,9 @@ export class UIManager {
             }
         } else if (focusTouchesHud) {
             if (mode === 'mobile-portrait') {
-                guideMode = focusTouchesActionButtons ? 'top-card' : 'viewport-bottom-sheet-safe';
+                guideMode = payload.stepId === 'open_inventory'
+                    ? 'top-card'
+                    : (focusTouchesActionButtons ? 'top-card' : 'viewport-bottom-sheet-safe');
             } else if (mode === 'mobile-landscape') {
                 guideMode = 'left-card';
             }
