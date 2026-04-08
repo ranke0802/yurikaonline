@@ -293,6 +293,10 @@ export class UIManager {
         return !!this.devAccessGranted;
     }
 
+    getRemainingDeveloperAttempts() {
+        return Math.max(0, this.devMaxFailures - Number(this.devAccessState.failedAttempts || 0));
+    }
+
     formatDurationMs(ms = 0) {
         const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
         const minutes = Math.floor(totalSeconds / 60);
@@ -323,9 +327,6 @@ export class UIManager {
             }
         }
 
-        const devModeInput = document.getElementById('settings-dev-mode');
-        if (devModeInput) devModeInput.checked = this.devMode;
-
         if (changed && announce) {
             this.logSystemMessage(`개발자 모드 ${this.devMode ? '활성화' : '비활성화'}`);
         }
@@ -347,48 +348,34 @@ export class UIManager {
     }
 
     syncDeveloperSettingsUi() {
+        const section = document.getElementById('settings-dev-section');
         const statusEl = document.getElementById('settings-dev-access-status');
         const helpEl = document.getElementById('settings-dev-access-help');
-        const authForm = document.getElementById('settings-dev-auth-form');
-        const controls = document.getElementById('settings-dev-controls');
-        const passwordInput = document.getElementById('settings-dev-password');
-        const unlockButton = document.getElementById('settings-dev-unlock');
-        const devModeInput = document.getElementById('settings-dev-mode');
         const logLevelSelect = document.getElementById('settings-log-level');
 
         const remainingMs = this.getDevAccessRemainingMs();
         const locked = remainingMs > 0;
         const granted = this.hasDeveloperAccess();
+        const visible = this.devMode && granted;
+
+        if (section) {
+            section.classList.toggle('hidden', !visible);
+        }
 
         if (statusEl) {
-            statusEl.classList.toggle('is-active', granted);
+            statusEl.classList.toggle('is-active', visible);
             statusEl.classList.toggle('is-locked', locked);
-            statusEl.textContent = locked
-                ? `잠금 (${this.formatDurationMs(remainingMs)})`
-                : granted
-                    ? '인증 완료'
-                    : '잠김';
+            statusEl.textContent = locked ? `잠금 (${this.formatDurationMs(remainingMs)})` : '개발자 모드 활성';
         }
 
         if (helpEl) {
             if (locked) {
                 helpEl.textContent = `비밀번호 3회 실패로 ${this.formatDurationMs(remainingMs)} 동안 개발자모드 진입이 잠겼습니다.`;
-            } else if (granted) {
-                helpEl.textContent = '개발자 모드 토글과 로그 레벨 설정을 사용할 수 있습니다.';
             } else {
-                const remainingTries = Math.max(0, this.devMaxFailures - (this.devAccessState.failedAttempts || 0));
-                helpEl.textContent = `개발자 옵션은 암호 인증 후에만 변경할 수 있습니다. 남은 시도 ${remainingTries}회`;
+                helpEl.textContent = '프로필 사진을 다시 누르면 개발자 모드를 빠르게 켜거나 끌 수 있습니다.';
             }
         }
 
-        if (authForm) authForm.classList.toggle('hidden', granted);
-        if (controls) controls.classList.toggle('hidden', !granted);
-        if (passwordInput) {
-            passwordInput.disabled = locked || granted;
-            if (granted) passwordInput.value = '';
-        }
-        if (unlockButton) unlockButton.disabled = locked || granted;
-        if (devModeInput) devModeInput.checked = this.devMode;
         if (logLevelSelect) logLevelSelect.value = this.getSetting('developerLogLevel');
     }
 
@@ -428,6 +415,84 @@ export class UIManager {
         this.persistDevAccessState();
         this.syncDeveloperSettingsUi();
         return { ok: true };
+    }
+
+    showDeveloperAccessPrompt() {
+        if (this.isDeveloperAccessLocked()) {
+            this.showGenericModal(
+                '개발자 모드 잠금',
+                `비밀번호 3회 실패로 인해 ${this.formatDurationMs(this.getDevAccessRemainingMs())} 동안 개발자모드 진입이 잠겼습니다.`,
+                null,
+                null,
+                { hideNo: true, yesText: '확인' }
+            );
+            return;
+        }
+
+        const renderPromptHtml = (feedbackText = '', isError = false) => `
+            <div class="dev-auth-dialog">
+                <p class="dev-auth-copy">개발자 모드에 들어가려면 암호를 입력하세요.</p>
+                <label class="dev-auth-label" for="dev-auth-password-input">개발자 암호</label>
+                <input id="dev-auth-password-input" class="dev-auth-input" type="password" autocomplete="off" placeholder="암호 입력">
+                <p id="dev-auth-feedback" class="dev-auth-feedback${isError ? ' is-error' : ''}">${feedbackText || `남은 시도 ${this.getRemainingDeveloperAttempts()}회`}</p>
+            </div>
+        `;
+
+        const focusPasswordInput = () => {
+            const passwordInput = document.getElementById('dev-auth-password-input');
+            if (!passwordInput) return;
+            passwordInput.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                document.getElementById('generic-modal-yes')?.click();
+            });
+            requestAnimationFrame(() => {
+                passwordInput.focus();
+                passwordInput.select?.();
+            });
+        };
+
+        this.showGenericModal(
+            '개발자 모드',
+            renderPromptHtml(),
+            async () => {
+                const passwordInput = document.getElementById('dev-auth-password-input');
+                const feedbackEl = document.getElementById('dev-auth-feedback');
+                const yesButton = document.getElementById('generic-modal-yes');
+                const result = this.tryUnlockDeveloperAccess(passwordInput?.value || '');
+
+                if (result.ok) {
+                    this.logSystemMessage('개발자 모드 인증이 완료되었습니다.');
+                    this.setDevMode(true, { announce: true });
+                    return true;
+                }
+
+                if (feedbackEl) {
+                    feedbackEl.classList.add('is-error');
+                    feedbackEl.textContent = result.reason === 'locked'
+                        ? `비밀번호 3회 실패로 ${this.formatDurationMs(result.remainingMs)} 동안 잠겼습니다.`
+                        : `개발자 암호가 올바르지 않습니다. 남은 시도 ${result.remainingAttempts}회`;
+                }
+
+                if (result.reason === 'locked') {
+                    if (passwordInput) passwordInput.disabled = true;
+                    if (yesButton) yesButton.disabled = true;
+                } else if (passwordInput) {
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+
+                return false;
+            },
+            null,
+            {
+                hideNo: false,
+                yesText: '입장',
+                noText: '취소',
+                allowHtml: true,
+                onShow: focusPasswordInput
+            }
+        );
     }
 
     getSetting(key) {
@@ -3231,37 +3296,8 @@ export class UIManager {
             this.updateSetting('developerLogLevel', e.currentTarget.value, { refreshGame: false });
         });
 
-        document.getElementById('settings-dev-unlock')?.addEventListener('click', () => {
-            const passwordInput = document.getElementById('settings-dev-password');
-            const result = this.tryUnlockDeveloperAccess(passwordInput?.value || '');
-            if (result.ok) {
-                this.logSystemMessage('개발자 모드 인증이 완료되었습니다.');
-                this.setDevMode(true, { announce: true });
-                if (passwordInput) {
-                    passwordInput.value = '';
-                    passwordInput.blur();
-                }
-                return;
-            }
-
-            if (result.reason === 'locked') {
-                this.logSystemMessage(`개발자 모드가 ${this.formatDurationMs(result.remainingMs)} 동안 잠겼습니다.`);
-            } else {
-                this.logSystemMessage(`개발자 암호가 올바르지 않습니다. 남은 시도 ${result.remainingAttempts}회`);
-            }
-        });
-        document.getElementById('settings-dev-password')?.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                document.getElementById('settings-dev-unlock')?.click();
-            }
-        });
-        document.getElementById('settings-dev-mode')?.addEventListener('change', (e) => {
-            if (!this.hasDeveloperAccess()) {
-                this.syncDeveloperSettingsUi();
-                return;
-            }
-            this.setDevMode(!!e.currentTarget.checked, { announce: true });
+        document.getElementById('settings-dev-exit')?.addEventListener('click', () => {
+            this.setDevMode(false, { announce: true });
         });
         document.getElementById('settings-dev-lock')?.addEventListener('click', () => {
             this.lockDeveloperAccess({ announce: true });
@@ -3504,10 +3540,16 @@ export class UIManager {
         const msgEl = document.getElementById('generic-modal-message');
         const yesBtn = document.getElementById('generic-modal-yes');
         const noBtn = document.getElementById('generic-modal-no');
-        const { yesText, noText, hideNo = !onNo } = options;
+        const { yesText, noText, hideNo = !onNo, allowHtml = false, onShow = null } = options;
 
         if (titleEl) titleEl.textContent = title;
-        if (msgEl) msgEl.textContent = message;
+        if (msgEl) {
+            if (allowHtml) {
+                msgEl.innerHTML = message;
+            } else {
+                msgEl.textContent = message;
+            }
+        }
 
         const newYes = yesBtn.cloneNode(true);
         const newNo = noBtn.cloneNode(true);
@@ -3516,19 +3558,28 @@ export class UIManager {
         newYes.textContent = yesText || (hideNo ? '확인' : '수락');
         newNo.textContent = noText || '거절';
         newNo.style.display = hideNo ? 'none' : '';
+        newYes.disabled = false;
+        newNo.disabled = false;
 
         newYes.onclick = async () => {
-            if (onYes) await onYes();
-            this.hideGenericModal();
+            const shouldClose = onYes ? await onYes() : true;
+            if (shouldClose !== false) {
+                this.hideGenericModal();
+            }
         };
 
         newNo.onclick = async () => {
-            if (onNo) await onNo();
-            this.hideGenericModal();
+            const shouldClose = onNo ? await onNo() : true;
+            if (shouldClose !== false) {
+                this.hideGenericModal();
+            }
         };
 
         modal.classList.remove('hidden');
         modal.classList.add('visible');
+        if (typeof onShow === 'function') {
+            onShow(modal);
+        }
         this.refreshDesktopShortcutHints();
     }
 
@@ -6723,23 +6774,7 @@ export class UIManager {
             portrait.title = '개발자 모드';
             portrait.addEventListener('click', () => {
                 if (!this.hasDeveloperAccess()) {
-                    if (this.isDeveloperAccessLocked()) {
-                        this.showGenericModal(
-                            '개발자 모드 잠금',
-                            `비밀번호 3회 실패로 인해 <strong>${this.formatDurationMs(this.getDevAccessRemainingMs())}</strong> 동안 개발자모드 진입이 잠겼습니다.`,
-                            null,
-                            null,
-                            { hideNo: true, yesText: '확인' }
-                        );
-                    } else {
-                        this.showGenericModal(
-                            '개발자 모드',
-                            '설정 창의 <strong>개발자 모드</strong> 섹션에서 암호를 입력한 뒤 사용할 수 있습니다.',
-                            null,
-                            null,
-                            { hideNo: true, yesText: '확인' }
-                        );
-                    }
+                    this.showDeveloperAccessPrompt();
                     this.syncDeveloperSettingsUi();
                     return;
                 }

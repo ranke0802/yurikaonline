@@ -1037,6 +1037,10 @@ button:active,
     border-color: rgba(238, 117, 117, 0.86);
 }
 
+#settings-dev-section .settings-action-grid {
+    margin-top: 12px;
+}
+
 .settings-action-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2338,6 +2342,61 @@ body.ui-layout-edit-mode #joystick-container[data-ui-layout-selected="true"] #jo
     width: 350px;
     text-align: center;
     color: #2d3436;
+}
+
+#generic-modal-message {
+    margin-bottom: 24px;
+    color: #636e72;
+    line-height: 1.5;
+    white-space: pre-line;
+}
+
+.dev-auth-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+}
+
+.dev-auth-copy {
+    margin: 0;
+    color: #636e72;
+    line-height: 1.5;
+}
+
+.dev-auth-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #4b5563;
+}
+
+.dev-auth-input {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 214, 165, 0.68);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #374151;
+    font-family: 'Outfit', 'Nanum Gothic', sans-serif;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.dev-auth-input:focus {
+    outline: none;
+    border-color: rgba(255, 145, 77, 0.88);
+    box-shadow: 0 0 0 3px rgba(255, 180, 106, 0.2);
+}
+
+.dev-auth-feedback {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.dev-auth-feedback.is-error {
+    color: #b42318;
 }
 
 #generic-modal-yes {
