@@ -48,6 +48,11 @@ export default class RemotePlayer extends CharacterBase {
         this.isDying = false;
         this.missileVisualQueue = [];
         this.missileVisualTimer = 0;
+        this.remoteAttackTimer = 0;
+        this.remoteChannelingLocked = false;
+        this.remoteChannelingTimeout = 0;
+        this.lastAttackSourceTs = 0;
+        this.lastChannelSourceTs = 0;
 
         // Status Effect Timers
         this.electrocutedTimer = 0;
@@ -121,6 +126,9 @@ export default class RemotePlayer extends CharacterBase {
     die() {
         this.isDying = true;
         this.isDead = true;
+        this.remoteAttackTimer = 0;
+        this.remoteChannelingLocked = false;
+        this.remoteChannelingTimeout = 0;
         this.state = 'die';
         this.deathTimer = 3.0; // 3 seconds visual
     }
@@ -128,6 +136,12 @@ export default class RemotePlayer extends CharacterBase {
     respawn() {
         this.isDying = false;
         this.isDead = false;
+        this.isAttacking = false;
+        this.remoteAttackTimer = 0;
+        this.remoteChannelingLocked = false;
+        this.remoteChannelingTimeout = 0;
+        this.currentSkill = null;
+        this.lightningEffect = null;
         this.state = 'idle';
 
         // v0.00.41: Clear all status effects on respawn
@@ -262,6 +276,55 @@ export default class RemotePlayer extends CharacterBase {
         this.isExtrapolating = false;
     }
 
+    _resolveRemoteEventTime(kind, sourceTs = 0) {
+        const now = Date.now();
+        const sourceKey = kind === 'attack' ? 'lastAttackSourceTs' : 'lastChannelSourceTs';
+        const localKey = kind === 'attack' ? 'lastAttackTime' : 'lastChannelTime';
+        const nextSourceTs = Number(sourceTs || 0);
+        const lastSourceTs = Number(this[sourceKey] || 0);
+
+        if (nextSourceTs > 0 && lastSourceTs > 0) {
+            if (nextSourceTs < (lastSourceTs - 15)) return null;
+            if (nextSourceTs === lastSourceTs) return null;
+        }
+
+        const lastLocalTs = Number(this[localKey] || 0);
+        const nextLocalTs = Math.max(now, lastLocalTs + 1);
+        if (nextSourceTs > 0) {
+            this[sourceKey] = Math.max(lastSourceTs, nextSourceTs);
+        }
+        this[localKey] = nextLocalTs;
+        return nextLocalTs;
+    }
+
+    _holdRemoteAttackState(duration = 0.6, options = {}) {
+        this.isAttacking = true;
+        this.state = 'attack';
+        this.animTimer = 0;
+        this.remoteAttackTimer = Math.max(this.remoteAttackTimer || 0, duration);
+
+        if (options.lockChannel) {
+            this.remoteChannelingLocked = true;
+            this.remoteChannelingTimeout = Math.max(
+                this.remoteChannelingTimeout || 0,
+                Math.max(duration, options.channelTimeout || 0)
+            );
+        }
+    }
+
+    _releaseRemoteAttackState(options = {}) {
+        this.remoteAttackTimer = 0;
+        this.remoteChannelingLocked = false;
+        this.remoteChannelingTimeout = 0;
+        this.isAttacking = false;
+        if (!options.keepSkill) {
+            this.currentSkill = null;
+        }
+        if (!this.isDying) {
+            this.state = 'idle';
+        }
+    }
+
     update(dt) {
         // Handle death/respawn logic
         if (this.isDead || this.isDying) {
@@ -279,6 +342,23 @@ export default class RemotePlayer extends CharacterBase {
                 this.missileVisualTimer = 0.05;
                 const data = this.missileVisualQueue.shift();
                 this._launchRemoteMissileVisual(data);
+            }
+        }
+
+        if (this.remoteAttackTimer > 0) {
+            this.remoteAttackTimer = Math.max(0, this.remoteAttackTimer - dt);
+        }
+        if (this.remoteChannelingLocked) {
+            this.remoteChannelingTimeout = Math.max(0, this.remoteChannelingTimeout - dt);
+            if (this.remoteChannelingTimeout <= 0) {
+                this.remoteChannelingLocked = false;
+            }
+        }
+        if (!this.remoteChannelingLocked && this.remoteAttackTimer <= 0 && this.isAttacking) {
+            this.isAttacking = false;
+            this.currentSkill = null;
+            if (!this.isDying) {
+                this.state = 'idle';
             }
         }
 
@@ -810,21 +890,17 @@ export default class RemotePlayer extends CharacterBase {
 
     // v0.00.37: Channeling for casting effects (spark, magic circle, attack motion)
     triggerChanneling(data) {
-        if (this.lastChannelTime && data.ts <= this.lastChannelTime) return;
-        this.lastChannelTime = data.ts;
+        const eventTime = this._resolveRemoteEventTime('channel', data?.ts);
+        if (eventTime === null) return;
+        this.lastChannelTime = eventTime;
 
         // v0.00.38: Handle channeling stop
         if (data.skillType === 'stop') {
-            this.isAttacking = false;
-            this.state = 'idle';
             this.lightningEffect = null;
-            this.currentSkill = null;
+            this._releaseRemoteAttackState();
             return;
         }
 
-        this.isAttacking = true;
-        this.state = 'attack';
-        this.animTimer = 0;
         this.currentSkill = data.skillType;
 
         // Visual feedback
@@ -834,33 +910,36 @@ export default class RemotePlayer extends CharacterBase {
             this.triggerAction(`${this.name} : 매직 미사일 !!`);
         }
 
-        // Reset attack state after a short duration (fallback if stop packet is lost)
-        setTimeout(() => {
-            if (this.isAttacking && !this.lightningEffect) {
-                this.isAttacking = false;
-                this.state = 'idle';
-            }
-        }, 2000); // Increased to 2s as fallback, stop packet should arrive first
+        this._holdRemoteAttackState(data.skillType === 'laser' ? 0.45 : 0.6, {
+            lockChannel: data.skillType === 'laser',
+            channelTimeout: data.skillType === 'laser' ? 2.5 : 0.9
+        });
     }
 
     triggerAttack(data) {
-        if (this.lastAttackTime && data.ts <= this.lastAttackTime) return;
+        const eventTime = this._resolveRemoteEventTime('attack', data?.ts);
+        if (eventTime === null) return;
 
         // v0.28.6: Validate direction to prevent sprite disappearing
         if (typeof data.dir === 'number' && data.dir >= 0 && data.dir <= 3) {
             this.direction = data.dir;
         }
 
-        this.lastAttackTime = data.ts;
+        this.lastAttackTime = eventTime;
         this.lastAttackAngle = data.extraData?.angle; // v0.00.01: Store precision angle
         this.lastAttackTargets = data.extraData?.targets; // v0.00.01: Store target IDs
         this.lastAttackVariant = data.extraData?.variant || null;
-        this.isAttacking = true;
-        this.state = 'attack';
-        this.animTimer = 0;
 
         const skillType = data.skillType || 'normal';
         this.currentSkill = skillType; // v0.00.07: Track current skill type
+        if (skillType !== 'laser') {
+            this.remoteChannelingLocked = false;
+            this.remoteChannelingTimeout = 0;
+        }
+        this._holdRemoteAttackState(skillType === 'laser' ? 0.95 : 0.65, {
+            lockChannel: skillType === 'laser' && this.remoteChannelingLocked,
+            channelTimeout: skillType === 'laser' ? 1.35 : 0
+        });
         const skillNames = {
             'missile': '매직 미사일 !!',
             'fireball': '파이어볼 !!',
@@ -942,12 +1021,6 @@ export default class RemotePlayer extends CharacterBase {
         if (skillType === 'laser') {
             this._updateLightningVisual();
         }
-
-        if (this.attackTimeout) clearTimeout(this.attackTimeout);
-        this.attackTimeout = setTimeout(() => {
-            this.isAttacking = false;
-            if (!this.isDying) this.state = 'idle';
-        }, 600);
     }
 
     triggerAction(text) {

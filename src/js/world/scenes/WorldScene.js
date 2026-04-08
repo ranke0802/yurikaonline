@@ -378,6 +378,17 @@ export default class WorldScene extends Scene {
         Logger.log(`[WorldScene] Spawned buffered player: ${rp.name}`);
     }
 
+    _getOrSpawnRemotePlayer(id, fallbackData = null) {
+        if (!id) return null;
+        if (!this.remotePlayers.has(id)) {
+            const seedData = this.net?.remotePlayers?.get(id) || fallbackData;
+            if (seedData && Number.isFinite(seedData.x) && Number.isFinite(seedData.y)) {
+                this._spawnRemotePlayerFromData(seedData);
+            }
+        }
+        return this.remotePlayers.get(id) || null;
+    }
+
     _syncRemotePlayersFromBuffer() {
         if (!this.net?.remotePlayers) return;
 
@@ -585,20 +596,20 @@ export default class WorldScene extends Scene {
 
         this.net.on('playerAttack', (data) => {
             if (!this.net.isZoneParticipationEnabled()) return;
-            const rp = this.remotePlayers.get(data.id);
+            const rp = this._getOrSpawnRemotePlayer(data.id, data);
             if (rp) rp.triggerAttack(data);
         });
 
         // v0.00.37: Channeling sync for casting effects (spark, magic circle, attack motion)
         this.net.on('playerChanneling', (data) => {
             if (!this.net.isZoneParticipationEnabled()) return;
-            const rp = this.remotePlayers.get(data.id);
+            const rp = this._getOrSpawnRemotePlayer(data.id, data);
             if (rp) rp.triggerChanneling(data);
         });
 
         this.net.on('playerHpUpdate', (data) => {
             if (!this.net.isZoneParticipationEnabled()) return;
-            const rp = this.remotePlayers.get(data.id);
+            const rp = this._getOrSpawnRemotePlayer(data.id, data);
             if (rp) {
                 rp.onHpUpdate(data);
                 this.ui?.updatePartyUI?.();
