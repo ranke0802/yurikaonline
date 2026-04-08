@@ -87,6 +87,7 @@ export default class Player extends CharacterBase {
         this.skillCooldowns = { j: 0, h: 0, u: 0, k: 0 };
         this.skillMaxCooldowns = { j: 0, h: 0, u: 0, k: 0 };
         this.uiLayout = null;
+        this.clientSettings = null;
 
         // Combat & Channeling
         this.attackRange = 400; // v2.4.2: Tighten basic attack range to match combat feel and remote visuals
@@ -1032,6 +1033,7 @@ export default class Player extends CharacterBase {
             equipment: this.equipment,
             questData: this.questData, // Added in v0.22.4
             uiLayout: this._cloneProfilePatchValue(this.uiLayout),
+            clientSettings: this._cloneProfilePatchValue(this.clientSettings),
             name: this.name,
             party: this.party, // v0.00.14: Sync party state
             hostility: Object.fromEntries(
@@ -1094,6 +1096,9 @@ export default class Player extends CharacterBase {
                     break;
                 case 'uiLayout':
                     patch.uiLayout = this._cloneProfilePatchValue(this.uiLayout);
+                    break;
+                case 'clientSettings':
+                    patch.clientSettings = this._cloneProfilePatchValue(this.clientSettings);
                     break;
                 case 'skillLevels':
                     patch.skillLevels = this._cloneProfilePatchValue(this.skillLevels);

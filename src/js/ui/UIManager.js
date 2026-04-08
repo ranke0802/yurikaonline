@@ -222,11 +222,37 @@ export class UIManager {
         }
     }
 
-    persistSettings() {
+    persistSettings(options = {}) {
+        const { syncProfile = true, debounceMs = 1200, reason = 'client_settings_save' } = options;
         try {
             localStorage.setItem(this.settingsStorageKey, JSON.stringify(this.settings));
         } catch (error) {
             Logger.warn('[UIManager] Failed to save settings', error);
+        }
+
+        if (syncProfile) {
+            this.persistSettingsToProfile({ debounceMs, reason });
+        }
+    }
+
+    persistSettingsToProfile(options = {}) {
+        const player = this.game?.localPlayer;
+        if (!player?.saveProfilePatch) return false;
+
+        player.clientSettings = this.cloneStructuredData(this.settings);
+        player.saveProfilePatch(['clientSettings'], {
+            debounceMs: Number.isFinite(options.debounceMs) ? Math.max(0, Number(options.debounceMs)) : 1200,
+            reason: options.reason || 'client_settings_save'
+        });
+        return true;
+    }
+
+    serializeSettings(settings = this.settings) {
+        try {
+            return JSON.stringify(this.sanitizeSettings(settings));
+        } catch (error) {
+            Logger.warn('[UIManager] Failed to serialize settings', error);
+            return '';
         }
     }
 
@@ -504,10 +530,16 @@ export class UIManager {
 
     updateSetting(key, value, options = {}) {
         const { refreshGame = false } = options;
+        const previousSerialized = this.serializeSettings(this.settings);
         const nextSettings = this.sanitizeSettings({
             ...this.settings,
             [key]: value
         });
+        const nextSerialized = this.serializeSettings(nextSettings);
+        if (previousSerialized === nextSerialized) {
+            this.applySettings({ refreshGame, syncUi: true });
+            return;
+        }
         this.settings = nextSettings;
         this.persistSettings();
         this.applySettings({ refreshGame, syncUi: true });
@@ -1053,6 +1085,24 @@ export class UIManager {
         if (!this.uiLayoutEditMode) {
             this.applyActiveUiLayout();
         }
+    }
+
+    loadPlayerSettings(settings = null, options = {}) {
+        const source = settings && typeof settings === 'object'
+            ? settings
+            : this.settings;
+        const nextSettings = this.sanitizeSettings(source);
+        this.settings = nextSettings;
+
+        if (this.game.localPlayer) {
+            this.game.localPlayer.clientSettings = this.cloneStructuredData(nextSettings);
+        }
+
+        this.persistSettings({ syncProfile: false });
+        this.applySettings({
+            refreshGame: !!options.refreshGame,
+            syncUi: options.syncUi !== false
+        });
     }
 
     refreshUiLayoutForViewport() {

@@ -178,6 +178,7 @@ export default class WorldScene extends Scene {
             this.player.autoAttackEnabled = !!profile.autoAttackEnabled;
             this.player.name = profile.name || localName || user.displayName || "유리카";
             this.player.uiLayout = profile.uiLayout || null;
+            this.player.clientSettings = profile.clientSettings || null;
 
             // v0.00.15: Restore Hostility
             // Support both Object (new) and Array (old/broken) formats specifically for robustness
@@ -266,6 +267,7 @@ export default class WorldScene extends Scene {
 
         this.net.setZoneParticipationEnabled(!shouldDeferZoneParticipation);
 
+        this.ui?.loadPlayerSettings?.(this.player.clientSettings || null);
         this.player.init(this.input, this.resources, this.net);
         this.player.grantSpawnProtection(5);
         this.ui?.loadPlayerUiLayout?.(this.player.uiLayout || null);
