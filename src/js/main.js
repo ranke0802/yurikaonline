@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.01.114'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.01.115'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -55,6 +55,7 @@ class Game {
         this.canvas.style.imageRendering = 'pixelated';
         this.zoom = 1.0;
         this.performanceTelemetry = this.createPerformanceTelemetryState();
+        this._backgroundedAt = 0;
 
         // Initial resize will be called after camera creation for full sync
         this._resetTransientInputState = this._resetTransientInputState.bind(this);
@@ -62,9 +63,23 @@ class Game {
         document.addEventListener('visibilitychange', () => {
             if (!this.loop) return;
             if (document.visibilityState === 'hidden') {
+                this._backgroundedAt = Date.now();
                 this._resetTransientInputState('hidden');
+                this.sceneManager?.currentScene?.onVisibilityHidden?.({
+                    hiddenAt: this._backgroundedAt
+                });
                 this.loop.pause();
-            } else this.loop.resume();
+            } else {
+                const resumedAt = Date.now();
+                const hiddenAt = Number(this._backgroundedAt || 0);
+                const hiddenDurationMs = hiddenAt > 0 ? Math.max(0, resumedAt - hiddenAt) : 0;
+                this._backgroundedAt = 0;
+                this.loop.resume();
+                this.sceneManager?.currentScene?.onVisibilityVisible?.({
+                    resumedAt,
+                    hiddenDurationMs
+                });
+            }
         });
         window.addEventListener('blur', () => this._resetTransientInputState('blur'));
         document.documentElement.addEventListener('mouseleave', (e) => {
@@ -529,6 +544,14 @@ class Game {
         if (this.sceneManager?.currentScene?.addExplosion) {
             this.sceneManager.currentScene.addExplosion(x, y, radius, options);
         }
+    }
+
+    shouldSuppressTransientWorldEffects() {
+        const currentScene = this.sceneManager?.currentScene;
+        if (typeof currentScene?.shouldSuppressTransientWorldEffects === 'function') {
+            return !!currentScene.shouldSuppressTransientWorldEffects();
+        }
+        return typeof document !== 'undefined' ? !!document.hidden : false;
     }
 
     _handleCanvasInteraction(e) {

@@ -858,6 +858,7 @@ export default class Player extends CharacterBase {
         // v0.00.54: Prevent damage while in modals (Character Status, Inventory, etc.)
         if (window.game?.ui?.isPaused) return 0;
         if (this.isProtected()) return 0;
+        const suppressTransientEffects = !!window.game?.shouldSuppressTransientWorldEffects?.();
 
         // v0.29.31: Improved Absolute Barrier (Blocks any immediate damage source)
         // v0.00.42: Also blocks status effects (burn, shock)
@@ -867,7 +868,7 @@ export default class Player extends CharacterBase {
                 this.shieldTimer = 1.5;
             }
 
-            if (window.game) {
+            if (window.game && !suppressTransientEffects) {
                 // v0.00.45: Show BLOCK but don't remove shield
                 window.game.addDamageText(this.x + this.width / 2, this.y - 40, "BLOCK", '#48dbfb', true);
             }
@@ -881,13 +882,13 @@ export default class Player extends CharacterBase {
         }
 
         // v0.00.57: Hit SFX
-        if (window.game?.sound) window.game.sound.playSfx('hit');
+        if (!suppressTransientEffects && window.game?.sound) window.game.sound.playSfx('hit');
 
         // v2.2: Hit Feedback — Screen Shake + Hitstop
-        if (window.game?.camera?.shake) {
+        if (!suppressTransientEffects && window.game?.camera?.shake) {
             window.game.camera.shake(isCrit ? 12 : 6, isCrit ? 0.25 : 0.15);
         }
-        if (isCrit && window.game?.loop?.hitstop) {
+        if (!suppressTransientEffects && isCrit && window.game?.loop?.hitstop) {
             window.game.loop.hitstop(80);
         }
 
@@ -900,7 +901,7 @@ export default class Player extends CharacterBase {
         let finalDmg = Math.max(1, Math.ceil(validAmount - def)); // Minimum 1 damage
 
         this.hp = Math.max(0, this.hp - finalDmg);
-        if (window.game) {
+        if (window.game && !suppressTransientEffects) {
             // v0.00.40: Show crit message properly
             const color = isCrit ? '#ff9f43' : '#ff4757';
             window.game.addDamageText(this.x + this.width / 2, this.y - 40, `-${finalDmg}`, color, isCrit, isCrit ? 'Critical' : null);
@@ -911,13 +912,13 @@ export default class Player extends CharacterBase {
         if (finalDmg > 0 && this.hp > 0) {
             const impactX = Number.isFinite(attacker?.impactX) ? attacker.impactX : sourceX;
             const impactY = Number.isFinite(attacker?.impactY) ? attacker.impactY : sourceY;
-            if (attacker?.combustionCollapse && Number.isFinite(impactX) && Number.isFinite(impactY)) {
+            if (!suppressTransientEffects && attacker?.combustionCollapse && Number.isFinite(impactX) && Number.isFinite(impactY)) {
                 this.applyCombustionCollapse(impactX, impactY, {
                     outwardForce: attacker?.collapseOutwardForce,
                     inwardForce: attacker?.collapseInwardForce,
                     delayMs: attacker?.collapseDelayMs
                 });
-            } else if (sourceX !== null && sourceY !== null) {
+            } else if (!suppressTransientEffects && sourceX !== null && sourceY !== null) {
                 const angle = Math.atan2(this.y - sourceY, this.x - sourceX);
                 this.applyKnockback(Math.cos(angle) * 100, Math.sin(angle) * 100);
             }

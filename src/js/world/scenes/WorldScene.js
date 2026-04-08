@@ -31,6 +31,8 @@ export default class WorldScene extends Scene {
         this.viewMargin = 500; // v0.00.24: Increased for smoother player sync
         this._lastLandscapeFramingOffsetY = 0;
         this.remoteOffscreenUpdateInterval = 0;
+        this.transientSyncSuppressedUntil = 0;
+        this.transientSyncResumeGraceMs = 900;
 
         // v0.33.0: Monster Attack Queue
         this.monsterMissileQueue = [];
@@ -596,6 +598,7 @@ export default class WorldScene extends Scene {
 
         this.net.on('playerAttack', (data) => {
             if (!this.net.isZoneParticipationEnabled()) return;
+            if (this.shouldSuppressTransientWorldEffects()) return;
             const rp = this._getOrSpawnRemotePlayer(data.id, data);
             if (rp) rp.triggerAttack(data);
         });
@@ -603,6 +606,7 @@ export default class WorldScene extends Scene {
         // v0.00.37: Channeling sync for casting effects (spark, magic circle, attack motion)
         this.net.on('playerChanneling', (data) => {
             if (!this.net.isZoneParticipationEnabled()) return;
+            if (this.shouldSuppressTransientWorldEffects()) return;
             const rp = this._getOrSpawnRemotePlayer(data.id, data);
             if (rp) rp.triggerChanneling(data);
         });
@@ -618,6 +622,7 @@ export default class WorldScene extends Scene {
 
         // v0.33.0: Monster Attack Sync
         this.net.on('monsterAttack', (data) => {
+            if (this.shouldSuppressTransientWorldEffects()) return;
             const m = this.monsterManager?.monsters.get(data.mid);
             if (!m) return;
 
@@ -687,6 +692,84 @@ export default class WorldScene extends Scene {
             this._handleHostChanged = null;
         }
         this.remotePlayers.clear();
+    }
+
+    onVisibilityHidden() {
+        this.transientSyncSuppressedUntil = Number.POSITIVE_INFINITY;
+    }
+
+    onVisibilityVisible(meta = {}) {
+        const resumedAt = Number(meta.resumedAt || Date.now());
+        const hiddenDurationMs = Math.max(0, Number(meta.hiddenDurationMs || 0));
+
+        if (hiddenDurationMs < 120) {
+            this.transientSyncSuppressedUntil = 0;
+            return;
+        }
+
+        const settleMs = Math.max(
+            this.transientSyncResumeGraceMs,
+            Math.min(1600, Math.round(hiddenDurationMs * 0.15))
+        );
+
+        this.transientSyncSuppressedUntil = resumedAt + settleMs;
+        this._resyncAfterVisibilityRestore({ resumedAt, hiddenDurationMs });
+    }
+
+    shouldSuppressTransientWorldEffects() {
+        if (typeof document !== 'undefined' && document.hidden) return true;
+        return Date.now() < Number(this.transientSyncSuppressedUntil || 0);
+    }
+
+    _clearTransientWorldEffects() {
+        while (this.sparks.length > 0) {
+            const spark = this.sparks.pop();
+            this.game.sparkPool?.release?.(spark);
+        }
+
+        while (this.floatingTexts.length > 0) {
+            const text = this.floatingTexts.pop();
+            this.game.textPool?.release?.(text);
+        }
+
+        this.projectiles.length = 0;
+        this.explosions.length = 0;
+        this.monsterMissileQueue.length = 0;
+        this.monsterMissileTimer = 0;
+    }
+
+    _resyncAfterVisibilityRestore(meta = {}) {
+        this._clearTransientWorldEffects();
+        this.remotePlayers.forEach((rp) => rp?.resyncAfterVisibilityRestore?.(meta));
+        this.monsterManager?.handleVisibilityResync?.(meta);
+
+        if (this.player) {
+            this.player.stopBasicAttackChanneling?.();
+            this.player.isAttacking = false;
+            this.player.isChanneling = false;
+            this.player.chargeTime = 0;
+            this.player.lightningEffect = null;
+            this.player.skillAttackTimer = 0;
+            this.player.missileFireQueue.length = 0;
+            this.player.missileFireTimer = 0;
+            if (!this.player.isDead) {
+                this.player.state = 'idle';
+            }
+            if (this.player.knockback) {
+                this.player.knockback.vx = 0;
+                this.player.knockback.vy = 0;
+            }
+        }
+
+        if (this.game?.camera) {
+            this.game.camera.shakeIntensity = 0;
+            this.game.camera.shakeOffsetX = 0;
+            this.game.camera.shakeOffsetY = 0;
+        }
+
+        if (this.game?.loop) {
+            this.game.loop.hitstopTimer = 0;
+        }
     }
 
     update(dt) {

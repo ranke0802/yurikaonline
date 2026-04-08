@@ -44,6 +44,8 @@ export default class GameLoop {
 
     pause() {
         this.paused = true;
+        this.accumulator = 0;
+        this.hitstopTimer = 0;
         Logger.log('GameLoop paused');
     }
 
@@ -51,6 +53,8 @@ export default class GameLoop {
         this.paused = false;
         this.lastTime = performance.now(); // Reset time to prevent huge delta
         this.lastRenderTime = this.lastTime;
+        this.accumulator = 0;
+        this.hitstopTimer = 0;
         Logger.log('GameLoop resumed');
     }
 

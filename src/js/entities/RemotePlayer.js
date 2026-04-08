@@ -83,6 +83,7 @@ export default class RemotePlayer extends CharacterBase {
         const oldHp = this.hp;
         this.hp = data.hp;
         this.maxHp = data.maxHp;
+        const suppressTransientEffects = !!window.game?.shouldSuppressTransientWorldEffects?.();
 
         // v2.1: Prevent Hit Effect on First Sync (e.g. 100 -> 30 adjustment)
         if (!this.initialized) {
@@ -91,7 +92,7 @@ export default class RemotePlayer extends CharacterBase {
         }
 
         // Trigger hit effect if HP decreased
-        if (oldHp > this.hp) {
+        if (oldHp > this.hp && !suppressTransientEffects) {
             this.state = 'hit';
             setTimeout(() => { if (this.state === 'hit') this.state = 'idle'; }, 200);
 
@@ -323,6 +324,45 @@ export default class RemotePlayer extends CharacterBase {
         if (!this.isDying) {
             this.state = 'idle';
         }
+    }
+
+    resyncAfterVisibilityRestore(options = {}) {
+        const resumedAt = Number(options.resumedAt || Date.now());
+        const latestPacket = this.serverUpdates.length > 0
+            ? this.serverUpdates[this.serverUpdates.length - 1]
+            : null;
+
+        if (latestPacket) {
+            this.x = latestPacket.x;
+            this.y = latestPacket.y;
+            this.vx = latestPacket.vx || 0;
+            this.vy = latestPacket.vy || 0;
+            this.serverUpdates = [{
+                ...latestPacket,
+                ts: resumedAt,
+                receivedAt: resumedAt
+            }];
+            this.lastPacketTime = resumedAt;
+        } else {
+            this.vx = 0;
+            this.vy = 0;
+        }
+
+        this.isExtrapolating = false;
+        this.extrapolationConfidence = 1;
+        this.lastKnownVelocity = { x: this.vx || 0, y: this.vy || 0 };
+        if (this.knockback) {
+            this.knockback.vx = 0;
+            this.knockback.vy = 0;
+        }
+        this._releaseRemoteAttackState();
+        this.missileVisualQueue.length = 0;
+        this.missileVisualTimer = 0;
+        this.lightningEffect = null;
+        this.shieldEffect = null;
+        this.stepTimer = 0;
+        this.animTimer = 0;
+        this.animFrame = 0;
     }
 
     update(dt) {

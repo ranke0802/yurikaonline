@@ -780,6 +780,7 @@ export default class Monster extends CharacterBase {
         if (this.isDead) return;
         this.lastHitAt = Date.now();
         this.lastNetworkEventAt = this.lastHitAt;
+        const suppressTransientEffects = !!window.game?.shouldSuppressTransientWorldEffects?.();
 
         // v0.00.34: Ensure minimum 0 damage (allow full block)
         let dmg = Math.max(0, Math.ceil(parseFloat(amount))); // Changed const to let
@@ -798,7 +799,7 @@ export default class Monster extends CharacterBase {
         if (this.hasEffect('shield')) {
             dmg = 0;
             // Visual feedback "Blocked" (Optional, maybe implied by 0 damage or icon)
-            if (window.game && window.game.addDamageText) {
+            if (!suppressTransientEffects && window.game && window.game.addDamageText) {
                 window.game.addDamageText(this.x, this.y - 40, "BLOCK", "#00d2ff", false);
             }
             return; // Completely block
@@ -827,23 +828,23 @@ export default class Monster extends CharacterBase {
         }
 
         // Visual feedback for ALL clients
-        if (triggerFlash) this.hitTimer = 0.2;
+        if (triggerFlash && !suppressTransientEffects) this.hitTimer = 0.2;
 
         // Damage text for ALL clients
-        if (amount > 0 && window.game && typeof window.game.addDamageText === 'function') {
+        if (!suppressTransientEffects && amount > 0 && window.game && typeof window.game.addDamageText === 'function') {
             window.game.addDamageText(this.x, this.y - 40, `-${Math.ceil(amount)}`, isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null);
         }
 
         // v2.2: Hit Feedback — Screen Shake on monster hit
-        if (amount > 0 && window.game?.camera?.shake) {
+        if (!suppressTransientEffects && amount > 0 && window.game?.camera?.shake) {
             window.game.camera.shake(isCrit ? 8 : 3, isCrit ? 0.2 : 0.1);
         }
-        if (isCrit && window.game?.loop?.hitstop) {
+        if (!suppressTransientEffects && isCrit && window.game?.loop?.hitstop) {
             window.game.loop.hitstop(60);
         }
 
         // Play Hit Sound
-        if (this.sounds.hit && window.game?.sound) {
+        if (!suppressTransientEffects && this.sounds.hit && window.game?.sound) {
             // Limit hit sound frequency
             if (!this._lastHitSound || Date.now() - this._lastHitSound > 300) {
                 window.game.sound.playSfx(this.sounds.hit);
@@ -855,13 +856,13 @@ export default class Monster extends CharacterBase {
         if (dmg > 0 && this.hp > 0) {
             const impactX = Number.isFinite(damageMeta?.impactX) ? damageMeta.impactX : sourceX;
             const impactY = Number.isFinite(damageMeta?.impactY) ? damageMeta.impactY : sourceY;
-            if (damageMeta?.combustionCollapse && Number.isFinite(impactX) && Number.isFinite(impactY)) {
+            if (!suppressTransientEffects && damageMeta?.combustionCollapse && Number.isFinite(impactX) && Number.isFinite(impactY)) {
                 this.applyCombustionCollapse(impactX, impactY, {
                     outwardForce: damageMeta?.collapseOutwardForce,
                     inwardForce: damageMeta?.collapseInwardForce,
                     delayMs: damageMeta?.collapseDelayMs
                 });
-            } else if (sourceX !== null && sourceY !== null) {
+            } else if (!suppressTransientEffects && sourceX !== null && sourceY !== null) {
                 const angle = Math.atan2(this.y - sourceY, this.x - sourceX);
                 const force = isCrit ? 300 : 150;
                 this.applyKnockback(Math.cos(angle) * force, Math.sin(angle) * force);
@@ -886,16 +887,16 @@ export default class Monster extends CharacterBase {
                 }
 
                 // Play Death Sound
-                if (this.sounds.die && window.game?.sound) {
+                if (!suppressTransientEffects && this.sounds.die && window.game?.sound) {
                     window.game.sound.playSfx(this.sounds.die);
                 }
 
                 // v2.2: Death Feedback — Strong shake for bosses
-                if (window.game?.camera?.shake) {
+                if (!suppressTransientEffects && window.game?.camera?.shake) {
                     const isBoss = this.typeId === 'king_slime';
                     window.game.camera.shake(isBoss ? 20 : 6, isBoss ? 0.5 : 0.2);
                 }
-                if (this.typeId === 'king_slime' && window.game?.loop?.hitstop) {
+                if (!suppressTransientEffects && this.typeId === 'king_slime' && window.game?.loop?.hitstop) {
                     window.game.loop.hitstop(120);
                 }
 

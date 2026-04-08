@@ -286,6 +286,34 @@ export default class MonsterManager {
         });
     }
 
+    handleVisibilityResync(options = {}) {
+        const resumedAt = Number(options.resumedAt || Date.now());
+        const shouldSnapToAuthority = !this.net?.isHost;
+
+        this.monsters.forEach((monster) => {
+            if (!monster) return;
+
+            if (shouldSnapToAuthority) {
+                if (Number.isFinite(monster.targetX)) monster.x = monster.targetX;
+                if (Number.isFinite(monster.targetY)) monster.y = monster.targetY;
+            }
+
+            monster.vx = 0;
+            monster.vy = 0;
+            if (monster.knockback) {
+                monster.knockback.vx = 0;
+                monster.knockback.vy = 0;
+            }
+            monster.hitTimer = 0;
+            monster.lastNetworkEventAt = resumedAt;
+
+            if (monster.remoteSyncState !== 'casting' && monster.remoteSyncState !== 'charging') {
+                monster.chargeState = 'idle';
+                monster.chargeTarget = null;
+            }
+        });
+    }
+
     render(ctx, camera) {
         // Monsters are rendered in WorldScene's Y-sorted render list.
         // Only draw drops here to avoid double-rendering the same entities every frame.
