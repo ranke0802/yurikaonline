@@ -1110,6 +1110,7 @@ export class UIManager {
         this.game.touch?.resetState?.();
         this.game.input?.setEnabled?.(false);
         this.isPaused = true;
+        this.setLandscapeChatActive(false);
         document.body.classList.add('ui-layout-edit-mode');
         document.getElementById('ui-layout-editor')?.classList.remove('hidden');
         this.resetUiLayoutEditorWindowPosition();
@@ -3060,7 +3061,7 @@ export class UIManager {
 
         if (!chatWindow) return;
 
-        const shouldActivate = active && this.isMobileLandscapeViewport();
+        const shouldActivate = active && this.isMobileLandscapeViewport() && !this.uiLayoutEditMode;
         chatWindow.classList.toggle('chat-active', shouldActivate);
         document.body.classList.toggle('landscape-chat-active', shouldActivate);
 
@@ -3081,16 +3082,17 @@ export class UIManager {
     }
 
     syncLandscapeChatLayout() {
-        if (!this.isMobileLandscapeViewport()) {
+        if (!this.isMobileLandscapeViewport() || this.uiLayoutEditMode) {
             this.setLandscapeChatActive(false);
         }
     }
 
     setupLandscapeChatInteractions() {
         const chatWindow = document.querySelector('.chat-window');
+        const chatInputArea = document.querySelector('.chat-input-area');
         const chatInput = document.querySelector('.chat-input-area input');
 
-        if (!chatWindow || !chatInput) return;
+        if (!chatWindow || !chatInput || !chatInputArea) return;
 
         const shouldIgnoreTarget = (target) => {
             if (!(target instanceof Element)) return false;
@@ -3098,14 +3100,27 @@ export class UIManager {
         };
 
         const activateChat = (e) => {
-            if (!this.isMobileLandscapeViewport() || shouldIgnoreTarget(e.target)) return;
+            if (!this.isMobileLandscapeViewport() || this.uiLayoutEditMode || shouldIgnoreTarget(e.target)) return;
+            if (chatWindow.classList.contains('chat-active')) return;
             e.preventDefault();
             e.stopPropagation();
-            this.setLandscapeChatActive(true, { focusInput: true });
+            this.setLandscapeChatActive(true, { focusInput: false });
+        };
+
+        const focusVisibleChatInput = (e) => {
+            if (!this.isMobileLandscapeViewport() || this.uiLayoutEditMode) return;
+            if (!chatWindow.classList.contains('chat-active')) return;
+            if (e.target instanceof Element && e.target.closest('.send-btn, #emote-picker, #btn-emote, .emote-btn')) return;
+            if (document.activeElement === chatInput) return;
+            chatInput.focus({ preventScroll: true });
+            if (typeof chatInput.setSelectionRange === 'function') {
+                const caret = chatInput.value.length;
+                chatInput.setSelectionRange(caret, caret);
+            }
         };
 
         const maybeCollapseChat = () => {
-            if (!this.isMobileLandscapeViewport()) {
+            if (!this.isMobileLandscapeViewport() || this.uiLayoutEditMode) {
                 this.setLandscapeChatActive(false);
                 return;
             }
@@ -3121,6 +3136,8 @@ export class UIManager {
 
         chatWindow.addEventListener('click', activateChat);
         chatWindow.addEventListener('touchstart', activateChat, { passive: false });
+        chatInputArea.addEventListener('click', focusVisibleChatInput);
+        chatInputArea.addEventListener('touchend', focusVisibleChatInput, { passive: true });
         chatInput.addEventListener('focus', () => {
             if (this.isMobileLandscapeViewport()) {
                 this.setLandscapeChatActive(true);
@@ -3617,6 +3634,10 @@ export class UIManager {
         const chatInput = document.querySelector('.chat-input-area input');
         if (chatInput) {
             chatInput.addEventListener('focus', () => {
+                if (this.uiLayoutEditMode) {
+                    window.setTimeout(() => chatInput.blur(), 0);
+                    return;
+                }
                 if (this.inputManager) this.inputManager.setEnabled(false);
                 if (this.game.localPlayer) this.game.localPlayer.moveTarget = null;
             });
