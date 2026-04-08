@@ -28,10 +28,24 @@ export class Sprite {
             sy = (dir % this.rows) * this.sh;
         }
 
+        const prevSmoothing = ctx.imageSmoothingEnabled;
+        const prevWebkitSmoothing = ctx.webkitImageSmoothingEnabled;
+        const prevMozSmoothing = ctx.mozImageSmoothingEnabled;
+        const prevMsSmoothing = ctx.msImageSmoothingEnabled;
+        ctx.imageSmoothingEnabled = false;
+        ctx.webkitImageSmoothingEnabled = false;
+        ctx.mozImageSmoothingEnabled = false;
+        ctx.msImageSmoothingEnabled = false;
+
         ctx.drawImage(
             this.image,
             sx, sy, this.sw, this.sh,
-            x, y, width, height
+            Math.round(x), Math.round(y), Math.round(width), Math.round(height)
         );
+
+        ctx.imageSmoothingEnabled = prevSmoothing;
+        ctx.webkitImageSmoothingEnabled = prevWebkitSmoothing;
+        ctx.mozImageSmoothingEnabled = prevMozSmoothing;
+        ctx.msImageSmoothingEnabled = prevMsSmoothing;
     }
 }

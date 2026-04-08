@@ -5526,6 +5526,10 @@ export class UIManager {
         portraitCanvas.width = targetW;
         portraitCanvas.height = targetH;
         const pCtx = portraitCanvas.getContext('2d');
+        pCtx.imageSmoothingEnabled = false;
+        pCtx.webkitImageSmoothingEnabled = false;
+        pCtx.mozImageSmoothingEnabled = false;
+        pCtx.msImageSmoothingEnabled = false;
 
         // Draw the specific frame from the master sheet
         pCtx.drawImage(

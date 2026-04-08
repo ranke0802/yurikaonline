@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.01.113'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.01.114'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -52,6 +52,7 @@ class Game {
         this.ctx.webkitImageSmoothingEnabled = false;
         this.ctx.mozImageSmoothingEnabled = false;
         this.ctx.msImageSmoothingEnabled = false;
+        this.canvas.style.imageRendering = 'pixelated';
         this.zoom = 1.0;
         this.performanceTelemetry = this.createPerformanceTelemetryState();
 
@@ -395,11 +396,13 @@ class Game {
         this.canvas.style.width = displayWidth + 'px';
         this.canvas.style.height = displayHeight + 'px';
 
-        // Mobile uses a slightly lower internal resolution to cut heat while preserving pixel-art sharpness.
-        this.ctx.imageSmoothingEnabled = !isMobile;
-        this.ctx.webkitImageSmoothingEnabled = !isMobile;
-        this.ctx.mozImageSmoothingEnabled = !isMobile;
-        this.ctx.msImageSmoothingEnabled = !isMobile;
+        // Character/monster sprites are authored as pixel-art style frames.
+        // Re-enabling smoothing on desktop makes them look blurred/torn during movement.
+        this.ctx.imageSmoothingEnabled = false;
+        this.ctx.webkitImageSmoothingEnabled = false;
+        this.ctx.mozImageSmoothingEnabled = false;
+        this.ctx.msImageSmoothingEnabled = false;
+        this.canvas.style.imageRendering = 'pixelated';
 
         if (this.loop) {
             this.loop.setMaxRenderFps(maxRenderFps);
