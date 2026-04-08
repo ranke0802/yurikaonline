@@ -1432,11 +1432,16 @@ export default class MonsterManager {
     }
 
     async _onRemoteMonsterAdded(data) {
-        if (this.isSpawnSuppressed() && data.type !== 'training_dummy') return;
+        if (!data?.id) return;
+
+        const rawTypeId = typeof data.type === 'string'
+            ? data.type.trim()
+            : (typeof data.typeId === 'string' ? data.typeId.trim() : '');
+        if (this.isSpawnSuppressed() && rawTypeId !== 'training_dummy') return;
         if (this.monsters.has(data.id)) return;
 
         // v0.00.01: Map legacy types or handle direct typeId
-        let typeId = data.type;
+        let typeId = rawTypeId || 'slime';
         const legacyMap = {
             '슬라임': 'slime',
             '초록 슬라임': 'slime',
@@ -1470,7 +1475,7 @@ export default class MonsterManager {
             this._applyRemoteMonsterNetworkState(m, data);
             this.monsters.set(data.id, m);
         } catch (e) {
-            Logger.warn(`Defaulting to fallback for monster ${data.id} (${typeId})`);
+            Logger.warn(`Defaulting to fallback for monster ${data.id} (${typeId})`, e);
             const m = new Monster(data.x, data.y, {});
             m.id = data.id;
             m.hp = data.hp;

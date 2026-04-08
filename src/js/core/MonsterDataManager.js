@@ -36,6 +36,7 @@ export default class MonsterDataManager {
     constructor(resourceManager) {
         this.resourceManager = resourceManager;
         this.definitions = new Map();
+        this.pendingRequests = new Map();
     }
 
     _cloneDefinition(definition) {
@@ -68,38 +69,44 @@ export default class MonsterDataManager {
      * Load a monster definition by ID (expects /[id].json)
      */
     async loadDefinition(id) {
+        const normalizedId = typeof id === 'string' ? id.trim() : '';
+        if (!normalizedId) {
+            Logger.warn('[MonsterData] Missing monster definition id.');
+            return null;
+        }
+
         // 1. Memory Cache
-        if (this.definitions.has(id)) return this.definitions.get(id);
+        if (this.definitions.has(normalizedId)) return this.definitions.get(normalizedId);
 
         // 2. Request Deduplication
-        if (this.pendingRequests && this.pendingRequests.has(id)) {
-            return this.pendingRequests.get(id);
+        if (this.pendingRequests.has(normalizedId)) {
+            return this.pendingRequests.get(normalizedId);
         }
 
         const fetchPromise = (async () => {
             try {
                 // 3. SessionStorage Cache (Persistent across page reloads in same session)
-                const sessionKey = `monster_def_${id}`;
+                const sessionKey = `monster_def_${normalizedId}`;
                 const cachedSession = sessionStorage.getItem(sessionKey);
                 if (cachedSession) {
                     try {
-                        const data = this._normalizeDefinition(id, JSON.parse(cachedSession));
-                        this.definitions.set(id, data);
+                        const data = this._normalizeDefinition(normalizedId, JSON.parse(cachedSession));
+                        this.definitions.set(normalizedId, data);
                         return data;
                     } catch (parseErr) {
-                        Logger.warn(`Invalid session cache for ${id}, reloading.`, parseErr);
+                        Logger.warn(`Invalid session cache for ${normalizedId}, reloading.`, parseErr);
                         sessionStorage.removeItem(sessionKey);
                     }
                 }
 
                 // 4. Network Request
                 const data = this._normalizeDefinition(
-                    id,
-                    await this.resourceManager.loadJSON(`/assets/data/monsters/${id}.json`)
+                    normalizedId,
+                    await this.resourceManager.loadJSON(`/assets/data/monsters/${normalizedId}.json`)
                 );
 
                 // Update Caches
-                this.definitions.set(id, data);
+                this.definitions.set(normalizedId, data);
                 try {
                     sessionStorage.setItem(sessionKey, JSON.stringify(data));
                 } catch (storageErr) {
@@ -109,21 +116,20 @@ export default class MonsterDataManager {
 
                 return data;
             } catch (e) {
-                Logger.error(`Failed to load monster definition: ${id}`, e);
-                const fallback = this._getBuiltinDefinition(id);
+                Logger.error(`Failed to load monster definition: ${normalizedId}`, e);
+                const fallback = this._getBuiltinDefinition(normalizedId);
                 if (fallback) {
-                    Logger.warn(`[MonsterData] Falling back to built-in definition for ${id}.`);
-                    this.definitions.set(id, fallback);
+                    Logger.warn(`[MonsterData] Falling back to built-in definition for ${normalizedId}.`);
+                    this.definitions.set(normalizedId, fallback);
                     return fallback;
                 }
                 return null;
             } finally {
-                this.pendingRequests.delete(id);
+                this.pendingRequests.delete(normalizedId);
             }
         })();
 
-        if (!this.pendingRequests) this.pendingRequests = new Map();
-        this.pendingRequests.set(id, fetchPromise);
+        this.pendingRequests.set(normalizedId, fetchPromise);
         return fetchPromise;
     }
 
