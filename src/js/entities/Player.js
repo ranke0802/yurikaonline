@@ -510,7 +510,18 @@ export default class Player extends CharacterBase {
             this.stopBasicAttackChanneling();
         }
 
-        if (!this.canStartFireballAim()) return;
+        if (!this.canStartFireballAim()) {
+            if (
+                !this.isDead
+                && !this.isDying
+                && !this.isChanneling
+                && this.skillCooldowns.u <= 0
+                && this.mp < this.getFireballManaCost()
+            ) {
+                this.notifyInsufficientMana();
+            }
+            return;
+        }
         this.fireballAimActive = true;
         this.fireballAimAngle = this.getCurrentFacingAngle();
         this.fireballAimTouchOrigin = Number.isFinite(pointerData?.clientX) && Number.isFinite(pointerData?.clientY)
@@ -1208,7 +1219,7 @@ export default class Player extends CharacterBase {
         const now = Date.now();
         if ((now - this.lastInsufficientManaFeedbackAt) < 800) return;
         this.lastInsufficientManaFeedbackAt = now;
-        this.triggerAction(`${this.name}: 마나가 부족합니다`);
+        this.triggerAction(`${this.name}:마나가 부족합니다.`);
     }
 
     recoverMana(amount, isSilent = false) {
@@ -2298,13 +2309,14 @@ export default class Player extends CharacterBase {
         // 7. Speech Bubble
         if (this.actionFdbk) {
             ctx.save();
-            const bubbleY = y - 80; // Moved up 20px from -60
+            const bubbleCenterX = Sprite.snapWorldCoordinate(ctx, centerX, 'x');
+            const bubbleY = Sprite.snapWorldCoordinate(ctx, y - 80, 'y'); // Moved up 20px from -60
             const bubbleText = this.actionFdbk;
-            ctx.font = 'bold 14px "Nanum Gothic", "Outfit", sans-serif';
+            ctx.font = '800 14px "Nanum Gothic", "Outfit", sans-serif';
             const textWidth = ctx.measureText(bubbleText).width;
-            const bubbleWidth = textWidth + 20;
-            const bubbleHeight = 28;
-            const bubbleX = centerX - bubbleWidth / 2;
+            const bubbleWidth = Sprite.snapWorldSize(ctx, textWidth + 20, 'x');
+            const bubbleHeight = Sprite.snapWorldSize(ctx, 28, 'y');
+            const bubbleX = Sprite.snapWorldCoordinate(ctx, bubbleCenterX - (bubbleWidth / 2), 'x');
 
             // Speech bubble background
             ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
@@ -2321,15 +2333,17 @@ export default class Player extends CharacterBase {
 
             // Tail
             ctx.beginPath();
-            ctx.moveTo(centerX - 5, bubbleY + bubbleHeight);
-            ctx.lineTo(centerX + 5, bubbleY + bubbleHeight);
-            ctx.lineTo(centerX, bubbleY + bubbleHeight + 8);
+            ctx.moveTo(Sprite.snapWorldCoordinate(ctx, bubbleCenterX - 5, 'x'), Sprite.snapWorldCoordinate(ctx, bubbleY + bubbleHeight, 'y'));
+            ctx.lineTo(Sprite.snapWorldCoordinate(ctx, bubbleCenterX + 5, 'x'), Sprite.snapWorldCoordinate(ctx, bubbleY + bubbleHeight, 'y'));
+            ctx.lineTo(bubbleCenterX, Sprite.snapWorldCoordinate(ctx, bubbleY + bubbleHeight + 8, 'y'));
             ctx.fill();
             ctx.stroke();
 
             ctx.fillStyle = '#4a3e35';
             ctx.textAlign = 'center';
-            ctx.fillText(bubbleText, centerX, bubbleY + 19);
+            ctx.lineJoin = 'round';
+            ctx.miterLimit = 2;
+            ctx.fillText(bubbleText, bubbleCenterX, Sprite.snapWorldCoordinate(ctx, bubbleY + 19, 'y'));
             ctx.restore();
         }
 
@@ -2337,10 +2351,6 @@ export default class Player extends CharacterBase {
         if (this.chatMessage) {
             this.drawSpeechBubble(ctx, centerX, y - 85);
         }
-
-        // v0.00.03: Local HUD Rendering (HP/MP/Name above head)
-        this.drawHUD(ctx, centerX, y);
-        this.drawDirectionArrow(ctx, centerX, y + this.height - 30);
 
         // 9. v0.00.26: Status Effect Icons (Burn/Electrocuted)
         this._drawStatusIcons(ctx, centerX, y + this.height);
@@ -2465,10 +2475,11 @@ export default class Player extends CharacterBase {
         if (this.isEmote) {
             // Emote Style
             ctx.save();
-            const bubbleWidth = 60;  // Fixed size for icons
-            const bubbleHeight = 50;
-            const bubbleX = x - bubbleWidth / 2;
-            const bubbleY = y - bubbleHeight; // Synced with RemotePlayer
+            const bubbleCenterX = Sprite.snapWorldCoordinate(ctx, x, 'x');
+            const bubbleWidth = Sprite.snapWorldSize(ctx, 60, 'x');  // Fixed size for icons
+            const bubbleHeight = Sprite.snapWorldSize(ctx, 50, 'y');
+            const bubbleX = Sprite.snapWorldCoordinate(ctx, bubbleCenterX - (bubbleWidth / 2), 'x');
+            const bubbleY = Sprite.snapWorldCoordinate(ctx, y - bubbleHeight, 'y'); // Synced with RemotePlayer
 
             // Bubble Background (Rounder)
             ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
@@ -2485,9 +2496,13 @@ export default class Player extends CharacterBase {
 
             // Draw Emote Image
             if (this.emoteImage) {
-                const iconSize = 32;
-                const iconX = bubbleX + (bubbleWidth - iconSize) / 2;
-                const iconY = bubbleY + (bubbleHeight - iconSize) / 2;
+                const iconSize = Math.max(16, Math.min(
+                    Sprite.snapWorldSize(ctx, 32, 'x'),
+                    bubbleWidth - 12,
+                    bubbleHeight - 12
+                ));
+                const iconX = Sprite.snapWorldCoordinate(ctx, bubbleX + ((bubbleWidth - iconSize) / 2), 'x');
+                const iconY = Sprite.snapWorldCoordinate(ctx, bubbleY + ((bubbleHeight - iconSize) / 2), 'y');
                 ctx.drawImage(this.emoteImage, iconX, iconY, iconSize, iconSize);
             } else {
                 // Loading ...
@@ -2495,7 +2510,7 @@ export default class Player extends CharacterBase {
                 ctx.font = 'bold 20px sans-serif';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('...', x, bubbleY + bubbleHeight / 2);
+                ctx.fillText('...', bubbleCenterX, Sprite.snapWorldCoordinate(ctx, bubbleY + (bubbleHeight / 2), 'y'));
             }
 
             ctx.restore();
@@ -2504,13 +2519,14 @@ export default class Player extends CharacterBase {
 
         // Normal Chat Bubble (non-emote)
         ctx.save();
-        ctx.font = '13px "Outfit", sans-serif';
+        ctx.font = '800 13px "Nanum Gothic", "Outfit", sans-serif';
         const padding = 10;
         const metrics = ctx.measureText(this.chatMessage);
-        const w = Math.min(200, metrics.width + padding * 2);
-        const h = 28;
-        const bx = x - w / 2;
-        const by = y - h - 10;
+        const bubbleCenterX = Sprite.snapWorldCoordinate(ctx, x, 'x');
+        const w = Sprite.snapWorldSize(ctx, Math.min(200, metrics.width + padding * 2), 'x');
+        const h = Sprite.snapWorldSize(ctx, 28, 'y');
+        const bx = Sprite.snapWorldCoordinate(ctx, bubbleCenterX - (w / 2), 'x');
+        const by = Sprite.snapWorldCoordinate(ctx, y - h - 10, 'y');
 
         // Bubble background
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
@@ -2525,15 +2541,17 @@ export default class Player extends CharacterBase {
 
         // Tail
         ctx.beginPath();
-        ctx.moveTo(x - 5, by + h);
-        ctx.lineTo(x + 5, by + h);
-        ctx.lineTo(x, by + h + 5);
+        ctx.moveTo(Sprite.snapWorldCoordinate(ctx, bubbleCenterX - 5, 'x'), Sprite.snapWorldCoordinate(ctx, by + h, 'y'));
+        ctx.lineTo(Sprite.snapWorldCoordinate(ctx, bubbleCenterX + 5, 'x'), Sprite.snapWorldCoordinate(ctx, by + h, 'y'));
+        ctx.lineTo(bubbleCenterX, Sprite.snapWorldCoordinate(ctx, by + h + 5, 'y'));
         ctx.fill();
         ctx.stroke();
 
         ctx.fillStyle = '#2d3436';
         ctx.textAlign = 'center';
-        ctx.fillText(this.chatMessage, x, by + 19, 190);
+        ctx.lineJoin = 'round';
+        ctx.miterLimit = 2;
+        ctx.fillText(this.chatMessage, bubbleCenterX, Sprite.snapWorldCoordinate(ctx, by + 19, 'y'), 190);
         ctx.restore();
     }
 
@@ -3112,44 +3130,49 @@ export default class Player extends CharacterBase {
 
     drawHUD(ctx, centerX, y) {
         // v0.21.3: Slim HUD (Identical to monsters)
-        const barWidth = 60;
-        const barHeight = 6;
-        const startY = y + this.height + 5;
+        const snappedCenterX = Sprite.snapWorldCoordinate(ctx, centerX, 'x');
+        const barWidth = Sprite.snapWorldSize(ctx, 60, 'x');
+        const barHeight = Sprite.snapWorldSize(ctx, 6, 'y');
+        const barX = Sprite.snapWorldCoordinate(ctx, snappedCenterX - (barWidth / 2), 'x');
+        const startY = Sprite.snapWorldCoordinate(ctx, y + this.height + 5, 'y');
 
         // HP Bar
         const barY = startY;
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(centerX - barWidth / 2, barY, barWidth, barHeight);
+        ctx.fillRect(barX, barY, barWidth, barHeight);
 
         const hpPerc = Math.min(1, Math.max(0, this.hp / this.maxHp));
         ctx.fillStyle = hpPerc > 0.3 ? '#4ade80' : '#ef4444';
-        ctx.fillRect(centerX - barWidth / 2, barY, barWidth * hpPerc, barHeight);
+        ctx.fillRect(barX, barY, barWidth * hpPerc, barHeight);
 
         // MP Bar
-        const mpBarY = barY + barHeight + 3;
+        const mpBarY = Sprite.snapWorldCoordinate(ctx, barY + barHeight + 3, 'y');
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(centerX - barWidth / 2, mpBarY, barWidth, barHeight);
+        ctx.fillRect(barX, mpBarY, barWidth, barHeight);
         const mpPerc = Math.min(1, Math.max(0, this.mp / this.maxMp));
         ctx.fillStyle = '#48dbfb';
-        ctx.fillRect(centerX - barWidth / 2, mpBarY, barWidth * mpPerc, barHeight);
+        ctx.fillRect(barX, mpBarY, barWidth * mpPerc, barHeight);
 
         // Name Tag (Styled with outline to match screenshot)
         // Name Tag (Styled with outline to match screenshot)
-        const nameY = y - 50; // Moved 10px higher (Total 50px offset)
+        const nameX = snappedCenterX;
+        const nameY = Sprite.snapWorldCoordinate(ctx, y - 50, 'y'); // Moved 10px higher (Total 50px offset)
 
 
         ctx.save();
-        ctx.font = 'bold 13px "Outfit", sans-serif';
+        ctx.font = '800 13px "Nanum Gothic", "Outfit", sans-serif';
         ctx.textAlign = 'center';
+        ctx.lineJoin = 'round';
+        ctx.miterLimit = 2;
 
         // Thick Black Outline
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 3;
-        ctx.strokeText(this.name, centerX, nameY);
+        ctx.strokeText(this.name, nameX, nameY);
 
         // White Fill
         ctx.fillStyle = '#fff';
-        ctx.fillText(this.name, centerX, nameY);
+        ctx.fillText(this.name, nameX, nameY);
         ctx.restore();
     }
 

@@ -87,6 +87,10 @@ export class UIManager {
             controlId: null,
             offsetX: 0,
             offsetY: 0,
+            metrics: null,
+            width: 0,
+            height: 0,
+            margin: 12,
             captureTarget: null
         };
         this.refreshTutorialHighlight = this.refreshTutorialHighlight.bind(this);
@@ -753,6 +757,18 @@ export class UIManager {
         return 1;
     }
 
+    getUiLayoutElementBaseScale(element) {
+        const currentScale = this.getElementComputedScale(element);
+        const appliedScale = Number(element?.dataset?.uiLayoutAppliedScale);
+        if (Number.isFinite(appliedScale) && appliedScale > 0.0001) {
+            const baseScale = currentScale / appliedScale;
+            if (Number.isFinite(baseScale) && baseScale > 0.0001) {
+                return baseScale;
+            }
+        }
+        return currentScale;
+    }
+
     sanitizeUiLayoutEntry(entry, definition = {}) {
         if (!entry || typeof entry !== 'object') return null;
         const left = Number(entry.left);
@@ -847,7 +863,8 @@ export class UIManager {
             if (!element) return;
             delete element.dataset.uiLayoutEditable;
             delete element.dataset.uiLayoutSelected;
-            ['position', 'left', 'top', 'right', 'bottom', 'margin', 'z-index', 'width', 'height', 'min-width', 'padding', 'font-size', 'display', 'transform', 'transform-origin'].forEach((property) => {
+            delete element.dataset.uiLayoutAppliedScale;
+            ['position', 'left', 'top', 'right', 'bottom', 'margin', 'z-index', 'width', 'height', 'min-width', 'padding', 'font-size', 'display', 'transform', 'transform-origin', 'will-change'].forEach((property) => {
                 element.style.removeProperty(property);
             });
             const icon = element.querySelector('.inner-icon, .paw-icon');
@@ -886,7 +903,7 @@ export class UIManager {
         };
     }
 
-    applyUiLayoutControl(controlId, entry) {
+    applyUiLayoutControl(controlId, entry, options = {}) {
         const element = this.getUiLayoutControlElement(controlId);
         if (!element || !entry) return;
 
@@ -911,10 +928,14 @@ export class UIManager {
             return;
         }
 
-        const metrics = this.measureUiLayoutElement(controlId);
+        const metrics = options.metrics || this.measureUiLayoutElement(controlId);
         if (!metrics) return;
-        const scaledWidth = Math.max(28, metrics.width * safeEntry.scale);
-        const scaledHeight = Math.max(24, metrics.height * safeEntry.scale);
+        const scaledWidth = options.useViewportMetrics
+            ? Math.max(28, metrics.width)
+            : Math.max(28, metrics.width * safeEntry.scale);
+        const scaledHeight = options.useViewportMetrics
+            ? Math.max(24, metrics.height)
+            : Math.max(24, metrics.height * safeEntry.scale);
         const margin = Number.isFinite(definition?.margin) ? definition.margin : 12;
         const viewportPosition = this.computeUiLayoutPosition(safeEntry, scaledWidth, scaledHeight, margin);
         let position = viewportPosition;
@@ -941,12 +962,15 @@ export class UIManager {
         element.style.setProperty('z-index', String(definition?.zIndex || (controlId === 'action-auto-toggle' ? 1495 : 1490)), 'important');
 
         if (definition?.scaleMode === 'transform') {
-            const baseScale = this.getElementComputedScale(element);
+            const baseScale = this.getUiLayoutElementBaseScale(element);
             const finalScale = Math.max(0.01, baseScale * safeEntry.scale);
             element.style.setProperty('transform', `scale(${finalScale})`, 'important');
             element.style.setProperty('transform-origin', 'top left', 'important');
+            element.dataset.uiLayoutAppliedScale = String(safeEntry.scale);
             return;
         }
+
+        delete element.dataset.uiLayoutAppliedScale;
 
         element.style.setProperty('font-size', `${Math.max(10, metrics.fontSize * safeEntry.scale)}px`, 'important');
 
@@ -1149,9 +1173,14 @@ export class UIManager {
         this.uiLayoutEditMode = false;
         this.uiLayoutDraft = null;
         this.uiLayoutSelectedControlId = null;
+        this.uiLayoutDragState.captureTarget?.style?.removeProperty('will-change');
         this.uiLayoutDragState.active = false;
         this.uiLayoutDragState.pointerId = null;
         this.uiLayoutDragState.controlId = null;
+        this.uiLayoutDragState.metrics = null;
+        this.uiLayoutDragState.width = 0;
+        this.uiLayoutDragState.height = 0;
+        this.uiLayoutDragState.margin = 12;
         this.uiLayoutDragState.captureTarget = null;
         this.setUiLayoutDirty(false);
         document.body.classList.remove('ui-layout-edit-mode');
@@ -1163,7 +1192,7 @@ export class UIManager {
         this.syncUiLayoutEditor();
     }
 
-    updateUiLayoutEntry(controlId, nextEntry = {}) {
+    updateUiLayoutEntry(controlId, nextEntry = {}, options = {}) {
         if (!this.uiLayoutEditMode) return;
         const mode = this.getUiLayoutMode();
         const modeEntries = this.ensureUiLayoutDraftMode(mode);
@@ -1173,8 +1202,23 @@ export class UIManager {
             ...nextEntry
         }, definition);
         this.setUiLayoutDirty(true);
-        this.applyActiveUiLayout();
-        this.selectUiLayoutControl(controlId);
+        if (options.fastApply) {
+            this.applyUiLayoutControl(controlId, modeEntries[controlId], options.applyOptions || {});
+            if (controlId === 'joystick') {
+                this.game.touch?.setFixedJoystickLayout?.(modeEntries[controlId] || null);
+            }
+            if (!options.skipSelectionSync) {
+                this.syncUiLayoutSelectionState();
+            }
+            if (!options.skipEditorSync) {
+                this.syncUiLayoutEditor();
+            }
+        } else {
+            this.applyActiveUiLayout();
+        }
+        if (!options.skipReselect) {
+            this.selectUiLayoutControl(controlId);
+        }
     }
 
     resetSelectedUiLayoutControl() {
@@ -1270,13 +1314,23 @@ export class UIManager {
         e.preventDefault();
         e.stopPropagation();
         const rect = e.currentTarget.getBoundingClientRect();
+        const metrics = this.measureUiLayoutElement(controlId);
         this.selectUiLayoutControl(controlId);
         this.uiLayoutDragState.active = true;
         this.uiLayoutDragState.pointerId = e.pointerId;
         this.uiLayoutDragState.controlId = controlId;
         this.uiLayoutDragState.offsetX = e.clientX - rect.left;
         this.uiLayoutDragState.offsetY = e.clientY - rect.top;
+        this.uiLayoutDragState.metrics = metrics
+            ? { ...metrics, width: rect.width || metrics.width, height: rect.height || metrics.height }
+            : { width: rect.width, height: rect.height };
+        this.uiLayoutDragState.width = rect.width || metrics?.width || 0;
+        this.uiLayoutDragState.height = rect.height || metrics?.height || 0;
+        this.uiLayoutDragState.margin = Number.isFinite(this.uiLayoutControlDefinitions?.[controlId]?.margin)
+            ? this.uiLayoutControlDefinitions[controlId].margin
+            : (controlId === 'joystick' ? 16 : 12);
         this.uiLayoutDragState.captureTarget = e.currentTarget;
+        e.currentTarget.style.setProperty('will-change', 'left, top, transform', 'important');
         e.currentTarget.setPointerCapture?.(e.pointerId);
     }
 
@@ -1285,28 +1339,46 @@ export class UIManager {
         if (this.uiLayoutDragState.pointerId !== e.pointerId) return;
         e.preventDefault();
         const controlId = this.uiLayoutDragState.controlId;
-        const target = this.getUiLayoutControlElement(controlId);
-        if (!target) return;
-        const rect = target.getBoundingClientRect();
         const viewportW = Math.max(window.innerWidth || 0, 1);
         const viewportH = Math.max(window.innerHeight || 0, 1);
-        const maxLeft = Math.max(12, viewportW - rect.width - 12);
-        const maxTop = Math.max(12, viewportH - rect.height - 12);
-        const left = Math.min(maxLeft, Math.max(12, e.clientX - this.uiLayoutDragState.offsetX));
-        const top = Math.min(maxTop, Math.max(12, e.clientY - this.uiLayoutDragState.offsetY));
+        const dragWidth = Math.max(1, Number(this.uiLayoutDragState.width || 0));
+        const dragHeight = Math.max(1, Number(this.uiLayoutDragState.height || 0));
+        const margin = Math.max(0, Number(this.uiLayoutDragState.margin || 12));
+        const maxLeft = Math.max(margin, viewportW - dragWidth - margin);
+        const maxTop = Math.max(margin, viewportH - dragHeight - margin);
+        const left = Math.min(maxLeft, Math.max(margin, e.clientX - this.uiLayoutDragState.offsetX));
+        const top = Math.min(maxTop, Math.max(margin, e.clientY - this.uiLayoutDragState.offsetY));
         this.updateUiLayoutEntry(controlId, {
             left: left / viewportW,
             top: top / viewportH
+        }, {
+            fastApply: true,
+            skipSelectionSync: true,
+            skipEditorSync: true,
+            skipReselect: true,
+            applyOptions: {
+                metrics: this.uiLayoutDragState.metrics || {
+                    width: dragWidth,
+                    height: dragHeight
+                },
+                useViewportMetrics: true
+            }
         });
     }
 
     handleUiLayoutControlPointerUp(e) {
         if (!this.uiLayoutDragState.active || this.uiLayoutDragState.pointerId !== e.pointerId) return;
+        this.uiLayoutDragState.captureTarget?.style?.removeProperty('will-change');
         this.uiLayoutDragState.captureTarget?.releasePointerCapture?.(e.pointerId);
         this.uiLayoutDragState.active = false;
         this.uiLayoutDragState.pointerId = null;
         this.uiLayoutDragState.controlId = null;
+        this.uiLayoutDragState.metrics = null;
+        this.uiLayoutDragState.width = 0;
+        this.uiLayoutDragState.height = 0;
+        this.uiLayoutDragState.margin = 12;
         this.uiLayoutDragState.captureTarget = null;
+        this.syncUiLayoutEditor();
     }
 
     updateAutoAttackToggle(forceState = null) {

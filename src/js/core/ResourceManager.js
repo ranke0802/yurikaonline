@@ -41,6 +41,12 @@ export default class ResourceManager {
                 finalCanvas.width = targetW * maxFrames; // 2048
                 finalCanvas.height = targetH * 5;        // 1280
                 const finalCtx = finalCanvas.getContext('2d');
+                if (finalCtx) {
+                    finalCtx.imageSmoothingEnabled = false;
+                    finalCtx.webkitImageSmoothingEnabled = false;
+                    finalCtx.mozImageSmoothingEnabled = false;
+                    finalCtx.msImageSmoothingEnabled = false;
+                }
 
                 const loadPromises = [];
 
