@@ -146,6 +146,7 @@ export default class Player extends CharacterBase {
         this.chatMessage = null;
         this.chatTimer = 0;
         this.spawnProtectionTimer = 0;
+        this.lastInsufficientManaFeedbackAt = 0;
 
         this.updateDerivedStats();
     }
@@ -1196,7 +1197,17 @@ export default class Player extends CharacterBase {
             }
             return true;
         }
+        if (amount > 0) {
+            this.notifyInsufficientMana();
+        }
         return false;
+    }
+
+    notifyInsufficientMana() {
+        const now = Date.now();
+        if ((now - this.lastInsufficientManaFeedbackAt) < 800) return;
+        this.lastInsufficientManaFeedbackAt = now;
+        this.triggerAction(`${this.name}: 마나가 부족합니다`);
     }
 
     recoverMana(amount, isSilent = false) {

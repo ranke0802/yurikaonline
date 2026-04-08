@@ -64,7 +64,12 @@ export class UIManager {
         this.settings = this.loadSettings();
         this.devAccessState = this.loadDevAccessState();
         this.uiLayoutControlDefinitions = {
-            joystick: { label: '조이스틱', selector: '#joystick-container', modes: ['mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
+            'hud-top-bar': { label: '프로필/HP 패널', selector: '.top-bar', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform' },
+            'quest-panel': { label: '퀘스트창', selector: '.quest-list-panel', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', positioningContext: 'parent', parentSelector: '.left-ui-container' },
+            'chat-panel': { label: '채팅창', selector: '.chat-window', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', positioningContext: 'parent', parentSelector: '.left-ui-container' },
+            'minimap-panel': { label: '미니맵', selector: '#minimap-container', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform' },
+            'quick-menu-panel': { label: '메뉴 묶음', selector: '.minimap-menu', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8, scaleMode: 'transform' },
+            joystick: { label: '조이스틱', selector: '#joystick-container', modes: ['mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8, scaleMode: 'transform' },
             'action-skill-u': { label: '스킬 U', selector: '#action-skill-u', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
             'action-skill-k': { label: '스킬 K', selector: '#action-skill-k', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
             'action-skill-h': { label: '스킬 H', selector: '#action-skill-h', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
@@ -644,10 +649,50 @@ export class UIManager {
     }
 
     getUiLayoutControlElement(controlId) {
+        const definition = this.uiLayoutControlDefinitions[controlId];
+        if (definition?.selector) {
+            return document.querySelector(definition.selector);
+        }
         if (controlId === 'joystick') {
             return document.getElementById('joystick-container');
         }
         return document.getElementById(controlId);
+    }
+
+    getUiLayoutContextElement(controlId) {
+        const definition = this.uiLayoutControlDefinitions[controlId];
+        if (!definition?.parentSelector) return null;
+        return document.querySelector(definition.parentSelector);
+    }
+
+    getElementComputedScale(element) {
+        if (!element || typeof window === 'undefined' || !window.getComputedStyle) return 1;
+        const transform = window.getComputedStyle(element).transform;
+        if (!transform || transform === 'none') return 1;
+
+        const values = transform.startsWith('matrix3d(')
+            ? transform.slice(9, -1).split(',').map((value) => Number(value.trim()))
+            : transform.startsWith('matrix(')
+                ? transform.slice(7, -1).split(',').map((value) => Number(value.trim()))
+                : null;
+
+        if (!values || values.some((value) => !Number.isFinite(value))) return 1;
+
+        if (transform.startsWith('matrix3d(') && values.length >= 6) {
+            const scaleX = Math.hypot(values[0], values[1], values[2]);
+            const scaleY = Math.hypot(values[4], values[5], values[6]);
+            const nextScale = (scaleX + scaleY) / 2;
+            return Number.isFinite(nextScale) && nextScale > 0.0001 ? nextScale : 1;
+        }
+
+        if (transform.startsWith('matrix(') && values.length >= 4) {
+            const scaleX = Math.hypot(values[0], values[1]);
+            const scaleY = Math.hypot(values[2], values[3]);
+            const nextScale = (scaleX + scaleY) / 2;
+            return Number.isFinite(nextScale) && nextScale > 0.0001 ? nextScale : 1;
+        }
+
+        return 1;
     }
 
     sanitizeUiLayoutEntry(entry, definition = {}) {
@@ -812,14 +857,39 @@ export class UIManager {
         if (!metrics) return;
         const scaledWidth = Math.max(28, metrics.width * safeEntry.scale);
         const scaledHeight = Math.max(24, metrics.height * safeEntry.scale);
-        const position = this.computeUiLayoutPosition(safeEntry, scaledWidth, scaledHeight);
-        element.style.setProperty('position', 'fixed', 'important');
+        const margin = Number.isFinite(definition?.margin) ? definition.margin : 12;
+        const viewportPosition = this.computeUiLayoutPosition(safeEntry, scaledWidth, scaledHeight, margin);
+        let position = viewportPosition;
+        let positionMode = 'fixed';
+        if (definition?.positioningContext === 'parent') {
+            const contextElement = this.getUiLayoutContextElement(controlId);
+            const contextRect = contextElement?.getBoundingClientRect?.();
+            const contextScale = this.getElementComputedScale(contextElement);
+            if (contextElement && contextRect && Number.isFinite(contextScale) && contextScale > 0.0001) {
+                position = {
+                    left: Math.round((viewportPosition.left - contextRect.left) / contextScale),
+                    top: Math.round((viewportPosition.top - contextRect.top) / contextScale)
+                };
+                positionMode = 'absolute';
+            }
+        }
+
+        element.style.setProperty('position', positionMode, 'important');
         element.style.setProperty('left', `${position.left}px`, 'important');
         element.style.setProperty('top', `${position.top}px`, 'important');
         element.style.setProperty('right', 'auto', 'important');
         element.style.setProperty('bottom', 'auto', 'important');
         element.style.setProperty('margin', '0', 'important');
-        element.style.setProperty('z-index', controlId === 'action-auto-toggle' ? '1495' : '1490', 'important');
+        element.style.setProperty('z-index', String(definition?.zIndex || (controlId === 'action-auto-toggle' ? 1495 : 1490)), 'important');
+
+        if (definition?.scaleMode === 'transform') {
+            const baseScale = this.getElementComputedScale(element);
+            const finalScale = Math.max(0.01, baseScale * safeEntry.scale);
+            element.style.setProperty('transform', `scale(${finalScale})`, 'important');
+            element.style.setProperty('transform-origin', 'top left', 'important');
+            return;
+        }
+
         element.style.setProperty('font-size', `${Math.max(10, metrics.fontSize * safeEntry.scale)}px`, 'important');
 
         if (controlId === 'action-auto-toggle') {
@@ -944,10 +1014,17 @@ export class UIManager {
             select.value = this.uiLayoutSelectedControlId;
         }
 
+        const selectedDefinition = this.uiLayoutControlDefinitions[this.uiLayoutSelectedControlId] || null;
         const currentModeEntries = this.getUiLayoutModeEntries(this.uiLayoutDraft, this.getUiLayoutMode()) || {};
         const currentEntry = currentModeEntries[this.uiLayoutSelectedControlId];
+        const minScale = selectedDefinition?.minScale || 0.7;
+        const maxScale = selectedDefinition?.maxScale || 1.8;
         const percent = Math.round((currentEntry?.scale || 1) * 100);
-        if (sizeRange) sizeRange.value = String(percent);
+        if (sizeRange) {
+            sizeRange.min = String(Math.round(minScale * 100));
+            sizeRange.max = String(Math.round(maxScale * 100));
+            sizeRange.value = String(Math.min(Math.round(maxScale * 100), Math.max(Math.round(minScale * 100), percent)));
+        }
         if (sizeValue) sizeValue.textContent = `${percent}%`;
     }
 
@@ -6745,14 +6822,28 @@ export class UIManager {
         }
     }
 
+    sanitizeSystemMessageText(text) {
+        let normalized = typeof text === 'string' ? text : String(text ?? '');
+        try {
+            normalized = normalized.replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '');
+        } catch (error) {
+            normalized = normalized.replace(/[\u2600-\u27BF\u{1F300}-\u{1FAFF}]/gu, '');
+        }
+        return normalized
+            .replace(/\s{2,}/g, ' ')
+            .replace(/\s+([!?.,:;])/g, '$1')
+            .trim();
+    }
+
     logSystemMessage(text) {
         const msgArea = document.querySelector('.chat-messages');
-        if (msgArea) {
+        const normalizedText = this.sanitizeSystemMessageText(text);
+        if (msgArea && normalizedText) {
             const div = document.createElement('div');
             div.style.color = '#444444'; // Darker grey for better visibility
             div.style.fontWeight = 'bold';
             div.style.fontStyle = 'italic';
-            div.textContent = `[System] ${text}`;
+            div.textContent = `[System] ${normalizedText}`;
             msgArea.appendChild(div);
 
             // Limit history
