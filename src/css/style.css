@@ -4871,35 +4871,105 @@ body.is-fullscreen .version-info {
 /* Developer Mode UI */
 .dev-overlay {
     position: fixed;
-    top: 20px;
-    right: 180px;
+    top: calc(18px + env(safe-area-inset-top));
+    right: calc(176px + env(safe-area-inset-right));
     left: auto;
-    max-width: none;
-    background: rgba(0, 0, 0, 0.85);
-    color: #4ade80;
-    padding: 12px;
-    border-radius: 12px;
+    max-width: 228px;
+    background: transparent;
+    color: rgba(238, 245, 255, 0.9);
+    padding: 0;
+    border-radius: 0;
     font-family: 'Outfit', monospace;
-    font-size: 11px;
-    line-height: normal;
+    font-size: 10px;
+    line-height: 1.35;
     z-index: 9999;
-    pointer-events: auto;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
-    text-shadow: none;
-    text-align: left;
+    pointer-events: none;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.92), 0 0 10px rgba(0, 0, 0, 0.42);
+    text-align: right;
 }
 
 .dev-stat {
-    margin-bottom: 5px;
-    display: flex;
-    justify-content: space-between;
-    gap: 15px;
+    margin-bottom: 2px;
+    display: block;
+    white-space: nowrap;
 }
 
 .dev-stat span {
     color: #ffffff;
+}
+
+.dev-lookup {
+    margin-top: 9px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.22);
+    pointer-events: auto;
+    display: none;
+}
+
+.dev-overlay.dev-lookup-visible .dev-lookup {
+    display: block;
+}
+
+.dev-lookup-row {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.dev-lookup input {
+    width: 126px;
+    min-width: 0;
+    height: 24px;
+    padding: 0 8px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    background: rgba(13, 20, 36, 0.2);
+    color: #ffffff;
+    font-size: 10px;
+    text-align: right;
+    box-shadow: none;
+    backdrop-filter: blur(2px);
+}
+
+.dev-lookup input:focus {
+    outline: none;
+    border-color: rgba(166, 208, 255, 0.58);
+    background: rgba(13, 20, 36, 0.3);
+}
+
+.dev-lookup input::placeholder {
+    color: rgba(240, 245, 255, 0.68);
+}
+
+.dev-lookup button {
+    height: 24px;
+    padding: 0 9px;
+    border: 1px solid rgba(160, 210, 255, 0.32);
+    border-radius: 8px;
+    background: rgba(46, 88, 180, 0.28);
+    color: #ffffff;
+    font-size: 10px;
+    cursor: pointer;
+    box-shadow: none;
+    backdrop-filter: blur(2px);
+}
+
+.dev-lookup button:hover {
+    background: rgba(58, 103, 207, 0.38);
+}
+
+.dev-search-result {
+    min-height: 14px;
+    margin-top: 5px;
+    font-size: 9px;
+    line-height: 1.35;
+    color: #8ff3c5;
+    word-break: break-all;
+    text-align: right;
+    pointer-events: auto;
 }
 
 

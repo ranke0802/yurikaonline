@@ -2620,6 +2620,16 @@ export class UIManager {
         this.executePopupClose(id, isCurrentlyHidden, popup);
     }
 
+    syncDevOverlayVisibility() {
+        const overlay = document.getElementById('dev-overlay');
+        const statusPopup = document.getElementById('status-popup');
+        if (!overlay) return;
+
+        overlay.classList.toggle('hidden', !this.devMode);
+        const showLookup = this.devMode && statusPopup && !statusPopup.classList.contains('hidden');
+        overlay.classList.toggle('dev-lookup-visible', !!showLookup);
+    }
+
     executePopupClose(id, isCurrentlyHidden, popup) {
         if (!popup) popup = document.getElementById(id);
         this.hideTooltip();
@@ -2667,6 +2677,7 @@ export class UIManager {
             this.game.tutorial?.trigger?.('popup_close', { target: id });
         }
 
+        this.syncDevOverlayVisibility();
         this.refreshDesktopShortcutHints();
     }
 
@@ -5641,11 +5652,8 @@ export class UIManager {
             portrait.title = '개발자 모드 토글';
             portrait.addEventListener('click', () => {
                 this.devMode = !this.devMode;
-                const overlay = document.getElementById('dev-overlay');
                 const btnAccount = document.getElementById('reset-account-btn');
                 const btnStat = document.getElementById('reset-stat-btn');
-
-                if (overlay) overlay.classList.toggle('hidden', !this.devMode);
 
                 if (btnAccount) {
                     btnAccount.classList.toggle('hidden', !this.devMode);
@@ -5664,12 +5672,59 @@ export class UIManager {
                 }
 
                 this.logSystemMessage(`개발자 모드 ${this.devMode ? '활성화' : '비활성화'}`);
+                this.syncDevOverlayVisibility();
                 if (this.devMode) this.updateDevOverlay();
             });
         }
 
-    }
+        const searchInput = document.getElementById('dev-name-search');
+        const searchBtn = document.getElementById('dev-btn-search');
+        const resultEl = document.getElementById('dev-search-result');
 
+        if (searchInput && searchBtn && resultEl) {
+            const setSearchResult = (message, color = '#8ff3c5') => {
+                resultEl.textContent = message;
+                resultEl.style.color = color;
+            };
+
+            const runLookup = async () => {
+                const name = searchInput.value.trim();
+                if (!name) {
+                    setSearchResult('이름을 입력해 주세요.', '#ffb2b2');
+                    return;
+                }
+
+                setSearchResult('조회 중...', '#ffd585');
+                const uid = await this.game.net.getUidByName(name);
+                if (uid) {
+                    const recoveryCode = `복구 코드: ##${uid}`;
+                    setSearchResult(recoveryCode, '#8ff3c5');
+                    if (navigator?.clipboard?.writeText) {
+                        navigator.clipboard.writeText(`##${uid}`).catch(() => { });
+                    }
+                } else {
+                    setSearchResult('찾을 수 없음', '#ff9f9f');
+                }
+            };
+
+            if (!searchBtn.dataset.bound) {
+                searchBtn.onclick = runLookup;
+                searchBtn.dataset.bound = 'true';
+            }
+
+            if (!searchInput.dataset.bound) {
+                searchInput.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        runLookup();
+                    }
+                };
+                searchInput.dataset.bound = 'true';
+            }
+        }
+
+    }
     // v0.00.15: Dev Mode - Character Reset (Refund)
     async handleDevCharacterReset() {
         const p = this.game.localPlayer;
