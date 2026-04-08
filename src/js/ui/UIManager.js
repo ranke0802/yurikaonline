@@ -3755,6 +3755,15 @@ export class UIManager {
         if (!popup) return;
 
         const isCurrentlyHidden = popup.classList.contains('hidden');
+        const openPopup = document.querySelector('.game-popup:not(.hidden)');
+        if (isCurrentlyHidden && openPopup && openPopup.id !== id) {
+            return;
+        }
+
+        if (isCurrentlyHidden && id === 'status-popup' && this.getPendingStatTotal() > 0) {
+            this.cancelPendingStats({ refreshUi: false });
+        }
+
         const popupActionMap = {
             'inventory-popup': 'OPEN_INVENTORY',
             'skill-popup': 'OPEN_SKILL',
@@ -3767,7 +3776,7 @@ export class UIManager {
 
         // If closing status popup, check for pending stats
         if (!isCurrentlyHidden && id === 'status-popup') {
-            const totalPending = Object.values(this.pendingStats).reduce((a, b) => a + b, 0);
+            const totalPending = this.getPendingStatTotal();
             if (totalPending > 0) {
                 this.showConfirm('스텟을 저장하시겠습니까?<br><small>한번 저장하면 변경할 수 없습니다.</small>', (result) => {
                     if (result) {
@@ -3799,6 +3808,13 @@ export class UIManager {
         if (!popup) popup = document.getElementById(id);
         this.hideTooltip();
 
+        const statusPopup = document.getElementById('status-popup');
+        const isStatusPopupOpen = statusPopup && !statusPopup.classList.contains('hidden');
+        const isOpeningDifferentPopup = !!isCurrentlyHidden && id !== 'status-popup';
+        if (isStatusPopupOpen && isOpeningDifferentPopup && this.getPendingStatTotal() > 0) {
+            this.cancelPendingStats({ refreshUi: false });
+        }
+
         document.querySelectorAll('.game-popup').forEach(p => p.classList.add('hidden'));
         this.hideSkillDetailModal();
         if (id !== 'inventory-popup' || !isCurrentlyHidden) {
@@ -3811,7 +3827,7 @@ export class UIManager {
             popup.classList.remove('hidden');
             document.body.classList.add('popup-open');
             if (id === 'status-popup') {
-                this.pendingStats = { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
+                this.pendingStats = this.createEmptyPendingStats();
                 this.updateStatusPopup();
             }
             if (id === 'inventory-popup') {
@@ -4639,9 +4655,18 @@ export class UIManager {
         this.tooltip.classList.add('hidden');
     }
 
+    createEmptyPendingStats() {
+        return { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
+    }
+
+    getPendingStatTotal() {
+        return Object.values(this.pendingStats || {}).reduce((sum, value) => sum + (Number(value) || 0), 0);
+    }
+
     savePendingStats() {
         const p = this.game.localPlayer;
         if (!p) return;
+        if (this.getPendingStatTotal() <= 0) return;
         p.vitality += this.pendingStats.vitality;
         p.intelligence += this.pendingStats.intelligence;
         p.wisdom += this.pendingStats.wisdom;
@@ -4650,18 +4675,22 @@ export class UIManager {
         // Clamp current stats to new maximums
         p.hp = Math.min(p.hp, p.maxHp);
         p.mp = Math.min(p.mp, p.maxMp);
-        this.pendingStats = { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
+        this.pendingStats = this.createEmptyPendingStats();
         p.saveState(); // v0.00.01: Persist stats to DB
         this.game.tutorial?.trigger?.('stats_saved');
     }
 
-    cancelPendingStats() {
+    cancelPendingStats(options = {}) {
+        const { refreshUi = true } = options;
         const p = this.game.localPlayer;
-        if (!p) return;
-        const totalPending = Object.values(this.pendingStats).reduce((a, b) => a + b, 0);
-        p.statPoints += totalPending;
-        this.pendingStats = { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
-        this.updateStatusPopup();
+        const totalPending = this.getPendingStatTotal();
+        if (p && totalPending > 0) {
+            p.statPoints += totalPending;
+        }
+        this.pendingStats = this.createEmptyPendingStats();
+        if (refreshUi) {
+            this.updateStatusPopup();
+        }
     }
 
     hideAllPopups() {
