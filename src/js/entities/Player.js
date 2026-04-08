@@ -1043,7 +1043,7 @@ export default class Player extends CharacterBase {
             ts: Date.now()
         };
         // Debug
-        console.log('[Player] Saving State:', { level: data.level, exp: data.exp, maxExp: data.maxExp, quest: data.questData });
+        Logger.debug('[Player] Saving State:', { level: data.level, exp: data.exp, maxExp: data.maxExp, quest: data.questData });
         this.net.savePlayerData(this.id, data, syncToWorld, {
             debounceMs: profileSaveDebounceMs,
             forceImmediate: !!syncToWorld,
@@ -1056,7 +1056,7 @@ export default class Player extends CharacterBase {
         try {
             return JSON.parse(JSON.stringify(value));
         } catch (error) {
-            console.warn('[Player] Failed to clone profile patch value', error);
+            Logger.warn('[Player] Failed to clone profile patch value', error);
             return value;
         }
     }
@@ -1705,7 +1705,7 @@ export default class Player extends CharacterBase {
 
                         // v0.00.32: Balance Update (Damage 45%)
                         let dmg = this.attackPower * 0.45 * (1 + (weaponCombat.missileDamageBonus || 0));
-                        console.log(`[MissileDMG] AP:${this.attackPower} x0.45 = ${dmg}`);
+                        Logger.debug(`[MissileDMG] AP:${this.attackPower} x0.45 = ${dmg}`);
                         let isCrit = Math.random() < this.critRate;
                         if (isCrit) dmg *= 2;
 
@@ -2436,7 +2436,7 @@ export default class Player extends CharacterBase {
             if (window.game?.resources) {
                 window.game.resources.loadImage(emote.icon)
                     .then(img => { this.emoteImage = img; })
-                    .catch(e => { console.warn('Emote load failed', e); });
+                    .catch(e => { Logger.warn('Emote load failed', e); });
             }
         }
     }
@@ -3229,7 +3229,7 @@ export default class Player extends CharacterBase {
 
             return 'DECLARED';
         } catch (e) {
-            console.error(e);
+            Logger.error(e);
             return 'ERROR';
         }
     }

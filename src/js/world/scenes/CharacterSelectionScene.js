@@ -42,7 +42,7 @@ export default class CharacterSelectionScene extends Scene {
                         // Use loadJSON correctly (it returns a promise)
                         this.game.resources.loadJSON(bgmUrl).then(data => {
                             this.game.sound.playBgm(data, 'bgm_intro');
-                        }).catch(e => console.warn('BGM Load Failed', e));
+                        }).catch(e => Logger.warn('BGM Load Failed', e));
                     });
 
                     window.removeEventListener('click', unlock);
@@ -371,7 +371,7 @@ export default class CharacterSelectionScene extends Scene {
         const localName = localStorage.getItem('yurika_player_name') || this.user.displayName || "유리카";
 
         // Add log to confirm profile data before Scene Change.
-        console.log('[CharSelect] Starting game with profile:', this.profile, 'at', startX, startY);
+        Logger.debug('[CharSelect] Starting game with profile:', this.profile, 'at', startX, startY);
 
         await this.game.sceneManager.changeScene('world', {
             user: this.user,

@@ -56,7 +56,13 @@ export class UIManager {
         };
         this.activeSkillDetailId = null;
         this.settingsStorageKey = 'yurika_settings_v1';
+        this.devAccessStateStorageKey = 'yurika_dev_access_guard_v1';
+        this.devPassword = '3k78a4';
+        this.devAccessGranted = false;
+        this.devMaxFailures = 3;
+        this.devLockoutMs = 5 * 60 * 1000;
         this.settings = this.loadSettings();
+        this.devAccessState = this.loadDevAccessState();
         this.uiLayoutControlDefinitions = {
             joystick: { label: '조이스틱', selector: '#joystick-container', modes: ['mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
             'action-skill-u': { label: '스킬 U', selector: '#action-skill-u', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
@@ -174,10 +180,19 @@ export class UIManager {
             autoFullscreen: true,
             reducedEffects: false,
             desktopShortcutHints: true,
+            developerLogLevel: 'warn',
             chatOpacity: 100,
             questOpacity: 100,
             minimapOpacity: 100
         };
+    }
+
+    getAllowedLogLevels() {
+        return ['error', 'warn', 'info', 'debug'];
+    }
+
+    sanitizeLogLevel(level, fallback = 'warn') {
+        return this.getAllowedLogLevels().includes(level) ? level : fallback;
     }
 
     sanitizeSettings(candidate = {}) {
@@ -188,6 +203,7 @@ export class UIManager {
             autoFullscreen: candidate.autoFullscreen !== false,
             reducedEffects: !!candidate.reducedEffects,
             desktopShortcutHints: candidate.desktopShortcutHints !== false,
+            developerLogLevel: this.sanitizeLogLevel(candidate.developerLogLevel, defaults.developerLogLevel),
             chatOpacity: this.clampNumericSetting(candidate.chatOpacity, defaults.chatOpacity, 35, 100),
             questOpacity: this.clampNumericSetting(candidate.questOpacity, defaults.questOpacity, 35, 100),
             minimapOpacity: this.clampNumericSetting(candidate.minimapOpacity, defaults.minimapOpacity, 35, 100)
@@ -201,7 +217,7 @@ export class UIManager {
             if (!raw) return defaults;
             return this.sanitizeSettings(JSON.parse(raw));
         } catch (error) {
-            console.warn('[UIManager] Failed to load settings', error);
+            Logger.warn('[UIManager] Failed to load settings', error);
             return defaults;
         }
     }
@@ -210,8 +226,208 @@ export class UIManager {
         try {
             localStorage.setItem(this.settingsStorageKey, JSON.stringify(this.settings));
         } catch (error) {
-            console.warn('[UIManager] Failed to save settings', error);
+            Logger.warn('[UIManager] Failed to save settings', error);
         }
+    }
+
+    getDefaultDevAccessState() {
+        return {
+            failedAttempts: 0,
+            lockUntil: 0
+        };
+    }
+
+    sanitizeDevAccessState(candidate = {}) {
+        const now = Date.now();
+        const failedAttempts = Math.max(0, Math.floor(Number(candidate.failedAttempts) || 0));
+        const lockUntil = Math.max(0, Number(candidate.lockUntil) || 0);
+
+        if (lockUntil > now) {
+            return {
+                failedAttempts,
+                lockUntil
+            };
+        }
+
+        return this.getDefaultDevAccessState();
+    }
+
+    loadDevAccessState() {
+        try {
+            const raw = localStorage.getItem(this.devAccessStateStorageKey);
+            if (!raw) return this.getDefaultDevAccessState();
+            const parsed = this.sanitizeDevAccessState(JSON.parse(raw));
+            const normalized = JSON.stringify(parsed);
+            if (normalized !== raw) {
+                localStorage.setItem(this.devAccessStateStorageKey, normalized);
+            }
+            return parsed;
+        } catch (error) {
+            Logger.warn('[UIManager] Failed to load developer access state', error);
+            return this.getDefaultDevAccessState();
+        }
+    }
+
+    persistDevAccessState() {
+        this.devAccessState = this.sanitizeDevAccessState(this.devAccessState);
+        try {
+            localStorage.setItem(this.devAccessStateStorageKey, JSON.stringify(this.devAccessState));
+        } catch (error) {
+            Logger.warn('[UIManager] Failed to save developer access state', error);
+        }
+    }
+
+    getDevAccessRemainingMs() {
+        this.devAccessState = this.sanitizeDevAccessState(this.devAccessState);
+        return Math.max(0, Number(this.devAccessState.lockUntil || 0) - Date.now());
+    }
+
+    isDeveloperAccessLocked() {
+        return this.getDevAccessRemainingMs() > 0;
+    }
+
+    hasDeveloperAccess() {
+        if (this.isDeveloperAccessLocked()) {
+            this.devAccessGranted = false;
+        }
+        return !!this.devAccessGranted;
+    }
+
+    formatDurationMs(ms = 0) {
+        const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}분 ${String(seconds).padStart(2, '0')}초`;
+    }
+
+    setDevMode(active, options = {}) {
+        const { announce = true } = options;
+        const nextState = !!active && this.hasDeveloperAccess();
+        const changed = this.devMode !== nextState;
+        this.devMode = nextState;
+
+        const btnAccount = document.getElementById('reset-account-btn');
+        const btnStat = document.getElementById('reset-stat-btn');
+        if (btnAccount) {
+            btnAccount.classList.toggle('hidden', !this.devMode);
+            if (!btnAccount.dataset.bound) {
+                btnAccount.onclick = () => this.handleDevAccountReset();
+                btnAccount.dataset.bound = 'true';
+            }
+        }
+        if (btnStat) {
+            btnStat.classList.toggle('hidden', !this.devMode);
+            if (!btnStat.dataset.bound) {
+                btnStat.onclick = () => this.handleDevCharacterReset();
+                btnStat.dataset.bound = 'true';
+            }
+        }
+
+        const devModeInput = document.getElementById('settings-dev-mode');
+        if (devModeInput) devModeInput.checked = this.devMode;
+
+        if (changed && announce) {
+            this.logSystemMessage(`개발자 모드 ${this.devMode ? '활성화' : '비활성화'}`);
+        }
+
+        this.syncDevOverlayVisibility();
+        if (this.devMode) this.updateDevOverlay();
+        this.syncDeveloperSettingsUi();
+        return this.devMode;
+    }
+
+    lockDeveloperAccess(options = {}) {
+        const { announce = true } = options;
+        this.devAccessGranted = false;
+        this.setDevMode(false, { announce: false });
+        if (announce) {
+            this.logSystemMessage('개발자 모드 권한을 잠갔습니다.');
+        }
+        this.syncDeveloperSettingsUi();
+    }
+
+    syncDeveloperSettingsUi() {
+        const statusEl = document.getElementById('settings-dev-access-status');
+        const helpEl = document.getElementById('settings-dev-access-help');
+        const authForm = document.getElementById('settings-dev-auth-form');
+        const controls = document.getElementById('settings-dev-controls');
+        const passwordInput = document.getElementById('settings-dev-password');
+        const unlockButton = document.getElementById('settings-dev-unlock');
+        const devModeInput = document.getElementById('settings-dev-mode');
+        const logLevelSelect = document.getElementById('settings-log-level');
+
+        const remainingMs = this.getDevAccessRemainingMs();
+        const locked = remainingMs > 0;
+        const granted = this.hasDeveloperAccess();
+
+        if (statusEl) {
+            statusEl.classList.toggle('is-active', granted);
+            statusEl.classList.toggle('is-locked', locked);
+            statusEl.textContent = locked
+                ? `잠금 (${this.formatDurationMs(remainingMs)})`
+                : granted
+                    ? '인증 완료'
+                    : '잠김';
+        }
+
+        if (helpEl) {
+            if (locked) {
+                helpEl.textContent = `비밀번호 3회 실패로 ${this.formatDurationMs(remainingMs)} 동안 개발자모드 진입이 잠겼습니다.`;
+            } else if (granted) {
+                helpEl.textContent = '개발자 모드 토글과 로그 레벨 설정을 사용할 수 있습니다.';
+            } else {
+                const remainingTries = Math.max(0, this.devMaxFailures - (this.devAccessState.failedAttempts || 0));
+                helpEl.textContent = `개발자 옵션은 암호 인증 후에만 변경할 수 있습니다. 남은 시도 ${remainingTries}회`;
+            }
+        }
+
+        if (authForm) authForm.classList.toggle('hidden', granted);
+        if (controls) controls.classList.toggle('hidden', !granted);
+        if (passwordInput) {
+            passwordInput.disabled = locked || granted;
+            if (granted) passwordInput.value = '';
+        }
+        if (unlockButton) unlockButton.disabled = locked || granted;
+        if (devModeInput) devModeInput.checked = this.devMode;
+        if (logLevelSelect) logLevelSelect.value = this.getSetting('developerLogLevel');
+    }
+
+    tryUnlockDeveloperAccess(password = '') {
+        const normalizedPassword = String(password || '').trim();
+        if (this.isDeveloperAccessLocked()) {
+            return { ok: false, reason: 'locked', remainingMs: this.getDevAccessRemainingMs() };
+        }
+
+        if (normalizedPassword !== this.devPassword) {
+            const nextFailures = (this.devAccessState.failedAttempts || 0) + 1;
+            if (nextFailures >= this.devMaxFailures) {
+                this.devAccessState = {
+                    failedAttempts: 0,
+                    lockUntil: Date.now() + this.devLockoutMs
+                };
+                this.persistDevAccessState();
+                this.syncDeveloperSettingsUi();
+                return { ok: false, reason: 'locked', remainingMs: this.getDevAccessRemainingMs() };
+            }
+
+            this.devAccessState = {
+                failedAttempts: nextFailures,
+                lockUntil: 0
+            };
+            this.persistDevAccessState();
+            this.syncDeveloperSettingsUi();
+            return {
+                ok: false,
+                reason: 'invalid_password',
+                remainingAttempts: this.devMaxFailures - nextFailures
+            };
+        }
+
+        this.devAccessGranted = true;
+        this.devAccessState = this.getDefaultDevAccessState();
+        this.persistDevAccessState();
+        this.syncDeveloperSettingsUi();
+        return { ok: true };
     }
 
     getSetting(key) {
@@ -239,6 +455,7 @@ export class UIManager {
         const questOpacity = (this.getSetting('questOpacity') / 100).toFixed(2);
         const minimapOpacity = (this.getSetting('minimapOpacity') / 100).toFixed(2);
 
+        Logger.setLevel(this.getSetting('developerLogLevel'));
         root.style.setProperty('--ui-chat-opacity', chatOpacity);
         root.style.setProperty('--ui-quest-opacity', questOpacity);
         root.style.setProperty('--ui-minimap-opacity', minimapOpacity);
@@ -286,6 +503,10 @@ export class UIManager {
             if (input) input.checked = !!this.getSetting(key);
         });
 
+        const logLevelSelect = document.getElementById('settings-log-level');
+        if (logLevelSelect) logLevelSelect.value = this.getSetting('developerLogLevel');
+
+        this.syncDeveloperSettingsUi();
         this.syncUiLayoutEditor();
     }
 
@@ -294,7 +515,7 @@ export class UIManager {
         try {
             return JSON.parse(JSON.stringify(value));
         } catch (error) {
-            console.warn('[UIManager] Failed to clone structured data', error);
+            Logger.warn('[UIManager] Failed to clone structured data', error);
             return value;
         }
     }
@@ -3002,6 +3223,50 @@ export class UIManager {
             });
         });
 
+        document.getElementById('settings-log-level')?.addEventListener('change', (e) => {
+            if (!this.hasDeveloperAccess()) {
+                this.syncDeveloperSettingsUi();
+                return;
+            }
+            this.updateSetting('developerLogLevel', e.currentTarget.value, { refreshGame: false });
+        });
+
+        document.getElementById('settings-dev-unlock')?.addEventListener('click', () => {
+            const passwordInput = document.getElementById('settings-dev-password');
+            const result = this.tryUnlockDeveloperAccess(passwordInput?.value || '');
+            if (result.ok) {
+                this.logSystemMessage('개발자 모드 인증이 완료되었습니다.');
+                this.setDevMode(true, { announce: true });
+                if (passwordInput) {
+                    passwordInput.value = '';
+                    passwordInput.blur();
+                }
+                return;
+            }
+
+            if (result.reason === 'locked') {
+                this.logSystemMessage(`개발자 모드가 ${this.formatDurationMs(result.remainingMs)} 동안 잠겼습니다.`);
+            } else {
+                this.logSystemMessage(`개발자 암호가 올바르지 않습니다. 남은 시도 ${result.remainingAttempts}회`);
+            }
+        });
+        document.getElementById('settings-dev-password')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('settings-dev-unlock')?.click();
+            }
+        });
+        document.getElementById('settings-dev-mode')?.addEventListener('change', (e) => {
+            if (!this.hasDeveloperAccess()) {
+                this.syncDeveloperSettingsUi();
+                return;
+            }
+            this.setDevMode(!!e.currentTarget.checked, { announce: true });
+        });
+        document.getElementById('settings-dev-lock')?.addEventListener('click', () => {
+            this.lockDeveloperAccess({ announce: true });
+        });
+
         document.getElementById('settings-open-ui-layout')?.addEventListener('click', () => {
             this.hideAllPopups();
             this.enterUiLayoutEditMode();
@@ -3423,8 +3688,9 @@ export class UIManager {
         const statusPopup = document.getElementById('status-popup');
         if (!overlay) return;
 
-        overlay.classList.toggle('hidden', !this.devMode);
-        const showLookup = this.devMode && statusPopup && !statusPopup.classList.contains('hidden');
+        const canShow = this.devMode && this.hasDeveloperAccess();
+        overlay.classList.toggle('hidden', !canShow);
+        const showLookup = canShow && statusPopup && !statusPopup.classList.contains('hidden');
         overlay.classList.toggle('dev-lookup-visible', !!showLookup);
     }
 
@@ -3692,7 +3958,7 @@ export class UIManager {
                 });
             }
         } catch (error) {
-            console.error('Failed to parse README.md with marked:', error);
+            Logger.error('Failed to parse README.md with marked:', error);
         }
 
         return this.renderReadmeMarkdownFallback(text);
@@ -4590,7 +4856,7 @@ export class UIManager {
                     if (e.code === 'auth/popup-closed-by-user') {
                         Logger.info('User cancelled Google login popup.');
                     } else {
-                        console.error('Migration Error:', e);
+                        Logger.error('Migration Error:', e);
                         alert("오류가 발생했습니다: " + e.message);
                     }
                     setLinkButtonState(false, guestLabel);
@@ -6047,7 +6313,7 @@ export class UIManager {
         }
 
         // v1.98: Live update developer overlay if active
-        if (this.devMode && (now - this.lastDevOverlayUpdate) >= 250) {
+        if (this.devMode && this.hasDeveloperAccess() && (now - this.lastDevOverlayUpdate) >= 250) {
             this.lastDevOverlayUpdate = now;
             this.updateDevOverlay();
         }
@@ -6427,7 +6693,7 @@ export class UIManager {
                 return;
             }
         } catch (e) {
-            console.error('Failed to load README.md:', e);
+            Logger.error('Failed to load README.md:', e);
         }
 
         // Fallback to updateHistory array if fetch fails or marked is missing
@@ -6454,31 +6720,31 @@ export class UIManager {
         const portrait = document.querySelector('.status-portrait');
         if (portrait) {
             portrait.style.cursor = 'pointer';
-            portrait.title = '개발자 모드 토글';
+            portrait.title = '개발자 모드';
             portrait.addEventListener('click', () => {
-                this.devMode = !this.devMode;
-                const btnAccount = document.getElementById('reset-account-btn');
-                const btnStat = document.getElementById('reset-stat-btn');
-
-                if (btnAccount) {
-                    btnAccount.classList.toggle('hidden', !this.devMode);
-                    if (!btnAccount.dataset.bound) {
-                        btnAccount.onclick = () => this.handleDevAccountReset();
-                        btnAccount.dataset.bound = 'true';
+                if (!this.hasDeveloperAccess()) {
+                    if (this.isDeveloperAccessLocked()) {
+                        this.showGenericModal(
+                            '개발자 모드 잠금',
+                            `비밀번호 3회 실패로 인해 <strong>${this.formatDurationMs(this.getDevAccessRemainingMs())}</strong> 동안 개발자모드 진입이 잠겼습니다.`,
+                            null,
+                            null,
+                            { hideNo: true, yesText: '확인' }
+                        );
+                    } else {
+                        this.showGenericModal(
+                            '개발자 모드',
+                            '설정 창의 <strong>개발자 모드</strong> 섹션에서 암호를 입력한 뒤 사용할 수 있습니다.',
+                            null,
+                            null,
+                            { hideNo: true, yesText: '확인' }
+                        );
                     }
+                    this.syncDeveloperSettingsUi();
+                    return;
                 }
 
-                if (btnStat) {
-                    btnStat.classList.toggle('hidden', !this.devMode);
-                    if (!btnStat.dataset.bound) {
-                        btnStat.onclick = () => this.handleDevCharacterReset();
-                        btnStat.dataset.bound = 'true';
-                    }
-                }
-
-                this.logSystemMessage(`개발자 모드 ${this.devMode ? '활성화' : '비활성화'}`);
-                this.syncDevOverlayVisibility();
-                if (this.devMode) this.updateDevOverlay();
+                this.setDevMode(!this.devMode, { announce: true });
             });
         }
 
@@ -6528,10 +6794,11 @@ export class UIManager {
                 searchInput.dataset.bound = 'true';
             }
         }
-
+        this.syncDeveloperSettingsUi();
     }
     // v0.00.15: Dev Mode - Character Reset (Refund)
     async handleDevCharacterReset() {
+        if (!this.hasDeveloperAccess()) return;
         const p = this.game.localPlayer;
         if (!p) return;
 
@@ -6585,6 +6852,7 @@ export class UIManager {
 
     // v0.00.15: Dev Mode - Account Reset (Wipe)
     async handleDevAccountReset() {
+        if (!this.hasDeveloperAccess()) return;
         if (!this.game.localPlayer) return;
 
         const check = confirm("⚠️ 경고: 정말로 모든 데이터를 삭제하고 계정을 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.");
@@ -6595,12 +6863,13 @@ export class UIManager {
             alert("계정이 초기화되었습니다. 게임을 다시 시작합니다.");
             window.location.reload();
         } catch (e) {
-            console.error(e);
+            Logger.error(e);
             alert("초기화 실패");
         }
     }
 
     updateDevOverlay() {
+        if (!this.hasDeveloperAccess() || !this.devMode) return;
         if (!this.game.monsterManager) return;
         const stats = this.game.monsterManager.getStats();
         const perf = this.game.getPerformanceSnapshot?.() || {};

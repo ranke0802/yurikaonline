@@ -31,7 +31,7 @@ export default class LoginScene extends Scene {
                     sound.resume().then(() => {
                         sound.loadAndPlayBgm('bgm_intro');
                     }).catch(e => {
-                        console.warn('Audio Resume Failed', e);
+                        Logger.warn('Audio Resume Failed', e);
                         // Try playing anyway in case state updated
                         sound.loadAndPlayBgm('bgm_intro');
                     });

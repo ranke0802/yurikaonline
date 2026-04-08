@@ -901,6 +901,13 @@ button:active,
     min-width: 0;
 }
 
+.settings-dev-status-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
 .settings-range-control {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -971,6 +978,63 @@ button:active,
     font-size: 12px;
     line-height: 1.6;
     color: #6a5a52;
+}
+
+.settings-inline-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-text-input,
+.settings-select {
+    min-width: 0;
+    flex: 1 1 auto;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 214, 165, 0.68);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #5b4b42;
+    font-family: 'Outfit', 'Nanum Gothic', sans-serif;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.settings-select {
+    cursor: pointer;
+}
+
+.settings-action-btn-small {
+    min-height: 40px;
+    min-width: 78px;
+    padding: 0 14px;
+    flex: 0 0 auto;
+}
+
+.settings-status-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #5f4b43;
+    background: rgba(255, 236, 208, 0.92);
+    border: 1px solid rgba(255, 199, 138, 0.86);
+}
+
+.settings-status-chip.is-active {
+    color: #205b39;
+    background: rgba(221, 255, 232, 0.94);
+    border-color: rgba(86, 195, 124, 0.86);
+}
+
+.settings-status-chip.is-locked {
+    color: #8d322f;
+    background: rgba(255, 227, 227, 0.95);
+    border-color: rgba(238, 117, 117, 0.86);
 }
 
 .settings-action-grid {
@@ -1101,6 +1165,16 @@ body.ui-layout-edit-mode #joystick-container[data-ui-layout-selected="true"] #jo
     .settings-row,
     .ui-layout-editor-row {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .settings-inline-control {
+        flex-wrap: wrap;
+    }
+
+    .settings-text-input,
+    .settings-select {
+        width: 100%;
+        flex-basis: 100%;
     }
 
     .settings-action-grid {

@@ -255,7 +255,7 @@ export default class ResourceManager {
                 const fullUrl = `${url}?v=${v}`;
                 await this.loadImage(fullUrl);
             } catch (e) {
-                console.warn(`[Preload] Failed: ${url}`, e);
+                Logger.warn(`[Preload] Failed: ${url}`, e);
             } finally {
                 loaded++;
                 // Progress from 0% to 100% (mapped to overall loading 40% -> 90%)

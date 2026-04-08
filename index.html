@@ -123,10 +123,9 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.01.110', { updateViaCache: 'none' });
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    await navigator.serviceWorker.register('./sw.js?v=0.01.110', { updateViaCache: 'none' });
                 } catch (err) {
-                    console.log('ServiceWorker registration failed: ', err);
+                    console.warn('ServiceWorker registration failed: ', err);
                 }
             });
         }
@@ -207,7 +206,7 @@
                 sessionStorage.removeItem(YURIKA_CACHE_RESET_TARGET_KEY);
                 sessionStorage.removeItem(YURIKA_CACHE_RESET_REASON_KEY);
             } catch (e) {
-                console.log('Version check failed:', e);
+                console.warn('Version check failed:', e);
                 window.SERVER_VERSION = 'unknown';
             }
         })();
@@ -741,6 +740,45 @@
                             <div class="settings-control settings-range-control">
                                 <input id="settings-minimap-opacity" type="range" min="35" max="100" step="1">
                                 <span id="settings-minimap-opacity-value">100%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>개발자 모드</h3>
+                        <div class="settings-row">
+                            <label>접근 상태</label>
+                            <div class="settings-control settings-dev-status-block">
+                                <span id="settings-dev-access-status" class="settings-status-chip">잠김</span>
+                                <p id="settings-dev-access-help" class="settings-help-text">개발자 옵션은 암호 인증 후에만 변경할 수 있습니다.</p>
+                            </div>
+                        </div>
+                        <div id="settings-dev-auth-form" class="settings-row">
+                            <label for="settings-dev-password">개발자 암호</label>
+                            <div class="settings-control settings-inline-control">
+                                <input id="settings-dev-password" class="settings-text-input" type="password" autocomplete="off" placeholder="암호 입력">
+                                <button id="settings-dev-unlock" type="button" class="settings-action-btn secondary settings-action-btn-small">해제</button>
+                            </div>
+                        </div>
+                        <div id="settings-dev-controls" class="hidden">
+                            <div class="settings-row settings-toggle-row">
+                                <span>개발자 오버레이 표시</span>
+                                <label class="settings-switch">
+                                    <input id="settings-dev-mode" type="checkbox">
+                                    <span class="settings-switch-slider"></span>
+                                </label>
+                            </div>
+                            <div class="settings-row">
+                                <label for="settings-log-level">로그 레벨</label>
+                                <div class="settings-control settings-inline-control">
+                                    <select id="settings-log-level" class="settings-select">
+                                        <option value="error">Error</option>
+                                        <option value="warn">Warn</option>
+                                        <option value="info">Info</option>
+                                        <option value="debug">Debug</option>
+                                    </select>
+                                    <button id="settings-dev-lock" type="button" class="settings-action-btn secondary settings-action-btn-small">잠그기</button>
+                                </div>
                             </div>
                         </div>
                     </div>

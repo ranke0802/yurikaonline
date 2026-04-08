@@ -226,7 +226,7 @@ export default class NetworkManager extends EventEmitter {
                 // v0.00.42: Anti-cheat validation
                 // 1. Check if reward is from legitimate host
                 if (!data.hostId || data.hostId !== this.currentHostId) {
-                    console.warn('[AntiCheat] Rejected reward from non-host:', data.hostId);
+                    Logger.warn('[AntiCheat] Rejected reward from non-host:', data.hostId);
                     snapshot.ref.remove();
                     return;
                 }
@@ -239,7 +239,7 @@ export default class NetworkManager extends EventEmitter {
                 }
                 this._rewardCount++;
                 if (this._rewardCount > MAX_REWARDS_PER_MIN) {
-                    console.warn('[AntiCheat] Too many rewards, ignoring:', this._rewardCount);
+                    Logger.warn('[AntiCheat] Too many rewards, ignoring:', this._rewardCount);
                     snapshot.ref.remove();
                     return;
                 }
@@ -247,18 +247,18 @@ export default class NetworkManager extends EventEmitter {
                 // 3. Sanity check on reward amounts (skip for quest rewards)
                 if (!data.questKill) {
                     if (data.exp && data.exp > MAX_EXP_PER_REWARD) {
-                        console.warn('[AntiCheat] EXP too high:', data.exp);
+                        Logger.warn('[AntiCheat] EXP too high:', data.exp);
                         data.exp = MAX_EXP_PER_REWARD;
                     }
                     if (data.gold && data.gold > MAX_GOLD_PER_REWARD) {
-                        console.warn('[AntiCheat] Gold too high:', data.gold);
+                        Logger.warn('[AntiCheat] Gold too high:', data.gold);
                         data.gold = MAX_GOLD_PER_REWARD;
                     }
                 }
 
                 // 4. Timestamp check (reject old rewards > 10s)
                 if (data.ts && (now - data.ts > 10000)) {
-                    console.warn('[AntiCheat] Stale reward rejected:', data.ts);
+                    Logger.warn('[AntiCheat] Stale reward rejected:', data.ts);
                     snapshot.ref.remove();
                     return;
                 }
@@ -2259,7 +2259,7 @@ export default class NetworkManager extends EventEmitter {
             let committedProfile = null;
 
             // v0.00.04: Root profile update (Persistent across logins)
-            console.log(`[Network] Saving Player Data to users/${uid}/profile:`, nextProfile);
+            Logger.debug(`[Network] Saving Player Data to users/${uid}/profile:`, nextProfile);
             this._recordNetworkWrite('profileSave', nextProfile);
             const transactionResult = await profileRef.transaction((current) => {
                 const currentTs = Number(current?.ts || 0);
@@ -2325,7 +2325,7 @@ export default class NetworkManager extends EventEmitter {
                 return { ok: false, reason: 'empty_patch' };
             }
 
-            console.log(`[Network] Saving Player Data Patch to users/${uid}/profile:`, nextPatch);
+            Logger.debug(`[Network] Saving Player Data Patch to users/${uid}/profile:`, nextPatch);
             this._recordNetworkWrite('profilePatchSave', nextPatch);
             await firebase.database().ref().update(updates);
 
@@ -2706,12 +2706,12 @@ export default class NetworkManager extends EventEmitter {
 
         if (desiredHost && !this.isHost) {
             this.isHost = true;
-            console.log(`%c[Network] PROMOTED TO HOST. Active Users: ${activeUsers.length}. ID: ${this.playerId}`, "color: yellow; font-weight: bold; background: #222; padding: 2px 5px;");
+            Logger.info(`[Network] PROMOTED TO HOST. Active Users: ${activeUsers.length}. ID: ${this.playerId}`);
             this.emit('hostChanged', true);
             this._startCleanupLoop();
         } else if (!desiredHost && this.isHost) {
             this.isHost = false;
-            console.log(`%c[Network] DEMOTED TO GUEST. Active Users: ${activeUsers.length}`, "color: gray;");
+            Logger.info(`[Network] DEMOTED TO GUEST. Active Users: ${activeUsers.length}`);
             this.emit('hostChanged', false);
             this._stopCleanupLoop();
         }
@@ -3312,7 +3312,7 @@ export default class NetworkManager extends EventEmitter {
                 } else {
                     // Packet arrived for unknown player -> Treat as Add
                     // v0.00.67: Only attempt add if we have some position data
-                    console.warn(`[Network] Received update for unknown player ${uid}, treating as ADD.`);
+                    Logger.warn(`[Network] Received update for unknown player ${uid}, treating as ADD.`);
                     if (posData && (Array.isArray(posData) || posData.x !== undefined || posData.y !== undefined || presenceTs)) {
                         // v0.00.74: Update userLastSeen to NOW to give grace period
                         this.userLastSeen.set(uid, Date.now());

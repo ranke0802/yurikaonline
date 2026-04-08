@@ -711,7 +711,7 @@ export default class Monster extends CharacterBase {
 
                 // Debug movement (limited to one monster per session to avoid spam)
                 if (!window._moveLogShown) {
-                    console.log(`[MonsterAI] Moving ${this.typeId}: vel(${this.vx.toFixed(1)}, ${this.vy.toFixed(1)}) -> pos(${this.x.toFixed(0)}, ${this.y.toFixed(0)})`);
+                    Logger.debug(`[MonsterAI] Moving ${this.typeId}: vel(${this.vx.toFixed(1)}, ${this.vy.toFixed(1)}) -> pos(${this.x.toFixed(0)}, ${this.y.toFixed(0)})`);
                     window._moveLogShown = true;
                 }
 

@@ -1084,7 +1084,7 @@ export default class RemotePlayer extends CharacterBase {
             if (window.game?.resources) {
                 window.game.resources.loadImage(emote.icon)
                     .then(img => { this.emoteImage = img; })
-                    .catch(e => { console.warn('Remote emote load failed', e); });
+                    .catch(e => { Logger.warn('Remote emote load failed', e); });
             }
         }
     }

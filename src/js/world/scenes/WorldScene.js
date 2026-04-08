@@ -164,7 +164,7 @@ export default class WorldScene extends Scene {
 
 
         if (profile) {
-            console.log(`[WorldScene] Loading Player Profile:`, profile);
+            Logger.debug(`[WorldScene] Loading Player Profile:`, profile);
             this.player.level = profile.level || 1;
             this.player.exp = profile.exp || 0;
             this.player.maxExp = profile.maxExp || Math.floor(100 * Math.pow(1.5, this.player.level - 1)); // v0.00.03: Restore maxExp or recalculate
@@ -187,19 +187,19 @@ export default class WorldScene extends Scene {
                     try { this.player.hostileTargets = new Map(profile.hostility); } catch (e) { }
                 } else if (typeof profile.hostility === 'object') {
                     // Standard Object format
-                    console.log('[WorldScene] Restoring Hostility from Object:', profile.hostility);
+                    Logger.debug('[WorldScene] Restoring Hostility from Object:', profile.hostility);
                     this.player.hostileTargets = new Map(Object.entries(profile.hostility));
                 }
                 // v0.00.15: Force UI update
                 if (this.ui) this.ui.updateHostilityUI();
             } else {
-                console.log('[WorldScene] No Hostility Data found in profile');
+                Logger.debug('[WorldScene] No Hostility Data found in profile');
             }
 
             if (profile.questData) {
-                console.log('[WorldScene] Restoring Quest Data:', profile.questData);
+                Logger.debug('[WorldScene] Restoring Quest Data:', profile.questData);
             } else {
-                console.warn('[WorldScene] No Quest Data found in profile.');
+                Logger.warn('[WorldScene] No Quest Data found in profile.');
             }
 
             this.player.questData = { ...this.player.questData, ...(profile.questData || {}) };
@@ -230,7 +230,7 @@ export default class WorldScene extends Scene {
             if (typeof posX === 'number' && typeof posY === 'number') {
                 this.player.x = posX;
                 this.player.y = posY;
-                console.log(`[WorldScene] Position set to: (${this.player.x}, ${this.player.y})`);
+                Logger.debug(`[WorldScene] Position set to: (${this.player.x}, ${this.player.y})`);
 
                 // v2.3.3: Boundary Check (Move to after Restoration)
                 if (this.player.x >= this.game.zone.width || this.player.y >= this.game.zone.height) {
@@ -288,7 +288,7 @@ export default class WorldScene extends Scene {
             // This fixes the issue where an old UID is linked to the name
             if (this.player.name) {
                 this.net.claimName(this.player.id, this.player.name);
-                console.log(`[WorldScene] Claimed name mapping: ${this.player.name} -> ${this.player.id}`);
+                Logger.debug(`[WorldScene] Claimed name mapping: ${this.player.name} -> ${this.player.id}`);
             }
         }
         // v0.00.57: Play BGM
