@@ -253,9 +253,12 @@ button:active,
 }
 
 .attack-auto-toggle {
-    position: fixed;
-    top: calc(188px + env(safe-area-inset-top));
-    right: calc(182px + env(safe-area-inset-right));
+    position: relative;
+    top: auto;
+    right: auto;
+    order: -1;
+    align-self: flex-end;
+    margin: 0 18px 4px 0;
     min-width: 58px;
     height: 26px;
     padding: 0 9px;
