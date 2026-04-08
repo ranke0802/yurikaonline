@@ -639,6 +639,64 @@ export class UIManager {
         return '데스크톱';
     }
 
+    getUiLayoutEditorHelpText(mode = this.getUiLayoutMode()) {
+        if (mode === 'mobilePortrait') {
+            return '버튼이나 패널을 터치해 선택한 뒤 끌어서 위치를 바꾸세요. 편집 창은 상단 바를 잡고 다른 곳으로 옮길 수 있습니다.';
+        }
+        if (mode === 'mobileLandscape') {
+            return '가로 화면에서는 공간이 좁으니 필요한 영역만 빠르게 선택해 옮기고, 편집 창은 상단 바를 드래그해 시야를 가리지 않게 조정하세요.';
+        }
+        return '조절할 패널이나 버튼을 직접 터치하거나 드래그해 위치를 바꾸고, 위 슬라이더로 크기를 조정하세요. 저장할 때만 계정 DB에 반영됩니다.';
+    }
+
+    resetUiLayoutEditorWindowPosition() {
+        const editorCard = document.querySelector('#ui-layout-editor .ui-layout-editor-card');
+        if (!editorCard) return;
+        ['position', 'left', 'top', 'right', 'bottom', 'transform', 'margin'].forEach((property) => {
+            editorCard.style.removeProperty(property);
+        });
+        editorCard.classList.remove('floating-panel-dragging');
+    }
+
+    refreshUiLayoutEditorWindowLayout(options = {}) {
+        const editor = document.getElementById('ui-layout-editor');
+        const editorCard = editor?.querySelector?.('.ui-layout-editor-card');
+        const mode = this.getUiLayoutMode();
+
+        if (editor) {
+            editor.dataset.layoutMode = mode;
+        }
+
+        const help = document.getElementById('ui-layout-editor-help-text');
+        if (help) {
+            help.textContent = this.getUiLayoutEditorHelpText(mode);
+        }
+
+        const dragText = document.getElementById('ui-layout-editor-drag-text');
+        if (dragText) {
+            dragText.textContent = mode === 'desktop' ? '상단 바 드래그' : '창 이동';
+        }
+
+        if (!editorCard) return;
+
+        if (options.resetPosition) {
+            this.resetUiLayoutEditorWindowPosition();
+            return;
+        }
+
+        if ((editorCard.style.position || '').trim() !== 'fixed') return;
+
+        const rect = editorCard.getBoundingClientRect();
+        const margin = mode === 'desktop' ? 18 : 10;
+        const clamped = this.clampFloatingPanelPosition(rect.left, rect.top, rect.width, rect.height, margin);
+        editorCard.style.left = `${clamped.left}px`;
+        editorCard.style.top = `${clamped.top}px`;
+        editorCard.style.right = 'auto';
+        editorCard.style.bottom = 'auto';
+        editorCard.style.transform = 'none';
+        editorCard.style.margin = '0';
+    }
+
     isUiLayoutEditMode() {
         return !!this.uiLayoutEditMode;
     }
@@ -1007,6 +1065,8 @@ export class UIManager {
             modeLabel.textContent = `현재 화면: ${this.getUiLayoutModeLabel()}${suffix}`;
         }
 
+        this.refreshUiLayoutEditorWindowLayout();
+
         if (!isVisible) return;
 
         this.populateUiLayoutTargetSelect();
@@ -1052,6 +1112,7 @@ export class UIManager {
         this.isPaused = true;
         document.body.classList.add('ui-layout-edit-mode');
         document.getElementById('ui-layout-editor')?.classList.remove('hidden');
+        this.resetUiLayoutEditorWindowPosition();
         this.applyActiveUiLayout();
         this.syncUiLayoutEditor();
     }
@@ -1094,6 +1155,7 @@ export class UIManager {
         this.setUiLayoutDirty(false);
         document.body.classList.remove('ui-layout-edit-mode');
         document.getElementById('ui-layout-editor')?.classList.add('hidden');
+        this.resetUiLayoutEditorWindowPosition();
         this.game.input?.setEnabled?.(true);
         this.isPaused = false;
         this.applyActiveUiLayout();
@@ -1191,9 +1253,13 @@ export class UIManager {
             if (modeChanged || !this.uiLayoutSelectedControlId) {
                 this.uiLayoutSelectedControlId = this.getUiLayoutControlsForMode(nextMode)[0]?.[0] || null;
             }
+            if (modeChanged) {
+                this.resetUiLayoutEditorWindowPosition();
+            }
             this.syncUiLayoutEditor();
         }
         this.applyActiveUiLayout();
+        this.refreshUiLayoutEditorWindowLayout();
     }
 
     handleUiLayoutControlPointerDown(e) {
@@ -2446,13 +2512,21 @@ export class UIManager {
     }
 
     setupDraggableFloatingPanels() {
-        document.querySelectorAll('#party-panel, #hostility-panel').forEach((panel) => {
-            const header = panel.querySelector('.panel-header');
-            if (!header || header.dataset.dragBound === 'true') return;
+        const draggablePanels = [
+            { panelSelector: '#party-panel', headerSelector: '.panel-header' },
+            { panelSelector: '#hostility-panel', headerSelector: '.panel-header' },
+            { panelSelector: '#ui-layout-editor .ui-layout-editor-card', headerSelector: '.ui-layout-editor-header' }
+        ];
 
-            header.dataset.dragBound = 'true';
-            header.classList.add('draggable-panel-handle');
-            header.addEventListener('pointerdown', (e) => this.beginFloatingPanelDrag(e, panel));
+        draggablePanels.forEach(({ panelSelector, headerSelector }) => {
+            document.querySelectorAll(panelSelector).forEach((panel) => {
+                const header = panel.querySelector(headerSelector);
+                if (!header || header.dataset.dragBound === 'true') return;
+
+                header.dataset.dragBound = 'true';
+                header.classList.add('draggable-panel-handle');
+                header.addEventListener('pointerdown', (e) => this.beginFloatingPanelDrag(e, panel));
+            });
         });
     }
 

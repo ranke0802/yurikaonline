@@ -16,7 +16,7 @@
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
-        window.BOOTSTRAP_VERSION = '0.01.115';
+        window.BOOTSTRAP_VERSION = '0.01.116';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -123,7 +123,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    await navigator.serviceWorker.register('./sw.js?v=0.01.115', { updateViaCache: 'none' });
+                    await navigator.serviceWorker.register('./sw.js?v=0.01.116', { updateViaCache: 'none' });
                 } catch (err) {
                     console.warn('ServiceWorker registration failed: ', err);
                 }
@@ -211,7 +211,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.115">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.116">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -788,9 +788,13 @@
         <div id="ui-layout-editor" class="ui-layout-editor hidden">
             <div class="ui-layout-editor-card">
                 <div class="ui-layout-editor-header">
-                    <div>
+                    <div class="ui-layout-editor-title-block">
                         <strong>UI 변경 모드</strong>
                         <p id="ui-layout-mode-label">현재 화면: 데스크톱</p>
+                    </div>
+                    <div class="ui-layout-editor-drag-hint" aria-hidden="true">
+                        <span class="ui-layout-editor-drag-grip">:::</span>
+                        <span id="ui-layout-editor-drag-text">상단 바 드래그</span>
                     </div>
                 </div>
                 <div class="ui-layout-editor-body">
@@ -805,7 +809,7 @@
                             <span id="ui-layout-size-value">100%</span>
                         </div>
                     </div>
-                    <p class="ui-layout-editor-help">조절할 패널이나 버튼을 직접 터치하거나 드래그해 위치를 바꾸고, 위 슬라이더로 크기를 조정하세요. 저장할 때만 계정 DB에 반영됩니다.</p>
+                    <p id="ui-layout-editor-help-text" class="ui-layout-editor-help">조절할 패널이나 버튼을 직접 터치하거나 드래그해 위치를 바꾸고, 위 슬라이더로 크기를 조정하세요. 저장할 때만 계정 DB에 반영됩니다.</p>
                     <div class="settings-action-grid ui-layout-editor-actions">
                         <button id="ui-layout-reset-selected" type="button" class="settings-action-btn secondary">선택 초기화</button>
                         <button id="ui-layout-reset-mode" type="button" class="settings-action-btn secondary">이 화면 초기화</button>
@@ -908,7 +912,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.115"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.116"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">
