@@ -64,6 +64,9 @@ export default class MonsterManager {
         this.peerMonsterKeyframeMeta = new Map();
         this._hostSnapshotRestorePromise = null;
         this._lastHostSnapshotRestoreTs = 0;
+        this._guestSnapshotHydrationPending = null;
+        this._guestSnapshotHydrationPromise = null;
+        this._lastGuestSnapshotHydrationTs = 0;
 
         // Register Network Handlers
         this.net.onRemoteMonsterAdded(this._onRemoteMonsterAdded.bind(this));
@@ -75,18 +78,31 @@ export default class MonsterManager {
         this.net.onDropCollectionRequested(this._onDropCollectionRequested.bind(this));
         this.net.on('bossSpawnRequested', this._handleBossSpawnRequested.bind(this));
         this.net.on('fieldPeerPresenceChanged', this._handleFieldPeerPresenceChanged.bind(this));
+        this.net.on('connected', () => this._scheduleGuestSnapshotHydration('connected', 500));
+        this.net.on('hostChanged', (isHost) => {
+            if (!isHost) {
+                this._scheduleGuestSnapshotHydration('host_changed', 450);
+            }
+        });
         this.net.on('sharedFieldChanged', ({ active }) => {
-            if (!this.net.isHost) return;
             if (active) {
-                // Leaving solo quiet mode needs one authoritative keyframe pass
-                // so late joiners immediately receive the current field population.
-                this.lastSyncState.clear();
-                this.forceSyncAll();
-                this.forceSyncAllDrops();
+                if (this.net.isHost) {
+                    // Leaving solo quiet mode needs one authoritative keyframe pass
+                    // so late joiners immediately receive the current field population.
+                    this.lastSyncState.clear();
+                    this.forceSyncAll();
+                    this.forceSyncAllDrops();
+                    return;
+                }
+                this._scheduleGuestSnapshotHydration('shared_field_join', 350);
                 return;
             }
-            this.lastSyncState.clear();
-            this.peerMonsterKeyframeMeta.clear();
+            if (this.net.isHost) {
+                this.lastSyncState.clear();
+                this.peerMonsterKeyframeMeta.clear();
+                return;
+            }
+            this._guestSnapshotHydrationPending = null;
         });
 
         // v0.00.24: Increased for smoother sync
@@ -225,16 +241,29 @@ export default class MonsterManager {
 
         if (this.net.isHost) {
             this._updateHostLogic(dt, localPlayer, remotePlayers);
+        } else {
+            this._processPendingGuestSnapshotHydration().catch((error) => {
+                Logger.warn('[MonsterManager] Guest monster snapshot hydration failed', error);
+            });
         }
 
         // Update local monster instances.
         // Host must continue simulating monsters that are relevant to remote players
         // even when they are outside the host camera.
         this.monsters.forEach(m => {
+            const hasActiveTarget = this._isValidMonsterTarget(m.targetPlayer, isProtectedPlayer);
+            if (!hasActiveTarget && m.targetPlayer) {
+                m.targetPlayer = null;
+                if (m.chargeState === 'casting' || m.chargeState === 'charging') {
+                    m.chargeState = 'idle';
+                    m.chargeTarget = null;
+                }
+            }
+
             const hostRelevantOffscreen = this.net.isHost && (
                 m.chargeState !== 'idle'
                 || !!m.isAggro
-                || !!m.targetPlayer
+                || hasActiveTarget
                 || m.isDead
                 || this._isMonsterNearAnyPlayer(m, authorityPlayers, m.isBoss ? 1600 : 1100)
             );
@@ -309,19 +338,39 @@ export default class MonsterManager {
         this.spawnTimer = 1.0;
     }
 
+    _isValidMonsterTarget(player, isProtectedPlayer = () => false) {
+        if (!player || player.isDead || isProtectedPlayer(player)) return false;
+        if (player.id === this.net?.playerId) return true;
+        return !!this.net?.isUserActivelyPresent?.(player.id);
+    }
+
     _getInterestedPlayers(localPlayer, remotePlayers, isProtectedPlayer) {
         const players = [];
-        if (localPlayer && !localPlayer.isDead && !isProtectedPlayer(localPlayer)) {
+        if (this._isValidMonsterTarget(localPlayer, isProtectedPlayer)) {
             players.push(localPlayer);
         }
         if (remotePlayers) {
             remotePlayers.forEach((player) => {
-                if (player && !player.isDead && !isProtectedPlayer(player)) {
+                if (this._isValidMonsterTarget(player, isProtectedPlayer)) {
                     players.push(player);
                 }
             });
         }
         return players;
+    }
+
+    resetCombatTargets(options = {}) {
+        const clearChargeState = options.clearChargeState !== false;
+        this.monsters.forEach((monster) => {
+            if (!monster) return;
+            monster.targetPlayer = null;
+            monster.isAggro = false;
+            if (!clearChargeState) return;
+            monster.chargeTarget = null;
+            if (monster.chargeState === 'casting' || monster.chargeState === 'charging') {
+                monster.chargeState = 'idle';
+            }
+        });
     }
 
     _isMonsterNearAnyPlayer(monster, players, radius = 1100) {
@@ -333,6 +382,28 @@ export default class MonsterManager {
             if ((dx * dx) + (dy * dy) <= radiusSq) return true;
         }
         return false;
+    }
+
+    _scheduleGuestSnapshotHydration(reason = 'unknown', delayMs = 250) {
+        if (this.net?.isHost) return;
+        this._guestSnapshotHydrationPending = {
+            reason,
+            dueAt: Date.now() + Math.max(0, Number(delayMs || 0))
+        };
+    }
+
+    async _processPendingGuestSnapshotHydration() {
+        if (this.net?.isHost) {
+            this._guestSnapshotHydrationPending = null;
+            return;
+        }
+        const pending = this._guestSnapshotHydrationPending;
+        if (!pending) return;
+        if (Date.now() < pending.dueAt) return;
+        if (!this.game?.localPlayer || !this.net?.connected || !this.net?.zoneParticipationEnabled) return;
+
+        this._guestSnapshotHydrationPending = null;
+        await this.restoreVisibleMonstersFromHostSnapshot({ reason: pending.reason });
     }
 
     _getFieldCellSize() {
@@ -728,7 +799,12 @@ export default class MonsterManager {
                 if (m.chargeCooldown > 0) m.chargeCooldown -= dt * 1000;
 
                 // Find Target (if not already found by previous logic)
-                let target = m.targetPlayer;
+                let target = this._isValidMonsterTarget(m.targetPlayer, isProtectedPlayer)
+                    ? m.targetPlayer
+                    : null;
+                if (!target && m.targetPlayer) {
+                    m.targetPlayer = null;
+                }
                 if (!target && candidates.length > 0) {
                     let minDist = 9999;
                     candidates.forEach(p => {
@@ -1012,6 +1088,97 @@ export default class MonsterManager {
         } finally {
             if (this._hostSnapshotRestorePromise === restorePromise) {
                 this._hostSnapshotRestorePromise = null;
+            }
+        }
+    }
+
+    async restoreVisibleMonstersFromHostSnapshot(options = {}) {
+        if (this.net?.isHost || typeof this.net?.readMonsterHostSnapshot !== 'function') {
+            return { restored: 0, updated: 0, removedBosses: 0, total: 0, skipped: true };
+        }
+
+        const localPlayer = this.game?.localPlayer;
+        if (!localPlayer) {
+            return { restored: 0, updated: 0, removedBosses: 0, total: 0, skipped: true };
+        }
+
+        const now = Date.now();
+        if (!options.force && this._lastGuestSnapshotHydrationTs > 0 && (now - this._lastGuestSnapshotHydrationTs) < 1500) {
+            return { restored: 0, updated: 0, removedBosses: 0, total: 0, skipped: true };
+        }
+        if (this._guestSnapshotHydrationPromise && !options.force) {
+            return this._guestSnapshotHydrationPromise;
+        }
+
+        const restorePromise = (async () => {
+            const anchorCellId = this._getCellIdFromPosition(localPlayer.x, localPlayer.y);
+            const neighborhood = Number.isFinite(options.neighborhood) ? Math.max(0, Number(options.neighborhood)) : 1;
+            const desiredCells = new Set(this.net?._getFieldCellNeighborhood?.(anchorCellId, neighborhood) || [anchorCellId]);
+            const snapshotData = await this.net.readMonsterHostSnapshot();
+            const entries = Object.entries(snapshotData || {}).filter(([id, data]) => {
+                if (!id || !data || typeof data !== 'object') return false;
+                if (Number(data.hp || 0) <= 0) return false;
+                if (data.state === 'dead') return false;
+                return true;
+            });
+
+            let restored = 0;
+            let updated = 0;
+            let removedBosses = 0;
+            const aliveBossIds = new Set();
+
+            for (const [id, data] of entries) {
+                const isBoss = !!data.isBoss || data.type === 'king_slime';
+                if (isBoss) aliveBossIds.add(id);
+
+                const monsterCellId = typeof data.cellId === 'string'
+                    ? data.cellId
+                    : this._getCellIdFromPosition(data.x, data.y);
+                const shouldHydrate = isBoss || desiredCells.has(monsterCellId);
+                if (!shouldHydrate) continue;
+
+                const payload = {
+                    id,
+                    ...data,
+                    fullSync: true,
+                    immediate: true
+                };
+                const existing = this.monsters.get(id);
+                if (!existing) {
+                    await this._onRemoteMonsterAdded(payload);
+                    restored += 1;
+                    continue;
+                }
+
+                if (!this._shouldAcceptRemoteMonsterUpdate(existing, payload)) continue;
+                this._applyAuthoritativeSnapshotToMonster(existing, payload);
+                updated += 1;
+            }
+
+            Array.from(this.monsters.entries()).forEach(([monsterId, monster]) => {
+                if (!monster || (!monster.isBoss && monster.typeId !== 'king_slime')) return;
+                if (aliveBossIds.has(monsterId)) return;
+                this._removeMonsterLocalState(monsterId);
+                removedBosses += 1;
+            });
+
+            return {
+                restored,
+                updated,
+                removedBosses,
+                total: entries.length,
+                skipped: false
+            };
+        })();
+
+        this._guestSnapshotHydrationPromise = restorePromise;
+        this._lastGuestSnapshotHydrationTs = now;
+
+        try {
+            return await restorePromise;
+        } finally {
+            if (this._guestSnapshotHydrationPromise === restorePromise) {
+                this._guestSnapshotHydrationPromise = null;
             }
         }
     }

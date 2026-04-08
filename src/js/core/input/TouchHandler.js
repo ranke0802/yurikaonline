@@ -7,6 +7,7 @@ export default class TouchHandler extends EventEmitter {
         this.joystickTouchId = null; // v0.35.1: Multi-touch support
         this.maxRadius = 50;
         this.activeAimAction = null;
+        this.activeUiActions = new Map();
         this.useMouseJoystick = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
 
         // DOM Elements
@@ -111,6 +112,13 @@ export default class TouchHandler extends EventEmitter {
         this.activeAimAction = null;
     }
 
+    _releaseTrackedAction(pointerId = 'mouse') {
+        if (!this.activeUiActions.has(pointerId)) return;
+        const action = this.activeUiActions.get(pointerId);
+        this.activeUiActions.delete(pointerId);
+        this.emit('actionUp', action);
+    }
+
     _handleActionMove(e) {
         if (!this.activeAimAction) return;
 
@@ -126,18 +134,26 @@ export default class TouchHandler extends EventEmitter {
     }
 
     _handleActionEnd(e) {
-        if (!this.activeAimAction) return;
+        if (e.changedTouches?.length) {
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                this._releaseTrackedAction(e.changedTouches[i].identifier);
+            }
+        } else {
+            this._releaseTrackedAction('mouse');
+        }
 
-        const pointer = this._getPointerFromEvent(e, this.activeAimAction.pointerId, true);
-        if (!pointer) return;
+        if (this.activeAimAction) {
+            const pointer = this._getPointerFromEvent(e, this.activeAimAction.pointerId, true);
+            if (!pointer) return;
 
-        const action = this.activeAimAction.action;
-        this._clearAimActionTracking();
-        this.emit('aimEnd', {
-            action,
-            clientX: pointer.clientX,
-            clientY: pointer.clientY
-        });
+            const action = this.activeAimAction.action;
+            this._clearAimActionTracking();
+            this.emit('aimEnd', {
+                action,
+                clientX: pointer.clientX,
+                clientY: pointer.clientY
+            });
+        }
     }
 
     _bindUiButtons() {
@@ -158,9 +174,10 @@ export default class TouchHandler extends EventEmitter {
             const startAction = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                const pointer = this._getPointerFromEvent(e, null, true);
+                const pointerId = pointer?.identifier ?? 'mouse';
                 if (action === 'SKILL_2') {
                     this._startAimActionTracking(e, action);
-                    const pointer = this._getPointerFromEvent(e, null, true);
                     if (pointer) {
                         this.emit('aimStart', {
                             action,
@@ -171,6 +188,7 @@ export default class TouchHandler extends EventEmitter {
                     return;
                 }
 
+                this.activeUiActions.set(pointerId, action);
                 this.emit('actionDown', action);
             };
 
@@ -178,7 +196,13 @@ export default class TouchHandler extends EventEmitter {
                 if (action === 'SKILL_2') {
                     return;
                 }
-                this.emit('actionUp', action);
+                if (e.changedTouches?.length) {
+                    for (let i = 0; i < e.changedTouches.length; i++) {
+                        this._releaseTrackedAction(e.changedTouches[i].identifier);
+                    }
+                } else {
+                    this._releaseTrackedAction('mouse');
+                }
             };
 
             btn.addEventListener('mousedown', startAction);
@@ -284,6 +308,36 @@ export default class TouchHandler extends EventEmitter {
         this._hideJoystick();
 
         this.emit('joystickMove', { x: 0, y: 0, active: false });
+    }
+
+    resetState() {
+        if (this.joystick.active) {
+            this.joystick.active = false;
+            this.joystick.x = 0;
+            this.joystick.y = 0;
+            this.joystickTouchId = null;
+            if (this.stick) {
+                this.stick.style.left = '50%';
+                this.stick.style.top = '50%';
+            }
+            this._hideJoystick();
+            this.emit('joystickMove', { x: 0, y: 0, active: false });
+        }
+
+        Array.from(this.activeUiActions.keys()).forEach((pointerId) => {
+            this._releaseTrackedAction(pointerId);
+        });
+
+        if (this.activeAimAction) {
+            this._clearAimActionTracking();
+            this.emit('aimCancel', { action: 'SKILL_2' });
+        }
+    }
+
+    hasActiveMouseInteraction() {
+        return this.activeUiActions.has('mouse')
+            || this.activeAimAction?.pointerId === 'mouse'
+            || (this.joystick.active && this.joystickTouchId === null);
     }
 
     cleanup() {

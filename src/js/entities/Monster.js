@@ -467,6 +467,11 @@ export default class Monster extends CharacterBase {
         if (!isCharging) {
             const getAllPlayers = () => {
                 const players = [];
+                const net = window.game?.net;
+                const isRemotePlayerActive = (player) => {
+                    if (!player || player.id === window.game?.localPlayer?.id) return true;
+                    return !!net?.isUserActivelyPresent?.(player.id);
+                };
                 // v0.00.55: Filter candidates who are viewing modals (isPaused)
                 const isLocalPaused = !!window.game?.ui?.isPaused;
                 if (window.game?.localPlayer && !window.game.localPlayer.isDead && !isLocalPaused && !this._isProtectedPlayer(window.game.localPlayer)) {
@@ -474,7 +479,9 @@ export default class Monster extends CharacterBase {
                 }
                 if (window.game?.remotePlayers) {
                     window.game.remotePlayers.forEach(p => {
-                        if (!p.isDead && !p.isPaused && !this._isProtectedPlayer(p)) players.push(p);
+                        if (!p.isDead && !p.isPaused && !this._isProtectedPlayer(p) && isRemotePlayerActive(p)) {
+                            players.push(p);
+                        }
                     });
                 }
                 return players;
@@ -626,7 +633,9 @@ export default class Monster extends CharacterBase {
                 if (window.game?.localPlayer && !window.game.localPlayer.isDead && !this._isProtectedPlayer(window.game.localPlayer)) players.push(window.game.localPlayer);
                 if (window.game?.remotePlayers) {
                     window.game.remotePlayers.forEach(p => {
-                        if (!p.isDead && !this._isProtectedPlayer(p)) players.push(p);
+                        if (!p.isDead && !this._isProtectedPlayer(p) && window.game?.net?.isUserActivelyPresent?.(p.id)) {
+                            players.push(p);
+                        }
                     });
                 }
 

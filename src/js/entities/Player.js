@@ -197,6 +197,10 @@ export default class Player extends CharacterBase {
             if (data?.action === 'SKILL_2') this.releaseFireballAim();
         });
 
+        this.input.on('aimCancel', (data) => {
+            if (data?.action === 'SKILL_2') this.cancelFireballAim();
+        });
+
         this.input.on('joystickMove', (data) => {
             this.joystick.x = data.x;
             this.joystick.y = data.y;

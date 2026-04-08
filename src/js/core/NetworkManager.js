@@ -1554,6 +1554,23 @@ export default class NetworkManager extends EventEmitter {
         return this.syncInterval;
     }
 
+    isUserActivelyPresent(uid, options = {}) {
+        if (!uid) return false;
+        if (uid === this.playerId) return !!this.connected;
+
+        const now = Date.now();
+        const maxAgeMs = Number.isFinite(options.maxAgeMs)
+            ? Math.max(500, Number(options.maxAgeMs))
+            : Math.max(4000, Math.min(this.sharedGhostTimeout || 15000, 6500));
+        const lastSeen = Number(this.userLastSeen.get(uid) || 0);
+        const listed = this.connectedUsers.includes(uid);
+
+        if (!listed) return false;
+        if (lastSeen <= 0) return true;
+
+        return (now - lastSeen) <= maxAgeMs;
+    }
+
     /**
      * v0.00.23: Dynamic heartbeat - reduces frequency when idle
      */
@@ -1798,6 +1815,17 @@ export default class NetworkManager extends EventEmitter {
 
     getProfileRef(uid) {
         return uid && window.firebase ? firebase.database().ref(`users/${uid}/profile`) : null;
+    }
+
+    async getPlayerProfile(uid) {
+        if (!uid || !window.firebase) return null;
+        try {
+            const snapshot = await this.getProfileRef(uid)?.once('value');
+            return snapshot?.val() || null;
+        } catch (e) {
+            Logger.error('Failed to get player profile', e);
+            return null;
+        }
     }
 
     getProfileBackupsRef(uid) {
@@ -2543,8 +2571,8 @@ export default class NetworkManager extends EventEmitter {
             return this._normalizePartyMembers(fallbackMembers);
         }
 
-        const data = await this.getPlayerData(uid);
-        const members = data?.profile?.party?.members;
+        const profile = await this.getPlayerProfile(uid);
+        const members = profile?.party?.members;
         return this._normalizePartyMembers(Array.isArray(members) && members.length > 0 ? members : [uid]);
     }
 

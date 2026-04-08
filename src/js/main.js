@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.01.108'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.01.109'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -56,11 +56,20 @@ class Game {
         this.performanceTelemetry = this.createPerformanceTelemetryState();
 
         // Initial resize will be called after camera creation for full sync
+        this._resetTransientInputState = this._resetTransientInputState.bind(this);
         window.addEventListener('resize', () => this.resize());
         document.addEventListener('visibilitychange', () => {
             if (!this.loop) return;
-            if (document.visibilityState === 'hidden') this.loop.pause();
-            else this.loop.resume();
+            if (document.visibilityState === 'hidden') {
+                this._resetTransientInputState('hidden');
+                this.loop.pause();
+            } else this.loop.resume();
+        });
+        window.addEventListener('blur', () => this._resetTransientInputState('blur'));
+        document.documentElement.addEventListener('mouseleave', (e) => {
+            if (e.relatedTarget === null && this.touch?.hasActiveMouseInteraction?.()) {
+                this._resetTransientInputState('viewport_leave');
+            }
         });
 
         // Input Focus Management
@@ -164,6 +173,12 @@ class Game {
         this.loop.setUpdateFps(initialPerfProfile.maxUpdateFps);
 
         this.init();
+    }
+
+    _resetTransientInputState(reason = 'manual') {
+        this.input?.releaseAllActions?.();
+        this.localPlayer?.stopBasicAttackChanneling?.();
+        this.localPlayer?.cancelFireballAim?.();
     }
 
     isTouchDevice() {

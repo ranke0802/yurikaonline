@@ -445,9 +445,14 @@ export default class WorldScene extends Scene {
         if (!this._handleHostChanged) {
             const promoteToHost = () => {
                 this._ensureHostSpawnRulesLoaded();
-                this.monsterManager?.restoreAuthoritativeMonstersFromHostSnapshot?.().catch((error) => {
-                    Logger.warn('[WorldScene] Failed to restore monster host snapshot', error);
-                });
+                this.monsterManager?.resetCombatTargets?.({ clearChargeState: true });
+                this.monsterManager?.restoreAuthoritativeMonstersFromHostSnapshot?.()
+                    .then(() => {
+                        this.monsterManager?.resetCombatTargets?.({ clearChargeState: true });
+                    })
+                    .catch((error) => {
+                        Logger.warn('[WorldScene] Failed to restore monster host snapshot', error);
+                    });
             };
             this._handleHostChanged = (isHost) => {
                 if (!isHost) return;

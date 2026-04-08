@@ -77,6 +77,11 @@ export default class KeyboardHandler extends EventEmitter {
         window.removeEventListener('keyup', this._onKeyUp);
     }
 
+    resetState() {
+        // InputManager owns the pressed action set, so keyboard reset only needs
+        // to exist as a common handler hook for focus-loss cleanup.
+    }
+
     _onKeyDown(e) {
         // Prevent default for game keys to avoid scrolling
         if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Tab'].includes(e.key)) {

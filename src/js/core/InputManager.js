@@ -43,6 +43,7 @@ export default class InputManager extends EventEmitter {
         handler.on('aimStart', (data) => this.emit('aimStart', data));
         handler.on('aimMove', (data) => this.emit('aimMove', data));
         handler.on('aimEnd', (data) => this.emit('aimEnd', data));
+        handler.on('aimCancel', (data) => this.emit('aimCancel', data));
     }
 
     _onActionDown(action) {
@@ -64,6 +65,17 @@ export default class InputManager extends EventEmitter {
             this.actions.delete(action);
             this.emit('keyup', action);
         }
+    }
+
+    releaseAllActions() {
+        Array.from(this.actions).forEach((action) => {
+            this.actions.delete(action);
+            this.emit('keyup', action);
+        });
+
+        this.handlers.forEach((handler) => {
+            handler?.resetState?.();
+        });
     }
 
     isPressed(action) {

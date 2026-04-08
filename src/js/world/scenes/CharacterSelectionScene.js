@@ -17,13 +17,14 @@ export default class CharacterSelectionScene extends Scene {
         this.game.ui?.hideAllPopups();
         this.user = params.user;
 
-        // Fetch the newest profile snapshot first so backup versions can self-heal stale roots.
-        const latestSnapshot = await this.game.net.getLatestProfileSnapshot?.(this.user.uid);
-        if (latestSnapshot?.profile) {
-            this.profile = latestSnapshot.profile;
+        // Optimize initial entry: read the lightweight profile first and only
+        // fall back to backup inspection when the root profile is missing/stale.
+        const profile = await this.game.net.getPlayerProfile?.(this.user.uid);
+        if (profile?.name) {
+            this.profile = profile;
         } else {
-            const savedData = await this.game.net.getPlayerData(this.user.uid);
-            this.profile = savedData ? savedData.profile : null;
+            const latestSnapshot = await this.game.net.getLatestProfileSnapshot?.(this.user.uid);
+            this.profile = latestSnapshot?.profile || profile || null;
         }
 
         this.createUI();
