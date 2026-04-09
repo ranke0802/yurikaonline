@@ -3174,17 +3174,18 @@ export default class NetworkManager extends EventEmitter {
     }
 
     // v0.28.0: Sync player HP status
-    sendPlayerHp(hp, maxHp) {
+    sendPlayerHp(hp, maxHp, options = {}) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         if (!this._shouldSendRealtimeUserState()) return;
         const now = Date.now();
         const nextMaxHp = Math.max(0, Math.round(maxHp));
         const nextHp = Math.min(nextMaxHp, Math.max(0, Math.round(hp)));
+        const force = !!options.force;
 
-        if (this._lastHpSync.hp === nextHp && this._lastHpSync.maxHp === nextMaxHp && (now - this._lastHpSync.ts) < 500) {
+        if (!force && this._lastHpSync.hp === nextHp && this._lastHpSync.maxHp === nextMaxHp && (now - this._lastHpSync.ts) < 500) {
             return;
         }
-        if ((now - this._lastHpSync.ts) < 120) return;
+        if (!force && (now - this._lastHpSync.ts) < 120) return;
 
         this._lastHpSync = { hp: nextHp, maxHp: nextMaxHp, ts: now };
         this._recordNetworkWrite('hp', [nextHp, nextMaxHp, now]);

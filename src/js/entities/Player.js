@@ -65,6 +65,7 @@ export default class Player extends CharacterBase {
             slimeKills: 0,
             slimeQuestClaimed: false,
             slime30QuestClaimed: false, // v0.00.75+
+            introSlime30RewardClaimed: false,
             slimeRepeatKills: 0,        // v0.00.83+ (Persistence for Quest 4)
             bossKilled: false,
             bossQuestClaimed: false,
@@ -836,6 +837,7 @@ export default class Player extends CharacterBase {
             slimeKills: 0,
             slimeQuestClaimed: false,
             slime30QuestClaimed: false,
+            introSlime30RewardClaimed: false,
             slimeRepeatKills: 0,
             bossKilled: false,
             bossQuestClaimed: false,
@@ -2116,6 +2118,7 @@ export default class Player extends CharacterBase {
         this.level++;
         this.maxExp = Math.floor(this.maxExp * 1.5);
         this.statPoints += 1; // Reduced from 2 to 1 as requested
+        this.refreshStats();
         this.hp = this.maxHp; // Heal on level up
         this.mp = this.maxMp;
 
@@ -2128,7 +2131,10 @@ export default class Player extends CharacterBase {
             if (window.game.sound) window.game.sound.playSfx('level_up');
         }
 
-        this.updateDerivedStats({ save: false });
+        if (this.net) {
+            this.net.sendPlayerHp(this.hp, this.maxHp, { force: true });
+            this.net.syncLocalZoneProfile?.('level_up_profile_sync');
+        }
         if (shouldSave) {
             this.saveProfilePatch(['level', 'exp', 'maxExp', 'statPoints', 'hp', 'mp'], {
                 debounceMs,

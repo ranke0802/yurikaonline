@@ -207,6 +207,18 @@ export default class WorldScene extends Scene {
             }
 
             this.player.questData = { ...this.player.questData, ...(profile.questData || {}) };
+            if (!this.player.questData.introSlime30RewardClaimed
+                && (
+                    !!this.player.questData.slime30QuestClaimed
+                    || !!this.player.questData.bossQuestClaimed
+                    || (this.player.questData.bossClearCount || 0) > 0
+                )) {
+                this.player.questData.introSlime30RewardClaimed = true;
+                this.player.saveProfilePatch?.(['questData'], {
+                    debounceMs: 0,
+                    reason: 'normalize_intro_slime30_reward_flag'
+                });
+            }
             this.player.normalizeInventoryState(profile.inventory, profile.equipment);
 
             // v2.4: Restore tutorial completion before intro flow resumes.
@@ -698,9 +710,25 @@ export default class WorldScene extends Scene {
         this.transientSyncSuppressedUntil = Number.POSITIVE_INFINITY;
     }
 
+    shouldKeepRunningWhileHidden() {
+        return !!(
+            this.net?.isHost
+            && this.net?.zoneParticipationEnabled
+            && !this.ui?.isPaused
+            && this.player
+            && !this.player.isDead
+            && !this.player.isDying
+        );
+    }
+
     onVisibilityVisible(meta = {}) {
         const resumedAt = Number(meta.resumedAt || Date.now());
         const hiddenDurationMs = Math.max(0, Number(meta.hiddenDurationMs || 0));
+
+        if (meta.keepSimulationActive) {
+            this.transientSyncSuppressedUntil = 0;
+            return;
+        }
 
         if (hiddenDurationMs < 120) {
             this.transientSyncSuppressedUntil = 0;

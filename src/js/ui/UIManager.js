@@ -5692,17 +5692,29 @@ export class UIManager {
         if (p.questData.slime30QuestClaimed) return;
 
         p.questData.slime30QuestClaimed = true;
-        p.vitality += 3; // v0.00.75: Vitality directly +3
-        p.updateDerivedStats();
+        const alreadyClaimedIntroReward = !!p.questData.introSlime30RewardClaimed
+            || !!p.questData.bossQuestClaimed
+            || (p.questData.bossClearCount || 0) > 0;
+        if (!alreadyClaimedIntroReward) {
+            p.questData.introSlime30RewardClaimed = true;
+            p.vitality += 3; // v0.00.75: Vitality directly +3
+            p.updateDerivedStats();
+        }
 
         // Spawn Boss (ONLY if not already spawned by global system)
         if (this.game.monsterManager && !this.game.monsterManager.bossSpawned) {
             this._requestQuestBossSummon(true);
         }
 
-        this.logSystemMessage('QUEST 완료: 슬라임 30마리 토벌 보상 지급 (체력 +3)');
-        this.logSystemMessage('🛡️ 전체 체력이 30 증가하고 방어력과 체력회복이 3 증가했습니다.');
-        this.showRewardModal("슬라임 30마리 처치 퀘스트 완료!", "보상: 체력 스탯 3개를 획득했습니다! 대왕 슬라임이 소환됩니다.");
+        if (alreadyClaimedIntroReward) {
+            this.logSystemMessage('QUEST 완료: 슬라임 30마리 토벌 진행 재개 (첫 체력 +3 보상은 이미 수령)');
+            this.logSystemMessage('첫 대왕 슬라임이 다시 소환됩니다.');
+            this.showRewardModal('슬라임 30마리 처치 퀘스트 완료!', '첫 체력 +3 보상은 이미 수령했습니다!<br>대왕 슬라임이 소환됩니다.');
+        } else {
+            this.logSystemMessage('QUEST 완료: 슬라임 30마리 토벌 보상 지급 (체력 +3)');
+            this.logSystemMessage('🛡️ 전체 체력이 30 증가하고 방어력과 체력회복이 3 증가했습니다.');
+            this.showRewardModal('슬라임 30마리 처치 퀘스트 완료!', '보상: 체력 스탯 3개를 획득했습니다! 대왕 슬라임이 소환됩니다.');
+        }
 
         this.updateQuestUI();
         this.updateStatusPopup();

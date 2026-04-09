@@ -17,11 +17,14 @@ export default class GameLoop {
         this.minRenderIntervalMs = 0;
         this.lastRenderTime = 0;
         this.maxUpdateStepsPerFrame = 5;
+        this.backgroundTickIntervalMs = 250;
+        this.backgroundTimerId = null;
 
         // v2.2: Hitstop
         this.hitstopTimer = 0;
 
         this._loop = this._loop.bind(this);
+        this._backgroundTick = this._backgroundTick.bind(this);
     }
 
     start() {
@@ -35,6 +38,7 @@ export default class GameLoop {
 
     stop() {
         this.running = false;
+        this.stopBackgroundUpdates();
         if (this.rafId) {
             cancelAnimationFrame(this.rafId);
             this.rafId = null;
@@ -56,6 +60,22 @@ export default class GameLoop {
         this.accumulator = 0;
         this.hitstopTimer = 0;
         Logger.log('GameLoop resumed');
+    }
+
+    startBackgroundUpdates(intervalMs = 250) {
+        if (!this.running || this.backgroundTimerId) return;
+        this.backgroundTickIntervalMs = Number.isFinite(intervalMs) ? Math.max(100, Math.round(intervalMs)) : 250;
+        this.lastTime = performance.now();
+        this.backgroundTimerId = setInterval(this._backgroundTick, this.backgroundTickIntervalMs);
+        Logger.log(`GameLoop background updates started (${this.backgroundTickIntervalMs}ms)`);
+    }
+
+    stopBackgroundUpdates() {
+        if (!this.backgroundTimerId) return;
+        clearInterval(this.backgroundTimerId);
+        this.backgroundTimerId = null;
+        this.lastTime = performance.now();
+        Logger.log('GameLoop background updates stopped');
     }
 
     setMaxRenderFps(fps = 0) {
@@ -86,6 +106,7 @@ export default class GameLoop {
         this.rafId = requestAnimationFrame(this._loop);
 
         if (this.paused) return;
+        if (this.backgroundTimerId && typeof document !== 'undefined' && document.hidden) return;
 
         const frameTime = (currentTime - this.lastTime) / 1000;
         this.lastTime = currentTime;
@@ -146,6 +167,42 @@ export default class GameLoop {
             frameGapMs: safeFrameTime * 1000,
             updateSteps,
             backlogDrops
+        });
+    }
+
+    _backgroundTick() {
+        if (!this.running || this.paused) return;
+        if (typeof document !== 'undefined' && !document.hidden) return;
+
+        const now = performance.now();
+        const elapsedSec = Math.max(0, (now - this.lastTime) / 1000);
+        this.lastTime = now;
+
+        if (this.hitstopTimer > 0) {
+            this.hitstopTimer = Math.max(0, this.hitstopTimer - (elapsedSec * 1000));
+        }
+
+        const maxSimulatedWindow = 1.0;
+        const fixedBackgroundStep = 0.05;
+        let remaining = Math.min(elapsedSec, maxSimulatedWindow);
+        let updateSteps = 0;
+        let totalUpdateMs = 0;
+
+        while (remaining > 0.0001) {
+            const step = Math.min(fixedBackgroundStep, remaining);
+            const updateStart = performance.now();
+            this.updateFn(step);
+            totalUpdateMs += performance.now() - updateStart;
+            remaining -= step;
+            updateSteps++;
+        }
+
+        window.game?.recordLoopTelemetry?.({
+            updateMs: totalUpdateMs,
+            renderMs: 0,
+            frameGapMs: elapsedSec * 1000,
+            updateSteps,
+            backlogDrops: elapsedSec > maxSimulatedWindow ? 1 : 0
         });
     }
 }

@@ -72,6 +72,7 @@ export default class Monster extends CharacterBase {
         this.regenTimer = 0;
         this.lastAttackerId = null;
         this.lastDamageMeta = null;
+        this.damageContributors = new Set();
         this.targetX = x;
         this.targetY = y;
         this.targetPlayer = null;
@@ -803,6 +804,10 @@ export default class Monster extends CharacterBase {
                 window.game.addDamageText(this.x, this.y - 40, "BLOCK", "#00d2ff", false);
             }
             return; // Completely block
+        }
+
+        if (dmg > 0 && this.lastAttackerId) {
+            this.damageContributors.add(this.lastAttackerId);
         }
 
         // v0.33.0: Trigger Shield on Hit (Host Only)

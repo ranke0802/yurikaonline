@@ -796,7 +796,36 @@ export default class MonsterManager {
                     // But wait, the reward notification at line 172 sends `questKill`.
                     // I will keep this block for Quest Updates.
 
-                    if (attackerId === this.net.playerId) {
+                    let shouldSaveLocalQuestProgress = false;
+
+                    if (m.typeId === 'king_slime') {
+                        const participantIds = this._getMonsterParticipantIds(m, attackerId);
+                        participantIds.forEach((uid) => {
+                            if (!uid) return;
+                            if (uid === this.net.playerId) {
+                                localPlayer.receiveReward({
+                                    questKill: 'king_slime',
+                                    monsterName: m.name
+                                });
+                                shouldSaveLocalQuestProgress = true;
+                                return;
+                            }
+
+                            this.net.sendReward(uid, {
+                                questKill: 'king_slime',
+                                monsterName: m.name,
+                                ts: Date.now()
+                            });
+                        });
+
+                        // Spawn logic for Boss Split
+                        // v0.00.70: king slime(chargeOnly) also spawns chargeOnly children.
+                        for (let i = 0; i < 3; i++) {
+                            const offX = (Math.random() - 0.5) * 100;
+                            const offY = (Math.random() - 0.5) * 100;
+                            this._spawnMonster(m.x + offX, m.y + offY, 'slime_split', { chargeOnly: m.chargeOnly });
+                        }
+                    } else if (attackerId === this.net.playerId) {
                         // My Kill -> My Quest Logic
                         if (m.typeId === 'slime' || m.typeId === 'slime_split') {
                             localPlayer.questData.slimeKills++;
@@ -806,22 +835,6 @@ export default class MonsterManager {
                             }
                             // v0.00.43: Boss Spawn is now handled by _handleMonsterDeath (Global Count)
                             // Removed legacy random spawn logic
-                        } // Closing for (m.typeId === 'slime' || m.typeId === 'slime_split')
-
-                        if (m.typeId === 'king_slime') {
-                            // v0.00.51: Use unify reward logic
-                            localPlayer.receiveReward({
-                                questKill: 'king_slime',
-                                monsterName: m.name
-                            });
-
-                            // Spawn logic for Boss Split
-                            // v0.00.70: 첫 대왕 슬라임(chargeOnly)에서 분열된 슬라임도 chargeOnly 상속
-                            for (let i = 0; i < 3; i++) {
-                                const offX = (Math.random() - 0.5) * 100;
-                                const offY = (Math.random() - 0.5) * 100;
-                                this._spawnMonster(m.x + offX, m.y + offY, 'slime_split', { chargeOnly: m.chargeOnly });
-                            }
                         }
 
                         if (m.typeId === 'slime_split') {
@@ -832,8 +845,7 @@ export default class MonsterManager {
                             }
                         }
 
-                        localPlayer.saveState();
-                        if (window.game && window.game.ui) window.game.ui.updateQuestUI();
+                        shouldSaveLocalQuestProgress = true;
                     } else {
                         // Remote Kill -> Notify Killer for Quest Updates
                         this.net.sendReward(attackerId, {
@@ -841,6 +853,11 @@ export default class MonsterManager {
                             monsterName: m.name,
                             ts: Date.now()
                         });
+                    }
+
+                    if (shouldSaveLocalQuestProgress) {
+                        localPlayer.saveState();
+                        if (window.game && window.game.ui) window.game.ui.updateQuestUI();
                     }
                 }
             }
@@ -1621,6 +1638,20 @@ export default class MonsterManager {
         if (player?.currentTarget && (player.currentTarget.id === targetId || player.currentTarget === monsterOrId)) {
             player.clearCurrentTarget?.();
         }
+    }
+
+    _getMonsterParticipantIds(monster, fallbackId = null) {
+        const participantIds = new Set();
+        if (monster?.damageContributors instanceof Set) {
+            monster.damageContributors.forEach((uid) => {
+                if (uid) participantIds.add(uid);
+            });
+        }
+        if (fallbackId) participantIds.add(fallbackId);
+        if (participantIds.size === 0 && this.net?.playerId) {
+            participantIds.add(this.net.playerId);
+        }
+        return Array.from(participantIds);
     }
 
     _onMonsterDamageReceived(data) {

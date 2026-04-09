@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.01.123'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.01.124'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -62,22 +62,31 @@ class Game {
         window.addEventListener('resize', () => this.resize());
         document.addEventListener('visibilitychange', () => {
             if (!this.loop) return;
+            const currentScene = this.sceneManager?.currentScene;
+            const keepSimulationActive = !!currentScene?.shouldKeepRunningWhileHidden?.();
             if (document.visibilityState === 'hidden') {
                 this._backgroundedAt = Date.now();
                 this._resetTransientInputState('hidden');
-                this.sceneManager?.currentScene?.onVisibilityHidden?.({
-                    hiddenAt: this._backgroundedAt
+                currentScene?.onVisibilityHidden?.({
+                    hiddenAt: this._backgroundedAt,
+                    keepSimulationActive
                 });
-                this.loop.pause();
+                if (keepSimulationActive) {
+                    this.loop.startBackgroundUpdates(250);
+                } else {
+                    this.loop.pause();
+                }
             } else {
                 const resumedAt = Date.now();
                 const hiddenAt = Number(this._backgroundedAt || 0);
                 const hiddenDurationMs = hiddenAt > 0 ? Math.max(0, resumedAt - hiddenAt) : 0;
                 this._backgroundedAt = 0;
+                this.loop.stopBackgroundUpdates();
                 this.loop.resume();
-                this.sceneManager?.currentScene?.onVisibilityVisible?.({
+                currentScene?.onVisibilityVisible?.({
                     resumedAt,
-                    hiddenDurationMs
+                    hiddenDurationMs,
+                    keepSimulationActive
                 });
             }
         });
