@@ -2416,6 +2416,38 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
+    async clearWorldCombatState(options = {}) {
+        if (!this.dbRef || !this.connected) return false;
+
+        const resetSlimeKillCount = options.resetSlimeKillCount !== false;
+
+        try {
+            await Promise.all([
+                this.dbRef.child('monsters').remove(),
+                this.dbRef.child('monster_cells').remove(),
+                this.dbRef.child('monster_host_snapshot').remove(),
+                this.dbRef.child('drops').remove(),
+                this.dbRef.child('monster_damage').remove(),
+                this.dbRef.child('monster_damage_batch').remove(),
+                this.dbRef.child('monster_attack').remove(),
+                this.dbRef.child('player_damage').remove(),
+                this.dbRef.child('player_damage_batch').remove(),
+                this.dbRef.child('boss_spawn_requests').remove(),
+                resetSlimeKillCount
+                    ? this.dbRef.child('world_state/slime_kill_count').set(0)
+                    : Promise.resolve()
+            ]);
+
+            this.monsterUpdateQueue.clear();
+            this._publishedMonsterCellMap.clear();
+            this._monsterCellPayloadCache.clear();
+            return true;
+        } catch (error) {
+            Logger.error('Failed to clear world combat state', error);
+            return false;
+        }
+    }
+
     // v0.00.03: Full Database Reset (Users & Names)
     async resetAllUserData() {
         if (!window.firebase) return;

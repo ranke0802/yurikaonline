@@ -402,11 +402,17 @@ export default class TutorialManager {
         this.game.input?.setAllowedActions([]);
         this.game.net?.setZoneParticipationEnabled?.(false);
         this.game.sceneManager?.currentScene?.remotePlayers?.clear?.();
+        if (this.game.monsterManager?.setTutorialMode) {
+            this.game.monsterManager.setTutorialMode(true);
+        }
 
         this.loadTutorial(id).then((data) => {
             if (!data) {
                 this.pendingTutorialId = null;
                 this.game.input?.setAllowedActions(null);
+                if (this.game.monsterManager?.setTutorialMode) {
+                    this.game.monsterManager.setTutorialMode(false);
+                }
                 this.game.net?.setZoneParticipationEnabled?.(true);
                 this.game.sceneManager?.currentScene?.activateZoneParticipation?.();
                 return;
@@ -694,7 +700,7 @@ export default class TutorialManager {
         this._showCurrentStep();
     }
 
-    _completeTutorial() {
+    async _completeTutorial() {
         if (!this.activeTutorial) return;
 
         const tutorialId = this.activeTutorial.id;
@@ -708,6 +714,14 @@ export default class TutorialManager {
         }
 
         this.game.input?.setAllowedActions(null);
+
+        if (tutorialId === 'basic_training') {
+            try {
+                await this.game.monsterManager?.clearFreshIntroFieldState?.();
+            } catch (error) {
+                Logger.warn('[Tutorial] Failed to clear intro field state on completion', error);
+            }
+        }
 
         if (this.game.monsterManager?.setTutorialMode) {
             this.game.monsterManager.setTutorialMode(false);

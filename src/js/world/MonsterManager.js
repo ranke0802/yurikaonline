@@ -370,6 +370,22 @@ export default class MonsterManager {
         this.spawnTimer = 1.0;
     }
 
+    async clearFreshIntroFieldState() {
+        const peerCount = Number(this.net?.getSameFieldPeerCount?.() || 0);
+        if (peerCount > 0) {
+            return false;
+        }
+
+        await this.net?.clearWorldCombatState?.({ resetSlimeKillCount: true });
+        this.clearAll();
+        this.bossSpawned = false;
+        this.shouldSpawnBoss = false;
+        this.firstBossPending = false;
+        this.firstBossMissingTimer = 0;
+        this.slimeKillCount = 0;
+        return true;
+    }
+
     _isValidMonsterTarget(player, isProtectedPlayer = () => false) {
         if (!player || player.isDead || isProtectedPlayer(player)) return false;
         if (player.id === this.net?.playerId) return true;
