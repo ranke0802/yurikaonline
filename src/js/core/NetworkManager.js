@@ -1072,6 +1072,11 @@ export default class NetworkManager extends EventEmitter {
                 now
             ];
 
+            const zoneProfile = this._buildLocalZoneProfileSnapshot(player);
+            if (zoneProfile) {
+                updates[`users/${this.playerId}/profile`] = zoneProfile;
+            }
+
             this.lastPacketData = {
                 x: safeX,
                 y: safeY,
