@@ -66,6 +66,7 @@ export default class Player extends CharacterBase {
             slimeQuestClaimed: false,
             slime30QuestClaimed: false, // v0.00.75+
             introSlime30RewardClaimed: false,
+            introBossParticipated: false,
             slimeRepeatKills: 0,        // v0.00.83+ (Persistence for Quest 4)
             bossKilled: false,
             bossQuestClaimed: false,
@@ -838,6 +839,7 @@ export default class Player extends CharacterBase {
             slimeQuestClaimed: false,
             slime30QuestClaimed: false,
             introSlime30RewardClaimed: false,
+            introBossParticipated: false,
             slimeRepeatKills: 0,
             bossKilled: false,
             bossQuestClaimed: false,
@@ -1970,6 +1972,7 @@ export default class Player extends CharacterBase {
         }
 
         // v0.00.01: Process Quest Kills sent by Host
+        let skipQuestRewardLog = false;
         if (data.questKill) {
             const monsterManager = window.game?.monsterManager;
             const canTrackRepeatSlimeKills = (this.questData.bossClearCount || 0) > 0
@@ -1984,7 +1987,16 @@ export default class Player extends CharacterBase {
                 }
             }
             if (data.questKill === 'king_slime') {
+                const bossCycle = data.bossCycle
+                    || (((this.questData.bossClearCount || 0) === 0) ? 'intro' : 'repeat');
+                const isIntroBossReward = bossCycle === 'intro';
+                if (isIntroBossReward && (this.questData.bossClearCount || 0) > 0) {
+                    this.questData.introBossParticipated = false;
+                    skipQuestRewardLog = true;
+                } else {
                 this.questData.bossKilled = true; // Mark as killed momentarily
+                this.questData.introBossParticipated = false;
+                this.questData.introSlime30RewardClaimed = true;
 
                 // v0.00.51: Boss Quest Logic (First vs Repeat)
                 this.questData.bossClearCount = (this.questData.bossClearCount || 0) + 1;
@@ -1997,6 +2009,7 @@ export default class Player extends CharacterBase {
                 if (this.questData.bossClearCount === 1) {
                     // First Kill Reward
                     this.questData.slimeRepeatKills = 0;
+                    this.questData.bossQuestClaimed = true;
                     this.statPoints += 5;
                     this.gainExp(500, { save: false });
                     this.gold += 2000;
@@ -2028,6 +2041,7 @@ export default class Player extends CharacterBase {
                 // Reset for Repeatable Cycle
                 // "Reset" means preparing for the loop.
                 this.questData.bossKilled = false;
+                }
             }
             if (window.game?.ui) window.game.ui.updateQuestUI();
         }
@@ -2053,7 +2067,7 @@ export default class Player extends CharacterBase {
                 // So I should log `rewardMsg` if it exists (but it's out of scope).
                 // I will move logging INSIDE the block or make the block below smarter.
                 // Since I am already modifying the block below...
-            } else if (data.questKill) {
+            } else if (data.questKill && !skipQuestRewardLog) {
                 msg = `퀘스트 몬스터 처치! (${msg})`;
                 window.game.ui.logSystemMessage(msg);
             }

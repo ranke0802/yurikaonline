@@ -5524,7 +5524,7 @@ export class UIManager {
                 canClaim: count >= 30,
                 claimFn: () => this.claimSlime30Reward(p)
             };
-        } else if ((p.questData.bossClearCount || 0) === 0) {
+        } else if ((p.questData.bossClearCount || 0) === 0 && !p.questData.bossQuestClaimed) {
             // Quest 3: First King Slime
             currentQuest = {
                 id: 'king_slime_intro',

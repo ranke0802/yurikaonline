@@ -284,6 +284,7 @@ export default class CharacterSelectionScene extends Scene {
                     slimeQuestClaimed: false,
                     slime30QuestClaimed: false,
                     introSlime30RewardClaimed: false,
+                    introBossParticipated: false,
                     slimeRepeatKills: 0, // v0.00.83+
                     bossKilled: false,
                     bossQuestClaimed: false,

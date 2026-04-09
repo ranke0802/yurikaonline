@@ -219,6 +219,15 @@ export default class WorldScene extends Scene {
                     reason: 'normalize_intro_slime30_reward_flag'
                 });
             }
+            if (
+                this.player.questData.introBossParticipated
+                && (
+                    !!this.player.questData.bossQuestClaimed
+                    || (this.player.questData.bossClearCount || 0) > 0
+                )
+            ) {
+                this.player.questData.introBossParticipated = false;
+            }
             this.player.normalizeInventoryState(profile.inventory, profile.equipment);
 
             // v2.4: Restore tutorial completion before intro flow resumes.

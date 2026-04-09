@@ -3089,6 +3089,22 @@ export default class NetworkManager extends EventEmitter {
 
     sendMonsterDamage(monsterId, damage, meta = null) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        const localPlayer = window.game?.localPlayer || null;
+        const localMonster = window.game?.monsterManager?.monsters?.get?.(monsterId) || null;
+        if (damage > 0
+            && localPlayer?.questData
+            && localMonster?.typeId === 'king_slime'
+            && !!localPlayer.questData.slime30QuestClaimed
+            && (localPlayer.questData.bossClearCount || 0) === 0
+            && !localPlayer.questData.bossQuestClaimed
+            && !localPlayer.questData.introBossParticipated) {
+            localPlayer.questData.introBossParticipated = true;
+            localPlayer.saveProfilePatch?.(['questData'], {
+                debounceMs: 0,
+                reason: 'intro_boss_participation'
+            });
+            window.game?.ui?.updateQuestUI?.();
+        }
         if (this.isHost && this.shouldUseMonsterQuietMode()) {
             const payload = {
                 mid: monsterId,

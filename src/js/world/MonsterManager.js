@@ -799,13 +799,15 @@ export default class MonsterManager {
                     let shouldSaveLocalQuestProgress = false;
 
                     if (m.typeId === 'king_slime') {
+                        const bossCycle = this.firstBossDefeated ? 'repeat' : 'intro';
                         const participantIds = this._getMonsterParticipantIds(m, attackerId);
                         participantIds.forEach((uid) => {
                             if (!uid) return;
                             if (uid === this.net.playerId) {
                                 localPlayer.receiveReward({
                                     questKill: 'king_slime',
-                                    monsterName: m.name
+                                    monsterName: m.name,
+                                    bossCycle
                                 });
                                 shouldSaveLocalQuestProgress = true;
                                 return;
@@ -814,6 +816,7 @@ export default class MonsterManager {
                             this.net.sendReward(uid, {
                                 questKill: 'king_slime',
                                 monsterName: m.name,
+                                bossCycle,
                                 ts: Date.now()
                             });
                         });
@@ -1111,13 +1114,16 @@ export default class MonsterManager {
             return;
         }
 
+        const hasIntroBossClear = (questData.bossClearCount || 0) > 0
+            || !!questData.bossKilled
+            || !!questData.bossQuestClaimed;
+        const hasIntroBossParticipation = !!questData.introBossParticipated;
         const isIntroBossQuestActive = !!questData.slime30QuestClaimed
-            && (questData.bossClearCount || 0) === 0
-            && !questData.bossKilled;
+            && !hasIntroBossClear;
 
         if (!isIntroBossQuestActive) {
             this.firstBossMissingTimer = 0;
-            if ((questData.bossClearCount || 0) > 0 || questData.bossKilled) {
+            if (hasIntroBossClear) {
                 this.firstBossPending = false;
             }
             return;
@@ -1141,8 +1147,23 @@ export default class MonsterManager {
 
         this.firstBossMissingTimer = 0;
         this.firstBossPending = false;
+        if (hasIntroBossParticipation) {
+            localPlayer.receiveReward({
+                questKill: 'king_slime',
+                monsterName: '대왕 슬라임',
+                bossCycle: 'intro'
+            }, {
+                debounceMs: 0
+            });
+            questData.introBossParticipated = false;
+            this.game.quests?.restoreFromLegacy?.(questData);
+            this.game.ui?.logSystemMessage?.('대왕 슬라임 참여가 인정되어 첫 보스 토벌이 완료되었습니다.');
+            this.game.ui?.updateQuestUI?.();
+            return;
+        }
         questData.slimeKills = 0;
         questData.slime30QuestClaimed = false;
+        questData.introBossParticipated = false;
         questData.bossKilled = false;
         questData.bossQuestClaimed = false;
         localPlayer.saveProfilePatch?.(['questData'], {
