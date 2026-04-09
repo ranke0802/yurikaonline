@@ -586,16 +586,16 @@ export default class MonsterManager {
 
         if (nearby) {
             return {
-                deltaIntervalMs: mobileThermalMode ? 180 : 140,
-                positionThreshold: mobileThermalMode ? 2.75 : 1.75,
-                fullSyncIntervalMs: mobileThermalMode ? 3200 : 2600
+                deltaIntervalMs: mobileThermalMode ? 220 : 170,
+                positionThreshold: mobileThermalMode ? 3.25 : 2.25,
+                fullSyncIntervalMs: mobileThermalMode ? 3600 : 3000
             };
         }
 
         return {
-            deltaIntervalMs: mobileThermalMode ? 480 : 360,
-            positionThreshold: mobileThermalMode ? 5.5 : 3.5,
-            fullSyncIntervalMs: mobileThermalMode ? 8500 : 6500
+            deltaIntervalMs: mobileThermalMode ? 600 : 460,
+            positionThreshold: mobileThermalMode ? 6.5 : 4.5,
+            fullSyncIntervalMs: mobileThermalMode ? 9000 : 7200
         };
     }
 
