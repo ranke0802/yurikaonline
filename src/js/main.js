@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.01.128'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.01.129'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -64,6 +64,9 @@ class Game {
             if (!this.loop) return;
             const currentScene = this.sceneManager?.currentScene;
             const keepSimulationActive = !!currentScene?.shouldKeepRunningWhileHidden?.();
+            const hiddenTickIntervalMs = Number.isFinite(currentScene?.getHiddenSimulationIntervalMs?.())
+                ? Math.max(100, Math.round(currentScene.getHiddenSimulationIntervalMs()))
+                : 250;
             if (document.visibilityState === 'hidden') {
                 this._backgroundedAt = Date.now();
                 this._resetTransientInputState('hidden');
@@ -72,7 +75,7 @@ class Game {
                     keepSimulationActive
                 });
                 if (keepSimulationActive) {
-                    this.loop.startBackgroundUpdates(250);
+                    this.loop.startBackgroundUpdates(hiddenTickIntervalMs);
                 } else {
                     this.loop.pause();
                 }

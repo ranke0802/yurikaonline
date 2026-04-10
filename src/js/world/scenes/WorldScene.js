@@ -721,20 +721,25 @@ export default class WorldScene extends Scene {
 
     shouldKeepRunningWhileHidden() {
         return !!(
-            this.net?.isHost
-            && this.net?.zoneParticipationEnabled
+            this.net?.zoneParticipationEnabled
+            && this.net?.isSharedFieldActive?.()
             && !this.ui?.isPaused
             && this.player
-            && !this.player.isDead
-            && !this.player.isDying
         );
+    }
+
+    getHiddenSimulationIntervalMs() {
+        if (!this.shouldKeepRunningWhileHidden()) return 0;
+        return this.net?.isHost ? 250 : 400;
     }
 
     onVisibilityVisible(meta = {}) {
         const resumedAt = Number(meta.resumedAt || Date.now());
         const hiddenDurationMs = Math.max(0, Number(meta.hiddenDurationMs || 0));
+        const backgroundSimWasActive = !!meta.keepSimulationActive;
+        const canSkipResync = backgroundSimWasActive && !!this.net?.isHost;
 
-        if (meta.keepSimulationActive) {
+        if (canSkipResync) {
             this.transientSyncSuppressedUntil = 0;
             return;
         }
