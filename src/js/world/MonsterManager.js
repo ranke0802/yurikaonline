@@ -208,7 +208,7 @@ export default class MonsterManager {
         const participantIds = this._getMonsterParticipantIds(monster, attackerId);
         const rewardTargetId = participantIds.includes(attackerId)
             ? attackerId
-            : (participantIds[0] || attackerId || this.net.playerId);
+            : (participantIds[0] || attackerId || null);
         if (!rewardTargetId) return;
         const allDrops = [
             ...(Array.isArray(monster.drops) ? monster.drops : []),
@@ -305,6 +305,13 @@ export default class MonsterManager {
 
         // Update drops (Magnet logic)
         this.drops.forEach((d, id) => {
+            if (d.isExpired?.()) {
+                if (this.net.isHost) {
+                    this.net.removeDrop(id);
+                }
+                this.drops.delete(id);
+                return;
+            }
             if (d.update(dt, localPlayer)) {
                 this.net.collectDrop(id);
             }
@@ -800,56 +807,60 @@ export default class MonsterManager {
                 const shouldProcessRewards = m.typeId !== 'training_dummy'
                     && !this.shouldSuppressWorldFeedback(m);
                 if (shouldProcessRewards) {
-                    const attackerId = m.lastAttackerId || this.net.playerId;
+                    const attackerId = m.lastAttackerId || null;
                     const participantIds = this._getMonsterParticipantIds(m, attackerId);
-                    const killerPartyMembers = this._getPartyMembersForPlayer(attackerId);
-                    const eligibleCollectorIds = participantIds.length > 0
-                        ? participantIds
-                        : killerPartyMembers;
-                    let xpAmount = 25;
-                    let goldAmount = 50;
-                    if (m.typeId === 'king_slime') {
-                        xpAmount = 500;
-                        goldAmount = 2000;
-                    } else if (m.isBoss) {
-                        xpAmount = 500;
-                        goldAmount = 5000;
-                    }
-                    this.net.spawnDrop({
-                        x: m.x,
-                        y: m.y,
-                        type: 'gold',
-                        amount: goldAmount,
-                        ownerId: attackerId,
-                        partyMembers: killerPartyMembers,
-                        eligibleCollectorIds
-                    });
-                    this.net.spawnDrop({
-                        x: m.x + 20,
-                        y: m.y - 10,
-                        type: 'exp',
-                        amount: xpAmount,
-                        ownerId: attackerId,
-                        partyMembers: killerPartyMembers,
-                        eligibleCollectorIds
-                    });
-                    if (Math.random() > 0.5 || m.isBoss) {
+                    if (!attackerId && participantIds.length === 0) {
+                        Logger.warn(`[MonsterManager] Skipping orphan drops for ${m.id} (${m.typeId}) without participants`);
+                    } else {
+                        const killerPartyMembers = this._getPartyMembersForPlayer(attackerId);
+                        const eligibleCollectorIds = participantIds.length > 0
+                            ? participantIds
+                            : killerPartyMembers;
+                        let xpAmount = 25;
+                        let goldAmount = 50;
+                        if (m.typeId === 'king_slime') {
+                            xpAmount = 500;
+                            goldAmount = 2000;
+                        } else if (m.isBoss) {
+                            xpAmount = 500;
+                            goldAmount = 5000;
+                        }
                         this.net.spawnDrop({
-                            x: m.x - 20,
-                            y: m.y + 10,
-                            type: 'hp',
-                            amount: 30,
+                            x: m.x,
+                            y: m.y,
+                            type: 'gold',
+                            amount: goldAmount,
                             ownerId: attackerId,
                             partyMembers: killerPartyMembers,
                             eligibleCollectorIds
                         });
+                        this.net.spawnDrop({
+                            x: m.x + 20,
+                            y: m.y - 10,
+                            type: 'exp',
+                            amount: xpAmount,
+                            ownerId: attackerId,
+                            partyMembers: killerPartyMembers,
+                            eligibleCollectorIds
+                        });
+                        if (Math.random() > 0.5 || m.isBoss) {
+                            this.net.spawnDrop({
+                                x: m.x - 20,
+                                y: m.y + 10,
+                                type: 'hp',
+                                amount: 30,
+                                ownerId: attackerId,
+                                partyMembers: killerPartyMembers,
+                                eligibleCollectorIds
+                            });
+                        }
+                        this._grantMonsterItemDrops(m, attackerId);
                     }
-                    this._grantMonsterItemDrops(m, attackerId);
                 }
 
                 // Quest & Splitting Logic (v0.00.14)
                 if (localPlayer && shouldProcessRewards) {
-                    const attackerId = m.lastAttackerId || this.net.playerId;
+                    const attackerId = m.lastAttackerId || null;
 
                     // Identify Killer & Party
                     let killerParty = null;
@@ -944,7 +955,7 @@ export default class MonsterManager {
                         }
 
                         shouldSaveLocalQuestProgress = true;
-                    } else {
+                    } else if (attackerId) {
                         // Remote Kill -> Notify Killer for Quest Updates
                         this.net.sendReward(attackerId, {
                             questKill: m.typeId,
@@ -1147,7 +1158,7 @@ export default class MonsterManager {
                 ownerId: drop.ownerId,
                 partyMembers: drop.partyMembers,
                 eligibleCollectorIds: drop.eligibleCollectorIds,
-                ts: Date.now()
+                ts: drop.spawnedAt || Date.now()
             });
         });
     }
@@ -1770,9 +1781,6 @@ export default class MonsterManager {
             });
         }
         if (fallbackId) participantIds.add(fallbackId);
-        if (participantIds.size === 0 && this.net?.playerId) {
-            participantIds.add(this.net.playerId);
-        }
         return Array.from(participantIds);
     }
 
@@ -1796,8 +1804,15 @@ export default class MonsterManager {
         const d = new Drop(data.id, data.x, data.y, data.type, data.amount, {
             ownerId: data.ownerId,
             partyMembers: data.partyMembers,
-            eligibleCollectorIds: data.eligibleCollectorIds
+            eligibleCollectorIds: data.eligibleCollectorIds,
+            ts: data.ts
         });
+        if (d.isExpired?.()) {
+            if (this.net.isHost) {
+                this.net.removeDrop(data.id);
+            }
+            return;
+        }
         if (!this.net.isHost && this.game?.localPlayer && !d.canPlayerCollect(this.game.localPlayer)) {
             return;
         }

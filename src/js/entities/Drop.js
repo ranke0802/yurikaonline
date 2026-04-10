@@ -11,6 +11,8 @@ export default class Drop extends Entity {
         this.eligibleCollectorIds = Array.isArray(options.eligibleCollectorIds)
             ? Array.from(new Set(options.eligibleCollectorIds.filter(Boolean)))
             : null;
+        this.spawnedAt = Number(options.ts || Date.now());
+        this.expiresAt = Number(options.expiresAt || (this.spawnedAt + 30000));
         this.radius = 15;
         this.isCollected = false;
         this.isLocallyCollected = false; // Prevent spam
@@ -64,6 +66,10 @@ export default class Drop extends Entity {
         }
 
         return false;
+    }
+
+    isExpired(now = Date.now()) {
+        return now >= this.expiresAt;
     }
 
     render(ctx, camera) {

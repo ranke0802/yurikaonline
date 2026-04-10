@@ -3742,7 +3742,7 @@ export default class NetworkManager extends EventEmitter {
             ownerId: data.ownerId || null,
             partyMembers: Array.isArray(data.partyMembers) ? data.partyMembers : null,
             eligibleCollectorIds: Array.isArray(data.eligibleCollectorIds) ? Array.from(new Set(data.eligibleCollectorIds.filter(Boolean))) : null,
-            ts: Number(data.ts || Date.now())
+            ts: Number(data.ts || data.spawnedAt || Date.now())
         };
         this._recordNetworkWrite('dropPublish', payload);
         this._networkDropIds.add(id);
