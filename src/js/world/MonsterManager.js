@@ -330,6 +330,13 @@ export default class MonsterManager {
         return this.tutorialMode || !!this.game.story?.isStoryActive || !!this.game.tutorial?.pendingTutorialId;
     }
 
+    shouldSuppressWorldFeedback(monster = null) {
+        const monsterId = typeof monster === 'string' ? monster : monster?.id;
+        if (monster?.isLocalOnly) return true;
+        if (monsterId && this.tutorialMonsterIds.has(monsterId)) return true;
+        return this.tutorialMode || !!this.game.tutorial?.pendingTutorialId;
+    }
+
     setTutorialMode(active) {
         const nextState = !!active;
         if (this.tutorialMode === nextState) return;
@@ -717,7 +724,8 @@ export default class MonsterManager {
                 this._handleMonsterDeath(m);
 
                 // Spawn Drops
-                const shouldProcessRewards = m.typeId !== 'training_dummy';
+                const shouldProcessRewards = m.typeId !== 'training_dummy'
+                    && !this.shouldSuppressWorldFeedback(m);
                 if (shouldProcessRewards) {
                     const attackerId = m.lastAttackerId || this.net.playerId;
                     const killerPartyMembers = this._getPartyMembersForPlayer(attackerId);
@@ -1108,6 +1116,11 @@ export default class MonsterManager {
     }
 
     _checkFirstBossQuestFailure(dt, localPlayer) {
+        if (this.shouldSuppressWorldFeedback()) {
+            this.firstBossMissingTimer = 0;
+            return;
+        }
+
         const questData = localPlayer?.questData;
         if (!questData) {
             this.firstBossMissingTimer = 0;
@@ -1816,6 +1829,10 @@ export default class MonsterManager {
 
     // v0.00.43: Kill Count & Boss Spawn Logic
     _handleMonsterDeath(m) {
+        if (this.shouldSuppressWorldFeedback(m)) {
+            return;
+        }
+
         // Only the first king slime uses the global 30-kill buildup.
         if (m.typeId === 'slime' || m.typeId === 'slime_split') {
             if (!this.firstBossDefeated && !this.bossSpawned && this.slimeKillCount < 30) {

@@ -370,7 +370,12 @@ export default class WorldScene extends Scene {
         if (!data || !this.player || data.id === this.player.id || this.remotePlayers.has(data.id)) return;
 
         const rp = new RemotePlayer(data.id, data.x, data.y, this.resources);
-        rp.name = data.name || "Unknown";
+        const resolvedName = this.net?.getBestKnownRemoteName?.(
+            data.id,
+            data.name,
+            this.net?.remotePlayers?.get?.(data.id)?.name
+        ) || data.name || "Unknown";
+        rp.name = resolvedName;
         if (typeof data.level === 'number') {
             rp.level = data.level;
         }

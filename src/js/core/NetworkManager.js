@@ -736,6 +736,10 @@ export default class NetworkManager extends EventEmitter {
         return 'Unknown';
     }
 
+    getBestKnownRemoteName(uid, ...candidates) {
+        return this._getBestKnownRemoteName(uid, ...candidates);
+    }
+
     _requestZoneUserHydration(uid, reason = 'presence_hydration') {
         if (!this.dbRef || !uid || uid === this.playerId) return Promise.resolve(null);
 
@@ -1360,6 +1364,10 @@ export default class NetworkManager extends EventEmitter {
             if (newPlayer.h) this._emitRemoteHpUpdate(uid, newPlayer.h);
             if ((this._zoneUserCache.get(uid) || {}).a) this._emitRemoteAttack(uid, this._zoneUserCache.get(uid).a);
             if ((this._zoneUserCache.get(uid) || {}).ch) this._emitRemoteChanneling(uid, this._zoneUserCache.get(uid).ch);
+        }
+
+        if (!this._isMeaningfulPlayerName(newPlayer.name)) {
+            this._requestZoneUserHydration(uid, 'buffered_unknown_name');
         }
 
         return newPlayer;
@@ -3267,6 +3275,9 @@ export default class NetworkManager extends EventEmitter {
         this._attachZoneUserHotPathListeners(uid, initialState);
 
         const remotePlayer = this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
+        if (remotePlayer && !this._isMeaningfulPlayerName(remotePlayer.name)) {
+            this._requestZoneUserHydration(uid, 'player_added_unknown_name');
+        }
         if (!remotePlayer && !initialState.p) {
             Logger.warn(`[Network] Waiting for initial position for remote player ${uid}.`);
             this._requestZoneUserHydration(uid, 'player_added_missing_position');

@@ -195,7 +195,16 @@ export default class RemotePlayer extends CharacterBase {
         const now = Date.now();
 
         // Update profile fields (v0.00.70: 조기 반환 이전에 처리)
-        if (packet.name) this.name = packet.name;
+        if (typeof packet.name === 'string') {
+            const trimmedName = packet.name.trim();
+            const isMeaningfulName = !!trimmedName && trimmedName.toLowerCase() !== 'unknown';
+            const hasMeaningfulCurrentName = typeof this.name === 'string'
+                && !!this.name.trim()
+                && this.name.trim().toLowerCase() !== 'unknown';
+            if (isMeaningfulName || !hasMeaningfulCurrentName) {
+                this.name = trimmedName || this.name;
+            }
+        }
         if (packet.level !== undefined) this.level = packet.level;
         if (packet.defense !== undefined) this.defense = packet.defense;
         if (packet.isPaused !== undefined) this.isPaused = packet.isPaused;

@@ -727,9 +727,28 @@ export default class Monster extends CharacterBase {
             // Guest Side: Smooth Interpolation
             const targetX = isNaN(this.targetX) ? this.x : this.targetX;
             const targetY = isNaN(this.targetY) ? this.y : this.targetY;
-            const lerpFactor = 0.35; // Snappy
-            this.x += (targetX - this.x) * lerpFactor;
-            this.y += (targetY - this.y) * lerpFactor;
+            const hasPredictedCharge = this.chargeState === 'charging'
+                && Number.isFinite(this.vx)
+                && Number.isFinite(this.vy)
+                && Number.isFinite(this.chargeTarget?.x)
+                && Number.isFinite(this.chargeTarget?.y);
+
+            if (hasPredictedCharge) {
+                // Charge attacks look very choppy if guests only lerp between sparse
+                // host snapshots. Predict locally, then apply a light authority correction.
+                const predictedX = this.x + this.vx * safeDt;
+                const predictedY = this.y + this.vy * safeDt;
+                const correctedX = predictedX + ((targetX - predictedX) * 0.18);
+                const correctedY = predictedY + ((targetY - predictedY) * 0.18);
+                const arrived = Math.hypot(this.chargeTarget.x - correctedX, this.chargeTarget.y - correctedY) < 14;
+
+                this.x = Math.max(0, Math.min(6000, arrived ? this.chargeTarget.x : correctedX));
+                this.y = Math.max(0, Math.min(6000, arrived ? this.chargeTarget.y : correctedY));
+            } else {
+                const lerpFactor = this.chargeState === 'casting' ? 0.45 : 0.35; // Snappy
+                this.x += (targetX - this.x) * lerpFactor;
+                this.y += (targetY - this.y) * lerpFactor;
+            }
         }
 
         // 4. Cleanup & Feedback
