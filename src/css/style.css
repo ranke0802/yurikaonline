@@ -1484,6 +1484,19 @@ body.ui-layout-edit-mode #joystick-container[data-ui-layout-selected="true"] #jo
     border-radius: 4px;
 }
 
+.inventory-item-alert-dot {
+    position: absolute;
+    top: 5px;
+    right: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #ef4444;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.92), 0 0 10px rgba(239, 68, 68, 0.52);
+    z-index: 3;
+    pointer-events: none;
+}
+
 .item-enhancement {
     position: absolute;
     top: 4px;

@@ -1432,10 +1432,13 @@ export class UIManager {
 
         const statusAvailable = overrides.statusAvailable ?? !!player.statPoints;
         const skillAvailable = overrides.skillAvailable ?? this.hasAnySkillUpgradeAvailable(player);
+        const questAvailable = overrides.questAvailable ?? !!this.questClaimAvailable;
+        const inventoryAvailable = overrides.inventoryAvailable ?? !!player.hasUnreadInventoryWeapon?.();
 
+        this.setAlertDotState('inventory-alert-dot', inventoryAvailable);
         this.setAlertDotState('status-alert-dot', statusAvailable);
         this.setAlertDotState('skill-alert-dot', skillAvailable);
-        this.setAlertDotState('quest-alert-dot', false);
+        this.setAlertDotState('quest-alert-dot', questAvailable);
     }
 
     getEnhancementStoneMeta(stoneType = this.pendingEnhancementStoneType) {
@@ -4466,6 +4469,12 @@ export class UIManager {
                         : '';
                     weaponItems.push(`<strong>${weaponName}</strong> 효과: 체인 라이트닝 피해 <strong>${this.formatSkillPercent(weaponCombat.laserDamageBonus)}</strong>${enhancementBonusText}`);
                 }
+                if ((weaponCombat.attackSpeedBonus || 0) > 0) {
+                    const enhancementBonusText = (weaponCombat.attackSpeedBonusEnhancementBonus || 0) > 0
+                        ? `<span class="enhancement-option-bonus">+${this.formatSkillPercent(weaponCombat.attackSpeedBonusEnhancementBonus)}</span>`
+                        : '';
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 공격속도 <strong>${this.formatSkillPercent(weaponCombat.attackSpeedBonus)}</strong> 증가${enhancementBonusText}`);
+                }
                 if ((weaponCombat.restoreHpPerLaserHit || 0) > 0) {
                     weaponItems.push(`<strong>${weaponName}</strong> 효과: 적중 대상당 HP <strong>+${weaponCombat.restoreHpPerLaserHit}</strong> 회복`);
                 }
@@ -4475,15 +4484,19 @@ export class UIManager {
             }
             case 'missile': {
                 const missileCount = lv * 2;
-                const manaCost = 4 + (lv - 1) * 3;
+                const baseManaCost = p.getMagicMissileBaseManaCost ? p.getMagicMissileBaseManaCost(lv) : (4 + (lv - 1) * 3);
+                const manaCost = p.getMagicMissileManaCost ? p.getMagicMissileManaCost(lv, weaponCombat) : baseManaCost;
                 const weaponMultiplier = 1 + (weaponCombat.missileDamageBonus || 0);
                 const baseMissileDamage = Math.ceil(attackPower * 0.45 * weaponMultiplier);
                 const critMissileDamage = Math.ceil(attackPower * 0.45 * weaponMultiplier * 2);
+                const manaCostLabel = manaCost < baseManaCost
+                    ? `<strong>${manaCost}</strong> (기본 ${baseManaCost})`
+                    : `<strong>${manaCost}</strong>`;
 
                 currentStats.push(
                     `한 번 시전하면 <strong>${missileCount}발</strong>이 순차 발사되고, 현재 공격력 ${attackPower} 기준 미사일 1발의 방어 전 피해는 <strong>${baseMissileDamage}</strong>입니다.`,
                     `치명타가 터지면 미사일 1발의 방어 전 피해는 <strong>${critMissileDamage}</strong>까지 올라갑니다.`,
-                    `타겟 탐색 반경은 <strong>600</strong>, 마나 소모는 <strong>${manaCost}</strong>, 재사용 대기시간은 <strong>1.0초</strong>입니다.`
+                    `타겟 탐색 반경은 <strong>600</strong>, 마나 소모는 ${manaCostLabel}, 재사용 대기시간은 <strong>1.0초</strong>입니다.`
                 );
 
                 summaryMetrics.push(
@@ -4491,7 +4504,7 @@ export class UIManager {
                     { label: '발사 수', value: `${missileCount}발` },
                     { label: '1발 피해', value: `${baseMissileDamage}` },
                     { label: '치명타 피해', value: `${critMissileDamage}` },
-                    { label: '마나 소모', value: `${manaCost}` },
+                    { label: '마나 소모', value: manaCost < baseManaCost ? `${manaCost} (기본 ${baseManaCost})` : `${manaCost}` },
                     { label: '쿨다운', value: '1.0초' }
                 );
 
@@ -4500,7 +4513,7 @@ export class UIManager {
                     `<code>방어 전 피해 = 공격력 × 0.45 × 무기 보정</code>`,
                     `<code>최종 피해 = max(1, 방어 전 피해 - 대상 방어력)</code>`,
                     `<code>치명타 발생 시 방어 전 피해 × 2 후 방어력 적용</code>`,
-                    `<code>마나 소모 = 4 + 3 × (레벨 - 1)</code>`
+                    `<code>기본 마나 소모 = 4 + 3 × (레벨 - 1)</code> → 현재 기본 <strong>${baseManaCost}</strong>, 적용 후 <strong>${manaCost}</strong>`
                 );
 
                 settingItems.push(
@@ -4515,6 +4528,12 @@ export class UIManager {
                         ? `<span class="enhancement-option-bonus">+${this.formatSkillPercent(weaponCombat.missileDamageBonusEnhancementBonus)}</span>`
                         : '';
                     weaponItems.push(`<strong>${weaponName}</strong> 효과: 매직 미사일 피해 <strong>${this.formatSkillPercent(weaponCombat.missileDamageBonus)}</strong>${enhancementBonusText}`);
+                }
+                if ((weaponCombat.missileManaCostReduction || 0) > 0) {
+                    const enhancementBonusText = (weaponCombat.missileManaCostReductionEnhancementBonus || 0) > 0
+                        ? `<span class="enhancement-option-bonus">+${this.formatSkillPercent(weaponCombat.missileManaCostReductionEnhancementBonus)}</span>`
+                        : '';
+                    weaponItems.push(`<strong>${weaponName}</strong> 효과: 매직 미사일 마나 소모 <strong>${this.formatSkillPercent(weaponCombat.missileManaCostReduction)}</strong> 감소${enhancementBonusText}`);
                 }
 
                 tooltipCurrentEffectHtml = `<div class="current-effect">현재 효과 (Lv.${lv}): ${missileCount}발 | 방어 전 피해 ${baseMissileDamage} | 탐색 600 | 마나 ${manaCost} | 쿨다운 1.0초</div>`;
@@ -6003,17 +6022,21 @@ export class UIManager {
         return ref.slot === value;
     }
 
-    resolveSelectedInventoryItem(player) {
-        if (!player || !this.selectedInventoryRef) return null;
-        if (this.selectedInventoryRef.kind === 'inventory') {
-            const item = player.inventory[this.selectedInventoryRef.index];
-            return item ? { location: 'inventory', index: this.selectedInventoryRef.index, item } : null;
+    resolveInventoryItemRef(player, ref) {
+        if (!player || !ref) return null;
+        if (ref.kind === 'inventory') {
+            const item = player.inventory[ref.index];
+            return item ? { location: 'inventory', index: ref.index, item } : null;
         }
-        if (this.selectedInventoryRef.kind === 'equipment') {
+        if (ref.kind === 'equipment') {
             const item = player.getEquippedWeapon?.();
-            return item ? { location: 'equipment', slot: 'weapon', item } : null;
+            return item ? { location: 'equipment', slot: ref.slot || 'weapon', item } : null;
         }
         return null;
+    }
+
+    resolveSelectedInventoryItem(player) {
+        return this.resolveInventoryItemRef(player, this.selectedInventoryRef);
     }
 
     createInventoryIconElement(item, className = 'item-icon') {
@@ -6029,6 +6052,13 @@ export class UIManager {
             iconEl.textContent = item?.icon || '';
         }
         return iconEl;
+    }
+
+    createInventoryAlertDotElement() {
+        const dot = document.createElement('span');
+        dot.className = 'inventory-item-alert-dot';
+        dot.setAttribute('aria-hidden', 'true');
+        return dot;
     }
 
     positionInventoryItemModal() {
@@ -6118,6 +6148,12 @@ export class UIManager {
         const modal = document.getElementById('inventory-item-modal');
         if (!modal || !ref) return;
         this.selectedInventoryRef = ref;
+        const player = this.game.localPlayer;
+        const detail = this.resolveInventoryItemRef(player, ref);
+        if (detail?.item && player?.markInventoryItemAsSeen?.(detail.item)) {
+            player.saveState(false, { reason: 'inventory_item_inspected' });
+            this.updateHudAttentionIndicators({ inventoryAvailable: !!player.hasUnreadInventoryWeapon?.() });
+        }
         modal.classList.remove('hidden');
         this.updateInventory();
     }
@@ -6345,6 +6381,9 @@ export class UIManager {
                 lines.push(`별빛 매직 미사일 피해 +${Math.round((player.getWeaponAffixEffectiveValue?.(item, 'missileDamageBonus')
                     ?? (item.rolledValues?.missileDamageBonus || 0)) * 100)}%`);
                 pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'missileDamageBonus') || 0);
+                lines.push(`매직 미사일 마나 소모 -${Math.round((player.getWeaponAffixEffectiveValue?.(item, 'missileManaCostReduction')
+                    ?? (item.rolledValues?.missileManaCostReduction || 0)) * 100)}%`);
+                pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'missileManaCostReduction') || 0);
             } else if (affix?.id === 'blue_flame') {
                 const chainChance = Math.round((player.getWeaponAffixEffectiveValue?.(item, 'fireballChainChance')
                     ?? (item.rolledValues?.fireballChainChance ?? item.rolledValues?.fireballDamageBonus ?? 0)) * 100);
@@ -6359,7 +6398,26 @@ export class UIManager {
                 lines.push(`붉은 전격 피해 +${Math.round((player.getWeaponAffixEffectiveValue?.(item, 'laserDamageBonus')
                     ?? (item.rolledValues?.laserDamageBonus || 0)) * 100)}%`);
                 pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'laserDamageBonus') || 0);
-                lines.push('체인 라이트닝 적중 시 HP 흡수');
+                lines.push(`공격속도 +${Math.round((player.getWeaponAffixEffectiveValue?.(item, 'attackSpeedBonus')
+                    ?? (item.rolledValues?.attackSpeedBonus || 0)) * 100)}%`);
+                pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'attackSpeedBonus') || 0);
+
+                const hpRestore = player.getWeaponCombatHookValue?.(item, 'restoreHpPerLaserHit')
+                    || affix?.combatHooks?.restoreHpPerLaserHit
+                    || 0;
+                if (hpRestore > 0) {
+                    lines.push(`체인 라이트닝 적중 시 HP +${hpRestore} 회복`);
+                }
+
+                const hpRestoreThresholds = Object.entries(affix?.combatHooks?.restoreHpPerLaserHitByEnhancement || {})
+                    .map(([level, value]) => [Number(level), Number(value)])
+                    .filter(([level, value]) => Number.isFinite(level) && Number.isFinite(value))
+                    .sort((a, b) => a[0] - b[0])
+                    .map(([level, value]) => `+${level}강부터 HP +${value}`)
+                    .join(' / ');
+                if (hpRestoreThresholds) {
+                    lines.push(`강화 단계 보너스: ${hpRestoreThresholds}`);
+                }
             }
 
             lines.push(...this.buildInventoryMetaLines(definition, {
@@ -6422,6 +6480,7 @@ export class UIManager {
         if (normalizationResult?.changed) {
             p.saveState();
         }
+        this.updateHudAttentionIndicators({ inventoryAvailable: !!p.hasUnreadInventoryWeapon?.() });
 
         // Update Quest UI alongside Inventory
         this.updateQuestUI();
@@ -6445,6 +6504,10 @@ export class UIManager {
             label.className = className;
             label.textContent = text;
             return label;
+        };
+        const appendInventoryAlertDot = (button, item) => {
+            if (!button || !p.shouldShowNewItemAlert?.(item)) return;
+            button.appendChild(this.createInventoryAlertDotElement());
         };
 
         const goldSlot = document.createElement('button');
@@ -6476,6 +6539,7 @@ export class UIManager {
         if (equippedWeapon) {
             equippedSlot.classList.add('equipped');
             equippedSlot.appendChild(this.createInventoryIconElement(equippedWeapon));
+            appendInventoryAlertDot(equippedSlot, equippedWeapon);
             this.applyInventoryEnhancementVisual(equippedSlot, equippedWeapon);
             equippedSlot.addEventListener('click', () => {
                 if (this.inventoryEnhancementAnimating) return;
@@ -6528,6 +6592,7 @@ export class UIManager {
                 if (item.slot === 'weapon') {
                     this.applyInventoryEnhancementVisual(button, item);
                 }
+                appendInventoryAlertDot(button, item);
 
                 if (!enhancementSelectionActive) {
                     button.addEventListener('pointerdown', (event) => {
@@ -6559,9 +6624,7 @@ export class UIManager {
                     this.updateInventory();
                     return;
                 }
-                this.selectedInventoryRef = { kind: 'inventory', index };
-                document.getElementById('inventory-item-modal')?.classList.remove('hidden');
-                this.updateInventory();
+                this.openInventoryItemModal({ kind: 'inventory', index });
             });
 
             fragment.appendChild(button);

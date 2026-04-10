@@ -444,6 +444,17 @@ export default class Player extends CharacterBase {
         return 12 + (level - 1) * 4;
     }
 
+    getMagicMissileBaseManaCost(level = this.skillLevels.missile || 1) {
+        return 4 + (level - 1) * 3;
+    }
+
+    getMagicMissileManaCost(level = this.skillLevels.missile || 1, combatProfile = null) {
+        const baseCost = this.getMagicMissileBaseManaCost(level);
+        const profile = combatProfile || this.getWeaponCombatProfile();
+        const reduction = Math.min(0.9, Math.max(0, Number(profile?.missileManaCostReduction || 0)));
+        return Math.max(1, Math.floor((baseCost * (1 - reduction)) + 0.0001));
+    }
+
     getFireballRange() {
         return this.fireballMaxRange;
     }
@@ -1748,7 +1759,7 @@ export default class Player extends CharacterBase {
         const weaponCombat = this.getWeaponCombatProfile();
 
         if (skillId === 'missile') {
-            const cost = 4 + (lv - 1) * 3;
+            const cost = this.getMagicMissileManaCost(lv, weaponCombat);
             if (this.useMana(cost)) {
                 this.triggerAction(`${this.name} : 매직 미사일 !!`);
                 if (window.game?.sound) window.game.sound.playSfx('missile_launch');
@@ -2892,6 +2903,11 @@ export default class Player extends CharacterBase {
         this.critRate += (baseStats.critRate || 0)
             + (enhancementLevel * (enhancementBonuses.critRatePerLevel || 0));
         this.mpRegen += (baseStats.mpRegen || 0);
+
+        const attackSpeedBonus = this.getWeaponAffixEffectiveValue(weapon, 'attackSpeedBonus');
+        if (attackSpeedBonus > 0) {
+            this.attackSpeed = Math.min(this.maxAttackSpeed, this.attackSpeed * (1 + attackSpeedBonus));
+        }
     }
 
     getWeaponCombatProfile() {
@@ -2899,6 +2915,8 @@ export default class Player extends CharacterBase {
             prefixId: null,
             missileDamageBonus: 0,
             missileDamageBonusEnhancementBonus: 0,
+            missileManaCostReduction: 0,
+            missileManaCostReductionEnhancementBonus: 0,
             fireballChainChance: 0,
             fireballChainChanceBase: 0,
             fireballChainChanceEnhancementBonus: 0,
@@ -2906,6 +2924,8 @@ export default class Player extends CharacterBase {
             fireballChainDamageRatioEnhancementBonus: 0,
             laserDamageBonus: 0,
             laserDamageBonusEnhancementBonus: 0,
+            attackSpeedBonus: 0,
+            attackSpeedBonusEnhancementBonus: 0,
             restoreHpPerLaserHit: 0,
             missileVariant: null,
             fireballVariant: null,
@@ -2926,15 +2946,19 @@ export default class Player extends CharacterBase {
         }
 
         const missileDamageBonusEnhancementBonus = this.getWeaponAffixEnhancementBonus(weapon, 'missileDamageBonus');
+        const missileManaCostReductionEnhancementBonus = this.getWeaponAffixEnhancementBonus(weapon, 'missileManaCostReduction');
         const fireballChainChanceBase = this.getWeaponAffixBaseValue(weapon, 'fireballChainChance');
         const fireballChainChanceEnhancementBonus = this.getWeaponAffixEnhancementBonus(weapon, 'fireballChainChance');
         const fireballChainDamageRatioEnhancementBonus = this.getWeaponAffixEnhancementBonus(weapon, 'fireballChainDamageRatio');
         const laserDamageBonusEnhancementBonus = this.getWeaponAffixEnhancementBonus(weapon, 'laserDamageBonus');
+        const attackSpeedBonusEnhancementBonus = this.getWeaponAffixEnhancementBonus(weapon, 'attackSpeedBonus');
 
         return {
             prefixId: affix.id,
             missileDamageBonus: this.getWeaponAffixEffectiveValue(weapon, 'missileDamageBonus'),
             missileDamageBonusEnhancementBonus,
+            missileManaCostReduction: this.getWeaponAffixEffectiveValue(weapon, 'missileManaCostReduction'),
+            missileManaCostReductionEnhancementBonus,
             fireballChainChance: this.getWeaponAffixEffectiveValue(weapon, 'fireballChainChance'),
             fireballChainChanceBase,
             fireballChainChanceEnhancementBonus,
@@ -2942,7 +2966,9 @@ export default class Player extends CharacterBase {
             fireballChainDamageRatioEnhancementBonus,
             laserDamageBonus: this.getWeaponAffixEffectiveValue(weapon, 'laserDamageBonus'),
             laserDamageBonusEnhancementBonus,
-            restoreHpPerLaserHit: affix.combatHooks?.restoreHpPerLaserHit || 0,
+            attackSpeedBonus: this.getWeaponAffixEffectiveValue(weapon, 'attackSpeedBonus'),
+            attackSpeedBonusEnhancementBonus,
+            restoreHpPerLaserHit: this.getWeaponCombatHookValue(weapon, 'restoreHpPerLaserHit'),
             missileVariant: affix.skillOverrides?.missileVisualVariant || null,
             fireballVariant: affix.skillOverrides?.fireballVisualVariant || null,
             laserVariant: affix.skillOverrides?.laserVisualVariant || null,
@@ -2990,9 +3016,40 @@ export default class Player extends CharacterBase {
         switch (key) {
             case 'fireballChainChance':
                 return Math.min(1, totalValue);
+            case 'missileManaCostReduction':
+                return Math.min(0.9, Math.max(0, totalValue));
+            case 'attackSpeedBonus':
+                return Math.max(0, totalValue);
             default:
                 return totalValue;
         }
+    }
+
+    getWeaponCombatHookValue(weapon, key) {
+        if (!weapon || !key) return 0;
+
+        const itemData = this.getItemDataManager?.();
+        const affix = itemData?.getAffixDefinition?.(weapon.prefixId);
+        const hooks = affix?.combatHooks;
+        if (!hooks) return 0;
+
+        let resolvedValue = Number(hooks[key] || 0);
+        const enhancementOverrides = hooks[`${key}ByEnhancement`];
+        const enhancementLevel = Math.max(0, weapon.enhancementLevel || 0);
+
+        if (enhancementOverrides && typeof enhancementOverrides === 'object') {
+            Object.entries(enhancementOverrides)
+                .map(([level, value]) => [Number(level), Number(value)])
+                .filter(([level, value]) => Number.isFinite(level) && Number.isFinite(value))
+                .sort((a, b) => a[0] - b[0])
+                .forEach(([level, value]) => {
+                    if (enhancementLevel >= level) {
+                        resolvedValue = value;
+                    }
+                });
+        }
+
+        return resolvedValue;
     }
 
     getEquipmentAuraState() {
@@ -3299,6 +3356,22 @@ export default class Player extends CharacterBase {
         };
     }
 
+    shouldShowNewItemAlert(item) {
+        return !!(item?.slot === 'weapon' && item.isNewlyAcquired);
+    }
+
+    hasUnreadInventoryWeapon() {
+        const equippedWeapon = this.getEquippedWeapon?.();
+        return this.inventory.some((item, index) => index > 0 && this.shouldShowNewItemAlert(item))
+            || this.shouldShowNewItemAlert(equippedWeapon);
+    }
+
+    markInventoryItemAsSeen(item) {
+        if (!this.shouldShowNewItemAlert(item)) return false;
+        item.isNewlyAcquired = false;
+        return true;
+    }
+
     addInventoryItem(itemId, amount = 1, meta = {}) {
         if (!itemId || amount <= 0) return null;
 
@@ -3306,6 +3379,7 @@ export default class Player extends CharacterBase {
             ...this.getItemMeta(itemId),
             ...meta
         };
+        const shouldMarkAsNew = definition.slot === 'weapon' && meta.markAsNew !== false;
 
         const isEquipmentInstance = definition.stackable === false || !!definition.instanceId || !!definition.slot;
         if (isEquipmentInstance) {
@@ -3315,7 +3389,12 @@ export default class Player extends CharacterBase {
                 const slotIndex = this.inventory.findIndex((item, idx) => idx > 0 && !item);
                 if (slotIndex < 0) break;
 
-                const instance = itemData?.normalizeInventoryItem({ type: itemId, amount: 1, ...meta }) || {
+                const instance = itemData?.normalizeInventoryItem({
+                    type: itemId,
+                    amount: 1,
+                    ...meta,
+                    isNewlyAcquired: shouldMarkAsNew
+                }) || {
                     type: itemId,
                     amount: 1,
                     icon: definition.icon,
@@ -3323,10 +3402,14 @@ export default class Player extends CharacterBase {
                     name: definition.name,
                     slot: definition.slot || 'weapon',
                     stackable: false,
-                    instanceId: definition.instanceId || `item_${Date.now()}_${slotIndex}`
+                    instanceId: definition.instanceId || `item_${Date.now()}_${slotIndex}`,
+                    isNewlyAcquired: shouldMarkAsNew
                 };
                 this.inventory[slotIndex] = instance;
                 if (!firstAdded) firstAdded = instance;
+            }
+            if (firstAdded && window.game?.ui?.updateHudAttentionIndicators) {
+                window.game.ui.updateHudAttentionIndicators();
             }
             return firstAdded;
         }
@@ -3349,6 +3432,9 @@ export default class Player extends CharacterBase {
             description: definition.description || ''
         };
 
+        if (window.game?.ui?.updateHudAttentionIndicators) {
+            window.game.ui.updateHudAttentionIndicators();
+        }
         return this.inventory[slotIndex];
     }
 

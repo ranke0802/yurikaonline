@@ -285,6 +285,7 @@ export default class ItemDataManager {
             prefixId: affix?.id || null,
             prefix: affix?.prefix || null,
             rolledValues,
+            isNewlyAcquired: !!seedData.isNewlyAcquired,
             enhancementLevel: Math.max(0, seedData.enhancementLevel || 0),
             enhancementRuleSet: seedData.enhancementRuleSet || definition.enhancementRuleSet || null,
             enhancementBonuses: {
