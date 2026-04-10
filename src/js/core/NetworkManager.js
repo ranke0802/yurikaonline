@@ -80,6 +80,12 @@ export default class NetworkManager extends EventEmitter {
         this._lastPresenceLiteWriteTs = 0;
         this._fieldPeerCount = 0;
         this._sharedFieldActive = false;
+        const initialNow = Date.now();
+        this._visibilityState = (typeof document !== 'undefined' && document.hidden) ? 'hidden' : 'visible';
+        this._visibilityChangedAt = initialNow;
+        this._lastVisibleAt = this._visibilityState === 'visible' ? initialNow : 0;
+        this.hostVisiblePromotionStableMs = 3000;
+        this.hostHiddenGraceMs = 8000;
         this._fieldCellSize = 640;
         this._monsterCellListeners = new Map();
         this._subscribedMonsterCells = new Set();
@@ -733,6 +739,7 @@ export default class NetworkManager extends EventEmitter {
         const now = options.ts || Date.now();
         const x = Number.isFinite(options.x) ? options.x : Number(player?.x || 0);
         const y = Number.isFinite(options.y) ? options.y : Number(player?.y || 0);
+        const visibilitySnapshot = this._getLocalVisibilitySnapshot(now);
         const fieldId = options.fieldId || this._getCurrentFieldId();
         const peerCount = Math.max(0, Number(this._fieldPeerCount || 0));
         const mode = (this.syncOptimizationFlags.useFieldRealtimeMode && peerCount > 0)
@@ -746,7 +753,10 @@ export default class NetworkManager extends EventEmitter {
             ts: now,
             name: player?.name || player?.displayName || 'Unknown',
             level: Number(player?.level || 1),
-            appearance: this._buildPresenceAppearance(player)
+            appearance: this._buildPresenceAppearance(player),
+            visibility: visibilitySnapshot.visibility,
+            visibilityTs: visibilitySnapshot.visibilityTs,
+            lastVisibleTs: visibilitySnapshot.lastVisibleTs
         };
     }
 
@@ -780,6 +790,11 @@ export default class NetworkManager extends EventEmitter {
         if (!uid || !value || typeof value !== 'object') return null;
         const cachedTs = Number(this._presenceTsCache.get(uid) || 0);
         const snapshotTs = Number(value.ts || 0);
+        const rawVisibility = value.visibility === 'hidden' ? 'hidden' : 'visible';
+        const visibilityTs = Number(value.visibilityTs || snapshotTs || cachedTs || 0);
+        const lastVisibleTs = Number(value.lastVisibleTs
+            || (rawVisibility === 'visible' ? (visibilityTs || snapshotTs || cachedTs || 0) : 0)
+            || 0);
         return {
             uid,
             fieldId: this._normalizeFieldId(value.fieldId),
@@ -787,8 +802,97 @@ export default class NetworkManager extends EventEmitter {
             mode: value.mode === 'shared_realtime' ? 'shared_realtime' : 'presence_lite',
             ts: cachedTs > 0 ? cachedTs : snapshotTs,
             name: value.name || 'Unknown',
-            level: Number(value.level || 1)
+            level: Number(value.level || 1),
+            visibility: rawVisibility,
+            visibilityTs,
+            lastVisibleTs
         };
+    }
+
+    _getLocalVisibilitySnapshot(now = Date.now()) {
+        const fallbackVisible = !(typeof document !== 'undefined' && document.hidden);
+        const visibility = this._visibilityState === 'hidden' ? 'hidden' : (fallbackVisible ? 'visible' : 'hidden');
+        const visibilityTs = Number(this._visibilityChangedAt || now);
+        const lastVisibleTs = Number(
+            this._lastVisibleAt
+            || (visibility === 'visible' ? visibilityTs : 0)
+            || 0
+        );
+        return { visibility, visibilityTs, lastVisibleTs };
+    }
+
+    _noteVisibilityState(isVisible, now = Date.now()) {
+        const nextVisibility = isVisible ? 'visible' : 'hidden';
+        if (this._visibilityState !== nextVisibility) {
+            this._visibilityState = nextVisibility;
+            this._visibilityChangedAt = now;
+        }
+        if (nextVisibility === 'visible') {
+            this._lastVisibleAt = now;
+            this._visibilityChangedAt = now;
+        }
+    }
+
+    _buildHostCandidate(uid, now = Date.now()) {
+        if (!uid) return null;
+
+        const currentFieldId = this._getCurrentFieldId();
+        const isSelf = uid === this.playerId;
+        const presenceEntry = isSelf
+            ? {
+                uid,
+                fieldId: currentFieldId,
+                ts: Number(this.userLastSeen.get(uid) || now),
+                ...this._getLocalVisibilitySnapshot(now)
+            }
+            : (this._presenceCache.get(uid) || null);
+
+        if (!presenceEntry) return null;
+        if (presenceEntry.fieldId !== currentFieldId) return null;
+
+        const lastSeen = Number(this.userLastSeen.get(uid) || presenceEntry.ts || 0);
+        const active = isSelf
+            ? !!this.connected
+            : (this.connectedUsers.includes(uid) && lastSeen > 0 && (now - lastSeen) < this.presenceStaleTimeout);
+        if (!active) return null;
+
+        const visibility = presenceEntry.visibility === 'hidden' ? 'hidden' : 'visible';
+        const visibilityTs = Number(presenceEntry.visibilityTs || presenceEntry.ts || now);
+        const lastVisibleTs = Number(
+            presenceEntry.lastVisibleTs
+            || (visibility === 'visible' ? visibilityTs : 0)
+            || 0
+        );
+        const visibleStable = visibility === 'visible'
+            && (now - visibilityTs) >= this.hostVisiblePromotionStableMs;
+        const hiddenWithinGrace = visibility === 'hidden'
+            && (now - visibilityTs) < this.hostHiddenGraceMs;
+
+        let bucket = 1;
+        if (visibleStable) {
+            bucket = 3;
+        } else if (visibility === 'visible' || hiddenWithinGrace) {
+            bucket = 2;
+        }
+
+        return {
+            uid,
+            bucket,
+            visibility,
+            visibilityTs,
+            lastVisibleTs,
+            lastSeen
+        };
+    }
+
+    _compareHostCandidates(a, b) {
+        if (!a && !b) return 0;
+        if (!a) return 1;
+        if (!b) return -1;
+        if (a.bucket !== b.bucket) return b.bucket - a.bucket;
+        if (a.lastVisibleTs !== b.lastVisibleTs) return b.lastVisibleTs - a.lastVisibleTs;
+        if (a.lastSeen !== b.lastSeen) return b.lastSeen - a.lastSeen;
+        return String(a.uid).localeCompare(String(b.uid));
     }
 
     _isMeaningfulPlayerName(name) {
@@ -3224,25 +3328,25 @@ export default class NetworkManager extends EventEmitter {
         }
 
         const now = Date.now();
-        const timeout = this.presenceStaleTimeout;
-
-        // Update self Activity
         this.userLastSeen.set(this.playerId, now);
+        const candidateIds = Array.from(new Set([
+            this.playerId,
+            ...this.connectedUsers
+        ]));
+        const candidates = candidateIds
+            .map((uid) => this._buildHostCandidate(uid, now))
+            .filter(Boolean)
+            .sort((a, b) => this._compareHostCandidates(a, b));
 
-        // Filter active users based on last seen heartbeat
-        const activeUsers = this.connectedUsers.filter(uid => {
-            if (uid === this.playerId) return true;
-            const last = this.userLastSeen.get(uid) || 0;
-            return (now - last) < timeout;
-        });
+        let desiredHostId = candidates[0]?.uid || this.playerId;
+        const currentHostCandidate = candidates.find((candidate) => candidate.uid === this.currentHostId) || null;
+        const bestCandidate = candidates[0] || null;
+        if (currentHostCandidate && bestCandidate && currentHostCandidate.bucket === bestCandidate.bucket) {
+            desiredHostId = currentHostCandidate.uid;
+        }
 
-        // Lexicographical sort to find authoritative "lowest UID" host
-        activeUsers.sort();
-
-        // v0.00.42: Always track current host for anti-cheat validation
-        this.currentHostId = activeUsers.length > 0 ? activeUsers[0] : null;
-
-        const desiredHost = (activeUsers.length > 0 && activeUsers[0] === this.playerId);
+        this.currentHostId = desiredHostId;
+        const desiredHost = desiredHostId === this.playerId;
 
         if (desiredHost && !this.isHost) {
             this.isHost = true;
@@ -3405,6 +3509,7 @@ export default class NetworkManager extends EventEmitter {
             amount: data.amount,
             ownerId: data.ownerId || null,
             partyMembers: Array.isArray(data.partyMembers) ? data.partyMembers : null,
+            eligibleCollectorIds: Array.isArray(data.eligibleCollectorIds) ? Array.from(new Set(data.eligibleCollectorIds.filter(Boolean))) : null,
             ts: Date.now()
         };
         if (this.shouldUseMonsterQuietMode()) {
@@ -3442,6 +3547,7 @@ export default class NetworkManager extends EventEmitter {
             amount: data.amount,
             ownerId: data.ownerId || null,
             partyMembers: Array.isArray(data.partyMembers) ? data.partyMembers : null,
+            eligibleCollectorIds: Array.isArray(data.eligibleCollectorIds) ? Array.from(new Set(data.eligibleCollectorIds.filter(Boolean))) : null,
             ts: Number(data.ts || Date.now())
         };
         this._recordNetworkWrite('dropPublish', payload);
@@ -4177,12 +4283,18 @@ export default class NetworkManager extends EventEmitter {
     _handleVisibilityChange() {
         if (document.hidden) {
             Logger.log("[Network] App backgrounded.");
+            this._noteVisibilityState(false);
             this.flushQueuedProfileSaves().catch(() => { });
             this.flushQueuedProfilePatches().catch(() => { });
+            if (this.playerId && this.dbRef && this.zoneParticipationEnabled) {
+                this._publishPresenceLite({ force: true, reason: 'visibility_hidden' });
+                this._writePresenceTsOnly('visibility_hidden');
+            }
         } else {
             Logger.log("[Network] App foregrounded. Checking connection...");
+            this._noteVisibilityState(true);
             if (this.playerId && this.dbRef) {
-                // Force immediate heartbeat to say "I'm back!"
+                this._publishPresenceLite({ force: true, reason: 'visibility_visible' });
                 this._sendHeartbeat();
 
                 // Force sync check if needed

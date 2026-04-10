@@ -184,9 +184,14 @@ export default class MonsterManager {
     }
 
     _grantMonsterItemDrops(monster, attackerId) {
-        if (!attackerId || !monster) return;
+        if (!monster) return;
 
         const rewardedItems = [];
+        const participantIds = this._getMonsterParticipantIds(monster, attackerId);
+        const rewardTargetId = participantIds.includes(attackerId)
+            ? attackerId
+            : (participantIds[0] || attackerId || this.net.playerId);
+        if (!rewardTargetId) return;
         const allDrops = [
             ...(Array.isArray(monster.drops) ? monster.drops : []),
             ...(this.game.itemData?.getGlobalDrops() || []),
@@ -209,12 +214,12 @@ export default class MonsterManager {
             // Host-local kills should not depend on the reward sync roundtrip.
             // Gold/EXP are handled by world drops, but item rewards are direct grants,
             // so deliver them immediately to avoid host-side reward validation timing issues.
-            if (attackerId === this.net.playerId && window.game?.localPlayer) {
+            if (rewardTargetId === this.net.playerId && window.game?.localPlayer) {
                 window.game.localPlayer.receiveReward(rewardPayload);
                 return rewardedItems;
             }
 
-            this.net.sendReward(attackerId, rewardPayload);
+            this.net.sendReward(rewardTargetId, rewardPayload);
         }
 
         return rewardedItems;
@@ -728,7 +733,11 @@ export default class MonsterManager {
                     && !this.shouldSuppressWorldFeedback(m);
                 if (shouldProcessRewards) {
                     const attackerId = m.lastAttackerId || this.net.playerId;
+                    const participantIds = this._getMonsterParticipantIds(m, attackerId);
                     const killerPartyMembers = this._getPartyMembersForPlayer(attackerId);
+                    const eligibleCollectorIds = participantIds.length > 0
+                        ? participantIds
+                        : killerPartyMembers;
                     let xpAmount = 25;
                     let goldAmount = 50;
                     if (m.typeId === 'king_slime') {
@@ -744,7 +753,8 @@ export default class MonsterManager {
                         type: 'gold',
                         amount: goldAmount,
                         ownerId: attackerId,
-                        partyMembers: killerPartyMembers
+                        partyMembers: killerPartyMembers,
+                        eligibleCollectorIds
                     });
                     this.net.spawnDrop({
                         x: m.x + 20,
@@ -752,10 +762,19 @@ export default class MonsterManager {
                         type: 'exp',
                         amount: xpAmount,
                         ownerId: attackerId,
-                        partyMembers: killerPartyMembers
+                        partyMembers: killerPartyMembers,
+                        eligibleCollectorIds
                     });
                     if (Math.random() > 0.5 || m.isBoss) {
-                        this.net.spawnDrop({ x: m.x - 20, y: m.y + 10, type: 'hp', amount: 30 });
+                        this.net.spawnDrop({
+                            x: m.x - 20,
+                            y: m.y + 10,
+                            type: 'hp',
+                            amount: 30,
+                            ownerId: attackerId,
+                            partyMembers: killerPartyMembers,
+                            eligibleCollectorIds
+                        });
                     }
                     this._grantMonsterItemDrops(m, attackerId);
                 }
@@ -1059,6 +1078,7 @@ export default class MonsterManager {
                 amount: drop.amount,
                 ownerId: drop.ownerId,
                 partyMembers: drop.partyMembers,
+                eligibleCollectorIds: drop.eligibleCollectorIds,
                 ts: Date.now()
             });
         });
@@ -1707,8 +1727,12 @@ export default class MonsterManager {
         const { default: Drop } = await import('../entities/Drop.js');
         const d = new Drop(data.id, data.x, data.y, data.type, data.amount, {
             ownerId: data.ownerId,
-            partyMembers: data.partyMembers
+            partyMembers: data.partyMembers,
+            eligibleCollectorIds: data.eligibleCollectorIds
         });
+        if (!this.net.isHost && this.game?.localPlayer && !d.canPlayerCollect(this.game.localPlayer)) {
+            return;
+        }
         this.drops.set(data.id, d);
     }
 
@@ -1720,9 +1744,12 @@ export default class MonsterManager {
         if (!this.net.isHost) return;
         const drop = this.drops.get(data.dropId);
         if (drop) {
-            const collectorAllowed = !drop.ownerId
-                || drop.ownerId === data.collectorId
-                || drop.partyMembers?.includes(data.collectorId);
+            const eligibleIds = Array.isArray(drop.eligibleCollectorIds) ? drop.eligibleCollectorIds : null;
+            const collectorAllowed = Array.isArray(eligibleIds) && eligibleIds.length > 0
+                ? eligibleIds.includes(data.collectorId)
+                : (!drop.ownerId
+                    || drop.ownerId === data.collectorId
+                    || drop.partyMembers?.includes(data.collectorId));
             if (!collectorAllowed) return;
 
             if (drop.type === 'gold' || drop.type === 'exp') {
@@ -1740,8 +1767,12 @@ export default class MonsterManager {
 
                 this.net.sendReward(ownerId, ownerReward);
 
-                const partyMembers = this._normalizePartyMembers(drop.partyMembers || []);
-                partyMembers
+                const rewardPeers = this._normalizePartyMembers(
+                    (Array.isArray(eligibleIds) && eligibleIds.length > 0)
+                        ? eligibleIds
+                        : (drop.partyMembers || [])
+                );
+                rewardPeers
                     .filter((uid) => uid !== ownerId)
                     .forEach((uid) => this.net.sendReward(uid, allyReward));
             } else if (drop.type === 'hp') {

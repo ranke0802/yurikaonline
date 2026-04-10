@@ -8,6 +8,9 @@ export default class Drop extends Entity {
         this.amount = amount;
         this.ownerId = options.ownerId || null;
         this.partyMembers = Array.isArray(options.partyMembers) ? options.partyMembers : null;
+        this.eligibleCollectorIds = Array.isArray(options.eligibleCollectorIds)
+            ? Array.from(new Set(options.eligibleCollectorIds.filter(Boolean)))
+            : null;
         this.radius = 15;
         this.isCollected = false;
         this.isLocallyCollected = false; // Prevent spam
@@ -22,6 +25,16 @@ export default class Drop extends Entity {
         this.glowColor = this.type === 'gold' ? 'rgba(255, 215, 0, 0.3)' : (this.type === 'hp' ? 'rgba(74, 222, 128, 0.3)' : 'rgba(0, 191, 255, 0.3)');
     }
 
+    canPlayerCollect(player) {
+        if (!player?.id) return !this.ownerId && !(this.eligibleCollectorIds?.length > 0);
+        if (Array.isArray(this.eligibleCollectorIds) && this.eligibleCollectorIds.length > 0) {
+            return this.eligibleCollectorIds.includes(player.id);
+        }
+        return !this.ownerId
+            || player.id === this.ownerId
+            || this.partyMembers?.includes(player.id);
+    }
+
     update(dt, player) {
         this.timer += dt;
         this.offY = Math.sin(this.timer * 3 + this.randomOffset) * 5;
@@ -29,10 +42,7 @@ export default class Drop extends Entity {
         if (this.isCollected) return true;
 
         // Simple magnetic follow
-        const canCollect = !this.ownerId
-            || !player?.id
-            || player.id === this.ownerId
-            || this.partyMembers?.includes(player.id);
+        const canCollect = this.canPlayerCollect(player);
 
         if (player && !player.isDead && !this.isLocallyCollected && canCollect) {
             const dx = player.x - this.x;
@@ -57,6 +67,9 @@ export default class Drop extends Entity {
     }
 
     render(ctx, camera) {
+        const localPlayer = window.game?.localPlayer || null;
+        if (localPlayer && !this.canPlayerCollect(localPlayer)) return;
+
         const screenX = this.x;
         const screenY = this.y + this.offY;
 
