@@ -1060,6 +1060,65 @@ export default class Monster extends CharacterBase {
         ctx.restore();
     }
 
+    _getLoadingPlaceholderPalette() {
+        const typeId = String(this.typeId || '').toLowerCase();
+
+        if (typeId.includes('slime')) {
+            return {
+                fill: 'rgba(125, 211, 252, 0.78)',
+                outline: 'rgba(186, 230, 253, 0.95)',
+                highlight: 'rgba(255, 255, 255, 0.55)'
+            };
+        }
+
+        if (typeId.includes('goblin')) {
+            return {
+                fill: 'rgba(163, 230, 53, 0.58)',
+                outline: 'rgba(217, 249, 157, 0.85)',
+                highlight: 'rgba(255, 255, 255, 0.42)'
+            };
+        }
+
+        return {
+            fill: 'rgba(203, 213, 225, 0.52)',
+            outline: 'rgba(241, 245, 249, 0.75)',
+            highlight: 'rgba(255, 255, 255, 0.32)'
+        };
+    }
+
+    _renderLoadingPlaceholder(ctx, x, y) {
+        const palette = this._getLoadingPlaceholderPalette();
+        const pulse = 1 + (Math.sin(Date.now() / 180) * 0.035);
+        const radiusX = this.width * 0.34 * pulse;
+        const radiusY = this.height * 0.28 * pulse;
+
+        ctx.save();
+        ctx.fillStyle = palette.fill;
+        ctx.beginPath();
+        ctx.ellipse(x, y, radiusX, radiusY, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = palette.outline;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(x, y, radiusX, radiusY, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = palette.highlight;
+        ctx.beginPath();
+        ctx.ellipse(
+            x - (this.width * 0.08),
+            y - (this.height * 0.1),
+            this.width * 0.09,
+            this.height * 0.06,
+            -0.35,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+        ctx.restore();
+    }
+
     render(ctx, camera) {
         const useTrainingDummyRender = this.fallbackShape === 'training_dummy' || this.typeId === 'training_dummy';
 
@@ -1103,11 +1162,8 @@ export default class Monster extends CharacterBase {
         } else if (this.sprite) {
             this.sprite.draw(ctx, 0, this.frame, screenX - this.width / 2, drawY - this.height / 2, this.width, this.height);
         } else {
-            // Fallback: Red Circle
-            ctx.fillStyle = '#ff4757';
-            ctx.beginPath();
-            ctx.arc(screenX, drawY, this.width / 2, 0, Math.PI * 2);
-            ctx.fill();
+            // Loading fallback: avoid a harsh red disk while sprite assets warm up.
+            this._renderLoadingPlaceholder(ctx, screenX, drawY);
         }
 
         // Aggro Indicator (!)

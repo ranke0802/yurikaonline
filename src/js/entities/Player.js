@@ -1137,6 +1137,9 @@ export default class Player extends CharacterBase {
                 case 'defense':
                     patch.defense = this.defense || 0;
                     break;
+                case 'equipment':
+                    patch.equipment = this._cloneProfilePatchValue(this.equipment);
+                    break;
                 case 'isPaused':
                     patch.isPaused = !!window.game?.ui?.isPaused;
                     break;
@@ -1167,6 +1170,14 @@ export default class Player extends CharacterBase {
             forceImmediate: !!options.syncToWorld,
             syncToZone: !!options.syncToWorld,
             saveReason: options.reason || 'player_patch'
+        });
+    }
+
+    syncEquipmentVisualState(reason = 'equipment_visual_sync') {
+        this.saveProfilePatch(['equipment'], {
+            debounceMs: 0,
+            syncToWorld: true,
+            reason
         });
     }
 
@@ -1951,6 +1962,9 @@ export default class Player extends CharacterBase {
         const shouldSave = options.save !== false;
         const saveDebounceMs = Number.isFinite(options.debounceMs) ? options.debounceMs : 3500;
         const itemMessages = [];
+        const normalizedQuestKills = {};
+        let skipQuestRewardLog = false;
+        let questKillLogMessage = '';
 
         if (data.exp) this.gainExp(data.exp, { save: false });
         if (data.gold) {
@@ -1971,9 +1985,119 @@ export default class Player extends CharacterBase {
             });
         }
 
+        if (typeof data.questKill === 'string') {
+            normalizedQuestKills[data.questKill] = (normalizedQuestKills[data.questKill] || 0) + 1;
+        }
+        if (data.questKills && typeof data.questKills === 'object') {
+            Object.entries(data.questKills).forEach(([questKillId, rawCount]) => {
+                const safeCount = Math.max(0, Number(rawCount || 0));
+                if (safeCount <= 0) return;
+                normalizedQuestKills[questKillId] = (normalizedQuestKills[questKillId] || 0) + safeCount;
+            });
+        }
+
+        const rewardSummaryParts = [];
+        if (data.exp) rewardSummaryParts.push(`EXP +${data.exp}`);
+        if (data.gold) rewardSummaryParts.push(`Gold +${data.gold}`);
+        if (data.hp) rewardSummaryParts.push(`HP +${data.hp}`);
+        const rewardSummarySuffix = rewardSummaryParts.length > 0
+            ? ` (${rewardSummaryParts.join(', ')})`
+            : '';
+
         // v0.00.01: Process Quest Kills sent by Host
-        let skipQuestRewardLog = false;
-        if (data.questKill) {
+        if (Object.keys(normalizedQuestKills).length > 0) {
+            const monsterManager = window.game?.monsterManager;
+            const canTrackRepeatSlimeKills = (this.questData.bossClearCount || 0) > 0
+                && !monsterManager?.bossSpawned;
+            const genericQuestLogs = [];
+
+            Object.entries(normalizedQuestKills).forEach(([questKillId, rawCount]) => {
+                const killCount = Math.max(0, Number(rawCount || 0));
+                if (killCount <= 0) return;
+
+                if (questKillId === 'slime' || questKillId === 'slime_split') {
+                    this.questData.slimeKills += killCount;
+                    if (canTrackRepeatSlimeKills) {
+                        this.questData.slimeRepeatKills += killCount;
+                    }
+                    genericQuestLogs.push(
+                        killCount === 1
+                            ? '퀘스트 몬스터 처치!'
+                            : `퀘스트 몬스터 ${killCount}마리 처치!`
+                    );
+                    return;
+                }
+
+                if (questKillId === 'king_slime') {
+                    for (let index = 0; index < killCount; index += 1) {
+                        const bossCycle = data.bossCycle
+                            || (((this.questData.bossClearCount || 0) === 0) ? 'intro' : 'repeat');
+                        const isIntroBossReward = bossCycle === 'intro';
+                        if (isIntroBossReward && (this.questData.bossClearCount || 0) > 0) {
+                            this.questData.introBossParticipated = false;
+                            skipQuestRewardLog = true;
+                            continue;
+                        }
+
+                        this.questData.bossKilled = true;
+                        this.questData.introBossParticipated = false;
+                        this.questData.introSlime30RewardClaimed = true;
+                        this.questData.bossClearCount = (this.questData.bossClearCount || 0) + 1;
+                        this.questData.slimeRepeatKills = 0;
+
+                        let rewardMsg = '';
+                        let modalTitle = '';
+                        let modalDesc = '';
+
+                        if (this.questData.bossClearCount === 1) {
+                            this.questData.slimeRepeatKills = 0;
+                            this.questData.bossQuestClaimed = true;
+                            this.statPoints += 5;
+                            this.gainExp(500, { save: false });
+                            this.gold += 2000;
+                            this.updateGoldInventory();
+
+                            modalTitle = '첫 보스 처치 완료!';
+                            modalDesc = '대왕 슬라임을 처치했습니다!<br>보상: 스탯 포인트 +5, 경험치 500, 골드 2000<br>이제 슬라임 30마리 처치 후 반복 보스 퀘스트가 이어집니다.';
+                            rewardMsg = '첫 대왕 슬라임 처치! (스탯+5, EXP+500, Gold+2000)';
+                        } else {
+                            this.gainExp(300, { save: false });
+                            this.gold += 1000;
+                            this.updateGoldInventory();
+
+                            modalTitle = '반복 보스 처치 완료';
+                            modalDesc = '대왕 슬라임을 다시 처치했습니다!<br><br>보상:<br>경험치 300<br>골드 1000<br><br>(슬라임 30마리를 잡으면 다시 소환됩니다.)';
+                            rewardMsg = `대왕 슬라임 처치! (${this.questData.bossClearCount}회차) (EXP+300, Gold+1000)`;
+                        }
+
+                        if (window.game?.ui) {
+                            if (this.questData.bossClearCount === 1 && window.game.ui.showRewardModal) {
+                                window.game.ui.showRewardModal(modalTitle, modalDesc);
+                            } else if (rewardMsg) {
+                                window.game.ui.logSystemMessage(`QUEST 완료: ${rewardMsg}`);
+                            }
+                        }
+
+                        this.questData.bossKilled = false;
+                    }
+                    return;
+                }
+
+                genericQuestLogs.push(
+                    killCount === 1
+                        ? `${questKillId} 처치!`
+                        : `${questKillId} ${killCount}회 처치!`
+                );
+            });
+
+            if (genericQuestLogs.length > 0) {
+                questKillLogMessage = `${genericQuestLogs.join(' / ')}${rewardSummarySuffix}`;
+            }
+
+            if (window.game?.ui) window.game.ui.updateQuestUI();
+        }
+
+        if (false && data.questKill) {
             const monsterManager = window.game?.monsterManager;
             const canTrackRepeatSlimeKills = (this.questData.bossClearCount || 0) > 0
                 && !monsterManager?.bossSpawned;
@@ -2067,9 +2191,14 @@ export default class Player extends CharacterBase {
                 // So I should log `rewardMsg` if it exists (but it's out of scope).
                 // I will move logging INSIDE the block or make the block below smarter.
                 // Since I am already modifying the block below...
-            } else if (data.questKill && !skipQuestRewardLog) {
+            } else if (false && data.questKill && !skipQuestRewardLog) {
                 msg = `퀘스트 몬스터 처치! (${msg})`;
                 window.game.ui.logSystemMessage(msg);
+            }
+
+            if (questKillLogMessage && !skipQuestRewardLog) {
+                window.game.ui.logSystemMessage(questKillLogMessage);
+                skipQuestRewardLog = true;
             }
 
             if (itemMessages.length > 0) {
@@ -2860,6 +2989,7 @@ export default class Player extends CharacterBase {
         this.equipment.weapon = item;
         this.inventory[slotIndex] = previous || null;
         this.updateDerivedStats();
+        this.syncEquipmentVisualState('equip_weapon');
         if (window.game?.ui) {
             window.game.ui.updateStatusPopup();
             window.game.ui.updateInventory();
@@ -2881,6 +3011,7 @@ export default class Player extends CharacterBase {
         this.inventory[emptySlot] = weapon;
         this.equipment.weapon = null;
         this.updateDerivedStats();
+        this.syncEquipmentVisualState('unequip_weapon');
         if (window.game?.ui) {
             window.game.ui.updateStatusPopup();
             window.game.ui.updateInventory();
@@ -2978,6 +3109,9 @@ export default class Player extends CharacterBase {
 
         if (target.location === 'equipment' || result.destroyed) {
             this.updateDerivedStats();
+            if (target.location === 'equipment') {
+                this.syncEquipmentVisualState(result.destroyed ? 'enhance_destroy_equipped_weapon' : 'enhance_equipped_weapon');
+            }
         } else {
             this.saveState();
         }
@@ -3058,6 +3192,7 @@ export default class Player extends CharacterBase {
 
         if (target.location === 'equipment') {
             this.updateDerivedStats();
+            this.syncEquipmentVisualState('dismantle_equipped_weapon');
         } else {
             this.saveState();
         }

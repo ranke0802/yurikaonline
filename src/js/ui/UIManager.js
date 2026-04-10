@@ -64,6 +64,7 @@ export class UIManager {
         this.settings = this.loadSettings();
         this.devAccessState = this.loadDevAccessState();
         this.uiLayoutControlDefinitions = {
+            'dev-overlay-panel': { label: '개발 오버레이', selector: '#dev-overlay', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 2.4, scaleMode: 'transform', zIndex: 2305, margin: 8, requiresVisibleElement: true },
             'hud-top-bar': { label: '프로필/HP 패널', selector: '.top-bar', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform' },
             'quest-panel': { label: '퀘스트창', selector: '.quest-list-panel', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', positioningContext: 'parent', parentSelector: '.left-ui-container' },
             'chat-panel': { label: '채팅창', selector: '.chat-window', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', positioningContext: 'parent', parentSelector: '.left-ui-container' },
@@ -707,7 +708,12 @@ export class UIManager {
 
     getUiLayoutControlsForMode(mode = this.getUiLayoutMode()) {
         return Object.entries(this.uiLayoutControlDefinitions)
-            .filter(([, definition]) => definition.modes.includes(mode));
+            .filter(([controlId, definition]) => {
+                if (!definition.modes.includes(mode)) return false;
+                if (!definition.requiresVisibleElement) return true;
+                const element = this.getUiLayoutControlElement(controlId);
+                return !!element && !element.classList.contains('hidden');
+            });
     }
 
     getUiLayoutControlElement(controlId) {

@@ -17,8 +17,8 @@ export default class RemotePlayer extends CharacterBase {
 
         // Phase 1: Enhanced interpolation system
         this.serverUpdates = [];
-        this.interpolationDelay = 85; // Reduced for lower latency feel
-        this.adaptiveDelay = 85;
+        this.interpolationDelay = 110; // Favor stability over ultra-low latency for remote movement
+        this.adaptiveDelay = 110;
         this.packetJitterHistory = [];
         this.lastPacketTime = 0;
         this.lastPacketInterval = 100;
@@ -225,7 +225,7 @@ export default class RemotePlayer extends CharacterBase {
             if (this.packetJitterHistory.length >= 10) {
                 const sorted = [...this.packetJitterHistory].sort((a, b) => a - b);
                 const p90 = sorted[Math.floor(sorted.length * 0.9)];
-                this.adaptiveDelay = Math.max(60, Math.min(220, Math.max(p90 * 1.75 + 20, observedInterval * 1.1)));
+                this.adaptiveDelay = Math.max(85, Math.min(220, Math.max(p90 * 1.75 + 20, observedInterval * 1.1)));
             }
             this.lastPacketInterval = observedInterval;
         }

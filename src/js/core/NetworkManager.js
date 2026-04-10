@@ -58,9 +58,23 @@ export default class NetworkManager extends EventEmitter {
         this._profileBackupPruneMeta = new Map();
         this._zoneUserCache = new Map();
         this._zoneUserListeners = new Map();
+        this._zoneUserListenerFields = new Map();
         this._zoneUserHydrationMeta = new Map();
         this._presenceCache = new Map();
         this._presenceTsCache = new Map();
+        this._queuedRewardBatches = new Map();
+        this._rewardBatchWindowMs = 650;
+        this._rewardValidationWindow = {
+            startedAt: Date.now(),
+            receivedCount: 0,
+            blockedCount: 0,
+            totalExp: 0,
+            totalGold: 0,
+            totalHp: 0,
+            totalItemEntries: 0,
+            totalItemAmount: 0,
+            blockedReasons: {}
+        };
         this._networkDropIds = new Set();
         this._lastPresenceLiteState = null;
         this._lastPresenceLiteWriteTs = 0;
@@ -99,11 +113,14 @@ export default class NetworkManager extends EventEmitter {
         this._lastProfileSaveTs = 0;
         this._zoneUserCache.clear();
         this._zoneUserHydrationMeta.clear();
+        this._zoneUserListenerFields.clear();
         this._profileBackupMeta.clear();
         this._profileBackupPruneMeta.clear();
         this._detachZoneUserListeners();
         this._presenceCache.clear();
         this._presenceTsCache.clear();
+        this._clearQueuedRewardBatches();
+        this._resetRewardValidationWindow();
         this._networkDropIds.clear();
         this._lastPresenceLiteState = null;
         this._lastPresenceLiteWriteTs = 0;
@@ -212,53 +229,12 @@ export default class NetworkManager extends EventEmitter {
             if (this.isHost) snapshot.ref.remove();
         });
 
-        // v0.00.42: Anti-cheat defense variables
-        this._rewardCount = 0;
-        this._rewardResetTime = Date.now();
-        const MAX_REWARDS_PER_MIN = 100;  // Max 100 rewards per minute
-        const MAX_EXP_PER_REWARD = 2000;  // Max exp per single reward
-        const MAX_GOLD_PER_REWARD = 2000; // Max gold per single reward
-
         // Reward Sync (Guest side listens for rewards targeting them)
         this.dbRef.child(`rewards/${this.playerId}`).on('child_added', (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                // v0.00.42: Anti-cheat validation
-                // 1. Check if reward is from legitimate host
-                if (!data.hostId || data.hostId !== this.currentHostId) {
-                    Logger.warn('[AntiCheat] Rejected reward from non-host:', data.hostId);
-                    snapshot.ref.remove();
-                    return;
-                }
-
-                // 2. Rate limit check
-                const now = Date.now();
-                if (now - this._rewardResetTime > 60000) {
-                    this._rewardCount = 0;
-                    this._rewardResetTime = now;
-                }
-                this._rewardCount++;
-                if (this._rewardCount > MAX_REWARDS_PER_MIN) {
-                    Logger.warn('[AntiCheat] Too many rewards, ignoring:', this._rewardCount);
-                    snapshot.ref.remove();
-                    return;
-                }
-
-                // 3. Sanity check on reward amounts (skip for quest rewards)
-                if (!data.questKill) {
-                    if (data.exp && data.exp > MAX_EXP_PER_REWARD) {
-                        Logger.warn('[AntiCheat] EXP too high:', data.exp);
-                        data.exp = MAX_EXP_PER_REWARD;
-                    }
-                    if (data.gold && data.gold > MAX_GOLD_PER_REWARD) {
-                        Logger.warn('[AntiCheat] Gold too high:', data.gold);
-                        data.gold = MAX_GOLD_PER_REWARD;
-                    }
-                }
-
-                // 4. Timestamp check (reject old rewards > 10s)
-                if (data.ts && (now - data.ts > 10000)) {
-                    Logger.warn('[AntiCheat] Stale reward rejected:', data.ts);
+                const validation = this._validateIncomingRewardPayload(data, Date.now());
+                if (!validation.ok) {
                     snapshot.ref.remove();
                     return;
                 }
@@ -473,6 +449,8 @@ export default class NetworkManager extends EventEmitter {
     }
 
     disconnect() {
+        this.flushQueuedRewardBatches();
+        this._flushRewardValidationWindowSummary(Date.now());
         this.flushQueuedProfileSaves().catch(() => { });
         this.flushQueuedProfilePatches().catch(() => { });
         if (this._hbInterval) {
@@ -510,9 +488,12 @@ export default class NetworkManager extends EventEmitter {
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
         this._zoneUserCache.clear();
         this._zoneUserHydrationMeta.clear();
+        this._zoneUserListenerFields.clear();
         this._detachZoneUserListeners();
         this._presenceCache.clear();
         this._presenceTsCache.clear();
+        this._clearQueuedRewardBatches();
+        this._resetRewardValidationWindow();
         this._lastPresenceLiteState = null;
         this._lastPresenceLiteWriteTs = 0;
         this._fieldPeerCount = 0;
@@ -570,12 +551,14 @@ export default class NetworkManager extends EventEmitter {
             const listeners = this._zoneUserListeners.get(uid) || [];
             listeners.forEach(({ ref, callback }) => ref.off('value', callback));
             this._zoneUserListeners.delete(uid);
+            this._zoneUserListenerFields.delete(uid);
             return;
         }
 
         this._zoneUserListeners.forEach((listeners, targetUid) => {
             listeners.forEach(({ ref, callback }) => ref.off('value', callback));
             this._zoneUserListeners.delete(targetUid);
+            this._zoneUserListenerFields.delete(targetUid);
         });
     }
 
@@ -616,6 +599,108 @@ export default class NetworkManager extends EventEmitter {
             }
         }
         return cells;
+    }
+
+    _getCellChebyshevDistance(fromCellId, toCellId) {
+        const from = this._parseFieldCellId(fromCellId);
+        const to = this._parseFieldCellId(toCellId);
+        if (!from || !to) return Number.POSITIVE_INFINITY;
+        return Math.max(Math.abs(from.x - to.x), Math.abs(from.y - to.y));
+    }
+
+    _resolveZoneUserCellId(uid, state = null) {
+        const presenceCellId = this._presenceCache.get(uid)?.cellId;
+        if (typeof presenceCellId === 'string' && presenceCellId) {
+            return presenceCellId;
+        }
+
+        const zoneState = state || this._zoneUserCache.get(uid) || {};
+        const posData = zoneState?.p;
+        if (Array.isArray(posData)) {
+            return this._getFieldCellId(posData[0], posData[1]);
+        }
+        if (posData && typeof posData === 'object') {
+            return this._getFieldCellId(posData.x, posData.y);
+        }
+
+        return null;
+    }
+
+    _isSamePartyMember(uid, profile = null) {
+        if (!uid || uid === this.playerId) return false;
+        const localMembers = Array.isArray(window.game?.localPlayer?.party?.members)
+            ? window.game.localPlayer.party.members
+            : [];
+        if (localMembers.includes(uid)) return true;
+        const remoteMembers = profile?.party?.members;
+        return Array.isArray(remoteMembers) && remoteMembers.includes(this.playerId);
+    }
+
+    _trimZoneUserCachedProfileForTier(uid, tier) {
+        if (!uid || uid === this.playerId) return;
+        const currentState = this._zoneUserCache.get(uid) || {};
+        const currentProfile = currentState.profile;
+        if (!currentProfile || typeof currentProfile !== 'object') return;
+
+        let nextProfile = currentProfile;
+        if (tier === 'reduced') {
+            nextProfile = {
+                name: currentProfile.name,
+                level: currentProfile.level,
+                party: currentProfile.party,
+                equipment: null,
+                protectedUntil: currentProfile.protectedUntil || 0
+            };
+        } else if (tier === 'minimal') {
+            nextProfile = {
+                name: currentProfile.name,
+                level: currentProfile.level,
+                equipment: null
+            };
+        }
+
+        if (nextProfile === currentProfile) return;
+        const nextState = this._mergeZoneUserCache(uid, { profile: nextProfile });
+        this._emitRemoteProfileUpdate(uid, nextState.profile || {}, nextState.hostility || {});
+    }
+
+    _resolveZoneUserHotPathTier(uid, state = null) {
+        if (!uid || uid === this.playerId) return 'full';
+
+        const currentFieldId = this._getCurrentFieldId();
+        const presenceEntry = this._presenceCache.get(uid) || null;
+        if (presenceEntry?.fieldId && presenceEntry.fieldId !== currentFieldId) {
+            return 'minimal';
+        }
+
+        const localCellId = this._getFieldCellId();
+        const remoteCellId = this._resolveZoneUserCellId(uid, state);
+        if (!remoteCellId) return 'full';
+
+        const cellDistance = this._getCellChebyshevDistance(localCellId, remoteCellId);
+        if (cellDistance <= 1) return 'full';
+        if (cellDistance <= 3) return 'reduced';
+        return 'minimal';
+    }
+
+    _getZoneUserHotPathFields(uid, state = null) {
+        const tier = this._resolveZoneUserHotPathTier(uid, state);
+        const profile = state?.profile || this._zoneUserCache.get(uid)?.profile || null;
+        const keepHp = this._isSamePartyMember(uid, profile);
+
+        if (tier === 'full') {
+            return { tier, fields: ['p', 'profile', 'hostility', 'a', 'ch', 'h'] };
+        }
+
+        if (tier === 'reduced') {
+            const fields = ['p', 'profile_name', 'profile_level', 'profile_party', 'hostility'];
+            if (keepHp) fields.push('h');
+            return { tier, fields };
+        }
+
+        const fields = ['p', 'profile_name', 'profile_level'];
+        if (keepHp) fields.push('h');
+        return { tier: 'minimal', fields };
     }
 
     _resolveMonsterSubscriptionAnchorCellId(options = {}) {
@@ -688,6 +773,7 @@ export default class NetworkManager extends EventEmitter {
         this._lastPresenceLiteState = nextPayload;
         this._lastPresenceLiteWriteTs = now;
         this._refreshMonsterCellSubscriptions(this._resolveMonsterSubscriptionAnchorCellId(options));
+        this._refreshAllZoneUserHotPathTiers('local_cell_change');
     }
 
     _normalizePresenceSnapshot(uid, value) {
@@ -839,6 +925,8 @@ export default class NetworkManager extends EventEmitter {
             previousEntry: previousEntry || null,
             entry: nextEntry || null
         });
+
+        this._refreshZoneUserHotPathTier(uid, reason);
 
         const remote = this.remotePlayers.get(uid) || null;
         if (nextActiveSameField && (!remote || !this._isMeaningfulPlayerName(remote.name))) {
@@ -1403,6 +1491,7 @@ export default class NetworkManager extends EventEmitter {
     _handleZoneUserPositionValue(uid, posData) {
         if (!posData) return;
         const state = this._mergeZoneUserCache(uid, { p: posData });
+        this._refreshZoneUserHotPathTier(uid, 'position_update');
         const ts = this._resolveZoneUserActivityTs(state);
         this.userLastSeen.set(uid, ts);
 
@@ -1444,6 +1533,21 @@ export default class NetworkManager extends EventEmitter {
         this._emitRemoteProfileUpdate(uid, state.profile || {});
     }
 
+    _handleZoneUserProfileFragmentValue(uid, key, value) {
+        if (!key) return;
+        const currentProfile = {
+            ...(this._zoneUserCache.get(uid)?.profile || {})
+        };
+        if (value === undefined || value === null) {
+            delete currentProfile[key];
+        } else {
+            currentProfile[key] = value;
+        }
+        const state = this._mergeZoneUserCache(uid, { profile: currentProfile });
+        this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
+        this._emitRemoteProfileUpdate(uid, state.profile || {}, state.hostility || {});
+    }
+
     _handleZoneUserHostilityValue(uid, hostility) {
         const state = this._mergeZoneUserCache(uid, { hostility });
         this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
@@ -1481,6 +1585,15 @@ export default class NetworkManager extends EventEmitter {
             case 'profile':
                 this._handleZoneUserProfileValue(uid, value);
                 break;
+            case 'profile_name':
+                this._handleZoneUserProfileFragmentValue(uid, 'name', value);
+                break;
+            case 'profile_level':
+                this._handleZoneUserProfileFragmentValue(uid, 'level', value);
+                break;
+            case 'profile_party':
+                this._handleZoneUserProfileFragmentValue(uid, 'party', value);
+                break;
             case 'hostility':
                 this._handleZoneUserHostilityValue(uid, value);
                 break;
@@ -1498,18 +1611,40 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
-    _attachZoneUserHotPathListeners(uid, initialState = {}) {
+    _attachZoneUserHotPathListeners(uid, initialState = {}, options = {}) {
         if (!this.dbRef || !uid || uid === this.playerId) return;
+
+        const resolved = options.fields
+            ? {
+                tier: options.tier || 'custom',
+                fields: Array.from(new Set(options.fields.filter(Boolean)))
+            }
+            : this._getZoneUserHotPathFields(uid, initialState);
+        const nextFieldKey = resolved.fields.slice().sort().join('|');
+        if (this._zoneUserListenerFields.get(uid) === nextFieldKey) return;
 
         this._detachZoneUserListeners(uid);
 
         const userRef = this.dbRef.child(`users/${uid}`);
         const listeners = [];
-        const watchKeys = ['p', 'profile', 'hostility', 'a', 'ch', 'h'];
+        const watchKeys = resolved.fields;
 
         watchKeys.forEach((fieldKey) => {
             let skipInitial = Object.prototype.hasOwnProperty.call(initialState, fieldKey);
-            const ref = userRef.child(fieldKey);
+            let ref = userRef.child(fieldKey);
+            switch (fieldKey) {
+                case 'profile_name':
+                    ref = userRef.child('profile/name');
+                    break;
+                case 'profile_level':
+                    ref = userRef.child('profile/level');
+                    break;
+                case 'profile_party':
+                    ref = userRef.child('profile/party');
+                    break;
+                default:
+                    break;
+            }
             const callback = (snapshot) => {
                 if (skipInitial) {
                     skipInitial = false;
@@ -1523,6 +1658,231 @@ export default class NetworkManager extends EventEmitter {
         });
 
         this._zoneUserListeners.set(uid, listeners);
+        this._zoneUserListenerFields.set(uid, nextFieldKey);
+    }
+
+    _refreshZoneUserHotPathTier(uid, reason = 'tier_refresh') {
+        if (!uid || uid === this.playerId) return;
+        const state = this._zoneUserCache.get(uid) || {};
+        const previousFieldKey = this._zoneUserListenerFields.get(uid) || '';
+        const resolved = this._getZoneUserHotPathFields(uid, state);
+        const nextFieldKey = resolved.fields.slice().sort().join('|');
+        if (previousFieldKey === nextFieldKey) return;
+
+        if (resolved.tier !== 'full') {
+            this._trimZoneUserCachedProfileForTier(uid, resolved.tier);
+        }
+        this._attachZoneUserHotPathListeners(uid, state, resolved);
+        if (resolved.tier === 'full') {
+            this._requestZoneUserHydration(uid, `hotpath_${reason}_full`);
+        }
+    }
+
+    _refreshAllZoneUserHotPathTiers(reason = 'bulk_tier_refresh') {
+        this.connectedUsers.forEach((uid) => {
+            if (uid === this.playerId) return;
+            this._refreshZoneUserHotPathTier(uid, reason);
+        });
+    }
+
+    _resetRewardValidationWindow(now = Date.now()) {
+        this._rewardValidationWindow = {
+            startedAt: now,
+            receivedCount: 0,
+            blockedCount: 0,
+            totalExp: 0,
+            totalGold: 0,
+            totalHp: 0,
+            totalItemEntries: 0,
+            totalItemAmount: 0,
+            blockedReasons: {}
+        };
+    }
+
+    _flushRewardValidationWindowSummary(now = Date.now()) {
+        const windowStats = this._rewardValidationWindow;
+        if (!windowStats) {
+            this._resetRewardValidationWindow(now);
+            return;
+        }
+
+        if (windowStats.blockedCount > 0) {
+            const reasons = Object.entries(windowStats.blockedReasons || {})
+                .map(([reason, count]) => `${reason}:${count}`)
+                .join(', ');
+            Logger.warn(
+                `[AntiCheat] Reward window summary ${windowStats.receivedCount} received, `
+                + `${windowStats.blockedCount} blocked`
+                + (reasons ? ` (${reasons})` : '')
+            );
+        }
+
+        this._resetRewardValidationWindow(now);
+    }
+
+    _rollRewardValidationWindow(now = Date.now()) {
+        const startedAt = Number(this._rewardValidationWindow?.startedAt || 0);
+        if (!startedAt || (now - startedAt) < 60000) return;
+        this._flushRewardValidationWindowSummary(now);
+    }
+
+    _recordRewardValidationBlock(reason = 'unknown') {
+        this._rewardValidationWindow.blockedCount += 1;
+        this._rewardValidationWindow.blockedReasons[reason] = (this._rewardValidationWindow.blockedReasons[reason] || 0) + 1;
+    }
+
+    _validateIncomingRewardPayload(data, now = Date.now()) {
+        this._rollRewardValidationWindow(now);
+        this._rewardValidationWindow.receivedCount += 1;
+
+        if (!data.hostId || data.hostId !== this.currentHostId) {
+            this._recordRewardValidationBlock('non_host');
+            return { ok: false, reason: 'non_host' };
+        }
+
+        if (data.ts && (now - data.ts > 10000)) {
+            this._recordRewardValidationBlock('stale');
+            return { ok: false, reason: 'stale' };
+        }
+
+        const itemEntries = Array.isArray(data.items) ? data.items.length : 0;
+        const itemAmount = Array.isArray(data.items)
+            ? data.items.reduce((sum, item) => sum + Math.max(1, Number(item?.amount || 1)), 0)
+            : 0;
+        const nextExpTotal = this._rewardValidationWindow.totalExp + Math.max(0, Number(data.exp || 0));
+        const nextGoldTotal = this._rewardValidationWindow.totalGold + Math.max(0, Number(data.gold || 0));
+        const nextHpTotal = this._rewardValidationWindow.totalHp + Math.max(0, Number(data.hp || 0));
+        const nextItemEntryTotal = this._rewardValidationWindow.totalItemEntries + itemEntries;
+        const nextItemAmountTotal = this._rewardValidationWindow.totalItemAmount + itemAmount;
+
+        if (nextExpTotal > 250000) {
+            this._recordRewardValidationBlock('exp_window');
+            return { ok: false, reason: 'exp_window' };
+        }
+        if (nextGoldTotal > 250000) {
+            this._recordRewardValidationBlock('gold_window');
+            return { ok: false, reason: 'gold_window' };
+        }
+        if (nextHpTotal > 60000) {
+            this._recordRewardValidationBlock('hp_window');
+            return { ok: false, reason: 'hp_window' };
+        }
+        if (nextItemEntryTotal > 320 || nextItemAmountTotal > 3200) {
+            this._recordRewardValidationBlock('item_window');
+            return { ok: false, reason: 'item_window' };
+        }
+
+        this._rewardValidationWindow.totalExp = nextExpTotal;
+        this._rewardValidationWindow.totalGold = nextGoldTotal;
+        this._rewardValidationWindow.totalHp = nextHpTotal;
+        this._rewardValidationWindow.totalItemEntries = nextItemEntryTotal;
+        this._rewardValidationWindow.totalItemAmount = nextItemAmountTotal;
+        return { ok: true, reason: 'accepted' };
+    }
+
+    _clearQueuedRewardBatches() {
+        this._queuedRewardBatches.forEach((entry) => {
+            if (entry?.timer) clearTimeout(entry.timer);
+        });
+        this._queuedRewardBatches.clear();
+    }
+
+    _canBatchReward(data = {}) {
+        if (!data || typeof data !== 'object') return false;
+        if (data.immediate === true) return false;
+        if (data.questKill === 'king_slime' || data.bossCycle) return false;
+        return true;
+    }
+
+    _mergeRewardPayload(base = {}, incoming = {}) {
+        const next = {
+            ...base,
+            exp: Math.max(0, Number(base.exp || 0)) + Math.max(0, Number(incoming.exp || 0)),
+            gold: Math.max(0, Number(base.gold || 0)) + Math.max(0, Number(incoming.gold || 0)),
+            hp: Math.max(0, Number(base.hp || 0)) + Math.max(0, Number(incoming.hp || 0))
+        };
+
+        if (incoming.monsterName) next.monsterName = incoming.monsterName;
+
+        const mergedItems = new Map();
+        const collectItem = (item) => {
+            if (!item) return;
+            const itemId = item.id || item.type;
+            if (!itemId) return;
+            const isUniqueItem = item.stackable === false
+                || !!item.instanceId
+                || !!item.slot
+                || !!item.rolledValues;
+            const key = isUniqueItem
+                ? `unique:${item.instanceId || `${itemId}:${mergedItems.size}`}`
+                : `${itemId}:${item.prefixId || ''}:${item.enhancementLevel || 0}`;
+            const previous = mergedItems.get(key) || { ...item, amount: 0 };
+            previous.amount += Math.max(1, Number(item.amount || 1));
+            mergedItems.set(key, previous);
+        };
+
+        (Array.isArray(base.items) ? base.items : []).forEach(collectItem);
+        (Array.isArray(incoming.items) ? incoming.items : []).forEach(collectItem);
+        if (mergedItems.size > 0) {
+            next.items = Array.from(mergedItems.values());
+        } else {
+            delete next.items;
+        }
+
+        const nextQuestKills = { ...(base.questKills || {}) };
+        if (typeof base.questKill === 'string' && base.questKill !== 'king_slime') {
+            nextQuestKills[base.questKill] = (nextQuestKills[base.questKill] || 0) + 1;
+        }
+        if (typeof incoming.questKill === 'string' && incoming.questKill !== 'king_slime') {
+            nextQuestKills[incoming.questKill] = (nextQuestKills[incoming.questKill] || 0) + 1;
+        }
+        if (incoming.questKills && typeof incoming.questKills === 'object') {
+            Object.entries(incoming.questKills).forEach(([key, value]) => {
+                const safeCount = Math.max(0, Number(value || 0));
+                if (safeCount <= 0 || key === 'king_slime') return;
+                nextQuestKills[key] = (nextQuestKills[key] || 0) + safeCount;
+            });
+        }
+        if (Object.keys(nextQuestKills).length > 0) {
+            next.questKills = nextQuestKills;
+        } else {
+            delete next.questKills;
+        }
+        delete next.questKill;
+        delete next.immediate;
+        return next;
+    }
+
+    _flushQueuedRewardBatch(playerId) {
+        const entry = this._queuedRewardBatches.get(playerId);
+        if (!entry) return;
+        if (entry.timer) clearTimeout(entry.timer);
+        this._queuedRewardBatches.delete(playerId);
+
+        const safeData = {
+            ...entry.payload,
+            hostId: this.playerId,
+            ts: Date.now()
+        };
+        this._recordNetworkWrite('rewardBatch', safeData);
+        this.dbRef.child(`rewards/${playerId}`).push(safeData).catch(() => { });
+    }
+
+    _queueRewardBatch(playerId, data) {
+        const existing = this._queuedRewardBatches.get(playerId) || {
+            payload: {},
+            timer: null
+        };
+        existing.payload = this._mergeRewardPayload(existing.payload, data);
+        if (existing.timer) clearTimeout(existing.timer);
+        existing.timer = setTimeout(() => this._flushQueuedRewardBatch(playerId), this._rewardBatchWindowMs);
+        this._queuedRewardBatches.set(playerId, existing);
+    }
+
+    flushQueuedRewardBatches() {
+        Array.from(this._queuedRewardBatches.keys()).forEach((playerId) => {
+            this._flushQueuedRewardBatch(playerId);
+        });
     }
 
     _buildZoneProfileSnapshot(profile) {
@@ -1557,24 +1917,116 @@ export default class NetworkManager extends EventEmitter {
 
     _buildMonsterRealtimeCellPayload(payload) {
         if (!payload || typeof payload !== 'object') return payload;
-        const nextPayload = { ...payload };
-        delete nextPayload.cellId;
+
+        const encodeState = (state) => {
+            switch (state) {
+                case 'aggro': return 1;
+                case 'casting': return 2;
+                case 'charging': return 3;
+                case 'dead': return 4;
+                case 'idle':
+                default:
+                    return 0;
+            }
+        };
+
+        const encodeType = (type) => {
+            switch (type) {
+                case 'slime': return 's';
+                case 'slime_split': return 'ss';
+                case 'king_slime': return 'ks';
+                case 'training_dummy': return 'td';
+                default:
+                    return type || 's';
+            }
+        };
+
+        const nextPayload = {
+            x: payload.x,
+            y: payload.y,
+            hp: payload.hp,
+            m: payload.maxHp,
+            tp: encodeType(payload.type),
+            r: payload.rev,
+            t: payload.ts,
+            s: encodeState(payload.state)
+        };
+
+        if (payload.chargeOnly) nextPayload.c = 1;
+        if (payload.fullSync) nextPayload.f = 1;
+        if (payload.isBoss) nextPayload.b = 1;
+        if (Number.isFinite(payload.w)) nextPayload.w = payload.w;
+        if (Number.isFinite(payload.h)) nextPayload.h = payload.h;
+
         return nextPayload;
     }
 
     _decorateMonsterCellPayload(cellId, payload) {
         if (!payload || typeof payload !== 'object') return null;
+
+        const decodeState = (state) => {
+            switch (state) {
+                case 1: return 'aggro';
+                case 2: return 'casting';
+                case 3: return 'charging';
+                case 4: return 'dead';
+                case 'aggro':
+                case 'casting':
+                case 'charging':
+                case 'dead':
+                case 'idle':
+                    return state;
+                case 0:
+                default:
+                    return 'idle';
+            }
+        };
+
+        const decodeType = (type) => {
+            switch (type) {
+                case 's': return 'slime';
+                case 'ss': return 'slime_split';
+                case 'ks': return 'king_slime';
+                case 'td': return 'training_dummy';
+                default:
+                    return type || 'slime';
+            }
+        };
+
         return {
-            ...payload,
+            x: payload.x,
+            y: payload.y,
+            hp: payload.hp ?? payload.h ?? 0,
+            maxHp: payload.maxHp ?? payload.m ?? 100,
+            type: decodeType(payload.type ?? payload.tp),
+            chargeOnly: payload.chargeOnly !== undefined ? !!payload.chargeOnly : !!payload.c,
+            rev: payload.rev ?? payload.r ?? 0,
+            ts: payload.ts ?? payload.t ?? 0,
+            state: decodeState(payload.state ?? payload.s),
+            fullSync: payload.fullSync !== undefined ? !!payload.fullSync : !!payload.f,
+            isBoss: payload.isBoss !== undefined ? !!payload.isBoss : !!payload.b,
+            w: payload.w,
+            h: payload.h,
             cellId: typeof payload.cellId === 'string' ? payload.cellId : cellId
         };
     }
 
     _getMoveSyncInterval(vx = 0, vy = 0) {
         const speed = Math.hypot(vx || 0, vy || 0);
-        if (speed <= 0.1) return this.idleSyncInterval;
-        if (speed < 90) return this.walkSyncInterval;
-        return this.syncInterval;
+        const sharedFieldActive = this.isSharedFieldActive();
+        const idleInterval = sharedFieldActive
+            ? Math.max(260, this.idleSyncInterval - 120)
+            : this.idleSyncInterval;
+        const walkInterval = sharedFieldActive
+            ? Math.max(95, this.walkSyncInterval - 30)
+            : this.walkSyncInterval;
+        const runInterval = sharedFieldActive
+            ? Math.max(70, this.syncInterval - 15)
+            : this.syncInterval;
+
+        if (speed <= 0.1) return idleInterval;
+        if (speed < 90) return walkInterval;
+        return runInterval;
     }
 
     isUserActivelyPresent(uid, options = {}) {
@@ -3033,8 +3485,13 @@ export default class NetworkManager extends EventEmitter {
         const safeY = Math.round(y) || 0;
         const safeVx = parseFloat((vx || 0).toFixed(2));
         const safeVy = parseFloat((vy || 0).toFixed(2));
-        const positionThreshold = window.game?.isMobilePerformanceMode ? 4 : 2;
-        const velocityThreshold = window.game?.isMobilePerformanceMode ? 0.08 : 0.05;
+        const sharedFieldActive = this.isSharedFieldActive();
+        const positionThreshold = window.game?.isMobilePerformanceMode
+            ? (sharedFieldActive ? 3 : 4)
+            : (sharedFieldActive ? 1 : 2);
+        const velocityThreshold = window.game?.isMobilePerformanceMode
+            ? (sharedFieldActive ? 0.06 : 0.08)
+            : (sharedFieldActive ? 0.03 : 0.05);
 
         // Delta calculation - only send changed fields
         const updates = {};
@@ -3190,7 +3647,7 @@ export default class NetworkManager extends EventEmitter {
 
     sendReward(playerId, data) {
         if (!this.connected || !this.isHost) return;
-        if (this.shouldUseMonsterQuietMode() && playerId === this.playerId) {
+        if (playerId === this.playerId) {
             const safeData = {
                 ...data,
                 hostId: this.playerId,
@@ -3201,8 +3658,11 @@ export default class NetworkManager extends EventEmitter {
             this._markNetworkActivity(safeData.ts);
             return;
         }
-        // v0.00.42: Include hostId for anti-cheat validation
-        // data: { exp: number, gold: number, items: [] }
+        if (this._canBatchReward(data)) {
+            this._queueRewardBatch(playerId, data);
+            return;
+        }
+
         const safeData = {
             ...data,
             hostId: this.playerId,  // Host signature

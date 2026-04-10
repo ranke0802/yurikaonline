@@ -1204,6 +1204,10 @@ body.ui-layout-edit-mode [data-ui-layout-editable="true"] {
     filter: brightness(1.04);
 }
 
+body.ui-layout-edit-mode #dev-overlay[data-ui-layout-editable="true"] {
+    pointer-events: auto !important;
+}
+
 body.ui-layout-edit-mode [data-ui-layout-selected="true"] {
     box-shadow:
         0 0 0 4px rgba(255, 211, 94, 0.92),
