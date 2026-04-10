@@ -64,11 +64,17 @@ export default class MonsterManager {
         this.monsterRegionMap = new Map();
         this.monsterRevisionMap = new Map();
         this.peerMonsterKeyframeMeta = new Map();
+        this.peerMonsterKeyframeCellMeta = new Map();
+        this._pendingPeerMonsterKeyframeCells = new Set();
+        this._peerMonsterKeyframeFlushTimer = null;
+        this._peerMonsterKeyframeFlushDelayMs = 180;
         this._hostSnapshotRestorePromise = null;
         this._lastHostSnapshotRestoreTs = 0;
         this._guestSnapshotHydrationPending = null;
         this._guestSnapshotHydrationPromise = null;
         this._lastGuestSnapshotHydrationTs = 0;
+        this.minimapSyncTimer = 0;
+        this.minimapSyncInterval = 0.5;
 
         // Register Network Handlers
         this.net.onRemoteMonsterAdded(this._onRemoteMonsterAdded.bind(this));
@@ -82,6 +88,14 @@ export default class MonsterManager {
         this.net.on('fieldPeerPresenceChanged', this._handleFieldPeerPresenceChanged.bind(this));
         this.net.on('connected', () => this._scheduleGuestSnapshotHydration('connected', 500));
         this.net.on('hostChanged', (isHost) => {
+            this._clearQueuedPeerMonsterKeyframes();
+            if (isHost) {
+                this.minimapSyncTimer = 0;
+                if (this.net.isSharedFieldActive()) {
+                    this.net.publishMinimapMonsterSnapshot(this.monsters, { force: true });
+                }
+                return;
+            }
             if (!isHost) {
                 this._scheduleGuestSnapshotHydration('host_changed', 450);
             }
@@ -94,6 +108,7 @@ export default class MonsterManager {
                     this.lastSyncState.clear();
                     this.forceSyncAll();
                     this.forceSyncAllDrops();
+                    this.net.publishMinimapMonsterSnapshot(this.monsters, { force: true });
                     return;
                 }
                 this._scheduleGuestSnapshotHydration('shared_field_join', 350);
@@ -102,9 +117,12 @@ export default class MonsterManager {
             if (this.net.isHost) {
                 this.lastSyncState.clear();
                 this.peerMonsterKeyframeMeta.clear();
+                this.peerMonsterKeyframeCellMeta.clear();
+                this._clearQueuedPeerMonsterKeyframes();
                 return;
             }
             this._guestSnapshotHydrationPending = null;
+            this._clearQueuedPeerMonsterKeyframes();
         });
 
         // v0.00.24: Increased for smoother sync
@@ -248,7 +266,9 @@ export default class MonsterManager {
 
         if (this.net.isHost) {
             this._updateHostLogic(dt, localPlayer, remotePlayers);
+            this._updateMinimapSnapshot(dt);
         } else {
+            this.minimapSyncTimer = 0;
             this._processPendingGuestSnapshotHydration().catch((error) => {
                 Logger.warn('[MonsterManager] Guest monster snapshot hydration failed', error);
             });
@@ -289,6 +309,18 @@ export default class MonsterManager {
                 this.net.collectDrop(id);
             }
         });
+    }
+
+    _updateMinimapSnapshot(dt) {
+        if (!this.net?.isHost || !this.net?.isSharedFieldActive?.()) {
+            this.minimapSyncTimer = 0;
+            return;
+        }
+
+        this.minimapSyncTimer += dt;
+        if (this.minimapSyncTimer < this.minimapSyncInterval) return;
+        this.minimapSyncTimer = 0;
+        this.net.publishMinimapMonsterSnapshot(this.monsters);
     }
 
     handleVisibilityResync(options = {}) {
@@ -565,7 +597,43 @@ export default class MonsterManager {
             cellId: entry.cellId,
             ts: now
         });
-        this.forceSyncAroundCell(entry.cellId, { neighborhood: 1 });
+
+        const previousCellMeta = this.peerMonsterKeyframeCellMeta.get(entry.cellId) || null;
+        if (previousCellMeta && (now - previousCellMeta.ts) < 500) return;
+        this.peerMonsterKeyframeCellMeta.set(entry.cellId, { ts: now });
+        const peerCount = Math.max(0, Number(this.net?.getSameFieldPeerCount?.() || 0));
+        const neighborhood = peerCount >= 6 ? 0 : 1;
+        this._queuePeerMonsterKeyframe(entry.cellId, neighborhood);
+    }
+
+    _queuePeerMonsterKeyframe(cellId, neighborhood = 1) {
+        if (!this.net?.isHost || !cellId) return;
+        this._pendingPeerMonsterKeyframeCells.add(`${cellId}|${Math.max(0, Number(neighborhood || 1))}`);
+        if (this._peerMonsterKeyframeFlushTimer) return;
+        this._peerMonsterKeyframeFlushTimer = setTimeout(() => {
+            this._peerMonsterKeyframeFlushTimer = null;
+            this._flushQueuedPeerMonsterKeyframes();
+        }, this._peerMonsterKeyframeFlushDelayMs);
+    }
+
+    _flushQueuedPeerMonsterKeyframes() {
+        if (!this.net?.isHost || this._pendingPeerMonsterKeyframeCells.size === 0) return;
+        const queued = Array.from(this._pendingPeerMonsterKeyframeCells);
+        this._pendingPeerMonsterKeyframeCells.clear();
+
+        queued.forEach((entry) => {
+            const [cellId, rawNeighborhood] = String(entry).split('|');
+            const neighborhood = Math.max(0, Number(rawNeighborhood || 1));
+            this.forceSyncAroundCell(cellId, { neighborhood });
+        });
+    }
+
+    _clearQueuedPeerMonsterKeyframes() {
+        if (this._peerMonsterKeyframeFlushTimer) {
+            clearTimeout(this._peerMonsterKeyframeFlushTimer);
+            this._peerMonsterKeyframeFlushTimer = null;
+        }
+        this._pendingPeerMonsterKeyframeCells.clear();
     }
 
     _getMonsterSyncProfile(monster, interestedPlayers, mobileThermalMode) {
@@ -1805,7 +1873,13 @@ export default class MonsterManager {
         this.monsterRegionMap.clear();
         this.monsterRevisionMap.clear();
         this.peerMonsterKeyframeMeta.clear();
+        this.peerMonsterKeyframeCellMeta.clear();
+        this._clearQueuedPeerMonsterKeyframes();
         this.tutorialMonsterIds.clear();
+        this.minimapSyncTimer = 0;
+        if (this.net?.isHost && this.net?.isSharedFieldActive?.()) {
+            this.net.publishMinimapMonsterSnapshot(this.monsters, { force: true });
+        }
         Logger.info("[MonsterManager] Local world state cleared.");
     }
 

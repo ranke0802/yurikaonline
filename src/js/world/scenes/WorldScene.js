@@ -570,6 +570,15 @@ export default class WorldScene extends Scene {
                 this.game.addSpark(target.x + target.width / 2, target.y + target.height / 2);
                 const impactX = Number.isFinite(data.meta?.impactX) ? data.meta.impactX : null;
                 const impactY = Number.isFinite(data.meta?.impactY) ? data.meta.impactY : null;
+                const fireballImpact = Number.isFinite(impactX)
+                    && Number.isFinite(impactY)
+                    && (data.meta?.cause === 'fireball' || data.meta?.cause === 'blue_fireball_chain');
+                if (target === this.player && fireballImpact) {
+                    this.game.addExplosion?.(impactX, impactY, data.meta?.explosionRadius || 40, {
+                        variant: data.meta?.cause === 'blue_fireball_chain' ? 'blue_flame' : 'default',
+                        collapse: true
+                    });
+                }
                 if (target === this.player) {
                     this.player.takeDamage(
                         data.dmg,
@@ -893,7 +902,8 @@ export default class WorldScene extends Scene {
                 this.ui.updateMinimap(
                     this.player,
                     this.remotePlayers,
-                    this.monsterManager ? this.monsterManager.monsters : [],
+                    this.net?.getMinimapMonsterEntries?.(this.monsterManager ? Array.from(this.monsterManager.monsters.values()) : [])
+                        || (this.monsterManager ? Array.from(this.monsterManager.monsters.values()) : []),
                     this.game.zone.width,
                     this.game.zone.height
                 );

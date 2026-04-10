@@ -92,6 +92,12 @@ export default class NetworkManager extends EventEmitter {
         this._monsterCellPayloadCache = new Map();
         this._monsterPendingRemovalTimers = new Map();
         this._publishedMonsterCellMap = new Map();
+        this.minimapMonsterSnapshotIntervalMs = 500;
+        this._lastMinimapMonsterSnapshotWriteTs = 0;
+        this._lastMinimapMonsterSnapshotSignature = '';
+        this._minimapMonsterSnapshotCache = null;
+        this._minimapMonsterSnapshotListener = null;
+        this._minimapMonsterSnapshotFieldId = null;
         this.syncOptimizationFlags = {
             usePresenceLiteMode: true,
             useFieldRealtimeMode: true,
@@ -130,6 +136,11 @@ export default class NetworkManager extends EventEmitter {
         this._networkDropIds.clear();
         this._lastPresenceLiteState = null;
         this._lastPresenceLiteWriteTs = 0;
+        this._lastMinimapMonsterSnapshotWriteTs = 0;
+        this._lastMinimapMonsterSnapshotSignature = '';
+        this._minimapMonsterSnapshotCache = null;
+        this._minimapMonsterSnapshotFieldId = null;
+        this._detachMinimapMonsterSnapshotListener();
         this._fieldPeerCount = 0;
         this._sharedFieldActive = false;
         this.startBatchProcessor();
@@ -396,9 +407,12 @@ export default class NetworkManager extends EventEmitter {
             this._sharedFieldActive = false;
             this.lastPacketData = null;
             this._clearMonsterCellSubscriptions({ emitRemovals: true });
+            this._detachMinimapMonsterSnapshotListener();
+            this._minimapMonsterSnapshotCache = null;
         } else {
             this._publishPresenceLite({ force: true, reason: 'zone_reenabled' });
             this._refreshMonsterCellSubscriptions(this._resolveMonsterSubscriptionAnchorCellId());
+            this._refreshMinimapMonsterSnapshotListener(this._getCurrentFieldId());
             this.sendHeartbeat();
         }
     }
@@ -508,6 +522,11 @@ export default class NetworkManager extends EventEmitter {
         this._clearPendingMonsterRemovalTimers();
         this._monsterCellPayloadCache.clear();
         this._publishedMonsterCellMap.clear();
+        this._lastMinimapMonsterSnapshotWriteTs = 0;
+        this._lastMinimapMonsterSnapshotSignature = '';
+        this._minimapMonsterSnapshotCache = null;
+        this._minimapMonsterSnapshotFieldId = null;
+        this._detachMinimapMonsterSnapshotListener();
         this.lastPacketData = null;
         this.lastSyncTime = 0;
         this.lastHeartbeatTime = 0;
@@ -537,6 +556,7 @@ export default class NetworkManager extends EventEmitter {
         ];
         fixedPaths.forEach(path => this.dbRef.child(path).off());
         this._clearMonsterCellSubscriptions({ emitRemovals: true });
+        this._detachMinimapMonsterSnapshotListener();
 
         if (!this.playerId) return;
         const playerPaths = [
@@ -685,6 +705,9 @@ export default class NetworkManager extends EventEmitter {
 
         const cellDistance = this._getCellChebyshevDistance(localCellId, remoteCellId);
         if (cellDistance <= 1) return 'full';
+        const peerCount = Math.max(0, Number(this._fieldPeerCount || 0));
+        if (peerCount >= 10 && cellDistance > 1) return 'minimal';
+        if (peerCount >= 6 && cellDistance > 2) return 'minimal';
         if (cellDistance <= 3) return 'reduced';
         return 'minimal';
     }
@@ -724,6 +747,165 @@ export default class NetworkManager extends EventEmitter {
 
     shouldUseMonsterHostSnapshot() {
         return !!this.syncOptimizationFlags.useMonsterHostSnapshot;
+    }
+
+    _normalizeMinimapMonsterSnapshot(fieldId, value) {
+        if (!fieldId || !value || typeof value !== 'object') return null;
+        const q = Math.max(1, Number(value.q || 16));
+        const items = Array.isArray(value.items)
+            ? value.items
+                .map((item) => {
+                    if (!Array.isArray(item) || item.length < 2) return null;
+                    const xq = Number(item[0]);
+                    const yq = Number(item[1]);
+                    if (!Number.isFinite(xq) || !Number.isFinite(yq)) return null;
+                    return [xq, yq, item[2] ? 1 : 0];
+                })
+                .filter(Boolean)
+            : [];
+
+        return {
+            fieldId: this._normalizeFieldId(fieldId),
+            hostId: value.hostId || null,
+            ts: Number(value.ts || 0),
+            q,
+            items
+        };
+    }
+
+    _detachMinimapMonsterSnapshotListener() {
+        const listener = this._minimapMonsterSnapshotListener;
+        if (!listener) return;
+        listener.ref.off('value', listener.callback);
+        this._minimapMonsterSnapshotListener = null;
+        this._minimapMonsterSnapshotFieldId = null;
+    }
+
+    _refreshMinimapMonsterSnapshotListener(fieldId = null) {
+        const nextFieldId = this._normalizeFieldId(fieldId || this._getCurrentFieldId());
+        const shouldListen = !!(
+            this.connected
+            && this.dbRef
+            && this.zoneParticipationEnabled
+            && this.isSharedFieldActive()
+            && !this.isHost
+        );
+
+        if (!shouldListen) {
+            this._detachMinimapMonsterSnapshotListener();
+            if (!this.isSharedFieldActive()) {
+                this._minimapMonsterSnapshotCache = null;
+            }
+            return;
+        }
+
+        if (this._minimapMonsterSnapshotFieldId === nextFieldId && this._minimapMonsterSnapshotListener) {
+            return;
+        }
+
+        this._detachMinimapMonsterSnapshotListener();
+
+        const ref = this.dbRef.child(`minimap_monsters/${nextFieldId}`);
+        const callback = (snapshot) => {
+            this._minimapMonsterSnapshotCache = this._normalizeMinimapMonsterSnapshot(nextFieldId, snapshot.val());
+        };
+
+        ref.on('value', callback);
+        this._minimapMonsterSnapshotListener = { ref, callback };
+        this._minimapMonsterSnapshotFieldId = nextFieldId;
+    }
+
+    _buildMinimapMonsterSnapshotPayload(monsters, options = {}) {
+        const fieldId = this._normalizeFieldId(options.fieldId || this._getCurrentFieldId());
+        const q = Math.max(4, Math.round(Number(options.quantization || 16)));
+        const entries = monsters instanceof Map
+            ? Array.from(monsters.entries())
+            : Array.isArray(monsters)
+                ? monsters.map((monster, index) => [monster?.id || `m_${index}`, monster])
+                : [];
+
+        const items = entries
+            .filter(([, monster]) => monster && !monster.isDead && Number(monster.hp || 0) > 0)
+            .sort(([aId], [bId]) => String(aId).localeCompare(String(bId)))
+            .map(([, monster]) => [
+                Math.round(Number(monster.x || 0) / q),
+                Math.round(Number(monster.y || 0) / q),
+                (monster.isBoss || monster.typeId === 'king_slime') ? 1 : 0
+            ]);
+
+        return { fieldId, q, items };
+    }
+
+    publishMinimapMonsterSnapshot(monsters, options = {}) {
+        if (!this.connected || !this.isHost || !this.dbRef || !this.zoneParticipationEnabled) return;
+        if (!this.isSharedFieldActive()) return;
+
+        const now = Date.now();
+        if (!options.force && (now - this._lastMinimapMonsterSnapshotWriteTs) < this.minimapMonsterSnapshotIntervalMs) {
+            return;
+        }
+
+        const payload = this._buildMinimapMonsterSnapshotPayload(monsters, options);
+        const signature = `${payload.fieldId}|${payload.q}|${payload.items.map((item) => item.join(',')).join('|')}`;
+        if (!options.force && signature === this._lastMinimapMonsterSnapshotSignature) {
+            this._lastMinimapMonsterSnapshotWriteTs = now;
+            return;
+        }
+
+        const safePayload = {
+            hostId: this.playerId,
+            ts: now,
+            q: payload.q,
+            items: payload.items
+        };
+
+        this._recordNetworkWrite('minimapMonsterSnapshot', safePayload, payload.items.length);
+        this.dbRef.child(`minimap_monsters/${payload.fieldId}`).set(safePayload).catch(() => { });
+        this._minimapMonsterSnapshotCache = {
+            fieldId: payload.fieldId,
+            ...safePayload
+        };
+        this._lastMinimapMonsterSnapshotWriteTs = now;
+        this._lastMinimapMonsterSnapshotSignature = signature;
+    }
+
+    getMinimapMonsterEntries(fallbackMonsters = null) {
+        const normalizeFallback = () => {
+            if (fallbackMonsters instanceof Map) {
+                return Array.from(fallbackMonsters.values());
+            }
+            if (Array.isArray(fallbackMonsters)) {
+                return fallbackMonsters;
+            }
+            return [];
+        };
+
+        if (this.isHost || !this.isSharedFieldActive()) {
+            return normalizeFallback();
+        }
+
+        const currentFieldId = this._normalizeFieldId(this._getCurrentFieldId());
+        const snapshot = this._minimapMonsterSnapshotCache;
+        const hostMatches = !!(
+            snapshot?.hostId
+            && this.currentHostId
+            && snapshot.hostId === this.currentHostId
+        );
+        if (snapshot
+            && snapshot.fieldId === currentFieldId
+            && hostMatches
+            && snapshot.ts > 0
+            && (Date.now() - snapshot.ts) < 4000) {
+            return snapshot.items.map((item) => ({
+                x: item[0] * snapshot.q,
+                y: item[1] * snapshot.q,
+                isBoss: !!item[2],
+                typeId: item[2] ? 'king_slime' : 'slime',
+                isDead: false
+            }));
+        }
+
+        return normalizeFallback();
     }
 
     _buildPresenceAppearance(player) {
@@ -783,6 +965,7 @@ export default class NetworkManager extends EventEmitter {
         this._lastPresenceLiteState = nextPayload;
         this._lastPresenceLiteWriteTs = now;
         this._refreshMonsterCellSubscriptions(this._resolveMonsterSubscriptionAnchorCellId(options));
+        this._refreshMinimapMonsterSnapshotListener(nextPayload.fieldId);
         this._refreshAllZoneUserHotPathTiers('local_cell_change');
     }
 
@@ -1174,6 +1357,7 @@ export default class NetworkManager extends EventEmitter {
                 fieldId,
                 peerCount
             });
+            this._refreshAllZoneUserHotPathTiers('peer_count_change');
         }
 
         if (this._sharedFieldActive !== nextActive) {
@@ -1190,9 +1374,16 @@ export default class NetworkManager extends EventEmitter {
                 this._publishLocalRealtimeSnapshot('shared_field_join');
             } else {
                 this.lastPacketData = null;
+                if (this.isHost && this.dbRef) {
+                    this.dbRef.child(`minimap_monsters/${fieldId}`).remove().catch(() => { });
+                }
+                this._lastMinimapMonsterSnapshotWriteTs = 0;
+                this._lastMinimapMonsterSnapshotSignature = '';
+                this._minimapMonsterSnapshotCache = null;
             }
         }
 
+        this._refreshMinimapMonsterSnapshotListener(fieldId);
         this._publishPresenceLite({ force: false, fieldId });
     }
 
@@ -3346,19 +3537,22 @@ export default class NetworkManager extends EventEmitter {
         }
 
         this.currentHostId = desiredHostId;
+        const activeUserCount = candidates.length;
         const desiredHost = desiredHostId === this.playerId;
 
         if (desiredHost && !this.isHost) {
             this.isHost = true;
-            Logger.info(`[Network] PROMOTED TO HOST. Active Users: ${activeUsers.length}. ID: ${this.playerId}`);
+            Logger.info(`[Network] PROMOTED TO HOST. Active Users: ${activeUserCount}. ID: ${this.playerId}`);
             this.emit('hostChanged', true);
             this._startCleanupLoop();
         } else if (!desiredHost && this.isHost) {
             this.isHost = false;
-            Logger.info(`[Network] DEMOTED TO GUEST. Active Users: ${activeUsers.length}`);
+            Logger.info(`[Network] DEMOTED TO GUEST. Active Users: ${activeUserCount}`);
             this.emit('hostChanged', false);
             this._stopCleanupLoop();
         }
+
+        this._refreshMinimapMonsterSnapshotListener(this._getCurrentFieldId());
     }
 
     _startCleanupLoop() {

@@ -109,6 +109,39 @@ export class Projectile {
         return 1;
     }
 
+    _getPlayerCollisionMetrics(target) {
+        if (!target) return null;
+        const width = target.width || 48;
+        const height = target.height || 48;
+        return {
+            cx: target.x + width / 2,
+            cy: target.y + height / 2,
+            radius: Math.max(width, height) / 2
+        };
+    }
+
+    _intersectsPlayerTarget(target) {
+        const metrics = this._getPlayerCollisionMetrics(target);
+        if (!metrics) return false;
+        const dist = Math.sqrt((this.x - metrics.cx) ** 2 + (this.y - metrics.cy) ** 2);
+        return dist < (this.hitRadius + metrics.radius);
+    }
+
+    _findVisualOnlyFireballPlayerTarget(lp, rps, owner) {
+        if (lp && !lp.isDead && lp.id !== this.ownerId) {
+            if (this._intersectsPlayerTarget(lp)) return lp;
+        }
+
+        if (rps) {
+            for (const rp of rps.values()) {
+                if (!rp || rp.isDead || rp.id === this.ownerId) continue;
+                if (this._intersectsPlayerTarget(rp)) return rp;
+            }
+        }
+
+        return null;
+    }
+
     update(dt, monsters) {
         if (this.isDead) return;
 
@@ -240,6 +273,14 @@ export class Projectile {
         this.y += this.vy * dt;
 
         if (this.visualOnly) {
+            if (this.type === 'fireball') {
+                const playerTarget = this._findVisualOnlyFireballPlayerTarget(lp, rps, owner);
+                if (playerTarget) {
+                    this.hit(playerTarget, monsters);
+                    return;
+                }
+            }
+
             if (this.type === 'fireball' && this.targetX !== null && this.targetY !== null) {
                 const endpointDist = Math.hypot(this.targetX - this.x, this.targetY - this.y);
                 const endpointThreshold = Math.max(this.radius, (this.speed || 0) * dt);
@@ -254,6 +295,24 @@ export class Projectile {
 
         // Collision Checks
         if (this.type === 'fireball') {
+            // PvP hits should feel immediate even at close range.
+            if (lp && !lp.isDead && lp.id !== this.ownerId) {
+                if (owner && owner.canAttackTarget(lp) && this._intersectsPlayerTarget(lp)) {
+                    this.hit(lp, monsters);
+                    return;
+                }
+            }
+            if (rps) {
+                for (const rp of rps.values()) {
+                    if (rp.isDead || rp.id === this.ownerId) continue;
+                    if (owner && !owner.canAttackTarget(rp)) continue;
+                    if (this._intersectsPlayerTarget(rp)) {
+                        this.hit(rp, monsters);
+                        return;
+                    }
+                }
+            }
+
             // v1.99.18: Prevent instant explosion at feet. Must travel at least 50px.
             const distFromSpawnSq = (this.x - this.spawnX) ** 2 + (this.y - this.spawnY) ** 2;
             if (distFromSpawnSq < 50 * 50) return;
@@ -269,27 +328,6 @@ export class Projectile {
                     const dist = Math.sqrt((this.x - mx) ** 2 + (this.y - my) ** 2);
                     // v1.99.21: Account for monster size in collision
                     if (dist < (this.hitRadius + monsterRadius)) this.hit(m, monsters);
-                });
-            }
-            // 2. Local Player (PvP Visual/Damage)
-            if (lp && !lp.isDead && lp.id !== this.ownerId) {
-                if (owner && owner.canAttackTarget(lp)) {
-                    const cx = lp.x + (lp.width || 48) / 2;
-                    const cy = lp.y + (lp.height || 48) / 2;
-                    const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
-                    if (dist < this.hitRadius) this.hit(lp, monsters);
-                }
-            }
-            // 3. Remote Players (PvP Damage)
-            if (rps) {
-                rps.forEach(rp => {
-                    if (rp.isDead || rp.id === this.ownerId) return;
-                    if (owner && !owner.canAttackTarget(rp)) return;
-
-                    const cx = rp.x + (rp.width || 48) / 2;
-                    const cy = rp.y + (rp.height || 48) / 2;
-                    const dist = Math.sqrt((this.x - cx) ** 2 + (this.y - cy) ** 2);
-                    if (dist < this.hitRadius) this.hit(rp, monsters);
                 });
             }
         } else if (this.type === 'missile') {
@@ -391,6 +429,16 @@ export class Projectile {
     hit(target, monsters) {
         // v1.99.25: Initiate impact delay (v1.99.26: Penetration mode)
         if (this.type === 'fireball') {
+            const targetIsMonster = target?.isMonster || (target?.type === 'monster');
+            if (!targetIsMonster) {
+                this.isExploding = true;
+                this.explosionContext = { target, monsters };
+                this.explosionDelay = 0;
+                this.vx = 0;
+                this.vy = 0;
+                this._executeActualExplosion(target, monsters);
+                return;
+            }
             if (!this.isExploding) {
                 this.isExploding = true;
                 // v1.99.34: respect the delay passed from constructor (scaled by level)
