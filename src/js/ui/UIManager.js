@@ -3379,16 +3379,13 @@ export class UIManager {
             this.updateAutoAttackToggle();
         }
 
-        this.getUiLayoutControlsForMode('desktop')
-            .concat(this.getUiLayoutControlsForMode('mobilePortrait'))
-            .concat(this.getUiLayoutControlsForMode('mobileLandscape'))
-            .forEach(([controlId]) => {
-                const element = this.getUiLayoutControlElement(controlId);
-                if (!element || element.dataset.uiLayoutBound === 'true') return;
-                element.dataset.uiLayoutControlId = controlId;
-                element.addEventListener('pointerdown', this.handleUiLayoutControlPointerDown);
-                element.dataset.uiLayoutBound = 'true';
-            });
+        Object.keys(this.uiLayoutControlDefinitions).forEach((controlId) => {
+            const element = this.getUiLayoutControlElement(controlId);
+            if (!element || element.dataset.uiLayoutBound === 'true') return;
+            element.dataset.uiLayoutControlId = controlId;
+            element.addEventListener('pointerdown', this.handleUiLayoutControlPointerDown);
+            element.dataset.uiLayoutBound = 'true';
+        });
 
         const skillDetailModal = document.getElementById('skill-detail-modal');
         const skillDetailCloseBtn = document.getElementById('skill-detail-modal-close');
