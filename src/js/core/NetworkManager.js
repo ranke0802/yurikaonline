@@ -1436,44 +1436,6 @@ export default class NetworkManager extends EventEmitter {
         this._emitRemoteProfileUpdate(uid, state.profile || {});
     }
 
-    _normalizeZoneProfileFieldValue(fieldKey, value) {
-        switch (fieldKey) {
-            case 'name':
-                return value || 'Unknown';
-            case 'level':
-                return Number(value || 1);
-            case 'equipment':
-                return value || null;
-            case 'party':
-                return value || null;
-            case 'hostility':
-                return value || {};
-            case 'defense':
-                return Number(value || 0);
-            case 'isPaused':
-                return !!value;
-            case 'protectedUntil':
-                return Number(value || 0);
-            default:
-                return value;
-        }
-    }
-
-    _handleZoneUserProfileFieldValue(uid, profileFieldKey, value) {
-        if (!profileFieldKey) return;
-
-        const nextValue = this._normalizeZoneProfileFieldValue(profileFieldKey, value);
-        const cache = this._getZoneUserCache(uid);
-        const nextProfile = {
-            ...((cache.profile && typeof cache.profile === 'object') ? cache.profile : {})
-        };
-        nextProfile[profileFieldKey] = nextValue;
-
-        this._mergeZoneUserCache(uid, { profile: nextProfile });
-        this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
-        this._emitRemoteProfileUpdate(uid, { [profileFieldKey]: nextValue });
-    }
-
     _handleZoneUserHostilityValue(uid, hostility) {
         const state = this._mergeZoneUserCache(uid, { hostility });
         this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
@@ -1503,10 +1465,6 @@ export default class NetworkManager extends EventEmitter {
 
     _handleZoneUserFieldValue(uid, fieldKey, value) {
         if (!uid || uid === this.playerId) return;
-        if (typeof fieldKey === 'string' && fieldKey.startsWith('profile.')) {
-            this._handleZoneUserProfileFieldValue(uid, fieldKey.slice(8), value);
-            return;
-        }
 
         switch (fieldKey) {
             case 'p':
@@ -1539,24 +1497,11 @@ export default class NetworkManager extends EventEmitter {
 
         const userRef = this.dbRef.child(`users/${uid}`);
         const listeners = [];
-        const hasInitialProfile = !!(initialState.profile && typeof initialState.profile === 'object');
-        const profileWatchFields = ['name', 'level', 'defense', 'isPaused', 'protectedUntil', 'equipment', 'party', 'hostility'];
-        const watchDescriptors = [
-            { fieldKey: 'p', path: 'p', skipInitial: Object.prototype.hasOwnProperty.call(initialState, 'p') },
-            ...profileWatchFields.map((profileFieldKey) => ({
-                fieldKey: `profile.${profileFieldKey}`,
-                path: `profile/${profileFieldKey}`,
-                skipInitial: hasInitialProfile
-            })),
-            { fieldKey: 'hostility', path: 'hostility', skipInitial: Object.prototype.hasOwnProperty.call(initialState, 'hostility') },
-            { fieldKey: 'a', path: 'a', skipInitial: Object.prototype.hasOwnProperty.call(initialState, 'a') },
-            { fieldKey: 'ch', path: 'ch', skipInitial: Object.prototype.hasOwnProperty.call(initialState, 'ch') },
-            { fieldKey: 'h', path: 'h', skipInitial: Object.prototype.hasOwnProperty.call(initialState, 'h') }
-        ];
+        const watchKeys = ['p', 'profile', 'hostility', 'a', 'ch', 'h'];
 
-        watchDescriptors.forEach(({ fieldKey, path, skipInitial: initialSkip }) => {
-            let skipInitial = !!initialSkip;
-            const ref = userRef.child(path);
+        watchKeys.forEach((fieldKey) => {
+            let skipInitial = Object.prototype.hasOwnProperty.call(initialState, fieldKey);
+            const ref = userRef.child(fieldKey);
             const callback = (snapshot) => {
                 if (skipInitial) {
                     skipInitial = false;
