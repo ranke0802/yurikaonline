@@ -93,6 +93,7 @@ export default class Player extends CharacterBase {
 
         // Combat & Channeling
         this.attackRange = 400; // v2.4.2: Tighten basic attack range to match combat feel and remote visuals
+        this.autoAttackPursuitRange = 1100;
         this.autoAttackEnabled = false;
         this.fireballAimActive = false;
         this.fireballAimGuide = null;
@@ -643,6 +644,25 @@ export default class Player extends CharacterBase {
                 vy = dy / dist;
             } else {
                 this.moveTarget = null;
+            }
+        }
+
+        // 4. Auto mode pursuit - approach the nearest valid monster until basic attack range.
+        if (vx === 0 && vy === 0 && !this.moveTarget && this.autoAttackEnabled && !this.fireballAimActive) {
+            const autoMoveTarget = this.getAutoMoveTarget();
+            if (this.isAutoMoveTargetStillValid(autoMoveTarget) && !this.canAutoAttackCurrentTarget()) {
+                const targetPoint = this.getCombatTargetPoint(autoMoveTarget);
+                const sourceX = this.x + this.width / 2;
+                const sourceY = this.y + this.height / 2;
+                const dx = (targetPoint?.x ?? autoMoveTarget.x) - sourceX;
+                const dy = (targetPoint?.y ?? autoMoveTarget.y) - sourceY;
+                const dist = Math.hypot(dx, dy);
+                const stopDistance = Math.max(80, this.attackRange - 20);
+
+                if (dist > stopDistance) {
+                    vx = dx / dist;
+                    vy = dy / dist;
+                }
             }
         }
 
@@ -1301,6 +1321,14 @@ export default class Player extends CharacterBase {
         return this.getDistanceToTarget(target) <= this.attackRange;
     }
 
+    isAutoMoveTargetStillValid(target) {
+        if (!target) return false;
+        const isMonsterTarget = !!target.isMonster || target.type === 'monster' || !!target.typeId;
+        if (!isMonsterTarget) return false;
+        if (!this.isAttackTargetStillValid(target)) return false;
+        return this.canAttackTarget(target);
+    }
+
     getDistanceToTarget(target) {
         if (!target) return Number.POSITIVE_INFINITY;
 
@@ -1420,6 +1448,47 @@ export default class Player extends CharacterBase {
     clearCurrentTarget() {
         this.currentTarget = null;
         this.currentTargetMode = null;
+    }
+
+    findNearestAutoMoveTarget() {
+        const monsters = window.game?.monsterManager?.monsters;
+        if (!monsters) return null;
+
+        let nearest = null;
+        let minDist = this.autoAttackPursuitRange;
+
+        for (const target of monsters.values()) {
+            if (!this.isAutoMoveTargetStillValid(target)) continue;
+
+            const distance = this.getDistanceToTarget(target);
+            if (distance < minDist) {
+                minDist = distance;
+                nearest = target;
+            }
+        }
+
+        return nearest;
+    }
+
+    getAutoMoveTarget() {
+        if (this.isAutoMoveTargetStillValid(this.currentTarget)) {
+            const distance = this.getDistanceToTarget(this.currentTarget);
+            if (distance <= this.autoAttackPursuitRange) {
+                return this.currentTarget;
+            }
+        }
+
+        const nearest = this.findNearestAutoMoveTarget();
+        if (nearest) {
+            this.setCurrentTarget(nearest, { mode: 'auto' });
+            return nearest;
+        }
+
+        if (this.currentTargetMode === 'auto' && !this.canAutoAttackCurrentTarget()) {
+            this.clearCurrentTarget();
+        }
+
+        return null;
     }
 
     findNearestAutoAttackTarget() {
