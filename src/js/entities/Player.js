@@ -1269,7 +1269,7 @@ export default class Player extends CharacterBase {
     }
 
     recoverMana(amount, isSilent = false) {
-        if (amount <= 0) return;
+        if (amount <= 0) return 0;
         const oldMp = this.mp;
         this.mp = Math.min(this.maxMp, this.mp + amount);
         const recovered = this.mp - oldMp;
@@ -1279,6 +1279,7 @@ export default class Player extends CharacterBase {
             const py = this.y + 30;
             window.game.addDamageText(px, py, `+${recovered}`, '#4FC3F7', false);
         }
+        return recovered;
     }
 
     recoverHp(amount) {
@@ -1643,6 +1644,8 @@ export default class Player extends CharacterBase {
         let currentSource = { x: centerX, y: centerY };
         const affectedMonsters = [];
         const chains = [];
+        let totalRecoveredMp = 0;
+        let totalRecoveredHp = 0;
 
         // Access monsters AND remote players for PvP
         const monstersMap = window.game?.monsterManager?.monsters;
@@ -1709,14 +1712,26 @@ export default class Player extends CharacterBase {
                     }
 
                     // v0.00.28: Mana recovery per hit (+1 MP per chain target)
-                    this.recoverMana(1);
+                    totalRecoveredMp += this.recoverMana(1, true);
                     if (weaponCombat.restoreHpPerLaserHit > 0) {
-                        this.recoverHp(weaponCombat.restoreHpPerLaserHit);
+                        totalRecoveredHp += this.recoverHp(weaponCombat.restoreHpPerLaserHit, {
+                            reason: 'laser_hit_recover_hp_patch'
+                        }) || 0;
                     }
                 }
                 currentSource = { x: nextTarget.x, y: nextTarget.y };
             } else {
                 break;
+            }
+        }
+
+        if (isTick && window.game?.addDamageText) {
+            const px = this.x + this.width / 2;
+            if (totalRecoveredHp > 0) {
+                window.game.addDamageText(px, this.y + 12, `+${totalRecoveredHp}`, '#4ade80', false);
+            }
+            if (totalRecoveredMp > 0) {
+                window.game.addDamageText(px, this.y + 30, `+${totalRecoveredMp}`, '#4FC3F7', false);
             }
         }
 
@@ -2022,8 +2037,10 @@ export default class Player extends CharacterBase {
 
 
     recoverHp(amount, options = {}) {
+        if (amount <= 0) return 0;
         const previousHp = this.hp;
         this.hp = Math.min(this.maxHp, this.hp + amount);
+        const recovered = this.hp - previousHp;
         if (this.net && this.hp !== previousHp) {
             this.net.sendPlayerHp(this.hp, this.maxHp);
         }
@@ -2036,6 +2053,7 @@ export default class Player extends CharacterBase {
                 });
             }
         }
+        return recovered;
     }
 
     receiveReward(data, options = {}) {
