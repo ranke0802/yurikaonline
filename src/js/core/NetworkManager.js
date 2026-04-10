@@ -1961,6 +1961,39 @@ export default class NetworkManager extends EventEmitter {
         return nextPayload;
     }
 
+    _sanitizeRealtimePayloadValue(value) {
+        if (value === undefined) return undefined;
+        if (value === null) return null;
+
+        if (typeof value === 'number') {
+            return Number.isFinite(value) ? value : undefined;
+        }
+
+        if (typeof value === 'string' || typeof value === 'boolean') {
+            return value;
+        }
+
+        if (Array.isArray(value)) {
+            return value.map((entry) => {
+                const sanitizedEntry = this._sanitizeRealtimePayloadValue(entry);
+                return sanitizedEntry === undefined ? null : sanitizedEntry;
+            });
+        }
+
+        if (typeof value === 'object') {
+            const sanitizedObject = {};
+            Object.entries(value).forEach(([key, entry]) => {
+                const sanitizedEntry = this._sanitizeRealtimePayloadValue(entry);
+                if (sanitizedEntry !== undefined) {
+                    sanitizedObject[key] = sanitizedEntry;
+                }
+            });
+            return Object.keys(sanitizedObject).length > 0 ? sanitizedObject : null;
+        }
+
+        return undefined;
+    }
+
     _decorateMonsterCellPayload(cellId, payload) {
         if (!payload || typeof payload !== 'object') return null;
 
@@ -3543,13 +3576,14 @@ export default class NetworkManager extends EventEmitter {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         if (!this._shouldSendRealtimeUserState()) return;
         const now = Date.now();
+        const safeExtraData = this._sanitizeRealtimePayloadValue(extraData);
         const payload = [
             now,
             Math.round(x),
             Math.round(y),
-            dir,
-            skillType,
-            extraData // v0.29.0: Added for skill specifics (e.g. missile count)
+            Number.isFinite(dir) ? dir : 0,
+            skillType || 'normal',
+            safeExtraData ?? null // v0.29.0: Added for skill specifics (e.g. missile count)
         ];
         this._recordNetworkWrite('attack', payload);
         this.dbRef.child(`users/${this.playerId}/a`).set(payload);
@@ -3608,11 +3642,12 @@ export default class NetworkManager extends EventEmitter {
     // v0.33.0: Send Monster Attack (Host Only)
     sendMonsterAttack(monsterId, skillType, extraData = null) {
         if (!this.connected || !this.isHost) return;
+        const safeExtraData = this._sanitizeRealtimePayloadValue(extraData);
         if (this.shouldUseMonsterQuietMode()) {
             const payload = {
                 mid: monsterId,
                 skill: skillType,
-                extra: extraData,
+                extra: safeExtraData ?? null,
                 ts: Date.now()
             };
             this._recordNetworkWrite('monsterAttackLocal', payload);
@@ -3623,7 +3658,7 @@ export default class NetworkManager extends EventEmitter {
         const payload = {
             mid: monsterId,
             skill: skillType,
-            extra: extraData,
+            extra: safeExtraData ?? null,
             ts: Date.now()
         };
         this._recordNetworkWrite('monsterAttack', payload);
