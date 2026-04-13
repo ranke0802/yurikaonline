@@ -1,6 +1,8 @@
 import Monster from '../entities/Monster.js';
 import Logger from '../utils/Logger.js';
 
+const REMOVED_DROP_ITEM_IDS = new Set(['slime_gel', 'potion_hp_small', 'royal_jelly', 'king_crown']);
+
 export default class MonsterManager {
     constructor(game) {
         this.game = game;
@@ -27,38 +29,7 @@ export default class MonsterManager {
         this.firstBossMissingTimer = 0;
         this.slimeKillCount = 0; // v0.00.43: Track kills for boss spawn
 
-        // v0.00.44: Persistence for Slime Kill Count
-        if (this.net.dbRef) {
-            // v0.00.45: Check Last Host Time for Reset
-            this.net.dbRef.child('world_state/last_host_time').once('value', (snapshot) => {
-                const lastTime = snapshot.val() || 0;
-                const now = Date.now();
-                if (now - lastTime > 60000) { // 1 min inactive
-                    Logger.log('[MonsterManager] Host inactive > 1min. Resetting Kill Count.');
-                    this.slimeKillCount = 0;
-                    this.net.dbRef.child('world_state/slime_kill_count').set(0);
-                } else {
-                    // Load existing count
-                    this.net.dbRef.child('world_state/slime_kill_count').once('value', (s) => {
-                        const val = s.val();
-                        if (val !== null) this.slimeKillCount = val;
-                    });
-                }
-            });
-
-            // Listen for updates (Sync between hosts or re-connections)
-            this.net.dbRef.child('world_state/slime_kill_count').on('value', (snapshot) => {
-                const val = snapshot.val();
-                if (val !== null) {
-                    // Only update if we are NOT the one writing (or to just sync state)
-                    // If we are host, we are the authority, but if we just became host, we might need latest.
-                    // Simple: Always accept DB value unless we just incremented it?
-                    // Actually, if we are host, we increment local and write.
-                    // If another host writes, we should accept? (Should be only 1 host).
-                    this.slimeKillCount = val;
-                }
-            });
-        }
+        // v2.4.6: Single-first progression keeps the first boss buildup local to the current session.
 
         this.lastSyncState = new Map();
         this.monsterRegionMap = new Map();
@@ -162,6 +133,7 @@ export default class MonsterManager {
     }
 
     _buildRewardItem(itemId, dropDef = {}, context = {}) {
+        if (REMOVED_DROP_ITEM_IDS.has(itemId)) return null;
         const itemData = this.game.itemData;
         if (itemData) {
             const sourceDefinition = itemData.getItemDefinition(itemId);
@@ -201,6 +173,53 @@ export default class MonsterManager {
         };
     }
 
+    _isGroundLootItem(itemId) {
+        return itemId === 'weapon_upgrade_stone' || itemId === 'blessed_weapon_upgrade_stone';
+    }
+
+    _spawnGroundLootDrop(monster, reward, options = {}) {
+        if (!monster || !reward || !this.net?.spawnDrop) return false;
+        const itemId = reward.id || reward.type;
+        if (!itemId) return false;
+
+        this.net.spawnDrop({
+            x: monster.x + (Number.isFinite(options.offsetX) ? options.offsetX : ((Math.random() * 44) - 22)),
+            y: monster.y + (Number.isFinite(options.offsetY) ? options.offsetY : ((Math.random() * 28) - 14)),
+            type: itemId,
+            itemId,
+            amount: Math.max(1, Math.floor(Number(reward.amount || 1))),
+            ownerId: options.ownerId || null,
+            partyMembers: Array.isArray(options.partyMembers) ? options.partyMembers : null,
+            eligibleCollectorIds: Array.isArray(options.eligibleCollectorIds) ? options.eligibleCollectorIds : null,
+            name: reward.name || itemId,
+            icon: reward.icon || null
+        });
+        return true;
+    }
+
+    _grantMonsterExpReward(amount, options = {}) {
+        const safeAmount = Math.max(0, Math.floor(Number(amount) || 0));
+        if (safeAmount <= 0) return;
+
+        const eligibleCollectorIds = this._normalizePartyMembers(options.eligibleCollectorIds || []);
+        const partyMembers = this._normalizePartyMembers(options.partyMembers || []);
+        const ownerId = eligibleCollectorIds.includes(options.attackerId)
+            ? options.attackerId
+            : (eligibleCollectorIds[0] || options.attackerId || partyMembers[0] || null);
+        if (!ownerId) return;
+
+        this.net.sendReward(ownerId, { exp: safeAmount });
+
+        const rewardPeers = this._normalizePartyMembers(
+            eligibleCollectorIds.length > 0 ? eligibleCollectorIds : partyMembers
+        );
+        rewardPeers
+            .filter((uid) => uid && uid !== ownerId)
+            .forEach((uid) => this.net.sendReward(uid, {
+                exp: Math.max(1, Math.floor(safeAmount * 0.6))
+            }));
+    }
+
     _grantMonsterItemDrops(monster, attackerId) {
         if (!monster) return;
 
@@ -210,17 +229,34 @@ export default class MonsterManager {
             ? attackerId
             : (participantIds[0] || attackerId || null);
         if (!rewardTargetId) return;
+        const groundEligibleCollectorIds = [rewardTargetId];
         const allDrops = [
             ...(Array.isArray(monster.drops) ? monster.drops : []),
             ...(this.game.itemData?.getGlobalDrops() || []),
             ...(this.game.itemData?.getBossDrops(monster.typeId) || [])
         ];
+        let groundDropCount = 0;
 
         allDrops.forEach((dropDef) => {
             if (!dropDef?.itemId || dropDef.itemId === 'gold' || dropDef.itemId === 'manastone') return;
             if (Math.random() > (dropDef.chance ?? 1)) return;
             const reward = this._buildRewardItem(dropDef.itemId, dropDef, { monster });
-            if (reward) rewardedItems.push(reward);
+            if (!reward) return;
+
+            const rewardItemId = reward.id || reward.type;
+            if (this._isGroundLootItem(rewardItemId)) {
+                const direction = groundDropCount % 2 === 0 ? -1 : 1;
+                this._spawnGroundLootDrop(monster, reward, {
+                    ownerId: rewardTargetId,
+                    eligibleCollectorIds: groundEligibleCollectorIds,
+                    offsetX: direction * (18 + (groundDropCount * 6)),
+                    offsetY: -6 + ((groundDropCount % 3) * 8)
+                });
+                groundDropCount += 1;
+                return;
+            }
+
+            rewardedItems.push(reward);
         });
 
         if (rewardedItems.length > 0) {
@@ -230,8 +266,8 @@ export default class MonsterManager {
             };
 
             // Host-local kills should not depend on the reward sync roundtrip.
-            // Manastone/EXP are handled by world drops, but item rewards are direct grants,
-            // so deliver them immediately to avoid host-side reward validation timing issues.
+            // Manastone is handled by world drops, EXP is granted immediately for the HUD hint,
+            // and non-ground item rewards are still direct grants.
             if (rewardTargetId === this.net.playerId && window.game?.localPlayer) {
                 window.game.localPlayer.receiveReward(rewardPayload);
                 return rewardedItems;
@@ -778,9 +814,6 @@ export default class MonsterManager {
         this.hostHeartbeatTimer = (this.hostHeartbeatTimer || 0) + dt;
         if (this.hostHeartbeatTimer >= 5.0) {
             this.hostHeartbeatTimer = 0;
-            if (this.net.dbRef) {
-                this.net.dbRef.child('world_state/last_host_time').set(Date.now());
-            }
 
             // v0.00.48: Removed Force 10-Kill logic. 
             // Quest progression is now strictly based on accumulated kills (0->30).
@@ -834,12 +867,8 @@ export default class MonsterManager {
                             partyMembers: killerPartyMembers,
                             eligibleCollectorIds
                         });
-                        this.net.spawnDrop({
-                            x: m.x + 20,
-                            y: m.y - 10,
-                            type: 'exp',
-                            amount: xpAmount,
-                            ownerId: attackerId,
+                        this._grantMonsterExpReward(xpAmount, {
+                            attackerId,
                             partyMembers: killerPartyMembers,
                             eligibleCollectorIds
                         });
@@ -871,11 +900,11 @@ export default class MonsterManager {
                         if (rp) killerParty = rp.party;
                     }
 
-                    // Calculate Rewards (Drops are separate, this is auto-grant Exp/Manastone/Quest)
-                    // Note: Current Drop system handles manastone/EXP items. This block handles *direct* grants or Quest triggers.
+                    // Calculate Rewards (ground loot is separate, this is auto-grant Exp/Quest processing)
+                    // Note: Manastone and some item rewards still use ground drops, while EXP is granted immediately.
                     // Wait, the code above spawns drops. This block is for QUESTS and NOTIFICATIONS.
                     // BUT, prompt says "Experience, Manastone... split 1/N".
-                    // The standard game loop has Drops for manastone/EXP.
+                    // The standard game loop now keeps manastone on the ground while EXP is granted instantly.
                     // If drops exist, players pick them up individually.
                     // If shared, maybe "Picking up drop" splits it?
                     // OR: Remove drops and auto-grant?
@@ -888,7 +917,7 @@ export default class MonsterManager {
                     // BUT here, let's handle QUEST updates for party members if needed.
                     // Actually, usually quests are "Kill Count". Everyone in party witnessing kill gets +1?
                     // Prompt doesn't say "Shared Quest Progress". It says "Shared Exp, Manastone".
-                    // Drops give Exp/Manastone. So I should modify `_onDropCollectionRequested` or `collectDrop`.
+                    // Manastone still uses drops; EXP is already distributed here.
 
                     // However, we still need to process QUESTS for the KILLER (or Party?).
                     // Let's assume Quest completion is individual for now (or shared if specified, but prompt says Exp/Manastone).
@@ -1552,7 +1581,6 @@ export default class MonsterManager {
 
         if (isFirstBoss) {
             this.slimeKillCount = 0;
-            this.net?.dbRef?.child('world_state/slime_kill_count').set(0).catch(() => { });
         }
 
         return bossId;
@@ -1805,6 +1833,9 @@ export default class MonsterManager {
             ownerId: data.ownerId,
             partyMembers: data.partyMembers,
             eligibleCollectorIds: data.eligibleCollectorIds,
+            itemId: data.itemId,
+            name: data.name,
+            icon: data.icon,
             ts: data.ts
         });
         if (d.isExpired?.()) {
@@ -1835,6 +1866,7 @@ export default class MonsterManager {
                     || drop.partyMembers?.includes(data.collectorId));
             if (!collectorAllowed) return;
 
+            const itemDropType = drop.itemId || null;
             if (drop.type === 'gold' || drop.type === 'manastone' || drop.type === 'exp') {
                 const ownerId = drop.ownerId || data.collectorId;
                 const ownerReward = {};
@@ -1860,6 +1892,17 @@ export default class MonsterManager {
                     .forEach((uid) => this.net.sendReward(uid, allyReward));
             } else if (drop.type === 'hp') {
                 this.net.sendReward(data.collectorId, { hp: drop.amount });
+            } else if (itemDropType || drop.type === 'weapon_upgrade_stone' || drop.type === 'blessed_weapon_upgrade_stone') {
+                const rewardItemId = itemDropType || drop.type;
+                this.net.sendReward(data.collectorId, {
+                    items: [{
+                        id: rewardItemId,
+                        type: rewardItemId,
+                        amount: Math.max(1, Number(drop.amount || 1)),
+                        name: drop.name || rewardItemId,
+                        icon: drop.icon || null
+                    }]
+                });
             }
 
             this.net.removeDrop(data.dropId);
@@ -1957,9 +2000,6 @@ export default class MonsterManager {
         if (m.typeId === 'slime' || m.typeId === 'slime_split') {
             if (!this.firstBossDefeated && !this.bossSpawned && this.slimeKillCount < 30) {
                 this.slimeKillCount++;
-                if (this.net.dbRef) {
-                    this.net.dbRef.child('world_state/slime_kill_count').set(this.slimeKillCount);
-                }
                 Logger.log(`[MonsterManager] Slime Kill Count: ${this.slimeKillCount}`);
 
                 if (this.slimeKillCount === 10) {
@@ -1977,7 +2017,6 @@ export default class MonsterManager {
             this.firstBossDefeated = true;
             // Ensure count is 0
             this.slimeKillCount = 0;
-            if (this.net.dbRef) this.net.dbRef.child('world_state/slime_kill_count').set(0);
         }
     }
 }

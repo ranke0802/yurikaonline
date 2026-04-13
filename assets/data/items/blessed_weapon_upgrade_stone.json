@@ -6,7 +6,7 @@
   "stackable": true,
   "maxStack": 999,
   "rarity": "epic",
-  "description": "축복의 힘이 담긴 희귀 재료. 성공 확률 50%, 실패 시 강화 수치 유지, 성공 시 +1~2 강화됩니다.",
+  "description": "무기를 선택해 축복 강화를 시도할 수 있는 고급 강화석입니다. 성공 확률은 50%이며, 실패해도 강화 수치가 유지되고 성공 시 +1~2 강화됩니다.",
   "icon": {
     "fallbackEmoji": "💎"
   },

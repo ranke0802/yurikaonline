@@ -44,14 +44,6 @@
             "min": 500,
             "max": 1000,
             "chance": 1.0
-        },
-        {
-            "itemId": "royal_jelly",
-            "chance": 0.5
-        },
-        {
-            "itemId": "king_crown",
-            "chance": 0.05
         }
     ]
 }

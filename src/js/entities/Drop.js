@@ -4,7 +4,10 @@ export default class Drop extends Entity {
     constructor(id, x, y, type, amount, options = {}) {
         super(x, y);
         this.id = id;
-        this.type = type; // 'manastone', 'exp', 'hp'
+        this.type = type; // 'manastone', 'exp', 'hp', 'weapon_upgrade_stone', 'blessed_weapon_upgrade_stone'
+        this.itemId = options.itemId || null;
+        this.name = options.name || '';
+        this.icon = options.icon || null;
         this.amount = amount;
         this.ownerId = options.ownerId || null;
         this.partyMembers = Array.isArray(options.partyMembers) ? options.partyMembers : null;
@@ -24,8 +27,22 @@ export default class Drop extends Entity {
 
         // Visual properties
         const isManastoneDrop = this.type === 'manastone' || this.type === 'gold';
-        this.color = isManastoneDrop ? '#7C8CFF' : (this.type === 'hp' ? '#4ade80' : '#00BFFF');
-        this.glowColor = isManastoneDrop ? 'rgba(124, 140, 255, 0.35)' : (this.type === 'hp' ? 'rgba(74, 222, 128, 0.3)' : 'rgba(0, 191, 255, 0.3)');
+        const isWeaponStoneDrop = this.type === 'weapon_upgrade_stone' || this.itemId === 'weapon_upgrade_stone';
+        const isBlessedWeaponStoneDrop = this.type === 'blessed_weapon_upgrade_stone' || this.itemId === 'blessed_weapon_upgrade_stone';
+        this.color = isBlessedWeaponStoneDrop
+            ? '#ffe082'
+            : (isWeaponStoneDrop
+                ? '#72ddf7'
+                : (isManastoneDrop
+                    ? '#7C8CFF'
+                    : (this.type === 'hp' ? '#4ade80' : '#00BFFF')));
+        this.glowColor = isBlessedWeaponStoneDrop
+            ? 'rgba(255, 224, 130, 0.38)'
+            : (isWeaponStoneDrop
+                ? 'rgba(114, 221, 247, 0.34)'
+                : (isManastoneDrop
+                    ? 'rgba(124, 140, 255, 0.35)'
+                    : (this.type === 'hp' ? 'rgba(74, 222, 128, 0.3)' : 'rgba(0, 191, 255, 0.3)')));
     }
 
     canPlayerCollect(player) {
@@ -93,6 +110,9 @@ export default class Drop extends Entity {
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
         ctx.beginPath();
+        const isWeaponStoneDrop = this.type === 'weapon_upgrade_stone' || this.itemId === 'weapon_upgrade_stone';
+        const isBlessedWeaponStoneDrop = this.type === 'blessed_weapon_upgrade_stone' || this.itemId === 'blessed_weapon_upgrade_stone';
+
         if (this.type === 'gold' || this.type === 'manastone') {
             ctx.moveTo(screenX, screenY - 10);
             ctx.lineTo(screenX + 9, screenY - 4);
@@ -100,6 +120,12 @@ export default class Drop extends Entity {
             ctx.lineTo(screenX, screenY + 11);
             ctx.lineTo(screenX - 7, screenY + 7);
             ctx.lineTo(screenX - 9, screenY - 4);
+            ctx.closePath();
+        } else if (isWeaponStoneDrop || isBlessedWeaponStoneDrop) {
+            ctx.moveTo(screenX, screenY - 11);
+            ctx.lineTo(screenX + 9, screenY);
+            ctx.lineTo(screenX, screenY + 11);
+            ctx.lineTo(screenX - 9, screenY);
             ctx.closePath();
         } else if (this.type === 'hp') {
             ctx.rect(screenX - 8, screenY - 3, 16, 6);
@@ -114,6 +140,26 @@ export default class Drop extends Entity {
         }
         ctx.fill();
         ctx.stroke();
+
+        if (isWeaponStoneDrop || isBlessedWeaponStoneDrop) {
+            ctx.strokeStyle = isBlessedWeaponStoneDrop ? '#fff8dc' : 'rgba(255,255,255,0.9)';
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(screenX, screenY - 5);
+            ctx.lineTo(screenX, screenY + 5);
+            ctx.moveTo(screenX - 4, screenY);
+            ctx.lineTo(screenX + 4, screenY);
+            ctx.stroke();
+
+            if (isBlessedWeaponStoneDrop) {
+                ctx.beginPath();
+                ctx.moveTo(screenX + 7, screenY - 10);
+                ctx.lineTo(screenX + 7, screenY - 4);
+                ctx.moveTo(screenX + 4, screenY - 7);
+                ctx.lineTo(screenX + 10, screenY - 7);
+                ctx.stroke();
+            }
+        }
 
         ctx.restore();
     }

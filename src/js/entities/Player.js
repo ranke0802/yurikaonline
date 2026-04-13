@@ -13,6 +13,7 @@ const ITEM_DEFINITIONS = {
     blessed_weapon_upgrade_stone: { name: '축복받은 무기 강화석', icon: '💎' },
     magic_staff: { name: '마력의 지팡이', icon: '🪄' }
 };
+const REMOVED_ITEM_IDS = new Set(['slime_gel', 'potion_hp_small', 'royal_jelly', 'king_crown']);
 
 const BLESSED_WEAPON_UPGRADE_STONE_ID = 'blessed_weapon_upgrade_stone';
 const BLESSED_WEAPON_ENHANCEMENT = Object.freeze({
@@ -83,7 +84,7 @@ export default class Player extends CharacterBase {
         this.hostileTargets = new Map(); // Map<UID, Name>
 
         // v0.00.66: Delayed party initialization until ID is set in init()
-        this.party = { members: [] }; // Members: string[]
+        this.party = { members: [], hostId: null, mode: 'solo' };
         this.partyInvite = null; // { senderId, senderName, ts }
 
         this.skillLevels = {
@@ -176,8 +177,8 @@ export default class Player extends CharacterBase {
         }
 
         // v0.00.66: Self is always the first member
-        if (this.id && !this.party.members.includes(this.id)) {
-            this.party.members.push(this.id);
+        if (this.id) {
+            this.setPartyState(this.party, false);
         }
 
         this._loadSpriteSheet(resourceManager);
@@ -2089,6 +2090,9 @@ export default class Player extends CharacterBase {
         if (Array.isArray(data.items)) {
             data.items.forEach((item) => {
                 const itemId = item.id || item.type;
+                if (REMOVED_ITEM_IDS.has(itemId)) {
+                    return;
+                }
                 const amount = Math.max(1, item.amount || 1);
                 const added = this.addInventoryItem(itemId, amount, item);
                 if (added) {
@@ -2349,8 +2353,12 @@ export default class Player extends CharacterBase {
 
 
     gainExp(amount, options = {}) {
+        if (amount <= 0) return;
         const shouldSave = options.save !== false;
         const debounceMs = Number.isFinite(options.debounceMs) ? options.debounceMs : undefined;
+        if (options.showHint !== false) {
+            window.game?.ui?.showExpGainHint?.(amount);
+        }
         this.exp += amount;
         while (this.exp >= this.maxExp) {
             this.levelUp({ save: false });
@@ -2815,17 +2823,38 @@ export default class Player extends CharacterBase {
     }
 
     addToParty(uid) {
-        this.setPartyMembers([...(this.party?.members || []), uid]);
+        const currentParty = this.party || {};
+        this.setPartyState({
+            ...currentParty,
+            members: [...(currentParty.members || []), uid]
+        });
     }
 
     setPartyMembers(memberIds, syncToWorld = true) {
-        const normalized = Array.from(new Set((memberIds || []).filter(Boolean)));
-        if (this.id && !normalized.includes(this.id)) {
-            normalized.unshift(this.id);
+        this.setPartyState({ ...(this.party || {}), members: memberIds }, syncToWorld);
+    }
+
+    setPartyState(partyState = {}, syncToWorld = true) {
+        const normalizedMembers = Array.from(new Set((partyState?.members || []).filter(Boolean)));
+        if (this.id && !normalizedMembers.includes(this.id)) {
+            normalizedMembers.unshift(this.id);
         }
 
-        this.party = { members: normalized };
+        const resolvedHostId = normalizedMembers.includes(partyState?.hostId)
+            ? partyState.hostId
+            : (normalizedMembers[0] || this.id || null);
+        const resolvedMode = typeof partyState?.mode === 'string' && partyState.mode
+            ? partyState.mode
+            : (normalizedMembers.length > 1 ? 'party' : 'solo');
+
+        this.party = {
+            members: normalizedMembers,
+            hostId: resolvedHostId,
+            mode: resolvedMode
+        };
+
         this.saveState(syncToWorld);
+        window.game?.net?.handleLocalPartyStateChanged?.('player_party_state_changed');
         if (window.game?.ui) window.game.ui.updatePartyUI();
     }
 
@@ -2838,6 +2867,7 @@ export default class Player extends CharacterBase {
         const sourceInventory = Array.isArray(savedInventory) ? savedInventory : this.inventory;
         this.inventory = Array.from({ length: INVENTORY_TOTAL_SLOTS }, (_, index) => {
             const raw = sourceInventory[index] || null;
+            if (REMOVED_ITEM_IDS.has(raw?.type || raw?.id)) return null;
             return itemData?.normalizeInventoryItem(raw) || raw || null;
         });
         const sourceEquipment = savedEquipment || this.equipment || { weapon: null };
@@ -3404,6 +3434,7 @@ export default class Player extends CharacterBase {
 
     addInventoryItem(itemId, amount = 1, meta = {}) {
         if (!itemId || amount <= 0) return null;
+        if (REMOVED_ITEM_IDS.has(itemId)) return null;
 
         const definition = {
             ...this.getItemMeta(itemId),

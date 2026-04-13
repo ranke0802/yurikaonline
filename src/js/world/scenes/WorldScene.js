@@ -231,7 +231,7 @@ export default class WorldScene extends Scene {
             ) {
                 this.player.questData.introBossParticipated = false;
             }
-            this.player.normalizeInventoryState(profile.inventory, profile.equipment);
+            const inventoryNormalizationResult = this.player.normalizeInventoryState(profile.inventory, profile.equipment);
 
             // v2.4: Restore tutorial completion before intro flow resumes.
             if (this.game.tutorial) {
@@ -305,10 +305,10 @@ export default class WorldScene extends Scene {
                 this.ui.updateAutoAttackToggle(this.player.autoAttackEnabled);
                 this.ui.updateSkillPopup();
             }
-            if (needsLegacyCurrencyMigration) {
+            if (needsLegacyCurrencyMigration || inventoryNormalizationResult?.changed) {
                 this.player.saveState(false, {
                     debounceMs: 0,
-                    reason: 'migrate_gold_to_manastone'
+                    reason: needsLegacyCurrencyMigration ? 'migrate_gold_to_manastone' : 'remove_legacy_inventory_items'
                 });
             }
         }
@@ -321,6 +321,8 @@ export default class WorldScene extends Scene {
 
         this.ui?.loadPlayerSettings?.(this.player.clientSettings || null);
         this.player.init(this.input, this.resources, this.net);
+        this.net.resetToSoloPartyState(false);
+        this.net.handleLocalPartyStateChanged('world_enter_force_solo');
         this.player.grantSpawnProtection(5);
         this.ui?.loadPlayerUiLayout?.(this.player.uiLayout || null);
 

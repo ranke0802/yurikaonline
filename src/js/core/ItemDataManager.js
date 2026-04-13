@@ -146,6 +146,8 @@ const LEGACY_ITEM_DEFINITIONS = {
 const DEFAULT_STACKABLE_ICON = '🎁';
 const DEFAULT_EQUIPMENT_ICON = '🪄';
 
+const REMOVED_LEGACY_ITEM_IDS = new Set(['slime_gel', 'potion_hp_small', 'royal_jelly', 'king_crown']);
+
 export default class ItemDataManager {
     constructor(resourceManager) {
         this.resourceManager = resourceManager;
@@ -201,6 +203,7 @@ export default class ItemDataManager {
     }
 
     getItemDefinition(id) {
+        if (REMOVED_LEGACY_ITEM_IDS.has(id)) return null;
         return this.itemDefinitions.get(id) || LEGACY_ITEM_DEFINITIONS[id] || null;
     }
 
@@ -304,6 +307,7 @@ export default class ItemDataManager {
     normalizeInventoryItem(item) {
         if (!item) return null;
         if (item.type === 'manastone' || item.type === 'gold') return item;
+        if (REMOVED_LEGACY_ITEM_IDS.has(item.type || item.id)) return null;
 
         const definition = this.getItemDefinition(item.type || item.id);
         if (!definition) {

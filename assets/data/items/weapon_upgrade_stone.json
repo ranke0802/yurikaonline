@@ -6,7 +6,7 @@
   "stackable": true,
   "maxStack": 999,
   "rarity": "rare",
-  "description": "무기를 +1부터 +10까지 강화할 때 사용하는 재료.",
+  "description": "무기를 선택해 +1부터 +10까지 일반 강화를 시도할 수 있는 강화석입니다. 성공하면 강화 단계가 1 상승합니다.",
   "icon": {
     "fallbackEmoji": "💎"
   },

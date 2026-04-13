@@ -16,7 +16,7 @@
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
-        window.BOOTSTRAP_VERSION = '0.01.140';
+        window.BOOTSTRAP_VERSION = '0.01.142';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -123,7 +123,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    await navigator.serviceWorker.register('./sw.js?v=0.01.140', { updateViaCache: 'none' });
+                    await navigator.serviceWorker.register('./sw.js?v=0.01.142', { updateViaCache: 'none' });
                 } catch (err) {
                     console.warn('ServiceWorker registration failed: ', err);
                 }
@@ -211,7 +211,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.140">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.142">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -267,6 +267,7 @@
                             <div class="bar-bg exp-bg">
                                 <div class="bar-fill exp-fill"></div>
                             </div>
+                            <div id="ui-exp-gain-container" class="exp-gain-container"></div>
                         </div>
                     </div>
                 </div>
@@ -291,6 +292,10 @@
                     <div class="menu-btn status-trigger" id="btn-status" data-key="shift-i" title="내 정보">
                         <div class="menu-icon">👤</div>
                         <span class="menu-alert-dot" id="status-alert-dot" aria-hidden="true"></span>
+                    </div>
+                    <div class="menu-btn friends-trigger" id="btn-friends" title="친구">
+                        <div class="menu-icon">👥</div>
+                        <span class="menu-alert-dot" id="friends-alert-dot" aria-hidden="true"></span>
                     </div>
                     <div class="menu-btn settings-trigger" id="btn-settings" title="설정">
                         <div class="menu-icon">⚙️</div>
@@ -469,6 +474,7 @@
                                     <h3 id="inventory-detail-name">아이템 이름</h3>
                                     <p id="inventory-detail-subtitle"></p>
                                 </div>
+                                <div id="inventory-detail-head-actions" class="inventory-detail-head-actions hidden"></div>
                             </div>
                             <p id="inventory-detail-desc" class="inventory-detail-desc"></p>
                             <ul id="inventory-detail-stats" class="inventory-detail-stats"></ul>
@@ -784,6 +790,69 @@
                     <button id="settings-close-btn-bottom" class="close-btn-bottom close-popup">닫기</button>
                 </div>
             </div>
+
+            <div id="friends-popup" class="game-popup hidden">
+                <div class="popup-header">
+                    <h2>친구</h2>
+                    <button id="friends-close-btn-top" class="close-popup pc-only">✕</button>
+                </div>
+                <div class="friends-content-wrapper">
+                    <div class="friends-sidebar">
+                        <div class="friends-search-card">
+                            <label for="friend-search-input">친구 추가</label>
+                            <div class="friends-search-row">
+                                <input id="friend-search-input" type="text" placeholder="아이디 또는 이름 조회">
+                                <button id="friend-search-btn" type="button" class="friends-inline-btn">조회</button>
+                            </div>
+                            <div id="friend-search-result" class="friends-search-result">검색 결과가 여기에 표시됩니다.</div>
+                            <button id="friend-add-btn" type="button" class="friends-primary-btn" disabled>친구 추가</button>
+                        </div>
+                        <div class="friends-list-card">
+                            <div class="friends-list-header">
+                                <strong>친구 목록</strong>
+                                <span id="friends-count">0명</span>
+                            </div>
+                            <div id="friends-list" class="friends-list"></div>
+                        </div>
+                    </div>
+                    <div class="friends-detail-card">
+                        <div id="friend-detail-empty" class="friends-detail-empty">친구를 선택하면 현재 상태와 장착 무기를 볼 수 있습니다.</div>
+                        <div id="friend-detail-panel" class="hidden">
+                            <div class="friends-detail-header">
+                                <div>
+                                    <h3 id="friend-detail-name">친구 이름</h3>
+                                    <p id="friend-detail-status" class="friends-status-chip">오프라인</p>
+                                </div>
+                                <button id="friend-together-btn" type="button" class="friends-primary-btn">함께하기</button>
+                            </div>
+                            <div id="friend-detail-summary" class="friends-detail-summary"></div>
+                            <div class="friends-detail-section">
+                                <strong>현재 스테이터스</strong>
+                                <div id="friend-detail-stats" class="friends-detail-stats"></div>
+                            </div>
+                            <div class="friends-detail-section">
+                                <strong>장착 무기</strong>
+                                <div id="friend-detail-weapon" class="friends-detail-weapon"></div>
+                            </div>
+                            <div class="friends-detail-actions">
+                                <button id="friend-message-toggle-btn" type="button" class="friends-inline-btn">메시지 보내기</button>
+                                <button id="friend-gift-btn" type="button" class="friends-inline-btn">선물 보내기</button>
+                                <button id="friend-remove-btn" type="button" class="friends-inline-btn danger">삭제</button>
+                            </div>
+                            <div class="friends-message-card">
+                                <textarea id="friend-message-input" rows="3" maxlength="200" placeholder="친구에게 보낼 메시지를 입력하세요."></textarea>
+                                <div class="friends-message-actions">
+                                    <span id="friend-message-hint">최대 200자</span>
+                                    <button id="friend-message-send-btn" type="button" class="friends-primary-btn">전송</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="popup-footer">
+                    <button id="friends-close-btn-bottom" class="close-btn-bottom close-popup">닫기</button>
+                </div>
+            </div>
         </div>
 
         <div id="ui-layout-editor" class="ui-layout-editor hidden">
@@ -913,7 +982,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.140"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.142"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

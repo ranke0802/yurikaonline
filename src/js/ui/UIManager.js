@@ -30,6 +30,12 @@ export class UIManager {
         this.centerMessageActive = false;
         this._centerMsgTimer = null;
         this._centerMsgFadeTimer = null;
+        this.pendingExpGainHint = 0;
+        this._pendingExpGainTimer = null;
+        this.selectedFriendUid = null;
+        this.friendSearchResult = null;
+        this.friendProfileCache = new Map();
+        this.friendAlertCount = 0;
         this.handleDesktopShortcutKeydown = this.handleDesktopShortcutKeydown.bind(this);
         this.refreshDesktopShortcutHints = this.refreshDesktopShortcutHints.bind(this);
         this.positionInventoryItemModal = this.positionInventoryItemModal.bind(this);
@@ -155,6 +161,7 @@ export class UIManager {
         this.setupEmoteUI();
         this.setupLandscapeChatInteractions();
         this.setupInventoryInteractions();
+        this.setupFriendsUI();
     }
 
     getHudRef(key, selector, lookup = 'query') {
@@ -3584,6 +3591,7 @@ export class UIManager {
             'btn-inventory': 'inventory-popup',
             'btn-skill': 'skill-popup',
             'btn-status': 'status-popup',
+            'btn-friends': 'friends-popup',
             'btn-settings': 'settings-popup'
         };
 
@@ -3806,11 +3814,11 @@ export class UIManager {
                     '파티 초대',
                     `"${data.fromName}"님이 파티에 초대했습니다.`,
                     async () => {
-                        await this.game.net.respondToInvite(data.id, data.from, true, data.partyMembers);
+                        await this.game.net.respondToInvite(data.id, data.from, true, data.party);
                         this.updatePartyUI();
                     },
                     async () => {
-                        await this.game.net.respondToInvite(data.id, data.from, false, data.partyMembers);
+                        await this.game.net.respondToInvite(data.id, data.from, false, data.party);
                     },
                     { yesText: '수락', noText: '거절' }
                 );
@@ -3818,7 +3826,9 @@ export class UIManager {
 
             this.game.net.on('partyResponseReceived', (data) => {
                 if (data.accept) {
-                    if (Array.isArray(data.partyMembers) && this.game.localPlayer?.setPartyMembers) {
+                    if (data.party) {
+                        this.game.net._applyLocalPartyState(data.party);
+                    } else if (Array.isArray(data.partyMembers) && this.game.localPlayer?.setPartyMembers) {
                         this.game.localPlayer.setPartyMembers(data.partyMembers);
                     } else if (this.game.localPlayer) {
                         this.game.localPlayer.addToParty(data.from);
@@ -4030,6 +4040,401 @@ export class UIManager {
         this.refreshDesktopShortcutHints();
     }
 
+    setupFriendsUI() {
+        const searchInput = document.getElementById('friend-search-input');
+        const searchBtn = document.getElementById('friend-search-btn');
+        const addBtn = document.getElementById('friend-add-btn');
+        const togetherBtn = document.getElementById('friend-together-btn');
+        const removeBtn = document.getElementById('friend-remove-btn');
+        const messageToggleBtn = document.getElementById('friend-message-toggle-btn');
+        const messageSendBtn = document.getElementById('friend-message-send-btn');
+        const giftBtn = document.getElementById('friend-gift-btn');
+
+        const runLookup = async () => {
+            const keyword = searchInput?.value?.trim() || '';
+            if (!keyword || !this.game.net) {
+                this.friendSearchResult = null;
+                this.renderFriendSearchResult('아이디 또는 이름을 입력해 주세요.');
+                return;
+            }
+
+            this.renderFriendSearchResult('조회 중입니다...');
+            const uid = await this.game.net.getUidByName(keyword);
+            if (!uid) {
+                this.friendSearchResult = null;
+                this.renderFriendSearchResult('대상을 찾지 못했습니다.');
+                return;
+            }
+
+            const profile = await this.game.net.getPlayerProfile(uid);
+            if (!profile) {
+                this.friendSearchResult = null;
+                this.renderFriendSearchResult('프로필을 불러오지 못했습니다.');
+                return;
+            }
+
+            this.friendSearchResult = {
+                uid,
+                query: keyword,
+                name: profile.name || keyword,
+                profile
+            };
+            this.friendProfileCache.set(uid, profile);
+            const statusText = this.game.net.isUserOnline(uid) ? '접속 중' : '오프라인';
+            const alreadyFriend = this.game.net.isFriend(uid);
+            this.renderFriendSearchResult(`${profile.name || keyword} (${statusText})${alreadyFriend ? ' - 이미 친구입니다.' : ''}`);
+        };
+
+        searchBtn?.addEventListener('click', runLookup);
+        searchInput?.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            runLookup();
+        });
+
+        addBtn?.addEventListener('click', async () => {
+            if (!this.friendSearchResult || !this.game.net) return;
+            const result = await this.game.net.addFriendByName(this.friendSearchResult.query || this.friendSearchResult.name);
+            if (!result.ok) {
+                const messages = {
+                    invalid_name: '올바른 아이디를 입력해 주세요.',
+                    not_found: '대상을 찾지 못했습니다.',
+                    self: '자기 자신은 친구로 추가할 수 없습니다.',
+                    already_friend: '이미 친구입니다.',
+                    profile_missing: '상대 프로필이 아직 준비되지 않았습니다.'
+                };
+                this.showGenericModal('친구 추가', messages[result.reason] || '친구 추가 중 오류가 발생했습니다.', null, null, { hideNo: true, yesText: '확인' });
+                return;
+            }
+
+            this.showGenericModal('친구 추가', `"${result.name}" 님을 친구로 추가했습니다.`, null, null, { hideNo: true, yesText: '확인' });
+            this.friendSearchResult = null;
+            if (searchInput) searchInput.value = '';
+            this.renderFriendSearchResult('검색 결과가 여기에 표시됩니다.');
+            this.refreshFriendsPopup();
+        });
+
+        togetherBtn?.addEventListener('click', async () => {
+            if (!this.selectedFriendUid || !this.game.net) return;
+            const result = await this.game.net.requestTogether(this.selectedFriendUid);
+            const messages = {
+                SENT: '함께하기 요청을 보냈습니다.',
+                SELF: '자기 자신에게는 요청할 수 없습니다.',
+                NOT_FRIEND: '친구에게만 함께하기를 요청할 수 있습니다.',
+                OFFLINE: '상대가 현재 접속 중이 아닙니다.',
+                BUSY: '이미 함께 플레이 중입니다. 먼저 현재 함께하기를 종료해 주세요.',
+                ERROR: '함께하기 요청 중 오류가 발생했습니다.'
+            };
+            this.showGenericModal('함께하기', messages[result] || '처리할 수 없습니다.', null, null, { hideNo: true, yesText: '확인' });
+        });
+
+        removeBtn?.addEventListener('click', () => {
+            if (!this.selectedFriendUid || !this.game.net) return;
+            const friendName = this.getSelectedFriendName();
+            this.showConfirm(`"${friendName}" 님을 친구 목록에서 삭제할까요?`, async (confirmed) => {
+                if (!confirmed) return;
+                await this.game.net.removeFriend(this.selectedFriendUid);
+                this.selectedFriendUid = null;
+                this.refreshFriendsPopup();
+            });
+        });
+
+        messageToggleBtn?.addEventListener('click', () => {
+            document.getElementById('friend-message-input')?.focus();
+        });
+
+        messageSendBtn?.addEventListener('click', async () => {
+            if (!this.selectedFriendUid || !this.game.net) return;
+            const input = document.getElementById('friend-message-input');
+            const text = input?.value?.trim() || '';
+            if (!text) return;
+            const result = await this.game.net.sendFriendMessage(this.selectedFriendUid, text);
+            if (!result.ok) {
+                const messages = {
+                    invalid_message: '보낼 메시지를 입력해 주세요.',
+                    not_friend: '친구에게만 메시지를 보낼 수 있습니다.'
+                };
+                this.showGenericModal('친구 메시지', messages[result.reason] || '메시지 전송 중 오류가 발생했습니다.', null, null, { hideNo: true, yesText: '확인' });
+                return;
+            }
+            if (input) input.value = '';
+            this.logSystemMessage(`[친구→${this.getSelectedFriendName()}] ${result.payload.text}`);
+        });
+
+        giftBtn?.addEventListener('click', () => {
+            if (!this.selectedFriendUid) return;
+            this.showGenericModal('선물 보내기', '선물 기능은 다음 단계에서 연결할 예정입니다. 이번 변경에서는 친구/함께하기 흐름을 우선 정리했습니다.', null, null, { hideNo: true, yesText: '확인' });
+        });
+
+        if (this.game.net) {
+            this.game.net.on('friendsUpdated', () => this.refreshFriendsPopup());
+            this.game.net.on('presenceChanged', () => this.refreshFriendsPopup());
+            this.game.net.on('partyUpdated', () => this.refreshFriendsPopup());
+            this.game.net.on('friendMessageReceived', (data) => {
+                const senderName = data?.fromName || '친구';
+                this.logSystemMessage(`[친구 메시지] ${senderName}: ${data?.text || ''}`);
+                if (!this.isPopupOpen('friends-popup')) {
+                    this.setFriendsAlertActive(true);
+                }
+                this.refreshFriendsPopup();
+            });
+            this.game.net.on('togetherRequestReceived', (data) => {
+                this.showGenericModal(
+                    '함께하기 요청',
+                    `"${data.fromName}" 님이 함께 플레이를 요청했습니다. 수락하면 상대가 내 필드로 합류합니다.`,
+                    async () => {
+                        const result = await this.game.net.respondToTogetherRequest(data.id, data.fromUid, true);
+                        if (!result?.ok) {
+                            const failMessage = result?.reason === 'party_full'
+                                ? '현재 함께 플레이 중인 인원이 이미 가득 찼습니다.'
+                                : '지금은 함께하기를 수락할 수 없습니다.';
+                            this.showGenericModal('함께하기', failMessage, null, null, { hideNo: true, yesText: '확인' });
+                        }
+                    },
+                    async () => {
+                        await this.game.net.respondToTogetherRequest(data.id, data.fromUid, false);
+                    },
+                    { yesText: '수락', noText: '거절' }
+                );
+            });
+            this.game.net.on('togetherResponseReceived', (data) => {
+                if (!data?.accept) {
+                    const failMessages = {
+                        declined: '상대가 함께하기 요청을 거절했습니다.',
+                        host_busy: '상대가 지금은 손님을 받을 수 없습니다.',
+                        party_full: '상대 필드는 이미 최대 인원입니다.'
+                    };
+                    this.showGenericModal('함께하기', failMessages[data?.reason] || '함께하기 요청이 수락되지 않았습니다.', null, null, { hideNo: true, yesText: '확인' });
+                    return;
+                }
+
+                if (data.party) {
+                    this.game.net._applyLocalPartyState(data.party);
+                    this.updatePartyUI();
+                }
+
+                const hostPosition = data.hostPosition || null;
+                const player = this.game.localPlayer;
+                if (player && hostPosition && Number.isFinite(hostPosition.x) && Number.isFinite(hostPosition.y)) {
+                    player.x = hostPosition.x + 48;
+                    player.y = hostPosition.y + 24;
+                    player.moveTarget = null;
+                    player.saveState(true);
+                }
+
+                this.showGenericModal('함께하기', `"${data.fromName}" 님의 필드에 합류했습니다.`, null, null, { hideNo: true, yesText: '확인' });
+            });
+        }
+
+        this.renderFriendSearchResult('검색 결과가 여기에 표시됩니다.');
+        this.refreshFriendsPopup();
+    }
+
+    isPopupOpen(id) {
+        const popup = document.getElementById(id);
+        return !!popup && !popup.classList.contains('hidden');
+    }
+
+    setFriendsAlertActive(active) {
+        const dot = document.getElementById('friends-alert-dot');
+        if (dot) {
+            dot.classList.toggle('active', !!active);
+        }
+    }
+
+    getSelectedFriendName() {
+        const friends = (this.game.net?.getFriendListSnapshot?.() || []).sort((a, b) => {
+            if (!!a.online !== !!b.online) return a.online ? -1 : 1;
+            return String(a.name || a.uid || '').localeCompare(String(b.name || b.uid || ''), 'ko');
+        });
+        const friend = friends.find((entry) => entry.uid === this.selectedFriendUid);
+        return friend?.name || '친구';
+    }
+
+    renderFriendSearchResult(message = '') {
+        const resultEl = document.getElementById('friend-search-result');
+        const addBtn = document.getElementById('friend-add-btn');
+        if (resultEl) {
+            resultEl.textContent = message;
+        }
+        if (addBtn) {
+            addBtn.disabled = !this.friendSearchResult || !!this.game.net?.isFriend?.(this.friendSearchResult.uid);
+        }
+    }
+
+    async selectFriend(uid) {
+        if (!uid || !this.game.net) return;
+        this.selectedFriendUid = uid;
+        this.refreshFriendsPopup();
+
+        if (!this.friendProfileCache.has(uid)) {
+            const profile = await this.game.net.getPlayerProfile(uid);
+            if (profile) {
+                this.friendProfileCache.set(uid, profile);
+            }
+        }
+
+        this.refreshFriendsPopup();
+    }
+
+    refreshFriendsPopup() {
+        const friends = this.game.net?.getFriendListSnapshot?.() || [];
+        const countEl = document.getElementById('friends-count');
+        const listEl = document.getElementById('friends-list');
+        if (countEl) {
+            countEl.textContent = `${friends.length}명`;
+        }
+        if (!listEl) return;
+
+        if (this.selectedFriendUid && !friends.some((entry) => entry.uid === this.selectedFriendUid)) {
+            this.selectedFriendUid = null;
+        }
+
+        listEl.innerHTML = '';
+        if (friends.length === 0) {
+            listEl.innerHTML = '<div class="friends-detail-empty">아직 친구가 없습니다.</div>';
+        } else {
+            friends.forEach((friend) => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = `friend-list-item${friend.uid === this.selectedFriendUid ? ' is-selected' : ''}`;
+                item.innerHTML = `
+                    <div class="friend-list-topline">
+                        <span class="friend-list-name">${friend.name || friend.uid}</span>
+                        <span class="friends-status-chip${friend.online ? ' is-online' : ''}">${friend.online ? '접속 중' : '오프라인'}</span>
+                    </div>
+                    <div class="friend-list-meta">${friend.uid}</div>
+                `;
+                item.addEventListener('click', () => {
+                    this.selectFriend(friend.uid);
+                });
+                listEl.appendChild(item);
+            });
+        }
+
+        if (this.isPopupOpen('friends-popup')) {
+            this.setFriendsAlertActive(false);
+        }
+
+        this.renderSelectedFriendDetail(friends);
+    }
+
+    buildFriendDerivedStats(profile = {}) {
+        const definition = this.game.localPlayer?.definition || {};
+        const base = definition.baseStats || {};
+        const growth = definition.growthStats || { hp: 10, mp: 10, atk: 1, def: 1 };
+        const vitality = Number(profile.vitality || 1);
+        const intelligence = Number(profile.intelligence || 3);
+        const wisdom = Number(profile.wisdom || 2);
+        const agility = Number(profile.agility || 1);
+        const hp = Number(profile.hp || 0);
+        const mp = Number(profile.mp || 0);
+        const maxHp = (base.maxHp ?? 30) + (vitality * (growth.hp ?? 10));
+        const maxMp = (base.maxMp ?? 50) + (wisdom * (growth.mp ?? 10));
+        const attack = (base.atk ?? 10) + (intelligence * (growth.atk ?? 1)) + Math.floor(wisdom / 2);
+        const defense = Number(profile.defense ?? ((base.def ?? 1) + (vitality * (growth.def ?? 1))));
+        const attackSpeed = Math.min(2.0, 1.0 + (agility * 0.1) + (intelligence * 0.05));
+        const critRate = 0.1 + (agility * 0.01) + (intelligence * 0.01);
+        return {
+            level: Number(profile.level || 1),
+            hp,
+            mp,
+            maxHp,
+            maxMp,
+            vitality,
+            intelligence,
+            wisdom,
+            agility,
+            attack,
+            defense,
+            attackSpeed,
+            critRate
+        };
+    }
+
+    renderSelectedFriendDetail(friends = []) {
+        const emptyEl = document.getElementById('friend-detail-empty');
+        const panelEl = document.getElementById('friend-detail-panel');
+        const selected = friends.find((entry) => entry.uid === this.selectedFriendUid) || null;
+
+        if (!selected || !panelEl || !emptyEl) {
+            emptyEl?.classList.remove('hidden');
+            panelEl?.classList.add('hidden');
+            return;
+        }
+
+        const profile = this.friendProfileCache.get(selected.uid) || null;
+        const nameEl = document.getElementById('friend-detail-name');
+        const statusEl = document.getElementById('friend-detail-status');
+        const summaryEl = document.getElementById('friend-detail-summary');
+        const statsEl = document.getElementById('friend-detail-stats');
+        const weaponEl = document.getElementById('friend-detail-weapon');
+        const togetherBtn = document.getElementById('friend-together-btn');
+
+        emptyEl.classList.add('hidden');
+        panelEl.classList.remove('hidden');
+
+        if (nameEl) nameEl.textContent = selected.name || selected.uid;
+        if (statusEl) {
+            statusEl.textContent = selected.online ? '접속 중' : '오프라인';
+            statusEl.classList.toggle('is-online', !!selected.online);
+        }
+        if (summaryEl) {
+            summaryEl.innerHTML = `
+                <span>아이디: ${selected.uid}</span>
+                <span>${profile?.name ? `프로필 이름: ${profile.name}` : '프로필 로딩 중...'}</span>
+            `;
+        }
+        if (togetherBtn) {
+            togetherBtn.disabled = !selected.online;
+        }
+
+        if (!profile) {
+            if (statsEl) statsEl.innerHTML = '<div class="friend-stat-card"><strong>불러오는 중</strong><span>프로필을 확인하고 있습니다.</span></div>';
+            if (weaponEl) weaponEl.innerHTML = '<div class="friend-weapon-card"><strong>장착 무기</strong><span>무기 정보를 불러오는 중입니다.</span></div>';
+            return;
+        }
+
+        const derived = this.buildFriendDerivedStats(profile);
+        if (statsEl) {
+            statsEl.innerHTML = `
+                <div class="friend-stat-grid">
+                    <div class="friend-stat-card"><strong>레벨</strong><span>${derived.level}</span></div>
+                    <div class="friend-stat-card"><strong>HP / MP</strong><span>${Math.floor(derived.hp)} / ${Math.floor(derived.maxHp)} | ${Math.floor(derived.mp)} / ${Math.floor(derived.maxMp)}</span></div>
+                    <div class="friend-stat-card"><strong>기본 스탯</strong><span>VIT ${derived.vitality} / INT ${derived.intelligence} / WIS ${derived.wisdom} / AGI ${derived.agility}</span></div>
+                    <div class="friend-stat-card"><strong>전투 수치</strong><span>공격력 ${derived.attack} / 방어력 ${derived.defense}</span></div>
+                    <div class="friend-stat-card"><strong>공격속도</strong><span>${derived.attackSpeed.toFixed(2)}</span></div>
+                    <div class="friend-stat-card"><strong>치명확률</strong><span>${Math.round(derived.critRate * 100)}%</span></div>
+                </div>
+            `;
+        }
+
+        if (weaponEl) {
+            const weapon = profile?.equipment?.weapon || null;
+            if (!weapon) {
+                weaponEl.innerHTML = '<div class="friend-weapon-card"><strong>장착 무기 없음</strong><span>현재 무기를 장착하지 않았습니다.</span></div>';
+            } else {
+                const detailSourcePlayer = this.game.localPlayer || {
+                    getWeaponAffixEffectiveValue: () => 0,
+                    getWeaponAffixEnhancementBonus: () => 0,
+                    getWeaponCombatHookValue: () => 0
+                };
+                const detail = this.buildInventoryDetail(detailSourcePlayer, weapon);
+                const weaponLines = this.mergeInventoryEnhancementBonusLines(detail.lines)
+                    .map((line) => `<div>${typeof line === 'string' ? line : line.text}</div>`)
+                    .join('');
+                weaponEl.innerHTML = `
+                    <div class="friend-weapon-card">
+                        <strong>${detail.title}</strong>
+                        <span>${weapon.type || ''}</span>
+                        ${detail.description ? `<div class="friend-weapon-lines"><div>${detail.description}</div></div>` : ''}
+                        ${weaponLines ? `<div class="friend-weapon-lines">${weaponLines}</div>` : ''}
+                    </div>
+                `;
+            }
+        }
+    }
+
     setPortrait(processedImage) {
         const portraits = document.querySelectorAll('.portrait, .status-portrait');
         portraits.forEach(p => {
@@ -4146,6 +4551,10 @@ export class UIManager {
             }
             if (id === 'settings-popup') {
                 this.syncSettingsUi();
+                popup.scrollTop = 0;
+            }
+            if (id === 'friends-popup') {
+                this.refreshFriendsPopup();
                 popup.scrollTop = 0;
             }
             this.isPaused = true;
@@ -5793,9 +6202,6 @@ export class UIManager {
         monsterManager._spawnBoss(isFirstBoss);
         if (isFirstBoss) {
             monsterManager.slimeKillCount = 0;
-            if (monsterManager.net?.dbRef) {
-                monsterManager.net.dbRef.child('world_state/slime_kill_count').set(0);
-            }
         }
     }
 
@@ -6430,6 +6836,7 @@ export class UIManager {
         const amount = Math.max(1, item.amount || 1);
         const config = item.slot === 'weapon' ? itemData?.getEnhancementConfig(item) : null;
         const dismantleReward = item.slot === 'weapon' ? player.getWeaponDismantleRewardInfo?.(item) : null;
+        const baseDescription = item.description || definition?.description || '';
         const enhanceHint = config
             ? `다음 +${config.nextLevel} | 성공 ${Math.round(config.successRate * 100)}%${config.destroyChanceOnFail > 0 ? ` | 파괴 ${Math.round(config.destroyChanceOnFail * 100)}%` : ' | 안전'}`
             : '';
@@ -6438,10 +6845,16 @@ export class UIManager {
             : '';
 
         if (item.stackable !== false && item.slot !== 'weapon') {
+            const descriptionParts = [baseDescription];
+            if (item.type === 'weapon_upgrade_stone') {
+                descriptionParts.push('상세 보기의 버튼으로 강화할 무기를 선택해 일반 강화를 시도할 수 있습니다.');
+            } else if (item.type === 'blessed_weapon_upgrade_stone') {
+                descriptionParts.push('상세 보기의 버튼으로 축복 강화할 무기를 선택해 안전한 고급 강화를 시도할 수 있습니다.');
+            }
             return {
                 title: `${titleBase} [${amount}]`,
                 subtitle: '',
-                description: '',
+                description: descriptionParts.filter(Boolean).join(' '),
                 lines,
                 enhanceHint: '',
                 dismantleHint: ''
@@ -6758,6 +7171,17 @@ export class UIManager {
         const blessedEnhanceBtn = document.getElementById('inventory-action-enhance-blessed');
         const dismantleBtn = document.getElementById('inventory-action-dismantle');
         const actionsEl = document.querySelector('#inventory-popup .inventory-detail-actions');
+        const headActionsEl = document.getElementById('inventory-detail-head-actions');
+
+        if (actionsEl && enhanceBtn && enhanceBtn.parentElement !== actionsEl) {
+            actionsEl.appendChild(enhanceBtn);
+        }
+        if (actionsEl && blessedEnhanceBtn && blessedEnhanceBtn.parentElement !== actionsEl) {
+            actionsEl.appendChild(blessedEnhanceBtn);
+        }
+        if (headActionsEl) {
+            headActionsEl.classList.add('hidden');
+        }
 
         if (nameEl) nameEl.textContent = detailData.title;
         if (subtitleEl) {
@@ -6817,18 +7241,35 @@ export class UIManager {
                 ? '강화할 무기 선택'
                 : '강화';
             enhanceBtn.classList.toggle('hidden', detail.item.type !== 'weapon_upgrade_stone');
+            if (detail.item.type === 'weapon_upgrade_stone') {
+                enhanceBtn.textContent = '강화 대상 선택';
+            }
         }
         if (blessedEnhanceBtn) {
             blessedEnhanceBtn.textContent = detail.item.type === 'blessed_weapon_upgrade_stone'
                 ? '축복 강화할 무기 선택'
                 : '축복 강화';
             blessedEnhanceBtn.classList.toggle('hidden', detail.item.type !== 'blessed_weapon_upgrade_stone');
+            if (detail.item.type === 'blessed_weapon_upgrade_stone') {
+                blessedEnhanceBtn.textContent = '축복 대상 선택';
+            }
         }
 
         if (actionsEl) {
             const isEnhancementStone = detail.item.type === 'weapon_upgrade_stone'
                 || detail.item.type === 'blessed_weapon_upgrade_stone';
             actionsEl.classList.toggle('inventory-detail-actions-centered', isEnhancementStone);
+            actionsEl.classList.toggle('hidden', isEnhancementStone);
+        }
+
+        if (headActionsEl) {
+            const headerActionBtn = detail.item.type === 'weapon_upgrade_stone'
+                ? enhanceBtn
+                : (detail.item.type === 'blessed_weapon_upgrade_stone' ? blessedEnhanceBtn : null);
+            if (headerActionBtn) {
+                headActionsEl.appendChild(headerActionBtn);
+                headActionsEl.classList.remove('hidden');
+            }
         }
 
         this.positionInventoryItemModal();
@@ -7577,6 +8018,34 @@ export class UIManager {
         setTimeout(() => {
             if (el.parentNode) container.removeChild(el);
         }, 1000);
+    }
+
+    showExpGainHint(amount) {
+        const safeAmount = Math.max(0, Math.floor(Number(amount) || 0));
+        if (safeAmount <= 0) return;
+
+        this.pendingExpGainHint += safeAmount;
+        if (this._pendingExpGainTimer) return;
+
+        this._pendingExpGainTimer = setTimeout(() => {
+            const totalAmount = this.pendingExpGainHint;
+            this.pendingExpGainHint = 0;
+            this._pendingExpGainTimer = null;
+
+            const container = document.getElementById('ui-exp-gain-container');
+            if (!container || totalAmount <= 0) return;
+
+            const el = document.createElement('div');
+            el.className = 'exp-gain-float';
+            el.textContent = `+${totalAmount}`;
+            container.appendChild(el);
+
+            setTimeout(() => {
+                if (el.parentNode === container) {
+                    container.removeChild(el);
+                }
+            }, 1000);
+        }, 120);
     }
 
 

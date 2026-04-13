@@ -9,9 +9,12 @@ export default class NetworkManager extends EventEmitter {
         this.playerId = null;
         this.dbRef = null;
         this.zoneParticipationEnabled = true;
+        this.preferredPartyHostId = null;
 
         // Remote Players buffer
         this.remotePlayers = new Map();
+        this.friends = new Map();
+        this._externalDbListeners = [];
 
         // Host Logic
         this.isHost = false;
@@ -120,6 +123,8 @@ export default class NetworkManager extends EventEmitter {
         this.connectedUsers = [];
         this.userLastSeen.clear();
         this.remotePlayers.clear();
+        this.friends.clear();
+        this._detachExternalDbListeners();
         this._hostilityListenerActive = false;
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
         this._lastProfileSaveTs = 0;
@@ -143,6 +148,7 @@ export default class NetworkManager extends EventEmitter {
         this._detachMinimapMonsterSnapshotListener();
         this._fieldPeerCount = 0;
         this._sharedFieldActive = false;
+        this.preferredPartyHostId = null;
         this.startBatchProcessor();
 
         Logger.log(`Network Coordinates: connecting to ${this.roomId}...`);
@@ -360,6 +366,7 @@ export default class NetworkManager extends EventEmitter {
         }, 1000); // Check every 1s, but actual send is throttled
 
         this._setupPartyListeners();
+        this._setupSocialListeners();
         this._setupDamageListeners(); // v0.00.14: PvP Damage
         // this._setupHostilityListeners(); // Moved to WorldScene to ensure localPlayer exists
         this._setupEmoteListeners(); // v2.1
@@ -504,6 +511,8 @@ export default class NetworkManager extends EventEmitter {
         this.connectedUsers = [];
         this.userLastSeen.clear();
         this.remotePlayers.clear();
+        this.friends.clear();
+        this._detachExternalDbListeners();
         this._hostilityListenerActive = false;
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
         this._zoneUserCache.clear();
@@ -518,6 +527,7 @@ export default class NetworkManager extends EventEmitter {
         this._lastPresenceLiteWriteTs = 0;
         this._fieldPeerCount = 0;
         this._sharedFieldActive = false;
+        this.preferredPartyHostId = null;
         this._clearMonsterCellSubscriptions({ emitRemovals: true });
         this._clearPendingMonsterRemovalTimers();
         this._monsterCellPayloadCache.clear();
@@ -535,6 +545,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     _detachAllDbListeners() {
+        this._detachExternalDbListeners();
         if (!this.dbRef) return;
 
         const fixedPaths = [
@@ -570,6 +581,23 @@ export default class NetworkManager extends EventEmitter {
             `users/${this.playerId}/party_inbox`
         ];
         playerPaths.forEach(path => this.dbRef.child(path).off());
+    }
+
+    _trackExternalListener(ref, eventType, callback) {
+        if (!ref || !eventType || typeof callback !== 'function') return;
+        ref.on(eventType, callback);
+        this._externalDbListeners.push({ ref, eventType, callback });
+    }
+
+    _detachExternalDbListeners() {
+        this._externalDbListeners.forEach(({ ref, eventType, callback }) => {
+            try {
+                ref?.off?.(eventType, callback);
+            } catch (error) {
+                Logger.warn('[Network] Failed to detach external DB listener', error);
+            }
+        });
+        this._externalDbListeners = [];
     }
 
     _detachZoneUserListeners(uid = null) {
@@ -1018,6 +1046,7 @@ export default class NetworkManager extends EventEmitter {
 
     _buildHostCandidate(uid, now = Date.now()) {
         if (!uid) return null;
+        if (uid !== this.playerId && !this._canShareFieldWith(uid)) return null;
 
         const currentFieldId = this._getCurrentFieldId();
         const isSelf = uid === this.playerId;
@@ -1056,6 +1085,9 @@ export default class NetworkManager extends EventEmitter {
             bucket = 3;
         } else if (visibility === 'visible' || hiddenWithinGrace) {
             bucket = 2;
+        }
+        if (this.preferredPartyHostId && uid === this.preferredPartyHostId) {
+            bucket = 4;
         }
 
         return {
@@ -1241,6 +1273,7 @@ export default class NetworkManager extends EventEmitter {
         this._emitFieldPeerPresenceChanged(uid, previousEntry, entry);
         this._refreshSharedFieldState();
         this._checkHostStatus();
+        this.emit('presenceChanged', { uid });
     }
 
     _handlePresenceTsSnapshot(snapshot) {
@@ -1281,6 +1314,7 @@ export default class NetworkManager extends EventEmitter {
         this._emitFieldPeerPresenceChanged(uid, previousEntry, nextEntry);
         this._refreshSharedFieldState();
         this._checkHostStatus();
+        this.emit('presenceChanged', { uid });
     }
 
     _handlePresenceTsRemoved(snapshot) {
@@ -1301,6 +1335,7 @@ export default class NetworkManager extends EventEmitter {
         this._emitFieldPeerPresenceChanged(uid, previousEntry, nextEntry);
         this._refreshSharedFieldState();
         this._checkHostStatus();
+        this.emit('presenceChanged', { uid });
     }
 
     _handlePresenceRemoved(snapshot) {
@@ -1316,10 +1351,17 @@ export default class NetworkManager extends EventEmitter {
         this._removeRemoteIfOutOfField(uid, null);
         this._refreshSharedFieldState();
         this._checkHostStatus();
+        this.emit('presenceChanged', { uid });
     }
 
     _removeRemoteIfOutOfField(uid, presenceEntry) {
         if (!uid || uid === this.playerId) return;
+        if (!this._canShareFieldWith(uid)) {
+            if (!this.remotePlayers.has(uid)) return;
+            this.remotePlayers.delete(uid);
+            this.emit('playerLeft', uid);
+            return;
+        }
         const currentFieldId = this._getCurrentFieldId();
         const hasPresence = !!presenceEntry;
         const active = hasPresence ? this._isPresenceEntryActive(presenceEntry) : false;
@@ -1340,6 +1382,7 @@ export default class NetworkManager extends EventEmitter {
             if (!entry || uid === this.playerId) return;
             if (!this._isPresenceEntryActive(entry, now)) return;
             if (entry.fieldId !== fieldId) return;
+            if (!this._canShareFieldWith(uid)) return;
             peerCount += 1;
         });
 
@@ -1665,6 +1708,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     _emitRemoteAttack(uid, attackData) {
+        if (!this._canShareFieldWith(uid)) return;
         if (!Array.isArray(attackData)) return;
         const attackTs = attackData[0];
         if (attackTs <= Date.now() - 10000) return;
@@ -1686,6 +1730,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     _emitRemoteChanneling(uid, channelData) {
+        if (!this._canShareFieldWith(uid)) return;
         if (!Array.isArray(channelData)) return;
         const channelTs = channelData[0];
         if (channelTs <= Date.now() - 5000) return;
@@ -1698,6 +1743,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     _emitRemoteHpUpdate(uid, hpData) {
+        if (!this._canShareFieldWith(uid)) return;
         if (!Array.isArray(hpData)) return;
 
         const now = Date.now();
@@ -1718,6 +1764,7 @@ export default class NetworkManager extends EventEmitter {
 
     _ensureRemotePlayerBuffered(uid, options = {}) {
         if (!uid || uid === this.playerId) return null;
+        if (!this._canShareFieldWith(uid)) return null;
 
         const existing = this.remotePlayers.get(uid);
         if (existing) return existing;
@@ -3238,9 +3285,7 @@ export default class NetworkManager extends EventEmitter {
                 this.dbRef.child('player_damage').remove(),
                 this.dbRef.child('player_damage_batch').remove(),
                 this.dbRef.child('boss_spawn_requests').remove(),
-                resetSlimeKillCount
-                    ? this.dbRef.child('world_state/slime_kill_count').set(0)
-                    : Promise.resolve()
+                Promise.resolve(resetSlimeKillCount)
             ]);
 
             this.monsterUpdateQueue.clear();
@@ -3322,6 +3367,316 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
+    _normalizePartyState(party = null) {
+        const source = Array.isArray(party)
+            ? { members: party }
+            : (party && typeof party === 'object' ? party : {});
+        const members = Array.from(new Set((source.members || []).filter(Boolean)));
+        if (this.playerId && !members.includes(this.playerId) && party === window.game?.localPlayer?.party) {
+            members.unshift(this.playerId);
+        }
+        const hostId = members.includes(source.hostId)
+            ? source.hostId
+            : (members[0] || this.playerId || null);
+        const mode = typeof source.mode === 'string' && source.mode
+            ? source.mode
+            : (members.length > 1 ? 'party' : 'solo');
+        return { members, hostId, mode };
+    }
+
+    _getLocalPartyState() {
+        const localParty = window.game?.localPlayer?.party || { members: this.playerId ? [this.playerId] : [] };
+        return this._normalizePartyState(localParty);
+    }
+
+    _getShareablePartyMemberIds() {
+        const localParty = this._getLocalPartyState();
+        if (!Array.isArray(localParty.members) || localParty.members.length < 2) {
+            return [];
+        }
+        return localParty.members.filter((uid) => uid && uid !== this.playerId);
+    }
+
+    _canShareFieldWith(uid, options = {}) {
+        if (!uid) return false;
+        if (uid === this.playerId) return !!options.allowSelf;
+
+        const localParty = this._getLocalPartyState();
+        if (!Array.isArray(localParty.members) || localParty.members.length < 2) {
+            return false;
+        }
+        if (localParty.members.includes(uid)) {
+            return true;
+        }
+
+        const remoteProfile = options.profile || this._zoneUserCache.get(uid)?.profile || null;
+        const remoteMembers = remoteProfile?.party?.members;
+        return Array.isArray(remoteMembers) && remoteMembers.includes(this.playerId);
+    }
+
+    _applyLocalPartyState(party, syncToWorld = true) {
+        const normalized = this._normalizePartyState(party);
+        const localPlayer = window.game?.localPlayer;
+        if (!localPlayer) return normalized;
+
+        if (typeof localPlayer.setPartyState === 'function') {
+            localPlayer.setPartyState(normalized, syncToWorld);
+        } else if (typeof localPlayer.setPartyMembers === 'function') {
+            localPlayer.setPartyMembers(normalized.members, syncToWorld);
+        } else {
+            localPlayer.party = normalized;
+            if (syncToWorld) {
+                localPlayer.saveState(true);
+            }
+            window.game?.ui?.updatePartyUI?.();
+        }
+
+        this.preferredPartyHostId = normalized.members.length > 1 ? normalized.hostId : null;
+        return normalized;
+    }
+
+    handleLocalPartyStateChanged(reason = 'party_changed') {
+        const localParty = this._getLocalPartyState();
+        this.preferredPartyHostId = localParty.members.length > 1 ? localParty.hostId : null;
+
+        this._presenceCache.forEach((entry, uid) => {
+            if (!uid || uid === this.playerId) return;
+            if (this._canShareFieldWith(uid)) {
+                this._ensureRemotePlayerBuffered(uid, { emitTransientState: true });
+            } else {
+                this._removeRemoteIfOutOfField(uid, null);
+            }
+        });
+
+        this._refreshSharedFieldState();
+        this._checkHostStatus();
+        this.emit('partyUpdated', { ...localParty, reason });
+    }
+
+    resetToSoloPartyState(syncToWorld = true) {
+        const soloState = {
+            members: this.playerId ? [this.playerId] : [],
+            hostId: this.playerId || null,
+            mode: 'solo'
+        };
+        return this._applyLocalPartyState(soloState, syncToWorld);
+    }
+
+    isUserOnline(uid, options = {}) {
+        if (!uid) return false;
+        if (uid === this.playerId) return !!this.connected;
+
+        const maxAgeMs = Number.isFinite(options.maxAgeMs)
+            ? Math.max(1000, Number(options.maxAgeMs))
+            : this.presenceStaleTimeout;
+        const lastSeen = Number(this.userLastSeen.get(uid) || this._presenceTsCache.get(uid) || 0);
+        return this.connectedUsers.includes(uid) && lastSeen > 0 && (Date.now() - lastSeen) <= maxAgeMs;
+    }
+
+    getFriendListSnapshot() {
+        return Array.from(this.friends.entries()).map(([uid, data]) => ({
+            uid,
+            ...(data || {}),
+            online: this.isUserOnline(uid)
+        }));
+    }
+
+    isFriend(uid) {
+        return !!uid && this.friends.has(uid);
+    }
+
+    async addFriendByName(name) {
+        const trimmed = String(name || '').trim();
+        if (!trimmed || !this.playerId || !window.firebase) return { ok: false, reason: 'invalid_name' };
+
+        const targetUid = await this.getUidByName(trimmed);
+        if (!targetUid) return { ok: false, reason: 'not_found' };
+        if (targetUid === this.playerId) return { ok: false, reason: 'self' };
+        if (this.isFriend(targetUid)) return { ok: false, reason: 'already_friend' };
+
+        const targetProfile = await this.getPlayerProfile(targetUid);
+        if (!targetProfile) return { ok: false, reason: 'profile_missing' };
+
+        const myName = window.game?.localPlayer?.name || 'Unknown';
+        const targetName = targetProfile.name || trimmed;
+        const rootRef = firebase.database().ref();
+        const now = Date.now();
+
+        await rootRef.update({
+            [`users/${this.playerId}/friends/${targetUid}`]: {
+                uid: targetUid,
+                name: targetName,
+                createdAt: now,
+                updatedAt: now
+            },
+            [`users/${targetUid}/friends/${this.playerId}`]: {
+                uid: this.playerId,
+                name: myName,
+                createdAt: now,
+                updatedAt: now
+            }
+        });
+
+        return { ok: true, uid: targetUid, name: targetName };
+    }
+
+    async removeFriend(targetUid) {
+        if (!targetUid || !this.playerId || !window.firebase) return false;
+        const rootRef = firebase.database().ref();
+        await rootRef.update({
+            [`users/${this.playerId}/friends/${targetUid}`]: null,
+            [`users/${targetUid}/friends/${this.playerId}`]: null
+        });
+        return true;
+    }
+
+    async sendFriendMessage(targetUid, text) {
+        const trimmed = String(text || '').trim();
+        if (!trimmed || !targetUid || !this.playerId || !window.firebase) return { ok: false, reason: 'invalid_message' };
+        if (!this.isFriend(targetUid)) return { ok: false, reason: 'not_friend' };
+
+        const payload = {
+            fromUid: this.playerId,
+            fromName: window.game?.localPlayer?.name || 'Unknown',
+            text: trimmed.slice(0, 200),
+            ts: Date.now()
+        };
+        await firebase.database().ref(`friend_messages/${targetUid}`).push(payload);
+        return { ok: true, payload };
+    }
+
+    async requestTogether(targetUid) {
+        if (!targetUid || !this.playerId || !window.firebase) return 'ERROR';
+        if (targetUid === this.playerId) return 'SELF';
+        if (!this.isFriend(targetUid)) return 'NOT_FRIEND';
+        if (!this.isUserOnline(targetUid)) return 'OFFLINE';
+
+        const localParty = this._getLocalPartyState();
+        if (localParty.members.length > 1) return 'BUSY';
+
+        await firebase.database().ref(`together_requests/${targetUid}`).push({
+            fromUid: this.playerId,
+            fromName: window.game?.localPlayer?.name || 'Unknown',
+            ts: Date.now()
+        });
+        return 'SENT';
+    }
+
+    async respondToTogetherRequest(requestId, fromUid, accept) {
+        if (!requestId || !fromUid || !this.playerId || !window.firebase) return { ok: false, reason: 'invalid_args' };
+
+        const requestRef = firebase.database().ref(`together_requests/${this.playerId}/${requestId}`);
+        await requestRef.remove();
+
+        const localParty = this._getLocalPartyState();
+        const isExistingHost = localParty.members.length > 1 && localParty.hostId === this.playerId;
+        const canHost = localParty.members.length === 1 || isExistingHost;
+        const responseRef = firebase.database().ref(`together_responses/${fromUid}`).push();
+
+        if (!accept) {
+            await responseRef.set({
+                accept: false,
+                fromUid: this.playerId,
+                fromName: window.game?.localPlayer?.name || 'Unknown',
+                reason: 'declined',
+                ts: Date.now()
+            });
+            return { ok: true, accepted: false };
+        }
+
+        if (!canHost) {
+            await responseRef.set({
+                accept: false,
+                fromUid: this.playerId,
+                fromName: window.game?.localPlayer?.name || 'Unknown',
+                reason: 'host_busy',
+                ts: Date.now()
+            });
+            return { ok: false, reason: 'host_busy' };
+        }
+
+        if (localParty.members.length >= 4) {
+            await responseRef.set({
+                accept: false,
+                fromUid: this.playerId,
+                fromName: window.game?.localPlayer?.name || 'Unknown',
+                reason: 'party_full',
+                ts: Date.now()
+            });
+            return { ok: false, reason: 'party_full' };
+        }
+
+        const nextParty = this._normalizePartyState({
+            members: [...localParty.members, fromUid],
+            hostId: this.playerId,
+            mode: 'together'
+        });
+        this._applyLocalPartyState(nextParty);
+
+        const recipients = nextParty.members.filter((uid) => uid !== this.playerId && uid !== fromUid);
+        await this._broadcastPartySync(nextParty, recipients, 'SYNC');
+
+        const localPlayer = window.game?.localPlayer;
+        await responseRef.set({
+            accept: true,
+            fromUid: this.playerId,
+            fromName: localPlayer?.name || 'Unknown',
+            party: nextParty,
+            hostPosition: localPlayer
+                ? {
+                    x: Math.round(localPlayer.x || 0),
+                    y: Math.round(localPlayer.y || 0)
+                }
+                : null,
+            ts: Date.now()
+        });
+
+        return { ok: true, accepted: true, party: nextParty };
+    }
+
+    _setupSocialListeners() {
+        if (!this.playerId || !window.firebase) return;
+
+        const friendsRef = firebase.database().ref(`users/${this.playerId}/friends`);
+        this._trackExternalListener(friendsRef, 'value', (snapshot) => {
+            const raw = snapshot.val() || {};
+            this.friends = new Map(Object.entries(raw).map(([uid, value]) => [uid, value || {}]));
+            this.emit('friendsUpdated', this.getFriendListSnapshot());
+        });
+
+        const messagesRef = firebase.database().ref(`friend_messages/${this.playerId}`);
+        this._trackExternalListener(messagesRef, 'child_added', (snapshot) => {
+            const value = snapshot.val();
+            if (value) {
+                this.emit('friendMessageReceived', {
+                    id: snapshot.key,
+                    ...value
+                });
+            }
+            snapshot.ref.remove().catch(() => { });
+        });
+
+        const togetherRequestsRef = firebase.database().ref(`together_requests/${this.playerId}`);
+        this._trackExternalListener(togetherRequestsRef, 'child_added', (snapshot) => {
+            const value = snapshot.val();
+            if (value && Date.now() - Number(value.ts || 0) < 30000) {
+                this.emit('togetherRequestReceived', {
+                    id: snapshot.key,
+                    ...value
+                });
+            }
+        });
+
+        const togetherResponsesRef = firebase.database().ref(`together_responses/${this.playerId}`);
+        this._trackExternalListener(togetherResponsesRef, 'child_added', (snapshot) => {
+            const value = snapshot.val();
+            if (value) {
+                this.emit('togetherResponseReceived', value);
+            }
+            snapshot.ref.remove().catch(() => { });
+        });
+    }
+
     // v0.00.04: Full Character Deletion
     async deleteCharacter(uid, name) {
         if (!uid) return;
@@ -3360,11 +3715,16 @@ export default class NetworkManager extends EventEmitter {
                 return 'SELF';
             }
 
-            const localPartyMembers = Array.isArray(window.game?.localPlayer?.party?.members)
-                ? window.game.localPlayer.party.members
-                : [this.playerId];
-            if (localPartyMembers.includes(targetUid)) {
+            if (!this.isFriend(targetUid)) {
+                return 'NOT_FRIEND';
+            }
+
+            const localParty = this._getLocalPartyState();
+            if (localParty.members.includes(targetUid)) {
                 return 'ALREADY_IN_PARTY';
+            }
+            if (localParty.members.length >= 4) {
+                return 'PARTY_FULL';
             }
 
             // Push invite to target's inbox (Correct Path: party_invites)
@@ -3372,7 +3732,7 @@ export default class NetworkManager extends EventEmitter {
             await inviteRef.set({
                 from: this.playerId,
                 fromName: window.game.localPlayer ? window.game.localPlayer.name : "Unknown",
-                partyMembers: Array.from(new Set(localPartyMembers.filter(Boolean))),
+                party: localParty,
                 ts: Date.now()
             });
 
@@ -3387,47 +3747,38 @@ export default class NetworkManager extends EventEmitter {
         return Array.from(new Set((members || []).filter(Boolean)));
     }
 
-    _applyLocalPartyMembers(members) {
-        const normalized = this._normalizePartyMembers(members);
-        const localPlayer = window.game?.localPlayer;
-        if (!localPlayer) return normalized;
-
-        if (typeof localPlayer.setPartyMembers === 'function') {
-            localPlayer.setPartyMembers(normalized);
-        } else {
-            localPlayer.party = { members: normalized };
-            localPlayer.saveState(true);
-            window.game?.ui?.updatePartyUI?.();
-        }
-
-        return normalized;
+    _applyLocalPartyMembers(members, options = {}) {
+        return this._applyLocalPartyState({
+            ...(options.party || {}),
+            members
+        }, options.syncToWorld !== false);
     }
 
-    async _loadPartyMembersFor(uid, fallbackMembers = null) {
-        if (Array.isArray(fallbackMembers) && fallbackMembers.length > 0) {
-            return this._normalizePartyMembers(fallbackMembers);
+    async _loadPartyStateFor(uid, fallbackParty = null) {
+        if (fallbackParty) {
+            return this._normalizePartyState(fallbackParty);
         }
 
         const profile = await this.getPlayerProfile(uid);
-        const members = profile?.party?.members;
-        return this._normalizePartyMembers(Array.isArray(members) && members.length > 0 ? members : [uid]);
+        return this._normalizePartyState(profile?.party || { members: [uid], hostId: uid });
     }
 
-    async _broadcastPartySync(members, recipients, action = 'SYNC') {
+    async _broadcastPartySync(party, recipients, action = 'SYNC') {
         if (!this.dbRef) return;
 
-        const normalizedMembers = this._normalizePartyMembers(members);
+        const normalizedParty = this._normalizePartyState(party);
         const targetMembers = this._normalizePartyMembers(recipients);
         await Promise.all(targetMembers.map((uid) => this.dbRef.child(`users/${uid}/party_inbox`).push({
             type: action,
-            members: normalizedMembers,
+            party: normalizedParty,
+            members: normalizedParty.members,
             actorId: this.playerId,
             actorName: window.game?.localPlayer?.name || 'Unknown',
             ts: Date.now()
         })));
     }
 
-    async respondToInvite(inviteId, fromUid, accept, invitePartyMembers = null) {
+    async respondToInvite(inviteId, fromUid, accept, inviteParty = null) {
         if (!this.connected || !this.playerId || !this.dbRef) return null;
 
         await this.dbRef.child(`party_invites/${this.playerId}/${inviteId}`).remove();
@@ -3440,29 +3791,47 @@ export default class NetworkManager extends EventEmitter {
         };
 
         if (accept) {
-            const baseMembers = await this._loadPartyMembersFor(fromUid, invitePartyMembers);
-            const mergedMembers = this._normalizePartyMembers([...baseMembers, this.playerId]);
-            this._applyLocalPartyMembers(mergedMembers);
-            responsePayload.partyMembers = mergedMembers;
+            const baseParty = await this._loadPartyStateFor(fromUid, inviteParty);
+            const mergedParty = this._normalizePartyState({
+                ...baseParty,
+                members: [...baseParty.members, this.playerId],
+                hostId: baseParty.hostId || fromUid,
+                mode: baseParty.mode || 'party'
+            });
+            if (mergedParty.members.length > 4) {
+                responsePayload.accept = false;
+                responsePayload.reason = 'party_full';
+            } else {
+                this._applyLocalPartyState(mergedParty);
+                responsePayload.party = mergedParty;
+                responsePayload.partyMembers = mergedParty.members;
 
-            const recipients = mergedMembers.filter((uid) => uid !== this.playerId && uid !== fromUid);
-            await this._broadcastPartySync(mergedMembers, recipients, 'SYNC');
+                const recipients = mergedParty.members.filter((uid) => uid !== this.playerId && uid !== fromUid);
+                await this._broadcastPartySync(mergedParty, recipients, 'SYNC');
+            }
         }
 
         await this.dbRef.child(`party_responses/${fromUid}`).push(responsePayload);
-        return responsePayload.partyMembers || null;
+        return responsePayload.party || responsePayload.partyMembers || null;
     }
 
     async leaveParty() {
         if (!this.connected || !this.playerId) return false;
 
-        const currentMembers = this._normalizePartyMembers(window.game?.localPlayer?.party?.members || [this.playerId]);
-        const remainingMembers = currentMembers.filter((uid) => uid !== this.playerId);
+        const currentParty = this._getLocalPartyState();
+        const remainingMembers = currentParty.members.filter((uid) => uid !== this.playerId);
 
-        this._applyLocalPartyMembers([this.playerId]);
+        this.resetToSoloPartyState();
 
         if (remainingMembers.length > 0) {
-            await this._broadcastPartySync(remainingMembers, remainingMembers, 'LEAVE');
+            const nextParty = this._normalizePartyState({
+                members: remainingMembers,
+                hostId: currentParty.hostId === this.playerId
+                    ? remainingMembers[0]
+                    : currentParty.hostId,
+                mode: remainingMembers.length > 1 ? currentParty.mode || 'party' : 'solo'
+            });
+            await this._broadcastPartySync(nextParty, remainingMembers, 'LEAVE');
         }
 
         this.emit('leftParty');
@@ -3483,7 +3852,7 @@ export default class NetworkManager extends EventEmitter {
                     id: snapshot.key,
                     from: val.from,
                     fromName: val.fromName,
-                    partyMembers: val.partyMembers || [val.from]
+                    party: val.party || { members: val.partyMembers || [val.from], hostId: val.from }
                 });
             }
             // Auto-remove invite after processing
@@ -3501,8 +3870,8 @@ export default class NetworkManager extends EventEmitter {
 
         this.dbRef.child(`users/${this.playerId}/party_inbox`).on('child_added', (snapshot) => {
             const val = snapshot.val();
-            if (val && Array.isArray(val.members) && window.game?.localPlayer) {
-                this._applyLocalPartyMembers(val.members);
+            if (val && (val.party || Array.isArray(val.members)) && window.game?.localPlayer) {
+                this._applyLocalPartyState(val.party || { members: val.members });
             }
             snapshot.ref.remove();
         });
@@ -3702,7 +4071,10 @@ export default class NetworkManager extends EventEmitter {
             x: Math.round(data.x),
             y: Math.round(data.y),
             type: data.type,
+            itemId: data.itemId || null,
             amount: data.amount,
+            name: data.name || null,
+            icon: data.icon || null,
             ownerId: data.ownerId || null,
             partyMembers: Array.isArray(data.partyMembers) ? data.partyMembers : null,
             eligibleCollectorIds: Array.isArray(data.eligibleCollectorIds) ? Array.from(new Set(data.eligibleCollectorIds.filter(Boolean))) : null,
@@ -3740,7 +4112,10 @@ export default class NetworkManager extends EventEmitter {
             x: Math.round(data.x),
             y: Math.round(data.y),
             type: data.type,
+            itemId: data.itemId || null,
             amount: data.amount,
+            name: data.name || null,
+            icon: data.icon || null,
             ownerId: data.ownerId || null,
             partyMembers: Array.isArray(data.partyMembers) ? data.partyMembers : null,
             eligibleCollectorIds: Array.isArray(data.eligibleCollectorIds) ? Array.from(new Set(data.eligibleCollectorIds.filter(Boolean))) : null,
@@ -4202,7 +4577,7 @@ export default class NetworkManager extends EventEmitter {
         // Redundant array-only block removed for cleaner delta-sync support.
 
         // Attack Update
-        if (val && val.a && Array.isArray(val.a)) {
+        if (this._canShareFieldWith(uid, { profile }) && val && val.a && Array.isArray(val.a)) {
             const now = Date.now();
             const existing = this.remotePlayers.get(uid);
             if (existing) existing.ts = now; // v0.00.03: Activity!
@@ -4224,7 +4599,7 @@ export default class NetworkManager extends EventEmitter {
         }
 
         // v0.00.37: Channeling Update (casting effects independent of attack hit)
-        if (val && val.ch && Array.isArray(val.ch)) {
+        if (this._canShareFieldWith(uid, { profile }) && val && val.ch && Array.isArray(val.ch)) {
             const chTs = val.ch[0];
             const skillType = val.ch[1];
             // Filter stale channeling (ignore if older than 5s)
@@ -4238,7 +4613,7 @@ export default class NetworkManager extends EventEmitter {
         }
 
         // v0.28.0: HP Update
-        if (val && val.h && Array.isArray(val.h)) {
+        if (this._canShareFieldWith(uid, { profile }) && val && val.h && Array.isArray(val.h)) {
             // v0.00.03: Update Buffer
             const now = Date.now();
             const existing = this.remotePlayers.get(uid);
