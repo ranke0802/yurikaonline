@@ -9606,3 +9606,439 @@ body.low-power-pwa #ui-layer #minimap-container {
         gap: 6px !important;
     }
 }
+
+/* Final mode-specific layout anchors */
+@media screen and (min-width: 1025px) {
+    #popup-overlay {
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 28px 32px !important;
+        overflow: hidden !important;
+    }
+
+    .game-popup:not(.hidden) {
+        display: flex !important;
+        flex-direction: column !important;
+        box-sizing: border-box !important;
+        max-height: min(calc(100vh - 56px), 860px) !important;
+        overflow: hidden !important;
+    }
+
+    #tutorial-guide {
+        max-width: min(34vw, 420px) !important;
+    }
+
+    #tutorial-guide .tutorial-guide-body {
+        font-size: 14px !important;
+        line-height: 1.5 !important;
+    }
+
+    #inventory-popup {
+        width: min(1100px, 92vw) !important;
+        height: min(82vh, 760px) !important;
+    }
+
+    #inventory-popup .inventory-layout {
+        grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr) !important;
+        gap: 16px !important;
+    }
+
+    #inventory-popup .inventory-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    }
+
+    #inventory-popup .inventory-detail-panel {
+        overflow: auto !important;
+    }
+
+    #status-popup {
+        width: min(980px, 88vw) !important;
+        height: min(78vh, 720px) !important;
+    }
+
+    #status-popup .status-content-wrapper {
+        display: grid !important;
+        grid-template-columns: minmax(280px, 0.94fr) minmax(360px, 1.06fr) !important;
+        grid-template-areas:
+            "top stats"
+            "actions actions"
+            "footer footer" !important;
+        gap: 14px 16px !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #status-popup .status-top {
+        grid-area: top !important;
+        gap: 14px !important;
+        align-items: flex-start !important;
+    }
+
+    #status-popup .status-stats-grid {
+        grid-area: stats !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+        min-height: 0 !important;
+        overflow: auto !important;
+    }
+
+    #status-popup .stat-row-ui {
+        min-height: 38px !important;
+        height: auto !important;
+    }
+
+    #status-popup .stat-main,
+    #status-popup .stat-derived {
+        min-width: 0 !important;
+    }
+
+    #status-popup .reset-actions {
+        grid-area: actions !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        margin-top: 0 !important;
+    }
+
+    #status-popup .reset-actions .reset-btn {
+        flex: 1 1 190px !important;
+    }
+
+    #status-popup .popup-footer {
+        grid-area: footer !important;
+        margin-top: 0 !important;
+        padding-top: 10px !important;
+    }
+
+    #skill-popup {
+        width: min(920px, 84vw) !important;
+        height: min(78vh, 720px) !important;
+    }
+
+    #skill-popup .skill-content-wrapper {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #skill-popup .skill-list {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+        min-height: 0 !important;
+        overflow: auto !important;
+    }
+
+    #settings-popup {
+        width: min(820px, 78vw) !important;
+        height: min(76vh, 680px) !important;
+    }
+
+    #settings-popup .settings-content-wrapper {
+        min-height: 0 !important;
+        overflow: auto !important;
+    }
+
+    #settings-popup .settings-row {
+        grid-template-columns: minmax(0, 180px) minmax(0, 1fr) !important;
+        gap: 12px !important;
+    }
+
+    #settings-popup .settings-action-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    #friends-popup {
+        width: min(1120px, 92vw) !important;
+        height: min(80vh, 720px) !important;
+    }
+
+    #friends-popup .friends-content-wrapper {
+        display: grid !important;
+        grid-template-columns: minmax(280px, 320px) minmax(0, 1fr) !important;
+        gap: 14px !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #friends-popup .friends-sidebar {
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) !important;
+        gap: 14px !important;
+    }
+
+    #friends-popup .friends-list,
+    #friend-detail-panel {
+        min-height: 0 !important;
+        overflow: auto !important;
+    }
+
+    #friends-popup .friends-detail-actions,
+    #friends-popup .friends-message-actions {
+        flex-wrap: wrap !important;
+    }
+}
+
+@media screen and (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
+    #popup-overlay {
+        align-items: center !important;
+        justify-content: center !important;
+        padding:
+            calc(10px + env(safe-area-inset-top))
+            calc(10px + env(safe-area-inset-right))
+            calc(10px + env(safe-area-inset-bottom))
+            calc(10px + env(safe-area-inset-left)) !important;
+        overflow: hidden !important;
+    }
+
+    #tutorial-guide {
+        max-width: min(36vw, 360px) !important;
+    }
+
+    #tutorial-guide .tutorial-guide-body {
+        font-size: 13px !important;
+        line-height: 1.44 !important;
+    }
+
+    #status-popup {
+        width: min(92vw, 840px) !important;
+        height: min(84dvh, 620px) !important;
+    }
+
+    #status-popup .status-content-wrapper {
+        display: grid !important;
+        grid-template-columns: minmax(230px, 0.94fr) minmax(280px, 1.06fr) !important;
+        grid-template-areas:
+            "top stats"
+            "actions actions"
+            "footer footer" !important;
+        gap: 10px 12px !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #status-popup .status-top {
+        grid-area: top !important;
+        gap: 10px !important;
+        align-items: flex-start !important;
+    }
+
+    #status-popup .status-portrait {
+        width: 68px !important;
+        height: 68px !important;
+        flex: 0 0 68px !important;
+    }
+
+    #status-popup .status-basic-info p,
+    #status-popup .exp-label,
+    #status-popup .exp-remaining,
+    #status-popup .stat-point-info {
+        font-size: 11px !important;
+        line-height: 1.35 !important;
+    }
+
+    #status-popup .status-stats-grid {
+        grid-area: stats !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+        min-height: 0 !important;
+        overflow: auto !important;
+    }
+
+    #status-popup .reset-actions {
+        grid-area: actions !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        margin-top: 0 !important;
+    }
+
+    #status-popup .reset-actions .reset-btn {
+        flex: 1 1 160px !important;
+    }
+
+    #status-popup .popup-footer {
+        grid-area: footer !important;
+        margin-top: 0 !important;
+    }
+
+    #skill-popup {
+        width: min(92vw, 820px) !important;
+        height: min(84dvh, 620px) !important;
+    }
+
+    #skill-popup .skill-content-wrapper {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #skill-popup .skill-list {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+        min-height: 0 !important;
+        overflow: auto !important;
+    }
+
+    #friends-popup {
+        width: min(92vw, 860px) !important;
+        height: min(84dvh, 580px) !important;
+    }
+
+    #friends-popup .friends-content-wrapper {
+        display: grid !important;
+        grid-template-columns: minmax(220px, 244px) minmax(0, 1fr) !important;
+        gap: 10px !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #friends-popup .friends-sidebar {
+        grid-template-rows: auto minmax(0, 1fr) !important;
+        gap: 10px !important;
+    }
+
+    #friends-popup .friends-list,
+    #friend-detail-panel {
+        min-height: 0 !important;
+        overflow: auto !important;
+    }
+
+    #friends-popup .friends-detail-actions,
+    #friends-popup .friends-message-actions {
+        flex-wrap: wrap !important;
+    }
+
+    #friends-popup .friend-status-overview {
+        grid-template-columns: 64px minmax(0, 1fr) !important;
+        gap: 10px !important;
+    }
+}
+
+@media screen and (max-width: 1024px) and (orientation: portrait) and (pointer: coarse) {
+    #popup-overlay {
+        align-items: flex-start !important;
+        justify-content: center !important;
+        padding:
+            calc(8px + env(safe-area-inset-top))
+            calc(10px + env(safe-area-inset-right))
+            calc(10px + env(safe-area-inset-bottom))
+            calc(10px + env(safe-area-inset-left)) !important;
+        overflow: auto !important;
+    }
+
+    #tutorial-guide {
+        max-width: min(84vw, 340px) !important;
+    }
+
+    #tutorial-guide .tutorial-guide-body {
+        font-size: 13px !important;
+        line-height: 1.46 !important;
+    }
+
+    #inventory-popup,
+    #status-popup,
+    #skill-popup,
+    #settings-popup,
+    #friends-popup {
+        width: min(94vw, 430px) !important;
+        height: min(86dvh, 760px) !important;
+    }
+
+    #status-popup .status-top {
+        gap: 10px !important;
+        align-items: flex-start !important;
+    }
+
+    #status-popup .status-portrait {
+        width: 64px !important;
+        height: 64px !important;
+        flex: 0 0 64px !important;
+    }
+
+    #status-popup .status-basic-info p,
+    #status-popup .exp-label,
+    #status-popup .exp-remaining,
+    #status-popup .stat-point-info {
+        font-size: 11px !important;
+        line-height: 1.35 !important;
+    }
+
+    #status-popup .reset-actions {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+        margin-top: 0 !important;
+    }
+
+    #status-popup .popup-footer {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        margin-top: 0 !important;
+    }
+
+    #skill-popup .skill-content-wrapper {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #skill-popup .skill-list {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        min-height: 0 !important;
+        overflow: auto !important;
+    }
+
+    #friends-popup .friends-content-wrapper {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        grid-template-rows: auto minmax(0, 1fr) !important;
+        gap: 10px !important;
+        min-height: 0 !important;
+        overflow: auto !important;
+    }
+
+    #friends-popup .friends-sidebar {
+        grid-template-rows: auto auto !important;
+        gap: 10px !important;
+    }
+
+    #friends-popup .friends-list-card {
+        max-height: 196px !important;
+    }
+
+    #friends-popup .friends-detail-header,
+    #friends-popup .friends-detail-actions,
+    #friends-popup .friends-message-actions {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    #friends-popup .friends-detail-summary {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+
+    #friends-popup .friend-stat-grid {
+        grid-template-columns: 1fr !important;
+        align-items: flex-start !important;
+    }
+
+    #friends-popup .friend-status-overview {
+        grid-template-columns: 60px minmax(0, 1fr) !important;
+        gap: 10px !important;
+    }
+}
