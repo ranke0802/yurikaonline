@@ -38,6 +38,7 @@ export default class NetworkManager extends EventEmitter {
         this.activeHeartbeatInterval = 6500; // Solo movement still keeps a light heartbeat
         this.backgroundHeartbeatInterval = 12000; // Hidden solo tabs can be even lighter
         this.presenceStaleTimeout = 18000;
+        this.friendOnlineGraceMs = 30000;
         this.sharedGhostTimeout = 15000;
         this.soloGhostTimeout = 12000;
         this.lastPacketData = null;
@@ -3462,15 +3463,34 @@ export default class NetworkManager extends EventEmitter {
         return this._applyLocalPartyState(soloState, syncToWorld);
     }
 
+    _getLatestPresenceSeenTs(uid) {
+        if (!uid) return 0;
+        const cachedPresenceTs = Number(this._presenceCache.get(uid)?.ts || 0);
+        const tsFallback = Number(this._presenceTsCache.get(uid) || 0);
+        const lastSeen = Number(this.userLastSeen.get(uid) || 0);
+        return Math.max(cachedPresenceTs, tsFallback, lastSeen);
+    }
+
     isUserOnline(uid, options = {}) {
         if (!uid) return false;
         if (uid === this.playerId) return !!this.connected;
 
+        const now = Date.now();
         const maxAgeMs = Number.isFinite(options.maxAgeMs)
             ? Math.max(1000, Number(options.maxAgeMs))
-            : this.presenceStaleTimeout;
-        const lastSeen = Number(this.userLastSeen.get(uid) || this._presenceTsCache.get(uid) || 0);
-        return this.connectedUsers.includes(uid) && lastSeen > 0 && (Date.now() - lastSeen) <= maxAgeMs;
+            : Math.max(this.friendOnlineGraceMs || 30000, this.presenceStaleTimeout || 18000);
+        const presenceEntry = this._presenceCache.get(uid) || null;
+        const lastSeen = this._getLatestPresenceSeenTs(uid);
+
+        if (lastSeen > 0 && (now - lastSeen) <= maxAgeMs) {
+            return true;
+        }
+
+        if (!presenceEntry) {
+            return false;
+        }
+
+        return Number(presenceEntry.ts || 0) > 0 && (now - Number(presenceEntry.ts || 0)) <= maxAgeMs;
     }
 
     getFriendListSnapshot() {

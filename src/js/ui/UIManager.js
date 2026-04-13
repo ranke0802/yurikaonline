@@ -33,6 +33,7 @@ export class UIManager {
         this.pendingExpGainHint = 0;
         this._pendingExpGainTimer = null;
         this.selectedFriendUid = null;
+        this.friendWeaponTooltipAnchor = null;
         this.friendSearchResult = null;
         this.friendProfileCache = new Map();
         this.friendAlertCount = 0;
@@ -3357,6 +3358,12 @@ export class UIManager {
         document.addEventListener('pointerup', this.handleUiLayoutControlPointerUp, true);
         document.addEventListener('pointercancel', this.handleUiLayoutControlPointerUp, true);
         this.setupDraggableFloatingPanels();
+        window.addEventListener('resize', () => this.positionFriendWeaponTooltip());
+        document.addEventListener('scroll', () => this.positionFriendWeaponTooltip(), true);
+        document.addEventListener('pointerdown', (event) => {
+            if (event.target?.closest?.('.friend-weapon-icon-button')) return;
+            this.hideFriendWeaponTooltip();
+        });
 
         const handleClose = (e) => {
             e.preventDefault();
@@ -4140,7 +4147,12 @@ export class UIManager {
         });
 
         messageToggleBtn?.addEventListener('click', () => {
-            document.getElementById('friend-message-input')?.focus();
+            const card = document.getElementById('friend-message-card');
+            const isHidden = card?.classList.contains('hidden');
+            this.setFriendMessageComposerVisible(isHidden);
+            if (isHidden) {
+                document.getElementById('friend-message-input')?.focus();
+            }
         });
 
         messageSendBtn?.addEventListener('click', async () => {
@@ -4158,6 +4170,7 @@ export class UIManager {
                 return;
             }
             if (input) input.value = '';
+            this.setFriendMessageComposerVisible(false);
             this.logSystemMessage(`[친구→${this.getSelectedFriendName()}] ${result.payload.text}`);
         });
 
@@ -4227,6 +4240,7 @@ export class UIManager {
         }
 
         this.renderFriendSearchResult('검색 결과가 여기에 표시됩니다.');
+        this.setFriendMessageComposerVisible(false);
         this.refreshFriendsPopup();
     }
 
@@ -4239,6 +4253,18 @@ export class UIManager {
         const dot = document.getElementById('friends-alert-dot');
         if (dot) {
             dot.classList.toggle('active', !!active);
+        }
+    }
+
+    setFriendMessageComposerVisible(visible) {
+        const card = document.getElementById('friend-message-card');
+        const toggleBtn = document.getElementById('friend-message-toggle-btn');
+        const nextVisible = !!visible;
+        if (card) {
+            card.classList.toggle('hidden', !nextVisible);
+        }
+        if (toggleBtn) {
+            toggleBtn.textContent = nextVisible ? '메시지 닫기' : '메시지 보내기';
         }
     }
 
@@ -4265,6 +4291,7 @@ export class UIManager {
     async selectFriend(uid) {
         if (!uid || !this.game.net) return;
         this.selectedFriendUid = uid;
+        this.setFriendMessageComposerVisible(false);
         this.refreshFriendsPopup();
 
         if (!this.friendProfileCache.has(uid)) {
@@ -4288,6 +4315,7 @@ export class UIManager {
 
         if (this.selectedFriendUid && !friends.some((entry) => entry.uid === this.selectedFriendUid)) {
             this.selectedFriendUid = null;
+            this.setFriendMessageComposerVisible(false);
         }
 
         listEl.innerHTML = '';
@@ -4349,6 +4377,37 @@ export class UIManager {
             defense,
             attackSpeed,
             critRate
+        };
+    }
+
+    buildFriendWeaponPreview(weapon) {
+        if (!weapon) return null;
+
+        const detailSourcePlayer = this.game.localPlayer || {
+            getWeaponAffixEffectiveValue: () => 0,
+            getWeaponAffixEnhancementBonus: () => 0,
+            getWeaponCombatHookValue: () => 0
+        };
+        const detail = this.buildInventoryDetail(detailSourcePlayer, weapon);
+        const itemDefinition = this.game.itemData?.getItemDefinition?.(weapon.type) || null;
+        const mergedLines = this.mergeInventoryEnhancementBonusLines(detail.lines)
+            .map((line) => {
+                if (!line) return '';
+                if (typeof line === 'string') return this.escapeHtml(line.trim());
+                if (typeof line === 'object') {
+                    if (line.html) return String(line.html).trim();
+                    if (line.text) return this.escapeHtml(String(line.text).trim());
+                }
+                return '';
+            })
+            .filter(Boolean);
+
+        const visibleLines = mergedLines.slice(0, 5);
+        return {
+            title: detail.title,
+            subtitle: itemDefinition?.category || itemDefinition?.weaponType || weapon.slot || '무기',
+            lines: visibleLines,
+            hiddenCount: Math.max(0, mergedLines.length - visibleLines.length)
         };
     }
 
@@ -4414,25 +4473,366 @@ export class UIManager {
             if (!weapon) {
                 weaponEl.innerHTML = '<div class="friend-weapon-card"><strong>장착 무기 없음</strong><span>현재 무기를 장착하지 않았습니다.</span></div>';
             } else {
-                const detailSourcePlayer = this.game.localPlayer || {
-                    getWeaponAffixEffectiveValue: () => 0,
-                    getWeaponAffixEnhancementBonus: () => 0,
-                    getWeaponCombatHookValue: () => 0
-                };
-                const detail = this.buildInventoryDetail(detailSourcePlayer, weapon);
-                const weaponLines = this.mergeInventoryEnhancementBonusLines(detail.lines)
-                    .map((line) => `<div>${typeof line === 'string' ? line : line.text}</div>`)
-                    .join('');
+                const weaponPreview = this.buildFriendWeaponPreview(weapon);
+                const weaponLines = (weaponPreview?.lines || []).map((line) => `<div>${line}</div>`).join('');
                 weaponEl.innerHTML = `
                     <div class="friend-weapon-card">
-                        <strong>${detail.title}</strong>
-                        <span>${weapon.type || ''}</span>
-                        ${detail.description ? `<div class="friend-weapon-lines"><div>${detail.description}</div></div>` : ''}
+                        <strong>${weaponPreview?.title || weapon.name || weapon.type}</strong>
+                        <span class="friend-weapon-subtitle">${weaponPreview?.subtitle || '무기'}</span>
                         ${weaponLines ? `<div class="friend-weapon-lines">${weaponLines}</div>` : ''}
+                        ${weaponPreview?.hiddenCount > 0 ? `<div class="friend-weapon-truncation">외 ${weaponPreview.hiddenCount}개 옵션 더 있음</div>` : ''}
                     </div>
                 `;
             }
         }
+    }
+
+    getFriendStatusText(isOnline) {
+        return isOnline ? '접속 중' : '오프라인';
+    }
+
+    getFriendAvatarText(name) {
+        const source = String(name || '').trim();
+        if (!source) return '?';
+        return Array.from(source)[0];
+    }
+
+    getFriendWeaponDisplayData(weapon) {
+        if (!weapon) return null;
+
+        const itemDefinition = this.game.itemData?.getItemDefinition?.(weapon.type || weapon.id) || null;
+        const definitionIcon = itemDefinition?.icon || null;
+        const displayWeapon = {
+            ...itemDefinition,
+            ...weapon,
+            name: weapon.name || itemDefinition?.name || weapon.type || '무기',
+            iconPath: weapon.iconPath
+                || itemDefinition?.iconPath
+                || (definitionIcon?.type === 'image' ? definitionIcon.path : null)
+                || null,
+            icon: weapon.icon
+                || (typeof itemDefinition?.icon === 'string' ? itemDefinition.icon : '')
+                || definitionIcon?.fallbackEmoji
+                || ''
+        };
+
+        const detailSourcePlayer = this.game.localPlayer || {
+            getWeaponAffixEffectiveValue: () => 0,
+            getWeaponAffixEnhancementBonus: () => 0,
+            getWeaponCombatHookValue: () => 0
+        };
+        const detail = this.buildInventoryDetail(detailSourcePlayer, displayWeapon);
+        return {
+            displayWeapon,
+            title: detail.title || displayWeapon.name,
+            subtitle: detail.subtitle || itemDefinition?.category || itemDefinition?.weaponType || displayWeapon.slot || '무기',
+            description: detail.description || '',
+            lines: this.mergeInventoryEnhancementBonusLines(detail.lines).filter(Boolean)
+        };
+    }
+
+    ensureFriendWeaponTooltip() {
+        let tooltip = document.getElementById('friend-weapon-tooltip');
+        if (tooltip) return tooltip;
+
+        tooltip = document.createElement('div');
+        tooltip.id = 'friend-weapon-tooltip';
+        tooltip.className = 'friend-weapon-tooltip hidden';
+        document.body.appendChild(tooltip);
+        return tooltip;
+    }
+
+    showFriendWeaponTooltip(weaponData, anchorEl) {
+        if (!weaponData || !anchorEl) return;
+
+        const tooltip = this.ensureFriendWeaponTooltip();
+        tooltip.innerHTML = '';
+
+        const card = document.createElement('div');
+        card.className = 'friend-weapon-tooltip-card';
+
+        const head = document.createElement('div');
+        head.className = 'inventory-detail-head';
+
+        const titleBlock = document.createElement('div');
+        titleBlock.className = 'inventory-detail-title-block';
+
+        const titleEl = document.createElement('h3');
+        titleEl.textContent = weaponData.title;
+        titleBlock.appendChild(titleEl);
+
+        if (weaponData.subtitle) {
+            const subtitleEl = document.createElement('p');
+            subtitleEl.textContent = weaponData.subtitle;
+            titleBlock.appendChild(subtitleEl);
+        }
+
+        head.appendChild(titleBlock);
+        card.appendChild(head);
+
+        if (weaponData.description) {
+            const descEl = document.createElement('p');
+            descEl.className = 'inventory-detail-desc';
+            descEl.textContent = weaponData.description;
+            card.appendChild(descEl);
+        }
+
+        if (weaponData.lines?.length) {
+            const statsEl = document.createElement('ul');
+            statsEl.className = 'inventory-detail-stats';
+            weaponData.lines.forEach((line) => {
+                statsEl.appendChild(this.createInventoryDetailStatLineElement(line));
+            });
+            card.appendChild(statsEl);
+        }
+
+        tooltip.appendChild(card);
+        tooltip.classList.remove('hidden');
+        this.friendWeaponTooltipAnchor = anchorEl;
+        this.positionFriendWeaponTooltip(anchorEl);
+    }
+
+    positionFriendWeaponTooltip(anchorEl = this.friendWeaponTooltipAnchor) {
+        const tooltip = document.getElementById('friend-weapon-tooltip');
+        const card = tooltip?.querySelector('.friend-weapon-tooltip-card');
+        if (!tooltip || !card || tooltip.classList.contains('hidden') || !anchorEl?.isConnected) return;
+
+        const anchorRect = anchorEl.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+        const gap = 10;
+        const margin = 12;
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+
+        let left = anchorRect.right + gap;
+        if ((left + cardRect.width) > (viewportWidth - margin)) {
+            left = anchorRect.left - cardRect.width - gap;
+        }
+        left = Math.max(margin, Math.min(left, viewportWidth - cardRect.width - margin));
+
+        let top = anchorRect.top + ((anchorRect.height - cardRect.height) / 2);
+        top = Math.max(margin, Math.min(top, viewportHeight - cardRect.height - margin));
+
+        tooltip.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+    }
+
+    hideFriendWeaponTooltip() {
+        const tooltip = document.getElementById('friend-weapon-tooltip');
+        if (!tooltip) return;
+
+        tooltip.classList.add('hidden');
+        tooltip.innerHTML = '';
+        tooltip.style.removeProperty('transform');
+        this.friendWeaponTooltipAnchor = null;
+    }
+
+    renderSelectedFriendDetail(friends = []) {
+        this.hideFriendWeaponTooltip();
+
+        const emptyEl = document.getElementById('friend-detail-empty');
+        const panelEl = document.getElementById('friend-detail-panel');
+        const selected = friends.find((entry) => entry.uid === this.selectedFriendUid) || null;
+
+        if (!selected || !panelEl || !emptyEl) {
+            emptyEl?.classList.remove('hidden');
+            panelEl?.classList.add('hidden');
+            return;
+        }
+
+        const profile = this.friendProfileCache.get(selected.uid) || null;
+        const displayName = profile?.name || selected.name || selected.uid;
+        const nameEl = document.getElementById('friend-detail-name');
+        const statusEl = document.getElementById('friend-detail-status');
+        const summaryEl = document.getElementById('friend-detail-summary');
+        const statsEl = document.getElementById('friend-detail-stats');
+        const weaponEl = document.getElementById('friend-detail-weapon');
+        const togetherBtn = document.getElementById('friend-together-btn');
+
+        emptyEl.classList.add('hidden');
+        panelEl.classList.remove('hidden');
+
+        if (nameEl) nameEl.textContent = displayName;
+        if (statusEl) {
+            statusEl.textContent = this.getFriendStatusText(selected.online);
+            statusEl.classList.toggle('is-online', !!selected.online);
+        }
+        if (summaryEl) {
+            summaryEl.innerHTML = `
+                <span>ID: ${this.escapeHtml(selected.uid)}</span>
+                <span>프로필 이름: ${this.escapeHtml(profile?.name || '불러오는 중...')}</span>
+            `;
+        }
+        if (togetherBtn) {
+            togetherBtn.disabled = !selected.online;
+        }
+
+        if (!profile) {
+            if (statsEl) {
+                statsEl.innerHTML = '<div class="friend-stat-card"><strong>불러오는 중</strong><span>상대방의 상태 정보를 확인하고 있습니다.</span></div>';
+            }
+            if (weaponEl) {
+                weaponEl.innerHTML = '<div class="friend-weapon-card"><strong>장착 무기</strong><span class="friend-weapon-help">무기 정보를 불러오는 중입니다.</span></div>';
+            }
+            return;
+        }
+
+        const derived = this.buildFriendDerivedStats(profile);
+        const hpRatio = derived.maxHp > 0 ? Math.max(0, Math.min(1, derived.hp / derived.maxHp)) : 0;
+        const mpRatio = derived.maxMp > 0 ? Math.max(0, Math.min(1, derived.mp / derived.maxMp)) : 0;
+
+        if (statsEl) {
+            statsEl.innerHTML = `
+                <div class="friend-status-card">
+                    <div class="friend-status-overview">
+                        <div class="friend-status-avatar">
+                            <span class="friend-status-avatar-text">${this.escapeHtml(this.getFriendAvatarText(displayName))}</span>
+                        </div>
+                        <div class="friend-status-head">
+                            <div class="friend-status-name-row">
+                                <p class="friend-status-name">${this.escapeHtml(displayName)}</p>
+                                <span class="friends-status-chip${selected.online ? ' is-online' : ''}">${this.getFriendStatusText(selected.online)}</span>
+                            </div>
+                            <div class="friend-status-id">상대방의 현재 프로필과 접속 상태를 기준으로 표시됩니다.</div>
+                            <div class="friend-status-bars">
+                                <div class="friend-status-bar-row">
+                                    <span class="friend-status-bar-label">HP</span>
+                                    <div class="friend-status-bar-track">
+                                        <span class="friend-status-bar-fill" style="width:${(hpRatio * 100).toFixed(1)}%"></span>
+                                    </div>
+                                    <span class="friend-status-bar-value">${Math.floor(derived.hp)} / ${Math.floor(derived.maxHp)}</span>
+                                </div>
+                                <div class="friend-status-bar-row">
+                                    <span class="friend-status-bar-label">MP</span>
+                                    <div class="friend-status-bar-track">
+                                        <span class="friend-status-bar-fill mp" style="width:${(mpRatio * 100).toFixed(1)}%"></span>
+                                    </div>
+                                    <span class="friend-status-bar-value">${Math.floor(derived.mp)} / ${Math.floor(derived.maxMp)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="friend-stat-grid">
+                        <div class="friend-stat-card"><strong>레벨</strong><span>${derived.level}</span></div>
+                        <div class="friend-stat-card"><strong>공격속도</strong><span>${derived.attackSpeed.toFixed(2)}</span></div>
+                        <div class="friend-stat-card"><strong>기본 스탯</strong><span>VIT ${derived.vitality} / INT ${derived.intelligence} / WIS ${derived.wisdom} / AGI ${derived.agility}</span></div>
+                        <div class="friend-stat-card"><strong>전투 수치</strong><span>공격력 ${derived.attack} / 방어력 ${derived.defense}</span></div>
+                        <div class="friend-stat-card"><strong>치명확률</strong><span>${Math.round(derived.critRate * 100)}%</span></div>
+                        <div class="friend-stat-card"><strong>현재 상태</strong><span>${selected.online ? '함께하기 요청 가능' : '접속 시 함께하기 요청 가능'}</span></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (!weaponEl) return;
+
+        weaponEl.innerHTML = '';
+        const weaponData = this.getFriendWeaponDisplayData(profile?.equipment?.weapon || null);
+        const weaponCard = document.createElement('div');
+        weaponCard.className = 'friend-weapon-card';
+
+        const labelEl = document.createElement('strong');
+        labelEl.textContent = '장착 무기';
+        weaponCard.appendChild(labelEl);
+
+        const rowEl = document.createElement('div');
+        rowEl.className = 'friend-weapon-head';
+
+        if (!weaponData) {
+            const emptyIcon = document.createElement('div');
+            emptyIcon.className = 'friend-weapon-empty';
+            emptyIcon.textContent = '-';
+
+            const metaEl = document.createElement('div');
+            metaEl.className = 'friend-weapon-meta';
+            metaEl.innerHTML = `
+                <span class="friend-weapon-name">장착 중인 무기 없음</span>
+                <span class="friend-weapon-help">현재 장착한 무기가 없습니다.</span>
+            `;
+
+            rowEl.appendChild(emptyIcon);
+            rowEl.appendChild(metaEl);
+            weaponCard.appendChild(rowEl);
+            weaponEl.appendChild(weaponCard);
+            return;
+        }
+
+        const iconButton = document.createElement('button');
+        iconButton.type = 'button';
+        iconButton.className = 'friend-weapon-icon-button';
+        iconButton.setAttribute('aria-label', `${weaponData.title} 상세 보기`);
+        iconButton.title = `${weaponData.title} 상세 보기`;
+        iconButton.appendChild(this.createInventoryIconElement(weaponData.displayWeapon, 'friend-weapon-icon'));
+
+        const showTooltip = () => this.showFriendWeaponTooltip(weaponData, iconButton);
+        iconButton.addEventListener('mouseenter', showTooltip);
+        iconButton.addEventListener('focus', showTooltip);
+        iconButton.addEventListener('mouseleave', () => this.hideFriendWeaponTooltip());
+        iconButton.addEventListener('blur', () => this.hideFriendWeaponTooltip());
+        iconButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const tooltip = document.getElementById('friend-weapon-tooltip');
+            const isOpen = tooltip && !tooltip.classList.contains('hidden') && this.friendWeaponTooltipAnchor === iconButton;
+            if (isOpen) {
+                this.hideFriendWeaponTooltip();
+            } else {
+                this.showFriendWeaponTooltip(weaponData, iconButton);
+            }
+        });
+
+        const metaEl = document.createElement('div');
+        metaEl.className = 'friend-weapon-meta';
+        metaEl.innerHTML = `
+            <span class="friend-weapon-name">${this.escapeHtml(weaponData.title)}</span>
+            <span class="friend-weapon-help">아이콘에 마우스를 올리면 인벤토리처럼 상세 정보가 표시됩니다.</span>
+        `;
+
+        rowEl.appendChild(iconButton);
+        rowEl.appendChild(metaEl);
+        weaponCard.appendChild(rowEl);
+        weaponEl.appendChild(weaponCard);
+    }
+
+    refreshFriendsPopup() {
+        const friends = this.game.net?.getFriendListSnapshot?.() || [];
+        const countEl = document.getElementById('friends-count');
+        const listEl = document.getElementById('friends-list');
+        if (countEl) {
+            countEl.textContent = `${friends.length}명`;
+        }
+        if (!listEl) return;
+
+        if (this.selectedFriendUid && !friends.some((entry) => entry.uid === this.selectedFriendUid)) {
+            this.selectedFriendUid = null;
+            this.setFriendMessageComposerVisible(false);
+        }
+
+        listEl.innerHTML = '';
+        if (friends.length === 0) {
+            listEl.innerHTML = '<div class="friends-detail-empty">아직 친구가 없습니다.</div>';
+        } else {
+            friends.forEach((friend) => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = `friend-list-item${friend.uid === this.selectedFriendUid ? ' is-selected' : ''}`;
+                item.innerHTML = `
+                    <div class="friend-list-topline">
+                        <span class="friend-list-name">${this.escapeHtml(friend.name || friend.uid)}</span>
+                        <span class="friends-status-chip${friend.online ? ' is-online' : ''}">${this.getFriendStatusText(friend.online)}</span>
+                    </div>
+                `;
+                item.addEventListener('click', () => {
+                    this.selectFriend(friend.uid);
+                });
+                listEl.appendChild(item);
+            });
+        }
+
+        if (this.isPopupOpen('friends-popup')) {
+            this.setFriendsAlertActive(false);
+        }
+
+        this.renderSelectedFriendDetail(friends);
     }
 
     setPortrait(processedImage) {
@@ -4512,6 +4912,7 @@ export class UIManager {
     executePopupClose(id, isCurrentlyHidden, popup) {
         if (!popup) popup = document.getElementById(id);
         this.hideTooltip();
+        this.hideFriendWeaponTooltip();
 
         const statusPopup = document.getElementById('status-popup');
         const isStatusPopupOpen = statusPopup && !statusPopup.classList.contains('hidden');

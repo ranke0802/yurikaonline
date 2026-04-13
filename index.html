@@ -16,7 +16,7 @@
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
-        window.BOOTSTRAP_VERSION = '0.01.142';
+        window.BOOTSTRAP_VERSION = '0.01.144';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -123,7 +123,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    await navigator.serviceWorker.register('./sw.js?v=0.01.142', { updateViaCache: 'none' });
+                    await navigator.serviceWorker.register('./sw.js?v=0.01.144', { updateViaCache: 'none' });
                 } catch (err) {
                     console.warn('ServiceWorker registration failed: ', err);
                 }
@@ -211,7 +211,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.142">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.144">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -799,10 +799,10 @@
                 <div class="friends-content-wrapper">
                     <div class="friends-sidebar">
                         <div class="friends-search-card">
-                            <label for="friend-search-input">친구 추가</label>
+                            <label for="friend-search-input">유저 검색</label>
                             <div class="friends-search-row">
                                 <input id="friend-search-input" type="text" placeholder="아이디 또는 이름 조회">
-                                <button id="friend-search-btn" type="button" class="friends-inline-btn">조회</button>
+                                <button id="friend-search-btn" type="button" class="friends-inline-btn friends-search-icon-btn" aria-label="유저 조회" title="유저 조회">?</button>
                             </div>
                             <div id="friend-search-result" class="friends-search-result">검색 결과가 여기에 표시됩니다.</div>
                             <button id="friend-add-btn" type="button" class="friends-primary-btn" disabled>친구 추가</button>
@@ -839,7 +839,7 @@
                                 <button id="friend-gift-btn" type="button" class="friends-inline-btn">선물 보내기</button>
                                 <button id="friend-remove-btn" type="button" class="friends-inline-btn danger">삭제</button>
                             </div>
-                            <div class="friends-message-card">
+                            <div id="friend-message-card" class="friends-message-card hidden">
                                 <textarea id="friend-message-input" rows="3" maxlength="200" placeholder="친구에게 보낼 메시지를 입력하세요."></textarea>
                                 <div class="friends-message-actions">
                                     <span id="friend-message-hint">최대 200자</span>
@@ -982,7 +982,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.142"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.144"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">
