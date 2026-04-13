@@ -9206,7 +9206,13 @@ body.low-power-pwa #ui-layer #minimap-container {
         overflow: auto !important;
     }
 
-    .game-popup {
+    .game-popup.hidden,
+    #settings-popup.hidden,
+    #friends-popup.hidden {
+        display: none !important;
+    }
+
+    .game-popup:not(.hidden) {
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
@@ -9289,41 +9295,41 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons {
-        right: calc(14px + env(safe-area-inset-right)) !important;
-        bottom: calc(84px + env(safe-area-inset-bottom)) !important;
-        width: min(44vw, 188px) !important;
-        height: min(36vh, 228px) !important;
+        right: calc(12px + env(safe-area-inset-right)) !important;
+        bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+        width: min(42vw, 172px) !important;
+        height: min(31vh, 204px) !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-btn {
-        width: 54px !important;
-        height: 54px !important;
-        font-size: 22px !important;
+        width: 50px !important;
+        height: 50px !important;
+        font-size: 20px !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .attack-btn {
-        width: 92px !important;
-        height: 92px !important;
-        font-size: 30px !important;
+        width: 86px !important;
+        height: 86px !important;
+        font-size: 28px !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-u {
-        top: 8px !important;
-        left: 10px !important;
+        top: 6px !important;
+        left: 8px !important;
         right: auto !important;
         bottom: auto !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-k {
-        top: 34px !important;
-        right: 6px !important;
+        top: 10px !important;
+        right: 8px !important;
         left: auto !important;
         bottom: auto !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-h {
-        bottom: 26px !important;
-        left: 10px !important;
+        bottom: 18px !important;
+        left: 8px !important;
         right: auto !important;
         top: auto !important;
     }
@@ -9337,11 +9343,11 @@ body.low-power-pwa #ui-layer #minimap-container {
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .attack-auto-toggle {
         top: auto !important;
-        right: calc(102px + env(safe-area-inset-right)) !important;
-        bottom: calc(238px + env(safe-area-inset-bottom)) !important;
+        right: calc(92px + env(safe-area-inset-right)) !important;
+        bottom: calc(200px + env(safe-area-inset-bottom)) !important;
     }
 
-    .game-popup {
+    .game-popup:not(.hidden) {
         width: min(94vw, 430px) !important;
         padding: 14px 16px !important;
         border-radius: 20px !important;
@@ -9353,6 +9359,14 @@ body.low-power-pwa #ui-layer #minimap-container {
     #settings-popup,
     #friends-popup {
         width: min(94vw, 430px) !important;
+    }
+
+    #inventory-popup,
+    #status-popup,
+    #skill-popup,
+    #settings-popup,
+    #friends-popup {
+        height: min(88dvh, 760px) !important;
     }
 
     #inventory-popup {
@@ -9375,12 +9389,9 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 
     #status-popup .status-content-wrapper {
-        grid-template-columns: 1fr !important;
-        grid-template-areas:
-            "top"
-            "stats"
-            "actions"
-            "footer" !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
         overflow: auto !important;
     }
 
@@ -9389,7 +9400,10 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 
     #status-popup .status-stats-grid {
+        display: grid !important;
         grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        padding-top: 10px !important;
     }
 
     #skill-popup .skill-list {
@@ -9537,7 +9551,7 @@ body.low-power-pwa #ui-layer #minimap-container {
         bottom: auto !important;
     }
 
-    .game-popup {
+    .game-popup:not(.hidden) {
         width: min(92vw, 860px) !important;
         padding: 12px 14px !important;
         border-radius: 20px !important;
