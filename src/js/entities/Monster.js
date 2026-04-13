@@ -389,7 +389,7 @@ export default class Monster extends CharacterBase {
     }
 
     renderTelegraph(ctx) {
-        if (this.chargeState !== 'casting' || !this.chargeTarget) return;
+        if (this.isDead || this.chargeState !== 'casting' || !this.chargeTarget) return;
 
         const screenX = Math.round(this.x);
         const screenY = Math.round(this.y);
@@ -422,29 +422,66 @@ export default class Monster extends CharacterBase {
         // v1.99.9: Hard cap on dt to prevent physics tunneling or explosions during lag
         const safeDt = Math.min(0.1, dt);
         const isPassive = !!this.behavior?.passive || this.typeId === 'training_dummy';
-
-        // v0.00.85: Pause AI/Movement if UI is in a modal or Story is active
-        const isPaused = window.game?.ui?.isPaused;
-        const isStoryActive = window.game?.story?.isStoryActive;
-        if (isPaused || isStoryActive) {
-            // v0.00.85: Reset velocity to prevent persistent sliding during stories
-            this.vx = 0;
-            this.vy = 0;
-            return;
-        }
+        const isPaused = !!window.game?.ui?.isPaused;
+        const isStoryActive = !!window.game?.story?.isStoryActive;
 
         if (this.hp <= 0 && !this.isDead) {
             this.isDead = true;
             this.hp = 0;
             this.vx = 0;
             this.vy = 0;
+            this.chargeState = 'idle';
+            this.chargeTimer = 0;
+            this.chargeTarget = null;
             Logger.log(`[Monster] Local death trigger for ${this.id}`);
         }
 
         if (this.isDead) {
             this.deathTimer += dt;
             this.alpha = Math.max(0, 1 - (this.deathTimer / this.deathDuration));
+            this.chargeState = 'idle';
+            this.chargeTimer = 0;
+            this.chargeTarget = null;
             return; // Dead monsters only fade out, no AI
+        }
+
+        // v0.00.85: Pause AI/Movement if UI is in a modal or Story is active
+        if (isPaused || isStoryActive) {
+            // v0.00.85: Reset velocity to prevent persistent sliding during stories
+            this.vx = 0;
+            this.vy = 0;
+            this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
+
+            if (this.hitTimer > 0) this.hitTimer = Math.max(0, this.hitTimer - dt);
+
+            if (this.chargeState === 'casting') {
+                this.chargeTimer -= safeDt;
+                if (this.chargeTimer <= 0) {
+                    this.chargeState = 'idle';
+                    this.chargeTimer = 0;
+                    this.chargeTarget = null;
+                }
+            } else if (this.chargeState === 'charging') {
+                this.chargeState = 'idle';
+                this.chargeTimer = 0;
+                this.chargeTarget = null;
+            }
+
+            if (this.electrocutedTimer > 0) {
+                this.electrocutedTimer = Math.max(0, this.electrocutedTimer - dt);
+                this.sparkTimer -= dt;
+                if (this.sparkTimer <= 0 && this.electrocutedTimer > 0) {
+                    this.sparkTimer = 0.1 + Math.random() * 0.2;
+                }
+            } else {
+                this.slowRatio = 0;
+            }
+
+            this.statusEffects = this.statusEffects.filter((eff) => {
+                eff.timer -= dt;
+                return eff.timer > 0;
+            });
+            return;
         }
 
         // v0.33.0: Handle Regen
@@ -905,6 +942,9 @@ export default class Monster extends CharacterBase {
                 this.hp = 0;
                 this.vx = 0;
                 this.vy = 0;
+                this.chargeState = 'idle';
+                this.chargeTimer = 0;
+                this.chargeTarget = null;
                 // v1.86: Ensure immediate sync for death state
                 if (window.game?.net?.isHost && window.game?.monsterManager) {
                     window.game.monsterManager.forceSync(this.id);

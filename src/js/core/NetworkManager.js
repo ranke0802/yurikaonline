@@ -33,10 +33,11 @@ export default class NetworkManager extends EventEmitter {
         this.isPlayerMoving = false;
         this.lastHeartbeatTime = 0;
         this.lastNetworkActivityTime = 0;
-        this.sharedHeartbeatInterval = 2500; // Shared field presence must stay tighter than stale cleanup
-        this.idleHeartbeatInterval = 8000; // Solo idle can be much cheaper without hurting UX
-        this.activeHeartbeatInterval = 6500; // Solo movement still keeps a light heartbeat
-        this.backgroundHeartbeatInterval = 12000; // Hidden solo tabs can be even lighter
+        this.heartbeatIntervalMs = 3000;
+        this.sharedHeartbeatInterval = this.heartbeatIntervalMs;
+        this.idleHeartbeatInterval = this.heartbeatIntervalMs;
+        this.activeHeartbeatInterval = this.heartbeatIntervalMs;
+        this.backgroundHeartbeatInterval = this.heartbeatIntervalMs;
         this.presenceStaleTimeout = 18000;
         this.friendOnlineGraceMs = 30000;
         this.sharedGhostTimeout = 15000;
@@ -1213,6 +1214,26 @@ export default class NetworkManager extends EventEmitter {
         return ts > 0 && (now - ts) < this.presenceStaleTimeout;
     }
 
+    _preservePresenceLastSeen(uid, ...candidateTimestamps) {
+        if (!uid) return 0;
+
+        const preservedTs = Math.max(
+            0,
+            ...candidateTimestamps.map((value) => Number(value || 0)),
+            Number(this.userLastSeen.get(uid) || 0),
+            Number(this._presenceTsCache.get(uid) || 0),
+            Number(this._presenceCache.get(uid)?.ts || 0)
+        );
+
+        if (preservedTs > 0) {
+            this.userLastSeen.set(uid, preservedTs);
+            return preservedTs;
+        }
+
+        this.userLastSeen.delete(uid);
+        return 0;
+    }
+
     _emitFieldPeerPresenceChanged(uid, previousEntry, nextEntry) {
         if (!uid || uid === this.playerId) return;
 
@@ -1322,16 +1343,16 @@ export default class NetworkManager extends EventEmitter {
         const uid = snapshot?.key;
         if (!uid) return;
 
-        this._presenceTsCache.delete(uid);
-        this.userLastSeen.delete(uid);
-
         const previousEntry = this._presenceCache.get(uid) || null;
+        const preservedTs = this._preservePresenceLastSeen(uid, previousEntry?.ts);
+        this._presenceTsCache.delete(uid);
+
         if (!previousEntry) {
             this._checkHostStatus();
             return;
         }
 
-        const nextEntry = { ...previousEntry, ts: 0 };
+        const nextEntry = { ...previousEntry, ts: preservedTs || 0 };
         this._presenceCache.set(uid, nextEntry);
         this._emitFieldPeerPresenceChanged(uid, previousEntry, nextEntry);
         this._refreshSharedFieldState();
@@ -1343,11 +1364,11 @@ export default class NetworkManager extends EventEmitter {
         const uid = snapshot?.key;
         if (!uid) return;
         const previousEntry = this._presenceCache.get(uid) || null;
+        this._preservePresenceLastSeen(uid, previousEntry?.ts);
         this._presenceCache.delete(uid);
         this._presenceTsCache.delete(uid);
         this.connectedUsers = this.connectedUsers.filter((id) => id !== uid);
         this.connectedUsers.sort();
-        this.userLastSeen.delete(uid);
         this._emitFieldPeerPresenceChanged(uid, previousEntry, null);
         this._removeRemoteIfOutOfField(uid, null);
         this._refreshSharedFieldState();
@@ -2430,21 +2451,7 @@ export default class NetworkManager extends EventEmitter {
     _dynamicHeartbeat() {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
         const now = Date.now();
-        const isBackgrounded = typeof document !== 'undefined' && document.hidden;
-        const isSharedField = this.isSharedFieldActive();
-        const interval = isBackgrounded
-            ? this.backgroundHeartbeatInterval
-            : (isSharedField
-                ? this.sharedHeartbeatInterval
-                : (this.isPlayerMoving ? this.activeHeartbeatInterval : this.idleHeartbeatInterval));
-
-        if (!isBackgrounded && !isSharedField) {
-            const recentActivityWindow = Math.max(1500, Math.floor(interval * 0.75));
-            if (now - this.lastNetworkActivityTime < recentActivityWindow) {
-                this._checkHostStatus();
-                return;
-            }
-        }
+        const interval = this.heartbeatIntervalMs;
 
         if (now - this.lastHeartbeatTime >= interval) {
             this.sendHeartbeat();

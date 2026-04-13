@@ -839,12 +839,17 @@ export class UIManager {
     }
 
     getUiLayoutModeEntries(source = this.getResolvedUiLayoutSource(), mode = this.getUiLayoutMode()) {
+        return this.getStoredUiLayoutModeEntries(source, mode)
+            || this.captureDefaultUiLayoutForMode(mode);
+    }
+
+    getStoredUiLayoutModeEntries(source = this.getResolvedUiLayoutSource(), mode = this.getUiLayoutMode()) {
         const sanitized = this.sanitizeUiLayout(source);
         const modeEntries = sanitized?.layouts?.[mode];
         if (modeEntries && Object.keys(modeEntries).length > 0) {
             return modeEntries;
         }
-        return this.captureDefaultUiLayoutForMode(mode);
+        return null;
     }
 
     buildDefaultJoystickLayoutEntry(mode = this.getUiLayoutMode()) {
@@ -1014,11 +1019,19 @@ export class UIManager {
     applyActiveUiLayout() {
         this.clearUiLayoutRuntimeStyles();
         const mode = this.getUiLayoutMode();
-        const entries = this.getUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode);
+        const controls = this.getUiLayoutControlsForMode(mode);
+        const supportsJoystick = controls.some(([controlId]) => controlId === 'joystick');
+        const entries = this.uiLayoutEditMode
+            ? this.getUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode)
+            : this.getStoredUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode);
         Object.entries(entries || {}).forEach(([controlId, entry]) => {
+            if (controlId === 'joystick' && !this.uiLayoutEditMode) return;
             this.applyUiLayoutControl(controlId, entry);
         });
-        this.game.touch?.setFixedJoystickLayout?.(entries?.joystick || null);
+        const joystickLayout = this.uiLayoutEditMode && supportsJoystick
+            ? (entries?.joystick || this.buildDefaultJoystickLayoutEntry(mode))
+            : null;
+        this.game.touch?.setFixedJoystickLayout?.(joystickLayout);
         this.syncUiLayoutSelectionState();
     }
 
@@ -2002,9 +2015,12 @@ export class UIManager {
             '.chat-window',
             '.action-buttons',
             '#joystick-container',
-            '#joystick-area',
             '#dialog-box:not(.hidden)'
         ];
+
+        if (this.shouldReserveTutorialJoystickZone()) {
+            selectors.push('#joystick-area');
+        }
 
         const zones = selectors
             .map((selector) => this.getVisibleElementRect(selector))
@@ -2021,6 +2037,13 @@ export class UIManager {
         if (shouldReservePopup && payload?.mode !== 'dock-left') zones.push(popupRect);
 
         return zones;
+    }
+
+    shouldReserveTutorialJoystickZone() {
+        if (this.uiLayoutEditMode) return true;
+        const touch = this.game?.touch;
+        if (!touch) return false;
+        return !!touch.fixedJoystickLayout || !!touch.joystick?.active;
     }
 
     getTutorialGuideDimensions(payload, context = {}) {
@@ -2253,12 +2276,15 @@ export class UIManager {
             case 'viewport-bottom-sheet-safe': {
                 const blockerRects = [
                     '#joystick-container',
-                    '#joystick-area',
                     '.action-buttons',
                     '#dialog-box:not(.hidden)'
                 ]
                     .map((selector) => this.getVisibleElementRect(selector))
                     .filter(Boolean);
+                if (this.shouldReserveTutorialJoystickZone()) {
+                    const joystickAreaRect = this.getVisibleElementRect('#joystick-area');
+                    if (joystickAreaRect) blockerRects.push(joystickAreaRect);
+                }
                 const topMostBlocker = blockerRects.reduce((minTop, rect) => Math.min(minTop, rect.top), viewportH);
                 const safeBottomTop = Math.min(bottomTop, topMostBlocker - height - 14);
                 if (options.popupRect) {

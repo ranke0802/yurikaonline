@@ -61,8 +61,10 @@ export default class TouchHandler extends EventEmitter {
         // be applied with the same priority for the joystick to actually appear.
         this.container.style.setProperty('display', 'flex', 'important');
         if (this.fixedJoystickLayout) return;
-        this.container.style.setProperty('left', `${x - 75}px`, 'important');
-        this.container.style.setProperty('top', `${y - 75}px`, 'important');
+        const width = this.container.offsetWidth || this.base?.offsetWidth || 100;
+        const height = this.container.offsetHeight || this.base?.offsetHeight || 100;
+        this.container.style.setProperty('left', `${Math.round(x - (width / 2))}px`, 'important');
+        this.container.style.setProperty('top', `${Math.round(y - (height / 2))}px`, 'important');
         this.container.style.setProperty('right', 'auto', 'important');
         this.container.style.setProperty('bottom', 'auto', 'important');
     }
