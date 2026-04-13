@@ -55,7 +55,7 @@ export default class Player extends CharacterBase {
         this.level = 1;
         this.exp = 0;
         this.maxExp = 100;
-        this.gold = 0;
+        this.manastone = 0;
         this.inventory = Array.from({ length: INVENTORY_TOTAL_SLOTS }, () => null);
         this.equipment = { weapon: null };
         // Quest Data (v0.22.4+)
@@ -67,6 +67,12 @@ export default class Player extends CharacterBase {
             slime30QuestClaimed: false, // v0.00.75+
             introSlime30RewardClaimed: false,
             introBossParticipated: false,
+            statInsightShown: {
+                vitality: false,
+                intelligence: false,
+                wisdom: false,
+                agility: false
+            },
             slimeRepeatKills: 0,        // v0.00.83+ (Persistence for Quest 4)
             bossKilled: false,
             bossQuestClaimed: false,
@@ -860,7 +866,7 @@ export default class Player extends CharacterBase {
         this.intelligence = 3;
         this.wisdom = 2;
         this.agility = 1;
-        this.gold = 0;
+        this.manastone = 0;
         this.equipment = { weapon: null };
         this.inventory = Array.from({ length: INVENTORY_TOTAL_SLOTS }, () => null);
         this.questData = {
@@ -871,6 +877,12 @@ export default class Player extends CharacterBase {
             slime30QuestClaimed: false,
             introSlime30RewardClaimed: false,
             introBossParticipated: false,
+            statInsightShown: {
+                vitality: false,
+                intelligence: false,
+                wisdom: false,
+                agility: false
+            },
             slimeRepeatKills: 0,
             bossKilled: false,
             bossQuestClaimed: false,
@@ -887,7 +899,7 @@ export default class Player extends CharacterBase {
         this.hp = this.maxHp;
         this.mp = this.maxMp;
         if (this.net) this.net.sendPlayerHp(this.hp, this.maxHp);
-        this.updateGoldInventory();
+        this.updateManastoneInventory();
         this.saveState();
 
         if (window.game && window.game.ui) {
@@ -1070,7 +1082,7 @@ export default class Player extends CharacterBase {
             maxExp: this.maxExp, // v0.00.03: Persist maxExp
             hp: safeHp,
             mp: safeMp,
-            gold: this.gold,
+            manastone: this.manastone,
             vitality: this.vitality,
             defense: this.defense || 0, // v0.00.53: Sync defense to others
             isPaused: !!window.game?.ui?.isPaused, // v0.00.55: Sync safety state
@@ -1137,7 +1149,9 @@ export default class Player extends CharacterBase {
                     patch.mp = Math.min(this.maxMp, Math.max(0, Math.round(this.mp)));
                     break;
                 case 'gold':
-                    patch.gold = this.gold;
+                case 'manastone':
+                    patch.manastone = this.manastone;
+                    patch.gold = null;
                     break;
                 case 'statPoints':
                     patch.statPoints = this.statPoints;
@@ -1217,7 +1231,7 @@ export default class Player extends CharacterBase {
         this.exp = 0;
         this.maxExp = 100;
         this.statPoints = 0;
-        this.gold = 0;
+        this.manastone = 0;
 
         // Reset to Base Stats from Definition
         const base = this.definition?.baseStats || {};
@@ -2001,13 +2015,13 @@ export default class Player extends CharacterBase {
 
     increaseSkill(skillId) {
         const cost = this.getSkillUpgradeCost(skillId);
-        if (this.gold >= cost) {
-            this.gold -= cost;
+        if (this.manastone >= cost) {
+            this.manastone -= cost;
             this.skillLevels[skillId] = (this.skillLevels[skillId] || 0) + 1;
             Logger.log(`Skill ${skillId} leveled up to ${this.skillLevels[skillId]}`);
             if (window.game?.ui) window.game.ui.updateSkillPopup();
         } else {
-            if (window.game?.ui) window.game.ui.logSystemMessage('골드가 부족합니다.');
+            if (window.game?.ui) window.game.ui.logSystemMessage('마석이 부족합니다.');
         }
     }
 
@@ -2021,15 +2035,15 @@ export default class Player extends CharacterBase {
         return 300 * Math.pow(2, lv - 1);
     }
 
-    addGold(amount, options = {}) {
+    addManastone(amount, options = {}) {
         const shouldSave = options.save !== false;
         const debounceMs = Number.isFinite(options.debounceMs) ? options.debounceMs : undefined;
-        this.gold += amount;
-        this.updateGoldInventory();
+        this.manastone += amount;
+        this.updateManastoneInventory();
         if (shouldSave) {
-            this.saveProfilePatch(['gold'], {
+            this.saveProfilePatch(['manastone'], {
                 debounceMs,
-                reason: 'gold_patch'
+                reason: 'manastone_patch'
             });
         }
         if (window.game?.ui) window.game.ui.updateInventory();
@@ -2064,10 +2078,12 @@ export default class Player extends CharacterBase {
         let skipQuestRewardLog = false;
         let questKillLogMessage = '';
 
+        const rewardManastone = Math.max(0, Number(data.manastone ?? data.gold ?? 0));
+
         if (data.exp) this.gainExp(data.exp, { save: false });
-        if (data.gold) {
-            this.gold += data.gold;
-            this.updateGoldInventory();
+        if (rewardManastone) {
+            this.manastone += rewardManastone;
+            this.updateManastoneInventory();
         }
         if (data.hp) this.recoverHp(data.hp, { save: false });
         if (Array.isArray(data.items)) {
@@ -2096,7 +2112,7 @@ export default class Player extends CharacterBase {
 
         const rewardSummaryParts = [];
         if (data.exp) rewardSummaryParts.push(`EXP +${data.exp}`);
-        if (data.gold) rewardSummaryParts.push(`Gold +${data.gold}`);
+        if (rewardManastone) rewardSummaryParts.push(`마석 +${rewardManastone}`);
         if (data.hp) rewardSummaryParts.push(`HP +${data.hp}`);
         const rewardSummarySuffix = rewardSummaryParts.length > 0
             ? ` (${rewardSummaryParts.join(', ')})`
@@ -2150,22 +2166,20 @@ export default class Player extends CharacterBase {
                         if (this.questData.bossClearCount === 1) {
                             this.questData.slimeRepeatKills = 0;
                             this.questData.bossQuestClaimed = true;
-                            this.statPoints += 5;
-                            this.gainExp(500, { save: false });
-                            this.gold += 2000;
-                            this.updateGoldInventory();
+                            this.addInventoryItem(BLESSED_WEAPON_UPGRADE_STONE_ID, 3, { markAsNew: false });
+                            window.game?.ui?.updateInventory?.();
 
                             modalTitle = '첫 보스 처치 완료!';
-                            modalDesc = '대왕 슬라임을 처치했습니다!<br>보상: 스탯 포인트 +5, 경험치 500, 골드 2000<br>이제 슬라임 30마리 처치 후 반복 보스 퀘스트가 이어집니다.';
-                            rewardMsg = '첫 대왕 슬라임 처치! (스탯+5, EXP+500, Gold+2000)';
+                            modalDesc = '대왕 슬라임을 처치했습니다!<br>보상: 축복받은 무기 강화석 3개<br>이제 슬라임 50마리 처치 후 반복 보스 퀘스트가 이어집니다.';
+                            rewardMsg = '첫 대왕 슬라임 처치! (축복받은 무기 강화석 x3)';
                         } else {
                             this.gainExp(300, { save: false });
-                            this.gold += 1000;
-                            this.updateGoldInventory();
+                            this.manastone += 1000;
+                            this.updateManastoneInventory();
 
                             modalTitle = '반복 보스 처치 완료';
-                            modalDesc = '대왕 슬라임을 다시 처치했습니다!<br><br>보상:<br>경험치 300<br>골드 1000<br><br>(슬라임 30마리를 잡으면 다시 소환됩니다.)';
-                            rewardMsg = `대왕 슬라임 처치! (${this.questData.bossClearCount}회차) (EXP+300, Gold+1000)`;
+                            modalDesc = '대왕 슬라임을 다시 처치했습니다!<br><br>보상:<br>경험치 300<br>마석 1000<br><br>(슬라임 50마리를 잡으면 다시 소환됩니다.)';
+                            rewardMsg = `대왕 슬라임 처치! (${this.questData.bossClearCount}회차) (EXP+300, 마석+1000)`;
                         }
 
                         if (window.game?.ui) {
@@ -2232,23 +2246,21 @@ export default class Player extends CharacterBase {
                     // First Kill Reward
                     this.questData.slimeRepeatKills = 0;
                     this.questData.bossQuestClaimed = true;
-                    this.statPoints += 5;
-                    this.gainExp(500, { save: false });
-                    this.gold += 2000;
-                    this.updateGoldInventory();
+                    this.addInventoryItem(BLESSED_WEAPON_UPGRADE_STONE_ID, 3, { markAsNew: false });
+                    window.game?.ui?.updateInventory?.();
 
                     modalTitle = "👑 퀘스트 완료!";
-                    modalDesc = "대왕 슬라임을 처치했습니다!<br>보상: 스탯 포인트 +5, 경험치 500, 골드 2000<br>이제 슬라임 30마리 처치 시 반복 퀘스트가 이어집니다.";
-                    rewardMsg = "첫 대왕 슬라임 처치! (스텟+5, EXP+500, Gold+2000)";
+                    modalDesc = "대왕 슬라임을 처치했습니다!<br>보상: 축복받은 무기 강화석 3개<br>이제 슬라임 50마리 처치 시 반복 퀘스트가 이어집니다.";
+                    rewardMsg = "첫 대왕 슬라임 처치! (축복받은 무기 강화석 x3)";
                 } else {
                     // Repeat Kill Reward
                     this.gainExp(300, { save: false }); // Reduced from 500
-                    this.gold += 1000; // Reduced from 2000
-                    this.updateGoldInventory();
+                    this.manastone += 1000; // Reduced from 2000
+                    this.updateManastoneInventory();
 
                     modalTitle = "⚔️ 반복 퀘스트 완료";
-                    modalDesc = "대왕 슬라임을 다시 처치했습니다!<br><br>보상:<br>경험치 300<br>골드 1000<br><br>(슬라임 30마리를 잡으면 다시 소환됩니다)";
-                    rewardMsg = `대왕 슬라임 처치! (${this.questData.bossClearCount}회차) (EXP+300, Gold+1000)`;
+                    modalDesc = "대왕 슬라임을 다시 처치했습니다!<br><br>보상:<br>경험치 300<br>마석 1000<br><br>(슬라임 50마리를 잡으면 다시 소환됩니다)";
+                    rewardMsg = `대왕 슬라임 처치! (${this.questData.bossClearCount}회차) (EXP+300, 마석+1000)`;
                 }
 
                 // 첫 처치 연출은 유지하고, 반복 처치는 모달 없이 보상만 지급한다.
@@ -2271,7 +2283,7 @@ export default class Player extends CharacterBase {
         if (window.game?.ui) {
             let msg = `${data.monsterName || '보상'} 획득!`;
             if (data.exp) msg += ` +${data.exp} EXP`;
-            if (data.gold) msg += ` +${data.gold} Gold`;
+            if (rewardManastone) msg += ` +${rewardManastone} 마석`;
             if (data.hp) msg += ` +${data.hp} HP`;
 
             // Override message for boss
@@ -2281,9 +2293,9 @@ export default class Player extends CharacterBase {
                 // Wait, `rewardMsg` is local scope above.
                 // Let's reconstruct or simplify.
                 // Actually this block runs AFTER logic.
-                // `data.exp/gold` passed in might be distinct from what I just added.
-                // `receiveReward` can be called with `data` containing `exp/gold`.
-                // BUT `king_slime` call from `MonsterManager` did NOT pass exp/gold in the object!
+                // `data.exp/manastone` passed in might be distinct from what I just added.
+                // `receiveReward` can be called with `data` containing `exp/manastone`.
+                // BUT `king_slime` call from `MonsterManager` did NOT pass exp/manastone in the object!
                 // It passed `{ questKill: 'king_slime', monsterName: ... }`.
                 // So `msg` here would just be "King Slime 획득!".
                 // So I should log `rewardMsg` if it exists (but it's out of scope).
@@ -2311,7 +2323,7 @@ export default class Player extends CharacterBase {
             if (hasInventoryMutation) {
                 this.saveState(false, { debounceMs: saveDebounceMs, reason: 'reward_full_save' });
             } else {
-                this.saveProfilePatch(['exp', 'maxExp', 'level', 'statPoints', 'gold', 'hp', 'questData'], {
+                this.saveProfilePatch(['exp', 'maxExp', 'level', 'statPoints', 'manastone', 'hp', 'questData'], {
                     debounceMs: saveDebounceMs,
                     reason: 'reward_progress_patch'
                 });
@@ -2319,13 +2331,13 @@ export default class Player extends CharacterBase {
         }
     }
 
-    updateGoldInventory() {
-        // v0.22.9: Keep gold in the first inventory slot (slot 0)
+    updateManastoneInventory() {
+        // v0.22.9: Keep manastone in the first inventory slot (slot 0)
         this.inventory[0] = {
-            type: 'gold',
-            amount: this.gold,
-            icon: '💰',
-            name: '골드',
+            type: 'manastone',
+            amount: this.manastone,
+            icon: '💎',
+            name: '마석',
             stackable: true,
             description: '상점과 강화에 사용하는 기본 화폐입니다.'
         };
@@ -2831,12 +2843,12 @@ export default class Player extends CharacterBase {
         const sourceEquipment = savedEquipment || this.equipment || { weapon: null };
         this.equipment = itemData?.normalizeEquipmentData(sourceEquipment) || { weapon: sourceEquipment.weapon || null };
         const compacted = this.compactInventory();
-        this.updateGoldInventory();
+        this.updateManastoneInventory();
         return compacted;
     }
 
     compactInventory() {
-        const goldSlot = this.inventory[0] || null;
+        const manastoneSlot = this.inventory[0] || null;
         const compactedItems = [];
         const indexMap = new Map();
 
@@ -2849,7 +2861,7 @@ export default class Player extends CharacterBase {
         }
 
         const nextInventory = Array.from({ length: INVENTORY_TOTAL_SLOTS }, (_, index) => {
-            if (index === 0) return goldSlot;
+            if (index === 0) return manastoneSlot;
             return compactedItems[index - 1] || null;
         });
 
@@ -2888,12 +2900,12 @@ export default class Player extends CharacterBase {
         const targetPosition = Math.max(0, Math.min(toIndex - 1, compactedItems.length));
         compactedItems.splice(targetPosition, 0, movedItem);
 
-        const goldSlot = this.inventory[0] || null;
+        const manastoneSlot = this.inventory[0] || null;
         this.inventory = Array.from({ length: INVENTORY_TOTAL_SLOTS }, (_, index) => {
-            if (index === 0) return goldSlot;
+            if (index === 0) return manastoneSlot;
             return compactedItems[index - 1] || null;
         });
-        this.updateGoldInventory();
+        this.updateManastoneInventory();
 
         return { ok: true, newIndex: targetPosition + 1 };
     }

@@ -40,7 +40,7 @@
     ],
     "drops": [
         {
-            "itemId": "gold",
+            "itemId": "manastone",
             "min": 10,
             "max": 50,
             "chance": 1.0

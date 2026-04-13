@@ -17,7 +17,7 @@
     ],
     "rewards": {
         "exp": 500,
-        "gold": 1000
+        "manastone": 1000
     },
     "onComplete": {
         "message": "지역 정화 완료! 대왕 슬라임의 기운이 느껴집니다...",

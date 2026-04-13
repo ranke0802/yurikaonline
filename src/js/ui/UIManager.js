@@ -26,6 +26,10 @@ export class UIManager {
         this.inventoryDragState = null;
         this.inventoryClickSuppressUntil = 0;
         this.questClaimAvailable = false;
+        this.centerMessageQueue = [];
+        this.centerMessageActive = false;
+        this._centerMsgTimer = null;
+        this._centerMsgFadeTimer = null;
         this.handleDesktopShortcutKeydown = this.handleDesktopShortcutKeydown.bind(this);
         this.refreshDesktopShortcutHints = this.refreshDesktopShortcutHints.bind(this);
         this.positionInventoryItemModal = this.positionInventoryItemModal.bind(this);
@@ -80,6 +84,7 @@ export class UIManager {
         this.uiLayoutEditMode = false;
         this.uiLayoutDraft = null;
         this.uiLayoutDirty = false;
+        this.uiLayoutDefaultCache = {};
         this.uiLayoutSelectedControlId = null;
         this.uiLayoutActiveMode = this.getUiLayoutMode();
         this.uiLayoutDragState = {
@@ -827,7 +832,11 @@ export class UIManager {
 
     getUiLayoutModeEntries(source = this.getResolvedUiLayoutSource(), mode = this.getUiLayoutMode()) {
         const sanitized = this.sanitizeUiLayout(source);
-        return sanitized?.layouts?.[mode] || null;
+        const modeEntries = sanitized?.layouts?.[mode];
+        if (modeEntries && Object.keys(modeEntries).length > 0) {
+            return modeEntries;
+        }
+        return this.captureDefaultUiLayoutForMode(mode);
     }
 
     buildDefaultJoystickLayoutEntry(mode = this.getUiLayoutMode()) {
@@ -1006,15 +1015,24 @@ export class UIManager {
     }
 
     captureDefaultUiLayoutForMode(mode = this.getUiLayoutMode()) {
+        const controls = this.getUiLayoutControlsForMode(mode);
+        const cachedDefaults = this.uiLayoutDefaultCache?.[mode];
+        const hasEveryCachedEntry = !!cachedDefaults && controls.every(([controlId, definition]) => (
+            !!this.sanitizeUiLayoutEntry(cachedDefaults[controlId], definition)
+        ));
+        if (hasEveryCachedEntry) {
+            return this.cloneStructuredData(cachedDefaults) || {};
+        }
+
         this.clearUiLayoutRuntimeStyles();
         this.game.touch?.setFixedJoystickLayout?.(null);
         const defaults = {};
-        this.getUiLayoutControlsForMode(mode).forEach(([controlId]) => {
-            const entry = this.captureCurrentUiLayoutEntry(controlId, mode);
+        controls.forEach(([controlId, definition]) => {
+            const entry = this.sanitizeUiLayoutEntry(this.captureCurrentUiLayoutEntry(controlId, mode), definition);
             if (entry) defaults[controlId] = entry;
         });
-        this.applyActiveUiLayout();
-        return defaults;
+        this.uiLayoutDefaultCache[mode] = defaults;
+        return this.cloneStructuredData(defaults) || {};
     }
 
     ensureUiLayoutDraftMode(mode = this.getUiLayoutMode()) {
@@ -1298,6 +1316,7 @@ export class UIManager {
     refreshUiLayoutForViewport() {
         const nextMode = this.getUiLayoutMode();
         const modeChanged = nextMode !== this.uiLayoutActiveMode;
+        this.uiLayoutDefaultCache = {};
         this.uiLayoutActiveMode = nextMode;
         if (this.uiLayoutEditMode) {
             this.ensureUiLayoutDraftMode(nextMode);
@@ -1412,7 +1431,7 @@ export class UIManager {
             const cost = player.getSkillUpgradeCost
                 ? player.getSkillUpgradeCost(skillId)
                 : (300 * Math.pow(2, (player.skillLevels?.[skillId] || 1) - 1));
-            return Number.isFinite(cost) && player.gold >= cost;
+            return Number.isFinite(cost) && player.manastone >= cost;
         });
     }
 
@@ -2410,9 +2429,30 @@ export class UIManager {
         guide.style.display = 'block';
         guide.style.visibility = 'hidden';
 
+        const measuredScrollHeight = Math.ceil(guide.scrollHeight || 0);
+        const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+        const popupAwareMaxHeight = popupRect
+            ? Math.max(
+                guideDimensions.maxHeight,
+                Math.min(
+                    Math.round(popupRect.height * (mode === 'mobile-landscape' ? 0.36 : 0.4)),
+                    Math.round(viewportH * (mode === 'mobile-landscape' ? 0.42 : 0.48))
+                )
+            )
+            : guideDimensions.maxHeight;
+        const relaxedMaxHeight = focusInsidePopup
+            ? Math.max(
+                guideDimensions.maxHeight,
+                Math.min(measuredScrollHeight + 4, popupAwareMaxHeight)
+            )
+            : guideDimensions.maxHeight;
+
+        guide.style.maxHeight = `${relaxedMaxHeight}px`;
+        guide.style.overflowY = measuredScrollHeight > relaxedMaxHeight ? 'auto' : 'visible';
+
         const rect = guide.getBoundingClientRect();
         const width = Math.min(guideDimensions.width, rect.width || guideDimensions.width);
-        const height = Math.min(guideDimensions.maxHeight, rect.height || guideDimensions.maxHeight);
+        const height = Math.min(relaxedMaxHeight, rect.height || relaxedMaxHeight);
         const manualPosition = this.tutorialGuideManualPosition?.stepId === payload.stepId
             ? this.clampTutorialGuidePosition(
                 this.tutorialGuideManualPosition.left,
@@ -3494,9 +3534,9 @@ export class UIManager {
                 const lv = p.skillLevels[skillId] || 1;
                 const cost = 300 * Math.pow(2, lv - 1);
 
-                if (p.gold >= cost) {
-                    p.gold -= cost;
-                    p.updateGoldInventory(); // v0.22.9
+                if (p.manastone >= cost) {
+                    p.manastone -= cost;
+                    p.updateManastoneInventory(); // v0.22.9
                     p.skillLevels[skillId]++;
                     this.game.tutorial?.trigger?.('skill_upgrade', { target: skillId });
                     this.logSystemMessage(`✨ [SKILL] ${this.getSkillDisplayName(skillId)} 레벨이 상승했습니다! (현재: ${p.skillLevels[skillId]})`);
@@ -3505,7 +3545,7 @@ export class UIManager {
                     this.updateInventory(); // v0.22.9
                     p.saveState();
                 } else {
-                    this.logSystemMessage(`❌ 골드가 부족합니다! (필요: ${cost}G)`);
+                    this.logSystemMessage(`❌ 마석이 부족합니다! (필요: ${cost} 마석)`);
                 }
             };
             btn.addEventListener('click', handleSkillUp);
@@ -4962,6 +5002,46 @@ export class UIManager {
         return { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
     }
 
+    createEmptyStatInsightFlags() {
+        return {
+            vitality: false,
+            intelligence: false,
+            wisdom: false,
+            agility: false
+        };
+    }
+
+    ensureStatInsightFlags(player = this.game.localPlayer) {
+        const nextFlags = this.createEmptyStatInsightFlags();
+        if (!player) return nextFlags;
+        if (!player.questData || typeof player.questData !== 'object') {
+            player.questData = {};
+        }
+        player.questData.statInsightShown = {
+            ...nextFlags,
+            ...(player.questData.statInsightShown || {})
+        };
+        return player.questData.statInsightShown;
+    }
+
+    collectFirstStatInsightMessages(player = this.game.localPlayer, pendingStats = this.pendingStats) {
+        const flags = this.ensureStatInsightFlags(player);
+        const orderedInsights = [
+            { key: 'vitality', text: '적의 공격을 더 견고하게 오래 버티고, 빠르게 회복하게 된 것 같다' },
+            { key: 'intelligence', text: '적에게 치명적인 강력한 일격을 가할 수 있을 것 같다' },
+            { key: 'wisdom', text: '정신적으로 여유가 생기고 더 빠르게 회복되는게 느껴진다. 침착하게 공격할 수 있게 됐다.' },
+            { key: 'agility', text: '몸이 가볍다. 움직임이 민첩해지고, 적의 빈틈을 더 정확하고 빠르게 노릴 수 있게 됐다' }
+        ];
+
+        return orderedInsights.reduce((messages, insight) => {
+            if ((Number(pendingStats?.[insight.key] || 0) > 0) && !flags[insight.key]) {
+                flags[insight.key] = true;
+                messages.push({ text: insight.text, durationMs: 3600 });
+            }
+            return messages;
+        }, []);
+    }
+
     getPendingStatTotal() {
         return Object.values(this.pendingStats || {}).reduce((sum, value) => sum + (Number(value) || 0), 0);
     }
@@ -4970,10 +5050,12 @@ export class UIManager {
         const p = this.game.localPlayer;
         if (!p) return;
         if (this.getPendingStatTotal() <= 0) return;
-        p.vitality += this.pendingStats.vitality;
-        p.intelligence += this.pendingStats.intelligence;
-        p.wisdom += this.pendingStats.wisdom;
-        p.agility += this.pendingStats.agility;
+        const pendingSnapshot = { ...(this.pendingStats || {}) };
+        const firstStatInsightMessages = this.collectFirstStatInsightMessages(p, pendingSnapshot);
+        p.vitality += pendingSnapshot.vitality;
+        p.intelligence += pendingSnapshot.intelligence;
+        p.wisdom += pendingSnapshot.wisdom;
+        p.agility += pendingSnapshot.agility;
         p.refreshStats();
         // Clamp current stats to new maximums
         p.hp = Math.min(p.hp, p.maxHp);
@@ -4981,6 +5063,13 @@ export class UIManager {
         this.pendingStats = this.createEmptyPendingStats();
         p.saveState(); // v0.00.01: Persist stats to DB
         this.game.tutorial?.trigger?.('stats_saved');
+        if (firstStatInsightMessages.length > 0) {
+            window.setTimeout(() => {
+                firstStatInsightMessages.forEach((message) => {
+                    this.showCenterMessage(message.text, '#ffeb3b', { durationMs: message.durationMs });
+                });
+            }, 0);
+        }
     }
 
     cancelPendingStats(options = {}) {
@@ -5427,8 +5516,8 @@ export class UIManager {
         const p = this.game.localPlayer;
         if (!p) return;
 
-        const goldEl = document.getElementById('ui-skill-gold');
-        if (goldEl) goldEl.textContent = p.gold;
+        const manastoneEl = document.getElementById('ui-skill-manastone');
+        if (manastoneEl) manastoneEl.textContent = p.manastone;
 
         const skillIds = ['laser', 'missile', 'fireball', 'shield'];
         skillIds.forEach(skillId => {
@@ -5450,8 +5539,8 @@ export class UIManager {
                     btn.disabled = true;
                 } else {
                     const tutorialLocked = !this.game.tutorial?.isSkillUpgradeAllowed?.(skillId);
-                    btn.disabled = tutorialLocked || p.gold < cost;
-                    btn.classList.toggle('disabled', tutorialLocked || p.gold < cost);
+                    btn.disabled = tutorialLocked || p.manastone < cost;
+                    btn.classList.toggle('disabled', tutorialLocked || p.manastone < cost);
                 }
             }
         });
@@ -5552,7 +5641,7 @@ export class UIManager {
                 id: 'king_slime_intro',
                 title: "3. 대왕 슬라임 처치",
                 task: `진행도: ${p.questData.bossKilled ? '1' : '0'}/1`,
-                reward: "스탯+5, EXP+500, Gold+2000",
+                reward: "축복받은 무기 강화석 x3",
                 canClaim: false, // Auto-claimed on kill
                 claimFn: null
             };
@@ -5567,7 +5656,7 @@ export class UIManager {
                     id: 'boss_repeat',
                     title: "5. 대왕 슬라임 처치 (반복)",
                     task: "진행도: 0/1",
-                    reward: "EXP+300, Gold+1000",
+                    reward: "EXP+300, 마석+1000",
                     canClaim: false,
                     claimFn: null
                 };
@@ -5577,10 +5666,10 @@ export class UIManager {
                 const count = p.questData.slimeRepeatKills || 0;
                 currentQuest = {
                     id: 'slime_repeat',
-                    title: "4. 슬라임 30마리 처치 (소환)",
-                    task: `진행도: ${Math.min(30, count)}/30`,
+                    title: "4. 슬라임 50마리 처치 (소환)",
+                    task: `진행도: ${Math.min(50, count)}/50`,
                     reward: "대왕 슬라임 소환",
-                    canClaim: count >= 30, // v0.00.77: Shared Summon
+                    canClaim: count >= 50, // v0.00.77: Shared Summon
                     claimFn: () => {
                         if (this.game.monsterManager) {
                             this._requestQuestBossSummon(false);
@@ -5746,11 +5835,12 @@ export class UIManager {
 
     claimBossReward(p) {
         p.questData.bossQuestClaimed = true;
-        p.statPoints += 5; // 5 Stat Points reward
-        this.logSystemMessage('QUEST 완료: 대왕 슬라임 토벌 보상 지급 (스탯 포인트 +5)');
-        this.showRewardModal("대왕 슬라임 처치 퀘스트 완료!", "보상: 스탯 포인트 5개를 획득했습니다!");
+        p.addInventoryItem?.('blessed_weapon_upgrade_stone', 3, { markAsNew: false });
+        this.logSystemMessage('QUEST 완료: 대왕 슬라임 토벌 보상 지급 (축복받은 무기 강화석 x3)');
+        this.showRewardModal("대왕 슬라임 처치 퀘스트 완료!", "보상: 축복받은 무기 강화석 3개를 획득했습니다!");
         this.updateQuestUI();
         this.updateStatusPopup();
+        this.updateInventory();
         p.saveState();
     }
 
@@ -6510,20 +6600,20 @@ export class UIManager {
             button.appendChild(this.createInventoryAlertDotElement());
         };
 
-        const goldSlot = document.createElement('button');
-        goldSlot.type = 'button';
-        goldSlot.className = 'grid-item utility-slot gold-slot';
-        goldSlot.setAttribute('aria-label', `골드 ${Math.max(0, p.gold || 0).toLocaleString('ko-KR')} G`);
-        goldSlot.appendChild(createUtilityLabel('골드'));
-        goldSlot.appendChild(this.createInventoryIconElement(p.inventory[0] || { icon: '💰', name: '골드' }));
-        const goldAmount = document.createElement('span');
-        goldAmount.className = 'utility-slot-meta';
-        goldAmount.textContent = compactNumber(p.gold || 0);
-        goldSlot.appendChild(goldAmount);
-        goldSlot.addEventListener('click', () => {
-            this.showGenericModal('골드', `보유 골드: ${Math.max(0, p.gold || 0).toLocaleString('ko-KR')} G`, null, null, { hideNo: true, yesText: '확인' });
+        const manastoneSlot = document.createElement('button');
+        manastoneSlot.type = 'button';
+        manastoneSlot.className = 'grid-item utility-slot manastone-slot';
+        manastoneSlot.setAttribute('aria-label', `마석 ${Math.max(0, p.manastone || 0).toLocaleString('ko-KR')}`);
+        manastoneSlot.appendChild(createUtilityLabel('마석'));
+        manastoneSlot.appendChild(this.createInventoryIconElement(p.inventory[0] || { icon: '💎', name: '마석' }));
+        const manastoneAmount = document.createElement('span');
+        manastoneAmount.className = 'utility-slot-meta';
+        manastoneAmount.textContent = compactNumber(p.manastone || 0);
+        manastoneSlot.appendChild(manastoneAmount);
+        manastoneSlot.addEventListener('click', () => {
+            this.showGenericModal('마석', `보유 마석: ${Math.max(0, p.manastone || 0).toLocaleString('ko-KR')}`, null, null, { hideNo: true, yesText: '확인' });
         });
-        fragment.appendChild(goldSlot);
+        fragment.appendChild(manastoneSlot);
 
         const equippedWeapon = p.getEquippedWeapon?.();
         const equippedSlot = document.createElement('button');
@@ -7362,7 +7452,7 @@ export class UIManager {
         const p = this.game.localPlayer;
         if (!p) return;
 
-        const msg = "레벨을 제외한 골드/스텟/스킬이 초기화됩니다.\n사용된 골드/스텟은 반환됩니다.\n\n계속하시겠습니까?";
+        const msg = "레벨을 제외한 마석/스텟/스킬이 초기화됩니다.\n사용된 마석/스텟은 반환됩니다.\n\n계속하시겠습니까?";
         if (!confirm(msg)) return;
 
         // 1. Calculate Refunded Stat Points
@@ -7373,20 +7463,20 @@ export class UIManager {
 
         const totalRefundedStats = usedVit + usedInt + usedWis + usedAgi;
 
-        // 2. Calculate Refunded Gold from Skills
-        let totalRefundedGold = 0;
+        // 2. Calculate Refunded Manastone from Skills
+        let totalRefundedManastone = 0;
         const skills = p.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
 
         ['laser', 'missile', 'fireball'].forEach(skill => {
             const lv = skills[skill] || 1;
             if (lv > 1) {
-                totalRefundedGold += 300 * (Math.pow(2, lv - 1) - 1);
+                totalRefundedManastone += 300 * (Math.pow(2, lv - 1) - 1);
             }
         });
 
         // 3. Apply Changes
         p.statPoints = (p.statPoints || 0) + totalRefundedStats;
-        p.gold = (p.gold || 0) + totalRefundedGold;
+        p.manastone = Number(p.manastone ?? p.gold ?? 0) + totalRefundedManastone;
 
         // Reset Stats
         p.vitality = 1;
@@ -7406,7 +7496,7 @@ export class UIManager {
         // 4. Save and Reload
         if (p.saveState) p.saveState(true); // Sync to world
 
-        alert(`초기화 완료!\n반환된 스텟: ${totalRefundedStats}\n반환된 골드: ${totalRefundedGold}\n\n게임을 다시 불러옵니다.`);
+        alert(`초기화 완료!\n반환된 스텟: ${totalRefundedStats}\n반환된 마석: ${totalRefundedManastone}\n\n게임을 다시 불러옵니다.`);
         window.location.reload();
     }
 
@@ -7512,7 +7602,23 @@ export class UIManager {
     }
 
     // v0.00.43: Center System Message (Warning Text)
-    showCenterMessage(text, color = '#ffeb3b') {
+    showCenterMessage(text, color = '#ffeb3b', options = {}) {
+        const normalizedText = this.sanitizeSystemMessageText(text);
+        if (!normalizedText) return;
+        this.centerMessageQueue.push({
+            text: normalizedText,
+            color,
+            durationMs: Number.isFinite(options.durationMs) ? options.durationMs : 4000
+        });
+        this.flushCenterMessageQueue();
+    }
+
+    flushCenterMessageQueue() {
+        if (this.centerMessageActive) return;
+
+        const nextMessage = this.centerMessageQueue.shift();
+        if (!nextMessage) return;
+
         let el = document.getElementById('center-message');
         if (!el) {
             el = document.createElement('div');
@@ -7539,17 +7645,23 @@ export class UIManager {
             document.body.appendChild(el);
         }
 
-        el.textContent = text;
-        el.style.color = color;
+        this.centerMessageActive = true;
+        el.textContent = nextMessage.text;
+        el.style.color = nextMessage.color;
         el.style.opacity = '1';
 
-        // Clear previous timer
         if (this._centerMsgTimer) clearTimeout(this._centerMsgTimer);
+        if (this._centerMsgFadeTimer) clearTimeout(this._centerMsgFadeTimer);
 
-        // Hide after 4 seconds
         this._centerMsgTimer = setTimeout(() => {
             el.style.opacity = '0';
-        }, 4000);
+            this._centerMsgFadeTimer = setTimeout(() => {
+                this.centerMessageActive = false;
+                this._centerMsgTimer = null;
+                this._centerMsgFadeTimer = null;
+                this.flushCenterMessageQueue();
+            }, 320);
+        }, nextMessage.durationMs);
     }
     // v2.1: Emote System
     setupEmoteUI() {

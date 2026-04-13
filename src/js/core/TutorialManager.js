@@ -614,9 +614,10 @@ export default class TutorialManager {
                 break;
 
             case 'grant_gold':
+            case 'grant_manastone':
                 if (!player) return;
-                player.gold += action.amount || 0;
-                player.updateGoldInventory?.();
+                player.manastone = Number(player.manastone ?? player.gold ?? 0) + (action.amount || 0);
+                player.updateManastoneInventory?.();
                 this.game.ui?.updateInventory?.();
                 this.game.ui?.updateSkillPopup?.();
                 this.game.ui?.updateStatusPopup?.();

@@ -15,8 +15,12 @@
         }
     ],
     "rewards": {
-        "exp": 1000,
-        "gold": 3000
+        "items": [
+            {
+                "id": "blessed_weapon_upgrade_stone",
+                "amount": 3
+            }
+        ]
     },
     "onComplete": {
         "message": "대왕 슬라임을 처치했습니다! 영웅이여!",

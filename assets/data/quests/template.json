@@ -15,7 +15,7 @@
     ],
     "rewards": {
         "exp": 0,
-        "gold": 0,
+        "manastone": 0,
         "items": []
     },
     "onComplete": {

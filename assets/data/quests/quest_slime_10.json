@@ -14,7 +14,7 @@
     ],
     "rewards": {
         "exp": 200,
-        "gold": 500
+        "manastone": 500
     },
     "onComplete": {
         "message": "슬라임 토벌 완료! 보상을 수령하세요.",

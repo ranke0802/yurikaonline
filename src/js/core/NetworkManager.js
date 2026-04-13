@@ -69,7 +69,7 @@ export default class NetworkManager extends EventEmitter {
             receivedCount: 0,
             blockedCount: 0,
             totalExp: 0,
-            totalGold: 0,
+            totalManastone: 0,
             totalHp: 0,
             totalItemEntries: 0,
             totalItemAmount: 0,
@@ -1986,7 +1986,7 @@ export default class NetworkManager extends EventEmitter {
             receivedCount: 0,
             blockedCount: 0,
             totalExp: 0,
-            totalGold: 0,
+            totalManastone: 0,
             totalHp: 0,
             totalItemEntries: 0,
             totalItemAmount: 0,
@@ -2045,7 +2045,8 @@ export default class NetworkManager extends EventEmitter {
             ? data.items.reduce((sum, item) => sum + Math.max(1, Number(item?.amount || 1)), 0)
             : 0;
         const nextExpTotal = this._rewardValidationWindow.totalExp + Math.max(0, Number(data.exp || 0));
-        const nextGoldTotal = this._rewardValidationWindow.totalGold + Math.max(0, Number(data.gold || 0));
+        const rewardManastone = Math.max(0, Number(data.manastone ?? data.gold ?? 0));
+        const nextManastoneTotal = this._rewardValidationWindow.totalManastone + rewardManastone;
         const nextHpTotal = this._rewardValidationWindow.totalHp + Math.max(0, Number(data.hp || 0));
         const nextItemEntryTotal = this._rewardValidationWindow.totalItemEntries + itemEntries;
         const nextItemAmountTotal = this._rewardValidationWindow.totalItemAmount + itemAmount;
@@ -2054,9 +2055,9 @@ export default class NetworkManager extends EventEmitter {
             this._recordRewardValidationBlock('exp_window');
             return { ok: false, reason: 'exp_window' };
         }
-        if (nextGoldTotal > 250000) {
-            this._recordRewardValidationBlock('gold_window');
-            return { ok: false, reason: 'gold_window' };
+        if (nextManastoneTotal > 250000) {
+            this._recordRewardValidationBlock('manastone_window');
+            return { ok: false, reason: 'manastone_window' };
         }
         if (nextHpTotal > 60000) {
             this._recordRewardValidationBlock('hp_window');
@@ -2068,7 +2069,7 @@ export default class NetworkManager extends EventEmitter {
         }
 
         this._rewardValidationWindow.totalExp = nextExpTotal;
-        this._rewardValidationWindow.totalGold = nextGoldTotal;
+        this._rewardValidationWindow.totalManastone = nextManastoneTotal;
         this._rewardValidationWindow.totalHp = nextHpTotal;
         this._rewardValidationWindow.totalItemEntries = nextItemEntryTotal;
         this._rewardValidationWindow.totalItemAmount = nextItemAmountTotal;
@@ -2093,7 +2094,8 @@ export default class NetworkManager extends EventEmitter {
         const next = {
             ...base,
             exp: Math.max(0, Number(base.exp || 0)) + Math.max(0, Number(incoming.exp || 0)),
-            gold: Math.max(0, Number(base.gold || 0)) + Math.max(0, Number(incoming.gold || 0)),
+            manastone: Math.max(0, Number(base.manastone ?? base.gold ?? 0))
+                + Math.max(0, Number(incoming.manastone ?? incoming.gold ?? 0)),
             hp: Math.max(0, Number(base.hp || 0)) + Math.max(0, Number(incoming.hp || 0))
         };
 

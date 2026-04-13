@@ -303,7 +303,7 @@ export default class ItemDataManager {
 
     normalizeInventoryItem(item) {
         if (!item) return null;
-        if (item.type === 'gold') return item;
+        if (item.type === 'manastone' || item.type === 'gold') return item;
 
         const definition = this.getItemDefinition(item.type || item.id);
         if (!definition) {

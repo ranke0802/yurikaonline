@@ -1,7 +1,7 @@
 {
     "id": "quest_slime_repeat",
     "title": "슬라임 반복 토벌",
-    "description": "슬라임 30마리를 처치하세요. (반복 퀘스트)",
+    "description": "슬라임 50마리를 처치하세요. (반복 퀘스트)",
     "type": "repeat",
     "prerequisites": [
         "quest_boss_king_slime"
@@ -10,13 +10,13 @@
         {
             "type": "kill",
             "target": "slime",
-            "count": 30,
+            "count": 50,
             "description": "슬라임 처치: {current}/{count}"
         }
     ],
     "rewards": {
         "exp": 100,
-        "gold": 300
+        "manastone": 300
     },
     "onComplete": {
         "message": "반복 토벌 완료! 보상을 수령하세요.",

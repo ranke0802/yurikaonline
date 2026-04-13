@@ -276,7 +276,7 @@
             "highlightTarget": "#btn-skill",
             "onStart": [
                 {
-                    "type": "grant_gold",
+                    "type": "grant_manastone",
                     "amount": 1000
                 },
                 {

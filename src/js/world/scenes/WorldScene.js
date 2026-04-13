@@ -168,10 +168,13 @@ export default class WorldScene extends Scene {
 
         if (profile) {
             Logger.debug(`[WorldScene] Loading Player Profile:`, profile);
+            const hasLegacyGoldField = Object.prototype.hasOwnProperty.call(profile, 'gold');
+            const hasLegacyGoldInventory = Array.isArray(profile.inventory) && profile.inventory[0]?.type === 'gold';
+            const needsLegacyCurrencyMigration = hasLegacyGoldField || hasLegacyGoldInventory;
             this.player.level = profile.level || 1;
             this.player.exp = profile.exp || 0;
             this.player.maxExp = profile.maxExp || Math.floor(100 * Math.pow(1.5, this.player.level - 1)); // v0.00.03: Restore maxExp or recalculate
-            this.player.gold = profile.gold || 0;
+            this.player.manastone = Number(profile.manastone ?? profile.gold ?? 0) || 0;
             this.player.vitality = profile.vitality || 1;
             this.player.intelligence = profile.intelligence || 3;
             this.player.wisdom = profile.wisdom || 2;
@@ -301,6 +304,12 @@ export default class WorldScene extends Scene {
                 this.ui.updateStatusPopup();
                 this.ui.updateAutoAttackToggle(this.player.autoAttackEnabled);
                 this.ui.updateSkillPopup();
+            }
+            if (needsLegacyCurrencyMigration) {
+                this.player.saveState(false, {
+                    debounceMs: 0,
+                    reason: 'migrate_gold_to_manastone'
+                });
             }
         }
 

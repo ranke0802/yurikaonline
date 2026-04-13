@@ -94,7 +94,7 @@ export default class QuestManager {
             this.completedQuests.add('quest_boss_king_slime');
             this._activateQuest('quest_slime_repeat', [{
                 current: questData.slimeRepeatKills || 0,
-                complete: (questData.slimeRepeatKills || 0) >= 30
+                complete: (questData.slimeRepeatKills || 0) >= 50
             }]);
         }
 
@@ -210,15 +210,17 @@ export default class QuestManager {
             if (def.rewards.exp) {
                 player.gainExperience(def.rewards.exp);
             }
-            // Gold 보상
-            if (def.rewards.gold) {
-                player.gold = (player.gold || 0) + def.rewards.gold;
+            // Manastone reward
+            const rewardManastone = Number(def.rewards.manastone ?? def.rewards.gold ?? 0);
+            if (rewardManastone > 0) {
+                player.manastone = Number(player.manastone ?? player.gold ?? 0) + rewardManastone;
+                player.updateManastoneInventory?.();
             }
 
             // 보상 메시지
             if (this.game.ui) {
                 this.game.ui.logSystemMessage(
-                    `🎉 ${def.title} 완료! (EXP+${def.rewards.exp || 0}, Gold+${def.rewards.gold || 0})`
+                    `🎉 ${def.title} 완료! (EXP+${def.rewards.exp || 0}, 마석+${rewardManastone})`
                 );
             }
         }

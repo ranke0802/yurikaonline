@@ -217,7 +217,7 @@ export default class MonsterManager {
         ];
 
         allDrops.forEach((dropDef) => {
-            if (!dropDef?.itemId || dropDef.itemId === 'gold') return;
+            if (!dropDef?.itemId || dropDef.itemId === 'gold' || dropDef.itemId === 'manastone') return;
             if (Math.random() > (dropDef.chance ?? 1)) return;
             const reward = this._buildRewardItem(dropDef.itemId, dropDef, { monster });
             if (reward) rewardedItems.push(reward);
@@ -230,7 +230,7 @@ export default class MonsterManager {
             };
 
             // Host-local kills should not depend on the reward sync roundtrip.
-            // Gold/EXP are handled by world drops, but item rewards are direct grants,
+            // Manastone/EXP are handled by world drops, but item rewards are direct grants,
             // so deliver them immediately to avoid host-side reward validation timing issues.
             if (rewardTargetId === this.net.playerId && window.game?.localPlayer) {
                 window.game.localPlayer.receiveReward(rewardPayload);
@@ -817,19 +817,19 @@ export default class MonsterManager {
                             ? participantIds
                             : killerPartyMembers;
                         let xpAmount = 25;
-                        let goldAmount = 50;
+                        let manastoneAmount = 50;
                         if (m.typeId === 'king_slime') {
                             xpAmount = 500;
-                            goldAmount = 2000;
+                            manastoneAmount = 2000;
                         } else if (m.isBoss) {
                             xpAmount = 500;
-                            goldAmount = 5000;
+                            manastoneAmount = 5000;
                         }
                         this.net.spawnDrop({
                             x: m.x,
                             y: m.y,
-                            type: 'gold',
-                            amount: goldAmount,
+                            type: 'manastone',
+                            amount: manastoneAmount,
                             ownerId: attackerId,
                             partyMembers: killerPartyMembers,
                             eligibleCollectorIds
@@ -871,32 +871,32 @@ export default class MonsterManager {
                         if (rp) killerParty = rp.party;
                     }
 
-                    // Calculate Rewards (Drops are separate, this is auto-grant Exp/Gold/Quest)
-                    // Note: Current Drop system handles Gold/Exp items. This block handles *direct* grants or Quest triggers.
+                    // Calculate Rewards (Drops are separate, this is auto-grant Exp/Manastone/Quest)
+                    // Note: Current Drop system handles manastone/EXP items. This block handles *direct* grants or Quest triggers.
                     // Wait, the code above spawns drops. This block is for QUESTS and NOTIFICATIONS.
-                    // BUT, prompt says "Experience, Gold... split 1/N".
-                    // The standard game loop has Drops for Gold/Exp.
+                    // BUT, prompt says "Experience, Manastone... split 1/N".
+                    // The standard game loop has Drops for manastone/EXP.
                     // If drops exist, players pick them up individually.
                     // If shared, maybe "Picking up drop" splits it?
                     // OR: Remove drops and auto-grant?
                     // The code at line 124 SPOWNS drops.
                     // Maybe leave drops as is, but if they are picked up, handle split?
                     // OR: Don't spawn drops for partykills, just grant?
-                    // "Shared Experience, Gold... (1/N distribution)"
+                    // "Shared Experience, Manastone... (1/N distribution)"
                     // If I change drop logic, I break pickup animation.
                     // BETTER: Modify `collectDrop` in NetworkManager to handle split. 
                     // BUT here, let's handle QUEST updates for party members if needed.
                     // Actually, usually quests are "Kill Count". Everyone in party witnessing kill gets +1?
-                    // Prompt doesn't say "Shared Quest Progress". It says "Shared Exp, Gold".
-                    // Drops give Exp/Gold. So I should modify `_onDropCollectionRequested` or `collectDrop`.
+                    // Prompt doesn't say "Shared Quest Progress". It says "Shared Exp, Manastone".
+                    // Drops give Exp/Manastone. So I should modify `_onDropCollectionRequested` or `collectDrop`.
 
                     // However, we still need to process QUESTS for the KILLER (or Party?).
-                    // Let's assume Quest completion is individual for now (or shared if specified, but prompt says Exp/Gold).
+                    // Let's assume Quest completion is individual for now (or shared if specified, but prompt says Exp/Manastone).
                     // So I will leave Quest Logic mostly as is, but handle `isMyKill` check.
 
                     // wait, lines 135-170 handle LOCAL QUEST updates.
                     // If I am in party, should my kill count for others? "Shared Experience" usually implies shared kills too?
-                    // Let's stick to explicit prompt: "Shared Exp, Gold".
+                    // Let's stick to explicit prompt: "Shared Exp, Manastone".
                     // So Quest is personal.
 
                     // But wait, the reward notification at line 172 sends `questKill`.
@@ -1835,14 +1835,14 @@ export default class MonsterManager {
                     || drop.partyMembers?.includes(data.collectorId));
             if (!collectorAllowed) return;
 
-            if (drop.type === 'gold' || drop.type === 'exp') {
+            if (drop.type === 'gold' || drop.type === 'manastone' || drop.type === 'exp') {
                 const ownerId = drop.ownerId || data.collectorId;
                 const ownerReward = {};
                 const allyReward = {};
 
-                if (drop.type === 'gold') {
-                    ownerReward.gold = drop.amount;
-                    allyReward.gold = Math.max(1, Math.floor(drop.amount * 0.6));
+                if (drop.type === 'gold' || drop.type === 'manastone') {
+                    ownerReward.manastone = drop.amount;
+                    allyReward.manastone = Math.max(1, Math.floor(drop.amount * 0.6));
                 } else {
                     ownerReward.exp = drop.amount;
                     allyReward.exp = Math.max(1, Math.floor(drop.amount * 0.6));

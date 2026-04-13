@@ -4,7 +4,7 @@ export default class Drop extends Entity {
     constructor(id, x, y, type, amount, options = {}) {
         super(x, y);
         this.id = id;
-        this.type = type; // 'gold', 'exp', 'hp'
+        this.type = type; // 'manastone', 'exp', 'hp'
         this.amount = amount;
         this.ownerId = options.ownerId || null;
         this.partyMembers = Array.isArray(options.partyMembers) ? options.partyMembers : null;
@@ -23,8 +23,9 @@ export default class Drop extends Entity {
         this.timer = 0;
 
         // Visual properties
-        this.color = this.type === 'gold' ? '#FFD700' : (this.type === 'hp' ? '#4ade80' : '#00BFFF');
-        this.glowColor = this.type === 'gold' ? 'rgba(255, 215, 0, 0.3)' : (this.type === 'hp' ? 'rgba(74, 222, 128, 0.3)' : 'rgba(0, 191, 255, 0.3)');
+        const isManastoneDrop = this.type === 'manastone' || this.type === 'gold';
+        this.color = isManastoneDrop ? '#7C8CFF' : (this.type === 'hp' ? '#4ade80' : '#00BFFF');
+        this.glowColor = isManastoneDrop ? 'rgba(124, 140, 255, 0.35)' : (this.type === 'hp' ? 'rgba(74, 222, 128, 0.3)' : 'rgba(0, 191, 255, 0.3)');
     }
 
     canPlayerCollect(player) {
@@ -92,8 +93,14 @@ export default class Drop extends Entity {
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        if (this.type === 'gold') {
-            ctx.arc(screenX, screenY, 8, 0, Math.PI * 2);
+        if (this.type === 'gold' || this.type === 'manastone') {
+            ctx.moveTo(screenX, screenY - 10);
+            ctx.lineTo(screenX + 9, screenY - 4);
+            ctx.lineTo(screenX + 7, screenY + 7);
+            ctx.lineTo(screenX, screenY + 11);
+            ctx.lineTo(screenX - 7, screenY + 7);
+            ctx.lineTo(screenX - 9, screenY - 4);
+            ctx.closePath();
         } else if (this.type === 'hp') {
             ctx.rect(screenX - 8, screenY - 3, 16, 6);
             ctx.rect(screenX - 3, screenY - 8, 6, 16);

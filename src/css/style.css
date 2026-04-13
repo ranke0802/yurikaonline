@@ -540,7 +540,7 @@ button:active,
     color: #ff7f50;
 }
 
-.inventory-gold-card {
+.inventory-manastone-card {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -551,7 +551,7 @@ button:active,
     box-shadow: 0 8px 22px rgba(23, 31, 52, 0.18);
 }
 
-.inventory-gold-icon {
+.inventory-manastone-icon {
     width: 44px;
     height: 44px;
     border-radius: 14px;
@@ -562,20 +562,20 @@ button:active,
     background: rgba(255, 255, 255, 0.12);
 }
 
-.inventory-gold-copy {
+.inventory-manastone-copy {
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
 
-.inventory-gold-label {
+.inventory-manastone-label {
     font-size: 12px;
     font-weight: 700;
     color: rgba(255, 240, 205, 0.82);
 }
 
-#inventory-gold-amount {
+#inventory-manastone-amount {
     font-size: 18px;
     font-weight: 800;
     color: #fff3bf;
@@ -1441,7 +1441,7 @@ body.ui-layout-edit-mode #joystick-container[data-ui-layout-selected="true"] #jo
     color: rgba(110, 91, 72, 0.62);
 }
 
-.gold-slot {
+.manastone-slot {
     border-color: rgba(212, 159, 43, 0.26);
 }
 

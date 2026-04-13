@@ -140,7 +140,7 @@ export default class CharacterSelectionScene extends Scene {
     showSelectionUI() {
         const name = this.profile.name;
         const level = this.profile.level || 1;
-        const gold = this.profile.gold || 0;
+        const manastone = Number(this.profile.manastone ?? this.profile.gold ?? 0) || 0;
 
         this.charSelectUI.innerHTML = `
             <div class="char-card glass">
@@ -155,7 +155,7 @@ export default class CharacterSelectionScene extends Scene {
                         <div class="char-name">${name}</div>
                         <div class="char-level">Lv.${level} 메이지 (${((this.profile?.exp || 0) / (this.profile?.maxExp || 100) * 100).toFixed(1)}%)</div>
                         <div class="char-stats">
-                            <span>💰 ${gold.toLocaleString()} Gold</span>
+                            <span>💎 ${manastone.toLocaleString()} 마석</span>
                         </div>
                     </div>
                 </div>
@@ -266,7 +266,7 @@ export default class CharacterSelectionScene extends Scene {
                 level: 1,
                 exp: 0,
                 maxExp: 100,
-                gold: 0,
+                manastone: 0,
                 vitality: 1,
                 intelligence: 3,
                 wisdom: 2,
@@ -285,6 +285,12 @@ export default class CharacterSelectionScene extends Scene {
                     slime30QuestClaimed: false,
                     introSlime30RewardClaimed: false,
                     introBossParticipated: false,
+                    statInsightShown: {
+                        vitality: false,
+                        intelligence: false,
+                        wisdom: false,
+                        agility: false
+                    },
                     slimeRepeatKills: 0, // v0.00.83+
                     bossKilled: false,
                     bossQuestClaimed: false,
@@ -385,7 +391,7 @@ export default class CharacterSelectionScene extends Scene {
     }
 
     async handleCharacterReset() {
-        const msg = "레벨을 제외한 골드/스텟/스킬이 초기화됩니다.\n사용된 골드/스텟은 반환됩니다.\n\n계속하시겠습니까?";
+        const msg = "레벨을 제외한 마석/스텟/스킬이 초기화됩니다.\n사용된 마석/스텟은 반환됩니다.\n\n계속하시겠습니까?";
         if (!confirm(msg)) return;
 
         const p = this.profile;
@@ -400,21 +406,21 @@ export default class CharacterSelectionScene extends Scene {
 
         const totalRefundedStats = usedVit + usedInt + usedWis + usedAgi;
 
-        // 2. Calculate Refunded Gold from Skills
+        // 2. Calculate Refunded Manastone from Skills
         // Cost Formula: 300 * (2^(lv-1) - 1)
-        let totalRefundedGold = 0;
+        let totalRefundedManastone = 0;
         const skills = p.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
 
         ['laser', 'missile', 'fireball'].forEach(skill => {
             const lv = skills[skill] || 1;
             if (lv > 1) {
-                totalRefundedGold += 300 * (Math.pow(2, lv - 1) - 1);
+                totalRefundedManastone += 300 * (Math.pow(2, lv - 1) - 1);
             }
         });
 
         // 3. Apply Changes
         p.statPoints = (p.statPoints || 0) + totalRefundedStats;
-        p.gold = (p.gold || 0) + totalRefundedGold;
+        p.manastone = Number(p.manastone ?? p.gold ?? 0) + totalRefundedManastone;
 
         // Reset Stats
         p.vitality = 1;
@@ -435,8 +441,8 @@ export default class CharacterSelectionScene extends Scene {
 
         // 4. Save and Update UI
         await this.game.net.savePlayerData(this.user.uid, p);
-        alert(`초기화 완료!\n반환된 스텟: ${totalRefundedStats}\n반환된 골드: ${totalRefundedGold}`);
-        this.showSelectionUI(); // Refresh UI to show updated gold/stats (though stats hidden in selection)
+        alert(`초기화 완료!\n반환된 스텟: ${totalRefundedStats}\n반환된 마석: ${totalRefundedManastone}`);
+        this.showSelectionUI(); // Refresh UI to show updated manastone/stats (though stats hidden in selection)
     }
 
     render(ctx) {
