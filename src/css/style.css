@@ -9485,40 +9485,40 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons {
-        right: calc(18px + env(safe-area-inset-right)) !important;
-        bottom: calc(20px + env(safe-area-inset-bottom)) !important;
-        width: clamp(252px, 30vw, 324px) !important;
-        height: clamp(190px, 40vh, 254px) !important;
+        right: calc(34px + env(safe-area-inset-right)) !important;
+        bottom: calc(26px + env(safe-area-inset-bottom)) !important;
+        width: clamp(280px, 34vw, 380px) !important;
+        height: clamp(220px, 44vh, 320px) !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-btn {
-        width: clamp(56px, 9vh, 66px) !important;
-        height: clamp(56px, 9vh, 66px) !important;
-        font-size: clamp(20px, 3.6vh, 24px) !important;
+        width: clamp(58px, 9vh, 68px) !important;
+        height: clamp(58px, 9vh, 68px) !important;
+        font-size: clamp(21px, 3.7vh, 25px) !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .attack-btn {
-        width: clamp(94px, 15vh, 108px) !important;
-        height: clamp(94px, 15vh, 108px) !important;
-        font-size: clamp(28px, 4.9vh, 34px) !important;
+        width: clamp(98px, 15vh, 112px) !important;
+        height: clamp(98px, 15vh, 112px) !important;
+        font-size: clamp(29px, 5.1vh, 35px) !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-u {
-        top: 6px !important;
-        left: 24px !important;
+        top: 86px !important;
+        left: 34px !important;
         right: auto !important;
         bottom: auto !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-k {
-        top: 58px !important;
-        right: 6px !important;
+        top: 10px !important;
+        right: 18px !important;
         left: auto !important;
         bottom: auto !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-h {
-        bottom: 26px !important;
+        bottom: 24px !important;
         left: 0 !important;
         right: auto !important;
         top: auto !important;
@@ -9532,8 +9532,8 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .attack-auto-toggle {
-        top: calc(70px + env(safe-area-inset-top)) !important;
-        right: calc(154px + env(safe-area-inset-right)) !important;
+        top: calc(64px + env(safe-area-inset-top)) !important;
+        right: calc(184px + env(safe-area-inset-right)) !important;
         bottom: auto !important;
     }
 
