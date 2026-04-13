@@ -9112,23 +9112,19 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 
     body:not(.ui-layout-edit-mode) #joystick-base {
-        background: radial-gradient(circle at 50% 50%, rgba(36, 60, 108, 0.3) 0%, rgba(12, 24, 52, 0.54) 72%, rgba(7, 15, 28, 0.7) 100%) !important;
-        border: 3px solid rgba(170, 214, 255, 0.38) !important;
-        box-shadow:
-            inset 0 0 0 8px rgba(99, 162, 255, 0.08),
-            0 12px 26px rgba(0, 0, 0, 0.26) !important;
-        backdrop-filter: blur(3px) !important;
+        background: rgba(255, 255, 255, 0.22) !important;
+        border: 2px solid rgba(255, 255, 255, 0.42) !important;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12) !important;
+        backdrop-filter: blur(2px) !important;
     }
 
     body:not(.ui-layout-edit-mode) #joystick-stick {
-        background: radial-gradient(circle at 35% 30%, #ffffff 0%, #d7e9ff 24%, #7cb0ff 58%, #3558ab 100%) !important;
-        box-shadow:
-            0 8px 18px rgba(0, 0, 0, 0.24),
-            inset 0 2px 4px rgba(255, 255, 255, 0.22) !important;
+        background: #ffffff !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
     }
 
     body:not(.ui-layout-edit-mode) .paw-icon {
-        opacity: 0.88 !important;
+        opacity: 0.82 !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons {
@@ -9152,34 +9148,32 @@ body.low-power-pwa #ui-layer #minimap-container {
         margin: 0 !important;
         border-radius: 999px !important;
         border-width: 3px !important;
-        box-shadow:
-            0 8px 0 rgba(23, 16, 8, 0.22),
-            0 14px 26px rgba(0, 0, 0, 0.2) !important;
+        border-color: rgba(255, 255, 255, 0.96) !important;
+        background: rgba(255, 255, 255, 0.8) !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12) !important;
+        backdrop-filter: blur(4px) !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-u {
-        background: radial-gradient(circle at 35% 30%, #ffd0a6 0%, #ff8446 58%, #c43b18 100%) !important;
-        border-color: rgba(255, 236, 213, 0.96) !important;
+        background: rgba(255, 255, 255, 0.8) !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-k {
-        background: radial-gradient(circle at 35% 30%, #d2e4ff 0%, #6d9bff 56%, #2847b4 100%) !important;
-        border-color: rgba(237, 245, 255, 0.96) !important;
+        background: rgba(255, 255, 255, 0.8) !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-h {
-        background: radial-gradient(circle at 35% 30%, #ccf7ff 0%, #45c0ff 58%, #1960bf 100%) !important;
-        border-color: rgba(232, 251, 255, 0.96) !important;
+        background: rgba(255, 255, 255, 0.8) !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .attack-btn {
-        background: radial-gradient(circle at 35% 30%, #fff7bf 0%, #ffc44a 58%, #ff8a00 100%) !important;
-        border-color: rgba(255, 248, 211, 0.98) !important;
+        background: rgba(255, 244, 186, 0.86) !important;
+        border-color: rgba(255, 255, 255, 0.96) !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .inner-icon {
         font-size: inherit !important;
-        filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.28)) !important;
+        filter: none !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .shortcut-badge {
@@ -9187,7 +9181,7 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .cooldown-time {
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.92) !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.72) !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .attack-auto-toggle {
@@ -9281,55 +9275,55 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 
     body:not(.ui-layout-edit-mode) #joystick-base {
-        width: 104px !important;
-        height: 104px !important;
+        width: 96px !important;
+        height: 96px !important;
     }
 
     body:not(.ui-layout-edit-mode) #joystick-stick {
-        width: 52px !important;
-        height: 52px !important;
+        width: 46px !important;
+        height: 46px !important;
     }
 
     body:not(.ui-layout-edit-mode) .paw-icon {
-        font-size: 20px !important;
+        font-size: 18px !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons {
         right: calc(14px + env(safe-area-inset-right)) !important;
         bottom: calc(84px + env(safe-area-inset-bottom)) !important;
-        width: min(42vw, 172px) !important;
-        height: min(34vh, 210px) !important;
+        width: min(44vw, 188px) !important;
+        height: min(36vh, 228px) !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-btn {
-        width: 56px !important;
-        height: 56px !important;
-        font-size: 24px !important;
+        width: 54px !important;
+        height: 54px !important;
+        font-size: 22px !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .attack-btn {
-        width: 94px !important;
-        height: 94px !important;
-        font-size: 34px !important;
+        width: 92px !important;
+        height: 92px !important;
+        font-size: 30px !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-u {
-        top: 0 !important;
-        left: 14px !important;
+        top: 8px !important;
+        left: 10px !important;
         right: auto !important;
         bottom: auto !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-k {
-        top: 16px !important;
-        right: 0 !important;
+        top: 34px !important;
+        right: 6px !important;
         left: auto !important;
         bottom: auto !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-h {
-        bottom: 24px !important;
-        left: 0 !important;
+        bottom: 26px !important;
+        left: 10px !important;
         right: auto !important;
         top: auto !important;
     }
@@ -9343,8 +9337,8 @@ body.low-power-pwa #ui-layer #minimap-container {
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .attack-auto-toggle {
         top: auto !important;
-        right: calc(106px + env(safe-area-inset-right)) !important;
-        bottom: calc(226px + env(safe-area-inset-bottom)) !important;
+        right: calc(102px + env(safe-area-inset-right)) !important;
+        bottom: calc(238px + env(safe-area-inset-bottom)) !important;
     }
 
     .game-popup {
@@ -9477,17 +9471,17 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 
     body:not(.ui-layout-edit-mode) #joystick-base {
-        width: 112px !important;
-        height: 112px !important;
+        width: 100px !important;
+        height: 100px !important;
     }
 
     body:not(.ui-layout-edit-mode) #joystick-stick {
-        width: 56px !important;
-        height: 56px !important;
+        width: 50px !important;
+        height: 50px !important;
     }
 
     body:not(.ui-layout-edit-mode) .paw-icon {
-        font-size: 21px !important;
+        font-size: 18px !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons {
@@ -9498,15 +9492,15 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-btn {
-        width: clamp(60px, 10vh, 70px) !important;
-        height: clamp(60px, 10vh, 70px) !important;
-        font-size: clamp(22px, 4.1vh, 26px) !important;
+        width: clamp(56px, 9vh, 66px) !important;
+        height: clamp(56px, 9vh, 66px) !important;
+        font-size: clamp(20px, 3.6vh, 24px) !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .attack-btn {
-        width: clamp(102px, 17vh, 120px) !important;
-        height: clamp(102px, 17vh, 120px) !important;
-        font-size: clamp(34px, 6vh, 40px) !important;
+        width: clamp(94px, 15vh, 108px) !important;
+        height: clamp(94px, 15vh, 108px) !important;
+        font-size: clamp(28px, 4.9vh, 34px) !important;
     }
 
     body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-u {
