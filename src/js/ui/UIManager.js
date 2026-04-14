@@ -88,6 +88,21 @@ export class UIManager {
             'action-attack-j': { label: '기본 공격', selector: '#action-attack-j', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
             'action-auto-toggle': { label: '오토 버튼', selector: '#action-auto-toggle', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 }
         };
+        this.uiLayoutPresetDefaults = {
+            mobileLandscape: {
+                'action-attack-j': { left: 0.7816586239103362, top: 0.6424967447916666, scale: 0.85 },
+                'action-auto-toggle': { left: 0.7998622262463029, top: 0.2155175805091858, scale: 1 },
+                'action-skill-h': { left: 0.6534674657534246, top: 0.7356770833333334, scale: 0.85 },
+                'action-skill-k': { left: 0.787963107098381, top: 0.441162109375, scale: 0.85 },
+                'action-skill-u': { left: 0.6885118306351183, top: 0.527587890625, scale: 0.85 },
+                'chat-panel': { left: 0.3316274906600249, top: 0.721435546875, scale: 1 },
+                'hud-top-bar': { left: 0.01, top: 0.020833333333333332, scale: 1 },
+                joystick: { left: 0.034869240348692404, top: 0.6041666666666666, scale: 1 },
+                'minimap-panel': { left: 0.8844956413449564, top: 0.03125, scale: 0.79 },
+                'quest-panel': { left: 0.014943960149439602, top: 0.18888346354166666, scale: 1 },
+                'quick-menu-panel': { left: 0.8058647260273972, top: 0.3046875, scale: 0.84 }
+            }
+        };
         this.uiLayoutEditMode = false;
         this.uiLayoutDraft = null;
         this.uiLayoutDirty = false;
@@ -729,6 +744,20 @@ export class UIManager {
             });
     }
 
+    getUiLayoutPresetForMode(mode = this.getUiLayoutMode()) {
+        const rawPreset = this.uiLayoutPresetDefaults?.[mode];
+        if (!rawPreset || typeof rawPreset !== 'object') return null;
+
+        const preset = {};
+        this.getUiLayoutControlsForMode(mode).forEach(([controlId, definition]) => {
+            const entry = this.sanitizeUiLayoutEntry(rawPreset[controlId], definition);
+            if (entry) preset[controlId] = entry;
+        });
+
+        if (Object.keys(preset).length === 0) return null;
+        return this.cloneStructuredData(preset) || preset;
+    }
+
     getUiLayoutControlElement(controlId) {
         const definition = this.uiLayoutControlDefinitions[controlId];
         if (definition?.selector) {
@@ -1021,9 +1050,13 @@ export class UIManager {
         const mode = this.getUiLayoutMode();
         const controls = this.getUiLayoutControlsForMode(mode);
         const supportsJoystick = controls.some(([controlId]) => controlId === 'joystick');
+        const presetEntries = this.getUiLayoutPresetForMode(mode);
         const entries = this.uiLayoutEditMode
             ? this.getUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode)
-            : this.getStoredUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode);
+            : (
+                this.getStoredUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode)
+                || (presetEntries ? this.captureDefaultUiLayoutForMode(mode) : null)
+            );
         Object.entries(entries || {}).forEach(([controlId, entry]) => {
             if (controlId === 'joystick' && !this.uiLayoutEditMode) return;
             this.applyUiLayoutControl(controlId, entry);
@@ -1037,6 +1070,7 @@ export class UIManager {
 
     captureDefaultUiLayoutForMode(mode = this.getUiLayoutMode()) {
         const controls = this.getUiLayoutControlsForMode(mode);
+        const presetDefaults = this.getUiLayoutPresetForMode(mode) || {};
         const cachedDefaults = this.uiLayoutDefaultCache?.[mode];
         const hasEveryCachedEntry = !!cachedDefaults && controls.every(([controlId, definition]) => (
             !!this.sanitizeUiLayoutEntry(cachedDefaults[controlId], definition)
@@ -1049,7 +1083,10 @@ export class UIManager {
         this.game.touch?.setFixedJoystickLayout?.(null);
         const defaults = {};
         controls.forEach(([controlId, definition]) => {
-            const entry = this.sanitizeUiLayoutEntry(this.captureCurrentUiLayoutEntry(controlId, mode), definition);
+            const entry = this.sanitizeUiLayoutEntry(
+                presetDefaults[controlId] || this.captureCurrentUiLayoutEntry(controlId, mode),
+                definition
+            );
             if (entry) defaults[controlId] = entry;
         });
         this.uiLayoutDefaultCache[mode] = defaults;
