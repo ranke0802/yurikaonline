@@ -54,6 +54,27 @@ export default class TouchHandler extends EventEmitter {
         }
     }
 
+    isJoystickBlockedByUiTarget(target) {
+        return !!target?.closest?.('.quest-list-panel, .chat-window');
+    }
+
+    isJoystickBlockedByUiPosition(x, y) {
+        const blockingPanels = document.querySelectorAll('.quest-list-panel, .chat-window');
+        return Array.from(blockingPanels).some((panel) => {
+            if (!(panel instanceof HTMLElement)) return false;
+
+            const style = window.getComputedStyle(panel);
+            if (style.display === 'none' || style.visibility === 'hidden' || style.pointerEvents === 'none') {
+                return false;
+            }
+
+            const rect = panel.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return false;
+
+            return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+        });
+    }
+
     _showJoystickAt(x, y) {
         if (!this.container) return;
 
@@ -250,7 +271,12 @@ export default class TouchHandler extends EventEmitter {
     _handleStart(e) {
         // ... (Existing logic to check button proximity) ...
         const target = e.target;
-        if (target.closest('.skill-btn, .attack-btn, .menu-btn')) return;
+        const touch = e.changedTouches?.[0] || e.touches?.[0] || e;
+        const x = touch.clientX;
+        const y = touch.clientY;
+
+        if (target?.closest?.('.skill-btn, .attack-btn, .menu-btn')) return;
+        if (this.isJoystickBlockedByUiTarget(target) || this.isJoystickBlockedByUiPosition(x, y)) return;
         if (this.isUiLayoutEditModeActive()) return;
 
         e.preventDefault();
@@ -260,11 +286,7 @@ export default class TouchHandler extends EventEmitter {
         // TODO: Emit event instead of direct UI call
         // this.emit('interactionStart'); 
 
-        const touch = e.touches ? e.changedTouches[0] : e;
         this.joystickTouchId = touch.identifier; // Save ID
-
-        const x = touch.clientX;
-        const y = touch.clientY;
 
         if (this.fixedJoystickLayout && this.container) {
             const rect = this.container.getBoundingClientRect();

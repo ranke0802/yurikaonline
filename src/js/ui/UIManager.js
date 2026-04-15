@@ -75,6 +75,7 @@ export class UIManager {
         this.settings = this.loadSettings();
         this.devAccessState = this.loadDevAccessState();
         this.uiLayoutControlDefinitions = {
+            'version-info-badge': { label: '버전 정보', selector: '.version-info', modes: ['desktop', 'mobilePortrait'], minScale: 0.75, maxScale: 1.5, scaleMode: 'transform', zIndex: 1280, margin: 8 },
             'dev-overlay-panel': { label: '개발 오버레이', selector: '#dev-overlay', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 2.4, scaleMode: 'transform', zIndex: 2305, margin: 8, requiresVisibleElement: true },
             'hud-top-bar': { label: '프로필/HP 패널', selector: '.top-bar', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform' },
             'quest-panel': { label: '퀘스트창', selector: '.quest-list-panel', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', positioningContext: 'parent', parentSelector: '.left-ui-container' },
@@ -744,6 +745,13 @@ export class UIManager {
             });
     }
 
+    getDefaultUiLayoutControlId(mode = this.getUiLayoutMode()) {
+        const controls = this.getUiLayoutControlsForMode(mode);
+        return controls.find(([controlId]) => controlId !== 'version-info-badge')?.[0]
+            || controls[0]?.[0]
+            || null;
+    }
+
     getUiLayoutPresetForMode(mode = this.getUiLayoutMode()) {
         const rawPreset = this.uiLayoutPresetDefaults?.[mode];
         if (!rawPreset || typeof rawPreset !== 'object') return null;
@@ -1211,7 +1219,7 @@ export class UIManager {
         this.uiLayoutEditMode = true;
         this.uiLayoutActiveMode = this.getUiLayoutMode();
         this.ensureUiLayoutDraftMode(this.uiLayoutActiveMode);
-        this.uiLayoutSelectedControlId = this.getUiLayoutControlsForMode(this.uiLayoutActiveMode)[0]?.[0] || null;
+        this.uiLayoutSelectedControlId = this.getDefaultUiLayoutControlId(this.uiLayoutActiveMode);
         this.setUiLayoutDirty(false);
         this.game.touch?.resetState?.();
         this.game.input?.setEnabled?.(false);
@@ -1382,7 +1390,7 @@ export class UIManager {
         if (this.uiLayoutEditMode) {
             this.ensureUiLayoutDraftMode(nextMode);
             if (modeChanged || !this.uiLayoutSelectedControlId) {
-                this.uiLayoutSelectedControlId = this.getUiLayoutControlsForMode(nextMode)[0]?.[0] || null;
+                this.uiLayoutSelectedControlId = this.getDefaultUiLayoutControlId(nextMode);
             }
             if (modeChanged) {
                 this.resetUiLayoutEditorWindowPosition();
@@ -8504,6 +8512,7 @@ export class UIManager {
     }
 
     toggleUpdateHistory() {
+        if (this.uiLayoutEditMode) return;
         const modal = document.getElementById('history-modal');
         if (!modal) return;
 

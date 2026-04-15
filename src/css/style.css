@@ -11069,3 +11069,14 @@ body.low-power-pwa #ui-layer #minimap-container {
         z-index: 1495 !important;
     }
 }
+
+@media screen and (max-width: 1024px) and (pointer: coarse) {
+    body:not(.ui-layout-edit-mode):not(.popup-open) .left-ui-container {
+        z-index: 1520 !important;
+    }
+
+    body:not(.ui-layout-edit-mode):not(.popup-open) .quest-list-panel,
+    body:not(.ui-layout-edit-mode):not(.popup-open) .chat-window {
+        pointer-events: auto !important;
+    }
+}
