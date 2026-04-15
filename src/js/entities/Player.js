@@ -3225,6 +3225,7 @@ export default class Player extends CharacterBase {
         const itemData = this.getItemDataManager();
         const target = this.resolveWeaponSelection(selection);
         const stoneType = options?.stoneType === 'blessed' ? 'blessed' : 'normal';
+        const deferUiRefresh = !!options?.deferUiRefresh;
         const stoneItemId = stoneType === 'blessed' ? BLESSED_WEAPON_UPGRADE_STONE_ID : 'weapon_upgrade_stone';
         const stoneLabel = stoneType === 'blessed' ? '축복받은 무기 강화석' : '무기 강화석';
         if (!itemData || !target?.item) {
@@ -3302,7 +3303,7 @@ export default class Player extends CharacterBase {
             this.saveState();
         }
 
-        if (window.game?.ui) {
+        if (!deferUiRefresh && window.game?.ui) {
             window.game.ui.updateStatusPopup();
             window.game.ui.updateInventory();
         }

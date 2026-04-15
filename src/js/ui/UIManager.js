@@ -1643,6 +1643,10 @@ export class UIManager {
         };
     }
 
+    isLowPowerEnhancementMode() {
+        return !!(this.game?.lowPowerPwaMode || document.body?.classList?.contains('low-power-pwa'));
+    }
+
     ensureInventoryFxLayer(element) {
         if (!element) return null;
         let layer = element.querySelector('.inventory-fx-layer');
@@ -1685,10 +1689,16 @@ export class UIManager {
 
     async playWeaponEnhancementSequence(selection, result) {
         const element = this.getInventoryEnhancementTargetElement(selection);
-        await this.playInventoryEnhancementPhase(element, 'enhance-fx-priming', 'enhance_charge', 300);
+        const lowPowerMode = this.isLowPowerEnhancementMode();
+        const outcomeDuration = lowPowerMode ? 180 : 300;
+
+        if (!lowPowerMode) {
+            await this.playInventoryEnhancementPhase(element, 'enhance-fx-priming', 'enhance_charge', 300);
+        }
 
         if (result.success) {
-            await this.playInventoryEnhancementPhase(element, 'enhance-fx-success', 'enhance_success', 300);
+            await this.playInventoryEnhancementPhase(element, 'enhance-fx-success', 'enhance_success', outcomeDuration);
+            if (lowPowerMode) return;
             if (result.nextLevel >= 10) {
                 await this.playInventoryEnhancementPhase(element, 'enhance-fx-tier-10', 'enhance_tier_10', 300);
             } else if (result.nextLevel === 9) {
@@ -1702,11 +1712,11 @@ export class UIManager {
         }
 
         if (result.keptLevel) {
-            await this.playInventoryEnhancementPhase(element, 'enhance-fx-keep', 'enhance_keep', 300);
+            await this.playInventoryEnhancementPhase(element, 'enhance-fx-keep', 'enhance_keep', outcomeDuration);
             return;
         }
 
-        await this.playInventoryEnhancementPhase(element, 'enhance-fx-fail', 'enhance_fail', 300);
+        await this.playInventoryEnhancementPhase(element, 'enhance-fx-fail', 'enhance_fail', outcomeDuration);
     }
 
     startWeaponEnhancementSelection(stoneType = 'normal') {
@@ -1779,7 +1789,10 @@ export class UIManager {
 
         const executeEnhance = async () => {
             const targetName = target.item.name;
-            const result = player.enhanceWeapon(selection, { stoneType: meta.stoneType });
+            const result = player.enhanceWeapon(selection, {
+                stoneType: meta.stoneType,
+                deferUiRefresh: true
+            });
             if (!result.ok) {
                 this.pendingEnhancementStoneType = null;
                 this.showGenericModal(`${meta.modalTitle} 실패`, result.message, null, null, { hideNo: true, yesText: '확인' });
@@ -1788,16 +1801,19 @@ export class UIManager {
             }
 
             finalizeSelectionState();
+            const centerMessage = this.buildWeaponEnhancementCenterMessage(result);
+            if (centerMessage) {
+                this.showCenterMessage(centerMessage.text, centerMessage.color, {
+                    durationMs: 1000,
+                    lightweight: this.isLowPowerEnhancementMode()
+                });
+            }
+
             this.inventoryEnhancementAnimating = true;
             try {
                 await this.playWeaponEnhancementSequence(selection, result);
             } finally {
                 this.inventoryEnhancementAnimating = false;
-            }
-
-            const centerMessage = this.buildWeaponEnhancementCenterMessage(result);
-            if (centerMessage) {
-                this.showCenterMessage(centerMessage.text, centerMessage.color);
             }
 
             if (result.success) {
@@ -1814,6 +1830,7 @@ export class UIManager {
                 this.logSystemMessage(`⚠️ ${targetName} 강화 실패, 장비는 유지됩니다.`);
             }
 
+            this.updateStatusPopup();
             this.updateInventory();
         };
 
@@ -8802,7 +8819,8 @@ export class UIManager {
         this.centerMessageQueue.push({
             text: normalizedText,
             color,
-            durationMs: Number.isFinite(options.durationMs) ? options.durationMs : 4000
+            durationMs: Number.isFinite(options.durationMs) ? options.durationMs : 4000,
+            lightweight: !!options.lightweight
         });
         this.flushCenterMessageQueue();
     }
@@ -8826,7 +8844,6 @@ export class UIManager {
             el.style.textShadow = '0 3px 10px rgba(0, 0, 0, 0.72), 0 0 2px rgba(0, 0, 0, 0.95)';
             el.style.pointerEvents = 'none';
             el.style.opacity = '0';
-            el.style.transition = 'opacity 0.28s ease';
             el.style.zIndex = '5200';
             el.style.textAlign = 'center';
             el.style.width = 'min(86vw, 980px)';
@@ -8834,19 +8851,30 @@ export class UIManager {
             el.style.whiteSpace = 'normal';
             el.style.lineHeight = '1.3';
             el.style.padding = '0 12px';
+            el.style.willChange = 'opacity';
+            el.style.contain = 'paint';
             document.body.appendChild(el);
         } else if (el.parentElement !== document.body && document.body) {
             document.body.appendChild(el);
         }
 
+        const lightweight = !!nextMessage.lightweight;
         this.centerMessageActive = true;
         el.textContent = nextMessage.text;
         el.style.color = nextMessage.color;
+        el.style.top = lightweight ? '27%' : '30%';
+        el.style.fontSize = lightweight ? '19px' : '24px';
+        el.style.fontWeight = lightweight ? '800' : 'bold';
+        el.style.textShadow = lightweight
+            ? '0 1px 4px rgba(0, 0, 0, 0.58)'
+            : '0 3px 10px rgba(0, 0, 0, 0.72), 0 0 2px rgba(0, 0, 0, 0.95)';
+        el.style.transition = lightweight ? 'opacity 0.18s linear' : 'opacity 0.28s ease';
         el.style.opacity = '1';
 
         if (this._centerMsgTimer) clearTimeout(this._centerMsgTimer);
         if (this._centerMsgFadeTimer) clearTimeout(this._centerMsgFadeTimer);
 
+        const fadeMs = lightweight ? 180 : 320;
         this._centerMsgTimer = setTimeout(() => {
             el.style.opacity = '0';
             this._centerMsgFadeTimer = setTimeout(() => {
@@ -8854,7 +8882,7 @@ export class UIManager {
                 this._centerMsgTimer = null;
                 this._centerMsgFadeTimer = null;
                 this.flushCenterMessageQueue();
-            }, 320);
+            }, fadeMs);
         }, nextMessage.durationMs);
     }
     // v2.1: Emote System

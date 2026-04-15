@@ -196,7 +196,7 @@
                     "guideTitle": "수치 미리보기"
                 },
                 "mobilePortrait": {
-                    "guideMode": "viewport-bottom-sheet-safe",
+                    "guideMode": "popup-header-strip",
                     "highlightMode": "frame",
                     "guideTitle": "수치 미리보기",
                     "compact": true
@@ -237,7 +237,7 @@
                     "guideTitle": "스탯 저장"
                 },
                 "mobilePortrait": {
-                    "guideMode": "viewport-bottom-sheet-safe",
+                    "guideMode": "popup-header-strip",
                     "highlightMode": "ring",
                     "guideTitle": "스탯 저장",
                     "compact": true
