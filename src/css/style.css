@@ -10042,3 +10042,521 @@ body.low-power-pwa #ui-layer #minimap-container {
         gap: 10px !important;
     }
 }
+
+/* Final status popup visibility guard */
+@media screen and (min-width: 1025px) {
+    #status-popup {
+        height: min(82vh, 760px) !important;
+    }
+
+    #status-popup .status-content-wrapper {
+        display: grid !important;
+        grid-template-columns: minmax(280px, 0.94fr) minmax(360px, 1.06fr) !important;
+        grid-template-areas:
+            "top stats"
+            "actions actions"
+            "footer footer" !important;
+        grid-template-rows: minmax(0, 1fr) auto auto !important;
+        gap: 14px 16px !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        align-items: stretch !important;
+    }
+
+    #status-popup .status-top {
+        grid-area: top !important;
+        align-self: start !important;
+    }
+
+    #status-popup .status-stats-grid {
+        grid-area: stats !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        align-self: stretch !important;
+        padding-bottom: 2px !important;
+    }
+
+    #status-popup .stat-main,
+    #status-popup .stat-derived {
+        min-height: 0 !important;
+    }
+
+    #status-popup .stat-main {
+        overflow: visible !important;
+    }
+
+    #status-popup .stat-derived {
+        overflow: auto !important;
+        padding-right: 4px !important;
+        scrollbar-gutter: stable !important;
+    }
+
+    #status-popup .reset-actions {
+        grid-area: actions !important;
+        margin-top: 0 !important;
+    }
+
+    #status-popup .popup-footer {
+        grid-area: footer !important;
+        margin-top: 0 !important;
+        padding-top: 10px !important;
+    }
+}
+
+@media screen and (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
+    #status-popup {
+        height: min(86dvh, 660px) !important;
+    }
+
+    #status-popup .status-content-wrapper {
+        display: grid !important;
+        grid-template-columns: minmax(230px, 0.94fr) minmax(280px, 1.06fr) !important;
+        grid-template-areas:
+            "top stats"
+            "actions actions"
+            "footer footer" !important;
+        grid-template-rows: minmax(0, 1fr) auto auto !important;
+        gap: 10px 12px !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        align-items: stretch !important;
+    }
+
+    #status-popup .status-top {
+        grid-area: top !important;
+        align-self: start !important;
+    }
+
+    #status-popup .status-stats-grid {
+        grid-area: stats !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        align-self: stretch !important;
+        padding-bottom: 2px !important;
+    }
+
+    #status-popup .stat-main,
+    #status-popup .stat-derived {
+        min-height: 0 !important;
+    }
+
+    #status-popup .stat-main {
+        overflow: visible !important;
+    }
+
+    #status-popup .stat-derived {
+        overflow: auto !important;
+        padding-right: 4px !important;
+        scrollbar-gutter: stable !important;
+    }
+
+    #status-popup .reset-actions {
+        grid-area: actions !important;
+        margin-top: 0 !important;
+    }
+
+    #status-popup .popup-footer {
+        grid-area: footer !important;
+        margin-top: 0 !important;
+        padding-top: 8px !important;
+    }
+}
+
+@media screen and (max-width: 1024px) and (orientation: portrait) and (pointer: coarse) {
+    #status-popup {
+        height: min(88dvh, 780px) !important;
+    }
+
+    #status-popup .status-content-wrapper {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-areas:
+            "top"
+            "stats"
+            "actions"
+            "footer" !important;
+        grid-template-rows: auto minmax(0, 1fr) auto auto !important;
+        gap: 10px !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #status-popup .status-top {
+        grid-area: top !important;
+    }
+
+    #status-popup .status-stats-grid {
+        grid-area: stats !important;
+        min-height: 0 !important;
+        overflow: auto !important;
+        padding-top: 10px !important;
+        padding-right: 4px !important;
+        padding-bottom: 2px !important;
+        align-content: start !important;
+    }
+
+    #status-popup .stat-main,
+    #status-popup .stat-derived {
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+
+    #status-popup .reset-actions {
+        grid-area: actions !important;
+        margin-top: 0 !important;
+    }
+
+    #status-popup .popup-footer {
+        grid-area: footer !important;
+        margin-top: 0 !important;
+        padding-top: 8px !important;
+    }
+}
+
+/* Final friends popup mobile usability fix */
+@media screen and (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
+    #friends-popup {
+        width: min(94vw, 900px) !important;
+        height: min(90dvh, 640px) !important;
+        padding: 12px 14px 14px !important;
+        overflow: hidden !important;
+    }
+
+    #friends-popup .popup-header {
+        margin-bottom: 8px !important;
+        padding-bottom: 8px !important;
+    }
+
+    #friends-popup .popup-footer {
+        margin-top: 8px !important;
+        padding-top: 8px !important;
+    }
+
+    #friends-popup .friends-content-wrapper {
+        display: grid !important;
+        grid-template-columns: minmax(240px, 280px) minmax(0, 1fr) !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+        gap: 12px !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        align-items: stretch !important;
+    }
+
+    #friends-popup .friends-sidebar {
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) !important;
+        gap: 10px !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #friends-popup .friends-search-card,
+    #friends-popup .friends-list-card,
+    #friends-popup .friends-detail-card {
+        padding: 12px !important;
+        border-radius: 16px !important;
+    }
+
+    #friends-popup .friends-search-card {
+        gap: 8px !important;
+    }
+
+    #friends-popup .friends-search-card label,
+    #friends-popup .friends-list-header strong,
+    #friends-popup .friends-detail-section strong {
+        font-size: 15px !important;
+    }
+
+    #friends-popup .friends-search-row {
+        grid-template-columns: minmax(0, 1fr) 44px !important;
+    }
+
+    #friends-popup .friends-search-row input,
+    #friends-popup .friends-message-card textarea {
+        padding: 10px 12px !important;
+        font-size: 14px !important;
+    }
+
+    #friends-popup .friends-search-icon-btn {
+        width: 44px !important;
+        min-width: 44px !important;
+        min-height: 44px !important;
+        border-radius: 14px !important;
+    }
+
+    #friends-popup .friends-search-result {
+        min-height: 34px !important;
+        padding: 8px 10px !important;
+        font-size: 13px !important;
+    }
+
+    #friends-popup .friends-primary-btn,
+    #friends-popup .friends-inline-btn {
+        min-height: 40px !important;
+        padding: 9px 12px !important;
+        border-radius: 12px !important;
+        font-size: 14px !important;
+    }
+
+    #friends-popup .friends-list-card,
+    #friends-popup .friends-detail-card {
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #friends-popup .friends-list,
+    #friends-popup #friend-detail-panel {
+        min-height: 0 !important;
+        overflow: auto !important;
+        padding-right: 2px !important;
+        scrollbar-gutter: stable !important;
+    }
+
+    #friends-popup .friend-list-item {
+        padding: 9px 10px !important;
+        border-radius: 14px !important;
+    }
+
+    #friends-popup .friend-list-name,
+    #friends-popup .friend-status-name {
+        font-size: 16px !important;
+    }
+
+    #friends-popup .friends-status-chip {
+        padding: 4px 8px !important;
+        font-size: 11px !important;
+    }
+
+    #friends-popup .friends-detail-empty {
+        padding: 18px !important;
+        min-height: 120px !important;
+        font-size: 14px !important;
+    }
+
+    #friends-popup .friends-detail-header {
+        align-items: flex-start !important;
+        gap: 8px !important;
+        flex-wrap: wrap !important;
+    }
+
+    #friends-popup .friends-detail-actions,
+    #friends-popup .friends-message-actions {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    #friends-popup .friends-detail-actions .friends-inline-btn,
+    #friends-popup .friends-message-actions .friends-inline-btn,
+    #friends-popup .friends-message-actions .friends-primary-btn {
+        flex: 1 1 140px !important;
+    }
+
+    #friends-popup .friend-status-card {
+        padding: 12px !important;
+        gap: 10px !important;
+    }
+
+    #friends-popup .friend-status-overview {
+        grid-template-columns: 56px minmax(0, 1fr) !important;
+        gap: 10px !important;
+    }
+
+    #friends-popup .friend-status-avatar {
+        width: 56px !important;
+        height: 56px !important;
+        border-radius: 18px !important;
+    }
+
+    #friends-popup .friend-status-avatar-text {
+        font-size: 24px !important;
+    }
+
+    #friends-popup .friend-status-bar-row {
+        grid-template-columns: 24px minmax(0, 1fr) auto !important;
+        gap: 6px !important;
+    }
+
+    #friends-popup .friend-status-bar-value,
+    #friends-popup .friend-status-id,
+    #friends-popup .friend-stat-card span,
+    #friends-popup .friend-weapon-help,
+    #friends-popup .friend-weapon-lines {
+        font-size: 12px !important;
+        line-height: 1.4 !important;
+    }
+
+    #friends-popup .friend-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+    }
+
+    #friends-popup .friend-stat-card,
+    #friends-popup .friend-weapon-card {
+        padding: 9px 10px !important;
+        border-radius: 14px !important;
+    }
+
+    #friends-popup .friend-weapon-icon-button,
+    #friends-popup .friend-weapon-empty {
+        width: 52px !important;
+        height: 52px !important;
+        border-radius: 16px !important;
+    }
+
+    #friends-popup .friend-weapon-icon {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 26px !important;
+    }
+}
+
+@media screen and (max-width: 1024px) and (orientation: portrait) and (pointer: coarse) {
+    #friends-popup {
+        height: min(88dvh, 780px) !important;
+        overflow: hidden !important;
+    }
+
+    #friends-popup .friends-content-wrapper {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+        min-height: 0 !important;
+        overflow: auto !important;
+        padding-right: 2px !important;
+        align-items: stretch !important;
+        overscroll-behavior: contain !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    #friends-popup .friends-search-card,
+    #friends-popup .friends-list-card,
+    #friends-popup .friends-detail-card {
+        padding: 12px !important;
+        border-radius: 16px !important;
+    }
+
+    #friends-popup .friends-sidebar,
+    #friends-popup .friends-detail-card {
+        overflow: visible !important;
+        min-height: 0 !important;
+    }
+
+    #friends-popup .friends-sidebar {
+        display: grid !important;
+        grid-template-rows: auto auto !important;
+        gap: 10px !important;
+    }
+
+    #friends-popup .friends-list-card {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    #friends-popup .friends-list,
+    #friends-popup #friend-detail-panel {
+        overflow: visible !important;
+        padding-right: 0 !important;
+    }
+
+    #friends-popup .friends-detail-empty {
+        flex: 0 0 auto !important;
+        min-height: 140px !important;
+        padding: 20px !important;
+    }
+
+    #friends-popup .friends-detail-header,
+    #friends-popup .friends-detail-actions,
+    #friends-popup .friends-message-actions {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    #friends-popup .friends-detail-summary,
+    #friends-popup .friend-status-overview,
+    #friends-popup .friend-stat-grid {
+        grid-template-columns: 1fr !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+
+    #friends-popup .friend-status-avatar {
+        width: 60px !important;
+        height: 60px !important;
+        border-radius: 18px !important;
+    }
+}
+
+/* Final portrait layout editor action button visibility guard */
+@media screen and (max-width: 1024px) and (orientation: portrait) and (pointer: coarse) {
+    body.ui-layout-edit-mode .action-buttons {
+        position: fixed !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+        display: block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        overflow: visible !important;
+        pointer-events: none !important;
+        transform: none !important;
+        z-index: 1480 !important;
+    }
+
+    body.ui-layout-edit-mode .action-buttons .skill-row {
+        position: static !important;
+        inset: auto !important;
+        display: block !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+
+    body.ui-layout-edit-mode .action-buttons .skill-btn,
+    body.ui-layout-edit-mode .action-buttons .attack-btn {
+        position: fixed !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        border-radius: 999px !important;
+        border-width: 3px !important;
+        border-color: rgba(255, 255, 255, 0.96) !important;
+        background: rgba(255, 255, 255, 0.82) !important;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18) !important;
+        backdrop-filter: blur(4px) !important;
+        z-index: 1490 !important;
+    }
+
+    body.ui-layout-edit-mode .action-buttons .attack-btn {
+        background: rgba(255, 244, 186, 0.9) !important;
+    }
+
+    body.ui-layout-edit-mode .action-buttons .inner-icon {
+        font-size: inherit !important;
+        filter: none !important;
+    }
+
+    body.ui-layout-edit-mode .action-buttons .shortcut-badge {
+        display: none !important;
+    }
+
+    body.ui-layout-edit-mode .action-buttons .attack-auto-toggle {
+        position: fixed !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        min-width: 58px !important;
+        height: 26px !important;
+        padding: 0 9px !important;
+        font-size: 10px !important;
+        border-width: 1px !important;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22) !important;
+        z-index: 1495 !important;
+    }
+}

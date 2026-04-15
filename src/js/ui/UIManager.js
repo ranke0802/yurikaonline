@@ -1217,6 +1217,9 @@ export class UIManager {
         this.game.input?.setEnabled?.(false);
         this.isPaused = true;
         this.setLandscapeChatActive(false);
+        this.overlay?.classList.add('hidden');
+        document.querySelectorAll('.game-popup').forEach((popup) => popup.classList.add('hidden'));
+        document.body.classList.remove('popup-open');
         document.body.classList.add('ui-layout-edit-mode');
         document.getElementById('ui-layout-editor')?.classList.remove('hidden');
         this.resetUiLayoutEditorWindowPosition();
@@ -1944,11 +1947,251 @@ export class UIManager {
         };
     }
 
+    normalizeTutorialRect(rect) {
+        if (!rect) return null;
+
+        const left = Number(rect.left);
+        const top = Number(rect.top);
+        const width = Number(rect.width);
+        const height = Number(rect.height);
+        if (![left, top, width, height].every((value) => Number.isFinite(value))) {
+            return null;
+        }
+        if (width <= 0 || height <= 0) return null;
+
+        return {
+            left,
+            top,
+            right: left + width,
+            bottom: top + height,
+            width,
+            height
+        };
+    }
+
+    insetTutorialRect(rect, inset = 0) {
+        if (!rect || !Number.isFinite(inset) || inset <= 0) return rect;
+
+        const maxInset = Math.max(0, Math.min(
+            inset,
+            Math.floor((Math.min(rect.width, rect.height) - 8) / 2)
+        ));
+        if (maxInset <= 0) return rect;
+
+        return this.normalizeTutorialRect({
+            left: rect.left + maxInset,
+            top: rect.top + maxInset,
+            width: rect.width - (maxInset * 2),
+            height: rect.height - (maxInset * 2)
+        }) || rect;
+    }
+
+    applyTutorialRectInsets(rect, inset = 0) {
+        if (!rect || inset === null || inset === undefined) return rect;
+        if (Number.isFinite(inset)) {
+            return inset >= 0
+                ? this.insetTutorialRect(rect, inset)
+                : (this.normalizeTutorialRect({
+                    left: rect.left + inset,
+                    top: rect.top + inset,
+                    width: rect.width - (inset * 2),
+                    height: rect.height - (inset * 2)
+                }) || rect);
+        }
+
+        if (typeof inset !== 'object') return rect;
+
+        const top = Number.isFinite(Number(inset.top)) ? Number(inset.top) : 0;
+        const right = Number.isFinite(Number(inset.right)) ? Number(inset.right) : 0;
+        const bottom = Number.isFinite(Number(inset.bottom)) ? Number(inset.bottom) : 0;
+        const left = Number.isFinite(Number(inset.left)) ? Number(inset.left) : 0;
+
+        return this.normalizeTutorialRect({
+            left: rect.left + left,
+            top: rect.top + top,
+            width: rect.width - left - right,
+            height: rect.height - top - bottom
+        }) || rect;
+    }
+
+    getTutorialHighlightProfile() {
+        const mode = this.getTutorialViewportMode();
+        if (mode === 'mobile-portrait') {
+            return {
+                compactInset: 1,
+                microInset: 1,
+                compactPadding: 3,
+                mediumPadding: 4,
+                largePadding: 5,
+                xLargePadding: 6,
+                spotlightExtra: 1,
+                frameTrim: 1
+            };
+        }
+
+        if (mode === 'mobile-landscape') {
+            return {
+                compactInset: 2,
+                microInset: 1,
+                compactPadding: 2,
+                mediumPadding: 3,
+                largePadding: 4,
+                xLargePadding: 5,
+                spotlightExtra: 1,
+                frameTrim: 1
+            };
+        }
+
+        return {
+            compactInset: 2,
+            microInset: 1,
+            compactPadding: 2,
+            mediumPadding: 3,
+            largePadding: 4,
+            xLargePadding: 5,
+            spotlightExtra: 1,
+            frameTrim: 1
+        };
+    }
+
+    getTutorialElementAnchorRect(element) {
+        const baseRect = this.getVisibleElementRect(element);
+        if (!baseRect) return null;
+
+        const profile = this.getTutorialHighlightProfile();
+        if (element.matches?.('.menu-btn, #btn-fullscreen, #btn-emote-shortcut')) {
+            return this.insetTutorialRect(baseRect, profile.compactInset);
+        }
+
+        if (element.matches?.('.stat-up-btn, .stat-down-btn, .skill-up-btn, .close-popup, .inventory-item-modal-close')) {
+            return this.insetTutorialRect(baseRect, profile.microInset);
+        }
+
+        return baseRect;
+    }
+
+    getTutorialHighlightPadding(rect, highlightMode = 'ring') {
+        const profile = this.getTutorialHighlightProfile();
+        const maxDim = Math.max(rect?.width || 0, rect?.height || 0);
+
+        let padding = profile.xLargePadding;
+        if (maxDim <= 64) {
+            padding = profile.compactPadding;
+        } else if (maxDim <= 120) {
+            padding = profile.mediumPadding;
+        } else if (maxDim <= 280) {
+            padding = profile.largePadding;
+        }
+
+        if (highlightMode === 'spotlight') {
+            padding += profile.spotlightExtra;
+        } else if (highlightMode === 'frame') {
+            padding = Math.max(1, padding - profile.frameTrim);
+        }
+
+        return padding;
+    }
+
+    getTutorialMovePadHintRect(config = {}) {
+        const liveJoystickRect = this.getVisibleElementRect('#joystick-container');
+        if (liveJoystickRect) return liveJoystickRect;
+
+        const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
+        const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+        if (!viewportW || !viewportH) return null;
+
+        const areaRect = this.getVisibleElementRect('#joystick-area') || {
+            left: 0,
+            top: 0,
+            right: viewportW * 0.6,
+            bottom: viewportH,
+            width: viewportW * 0.6,
+            height: viewportH
+        };
+        const viewportMode = this.getTutorialViewportMode();
+        const defaultSize = viewportMode === 'mobile-portrait'
+            ? Math.min(188, Math.max(148, Math.round(Math.min(viewportW, viewportH) * 0.46)))
+            : Math.min(168, Math.max(132, Math.round(Math.min(viewportW, viewportH) * 0.42)));
+        const width = Math.max(96, Number.isFinite(Number(config.width))
+            ? Number(config.width)
+            : (Number.isFinite(Number(config.size)) ? Number(config.size) : defaultSize));
+        const height = Math.max(96, Number.isFinite(Number(config.height))
+            ? Number(config.height)
+            : width);
+        const offsetX = Number.isFinite(Number(config.offsetX))
+            ? Number(config.offsetX)
+            : (viewportMode === 'mobile-portrait' ? 18 : 20);
+        const offsetY = Number.isFinite(Number(config.offsetY))
+            ? Number(config.offsetY)
+            : (viewportMode === 'mobile-portrait' ? 34 : 26);
+        const minLeft = Math.max(10, areaRect.left + 10);
+        const maxLeft = Math.max(minLeft, Math.min(viewportW - width - 10, areaRect.right - width - 10));
+        const minTop = Math.max(10, areaRect.top + 10);
+        const maxTop = Math.max(minTop, Math.min(viewportH - height - 10, areaRect.bottom - height - 10));
+        const left = Math.min(maxLeft, Math.max(minLeft, areaRect.left + offsetX));
+        const top = Math.min(maxTop, Math.max(minTop, areaRect.bottom - height - offsetY));
+
+        return this.normalizeTutorialRect({
+            left: Math.round(left),
+            top: Math.round(top),
+            width: Math.round(width),
+            height: Math.round(height)
+        });
+    }
+
+    resolveTutorialTargetRect(target) {
+        if (!target) return null;
+
+        if (target instanceof Element || typeof target === 'string') {
+            return this.getTutorialElementAnchorRect(this.resolveTutorialHighlightTarget(target));
+        }
+
+        if (Array.isArray(target) || typeof target !== 'object') {
+            return null;
+        }
+
+        if (target.type === 'move-pad-hint' || target.preset === 'move-pad-hint') {
+            return this.getTutorialMovePadHintRect(target);
+        }
+
+        const selectorTargets = Array.isArray(target.selectors)
+            ? target.selectors
+            : (target.selector ? [target.selector] : []);
+        if (selectorTargets.length > 0) {
+            const rects = selectorTargets
+                .map((selector) => this.getTutorialElementAnchorRect(this.resolveTutorialHighlightTarget(selector)))
+                .filter(Boolean);
+            if (rects.length > 0) {
+                return this.applyTutorialRectInsets(
+                    this.getTutorialPrimaryFocusRect(rects),
+                    target.inset ?? target.trim ?? 0
+                );
+            }
+        }
+
+        const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
+        const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+        const width = Number(target.width ?? target.w);
+        const height = Number(target.height ?? target.h ?? target.width ?? target.w);
+        let left = Number(target.left ?? target.x);
+        let top = Number(target.top ?? target.y);
+        const right = Number(target.right);
+        const bottom = Number(target.bottom);
+
+        if (!Number.isFinite(left) && Number.isFinite(right) && Number.isFinite(width)) {
+            left = viewportW - right - width;
+        }
+        if (!Number.isFinite(top) && Number.isFinite(bottom) && Number.isFinite(height)) {
+            top = viewportH - bottom - height;
+        }
+
+        return this.normalizeTutorialRect({ left, top, width, height });
+    }
+
     getTutorialFocusRects(targets = []) {
         const normalizedTargets = Array.isArray(targets) ? targets : [targets];
         return normalizedTargets
-            .map((target) => this.resolveTutorialHighlightTarget(target))
-            .map((element) => this.getVisibleElementRect(element))
+            .map((target) => this.resolveTutorialTargetRect(target))
             .filter(Boolean);
     }
 
@@ -4942,6 +5185,18 @@ export class UIManager {
             return;
         }
 
+        if (!isCurrentlyHidden && this.game.tutorial?.isPopupCloseBlocked?.(id)) {
+            if (id === 'skill-popup') {
+                this.updateSkillPopup();
+                this.overlay?.classList.remove('hidden');
+                popup.classList.remove('hidden');
+                document.body.classList.add('popup-open');
+                this.isPaused = true;
+            }
+            this.refreshTutorialOverlayState();
+            return;
+        }
+
         // If closing status popup, check for pending stats
         if (!isCurrentlyHidden && id === 'status-popup') {
             const totalPending = this.getPendingStatTotal();
@@ -4949,10 +5204,11 @@ export class UIManager {
                 this.showConfirm('스텟을 저장하시겠습니까?<br><small>한번 저장하면 변경할 수 없습니다.</small>', (result) => {
                     if (result) {
                         this.savePendingStats();
+                        this.executePopupClose(id);
                     } else {
-                        this.cancelPendingStats();
+                        this.updateStatusPopup();
+                        this.refreshTutorialOverlayState();
                     }
-                    this.executePopupClose(id);
                 });
                 return; // Wait for confirm
             }
@@ -5037,6 +5293,13 @@ export class UIManager {
 
         this.syncDevOverlayVisibility();
         this.refreshDesktopShortcutHints();
+        this.refreshTutorialOverlayState();
+    }
+
+    refreshTutorialOverlayState() {
+        if (!this.game?.tutorial?.activeTutorial) return;
+        this.refreshTutorialHighlight();
+        this.refreshTutorialGuideLayout();
     }
 
     showConfirm(message, callback) {
@@ -5044,11 +5307,14 @@ export class UIManager {
         this.confirmModal.classList.remove('hidden');
         this.confirmCallback = callback;
         this.refreshDesktopShortcutHints();
+        this.refreshTutorialOverlayState();
     }
 
     hideConfirm() {
         this.confirmModal.classList.add('hidden');
+        this.confirmCallback = null;
         this.refreshDesktopShortcutHints();
+        this.refreshTutorialOverlayState();
     }
 
     formatSkillPercent(value, digits = 0) {
@@ -5749,20 +6015,15 @@ export class UIManager {
 
         const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
         const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
-        const isTouch = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
-        const isLandscape = window.matchMedia?.('(orientation: landscape)')?.matches ?? (window.innerWidth > window.innerHeight);
-        const defaultPadding = state.padding ?? (isTouch ? (isLandscape ? 8 : 10) : 8);
         const rects = [];
 
         state.targets.forEach((target) => {
-            const element = this.resolveTutorialHighlightTarget(target);
-            if (!element) return;
-            if (element.classList?.contains('hidden')) return;
+            const rect = this.resolveTutorialTargetRect(target);
+            if (!rect) return;
 
-            const rect = element.getBoundingClientRect();
-            if (!rect.width || !rect.height) return;
-
-            const padding = defaultPadding + (state.mode === 'spotlight' ? 4 : 0);
+            const padding = Number.isFinite(state.padding)
+                ? state.padding
+                : this.getTutorialHighlightPadding(rect, state.mode);
             const left = Math.max(0, rect.left - padding);
             const top = Math.max(0, rect.top - padding);
             const right = Math.min(viewportW, rect.right + padding);

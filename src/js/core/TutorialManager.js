@@ -395,6 +395,17 @@ export default class TutorialManager {
         return true;
     }
 
+    isPopupCloseBlocked(popupId) {
+        const step = this.getCurrentStep();
+        if (!step || !popupId) return false;
+
+        if (popupId === 'skill-popup') {
+            return ['skill_detail_open', 'skill_detail_close', 'skill_upgrade'].includes(step.trigger);
+        }
+
+        return false;
+    }
+
     startTutorial(id) {
         if (this.completedTutorials.has(id) || this.activeTutorial || this.pendingTutorialId) return;
 
