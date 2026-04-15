@@ -215,6 +215,7 @@ export class UIManager {
     getDefaultSettings() {
         return {
             masterVolume: 40,
+            basicAttackSound: 'deep_shock',
             muted: false,
             autoFullscreen: true,
             reducedEffects: false,
@@ -232,6 +233,46 @@ export class UIManager {
         return ['error', 'warn', 'info', 'debug'];
     }
 
+    getBasicAttackSoundOptions() {
+        return [
+            { value: 'deep_shock', label: '\uBB35\uC9C1\uD55C \uC800\uC74C \uC804\uACA9' },
+            { value: 'storm_core', label: '\uAE4A\uC740 \uC2A4\uD1B0 \uCF54\uC5B4' },
+            { value: 'coil_burst', label: '\uB450\uD130\uC6B4 \uCF54\uC77C \uBC84\uC2A4\uD2B8' },
+            { value: 'arc_pulse', label: '\uAD75\uC740 \uC544\uD06C \uD384\uC2A4' },
+            { value: 'classic_arc', label: '\uD074\uB798\uC2DD \uC804\uACA9' }
+        ];
+    }
+
+    sanitizeBasicAttackSound(value, fallback = 'deep_shock') {
+        const normalized = String(value || '').trim();
+        return this.getBasicAttackSoundOptions().some((option) => option.value === normalized)
+            ? normalized
+            : fallback;
+    }
+
+    ensureBasicAttackSoundOptions() {
+        const select = document.getElementById('settings-basic-attack-sound');
+        if (!select) return;
+
+        const options = this.getBasicAttackSoundOptions();
+        const currentSignature = Array.from(select.options)
+            .map((option) => `${option.value}:${option.textContent}`)
+            .join('|');
+        const nextSignature = options
+            .map((option) => `${option.value}:${option.label}`)
+            .join('|');
+
+        if (currentSignature === nextSignature) return;
+
+        select.textContent = '';
+        options.forEach((option) => {
+            const element = document.createElement('option');
+            element.value = option.value;
+            element.textContent = option.label;
+            select.appendChild(element);
+        });
+    }
+
     sanitizeLogLevel(level, fallback = 'warn') {
         return this.getAllowedLogLevels().includes(level) ? level : fallback;
     }
@@ -240,6 +281,7 @@ export class UIManager {
         const defaults = this.getDefaultSettings();
         return {
             masterVolume: this.clampNumericSetting(candidate.masterVolume, defaults.masterVolume, 0, 100),
+            basicAttackSound: this.sanitizeBasicAttackSound(candidate.basicAttackSound, defaults.basicAttackSound),
             muted: !!candidate.muted,
             autoFullscreen: candidate.autoFullscreen !== false,
             reducedEffects: !!candidate.reducedEffects,
@@ -620,6 +662,8 @@ export class UIManager {
     }
 
     syncSettingsUi() {
+        this.ensureBasicAttackSoundOptions();
+
         const bindings = [
             ['settings-master-volume', 'masterVolume', 'settings-master-volume-value', '%'],
             ['settings-chat-opacity', 'chatOpacity', 'settings-chat-opacity-value', '%'],
@@ -651,6 +695,9 @@ export class UIManager {
 
         const logLevelSelect = document.getElementById('settings-log-level');
         if (logLevelSelect) logLevelSelect.value = this.getSetting('developerLogLevel');
+
+        const basicAttackSoundSelect = document.getElementById('settings-basic-attack-sound');
+        if (basicAttackSoundSelect) basicAttackSoundSelect.value = this.getSetting('basicAttackSound');
 
         this.syncDeveloperSettingsUi();
         this.syncUiLayoutEditor();
@@ -3994,6 +4041,12 @@ export class UIManager {
                 return;
             }
             this.updateSetting('developerLogLevel', e.currentTarget.value, { refreshGame: false });
+        });
+
+        document.getElementById('settings-basic-attack-sound')?.addEventListener('change', (e) => {
+            const nextValue = e.currentTarget.value;
+            this.updateSetting('basicAttackSound', nextValue, { refreshGame: false });
+            this.game.sound?.playSfx?.(nextValue);
         });
 
         document.getElementById('settings-dev-exit')?.addEventListener('click', () => {

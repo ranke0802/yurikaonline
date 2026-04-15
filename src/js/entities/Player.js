@@ -1594,6 +1594,20 @@ export default class Player extends CharacterBase {
         return nextState;
     }
 
+    getBasicAttackSoundId() {
+        const soundId = this.clientSettings?.basicAttackSound;
+        switch (soundId) {
+            case 'storm_core':
+            case 'coil_burst':
+            case 'arc_pulse':
+            case 'classic_arc':
+                return soundId;
+            case 'deep_shock':
+            default:
+                return 'deep_shock';
+        }
+    }
+
     performLaserAttack(dt) {
         if (this.isDead) return;
         if (!window.game?.tutorial?.isActionAllowed?.('ATTACK')) return;
@@ -1635,8 +1649,7 @@ export default class Player extends CharacterBase {
             this.animTimer = 0; // Restart attack animation
 
             // v0.00.57: SFX
-            if (window.game?.sound) window.game.sound.playSfx('lightning');
-            if (window.game?.sound) window.game.sound.playSfx('lightning_chain');
+            if (window.game?.sound) window.game.sound.playSfx(this.getBasicAttackSoundId());
         }
 
         const laserLv = this.skillLevels.laser || 1;

@@ -16,7 +16,7 @@
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
-        window.BOOTSTRAP_VERSION = '0.01.154';
+        window.BOOTSTRAP_VERSION = '0.01.155';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -123,7 +123,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    await navigator.serviceWorker.register('./sw.js?v=0.01.154', { updateViaCache: 'none' });
+                    await navigator.serviceWorker.register('./sw.js?v=0.01.155', { updateViaCache: 'none' });
                 } catch (err) {
                     console.warn('ServiceWorker registration failed: ', err);
                 }
@@ -211,7 +211,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.154">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.155">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -692,6 +692,12 @@
                                 <span id="settings-master-volume-value">40%</span>
                             </div>
                         </div>
+                        <div class="settings-row">
+                            <label for="settings-basic-attack-sound">일반 공격 소리</label>
+                            <div class="settings-control settings-inline-control">
+                                <select id="settings-basic-attack-sound" class="settings-select"></select>
+                            </div>
+                        </div>
                         <div class="settings-row settings-toggle-row">
                             <span>전체 음소거</span>
                             <label class="settings-switch">
@@ -1003,7 +1009,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.154"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.155"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

@@ -514,6 +514,47 @@ export default class SoundManager {
                 this._slide(now + 0.01, 'triangle', 96, 34, 0.55, 0.22, gain);
                 this._tone(now + 0.015, 'square', 68, 0.24, 0.14, gain);
                 break;
+            case 'deep_shock':
+                // Low, weighty electric hit with minimal fizz
+                this._slide(now, 'sawtooth', 280, 118, 0.18, 0.13, gain);
+                this._slide(now + 0.012, 'triangle', 190, 88, 0.24, 0.11, gain);
+                this._tone(now + 0.018, 'square', 74, 0.13, 0.055, gain);
+                this._slide(now + 0.02, 'square', 760, 340, 0.08, 0.03, gain);
+                break;
+            case 'storm_core':
+                // Broader low-end arc with a rolling body
+                this._slide(now, 'sawtooth', 340, 132, 0.2, 0.12, gain);
+                this._slide(now + 0.01, 'square', 620, 240, 0.12, 0.045, gain);
+                this._tone(now + 0.024, 'triangle', 92, 0.16, 0.05, gain);
+                this._tone(now + 0.05, 'sine', 138, 0.1, 0.035, gain);
+                break;
+            case 'coil_burst':
+                // Tight, thick electrical punch without hiss
+                this._slide(now, 'square', 430, 176, 0.11, 0.11, gain);
+                this._slide(now + 0.012, 'triangle', 210, 96, 0.15, 0.08, gain);
+                this._tone(now + 0.018, 'square', 84, 0.11, 0.045, gain);
+                this._slide(now + 0.026, 'sawtooth', 880, 420, 0.06, 0.028, gain);
+                break;
+            case 'arc_pulse':
+                // Rounded electric pulse with a lower center of gravity
+                this._tone(now, 'triangle', 104, 0.18, 0.055, gain);
+                this._slide(now + 0.006, 'square', 720, 220, 0.11, 0.075, gain);
+                this._slide(now + 0.02, 'sawtooth', 260, 120, 0.16, 0.07, gain);
+                this._tone(now + 0.04, 'sine', 82, 0.1, 0.03, gain);
+                break;
+            case 'classic_arc':
+                // Legacy bright crackle for players who still want the old feel
+                this._noise(now, 0.05, 0.24, gain, 6400);
+                this._noise(now + 0.018, 0.06, 0.2, gain, 4200);
+                this._noise(now + 0.043, 0.07, 0.16, gain, 2400);
+                this._slide(now, 'square', 2600, 1100, 0.08, 0.18, gain);
+                this._slide(now + 0.02, 'sawtooth', 1800, 620, 0.12, 0.14, gain);
+                this._tone(now + 0.028, 'square', 1320, 0.05, 0.1, gain);
+                this._noise(now, 0.035, 0.14, gain, 7200);
+                this._noise(now + 0.015, 0.03, 0.12, gain, 5200);
+                this._tone(now, 'square', 1840, 0.045, 0.12, gain);
+                this._tone(now + 0.022, 'square', 2360, 0.03, 0.1, gain);
+                break;
             case 'lightning':
                 // Main electric discharge
                 this._noise(now, 0.05, 0.24, gain, 6400);
