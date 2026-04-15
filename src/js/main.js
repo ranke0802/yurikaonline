@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.01.153'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.01.154'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -239,13 +239,16 @@ class Game {
         const lowPowerPwaMode = isMobile;
         const aggressiveThermalMode = lowPowerPwaMode && (isStandalone || isAppleMobile);
         const reduceCombatEffects = !!this.ui?.getSetting?.('reducedEffects');
+        const mobileDprCap = aggressiveThermalMode ? 1.5 : 1.85;
 
         return {
             isTouchDevice,
             isMobile,
             lowPowerPwaMode,
             reduceCombatEffects,
-            maxMobileDpr: lowPowerPwaMode ? (aggressiveThermalMode ? 1.2 : 1.3) : 1.5,
+            // Mobile was clamped so low that the whole canvas was being upscaled,
+            // which made sprites and canvas text visibly softer than desktop.
+            maxMobileDpr: lowPowerPwaMode ? mobileDprCap : 1.5,
             maxRenderFps: isTouchDevice ? (lowPowerPwaMode ? (aggressiveThermalMode ? 45 : 50) : 60) : 0,
             maxUpdateFps: lowPowerPwaMode ? (aggressiveThermalMode ? 45 : 50) : 60
         };

@@ -222,7 +222,9 @@ export class UIManager {
             developerLogLevel: 'warn',
             chatOpacity: 100,
             questOpacity: 100,
-            minimapOpacity: 100
+            minimapOpacity: 100,
+            actionOpacity: 100,
+            menuOpacity: 100
         };
     }
 
@@ -245,7 +247,9 @@ export class UIManager {
             developerLogLevel: this.sanitizeLogLevel(candidate.developerLogLevel, defaults.developerLogLevel),
             chatOpacity: this.clampNumericSetting(candidate.chatOpacity, defaults.chatOpacity, 35, 100),
             questOpacity: this.clampNumericSetting(candidate.questOpacity, defaults.questOpacity, 35, 100),
-            minimapOpacity: this.clampNumericSetting(candidate.minimapOpacity, defaults.minimapOpacity, 35, 100)
+            minimapOpacity: this.clampNumericSetting(candidate.minimapOpacity, defaults.minimapOpacity, 35, 100),
+            actionOpacity: this.clampNumericSetting(candidate.actionOpacity, defaults.actionOpacity, 35, 100),
+            menuOpacity: this.clampNumericSetting(candidate.menuOpacity, defaults.menuOpacity, 35, 100)
         };
     }
 
@@ -590,11 +594,15 @@ export class UIManager {
         const chatOpacity = (this.getSetting('chatOpacity') / 100).toFixed(2);
         const questOpacity = (this.getSetting('questOpacity') / 100).toFixed(2);
         const minimapOpacity = (this.getSetting('minimapOpacity') / 100).toFixed(2);
+        const actionOpacity = (this.getSetting('actionOpacity') / 100).toFixed(2);
+        const menuOpacity = (this.getSetting('menuOpacity') / 100).toFixed(2);
 
         Logger.setLevel(this.getSetting('developerLogLevel'));
         root.style.setProperty('--ui-chat-opacity', chatOpacity);
         root.style.setProperty('--ui-quest-opacity', questOpacity);
         root.style.setProperty('--ui-minimap-opacity', minimapOpacity);
+        root.style.setProperty('--ui-action-opacity', actionOpacity);
+        root.style.setProperty('--ui-menu-opacity', menuOpacity);
 
         this.game.sound?.setMasterVolume?.((this.getSetting('masterVolume') || 0) / 100);
         this.game.sound?.setMuted?.(this.getSetting('muted'));
@@ -616,7 +624,9 @@ export class UIManager {
             ['settings-master-volume', 'masterVolume', 'settings-master-volume-value', '%'],
             ['settings-chat-opacity', 'chatOpacity', 'settings-chat-opacity-value', '%'],
             ['settings-quest-opacity', 'questOpacity', 'settings-quest-opacity-value', '%'],
-            ['settings-minimap-opacity', 'minimapOpacity', 'settings-minimap-opacity-value', '%']
+            ['settings-minimap-opacity', 'minimapOpacity', 'settings-minimap-opacity-value', '%'],
+            ['settings-action-opacity', 'actionOpacity', 'settings-action-opacity-value', '%'],
+            ['settings-menu-opacity', 'menuOpacity', 'settings-menu-opacity-value', '%']
         ];
 
         bindings.forEach(([inputId, key, valueId, suffix]) => {
@@ -3950,7 +3960,9 @@ export class UIManager {
             ['settings-master-volume', 'masterVolume', { refreshGame: false }],
             ['settings-chat-opacity', 'chatOpacity', { refreshGame: false }],
             ['settings-quest-opacity', 'questOpacity', { refreshGame: false }],
-            ['settings-minimap-opacity', 'minimapOpacity', { refreshGame: false }]
+            ['settings-minimap-opacity', 'minimapOpacity', { refreshGame: false }],
+            ['settings-action-opacity', 'actionOpacity', { refreshGame: false }],
+            ['settings-menu-opacity', 'menuOpacity', { refreshGame: false }]
         ];
         rangeSettings.forEach(([inputId, key, options]) => {
             const input = document.getElementById(inputId);

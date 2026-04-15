@@ -70,7 +70,9 @@ export default class TutorialManager {
         const layoutKey = this.getTutorialLayoutKey();
         const fallbackMobile = layoutMode === 'mobile-landscape'
             ? value.mobileLandscape ?? value.mobile
-            : value.mobilePortrait ?? value.mobile;
+            : layoutMode === 'mobile-portrait'
+                ? value.mobilePortrait ?? value.mobile
+                : null;
 
         return value[layoutMode]
             ?? value[layoutKey]

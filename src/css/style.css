@@ -4,6 +4,8 @@
     --ui-chat-opacity: 1;
     --ui-quest-opacity: 1;
     --ui-minimap-opacity: 1;
+    --ui-action-opacity: 1;
+    --ui-menu-opacity: 1;
 }
 
 #loading-overlay {
@@ -80,6 +82,9 @@ html {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 #game-container {
@@ -147,8 +152,15 @@ html {
     opacity: var(--ui-chat-opacity);
 }
 
-#minimap-container,
+.action-buttons {
+    opacity: var(--ui-action-opacity);
+}
+
 .minimap-menu {
+    opacity: var(--ui-menu-opacity);
+}
+
+#minimap-container {
     opacity: var(--ui-minimap-opacity);
 }
 
@@ -10071,56 +10083,60 @@ body.low-power-pwa #ui-layer #minimap-container {
 /* Final status popup visibility guard */
 @media screen and (min-width: 1025px) {
     #status-popup {
-        width: min(94vw, 920px) !important;
-        height: min(84vh, 640px) !important;
-        padding: 18px 18px 14px !important;
+        width: min(92vw, 900px) !important;
+        height: auto !important;
+        max-height: min(78vh, 520px) !important;
+        padding: 16px 18px 14px !important;
     }
 
     #status-popup .popup-header {
-        gap: 10px !important;
-        margin-bottom: 8px !important;
-        padding-bottom: 6px !important;
+        align-items: center !important;
+        gap: 12px !important;
+        margin-bottom: 10px !important;
+        padding-bottom: 8px !important;
         border-bottom: 1px dashed rgba(255, 214, 165, 0.7) !important;
     }
 
     #status-popup .popup-header h2 {
-        font-size: 17px !important;
-        line-height: 1.18 !important;
+        font-size: 18px !important;
+        line-height: 1.16 !important;
     }
 
     #status-popup .popup-header .close-popup {
-        width: 30px !important;
-        height: 30px !important;
-        flex: 0 0 30px !important;
+        width: 32px !important;
+        height: 32px !important;
+        flex: 0 0 32px !important;
         border-width: 1px !important;
     }
 
     #status-popup .status-content-wrapper {
         display: grid !important;
-        grid-template-columns: minmax(240px, 0.92fr) minmax(320px, 1.08fr) !important;
+        grid-template-columns: minmax(320px, 1.02fr) minmax(0, 1.18fr) !important;
         grid-template-areas:
             "top stats"
             "actions actions"
             "footer footer" !important;
-        grid-template-rows: auto min-content min-content !important;
-        gap: 8px 12px !important;
+        grid-template-rows: auto auto auto !important;
+        gap: 12px 16px !important;
+        flex: 0 1 auto !important;
         min-height: 0 !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         align-items: start !important;
         align-content: start !important;
     }
 
     #status-popup .status-top {
         grid-area: top !important;
-        gap: 10px !important;
+        gap: 14px !important;
         align-items: flex-start !important;
         align-self: start !important;
     }
 
     #status-popup .status-portrait {
-        width: 70px !important;
-        height: 70px !important;
-        flex: 0 0 70px !important;
+        width: 78px !important;
+        height: 78px !important;
+        flex: 0 0 78px !important;
+        border-radius: 18px !important;
     }
 
     #status-popup .status-basic-info {
@@ -10129,55 +10145,56 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 
     #status-popup .status-basic-info p {
-        margin: 0 0 4px !important;
-        font-size: 11px !important;
-        line-height: 1.3 !important;
+        margin: 0 0 6px !important;
+        font-size: 13px !important;
+        line-height: 1.34 !important;
     }
 
     #status-popup #player-name-edit-btn,
     #status-popup #player-name-save-btn {
         margin-left: 6px !important;
-        padding: 1px 6px !important;
-        font-size: 10px !important;
+        padding: 2px 8px !important;
+        font-size: 11px !important;
     }
 
     #status-popup #player-name-input {
-        width: 104px !important;
-        padding: 1px 5px !important;
-        font-size: 10px !important;
+        width: 120px !important;
+        padding: 2px 6px !important;
+        font-size: 11px !important;
     }
 
     #status-popup .auth-link-row {
-        margin-top: 4px !important;
+        margin-top: 6px !important;
     }
 
     #status-popup .link-google-btn {
         margin-top: 0 !important;
-        min-height: 30px !important;
-        padding: 6px 8px !important;
-        font-size: 11px !important;
+        min-height: 34px !important;
+        padding: 7px 10px !important;
+        font-size: 12px !important;
+        border-radius: 10px !important;
     }
 
     #status-popup .exp-bar-container {
-        margin-top: 4px !important;
+        margin-top: 8px !important;
     }
 
     #status-popup .exp-label,
     #status-popup .exp-remaining,
     #status-popup .stat-point-info {
-        font-size: 11px !important;
-        line-height: 1.28 !important;
+        font-size: 12px !important;
+        line-height: 1.34 !important;
     }
 
     #status-popup .exp-bar-bg {
-        height: 8px !important;
+        height: 10px !important;
     }
 
     #status-popup .status-stats-grid {
         grid-area: stats !important;
         display: grid !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 8px !important;
+        grid-template-columns: minmax(0, 1.08fr) minmax(220px, 0.92fr) !important;
+        gap: 12px !important;
         padding-top: 0 !important;
         border-top: none !important;
         min-height: 0 !important;
@@ -10190,100 +10207,115 @@ body.low-power-pwa #ui-layer #minimap-container {
     #status-popup .stat-derived {
         min-height: 0 !important;
         min-width: 0 !important;
-        gap: 6px !important;
+        gap: 8px !important;
     }
 
     #status-popup .stat-main {
         overflow: visible !important;
-        padding: 10px 10px 8px !important;
-        border-radius: 14px !important;
-        background: rgba(255, 255, 255, 0.35) !important;
+        padding: 12px 14px !important;
+        border-radius: 16px !important;
+        background: rgba(255, 255, 255, 0.54) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58) !important;
     }
 
     #status-popup .stat-derived {
         overflow: visible !important;
-        padding: 10px !important;
-        border-radius: 14px !important;
-        background: rgba(0, 0, 0, 0.03) !important;
+        padding: 12px 14px !important;
+        border-radius: 16px !important;
+        background: rgba(255, 255, 255, 0.68) !important;
+        border: 1px solid rgba(255, 214, 165, 0.32) !important;
     }
 
     #status-popup .stat-point-info {
-        margin-bottom: 4px !important;
+        margin-bottom: 6px !important;
+        font-size: 13px !important;
     }
 
     #status-popup .stat-row-ui {
-        min-height: 30px !important;
+        min-height: 40px !important;
         height: auto !important;
-        padding: 4px 6px !important;
-        gap: 7px !important;
-        font-size: 10.5px !important;
+        padding: 8px 10px !important;
+        gap: 10px !important;
+        font-size: 12px !important;
+        border-radius: 10px !important;
     }
 
     #status-popup .stat-row-ui label {
         flex: 1 1 auto !important;
         min-width: 0 !important;
-        font-size: 10.5px !important;
-        line-height: 1.18 !important;
+        font-size: 12px !important;
+        line-height: 1.24 !important;
     }
 
     #status-popup .stat-value-container {
-        gap: 6px !important;
+        gap: 8px !important;
     }
 
     #status-popup .stat-value {
-        min-width: 20px !important;
-        font-size: 12px !important;
+        min-width: 24px !important;
+        font-size: 14px !important;
     }
 
     #status-popup .stat-controls-row {
-        gap: 4px !important;
+        gap: 5px !important;
         width: auto !important;
         flex-shrink: 0 !important;
     }
 
     #status-popup .stat-controls-row button {
-        width: 22px !important;
-        height: 22px !important;
-        font-size: 12px !important;
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 13px !important;
     }
 
     #status-popup .derived-row {
-        padding: 1px 0 !important;
-        font-size: 10.5px !important;
-        line-height: 1.24 !important;
+        padding: 2px 0 !important;
+        font-size: 12px !important;
+        line-height: 1.32 !important;
     }
 
     #status-popup .reset-actions {
         grid-area: actions !important;
         display: flex !important;
         flex-wrap: wrap !important;
-        gap: 6px !important;
-        margin-top: 0 !important;
+        gap: 8px !important;
+        margin-top: 2px !important;
         min-height: 0 !important;
     }
 
     #status-popup .reset-actions .reset-btn {
         flex: 1 1 150px !important;
-        min-height: 32px !important;
-        padding: 6px 8px !important;
+        min-height: 34px !important;
+        padding: 6px 10px !important;
         font-size: 11px !important;
     }
 
     #status-popup .popup-footer {
         grid-area: footer !important;
+        margin-top: 2px !important;
+        padding-top: 0 !important;
+        border-top: none !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 10px !important;
+    }
+
+    #status-popup .popup-footer.has-shortcut-hint {
+        flex-direction: row !important;
+    }
+
+    #status-popup .popup-footer .popup-shortcut-hint {
         margin-top: 0 !important;
-        padding-top: 4px !important;
-        border-top: 1px dashed rgba(255, 214, 165, 0.6) !important;
     }
 
     #status-popup .close-btn-bottom {
-        min-height: 36px !important;
-        width: 148px !important;
-        padding: 8px 0 !important;
-        font-size: 13px !important;
+        min-height: 40px !important;
+        width: 156px !important;
+        padding: 10px 0 !important;
+        font-size: 14px !important;
         border-width: 1px !important;
         border-color: rgba(255, 255, 255, 0.16) !important;
-        box-shadow: 0 3px 10px rgba(238, 82, 83, 0.24) !important;
+        box-shadow: 0 4px 12px rgba(238, 82, 83, 0.24) !important;
     }
 }
 
