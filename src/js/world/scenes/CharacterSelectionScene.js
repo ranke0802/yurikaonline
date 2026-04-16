@@ -263,6 +263,7 @@ export default class CharacterSelectionScene extends Scene {
         if (success) {
             const initialProfile = {
                 name: name,
+                recoveryUid: this.user.uid,
                 level: 1,
                 exp: 0,
                 maxExp: 100,

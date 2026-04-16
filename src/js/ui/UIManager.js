@@ -9947,10 +9947,12 @@ export class UIManager {
                 setSearchResult('조회 중...', '#ffd585');
                 const uid = await this.game.net.getUidByName(name);
                 if (uid) {
-                    const recoveryCode = `복구 코드: ##${uid}`;
+                    const latestSnapshot = await this.game.net.getLatestProfileSnapshot?.(uid);
+                    const recoveryUid = latestSnapshot?.profile?.recoveryUid || uid;
+                    const recoveryCode = `복구 코드: ##${recoveryUid}`;
                     setSearchResult(recoveryCode, '#8ff3c5');
                     if (navigator?.clipboard?.writeText) {
-                        navigator.clipboard.writeText(`##${uid}`).catch(() => { });
+                        navigator.clipboard.writeText(`##${recoveryUid}`).catch(() => { });
                     }
                 } else {
                     setSearchResult('찾을 수 없음', '#ff9f9f');

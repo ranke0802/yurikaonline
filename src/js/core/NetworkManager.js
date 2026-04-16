@@ -373,7 +373,7 @@ export default class NetworkManager extends EventEmitter {
                 if (this.isHost) snapshot.ref.remove();
                 return;
             }
-            if (data && data.ts > Date.now() - 5000) { // Only very recent (5s)
+            if (data && data.ts > Date.now() - 5000 && this._isPayloadForCurrentField(data)) { // Only very recent (5s)
                 this.emit('systemMessage', data);
             }
             if (this.isHost) snapshot.ref.remove(); // Immediate cleanup
@@ -2779,6 +2779,10 @@ export default class NetworkManager extends EventEmitter {
         return uid && window.firebase ? firebase.database().ref(`users/${uid}/profile`) : null;
     }
 
+    getRecoveryProfileRef(uid) {
+        return uid && window.firebase ? firebase.database().ref(`recovery_profiles/${uid}`) : null;
+    }
+
     async getPlayerProfile(uid) {
         if (!uid || !window.firebase) return null;
         try {
@@ -2811,13 +2815,50 @@ export default class NetworkManager extends EventEmitter {
         return snapshot;
     }
 
+    _resolveRecoveryUid(profile = null, fallbackUid = null) {
+        const raw = profile && typeof profile === 'object'
+            ? (profile.recoveryUid || profile.stableUid || profile.recoveredFromUid || fallbackUid)
+            : fallbackUid;
+        const normalized = String(raw || '').trim();
+        return normalized || null;
+    }
+
+    async _syncRecoveryProfile(uid, profile = null) {
+        if (!uid || !window.firebase || !profile) return null;
+
+        const normalizedProfile = this._normalizeProfileSnapshot(profile, Date.now());
+        const recoveryUid = this._resolveRecoveryUid(normalizedProfile, uid);
+        if (!recoveryUid) return null;
+
+        normalizedProfile.recoveryUid = recoveryUid;
+        const nextTs = Number(normalizedProfile.ts || Date.now());
+        const recoveryRef = this.getRecoveryProfileRef(recoveryUid);
+        if (!recoveryRef) return null;
+
+        const payload = {
+            recoveryUid,
+            latestUid: uid,
+            ts: nextTs,
+            profile: normalizedProfile
+        };
+
+        await recoveryRef.transaction((current) => {
+            const currentTs = Number(current?.ts || 0);
+            if (currentTs > nextTs) return;
+            return payload;
+        });
+
+        return payload;
+    }
+
     async getLatestProfileSnapshot(uid) {
         if (!uid || !window.firebase) return null;
 
         try {
-            const [profileSnapshot, backupSnapshot] = await Promise.all([
+            const [profileSnapshot, backupSnapshot, recoverySnapshot] = await Promise.all([
                 this.getProfileRef(uid)?.once('value'),
-                this.getProfileBackupsRef(uid)?.orderByChild('ts').limitToLast(1).once('value')
+                this.getProfileBackupsRef(uid)?.orderByChild('ts').limitToLast(1).once('value'),
+                this.getRecoveryProfileRef(uid)?.once('value')
             ]);
 
             const profile = profileSnapshot?.val() || null;
@@ -2832,25 +2873,50 @@ export default class NetworkManager extends EventEmitter {
                 ? this._normalizeProfileSnapshot(latestBackup.profile, latestBackup.ts || Date.now())
                 : null;
 
-            if (backupProfile && (!normalizedProfile || (backupProfile.ts || 0) > (normalizedProfile.ts || 0))) {
-                return {
-                    profile: backupProfile,
-                    ts: backupProfile.ts || 0,
-                    source: 'backup',
-                    backupId: latestBackup.id || null
-                };
+            const recoveryEntry = recoverySnapshot?.val() || null;
+            const recoveryProfile = recoveryEntry?.profile
+                ? this._normalizeProfileSnapshot(recoveryEntry.profile, recoveryEntry.ts || Date.now())
+                : null;
+            if (recoveryProfile) {
+                recoveryProfile.recoveryUid = this._resolveRecoveryUid(recoveryProfile, recoveryEntry?.recoveryUid || uid);
             }
 
-            if (normalizedProfile) {
-                return {
-                    profile: normalizedProfile,
-                    ts: normalizedProfile.ts || 0,
-                    source: 'profile',
-                    backupId: null
-                };
-            }
+            let bestSnapshot = null;
+            const consider = (candidate) => {
+                if (!candidate?.profile) return;
+                if (!bestSnapshot || Number(candidate.ts || 0) > Number(bestSnapshot.ts || 0)) {
+                    bestSnapshot = candidate;
+                }
+            };
 
-            return null;
+            consider(normalizedProfile ? {
+                profile: normalizedProfile,
+                ts: normalizedProfile.ts || 0,
+                source: 'profile',
+                backupId: null,
+                latestUid: uid,
+                recoveryUid: this._resolveRecoveryUid(normalizedProfile, uid)
+            } : null);
+
+            consider(backupProfile ? {
+                profile: backupProfile,
+                ts: backupProfile.ts || 0,
+                source: 'backup',
+                backupId: latestBackup?.id || null,
+                latestUid: uid,
+                recoveryUid: this._resolveRecoveryUid(backupProfile, uid)
+            } : null);
+
+            consider(recoveryProfile ? {
+                profile: recoveryProfile,
+                ts: Number(recoveryEntry?.ts || recoveryProfile.ts || 0),
+                source: 'recovery',
+                backupId: null,
+                latestUid: recoveryEntry?.latestUid || uid,
+                recoveryUid: this._resolveRecoveryUid(recoveryProfile, recoveryEntry?.recoveryUid || uid)
+            } : null);
+
+            return bestSnapshot;
         } catch (error) {
             Logger.error('Failed to get latest profile snapshot', error);
             return null;
@@ -3256,6 +3322,7 @@ export default class NetworkManager extends EventEmitter {
         if (!uid || !window.firebase || !data) return { ok: false, reason: 'invalid_args' };
         try {
             const nextProfile = this._normalizeProfileSnapshot(data, Date.now());
+            nextProfile.recoveryUid = this._resolveRecoveryUid(nextProfile, uid);
             nextProfile.ts = Math.max(Number(nextProfile.ts || 0), Date.now(), this._lastProfileSaveTs + 1);
             this._lastProfileSaveTs = nextProfile.ts;
             const profileRef = this.getProfileRef(uid);
@@ -3294,6 +3361,8 @@ export default class NetworkManager extends EventEmitter {
                 sourceUid: options.sourceUid || uid,
                 sourceTs: options.sourceTs || committedProfile.ts
             });
+
+            await this._syncRecoveryProfile(uid, committedProfile);
 
             // v0.00.04: Zone-specific update ONLY IF requested and in a zone
             // This prevents players in character selection from appearing in the map
@@ -3345,7 +3414,13 @@ export default class NetworkManager extends EventEmitter {
                 }
             }
 
-            return { ok: true, patch: nextPatch };
+            const committedProfileSnapshot = await this.getProfileRef(uid)?.once('value');
+            const committedProfile = committedProfileSnapshot?.val()
+                ? this._normalizeProfileSnapshot(committedProfileSnapshot.val(), nextPatch.ts)
+                : this._normalizeProfileSnapshot(nextPatch, nextPatch.ts);
+            await this._syncRecoveryProfile(uid, committedProfile);
+
+            return { ok: true, patch: nextPatch, profile: committedProfile };
         } catch (error) {
             Logger.error('Failed to save player profile patch', error);
             return { ok: false, reason: 'save_patch_failed', error };
@@ -3378,6 +3453,7 @@ export default class NetworkManager extends EventEmitter {
         }
 
         const recoveredProfile = this._cloneProfileData(sourceSnapshot.profile) || {};
+        recoveredProfile.recoveryUid = this._resolveRecoveryUid(sourceSnapshot.profile, sourceUid);
         recoveredProfile.recoveredFromUid = sourceUid;
         recoveredProfile.recoveredFromTs = sourceTs;
         recoveredProfile.ts = Date.now();
@@ -4361,6 +4437,7 @@ export default class NetworkManager extends EventEmitter {
         try {
             const latestSnapshot = await this.getLatestProfileSnapshot(uid);
             const resolvedName = String(name || latestSnapshot?.profile?.name || '').trim();
+            const resolvedRecoveryUid = this._resolveRecoveryUid(latestSnapshot?.profile, uid);
 
             this._blockedProfileWriteUids.add(uid);
             this._clearQueuedProfileWrites(uid, 'character_deleted');
@@ -4376,6 +4453,9 @@ export default class NetworkManager extends EventEmitter {
             }
             if (resolvedName) {
                 updates[`names/${resolvedName}`] = null;
+            }
+            if (resolvedRecoveryUid) {
+                updates[`recovery_profiles/${resolvedRecoveryUid}`] = null;
             }
 
             await firebase.database().ref().update(updates);
@@ -5533,6 +5613,7 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child('system_messages').push({
             message: message,
             color: color,
+            fieldId: this._getCurrentFieldId(),
             ts: firebase.database.ServerValue.TIMESTAMP
         });
     }

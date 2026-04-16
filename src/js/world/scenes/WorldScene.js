@@ -186,6 +186,7 @@ export default class WorldScene extends Scene {
             this.player.name = profile.name || localName || user.displayName || "유리카";
             this.player.uiLayout = profile.uiLayout || null;
             this.player.clientSettings = profile.clientSettings || null;
+            this.player.recoveryUid = profile.recoveryUid || user.uid;
 
             // v0.00.15: Restore Hostility
             // Support both Object (new) and Array (old/broken) formats specifically for robustness
@@ -322,6 +323,16 @@ export default class WorldScene extends Scene {
 
         this.ui?.loadPlayerSettings?.(this.player.clientSettings || null);
         this.player.init(this.input, this.resources, this.net);
+        if (!this.player.recoveryUid) {
+            this.player.recoveryUid = user.uid;
+        }
+        if (profile && !profile.recoveryUid) {
+            this.player.saveProfilePatch?.(['recoveryUid'], {
+                debounceMs: 0,
+                forceImmediate: true,
+                reason: 'normalize_recovery_uid'
+            });
+        }
         this.net.resetToSoloPartyState(false);
         this.net.handleLocalPartyStateChanged('world_enter_force_solo');
         this.player.grantSpawnProtection(5);
