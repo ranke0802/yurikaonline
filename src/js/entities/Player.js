@@ -2217,13 +2217,12 @@ export default class Player extends CharacterBase {
                             modalDesc = '대왕 슬라임을 처치했습니다!<br>보상: 축복받은 무기 강화석 3개<br>이제 슬라임 50마리 처치 후 반복 보스 퀘스트가 이어집니다.';
                             rewardMsg = '첫 대왕 슬라임 처치! (축복받은 무기 강화석 x3)';
                         } else {
-                            this.gainExp(300, { save: false });
-                            this.manastone += 1000;
-                            this.updateManastoneInventory();
+                            this.addInventoryItem(BLESSED_WEAPON_UPGRADE_STONE_ID, 1, { markAsNew: false });
+                            window.game?.ui?.updateInventory?.();
 
                             modalTitle = '반복 보스 처치 완료';
-                            modalDesc = '대왕 슬라임을 다시 처치했습니다!<br><br>보상:<br>경험치 300<br>마석 1000<br><br>(슬라임 50마리를 잡으면 다시 소환됩니다.)';
-                            rewardMsg = `대왕 슬라임 처치! (${this.questData.bossClearCount}회차) (EXP+300, 마석+1000)`;
+                            modalDesc = '대왕 슬라임을 다시 처치했습니다!<br><br>보상:<br>축복받은 무기 강화석 1개<br><br>(슬라임 50마리를 잡으면 다시 소환됩니다.)';
+                            rewardMsg = `대왕 슬라임 처치! (${this.questData.bossClearCount}회차) (축복받은 무기 강화석 x1)`;
                         }
 
                         if (window.game?.ui) {
@@ -2298,13 +2297,12 @@ export default class Player extends CharacterBase {
                     rewardMsg = "첫 대왕 슬라임 처치! (축복받은 무기 강화석 x3)";
                 } else {
                     // Repeat Kill Reward
-                    this.gainExp(300, { save: false }); // Reduced from 500
-                    this.manastone += 1000; // Reduced from 2000
-                    this.updateManastoneInventory();
+                    this.addInventoryItem(BLESSED_WEAPON_UPGRADE_STONE_ID, 1, { markAsNew: false });
+                    window.game?.ui?.updateInventory?.();
 
                     modalTitle = "⚔️ 반복 퀘스트 완료";
-                    modalDesc = "대왕 슬라임을 다시 처치했습니다!<br><br>보상:<br>경험치 300<br>마석 1000<br><br>(슬라임 50마리를 잡으면 다시 소환됩니다)";
-                    rewardMsg = `대왕 슬라임 처치! (${this.questData.bossClearCount}회차) (EXP+300, 마석+1000)`;
+                    modalDesc = "대왕 슬라임을 다시 처치했습니다!<br><br>보상:<br>축복받은 무기 강화석 1개<br><br>(슬라임 50마리를 잡으면 다시 소환됩니다)";
+                    rewardMsg = `대왕 슬라임 처치! (${this.questData.bossClearCount}회차) (축복받은 무기 강화석 x1)`;
                 }
 
                 // 첫 처치 연출은 유지하고, 반복 처치는 모달 없이 보상만 지급한다.

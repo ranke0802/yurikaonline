@@ -7967,7 +7967,7 @@ export class UIManager {
                     id: 'boss_repeat',
                     title: "5. 대왕 슬라임 처치 (반복)",
                     task: "진행도: 0/1",
-                    reward: "EXP+300, 마석+1000",
+                    reward: "축복받은 무기 강화석 x1",
                     canClaim: false,
                     claimFn: null
                 };
