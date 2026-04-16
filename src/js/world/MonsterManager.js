@@ -100,6 +100,31 @@ export default class MonsterManager {
             this._guestSnapshotHydrationPending = null;
             this._clearQueuedPeerMonsterKeyframes();
         });
+        this.net.on('fieldContextChanged', ({ fieldId, previousFieldId } = {}) => {
+            if (!fieldId || !previousFieldId || fieldId === previousFieldId) return;
+
+            this._clearQueuedPeerMonsterKeyframes();
+            this.peerMonsterKeyframeMeta.clear();
+            this.peerMonsterKeyframeCellMeta.clear();
+            this.minimapSyncTimer = 0;
+
+            if (this.net.isHost) {
+                this.lastSyncState.clear();
+                if (this.net.isSharedFieldActive()) {
+                    this.forceSyncAll();
+                    this.forceSyncAllDrops();
+                    this.net.publishMinimapMonsterSnapshot(this.monsters, { force: true });
+                }
+                return;
+            }
+
+            this.clearAll({ preserveNetwork: true });
+            this._guestSnapshotHydrationPending = null;
+            this._guestSnapshotHydrationPromise = null;
+            if (this.net.isSharedFieldActive()) {
+                this._scheduleGuestSnapshotHydration('field_changed', 250);
+            }
+        });
 
         // v0.00.24: Increased for smoother sync
         this.viewMargin = 500;

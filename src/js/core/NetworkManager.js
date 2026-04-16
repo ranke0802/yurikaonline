@@ -14,6 +14,11 @@ export default class NetworkManager extends EventEmitter {
         // Remote Players buffer
         this.remotePlayers = new Map();
         this.friends = new Map();
+        this.friendThreadMeta = new Map();
+        this.friendThreadMessages = new Map();
+        this._activeFriendThreadUid = null;
+        this._activeFriendThreadListener = null;
+        this._activeFriendThreadRef = null;
         this._externalDbListeners = [];
 
         // Host Logic
@@ -97,6 +102,7 @@ export default class NetworkManager extends EventEmitter {
         this._fieldCellSize = 640;
         this._monsterCellListeners = new Map();
         this._subscribedMonsterCells = new Set();
+        this._monsterSubscriptionFieldId = null;
         this._monsterCellPayloadCache = new Map();
         this._monsterPendingRemovalTimers = new Map();
         this._publishedMonsterCellMap = new Map();
@@ -106,6 +112,7 @@ export default class NetworkManager extends EventEmitter {
         this._minimapMonsterSnapshotCache = null;
         this._minimapMonsterSnapshotListener = null;
         this._minimapMonsterSnapshotFieldId = null;
+        this._lastKnownFieldId = null;
         this.syncOptimizationFlags = {
             usePresenceLiteMode: true,
             useFieldRealtimeMode: true,
@@ -129,6 +136,9 @@ export default class NetworkManager extends EventEmitter {
         this.userLastSeen.clear();
         this.remotePlayers.clear();
         this.friends.clear();
+        this.friendThreadMeta.clear();
+        this.friendThreadMessages.clear();
+        this._detachFriendThreadListener();
         this._detachExternalDbListeners();
         this._hostilityListenerActive = false;
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
@@ -150,6 +160,8 @@ export default class NetworkManager extends EventEmitter {
         this._lastMinimapMonsterSnapshotSignature = '';
         this._minimapMonsterSnapshotCache = null;
         this._minimapMonsterSnapshotFieldId = null;
+        this._monsterSubscriptionFieldId = null;
+        this._lastKnownFieldId = null;
         this._detachMinimapMonsterSnapshotListener();
         this._fieldPeerCount = 0;
         this._sharedFieldActive = false;
@@ -188,7 +200,8 @@ export default class NetworkManager extends EventEmitter {
         // v0.33.0: Monster Attack Sync (Boss Skills)
         this.dbRef.child('monster_attack').on('child_added', (snapshot) => {
             const data = snapshot.val();
-            if (data) {
+            const matchesCurrentField = this._isPayloadForCurrentField(data);
+            if (data && matchesCurrentField) {
                 // Ignore old attacks (> 5s)
                 if (Date.now() - data.ts < 5000) {
                     this.emit('monsterAttack', data);
@@ -203,14 +216,13 @@ export default class NetworkManager extends EventEmitter {
                     }
                 }
             }
-            // Host cleans up
-            if (this.isHost) snapshot.ref.remove();
+            if (this.isHost && matchesCurrentField) snapshot.ref.remove();
         });
 
         // Monster Damage Sync (Listen for damage events - Spark / Text)
         // v0.00.57: Support both single (legacy) and batched updates
         const handleMonsterDamage = (data) => {
-            if (!data) return;
+            if (!data || !this._isPayloadForCurrentField(data)) return;
             this.emit('monsterDamageReceived', data);
             if (this.isHost) {
                 this.emit('monsterDamage', {
@@ -223,39 +235,45 @@ export default class NetworkManager extends EventEmitter {
         };
 
         this.dbRef.child('monster_damage').on('child_added', (snapshot) => {
-            handleMonsterDamage(snapshot.val());
-            if (this.isHost) snapshot.ref.remove();
+            const data = snapshot.val();
+            const matchesCurrentField = this._isPayloadForCurrentField(data);
+            handleMonsterDamage(data);
+            if (this.isHost && matchesCurrentField) snapshot.ref.remove();
         });
 
         this.dbRef.child('monster_damage_batch').on('child_added', (snapshot) => {
             const batch = snapshot.val();
-            if (batch && batch.items && Array.isArray(batch.items)) {
+            const matchesCurrentField = this._isPayloadForCurrentField(batch);
+            if (batch && batch.items && Array.isArray(batch.items) && matchesCurrentField) {
                 // Check if batch is too old (> 5s)
                 if (Date.now() - batch.ts < 5000) {
                     batch.items.forEach(item => handleMonsterDamage(item));
                 }
             }
-            if (this.isHost) snapshot.ref.remove();
+            if (this.isHost && matchesCurrentField) snapshot.ref.remove();
         });
 
         // Player Damage Sync (PvP)
         const handlePlayerDamage = (data) => {
-            if (data) this.emit('playerDamageReceived', data);
+            if (data && this._isPayloadForCurrentField(data)) this.emit('playerDamageReceived', data);
         };
 
         this.dbRef.child('player_damage').on('child_added', (snapshot) => {
-            handlePlayerDamage(snapshot.val());
-            if (this.isHost) snapshot.ref.remove();
+            const data = snapshot.val();
+            const matchesCurrentField = this._isPayloadForCurrentField(data);
+            handlePlayerDamage(data);
+            if (this.isHost && matchesCurrentField) snapshot.ref.remove();
         });
 
         this.dbRef.child('player_damage_batch').on('child_added', (snapshot) => {
             const batch = snapshot.val();
-            if (batch && batch.items && Array.isArray(batch.items)) {
+            const matchesCurrentField = this._isPayloadForCurrentField(batch);
+            if (batch && batch.items && Array.isArray(batch.items) && matchesCurrentField) {
                 if (Date.now() - batch.ts < 5000) {
                     batch.items.forEach(item => handlePlayerDamage(item));
                 }
             }
-            if (this.isHost) snapshot.ref.remove();
+            if (this.isHost && matchesCurrentField) snapshot.ref.remove();
         });
 
         // Reward Sync (Guest side listens for rewards targeting them)
@@ -276,10 +294,20 @@ export default class NetworkManager extends EventEmitter {
 
         // Drop Sync
         this.dbRef.child('drops').on('child_added', (s) => {
+            const value = s.val();
+            if (!this._isPayloadForCurrentField(value)) return;
             this._networkDropIds.add(s.key);
-            this.emit('dropAdded', { id: s.key, ...s.val() });
+            this.emit('dropAdded', { id: s.key, ...value });
+        });
+        this.dbRef.child('drops').on('child_changed', (s) => {
+            const value = s.val();
+            if (!this._isPayloadForCurrentField(value)) return;
+            this._networkDropIds.add(s.key);
+            this.emit('dropAdded', { id: s.key, ...value });
         });
         this.dbRef.child('drops').on('child_removed', (s) => {
+            const value = s.val();
+            if (!this._isPayloadForCurrentField(value)) return;
             this._networkDropIds.delete(s.key);
             this.emit('dropRemoved', s.key);
         });
@@ -288,19 +316,21 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child('drop_collection').on('child_added', (snapshot) => {
             if (!this.isHost) return;
             const data = snapshot.val();
-            if (data) {
+            const matchesCurrentField = this._isPayloadForCurrentField(data);
+            if (data && matchesCurrentField) {
                 this.emit('dropCollectionRequested', {
                     dropId: data.did,
                     collectorId: data.cid
                 });
             }
-            snapshot.ref.remove();
+            if (matchesCurrentField) snapshot.ref.remove();
         });
 
         this.dbRef.child('boss_spawn_requests').on('child_added', (snapshot) => {
             if (!this.isHost) return;
             const data = snapshot.val();
-            if (data) {
+            const matchesCurrentField = this._isPayloadForCurrentField(data);
+            if (data && matchesCurrentField) {
                 this.emit('bossSpawnRequested', {
                     requestId: snapshot.key,
                     requesterId: data.requesterId || null,
@@ -308,7 +338,7 @@ export default class NetworkManager extends EventEmitter {
                     ts: Number(data.ts || Date.now())
                 });
             }
-            snapshot.ref.remove();
+            if (matchesCurrentField) snapshot.ref.remove();
         });
 
         // 2. presence check
@@ -458,18 +488,31 @@ export default class NetworkManager extends EventEmitter {
 
         // Group by type for efficient updates
         const grouped = batch.reduce((acc, item) => {
-            if (!acc[item.type]) acc[item.type] = [];
-            acc[item.type].push(item.data);
+            const normalizedData = {
+                ...(item.data || {}),
+                fieldId: this._normalizeFieldId(item?.data?.fieldId || this._getCurrentFieldId())
+            };
+            const groupKey = `${item.type}::${normalizedData.fieldId}`;
+            if (!acc[groupKey]) {
+                acc[groupKey] = {
+                    type: item.type,
+                    fieldId: normalizedData.fieldId,
+                    items: []
+                };
+            }
+            acc[groupKey].items.push(normalizedData);
             return acc;
         }, {});
 
         // Create batched updates
-        Object.entries(grouped).forEach(([type, items]) => {
-            const batchId = Date.now();
+        Object.values(grouped).forEach(({ type, fieldId, items }, index) => {
+            const batchTs = Date.now();
+            const batchId = `${batchTs}_${index}`;
             updates[`${type}_batch/${batchId}`] = {
+                fieldId,
                 items: items.slice(0, 10), // Max 10 items per batch
                 count: items.length,
-                ts: batchId
+                ts: batchTs
             };
         });
 
@@ -518,6 +561,9 @@ export default class NetworkManager extends EventEmitter {
         this.userLastSeen.clear();
         this.remotePlayers.clear();
         this.friends.clear();
+        this.friendThreadMeta.clear();
+        this.friendThreadMessages.clear();
+        this._detachFriendThreadListener();
         this._detachExternalDbListeners();
         this._hostilityListenerActive = false;
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
@@ -534,6 +580,8 @@ export default class NetworkManager extends EventEmitter {
         this._fieldPeerCount = 0;
         this._sharedFieldActive = false;
         this.preferredPartyHostId = null;
+        this._monsterSubscriptionFieldId = null;
+        this._lastKnownFieldId = null;
         this._resetSocialSessionState();
         this._clearMonsterCellSubscriptions({ emitRemovals: true });
         this._clearPendingMonsterRemovalTimers();
@@ -627,9 +675,46 @@ export default class NetworkManager extends EventEmitter {
         return String(fieldId || this.roomId || 'zone_1');
     }
 
-    _getCurrentFieldId() {
+    _getZoneBaseFieldId() {
         const zoneFieldId = window.game?.zone?.currentZone?.id;
         return this._normalizeFieldId(zoneFieldId);
+    }
+
+    _buildSoloFieldId(uid = null) {
+        const safeUid = String(uid || this.playerId || 'local');
+        return `${this._getZoneBaseFieldId()}__solo__${safeUid}`;
+    }
+
+    _buildSharedFieldId(party = null) {
+        const source = Array.isArray(party)
+            ? { members: party }
+            : (party && typeof party === 'object' ? party : {});
+        if (source.fieldId) {
+            return this._normalizeFieldId(source.fieldId);
+        }
+
+        const members = Array.from(new Set((source.members || []).filter(Boolean)));
+        const hostId = members.includes(source.hostId)
+            ? source.hostId
+            : (members[0] || this.playerId || 'host');
+        const mode = typeof source.mode === 'string' && source.mode
+            ? source.mode
+            : (members.length > 1 ? 'party' : 'solo');
+        const prefix = mode === 'together' ? 'together' : 'party';
+        return `${this._getZoneBaseFieldId()}__${prefix}__${hostId}`;
+    }
+
+    _getCurrentFieldId() {
+        const localParty = this._getLocalPartyState();
+        if (Array.isArray(localParty.members) && localParty.members.length > 1) {
+            return this._normalizeFieldId(localParty.fieldId || this._buildSharedFieldId(localParty));
+        }
+        return this._normalizeFieldId(this._buildSoloFieldId());
+    }
+
+    _isPayloadForCurrentField(payload = null) {
+        if (!payload || typeof payload !== 'object' || !payload.fieldId) return false;
+        return this._normalizeFieldId(payload.fieldId) === this._getCurrentFieldId();
     }
 
     _getFieldCellId(x = null, y = null) {
@@ -999,6 +1084,7 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child(`presence/${this.playerId}`).set(nextPayload).catch(() => { });
         this._lastPresenceLiteState = nextPayload;
         this._lastPresenceLiteWriteTs = now;
+        this._lastKnownFieldId = nextPayload.fieldId;
         this._refreshMonsterCellSubscriptions(this._resolveMonsterSubscriptionAnchorCellId(options));
         this._refreshMinimapMonsterSnapshotListener(nextPayload.fieldId);
         this._refreshAllZoneUserHotPathTiers('local_cell_change');
@@ -2588,7 +2674,8 @@ export default class NetworkManager extends EventEmitter {
     _attachMonsterCellListener(cellId) {
         if (!this.dbRef || !cellId || this._monsterCellListeners.has(cellId)) return;
 
-        const ref = this.dbRef.child(`monster_cells/${cellId}`);
+        const fieldId = this._monsterSubscriptionFieldId || this._getCurrentFieldId();
+        const ref = this.dbRef.child(`monster_cells/${fieldId}/${cellId}`);
         const added = (snapshot) => this._onMonsterCellAdded(cellId, snapshot);
         const changed = (snapshot) => this._onMonsterCellChanged(cellId, snapshot);
         const removed = (snapshot) => this._onMonsterCellRemoved(cellId, snapshot);
@@ -2640,6 +2727,7 @@ export default class NetworkManager extends EventEmitter {
 
         this._monsterCellPayloadCache.clear();
         this._subscribedMonsterCells.clear();
+        this._monsterSubscriptionFieldId = null;
     }
 
     _refreshMonsterCellSubscriptions(anchorCellId = null) {
@@ -2648,6 +2736,12 @@ export default class NetworkManager extends EventEmitter {
             return;
         }
         if (!this.connected || !this.dbRef || !this.zoneParticipationEnabled) return;
+
+        const nextFieldId = this._getCurrentFieldId();
+        if (this._monsterSubscriptionFieldId && this._monsterSubscriptionFieldId !== nextFieldId) {
+            this._clearMonsterCellSubscriptions({ emitRemovals: true });
+        }
+        this._monsterSubscriptionFieldId = nextFieldId;
 
         const nextAnchor = anchorCellId || this._resolveMonsterSubscriptionAnchorCellId();
         if (!nextAnchor) return;
@@ -2666,7 +2760,8 @@ export default class NetworkManager extends EventEmitter {
         }
 
         try {
-            const snapshot = await this.dbRef.child('monster_host_snapshot').once('value');
+            const fieldId = this._getCurrentFieldId();
+            const snapshot = await this.dbRef.child(`monster_host_snapshot/${fieldId}`).once('value');
             return snapshot.val() || {};
         } catch (error) {
             Logger.error('Failed to read monster host snapshot:', error);
@@ -3285,29 +3380,64 @@ export default class NetworkManager extends EventEmitter {
         if (!this.dbRef || !this.connected) return false;
 
         const resetSlimeKillCount = options.resetSlimeKillCount !== false;
+        const fieldId = this._normalizeFieldId(options.fieldId || this._getCurrentFieldId());
 
         try {
             await Promise.all([
-                this.dbRef.child('monsters').remove(),
-                this.dbRef.child('monster_cells').remove(),
-                this.dbRef.child('monster_host_snapshot').remove(),
-                this.dbRef.child('drops').remove(),
-                this.dbRef.child('monster_damage').remove(),
-                this.dbRef.child('monster_damage_batch').remove(),
-                this.dbRef.child('monster_attack').remove(),
-                this.dbRef.child('player_damage').remove(),
-                this.dbRef.child('player_damage_batch').remove(),
-                this.dbRef.child('boss_spawn_requests').remove(),
+                this.dbRef.child(`monster_cells/${fieldId}`).remove(),
+                this.dbRef.child(`monster_host_snapshot/${fieldId}`).remove(),
+                this.dbRef.child(`minimap_monsters/${fieldId}`).remove(),
+                this._removeDropsForField(fieldId),
                 Promise.resolve(resetSlimeKillCount)
             ]);
 
             this.monsterUpdateQueue.clear();
             this._publishedMonsterCellMap.clear();
             this._monsterCellPayloadCache.clear();
+            this._networkDropIds.clear();
             return true;
         } catch (error) {
             Logger.error('Failed to clear world combat state', error);
             return false;
+        }
+    }
+
+    async _removeDropsForField(fieldId) {
+        if (!this.dbRef || !fieldId) return;
+
+        const normalizedFieldId = this._normalizeFieldId(fieldId);
+        const snapshot = await this.dbRef.child('drops').once('value');
+        const raw = snapshot.val() || {};
+        const updates = {};
+        Object.entries(raw).forEach(([dropId, value]) => {
+            if (!value || typeof value !== 'object' || !value.fieldId) return;
+            if (this._normalizeFieldId(value.fieldId) !== normalizedFieldId) return;
+            updates[`drops/${dropId}`] = null;
+        });
+
+        if (Object.keys(updates).length > 0) {
+            await this.dbRef.update(updates);
+        }
+    }
+
+    _cleanupFieldScopedRealtimeState(fieldId, options = {}) {
+        if (!this.dbRef || !fieldId) return;
+
+        const normalizedFieldId = this._normalizeFieldId(fieldId);
+        const updates = {
+            [`monster_cells/${normalizedFieldId}`]: null,
+            [`monster_host_snapshot/${normalizedFieldId}`]: null,
+            [`minimap_monsters/${normalizedFieldId}`]: null
+        };
+
+        this.dbRef.update(updates).catch((error) => {
+            Logger.warn('[Network] Failed to clean previous field realtime state', error);
+        });
+
+        if (options.removeDrops) {
+            this._removeDropsForField(normalizedFieldId).catch((error) => {
+                Logger.warn('[Network] Failed to clean previous field drops', error);
+            });
         }
     }
 
@@ -3394,7 +3524,12 @@ export default class NetworkManager extends EventEmitter {
         const mode = typeof source.mode === 'string' && source.mode
             ? source.mode
             : (members.length > 1 ? 'party' : 'solo');
-        return { members, hostId, mode };
+        const fieldId = members.length > 1
+            ? this._normalizeFieldId(source.fieldId || this._buildSharedFieldId({ members, hostId, mode }))
+            : null;
+        return fieldId
+            ? { members, hostId, mode, fieldId }
+            : { members, hostId, mode };
     }
 
     _resetSocialSessionState() {
@@ -3510,7 +3645,10 @@ export default class NetworkManager extends EventEmitter {
     }
 
     handleLocalPartyStateChanged(reason = 'party_changed') {
+        const previousFieldId = this._lastKnownFieldId;
+        const wasHost = !!this.isHost;
         const localParty = this._getLocalPartyState();
+        const nextFieldId = this._getCurrentFieldId();
         this.preferredPartyHostId = localParty.members.length > 1 ? localParty.hostId : null;
 
         this._presenceCache.forEach((entry, uid) => {
@@ -3524,6 +3662,27 @@ export default class NetworkManager extends EventEmitter {
 
         this._refreshSharedFieldState();
         this._checkHostStatus();
+        const fieldChanged = !!(previousFieldId && previousFieldId !== nextFieldId);
+        if (fieldChanged) {
+            this.lastPacketData = null;
+            this._clearMonsterCellSubscriptions({ emitRemovals: true });
+            this._networkDropIds.clear();
+            this._publishedMonsterCellMap.clear();
+            this._lastMinimapMonsterSnapshotWriteTs = 0;
+            this._lastMinimapMonsterSnapshotSignature = '';
+            this._minimapMonsterSnapshotCache = null;
+            if (wasHost) {
+                this._cleanupFieldScopedRealtimeState(previousFieldId, { removeDrops: true });
+            }
+            this._refreshMonsterCellSubscriptions(this._resolveMonsterSubscriptionAnchorCellId());
+            this._refreshMinimapMonsterSnapshotListener(nextFieldId);
+            this.emit('fieldContextChanged', {
+                fieldId: nextFieldId,
+                previousFieldId,
+                reason
+            });
+        }
+        this._lastKnownFieldId = nextFieldId;
         this.emit('partyUpdated', { ...localParty, reason });
     }
 
@@ -3574,20 +3733,61 @@ export default class NetworkManager extends EventEmitter {
         }));
     }
 
+    getFriendThreadMetaSnapshot(uid) {
+        if (!uid) return null;
+        const meta = this.friendThreadMeta.get(uid);
+        return meta ? { ...meta } : null;
+    }
+
+    getFriendThreadMessagesSnapshot(uid) {
+        if (!uid) return [];
+        return (this.friendThreadMessages.get(uid) || []).map((message) => ({ ...message }));
+    }
+
     isFriend(uid) {
         return !!uid && this.friends.has(uid);
     }
 
-    async addFriendByName(name) {
-        const trimmed = String(name || '').trim();
+    async lookupFriendCandidate(query) {
+        const trimmed = String(query || '').trim();
+        if (!trimmed || !window.firebase) return null;
+
+        let uid = null;
+        let profile = null;
+        let matchType = 'name';
+
+        profile = await this.getPlayerProfile(trimmed);
+        if (profile) {
+            uid = trimmed;
+            matchType = 'uid';
+        } else {
+            uid = await this.getUidByName(trimmed);
+            if (!uid) return null;
+            profile = await this.getPlayerProfile(uid);
+        }
+
+        if (!uid || !profile) return null;
+        return {
+            uid,
+            profile,
+            name: profile.name || trimmed,
+            matchType,
+            online: this.isUserOnline(uid),
+            isFriend: this.isFriend(uid)
+        };
+    }
+
+    async addFriendByQuery(query) {
+        const trimmed = String(query || '').trim();
         if (!trimmed || !this.playerId || !window.firebase) return { ok: false, reason: 'invalid_name' };
 
-        const targetUid = await this.getUidByName(trimmed);
+        const candidate = await this.lookupFriendCandidate(trimmed);
+        const targetUid = candidate?.uid || null;
         if (!targetUid) return { ok: false, reason: 'not_found' };
         if (targetUid === this.playerId) return { ok: false, reason: 'self' };
         if (this.isFriend(targetUid)) return { ok: false, reason: 'already_friend' };
 
-        const targetProfile = await this.getPlayerProfile(targetUid);
+        const targetProfile = candidate?.profile || await this.getPlayerProfile(targetUid);
         if (!targetProfile) return { ok: false, reason: 'profile_missing' };
 
         const myName = window.game?.localPlayer?.name || 'Unknown';
@@ -3613,29 +3813,364 @@ export default class NetworkManager extends EventEmitter {
         return { ok: true, uid: targetUid, name: targetName };
     }
 
+    async addFriendByName(name) {
+        return this.addFriendByQuery(name);
+    }
+
     async removeFriend(targetUid) {
         if (!targetUid || !this.playerId || !window.firebase) return false;
         const rootRef = firebase.database().ref();
         await rootRef.update({
             [`users/${this.playerId}/friends/${targetUid}`]: null,
-            [`users/${targetUid}/friends/${this.playerId}`]: null
+            [`users/${targetUid}/friends/${this.playerId}`]: null,
+            [`users/${this.playerId}/friend_thread_meta/${targetUid}`]: null,
+            [`users/${targetUid}/friend_thread_meta/${this.playerId}`]: null
         });
+        if (this._activeFriendThreadUid === targetUid) {
+            this._detachFriendThreadListener();
+        }
+        this.friendThreadMeta.delete(targetUid);
+        this.friendThreadMessages.delete(targetUid);
         return true;
+    }
+
+    _getFriendThreadId(targetUid) {
+        if (!targetUid || !this.playerId) return null;
+        return [this.playerId, targetUid].sort().join('__');
+    }
+
+    _buildFriendThreadPreview(payload = {}) {
+        if (payload.type === 'gift') {
+            const gift = payload.gift || {};
+            if (gift.kind === 'manastone') {
+                return `마석 ${Math.max(1, Number(gift.amount || 1)).toLocaleString('ko-KR')} 선물`;
+            }
+            return `${gift.itemName || gift.itemId || '아이템'} 선물`;
+        }
+        return String(payload.text || '').trim().slice(0, 80);
+    }
+
+    _detachFriendThreadListener() {
+        if (this._activeFriendThreadRef && this._activeFriendThreadListener) {
+            try {
+                this._activeFriendThreadRef.off('value', this._activeFriendThreadListener);
+            } catch (error) {
+                Logger.warn('[Network] Failed to detach friend thread listener', error);
+            }
+        }
+        this._activeFriendThreadUid = null;
+        this._activeFriendThreadRef = null;
+        this._activeFriendThreadListener = null;
+    }
+
+    closeFriendThread(targetUid = null) {
+        if (targetUid && this._activeFriendThreadUid && targetUid !== this._activeFriendThreadUid) return;
+        this._detachFriendThreadListener();
+    }
+
+    async markFriendThreadRead(targetUid) {
+        if (!targetUid || !this.playerId || !window.firebase || !this.isFriend(targetUid)) return false;
+        const now = Date.now();
+        try {
+            await firebase.database().ref(`users/${this.playerId}/friend_thread_meta/${targetUid}/lastReadTs`).set(now);
+            const cached = this.friendThreadMeta.get(targetUid) || {};
+            this.friendThreadMeta.set(targetUid, {
+                ...cached,
+                friendUid: targetUid,
+                lastReadTs: now
+            });
+            this.emit('friendThreadMetaUpdated', { uid: targetUid, meta: this.getFriendThreadMetaSnapshot(targetUid) });
+            return true;
+        } catch (error) {
+            Logger.warn('[Network] Failed to mark friend thread as read', error);
+            return false;
+        }
+    }
+
+    openFriendThread(targetUid) {
+        if (!targetUid || !this.playerId || !window.firebase || !this.isFriend(targetUid)) {
+            this._detachFriendThreadListener();
+            return;
+        }
+        if (this._activeFriendThreadUid === targetUid && this._activeFriendThreadRef && this._activeFriendThreadListener) {
+            this.markFriendThreadRead(targetUid).catch(() => { });
+            return;
+        }
+
+        this._detachFriendThreadListener();
+        const threadId = this._getFriendThreadId(targetUid);
+        if (!threadId) return;
+
+        const ref = firebase.database().ref(`friend_threads/${threadId}/messages`).limitToLast(120);
+        const callback = (snapshot) => {
+            const raw = snapshot.val() || {};
+            const messages = Object.entries(raw)
+                .map(([id, value]) => ({ id, ...(value || {}) }))
+                .sort((a, b) => {
+                    const tsDelta = Number(a.ts || 0) - Number(b.ts || 0);
+                    if (tsDelta !== 0) return tsDelta;
+                    return String(a.id || '').localeCompare(String(b.id || ''));
+                });
+            this.friendThreadMessages.set(targetUid, messages);
+            this.emit('friendThreadUpdated', {
+                uid: targetUid,
+                messages: this.getFriendThreadMessagesSnapshot(targetUid)
+            });
+            this.markFriendThreadRead(targetUid).catch(() => { });
+        };
+
+        ref.on('value', callback);
+        this._activeFriendThreadUid = targetUid;
+        this._activeFriendThreadRef = ref;
+        this._activeFriendThreadListener = callback;
+        this.markFriendThreadRead(targetUid).catch(() => { });
+    }
+
+    async _writeFriendThreadPayload(targetUid, payload = {}, options = {}) {
+        if (!targetUid || !this.playerId || !window.firebase || !this.isFriend(targetUid)) {
+            return { ok: false, reason: 'not_friend' };
+        }
+
+        const threadId = this._getFriendThreadId(targetUid);
+        if (!threadId) return { ok: false, reason: 'invalid_thread' };
+
+        const messageRef = firebase.database().ref(`friend_threads/${threadId}/messages`).push();
+        const ts = Number(options.ts || Date.now());
+        const senderName = window.game?.localPlayer?.name || 'Unknown';
+        const message = {
+            ...payload,
+            fromUid: this.playerId,
+            fromName: senderName,
+            toUid: targetUid,
+            ts
+        };
+        const preview = this._buildFriendThreadPreview(message) || '메시지';
+        const rootRef = firebase.database().ref();
+        const updates = {
+            [`friend_threads/${threadId}/participants/${this.playerId}`]: true,
+            [`friend_threads/${threadId}/participants/${targetUid}`]: true,
+            [`friend_threads/${threadId}/messages/${messageRef.key}`]: message,
+            [`users/${this.playerId}/friend_thread_meta/${targetUid}/friendUid`]: targetUid,
+            [`users/${this.playerId}/friend_thread_meta/${targetUid}/lastMessage`]: preview,
+            [`users/${this.playerId}/friend_thread_meta/${targetUid}/lastMessageType`]: message.type || 'text',
+            [`users/${this.playerId}/friend_thread_meta/${targetUid}/lastSenderUid`]: this.playerId,
+            [`users/${this.playerId}/friend_thread_meta/${targetUid}/lastSenderName`]: senderName,
+            [`users/${this.playerId}/friend_thread_meta/${targetUid}/updatedAt`]: ts,
+            [`users/${this.playerId}/friend_thread_meta/${targetUid}/lastReadTs`]: ts,
+            [`users/${targetUid}/friend_thread_meta/${this.playerId}/friendUid`]: this.playerId,
+            [`users/${targetUid}/friend_thread_meta/${this.playerId}/lastMessage`]: preview,
+            [`users/${targetUid}/friend_thread_meta/${this.playerId}/lastMessageType`]: message.type || 'text',
+            [`users/${targetUid}/friend_thread_meta/${this.playerId}/lastSenderUid`]: this.playerId,
+            [`users/${targetUid}/friend_thread_meta/${this.playerId}/lastSenderName`]: senderName,
+            [`users/${targetUid}/friend_thread_meta/${this.playerId}/updatedAt`]: ts
+        };
+
+        await rootRef.update(updates);
+        await firebase.database().ref(`friend_messages/${targetUid}`).push({
+            kind: 'thread',
+            type: message.type || 'text',
+            threadId,
+            friendUid: this.playerId,
+            fromUid: this.playerId,
+            fromName: senderName,
+            text: preview,
+            ts
+        });
+
+        return {
+            ok: true,
+            threadId,
+            payload: {
+                id: messageRef.key,
+                ...message
+            }
+        };
     }
 
     async sendFriendMessage(targetUid, text) {
         const trimmed = String(text || '').trim();
         if (!trimmed || !targetUid || !this.playerId || !window.firebase) return { ok: false, reason: 'invalid_message' };
         if (!this.isFriend(targetUid)) return { ok: false, reason: 'not_friend' };
+        return this._writeFriendThreadPayload(targetUid, {
+            type: 'text',
+            text: trimmed.slice(0, 200)
+        });
+    }
 
-        const payload = {
-            fromUid: this.playerId,
-            fromName: window.game?.localPlayer?.name || 'Unknown',
-            text: trimmed.slice(0, 200),
-            ts: Date.now()
-        };
-        await firebase.database().ref(`friend_messages/${targetUid}`).push(payload);
-        return { ok: true, payload };
+    async sendFriendGift(targetUid, gift = {}) {
+        if (!targetUid || !this.playerId || !window.firebase) return { ok: false, reason: 'invalid_gift' };
+        if (!this.isFriend(targetUid)) return { ok: false, reason: 'not_friend' };
+
+        const localPlayer = window.game?.localPlayer || null;
+        if (!localPlayer) return { ok: false, reason: 'player_missing' };
+
+        const kind = gift.kind === 'item' ? 'item' : 'manastone';
+        const previousManastone = Number(localPlayer.manastone || 0);
+        const previousInventory = JSON.parse(JSON.stringify(localPlayer.inventory || []));
+        let normalizedGift = null;
+
+        try {
+            if (kind === 'manastone') {
+                const amount = Math.max(1, Math.floor(Number(gift.amount || 0)));
+                if (!Number.isFinite(amount) || amount <= 0) return { ok: false, reason: 'invalid_amount' };
+                if (previousManastone < amount) return { ok: false, reason: 'insufficient_manastone' };
+
+                localPlayer.manastone -= amount;
+                localPlayer.updateManastoneInventory?.();
+                normalizedGift = {
+                    kind: 'manastone',
+                    amount,
+                    itemName: '마석',
+                    status: 'pending',
+                    claimedAt: 0,
+                    claimedBy: null
+                };
+            } else {
+                const inventoryIndex = Math.floor(Number(gift.inventoryIndex || -1));
+                if (!Number.isInteger(inventoryIndex) || inventoryIndex <= 0 || inventoryIndex >= (localPlayer.inventory?.length || 0)) {
+                    return { ok: false, reason: 'invalid_item' };
+                }
+
+                const sourceItem = localPlayer.inventory[inventoryIndex];
+                if (!sourceItem) return { ok: false, reason: 'invalid_item' };
+
+                if (sourceItem.stackable === false || sourceItem.slot) {
+                    localPlayer.inventory[inventoryIndex] = null;
+                    normalizedGift = {
+                        kind: 'item',
+                        amount: 1,
+                        itemId: sourceItem.type || sourceItem.id,
+                        itemName: sourceItem.name || sourceItem.type || '아이템',
+                        item: JSON.parse(JSON.stringify(sourceItem)),
+                        status: 'pending',
+                        claimedAt: 0,
+                        claimedBy: null
+                    };
+                } else {
+                    const availableAmount = Math.max(1, Number(sourceItem.amount || 1));
+                    const amount = Math.max(1, Math.floor(Number(gift.amount || 0)));
+                    if (!Number.isFinite(amount) || amount <= 0 || amount > availableAmount) {
+                        return { ok: false, reason: 'invalid_amount' };
+                    }
+
+                    sourceItem.amount = availableAmount - amount;
+                    if (sourceItem.amount <= 0) {
+                        localPlayer.inventory[inventoryIndex] = null;
+                    }
+                    normalizedGift = {
+                        kind: 'item',
+                        amount,
+                        itemId: sourceItem.type || sourceItem.id,
+                        itemName: sourceItem.name || sourceItem.type || '아이템',
+                        item: {
+                            type: sourceItem.type || sourceItem.id,
+                            amount,
+                            icon: sourceItem.icon || '',
+                            iconPath: sourceItem.iconPath || null,
+                            name: sourceItem.name || sourceItem.type || '아이템',
+                            stackable: sourceItem.stackable !== false,
+                            description: sourceItem.description || ''
+                        },
+                        status: 'pending',
+                        claimedAt: 0,
+                        claimedBy: null
+                    };
+                }
+            }
+
+            const result = await this._writeFriendThreadPayload(targetUid, {
+                type: 'gift',
+                gift: normalizedGift
+            });
+            if (!result.ok) throw new Error(result.reason || 'gift_write_failed');
+
+            if (kind === 'manastone') {
+                localPlayer.saveProfilePatch?.(['manastone'], {
+                    debounceMs: 0,
+                    reason: 'friend_gift_send_manastone'
+                });
+            } else {
+                localPlayer.saveState?.(false, {
+                    debounceMs: 0,
+                    reason: 'friend_gift_send_item'
+                });
+            }
+            window.game?.ui?.updateInventory?.();
+            window.game?.ui?.updateStatusPopup?.();
+            return result;
+        } catch (error) {
+            Logger.warn('[Network] Failed to send friend gift', error);
+            localPlayer.manastone = previousManastone;
+            localPlayer.inventory = previousInventory;
+            localPlayer.updateManastoneInventory?.();
+            window.game?.ui?.updateInventory?.();
+            window.game?.ui?.updateStatusPopup?.();
+            return { ok: false, reason: 'send_failed' };
+        }
+    }
+
+    async claimFriendGift(targetUid, messageId) {
+        if (!targetUid || !messageId || !this.playerId || !window.firebase || !this.isFriend(targetUid)) {
+            return { ok: false, reason: 'invalid_claim' };
+        }
+
+        const threadId = this._getFriendThreadId(targetUid);
+        if (!threadId) return { ok: false, reason: 'invalid_thread' };
+
+        const messageRef = firebase.database().ref(`friend_threads/${threadId}/messages/${messageId}`);
+        const messageSnapshot = await messageRef.once('value');
+        const message = messageSnapshot.val();
+        if (!message || message.type !== 'gift' || !message.gift) {
+            return { ok: false, reason: 'gift_missing' };
+        }
+        if (message.toUid !== this.playerId || message.fromUid !== targetUid) {
+            return { ok: false, reason: 'not_recipient' };
+        }
+
+        const giftRef = firebase.database().ref(`friend_threads/${threadId}/messages/${messageId}/gift`);
+        const txResult = await giftRef.transaction((currentGift) => {
+            if (!currentGift || currentGift.status !== 'pending') return;
+            return {
+                ...currentGift,
+                status: 'claimed',
+                claimedBy: this.playerId,
+                claimedAt: Date.now()
+            };
+        });
+
+        if (!txResult.committed) {
+            return { ok: false, reason: 'already_claimed' };
+        }
+
+        const claimedGift = txResult.snapshot.val();
+        const localPlayer = window.game?.localPlayer || null;
+        if (!localPlayer) return { ok: false, reason: 'player_missing' };
+
+        if (claimedGift.kind === 'manastone') {
+            localPlayer.manastone += Math.max(1, Number(claimedGift.amount || 1));
+            localPlayer.updateManastoneInventory?.();
+            localPlayer.saveProfilePatch?.(['manastone'], {
+                debounceMs: 0,
+                reason: 'friend_gift_claim_manastone'
+            });
+        } else if (claimedGift.item) {
+            localPlayer.addInventoryItem(
+                claimedGift.itemId || claimedGift.item.type || claimedGift.item.id,
+                Math.max(1, Number(claimedGift.amount || claimedGift.item.amount || 1)),
+                {
+                    ...claimedGift.item,
+                    markAsNew: true
+                }
+            );
+            localPlayer.saveState?.(false, {
+                debounceMs: 0,
+                reason: 'friend_gift_claim_item'
+            });
+        }
+
+        window.game?.ui?.updateInventory?.();
+        window.game?.ui?.updateStatusPopup?.();
+        return { ok: true, gift: claimedGift };
     }
 
     async requestTogether(targetUid) {
@@ -3664,8 +4199,7 @@ export default class NetworkManager extends EventEmitter {
         await requestRef.remove();
 
         const localParty = this._getLocalPartyState();
-        const isExistingHost = localParty.members.length > 1 && localParty.hostId === this.playerId;
-        const canHost = localParty.members.length === 1 || isExistingHost;
+        const canHost = localParty.members.length === 1;
         const responseRef = firebase.database().ref(`together_responses/${fromUid}`).push();
 
         if (!accept) {
@@ -3690,21 +4224,11 @@ export default class NetworkManager extends EventEmitter {
             return { ok: false, reason: 'host_busy' };
         }
 
-        if (localParty.members.length >= 4) {
-            await responseRef.set({
-                accept: false,
-                fromUid: this.playerId,
-                fromName: window.game?.localPlayer?.name || 'Unknown',
-                reason: 'party_full',
-                ts: Date.now()
-            });
-            return { ok: false, reason: 'party_full' };
-        }
-
         const nextParty = this._normalizePartyState({
-            members: [...localParty.members, fromUid],
+            members: [this.playerId, fromUid],
             hostId: this.playerId,
-            mode: 'together'
+            mode: 'together',
+            fieldId: `${this._getZoneBaseFieldId()}__together__${this.playerId}__${responseRef.key}`
         });
         this._applyLocalPartyState(nextParty);
 
@@ -3737,6 +4261,18 @@ export default class NetworkManager extends EventEmitter {
             const raw = snapshot.val() || {};
             this.friends = new Map(Object.entries(raw).map(([uid, value]) => [uid, value || {}]));
             this.emit('friendsUpdated', this.getFriendListSnapshot());
+        });
+
+        const threadMetaRef = firebase.database().ref(`users/${this.playerId}/friend_thread_meta`);
+        this._trackExternalListener(threadMetaRef, 'value', (snapshot) => {
+            const raw = snapshot.val() || {};
+            this.friendThreadMeta = new Map(
+                Object.entries(raw).map(([uid, value]) => [uid, {
+                    friendUid: uid,
+                    ...(value || {})
+                }])
+            );
+            this.emit('friendThreadMetaUpdated', this.getFriendListSnapshot());
         });
 
         const messagesRef = firebase.database().ref(`friend_messages/${this.playerId}`);
@@ -4069,20 +4605,21 @@ export default class NetworkManager extends EventEmitter {
         const updates = {};
         this.monsterUpdateQueue.forEach((payload, id) => {
             if (this.shouldUseMonsterCellSync()) {
+                const fieldId = this._getCurrentFieldId();
                 const nextCellId = typeof payload.cellId === 'string'
                     ? payload.cellId
                     : this._getFieldCellId(payload.x, payload.y);
                 const previousCellId = this._publishedMonsterCellMap.get(id) || null;
 
                 if (previousCellId && previousCellId !== nextCellId) {
-                    updates[`monster_cells/${previousCellId}/${id}`] = null;
+                    updates[`monster_cells/${fieldId}/${previousCellId}/${id}`] = null;
                 }
 
-                updates[`monster_cells/${nextCellId}/${id}`] = this._buildMonsterRealtimeCellPayload(payload);
+                updates[`monster_cells/${fieldId}/${nextCellId}/${id}`] = this._buildMonsterRealtimeCellPayload(payload);
                 this._publishedMonsterCellMap.set(id, nextCellId);
 
                 if (this.shouldUseMonsterHostSnapshot() && (payload.fullSync || previousCellId !== nextCellId)) {
-                    updates[`monster_host_snapshot/${id}`] = {
+                    updates[`monster_host_snapshot/${fieldId}/${id}`] = {
                         id,
                         ...payload
                     };
@@ -4146,12 +4683,13 @@ export default class NetworkManager extends EventEmitter {
 
         if (this.shouldUseMonsterCellSync()) {
             const removalPaths = {};
+            const fieldId = this._getCurrentFieldId();
             const cellId = queuedPayload?.cellId || this._publishedMonsterCellMap.get(id) || null;
             if (cellId) {
-                removalPaths[`monster_cells/${cellId}/${id}`] = null;
+                removalPaths[`monster_cells/${fieldId}/${cellId}/${id}`] = null;
             }
             if (this.shouldUseMonsterHostSnapshot()) {
-                removalPaths[`monster_host_snapshot/${id}`] = null;
+                removalPaths[`monster_host_snapshot/${fieldId}/${id}`] = null;
             }
             this._publishedMonsterCellMap.delete(id);
             if (Object.keys(removalPaths).length > 0) {
@@ -4166,6 +4704,7 @@ export default class NetworkManager extends EventEmitter {
     // --- Drop Methods ---
     spawnDrop(data) {
         if (!this.connected || !this.isHost) return;
+        const fieldId = this._getCurrentFieldId();
         const payload = {
             x: Math.round(data.x),
             y: Math.round(data.y),
@@ -4177,6 +4716,7 @@ export default class NetworkManager extends EventEmitter {
             ownerId: data.ownerId || null,
             partyMembers: Array.isArray(data.partyMembers) ? data.partyMembers : null,
             eligibleCollectorIds: Array.isArray(data.eligibleCollectorIds) ? Array.from(new Set(data.eligibleCollectorIds.filter(Boolean))) : null,
+            fieldId,
             ts: Date.now()
         };
         if (this.shouldUseMonsterQuietMode()) {
@@ -4207,6 +4747,7 @@ export default class NetworkManager extends EventEmitter {
 
     publishDropSnapshot(id, data) {
         if (!this.connected || !this.isHost || !this.dbRef || !id || !data) return;
+        const fieldId = this._getCurrentFieldId();
         const payload = {
             x: Math.round(data.x),
             y: Math.round(data.y),
@@ -4218,6 +4759,7 @@ export default class NetworkManager extends EventEmitter {
             ownerId: data.ownerId || null,
             partyMembers: Array.isArray(data.partyMembers) ? data.partyMembers : null,
             eligibleCollectorIds: Array.isArray(data.eligibleCollectorIds) ? Array.from(new Set(data.eligibleCollectorIds.filter(Boolean))) : null,
+            fieldId,
             ts: Number(data.ts || data.spawnedAt || Date.now())
         };
         this._recordNetworkWrite('dropPublish', payload);
@@ -4227,10 +4769,12 @@ export default class NetworkManager extends EventEmitter {
 
     collectDrop(dropId) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        const fieldId = this._getCurrentFieldId();
         if (this.isHost && this.shouldUseMonsterQuietMode()) {
             const payload = {
                 dropId,
-                collectorId: this.playerId
+                collectorId: this.playerId,
+                fieldId
             };
             this._recordNetworkWrite('dropCollectLocal', payload);
             this.emit('dropCollectionRequested', payload);
@@ -4241,6 +4785,7 @@ export default class NetworkManager extends EventEmitter {
         const payload = {
             did: dropId,
             cid: this.playerId,
+            fieldId,
             ts: Date.now()
         };
         this._recordNetworkWrite('dropCollect', payload);
@@ -4253,6 +4798,7 @@ export default class NetworkManager extends EventEmitter {
         const payload = {
             requesterId: this.playerId,
             isFirstBoss: !!isFirstBoss,
+            fieldId: this._getCurrentFieldId(),
             ts: Date.now()
         };
 
@@ -4379,6 +4925,7 @@ export default class NetworkManager extends EventEmitter {
 
     sendMonsterDamage(monsterId, damage, meta = null) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        const fieldId = this._getCurrentFieldId();
         const localPlayer = window.game?.localPlayer || null;
         const localMonster = window.game?.monsterManager?.monsters?.get?.(monsterId) || null;
         if (damage > 0
@@ -4400,6 +4947,7 @@ export default class NetworkManager extends EventEmitter {
                 mid: monsterId,
                 dmg: Math.round(damage),
                 aid: this.playerId,
+                fieldId,
                 meta: meta || null
             };
             this._recordNetworkWrite('monsterDamageLocal', payload);
@@ -4411,6 +4959,7 @@ export default class NetworkManager extends EventEmitter {
             mid: monsterId,
             dmg: Math.round(damage),
             aid: this.playerId,
+            fieldId,
             meta: meta || null
         });
     }
@@ -4419,11 +4968,13 @@ export default class NetworkManager extends EventEmitter {
     sendMonsterAttack(monsterId, skillType, extraData = null) {
         if (!this.connected || !this.isHost) return;
         const safeExtraData = this._sanitizeRealtimePayloadValue(extraData);
+        const fieldId = this._getCurrentFieldId();
         if (this.shouldUseMonsterQuietMode()) {
             const payload = {
                 mid: monsterId,
                 skill: skillType,
                 extra: safeExtraData ?? null,
+                fieldId,
                 ts: Date.now()
             };
             this._recordNetworkWrite('monsterAttackLocal', payload);
@@ -4435,6 +4986,7 @@ export default class NetworkManager extends EventEmitter {
             mid: monsterId,
             skill: skillType,
             extra: safeExtraData ?? null,
+            fieldId,
             ts: Date.now()
         };
         this._recordNetworkWrite('monsterAttack', payload);
@@ -4443,11 +4995,13 @@ export default class NetworkManager extends EventEmitter {
 
     sendPlayerDamage(targetId, damage, effectType = null, effectDuration = 0, effectDamage = 0, meta = null) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        const fieldId = this._getCurrentFieldId();
         // Optimization: Use batch queue for player damage
         this.queueBatchUpdate('player_damage', {
             tid: targetId,
             dmg: Math.round(damage),
             aid: this.playerId,
+            fieldId,
             effectType,
             effectDuration,
             effectDamage,
@@ -4786,6 +5340,7 @@ export default class NetworkManager extends EventEmitter {
             effectType: effectType,
             effectDuration: effectDuration,
             effectDamage: effectDamage,
+            fieldId: this._getCurrentFieldId(),
             crit: !!meta?.isCrit,
             meta: meta || null,
             ts: Date.now()
@@ -4796,7 +5351,7 @@ export default class NetworkManager extends EventEmitter {
         // Listen for Incoming Damage
         this.dbRef.child(`damage_events/${this.playerId}`).on('child_added', (snapshot) => {
             const val = snapshot.val();
-            if (val && typeof val.ts === 'number') {
+            if (val && typeof val.ts === 'number' && this._isPayloadForCurrentField(val)) {
                 // Validate timestamp (ignore old attacks > 5s)
                 if (Date.now() - val.ts < 5000) {
                     if (window.game && window.game.localPlayer) {

@@ -84,7 +84,7 @@ export default class Player extends CharacterBase {
         this.hostileTargets = new Map(); // Map<UID, Name>
 
         // v0.00.66: Delayed party initialization until ID is set in init()
-        this.party = { members: [], hostId: null, mode: 'solo' };
+        this.party = { members: [], hostId: null, mode: 'solo', fieldId: null };
         this.partyInvite = null; // { senderId, senderName, ts }
 
         this.skillLevels = {
@@ -2886,11 +2886,15 @@ export default class Player extends CharacterBase {
         const resolvedMode = typeof partyState?.mode === 'string' && partyState.mode
             ? partyState.mode
             : (normalizedMembers.length > 1 ? 'party' : 'solo');
+        const resolvedFieldId = normalizedMembers.length > 1 && partyState?.fieldId
+            ? String(partyState.fieldId)
+            : null;
 
         this.party = {
             members: normalizedMembers,
             hostId: resolvedHostId,
-            mode: resolvedMode
+            mode: resolvedMode,
+            fieldId: resolvedFieldId
         };
 
         this.saveState(syncToWorld);
