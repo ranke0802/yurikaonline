@@ -85,6 +85,9 @@ export default class NetworkManager extends EventEmitter {
         this._lastPresenceLiteWriteTs = 0;
         this._fieldPeerCount = 0;
         this._sharedFieldActive = false;
+        this._socialSessionStartedAt = Date.now();
+        this._pendingTogetherRequest = null;
+        this._pendingPartyInvite = null;
         const initialNow = Date.now();
         this._visibilityState = (typeof document !== 'undefined' && document.hidden) ? 'hidden' : 'visible';
         this._visibilityChangedAt = initialNow;
@@ -151,6 +154,7 @@ export default class NetworkManager extends EventEmitter {
         this._fieldPeerCount = 0;
         this._sharedFieldActive = false;
         this.preferredPartyHostId = null;
+        this._resetSocialSessionState();
         this.startBatchProcessor();
 
         Logger.log(`Network Coordinates: connecting to ${this.roomId}...`);
@@ -530,6 +534,7 @@ export default class NetworkManager extends EventEmitter {
         this._fieldPeerCount = 0;
         this._sharedFieldActive = false;
         this.preferredPartyHostId = null;
+        this._resetSocialSessionState();
         this._clearMonsterCellSubscriptions({ emitRemovals: true });
         this._clearPendingMonsterRemovalTimers();
         this._monsterCellPayloadCache.clear();
@@ -3392,6 +3397,67 @@ export default class NetworkManager extends EventEmitter {
         return { members, hostId, mode };
     }
 
+    _resetSocialSessionState() {
+        this._socialSessionStartedAt = Date.now();
+        this._pendingTogetherRequest = null;
+        this._pendingPartyInvite = null;
+    }
+
+    _markPendingTogetherRequest(targetUid) {
+        if (!targetUid) {
+            this._pendingTogetherRequest = null;
+            return;
+        }
+        this._pendingTogetherRequest = {
+            targetUid,
+            ts: Date.now()
+        };
+    }
+
+    _markPendingPartyInvite(targetUid) {
+        if (!targetUid) {
+            this._pendingPartyInvite = null;
+            return;
+        }
+        this._pendingPartyInvite = {
+            targetUid,
+            ts: Date.now()
+        };
+    }
+
+    _shouldAcceptTogetherResponse(value = null) {
+        if (!value) return false;
+        const pending = this._pendingTogetherRequest;
+        if (!pending?.targetUid) return false;
+        if (value.fromUid !== pending.targetUid) return false;
+        const responseTs = Number(value.ts || 0);
+        if (responseTs > 0 && responseTs + 30000 < pending.ts) return false;
+        return true;
+    }
+
+    _shouldAcceptPartyResponse(value = null) {
+        if (!value) return false;
+        const pending = this._pendingPartyInvite;
+        if (!pending?.targetUid) return false;
+        if (value.from !== pending.targetUid) return false;
+        const responseTs = Number(value.ts || 0);
+        if (responseTs > 0 && responseTs + 30000 < pending.ts) return false;
+        return true;
+    }
+
+    _shouldApplyPartyInboxSync(value = null) {
+        if (!value || (!value.party && !Array.isArray(value.members))) return false;
+        const localParty = this._getLocalPartyState();
+        if (Array.isArray(localParty.members) && localParty.members.length > 1) {
+            return true;
+        }
+        const syncTs = Number(value.ts || 0);
+        if (syncTs > 0 && syncTs < this._socialSessionStartedAt) {
+            return false;
+        }
+        return false;
+    }
+
     _getLocalPartyState() {
         const localParty = window.game?.localPlayer?.party || { members: this.playerId ? [this.playerId] : [] };
         return this._normalizePartyState(localParty);
@@ -3573,6 +3639,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     async requestTogether(targetUid) {
+        this._pendingTogetherRequest = null;
         if (!targetUid || !this.playerId || !window.firebase) return 'ERROR';
         if (targetUid === this.playerId) return 'SELF';
         if (!this.isFriend(targetUid)) return 'NOT_FRIEND';
@@ -3586,6 +3653,7 @@ export default class NetworkManager extends EventEmitter {
             fromName: window.game?.localPlayer?.name || 'Unknown',
             ts: Date.now()
         });
+        this._markPendingTogetherRequest(targetUid);
         return 'SENT';
     }
 
@@ -3697,7 +3765,8 @@ export default class NetworkManager extends EventEmitter {
         const togetherResponsesRef = firebase.database().ref(`together_responses/${this.playerId}`);
         this._trackExternalListener(togetherResponsesRef, 'child_added', (snapshot) => {
             const value = snapshot.val();
-            if (value) {
+            if (value && this._shouldAcceptTogetherResponse(value)) {
+                this._pendingTogetherRequest = null;
                 this.emit('togetherResponseReceived', value);
             }
             snapshot.ref.remove().catch(() => { });
@@ -3729,6 +3798,7 @@ export default class NetworkManager extends EventEmitter {
 
     // --- Party System (v0.00.73: Unified Path to party_invites) ---
     async inviteToParty(targetName) {
+        this._pendingPartyInvite = null;
         if (!targetName || !this.playerId) return 'ERROR';
 
         try {
@@ -3762,6 +3832,7 @@ export default class NetworkManager extends EventEmitter {
                 party: localParty,
                 ts: Date.now()
             });
+            this._markPendingPartyInvite(targetUid);
 
             return 'SENT';
         } catch (e) {
@@ -3889,15 +3960,16 @@ export default class NetworkManager extends EventEmitter {
         // Listen for Responses (party_responses 경로 사용)
         this.dbRef.child(`party_responses/${this.playerId}`).on('child_added', (snapshot) => {
             const val = snapshot.val();
-            if (val) {
+            if (val && this._shouldAcceptPartyResponse(val)) {
+                this._pendingPartyInvite = null;
                 this.emit('partyResponseReceived', val);
-                snapshot.ref.remove();
             }
+            snapshot.ref.remove();
         });
 
         this.dbRef.child(`users/${this.playerId}/party_inbox`).on('child_added', (snapshot) => {
             const val = snapshot.val();
-            if (val && (val.party || Array.isArray(val.members)) && window.game?.localPlayer) {
+            if (this._shouldApplyPartyInboxSync(val) && window.game?.localPlayer) {
                 this._applyLocalPartyState(val.party || { members: val.members });
             }
             snapshot.ref.remove();

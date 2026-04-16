@@ -11447,3 +11447,174 @@ body.low-power-pwa #ui-layer #minimap-container {
         min-height: 40px !important;
     }
 }
+
+/* Final friends popup mobile view-mode pass */
+@media screen and (max-width: 1024px) and (pointer: coarse) {
+    #friends-popup {
+        width: min(94vw, 900px) !important;
+        max-width: 94vw !important;
+        height: min(90dvh, 720px) !important;
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 18px) !important;
+        padding: 12px 14px 14px !important;
+        overflow: hidden !important;
+    }
+
+    #friends-popup .popup-header {
+        margin-bottom: 8px !important;
+        padding-bottom: 8px !important;
+    }
+
+    #friends-popup .popup-footer {
+        margin-top: 8px !important;
+        padding-top: 8px !important;
+    }
+
+    #friends-popup .friends-mobile-nav {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    #friends-popup .friends-content-wrapper {
+        display: block !important;
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #friends-popup .friends-sidebar,
+    #friends-popup .friends-detail-card {
+        height: 100%;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    #friends-popup .friends-sidebar {
+        display: block !important;
+    }
+
+    #friends-popup .friends-search-card,
+    #friends-popup .friends-list-card,
+    #friends-popup .friends-detail-card {
+        height: 100%;
+        min-height: 0 !important;
+        padding: 12px !important;
+        border-radius: 16px !important;
+        box-sizing: border-box !important;
+    }
+
+    #friends-popup .friends-sidebar.hidden,
+    #friends-popup .friends-search-card.hidden,
+    #friends-popup .friends-list-card.hidden,
+    #friends-popup .friends-detail-card.hidden {
+        display: none !important;
+    }
+
+    #friends-popup .friends-search-card {
+        display: grid !important;
+        grid-template-rows: auto auto minmax(0, 1fr) auto !important;
+        gap: 10px !important;
+        overflow: auto !important;
+        overscroll-behavior: contain !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    #friends-popup .friends-search-result {
+        min-height: 0 !important;
+        align-items: flex-start !important;
+        line-height: 1.45 !important;
+        overflow: auto !important;
+    }
+
+    #friends-popup .friends-list-card {
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) !important;
+        overflow: hidden !important;
+    }
+
+    #friends-popup .friends-list,
+    #friends-popup #friend-detail-panel {
+        min-height: 0 !important;
+        overflow: auto !important;
+        padding-right: 2px !important;
+        overscroll-behavior: contain !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    #friends-popup .friends-detail-card {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+
+    #friends-popup .friends-detail-empty {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+    }
+
+    #friends-popup .friends-detail-header,
+    #friends-popup .friends-detail-actions,
+    #friends-popup .friends-message-actions {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        align-items: stretch !important;
+    }
+
+    #friends-popup .friends-detail-header > div:first-child {
+        grid-column: 1 / -1;
+        min-width: 0 !important;
+    }
+
+    #friends-popup .friends-primary-btn,
+    #friends-popup .friends-inline-btn {
+        min-height: 40px !important;
+        padding: 9px 12px !important;
+        border-radius: 12px !important;
+        font-size: 14px !important;
+    }
+
+    #friends-popup .friend-list-item {
+        padding: 9px 10px !important;
+        border-radius: 14px !important;
+    }
+
+    #friends-popup .friend-list-name,
+    #friends-popup .friend-status-name {
+        font-size: 16px !important;
+    }
+
+    #friends-popup .friends-status-chip {
+        padding: 4px 8px !important;
+        font-size: 11px !important;
+    }
+
+    #friends-popup .friends-detail-summary,
+    #friends-popup .friend-status-overview,
+    #friends-popup .friend-stat-grid {
+        grid-template-columns: 1fr !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+}
+
+@media screen and (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
+    #friends-popup {
+        width: min(94vw, 900px) !important;
+        height: min(88dvh, 560px) !important;
+    }
+}
+
+@media screen and (max-width: 1024px) and (orientation: portrait) and (pointer: coarse) {
+    #friends-popup {
+        width: min(94vw, 430px) !important;
+        height: min(88dvh, 760px) !important;
+    }
+
+    #friends-popup .friends-detail-header,
+    #friends-popup .friends-detail-actions,
+    #friends-popup .friends-message-actions {
+        grid-template-columns: 1fr !important;
+    }
+}

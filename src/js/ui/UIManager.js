@@ -4468,6 +4468,7 @@ export class UIManager {
 
         const runLookup = async () => {
             const keyword = searchInput?.value?.trim() || '';
+            this.setFriendsMobileView('search', { force: true });
             if (!keyword || !this.game.net) {
                 this.friendSearchResult = null;
                 this.renderFriendSearchResult('아이디 또는 이름을 입력해 주세요.');
@@ -4510,6 +4511,10 @@ export class UIManager {
 
         addBtn?.addEventListener('click', async () => {
             if (!this.friendSearchResult || !this.game.net) return;
+            if (this.game.net.isFriend(this.friendSearchResult.uid)) {
+                this.selectFriend(this.friendSearchResult.uid);
+                return;
+            }
             const result = await this.game.net.addFriendByName(this.friendSearchResult.query || this.friendSearchResult.name);
             if (!result.ok) {
                 const messages = {
@@ -4703,21 +4708,23 @@ export class UIManager {
         if (!popup) return;
 
         const mode = this.getFriendsPopupMode();
-        const isPortrait = mode === 'mobilePortrait';
+        const isMobile = mode !== 'desktop';
         const hasSelectedFriend = !!this.selectedFriendUid;
-        if (isPortrait && this.friendsMobileView === 'detail' && !hasSelectedFriend) {
-            this.friendsMobileView = 'list';
+        if (isMobile && this.friendsMobileView === 'detail' && !hasSelectedFriend) {
+            this.friendsMobileView = this.friendSearchResult ? 'search' : 'list';
         }
 
-        const activeView = isPortrait ? (this.friendsMobileView || 'list') : 'split';
+        const activeView = isMobile
+            ? (this.friendsMobileView || (this.friendSearchResult ? 'search' : 'list'))
+            : 'split';
         popup.dataset.friendsMode = mode;
         popup.dataset.friendsView = activeView;
 
         const nav = document.getElementById('friends-mobile-nav');
-        nav?.classList.toggle('hidden', !isPortrait);
+        nav?.classList.toggle('hidden', !isMobile);
         document.querySelectorAll('#friends-mobile-nav .friends-mobile-nav-btn').forEach((button) => {
             const view = button.dataset.friendsView || 'list';
-            const isActive = isPortrait && activeView === view;
+            const isActive = isMobile && activeView === view;
             button.classList.toggle('is-active', isActive);
             button.disabled = view === 'detail' && !hasSelectedFriend;
             button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
@@ -4728,7 +4735,7 @@ export class UIManager {
         const listCard = popup.querySelector('.friends-list-card');
         const detailCard = popup.querySelector('.friends-detail-card');
 
-        if (!isPortrait) {
+        if (!isMobile) {
             sidebar?.classList.remove('hidden');
             searchCard?.classList.remove('hidden');
             listCard?.classList.remove('hidden');
@@ -4754,11 +4761,13 @@ export class UIManager {
     renderFriendSearchResult(message = '') {
         const resultEl = document.getElementById('friend-search-result');
         const addBtn = document.getElementById('friend-add-btn');
+        const alreadyFriend = !!(this.friendSearchResult && this.game.net?.isFriend?.(this.friendSearchResult.uid));
         if (resultEl) {
             resultEl.textContent = message;
         }
         if (addBtn) {
-            addBtn.disabled = !this.friendSearchResult || !!this.game.net?.isFriend?.(this.friendSearchResult.uid);
+            addBtn.textContent = alreadyFriend ? '친구 보기' : '친구 추가';
+            addBtn.disabled = !this.friendSearchResult;
         }
     }
 
@@ -4767,7 +4776,7 @@ export class UIManager {
         this.selectedFriendUid = uid;
         this.setFriendMessageComposerVisible(false);
         this.refreshFriendsPopup();
-        if (this.getFriendsPopupMode() === 'mobilePortrait') {
+        if (this.getFriendsPopupMode() !== 'desktop') {
             this.setFriendsMobileView('detail', { force: true });
         }
 
@@ -4779,7 +4788,7 @@ export class UIManager {
         }
 
         this.refreshFriendsPopup();
-        if (this.getFriendsPopupMode() === 'mobilePortrait') {
+        if (this.getFriendsPopupMode() !== 'desktop') {
             this.setFriendsMobileView('detail', { force: true });
         }
     }

@@ -96,6 +96,7 @@ export default class WorldScene extends Scene {
         Logger.info("[WorldScene] Entering game world...");
         this.ui?.showHUD();
         this.remotePlayers.clear();
+        this.monsterManager?.clearAll?.({ preserveNetwork: true });
 
         // v0.35.0: Ensure Story Fade is reset to prevent black screen
         if (this.game.story) {

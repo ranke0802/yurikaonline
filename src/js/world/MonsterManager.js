@@ -57,7 +57,11 @@ export default class MonsterManager {
         this.net.onDropCollectionRequested(this._onDropCollectionRequested.bind(this));
         this.net.on('bossSpawnRequested', this._handleBossSpawnRequested.bind(this));
         this.net.on('fieldPeerPresenceChanged', this._handleFieldPeerPresenceChanged.bind(this));
-        this.net.on('connected', () => this._scheduleGuestSnapshotHydration('connected', 500));
+        this.net.on('connected', () => {
+            if (this.net?.isSharedFieldActive?.()) {
+                this._scheduleGuestSnapshotHydration('connected', 500);
+            }
+        });
         this.net.on('hostChanged', (isHost) => {
             this._clearQueuedPeerMonsterKeyframes();
             if (isHost) {
@@ -92,6 +96,7 @@ export default class MonsterManager {
                 this._clearQueuedPeerMonsterKeyframes();
                 return;
             }
+            this.clearAll({ preserveNetwork: true });
             this._guestSnapshotHydrationPending = null;
             this._clearQueuedPeerMonsterKeyframes();
         });
@@ -130,6 +135,17 @@ export default class MonsterManager {
 
         const remote = this.net.remotePlayers.get(uid) || this.game.remotePlayers?.get(uid);
         return this._normalizePartyMembers(remote?.party?.members || [uid]);
+    }
+
+    _getSharedIntroQuestRecipients(uid) {
+        if (!uid || !this.net?.isSharedFieldActive?.()) return [];
+        const partyMembers = this._getPartyMembersForPlayer(uid);
+        if (partyMembers.length < 2) return [];
+        return partyMembers.filter((memberId) => {
+            if (!memberId) return false;
+            if (memberId === this.net.playerId) return true;
+            return !!(this.net?.remotePlayers?.has?.(memberId) || this.game?.remotePlayers?.has?.(memberId));
+        });
     }
 
     _buildRewardItem(itemId, dropDef = {}, context = {}) {
@@ -544,6 +560,10 @@ export default class MonsterManager {
 
     _scheduleGuestSnapshotHydration(reason = 'unknown', delayMs = 250) {
         if (this.net?.isHost) return;
+        if (!this.net?.isSharedFieldActive?.()) {
+            this._guestSnapshotHydrationPending = null;
+            return;
+        }
         this._guestSnapshotHydrationPending = {
             reason,
             dueAt: Date.now() + Math.max(0, Number(delayMs || 0))
@@ -552,6 +572,10 @@ export default class MonsterManager {
 
     async _processPendingGuestSnapshotHydration() {
         if (this.net?.isHost) {
+            this._guestSnapshotHydrationPending = null;
+            return;
+        }
+        if (!this.net?.isSharedFieldActive?.() || !this.net?.currentHostId || this.net.currentHostId === this.net.playerId) {
             this._guestSnapshotHydrationPending = null;
             return;
         }
@@ -890,6 +914,9 @@ export default class MonsterManager {
                 // Quest & Splitting Logic (v0.00.14)
                 if (localPlayer && shouldProcessRewards) {
                     const attackerId = m.lastAttackerId || null;
+                    const sharedIntroQuestRecipients = (m.typeId === 'slime' || m.typeId === 'slime_split')
+                        ? this._getSharedIntroQuestRecipients(attackerId).filter((uid) => uid && uid !== attackerId)
+                        : [];
 
                     // Identify Killer & Party
                     let killerParty = null;
@@ -932,6 +959,15 @@ export default class MonsterManager {
                     // I will keep this block for Quest Updates.
 
                     let shouldSaveLocalQuestProgress = false;
+
+                    sharedIntroQuestRecipients.forEach((uid) => {
+                        this.net.sendReward(uid, {
+                            questKill: m.typeId,
+                            monsterName: m.name,
+                            introSharedQuest: true,
+                            immediate: true
+                        });
+                    });
 
                     if (m.typeId === 'king_slime') {
                         const bossCycle = this.firstBossDefeated ? 'repeat' : 'intro';
@@ -1403,7 +1439,7 @@ export default class MonsterManager {
     }
 
     async restoreVisibleMonstersFromHostSnapshot(options = {}) {
-        if (this.net?.isHost || typeof this.net?.readMonsterHostSnapshot !== 'function') {
+        if (this.net?.isHost || !this.net?.isSharedFieldActive?.() || typeof this.net?.readMonsterHostSnapshot !== 'function') {
             return { restored: 0, updated: 0, removedBosses: 0, total: 0, skipped: true };
         }
 
@@ -1919,8 +1955,9 @@ export default class MonsterManager {
         };
     }
 
-    clearAll() {
-        if (this.net.isHost) {
+    clearAll(options = {}) {
+        const preserveNetwork = !!options.preserveNetwork;
+        if (this.net.isHost && !preserveNetwork) {
             this.monsters.forEach((_, id) => this.net.removeMonster(id));
             this.drops.forEach((_, id) => this.net.removeDrop(id));
         }
@@ -1933,9 +1970,14 @@ export default class MonsterManager {
         this.peerMonsterKeyframeMeta.clear();
         this.peerMonsterKeyframeCellMeta.clear();
         this._clearQueuedPeerMonsterKeyframes();
+        this._guestSnapshotHydrationPending = null;
+        this._guestSnapshotHydrationPromise = null;
+        this._lastGuestSnapshotHydrationTs = 0;
+        this._hostSnapshotRestorePromise = null;
+        this._lastHostSnapshotRestoreTs = 0;
         this.tutorialMonsterIds.clear();
         this.minimapSyncTimer = 0;
-        if (this.net?.isHost && this.net?.isSharedFieldActive?.()) {
+        if (this.net?.isHost && !preserveNetwork && this.net?.isSharedFieldActive?.()) {
             this.net.publishMinimapMonsterSnapshot(this.monsters, { force: true });
         }
         Logger.info("[MonsterManager] Local world state cleared.");

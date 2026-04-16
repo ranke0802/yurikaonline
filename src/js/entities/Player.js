@@ -2089,6 +2089,7 @@ export default class Player extends CharacterBase {
         const saveDebounceMs = Number.isFinite(options.debounceMs) ? options.debounceMs : 3500;
         const itemMessages = [];
         const normalizedQuestKills = {};
+        const isIntroSharedQuest = data.introSharedQuest === true;
         let skipQuestRewardLog = false;
         let questKillLogMessage = '';
 
@@ -2116,14 +2117,28 @@ export default class Player extends CharacterBase {
             });
         }
 
+        const canApplyIntroSharedSlimeCredit = () => (
+            !this.questData.introSlime30RewardClaimed
+            && !this.questData.slime30QuestClaimed
+            && !this.questData.bossQuestClaimed
+            && (this.questData.bossClearCount || 0) === 0
+        );
+        const appendQuestKill = (questKillId, rawCount = 1) => {
+            const safeCount = Math.max(0, Number(rawCount || 0));
+            if (safeCount <= 0 || !questKillId) return;
+            if (isIntroSharedQuest) {
+                if (questKillId !== 'slime' && questKillId !== 'slime_split') return;
+                if (!canApplyIntroSharedSlimeCredit()) return;
+            }
+            normalizedQuestKills[questKillId] = (normalizedQuestKills[questKillId] || 0) + safeCount;
+        };
+
         if (typeof data.questKill === 'string') {
-            normalizedQuestKills[data.questKill] = (normalizedQuestKills[data.questKill] || 0) + 1;
+            appendQuestKill(data.questKill, 1);
         }
         if (data.questKills && typeof data.questKills === 'object') {
             Object.entries(data.questKills).forEach(([questKillId, rawCount]) => {
-                const safeCount = Math.max(0, Number(rawCount || 0));
-                if (safeCount <= 0) return;
-                normalizedQuestKills[questKillId] = (normalizedQuestKills[questKillId] || 0) + safeCount;
+                appendQuestKill(questKillId, rawCount);
             });
         }
 
@@ -2134,6 +2149,16 @@ export default class Player extends CharacterBase {
         const rewardSummarySuffix = rewardSummaryParts.length > 0
             ? ` (${rewardSummaryParts.join(', ')})`
             : '';
+        if (
+            isIntroSharedQuest
+            && Object.keys(normalizedQuestKills).length === 0
+            && !data.exp
+            && !rewardManastone
+            && !data.hp
+            && !(Array.isArray(data.items) && data.items.length > 0)
+        ) {
+            return;
+        }
 
         // v0.00.01: Process Quest Kills sent by Host
         if (Object.keys(normalizedQuestKills).length > 0) {
@@ -2148,14 +2173,16 @@ export default class Player extends CharacterBase {
 
                 if (questKillId === 'slime' || questKillId === 'slime_split') {
                     this.questData.slimeKills += killCount;
-                    if (canTrackRepeatSlimeKills) {
+                    if (!isIntroSharedQuest && canTrackRepeatSlimeKills) {
                         this.questData.slimeRepeatKills += killCount;
                     }
-                    genericQuestLogs.push(
-                        killCount === 1
-                            ? '퀘스트 몬스터 처치!'
-                            : `퀘스트 몬스터 ${killCount}마리 처치!`
-                    );
+                    if (!isIntroSharedQuest) {
+                        genericQuestLogs.push(
+                            killCount === 1
+                                ? '퀘스트 몬스터 처치!'
+                                : `퀘스트 몬스터 ${killCount}마리 처치!`
+                        );
+                    }
                     return;
                 }
 
