@@ -58,7 +58,7 @@ export default class LoginScene extends Scene {
         this.loginUI = document.createElement('div');
         this.loginUI.id = 'login-scene-ui';
         this.loginUI.className = 'scene-overlay';
-        const version = window.GAME_VERSION || '0.01.177';
+        const version = window.GAME_VERSION || '0.01.179';
 
         this.loginUI.innerHTML = `
             <div class="login-card glass">

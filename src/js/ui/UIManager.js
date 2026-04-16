@@ -1941,6 +1941,8 @@ export class UIManager {
 
         this.pendingEnhancementStoneType = meta.stoneType;
         this.selectedInventoryRef = null;
+        this.inventoryClickSuppressUntil = 0;
+        this.tearDownInventoryDrag();
         this.closeInventoryItemModal(true);
         this.logSystemMessage(meta.selectionMessage);
         this.updateInventory();
@@ -4461,10 +4463,17 @@ export class UIManager {
             this.lockDeveloperAccess({ announce: true });
         });
 
-        document.getElementById('settings-open-ui-layout')?.addEventListener('click', () => {
-            this.hideAllPopups();
-            this.enterUiLayoutEditMode();
-        });
+        const openUiLayoutBtn = document.getElementById('settings-open-ui-layout');
+        if (openUiLayoutBtn) {
+            const handleOpenUiLayout = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.hideAllPopups();
+                this.enterUiLayoutEditMode();
+            };
+            openUiLayoutBtn.addEventListener('click', handleOpenUiLayout);
+            openUiLayoutBtn.addEventListener('touchstart', handleOpenUiLayout, { passive: false });
+        }
         document.getElementById('settings-open-history')?.addEventListener('click', () => {
             this.toggleUpdateHistory();
         });
@@ -9220,6 +9229,8 @@ export class UIManager {
             sourceElement: button,
             startX: event.clientX,
             startY: event.clientY,
+            pointerType: event.pointerType || 'mouse',
+            dragThreshold: (event.pointerType || 'mouse') === 'touch' ? 18 : 10,
             dragActive: false,
             hoverIndex: index
         };
@@ -9236,7 +9247,7 @@ export class UIManager {
 
         const movedX = event.clientX - state.startX;
         const movedY = event.clientY - state.startY;
-        if (!state.dragActive && Math.hypot(movedX, movedY) < 10) return;
+        if (!state.dragActive && Math.hypot(movedX, movedY) < (state.dragThreshold || 10)) return;
 
         if (!state.dragActive) {
             state.dragActive = true;
@@ -9577,17 +9588,18 @@ export class UIManager {
 
             button.addEventListener('click', () => {
                 if (this.inventoryEnhancementAnimating) return;
-                if (performance.now() < this.inventoryClickSuppressUntil) return;
                 if (this.isWeaponEnhancementSelectionActive()) {
                     if (item?.type === 'weapon_upgrade_stone' || item?.type === 'blessed_weapon_upgrade_stone') {
                         this.clearWeaponEnhancementSelection();
                         return;
                     }
                     if (item?.slot === 'weapon') {
+                        this.inventoryClickSuppressUntil = 0;
                         this.executeWeaponEnhancementForSelection({ kind: 'inventory', index });
                     }
                     return;
                 }
+                if (performance.now() < this.inventoryClickSuppressUntil) return;
                 if (!item) {
                     this.closeInventoryItemModal(true);
                     this.updateInventory();

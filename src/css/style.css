@@ -83,6 +83,8 @@ html {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -2061,6 +2063,7 @@ body.ui-layout-edit-mode #joystick-container[data-ui-layout-selected="true"] #jo
     transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
     overflow: hidden;
     isolation: isolate;
+    touch-action: manipulation;
 }
 
 .grid-item > :not(.inventory-fx-layer),
@@ -11179,8 +11182,17 @@ body.low-power-pwa #ui-layer #minimap-container {
         z-index: 1490 !important;
     }
 
+    body.ui-layout-edit-mode .action-buttons .skill-btn {
+        width: 50px !important;
+        height: 50px !important;
+        font-size: 20px !important;
+    }
+
     body.ui-layout-edit-mode .action-buttons .attack-btn {
         background: rgba(255, 244, 186, 0.9) !important;
+        width: 86px !important;
+        height: 86px !important;
+        font-size: 28px !important;
     }
 
     body.ui-layout-edit-mode .action-buttons .inner-icon {
@@ -11207,6 +11219,20 @@ body.low-power-pwa #ui-layer #minimap-container {
         border-width: 1px !important;
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22) !important;
         z-index: 1495 !important;
+    }
+}
+
+@media screen and (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
+    body.ui-layout-edit-mode .action-buttons .skill-btn {
+        width: clamp(58px, 9vh, 68px) !important;
+        height: clamp(58px, 9vh, 68px) !important;
+        font-size: clamp(21px, 3.7vh, 25px) !important;
+    }
+
+    body.ui-layout-edit-mode .action-buttons .attack-btn {
+        width: clamp(98px, 15vh, 112px) !important;
+        height: clamp(98px, 15vh, 112px) !important;
+        font-size: clamp(29px, 5.1vh, 35px) !important;
     }
 }
 
