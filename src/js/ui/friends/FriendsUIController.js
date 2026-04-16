@@ -628,12 +628,16 @@ export default class FriendsUIController {
                 unreadWhileMinimized: false,
                 retainOnPopupToggle: false,
                 restoreFriendsPopupOnClose: false,
+                requestedUid: null,
                 scale: 1,
                 left: null,
                 top: null
             };
         }
         this.friendChatWindowState.restoreFriendsPopupOnClose = !!this.friendChatWindowState.restoreFriendsPopupOnClose;
+        this.friendChatWindowState.requestedUid = this.friendChatWindowState.requestedUid
+            ? String(this.friendChatWindowState.requestedUid)
+            : null;
         this.friendChatWindowState.scale = Math.min(1.5, Math.max(0.5, Number(this.friendChatWindowState.scale) || 1));
         this.friendChatWindowState.left = Number.isFinite(Number(this.friendChatWindowState.left))
             ? Number(this.friendChatWindowState.left)
@@ -1243,7 +1247,7 @@ export default class FriendsUIController {
     async selectFriend(uid, options = {}) {
         if (!uid || !this.game.net) return;
         this.selectedFriendUid = uid;
-        if (this.friendChatUid && this.friendChatUid !== uid) {
+        if (!options.preserveChatTarget && this.friendChatUid && this.friendChatUid !== uid) {
             this.closeFriendChat({ detachThread: true, keepSelection: true, silent: true });
         }
 
@@ -1335,11 +1339,23 @@ export default class FriendsUIController {
     async openFriendChat(uid, options = {}) {
         if (!uid || !this.game.net?.isFriend?.(uid)) return;
 
+        const state = this.ensureFriendChatWindowState();
+        if (this.friendChatUid && this.friendChatUid !== uid) {
+            this.closeFriendChat({ detachThread: true, keepSelection: true, silent: true });
+        }
+
         this.friendChatReturnView = options.returnView || (this.friendsMobileView || 'list');
-        await this.selectFriend(uid, { showProfile: false });
+        state.requestedUid = uid;
         this.selectedFriendUid = uid;
         this.friendChatUid = uid;
-        const state = this.ensureFriendChatWindowState();
+        const chatModal = document.getElementById('friend-chat-modal');
+        chatModal?.setAttribute('data-chat-friend-uid', uid);
+        chatModal?.classList.remove('hidden');
+
+        await this.selectFriend(uid, { showProfile: false, preserveChatTarget: true });
+        state.requestedUid = uid;
+        this.selectedFriendUid = uid;
+        this.friendChatUid = uid;
         state.compact = !!options.compact;
         state.minimized = false;
         state.unreadWhileMinimized = false;
@@ -1353,7 +1369,6 @@ export default class FriendsUIController {
             state.retainOnPopupToggle = false;
         }
 
-        const chatModal = document.getElementById('friend-chat-modal');
         chatModal?.setAttribute('data-chat-friend-uid', uid);
         chatModal?.classList.remove('hidden');
         this.setFriendGiftComposerVisible(!!options.openGift);
@@ -1394,6 +1409,7 @@ export default class FriendsUIController {
         state.unreadWhileMinimized = false;
         state.retainOnPopupToggle = false;
         state.restoreFriendsPopupOnClose = false;
+        state.requestedUid = null;
 
         if (detachThread) {
             this.game.net?.closeFriendThread?.(this.friendChatUid);
@@ -1685,22 +1701,31 @@ export default class FriendsUIController {
         if (!container) return;
         const forceToLatest = !!options.forceToLatest;
         const stickToBottom = Math.abs((container.scrollHeight - container.scrollTop) - container.clientHeight) < 28;
-
-        const fallbackUid = typeof options.uid === 'string' && options.uid
+        const state = this.ensureFriendChatWindowState();
+        const requestedUid = typeof options.uid === 'string' && options.uid
             ? options.uid
-            : (chatModal?.getAttribute('data-chat-friend-uid') || '');
-        const targetUid = this.friendChatUid || this.selectedFriendUid || fallbackUid || null;
+            : (state.requestedUid
+                || chatModal?.getAttribute('data-chat-friend-uid')
+                || this.game.net?.getActiveFriendThreadUid?.()
+                || '');
+        const targetUid = requestedUid || this.friendChatUid || this.selectedFriendUid || null;
         if (!targetUid) {
             container.innerHTML = '<div class="friend-chat-empty">대화할 친구를 먼저 선택해 주세요.</div>';
             return;
         }
-        if (fallbackUid && this.friendChatUid !== fallbackUid) {
-            this.friendChatUid = fallbackUid;
+        if (requestedUid && state.requestedUid !== requestedUid) {
+            state.requestedUid = requestedUid;
+        }
+        if (chatModal?.getAttribute('data-chat-friend-uid') !== targetUid) {
+            chatModal?.setAttribute('data-chat-friend-uid', targetUid);
+        }
+        if (requestedUid && this.friendChatUid !== requestedUid) {
+            this.friendChatUid = requestedUid;
         } else if (!this.friendChatUid) {
             this.friendChatUid = targetUid;
         }
-        if (fallbackUid && this.selectedFriendUid !== fallbackUid) {
-            this.selectedFriendUid = fallbackUid;
+        if (requestedUid && this.selectedFriendUid !== requestedUid) {
+            this.selectedFriendUid = requestedUid;
         } else if (!this.selectedFriendUid) {
             this.selectedFriendUid = targetUid;
         }

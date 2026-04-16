@@ -3866,6 +3866,10 @@ export default class NetworkManager extends EventEmitter {
         return (this.friendThreadMessages.get(uid) || []).map((message) => ({ ...message }));
     }
 
+    getActiveFriendThreadUid() {
+        return this._activeFriendThreadUid || null;
+    }
+
     isFriend(uid) {
         return !!uid && this.friends.has(uid);
     }
