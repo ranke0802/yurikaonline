@@ -11,6 +11,7 @@ const managedFiles = [
     'src/js/main.js',
     'src/js/world/scenes/LoginScene.js',
     'index.html',
+    'manifest.json',
     'sw.js',
     'README.md'
 ];
@@ -142,6 +143,12 @@ function syncFiles(version, changedFiles) {
         `window.BOOTSTRAP_VERSION = '${version}';`,
         'index.html bootstrap version'
     );
+    indexHtml = replaceOrThrow(
+        indexHtml,
+        /<link rel="manifest" href="manifest\.json\?v=[^"]+">/,
+        `<link rel="manifest" href="manifest.json?v=${version}">`,
+        'index.html manifest version'
+    );
     if (/navigator\.serviceWorker\.register\('\.\/sw\.js\?v=[^']+',\s*\{[^)]*\}\)/.test(indexHtml)) {
         indexHtml = replaceOrThrow(
             indexHtml,
@@ -165,11 +172,44 @@ function syncFiles(version, changedFiles) {
     );
     indexHtml = replaceOrThrow(
         indexHtml,
+        /<title>Yurika Online v?[^<]+<\/title>/,
+        `<title>Yurika Online v${version}</title>`,
+        'index.html title version'
+    );
+    indexHtml = replaceOrThrow(
+        indexHtml,
+        /<link rel="icon" type="image\/webp" href="src\/assets\/icon_192_clean\.webp\?v=[^"]+">/,
+        `<link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=${version}">`,
+        'index.html favicon version'
+    );
+    indexHtml = replaceOrThrow(
+        indexHtml,
+        /<link rel="apple-touch-icon" href="src\/assets\/apple_touch_icon\.png\?v=[^"]+">/,
+        `<link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=${version}">`,
+        'index.html apple touch icon version'
+    );
+    indexHtml = replaceOrThrow(
+        indexHtml,
         /<script type="module" src="\.\/src\/js\/main\.js\?v=[^"]+"><\/script>/,
         `<script type="module" src="./src/js/main.js?v=${version}"></script>`,
         'index.html main module version'
     );
     writeFile('index.html', indexHtml, changedFiles);
+
+    let manifestJson = readFile('manifest.json');
+    manifestJson = replaceOrThrow(
+        manifestJson,
+        /"src": "src\/assets\/icon_192_clean\.webp(?:\?v=[^"]+)?"/,
+        `"src": "src/assets/icon_192_clean.webp?v=${version}"`,
+        'manifest 192 icon version'
+    );
+    manifestJson = replaceOrThrow(
+        manifestJson,
+        /"src": "src\/assets\/icon_512_clean\.webp(?:\?v=[^"]+)?"/,
+        `"src": "src/assets/icon_512_clean.webp?v=${version}"`,
+        'manifest 512 icon version'
+    );
+    writeFile('manifest.json', manifestJson, changedFiles);
 
     let swJs = readFile('sw.js');
     if (/const APP_VERSION = '[^']+';/.test(swJs)) {

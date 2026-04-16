@@ -33,10 +33,12 @@ export class UIManager {
         this.pendingExpGainHint = 0;
         this._pendingExpGainTimer = null;
         this.selectedFriendUid = null;
+        this.friendsMobileView = 'list';
         this.friendWeaponTooltipAnchor = null;
         this.friendSearchResult = null;
         this.friendProfileCache = new Map();
         this.friendAlertCount = 0;
+        this.statusDevLookupExpanded = false;
         this.handleDesktopShortcutKeydown = this.handleDesktopShortcutKeydown.bind(this);
         this.refreshDesktopShortcutHints = this.refreshDesktopShortcutHints.bind(this);
         this.positionInventoryItemModal = this.positionInventoryItemModal.bind(this);
@@ -141,6 +143,8 @@ export class UIManager {
             this.refreshTutorialGuideLayout();
             this.refreshDesktopShortcutHints();
             this.refreshUiLayoutForViewport();
+            this.syncFriendsPopupLayout();
+            this.syncStatusDevLookupVisibility();
         };
         window.addEventListener('resize', refreshTutorialOverlays);
         window.addEventListener('orientationchange', refreshTutorialOverlays);
@@ -456,6 +460,7 @@ export class UIManager {
             this.logSystemMessage('개발자 모드 권한을 잠갔습니다.');
         }
         this.syncDeveloperSettingsUi();
+        this.syncStatusDevLookupVisibility();
     }
 
     syncDeveloperSettingsUi() {
@@ -4453,6 +4458,13 @@ export class UIManager {
         const messageToggleBtn = document.getElementById('friend-message-toggle-btn');
         const messageSendBtn = document.getElementById('friend-message-send-btn');
         const giftBtn = document.getElementById('friend-gift-btn');
+        const mobileNavButtons = Array.from(document.querySelectorAll('#friends-mobile-nav .friends-mobile-nav-btn'));
+
+        mobileNavButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                this.setFriendsMobileView(button.dataset.friendsView || 'list', { force: true });
+            });
+        });
 
         const runLookup = async () => {
             const keyword = searchInput?.value?.trim() || '';
@@ -4516,6 +4528,7 @@ export class UIManager {
             if (searchInput) searchInput.value = '';
             this.renderFriendSearchResult('검색 결과가 여기에 표시됩니다.');
             this.refreshFriendsPopup();
+            this.setFriendsMobileView('list', { force: true });
         });
 
         togetherBtn?.addEventListener('click', async () => {
@@ -4540,6 +4553,7 @@ export class UIManager {
                 await this.game.net.removeFriend(this.selectedFriendUid);
                 this.selectedFriendUid = null;
                 this.refreshFriendsPopup();
+                this.setFriendsMobileView('list', { force: true });
             });
         });
 
@@ -4639,6 +4653,7 @@ export class UIManager {
         this.renderFriendSearchResult('검색 결과가 여기에 표시됩니다.');
         this.setFriendMessageComposerVisible(false);
         this.refreshFriendsPopup();
+        this.syncFriendsPopupLayout();
     }
 
     isPopupOpen(id) {
@@ -4663,6 +4678,68 @@ export class UIManager {
         if (toggleBtn) {
             toggleBtn.textContent = nextVisible ? '메시지 닫기' : '메시지 보내기';
         }
+    }
+
+    getFriendsPopupMode() {
+        const isTouch = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
+        const isMobile = isTouch && window.innerWidth <= 1024;
+        if (!isMobile) return 'desktop';
+        return this.isMobileLandscapeViewport() ? 'mobileLandscape' : 'mobilePortrait';
+    }
+
+    setFriendsMobileView(view = 'list', options = {}) {
+        const allowedViews = new Set(['search', 'list', 'detail']);
+        const requestedView = allowedViews.has(view) ? view : 'list';
+        const nextView = requestedView === 'detail' && !this.selectedFriendUid ? 'list' : requestedView;
+        const changed = this.friendsMobileView !== nextView;
+        this.friendsMobileView = nextView;
+        if (changed || options.force) {
+            this.syncFriendsPopupLayout();
+        }
+    }
+
+    syncFriendsPopupLayout() {
+        const popup = document.getElementById('friends-popup');
+        if (!popup) return;
+
+        const mode = this.getFriendsPopupMode();
+        const isPortrait = mode === 'mobilePortrait';
+        const hasSelectedFriend = !!this.selectedFriendUid;
+        if (isPortrait && this.friendsMobileView === 'detail' && !hasSelectedFriend) {
+            this.friendsMobileView = 'list';
+        }
+
+        const activeView = isPortrait ? (this.friendsMobileView || 'list') : 'split';
+        popup.dataset.friendsMode = mode;
+        popup.dataset.friendsView = activeView;
+
+        const nav = document.getElementById('friends-mobile-nav');
+        nav?.classList.toggle('hidden', !isPortrait);
+        document.querySelectorAll('#friends-mobile-nav .friends-mobile-nav-btn').forEach((button) => {
+            const view = button.dataset.friendsView || 'list';
+            const isActive = isPortrait && activeView === view;
+            button.classList.toggle('is-active', isActive);
+            button.disabled = view === 'detail' && !hasSelectedFriend;
+            button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+
+        const sidebar = popup.querySelector('.friends-sidebar');
+        const searchCard = popup.querySelector('.friends-search-card');
+        const listCard = popup.querySelector('.friends-list-card');
+        const detailCard = popup.querySelector('.friends-detail-card');
+
+        if (!isPortrait) {
+            sidebar?.classList.remove('hidden');
+            searchCard?.classList.remove('hidden');
+            listCard?.classList.remove('hidden');
+            detailCard?.classList.remove('hidden');
+            return;
+        }
+
+        sidebar?.classList.toggle('hidden', activeView === 'detail');
+        detailCard?.classList.toggle('hidden', activeView !== 'detail');
+        searchCard?.classList.toggle('hidden', activeView !== 'search');
+        listCard?.classList.toggle('hidden', activeView !== 'list');
     }
 
     getSelectedFriendName() {
@@ -4690,6 +4767,9 @@ export class UIManager {
         this.selectedFriendUid = uid;
         this.setFriendMessageComposerVisible(false);
         this.refreshFriendsPopup();
+        if (this.getFriendsPopupMode() === 'mobilePortrait') {
+            this.setFriendsMobileView('detail', { force: true });
+        }
 
         if (!this.friendProfileCache.has(uid)) {
             const profile = await this.game.net.getPlayerProfile(uid);
@@ -4699,6 +4779,9 @@ export class UIManager {
         }
 
         this.refreshFriendsPopup();
+        if (this.getFriendsPopupMode() === 'mobilePortrait') {
+            this.setFriendsMobileView('detail', { force: true });
+        }
     }
 
     refreshFriendsPopup() {
@@ -4714,6 +4797,8 @@ export class UIManager {
             this.selectedFriendUid = null;
             this.setFriendMessageComposerVisible(false);
         }
+
+        this.syncFriendsPopupLayout();
 
         listEl.innerHTML = '';
         if (friends.length === 0) {
@@ -5025,6 +5110,7 @@ export class UIManager {
 
     renderSelectedFriendDetail(friends = []) {
         this.hideFriendWeaponTooltip();
+        this.syncFriendsPopupLayout();
 
         const emptyEl = document.getElementById('friend-detail-empty');
         const panelEl = document.getElementById('friend-detail-panel');
@@ -5217,6 +5303,7 @@ export class UIManager {
                         <span class="friend-list-name">${this.escapeHtml(friend.name || friend.uid)}</span>
                         <span class="friends-status-chip${friend.online ? ' is-online' : ''}">${this.getFriendStatusText(friend.online)}</span>
                     </div>
+                    <div class="friend-list-meta">ID: ${this.escapeHtml(friend.uid)}</div>
                 `;
                 item.addEventListener('click', () => {
                     this.selectFriend(friend.uid);
@@ -5310,13 +5397,12 @@ export class UIManager {
 
     syncDevOverlayVisibility() {
         const overlay = document.getElementById('dev-overlay');
-        const statusPopup = document.getElementById('status-popup');
         if (!overlay) return;
 
         const canShow = this.devMode && this.hasDeveloperAccess();
         overlay.classList.toggle('hidden', !canShow);
-        const showLookup = canShow && statusPopup && !statusPopup.classList.contains('hidden');
-        overlay.classList.toggle('dev-lookup-visible', !!showLookup);
+        overlay.classList.toggle('dev-lookup-visible', false);
+        this.syncStatusDevLookupVisibility();
     }
 
     executePopupClose(id, isCurrentlyHidden, popup) {
@@ -8640,6 +8726,102 @@ export class UIManager {
         listEl.innerHTML = '<div class="readme-empty">업데이트 히스토리를 불러오지 못했습니다.</div>';
     }
 
+    setDeveloperLookupResult(message = '', color = '#8ff3c5') {
+        ['dev-search-result', 'status-dev-search-result'].forEach((id) => {
+            const resultEl = document.getElementById(id);
+            if (!resultEl) return;
+            resultEl.textContent = message;
+            resultEl.style.color = color;
+        });
+    }
+
+    async runDeveloperLookup(name = '') {
+        const normalizedName = String(name || '').trim();
+        if (!normalizedName) {
+            return { ok: false, message: '이름을 입력해 주세요.', color: '#ffb2b2' };
+        }
+
+        this.setDeveloperLookupResult('조회 중입니다...', '#ffd585');
+        const uid = await this.game.net?.getUidByName?.(normalizedName);
+        if (!uid) {
+            return { ok: false, message: '대상을 찾지 못했습니다.', color: '#ff9f9f' };
+        }
+
+        if (navigator?.clipboard?.writeText) {
+            navigator.clipboard.writeText(`##${uid}`).catch(() => { });
+        }
+
+        return {
+            ok: true,
+            uid,
+            message: `복구 코드: ##${uid}`,
+            color: '#8ff3c5'
+        };
+    }
+
+    bindDeveloperLookupControls(inputId, buttonId, options = {}) {
+        const input = document.getElementById(inputId);
+        const button = document.getElementById(buttonId);
+        if (!input || !button || button.dataset.bound === 'true') return;
+
+        const runLookup = async () => {
+            const result = await this.runDeveloperLookup(input.value);
+            this.setDeveloperLookupResult(result.message, result.color);
+        };
+
+        button.addEventListener('click', runLookup);
+        input.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            e.stopPropagation();
+            runLookup();
+        });
+
+        if (options.syncValue !== false) {
+            input.addEventListener('input', () => {
+                const value = input.value;
+                ['dev-name-search', 'status-dev-name-search'].forEach((targetId) => {
+                    const target = document.getElementById(targetId);
+                    if (!target || target === input || target.value === value) return;
+                    target.value = value;
+                });
+            });
+        }
+
+        button.dataset.bound = 'true';
+    }
+
+    setStatusDevLookupExpanded(expanded = false, options = {}) {
+        const { focus = false } = options;
+        this.statusDevLookupExpanded = !!expanded;
+        const overlay = document.getElementById('status-dev-lookup-overlay');
+        const panel = document.getElementById('status-dev-lookup-panel');
+        const toggle = document.getElementById('status-dev-lookup-toggle');
+        const statusPopup = document.getElementById('status-popup');
+        if (!overlay || !panel || !toggle) return;
+
+        const canShow = this.devMode && this.hasDeveloperAccess() && statusPopup && !statusPopup.classList.contains('hidden');
+        const nextExpanded = canShow && this.statusDevLookupExpanded;
+        overlay.classList.toggle('hidden', !canShow);
+        panel.classList.toggle('hidden', !nextExpanded);
+        toggle.classList.toggle('is-active', nextExpanded);
+        toggle.textContent = nextExpanded ? 'UID 닫기' : 'UID 조회';
+        statusPopup?.classList.toggle('status-dev-lookup-active', nextExpanded);
+
+        if (nextExpanded && focus) {
+            document.getElementById('status-dev-name-search')?.focus();
+        }
+    }
+
+    syncStatusDevLookupVisibility() {
+        const statusPopup = document.getElementById('status-popup');
+        const canShow = this.devMode && this.hasDeveloperAccess() && statusPopup && !statusPopup.classList.contains('hidden');
+        if (!canShow) {
+            this.statusDevLookupExpanded = false;
+        }
+        this.setStatusDevLookupExpanded(this.statusDevLookupExpanded);
+    }
+
     setupDevModeListeners() {
         const portrait = document.querySelector('.status-portrait');
         if (portrait) {
@@ -8702,7 +8884,12 @@ export class UIManager {
                 searchInput.dataset.bound = 'true';
             }
         }
+        this.bindDeveloperLookupControls('status-dev-name-search', 'status-dev-btn-search');
+        document.getElementById('status-dev-lookup-toggle')?.addEventListener('click', () => {
+            this.setStatusDevLookupExpanded(!this.statusDevLookupExpanded, { focus: true });
+        });
         this.syncDeveloperSettingsUi();
+        this.syncStatusDevLookupVisibility();
     }
     // v0.00.15: Dev Mode - Character Reset (Refund)
     async handleDevCharacterReset() {
