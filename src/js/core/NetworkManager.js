@@ -3936,6 +3936,14 @@ export default class NetworkManager extends EventEmitter {
             }
         });
 
+        this.friends.set(targetUid, {
+            uid: targetUid,
+            name: targetName,
+            createdAt: now,
+            updatedAt: now
+        });
+        this.emit('friendsUpdated', this.getFriendListSnapshot());
+
         return { ok: true, uid: targetUid, name: targetName };
     }
 

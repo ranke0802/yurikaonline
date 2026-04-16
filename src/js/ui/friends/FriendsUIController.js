@@ -1731,6 +1731,7 @@ export default class FriendsUIController {
         }
 
         const friend = (this.game.net?.getFriendListSnapshot?.() || []).find((entry) => entry.uid === targetUid) || null;
+        const profile = this.friendProfileCache.get(targetUid) || null;
         const displayName = this.getFriendDisplayName(targetUid);
         const titleEl = document.getElementById('friend-chat-title');
         const statusEl = document.getElementById('friend-chat-status');
