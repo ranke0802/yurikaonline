@@ -633,6 +633,8 @@ export default class FriendsUIController {
                 requestedUid: null,
                 viewportPreset: null,
                 scale: 1,
+                width: null,
+                height: null,
                 left: null,
                 top: null
             };
@@ -645,6 +647,12 @@ export default class FriendsUIController {
             ? String(this.friendChatWindowState.viewportPreset)
             : null;
         this.friendChatWindowState.scale = Math.min(1.5, Math.max(0.5, Number(this.friendChatWindowState.scale) || 1));
+        this.friendChatWindowState.width = Number.isFinite(Number(this.friendChatWindowState.width))
+            ? Number(this.friendChatWindowState.width)
+            : null;
+        this.friendChatWindowState.height = Number.isFinite(Number(this.friendChatWindowState.height))
+            ? Number(this.friendChatWindowState.height)
+            : null;
         this.friendChatWindowState.left = Number.isFinite(Number(this.friendChatWindowState.left))
             ? Number(this.friendChatWindowState.left)
             : null;
@@ -695,22 +703,23 @@ export default class FriendsUIController {
         scrim?.classList.toggle('hidden', !!state.compact);
         unreadDot?.classList.toggle('hidden', !state.unreadWhileMinimized);
 
-        let scale = Math.min(1.5, Math.max(0.5, Number(state.scale) || 1));
         if (state.compact) {
             state.viewportPreset = viewportPreset.id;
-            card.style.setProperty('--friend-chat-compact-width', `${viewportPreset.width}px`);
-            card.style.setProperty('--friend-chat-compact-height', `${viewportPreset.height}px`);
             if (viewportChanged) {
                 state.scale = 1;
                 state.left = null;
                 state.top = null;
-                scale = 1;
             }
-            const baseWidth = state.minimized ? (card.offsetWidth || 232) : viewportPreset.width;
-            const baseHeight = state.minimized ? (card.offsetHeight || 96) : viewportPreset.height;
-            const scaleBounds = this.getFriendChatScaleBounds(baseWidth, baseHeight, { preset: viewportPreset });
-            scale = Math.min(scaleBounds.max, Math.max(scaleBounds.min, scale));
-            state.scale = scale;
+            const sizeBounds = this.getFriendChatSizeBounds({ preset: viewportPreset });
+            const fallbackWidth = state.minimized ? (card.offsetWidth || 232) : viewportPreset.width;
+            const fallbackHeight = state.minimized ? (card.offsetHeight || 96) : viewportPreset.height;
+            const nextWidth = Math.min(sizeBounds.maxWidth, Math.max(sizeBounds.minWidth, Number(state.width) || fallbackWidth));
+            const nextHeight = Math.min(sizeBounds.maxHeight, Math.max(sizeBounds.minHeight, Number(state.height) || fallbackHeight));
+            state.width = nextWidth;
+            state.height = nextHeight;
+            state.scale = 1;
+            card.style.setProperty('--friend-chat-compact-width', `${Math.round(nextWidth)}px`);
+            card.style.setProperty('--friend-chat-compact-height', `${Math.round(nextHeight)}px`);
         } else {
             state.viewportPreset = null;
             card.style.removeProperty('--friend-chat-compact-width');
@@ -754,11 +763,11 @@ export default class FriendsUIController {
         } else {
             card.dataset.preserveFloatingTransform = 'true';
             card.style.setProperty('position', 'fixed', 'important');
-            card.style.setProperty('transform', `scale(${scale})`, 'important');
-            card.style.setProperty('transform-origin', 'top left', 'important');
             card.style.setProperty('right', 'auto', 'important');
             card.style.setProperty('bottom', 'auto', 'important');
             card.style.setProperty('margin', '0', 'important');
+            card.style.removeProperty('transform');
+            card.style.removeProperty('transform-origin');
 
             if (!Number.isFinite(state.left) || !Number.isFinite(state.top)) {
                 this.resetFriendChatCompactPosition(card, { preserveScale: true });
@@ -908,10 +917,7 @@ export default class FriendsUIController {
     }
 
     getFriendChatVisualScale() {
-        const state = this.ensureFriendChatWindowState();
-        return this.isFriendChatCompactMode()
-            ? Math.min(1.5, Math.max(0.5, Number(state.scale) || 1))
-            : 1;
+        return 1;
     }
 
     shouldDeferFriendChatInputActivation() {
@@ -1039,19 +1045,35 @@ export default class FriendsUIController {
         };
     }
 
+    getFriendChatSizeBounds(options = {}) {
+        const margin = this.getFriendChatCompactMargin();
+        const preset = options.preset || this.getFriendChatCompactViewportPreset(options);
+        const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
+        const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+        const minWidth = Math.max(220, Math.round((Number(preset.width) || 320) * 0.5));
+        const minHeight = Math.max(180, Math.round((Number(preset.height) || 360) * 0.5));
+        const maxWidth = Math.max(minWidth, Math.min(viewportW - margin * 2, Math.round((Number(preset.width) || 320) * 1.5)));
+        const maxHeight = Math.max(minHeight, Math.min(viewportH - margin * 2, Math.round((Number(preset.height) || 360) * 1.5)));
+        return {
+            minWidth,
+            maxWidth,
+            minHeight,
+            maxHeight
+        };
+    }
+
     resetFriendChatCompactPosition(card = document.getElementById('friend-chat-card'), options = {}) {
         if (!card) return;
 
         const state = this.ensureFriendChatWindowState();
-        const scale = Math.min(1.5, Math.max(0.5, Number(state.scale) || 1));
         const margin = this.getFriendChatCompactMargin();
         const bottomInset = this.getFriendsPopupMode() === 'desktop'
             ? margin
             : margin + (window.visualViewport ? Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop) : 0);
 
         if (!options.preserveScale) {
-            card.style.setProperty('transform', `scale(${scale})`, 'important');
-            card.style.setProperty('transform-origin', 'top left', 'important');
+            card.style.removeProperty('transform');
+            card.style.removeProperty('transform-origin');
         }
 
         const rect = card.getBoundingClientRect();
@@ -1093,10 +1115,9 @@ export default class FriendsUIController {
         event.stopPropagation();
 
         const state = this.ensureFriendChatWindowState();
-        const currentScale = Math.min(1.5, Math.max(0.5, Number(state.scale) || 1));
         const rect = card.getBoundingClientRect();
-        const baseWidth = rect.width / currentScale;
-        const baseHeight = rect.height / currentScale;
+        const baseWidth = rect.width;
+        const baseHeight = rect.height;
 
         this.friendChatResizeState = {
             active: true,
@@ -1146,12 +1167,11 @@ export default class FriendsUIController {
             targetHeight = event.clientY - resizeState.startTop;
         }
 
-        const scaleBounds = this.getFriendChatScaleBounds(baseWidth, baseHeight, {
+        const sizeBounds = this.getFriendChatSizeBounds({
             preset: this.getFriendChatCompactViewportPreset()
         });
-        const nextScale = Math.min(scaleBounds.max, Math.max(scaleBounds.min, Math.max(targetWidth / baseWidth, targetHeight / baseHeight)));
-        const width = baseWidth * nextScale;
-        const height = baseHeight * nextScale;
+        const width = Math.min(sizeBounds.maxWidth, Math.max(sizeBounds.minWidth, targetWidth));
+        const height = Math.min(sizeBounds.maxHeight, Math.max(sizeBounds.minHeight, targetHeight));
 
         let nextLeft = resizeState.startLeft;
         let nextTop = resizeState.startTop;
@@ -1166,12 +1186,16 @@ export default class FriendsUIController {
 
         const clamped = this.clampFloatingPanelPosition(nextLeft, nextTop, width, height, this.getFriendChatCompactMargin());
         const state = this.ensureFriendChatWindowState();
-        state.scale = nextScale;
+        state.scale = 1;
+        state.width = width;
+        state.height = height;
         state.left = clamped.left;
         state.top = clamped.top;
 
-        card.style.setProperty('transform', `scale(${nextScale})`, 'important');
-        card.style.setProperty('transform-origin', 'top left', 'important');
+        card.style.setProperty('--friend-chat-compact-width', `${Math.round(width)}px`);
+        card.style.setProperty('--friend-chat-compact-height', `${Math.round(height)}px`);
+        card.style.removeProperty('transform');
+        card.style.removeProperty('transform-origin');
         card.style.setProperty('left', `${clamped.left}px`, 'important');
         card.style.setProperty('top', `${clamped.top}px`, 'important');
         this.positionFriendGiftItemPicker();
@@ -1546,6 +1570,12 @@ export default class FriendsUIController {
             toggleBtn.setAttribute('aria-label', toggleBtn.title);
         }
         if (nextVisible) {
+            const state = this.ensureFriendChatWindowState();
+            const preset = this.getFriendChatCompactViewportPreset({ isGiftOpen: true });
+            if (this.isFriendChatCompactMode()) {
+                state.width = Math.max(Number(state.width) || 0, preset.width);
+                state.height = Math.max(Number(state.height) || 0, preset.height);
+            }
             this.refreshFriendGiftOptions();
         } else {
             this.toggleFriendGiftItemPicker(false);
