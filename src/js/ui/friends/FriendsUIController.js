@@ -1337,6 +1337,7 @@ export default class FriendsUIController {
 
         this.friendChatReturnView = options.returnView || (this.friendsMobileView || 'list');
         await this.selectFriend(uid, { showProfile: false });
+        this.selectedFriendUid = uid;
         this.friendChatUid = uid;
         const state = this.ensureFriendChatWindowState();
         state.compact = !!options.compact;
@@ -1352,11 +1353,13 @@ export default class FriendsUIController {
             state.retainOnPopupToggle = false;
         }
 
-        document.getElementById('friend-chat-modal')?.classList.remove('hidden');
+        const chatModal = document.getElementById('friend-chat-modal');
+        chatModal?.setAttribute('data-chat-friend-uid', uid);
+        chatModal?.classList.remove('hidden');
         this.setFriendGiftComposerVisible(!!options.openGift);
         this.refreshFriendGiftOptions();
         this.applyFriendChatWindowState();
-        this.renderFriendChatMessages({ forceToLatest: true });
+        this.renderFriendChatMessages({ forceToLatest: true, uid });
         this.syncFriendChatInputActivation({
             deferred: !options.focusInput && this.shouldDeferFriendChatInputActivation(),
             focus: !!options.focusInput
@@ -1377,6 +1380,7 @@ export default class FriendsUIController {
         } = options;
 
         document.getElementById('friend-chat-modal')?.classList.add('hidden');
+        document.getElementById('friend-chat-modal')?.removeAttribute('data-chat-friend-uid');
         document.getElementById('friend-chat-input')?.blur();
         this.setFriendGiftComposerVisible(false);
         this.toggleFriendChatProfileModal(false);
@@ -1677,14 +1681,28 @@ export default class FriendsUIController {
 
     renderFriendChatMessages(options = {}) {
         const container = document.getElementById('friend-chat-messages');
+        const chatModal = document.getElementById('friend-chat-modal');
         if (!container) return;
         const forceToLatest = !!options.forceToLatest;
         const stickToBottom = Math.abs((container.scrollHeight - container.scrollTop) - container.clientHeight) < 28;
 
-        const targetUid = this.friendChatUid || this.selectedFriendUid;
+        const fallbackUid = typeof options.uid === 'string' && options.uid
+            ? options.uid
+            : (chatModal?.getAttribute('data-chat-friend-uid') || '');
+        const targetUid = this.friendChatUid || this.selectedFriendUid || fallbackUid || null;
         if (!targetUid) {
             container.innerHTML = '<div class="friend-chat-empty">대화할 친구를 먼저 선택해 주세요.</div>';
             return;
+        }
+        if (fallbackUid && this.friendChatUid !== fallbackUid) {
+            this.friendChatUid = fallbackUid;
+        } else if (!this.friendChatUid) {
+            this.friendChatUid = targetUid;
+        }
+        if (fallbackUid && this.selectedFriendUid !== fallbackUid) {
+            this.selectedFriendUid = fallbackUid;
+        } else if (!this.selectedFriendUid) {
+            this.selectedFriendUid = targetUid;
         }
 
         const friend = (this.game.net?.getFriendListSnapshot?.() || []).find((entry) => entry.uid === targetUid) || null;
