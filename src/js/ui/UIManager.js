@@ -1274,10 +1274,6 @@ export class UIManager {
         const baseLayout = this.sanitizeUiLayout(this.game.localPlayer?.uiLayout) || { version: 1, layouts: {} };
         this.uiLayoutDraft = this.cloneStructuredData(baseLayout) || { version: 1, layouts: {} };
         this.uiLayoutEditMode = true;
-        this.uiLayoutActiveMode = this.getUiLayoutMode();
-        this.ensureUiLayoutDraftMode(this.uiLayoutActiveMode);
-        this.uiLayoutSelectedControlId = this.getDefaultUiLayoutControlId(this.uiLayoutActiveMode);
-        this.setUiLayoutDirty(false);
         this.game.touch?.resetState?.();
         this.game.input?.setEnabled?.(false);
         this.isPaused = true;
@@ -1286,6 +1282,11 @@ export class UIManager {
         document.querySelectorAll('.game-popup').forEach((popup) => popup.classList.add('hidden'));
         document.body.classList.remove('popup-open');
         document.body.classList.add('ui-layout-edit-mode');
+        document.body.getBoundingClientRect();
+        this.uiLayoutActiveMode = this.getUiLayoutMode();
+        this.ensureUiLayoutDraftMode(this.uiLayoutActiveMode);
+        this.uiLayoutSelectedControlId = this.getDefaultUiLayoutControlId(this.uiLayoutActiveMode);
+        this.setUiLayoutDirty(false);
         document.getElementById('ui-layout-editor')?.classList.remove('hidden');
         this.resetUiLayoutEditorWindowPosition();
         this.applyActiveUiLayout();
