@@ -39,8 +39,19 @@ export class UIManager {
         this.friendSearchResult = null;
         this.friendProfileCache = new Map();
         this.friendChatUid = null;
+        this.friendChatReturnView = 'list';
         this.friendGiftKind = 'manastone';
+        this.friendGiftSelection = null;
         this.friendAlertCount = 0;
+        this.friendChatWindowState = {
+            compact: false,
+            minimized: false,
+            unreadWhileMinimized: false,
+            retainOnPopupToggle: false,
+            scale: 1,
+            left: null,
+            top: null
+        };
         this.partyPanelUiState = {
             minimized: false
         };
@@ -237,6 +248,7 @@ export class UIManager {
             desktopShortcutHints: true,
             developerLogLevel: 'warn',
             chatOpacity: 100,
+            friendCompactOpacity: 82,
             questOpacity: 100,
             minimapOpacity: 100,
             actionOpacity: 100,
@@ -303,6 +315,7 @@ export class UIManager {
             desktopShortcutHints: candidate.desktopShortcutHints !== false,
             developerLogLevel: this.sanitizeLogLevel(candidate.developerLogLevel, defaults.developerLogLevel),
             chatOpacity: this.clampNumericSetting(candidate.chatOpacity, defaults.chatOpacity, 35, 100),
+            friendCompactOpacity: this.clampNumericSetting(candidate.friendCompactOpacity, defaults.friendCompactOpacity, 45, 100),
             questOpacity: this.clampNumericSetting(candidate.questOpacity, defaults.questOpacity, 35, 100),
             minimapOpacity: this.clampNumericSetting(candidate.minimapOpacity, defaults.minimapOpacity, 35, 100),
             actionOpacity: this.clampNumericSetting(candidate.actionOpacity, defaults.actionOpacity, 35, 100),
@@ -650,6 +663,7 @@ export class UIManager {
         const { refreshGame = false, syncUi = false } = options;
         const root = document.documentElement;
         const chatOpacity = (this.getSetting('chatOpacity') / 100).toFixed(2);
+        const friendCompactOpacity = (this.getSetting('friendCompactOpacity') / 100).toFixed(2);
         const questOpacity = (this.getSetting('questOpacity') / 100).toFixed(2);
         const minimapOpacity = (this.getSetting('minimapOpacity') / 100).toFixed(2);
         const actionOpacity = (this.getSetting('actionOpacity') / 100).toFixed(2);
@@ -657,6 +671,7 @@ export class UIManager {
 
         Logger.setLevel(this.getSetting('developerLogLevel'));
         root.style.setProperty('--ui-chat-opacity', chatOpacity);
+        root.style.setProperty('--ui-friend-compact-opacity', friendCompactOpacity);
         root.style.setProperty('--ui-quest-opacity', questOpacity);
         root.style.setProperty('--ui-minimap-opacity', minimapOpacity);
         root.style.setProperty('--ui-action-opacity', actionOpacity);
@@ -683,6 +698,7 @@ export class UIManager {
         const bindings = [
             ['settings-master-volume', 'masterVolume', 'settings-master-volume-value', '%'],
             ['settings-chat-opacity', 'chatOpacity', 'settings-chat-opacity-value', '%'],
+            ['settings-friend-compact-opacity', 'friendCompactOpacity', 'settings-friend-compact-opacity-value', '%'],
             ['settings-quest-opacity', 'questOpacity', 'settings-quest-opacity-value', '%'],
             ['settings-minimap-opacity', 'minimapOpacity', 'settings-minimap-opacity-value', '%'],
             ['settings-action-opacity', 'actionOpacity', 'settings-action-opacity-value', '%'],
@@ -3070,12 +3086,26 @@ export class UIManager {
         e.stopPropagation();
 
         const rect = panel.getBoundingClientRect();
+        const preserveTransform = panel.dataset.preserveFloatingTransform === 'true';
+        const computedStyle = window.getComputedStyle(panel);
+        const activeTransform = panel.style.transform || (computedStyle.transform !== 'none' ? computedStyle.transform : '');
+        const activeTransformOrigin = panel.style.transformOrigin || computedStyle.transformOrigin || 'top left';
         panel.style.setProperty('position', 'fixed', 'important');
         panel.style.setProperty('left', `${Math.round(rect.left)}px`, 'important');
         panel.style.setProperty('top', `${Math.round(rect.top)}px`, 'important');
         panel.style.setProperty('right', 'auto', 'important');
         panel.style.setProperty('bottom', 'auto', 'important');
-        panel.style.setProperty('transform', 'none', 'important');
+        if (preserveTransform) {
+            if (activeTransform) {
+                panel.style.setProperty('transform', activeTransform, 'important');
+            } else {
+                panel.style.removeProperty('transform');
+            }
+            panel.style.setProperty('transform-origin', activeTransformOrigin, 'important');
+        } else {
+            panel.style.setProperty('transform', 'none', 'important');
+            panel.style.removeProperty('transform-origin');
+        }
         panel.style.setProperty('margin', '0', 'important');
 
         this.floatingPanelDragState = {
@@ -4111,6 +4141,7 @@ export class UIManager {
         const rangeSettings = [
             ['settings-master-volume', 'masterVolume', { refreshGame: false }],
             ['settings-chat-opacity', 'chatOpacity', { refreshGame: false }],
+            ['settings-friend-compact-opacity', 'friendCompactOpacity', { refreshGame: false }],
             ['settings-quest-opacity', 'questOpacity', { refreshGame: false }],
             ['settings-minimap-opacity', 'minimapOpacity', { refreshGame: false }],
             ['settings-action-opacity', 'actionOpacity', { refreshGame: false }],
@@ -6542,7 +6573,9 @@ export class UIManager {
             }
             if (id === 'friends-popup') {
                 this.toggleFriendSearchModal(false);
-                this.closeFriendChat({ detachThread: true, silent: true });
+                if (!this.friendChatWindowState?.compact && !this.friendChatWindowState?.retainOnPopupToggle) {
+                    this.closeFriendChat({ detachThread: true, silent: true });
+                }
                 this.setFriendsMobileView('list', { force: true });
                 this.refreshFriendsPopup();
                 popup.scrollTop = 0;
@@ -6558,7 +6591,9 @@ export class UIManager {
             }
             if (id === 'friends-popup') {
                 this.toggleFriendSearchModal(false);
-                this.closeFriendChat({ detachThread: true, silent: true });
+                if (!this.friendChatWindowState?.compact && !this.friendChatWindowState?.retainOnPopupToggle) {
+                    this.closeFriendChat({ detachThread: true, silent: true });
+                }
             }
             this.closeInventoryItemModal(true);
             this.isPaused = false;
@@ -8539,12 +8574,26 @@ export class UIManager {
 
         const rect = panel.getBoundingClientRect();
         const clamped = this.clampFloatingPanelPosition(rect.left, rect.top, rect.width, rect.height);
+        const preserveTransform = panel.dataset.preserveFloatingTransform === 'true';
+        const computedStyle = window.getComputedStyle(panel);
+        const activeTransform = panel.style.transform || (computedStyle.transform !== 'none' ? computedStyle.transform : '');
+        const activeTransformOrigin = panel.style.transformOrigin || computedStyle.transformOrigin || 'top left';
         panel.style.setProperty('position', 'fixed', 'important');
         panel.style.setProperty('left', `${clamped.left}px`, 'important');
         panel.style.setProperty('top', `${clamped.top}px`, 'important');
         panel.style.setProperty('right', 'auto', 'important');
         panel.style.setProperty('bottom', 'auto', 'important');
-        panel.style.setProperty('transform', 'none', 'important');
+        if (preserveTransform) {
+            if (activeTransform) {
+                panel.style.setProperty('transform', activeTransform, 'important');
+            } else {
+                panel.style.removeProperty('transform');
+            }
+            panel.style.setProperty('transform-origin', activeTransformOrigin, 'important');
+        } else {
+            panel.style.setProperty('transform', 'none', 'important');
+            panel.style.removeProperty('transform-origin');
+        }
         panel.style.setProperty('margin', '0', 'important');
     }
 

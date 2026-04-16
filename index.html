@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json?v=0.01.164">
+    <link rel="manifest" href="manifest.json?v=0.01.165">
     <meta name="theme-color" content="#2d3436">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
-        window.BOOTSTRAP_VERSION = '0.01.164';
+        window.BOOTSTRAP_VERSION = '0.01.165';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -123,7 +123,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    await navigator.serviceWorker.register('./sw.js?v=0.01.164', { updateViaCache: 'none' });
+                    await navigator.serviceWorker.register('./sw.js?v=0.01.165', { updateViaCache: 'none' });
                 } catch (err) {
                     console.warn('ServiceWorker registration failed: ', err);
                 }
@@ -145,10 +145,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.01.164</title>
+    <title>Yurika Online v0.01.165</title>
 
-    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.01.164">
-    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.01.164">
+    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.01.165">
+    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.01.165">
     <script>
         // v0.29.20+: Prefer the actually loaded client build for UI, and auto-reset caches on mismatch.
         (async function initCacheBusting() {
@@ -211,7 +211,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.164">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.165">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -753,6 +753,13 @@
                             </div>
                         </div>
                         <div class="settings-row">
+                            <label for="settings-friend-compact-opacity">소형 채팅 투명도</label>
+                            <div class="settings-control settings-range-control">
+                                <input id="settings-friend-compact-opacity" type="range" min="45" max="100" step="1">
+                                <span id="settings-friend-compact-opacity-value">82%</span>
+                            </div>
+                        </div>
+                        <div class="settings-row">
                             <label for="settings-quest-opacity">퀘스트창 투명도</label>
                             <div class="settings-control settings-range-control">
                                 <input id="settings-quest-opacity" type="range" min="35" max="100" step="1">
@@ -852,7 +859,7 @@
                         </div>
 
                         <div id="friend-profile-panel" class="friends-profile-panel hidden">
-                            <button id="friend-profile-back-btn" type="button" class="friends-back-btn">목록으로</button>
+                            <button id="friend-profile-back-btn" type="button" class="friends-back-btn" aria-label="이전 단계">&lt;</button>
 
                             <div class="friends-profile-card">
                                 <div class="friends-profile-hero">
@@ -915,54 +922,93 @@
                     </div>
                 </div>
 
-                <div id="friend-chat-modal" class="friends-floating-modal hidden" role="dialog" aria-modal="true" aria-labelledby="friend-chat-title">
-                    <div class="friends-floating-scrim"></div>
-                    <div class="friends-chat-card">
-                        <div class="friends-chat-header">
-                            <button id="friend-chat-back-btn" type="button" class="friends-back-btn">프로필</button>
-                            <div class="friends-chat-title-block">
-                                <strong id="friend-chat-title">채팅</strong>
-                                <span id="friend-chat-status">오프라인</span>
-                            </div>
-                            <div class="friends-chat-header-actions">
-                                <button id="friend-chat-gift-toggle-btn" type="button" class="friends-small-action">선물</button>
-                                <button id="friend-chat-close-btn" type="button" class="friends-icon-ghost" aria-label="채팅 닫기">✕</button>
-                            </div>
+            </div>
+        </div>
+
+        <div id="friend-chat-modal" class="friends-floating-modal hidden" role="dialog" aria-modal="true" aria-labelledby="friend-chat-title">
+            <div class="friends-floating-scrim"></div>
+            <div id="friend-chat-card" class="friends-chat-card">
+                <div id="friend-chat-header" class="friends-chat-header">
+                    <button id="friend-chat-back-btn" type="button" class="friends-back-btn" aria-label="이전 단계">&lt;</button>
+                    <button id="friend-chat-avatar-btn" type="button" class="friends-chat-avatar" aria-label="친구 프로필 보기">
+                        <span id="friend-chat-avatar-fallback">?</span>
+                    </button>
+                    <div class="friends-chat-title-block">
+                        <div class="friends-chat-title-row">
+                            <strong id="friend-chat-title">채팅</strong>
+                            <span id="friend-chat-unread-dot" class="friend-chat-unread-dot hidden" aria-hidden="true"></span>
+                        </div>
+                        <span id="friend-chat-status">오프라인</span>
+                    </div>
+                    <div class="friends-chat-header-actions">
+                        <button id="friend-chat-together-btn" type="button" class="friends-icon-action" aria-label="함께하기" title="함께하기">
+                            <span class="friends-action-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M9 11.5c-1.93 0-3.5-1.79-3.5-4S7.07 3.5 9 3.5s3.5 1.79 3.5 4-1.57 4-3.5 4Zm6 1.5c-1.66 0-3-1.57-3-3.5S13.34 6 15 6s3 1.57 3 3.5S16.66 13 15 13Zm-6 2c3.04 0 5.5 1.79 5.5 4v1H3.5v-1c0-2.21 2.46-4 5.5-4Zm6 1c2.49 0 4.5 1.46 4.5 3.25V20h-4v-.75c0-.99-.36-1.9-1.01-2.67A6.9 6.9 0 0 1 15 16Z" />
+                                </svg>
+                            </span>
+                        </button>
+                        <button id="friend-chat-minimize-btn" type="button" class="friends-icon-ghost" aria-label="채팅 최소화">−</button>
+                        <button id="friend-chat-compact-btn" type="button" class="friends-icon-action" aria-label="채팅 소형화" title="채팅 소형화">
+                            <span class="friends-action-icon friends-action-icon-compact" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M4 4h6v2H6v4H4V4Zm10 0h6v6h-2V6h-4V4ZM4 14h2v4h4v2H4v-6Zm14 0h2v6h-6v-2h4v-4ZM8 8h8v8H8V8Z" />
+                                </svg>
+                            </span>
+                            <span class="friends-action-icon friends-action-icon-expand hidden" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M4 10V4h6v2H6v4H4Zm10-6h6v6h-2V6h-4V4ZM4 20v-6h2v4h4v2H4Zm14-6h2v6h-6v-2h4v-4ZM9 9h6v6H9V9Z" />
+                                </svg>
+                            </span>
+                        </button>
+                        <button id="friend-chat-close-btn" type="button" class="friends-icon-ghost" aria-label="채팅 닫기">✕</button>
+                    </div>
+                </div>
+
+                <div id="friend-chat-body" class="friends-chat-body">
+                    <div id="friend-chat-messages" class="friends-chat-messages"></div>
+
+                    <div id="friend-gift-composer" class="friend-gift-composer hidden">
+                        <div class="friend-gift-kind-row">
+                            <button id="friend-gift-kind-manastone" type="button" class="friend-gift-kind-btn is-active">마석</button>
+                            <button id="friend-gift-kind-item" type="button" class="friend-gift-kind-btn">아이템</button>
                         </div>
 
-                        <div id="friend-chat-messages" class="friends-chat-messages"></div>
+                        <div id="friend-gift-balance" class="friend-gift-balance"></div>
 
-                        <div id="friend-gift-composer" class="friend-gift-composer hidden">
-                            <div class="friend-gift-kind-row">
-                                <button id="friend-gift-kind-manastone" type="button" class="friend-gift-kind-btn is-active">마석</button>
-                                <button id="friend-gift-kind-item" type="button" class="friend-gift-kind-btn">아이템</button>
-                            </div>
-
-                            <div id="friend-gift-balance" class="friend-gift-balance"></div>
-
-                            <div id="friend-gift-manastone-panel" class="friend-gift-panel">
-                                <label for="friend-gift-manastone-amount">마석 수량</label>
-                                <input id="friend-gift-manastone-amount" type="number" min="1" step="1" inputmode="numeric" value="100">
-                            </div>
-
-                            <div id="friend-gift-item-panel" class="friend-gift-panel hidden">
-                                <label for="friend-gift-item-select">아이템 선택</label>
-                                <select id="friend-gift-item-select"></select>
-                                <label for="friend-gift-item-amount">수량</label>
-                                <input id="friend-gift-item-amount" type="number" min="1" step="1" inputmode="numeric" value="1">
-                            </div>
-
-                            <div class="friend-gift-actions">
-                                <button id="friend-gift-cancel-btn" type="button" class="friends-secondary-action">접기</button>
-                                <button id="friend-gift-send-btn" type="button" class="friends-primary-action">선물 보내기</button>
-                            </div>
+                        <div id="friend-gift-manastone-panel" class="friend-gift-panel">
+                            <label for="friend-gift-manastone-amount">마석 수량</label>
+                            <input id="friend-gift-manastone-amount" type="number" min="1" step="1" inputmode="numeric" value="100">
                         </div>
 
-                        <div class="friends-chat-input-row">
-                            <textarea id="friend-chat-input" rows="1" maxlength="200" placeholder="메시지를 입력하세요."></textarea>
-                            <button id="friend-chat-send-btn" type="button" class="friends-primary-action">전송</button>
+                        <div id="friend-gift-item-panel" class="friend-gift-panel hidden">
+                            <div class="friend-gift-item-picker-row">
+                                <button id="friend-gift-item-picker-btn" type="button" class="friends-secondary-action">아이템</button>
+                                <span id="friend-gift-item-summary" class="friend-gift-balance">선택한 아이템이 없습니다.</span>
+                            </div>
+                            <div id="friend-gift-selected-list" class="friend-gift-selected-list"></div>
+                            <label for="friend-gift-item-amount">수량</label>
+                            <input id="friend-gift-item-amount" type="number" min="1" step="1" inputmode="numeric" value="1">
+                            <div id="friend-gift-item-picker" class="friend-gift-item-picker hidden"></div>
+                        </div>
+
+                        <div class="friend-gift-actions">
+                            <button id="friend-gift-cancel-btn" type="button" class="friends-secondary-action">접기</button>
+                            <button id="friend-gift-send-btn" type="button" class="friends-primary-action">선물 보내기</button>
                         </div>
                     </div>
+
+                    <div class="friends-chat-input-row">
+                        <textarea id="friend-chat-input" rows="1" maxlength="200" placeholder="메시지를 입력하세요."></textarea>
+                        <button id="friend-chat-gift-toggle-btn" type="button" class="friends-secondary-action">선물</button>
+                        <button id="friend-chat-send-btn" type="button" class="friends-primary-action">전송</button>
+                    </div>
+                </div>
+                <div class="friend-chat-resize-handles" aria-hidden="true">
+                    <div class="friend-chat-resize-handle is-top-left" data-friend-chat-resize="top-left"></div>
+                    <div class="friend-chat-resize-handle is-top-right" data-friend-chat-resize="top-right"></div>
+                    <div class="friend-chat-resize-handle is-bottom-left" data-friend-chat-resize="bottom-left"></div>
+                    <div class="friend-chat-resize-handle is-bottom-right" data-friend-chat-resize="bottom-right"></div>
                 </div>
             </div>
         </div>
@@ -1094,7 +1140,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.164"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.165"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

@@ -44,10 +44,11 @@ export default class NetworkManager extends EventEmitter {
         this.activeHeartbeatInterval = this.heartbeatIntervalMs;
         this.backgroundHeartbeatInterval = this.heartbeatIntervalMs;
         this.presenceStaleTimeout = 18000;
-        this.friendOnlineGraceMs = 30000;
+        this.friendOnlineGraceMs = 3000;
         this.sharedGhostTimeout = 15000;
         this.soloGhostTimeout = 12000;
         this.lastPacketData = null;
+        this.pendingFriendGiftRefunds = [];
 
         // Batch update queue for damage/events
         this.batchQueue = [];
@@ -94,6 +95,7 @@ export default class NetworkManager extends EventEmitter {
         this._socialSessionStartedAt = Date.now();
         this._pendingTogetherRequest = null;
         this._pendingPartyInvite = null;
+        this._activeFriendThreadAutoRead = true;
         const initialNow = Date.now();
         this._visibilityState = (typeof document !== 'undefined' && document.hidden) ? 'hidden' : 'visible';
         this._visibilityChangedAt = initialNow;
@@ -3830,7 +3832,7 @@ export default class NetworkManager extends EventEmitter {
         const now = Date.now();
         const maxAgeMs = Number.isFinite(options.maxAgeMs)
             ? Math.max(1000, Number(options.maxAgeMs))
-            : Math.max(this.friendOnlineGraceMs || 30000, this.presenceStaleTimeout || 18000);
+            : Math.max(1000, Number(this.friendOnlineGraceMs || 3000));
         const presenceEntry = this._presenceCache.get(uid) || null;
         const lastSeen = this._getLatestPresenceSeenTs(uid);
 
@@ -3981,11 +3983,19 @@ export default class NetworkManager extends EventEmitter {
         this._activeFriendThreadUid = null;
         this._activeFriendThreadRef = null;
         this._activeFriendThreadListener = null;
+        this._activeFriendThreadAutoRead = true;
     }
 
     closeFriendThread(targetUid = null) {
         if (targetUid && this._activeFriendThreadUid && targetUid !== this._activeFriendThreadUid) return;
         this._detachFriendThreadListener();
+    }
+
+    setActiveFriendThreadAutoRead(active = true) {
+        this._activeFriendThreadAutoRead = !!active;
+        if (this._activeFriendThreadAutoRead && this._activeFriendThreadUid) {
+            this.markFriendThreadRead(this._activeFriendThreadUid).catch(() => { });
+        }
     }
 
     async markFriendThreadRead(targetUid) {
@@ -4013,7 +4023,9 @@ export default class NetworkManager extends EventEmitter {
             return;
         }
         if (this._activeFriendThreadUid === targetUid && this._activeFriendThreadRef && this._activeFriendThreadListener) {
-            this.markFriendThreadRead(targetUid).catch(() => { });
+            if (this._activeFriendThreadAutoRead) {
+                this.markFriendThreadRead(targetUid).catch(() => { });
+            }
             return;
         }
 
@@ -4036,14 +4048,18 @@ export default class NetworkManager extends EventEmitter {
                 uid: targetUid,
                 messages: this.getFriendThreadMessagesSnapshot(targetUid)
             });
-            this.markFriendThreadRead(targetUid).catch(() => { });
+            if (this._activeFriendThreadAutoRead) {
+                this.markFriendThreadRead(targetUid).catch(() => { });
+            }
         };
 
         ref.on('value', callback);
         this._activeFriendThreadUid = targetUid;
         this._activeFriendThreadRef = ref;
         this._activeFriendThreadListener = callback;
-        this.markFriendThreadRead(targetUid).catch(() => { });
+        if (this._activeFriendThreadAutoRead) {
+            this.markFriendThreadRead(targetUid).catch(() => { });
+        }
     }
 
     async _writeFriendThreadPayload(targetUid, payload = {}, options = {}) {
@@ -4293,6 +4309,156 @@ export default class NetworkManager extends EventEmitter {
         return { ok: true, gift: claimedGift };
     }
 
+    _applyLocalFriendGiftRefund(gift = {}, options = {}) {
+        const localPlayer = window.game?.localPlayer || null;
+        if (!localPlayer || !gift || typeof gift !== 'object') return false;
+
+        const kind = gift.kind === 'item' ? 'item' : 'manastone';
+        if (kind === 'manastone') {
+            const amount = Math.max(1, Number(gift.amount || 1));
+            localPlayer.manastone += amount;
+            localPlayer.updateManastoneInventory?.();
+            localPlayer.saveProfilePatch?.(['manastone'], {
+                debounceMs: 0,
+                reason: options.reason || 'friend_gift_refund_manastone'
+            });
+        } else if (gift.item) {
+            localPlayer.addInventoryItem(
+                gift.itemId || gift.item.type || gift.item.id,
+                Math.max(1, Number(gift.amount || gift.item.amount || 1)),
+                {
+                    ...gift.item,
+                    markAsNew: false
+                }
+            );
+            localPlayer.saveState?.(false, {
+                debounceMs: 0,
+                reason: options.reason || 'friend_gift_refund_item'
+            });
+        } else {
+            return false;
+        }
+
+        window.game?.ui?.updateInventory?.();
+        window.game?.ui?.updateStatusPopup?.();
+        return true;
+    }
+
+    flushPendingFriendGiftRefunds() {
+        if (!Array.isArray(this.pendingFriendGiftRefunds) || this.pendingFriendGiftRefunds.length === 0) return;
+
+        const pending = [...this.pendingFriendGiftRefunds];
+        this.pendingFriendGiftRefunds = [];
+        pending.forEach(({ gift, options }) => {
+            const applied = this._applyLocalFriendGiftRefund(gift, options);
+            if (!applied) {
+                this.pendingFriendGiftRefunds.push({ gift, options });
+            }
+        });
+    }
+
+    async cancelFriendGift(targetUid, messageId) {
+        if (!targetUid || !messageId || !this.playerId || !window.firebase || !this.isFriend(targetUid)) {
+            return { ok: false, reason: 'invalid_cancel' };
+        }
+
+        const threadId = this._getFriendThreadId(targetUid);
+        if (!threadId) return { ok: false, reason: 'invalid_thread' };
+
+        const messageRef = firebase.database().ref(`friend_threads/${threadId}/messages/${messageId}`);
+        const messageSnapshot = await messageRef.once('value');
+        const message = messageSnapshot.val();
+        if (!message || message.type !== 'gift' || !message.gift) {
+            return { ok: false, reason: 'gift_missing' };
+        }
+        if (message.fromUid !== this.playerId || message.toUid !== targetUid) {
+            return { ok: false, reason: 'not_sender' };
+        }
+
+        const giftRef = firebase.database().ref(`friend_threads/${threadId}/messages/${messageId}/gift`);
+        const txResult = await giftRef.transaction((currentGift) => {
+            if (!currentGift || currentGift.status !== 'pending') return;
+            return {
+                ...currentGift,
+                status: 'canceled',
+                canceledBy: this.playerId,
+                canceledAt: Date.now()
+            };
+        });
+
+        if (!txResult.committed) {
+            return { ok: false, reason: 'already_processed' };
+        }
+
+        const canceledGift = txResult.snapshot.val();
+        this._applyLocalFriendGiftRefund(canceledGift, {
+            reason: canceledGift?.kind === 'item'
+                ? 'friend_gift_cancel_item'
+                : 'friend_gift_cancel_manastone'
+        });
+
+        await firebase.database().ref(`friend_messages/${targetUid}`).push({
+            kind: 'gift_status',
+            action: 'canceled',
+            friendUid: this.playerId,
+            fromUid: this.playerId,
+            fromName: window.game?.localPlayer?.name || 'Unknown',
+            messageId,
+            gift: canceledGift,
+            ts: Date.now()
+        });
+
+        return { ok: true, gift: canceledGift };
+    }
+
+    async rejectFriendGift(targetUid, messageId) {
+        if (!targetUid || !messageId || !this.playerId || !window.firebase || !this.isFriend(targetUid)) {
+            return { ok: false, reason: 'invalid_reject' };
+        }
+
+        const threadId = this._getFriendThreadId(targetUid);
+        if (!threadId) return { ok: false, reason: 'invalid_thread' };
+
+        const messageRef = firebase.database().ref(`friend_threads/${threadId}/messages/${messageId}`);
+        const messageSnapshot = await messageRef.once('value');
+        const message = messageSnapshot.val();
+        if (!message || message.type !== 'gift' || !message.gift) {
+            return { ok: false, reason: 'gift_missing' };
+        }
+        if (message.toUid !== this.playerId || message.fromUid !== targetUid) {
+            return { ok: false, reason: 'not_recipient' };
+        }
+
+        const giftRef = firebase.database().ref(`friend_threads/${threadId}/messages/${messageId}/gift`);
+        const txResult = await giftRef.transaction((currentGift) => {
+            if (!currentGift || currentGift.status !== 'pending') return;
+            return {
+                ...currentGift,
+                status: 'rejected',
+                rejectedBy: this.playerId,
+                rejectedAt: Date.now()
+            };
+        });
+
+        if (!txResult.committed) {
+            return { ok: false, reason: 'already_processed' };
+        }
+
+        const rejectedGift = txResult.snapshot.val();
+        await firebase.database().ref(`friend_messages/${targetUid}`).push({
+            kind: 'gift_refund',
+            action: 'rejected',
+            friendUid: this.playerId,
+            fromUid: this.playerId,
+            fromName: window.game?.localPlayer?.name || 'Unknown',
+            messageId,
+            gift: rejectedGift,
+            ts: Date.now()
+        });
+
+        return { ok: true, gift: rejectedGift };
+    }
+
     async requestTogether(targetUid) {
         this._pendingTogetherRequest = null;
         if (!targetUid || !this.playerId || !window.firebase) return 'ERROR';
@@ -4399,6 +4565,20 @@ export default class NetworkManager extends EventEmitter {
         this._trackExternalListener(messagesRef, 'child_added', (snapshot) => {
             const value = snapshot.val();
             if (value) {
+                if (value.kind === 'gift_refund' && value.gift) {
+                    const refundOptions = {
+                        reason: value.gift?.kind === 'item'
+                            ? 'friend_gift_reject_refund_item'
+                            : 'friend_gift_reject_refund_manastone'
+                    };
+                    const applied = this._applyLocalFriendGiftRefund(value.gift, refundOptions);
+                    if (!applied) {
+                        this.pendingFriendGiftRefunds.push({
+                            gift: value.gift,
+                            options: refundOptions
+                        });
+                    }
+                }
                 this.emit('friendMessageReceived', {
                     id: snapshot.key,
                     ...value

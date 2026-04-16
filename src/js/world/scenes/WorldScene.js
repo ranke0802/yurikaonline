@@ -323,6 +323,7 @@ export default class WorldScene extends Scene {
 
         this.ui?.loadPlayerSettings?.(this.player.clientSettings || null);
         this.player.init(this.input, this.resources, this.net);
+        this.net.flushPendingFriendGiftRefunds?.();
         if (!this.player.recoveryUid) {
             this.player.recoveryUid = user.uid;
         }
