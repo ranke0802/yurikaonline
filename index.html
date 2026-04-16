@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json?v=0.01.175">
+    <link rel="manifest" href="manifest.json?v=0.01.177">
     <meta name="theme-color" content="#2d3436">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
-        window.BOOTSTRAP_VERSION = '0.01.175';
+        window.BOOTSTRAP_VERSION = '0.01.177';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -123,7 +123,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.01.175', { updateViaCache: 'none' });
+                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.01.177', { updateViaCache: 'none' });
                     await registration.update();
                     registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
                     registration.addEventListener('updatefound', () => {
@@ -155,10 +155,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.01.175</title>
+    <title>Yurika Online v0.01.177</title>
 
-    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.01.175">
-    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.01.175">
+    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.01.177">
+    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.01.177">
     <script>
         // v0.29.20+: Prefer the actually loaded client build for UI, and auto-reset caches on mismatch.
         (async function initCacheBusting() {
@@ -168,10 +168,14 @@
             const applyVersionUi = (version, note = '') => {
                 const displayVersion = formatGameVersion(version);
                 document.title = `Yurika Online ${displayVersion}`;
-                const versionInfo = document.querySelector('.version-info');
-                if (versionInfo) {
-                    versionInfo.innerHTML = `📜 ${displayVersion}`;
-                    versionInfo.title = note || '';
+                const versionLabel = document.getElementById('settings-version-label');
+                const versionNote = document.getElementById('settings-version-note');
+                if (versionLabel) {
+                    versionLabel.textContent = displayVersion;
+                }
+                if (versionNote) {
+                    versionNote.textContent = note || '업데이트 이력은 아래 버튼에서 확인할 수 있습니다.';
+                    versionNote.title = note || '';
                 }
             };
 
@@ -221,7 +225,7 @@
             }
         })();
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.175">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.177">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -833,6 +837,18 @@
                             <button id="settings-reset-ui-layout" type="button" class="settings-action-btn secondary">현재 화면 배치 초기화</button>
                         </div>
                     </div>
+
+                    <div class="settings-section">
+                        <h3>버전 정보</h3>
+                        <div class="settings-row">
+                            <label>현재 버전</label>
+                            <div class="settings-control settings-version-block">
+                                <strong id="settings-version-label" class="settings-version-label version-info">v0.01.175</strong>
+                                <span id="settings-version-note" class="settings-version-note">업데이트 이력은 아래 버튼에서 확인할 수 있습니다.</span>
+                                <button id="settings-open-history" type="button" class="settings-action-btn secondary">업데이트 이력 보기</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="popup-footer">
                     <button id="settings-close-btn-bottom" class="close-btn-bottom close-popup">닫기</button>
@@ -1192,14 +1208,6 @@
         </div>
     </div>
 
-    <!-- Update History UI -->
-    <div class="version-info" onclick="window.game.ui.toggleUpdateHistory()">
-        📜 v0.01.145
-    </div>
-
-
-
-
     <!-- Update History Modal -->
     <div id="history-modal" class="confirm-modal-overlay hidden">
         <div class="confirm-modal-content history-content">
@@ -1227,7 +1235,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.175"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.177"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

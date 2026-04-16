@@ -324,7 +324,7 @@ export default class FriendsUIController {
                 chatInput.value = '';
                 chatInput.style.height = '';
             }
-            this.renderFriendChatMessages();
+            this.renderFriendChatMessages({ forceToLatest: true });
         });
 
         chatInput?.addEventListener('keydown', (event) => {
@@ -384,7 +384,7 @@ export default class FriendsUIController {
             this.setFriendGiftComposerVisible(false);
             this.friendGiftSelection = null;
             this.refreshFriendGiftOptions();
-            this.renderFriendChatMessages();
+            this.renderFriendChatMessages({ forceToLatest: true });
         });
 
         chatMessages?.addEventListener('click', async (event) => {
@@ -475,7 +475,9 @@ export default class FriendsUIController {
             this.game.net.on('friendThreadUpdated', (data) => {
                 this.refreshFriendsPopup();
                 if (data?.uid && data.uid === this.friendChatUid) {
-                    this.renderFriendChatMessages();
+                    const chatOpen = !document.getElementById('friend-chat-modal')?.classList.contains('hidden');
+                    const forceToLatest = chatOpen && !this.isFriendChatMinimized();
+                    this.renderFriendChatMessages({ uid: data.uid, forceToLatest });
                 }
             });
             this.game.net.on('friendMessageReceived', (data) => {
@@ -736,6 +738,7 @@ export default class FriendsUIController {
         statusDot?.classList.toggle('is-online', false);
         statusDot?.classList.toggle('is-offline', true);
         backBtn?.classList.toggle('is-compact-mode', !!state.compact);
+        backBtn?.classList.toggle('hidden', !!state.compact && !!state.minimized && this.getFriendsPopupMode() === 'mobileLandscape');
         togetherBtn?.classList.toggle('hidden', !!state.compact && !!state.minimized);
 
         if (!state.compact) {
@@ -882,6 +885,13 @@ export default class FriendsUIController {
         header.classList.add('draggable-panel-handle');
         header.addEventListener('pointerdown', (event) => {
             if (!this.isFriendChatCompactMode()) return;
+            this.beginFloatingPanelDrag(event, card);
+        });
+
+        if (card.dataset.minimizedDragBound === 'true') return;
+        card.dataset.minimizedDragBound = 'true';
+        card.addEventListener('pointerdown', (event) => {
+            if (!this.isFriendChatCompactMode() || !this.isFriendChatMinimized()) return;
             this.beginFloatingPanelDrag(event, card);
         });
     }
@@ -2128,10 +2138,20 @@ export default class FriendsUIController {
         const mp = Number(profile.mp || 0);
         const maxHp = (base.maxHp ?? 30) + (vitality * (growth.hp ?? 10));
         const maxMp = (base.maxMp ?? 50) + (wisdom * (growth.mp ?? 10));
-        const attack = (base.atk ?? 10) + (intelligence * (growth.atk ?? 1)) + Math.floor(wisdom / 2);
-        const defense = Number(profile.defense ?? ((base.def ?? 1) + (vitality * (growth.def ?? 1))));
-        const attackSpeed = Math.min(2.0, 1.0 + (agility * 0.1) + (intelligence * 0.05));
-        const critRate = 0.1 + (agility * 0.01) + (intelligence * 0.01);
+        const attackBase = (base.atk ?? 10) + (intelligence * (growth.atk ?? 1)) + Math.floor(wisdom / 2);
+        const defenseBase = (base.def ?? 1) + (vitality * (growth.def ?? 1));
+        const hpRegenBase = (base.hpRegen ?? 1) + vitality;
+        const mpRegenBase = (base.mpRegen ?? 2) + wisdom;
+        const attackSpeedBase = Math.min(2.0, 1.0 + (agility * 0.1) + (intelligence * 0.05));
+        const critRateBase = 0.1 + (agility * 0.01) + (intelligence * 0.01);
+        const moveSpeedBase = 1.0 + (agility * 0.05);
+        const attack = Number(profile.attackPower ?? attackBase);
+        const defense = Number(profile.defense ?? defenseBase);
+        const hpRegen = Number(profile.hpRegen ?? hpRegenBase);
+        const mpRegen = Number(profile.mpRegen ?? mpRegenBase);
+        const attackSpeed = Number(profile.attackSpeed ?? attackSpeedBase);
+        const critRate = Number(profile.critRate ?? critRateBase);
+        const moveSpeed = Number(profile.moveSpeedBonus ?? moveSpeedBase);
 
         return {
             level: Number(profile.level || 1),
@@ -2145,9 +2165,77 @@ export default class FriendsUIController {
             agility,
             attack,
             defense,
+            hpRegen,
+            mpRegen,
             attackSpeed,
-            critRate
+            critRate,
+            moveSpeed
         };
+    }
+
+    buildFriendProfileSummaryMarkup(selected, meta = {}, derived = null) {
+        const lastMessage = String(meta?.lastMessage || '아직 주고받은 메시지가 없습니다.');
+        const lastUpdated = meta?.updatedAt ? this.formatFriendTime(meta.updatedAt) : '기록 없음';
+        const levelText = derived ? `Lv.${derived.level}` : '프로필 동기화 중';
+        const statusText = selected.online ? '함께하기 가능' : '오프라인';
+
+        return `
+            <div class="friends-profile-summary-card">
+                <div class="friends-profile-summary-grid">
+                    <span class="friends-profile-summary-chip">${this.escapeHtml(levelText)}</span>
+                    <span class="friends-profile-summary-chip">${this.escapeHtml(`최근 대화 ${lastUpdated}`)}</span>
+                    <span class="friends-profile-summary-chip${selected.online ? ' is-online' : ''}">${this.escapeHtml(statusText)}</span>
+                </div>
+                <div class="friends-profile-summary-row">
+                    <strong>UID</strong>
+                    <span>${this.escapeHtml(selected.uid || '-')}</span>
+                </div>
+                <div class="friends-profile-summary-row is-message">
+                    <strong>최근 메시지</strong>
+                    <span>${this.escapeHtml(lastMessage)}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    buildFriendProfileStatsMarkup(derived) {
+        if (!derived) return '';
+
+        return `
+            <div class="friends-profile-status-grid">
+                <div class="friends-profile-stat-main stat-main">
+                    <div class="friends-profile-point-info">기본 스탯</div>
+                    <div class="stat-row-ui">
+                        <label>체력 (VIT)</label>
+                        <div class="stat-value-container"><span class="stat-value">${derived.vitality}</span></div>
+                    </div>
+                    <div class="stat-row-ui">
+                        <label>지능 (INT)</label>
+                        <div class="stat-value-container"><span class="stat-value">${derived.intelligence}</span></div>
+                    </div>
+                    <div class="stat-row-ui">
+                        <label>지혜 (WIS)</label>
+                        <div class="stat-value-container"><span class="stat-value">${derived.wisdom}</span></div>
+                    </div>
+                    <div class="stat-row-ui">
+                        <label>순발력 (AGI)</label>
+                        <div class="stat-value-container"><span class="stat-value">${derived.agility}</span></div>
+                    </div>
+                </div>
+                <div class="friends-profile-stat-derived stat-derived">
+                    <div class="friends-profile-point-info">현재 상태</div>
+                    <div class="derived-row"><span>현재 HP</span><span>${Math.floor(derived.hp)} / ${Math.floor(derived.maxHp)}</span></div>
+                    <div class="derived-row"><span>현재 MP</span><span>${Math.floor(derived.mp)} / ${Math.floor(derived.maxMp)}</span></div>
+                    <div class="derived-row"><span>공격력</span><span>${Math.floor(derived.attack)}</span></div>
+                    <div class="derived-row"><span>방어력</span><span>${Math.floor(derived.defense)}</span></div>
+                    <div class="derived-row"><span>체력 회복력</span><span>${Math.floor(derived.hpRegen)}</span></div>
+                    <div class="derived-row"><span>마나 회복력</span><span>${Math.floor(derived.mpRegen)}</span></div>
+                    <div class="derived-row"><span>공격속도</span><span>${derived.attackSpeed.toFixed(2)}</span></div>
+                    <div class="derived-row"><span>치명확률</span><span>${Math.round(derived.critRate * 100)}%</span></div>
+                    <div class="derived-row"><span>이동속도</span><span>${Math.round(derived.moveSpeed * 100)}%</span></div>
+                </div>
+            </div>
+        `;
     }
 
     getFriendStatusText(isOnline) {
@@ -2336,12 +2424,7 @@ export default class FriendsUIController {
         }
 
         if (summaryEl) {
-            const parts = [
-                `최근 메시지 ${meta?.lastMessage || '아직 없음'}`,
-                meta?.updatedAt ? `대화 시각 ${this.formatFriendTime(meta.updatedAt)}` : '대화 이력 없음',
-                selected.online ? '지금 함께하기 가능' : '오프라인'
-            ];
-            summaryEl.innerHTML = parts.map((text) => `<span>${this.escapeHtml(text)}</span>`).join('');
+            summaryEl.innerHTML = this.buildFriendProfileSummaryMarkup(selected, meta, profile ? this.buildFriendDerivedStats(profile) : null);
         }
 
         if (!profile) {
@@ -2356,14 +2439,7 @@ export default class FriendsUIController {
 
         const derived = this.buildFriendDerivedStats(profile);
         if (statsEl) {
-            statsEl.innerHTML = `
-                <div class="friends-profile-stat-card"><strong>레벨</strong><span>${derived.level}</span></div>
-                <div class="friends-profile-stat-card"><strong>HP / MP</strong><span>${Math.floor(derived.hp)} / ${Math.floor(derived.maxHp)} | ${Math.floor(derived.mp)} / ${Math.floor(derived.maxMp)}</span></div>
-                <div class="friends-profile-stat-card"><strong>기본 스탯</strong><span>VIT ${derived.vitality} / INT ${derived.intelligence} / WIS ${derived.wisdom} / AGI ${derived.agility}</span></div>
-                <div class="friends-profile-stat-card"><strong>전투 수치</strong><span>공격력 ${derived.attack} / 방어력 ${derived.defense}</span></div>
-                <div class="friends-profile-stat-card"><strong>공격속도</strong><span>${derived.attackSpeed.toFixed(2)}</span></div>
-                <div class="friends-profile-stat-card"><strong>치명확률</strong><span>${Math.round(derived.critRate * 100)}%</span></div>
-            `;
+            statsEl.innerHTML = this.buildFriendProfileStatsMarkup(derived);
         }
 
         this.renderFriendProfileWeapon(weaponEl, profile);

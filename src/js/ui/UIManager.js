@@ -97,7 +97,6 @@ export class UIManager {
         this.settings = this.loadSettings();
         this.devAccessState = this.loadDevAccessState();
         this.uiLayoutControlDefinitions = {
-            'version-info-badge': { label: '버전 정보', selector: '.version-info', modes: ['desktop', 'mobilePortrait'], minScale: 0.75, maxScale: 1.5, scaleMode: 'transform', baseScale: 1, zIndex: 1280, margin: 8 },
             'dev-overlay-panel': { label: '개발 오버레이', selector: '#dev-overlay', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 2.4, scaleMode: 'transform', zIndex: 2305, margin: 8, requiresVisibleElement: true },
             'hud-top-bar': { label: '프로필/HP 패널', selector: '.top-bar', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform' },
             'quest-panel': { label: '퀘스트창', selector: '.quest-list-panel', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', positioningContext: 'parent', parentSelector: '.left-ui-container' },
@@ -124,7 +123,6 @@ export class UIManager {
                 'minimap-panel': { left: 0.7319921851158142, top: 0.017167381974248927, scale: 0.87 },
                 'quest-panel': { left: 0.026041666666666668, top: 0.10014306151645208, scale: 1 },
                 'quick-menu-panel': { left: 0.145263671875, top: 0.9334007012144862, scale: 0.86 },
-                'version-info-badge': { left: 0.733839750289917, top: 0.946685747356715, scale: 0.75 }
             },
             mobileLandscape: {
                 'action-attack-j': { left: 0.7816586239103362, top: 0.6424967447916666, scale: 0.85 },
@@ -4466,6 +4464,9 @@ export class UIManager {
         document.getElementById('settings-open-ui-layout')?.addEventListener('click', () => {
             this.hideAllPopups();
             this.enterUiLayoutEditMode();
+        });
+        document.getElementById('settings-open-history')?.addEventListener('click', () => {
+            this.toggleUpdateHistory();
         });
         document.getElementById('settings-reset-ui-layout')?.addEventListener('click', () => {
             this.resetStoredUiLayoutForCurrentMode();
