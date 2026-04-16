@@ -1,4 +1,4 @@
-const APP_VERSION = '0.01.172';
+const APP_VERSION = '0.01.173';
 const SHELL_CACHE = `yurika-online-shell-${APP_VERSION}`;
 const STATIC_CACHE = `yurika-online-static-${APP_VERSION}`;
 const ACTIVE_CACHES = [SHELL_CACHE, STATIC_CACHE];
@@ -75,10 +75,20 @@ function isMutableAppAssetRequest(request, url) {
     );
 }
 
-async function networkFirst(request, cacheName) {
-    const cache = await caches.open(cacheName);
+function buildNoStoreRequest(request) {
+    if (!request || request.method !== 'GET') return request;
     try {
-        const response = await fetch(request);
+        return new Request(request, { cache: 'no-store' });
+    } catch (error) {
+        return request;
+    }
+}
+
+async function networkFirst(request, cacheName, options = {}) {
+    const cache = await caches.open(cacheName);
+    const networkRequest = options?.noStore ? buildNoStoreRequest(request) : request;
+    try {
+        const response = await fetch(networkRequest);
         if (response && response.status === 200 && response.type === 'basic') {
             cache.put(request, response.clone());
         }
@@ -131,23 +141,29 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
+self.addEventListener('message', (event) => {
+    if (event.data?.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
+});
+
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
     if (isFirebaseRequest(url)) return;
 
     if (isVersionRequest(url)) {
-        event.respondWith(fetch(event.request).catch(() => new Response('error')));
+        event.respondWith(fetch(buildNoStoreRequest(event.request)).catch(() => new Response('error')));
         return;
     }
 
     if (isDocumentLikeRequest(event.request, url)) {
-        event.respondWith(networkFirst(event.request, SHELL_CACHE));
+        event.respondWith(networkFirst(event.request, SHELL_CACHE, { noStore: true }));
         return;
     }
 
     if (isMutableAppAssetRequest(event.request, url)) {
-        event.respondWith(networkFirst(event.request, STATIC_CACHE));
+        event.respondWith(networkFirst(event.request, STATIC_CACHE, { noStore: true }));
         return;
     }
 

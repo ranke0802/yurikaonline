@@ -1454,6 +1454,20 @@ export default class FriendsUIController {
         } else {
             this.toggleFriendGiftItemPicker(false);
         }
+        this.syncFriendGiftComposerLayoutState();
+        this.applyFriendChatWindowState();
+    }
+
+    syncFriendGiftComposerLayoutState() {
+        const card = document.getElementById('friend-chat-card');
+        const body = document.getElementById('friend-chat-body');
+        const composer = document.getElementById('friend-gift-composer');
+        const isVisible = !!composer && !composer.classList.contains('hidden');
+
+        card?.classList.toggle('is-gift-open', isVisible);
+        body?.classList.toggle('is-gift-open', isVisible);
+        composer?.classList.toggle('is-item-mode', isVisible && this.friendGiftKind === 'item');
+        composer?.classList.toggle('is-manastone-mode', isVisible && this.friendGiftKind !== 'item');
     }
 
     setFriendGiftKind(kind = 'manastone') {
@@ -1465,6 +1479,7 @@ export default class FriendsUIController {
         if (this.friendGiftKind !== 'item') {
             this.toggleFriendGiftItemPicker(false);
         }
+        this.syncFriendGiftComposerLayoutState();
         this.refreshFriendGiftOptions();
     }
 
