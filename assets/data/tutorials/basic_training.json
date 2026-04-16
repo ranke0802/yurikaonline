@@ -72,10 +72,14 @@
         },
         {
             "id": "attack_dummy",
-            "instructionDesktop": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. `J` 키나 우측 하단 공격 버튼을 사용할 수 있어요.",
-            "instructionMobile": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. 우측 하단 공격 버튼을 사용하면 됩니다.",
-            "instructionMobileLandscape": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. 오른쪽 아래 공격 버튼을 사용하면 됩니다.",
-            "questText": "허수아비를 기본 공격으로 처치하세요.",
+            "instructionDesktop": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. `J` 키나 우측 하단 공격 버튼을 누른 상태로 유지하면 연속으로 공격할 수 있어요.",
+            "instructionMobile": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. 우측 하단 공격 버튼을 누른 상태로 유지하면 연속으로 공격할 수 있어요.",
+            "instructionMobileLandscape": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. 오른쪽 아래 공격 버튼을 누른 상태로 유지하면 연속으로 공격할 수 있어요.",
+            "questText": {
+                "desktop": "기본 공격을 누른 상태로 유지해 허수아비를 처치하세요.",
+                "mobilePortrait": "공격 버튼을 누른 상태로 유지해 허수아비를 처치하세요.",
+                "mobileLandscape": "공격 버튼을 누른 상태로 유지해 허수아비를 처치하세요."
+            },
             "presentation": {
                 "desktop": {
                     "guideMode": "top-card",
@@ -96,7 +100,29 @@
                     "compact": true
                 }
             },
-            "highlightTarget": "#action-attack-j",
+            "focus": {
+                "desktop": {
+                    "targets": [
+                        "#action-attack-j"
+                    ],
+                    "mode": "ring",
+                    "label": "누른 상태 유지"
+                },
+                "mobilePortrait": {
+                    "targets": [
+                        "#action-attack-j"
+                    ],
+                    "mode": "ring",
+                    "label": "누른 상태 유지"
+                },
+                "mobileLandscape": {
+                    "targets": [
+                        "#action-attack-j"
+                    ],
+                    "mode": "ring",
+                    "label": "누른 상태 유지"
+                }
+            },
             "onStart": [
                 {
                     "type": "close_popups"

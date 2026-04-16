@@ -110,6 +110,20 @@ export class UIManager {
             'action-auto-toggle': { label: '오토 버튼', selector: '#action-auto-toggle', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 }
         };
         this.uiLayoutPresetDefaults = {
+            mobilePortrait: {
+                'action-attack-j': { left: 0.7177662054697672, top: 0.7758404864091559, scale: 1 },
+                'action-auto-toggle': { left: 0.791015625, top: 0.5501608568881885, scale: 1 },
+                'action-skill-h': { left: 0.442626953125, top: 0.7968302932761088, scale: 1 },
+                'action-skill-k': { left: 0.7810763915379842, top: 0.6258717811158798, scale: 1 },
+                'action-skill-u': { left: 0.5506184895833334, top: 0.6757644849785408, scale: 1 },
+                'chat-panel': { left: 0.03125, top: 0.29018689156942956, scale: 1 },
+                'hud-top-bar': { left: 0.026041666666666668, top: 0.01430615164520744, scale: 1 },
+                joystick: { left: 0.041666666666666664, top: 0.6800786838340487, scale: 0.96 },
+                'minimap-panel': { left: 0.7319921851158142, top: 0.017167381974248927, scale: 0.87 },
+                'quest-panel': { left: 0.026041666666666668, top: 0.10014306151645208, scale: 1 },
+                'quick-menu-panel': { left: 0.145263671875, top: 0.9334007012144862, scale: 0.86 },
+                'version-info-badge': { left: 0.733839750289917, top: 0.946685747356715, scale: 0.75 }
+            },
             mobileLandscape: {
                 'action-attack-j': { left: 0.7816586239103362, top: 0.6424967447916666, scale: 0.85 },
                 'action-auto-toggle': { left: 0.7998622262463029, top: 0.2155175805091858, scale: 1 },
@@ -679,6 +693,7 @@ export class UIManager {
 
         this.game.sound?.setMasterVolume?.((this.getSetting('masterVolume') || 0) / 100);
         this.game.sound?.setMuted?.(this.getSetting('muted'));
+        this.friendsUI?.syncFriendChatOpacityUi?.(this.getSetting('friendCompactOpacity'));
 
         if (syncUi) {
             this.syncSettingsUi();
@@ -3434,19 +3449,60 @@ export class UIManager {
                 : ['.skill-up-btn'];
         }
 
-        if (step.trigger === 'popup_open' && step.target === 'status-popup') {
-            return ['#btn-status'];
+        const popupOpenSelectorMap = {
+            'status-popup': ['#btn-status'],
+            'skill-popup': ['#btn-skill'],
+            'inventory-popup': ['#btn-inventory']
+        };
+
+        if (step.trigger === 'popup_open' && step.target && popupOpenSelectorMap[step.target]) {
+            return popupOpenSelectorMap[step.target];
         }
 
-        if (step.trigger === 'popup_open' && step.target === 'skill-popup') {
-            return ['#btn-skill'];
+        const popupCloseSelectorMap = {
+            'inventory-popup': ['#inventory-close-btn-top', '#inventory-close-btn-bottom']
+        };
+
+        if (step.trigger === 'popup_close' && step.target && popupCloseSelectorMap[step.target]) {
+            return popupCloseSelectorMap[step.target];
         }
 
         if (step.trigger === 'stats_saved') {
             return ['#status-close-btn-top', '#status-close-btn-bottom'];
         }
 
-        return [];
+        return this.getTutorialAllowedActionSelectors(step);
+    }
+
+    getTutorialAllowedActionSelectors(step = this.game?.tutorial?.getCurrentStep?.()) {
+        if (!step || !Array.isArray(step.allowedActions) || !step.allowedActions.length) return [];
+
+        const actionSelectorMap = {
+            MOVE_UP: ['#joystick-area', '#joystick-container', 'canvas'],
+            MOVE_DOWN: ['#joystick-area', '#joystick-container', 'canvas'],
+            MOVE_LEFT: ['#joystick-area', '#joystick-container', 'canvas'],
+            MOVE_RIGHT: ['#joystick-area', '#joystick-container', 'canvas'],
+            ATTACK: ['#action-attack-j'],
+            SKILL_1: ['#action-skill-h'],
+            SKILL_2: ['#action-skill-u'],
+            SKILL_3: ['#action-skill-k'],
+            OPEN_INVENTORY: ['#btn-inventory'],
+            OPEN_SKILL: ['#btn-skill'],
+            OPEN_STATUS: ['#btn-status']
+        };
+
+        const selectors = [];
+        step.allowedActions.forEach((action) => {
+            const mappedSelectors = actionSelectorMap[action];
+            if (!Array.isArray(mappedSelectors)) return;
+            mappedSelectors.forEach((selector) => {
+                if (selector && !selectors.includes(selector)) {
+                    selectors.push(selector);
+                }
+            });
+        });
+
+        return selectors;
     }
 
     shouldBlockTutorialUiInteraction(event) {
@@ -3466,7 +3522,7 @@ export class UIManager {
         }
 
         const allowedSelectors = this.getTutorialAllowedInteractionSelectors(step);
-        if (!allowedSelectors.length) return false;
+        if (!allowedSelectors.length) return true;
 
         return !allowedSelectors.some((selector) => {
             try {
@@ -7466,16 +7522,35 @@ export class UIManager {
             return;
         }
 
-        if (state.mode === 'spotlight') {
-            const spotlightRect = rects[0];
+        const dimBounds = rects.reduce((acc, rect) => ({
+            left: Math.min(acc.left, rect.left),
+            top: Math.min(acc.top, rect.top),
+            right: Math.max(acc.right, rect.right),
+            bottom: Math.max(acc.bottom, rect.bottom)
+        }), {
+            left: viewportW,
+            top: viewportH,
+            right: 0,
+            bottom: 0
+        });
+        dimBounds.width = Math.max(0, dimBounds.right - dimBounds.left);
+        dimBounds.height = Math.max(0, dimBounds.bottom - dimBounds.top);
+
+        [
+            { left: 0, top: 0, width: viewportW, height: dimBounds.top },
+            { left: 0, top: dimBounds.top, width: dimBounds.left, height: dimBounds.height },
+            { left: dimBounds.right, top: dimBounds.top, width: viewportW - dimBounds.right, height: dimBounds.height },
+            { left: 0, top: dimBounds.bottom, width: viewportW, height: viewportH - dimBounds.bottom }
+        ].forEach((segment) => {
+            if (!segment.width || !segment.height) return;
             const dim = document.createElement('div');
-            dim.className = 'tutorial-highlight-spotlight';
-            dim.style.left = `${spotlightRect.left}px`;
-            dim.style.top = `${spotlightRect.top}px`;
-            dim.style.width = `${spotlightRect.width}px`;
-            dim.style.height = `${spotlightRect.height}px`;
+            dim.className = 'tutorial-highlight-dim';
+            dim.style.left = `${segment.left}px`;
+            dim.style.top = `${segment.top}px`;
+            dim.style.width = `${segment.width}px`;
+            dim.style.height = `${segment.height}px`;
             layer.appendChild(dim);
-        }
+        });
 
         rects.forEach((rect) => {
             const box = document.createElement('div');

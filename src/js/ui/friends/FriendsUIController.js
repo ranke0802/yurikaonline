@@ -68,6 +68,7 @@ export default class FriendsUIController {
         const popup = document.getElementById('friends-popup');
         const searchModal = document.getElementById('friends-add-modal');
         const chatModal = document.getElementById('friend-chat-modal');
+        const chatProfileModal = document.getElementById('friend-chat-profile-modal');
         const chatCard = document.getElementById('friend-chat-card');
         const chatHeader = document.getElementById('friend-chat-header');
         const searchInput = document.getElementById('friend-search-query-input');
@@ -85,15 +86,21 @@ export default class FriendsUIController {
         const chatInput = document.getElementById('friend-chat-input');
         const chatMessages = document.getElementById('friend-chat-messages');
         const chatGiftToggleBtn = document.getElementById('friend-chat-gift-toggle-btn');
+        const chatOpacitySlider = document.getElementById('friend-chat-opacity-slider');
         const giftKindManastoneBtn = document.getElementById('friend-gift-kind-manastone');
         const giftKindItemBtn = document.getElementById('friend-gift-kind-item');
         const giftItemPickerBtn = document.getElementById('friend-gift-item-picker-btn');
         const giftItemAmountInput = document.getElementById('friend-gift-item-amount');
         const giftManastoneAmountInput = document.getElementById('friend-gift-manastone-amount');
         const giftSendBtn = document.getElementById('friend-gift-send-btn');
+        const chatProfileTogetherBtn = document.getElementById('friend-chat-profile-together-btn');
+        const chatProfileChatBtn = document.getElementById('friend-chat-profile-chat-btn');
+        const chatProfileGiftBtn = document.getElementById('friend-chat-profile-gift-btn');
+        const chatProfileRemoveBtn = document.getElementById('friend-chat-profile-remove-btn');
 
         const openSearchModal = () => this.toggleFriendSearchModal(true);
         const closeSearchModal = () => this.toggleFriendSearchModal(false);
+        const resolveProfileTargetUid = () => this.friendChatProfileUid || this.friendChatUid || this.selectedFriendUid;
 
         this.ensureFriendChatWindowState();
         this.ensureFriendChatDragBinding(chatHeader, chatCard);
@@ -104,6 +111,7 @@ export default class FriendsUIController {
             this.refreshFriendsPopup();
             this.renderFriendSearchResult();
             this.renderFriendChatMessages();
+            this.syncFriendChatOpacityUi();
         }).catch(() => { });
 
         document.getElementById('friend-open-search-btn')?.addEventListener('click', openSearchModal);
@@ -125,6 +133,13 @@ export default class FriendsUIController {
                 this.closeFriendChat();
             }
         });
+
+        chatProfileModal?.addEventListener('click', (event) => {
+            if (event.target === chatProfileModal || event.target?.classList?.contains('friends-floating-scrim')) {
+                this.toggleFriendChatProfileModal(false);
+            }
+        });
+        document.getElementById('friend-chat-profile-close-btn')?.addEventListener('click', () => this.toggleFriendChatProfileModal(false));
 
         const runLookup = async () => {
             const query = searchInput?.value?.trim() || '';
@@ -199,7 +214,9 @@ export default class FriendsUIController {
             if (searchInput) searchInput.value = '';
             this.renderFriendSearchResult('친구를 찾으려면 아이디 또는 이름을 입력해 주세요.');
             closeSearchModal();
-            await this.selectFriend(result.uid);
+            await this.selectFriend(result.uid, { showProfile: false });
+            this.setFriendsMobileView('list', { force: true });
+            this.refreshFriendsPopup();
         });
 
         const runTogetherRequest = async (targetUid = this.selectedFriendUid || this.friendChatUid) => {
@@ -216,26 +233,15 @@ export default class FriendsUIController {
             this.showGenericModal('함께하기', messages[result] || '처리할 수 없습니다.', null, null, { hideNo: true, yesText: '확인' });
         };
 
-        togetherBtn?.addEventListener('click', () => runTogetherRequest(this.selectedFriendUid));
-        chatTogetherBtn?.addEventListener('click', () => runTogetherRequest(this.friendChatUid || this.selectedFriendUid));
-
-        chatBtn?.addEventListener('click', () => {
-            if (!this.selectedFriendUid) return;
-            this.openFriendChat(this.selectedFriendUid);
-        });
-
-        giftBtn?.addEventListener('click', () => {
-            if (!this.selectedFriendUid) return;
-            this.openFriendChat(this.selectedFriendUid, { openGift: true });
-        });
-
-        removeBtn?.addEventListener('click', () => {
-            if (!this.selectedFriendUid || !this.game.net) return;
-            const friendUid = this.selectedFriendUid;
-            const friendName = this.getSelectedFriendName();
+        const runRemoveFriend = (targetUid = this.selectedFriendUid || this.friendChatUid) => {
+            if (!targetUid || !this.game.net) return;
+            const friendUid = targetUid;
+            const friend = (this.game.net?.getFriendListSnapshot?.() || []).find((entry) => entry.uid === friendUid) || null;
+            const friendName = friend?.name || this.getSelectedFriendName() || friendUid;
             this.showConfirm(`"${friendName}" 님을 친구 목록에서 삭제할까요?`, async (confirmed) => {
                 if (!confirmed) return;
                 await this.game.net.removeFriend(friendUid);
+                this.toggleFriendChatProfileModal(false);
                 if (this.friendChatUid === friendUid) {
                     this.closeFriendChat({ detachThread: true, keepSelection: false, silent: true });
                 }
@@ -243,7 +249,51 @@ export default class FriendsUIController {
                 this.setFriendsMobileView('list', { force: true });
                 this.refreshFriendsPopup();
             });
+        };
+
+        togetherBtn?.addEventListener('click', () => runTogetherRequest(this.selectedFriendUid));
+        chatTogetherBtn?.addEventListener('click', () => runTogetherRequest(this.friendChatUid || this.selectedFriendUid));
+        chatProfileTogetherBtn?.addEventListener('click', () => runTogetherRequest(resolveProfileTargetUid()));
+
+        chatBtn?.addEventListener('click', () => {
+            if (!this.selectedFriendUid) return;
+            this.openFriendChat(this.selectedFriendUid);
         });
+        chatProfileChatBtn?.addEventListener('click', () => {
+            const targetUid = resolveProfileTargetUid();
+            this.toggleFriendChatProfileModal(false);
+            if (!this.friendChatUid && targetUid) {
+                this.openFriendChat(targetUid);
+                return;
+            }
+            if (this.friendChatUid) {
+                window.setTimeout(() => {
+                    document.getElementById('friend-chat-input')?.focus();
+                }, 0);
+            }
+        });
+
+        giftBtn?.addEventListener('click', () => {
+            if (!this.selectedFriendUid) return;
+            this.openFriendChat(this.selectedFriendUid, { openGift: true });
+        });
+        chatProfileGiftBtn?.addEventListener('click', () => {
+            const targetUid = resolveProfileTargetUid();
+            this.toggleFriendChatProfileModal(false);
+            if (!this.friendChatUid && targetUid) {
+                this.openFriendChat(targetUid, { openGift: true });
+                return;
+            }
+            if (this.friendChatUid) {
+                this.setFriendGiftComposerVisible(true);
+                window.setTimeout(() => {
+                    document.getElementById('friend-chat-input')?.focus();
+                }, 0);
+            }
+        });
+
+        removeBtn?.addEventListener('click', () => runRemoveFriend(this.selectedFriendUid));
+        chatProfileRemoveBtn?.addEventListener('click', () => runRemoveFriend(resolveProfileTargetUid()));
 
         document.getElementById('friend-chat-close-btn')?.addEventListener('click', () => this.closeFriendChat());
         document.getElementById('friend-chat-back-btn')?.addEventListener('click', () => this.handleFriendChatBackAction());
@@ -257,6 +307,9 @@ export default class FriendsUIController {
         chatGiftToggleBtn?.addEventListener('click', () => {
             const composer = document.getElementById('friend-gift-composer');
             this.setFriendGiftComposerVisible(composer?.classList.contains('hidden'));
+        });
+        chatOpacitySlider?.addEventListener('input', (event) => {
+            this.setFriendChatOpacity(event.currentTarget?.value);
         });
 
         chatSendBtn?.addEventListener('click', async () => {
@@ -337,7 +390,7 @@ export default class FriendsUIController {
             const avatarButton = event.target?.closest?.('[data-friend-avatar-open-profile]');
             if (avatarButton) {
                 event.preventDefault();
-                this.openFriendProfileFromChat();
+                await this.openFriendProfileFromChat({ uid: avatarButton.getAttribute('data-friend-avatar-open-profile') || undefined });
                 return;
             }
 
@@ -613,6 +666,7 @@ export default class FriendsUIController {
         const backBtn = document.getElementById('friend-chat-back-btn');
         const togetherBtn = document.getElementById('friend-chat-together-btn');
         const unreadDot = document.getElementById('friend-chat-unread-dot');
+        const statusDot = document.getElementById('friend-chat-status-dot');
         const titleEl = document.getElementById('friend-chat-title');
         const state = this.ensureFriendChatWindowState();
 
@@ -641,16 +695,20 @@ export default class FriendsUIController {
             compactBtn.querySelector('.friends-action-icon-expand')?.classList.toggle('hidden', !state.compact);
             compactBtn.title = state.compact ? '전체 채팅으로 복구' : '채팅 소형화';
             compactBtn.setAttribute('aria-label', compactBtn.title);
+            compactBtn.classList.toggle('hidden', !!state.compact && !!state.minimized);
         }
         togetherBtn?.setAttribute('aria-label', '함께하기');
         togetherBtn?.setAttribute('title', '함께하기');
         if (minimizeBtn) {
             const minimized = !!state.compact && !!state.minimized;
-            minimizeBtn.textContent = minimized ? '□' : '−';
+            minimizeBtn.querySelector('.friends-action-icon-minimize')?.classList.toggle('hidden', minimized);
+            minimizeBtn.querySelector('.friends-action-icon-restore')?.classList.toggle('hidden', !minimized);
             minimizeBtn.title = minimized ? '채팅 복구' : '채팅 최소화';
             minimizeBtn.setAttribute('aria-label', minimizeBtn.title);
             minimizeBtn.classList.toggle('hidden', !state.compact);
         }
+        statusDot?.classList.toggle('is-online', false);
+        statusDot?.classList.toggle('is-offline', true);
         backBtn?.classList.toggle('is-compact-mode', !!state.compact);
         togetherBtn?.classList.toggle('hidden', !!state.compact && !!state.minimized);
 
@@ -711,17 +769,15 @@ export default class FriendsUIController {
         this.closeFriendChat({ detachThread: false, keepSelection: true });
     }
 
-    openFriendProfileFromChat() {
-        const uid = this.friendChatUid || this.selectedFriendUid;
+    async openFriendProfileFromChat(options = {}) {
+        const uid = options.uid || this.friendChatUid || this.selectedFriendUid;
         if (!uid) return;
 
         this.selectedFriendUid = uid;
-        this.closeFriendChat({ detachThread: false, keepSelection: true, silent: true });
-        if (!this.isPopupOpen('friends-popup')) {
-            this.togglePopup('friends-popup');
-        }
-        this.setFriendsMobileView('profile', { force: true });
-        this.refreshFriendsPopup();
+        await this.ensureFriendProfileLoaded(uid);
+        this.friendChatProfileUid = uid;
+        this.renderFriendChatProfileModal(uid);
+        this.toggleFriendChatProfileModal(true, { uid });
     }
 
     setFriendChatCompactMode(compact, options = {}) {
@@ -781,12 +837,6 @@ export default class FriendsUIController {
         header.addEventListener('pointerdown', (event) => {
             if (!this.isFriendChatCompactMode()) return;
             this.beginFloatingPanelDrag(event, card);
-        });
-
-        card.addEventListener('click', (event) => {
-            if (!this.isFriendChatMinimized()) return;
-            if (event.target?.closest?.('button')) return;
-            this.toggleFriendChatMinimized(false);
         });
     }
 
@@ -1236,6 +1286,7 @@ export default class FriendsUIController {
         document.getElementById('friend-chat-modal')?.classList.add('hidden');
         document.getElementById('friend-chat-input')?.blur();
         this.setFriendGiftComposerVisible(false);
+        this.toggleFriendChatProfileModal(false);
         this.hideFriendGiftItemTooltip?.();
 
         const state = this.ensureFriendChatWindowState();
@@ -1272,7 +1323,9 @@ export default class FriendsUIController {
 
         composer?.classList.toggle('hidden', !nextVisible);
         if (toggleBtn) {
-            toggleBtn.textContent = nextVisible ? '접기' : '선물';
+            toggleBtn.classList.toggle('is-active', nextVisible);
+            toggleBtn.title = nextVisible ? '선물 접기' : '선물 열기';
+            toggleBtn.setAttribute('aria-label', toggleBtn.title);
         }
         if (nextVisible) {
             this.refreshFriendGiftOptions();
@@ -1489,11 +1542,18 @@ export default class FriendsUIController {
         const displayName = profile?.name || friend?.name || targetUid;
         const titleEl = document.getElementById('friend-chat-title');
         const statusEl = document.getElementById('friend-chat-status');
+        const statusDot = document.getElementById('friend-chat-status-dot');
         const avatarBtn = document.getElementById('friend-chat-avatar-btn');
         if (titleEl) titleEl.textContent = this.isFriendChatMinimized() ? targetUid : displayName;
         if (statusEl) {
             statusEl.textContent = this.getFriendStatusText(friend?.online);
             statusEl.classList.toggle('is-online', !!friend?.online);
+            statusEl.setAttribute('aria-label', this.getFriendStatusText(friend?.online));
+        }
+        if (statusDot) {
+            statusDot.classList.toggle('is-online', !!friend?.online);
+            statusDot.classList.toggle('is-offline', !friend?.online);
+            statusDot.title = this.getFriendStatusText(friend?.online);
         }
         if (avatarBtn) {
             avatarBtn.innerHTML = this.buildFriendAvatarInnerHtml(displayName, { profile });
@@ -1935,34 +1995,36 @@ export default class FriendsUIController {
         this.friendWeaponTooltipAnchor = null;
     }
 
-    renderSelectedFriendDetail(friends = []) {
-        this.hideFriendWeaponTooltip();
-        this.syncFriendsPopupLayout();
-
-        const emptyEl = document.getElementById('friend-profile-empty');
-        const panelEl = document.getElementById('friend-profile-panel');
-        const selected = friends.find((entry) => entry.uid === this.selectedFriendUid) || null;
-
-        if (!selected || !panelEl || !emptyEl) {
-            emptyEl?.classList.remove('hidden');
-            panelEl?.classList.add('hidden');
-            return;
+    async ensureFriendProfileLoaded(uid) {
+        if (!uid || !this.game.net) return null;
+        if (!this.friendProfileCache.has(uid)) {
+            try {
+                const profile = await this.game.net.getPlayerProfile(uid);
+                if (profile) {
+                    this.friendProfileCache.set(uid, profile);
+                }
+            } catch (error) {
+                Logger.warn('[UI] Failed to load friend profile', error);
+            }
         }
+        return this.friendProfileCache.get(uid) || null;
+    }
 
+    populateFriendProfileElements(selected, elements = {}) {
+        if (!selected) return;
         const profile = this.friendProfileCache.get(selected.uid) || null;
         const displayName = profile?.name || selected.name || selected.uid;
         const meta = this.getFriendThreadMeta(selected.uid);
-        const avatarEl = document.getElementById('friend-profile-avatar');
-        const nameEl = document.getElementById('friend-profile-name');
-        const statusEl = document.getElementById('friend-profile-status');
-        const metaEl = document.getElementById('friend-profile-meta');
-        const summaryEl = document.getElementById('friend-profile-summary');
-        const statsEl = document.getElementById('friend-profile-stats');
-        const weaponEl = document.getElementById('friend-profile-weapon');
-        const togetherBtn = document.getElementById('friend-profile-together-btn');
-
-        emptyEl.classList.add('hidden');
-        panelEl.classList.remove('hidden');
+        const {
+            avatarEl = null,
+            nameEl = null,
+            statusEl = null,
+            metaEl = null,
+            summaryEl = null,
+            statsEl = null,
+            weaponEl = null,
+            togetherBtn = null
+        } = elements;
 
         if (avatarEl) {
             avatarEl.innerHTML = this.buildFriendAvatarInnerHtml(displayName, { profile });
@@ -2011,6 +2073,92 @@ export default class FriendsUIController {
         }
 
         this.renderFriendProfileWeapon(weaponEl, profile);
+    }
+
+    toggleFriendChatProfileModal(visible, options = {}) {
+        const modal = document.getElementById('friend-chat-profile-modal');
+        if (!modal) return;
+
+        const nextVisible = !!visible;
+        if (nextVisible) {
+            this.friendChatProfileUid = options.uid || this.friendChatProfileUid || this.friendChatUid || this.selectedFriendUid || null;
+            modal.classList.remove('hidden');
+            this.renderFriendChatProfileModal(this.friendChatProfileUid);
+            return;
+        }
+
+        modal.classList.add('hidden');
+        this.friendChatProfileUid = null;
+    }
+
+    renderFriendChatProfileModal(uid = this.friendChatProfileUid || this.friendChatUid || this.selectedFriendUid) {
+        if (!uid) {
+            this.toggleFriendChatProfileModal(false);
+            return;
+        }
+
+        const selected = (this.game.net?.getFriendListSnapshot?.() || []).find((entry) => entry.uid === uid) || null;
+        if (!selected) {
+            this.toggleFriendChatProfileModal(false);
+            return;
+        }
+
+        this.populateFriendProfileElements(selected, {
+            avatarEl: document.getElementById('friend-chat-profile-avatar'),
+            nameEl: document.getElementById('friend-chat-profile-name'),
+            statusEl: document.getElementById('friend-chat-profile-status'),
+            metaEl: document.getElementById('friend-chat-profile-meta'),
+            summaryEl: document.getElementById('friend-chat-profile-summary'),
+            statsEl: document.getElementById('friend-chat-profile-stats'),
+            weaponEl: document.getElementById('friend-chat-profile-weapon'),
+            togetherBtn: document.getElementById('friend-chat-profile-together-btn')
+        });
+    }
+
+    syncFriendChatOpacityUi(value = this.getSetting?.('friendCompactOpacity')) {
+        const slider = document.getElementById('friend-chat-opacity-slider');
+        const valueEl = document.getElementById('friend-chat-opacity-value');
+        const normalized = Math.min(100, Math.max(45, Math.round(Number(value) || 82)));
+        if (slider) {
+            slider.value = String(normalized);
+        }
+        if (valueEl) {
+            valueEl.textContent = `${normalized}%`;
+        }
+    }
+
+    setFriendChatOpacity(value) {
+        const normalized = Math.min(100, Math.max(45, Math.round(Number(value) || this.getSetting?.('friendCompactOpacity') || 82)));
+        this.syncFriendChatOpacityUi(normalized);
+        this.updateSetting?.('friendCompactOpacity', normalized, { refreshGame: false });
+    }
+
+    renderSelectedFriendDetail(friends = []) {
+        this.hideFriendWeaponTooltip();
+        this.syncFriendsPopupLayout();
+
+        const emptyEl = document.getElementById('friend-profile-empty');
+        const panelEl = document.getElementById('friend-profile-panel');
+        const selected = friends.find((entry) => entry.uid === this.selectedFriendUid) || null;
+
+        if (!selected || !panelEl || !emptyEl) {
+            emptyEl?.classList.remove('hidden');
+            panelEl?.classList.add('hidden');
+            return;
+        }
+
+        emptyEl.classList.add('hidden');
+        panelEl.classList.remove('hidden');
+        this.populateFriendProfileElements(selected, {
+            avatarEl: document.getElementById('friend-profile-avatar'),
+            nameEl: document.getElementById('friend-profile-name'),
+            statusEl: document.getElementById('friend-profile-status'),
+            metaEl: document.getElementById('friend-profile-meta'),
+            summaryEl: document.getElementById('friend-profile-summary'),
+            statsEl: document.getElementById('friend-profile-stats'),
+            weaponEl: document.getElementById('friend-profile-weapon'),
+            togetherBtn: document.getElementById('friend-profile-together-btn')
+        });
     }
 
     renderFriendProfileWeapon(weaponEl, profile = {}) {
@@ -2093,6 +2241,11 @@ export default class FriendsUIController {
         const entries = this.buildSortedFriendEntries(friends);
         this.refreshFriendThreadList(entries);
         this.renderSelectedFriendDetail(friends);
+        if (this.friendChatProfileUid && !friends.some((entry) => entry.uid === this.friendChatProfileUid)) {
+            this.toggleFriendChatProfileModal(false);
+        } else if (this.friendChatProfileUid && !document.getElementById('friend-chat-profile-modal')?.classList.contains('hidden')) {
+            this.renderFriendChatProfileModal(this.friendChatProfileUid);
+        }
         this.syncFriendsPopupLayout();
 
         if (this.friendChatUid && !document.getElementById('friend-chat-modal')?.classList.contains('hidden')) {
