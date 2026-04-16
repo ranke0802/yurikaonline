@@ -142,6 +142,26 @@ export class Projectile {
         return null;
     }
 
+    _findVisualOnlyFireballMonsterTarget(monsters) {
+        if (!monsters) return null;
+
+        const distFromSpawnSq = (this.x - this.spawnX) ** 2 + (this.y - this.spawnY) ** 2;
+        if (distFromSpawnSq < 50 * 50) return null;
+
+        let monsterTarget = null;
+        monsters.forEach(m => {
+            if (monsterTarget || !m || m.isDead) return;
+
+            const monsterRadius = (m.width || 80) / 2;
+            const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);
+            if (dist < (this.hitRadius + monsterRadius)) {
+                monsterTarget = m;
+            }
+        });
+
+        return monsterTarget;
+    }
+
     update(dt, monsters) {
         if (this.isDead) return;
 
@@ -277,6 +297,12 @@ export class Projectile {
                 const playerTarget = this._findVisualOnlyFireballPlayerTarget(lp, rps, owner);
                 if (playerTarget) {
                     this.hit(playerTarget, monsters);
+                    return;
+                }
+
+                const monsterTarget = this._findVisualOnlyFireballMonsterTarget(monsters);
+                if (monsterTarget) {
+                    this.hit(monsterTarget, monsters);
                     return;
                 }
             }
