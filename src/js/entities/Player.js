@@ -1204,8 +1204,9 @@ export default class Player extends CharacterBase {
     saveProfilePatch(fields = [], options = {}) {
         if (!this.net || !this.id || !Array.isArray(fields) || fields.length === 0) return;
         const isSharedFieldActive = !!this.net.isSharedFieldActive?.();
+        const forceImmediate = !!options.forceImmediate || !!options.syncToWorld;
         const overrideDebounceMs = Number.isFinite(options.debounceMs) ? Math.max(0, Number(options.debounceMs)) : null;
-        const profilePatchDebounceMs = options.syncToWorld
+        const profilePatchDebounceMs = forceImmediate
             ? 0
             : (overrideDebounceMs ?? (isSharedFieldActive ? 2800 : 4800));
         const patch = this._buildProfilePatchFromFields(fields);
@@ -1213,7 +1214,7 @@ export default class Player extends CharacterBase {
         patch.ts = Date.now();
         this.net.savePlayerDataPatch(this.id, patch, {
             debounceMs: profilePatchDebounceMs,
-            forceImmediate: !!options.syncToWorld,
+            forceImmediate,
             syncToZone: !!options.syncToWorld,
             saveReason: options.reason || 'player_patch'
         });

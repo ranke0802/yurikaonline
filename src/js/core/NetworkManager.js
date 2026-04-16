@@ -64,6 +64,7 @@ export default class NetworkManager extends EventEmitter {
         this._lastProfileSaveTs = 0;
         this._queuedProfileSaves = new Map();
         this._queuedProfilePatches = new Map();
+        this._blockedProfileWriteUids = new Set();
         this._profileBackupMeta = new Map();
         this._profileBackupPruneMeta = new Map();
         this._zoneUserCache = new Map();
@@ -151,6 +152,7 @@ export default class NetworkManager extends EventEmitter {
         this._detachZoneUserListeners();
         this._presenceCache.clear();
         this._presenceTsCache.clear();
+        this._blockedProfileWriteUids.clear();
         this._clearQueuedRewardBatches();
         this._resetRewardValidationWindow();
         this._networkDropIds.clear();
@@ -3004,6 +3006,9 @@ export default class NetworkManager extends EventEmitter {
     }
 
     async savePlayerData(uid, data, syncToZone = false, options = {}) {
+        if (uid && this._blockedProfileWriteUids.has(uid)) {
+            return { ok: false, reason: 'profile_write_blocked' };
+        }
         const debounceMs = Number(options.debounceMs || 0);
         let patchWaiters = null;
         if (this._queuedProfilePatches.has(uid)) {
@@ -3046,11 +3051,32 @@ export default class NetworkManager extends EventEmitter {
         if (!uid || !window.firebase || !patchData || typeof patchData !== 'object') {
             return { ok: false, reason: 'invalid_args' };
         }
+        if (this._blockedProfileWriteUids.has(uid)) {
+            return { ok: false, reason: 'profile_write_blocked' };
+        }
 
         if (this._queuedProfileSaves.has(uid)) {
             const queued = this._queuedProfileSaves.get(uid);
             queued.data = this._mergeProfileData(queued.data || {}, patchData);
             queued.syncToZone = queued.syncToZone || !!options.syncToZone;
+            const shouldFlushQueuedSaveNow = !!options.forceImmediate || Number(options.debounceMs || 0) <= 0;
+            if (shouldFlushQueuedSaveNow) {
+                if (queued?.timer) clearTimeout(queued.timer);
+                this._queuedProfileSaves.delete(uid);
+                try {
+                    const result = await this._commitPlayerData(uid, queued.data, queued.syncToZone, {
+                        ...queued.options,
+                        ...options,
+                        debounceMs: 0,
+                        forceImmediate: true
+                    });
+                    queued.waiters.forEach(({ resolve }) => resolve(result));
+                    return result;
+                } catch (error) {
+                    queued.waiters.forEach(({ reject }) => reject(error));
+                    throw error;
+                }
+            }
             return new Promise((resolve, reject) => {
                 queued.waiters.push({ resolve, reject });
             });
@@ -3074,6 +3100,24 @@ export default class NetworkManager extends EventEmitter {
         const result = await this._commitPlayerDataPatch(uid, mergedPatch, options);
         pendingWaiters?.forEach(({ resolve }) => resolve(result));
         return result;
+    }
+
+    _clearQueuedProfileWrites(uid, reason = 'profile_deleted') {
+        if (!uid) return;
+
+        const queuedSave = this._queuedProfileSaves.get(uid);
+        if (queuedSave?.timer) clearTimeout(queuedSave.timer);
+        if (queuedSave) {
+            this._queuedProfileSaves.delete(uid);
+            queuedSave.waiters?.forEach(({ resolve }) => resolve({ ok: false, reason }));
+        }
+
+        const queuedPatch = this._queuedProfilePatches.get(uid);
+        if (queuedPatch?.timer) clearTimeout(queuedPatch.timer);
+        if (queuedPatch) {
+            this._queuedProfilePatches.delete(uid);
+            queuedPatch.waiters?.forEach(({ resolve }) => resolve({ ok: false, reason }));
+        }
     }
 
     _queueProfileSave(uid, data, syncToZone = false, options = {}) {
@@ -4311,22 +4355,42 @@ export default class NetworkManager extends EventEmitter {
 
     // v0.00.04: Full Character Deletion
     async deleteCharacter(uid, name) {
-        if (!uid) return;
+        if (!uid || !window.firebase) {
+            return { ok: false, reason: 'invalid_args' };
+        }
         try {
+            const latestSnapshot = await this.getLatestProfileSnapshot(uid);
+            const resolvedName = String(name || latestSnapshot?.profile?.name || '').trim();
+
+            this._blockedProfileWriteUids.add(uid);
+            this._clearQueuedProfileWrites(uid, 'character_deleted');
+            this._profileBackupMeta.delete(uid);
+            this._profileBackupPruneMeta.delete(uid);
+
             const updates = {};
-            updates[`users/${uid}/profile`] = null;
-            if (this.dbRef) {
+            updates[`users/${uid}`] = null;
+            if (this.roomId) {
                 updates[`zones/${this.roomId}/users/${uid}`] = null;
+                updates[`zones/${this.roomId}/presence/${uid}`] = null;
+                updates[`zones/${this.roomId}/presence_ts/${uid}`] = null;
             }
-            if (name) {
-                updates[`names/${name}`] = null;
+            if (resolvedName) {
+                updates[`names/${resolvedName}`] = null;
             }
+
             await firebase.database().ref().update(updates);
-            Logger.warn(`Character deleted: ${uid} (${name})`);
-            return true;
+
+            if (uid === this.playerId) {
+                this.lastPacketData = null;
+                this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
+            }
+
+            Logger.warn(`Character deleted: ${uid} (${resolvedName || 'unknown'})`);
+            return { ok: true, uid, name: resolvedName };
         } catch (e) {
+            this._blockedProfileWriteUids.delete(uid);
             Logger.error('Character deletion failed', e);
-            return false;
+            return { ok: false, reason: 'delete_failed', error: e };
         }
     }
 

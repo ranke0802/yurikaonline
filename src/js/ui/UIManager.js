@@ -71,6 +71,7 @@ export class UIManager {
         };
         this.activeSkillDetailId = null;
         this.settingsStorageKey = 'yurika_settings_v1';
+        this.uiLayoutStorageKey = 'yurika_ui_layout_v1';
         this.devAccessStateStorageKey = 'yurika_dev_access_guard_v1';
         this.devPassword = '3k78a4';
         this.devAccessGranted = false;
@@ -79,7 +80,7 @@ export class UIManager {
         this.settings = this.loadSettings();
         this.devAccessState = this.loadDevAccessState();
         this.uiLayoutControlDefinitions = {
-            'version-info-badge': { label: '버전 정보', selector: '.version-info', modes: ['desktop', 'mobilePortrait'], minScale: 0.75, maxScale: 1.5, scaleMode: 'transform', zIndex: 1280, margin: 8 },
+            'version-info-badge': { label: '버전 정보', selector: '.version-info', modes: ['desktop', 'mobilePortrait'], minScale: 0.75, maxScale: 1.5, scaleMode: 'transform', baseScale: 1, zIndex: 1280, margin: 8 },
             'dev-overlay-panel': { label: '개발 오버레이', selector: '#dev-overlay', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 2.4, scaleMode: 'transform', zIndex: 2305, margin: 8, requiresVisibleElement: true },
             'hud-top-bar': { label: '프로필/HP 패널', selector: '.top-bar', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform' },
             'quest-panel': { label: '퀘스트창', selector: '.quest-list-panel', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', positioningContext: 'parent', parentSelector: '.left-ui-container' },
@@ -907,6 +908,7 @@ export class UIManager {
         const rawLayouts = layout.layouts && typeof layout.layouts === 'object'
             ? layout.layouts
             : layout;
+        const updatedAt = Math.max(0, Number(layout.updatedAt || 0) || 0);
         const sanitizedLayouts = {};
 
         ['desktop', 'mobilePortrait', 'mobileLandscape'].forEach((mode) => {
@@ -923,14 +925,62 @@ export class UIManager {
         });
 
         if (Object.keys(sanitizedLayouts).length === 0) return null;
-        return {
+        const sanitized = {
             version: 1,
             layouts: sanitizedLayouts
         };
+        if (updatedAt > 0) {
+            sanitized.updatedAt = updatedAt;
+        }
+        return sanitized;
     }
 
     serializeUiLayout(layout) {
         return JSON.stringify(this.sanitizeUiLayout(layout) || null);
+    }
+
+    serializeUiLayoutComparable(layout) {
+        const sanitized = this.sanitizeUiLayout(layout);
+        if (!sanitized) return JSON.stringify(null);
+        return JSON.stringify({
+            version: sanitized.version || 1,
+            layouts: sanitized.layouts || {}
+        });
+    }
+
+    loadStoredUiLayout() {
+        try {
+            const raw = localStorage.getItem(this.uiLayoutStorageKey);
+            if (!raw) return null;
+            return this.sanitizeUiLayout(JSON.parse(raw));
+        } catch (error) {
+            Logger.warn('[UIManager] Failed to load stored UI layout', error);
+            return null;
+        }
+    }
+
+    persistUiLayoutToStorage(layout) {
+        try {
+            const sanitized = this.sanitizeUiLayout(layout);
+            if (!sanitized) {
+                localStorage.removeItem(this.uiLayoutStorageKey);
+                return false;
+            }
+            localStorage.setItem(this.uiLayoutStorageKey, JSON.stringify(sanitized));
+            return true;
+        } catch (error) {
+            Logger.warn('[UIManager] Failed to save UI layout', error);
+            return false;
+        }
+    }
+
+    clearLocalCharacterCaches() {
+        try {
+            localStorage.removeItem('yurika_player_name');
+            localStorage.removeItem(this.uiLayoutStorageKey);
+        } catch (error) {
+            Logger.warn('[UIManager] Failed to clear local character caches', error);
+        }
     }
 
     getResolvedUiLayoutSource() {
@@ -1091,7 +1141,10 @@ export class UIManager {
         element.style.setProperty('z-index', String(definition?.zIndex || (controlId === 'action-auto-toggle' ? 1495 : 1490)), 'important');
 
         if (definition?.scaleMode === 'transform') {
-            const baseScale = this.getUiLayoutElementBaseScale(element);
+            const configuredBaseScale = Number(definition?.baseScale);
+            const baseScale = Number.isFinite(configuredBaseScale) && configuredBaseScale > 0.0001
+                ? configuredBaseScale
+                : this.getUiLayoutElementBaseScale(element);
             const finalScale = Math.max(0.01, baseScale * safeEntry.scale);
             element.style.setProperty('transform', `scale(${finalScale})`, 'important');
             element.style.setProperty('transform-origin', 'top left', 'important');
@@ -1305,16 +1358,24 @@ export class UIManager {
         if (!player) return false;
 
         const sanitizedDraft = this.sanitizeUiLayout(this.uiLayoutDraft);
-        const currentSerialized = this.serializeUiLayout(player.uiLayout);
-        const nextSerialized = this.serializeUiLayout(sanitizedDraft);
-        player.uiLayout = sanitizedDraft;
+        const currentComparable = this.serializeUiLayoutComparable(player.uiLayout);
+        const nextComparable = this.serializeUiLayoutComparable(sanitizedDraft);
+        const nextPersistedLayout = sanitizedDraft
+            ? {
+                ...sanitizedDraft,
+                updatedAt: Date.now()
+            }
+            : null;
+        player.uiLayout = nextPersistedLayout;
+        this.persistUiLayoutToStorage(nextPersistedLayout);
 
-        if (currentSerialized === nextSerialized) {
+        if (currentComparable === nextComparable) {
             return false;
         }
 
         player.saveProfilePatch?.(['uiLayout'], {
             debounceMs: 0,
+            forceImmediate: true,
             reason: 'ui_layout_save'
         });
         return true;
@@ -1408,12 +1469,20 @@ export class UIManager {
 
         delete current.layouts[mode];
         const nextLayout = this.sanitizeUiLayout(current);
-        const currentSerialized = this.serializeUiLayout(player.uiLayout);
-        const nextSerialized = this.serializeUiLayout(nextLayout);
-        player.uiLayout = nextLayout;
-        if (currentSerialized !== nextSerialized) {
+        const currentComparable = this.serializeUiLayoutComparable(player.uiLayout);
+        const nextComparable = this.serializeUiLayoutComparable(nextLayout);
+        const nextPersistedLayout = nextLayout
+            ? {
+                ...nextLayout,
+                updatedAt: Date.now()
+            }
+            : null;
+        player.uiLayout = nextPersistedLayout;
+        this.persistUiLayoutToStorage(nextPersistedLayout);
+        if (currentComparable !== nextComparable) {
             player.saveProfilePatch?.(['uiLayout'], {
                 debounceMs: 0,
+                forceImmediate: true,
                 reason: 'ui_layout_reset'
             });
         }
@@ -1421,8 +1490,28 @@ export class UIManager {
     }
 
     loadPlayerUiLayout(layout) {
+        const remoteLayout = this.sanitizeUiLayout(layout);
+        const localLayout = this.loadStoredUiLayout();
+        const remoteUpdatedAt = Number(remoteLayout?.updatedAt || 0);
+        const localUpdatedAt = Number(localLayout?.updatedAt || 0);
+        const resolvedLayout = (localLayout && localUpdatedAt > remoteUpdatedAt)
+            ? localLayout
+            : (remoteLayout || localLayout);
+
         if (this.game.localPlayer) {
-            this.game.localPlayer.uiLayout = this.sanitizeUiLayout(layout);
+            this.game.localPlayer.uiLayout = resolvedLayout;
+            if (resolvedLayout) {
+                this.persistUiLayoutToStorage(resolvedLayout);
+            } else {
+                this.persistUiLayoutToStorage(null);
+            }
+            if (resolvedLayout && localLayout && localUpdatedAt > remoteUpdatedAt) {
+                this.game.localPlayer.saveProfilePatch?.(['uiLayout'], {
+                    debounceMs: 0,
+                    forceImmediate: true,
+                    reason: 'rehydrate_local_ui_layout'
+                });
+            }
         }
         if (!this.uiLayoutEditMode) {
             this.applyActiveUiLayout();
@@ -9954,7 +10043,11 @@ export class UIManager {
         if (!check) return;
 
         try {
-            await this.game.net.deleteCharacter(this.game.localPlayer.id, this.game.localPlayer.name);
+            const result = await this.game.net.deleteCharacter(this.game.localPlayer.id, this.game.localPlayer.name);
+            if (!result?.ok) {
+                throw result?.error || new Error(result?.reason || 'delete_failed');
+            }
+            this.clearLocalCharacterCaches();
             alert("계정이 초기화되었습니다. 게임을 다시 시작합니다.");
             window.location.reload();
         } catch (e) {
@@ -10056,19 +10149,29 @@ export class UIManager {
     confirmResetCharacter() {
         this.showConfirm("정말 캐릭터를 삭제하시겠습니까?<br><small>캐릭터 정보가 영구 삭제되며 처음부터 다시 시작합니다.</small>", async (confirmed) => {
             if (confirmed && this.game.localPlayer) {
-                const p = this.game.localPlayer;
-                const name = p.name;
-                const uid = this.game.net.playerId;
+                try {
+                    const p = this.game.localPlayer;
+                    const name = p.name;
+                    const uid = this.game.net.playerId;
 
-                // 1. Delete from DB
-                if (this.game.net) {
-                    await this.game.net.deleteCharacter(uid, name);
-                    this.logSystemMessage('캐릭터가 삭제되었습니다. 페이지를 새로고침합니다.');
+                    // 1. Delete from DB
+                    if (this.game.net) {
+                        const result = await this.game.net.deleteCharacter(uid, name);
+                        if (!result?.ok) {
+                            throw result?.error || new Error(result?.reason || 'delete_failed');
+                        }
+                        this.clearLocalCharacterCaches();
+                        this.logSystemMessage('캐릭터가 삭제되었습니다. 페이지를 새로고침합니다.');
 
-                    // 2. Force Reload to go back to title/character selection
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
+                        // 2. Force Reload to go back to title/character selection
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                } catch (error) {
+                    Logger.error(error);
+                    this.logSystemMessage('캐릭터 삭제에 실패했습니다.');
+                    alert('캐릭터 삭제에 실패했습니다.');
                 }
             }
         });
