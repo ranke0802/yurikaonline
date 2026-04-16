@@ -629,6 +629,7 @@ export default class FriendsUIController {
                 retainOnPopupToggle: false,
                 restoreFriendsPopupOnClose: false,
                 requestedUid: null,
+                viewportPreset: null,
                 scale: 1,
                 left: null,
                 top: null
@@ -637,6 +638,9 @@ export default class FriendsUIController {
         this.friendChatWindowState.restoreFriendsPopupOnClose = !!this.friendChatWindowState.restoreFriendsPopupOnClose;
         this.friendChatWindowState.requestedUid = this.friendChatWindowState.requestedUid
             ? String(this.friendChatWindowState.requestedUid)
+            : null;
+        this.friendChatWindowState.viewportPreset = this.friendChatWindowState.viewportPreset
+            ? String(this.friendChatWindowState.viewportPreset)
             : null;
         this.friendChatWindowState.scale = Math.min(1.5, Math.max(0.5, Number(this.friendChatWindowState.scale) || 1));
         this.friendChatWindowState.left = Number.isFinite(Number(this.friendChatWindowState.left))
@@ -676,6 +680,8 @@ export default class FriendsUIController {
         const statusDot = document.getElementById('friend-chat-status-dot');
         const titleEl = document.getElementById('friend-chat-title');
         const state = this.ensureFriendChatWindowState();
+        const viewportPreset = this.getFriendChatCompactViewportPreset();
+        const viewportChanged = state.viewportPreset !== viewportPreset.id;
 
         if (!modal || !card) return;
 
@@ -689,11 +695,24 @@ export default class FriendsUIController {
 
         let scale = Math.min(1.5, Math.max(0.5, Number(state.scale) || 1));
         if (state.compact) {
-            const baseWidth = card.offsetWidth || 360;
-            const baseHeight = card.offsetHeight || 500;
-            const scaleBounds = this.getFriendChatScaleBounds(baseWidth, baseHeight);
+            state.viewportPreset = viewportPreset.id;
+            card.style.setProperty('--friend-chat-compact-width', `${viewportPreset.width}px`);
+            card.style.setProperty('--friend-chat-compact-height', `${viewportPreset.height}px`);
+            if (viewportChanged) {
+                state.scale = 1;
+                state.left = null;
+                state.top = null;
+                scale = 1;
+            }
+            const baseWidth = state.minimized ? (card.offsetWidth || 232) : viewportPreset.width;
+            const baseHeight = state.minimized ? (card.offsetHeight || 96) : viewportPreset.height;
+            const scaleBounds = this.getFriendChatScaleBounds(baseWidth, baseHeight, { preset: viewportPreset });
             scale = Math.min(scaleBounds.max, Math.max(scaleBounds.min, scale));
             state.scale = scale;
+        } else {
+            state.viewportPreset = null;
+            card.style.removeProperty('--friend-chat-compact-width');
+            card.style.removeProperty('--friend-chat-compact-height');
         }
 
         if (compactBtn) {
@@ -930,18 +949,83 @@ export default class FriendsUIController {
         return this.getFriendsPopupMode() === 'desktop' ? 16 : 8;
     }
 
-    getFriendChatScaleBounds(baseWidth = 360, baseHeight = 500) {
+    isFriendGiftComposerVisible() {
+        const composer = document.getElementById('friend-gift-composer');
+        return !!composer && !composer.classList.contains('hidden');
+    }
+
+    getFriendChatCompactViewportMode() {
+        return this.getFriendsPopupMode() === 'desktop'
+            ? 'desktop'
+            : (this.isMobileLandscapeViewport() ? 'mobileLandscape' : 'mobilePortrait');
+    }
+
+    getFriendChatCompactViewportPreset(options = {}) {
+        const mode = options.mode || this.getFriendChatCompactViewportMode();
+        const isGiftOpen = typeof options.isGiftOpen === 'boolean'
+            ? options.isGiftOpen
+            : this.isFriendGiftComposerVisible();
+
+        const presets = {
+            desktop: {
+                width: 344,
+                height: 404,
+                giftHeight: 474,
+                minScale: 0.6,
+                maxScale: 1.4,
+                maxWidthRatio: 0.34,
+                maxHeightRatio: 0.74
+            },
+            mobilePortrait: {
+                width: 288,
+                height: 304,
+                giftHeight: 388,
+                minScale: 0.7,
+                maxScale: 1.2,
+                maxWidthRatio: 0.84,
+                maxHeightRatio: 0.6
+            },
+            mobileLandscape: {
+                width: 276,
+                height: 248,
+                giftHeight: 332,
+                minScale: 0.72,
+                maxScale: 1.12,
+                maxWidthRatio: 0.42,
+                maxHeightRatio: 0.56
+            }
+        };
+
+        const preset = presets[mode] || presets.desktop;
+        return {
+            id: mode,
+            mode,
+            width: preset.width,
+            height: isGiftOpen ? preset.giftHeight : preset.height,
+            minScale: preset.minScale,
+            maxScale: preset.maxScale,
+            maxWidthRatio: isGiftOpen ? Math.min(0.5, preset.maxWidthRatio + 0.04) : preset.maxWidthRatio,
+            maxHeightRatio: isGiftOpen ? Math.min(0.7, preset.maxHeightRatio + 0.1) : preset.maxHeightRatio
+        };
+    }
+
+    getFriendChatScaleBounds(baseWidth = 360, baseHeight = 500, options = {}) {
         const margin = this.getFriendChatCompactMargin();
+        const preset = options.preset || this.getFriendChatCompactViewportPreset(options);
         const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
         const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+        const minScale = Math.max(0.5, Math.min(1, Number(preset.minScale) || 0.5));
+        const maxScale = Math.max(minScale, Math.min(1.5, Number(preset.maxScale) || 1.5));
+        const maxWidth = Math.max(180, Math.min(viewportW - margin * 2, viewportW * (Number(preset.maxWidthRatio) || 1)));
+        const maxHeight = Math.max(160, Math.min(viewportH - margin * 2, viewportH * (Number(preset.maxHeightRatio) || 1)));
         const fitScale = Math.min(
-            1.5,
-            Math.max(0.5, (viewportW - margin * 2) / Math.max(1, baseWidth)),
-            Math.max(0.5, (viewportH - margin * 2) / Math.max(1, baseHeight))
+            maxScale,
+            Math.max(minScale, maxWidth / Math.max(1, baseWidth)),
+            Math.max(minScale, maxHeight / Math.max(1, baseHeight))
         );
         return {
-            min: 0.5,
-            max: Math.max(0.5, fitScale)
+            min: minScale,
+            max: Math.max(minScale, fitScale)
         };
     }
 
@@ -1052,7 +1136,9 @@ export default class FriendsUIController {
             targetHeight = event.clientY - resizeState.startTop;
         }
 
-        const scaleBounds = this.getFriendChatScaleBounds(baseWidth, baseHeight);
+        const scaleBounds = this.getFriendChatScaleBounds(baseWidth, baseHeight, {
+            preset: this.getFriendChatCompactViewportPreset()
+        });
         const nextScale = Math.min(scaleBounds.max, Math.max(scaleBounds.min, Math.max(targetWidth / baseWidth, targetHeight / baseHeight)));
         const width = baseWidth * nextScale;
         const height = baseHeight * nextScale;

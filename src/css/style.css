@@ -12697,11 +12697,13 @@ body.low-power-pwa #ui-layer #minimap-container {
 }
 
 .friends-chat-card.is-compact {
+    --friend-chat-compact-width: 360px;
+    --friend-chat-compact-height: 420px;
     position: fixed;
     right: 16px;
     bottom: 16px;
-    width: min(360px, calc(100vw - 24px));
-    height: min(54dvh, 420px);
+    width: min(var(--friend-chat-compact-width), calc(100vw - 24px));
+    height: min(var(--friend-chat-compact-height), calc(100dvh - 24px));
     max-height: none;
     box-shadow: 0 20px 40px rgba(13, 21, 32, 0.22);
     background: rgba(249, 252, 254, 0.92);
@@ -12709,8 +12711,8 @@ body.low-power-pwa #ui-layer #minimap-container {
 }
 
 .friends-chat-card.is-compact.is-gift-open {
-    width: min(400px, calc(100vw - 24px));
-    height: min(72dvh, 520px);
+    --friend-chat-compact-width: 400px;
+    --friend-chat-compact-height: 520px;
 }
 
 .friends-chat-card.is-minimized {
@@ -12739,6 +12741,7 @@ body.low-power-pwa #ui-layer #minimap-container {
     cursor: move;
     user-select: none;
     touch-action: none;
+    gap: 8px;
 }
 
 .friends-chat-card.is-compact .friends-chat-header button,
@@ -12779,6 +12782,23 @@ body.low-power-pwa #ui-layer #minimap-container {
 
 .friends-chat-card.is-minimized .friend-chat-opacity-control {
     display: none;
+}
+
+.friends-chat-card.is-compact .friends-chat-title-block {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.friends-chat-card.is-compact .friends-chat-title-row {
+    gap: 6px;
+}
+
+.friends-chat-card.is-compact .friends-chat-title-row strong {
+    font-size: 15px;
+}
+
+.friends-chat-card.is-compact .friends-chat-header-actions {
+    gap: 6px;
 }
 
 .friends-chat-card.is-minimized .friends-icon-ghost,
@@ -12991,12 +13011,19 @@ body.low-power-pwa #ui-layer #minimap-container {
 }
 
 .friends-chat-card.is-compact .friend-chat-opacity-control {
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 6px;
+    align-items: center;
 }
 
-.friends-chat-card.is-compact .friend-chat-opacity-end,
+.friends-chat-card.is-compact .friend-chat-opacity-end {
+    display: none;
+}
+
 .friends-chat-card.is-compact .friend-chat-opacity-value {
     font-size: 11px;
+    min-width: 38px;
+    grid-column: auto;
 }
 
 .friend-message-row {
@@ -13219,6 +13246,16 @@ body.low-power-pwa #ui-layer #minimap-container {
     transition: opacity 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
 }
 
+.friends-chat-card.is-compact .friend-chat-resize-handle {
+    width: 24px;
+    height: 24px;
+    border: 0;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    opacity: 0 !important;
+}
+
 .friend-chat-resize-handle::before {
     content: '';
     position: absolute;
@@ -13227,6 +13264,11 @@ body.low-power-pwa #ui-layer #minimap-container {
     border-style: solid;
     opacity: 0;
     transition: opacity 0.18s ease;
+}
+
+.friends-chat-card.is-compact .friend-chat-resize-handle::before {
+    opacity: 0 !important;
+    border-color: transparent !important;
 }
 
 .friend-chat-resize-handle.is-top-left {
@@ -13270,13 +13312,14 @@ body.low-power-pwa #ui-layer #minimap-container {
 }
 
 .friends-chat-card.friends-chat-card-resizing .friend-chat-resize-handle {
-    opacity: 1;
+    opacity: 1 !important;
     background: rgba(255, 255, 255, 0.4);
-    border-color: rgba(22, 41, 61, 0.16);
+    border: 1px solid rgba(22, 41, 61, 0.16);
 }
 
 .friends-chat-card.friends-chat-card-resizing .friend-chat-resize-handle::before {
-    opacity: 1;
+    opacity: 1 !important;
+    border-color: rgba(68, 80, 99, 0.7) !important;
 }
 
 .friends-chat-card.floating-panel-dragging,
@@ -13385,16 +13428,16 @@ body.low-power-pwa #ui-layer #minimap-container {
 
 @media screen and (max-width: 1024px) and (pointer: coarse) {
     .friends-chat-card.is-compact {
-        width: min(316px, calc(100vw - 16px));
-        height: min(48dvh, 340px);
+        --friend-chat-compact-width: 316px;
+        --friend-chat-compact-height: 340px;
         right: 8px;
         bottom: calc(8px + env(safe-area-inset-bottom));
         padding: 10px;
     }
 
     .friends-chat-card.is-compact.is-gift-open {
-        width: min(360px, calc(100vw - 16px));
-        height: min(78dvh, 540px);
+        --friend-chat-compact-width: 360px;
+        --friend-chat-compact-height: 540px;
     }
 
     .friends-chat-card.is-minimized {
@@ -13499,6 +13542,72 @@ body.low-power-pwa #ui-layer #minimap-container {
     .friend-gift-icon {
         width: 32px;
         height: 32px;
+    }
+}
+
+@media screen and (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
+    .friends-chat-card.is-compact:not(.is-minimized) {
+        --friend-chat-compact-width: 276px;
+        --friend-chat-compact-height: 248px;
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .friends-chat-card.is-compact.is-gift-open:not(.is-minimized) {
+        --friend-chat-compact-width: 300px;
+        --friend-chat-compact-height: 332px;
+    }
+
+    .friends-chat-card.is-compact:not(.is-minimized) .friends-chat-header {
+        grid-template-columns: auto auto minmax(0, 1fr);
+        gap: 6px;
+        align-items: center;
+    }
+
+    .friends-chat-card.is-compact:not(.is-minimized) .friends-chat-header-actions {
+        grid-column: 1 / -1;
+        justify-self: end;
+    }
+
+    .friends-chat-card.is-compact:not(.is-minimized) .friends-chat-avatar,
+    .friends-chat-card.is-compact:not(.is-minimized) .friends-back-btn,
+    .friends-chat-card.is-compact:not(.is-minimized) .friends-icon-action,
+    .friends-chat-card.is-compact:not(.is-minimized) .friends-icon-ghost {
+        width: 34px;
+        height: 34px;
+    }
+
+    .friends-chat-card.is-compact:not(.is-minimized) .friends-chat-avatar {
+        flex-basis: 34px;
+    }
+
+    .friends-chat-card.is-compact:not(.is-minimized) .friends-action-icon,
+    .friends-chat-card.is-compact:not(.is-minimized) .friends-action-icon svg {
+        width: 15px;
+        height: 15px;
+    }
+
+    .friends-chat-card.is-compact:not(.is-minimized) .friends-chat-title-row strong {
+        font-size: 14px;
+    }
+
+    .friends-chat-card.is-compact:not(.is-minimized) .friends-chat-input-row {
+        --friend-chat-input-action-size: 40px;
+        gap: 6px;
+    }
+
+    .friends-chat-card.is-compact:not(.is-minimized) .friends-chat-input-row textarea {
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+
+    .friends-chat-card.is-compact:not(.is-minimized) .friend-chat-opacity-control {
+        gap: 4px;
+    }
+
+    .friends-chat-card.is-compact:not(.is-minimized) .friend-chat-opacity-value {
+        font-size: 10px;
+        min-width: 34px;
     }
 }
 
