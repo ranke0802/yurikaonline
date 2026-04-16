@@ -12208,6 +12208,15 @@ body.low-power-pwa #ui-layer #minimap-container {
     resize: none;
 }
 
+.friends-chat-input-row textarea.is-activation-deferred {
+    color: #647182;
+    caret-color: transparent;
+}
+
+.friends-chat-input-row textarea.is-activation-deferred::placeholder {
+    color: #7b8795;
+}
+
 .friends-search-result-card {
     min-height: 118px;
     padding: 12px;
@@ -12823,13 +12832,28 @@ body.low-power-pwa #ui-layer #minimap-container {
 
 .friends-chat-input-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 48px 48px;
+    --friend-chat-input-action-size: 48px;
+    grid-template-columns: minmax(0, 1fr) var(--friend-chat-input-action-size) var(--friend-chat-input-action-size);
     gap: 8px;
     align-items: end;
 }
 
+.friends-chat-input-row textarea {
+    box-sizing: border-box;
+    min-height: var(--friend-chat-input-action-size);
+    line-height: 1.35;
+}
+
 .friends-chat-input-row .friends-chat-input-action {
+    box-sizing: border-box;
+    width: var(--friend-chat-input-action-size) !important;
+    min-width: var(--friend-chat-input-action-size) !important;
+    height: var(--friend-chat-input-action-size);
+    min-height: var(--friend-chat-input-action-size);
+    max-height: var(--friend-chat-input-action-size);
+    flex: 0 0 var(--friend-chat-input-action-size);
     justify-self: stretch;
+    align-self: end;
 }
 
 .friend-chat-opacity-control {
@@ -12895,20 +12919,20 @@ body.low-power-pwa #ui-layer #minimap-container {
 }
 
 .friends-chat-card.is-compact .friends-chat-input-row {
-    grid-template-columns: minmax(0, 1fr) 44px 44px;
+    --friend-chat-input-action-size: 44px;
+    grid-template-columns: minmax(0, 1fr) var(--friend-chat-input-action-size) var(--friend-chat-input-action-size);
     gap: 6px;
 }
 
 .friends-chat-card.is-compact .friends-chat-input-row textarea {
-    min-height: 44px;
     padding: 10px 12px;
 }
 
 .friends-chat-card.is-compact .friends-chat-input-action {
-    width: 44px;
-    min-width: 44px !important;
-    min-height: 44px;
-    height: 44px;
+    width: var(--friend-chat-input-action-size) !important;
+    min-width: var(--friend-chat-input-action-size) !important;
+    min-height: var(--friend-chat-input-action-size);
+    height: var(--friend-chat-input-action-size);
 }
 
 .friends-chat-card.is-compact .friend-chat-opacity-control {
@@ -12967,6 +12991,17 @@ body.low-power-pwa #ui-layer #minimap-container {
     overflow: auto;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+}
+
+.friend-gift-item-picker.is-floating {
+    position: absolute;
+    left: var(--friend-gift-picker-left, 12px);
+    top: var(--friend-gift-picker-top, 12px);
+    width: var(--friend-gift-picker-width, min(320px, calc(100% - 24px)));
+    max-height: var(--friend-gift-picker-max-height, 228px);
+    margin: 0;
+    z-index: 8;
+    box-shadow: 0 18px 36px rgba(13, 21, 32, 0.18);
 }
 
 .friend-gift-picker-item,
@@ -13105,6 +13140,7 @@ body.low-power-pwa #ui-layer #minimap-container {
 
 .friends-chat-card.is-compact .friend-chat-resize-handles {
     display: block;
+    pointer-events: none;
 }
 
 .friends-chat-card.is-minimized .friend-chat-resize-handles {
@@ -13116,12 +13152,15 @@ body.low-power-pwa #ui-layer #minimap-container {
     width: 20px;
     height: 20px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.4);
-    border: 1px solid rgba(22, 41, 61, 0.16);
+    background: transparent;
+    border: 1px solid transparent;
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     z-index: 3;
     touch-action: none;
+    pointer-events: auto;
+    opacity: 0;
+    transition: opacity 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
 }
 
 .friend-chat-resize-handle::before {
@@ -13130,6 +13169,8 @@ body.low-power-pwa #ui-layer #minimap-container {
     inset: 4px;
     border-color: rgba(68, 80, 99, 0.7);
     border-style: solid;
+    opacity: 0;
+    transition: opacity 0.18s ease;
 }
 
 .friend-chat-resize-handle.is-top-left {
@@ -13172,9 +13213,90 @@ body.low-power-pwa #ui-layer #minimap-container {
     border-width: 0 2px 2px 0;
 }
 
+.friends-chat-card.friends-chat-card-resizing .friend-chat-resize-handle {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.4);
+    border-color: rgba(22, 41, 61, 0.16);
+}
+
+.friends-chat-card.friends-chat-card-resizing .friend-chat-resize-handle::before {
+    opacity: 1;
+}
+
 .friends-chat-card.floating-panel-dragging,
 .friends-chat-card.friends-chat-card-resizing {
     box-shadow: 0 24px 48px rgba(13, 21, 32, 0.28);
+}
+
+@media screen and (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
+    #friend-chat-modal {
+        padding:
+            calc(6px + env(safe-area-inset-top))
+            calc(10px + env(safe-area-inset-right))
+            calc(6px + env(safe-area-inset-bottom))
+            calc(10px + env(safe-area-inset-left));
+    }
+
+    #friend-chat-modal:not(.is-compact) .friends-chat-card {
+        width: min(96vw, 720px);
+        max-width: 96vw;
+        height: min(86dvh, 430px);
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px);
+        padding: 12px;
+        gap: 10px;
+    }
+
+    #friend-chat-modal:not(.is-compact) .friends-chat-header {
+        gap: 8px;
+    }
+
+    #friend-chat-modal:not(.is-compact) .friends-chat-header-actions {
+        gap: 6px;
+    }
+
+    #friend-chat-modal:not(.is-compact) .friends-chat-body {
+        gap: 10px;
+    }
+
+    #friend-chat-modal:not(.is-compact) .friends-chat-messages {
+        padding: 4px 1px 2px;
+    }
+
+    #friend-chat-modal:not(.is-compact) .friend-gift-composer {
+        max-height: min(40dvh, 240px);
+        overflow: auto;
+    }
+
+    #friend-chat-modal:not(.is-compact) .friend-chat-opacity-control {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 6px;
+    }
+
+    #friend-chat-modal:not(.is-compact) .friend-chat-opacity-value {
+        grid-column: 3;
+        justify-self: end;
+    }
+
+    #friend-chat-modal:not(.is-compact) .friends-icon-action,
+    #friend-chat-modal:not(.is-compact) .friends-icon-ghost,
+    #friend-chat-modal:not(.is-compact) .friends-back-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    #friend-chat-modal:not(.is-compact) .friends-action-icon,
+    #friend-chat-modal:not(.is-compact) .friends-action-icon svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    #friend-chat-modal:not(.is-compact) .friends-chat-title-row strong {
+        font-size: 16px;
+    }
+
+    #friend-chat-modal:not(.is-compact) .friend-message-bubble {
+        max-width: 88%;
+    }
 }
 
 @media screen and (max-width: 1024px) and (pointer: coarse) {
@@ -13206,19 +13328,19 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 
     .friends-chat-input-row {
-        grid-template-columns: minmax(0, 1fr) 44px 44px;
+        --friend-chat-input-action-size: 44px;
+        grid-template-columns: minmax(0, 1fr) var(--friend-chat-input-action-size) var(--friend-chat-input-action-size);
     }
 
     .friends-chat-input-row textarea {
-        min-height: 44px;
         padding: 10px 12px;
     }
 
     .friends-chat-input-row .friends-chat-input-action {
-        width: 44px;
-        min-width: 44px !important;
-        min-height: 44px;
-        height: 44px;
+        width: var(--friend-chat-input-action-size) !important;
+        min-width: var(--friend-chat-input-action-size) !important;
+        min-height: var(--friend-chat-input-action-size);
+        height: var(--friend-chat-input-action-size);
     }
 
     .friend-chat-opacity-control {

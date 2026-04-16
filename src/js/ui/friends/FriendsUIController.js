@@ -115,7 +115,6 @@ export default class FriendsUIController {
         }).catch(() => { });
 
         document.getElementById('friend-open-search-btn')?.addEventListener('click', openSearchModal);
-        document.getElementById('friend-open-search-inline-btn')?.addEventListener('click', openSearchModal);
         document.getElementById('friend-search-close-btn')?.addEventListener('click', closeSearchModal);
         document.getElementById('friend-profile-back-btn')?.addEventListener('click', () => {
             this.setFriendsMobileView('list', { force: true });
@@ -266,11 +265,6 @@ export default class FriendsUIController {
                 this.openFriendChat(targetUid);
                 return;
             }
-            if (this.friendChatUid) {
-                window.setTimeout(() => {
-                    document.getElementById('friend-chat-input')?.focus();
-                }, 0);
-            }
         });
 
         giftBtn?.addEventListener('click', () => {
@@ -286,9 +280,6 @@ export default class FriendsUIController {
             }
             if (this.friendChatUid) {
                 this.setFriendGiftComposerVisible(true);
-                window.setTimeout(() => {
-                    document.getElementById('friend-chat-input')?.focus();
-                }, 0);
             }
         });
 
@@ -340,6 +331,16 @@ export default class FriendsUIController {
             if (event.key !== 'Enter' || event.shiftKey) return;
             event.preventDefault();
             chatSendBtn?.click();
+        });
+        chatInput?.addEventListener('pointerdown', (event) => {
+            if (chatInput.dataset.deferFocus !== 'true') return;
+            event.preventDefault();
+            this.syncFriendChatInputActivation({ deferred: false, focus: true });
+        });
+        chatInput?.addEventListener('focus', () => {
+            if (chatInput.dataset.deferFocus === 'true') {
+                this.syncFriendChatInputActivation({ deferred: false, focus: true });
+            }
         });
 
         giftKindManastoneBtn?.addEventListener('click', () => this.setFriendGiftKind('manastone'));
@@ -626,11 +627,13 @@ export default class FriendsUIController {
                 minimized: false,
                 unreadWhileMinimized: false,
                 retainOnPopupToggle: false,
+                restoreFriendsPopupOnClose: false,
                 scale: 1,
                 left: null,
                 top: null
             };
         }
+        this.friendChatWindowState.restoreFriendsPopupOnClose = !!this.friendChatWindowState.restoreFriendsPopupOnClose;
         this.friendChatWindowState.scale = Math.min(1.5, Math.max(0.5, Number(this.friendChatWindowState.scale) || 1));
         this.friendChatWindowState.left = Number.isFinite(Number(this.friendChatWindowState.left))
             ? Number(this.friendChatWindowState.left)
@@ -753,6 +756,12 @@ export default class FriendsUIController {
             state.unreadWhileMinimized = false;
             unreadDot?.classList.add('hidden');
         }
+
+        if (state.compact && state.minimized) {
+            this.toggleFriendGiftItemPicker(false);
+        } else {
+            this.positionFriendGiftItemPicker();
+        }
     }
 
     handleFriendChatBackAction() {
@@ -805,7 +814,7 @@ export default class FriendsUIController {
             if (this.getFriendsPopupMode() !== 'desktop') {
                 this.setFriendsMobileView('list', { force: true });
             }
-            if (!options.skipFocus) {
+            if (options.focusInput) {
                 window.setTimeout(() => {
                     document.getElementById('friend-chat-input')?.focus();
                 }, 0);
@@ -863,6 +872,54 @@ export default class FriendsUIController {
             this.applyFriendChatWindowState();
             this.renderFriendChatMessages();
         });
+    }
+
+    getFriendChatVisualScale() {
+        const state = this.ensureFriendChatWindowState();
+        return this.isFriendChatCompactMode()
+            ? Math.min(1.5, Math.max(0.5, Number(state.scale) || 1))
+            : 1;
+    }
+
+    shouldDeferFriendChatInputActivation() {
+        return this.getFriendsPopupMode() === 'mobileLandscape';
+    }
+
+    syncFriendChatInputActivation(options = {}) {
+        const {
+            deferred = this.shouldDeferFriendChatInputActivation(),
+            focus = false
+        } = options;
+        const input = document.getElementById('friend-chat-input');
+        if (!input) return;
+
+        const nextDeferred = !!deferred;
+        if (nextDeferred) {
+            if (!input.dataset.defaultPlaceholder) {
+                input.dataset.defaultPlaceholder = input.getAttribute('placeholder') || '';
+            }
+            input.readOnly = true;
+            input.dataset.deferFocus = 'true';
+            input.classList.add('is-activation-deferred');
+            input.setAttribute('placeholder', '메시지를 탭해 입력하세요.');
+            input.blur();
+            return;
+        }
+
+        input.readOnly = false;
+        delete input.dataset.deferFocus;
+        input.classList.remove('is-activation-deferred');
+        if (input.dataset.defaultPlaceholder) {
+            input.setAttribute('placeholder', input.dataset.defaultPlaceholder);
+        }
+
+        if (focus) {
+            input.focus({ preventScroll: true });
+            if (typeof input.setSelectionRange === 'function') {
+                const caret = input.value.length;
+                input.setSelectionRange(caret, caret);
+            }
+        }
     }
 
     getFriendChatCompactMargin() {
@@ -959,6 +1016,7 @@ export default class FriendsUIController {
 
         this.friendChatResizeState.captureTarget?.setPointerCapture?.(event.pointerId);
         card.classList.add('friends-chat-card-resizing');
+        this.positionFriendGiftItemPicker();
     }
 
     handleFriendChatResizePointerMove(event) {
@@ -1016,6 +1074,7 @@ export default class FriendsUIController {
         card.style.setProperty('transform-origin', 'top left', 'important');
         card.style.setProperty('left', `${clamped.left}px`, 'important');
         card.style.setProperty('top', `${clamped.top}px`, 'important');
+        this.positionFriendGiftItemPicker();
     }
 
     handleFriendChatResizePointerUp(event) {
@@ -1279,22 +1338,35 @@ export default class FriendsUIController {
         this.friendChatReturnView = options.returnView || (this.friendsMobileView || 'list');
         await this.selectFriend(uid, { showProfile: false });
         this.friendChatUid = uid;
-        this.ensureFriendChatWindowState();
-        this.friendChatWindowState.compact = !!options.compact;
-        this.friendChatWindowState.minimized = false;
-        this.friendChatWindowState.unreadWhileMinimized = false;
+        const state = this.ensureFriendChatWindowState();
+        state.compact = !!options.compact;
+        state.minimized = false;
+        state.unreadWhileMinimized = false;
+        state.restoreFriendsPopupOnClose = this.getFriendsPopupMode() === 'mobileLandscape' && this.isPopupOpen('friends-popup');
         this.game.net.openFriendThread(uid);
         this.game.net.setActiveFriendThreadAutoRead?.(true);
+
+        if (state.restoreFriendsPopupOnClose) {
+            state.retainOnPopupToggle = true;
+            this.togglePopup('friends-popup');
+            state.retainOnPopupToggle = false;
+        }
 
         document.getElementById('friend-chat-modal')?.classList.remove('hidden');
         this.setFriendGiftComposerVisible(!!options.openGift);
         this.refreshFriendGiftOptions();
         this.applyFriendChatWindowState();
         this.renderFriendChatMessages({ forceToLatest: true });
+        this.syncFriendChatInputActivation({
+            deferred: !options.focusInput && this.shouldDeferFriendChatInputActivation(),
+            focus: !!options.focusInput
+        });
 
-        window.setTimeout(() => {
-            document.getElementById('friend-chat-input')?.focus();
-        }, 0);
+        if (options.focusInput) {
+            window.setTimeout(() => {
+                document.getElementById('friend-chat-input')?.focus();
+            }, 0);
+        }
     }
 
     closeFriendChat(options = {}) {
@@ -1309,12 +1381,15 @@ export default class FriendsUIController {
         this.setFriendGiftComposerVisible(false);
         this.toggleFriendChatProfileModal(false);
         this.hideFriendGiftItemTooltip?.();
+        this.syncFriendChatInputActivation({ deferred: false, focus: false });
 
         const state = this.ensureFriendChatWindowState();
+        const shouldRestoreFriendsPopup = !!state.restoreFriendsPopupOnClose;
         state.compact = false;
         state.minimized = false;
         state.unreadWhileMinimized = false;
         state.retainOnPopupToggle = false;
+        state.restoreFriendsPopupOnClose = false;
 
         if (detachThread) {
             this.game.net?.closeFriendThread?.(this.friendChatUid);
@@ -1334,6 +1409,12 @@ export default class FriendsUIController {
         }
         if (!silent) {
             this.refreshFriendsPopup();
+        }
+        if (shouldRestoreFriendsPopup && !this.isPopupOpen('friends-popup')) {
+            state.retainOnPopupToggle = true;
+            this.togglePopup('friends-popup');
+            state.retainOnPopupToggle = false;
+            this.setFriendsMobileView('list', { force: true });
         }
     }
 
@@ -1427,6 +1508,7 @@ export default class FriendsUIController {
 
         this.renderFriendGiftPicker(giftableItems);
         this.renderFriendGiftSelectionPreview(selection?.item || null, Math.max(1, Number(itemAmountInput?.value || 1)));
+        this.positionFriendGiftItemPicker();
     }
 
     getGiftableFriendInventoryItems(player = this.game.localPlayer) {
@@ -1459,10 +1541,17 @@ export default class FriendsUIController {
     toggleFriendGiftItemPicker(visible) {
         const picker = document.getElementById('friend-gift-item-picker');
         if (!picker) return;
+        const card = document.getElementById('friend-chat-card');
+        if (card && picker.parentElement !== card) {
+            card.appendChild(picker);
+        }
+        picker.classList.add('is-floating');
         picker.classList.toggle('hidden', !visible);
         if (!visible) {
             this.hideFriendGiftItemTooltip();
+            return;
         }
+        this.positionFriendGiftItemPicker();
     }
 
     renderFriendGiftPicker(entries = this.getGiftableFriendInventoryItems()) {
@@ -1471,7 +1560,6 @@ export default class FriendsUIController {
 
         picker.innerHTML = '';
         if (!entries.length) {
-            picker.classList.remove('hidden');
             picker.innerHTML = '<div class="friend-gift-picker-empty">보낼 수 있는 아이템이 없습니다.</div>';
             return;
         }
@@ -1500,6 +1588,46 @@ export default class FriendsUIController {
             button.addEventListener('mouseleave', () => this.hideFriendGiftItemTooltip());
             picker.appendChild(button);
         });
+    }
+
+    positionFriendGiftItemPicker() {
+        const picker = document.getElementById('friend-gift-item-picker');
+        const card = document.getElementById('friend-chat-card');
+        const anchor = document.getElementById('friend-gift-item-picker-btn');
+        if (!picker || !card || !anchor || picker.classList.contains('hidden')) return;
+        if (this.isFriendChatCompactMode() && this.isFriendChatMinimized()) return;
+
+        const cardRect = card.getBoundingClientRect();
+        const anchorRect = anchor.getBoundingClientRect();
+        if (!cardRect.width || !cardRect.height || !anchorRect.width || !anchorRect.height) return;
+
+        const scale = this.getFriendChatVisualScale();
+        const localWidth = cardRect.width / scale;
+        const localHeight = cardRect.height / scale;
+        const margin = this.isFriendChatCompactMode() ? 10 : 12;
+        const gap = 8;
+        const preferredWidth = this.isFriendChatCompactMode() ? 248 : 320;
+        const width = Math.min(preferredWidth, Math.max(180, Math.round(localWidth - margin * 2)));
+        const anchorLeft = (anchorRect.left - cardRect.left) / scale;
+        const anchorTop = (anchorRect.top - cardRect.top) / scale;
+        const anchorBottom = (anchorRect.bottom - cardRect.top) / scale;
+        let left = Math.round(anchorLeft + anchorRect.width / scale - width);
+        left = Math.min(
+            Math.max(margin, left),
+            Math.max(margin, Math.round(localWidth - width - margin))
+        );
+
+        const maxHeight = Math.min(this.isFriendChatCompactMode() ? 188 : 228, Math.max(124, Math.floor(localHeight - margin * 2)));
+        let top = Math.round(anchorBottom + gap);
+        const roomBelow = localHeight - top - margin;
+        if (roomBelow < 124) {
+            top = Math.max(margin, Math.round(anchorTop - maxHeight - gap));
+        }
+
+        picker.style.setProperty('--friend-gift-picker-left', `${left}px`);
+        picker.style.setProperty('--friend-gift-picker-top', `${top}px`);
+        picker.style.setProperty('--friend-gift-picker-width', `${width}px`);
+        picker.style.setProperty('--friend-gift-picker-max-height', `${maxHeight}px`);
     }
 
     renderFriendGiftSelectionPreview(item = null, amount = 1) {
