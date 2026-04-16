@@ -27,6 +27,7 @@ export default class MonsterManager {
         this.firstBossDefeated = false;
         this.firstBossPending = false;
         this.firstBossMissingTimer = 0;
+        this.firstBossRestorePromise = null;
         this.slimeKillCount = 0; // v0.00.43: Track kills for boss spawn
 
         // v2.4.6: Single-first progression keeps the first boss buildup local to the current session.
@@ -1304,6 +1305,80 @@ export default class MonsterManager {
         }
     }
 
+    async restorePendingIntroBossQuest(localPlayer = this.game?.localPlayer, options = {}) {
+        if (this.firstBossRestorePromise) {
+            return this.firstBossRestorePromise;
+        }
+
+        this.firstBossRestorePromise = (async () => {
+            const questData = localPlayer?.questData;
+            if (!questData) {
+                return { restored: false, reason: 'no_quest_data' };
+            }
+
+            const hasIntroBossClear = (questData.bossClearCount || 0) > 0
+                || !!questData.bossKilled
+                || !!questData.bossQuestClaimed;
+            const isIntroBossQuestActive = !!questData.slime30QuestClaimed && !hasIntroBossClear;
+
+            if (!isIntroBossQuestActive) {
+                if (hasIntroBossClear) {
+                    this.firstBossPending = false;
+                    this.firstBossMissingTimer = 0;
+                }
+                return { restored: false, reason: 'quest_inactive' };
+            }
+
+            const liveIntroBoss = Array.from(this.monsters.values()).some((monster) => monster?.typeId === 'king_slime' && !monster.isDead);
+            if (liveIntroBoss || this.bossSpawned) {
+                this.firstBossPending = true;
+                this.firstBossMissingTimer = 0;
+                return { restored: false, reason: 'already_present' };
+            }
+
+            this.firstBossPending = true;
+            this.firstBossMissingTimer = 0;
+
+            const authoritativeHostExists = !!(
+                this.net?.connected
+                && !this.net.isHost
+                && this.net.currentHostId
+                && this.net.currentHostId !== this.net.playerId
+            );
+
+            if (authoritativeHostExists) {
+                this.firstBossMissingTimer = -4;
+                this.net.requestBossSpawn?.({ isFirstBoss: true });
+                this.game.ui?.logSystemMessage?.('재접속으로 끊긴 대왕 슬라임 퀘스트를 복구 중입니다.');
+                return {
+                    restored: true,
+                    requested: true,
+                    reason: options.reason || 'requested_host_spawn'
+                };
+            }
+
+            const bossId = await this._spawnBoss(true);
+            if (!bossId) {
+                return { restored: false, reason: 'spawn_failed' };
+            }
+
+            this.slimeKillCount = 0;
+            this.game.ui?.logSystemMessage?.('재접속으로 사라진 대왕 슬라임을 다시 불러왔습니다.');
+
+            return {
+                restored: true,
+                bossId,
+                reason: options.reason || 'respawned_missing_intro_boss'
+            };
+        })();
+
+        try {
+            return await this.firstBossRestorePromise;
+        } finally {
+            this.firstBossRestorePromise = null;
+        }
+    }
+
     _checkFirstBossQuestFailure(dt, localPlayer) {
         if (this.shouldSuppressWorldFeedback()) {
             this.firstBossMissingTimer = 0;
@@ -1339,6 +1414,11 @@ export default class MonsterManager {
         }
 
         if (!this.firstBossPending) {
+            this.restorePendingIntroBossQuest(localPlayer, {
+                reason: 'runtime_missing_intro_boss'
+            }).catch((error) => {
+                Logger.warn('[MonsterManager] Failed to restore intro boss quest state.', error);
+            });
             return;
         }
 

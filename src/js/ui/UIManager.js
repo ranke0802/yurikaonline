@@ -1,4 +1,5 @@
 import Logger from '../utils/Logger.js';
+import FriendsUIController, { FRIENDS_UI_METHOD_NAMES } from './friends/FriendsUIController.js';
 
 export class UIManager {
     constructor(game) {
@@ -40,6 +41,9 @@ export class UIManager {
         this.friendChatUid = null;
         this.friendGiftKind = 'manastone';
         this.friendAlertCount = 0;
+        this.partyPanelUiState = {
+            minimized: false
+        };
         this.statusDevLookupExpanded = false;
         this.handleDesktopShortcutKeydown = this.handleDesktopShortcutKeydown.bind(this);
         this.refreshDesktopShortcutHints = this.refreshDesktopShortcutHints.bind(this);
@@ -127,6 +131,10 @@ export class UIManager {
             margin: 12,
             captureTarget: null
         };
+        this.friendsUI = new FriendsUIController(this);
+        FRIENDS_UI_METHOD_NAMES.forEach((methodName) => {
+            this[methodName] = this.friendsUI[methodName];
+        });
         this.refreshTutorialHighlight = this.refreshTutorialHighlight.bind(this);
         this.refreshTutorialGuideLayout = this.refreshTutorialGuideLayout.bind(this);
         this.handleTutorialGuideDragMove = this.handleTutorialGuideDragMove.bind(this);
@@ -3062,13 +3070,13 @@ export class UIManager {
         e.stopPropagation();
 
         const rect = panel.getBoundingClientRect();
-        panel.style.position = 'fixed';
-        panel.style.left = `${Math.round(rect.left)}px`;
-        panel.style.top = `${Math.round(rect.top)}px`;
-        panel.style.right = 'auto';
-        panel.style.bottom = 'auto';
-        panel.style.transform = 'none';
-        panel.style.margin = '0';
+        panel.style.setProperty('position', 'fixed', 'important');
+        panel.style.setProperty('left', `${Math.round(rect.left)}px`, 'important');
+        panel.style.setProperty('top', `${Math.round(rect.top)}px`, 'important');
+        panel.style.setProperty('right', 'auto', 'important');
+        panel.style.setProperty('bottom', 'auto', 'important');
+        panel.style.setProperty('transform', 'none', 'important');
+        panel.style.setProperty('margin', '0', 'important');
 
         this.floatingPanelDragState = {
             active: true,
@@ -3100,8 +3108,8 @@ export class UIManager {
         const nextTop = e.clientY - this.floatingPanelDragState.offsetY;
         const clamped = this.clampFloatingPanelPosition(nextLeft, nextTop, rect.width, rect.height);
 
-        panel.style.left = `${clamped.left}px`;
-        panel.style.top = `${clamped.top}px`;
+        panel.style.setProperty('left', `${clamped.left}px`, 'important');
+        panel.style.setProperty('top', `${clamped.top}px`, 'important');
     }
 
     handleFloatingPanelDragEnd(e) {
@@ -7424,14 +7432,18 @@ export class UIManager {
         return player.questData.statInsightShown;
     }
 
-    collectFirstStatInsightMessages(player = this.game.localPlayer, pendingStats = this.pendingStats) {
-        const flags = this.ensureStatInsightFlags(player);
-        const orderedInsights = [
+    getStatInsightDefinitions() {
+        return [
             { key: 'vitality', text: '적의 공격을 더 견고하게 오래 버티고, 빠르게 회복하게 된 것 같다' },
             { key: 'intelligence', text: '적에게 치명적인 강력한 일격을 가할 수 있을 것 같다' },
             { key: 'wisdom', text: '정신적으로 여유가 생기고 더 빠르게 회복되는게 느껴진다. 침착하게 공격할 수 있게 됐다.' },
             { key: 'agility', text: '몸이 가볍다. 움직임이 민첩해지고, 적의 빈틈을 더 정확하고 빠르게 노릴 수 있게 됐다' }
         ];
+    }
+
+    collectFirstStatInsightMessages(player = this.game.localPlayer, pendingStats = this.pendingStats) {
+        const flags = this.ensureStatInsightFlags(player);
+        const orderedInsights = this.getStatInsightDefinitions();
 
         return orderedInsights.reduce((messages, insight) => {
             if ((Number(pendingStats?.[insight.key] || 0) > 0) && !flags[insight.key]) {
@@ -7440,6 +7452,17 @@ export class UIManager {
             }
             return messages;
         }, []);
+    }
+
+    queueStatInsightMessages(messages = []) {
+        if (!Array.isArray(messages) || messages.length === 0) return;
+
+        window.setTimeout(() => {
+            messages.forEach((message) => {
+                if (!message?.text) return;
+                this.showCenterMessage(message.text, '#ffeb3b', { durationMs: message.durationMs });
+            });
+        }, 0);
     }
 
     getPendingStatTotal() {
@@ -7463,13 +7486,7 @@ export class UIManager {
         this.pendingStats = this.createEmptyPendingStats();
         p.saveState(); // v0.00.01: Persist stats to DB
         this.game.tutorial?.trigger?.('stats_saved');
-        if (firstStatInsightMessages.length > 0) {
-            window.setTimeout(() => {
-                firstStatInsightMessages.forEach((message) => {
-                    this.showCenterMessage(message.text, '#ffeb3b', { durationMs: message.durationMs });
-                });
-            }, 0);
-        }
+        this.queueStatInsightMessages(firstStatInsightMessages);
     }
 
     cancelPendingStats(options = {}) {
@@ -8167,6 +8184,7 @@ export class UIManager {
 
     claimSlimeReward(p) {
         p.questData.slimeQuestClaimed = true;
+        const statInsightMessages = this.collectFirstStatInsightMessages(p, { wisdom: 2 });
         p.wisdom += 2; // v0.00.75: Wisdom directly +2
         p.updateDerivedStats();
         this.logSystemMessage('QUEST 완료: 슬라임 토벌 보상 지급 (지혜 +2)');
@@ -8175,6 +8193,7 @@ export class UIManager {
         this.updateQuestUI();
         this.updateStatusPopup();
         p.saveState();
+        this.queueStatInsightMessages(statInsightMessages);
     }
 
     _requestQuestBossSummon(isFirstBoss = true) {
@@ -8205,8 +8224,10 @@ export class UIManager {
             || (p.questData.bossClearCount || 0) > 0;
         if (!alreadyClaimedIntroReward) {
             p.questData.introSlime30RewardClaimed = true;
+            const statInsightMessages = this.collectFirstStatInsightMessages(p, { vitality: 3 });
             p.vitality += 3; // v0.00.75: Vitality directly +3
             p.updateDerivedStats();
+            this.queueStatInsightMessages(statInsightMessages);
         }
 
         // Spawn Boss (ONLY if not already spawned by global system)
@@ -8443,6 +8464,90 @@ export class UIManager {
         });
     }
 
+    ensurePartyPanelControls() {
+        document.querySelectorAll('#party-panel').forEach((panel) => {
+            const header = panel.querySelector('.panel-header');
+            if (!header) return;
+
+            let controls = header.querySelector('.party-panel-controls');
+            if (!controls) {
+                controls = document.createElement('div');
+                controls.className = 'party-panel-controls';
+                header.appendChild(controls);
+            }
+
+            let minimizeBtn = controls.querySelector('.party-panel-toggle-btn');
+            if (!minimizeBtn) {
+                minimizeBtn = document.createElement('button');
+                minimizeBtn.type = 'button';
+                minimizeBtn.className = 'party-panel-toggle-btn';
+                minimizeBtn.dataset.noDrag = 'true';
+                minimizeBtn.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.togglePartyPanelMinimized();
+                });
+                controls.appendChild(minimizeBtn);
+            }
+
+            const leaveBtn = header.querySelector('.party-leave-btn');
+            if (leaveBtn && leaveBtn.parentElement !== controls) {
+                controls.appendChild(leaveBtn);
+            }
+
+            this.syncPartyPanelMinimizedState(panel);
+        });
+    }
+
+    syncPartyPanelMinimizedState(panel = document.getElementById('party-panel')) {
+        if (!panel) return;
+
+        const isMinimized = !!this.partyPanelUiState?.minimized;
+        panel.classList.toggle('is-minimized', isMinimized);
+
+        const minimizeBtn = panel.querySelector('.party-panel-toggle-btn');
+        if (minimizeBtn) {
+            const label = isMinimized ? '복구' : '최소화';
+            minimizeBtn.textContent = isMinimized ? '□' : '−';
+            minimizeBtn.title = `파티 창 ${label}`;
+            minimizeBtn.setAttribute('aria-label', `파티 창 ${label}`);
+        }
+
+        const hasCustomPosition = !!panel.style.getPropertyValue('left') || !!panel.style.getPropertyValue('top');
+        if (hasCustomPosition) {
+            this.clampFloatingPanelToViewport(panel);
+        }
+    }
+
+    togglePartyPanelMinimized(force) {
+        const nextMinimized = typeof force === 'boolean'
+            ? force
+            : !this.partyPanelUiState?.minimized;
+
+        this.partyPanelUiState = {
+            ...(this.partyPanelUiState || {}),
+            minimized: !!nextMinimized
+        };
+
+        document.querySelectorAll('#party-panel').forEach((panel) => {
+            this.syncPartyPanelMinimizedState(panel);
+        });
+    }
+
+    clampFloatingPanelToViewport(panel) {
+        if (!panel?.isConnected || panel.classList.contains('hidden')) return;
+
+        const rect = panel.getBoundingClientRect();
+        const clamped = this.clampFloatingPanelPosition(rect.left, rect.top, rect.width, rect.height);
+        panel.style.setProperty('position', 'fixed', 'important');
+        panel.style.setProperty('left', `${clamped.left}px`, 'important');
+        panel.style.setProperty('top', `${clamped.top}px`, 'important');
+        panel.style.setProperty('right', 'auto', 'important');
+        panel.style.setProperty('bottom', 'auto', 'important');
+        panel.style.setProperty('transform', 'none', 'important');
+        panel.style.setProperty('margin', '0', 'important');
+    }
+
     updatePartyUI() {
         const panel = document.getElementById('party-panel');
         const list = document.getElementById('party-list');
@@ -8454,6 +8559,7 @@ export class UIManager {
             return;
         }
 
+        this.ensurePartyPanelControls();
         panel.classList.remove('hidden');
         list.innerHTML = '';
 
@@ -8501,6 +8607,8 @@ export class UIManager {
                 list.appendChild(row);
             }
         });
+
+        this.syncPartyPanelMinimizedState(panel);
     }
 
     isInventorySelection(ref, kind, value) {

@@ -6420,6 +6420,14 @@ body.is-fullscreen .version-info {
     gap: 8px;
 }
 
+.party-panel-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    flex: 0 0 auto;
+}
+
 .party-row {
     margin-bottom: 8px;
     padding: 6px;
@@ -6473,9 +6481,48 @@ body.is-fullscreen .version-info {
     box-shadow: none;
 }
 
+.party-panel-toggle-btn {
+    width: 24px;
+    height: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: #dfe6e9;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    flex: 0 0 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
+}
+
+.party-panel-toggle-btn:hover {
+    background: rgba(116, 185, 255, 0.22);
+    color: #74b9ff;
+}
+
 .party-leave-btn:hover {
     background: rgba(255, 118, 117, 0.2);
     color: #ff7675;
+}
+
+#party-panel.is-minimized {
+    width: 148px;
+    max-height: none;
+    overflow: hidden;
+}
+
+#party-panel.is-minimized .panel-header {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+#party-panel.is-minimized #party-list {
+    display: none !important;
 }
 
 @media screen and (min-width: 901px) {
@@ -8640,6 +8687,12 @@ body.is-fullscreen .version-info {
         pointer-events: auto !important;
     }
 
+    body #ui-layer .left-ui-container #party-panel.is-minimized {
+        width: min(28vw, 136px) !important;
+        max-height: none !important;
+        overflow: hidden !important;
+    }
+
     body #ui-layer #hostility-panel {
         position: fixed !important;
         top: calc(102px + env(safe-area-inset-top)) !important;
@@ -8663,6 +8716,12 @@ body.is-fullscreen .version-info {
         line-height: 1.2 !important;
     }
 
+    body #ui-layer .left-ui-container #party-panel.is-minimized .panel-header {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+        border-bottom: none !important;
+    }
+
     body #ui-layer #hostility-panel #hostility-list,
     body #ui-layer .left-ui-container #party-panel #party-list {
         display: flex !important;
@@ -8670,11 +8729,19 @@ body.is-fullscreen .version-info {
         gap: 6px !important;
     }
 
+    body #ui-layer .left-ui-container #party-panel.is-minimized #party-list {
+        display: none !important;
+    }
+
 body #ui-layer #hostility-panel .hostility-item,
     body #ui-layer .left-ui-container #party-panel .party-item,
     body #ui-layer .left-ui-container #party-panel .party-row {
         margin-bottom: 0 !important;
         font-size: 11px !important;
+    }
+
+    body #ui-layer .left-ui-container #party-panel .party-panel-controls {
+        gap: 4px !important;
     }
 }
 

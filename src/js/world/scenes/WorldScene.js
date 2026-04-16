@@ -341,6 +341,10 @@ export default class WorldScene extends Scene {
         // Setup Network Handlers
         this._setupNetworkHandlers();
 
+        await this.monsterManager?.restorePendingIntroBossQuest?.(this.player, {
+            reason: 'world_enter_reconnect'
+        });
+
         // Initial UI Sync
         if (this.ui) {
             this.ui.updateQuestUI();
