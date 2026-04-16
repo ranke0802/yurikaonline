@@ -744,7 +744,7 @@ export default class FriendsUIController {
         }
 
         if (titleEl && this.friendChatUid && state.compact && state.minimized) {
-            titleEl.textContent = this.friendChatUid;
+            titleEl.textContent = this.getFriendDisplayName(this.friendChatUid);
         }
 
         if (!state.minimized && this.friendChatUid && this.game.net?.setActiveFriendThreadAutoRead) {
@@ -813,7 +813,7 @@ export default class FriendsUIController {
         }
 
         this.applyFriendChatWindowState();
-        this.renderFriendChatMessages();
+        this.renderFriendChatMessages({ forceToLatest: true });
     }
 
     toggleFriendChatMinimized(force) {
@@ -826,7 +826,21 @@ export default class FriendsUIController {
         }
         this.game.net?.setActiveFriendThreadAutoRead?.(!state.minimized);
         this.applyFriendChatWindowState();
-        this.renderFriendChatMessages();
+        this.renderFriendChatMessages({ forceToLatest: true });
+    }
+
+    scrollFriendChatToLatest(attempts = 3) {
+        const container = document.getElementById('friend-chat-messages');
+        if (!container) return;
+
+        const remainingAttempts = Math.max(1, Math.floor(Number(attempts) || 1));
+        const applyScroll = (remaining) => {
+            container.scrollTop = container.scrollHeight;
+            if (remaining <= 1) return;
+            window.requestAnimationFrame(() => applyScroll(remaining - 1));
+        };
+
+        applyScroll(remainingAttempts);
     }
 
     ensureFriendChatDragBinding(header = document.getElementById('friend-chat-header'), card = document.getElementById('friend-chat-card')) {
@@ -1092,6 +1106,13 @@ export default class FriendsUIController {
         return friend?.name || '친구';
     }
 
+    getFriendDisplayName(uid = this.friendChatUid || this.selectedFriendUid) {
+        if (!uid) return '친구';
+        const friend = (this.game.net?.getFriendListSnapshot?.() || []).find((entry) => entry.uid === uid) || null;
+        const profile = this.friendProfileCache.get(uid) || null;
+        return friend?.name || profile?.name || uid;
+    }
+
     toggleFriendSearchModal(visible) {
         const modal = document.getElementById('friends-add-modal');
         if (!modal) return;
@@ -1269,7 +1290,7 @@ export default class FriendsUIController {
         this.setFriendGiftComposerVisible(!!options.openGift);
         this.refreshFriendGiftOptions();
         this.applyFriendChatWindowState();
-        this.renderFriendChatMessages();
+        this.renderFriendChatMessages({ forceToLatest: true });
 
         window.setTimeout(() => {
             document.getElementById('friend-chat-input')?.focus();
@@ -1526,9 +1547,10 @@ export default class FriendsUIController {
         return `수량 ${Math.max(1, Number(amount || 1)).toLocaleString('ko-KR')}`;
     }
 
-    renderFriendChatMessages() {
+    renderFriendChatMessages(options = {}) {
         const container = document.getElementById('friend-chat-messages');
         if (!container) return;
+        const forceToLatest = !!options.forceToLatest;
         const stickToBottom = Math.abs((container.scrollHeight - container.scrollTop) - container.clientHeight) < 28;
 
         const targetUid = this.friendChatUid || this.selectedFriendUid;
@@ -1538,13 +1560,12 @@ export default class FriendsUIController {
         }
 
         const friend = (this.game.net?.getFriendListSnapshot?.() || []).find((entry) => entry.uid === targetUid) || null;
-        const profile = this.friendProfileCache.get(targetUid) || null;
-        const displayName = profile?.name || friend?.name || targetUid;
+        const displayName = this.getFriendDisplayName(targetUid);
         const titleEl = document.getElementById('friend-chat-title');
         const statusEl = document.getElementById('friend-chat-status');
         const statusDot = document.getElementById('friend-chat-status-dot');
         const avatarBtn = document.getElementById('friend-chat-avatar-btn');
-        if (titleEl) titleEl.textContent = this.isFriendChatMinimized() ? targetUid : displayName;
+        if (titleEl) titleEl.textContent = displayName;
         if (statusEl) {
             statusEl.textContent = this.getFriendStatusText(friend?.online);
             statusEl.classList.toggle('is-online', !!friend?.online);
@@ -1562,7 +1583,7 @@ export default class FriendsUIController {
         const messages = this.game.net?.getFriendThreadMessagesSnapshot?.(targetUid) || [];
         if (!messages.length) {
             container.innerHTML = '<div class="friend-chat-empty">아직 주고받은 메시지가 없습니다. 먼저 말을 걸어 보세요.</div>';
-            container.scrollTop = container.scrollHeight;
+            this.scrollFriendChatToLatest();
             return;
         }
 
@@ -1592,8 +1613,8 @@ export default class FriendsUIController {
             button.addEventListener('mouseleave', () => this.hideFriendGiftItemTooltip());
         });
 
-        if (stickToBottom) {
-            container.scrollTop = container.scrollHeight;
+        if (forceToLatest || stickToBottom) {
+            this.scrollFriendChatToLatest(forceToLatest ? 4 : 2);
         }
     }
 

@@ -67,6 +67,8 @@ export class UIManager {
         this.tutorialHighlightLayer = null;
         this.tutorialHighlightTargets = [];
         this.tutorialHighlightState = { targets: [], mode: 'ring', label: '' };
+        this.tutorialDimSuppressed = false;
+        this.tutorialDimSuppressedStepId = '';
         this.tutorialGuideManualPosition = null;
         this.tutorialGuideDragState = {
             active: false,
@@ -2923,7 +2925,11 @@ export class UIManager {
         if (!guide || !payload) return;
 
         const mode = this.getTutorialViewportMode();
-        const focusRects = this.getTutorialFocusRects(payload.focusTargets || this.tutorialHighlightTargets);
+        const focusTargets = this.getTutorialRuntimeFocusTargets(
+            this.game?.tutorial?.getCurrentStep?.(),
+            payload.focusTargets || this.tutorialHighlightTargets
+        );
+        const focusRects = this.getTutorialFocusRects(focusTargets);
         const primaryFocusRect = this.getTutorialPrimaryFocusRect(focusRects);
         const popupRect = this.getActivePopupRect();
         const focusInsidePopup = popupRect && focusRects.some((rect) => this.getRectContains(rect, popupRect));
@@ -3276,6 +3282,8 @@ export class UIManager {
         if (shouldResetManualPosition) {
             this.tutorialGuideManualPosition = null;
             this.handleTutorialGuideDragEnd();
+            this.tutorialDimSuppressed = false;
+            this.tutorialDimSuppressedStepId = '';
         }
 
         this.tutorialGuideState = normalizedPayload;
@@ -3346,6 +3354,8 @@ export class UIManager {
         const guide = document.getElementById('tutorial-guide');
         if (guide) guide.style.display = 'none';
         this.tutorialGuideState = null;
+        this.tutorialDimSuppressed = false;
+        this.tutorialDimSuppressedStepId = '';
         this.tutorialGuideManualPosition = null;
         this.handleTutorialGuideDragEnd();
     }
@@ -3408,6 +3418,7 @@ export class UIManager {
         document.body.addEventListener('click', guardTutorialInteraction, true);
 
         document.body.addEventListener('pointerdown', (e) => {
+            this.maybeTemporarilyReleaseTutorialDim(e);
             addPressedState(e.target);
         }, true);
 
@@ -3468,7 +3479,7 @@ export class UIManager {
         }
 
         if (step.trigger === 'stats_saved') {
-            return ['#status-close-btn-top', '#status-close-btn-bottom'];
+            return this.getTutorialRuntimeFocusTargets(step, ['#status-close-btn-top', '#status-close-btn-bottom']);
         }
 
         return this.getTutorialAllowedActionSelectors(step);
@@ -3531,6 +3542,93 @@ export class UIManager {
                 return false;
             }
         });
+    }
+
+    getTutorialRuntimeFocusTargets(step = this.game?.tutorial?.getCurrentStep?.(), fallbackTargets = []) {
+        const normalizedFallback = Array.isArray(fallbackTargets)
+            ? fallbackTargets.filter(Boolean)
+            : (fallbackTargets ? [fallbackTargets] : []);
+        if (!step) return normalizedFallback;
+
+        if (step.trigger === 'stats_saved') {
+            const confirmVisible = !!this.confirmModal && !this.confirmModal.classList.contains('hidden');
+            return confirmVisible
+                ? ['#confirm-yes', '#confirm-no']
+                : ['#status-close-btn-top', '#status-close-btn-bottom'];
+        }
+
+        return normalizedFallback;
+    }
+
+    shouldTemporarilyReleaseTutorialDim(step = this.game?.tutorial?.getCurrentStep?.()) {
+        if (!step) return false;
+        if (step.releaseDimOnFocusPress === false) return false;
+        if (step.releaseDimOnFocusPress === true) return true;
+        return step.trigger === 'kill' || step.trigger === 'skill_use';
+    }
+
+    isTutorialFocusTargetMatch(target, focusTarget) {
+        if (!(target instanceof Element) || !focusTarget) return false;
+
+        if (focusTarget instanceof Element) {
+            return focusTarget === target || focusTarget.contains(target);
+        }
+
+        if (typeof focusTarget === 'string') {
+            try {
+                return !!target.closest(focusTarget);
+            } catch {
+                return false;
+            }
+        }
+
+        if (typeof focusTarget !== 'object' || Array.isArray(focusTarget)) {
+            return false;
+        }
+
+        const selectors = Array.isArray(focusTarget.selectors)
+            ? focusTarget.selectors
+            : (focusTarget.selector ? [focusTarget.selector] : []);
+        if (selectors.some((selector) => {
+            try {
+                return !!target.closest(selector);
+            } catch {
+                return false;
+            }
+        })) {
+            return true;
+        }
+
+        if ((focusTarget.type === 'skill-detail-trigger' || focusTarget.preset === 'skill-detail-trigger') && focusTarget.skillId) {
+            return !!target.closest(`#skill-item-${focusTarget.skillId}`);
+        }
+
+        if (focusTarget.type === 'move-pad-hint' || focusTarget.preset === 'move-pad-hint') {
+            return !!target.closest('#joystick-area, #joystick-container');
+        }
+
+        return false;
+    }
+
+    maybeTemporarilyReleaseTutorialDim(event) {
+        const tutorial = this.game?.tutorial;
+        const step = tutorial?.getCurrentStep?.();
+        if (!tutorial?.activeTutorial || !this.shouldTemporarilyReleaseTutorialDim(step)) return;
+
+        const target = event?.target;
+        if (!(target instanceof Element)) return;
+
+        const focusTargets = this.getTutorialRuntimeFocusTargets(
+            step,
+            this.tutorialHighlightState?.targets || this.tutorialGuideState?.focusTargets || []
+        );
+        if (!focusTargets.length) return;
+        if (!focusTargets.some((focusTarget) => this.isTutorialFocusTargetMatch(target, focusTarget))) return;
+        if (this.tutorialDimSuppressed && this.tutorialDimSuppressedStepId === step.id) return;
+
+        this.tutorialDimSuppressed = true;
+        this.tutorialDimSuppressedStepId = step.id || '';
+        this.refreshTutorialHighlight();
     }
 
     setupFullscreenListeners() {
@@ -7490,7 +7588,15 @@ export class UIManager {
         const layer = this.ensureTutorialHighlightLayer();
         layer.innerHTML = '';
         const state = this.tutorialHighlightState || { targets: this.tutorialHighlightTargets, mode: 'ring', label: '' };
-        if (!state.targets?.length) {
+        const runtimeTargets = this.getTutorialRuntimeFocusTargets(
+            this.game?.tutorial?.getCurrentStep?.(),
+            state.targets
+        );
+        const currentStepId = this.game?.tutorial?.getCurrentStep?.()?.id || this.tutorialGuideState?.stepId || '';
+        const suppressDim = !!this.tutorialDimSuppressed
+            && !!currentStepId
+            && this.tutorialDimSuppressedStepId === currentStepId;
+        if (!runtimeTargets?.length) {
             this.refreshTutorialGuideLayout();
             return;
         }
@@ -7499,7 +7605,7 @@ export class UIManager {
         const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
         const rects = [];
 
-        state.targets.forEach((target) => {
+        runtimeTargets.forEach((target) => {
             const rect = this.resolveTutorialTargetRect(target);
             if (!rect) return;
 
@@ -7522,35 +7628,52 @@ export class UIManager {
             return;
         }
 
-        const dimBounds = rects.reduce((acc, rect) => ({
-            left: Math.min(acc.left, rect.left),
-            top: Math.min(acc.top, rect.top),
-            right: Math.max(acc.right, rect.right),
-            bottom: Math.max(acc.bottom, rect.bottom)
-        }), {
-            left: viewportW,
-            top: viewportH,
-            right: 0,
-            bottom: 0
-        });
-        dimBounds.width = Math.max(0, dimBounds.right - dimBounds.left);
-        dimBounds.height = Math.max(0, dimBounds.bottom - dimBounds.top);
+        if (!suppressDim) {
+            const xEdges = Array.from(new Set([0, viewportW, ...rects.flatMap((rect) => [rect.left, rect.right])]))
+                .filter((value) => Number.isFinite(value))
+                .sort((a, b) => a - b);
+            const yEdges = Array.from(new Set([0, viewportH, ...rects.flatMap((rect) => [rect.top, rect.bottom])]))
+                .filter((value) => Number.isFinite(value))
+                .sort((a, b) => a - b);
 
-        [
-            { left: 0, top: 0, width: viewportW, height: dimBounds.top },
-            { left: 0, top: dimBounds.top, width: dimBounds.left, height: dimBounds.height },
-            { left: dimBounds.right, top: dimBounds.top, width: viewportW - dimBounds.right, height: dimBounds.height },
-            { left: 0, top: dimBounds.bottom, width: viewportW, height: viewportH - dimBounds.bottom }
-        ].forEach((segment) => {
-            if (!segment.width || !segment.height) return;
-            const dim = document.createElement('div');
-            dim.className = 'tutorial-highlight-dim';
-            dim.style.left = `${segment.left}px`;
-            dim.style.top = `${segment.top}px`;
-            dim.style.width = `${segment.width}px`;
-            dim.style.height = `${segment.height}px`;
-            layer.appendChild(dim);
-        });
+            const dimSegments = [];
+            for (let yIndex = 0; yIndex < yEdges.length - 1; yIndex += 1) {
+                const top = yEdges[yIndex];
+                const bottom = yEdges[yIndex + 1];
+                const height = Math.max(0, bottom - top);
+                if (!height) continue;
+
+                for (let xIndex = 0; xIndex < xEdges.length - 1; xIndex += 1) {
+                    const left = xEdges[xIndex];
+                    const right = xEdges[xIndex + 1];
+                    const width = Math.max(0, right - left);
+                    if (!width) continue;
+
+                    const sampleX = left + width / 2;
+                    const sampleY = top + height / 2;
+                    const insideFocus = rects.some((rect) => (
+                        sampleX >= rect.left
+                        && sampleX <= rect.right
+                        && sampleY >= rect.top
+                        && sampleY <= rect.bottom
+                    ));
+                    if (insideFocus) continue;
+
+                    dimSegments.push({ left, top, width, height });
+                }
+            }
+
+            dimSegments.forEach((segment) => {
+                if (!segment.width || !segment.height) return;
+                const dim = document.createElement('div');
+                dim.className = 'tutorial-highlight-dim';
+                dim.style.left = `${segment.left}px`;
+                dim.style.top = `${segment.top}px`;
+                dim.style.width = `${segment.width}px`;
+                dim.style.height = `${segment.height}px`;
+                layer.appendChild(dim);
+            });
+        }
 
         rects.forEach((rect) => {
             const box = document.createElement('div');
@@ -7578,6 +7701,8 @@ export class UIManager {
     clearTutorialHighlight() {
         this.tutorialHighlightTargets = [];
         this.tutorialHighlightState = { targets: [], mode: 'ring', label: '' };
+        this.tutorialDimSuppressed = false;
+        this.tutorialDimSuppressedStepId = '';
         if (this.tutorialHighlightLayer) {
             this.tutorialHighlightLayer.innerHTML = '';
         }
