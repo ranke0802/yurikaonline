@@ -311,57 +311,12 @@
             "instructionMobileLandscape": "먼저 체인 라이트닝 아이콘을 탭해 상세 설명 창을 열어 보세요. 연쇄 타격형 기본 공격이고, 강화하면 연쇄 횟수와 충전당 피해 상승폭이 커집니다.",
             "questText": "체인 라이트닝 설명을 확인하세요.",
             "focus": {
-                "desktop": {
-                    "targets": [
-                        {
-                            "selectors": [
-                                "#skill-item-laser .skill-icon",
-                                "#skill-item-laser .skill-info"
-                            ],
-                            "inset": {
-                                "top": 2,
-                                "right": 6,
-                                "bottom": 4,
-                                "left": 0
-                            }
-                        }
-                    ],
-                    "padding": 2
-                },
-                "mobilePortrait": {
-                    "targets": [
-                        {
-                            "selectors": [
-                                "#skill-item-laser .skill-icon",
-                                "#skill-item-laser .skill-info"
-                            ],
-                            "inset": {
-                                "top": 1,
-                                "right": 4,
-                                "bottom": 2,
-                                "left": 0
-                            }
-                        }
-                    ],
-                    "padding": 2
-                },
-                "mobileLandscape": {
-                    "targets": [
-                        {
-                            "selectors": [
-                                "#skill-item-laser .skill-icon",
-                                "#skill-item-laser .skill-info"
-                            ],
-                            "inset": {
-                                "top": 1,
-                                "right": 4,
-                                "bottom": 2,
-                                "left": 0
-                            }
-                        }
-                    ],
-                    "padding": 1
-                }
+                "targets": [
+                    {
+                        "type": "skill-detail-trigger",
+                        "skillId": "laser"
+                    }
+                ]
             },
             "presentation": {
                 "desktop": {
@@ -437,6 +392,14 @@
             "instructionMobile": "다음은 매직 미사일 아이콘을 탭해 상세 설명 창을 열어 보세요. 자동 추적형 스킬이며, 강화할수록 한 번에 발사되는 미사일 수가 늘어납니다.",
             "instructionMobileLandscape": "다음은 매직 미사일 아이콘을 탭해 상세 설명 창을 열어 보세요. 자동 추적형 스킬이며, 강화할수록 한 번에 발사되는 미사일 수가 늘어납니다.",
             "questText": "매직 미사일 설명을 확인하세요.",
+            "focus": {
+                "targets": [
+                    {
+                        "type": "skill-detail-trigger",
+                        "skillId": "missile"
+                    }
+                ]
+            },
             "presentation": {
                 "desktop": {
                     "guideMode": "popup-near-left",
@@ -624,6 +587,14 @@
             "instructionMobile": "파이어볼 아이콘을 탭해 상세 설명 창을 열어 보세요. 직선으로 날아가 폭발하고 화상을 남기는 광역 스킬이며, 강화하면 직격 피해와 폭발 반경, 화상 지속시간이 함께 커져요.",
             "instructionMobileLandscape": "파이어볼 아이콘을 탭해 상세 설명 창을 열어 보세요. 직선으로 날아가 폭발하고 화상을 남기는 광역 스킬이며, 강화하면 직격 피해와 폭발 반경, 화상 지속시간이 함께 커져요.",
             "questText": "파이어볼 설명을 확인하세요.",
+            "focus": {
+                "targets": [
+                    {
+                        "type": "skill-detail-trigger",
+                        "skillId": "fireball"
+                    }
+                ]
+            },
             "presentation": {
                 "desktop": {
                     "guideMode": "popup-near-left",
@@ -897,6 +868,14 @@
             "instructionMobile": "앱솔루트 베리어 아이콘을 탭해 상세 설명 창을 열어 보세요. 다음 1회의 피해를 완전히 막는 생존 스킬이며, 레벨업 없이 고정 성능으로 사용됩니다.",
             "instructionMobileLandscape": "앱솔루트 베리어 아이콘을 탭해 상세 설명 창을 열어 보세요. 다음 1회의 피해를 완전히 막는 생존 스킬이며, 레벨업 없이 고정 성능으로 사용됩니다.",
             "questText": "앱솔루트 베리어 설명을 확인하세요.",
+            "focus": {
+                "targets": [
+                    {
+                        "type": "skill-detail-trigger",
+                        "skillId": "shield"
+                    }
+                ]
+            },
             "presentation": {
                 "desktop": {
                     "guideMode": "popup-near-left",

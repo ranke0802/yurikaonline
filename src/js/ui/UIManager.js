@@ -2342,6 +2342,35 @@ export class UIManager {
         });
     }
 
+    getTutorialSkillDetailTriggerRect(config = {}) {
+        const skillId = String(config.skillId || config.target || config.id || '').trim();
+        if (!skillId) return null;
+
+        const item = this.getSkillDetailAnchorElement?.(skillId)
+            || document.querySelector(`#skill-item-${skillId}`);
+        const itemRect = this.getVisibleElementRect(item);
+        if (!itemRect) return null;
+
+        let rect = itemRect;
+        const upButtonRect = this.getVisibleElementRect(item?.querySelector?.('.skill-up-btn'));
+        if (upButtonRect) {
+            const excludeGap = Number.isFinite(Number(config.excludeGap))
+                ? Number(config.excludeGap)
+                : 8;
+            rect = this.normalizeTutorialRect({
+                left: itemRect.left,
+                top: itemRect.top,
+                width: Math.max(0, upButtonRect.left - itemRect.left - excludeGap),
+                height: itemRect.height
+            }) || itemRect;
+        }
+
+        return this.applyTutorialRectInsets(
+            rect,
+            config.trim ?? config.inset ?? { top: 2, right: 2, bottom: 2, left: 2 }
+        );
+    }
+
     resolveTutorialTargetRect(target) {
         if (!target) return null;
 
@@ -2355,6 +2384,10 @@ export class UIManager {
 
         if (target.type === 'move-pad-hint' || target.preset === 'move-pad-hint') {
             return this.getTutorialMovePadHintRect(target);
+        }
+
+        if (target.type === 'skill-detail-trigger' || target.preset === 'skill-detail-trigger') {
+            return this.getTutorialSkillDetailTriggerRect(target);
         }
 
         const selectorTargets = Array.isArray(target.selectors)
@@ -3318,6 +3351,12 @@ export class UIManager {
         const INTERACTIVE_SELECTORS = 'button, .btn, .skill-icon, .item-slot, .stat-up-btn, .stat-down-btn, .close-popup, .login-btn, .action-btn';
         const PRESS_FEEDBACK_SELECTORS = '.skill-btn, .attack-btn, .action-btn, .menu-btn, .close-popup, .confirm-btn, .reset-btn';
         const pressedElements = new Set();
+        const guardTutorialInteraction = (event) => {
+            if (!this.shouldBlockTutorialUiInteraction(event)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation?.();
+        };
         const addPressedState = (target) => {
             if (this.uiLayoutEditMode) return;
             const pressable = target?.closest?.(PRESS_FEEDBACK_SELECTORS);
@@ -3349,6 +3388,10 @@ export class UIManager {
             }
         });
 
+        document.body.addEventListener('pointerdown', guardTutorialInteraction, true);
+        document.body.addEventListener('touchstart', guardTutorialInteraction, { capture: true, passive: false });
+        document.body.addEventListener('click', guardTutorialInteraction, true);
+
         document.body.addEventListener('pointerdown', (e) => {
             addPressedState(e.target);
         }, true);
@@ -3357,6 +3400,80 @@ export class UIManager {
             document.body.addEventListener(eventName, () => {
                 window.setTimeout(clearPressedState, 70);
             }, true);
+        });
+    }
+
+    getTutorialAllowedInteractionSelectors(step = this.game?.tutorial?.getCurrentStep?.()) {
+        if (!step) return [];
+
+        if (step.trigger === 'stat_allocated') {
+            return step.target
+                ? [`.stat-up-btn[data-stat="${step.target}"]`]
+                : ['.stat-up-btn'];
+        }
+
+        if (step.trigger === 'skill_detail_open') {
+            if (!step.target) return [];
+            return [
+                `#skill-item-${step.target} .skill-icon`,
+                `#skill-item-${step.target} .skill-info`,
+                `#skill-item-${step.target} .skill-name`,
+                `#skill-item-${step.target} .skill-name-row`,
+                `#skill-item-${step.target} .skill-desc`,
+                `#skill-item-${step.target} .skill-level`
+            ];
+        }
+
+        if (step.trigger === 'skill_detail_close') {
+            return ['#skill-detail-modal-close'];
+        }
+
+        if (step.trigger === 'skill_upgrade') {
+            return step.target
+                ? [`.skill-up-btn[data-skill="${step.target}"]`]
+                : ['.skill-up-btn'];
+        }
+
+        if (step.trigger === 'popup_open' && step.target === 'status-popup') {
+            return ['#btn-status'];
+        }
+
+        if (step.trigger === 'popup_open' && step.target === 'skill-popup') {
+            return ['#btn-skill'];
+        }
+
+        if (step.trigger === 'stats_saved') {
+            return ['#status-close-btn-top', '#status-close-btn-bottom'];
+        }
+
+        return [];
+    }
+
+    shouldBlockTutorialUiInteraction(event) {
+        const tutorial = this.game?.tutorial;
+        const step = tutorial?.getCurrentStep?.();
+        if (!tutorial?.activeTutorial || !step) return false;
+
+        const target = event?.target;
+        if (!(target instanceof Element)) return false;
+        if (target.closest('#tutorial-guide')) return false;
+
+        if (step.trigger === 'skill_detail_open' && step.target) {
+            const itemSelector = `#skill-item-${step.target}`;
+            const withinTargetItem = target.closest(itemSelector);
+            if (!withinTargetItem) return true;
+            return !!target.closest(`${itemSelector} .skill-up-btn`);
+        }
+
+        const allowedSelectors = this.getTutorialAllowedInteractionSelectors(step);
+        if (!allowedSelectors.length) return false;
+
+        return !allowedSelectors.some((selector) => {
+            try {
+                return !!target.closest(selector);
+            } catch {
+                return false;
+            }
         });
     }
 
