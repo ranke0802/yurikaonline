@@ -16,9 +16,12 @@ export default class NetworkManager extends EventEmitter {
         this.friends = new Map();
         this.friendThreadMeta = new Map();
         this.friendThreadMessages = new Map();
+        this.friendThreadPeerRead = new Map();
         this._activeFriendThreadUid = null;
         this._activeFriendThreadListener = null;
         this._activeFriendThreadRef = null;
+        this._activeFriendThreadPeerReadRef = null;
+        this._activeFriendThreadPeerReadListener = null;
         this._externalDbListeners = [];
 
         // Host Logic
@@ -141,6 +144,7 @@ export default class NetworkManager extends EventEmitter {
         this.friends.clear();
         this.friendThreadMeta.clear();
         this.friendThreadMessages.clear();
+        this.friendThreadPeerRead.clear();
         this._detachFriendThreadListener();
         this._detachExternalDbListeners();
         this._hostilityListenerActive = false;
@@ -567,6 +571,7 @@ export default class NetworkManager extends EventEmitter {
         this.friends.clear();
         this.friendThreadMeta.clear();
         this.friendThreadMessages.clear();
+        this.friendThreadPeerRead.clear();
         this._detachFriendThreadListener();
         this._detachExternalDbListeners();
         this._hostilityListenerActive = false;
@@ -3861,6 +3866,12 @@ export default class NetworkManager extends EventEmitter {
         return meta ? { ...meta } : null;
     }
 
+    getFriendPeerThreadReadSnapshot(uid) {
+        if (!uid) return null;
+        const peerRead = this.friendThreadPeerRead.get(uid);
+        return peerRead ? { ...peerRead } : null;
+    }
+
     getFriendThreadMessagesSnapshot(uid) {
         if (!uid) return [];
         return (this.friendThreadMessages.get(uid) || []).map((message) => ({ ...message }));
@@ -3965,6 +3976,7 @@ export default class NetworkManager extends EventEmitter {
         }
         this.friendThreadMeta.delete(targetUid);
         this.friendThreadMessages.delete(targetUid);
+        this.friendThreadPeerRead.delete(targetUid);
         return true;
     }
 
@@ -3992,9 +4004,18 @@ export default class NetworkManager extends EventEmitter {
                 Logger.warn('[Network] Failed to detach friend thread listener', error);
             }
         }
+        if (this._activeFriendThreadPeerReadRef && this._activeFriendThreadPeerReadListener) {
+            try {
+                this._activeFriendThreadPeerReadRef.off('value', this._activeFriendThreadPeerReadListener);
+            } catch (error) {
+                Logger.warn('[Network] Failed to detach friend thread peer read listener', error);
+            }
+        }
         this._activeFriendThreadUid = null;
         this._activeFriendThreadRef = null;
         this._activeFriendThreadListener = null;
+        this._activeFriendThreadPeerReadRef = null;
+        this._activeFriendThreadPeerReadListener = null;
         this._activeFriendThreadAutoRead = true;
     }
 
@@ -4034,7 +4055,13 @@ export default class NetworkManager extends EventEmitter {
             this._detachFriendThreadListener();
             return;
         }
-        if (this._activeFriendThreadUid === targetUid && this._activeFriendThreadRef && this._activeFriendThreadListener) {
+        if (
+            this._activeFriendThreadUid === targetUid
+            && this._activeFriendThreadRef
+            && this._activeFriendThreadListener
+            && this._activeFriendThreadPeerReadRef
+            && this._activeFriendThreadPeerReadListener
+        ) {
             if (this._activeFriendThreadAutoRead) {
                 this.markFriendThreadRead(targetUid).catch(() => { });
             }
@@ -4065,10 +4092,48 @@ export default class NetworkManager extends EventEmitter {
             }
         };
 
+        const peerReadRef = firebase.database().ref(`users/${targetUid}/friend_thread_meta/${this.playerId}/lastReadTs`);
+        const peerReadCallback = (snapshot) => {
+            const rawLastReadTs = snapshot.val();
+            const nextLastReadTs = Number(rawLastReadTs || 0);
+            this.friendThreadPeerRead.set(targetUid, {
+                friendUid: targetUid,
+                loaded: true,
+                error: false,
+                lastReadTs: Number.isFinite(nextLastReadTs) ? nextLastReadTs : 0
+            });
+            this.emit('friendThreadPeerReadUpdated', {
+                uid: targetUid,
+                peerRead: this.getFriendPeerThreadReadSnapshot(targetUid)
+            });
+        };
+
+        this.friendThreadPeerRead.set(targetUid, {
+            friendUid: targetUid,
+            loaded: false,
+            error: false,
+            lastReadTs: Number(this.friendThreadPeerRead.get(targetUid)?.lastReadTs || 0) || 0
+        });
         ref.on('value', callback);
+        peerReadRef.on('value', peerReadCallback, (error) => {
+            Logger.warn('[Network] Failed to listen for friend peer read state', error);
+            const previous = this.friendThreadPeerRead.get(targetUid) || {};
+            this.friendThreadPeerRead.set(targetUid, {
+                ...previous,
+                friendUid: targetUid,
+                loaded: false,
+                error: true
+            });
+            this.emit('friendThreadPeerReadUpdated', {
+                uid: targetUid,
+                peerRead: this.getFriendPeerThreadReadSnapshot(targetUid)
+            });
+        });
         this._activeFriendThreadUid = targetUid;
         this._activeFriendThreadRef = ref;
         this._activeFriendThreadListener = callback;
+        this._activeFriendThreadPeerReadRef = peerReadRef;
+        this._activeFriendThreadPeerReadListener = peerReadCallback;
         if (this._activeFriendThreadAutoRead) {
             this.markFriendThreadRead(targetUid).catch(() => { });
         }

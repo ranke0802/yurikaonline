@@ -108,6 +108,8 @@ export default class FriendsUIController {
         const resolveProfileTargetUid = () => this.friendChatProfileUid || this.friendChatUid || this.selectedFriendUid;
 
         this.ensureFriendChatWindowState();
+        this.ensureFriendsPopupDragBinding(popup);
+        this.ensureFriendsPopupViewportBinding();
         this.ensureFriendChatDragBinding(chatHeader, chatCard);
         this.ensureFriendChatResizeBinding(chatCard);
         this.ensureFriendChatViewportBinding();
@@ -494,6 +496,11 @@ export default class FriendsUIController {
                     this.renderFriendChatMessages({ uid: data.uid, forceToLatest });
                 }
             });
+            this.game.net.on('friendThreadPeerReadUpdated', (data) => {
+                if (data?.uid && data.uid === this.friendChatUid) {
+                    this.renderFriendChatMessages({ uid: data.uid });
+                }
+            });
             this.game.net.on('friendMessageReceived', (data) => {
                 const friendUid = data?.friendUid || data?.fromUid || null;
                 const chatOpen = !document.getElementById('friend-chat-modal')?.classList.contains('hidden');
@@ -634,6 +641,65 @@ export default class FriendsUIController {
 
         popup.dataset.friendsMode = mode;
         popup.dataset.friendsView = isMobile ? (this.friendsMobileView || 'list') : 'split';
+        this.syncFriendsPopupFloatingState(popup, { mode });
+    }
+
+    ensureFriendsPopupDragBinding(popup = document.getElementById('friends-popup')) {
+        if (!popup) return;
+
+        const header = popup.querySelector('.friends-app-header');
+        if (!header || header.dataset.dragBound === 'true') return;
+
+        header.dataset.dragBound = 'true';
+        header.classList.add('draggable-panel-handle');
+        header.addEventListener('pointerdown', (event) => {
+            if (this.getFriendsPopupMode() !== 'desktop') return;
+            if (event.target?.closest?.('button, input, textarea, select, a')) return;
+            popup.dataset.friendsPopupFloating = 'true';
+            this.beginFloatingPanelDrag(event, popup);
+        });
+    }
+
+    ensureFriendsPopupViewportBinding() {
+        if (this.friendsPopupViewportBound) return;
+
+        this.friendsPopupViewportBound = true;
+        window.addEventListener('resize', () => {
+            this.syncFriendsPopupLayout();
+        });
+    }
+
+    resetFriendsPopupFloatingState(popup = document.getElementById('friends-popup')) {
+        if (!popup) return;
+
+        delete popup.dataset.friendsPopupFloating;
+        popup.classList.remove('floating-panel-dragging');
+        popup.style.removeProperty('position');
+        popup.style.removeProperty('left');
+        popup.style.removeProperty('top');
+        popup.style.removeProperty('right');
+        popup.style.removeProperty('bottom');
+        popup.style.removeProperty('transform');
+        popup.style.removeProperty('transform-origin');
+        popup.style.removeProperty('margin');
+    }
+
+    syncFriendsPopupFloatingState(popup = document.getElementById('friends-popup'), options = {}) {
+        if (!popup) return;
+
+        const mode = options.mode || this.getFriendsPopupMode();
+        if (mode !== 'desktop') {
+            this.resetFriendsPopupFloatingState(popup);
+            return;
+        }
+
+        const hasCustomPosition = popup.dataset.friendsPopupFloating === 'true'
+            || !!popup.style.getPropertyValue('left')
+            || !!popup.style.getPropertyValue('top');
+        if (!hasCustomPosition || popup.classList.contains('hidden')) return;
+
+        popup.dataset.friendsPopupFloating = 'true';
+        this.clampFloatingPanelToViewport?.(popup);
     }
 
     ensureFriendChatWindowState() {
@@ -2221,16 +2287,26 @@ export default class FriendsUIController {
 
         container.innerHTML = '';
         const localUid = this.game.localPlayer?.id || this.game.net?.playerId;
+        const peerReadMeta = this.game.net?.getFriendPeerThreadReadSnapshot?.(targetUid) || null;
+        const peerReadLoaded = peerReadMeta?.loaded === true && peerReadMeta?.error !== true;
+        const peerLastReadTs = Math.max(0, Number(peerReadMeta?.lastReadTs || 0));
         messages.forEach((message) => {
             const isMine = message.fromUid === localUid;
+            const unreadByPeer = isMine
+                && peerReadLoaded
+                && Math.max(0, Number(message.ts || 0)) > peerLastReadTs;
             const row = document.createElement('div');
             row.className = `friend-message-row${isMine ? ' is-mine' : ''}`;
+            const unreadReceiptHtml = isMine
+                ? `<span class="friend-message-unread-count${unreadByPeer ? '' : ' hidden'}">1</span>`
+                : '';
 
             const bodyHtml = message.type === 'gift'
                 ? this.buildFriendGiftSummary(message, { isMine })
                 : `<p class="friend-message-text">${this.escapeHtml(message.text || '')}</p>`;
 
             row.innerHTML = `
+                ${unreadReceiptHtml}
                 ${isMine ? '' : `<button type="button" class="friend-message-avatar" data-friend-avatar-open-profile="${this.escapeHtml(targetUid)}" aria-label="${this.escapeHtml(displayName)} 프로필 보기">${this.buildFriendAvatarInnerHtml(displayName, { profile })}</button>`}
                 <div class="friend-message-bubble${message.type === 'gift' ? ' is-gift' : ''}">
                     ${bodyHtml}
