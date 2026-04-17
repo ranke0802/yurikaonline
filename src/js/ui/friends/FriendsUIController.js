@@ -501,7 +501,7 @@ export default class FriendsUIController {
                     `<strong>${this.escapeHtml(itemLabel)}</strong><br>획득했습니다.`,
                     null,
                     null,
-                    { hideNo: true, yesText: '확인' }
+                    { hideNo: true, yesText: '확인', allowHtml: true }
                 );
             }
             this.renderFriendChatMessages();
