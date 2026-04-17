@@ -11781,6 +11781,18 @@ body.low-power-pwa #ui-layer #minimap-container {
     border-bottom: 1px solid rgba(22, 41, 61, 0.08);
 }
 
+#friends-popup.friends-app-popup[data-friends-mode="desktop"] {
+    width: min(500px, 92vw) !important;
+}
+
+#friends-popup.friends-app-popup[data-friends-mode="desktop"] .friends-app-shell {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+#friends-popup.friends-app-popup[data-friends-mode="desktop"] .friends-app-main {
+    display: none;
+}
+
 .friends-app-title-block {
     min-width: 0;
 }
