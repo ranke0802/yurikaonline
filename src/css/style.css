@@ -10649,7 +10649,7 @@ body.low-power-pwa #ui-layer #minimap-container {
     #status-popup {
         width: min(94vw, 420px) !important;
         height: min(86dvh, 690px) !important;
-        padding: 14px 14px 12px !important;
+        padding: 16px 16px 14px !important;
     }
 
     #status-popup .popup-header {
@@ -10679,183 +10679,200 @@ body.low-power-pwa #ui-layer #minimap-container {
             "stats"
             "actions"
             "footer" !important;
-        grid-template-rows: auto auto min-content min-content !important;
-        gap: 6px !important;
+        grid-template-rows: auto minmax(0, 1fr) auto auto !important;
+        gap: 10px !important;
         min-height: 0 !important;
         overflow: hidden !important;
-        align-content: start !important;
+        align-content: stretch !important;
     }
 
     #status-popup .status-top {
+        display: grid !important;
+        grid-template-columns: 72px minmax(0, 1fr) !important;
         grid-area: top !important;
-        gap: 8px !important;
+        gap: 12px !important;
         align-items: flex-start !important;
     }
 
     #status-popup .status-portrait {
-        width: 56px !important;
-        height: 56px !important;
-        flex: 0 0 56px !important;
+        width: 72px !important;
+        height: 72px !important;
+        flex: 0 0 72px !important;
+        border-radius: 18px !important;
     }
 
     #status-popup .status-basic-info {
+        display: grid !important;
+        align-content: start !important;
+        gap: 6px !important;
         min-width: 0 !important;
         flex: 1 1 auto !important;
     }
 
     #status-popup .status-basic-info p {
-        margin: 0 0 3px !important;
-        font-size: 10px !important;
-        line-height: 1.2 !important;
+        margin: 0 !important;
+        font-size: 11px !important;
+        line-height: 1.28 !important;
     }
 
     #status-popup #player-name-edit-btn,
     #status-popup #player-name-save-btn {
         margin-left: 5px !important;
-        padding: 1px 5px !important;
-        font-size: 9px !important;
+        padding: 2px 6px !important;
+        font-size: 10px !important;
     }
 
     #status-popup #player-name-input {
-        width: 92px !important;
-        padding: 1px 4px !important;
-        font-size: 9px !important;
+        width: 102px !important;
+        padding: 2px 5px !important;
+        font-size: 10px !important;
     }
 
     #status-popup .auth-link-row {
-        margin-top: 3px !important;
+        margin-top: 0 !important;
     }
 
     #status-popup .link-google-btn {
         margin-top: 0 !important;
-        min-height: 28px !important;
-        padding: 4px 6px !important;
-        font-size: 9.5px !important;
+        min-height: 30px !important;
+        padding: 6px 8px !important;
+        font-size: 10px !important;
     }
 
     #status-popup .exp-bar-container {
-        margin-top: 4px !important;
+        margin-top: 0 !important;
     }
 
     #status-popup .exp-label,
     #status-popup .exp-remaining,
     #status-popup .stat-point-info {
-        font-size: 10px !important;
-        line-height: 1.18 !important;
+        font-size: 10.5px !important;
+        line-height: 1.24 !important;
     }
 
     #status-popup .exp-bar-bg {
-        height: 7px !important;
+        height: 8px !important;
     }
 
     #status-popup .status-stats-grid {
         grid-area: stats !important;
         display: grid !important;
-        grid-template-columns: minmax(0, 1.04fr) minmax(104px, 0.96fr) !important;
-        gap: 6px !important;
+        grid-template-columns: minmax(0, 1.04fr) minmax(132px, 0.96fr) !important;
+        gap: 10px !important;
         min-height: 0 !important;
-        overflow: visible !important;
-        padding-top: 6px !important;
+        height: 100% !important;
+        overflow: hidden !important;
+        padding-top: 8px !important;
         padding-right: 0 !important;
         padding-bottom: 0 !important;
         border-top: none !important;
-        align-content: start !important;
-        align-items: start !important;
+        align-content: stretch !important;
+        align-items: stretch !important;
     }
 
     #status-popup .stat-main,
     #status-popup .stat-derived {
         min-height: 0 !important;
         min-width: 0 !important;
-        overflow: visible !important;
-        gap: 4px !important;
+        overflow: hidden !important;
+        align-content: stretch !important;
     }
 
     #status-popup .stat-main {
-        padding: 8px 8px 6px !important;
-        border-radius: 12px !important;
+        display: grid !important;
+        grid-template-rows: auto repeat(4, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+        padding: 12px 10px 10px !important;
+        border-radius: 14px !important;
         background: rgba(255, 255, 255, 0.35) !important;
     }
 
     #status-popup .stat-derived {
-        padding: 8px 8px 6px !important;
-        border-radius: 12px !important;
+        display: grid !important;
+        grid-template-rows: repeat(9, minmax(0, 1fr)) !important;
+        gap: 5px !important;
+        padding: 12px 10px 10px !important;
+        border-radius: 14px !important;
         background: rgba(0, 0, 0, 0.03) !important;
     }
 
     #status-popup .stat-point-info {
-        margin-bottom: 3px !important;
+        margin-bottom: 2px !important;
     }
 
     #status-popup .stat-row-ui {
-        min-height: 26px !important;
+        min-height: 34px !important;
         height: auto !important;
-        padding: 4px 5px !important;
-        gap: 5px !important;
-        font-size: 9.5px !important;
+        padding: 7px 8px !important;
+        gap: 8px !important;
+        font-size: 10.5px !important;
+        align-self: stretch !important;
     }
 
     #status-popup .stat-row-ui label {
         flex: 1 1 auto !important;
         min-width: 0 !important;
-        font-size: 9.5px !important;
-        line-height: 1.12 !important;
+        font-size: 10.5px !important;
+        line-height: 1.18 !important;
     }
 
     #status-popup .stat-value-container {
-        gap: 5px !important;
+        gap: 6px !important;
     }
 
     #status-popup .stat-value {
-        min-width: 18px !important;
-        font-size: 11px !important;
+        min-width: 20px !important;
+        font-size: 12px !important;
     }
 
     #status-popup .stat-controls-row {
-        gap: 3px !important;
+        gap: 4px !important;
         width: auto !important;
         flex-shrink: 0 !important;
     }
 
     #status-popup .stat-controls-row button {
-        width: 20px !important;
-        height: 20px !important;
+        width: 22px !important;
+        height: 22px !important;
         font-size: 12px !important;
     }
 
     #status-popup .derived-row {
-        padding: 1px 0 !important;
-        font-size: 9.4px !important;
-        line-height: 1.16 !important;
+        min-height: 0 !important;
+        padding: 3px 0 !important;
+        font-size: 10.25px !important;
+        line-height: 1.22 !important;
+        align-items: center !important;
     }
 
     #status-popup .reset-actions {
         grid-area: actions !important;
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 4px !important;
+        gap: 6px !important;
         margin-top: 0 !important;
         min-height: 0 !important;
     }
 
     #status-popup .reset-actions .reset-btn {
-        min-height: 30px !important;
-        padding: 5px 6px !important;
-        font-size: 10px !important;
+        min-height: 32px !important;
+        padding: 6px 8px !important;
+        font-size: 10.5px !important;
     }
 
     #status-popup .popup-footer {
         grid-area: footer !important;
         margin-top: 0 !important;
-        padding-top: 4px !important;
+        padding-top: 6px !important;
         border-top: 1px dashed rgba(255, 214, 165, 0.56) !important;
+        justify-content: center !important;
     }
 
     #status-popup .close-btn-bottom {
-        min-height: 34px !important;
-        width: min(46vw, 156px) !important;
-        padding: 8px 0 !important;
-        font-size: 12px !important;
+        min-height: 38px !important;
+        width: min(50vw, 172px) !important;
+        padding: 9px 0 !important;
+        font-size: 13px !important;
         border-width: 1px !important;
         border-color: rgba(255, 255, 255, 0.16) !important;
         box-shadow: 0 2px 8px rgba(238, 82, 83, 0.22) !important;
