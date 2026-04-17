@@ -2,6 +2,7 @@
 :root {
     --cosy-font: 'Outfit', sans-serif;
     --ui-chat-opacity: 1;
+    --ui-friends-opacity: 1;
     --ui-friend-compact-opacity: 0.82;
     --ui-quest-opacity: 1;
     --ui-minimap-opacity: 1;
@@ -11767,6 +11768,7 @@ body.low-power-pwa #ui-layer #minimap-container {
     border-radius: 8px !important;
     background: linear-gradient(180deg, rgba(247, 250, 253, 0.98) 0%, rgba(240, 246, 250, 0.98) 100%) !important;
     overflow: hidden !important;
+    opacity: var(--ui-friends-opacity);
 }
 
 #friends-popup.friends-app-popup .popup-header.friends-app-header {
@@ -11862,6 +11864,28 @@ body.low-power-pwa #ui-layer #minimap-container {
 .friends-back-btn {
     background: #f2f7fb;
     border-color: rgba(31, 45, 61, 0.12);
+}
+
+.friends-back-btn {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+    line-height: 1;
+    font-size: 20px;
+    vertical-align: middle;
+}
+
+.friends-back-icon {
+    display: block;
+    line-height: 1;
+    font-size: 22px;
+    font-weight: 800;
+    transform: translateY(1px);
 }
 
 .friends-danger-action {
@@ -12325,6 +12349,10 @@ body.low-power-pwa #ui-layer #minimap-container {
     -webkit-backdrop-filter: blur(14px);
 }
 
+.friends-floating-card {
+    opacity: var(--ui-friends-opacity);
+}
+
 .friends-chat-card {
     width: min(760px, calc(100% - 24px));
     height: min(100%, 680px);
@@ -12630,6 +12658,10 @@ body.low-power-pwa #ui-layer #minimap-container {
 }
 
 .friend-gift-composer.is-picker-open {
+    min-height: min(42dvh, 320px);
+}
+
+.friend-gift-composer.is-quantity-open {
     min-height: min(42dvh, 320px);
 }
 
@@ -13334,6 +13366,89 @@ body.low-power-pwa #ui-layer #minimap-container {
     line-height: 1.3;
 }
 
+.friend-gift-quantity-modal {
+    position: absolute;
+    inset: 0;
+    z-index: 13;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    background: rgba(238, 245, 248, 0.34);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.friend-gift-quantity-sheet {
+    width: min(100%, 360px);
+    max-height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid rgba(22, 41, 61, 0.1);
+    border-radius: 8px;
+    background: rgba(249, 252, 254, 0.96);
+    box-shadow: 0 18px 36px rgba(13, 21, 32, 0.18);
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.friend-gift-quantity-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.friend-gift-quantity-sheet-header strong {
+    color: #1f2d3d;
+    font-size: 15px;
+    line-height: 1.3;
+}
+
+.friend-gift-quantity-preview {
+    min-width: 0;
+}
+
+.friend-gift-quantity-preview .friend-gift-preview-card {
+    cursor: default;
+}
+
+.friend-gift-quantity-control {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    color: #445063;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.friend-gift-quantity-control span {
+    margin: 0;
+}
+
+.friend-gift-quantity-control input {
+    width: 100%;
+}
+
+.friend-gift-quantity-confirm-text {
+    margin: 0;
+    color: #445063;
+    font-size: 12px;
+    line-height: 1.5;
+    word-break: keep-all;
+}
+
+.friend-gift-quantity-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
 .friend-gift-item-picker,
 .friend-gift-selected-list {
     display: flex;
@@ -13455,6 +13570,24 @@ body.low-power-pwa #ui-layer #minimap-container {
 .friend-gift-picker-meta span {
     color: #647182;
     font-size: 12px;
+    line-height: 1.35;
+}
+
+.friends-chat-card.is-compact .friend-gift-preview-meta span,
+.friends-chat-card.is-compact .friend-gift-picker-meta span,
+.friends-chat-card.is-compact .friend-gift-card p,
+.friends-chat-card.is-compact .friend-message-meta,
+.friends-chat-card.is-compact .friend-gift-state,
+.friends-chat-card.is-compact .friend-gift-balance,
+.friends-chat-card.is-compact .friend-gift-panel label,
+.friends-chat-card.is-compact .friend-gift-picker-empty,
+.friends-chat-card.is-compact .friend-gift-quantity-control,
+.friends-chat-card.is-compact .friend-gift-quantity-confirm-text,
+.friends-chat-card.is-compact .friend-gift-state-row .friends-secondary-action,
+.friends-chat-card.is-compact .friend-gift-state-row .friend-gift-claim-btn,
+.friends-chat-card.is-compact .friend-gift-quantity-actions .friends-secondary-action,
+.friends-chat-card.is-compact .friend-gift-quantity-actions .friends-primary-action {
+    font-size: 10px;
     line-height: 1.35;
 }
 
@@ -13812,6 +13945,17 @@ body.low-power-pwa #ui-layer #minimap-container {
         height: 36px;
     }
 
+    .friends-back-btn {
+        width: 36px;
+        min-width: 36px;
+        height: 36px;
+        min-height: 36px;
+    }
+
+    .friends-back-icon {
+        font-size: 20px;
+    }
+
     .friends-action-icon,
     .friends-action-icon svg {
         width: 16px;
@@ -13850,6 +13994,10 @@ body.low-power-pwa #ui-layer #minimap-container {
         min-height: min(52dvh, 360px);
     }
 
+    .friend-gift-composer.is-quantity-open {
+        min-height: min(52dvh, 360px);
+    }
+
     .friend-gift-toolbar {
         align-items: stretch;
     }
@@ -13868,12 +14016,32 @@ body.low-power-pwa #ui-layer #minimap-container {
         padding: 10px;
     }
 
+    .friend-gift-quantity-modal {
+        padding: 8px;
+    }
+
+    .friend-gift-quantity-sheet {
+        width: 100%;
+        max-height: 100%;
+        padding: 10px;
+        gap: 10px;
+    }
+
     .friend-gift-picker-sheet-header strong {
+        font-size: 14px;
+    }
+
+    .friend-gift-quantity-sheet-header strong {
         font-size: 14px;
     }
 
     .friend-gift-amount-row label {
         justify-self: start;
+    }
+
+    .friend-gift-quantity-control {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
     }
 
     .friend-gift-preview-icon {
@@ -13922,6 +14090,15 @@ body.low-power-pwa #ui-layer #minimap-container {
     .friends-chat-card.is-compact:not(.is-minimized) .friends-icon-ghost {
         width: 34px;
         height: 34px;
+    }
+
+    .friends-chat-card.is-compact:not(.is-minimized) .friends-back-btn {
+        min-width: 34px;
+        min-height: 34px;
+    }
+
+    .friends-chat-card.is-compact:not(.is-minimized) .friends-back-icon {
+        font-size: 18px;
     }
 
     .friends-chat-card.is-compact:not(.is-minimized) .friends-chat-avatar {
@@ -13985,6 +14162,10 @@ body.low-power-pwa #ui-layer #minimap-container {
         min-height: min(54dvh, 300px);
     }
 
+    .friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-composer.is-quantity-open {
+        min-height: min(54dvh, 300px);
+    }
+
     .friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-picker-modal {
         padding: 6px;
     }
@@ -13993,6 +14174,17 @@ body.low-power-pwa #ui-layer #minimap-container {
         width: 100%;
         height: 100%;
         max-height: none;
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-quantity-modal {
+        padding: 6px;
+    }
+
+    .friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-quantity-sheet {
+        width: 100%;
+        max-height: 100%;
         padding: 8px;
         gap: 8px;
     }

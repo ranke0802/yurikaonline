@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json?v=0.01.190">
+    <link rel="manifest" href="manifest.json?v=0.01.192">
     <meta name="theme-color" content="#2d3436">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
-        window.BOOTSTRAP_VERSION = '0.01.190';
+        window.BOOTSTRAP_VERSION = '0.01.192';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -213,7 +213,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.01.190', { updateViaCache: 'none' });
+                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.01.192', { updateViaCache: 'none' });
                     await registration.update();
                     registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
                     registration.addEventListener('updatefound', () => {
@@ -245,10 +245,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.01.190</title>
+    <title>Yurika Online v0.01.192</title>
 
-    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.01.190">
-    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.01.190">
+    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.01.192">
+    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.01.192">
     <script>
         // v0.29.20+: Prefer the actually loaded client build for UI, and auto-reset caches on mismatch.
         (async function initCacheBusting() {
@@ -269,7 +269,7 @@
             }
         });
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.190">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.192">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -811,6 +811,13 @@
                             </div>
                         </div>
                         <div class="settings-row">
+                            <label for="settings-friends-opacity">친구창 투명도</label>
+                            <div class="settings-control settings-range-control">
+                                <input id="settings-friends-opacity" type="range" min="45" max="100" step="1">
+                                <span id="settings-friends-opacity-value">100%</span>
+                            </div>
+                        </div>
+                        <div class="settings-row">
                             <label for="settings-friend-compact-opacity">소형 채팅 투명도</label>
                             <div class="settings-control settings-range-control">
                                 <input id="settings-friend-compact-opacity" type="range" min="45" max="100" step="1">
@@ -928,7 +935,7 @@
                         </div>
 
                         <div id="friend-profile-panel" class="friends-profile-panel hidden">
-                            <button id="friend-profile-back-btn" type="button" class="friends-back-btn" aria-label="이전 단계">&lt;</button>
+                            <button id="friend-profile-back-btn" type="button" class="friends-back-btn" aria-label="이전 단계"><span class="friends-back-icon" aria-hidden="true">&lt;</span></button>
 
                             <div class="friends-profile-card">
                                 <div class="friends-profile-hero">
@@ -998,7 +1005,7 @@
             <div class="friends-floating-scrim"></div>
             <div id="friend-chat-card" class="friends-chat-card">
                 <div id="friend-chat-header" class="friends-chat-header">
-                    <button id="friend-chat-back-btn" type="button" class="friends-back-btn" aria-label="이전 단계">&lt;</button>
+                    <button id="friend-chat-back-btn" type="button" class="friends-back-btn" aria-label="이전 단계"><span class="friends-back-icon" aria-hidden="true">&lt;</span></button>
                     <button id="friend-chat-avatar-btn" type="button" class="friends-chat-avatar" aria-label="친구 프로필 보기">
                         <span id="friend-chat-avatar-fallback">?</span>
                     </button>
@@ -1075,6 +1082,25 @@
                                     <button id="friend-gift-picker-close-btn" type="button" class="friends-icon-ghost" aria-label="선물 아이템 선택 닫기">×</button>
                                 </div>
                                 <div id="friend-gift-item-picker" class="friend-gift-item-picker"></div>
+                            </div>
+                        </div>
+
+                        <div id="friend-gift-quantity-modal" class="friend-gift-quantity-modal hidden">
+                            <div class="friend-gift-quantity-sheet">
+                                <div class="friend-gift-quantity-sheet-header">
+                                    <strong>선물 수량 선택</strong>
+                                    <button id="friend-gift-quantity-close-btn" type="button" class="friends-icon-ghost" aria-label="선물 수량 선택 닫기">×</button>
+                                </div>
+                                <div id="friend-gift-quantity-preview" class="friend-gift-quantity-preview"></div>
+                                <label class="friend-gift-quantity-control" for="friend-gift-quantity-input">
+                                    <span>수량</span>
+                                    <input id="friend-gift-quantity-input" type="number" min="1" step="1" inputmode="numeric" value="1">
+                                </label>
+                                <p id="friend-gift-quantity-confirm-text" class="friend-gift-quantity-confirm-text"></p>
+                                <div class="friend-gift-quantity-actions">
+                                    <button id="friend-gift-quantity-cancel-btn" type="button" class="friends-secondary-action">취소</button>
+                                    <button id="friend-gift-quantity-confirm-btn" type="button" class="friends-primary-action">확인</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1279,7 +1305,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.190"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.192"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

@@ -262,6 +262,7 @@ export class UIManager {
             desktopShortcutHints: true,
             developerLogLevel: 'warn',
             chatOpacity: 100,
+            friendsOpacity: 100,
             friendCompactOpacity: 82,
             questOpacity: 100,
             minimapOpacity: 100,
@@ -329,6 +330,7 @@ export class UIManager {
             desktopShortcutHints: candidate.desktopShortcutHints !== false,
             developerLogLevel: this.sanitizeLogLevel(candidate.developerLogLevel, defaults.developerLogLevel),
             chatOpacity: this.clampNumericSetting(candidate.chatOpacity, defaults.chatOpacity, 35, 100),
+            friendsOpacity: this.clampNumericSetting(candidate.friendsOpacity, defaults.friendsOpacity, 45, 100),
             friendCompactOpacity: this.clampNumericSetting(candidate.friendCompactOpacity, defaults.friendCompactOpacity, 45, 100),
             questOpacity: this.clampNumericSetting(candidate.questOpacity, defaults.questOpacity, 35, 100),
             minimapOpacity: this.clampNumericSetting(candidate.minimapOpacity, defaults.minimapOpacity, 35, 100),
@@ -677,6 +679,7 @@ export class UIManager {
         const { refreshGame = false, syncUi = false } = options;
         const root = document.documentElement;
         const chatOpacity = (this.getSetting('chatOpacity') / 100).toFixed(2);
+        const friendsOpacity = (this.getSetting('friendsOpacity') / 100).toFixed(2);
         const friendCompactOpacity = (this.getSetting('friendCompactOpacity') / 100).toFixed(2);
         const questOpacity = (this.getSetting('questOpacity') / 100).toFixed(2);
         const minimapOpacity = (this.getSetting('minimapOpacity') / 100).toFixed(2);
@@ -685,6 +688,7 @@ export class UIManager {
 
         Logger.setLevel(this.getSetting('developerLogLevel'));
         root.style.setProperty('--ui-chat-opacity', chatOpacity);
+        root.style.setProperty('--ui-friends-opacity', friendsOpacity);
         root.style.setProperty('--ui-friend-compact-opacity', friendCompactOpacity);
         root.style.setProperty('--ui-quest-opacity', questOpacity);
         root.style.setProperty('--ui-minimap-opacity', minimapOpacity);
@@ -713,6 +717,7 @@ export class UIManager {
         const bindings = [
             ['settings-master-volume', 'masterVolume', 'settings-master-volume-value', '%'],
             ['settings-chat-opacity', 'chatOpacity', 'settings-chat-opacity-value', '%'],
+            ['settings-friends-opacity', 'friendsOpacity', 'settings-friends-opacity-value', '%'],
             ['settings-friend-compact-opacity', 'friendCompactOpacity', 'settings-friend-compact-opacity-value', '%'],
             ['settings-quest-opacity', 'questOpacity', 'settings-quest-opacity-value', '%'],
             ['settings-minimap-opacity', 'minimapOpacity', 'settings-minimap-opacity-value', '%'],
@@ -4412,6 +4417,7 @@ export class UIManager {
         const rangeSettings = [
             ['settings-master-volume', 'masterVolume', { refreshGame: false }],
             ['settings-chat-opacity', 'chatOpacity', { refreshGame: false }],
+            ['settings-friends-opacity', 'friendsOpacity', { refreshGame: false }],
             ['settings-friend-compact-opacity', 'friendCompactOpacity', { refreshGame: false }],
             ['settings-quest-opacity', 'questOpacity', { refreshGame: false }],
             ['settings-minimap-opacity', 'minimapOpacity', { refreshGame: false }],
