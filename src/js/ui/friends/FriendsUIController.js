@@ -1981,6 +1981,52 @@ export default class FriendsUIController {
         return this.getFriendGiftMaxAmount(item) <= 1;
     }
 
+    selectFriendGiftItemForSend({ item = null, index = -1, identity = null } = {}) {
+        if (!item || Number(index) <= 0) {
+            return null;
+        }
+
+        const nextIdentity = identity || this.getInventoryItemIdentity(item);
+        this.clearFriendGiftTouchSelectionState();
+        this.friendGiftSelection = {
+            index,
+            identity: nextIdentity
+        };
+        this.friendGiftQuantitySelection = {
+            index,
+            identity: nextIdentity
+        };
+
+        const itemAmountInput = document.getElementById('friend-gift-item-amount');
+        if (itemAmountInput) {
+            itemAmountInput.value = '';
+        }
+
+        this.refreshFriendGiftOptions();
+        return this.resolveFriendGiftSelectionFromState(this.friendGiftSelection);
+    }
+
+    openFriendGiftQuantityModalForSelection(selection = this.resolveFriendGiftSelection()) {
+        const selectedItem = selection?.item || null;
+        if (!selectedItem || this.shouldConfirmFriendGiftImmediately(selectedItem)) {
+            return false;
+        }
+
+        this.friendGiftQuantitySelection = {
+            index: selection.index,
+            identity: selection.identity || this.getInventoryItemIdentity(selectedItem)
+        };
+
+        const itemAmountInput = document.getElementById('friend-gift-item-amount');
+        if (itemAmountInput) {
+            itemAmountInput.value = '';
+        }
+
+        this.toggleFriendGiftItemPicker(false);
+        this.toggleFriendGiftQuantityModal(true, { clearSelection: false });
+        return true;
+    }
+
     isFriendGiftPickerOpen() {
         const modal = document.getElementById('friend-gift-picker-modal');
         return !!modal && !modal.classList.contains('hidden');
@@ -2283,6 +2329,10 @@ export default class FriendsUIController {
             return;
         }
 
+        if (options.bypassQuantityModal !== true && this.openFriendGiftQuantityModalForSelection(selection)) {
+            return;
+        }
+
         const itemAmountInput = document.getElementById('friend-gift-item-amount');
         const maxAmount = this.getFriendGiftMaxAmount(selectedItem);
         const rawAmount = options.amount ?? itemAmountInput?.value ?? 1;
@@ -2436,26 +2486,24 @@ export default class FriendsUIController {
                     return;
                 }
 
-                this.clearFriendGiftTouchSelectionState();
-                this.friendGiftSelection = {
+                const selection = this.selectFriendGiftItemForSend({
+                    item,
                     index,
                     identity: itemIdentity
-                };
-                this.friendGiftQuantitySelection = {
-                    index,
-                    identity: itemIdentity
-                };
-                const itemAmountInput = document.getElementById('friend-gift-item-amount');
-                if (itemAmountInput) {
-                    itemAmountInput.value = '';
-                }
-                this.refreshFriendGiftOptions();
-                this.toggleFriendGiftItemPicker(false);
-                if (this.shouldConfirmFriendGiftImmediately(item)) {
-                    await this.requestSendSelectedFriendGift({ amount: 1 });
+                });
+                if (!selection?.item) {
                     return;
                 }
-                this.toggleFriendGiftQuantityModal(true, { clearSelection: false });
+
+                if (this.openFriendGiftQuantityModalForSelection(selection)) {
+                    return;
+                }
+
+                this.toggleFriendGiftItemPicker(false);
+                if (this.shouldConfirmFriendGiftImmediately(item)) {
+                    await this.requestSendSelectedFriendGift({ amount: 1, bypassQuantityModal: true });
+                    return;
+                }
             });
             picker.appendChild(button);
         });
