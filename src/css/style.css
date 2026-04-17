@@ -11249,15 +11249,6 @@ body.low-power-pwa #ui-layer #minimap-container {
     position: relative;
 }
 
-#status-popup .status-basic-info {
-    display: none !important;
-}
-
-#status-popup .status-top {
-    align-items: center !important;
-    justify-content: center !important;
-}
-
 .status-dev-lookup-overlay {
     position: absolute;
     top: 12px;
