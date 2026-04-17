@@ -9793,7 +9793,7 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 
     #inventory-popup .inventory-grid {
-        grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
     }
 
     #inventory-popup .inventory-detail-panel {
