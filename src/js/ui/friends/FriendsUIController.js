@@ -378,7 +378,15 @@ export default class FriendsUIController {
                 const messageId = cancelButton.getAttribute('data-cancel-gift-id');
                 if (!messageId) return;
                 cancelButton.disabled = true;
-                const result = await this.game.net.cancelFriendGift(this.friendChatUid, messageId);
+                if (!(this.friendThreadRefreshOverrides instanceof Map)) {
+                    this.friendThreadRefreshOverrides = new Map();
+                }
+                const suppressedUid = this.friendChatUid;
+                this.friendThreadRefreshOverrides.set(suppressedUid, { forceToLatest: false });
+                window.setTimeout(() => {
+                    this.friendThreadRefreshOverrides?.delete?.(suppressedUid);
+                }, 1500);
+                const result = await this.game.net.cancelFriendGift(suppressedUid, messageId);
                 if (!result.ok) {
                     const messages = {
                         invalid_cancel: '회수할 수 없는 선물입니다.',
@@ -387,6 +395,7 @@ export default class FriendsUIController {
                         not_sender: '내가 보낸 선물만 취소할 수 있습니다.',
                         already_processed: '이미 처리된 선물입니다.'
                     };
+                    this.friendThreadRefreshOverrides.delete(suppressedUid);
                     this.showGenericModal('선물 회수', messages[result.reason] || '선물 회수 중 오류가 발생했습니다.', null, null, { hideNo: true, yesText: '확인' });
                 }
                 this.renderFriendChatMessages();
@@ -447,7 +456,16 @@ export default class FriendsUIController {
                 this.refreshFriendsPopup();
                 if (data?.uid && data.uid === this.friendChatUid) {
                     const chatOpen = !document.getElementById('friend-chat-modal')?.classList.contains('hidden');
-                    const forceToLatest = chatOpen && !this.isFriendChatMinimized();
+                    const refreshOverrides = this.friendThreadRefreshOverrides instanceof Map
+                        ? this.friendThreadRefreshOverrides
+                        : null;
+                    const refreshOverride = refreshOverrides?.get(data.uid) || null;
+                    const forceToLatest = typeof refreshOverride?.forceToLatest === 'boolean'
+                        ? refreshOverride.forceToLatest
+                        : (chatOpen && !this.isFriendChatMinimized());
+                    if (refreshOverride) {
+                        refreshOverrides.delete(data.uid);
+                    }
                     this.renderFriendChatMessages({ uid: data.uid, forceToLatest });
                 }
             });
@@ -1532,9 +1550,16 @@ export default class FriendsUIController {
 
     setFriendGiftComposerVisible(visible) {
         const composer = document.getElementById('friend-gift-composer');
+        const card = document.getElementById('friend-chat-card');
         const toggleBtn = document.getElementById('friend-chat-gift-toggle-btn');
         const nextVisible = !!visible;
         const wasVisible = !!composer && !composer.classList.contains('hidden');
+        const state = this.ensureFriendChatWindowState();
+        const preservedCompactPosition = this.isFriendChatCompactMode()
+            && Number.isFinite(state.left)
+            && Number.isFinite(state.top)
+            ? { left: state.left, top: state.top }
+            : null;
 
         composer?.classList.toggle('hidden', !nextVisible);
         if (toggleBtn) {
@@ -1550,7 +1575,6 @@ export default class FriendsUIController {
                     itemAmountInput.value = '1';
                 }
             }
-            const state = this.ensureFriendChatWindowState();
             const preset = this.getFriendChatCompactViewportPreset({ isGiftOpen: true });
             if (this.isFriendChatCompactMode()) {
                 state.width = Math.max(Number(state.width) || 0, preset.width);
@@ -1566,6 +1590,20 @@ export default class FriendsUIController {
         }
         this.syncFriendGiftComposerLayoutState();
         this.applyFriendChatWindowState();
+        if (preservedCompactPosition && card?.isConnected) {
+            const rect = card.getBoundingClientRect();
+            const clamped = this.clampFloatingPanelPosition(
+                preservedCompactPosition.left,
+                preservedCompactPosition.top,
+                rect.width,
+                rect.height,
+                this.getFriendChatCompactMargin()
+            );
+            state.left = clamped.left;
+            state.top = clamped.top;
+            card.style.setProperty('left', `${Math.round(clamped.left)}px`, 'important');
+            card.style.setProperty('top', `${Math.round(clamped.top)}px`, 'important');
+        }
     }
 
     syncFriendGiftComposerLayoutState() {

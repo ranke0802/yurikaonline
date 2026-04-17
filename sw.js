@@ -1,4 +1,4 @@
-const APP_VERSION = '0.01.189';
+const APP_VERSION = '0.01.190';
 const SHELL_CACHE = `yurika-online-shell-${APP_VERSION}`;
 const STATIC_CACHE = `yurika-online-static-${APP_VERSION}`;
 const ACTIVE_CACHES = [SHELL_CACHE, STATIC_CACHE];

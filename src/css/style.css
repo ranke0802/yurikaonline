@@ -13968,13 +13968,17 @@ body.low-power-pwa #ui-layer #minimap-container {
         flex: 1 1 auto;
         min-height: 0;
         overflow: visible;
+        padding-bottom: 8px;
     }
 
     .friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-actions {
-        position: sticky;
-        bottom: 0;
-        padding-top: 6px;
-        background: linear-gradient(180deg, rgba(249, 252, 254, 0), rgba(249, 252, 254, 0.94) 28%);
+        position: static;
+        padding-top: 2px;
+        background: none;
+    }
+
+    .friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-panel {
+        padding-bottom: 6px;
     }
 
     .friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-composer.is-picker-open {
