@@ -344,6 +344,11 @@
                     }
                 ]
             },
+            "highlightTarget": "#skill-item-laser",
+            "avoidTargets": [
+                "#skill-detail-modal .skill-detail-modal-content",
+                "#skill-popup .skill-content-wrapper"
+            ],
             "presentation": {
                 "desktop": {
                     "guideMode": "popup-near-left",
@@ -363,9 +368,6 @@
                     "compact": true
                 }
             },
-            "avoidTargets": [
-                "#skill-popup .skill-content-wrapper"
-            ],
             "trigger": "skill_detail_open",
             "target": "laser",
             "count": 1,
@@ -447,7 +449,8 @@
             },
             "highlightTarget": "#skill-item-missile",
             "avoidTargets": [
-                "#skill-popup .skill-content-wrapper"
+                "#skill-popup .skill-content-wrapper",
+                "#skill-detail-modal .skill-detail-modal-content"
             ],
             "trigger": "skill_detail_open",
             "target": "missile",
@@ -553,6 +556,9 @@
                 }
             },
             "highlightTarget": "#action-skill-h",
+            "avoidTargets": [
+                "#gameCanvas"
+            ],
             "onStart": [
                 {
                     "type": "close_popups"
@@ -642,7 +648,8 @@
             },
             "highlightTarget": "#skill-item-fireball",
             "avoidTargets": [
-                "#skill-popup .skill-content-wrapper"
+                "#skill-popup .skill-content-wrapper",
+                "#skill-detail-modal .skill-detail-modal-content"
             ],
             "trigger": "skill_detail_open",
             "target": "fireball",
@@ -758,6 +765,9 @@
                 }
             },
             "highlightTarget": "#action-skill-u",
+            "avoidTargets": [
+                "#gameCanvas"
+            ],
             "onStart": {
                 "mobilePortrait": [
                     {
@@ -830,6 +840,9 @@
                 }
             },
             "highlightTarget": "#action-skill-u",
+            "avoidTargets": [
+                "#gameCanvas"
+            ],
             "onStart": {
                 "desktop": [
                     {
@@ -923,7 +936,8 @@
             },
             "highlightTarget": "#skill-item-shield",
             "avoidTargets": [
-                "#skill-popup .skill-content-wrapper"
+                "#skill-popup .skill-content-wrapper",
+                "#skill-detail-modal .skill-detail-modal-content"
             ],
             "trigger": "skill_detail_open",
             "target": "shield",
@@ -998,6 +1012,9 @@
                 }
             },
             "highlightTarget": "#action-skill-k",
+            "avoidTargets": [
+                "#gameCanvas"
+            ],
             "onStart": [
                 {
                     "type": "close_popups"
@@ -1043,6 +1060,9 @@
                 }
             },
             "highlightTarget": "#btn-inventory",
+            "avoidTargets": [
+                "#inventory-popup"
+            ],
             "onStart": [
                 {
                     "type": "close_popups"
@@ -1081,6 +1101,9 @@
                 }
             },
             "highlightTarget": "#inventory-close-btn-bottom",
+            "avoidTargets": [
+                "#inventory-popup"
+            ],
             "trigger": "popup_close",
             "target": "inventory-popup",
             "count": 1,

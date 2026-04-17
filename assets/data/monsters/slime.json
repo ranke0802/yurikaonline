@@ -2,6 +2,7 @@
     "id": "slime",
     "name": "슬라임",
     "type": "monster",
+    "chargeOnly": true,
     "baseStats": {
         "hp": 100,
         "maxHp": 100,
@@ -24,23 +25,12 @@
         "die": "sfx_slime_die",
         "move": "sfx_slime_move"
     },
-    "skills": [
-        {
-            "id": "slime_jump",
-            "trigger": "random",
-            "chance": 0.1,
-            "cooldown": 5000,
-            "data": {
-                "power": 1.5,
-                "range": 100
-            }
-        }
-    ],
+    "skills": [],
     "drops": [
         {
             "itemId": "manastone",
-            "min": 10,
-            "max": 50,
+            "min": 15,
+            "max": 30,
             "chance": 1.0
         }
     ]

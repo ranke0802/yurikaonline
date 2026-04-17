@@ -114,6 +114,9 @@ export default class FriendsUIController {
         this.ensureFriendChatResizeBinding(chatCard);
         this.ensureFriendChatViewportBinding();
         this.ensureFriendPresenceRefreshTicker();
+        this.friendPresenceSnapshotCache = this.friendPresenceSnapshotCache instanceof Map ? this.friendPresenceSnapshotCache : new Map();
+        this.friendGiftTouchSelection = null;
+        this.friendGiftTouchSelectionTimer = null;
         this.ensureFriendPortraitAsset().then(() => {
             this.refreshFriendsPopup();
             this.renderFriendSearchResult();
@@ -470,13 +473,29 @@ export default class FriendsUIController {
                 };
                 this.showGenericModal('선물 수령', messages[result.reason] || '선물 수령 중 오류가 발생했습니다.', null, null, { hideNo: true, yesText: '확인' });
             }
+            if (result.ok) {
+                const claimedGift = result.gift || null;
+                const amount = Math.max(1, Number(claimedGift?.amount || 1));
+                const itemLabel = claimedGift?.kind === 'manastone'
+                    ? `마나스톤 ${amount.toLocaleString('ko-KR')}개`
+                    : this.buildFriendGiftItemLabel(claimedGift?.item || {
+                        name: claimedGift?.itemName || claimedGift?.itemId || '아이템'
+                    }, amount);
+                this.showGenericModal(
+                    '선물 수령',
+                    `<strong>${this.escapeHtml(itemLabel)}</strong><br>획득했습니다.`,
+                    null,
+                    null,
+                    { hideNo: true, yesText: '확인' }
+                );
+            }
             this.renderFriendChatMessages();
             this.refreshFriendsPopup();
         });
 
         if (this.game.net) {
             this.game.net.on('friendsUpdated', () => this.refreshFriendsPopup());
-            this.game.net.on('presenceChanged', () => this.refreshFriendsPopup());
+            this.game.net.on('presenceChanged', () => this.refreshFriendsPopupIfPresenceChanged());
             this.game.net.on('partyUpdated', () => this.refreshFriendsPopup());
             this.game.net.on('friendThreadMetaUpdated', () => this.refreshFriendsPopup());
             this.game.net.on('friendThreadUpdated', (data) => {
@@ -856,6 +875,15 @@ export default class FriendsUIController {
             card.style.setProperty('margin', '0', 'important');
             card.style.removeProperty('transform');
             card.style.removeProperty('transform-origin');
+
+            if (!Number.isFinite(state.left) || !Number.isFinite(state.top)) {
+                const inlineLeft = Number.parseFloat(card.style.left || '');
+                const inlineTop = Number.parseFloat(card.style.top || '');
+                if (Number.isFinite(inlineLeft) && Number.isFinite(inlineTop)) {
+                    state.left = inlineLeft;
+                    state.top = inlineTop;
+                }
+            }
 
             if (!Number.isFinite(state.left) || !Number.isFinite(state.top)) {
                 this.resetFriendChatCompactPosition(card, { preserveScale: true });
@@ -1439,7 +1467,81 @@ export default class FriendsUIController {
         if (!uid) return '친구';
         const friend = (this.game.net?.getFriendListSnapshot?.() || []).find((entry) => entry.uid === uid) || null;
         const profile = this.friendProfileCache.get(uid) || null;
-        return friend?.name || profile?.name || uid;
+        return friend?.name || profile?.name || '친구';
+    }
+
+    captureFriendChatCompactPosition(card = document.getElementById('friend-chat-card')) {
+        const state = this.ensureFriendChatWindowState();
+        if (!this.isFriendChatCompactMode() || !card?.isConnected) return null;
+        const inlineLeft = Number.parseFloat(card.style.left || '');
+        const inlineTop = Number.parseFloat(card.style.top || '');
+        const rect = card.getBoundingClientRect();
+        return {
+            left: Number.isFinite(state.left) ? state.left : (Number.isFinite(inlineLeft) ? inlineLeft : rect.left),
+            top: Number.isFinite(state.top) ? state.top : (Number.isFinite(inlineTop) ? inlineTop : rect.top),
+            card
+        };
+    }
+
+    restoreFriendChatCompactPosition(snapshot = null) {
+        if (!snapshot?.card?.isConnected) return;
+        if (!this.isFriendChatCompactMode()) return;
+        if (!Number.isFinite(snapshot.left) || !Number.isFinite(snapshot.top)) return;
+
+        const card = snapshot.card;
+        const state = this.ensureFriendChatWindowState();
+        const rect = card.getBoundingClientRect();
+        const clamped = this.clampFloatingPanelPosition(
+            snapshot.left,
+            snapshot.top,
+            rect.width,
+            rect.height,
+            this.getFriendChatCompactMargin()
+        );
+        state.left = clamped.left;
+        state.top = clamped.top;
+        card.style.setProperty('left', `${Math.round(clamped.left)}px`, 'important');
+        card.style.setProperty('top', `${Math.round(clamped.top)}px`, 'important');
+    }
+
+    clearFriendGiftTouchSelectionState() {
+        if (this.friendGiftTouchSelectionTimer) {
+            window.clearTimeout(this.friendGiftTouchSelectionTimer);
+            this.friendGiftTouchSelectionTimer = null;
+        }
+        this.friendGiftTouchSelection = null;
+    }
+
+    syncFriendPresenceSnapshot(friends = []) {
+        if (!(this.friendPresenceSnapshotCache instanceof Map)) {
+            this.friendPresenceSnapshotCache = new Map();
+        }
+        this.friendPresenceSnapshotCache.clear();
+        friends.forEach((friend) => {
+            if (!friend?.uid) return;
+            this.friendPresenceSnapshotCache.set(friend.uid, !!friend.online);
+        });
+    }
+
+    hasFriendPresenceSnapshotChanged(friends = []) {
+        if (!(this.friendPresenceSnapshotCache instanceof Map)) {
+            return true;
+        }
+
+        const previous = this.friendPresenceSnapshotCache;
+        if (previous.size !== friends.length) return true;
+        for (const friend of friends) {
+            if (!friend?.uid) return true;
+            if (!previous.has(friend.uid)) return true;
+            if (!!previous.get(friend.uid) !== !!friend.online) return true;
+        }
+        return false;
+    }
+
+    refreshFriendsPopupIfPresenceChanged() {
+        const friends = this.game.net?.getFriendListSnapshot?.() || [];
+        if (!this.hasFriendPresenceSnapshotChanged(friends)) return;
+        this.refreshFriendsPopup();
     }
 
     toggleFriendSearchModal(visible) {
@@ -1475,21 +1577,19 @@ export default class FriendsUIController {
 
         const isSelf = candidate.uid === this.game.localPlayer?.id;
         const alreadyFriend = !!candidate.isFriend || !!this.game.net?.isFriend?.(candidate.uid);
-        const displayName = this.escapeHtml(candidate.name || candidate.uid);
-        const uidText = this.escapeHtml(candidate.uid);
+        const displayName = this.escapeHtml(candidate.name || '친구');
         const statusText = this.getFriendStatusText(candidate.online);
         const stateLabel = isSelf ? '내 캐릭터' : (alreadyFriend ? '이미 친구' : '추가 가능');
 
         resultEl.classList.remove('is-placeholder');
         resultEl.innerHTML = `
             <div class="friends-search-candidate">
-                <div class="friends-search-candidate-avatar" aria-hidden="true">${this.buildFriendAvatarInnerHtml(candidate.name || candidate.uid, { profile: candidate.profile || null })}</div>
+                <div class="friends-search-candidate-avatar" aria-hidden="true">${this.buildFriendAvatarInnerHtml(candidate.name || '친구', { profile: candidate.profile || null })}</div>
                 <div class="friends-search-candidate-body">
                     <div class="friends-search-candidate-topline">
                         <strong>${displayName}</strong>
                         <span class="friends-status-chip${candidate.online ? ' is-online' : ''}">${statusText}</span>
                     </div>
-                    <p>ID: ${uidText}</p>
                     <div class="friends-search-candidate-tags">
                         <span>${this.escapeHtml(stateLabel)}</span>
                         <span>${candidate.matchType === 'uid' ? '아이디 일치' : '이름 일치'}</span>
@@ -1582,11 +1682,12 @@ export default class FriendsUIController {
             const preview = this.escapeHtml(entry.meta?.lastMessage || '대화를 시작해 보세요.');
             const updatedAt = this.formatFriendTime(entry.meta?.updatedAt || 0);
             const profile = this.friendProfileCache.get(entry.uid) || null;
+            const displayName = entry.name || '친구';
             item.innerHTML = `
-                <div class="friend-thread-avatar" aria-hidden="true">${this.buildFriendAvatarInnerHtml(entry.name || entry.uid, { profile })}</div>
+                <div class="friend-thread-avatar" aria-hidden="true">${this.buildFriendAvatarInnerHtml(displayName, { profile })}</div>
                 <div class="friend-thread-content">
                     <div class="friend-thread-topline">
-                        <strong class="friend-thread-name">${this.escapeHtml(entry.name || entry.uid)}</strong>
+                        <strong class="friend-thread-name">${this.escapeHtml(displayName)}</strong>
                         <span class="friend-thread-time">${this.escapeHtml(updatedAt)}</span>
                     </div>
                     <div class="friend-thread-bottomline">
@@ -1610,6 +1711,15 @@ export default class FriendsUIController {
             this.closeFriendChat({ detachThread: true, keepSelection: true, silent: true });
         }
 
+        const nextCompact = typeof options.compact === 'boolean'
+            ? !!options.compact
+            : !!state.compact;
+        const nextMinimized = nextCompact
+            ? (typeof options.minimized === 'boolean'
+                ? !!options.minimized
+                : !options.openGift && !options.focusInput && !!state.minimized)
+            : false;
+
         this.friendChatReturnView = options.returnView || (this.friendsMobileView || 'list');
         state.requestedUid = uid;
         this.selectedFriendUid = uid;
@@ -1622,8 +1732,8 @@ export default class FriendsUIController {
         state.requestedUid = uid;
         this.selectedFriendUid = uid;
         this.friendChatUid = uid;
-        state.compact = !!options.compact;
-        state.minimized = false;
+        state.compact = nextCompact;
+        state.minimized = nextMinimized;
         state.unreadWhileMinimized = false;
         state.restoreFriendsPopupOnClose = this.getFriendsPopupMode() === 'mobileLandscape' && this.isPopupOpen('friends-popup');
         this.game.net.openFriendThread(uid);
@@ -1725,11 +1835,12 @@ export default class FriendsUIController {
         }
         if (nextVisible) {
             if (!wasVisible) {
+                this.clearFriendGiftTouchSelectionState();
                 this.friendGiftSelection = null;
                 this.friendGiftQuantitySelection = null;
                 const itemAmountInput = document.getElementById('friend-gift-item-amount');
                 if (itemAmountInput) {
-                    itemAmountInput.value = '1';
+                    itemAmountInput.value = '';
                 }
             }
             const preset = this.getFriendChatCompactViewportPreset({ isGiftOpen: true });
@@ -1743,6 +1854,7 @@ export default class FriendsUIController {
                 this.toggleFriendGiftItemPicker(true);
             }
         } else {
+            this.clearFriendGiftTouchSelectionState();
             this.friendGiftQuantitySelection = null;
             this.toggleFriendGiftQuantityModal(false, { clearSelection: false });
             this.toggleFriendGiftItemPicker(false);
@@ -1830,21 +1942,25 @@ export default class FriendsUIController {
         const nextVisible = !!visible;
         if (!modal) return;
 
+        this.clearFriendGiftTouchSelectionState();
+        const preservedPosition = this.captureFriendChatCompactPosition();
         modal.classList.toggle('hidden', !nextVisible);
         if (!nextVisible) {
             if (options.clearSelection !== false) {
                 this.friendGiftQuantitySelection = null;
             }
             if (input) {
-                input.value = '1';
+                input.value = '';
             }
             this.syncFriendGiftComposerLayoutState();
+            this.restoreFriendChatCompactPosition(preservedPosition);
             return;
         }
 
         this.hideFriendGiftItemTooltip();
         this.renderFriendGiftQuantityModal();
         this.syncFriendGiftComposerLayoutState();
+        this.restoreFriendChatCompactPosition(preservedPosition);
     }
 
     cancelFriendGiftQuantityModal(options = {}) {
@@ -1867,13 +1983,15 @@ export default class FriendsUIController {
         const selection = this.resolveFriendGiftSelectionFromState(this.friendGiftQuantitySelection);
         const item = selection?.item || null;
         const maxAmount = this.getFriendGiftMaxAmount(item);
+        const hasTypedAmount = !!input && input.value !== '';
         const requestedAmount = Math.floor(Number(input?.value || 1));
         const amount = Math.max(1, Math.min(Number.isFinite(requestedAmount) ? requestedAmount : 1, maxAmount));
 
         if (input) {
             input.min = '1';
             input.max = String(maxAmount);
-            input.value = String(amount);
+            input.placeholder = input.placeholder || '1';
+            input.value = hasTypedAmount ? String(amount) : '';
         }
 
         if (!item) {
@@ -1928,7 +2046,7 @@ export default class FriendsUIController {
         if (itemAmountInput) {
             itemAmountInput.max = String(maxAmount);
             itemAmountInput.disabled = true;
-            itemAmountInput.value = '1';
+            itemAmountInput.value = '';
         }
         itemAmountRow?.classList.add('hidden');
 
@@ -1974,6 +2092,20 @@ export default class FriendsUIController {
         return nextSelection;
     }
 
+    resolveFriendGiftPreviewSelection(entries = this.getGiftableFriendInventoryItems()) {
+        const nextSelection = this.resolveFriendGiftSelectionFromState(this.friendGiftTouchSelection, entries);
+        if (!nextSelection) {
+            this.friendGiftTouchSelection = null;
+            return null;
+        }
+
+        this.friendGiftTouchSelection = {
+            index: nextSelection.index,
+            identity: this.getInventoryItemIdentity(nextSelection.item)
+        };
+        return nextSelection;
+    }
+
     async confirmFriendGiftQuantityModal() {
         const targetUid = this.friendChatUid || this.selectedFriendUid;
         if (!targetUid || !this.game.net) return false;
@@ -1997,18 +2129,25 @@ export default class FriendsUIController {
             index: selection.index,
             identity: selection.identity
         };
-        const sent = await this.sendFriendGiftSelection({
-            targetUid,
-            selectionState,
-            amount
+        const itemLabel = this.escapeHtml(this.buildFriendGiftItemLabel(item, amount));
+        const targetName = this.escapeHtml(this.getFriendGiftTargetName(targetUid));
+
+        this.showConfirm(`<strong>${itemLabel}</strong><br>${targetName}님께 선물하시겠습니까?`, async (confirmed) => {
+            if (!confirmed) {
+                this.renderFriendGiftQuantityModal();
+                return;
+            }
+
+            const sent = await this.sendFriendGiftSelection({
+                targetUid,
+                selectionState,
+                amount
+            });
+
+            if (!sent) {
+                this.renderFriendGiftQuantityModal();
+            }
         });
-
-        if (!sent) {
-            this.renderFriendGiftQuantityModal();
-            return false;
-        }
-
-        this.toggleFriendGiftQuantityModal(false);
         return true;
     }
 
@@ -2083,14 +2222,16 @@ export default class FriendsUIController {
             return false;
         }
 
+        const preservedPosition = this.captureFriendChatCompactPosition();
         this.setFriendGiftComposerVisible(false);
         this.friendGiftSelection = null;
         this.friendGiftQuantitySelection = null;
         const itemAmountInput = document.getElementById('friend-gift-item-amount');
         if (itemAmountInput) {
-            itemAmountInput.value = '1';
+            itemAmountInput.value = '';
         }
         this.refreshFriendGiftOptions();
+        this.restoreFriendChatCompactPosition(preservedPosition);
         this.renderFriendChatMessages({ forceToLatest: true });
         return true;
     }
@@ -2102,6 +2243,7 @@ export default class FriendsUIController {
         if (!composer || !modal || !picker) return;
 
         const nextVisible = !!visible;
+        const preservedPosition = this.captureFriendChatCompactPosition();
         if (nextVisible) {
             this.toggleFriendGiftQuantityModal(false, { clearSelection: false });
         }
@@ -2109,12 +2251,15 @@ export default class FriendsUIController {
         modal.classList.toggle('hidden', !nextVisible);
         if (!nextVisible) {
             this.hideFriendGiftItemTooltip();
+            this.clearFriendGiftTouchSelectionState();
+            this.restoreFriendChatCompactPosition(preservedPosition);
             return;
         }
         this.renderFriendGiftPicker();
         window.requestAnimationFrame(() => {
             picker.scrollTop = 0;
         });
+        this.restoreFriendChatCompactPosition(preservedPosition);
     }
 
     renderFriendGiftPicker(entries = this.getGiftableFriendInventoryItems()) {
@@ -2132,6 +2277,11 @@ export default class FriendsUIController {
             button.type = 'button';
             button.className = 'friend-gift-picker-item';
             button.classList.toggle('is-selected', this.friendGiftSelection?.index === index);
+            button.classList.toggle(
+                'is-previewing',
+                this.friendGiftTouchSelection?.index === index
+                    && this.friendGiftTouchSelection?.identity === this.getInventoryItemIdentity(item)
+            );
             button.dataset.friendGiftPreviewIndex = String(index);
             button.innerHTML = `
                 <span class="friend-gift-picker-icon">${this.createInventoryIconElement(item, 'friend-gift-icon').outerHTML}</span>
@@ -2140,18 +2290,36 @@ export default class FriendsUIController {
                     <span>${this.escapeHtml(item.stackable === false || item.slot ? '장비' : `보유 x${Math.max(1, Number(item.amount || 1)).toLocaleString('ko-KR')}`)}</span>
                 </span>
             `;
-            button.addEventListener('click', async () => {
+            button.addEventListener('click', async (event) => {
+                const itemIdentity = this.getInventoryItemIdentity(item);
+                const isPendingTap = this.friendGiftTouchSelection?.index === index
+                    && this.friendGiftTouchSelection?.identity === itemIdentity;
+
+                if (!isPendingTap) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.clearFriendGiftTouchSelectionState();
+                    this.friendGiftTouchSelection = {
+                        index,
+                        identity: itemIdentity
+                    };
+                    this.hideFriendGiftItemTooltip();
+                    this.refreshFriendGiftOptions();
+                    return;
+                }
+
+                this.clearFriendGiftTouchSelectionState();
                 this.friendGiftSelection = {
                     index,
-                    identity: this.getInventoryItemIdentity(item)
+                    identity: itemIdentity
                 };
                 this.friendGiftQuantitySelection = {
                     index,
-                    identity: this.getInventoryItemIdentity(item)
+                    identity: itemIdentity
                 };
                 const itemAmountInput = document.getElementById('friend-gift-item-amount');
                 if (itemAmountInput) {
-                    itemAmountInput.value = '1';
+                    itemAmountInput.value = '';
                 }
                 this.refreshFriendGiftOptions();
                 this.toggleFriendGiftItemPicker(false);
@@ -2161,8 +2329,6 @@ export default class FriendsUIController {
                 }
                 this.toggleFriendGiftQuantityModal(true, { clearSelection: false });
             });
-            button.addEventListener('mouseenter', () => this.toggleFriendGiftItemDetailFromElement(button, { forceShow: true }));
-            button.addEventListener('mouseleave', () => this.hideFriendGiftItemTooltip());
             picker.appendChild(button);
         });
     }
@@ -2176,9 +2342,34 @@ export default class FriendsUIController {
         if (!listEl) return;
 
         listEl.innerHTML = '';
-        if (!item) {
+        const previewSelection = this.resolveFriendGiftPreviewSelection();
+        const previewItem = previewSelection?.item || null;
+        const previewIdentity = previewSelection?.identity || null;
+        const selectedIdentity = this.friendGiftSelection?.identity || null;
+
+        if (!item && !previewItem) {
             listEl.innerHTML = '<div class="friend-gift-picker-empty">아이템을 선택하면 여기에 등록됩니다.</div>';
             return;
+        }
+
+        if (previewItem && (!selectedIdentity || selectedIdentity !== previewIdentity)) {
+            const tooltipData = this.buildFriendGiftItemTooltipData(previewItem);
+            const detailWrap = document.createElement('div');
+            detailWrap.className = 'friend-gift-inline-detail';
+            const detailCard = this.createFriendGiftDetailCardElement(tooltipData, {
+                className: 'friend-gift-inline-detail-card'
+            });
+            if (detailCard) {
+                detailWrap.appendChild(detailCard);
+            }
+            const hint = document.createElement('p');
+            hint.className = 'friend-gift-inline-hint';
+            hint.textContent = '같은 아이템을 한 번 더 누르면 선물 선택이 진행됩니다.';
+            detailWrap.appendChild(hint);
+            listEl.appendChild(detailWrap);
+            if (!item) {
+                return;
+            }
         }
 
         const preview = document.createElement('button');
@@ -2219,6 +2410,55 @@ export default class FriendsUIController {
             return item?.slot === 'weapon' ? '장비' : '개별 아이템';
         }
         return `수량 ${Math.max(1, Number(amount || 1)).toLocaleString('ko-KR')}`;
+    }
+
+    createFriendGiftDetailCardElement(tooltipData, options = {}) {
+        if (!tooltipData) return null;
+
+        const card = document.createElement('div');
+        card.className = options.className || 'friend-gift-item-tooltip-card';
+
+        const head = document.createElement('div');
+        head.className = 'inventory-detail-head';
+
+        const iconWrap = document.createElement('div');
+        iconWrap.className = 'inventory-detail-icon';
+        iconWrap.appendChild(this.createInventoryIconElement(tooltipData.item, 'inventory-detail-icon-asset'));
+        head.appendChild(iconWrap);
+
+        const titleBlock = document.createElement('div');
+        titleBlock.className = 'inventory-detail-title-block';
+
+        const titleEl = document.createElement('h3');
+        titleEl.textContent = tooltipData.title;
+        titleBlock.appendChild(titleEl);
+
+        if (tooltipData.subtitle) {
+            const subtitleEl = document.createElement('p');
+            subtitleEl.textContent = tooltipData.subtitle;
+            titleBlock.appendChild(subtitleEl);
+        }
+
+        head.appendChild(titleBlock);
+        card.appendChild(head);
+
+        if (tooltipData.description) {
+            const descEl = document.createElement('p');
+            descEl.className = 'inventory-detail-desc';
+            descEl.textContent = tooltipData.description;
+            card.appendChild(descEl);
+        }
+
+        if (tooltipData.lines?.length) {
+            const statsEl = document.createElement('ul');
+            statsEl.className = 'inventory-detail-stats';
+            tooltipData.lines.forEach((line) => {
+                statsEl.appendChild(this.createInventoryDetailStatLineElement(line));
+            });
+            card.appendChild(statsEl);
+        }
+
+        return card;
     }
 
     renderFriendChatMessages(options = {}) {
@@ -2437,50 +2677,10 @@ export default class FriendsUIController {
 
         const tooltip = this.ensureFriendGiftItemTooltip();
         tooltip.innerHTML = '';
-
-        const card = document.createElement('div');
-        card.className = 'friend-gift-item-tooltip-card';
-
-        const head = document.createElement('div');
-        head.className = 'inventory-detail-head';
-
-        const iconWrap = document.createElement('div');
-        iconWrap.className = 'inventory-detail-icon';
-        iconWrap.appendChild(this.createInventoryIconElement(tooltipData.item, 'inventory-detail-icon-asset'));
-        head.appendChild(iconWrap);
-
-        const titleBlock = document.createElement('div');
-        titleBlock.className = 'inventory-detail-title-block';
-
-        const titleEl = document.createElement('h3');
-        titleEl.textContent = tooltipData.title;
-        titleBlock.appendChild(titleEl);
-
-        if (tooltipData.subtitle) {
-            const subtitleEl = document.createElement('p');
-            subtitleEl.textContent = tooltipData.subtitle;
-            titleBlock.appendChild(subtitleEl);
-        }
-
-        head.appendChild(titleBlock);
-        card.appendChild(head);
-
-        if (tooltipData.description) {
-            const descEl = document.createElement('p');
-            descEl.className = 'inventory-detail-desc';
-            descEl.textContent = tooltipData.description;
-            card.appendChild(descEl);
-        }
-
-        if (tooltipData.lines?.length) {
-            const statsEl = document.createElement('ul');
-            statsEl.className = 'inventory-detail-stats';
-            tooltipData.lines.forEach((line) => {
-                statsEl.appendChild(this.createInventoryDetailStatLineElement(line));
-            });
-            card.appendChild(statsEl);
-        }
-
+        const card = this.createFriendGiftDetailCardElement(tooltipData, {
+            className: 'friend-gift-item-tooltip-card'
+        });
+        if (!card) return;
         tooltip.appendChild(card);
         tooltip.classList.remove('hidden');
         this.friendGiftTooltipAnchor = anchorEl;
@@ -2645,10 +2845,6 @@ export default class FriendsUIController {
                     <span class="friends-profile-summary-chip">${this.escapeHtml(levelText)}</span>
                     <span class="friends-profile-summary-chip">${this.escapeHtml(`최근 대화 ${lastUpdated}`)}</span>
                     <span class="friends-profile-summary-chip${selected.online ? ' is-online' : ''}">${this.escapeHtml(statusText)}</span>
-                </div>
-                <div class="friends-profile-summary-row">
-                    <strong>UID</strong>
-                    <span>${this.escapeHtml(selected.uid || '-')}</span>
                 </div>
                 <div class="friends-profile-summary-row is-message">
                     <strong>최근 메시지</strong>
@@ -3126,6 +3322,7 @@ export default class FriendsUIController {
             this.renderFriendChatMessages();
         }
 
+        this.syncFriendPresenceSnapshot(friends);
         const hasUnread = entries.some((entry) => entry.unread);
         this.setFriendsAlertActive(!this.isPopupOpen('friends-popup') && hasUnread);
     }

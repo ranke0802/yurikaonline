@@ -706,9 +706,11 @@ export default class Monster extends CharacterBase {
                     if (dist < (this.width / 2 + 20)) { // Collision Radius
                         // Hit Player!
                         // v0.00.43: Variable Charge Damage
-                        let dmg = 15; // Slime (Default)
-                        if (this.typeId === 'slime_split') dmg = 30;
-                        if (this.typeId === 'king_slime') dmg = 50;
+                        let dmg = Number.isFinite(this.chargeDamage)
+                            ? this.chargeDamage
+                            : 15; // Slime (Default)
+                        if (!Number.isFinite(this.chargeDamage) && this.typeId === 'slime_split') dmg = 30;
+                        if (!Number.isFinite(this.chargeDamage) && this.typeId === 'king_slime') dmg = 50;
 
                         if (window.game?.net) {
                             window.game.net.sendPlayerDamage(p.id, dmg);

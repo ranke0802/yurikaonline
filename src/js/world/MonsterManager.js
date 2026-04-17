@@ -2,6 +2,30 @@ import Monster from '../entities/Monster.js';
 import Logger from '../utils/Logger.js';
 
 const REMOVED_DROP_ITEM_IDS = new Set(['slime_gel', 'potion_hp_small', 'royal_jelly', 'king_crown']);
+const SLIME_CHARGE_DAMAGE = 10;
+
+function isSlimeFamilyType(typeId) {
+    return typeId === 'slime' || typeId === 'slime_split';
+}
+
+function applySlimeCombatOverrides(monster, typeId = monster?.typeId) {
+    if (!monster) return;
+
+    const normalizedTypeId = typeof typeId === 'string' ? typeId : monster.typeId;
+    if (isSlimeFamilyType(normalizedTypeId)) {
+        monster.chargeOnly = true;
+        monster.chargeDamage = SLIME_CHARGE_DAMAGE;
+        return;
+    }
+
+    if (normalizedTypeId === 'king_slime' && !Number.isFinite(monster.chargeDamage)) {
+        monster.chargeDamage = 50;
+    }
+}
+
+function getSlimeManastoneDropAmount() {
+    return 15 + Math.floor(Math.random() * 16);
+}
 
 export default class MonsterManager {
     constructor(game) {
@@ -901,6 +925,9 @@ export default class MonsterManager {
                             : killerPartyMembers;
                         let xpAmount = 25;
                         let manastoneAmount = 50;
+                        if (isSlimeFamilyType(m.typeId)) {
+                            manastoneAmount = getSlimeManastoneDropAmount();
+                        }
                         if (m.typeId === 'king_slime') {
                             xpAmount = 500;
                             manastoneAmount = 2000;
@@ -966,7 +993,7 @@ export default class MonsterManager {
                     // OR: Don't spawn drops for partykills, just grant?
                     // "Shared Experience, Manastone... (1/N distribution)"
                     // If I change drop logic, I break pickup animation.
-                    // BETTER: Modify `collectDrop` in NetworkManager to handle split. 
+                    // BETTER: Modify `collectDrop` in NetworkManager to handle split.
                     // BUT here, let's handle QUEST updates for party members if needed.
                     // Actually, usually quests are "Kill Count". Everyone in party witnessing kill gets +1?
                     // Prompt doesn't say "Shared Quest Progress". It says "Shared Exp, Manastone".
@@ -1273,6 +1300,7 @@ export default class MonsterManager {
             if (Number.isFinite(data.h)) monster.height = data.h;
         }
         monster.chargeOnly = !!data.chargeOnly;
+        applySlimeCombatOverrides(monster, data.type || monster.typeId);
         monster.isDead = false;
         monster.deathTimer = 0;
         monster.lastNetworkEventAt = Number(data.ts || Date.now());
@@ -1657,6 +1685,7 @@ export default class MonsterManager {
         let definition = await this.game.monsterData.loadDefinition(type);
         if (!definition) definition = {}; // Fallback if missing
 
+        const forceChargeOnly = isSlimeFamilyType(type) || !!options.chargeOnly;
         const data = {
             id: id,
             x: Math.round(x),
@@ -1664,7 +1693,7 @@ export default class MonsterManager {
             hp: definition.baseStats?.hp || 100,
             maxHp: definition.baseStats?.maxHp || 100,
             type: type,
-            chargeOnly: options.chargeOnly || false, // v0.00.70: chargeOnly 옵션 지원
+            chargeOnly: forceChargeOnly, // Slimes are charge-only by design.
             rev: this._nextMonsterRevision(id),
             ts: Date.now(),
             state: 'idle',
@@ -1701,6 +1730,7 @@ export default class MonsterManager {
         monster.maxHp = definition.baseStats?.maxHp || 100;
         monster.ready = true;
         monster.isLocalOnly = true;
+        applySlimeCombatOverrides(monster, type);
 
         if (options.tutorialOnly) {
             this.tutorialMonsterIds.add(monster.id);
@@ -1834,10 +1864,11 @@ export default class MonsterManager {
                 m.width = data.w || m.width;
                 m.height = data.h || m.height;
             }
-            // v0.00.70: chargeOnly 플래그 적용 (돌진 공격만 사용)
+            // Slime families stay charge-only even if older sync data omits the flag.
             if (data.chargeOnly) {
                 m.chargeOnly = true;
             }
+            applySlimeCombatOverrides(m, typeId);
             this._applyRemoteMonsterNetworkState(m, data);
             this.monsters.set(data.id, m);
         } catch (e) {
@@ -1848,6 +1879,7 @@ export default class MonsterManager {
             m.maxHp = data.maxHp;
             m.targetX = data.x;
             m.targetY = data.y;
+            applySlimeCombatOverrides(m, typeId);
             this._applyRemoteMonsterNetworkState(m, data);
             this.monsters.set(data.id, m);
         }
@@ -1924,6 +1956,10 @@ export default class MonsterManager {
             m.targetY = data.y;
         }
 
+        if (data.chargeOnly || isSlimeFamilyType(data.type || m.typeId)) {
+            m.chargeOnly = true;
+        }
+        applySlimeCombatOverrides(m, data.type || m.typeId);
         this._applyRemoteMonsterNetworkState(m, data);
     }
 
@@ -1955,7 +1991,7 @@ export default class MonsterManager {
 
     _onMonsterDamageReceived(data) {
         // v0.00.03: Allow ALL clients to process damage events for visual feedback
-        // if (!this.net.isHost) return; 
+        // if (!this.net.isHost) return;
         // v0.29.18: 호스트 자신이 보낸 데미지는 이미 로컬에서 처리했으므로 무시
         if (data.aid === this.net.playerId) return;
         const m = this.monsters.get(data.mid);

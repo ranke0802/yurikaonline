@@ -48,6 +48,7 @@ export default class NetworkManager extends EventEmitter {
         this.backgroundHeartbeatInterval = this.heartbeatIntervalMs;
         this.presenceStaleTimeout = 18000;
         this.friendOnlineGraceMs = 3000;
+        this.friendOfflineGraceMs = 8000;
         this.sharedGhostTimeout = 15000;
         this.soloGhostTimeout = 12000;
         this.lastPacketData = null;
@@ -77,6 +78,7 @@ export default class NetworkManager extends EventEmitter {
         this._zoneUserHydrationMeta = new Map();
         this._presenceCache = new Map();
         this._presenceTsCache = new Map();
+        this._friendOnlineStateCache = new Map();
         this._queuedRewardBatches = new Map();
         this._rewardBatchWindowMs = 650;
         this._rewardValidationWindow = {
@@ -158,6 +160,7 @@ export default class NetworkManager extends EventEmitter {
         this._detachZoneUserListeners();
         this._presenceCache.clear();
         this._presenceTsCache.clear();
+        this._friendOnlineStateCache.clear();
         this._blockedProfileWriteUids.clear();
         this._clearQueuedRewardBatches();
         this._resetRewardValidationWindow();
@@ -582,6 +585,7 @@ export default class NetworkManager extends EventEmitter {
         this._detachZoneUserListeners();
         this._presenceCache.clear();
         this._presenceTsCache.clear();
+        this._friendOnlineStateCache.clear();
         this._clearQueuedRewardBatches();
         this._resetRewardValidationWindow();
         this._lastPresenceLiteState = null;
@@ -3838,18 +3842,23 @@ export default class NetworkManager extends EventEmitter {
         const maxAgeMs = Number.isFinite(options.maxAgeMs)
             ? Math.max(1000, Number(options.maxAgeMs))
             : Math.max(1000, Number(this.friendOnlineGraceMs || 3000));
+        const offlineGraceMs = Number.isFinite(options.offlineGraceMs)
+            ? Math.max(maxAgeMs, Number(options.offlineGraceMs))
+            : Math.max(maxAgeMs, Number(this.friendOfflineGraceMs || 8000));
         const presenceEntry = this._presenceCache.get(uid) || null;
         const lastSeen = this._getLatestPresenceSeenTs(uid);
+        const previousState = this._friendOnlineStateCache.get(uid) || null;
+        const thresholdMs = previousState?.online ? offlineGraceMs : maxAgeMs;
+        const nextOnline = lastSeen > 0 && (now - lastSeen) <= thresholdMs;
 
-        if (lastSeen > 0 && (now - lastSeen) <= maxAgeMs) {
-            return true;
-        }
-
-        if (!presenceEntry) {
-            return false;
-        }
-
-        return Number(presenceEntry.ts || 0) > 0 && (now - Number(presenceEntry.ts || 0)) <= maxAgeMs;
+        this._friendOnlineStateCache.set(uid, {
+            online: nextOnline,
+            lastSeen,
+            thresholdMs,
+            updatedAt: now,
+            hasPresence: !!presenceEntry
+        });
+        return nextOnline;
     }
 
     getFriendListSnapshot() {
@@ -3907,7 +3916,7 @@ export default class NetworkManager extends EventEmitter {
         return {
             uid,
             profile,
-            name: profile.name || trimmed,
+            name: this._isMeaningfulPlayerName(profile.name) ? profile.name.trim() : '친구',
             matchType,
             online: this.isUserOnline(uid),
             isFriend: this.isFriend(uid)
@@ -3928,7 +3937,7 @@ export default class NetworkManager extends EventEmitter {
         if (!targetProfile) return { ok: false, reason: 'profile_missing' };
 
         const myName = window.game?.localPlayer?.name || 'Unknown';
-        const targetName = targetProfile.name || trimmed;
+        const targetName = this._isMeaningfulPlayerName(targetProfile.name) ? targetProfile.name.trim() : '친구';
         const rootRef = firebase.database().ref();
         const now = Date.now();
 

@@ -291,7 +291,26 @@ export default class TutorialManager {
     }
 
     getStepHighlightTargets(step = this.getCurrentStep()) {
-        return this.resolveResponsiveValue(step?.focus, () => this.getLegacyHighlightTargets(step));
+        const focus = step?.focus;
+        if (!focus) return this.getLegacyHighlightTargets(step);
+
+        if (
+            typeof focus === 'string'
+            || Array.isArray(focus)
+            || focus instanceof Element
+        ) {
+            return focus;
+        }
+
+        if (typeof focus !== 'object') {
+            return this.getLegacyHighlightTargets(step);
+        }
+
+        const responsiveKeys = ['desktop', 'mobilePortrait', 'mobileLandscape', 'mobile', 'default'];
+        const isResponsiveFocus = responsiveKeys.some((key) => Object.prototype.hasOwnProperty.call(focus, key));
+        return isResponsiveFocus
+            ? this.resolveResponsiveValue(focus, () => this.getLegacyHighlightTargets(step))
+            : focus;
     }
 
     getStepAvoidTargets(step = this.getCurrentStep()) {
@@ -307,7 +326,9 @@ export default class TutorialManager {
             mode: presentation.highlightMode || 'ring',
             targets: [],
             label: presentation.calloutText || '',
-            padding: presentation.highlightPadding
+            padding: presentation.highlightPadding,
+            avoidTargets: this.getStepAvoidTargets(step),
+            suppressDim: !!presentation.suppressDim || !!step.suppressDim
         };
 
         if (!responsiveFocus) return baseConfig;

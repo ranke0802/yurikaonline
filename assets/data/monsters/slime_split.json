@@ -2,12 +2,13 @@
     "id": "slime_split",
     "name": "분열 슬라임",
     "type": "monster",
+    "chargeOnly": true,
     "baseStats": {
         "hp": 200,
         "maxHp": 200,
         "mp": 0,
         "maxMp": 0,
-        "atk": 25,
+        "atk": 10,
         "def": 5,
         "speed": 60,
         "exp": 15
@@ -26,23 +27,12 @@
         "die": "sfx_slime_die",
         "move": "sfx_slime_move"
     },
-    "skills": [
-        {
-            "id": "charge",
-            "trigger": "hp_below_70",
-            "chance": 0.2,
-            "cooldown": 10000,
-            "data": {
-                "damage": 30,
-                "speed": 300
-            }
-        }
-    ],
+    "skills": [],
     "drops": [
         {
             "itemId": "manastone",
-            "min": 10,
-            "max": 50,
+            "min": 15,
+            "max": 30,
             "chance": 1.0
         }
     ]

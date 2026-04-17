@@ -4953,11 +4953,13 @@ body.low-power-pwa .minimap-menu {
 
 .tutorial-highlight-dim {
     position: fixed;
+    box-sizing: border-box;
     background: rgba(6, 8, 14, 0.66);
 }
 
 .tutorial-highlight-box {
     position: fixed;
+    box-sizing: border-box;
     animation: tutorial-highlight-pulse 1s ease-in-out infinite;
 }
 
@@ -11994,6 +11996,18 @@ body.low-power-pwa #ui-layer #minimap-container {
     text-align: left;
 }
 
+.friend-thread-item:hover,
+.friend-thread-item:focus-visible,
+.friend-thread-item:active {
+    transform: none !important;
+}
+
+.friend-thread-item:hover,
+.friend-thread-item:focus-visible {
+    border-color: rgba(255, 123, 92, 0.28);
+    box-shadow: 0 8px 18px rgba(31, 45, 61, 0.08);
+}
+
 .friend-thread-item.is-selected {
     border-color: rgba(255, 123, 92, 0.48);
     background: rgba(255, 123, 92, 0.08);
@@ -13586,9 +13600,55 @@ body.low-power-pwa #ui-layer #minimap-container {
     padding: 8px 10px;
 }
 
+.friend-gift-inline-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.friend-gift-inline-detail-card {
+    padding: 14px 16px;
+    border: 1px solid rgba(255, 242, 196, 0.16);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(8, 8, 10, 0.82), rgba(8, 8, 10, 0.66));
+    box-shadow: 0 18px 30px rgba(6, 6, 8, 0.24);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #f6edd1;
+}
+
+.friend-gift-inline-detail-card .inventory-detail-head {
+    padding-right: 0;
+    margin-bottom: 8px;
+}
+
+.friend-gift-inline-detail-card .inventory-detail-icon {
+    display: inline-flex;
+}
+
+.friend-gift-inline-detail-card .inventory-detail-title-block h3 {
+    font-size: 18px;
+}
+
+.friend-gift-inline-detail-card .inventory-detail-stats {
+    max-height: min(22dvh, 180px);
+}
+
+.friend-gift-inline-hint {
+    margin: 0;
+    color: #647182;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
 .friend-gift-picker-item.is-selected {
     border-color: rgba(42, 167, 161, 0.28);
     background: rgba(42, 167, 161, 0.12);
+}
+
+.friend-gift-picker-item.is-previewing {
+    border-color: rgba(255, 200, 102, 0.34);
+    background: rgba(255, 200, 102, 0.12);
 }
 
 .friend-gift-picker-empty {

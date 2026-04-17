@@ -67,7 +67,7 @@ export class UIManager {
         this.tutorialGuideState = null;
         this.tutorialHighlightLayer = null;
         this.tutorialHighlightTargets = [];
-        this.tutorialHighlightState = { targets: [], mode: 'ring', label: '' };
+        this.tutorialHighlightState = { targets: [], mode: 'ring', label: '', avoidTargets: [], suppressDim: false };
         this.tutorialDimSuppressed = false;
         this.tutorialDimSuppressedStepId = '';
         this.tutorialGuideManualPosition = null;
@@ -3608,6 +3608,20 @@ export class UIManager {
             return confirmVisible
                 ? ['#confirm-yes', '#confirm-no']
                 : ['#status-close-btn-top', '#status-close-btn-bottom'];
+        }
+
+        if (step.trigger === 'skill_detail_open') {
+            const detailModalVisible = !!document.querySelector('#skill-detail-modal:not(.hidden) .skill-detail-modal-content');
+            if (detailModalVisible) {
+                return ['#skill-detail-modal .skill-detail-modal-content'];
+            }
+        }
+
+        if (step.trigger === 'popup_open' && step.target === 'inventory-popup') {
+            const inventoryVisible = !!document.querySelector('#inventory-popup:not(.hidden)');
+            if (inventoryVisible) {
+                return ['#inventory-popup'];
+            }
         }
 
         return normalizedFallback;
@@ -7703,7 +7717,9 @@ export class UIManager {
                 targets: [],
                 mode: 'ring',
                 label: '',
-                padding: null
+                padding: null,
+                avoidTargets: [],
+                suppressDim: false
             };
         }
 
@@ -7716,16 +7732,21 @@ export class UIManager {
                 targets: Array.isArray(config) ? config.filter(Boolean) : [config],
                 mode: 'ring',
                 label: '',
-                padding: null
+                padding: null,
+                avoidTargets: [],
+                suppressDim: false
             };
         }
 
         const targets = config.targets || config.target || config.selectors || [];
+        const avoidTargets = config.avoidTargets || config.dimAvoidTargets || [];
         return {
             mode: config.mode || 'ring',
             label: config.label || '',
             padding: Number.isFinite(config.padding) ? config.padding : null,
-            targets: Array.isArray(targets) ? targets.filter(Boolean) : (targets ? [targets] : [])
+            targets: Array.isArray(targets) ? targets.filter(Boolean) : (targets ? [targets] : []),
+            avoidTargets: Array.isArray(avoidTargets) ? avoidTargets.filter(Boolean) : (avoidTargets ? [avoidTargets] : []),
+            suppressDim: !!config.suppressDim
         };
     }
 
@@ -7746,7 +7767,8 @@ export class UIManager {
         const currentStepId = this.game?.tutorial?.getCurrentStep?.()?.id || this.tutorialGuideState?.stepId || '';
         const suppressDim = !!this.tutorialDimSuppressed
             && !!currentStepId
-            && this.tutorialDimSuppressedStepId === currentStepId;
+            && this.tutorialDimSuppressedStepId === currentStepId
+            || !!state.suppressDim;
         if (!runtimeTargets?.length) {
             this.refreshTutorialGuideLayout();
             return;
@@ -7755,6 +7777,12 @@ export class UIManager {
         const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
         const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
         const rects = [];
+        const exclusionRects = [
+            ...this.getTutorialFocusRects(state.avoidTargets || []),
+            ...this.getActivePopupAvoidZones()
+        ]
+            .filter(Boolean)
+            .map((rect) => this.applyTutorialRectInsets(rect, -1) || rect);
 
         runtimeTargets.forEach((target) => {
             const rect = this.resolveTutorialTargetRect(target);
@@ -7763,10 +7791,10 @@ export class UIManager {
             const padding = Number.isFinite(state.padding)
                 ? state.padding
                 : this.getTutorialHighlightPadding(rect, state.mode);
-            const left = Math.max(0, rect.left - padding);
-            const top = Math.max(0, rect.top - padding);
-            const right = Math.min(viewportW, rect.right + padding);
-            const bottom = Math.min(viewportH, rect.bottom + padding);
+            const left = Math.max(0, Math.floor(rect.left - padding));
+            const top = Math.max(0, Math.floor(rect.top - padding));
+            const right = Math.min(viewportW, Math.ceil(rect.right + padding));
+            const bottom = Math.min(viewportH, Math.ceil(rect.bottom + padding));
             const width = Math.max(0, right - left);
             const height = Math.max(0, bottom - top);
             if (!width || !height) return;
@@ -7780,10 +7808,19 @@ export class UIManager {
         }
 
         if (!suppressDim) {
-            const xEdges = Array.from(new Set([0, viewportW, ...rects.flatMap((rect) => [rect.left, rect.right])]))
+            const dimRects = [...rects, ...exclusionRects]
+                .filter((rect) => rect && rect.width > 0 && rect.height > 0)
+                .map((rect) => ({
+                    left: Math.max(0, Math.floor(rect.left)),
+                    top: Math.max(0, Math.floor(rect.top)),
+                    right: Math.min(viewportW, Math.ceil(rect.right)),
+                    bottom: Math.min(viewportH, Math.ceil(rect.bottom))
+                }));
+
+            const xEdges = Array.from(new Set([0, viewportW, ...dimRects.flatMap((rect) => [rect.left, rect.right])]))
                 .filter((value) => Number.isFinite(value))
                 .sort((a, b) => a - b);
-            const yEdges = Array.from(new Set([0, viewportH, ...rects.flatMap((rect) => [rect.top, rect.bottom])]))
+            const yEdges = Array.from(new Set([0, viewportH, ...dimRects.flatMap((rect) => [rect.top, rect.bottom])]))
                 .filter((value) => Number.isFinite(value))
                 .sort((a, b) => a - b);
 
@@ -7802,7 +7839,7 @@ export class UIManager {
 
                     const sampleX = left + width / 2;
                     const sampleY = top + height / 2;
-                    const insideFocus = rects.some((rect) => (
+                    const insideFocus = dimRects.some((rect) => (
                         sampleX >= rect.left
                         && sampleX <= rect.right
                         && sampleY >= rect.top
@@ -7818,10 +7855,10 @@ export class UIManager {
                 if (!segment.width || !segment.height) return;
                 const dim = document.createElement('div');
                 dim.className = 'tutorial-highlight-dim';
-                dim.style.left = `${segment.left}px`;
-                dim.style.top = `${segment.top}px`;
-                dim.style.width = `${segment.width}px`;
-                dim.style.height = `${segment.height}px`;
+                dim.style.left = `${Math.max(0, segment.left - 1)}px`;
+                dim.style.top = `${Math.max(0, segment.top - 1)}px`;
+                dim.style.width = `${Math.min(viewportW, segment.left + segment.width + 1) - Math.max(0, segment.left - 1)}px`;
+                dim.style.height = `${Math.min(viewportH, segment.top + segment.height + 1) - Math.max(0, segment.top - 1)}px`;
                 layer.appendChild(dim);
             });
         }
@@ -7851,7 +7888,7 @@ export class UIManager {
 
     clearTutorialHighlight() {
         this.tutorialHighlightTargets = [];
-        this.tutorialHighlightState = { targets: [], mode: 'ring', label: '' };
+        this.tutorialHighlightState = { targets: [], mode: 'ring', label: '', avoidTargets: [], suppressDim: false };
         this.tutorialDimSuppressed = false;
         this.tutorialDimSuppressedStepId = '';
         if (this.tutorialHighlightLayer) {
