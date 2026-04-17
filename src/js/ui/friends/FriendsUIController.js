@@ -1743,24 +1743,25 @@ export default class FriendsUIController {
         if (!uid || !this.game.net?.isFriend?.(uid)) return;
 
         const state = this.ensureFriendChatWindowState();
+        const chatModal = document.getElementById('friend-chat-modal');
+        const isReopeningHiddenChat = !!chatModal?.classList?.contains?.('hidden');
         if (this.friendChatUid && this.friendChatUid !== uid) {
             this.closeFriendChat({ detachThread: true, keepSelection: true, silent: true });
         }
 
         const nextCompact = typeof options.compact === 'boolean'
             ? !!options.compact
-            : !!state.compact;
+            : (isReopeningHiddenChat ? false : !!state.compact);
         const nextMinimized = nextCompact
             ? (typeof options.minimized === 'boolean'
                 ? !!options.minimized
-                : !options.openGift && !options.focusInput && !!state.minimized)
+                : !isReopeningHiddenChat && !options.openGift && !options.focusInput && !!state.minimized)
             : false;
 
         this.friendChatReturnView = options.returnView || (this.friendsMobileView || 'list');
         state.requestedUid = uid;
         this.selectedFriendUid = uid;
         this.friendChatUid = uid;
-        const chatModal = document.getElementById('friend-chat-modal');
         chatModal?.setAttribute('data-chat-friend-uid', uid);
         chatModal?.classList.remove('hidden');
 

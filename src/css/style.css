@@ -13028,6 +13028,14 @@ body.low-power-pwa #ui-layer #minimap-container {
     pointer-events: auto;
 }
 
+body.popup-open .friends-floating-modal.is-compact {
+    z-index: 80 !important;
+}
+
+body.popup-open .friends-floating-modal.is-compact .friends-chat-card {
+    pointer-events: none !important;
+}
+
 .friends-floating-scrim.hidden {
     display: none;
 }
