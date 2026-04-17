@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json?v=0.01.183">
+    <link rel="manifest" href="manifest.json?v=0.01.185">
     <meta name="theme-color" content="#2d3436">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
-        window.BOOTSTRAP_VERSION = '0.01.183';
+        window.BOOTSTRAP_VERSION = '0.01.185';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -24,6 +24,9 @@
         const YURIKA_CACHE_RESET_TARGET_KEY = 'yurika_cache_reset_target';
         const YURIKA_CACHE_RESET_REASON_KEY = 'yurika_cache_reset_reason';
         const YURIKA_CACHE_RESET_MAX_ATTEMPTS = 2;
+        const YURIKA_VERSION_CHECK_MIN_INTERVAL_MS = 4000;
+        let yurikaVersionCheckInFlight = null;
+        let yurikaLastVersionCheckAt = 0;
 
         function normalizeGameVersion(version) {
             return typeof version === 'string' ? version.trim() : '';
@@ -36,6 +39,20 @@
         function formatGameVersion(version) {
             const normalized = normalizeGameVersion(version) || 'unknown';
             return normalized.startsWith('v') ? normalized : `v${normalized}`;
+        }
+
+        function applyYurikaVersionUi(version, note = '') {
+            const displayVersion = formatGameVersion(version);
+            document.title = `Yurika Online ${displayVersion}`;
+            const versionLabel = document.getElementById('settings-version-label');
+            const versionNote = document.getElementById('settings-version-note');
+            if (versionLabel) {
+                versionLabel.textContent = displayVersion;
+            }
+            if (versionNote) {
+                versionNote.textContent = note || '업데이트 이력은 아래 버튼에서 확인할 수 있습니다.';
+                versionNote.title = note || '';
+            }
         }
 
         function waitForPageLoad() {
@@ -117,13 +134,86 @@
             return true;
         }
 
+        async function verifyYurikaRuntimeVersion(options = {}) {
+            const { force = false, reason = 'manual' } = options;
+            const now = Date.now();
+
+            if (!force) {
+                if (document.visibilityState === 'hidden') return false;
+                if (yurikaVersionCheckInFlight) return yurikaVersionCheckInFlight;
+                if ((now - yurikaLastVersionCheckAt) < YURIKA_VERSION_CHECK_MIN_INTERVAL_MS) return false;
+            }
+
+            yurikaLastVersionCheckAt = now;
+            const checkPromise = (async () => {
+                const loadedVersion = getLoadedGameVersion();
+                window.GAME_VERSION = loadedVersion;
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', () => applyYurikaVersionUi(loadedVersion), { once: true });
+                } else {
+                    applyYurikaVersionUi(loadedVersion);
+                }
+
+                try {
+                    const response = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
+                    const serverVersion = normalizeGameVersion(await response.text()) || 'unknown';
+                    await waitForPageLoad();
+                    const bootstrapVersion = normalizeGameVersion(window.BOOTSTRAP_VERSION) || loadedVersion;
+                    const runtimeVersion = getLoadedGameVersion();
+                    const versionsAligned = serverVersion === 'unknown'
+                        || (bootstrapVersion === serverVersion && runtimeVersion === serverVersion);
+
+                    window.SERVER_VERSION = serverVersion;
+
+                    if (!versionsAligned) {
+                        const mismatchNote = `현재 ${formatGameVersion(runtimeVersion)} / 서버 ${formatGameVersion(serverVersion)}. 업데이트 재적용을 시도합니다.`;
+                        if (document.readyState === 'loading') {
+                            document.addEventListener('DOMContentLoaded', () => applyYurikaVersionUi(runtimeVersion, mismatchNote), { once: true });
+                        } else {
+                            applyYurikaVersionUi(runtimeVersion, mismatchNote);
+                        }
+
+                        console.warn(`Loaded build mismatch detected (${reason}). bootstrap=${bootstrapVersion}, runtime=${runtimeVersion}, server=${serverVersion}`);
+                        const refreshTriggered = await forceYurikaClientRefresh(serverVersion, reason || 'build-mismatch');
+                        if (!refreshTriggered) {
+                            console.warn('Automatic cache reset exhausted. Manual browser cache clear may be required.');
+                        }
+                        return refreshTriggered;
+                    }
+
+                    if (serverVersion !== 'unknown') {
+                        localStorage.setItem('yurika_last_version', serverVersion);
+                    }
+                    sessionStorage.removeItem('yurika_just_reloaded');
+                    sessionStorage.removeItem(YURIKA_CACHE_RESET_ATTEMPT_KEY);
+                    sessionStorage.removeItem(YURIKA_CACHE_RESET_TARGET_KEY);
+                    sessionStorage.removeItem(YURIKA_CACHE_RESET_REASON_KEY);
+                    return false;
+                } catch (e) {
+                    console.warn(`Version check failed (${reason}):`, e);
+                    window.SERVER_VERSION = 'unknown';
+                    return false;
+                }
+            })();
+
+            yurikaVersionCheckInFlight = checkPromise;
+            try {
+                return await checkPromise;
+            } finally {
+                if (yurikaVersionCheckInFlight === checkPromise) {
+                    yurikaVersionCheckInFlight = null;
+                }
+            }
+        }
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', async () => {
                 try {
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.01.183', { updateViaCache: 'none' });
+                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.01.185', { updateViaCache: 'none' });
                     await registration.update();
                     registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
                     registration.addEventListener('updatefound', () => {
@@ -155,77 +245,31 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.01.183</title>
+    <title>Yurika Online v0.01.185</title>
 
-    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.01.183">
-    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.01.183">
+    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.01.185">
+    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.01.185">
     <script>
         // v0.29.20+: Prefer the actually loaded client build for UI, and auto-reset caches on mismatch.
         (async function initCacheBusting() {
-            const loadedVersion = getLoadedGameVersion();
-            window.GAME_VERSION = loadedVersion;
-
-            const applyVersionUi = (version, note = '') => {
-                const displayVersion = formatGameVersion(version);
-                document.title = `Yurika Online ${displayVersion}`;
-                const versionLabel = document.getElementById('settings-version-label');
-                const versionNote = document.getElementById('settings-version-note');
-                if (versionLabel) {
-                    versionLabel.textContent = displayVersion;
-                }
-                if (versionNote) {
-                    versionNote.textContent = note || '업데이트 이력은 아래 버튼에서 확인할 수 있습니다.';
-                    versionNote.title = note || '';
-                }
-            };
-
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => applyVersionUi(loadedVersion), { once: true });
-            } else {
-                applyVersionUi(loadedVersion);
-            }
-
-            try {
-                const response = await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' });
-                const serverVersion = normalizeGameVersion(await response.text()) || 'unknown';
-                await waitForPageLoad();
-                const bootstrapVersion = normalizeGameVersion(window.BOOTSTRAP_VERSION) || loadedVersion;
-                const runtimeVersion = getLoadedGameVersion();
-                const versionsAligned = serverVersion === 'unknown'
-                    || (bootstrapVersion === serverVersion && runtimeVersion === serverVersion);
-
-                window.SERVER_VERSION = serverVersion;
-
-                if (!versionsAligned) {
-                    const mismatchNote = `현재 ${formatGameVersion(runtimeVersion)} / 서버 ${formatGameVersion(serverVersion)}. 업데이트 재적용을 시도합니다.`;
-                    if (document.readyState === 'loading') {
-                        document.addEventListener('DOMContentLoaded', () => applyVersionUi(runtimeVersion, mismatchNote), { once: true });
-                    } else {
-                        applyVersionUi(runtimeVersion, mismatchNote);
-                    }
-
-                    console.warn(`Loaded build mismatch detected. bootstrap=${bootstrapVersion}, runtime=${runtimeVersion}, server=${serverVersion}`);
-                    const refreshTriggered = await forceYurikaClientRefresh(serverVersion, 'build-mismatch');
-                    if (!refreshTriggered) {
-                        console.warn('Automatic cache reset exhausted. Manual browser cache clear may be required.');
-                    }
-                    return;
-                }
-
-                if (serverVersion !== 'unknown') {
-                    localStorage.setItem('yurika_last_version', serverVersion);
-                }
-                sessionStorage.removeItem('yurika_just_reloaded');
-                sessionStorage.removeItem(YURIKA_CACHE_RESET_ATTEMPT_KEY);
-                sessionStorage.removeItem(YURIKA_CACHE_RESET_TARGET_KEY);
-                sessionStorage.removeItem(YURIKA_CACHE_RESET_REASON_KEY);
-            } catch (e) {
-                console.warn('Version check failed:', e);
-                window.SERVER_VERSION = 'unknown';
-            }
+            await verifyYurikaRuntimeVersion({ force: true, reason: 'bootstrap' });
         })();
+
+        window.addEventListener('pageshow', () => {
+            verifyYurikaRuntimeVersion({ reason: 'pageshow' });
+        });
+
+        window.addEventListener('focus', () => {
+            verifyYurikaRuntimeVersion({ reason: 'focus' });
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                verifyYurikaRuntimeVersion({ reason: 'visibility-resume' });
+            }
+        });
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.183">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.185">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -1235,7 +1279,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.183"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.185"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">
