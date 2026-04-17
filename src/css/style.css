@@ -14709,3 +14709,25 @@ body.is-ios-device {
 .confirm-modal-content {
     overflow-x: hidden;
 }
+
+@media screen and (max-width: 1024px) and (pointer: coarse) {
+    #popup-overlay {
+        align-items: center !important;
+        justify-content: center !important;
+        overflow: auto !important;
+    }
+
+    #popup-overlay > #inventory-popup:not(.hidden),
+    #popup-overlay > #status-popup:not(.hidden),
+    #popup-overlay > #skill-popup:not(.hidden),
+    #popup-overlay > #friends-popup:not(.hidden) {
+        align-self: center !important;
+        margin: auto !important;
+        position: relative !important;
+        left: auto !important;
+        top: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        transform: none !important;
+    }
+}

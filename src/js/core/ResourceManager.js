@@ -6,8 +6,67 @@ export default class ResourceManager {
         this.loading = new Map(); // Promises for in-flight requests
     }
 
+    getBuildVersion() {
+        const version = String(
+            window.GAME_VERSION
+            || window.RUNTIME_BUILD_VERSION
+            || window.BOOTSTRAP_VERSION
+            || ''
+        ).trim();
+        if (!version || version === 'error' || version === 'unknown') {
+            return '';
+        }
+        return version;
+    }
+
+    getVersionedResourceUrl(url) {
+        if (typeof url !== 'string' || !url) return url;
+        if (/^(data:|blob:|about:|javascript:)/i.test(url)) return url;
+
+        try {
+            const resolvedUrl = new URL(url, window.location.href);
+            if (resolvedUrl.origin !== window.location.origin) {
+                return url;
+            }
+
+            if (resolvedUrl.searchParams.has('v')) {
+                return resolvedUrl.toString();
+            }
+
+            const pathname = resolvedUrl.pathname || '';
+            const isVersionableResource = (
+                pathname.startsWith('/assets/')
+                || pathname.startsWith('/src/')
+                || pathname.endsWith('.json')
+                || pathname.endsWith('.webp')
+                || pathname.endsWith('.png')
+                || pathname.endsWith('.jpg')
+                || pathname.endsWith('.jpeg')
+                || pathname.endsWith('.svg')
+                || pathname.endsWith('.mp3')
+                || pathname.endsWith('.ogg')
+                || pathname.endsWith('.wav')
+            );
+
+            if (!isVersionableResource) {
+                return url;
+            }
+
+            const buildVersion = this.getBuildVersion();
+            if (!buildVersion) {
+                return resolvedUrl.toString();
+            }
+
+            resolvedUrl.searchParams.set('v', buildVersion);
+            return resolvedUrl.toString();
+        } catch (error) {
+            return url;
+        }
+    }
+
     getImage(url) {
-        return this.cache.get(url);
+        const normalizedUrl = this.getVersionedResourceUrl(url);
+        return this.cache.get(normalizedUrl) || this.cache.get(url);
     }
 
     // Specialized loader for the Complex Character Sprite Sheet
@@ -94,20 +153,21 @@ export default class ResourceManager {
     }
 
     async loadJSON(url) {
-        if (this.cache.has(url)) return this.cache.get(url);
-        if (this.loading.has(url)) return this.loading.get(url);
+        const requestUrl = this.getVersionedResourceUrl(url);
+        if (this.cache.has(requestUrl)) return this.cache.get(requestUrl);
+        if (this.loading.has(requestUrl)) return this.loading.get(requestUrl);
 
-        const promise = fetch(url).then(res => res.json()).then(data => {
-            this.cache.set(url, data);
-            this.loading.delete(url);
+        const promise = fetch(requestUrl, { cache: 'no-store' }).then(res => res.json()).then(data => {
+            this.cache.set(requestUrl, data);
+            this.loading.delete(requestUrl);
             return data;
         }).catch(err => {
-            this.loading.delete(url);
+            this.loading.delete(requestUrl);
             Logger.error(`Failed to load JSON: ${url}`, err);
             throw err;
         });
 
-        this.loading.set(url, promise);
+        this.loading.set(requestUrl, promise);
         return promise;
     }
 
@@ -189,20 +249,21 @@ export default class ResourceManager {
 
 
     async loadImage(url) {
+        const requestUrl = this.getVersionedResourceUrl(url);
         // 1. Check Cache
-        if (this.cache.has(url)) {
-            return this.cache.get(url);
+        if (this.cache.has(requestUrl)) {
+            return this.cache.get(requestUrl);
         }
 
         // 2. Backward compatibility: If we still need to handle legacy paths, we could do it here
         // But for now, we assume all paths are updated to .webp
 
         // 3. Check In-flight (deduplication)
-        if (this.loading.has(url)) {
-            return this.loading.get(url);
+        if (this.loading.has(requestUrl)) {
+            return this.loading.get(requestUrl);
         }
 
-        return this._doLoad(url);
+        return this._doLoad(requestUrl);
     }
 
     _doLoad(url) {
