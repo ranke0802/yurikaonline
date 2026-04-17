@@ -87,6 +87,7 @@ export default class FriendsUIController {
         const chatMessages = document.getElementById('friend-chat-messages');
         const chatGiftToggleBtn = document.getElementById('friend-chat-gift-toggle-btn');
         const chatOpacitySlider = document.getElementById('friend-chat-opacity-slider');
+        const giftPicker = document.getElementById('friend-gift-item-picker');
         const giftItemAmountInput = document.getElementById('friend-gift-item-amount');
         const giftOpenPickerBtn = document.getElementById('friend-gift-open-picker-btn');
         const giftPickerModal = document.getElementById('friend-gift-picker-modal');
@@ -350,6 +351,7 @@ export default class FriendsUIController {
                 this.toggleFriendGiftItemPicker(false);
             }
         });
+        giftPicker?.addEventListener('scroll', () => this.positionFriendGiftItemTooltip());
         giftItemAmountInput?.addEventListener('input', () => this.refreshFriendGiftOptions());
 
         giftSendBtn?.addEventListener('click', async () => {
@@ -882,6 +884,7 @@ export default class FriendsUIController {
             if (document.getElementById('friend-chat-modal')?.classList.contains('hidden')) return;
             this.applyFriendChatWindowState();
             this.renderFriendChatMessages();
+            this.positionFriendGiftItemTooltip();
         });
     }
 
@@ -1684,7 +1687,8 @@ export default class FriendsUIController {
 
         const itemAmountInput = document.getElementById('friend-gift-item-amount');
         const maxAmount = this.getFriendGiftMaxAmount(selectedItem);
-        const requestedAmount = Math.max(1, Math.floor(Number(options.amount ?? itemAmountInput?.value || 1)));
+        const rawAmount = options.amount ?? itemAmountInput?.value ?? 1;
+        const requestedAmount = Math.max(1, Math.floor(Number(rawAmount)));
         const amount = Math.max(1, Math.min(requestedAmount, maxAmount));
         if (itemAmountInput) {
             itemAmountInput.value = String(amount);
@@ -2131,6 +2135,41 @@ export default class FriendsUIController {
         const margin = 12;
         const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
         const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        const pickerSheet = anchorEl.closest('.friend-gift-picker-sheet');
+
+        if (pickerSheet) {
+            const sheetRect = pickerSheet.getBoundingClientRect();
+            const canPlaceRight = (sheetRect.right + gap + cardRect.width) <= (viewportWidth - margin);
+            const canPlaceLeft = (sheetRect.left - gap - cardRect.width) >= margin;
+            let left = sheetRect.right + gap;
+            let top = Math.max(
+                margin,
+                Math.min(anchorRect.top, viewportHeight - cardRect.height - margin)
+            );
+
+            if (canPlaceRight) {
+                left = sheetRect.right + gap;
+            } else if (canPlaceLeft) {
+                left = sheetRect.left - cardRect.width - gap;
+            } else {
+                left = Math.max(margin, Math.min(sheetRect.left, viewportWidth - cardRect.width - margin));
+                const belowTop = sheetRect.bottom + gap;
+                const aboveTop = sheetRect.top - cardRect.height - gap;
+                if ((belowTop + cardRect.height) <= (viewportHeight - margin)) {
+                    top = belowTop;
+                } else if (aboveTop >= margin) {
+                    top = aboveTop;
+                } else {
+                    top = Math.max(
+                        margin,
+                        Math.min(sheetRect.top, viewportHeight - cardRect.height - margin)
+                    );
+                }
+            }
+
+            tooltip.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+            return;
+        }
 
         let left = anchorRect.right + gap;
         if ((left + cardRect.width) > (viewportWidth - margin)) {
