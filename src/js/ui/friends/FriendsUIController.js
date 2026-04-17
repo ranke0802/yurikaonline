@@ -1106,12 +1106,21 @@ export default class FriendsUIController {
         const isGiftOpen = typeof options.isGiftOpen === 'boolean'
             ? options.isGiftOpen
             : this.isFriendGiftComposerVisible();
+        const isPickerOpen = typeof options.isPickerOpen === 'boolean'
+            ? options.isPickerOpen
+            : this.isFriendGiftPickerOpen();
+        const isQuantityOpen = typeof options.isQuantityOpen === 'boolean'
+            ? options.isQuantityOpen
+            : this.isFriendGiftQuantityModalOpen();
+        const isModalOpen = !!isGiftOpen && (isPickerOpen || isQuantityOpen);
 
         const presets = {
             desktop: {
                 width: 344,
                 height: 404,
                 giftHeight: 474,
+                modalWidth: 392,
+                modalHeight: 544,
                 minScale: 0.6,
                 maxScale: 1.4,
                 maxWidthRatio: 0.34,
@@ -1121,6 +1130,8 @@ export default class FriendsUIController {
                 width: 288,
                 height: 304,
                 giftHeight: 388,
+                modalWidth: 332,
+                modalHeight: 500,
                 minScale: 0.7,
                 maxScale: 1.2,
                 maxWidthRatio: 0.84,
@@ -1130,6 +1141,8 @@ export default class FriendsUIController {
                 width: 276,
                 height: 248,
                 giftHeight: 332,
+                modalWidth: 344,
+                modalHeight: 420,
                 minScale: 0.72,
                 maxScale: 1.12,
                 maxWidthRatio: 0.42,
@@ -1141,12 +1154,18 @@ export default class FriendsUIController {
         return {
             id: mode,
             mode,
-            width: preset.width,
-            height: isGiftOpen ? preset.giftHeight : preset.height,
+            width: isModalOpen ? preset.modalWidth : preset.width,
+            height: isModalOpen
+                ? preset.modalHeight
+                : (isGiftOpen ? preset.giftHeight : preset.height),
             minScale: preset.minScale,
             maxScale: preset.maxScale,
-            maxWidthRatio: isGiftOpen ? Math.min(0.5, preset.maxWidthRatio + 0.04) : preset.maxWidthRatio,
-            maxHeightRatio: isGiftOpen ? Math.min(0.7, preset.maxHeightRatio + 0.1) : preset.maxHeightRatio
+            maxWidthRatio: isModalOpen
+                ? Math.min(0.92, preset.maxWidthRatio + 0.08)
+                : (isGiftOpen ? Math.min(0.5, preset.maxWidthRatio + 0.04) : preset.maxWidthRatio),
+            maxHeightRatio: isModalOpen
+                ? Math.min(0.84, preset.maxHeightRatio + 0.18)
+                : (isGiftOpen ? Math.min(0.7, preset.maxHeightRatio + 0.1) : preset.maxHeightRatio)
         };
     }
 
@@ -1881,14 +1900,21 @@ export default class FriendsUIController {
         const card = document.getElementById('friend-chat-card');
         const body = document.getElementById('friend-chat-body');
         const composer = document.getElementById('friend-gift-composer');
+        const pickerModal = document.getElementById('friend-gift-picker-modal');
         const isVisible = !!composer && !composer.classList.contains('hidden');
+        const isPickerOpen = !!pickerModal && !pickerModal.classList.contains('hidden');
         const quantityModal = document.getElementById('friend-gift-quantity-modal');
         const isQuantityOpen = !!quantityModal && !quantityModal.classList.contains('hidden');
 
         card?.classList.toggle('is-gift-open', isVisible);
+        card?.classList.toggle('is-gift-picker-open', isVisible && isPickerOpen);
+        card?.classList.toggle('is-gift-quantity-open', isVisible && isQuantityOpen);
         body?.classList.toggle('is-gift-open', isVisible);
+        body?.classList.toggle('is-gift-picker-open', isVisible && isPickerOpen);
+        body?.classList.toggle('is-gift-quantity-open', isVisible && isQuantityOpen);
         composer?.classList.toggle('is-item-mode', isVisible);
         composer?.classList.remove('is-manastone-mode');
+        composer?.classList.toggle('is-picker-open', isPickerOpen);
         composer?.classList.toggle('is-quantity-open', isQuantityOpen);
     }
 
@@ -1910,6 +1936,16 @@ export default class FriendsUIController {
 
     shouldConfirmFriendGiftImmediately(item = null) {
         return this.getFriendGiftMaxAmount(item) <= 1;
+    }
+
+    isFriendGiftPickerOpen() {
+        const modal = document.getElementById('friend-gift-picker-modal');
+        return !!modal && !modal.classList.contains('hidden');
+    }
+
+    isFriendGiftQuantityModalOpen() {
+        const modal = document.getElementById('friend-gift-quantity-modal');
+        return !!modal && !modal.classList.contains('hidden');
     }
 
     getFriendGiftTargetName(uid = this.friendChatUid || this.selectedFriendUid) {
@@ -1953,6 +1989,7 @@ export default class FriendsUIController {
                 input.value = '';
             }
             this.syncFriendGiftComposerLayoutState();
+            this.applyFriendChatWindowState();
             this.restoreFriendChatCompactPosition(preservedPosition);
             return;
         }
@@ -1960,6 +1997,7 @@ export default class FriendsUIController {
         this.hideFriendGiftItemTooltip();
         this.renderFriendGiftQuantityModal();
         this.syncFriendGiftComposerLayoutState();
+        this.applyFriendChatWindowState();
         this.restoreFriendChatCompactPosition(preservedPosition);
     }
 
@@ -2066,6 +2104,7 @@ export default class FriendsUIController {
         actionsEl?.classList.add('hidden');
 
         this.renderFriendGiftPicker(giftableItems);
+        this.renderFriendGiftPickerPreview(giftableItems);
         this.renderFriendGiftSelectionPreview(selection?.item || null, this.shouldConfirmFriendGiftImmediately(selectedItem) ? 1 : null);
         if (!document.getElementById('friend-gift-quantity-modal')?.classList.contains('hidden')) {
             this.renderFriendGiftQuantityModal();
@@ -2249,6 +2288,8 @@ export default class FriendsUIController {
         }
         composer.classList.toggle('is-picker-open', nextVisible);
         modal.classList.toggle('hidden', !nextVisible);
+        this.syncFriendGiftComposerLayoutState();
+        this.applyFriendChatWindowState();
         if (!nextVisible) {
             this.hideFriendGiftItemTooltip();
             this.clearFriendGiftTouchSelectionState();
@@ -2256,6 +2297,7 @@ export default class FriendsUIController {
             return;
         }
         this.renderFriendGiftPicker();
+        this.renderFriendGiftPickerPreview();
         window.requestAnimationFrame(() => {
             picker.scrollTop = 0;
         });
@@ -2266,6 +2308,7 @@ export default class FriendsUIController {
         const picker = document.getElementById('friend-gift-item-picker');
         if (!picker) return;
 
+        const previousScrollTop = picker.scrollTop;
         picker.innerHTML = '';
         if (!entries.length) {
             picker.innerHTML = '<div class="friend-gift-picker-empty">보낼 수 있는 아이템이 없습니다.</div>';
@@ -2331,10 +2374,50 @@ export default class FriendsUIController {
             });
             picker.appendChild(button);
         });
+
+        picker.scrollTop = previousScrollTop;
     }
 
     positionFriendGiftItemPicker() {
         return;
+    }
+
+    renderFriendGiftPickerPreview(entries = this.getGiftableFriendInventoryItems()) {
+        const previewEl = document.getElementById('friend-gift-picker-preview');
+        if (!previewEl) return;
+
+        previewEl.innerHTML = '';
+        previewEl.classList.remove('is-empty');
+
+        const previewSelection = this.resolveFriendGiftPreviewSelection(entries);
+        const selectedSelection = this.resolveFriendGiftSelectionFromState(this.friendGiftSelection, entries);
+        const previewItem = previewSelection?.item || null;
+        const selectedItem = selectedSelection?.item || null;
+        const activeItem = previewItem || selectedItem || null;
+
+        if (!activeItem) {
+            previewEl.classList.add('is-empty');
+            previewEl.innerHTML = '<p class="friend-gift-picker-help">아이템을 한 번 누르면 상세 설명이 보이고, 같은 아이템을 한 번 더 누르면 선택됩니다.</p>';
+            return;
+        }
+
+        const tooltipData = this.buildFriendGiftItemTooltipData(activeItem);
+        const detailCard = tooltipData
+            ? this.createFriendGiftDetailCardElement(tooltipData, {
+                className: 'friend-gift-inline-detail-card friend-gift-picker-preview-detail-card'
+            })
+            : null;
+
+        if (detailCard) {
+            previewEl.appendChild(detailCard);
+        }
+
+        const hint = document.createElement('p');
+        hint.className = 'friend-gift-picker-help';
+        hint.textContent = previewItem
+            ? '같은 아이템을 한 번 더 누르면 선택됩니다.'
+            : '선택된 아이템입니다. 다른 아이템을 누르면 상세 설명부터 다시 확인합니다.';
+        previewEl.appendChild(hint);
     }
 
     renderFriendGiftSelectionPreview(item = null, amount = null) {
@@ -2342,6 +2425,7 @@ export default class FriendsUIController {
         if (!listEl) return;
 
         listEl.innerHTML = '';
+        const isPickerOpen = !document.getElementById('friend-gift-picker-modal')?.classList.contains('hidden');
         const previewSelection = this.resolveFriendGiftPreviewSelection();
         const previewItem = previewSelection?.item || null;
         const previewIdentity = previewSelection?.identity || null;
@@ -2352,7 +2436,7 @@ export default class FriendsUIController {
             return;
         }
 
-        if (previewItem && (!selectedIdentity || selectedIdentity !== previewIdentity)) {
+        if (previewItem && (!selectedIdentity || selectedIdentity !== previewIdentity) && !isPickerOpen) {
             const tooltipData = this.buildFriendGiftItemTooltipData(previewItem);
             const detailWrap = document.createElement('div');
             detailWrap.className = 'friend-gift-inline-detail';
@@ -2370,6 +2454,11 @@ export default class FriendsUIController {
             if (!item) {
                 return;
             }
+        }
+
+        if (!item) {
+            listEl.innerHTML = '<div class="friend-gift-picker-empty">아이템을 선택하면 여기에 등록됩니다.</div>';
+            return;
         }
 
         const preview = document.createElement('button');

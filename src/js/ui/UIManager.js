@@ -7855,10 +7855,10 @@ export class UIManager {
                 if (!segment.width || !segment.height) return;
                 const dim = document.createElement('div');
                 dim.className = 'tutorial-highlight-dim';
-                dim.style.left = `${Math.max(0, segment.left - 1)}px`;
-                dim.style.top = `${Math.max(0, segment.top - 1)}px`;
-                dim.style.width = `${Math.min(viewportW, segment.left + segment.width + 1) - Math.max(0, segment.left - 1)}px`;
-                dim.style.height = `${Math.min(viewportH, segment.top + segment.height + 1) - Math.max(0, segment.top - 1)}px`;
+                dim.style.left = `${segment.left}px`;
+                dim.style.top = `${segment.top}px`;
+                dim.style.width = `${segment.width}px`;
+                dim.style.height = `${segment.height}px`;
                 layer.appendChild(dim);
             });
         }

@@ -13017,6 +13017,12 @@ body.low-power-pwa #ui-layer #minimap-container {
     --friend-chat-compact-height: 520px;
 }
 
+.friends-chat-card.is-compact.is-gift-picker-open:not(.is-minimized),
+.friends-chat-card.is-compact.is-gift-quantity-open:not(.is-minimized) {
+    --friend-chat-compact-width: 408px;
+    --friend-chat-compact-height: 556px;
+}
+
 .friends-chat-card.is-minimized {
     width: min(232px, calc(100vw - 24px));
     height: auto;
@@ -13441,6 +13447,7 @@ body.low-power-pwa #ui-layer #minimap-container {
     border-radius: 8px;
     background: rgba(249, 252, 254, 0.94);
     box-shadow: 0 18px 36px rgba(13, 21, 32, 0.18);
+    overflow: hidden;
 }
 
 .friend-gift-picker-sheet-header {
@@ -13547,6 +13554,21 @@ body.low-power-pwa #ui-layer #minimap-container {
     min-width: 0;
 }
 
+.friend-gift-picker-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    min-height: 0;
+}
+
+.friend-gift-picker-preview.is-empty {
+    padding: 10px 12px;
+    border: 1px solid rgba(22, 41, 61, 0.08);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.58);
+}
+
 .friend-gift-item-picker {
     max-height: min(34dvh, 280px);
     padding: 8px;
@@ -13634,11 +13656,30 @@ body.low-power-pwa #ui-layer #minimap-container {
     max-height: min(22dvh, 180px);
 }
 
+.friend-gift-picker-preview-detail-card {
+    padding: 12px 14px;
+}
+
+.friend-gift-picker-preview-detail-card .inventory-detail-stats {
+    max-height: min(20dvh, 144px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
 .friend-gift-inline-hint {
     margin: 0;
     color: #647182;
     font-size: 12px;
     line-height: 1.5;
+}
+
+.friend-gift-picker-help {
+    margin: 0;
+    color: #647182;
+    font-size: 12px;
+    line-height: 1.5;
+    word-break: keep-all;
 }
 
 .friend-gift-picker-item.is-selected {
@@ -13717,6 +13758,7 @@ body.low-power-pwa #ui-layer #minimap-container {
 .friends-chat-card.is-compact .friend-gift-balance,
 .friends-chat-card.is-compact .friend-gift-panel label,
 .friends-chat-card.is-compact .friend-gift-picker-empty,
+.friends-chat-card.is-compact .friend-gift-picker-help,
 .friends-chat-card.is-compact .friend-gift-quantity-control,
 .friends-chat-card.is-compact .friend-gift-quantity-confirm-text,
 .friends-chat-card.is-compact .friend-gift-state-row .friends-secondary-action,
@@ -13725,6 +13767,21 @@ body.low-power-pwa #ui-layer #minimap-container {
 .friends-chat-card.is-compact .friend-gift-quantity-actions .friends-primary-action {
     font-size: 10px;
     line-height: 1.35;
+}
+
+.friends-chat-card.is-compact.is-gift-picker-open:not(.is-minimized) .friends-chat-messages,
+.friends-chat-card.is-compact.is-gift-quantity-open:not(.is-minimized) .friends-chat-messages {
+    flex: 0 0 56px;
+    min-height: 56px;
+    max-height: 72px;
+    overflow: auto;
+}
+
+.friends-chat-card.is-compact.is-gift-picker-open:not(.is-minimized) .friend-gift-picker-preview {
+    max-height: min(30dvh, 196px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 .friend-gift-item-tooltip {
@@ -14030,6 +14087,12 @@ body.low-power-pwa #ui-layer #minimap-container {
         --friend-chat-compact-height: 540px;
     }
 
+    .friends-chat-card.is-compact.is-gift-picker-open:not(.is-minimized),
+    .friends-chat-card.is-compact.is-gift-quantity-open:not(.is-minimized) {
+        --friend-chat-compact-width: 344px;
+        --friend-chat-compact-height: 560px;
+    }
+
     .friends-chat-card.is-minimized {
         width: min(192px, calc(100vw - 16px));
         padding: 5px 7px;
@@ -14152,6 +14215,10 @@ body.low-power-pwa #ui-layer #minimap-container {
         padding: 10px;
     }
 
+    .friend-gift-picker-preview-detail-card .inventory-detail-stats {
+        max-height: min(18dvh, 120px);
+    }
+
     .friend-gift-quantity-modal {
         padding: 8px;
     }
@@ -14207,6 +14274,12 @@ body.low-power-pwa #ui-layer #minimap-container {
     .friends-chat-card.is-compact.is-gift-open:not(.is-minimized) {
         --friend-chat-compact-width: 320px;
         --friend-chat-compact-height: 384px;
+    }
+
+    .friends-chat-card.is-compact.is-gift-picker-open:not(.is-minimized),
+    .friends-chat-card.is-compact.is-gift-quantity-open:not(.is-minimized) {
+        --friend-chat-compact-width: 344px;
+        --friend-chat-compact-height: 428px;
     }
 
     .friends-chat-card.is-compact:not(.is-minimized) .friends-chat-header {
@@ -14312,6 +14385,25 @@ body.low-power-pwa #ui-layer #minimap-container {
         max-height: none;
         padding: 8px;
         gap: 8px;
+    }
+
+    .friends-chat-card.is-compact.is-gift-picker-open:not(.is-minimized) .friends-chat-messages,
+    .friends-chat-card.is-compact.is-gift-quantity-open:not(.is-minimized) .friends-chat-messages {
+        flex: 0 0 52px;
+        min-height: 52px;
+        max-height: 64px;
+        overflow: auto;
+    }
+
+    .friends-chat-card.is-compact.is-gift-picker-open:not(.is-minimized) .friend-gift-picker-preview {
+        max-height: min(24dvh, 156px);
+        overflow: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-picker-preview-detail-card .inventory-detail-stats {
+        max-height: min(18dvh, 108px);
     }
 
     .friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-quantity-modal {
