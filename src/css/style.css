@@ -14496,6 +14496,84 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 }
 
+.friend-gift-picker-modal.is-external-modal,
+.friend-gift-quantity-modal.is-external-modal {
+    position: fixed;
+    inset: 0;
+    padding: 16px;
+    background: rgba(7, 13, 22, 0.38);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.friend-gift-picker-modal.is-external-modal {
+    z-index: 2460;
+}
+
+.friend-gift-quantity-modal.is-external-modal {
+    z-index: 2470;
+}
+
+.friend-gift-picker-modal.is-external-modal .friend-gift-picker-sheet {
+    width: min(520px, calc(100vw - 32px));
+    max-height: min(78dvh, 680px);
+    height: auto;
+}
+
+.friend-gift-picker-modal.is-external-modal #friend-gift-item-picker {
+    max-height: min(48dvh, 360px);
+}
+
+.friend-gift-quantity-modal.is-external-modal .friend-gift-quantity-sheet {
+    width: min(360px, calc(100vw - 32px));
+    max-height: min(72dvh, 520px);
+    height: auto;
+}
+
+.friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-picker-modal.is-external-modal,
+.friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-quantity-modal.is-external-modal {
+    padding: 16px;
+}
+
+.friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-picker-modal.is-external-modal .friend-gift-picker-sheet {
+    width: min(520px, calc(100vw - 32px));
+    height: auto;
+    max-height: min(78dvh, 680px);
+    padding: 12px;
+    gap: 10px;
+}
+
+.friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-picker-modal.is-external-modal #friend-gift-item-picker {
+    max-height: min(48dvh, 360px);
+}
+
+.friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-quantity-modal.is-external-modal .friend-gift-quantity-sheet {
+    width: min(360px, calc(100vw - 32px));
+    max-height: min(72dvh, 520px);
+    height: auto;
+    padding: 14px;
+    gap: 12px;
+}
+
+@media (max-width: 640px) {
+    .friend-gift-picker-modal.is-external-modal,
+    .friend-gift-quantity-modal.is-external-modal {
+        padding: 10px;
+    }
+
+    .friend-gift-picker-modal.is-external-modal .friend-gift-picker-sheet,
+    .friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-picker-modal.is-external-modal .friend-gift-picker-sheet {
+        width: min(100%, 460px);
+        max-height: min(82dvh, 640px);
+    }
+
+    .friend-gift-quantity-modal.is-external-modal .friend-gift-quantity-sheet,
+    .friends-chat-card.is-compact.is-gift-open:not(.is-minimized) .friend-gift-quantity-modal.is-external-modal .friend-gift-quantity-sheet {
+        width: min(100%, 340px);
+        max-height: min(74dvh, 520px);
+    }
+}
+
 @media screen and (min-width: 1025px) {
     .friends-back-btn {
         display: none;

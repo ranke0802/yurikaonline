@@ -365,9 +365,19 @@ export default class FriendsUIController {
 
         document.getElementById('friend-gift-cancel-btn')?.addEventListener('click', () => this.setFriendGiftComposerVisible(false));
         giftOpenPickerBtn?.addEventListener('click', () => this.toggleFriendGiftItemPicker(true));
-        giftPickerCloseBtn?.addEventListener('click', () => this.toggleFriendGiftItemPicker(false));
+        giftPickerCloseBtn?.addEventListener('click', () => {
+            if (this.isFriendChatCompactMode()) {
+                this.setFriendGiftComposerVisible(false);
+                return;
+            }
+            this.toggleFriendGiftItemPicker(false);
+        });
         giftPickerModal?.addEventListener('click', (event) => {
             if (event.target === giftPickerModal) {
+                if (this.isFriendChatCompactMode()) {
+                    this.setFriendGiftComposerVisible(false);
+                    return;
+                }
                 this.toggleFriendGiftItemPicker(false);
             }
         });
@@ -1880,6 +1890,7 @@ export default class FriendsUIController {
             }
         } else {
             this.clearFriendGiftTouchSelectionState();
+            this.friendGiftSelection = null;
             this.friendGiftQuantitySelection = null;
             this.toggleFriendGiftQuantityModal(false, { clearSelection: false });
             this.toggleFriendGiftItemPicker(false);
@@ -1911,17 +1922,29 @@ export default class FriendsUIController {
         const isPickerOpen = !!pickerModal && !pickerModal.classList.contains('hidden');
         const quantityModal = document.getElementById('friend-gift-quantity-modal');
         const isQuantityOpen = !!quantityModal && !quantityModal.classList.contains('hidden');
+        const isMinimized = this.isFriendChatMinimized();
+        const useExternalPickerModal = isVisible
+            && isPickerOpen
+            && this.isFriendChatCompactMode()
+            && !isMinimized;
+        const useExternalQuantityModal = isVisible
+            && isQuantityOpen
+            && !isMinimized;
+        const isInlinePickerOpen = isVisible && isPickerOpen && !useExternalPickerModal;
+        const isInlineQuantityOpen = isVisible && isQuantityOpen && !useExternalQuantityModal;
 
         card?.classList.toggle('is-gift-open', isVisible);
-        card?.classList.toggle('is-gift-picker-open', isVisible && isPickerOpen);
-        card?.classList.toggle('is-gift-quantity-open', isVisible && isQuantityOpen);
+        card?.classList.toggle('is-gift-picker-open', isInlinePickerOpen);
+        card?.classList.toggle('is-gift-quantity-open', isInlineQuantityOpen);
         body?.classList.toggle('is-gift-open', isVisible);
-        body?.classList.toggle('is-gift-picker-open', isVisible && isPickerOpen);
-        body?.classList.toggle('is-gift-quantity-open', isVisible && isQuantityOpen);
+        body?.classList.toggle('is-gift-picker-open', isInlinePickerOpen);
+        body?.classList.toggle('is-gift-quantity-open', isInlineQuantityOpen);
         composer?.classList.toggle('is-item-mode', isVisible);
         composer?.classList.remove('is-manastone-mode');
-        composer?.classList.toggle('is-picker-open', isPickerOpen);
-        composer?.classList.toggle('is-quantity-open', isQuantityOpen);
+        composer?.classList.toggle('is-picker-open', isInlinePickerOpen);
+        composer?.classList.toggle('is-quantity-open', isInlineQuantityOpen);
+        pickerModal?.classList.toggle('is-external-modal', useExternalPickerModal);
+        quantityModal?.classList.toggle('is-external-modal', useExternalQuantityModal);
     }
 
     setFriendGiftKind(kind = 'item') {
