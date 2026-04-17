@@ -12716,6 +12716,34 @@ body.low-power-pwa #ui-layer #minimap-container {
     min-height: min(42dvh, 320px);
 }
 
+.friend-gift-composer.is-external-modal-open {
+    position: absolute;
+    inset: 0;
+    width: 0;
+    height: 0;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+    pointer-events: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.friend-gift-composer.is-external-modal-open .friend-gift-toolbar,
+.friend-gift-composer.is-external-modal-open .friend-gift-panel,
+.friend-gift-composer.is-external-modal-open .friend-gift-actions {
+    display: none !important;
+}
+
+.friend-gift-composer.is-external-modal-open .friend-gift-picker-modal.is-external-modal,
+.friend-gift-composer.is-external-modal-open .friend-gift-quantity-modal.is-external-modal {
+    pointer-events: auto;
+}
+
 .friend-gift-toolbar {
     display: flex;
     align-items: center;
@@ -14518,9 +14546,9 @@ body.low-power-pwa #ui-layer #minimap-container {
     position: fixed;
     inset: 0;
     padding: 16px;
-    background: rgba(7, 13, 22, 0.38);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(7, 13, 22, 0.16);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .friend-gift-picker-modal.is-external-modal {

@@ -102,6 +102,7 @@ export default class FriendsUIController {
         const chatProfileChatBtn = document.getElementById('friend-chat-profile-chat-btn');
         const chatProfileGiftBtn = document.getElementById('friend-chat-profile-gift-btn');
         const chatProfileRemoveBtn = document.getElementById('friend-chat-profile-remove-btn');
+        document.getElementById('friend-gift-item-amount-row')?.remove();
 
         const openSearchModal = () => this.toggleFriendSearchModal(true);
         const closeSearchModal = () => this.toggleFriendSearchModal(false);
@@ -1930,19 +1931,28 @@ export default class FriendsUIController {
         const useExternalQuantityModal = isVisible
             && isQuantityOpen
             && !isMinimized;
+        const isExternalPickerOpen = isVisible && isPickerOpen && useExternalPickerModal;
+        const isExternalQuantityOpen = isVisible && isQuantityOpen && useExternalQuantityModal;
+        const isExternalGiftModalOpen = isExternalPickerOpen || isExternalQuantityOpen;
         const isInlinePickerOpen = isVisible && isPickerOpen && !useExternalPickerModal;
         const isInlineQuantityOpen = isVisible && isQuantityOpen && !useExternalQuantityModal;
+        const isInlineGiftOpen = isVisible && !isExternalGiftModalOpen;
 
-        card?.classList.toggle('is-gift-open', isVisible);
+        card?.classList.toggle('is-gift-open', isInlineGiftOpen);
         card?.classList.toggle('is-gift-picker-open', isInlinePickerOpen);
         card?.classList.toggle('is-gift-quantity-open', isInlineQuantityOpen);
-        body?.classList.toggle('is-gift-open', isVisible);
+        card?.classList.toggle('is-external-gift-modal-open', isExternalGiftModalOpen);
+        card?.classList.toggle('is-external-gift-picker-open', isExternalPickerOpen);
+        card?.classList.toggle('is-external-gift-quantity-open', isExternalQuantityOpen);
+        body?.classList.toggle('is-gift-open', isInlineGiftOpen);
         body?.classList.toggle('is-gift-picker-open', isInlinePickerOpen);
         body?.classList.toggle('is-gift-quantity-open', isInlineQuantityOpen);
+        body?.classList.toggle('is-external-gift-modal-open', isExternalGiftModalOpen);
         composer?.classList.toggle('is-item-mode', isVisible);
         composer?.classList.remove('is-manastone-mode');
         composer?.classList.toggle('is-picker-open', isInlinePickerOpen);
         composer?.classList.toggle('is-quantity-open', isInlineQuantityOpen);
+        composer?.classList.toggle('is-external-modal-open', isExternalGiftModalOpen);
         pickerModal?.classList.toggle('is-external-modal', useExternalPickerModal);
         quantityModal?.classList.toggle('is-external-modal', useExternalQuantityModal);
     }
