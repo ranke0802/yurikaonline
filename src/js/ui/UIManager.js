@@ -12,6 +12,7 @@ export class UIManager {
         this.pendingLandscapeFullscreen = false;
         this.landscapeFullscreenDismissed = false;
         this._wasFullscreenActive = false;
+        this.mobileOrientationPreference = this.isMobileLandscapeViewport() ? 'landscape' : 'portrait';
         this.pcQuestClaimHandler = null;
         this.hudRefs = {};
         this.cooldownRefs = {};
@@ -96,6 +97,7 @@ export class UIManager {
         this.devLockoutMs = 5 * 60 * 1000;
         this.settings = this.loadSettings();
         this.devAccessState = this.loadDevAccessState();
+        this.ensureFullscreenControlButtons();
         this.uiLayoutControlDefinitions = {
             'dev-overlay-panel': { label: '개발 오버레이', selector: '#dev-overlay', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 2.4, scaleMode: 'transform', zIndex: 2305, margin: 8, requiresVisibleElement: true },
             'hud-top-bar': { label: '프로필/HP 패널', selector: '.top-bar', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform' },
@@ -266,8 +268,9 @@ export class UIManager {
             friendCompactOpacity: 82,
             questOpacity: 100,
             minimapOpacity: 100,
-            actionOpacity: 100,
-            menuOpacity: 100
+            actionOpacity: 82,
+            menuOpacity: 88,
+            mobileUiOpacityPresetVersion: 2
         };
     }
 
@@ -321,7 +324,7 @@ export class UIManager {
 
     sanitizeSettings(candidate = {}) {
         const defaults = this.getDefaultSettings();
-        return {
+        const normalized = {
             masterVolume: this.clampNumericSetting(candidate.masterVolume, defaults.masterVolume, 0, 100),
             basicAttackSound: this.sanitizeBasicAttackSound(candidate.basicAttackSound, defaults.basicAttackSound),
             muted: !!candidate.muted,
@@ -335,20 +338,63 @@ export class UIManager {
             questOpacity: this.clampNumericSetting(candidate.questOpacity, defaults.questOpacity, 35, 100),
             minimapOpacity: this.clampNumericSetting(candidate.minimapOpacity, defaults.minimapOpacity, 35, 100),
             actionOpacity: this.clampNumericSetting(candidate.actionOpacity, defaults.actionOpacity, 35, 100),
-            menuOpacity: this.clampNumericSetting(candidate.menuOpacity, defaults.menuOpacity, 35, 100)
+            menuOpacity: this.clampNumericSetting(candidate.menuOpacity, defaults.menuOpacity, 35, 100),
+            mobileUiOpacityPresetVersion: Math.max(0, Math.floor(Number(candidate.mobileUiOpacityPresetVersion) || 0))
         };
+
+        return this.applyLegacyMobileOpacityDefaults(normalized, candidate);
     }
 
     loadSettings() {
-        const defaults = this.getDefaultSettings();
         try {
             const raw = localStorage.getItem(this.settingsStorageKey);
-            if (!raw) return defaults;
-            return this.sanitizeSettings(JSON.parse(raw));
+            if (!raw) return this.getDefaultSettings();
+            const nextSettings = this.sanitizeSettings(JSON.parse(raw));
+            const normalizedRaw = this.serializeSettings(nextSettings);
+            if (normalizedRaw && normalizedRaw !== raw) {
+                localStorage.setItem(this.settingsStorageKey, normalizedRaw);
+            }
+            return nextSettings;
         } catch (error) {
             Logger.warn('[UIManager] Failed to load settings', error);
-            return defaults;
+            return this.getDefaultSettings();
         }
+    }
+
+    applyLegacyMobileOpacityDefaults(nextSettings = {}, candidate = {}) {
+        const defaults = this.getDefaultSettings();
+        const presetVersion = Number(candidate.mobileUiOpacityPresetVersion) || 0;
+        const hasActionOpacity = Object.prototype.hasOwnProperty.call(candidate, 'actionOpacity');
+        const hasMenuOpacity = Object.prototype.hasOwnProperty.call(candidate, 'menuOpacity');
+        const actionOpacity = Number(candidate.actionOpacity);
+        const menuOpacity = Number(candidate.menuOpacity);
+        const shouldAdoptNewDefaults = presetVersion < defaults.mobileUiOpacityPresetVersion
+            && ((!hasActionOpacity && !hasMenuOpacity) || (actionOpacity === 100 && menuOpacity === 100));
+
+        return {
+            ...nextSettings,
+            actionOpacity: shouldAdoptNewDefaults ? defaults.actionOpacity : nextSettings.actionOpacity,
+            menuOpacity: shouldAdoptNewDefaults ? defaults.menuOpacity : nextSettings.menuOpacity,
+            mobileUiOpacityPresetVersion: defaults.mobileUiOpacityPresetVersion
+        };
+    }
+
+    ensureFullscreenControlButtons() {
+        const fullscreenButton = document.getElementById('btn-fullscreen');
+        if (!fullscreenButton || document.getElementById('btn-fullscreen-exit')) return;
+
+        const exitButton = document.createElement('div');
+        exitButton.id = 'btn-fullscreen-exit';
+        exitButton.className = 'menu-btn fullscreen-exit-toggle hidden';
+        exitButton.title = '나가기';
+        exitButton.setAttribute('aria-label', '나가기');
+
+        const icon = document.createElement('div');
+        icon.className = 'menu-icon';
+        icon.textContent = 'X';
+        exitButton.appendChild(icon);
+
+        fullscreenButton.insertAdjacentElement('afterend', exitButton);
     }
 
     persistSettings(options = {}) {
@@ -2546,6 +2592,7 @@ export class UIManager {
             '#minimap-container',
             '.minimap-menu',
             '#btn-fullscreen',
+            '#btn-fullscreen-exit',
             '#btn-emote-shortcut',
             '#party-panel:not(.hidden)',
             '#hostility-panel:not(.hidden)',
@@ -2944,6 +2991,7 @@ export class UIManager {
             this.getVisibleElementRect('.minimap-menu'),
             this.getVisibleElementRect('#minimap-container'),
             this.getVisibleElementRect('#btn-fullscreen'),
+            this.getVisibleElementRect('#btn-fullscreen-exit'),
             this.getVisibleElementRect('#btn-emote-shortcut'),
             this.getVisibleElementRect('#party-panel:not(.hidden)'),
             this.getVisibleElementRect('#hostility-panel:not(.hidden)')
@@ -3646,17 +3694,19 @@ export class UIManager {
             if (isFull || isStandalone) {
                 this.scheduleOrientationLockRefresh();
                 this.pendingLandscapeFullscreen = false;
-                this.landscapeFullscreenDismissed = false;
+                this.landscapeFullscreenDismissed = this.mobileOrientationPreference === 'portrait';
             } else if (this._wasFullscreenActive && this.isMobileLandscapeViewport()) {
                 this.pendingLandscapeFullscreen = false;
                 this.landscapeFullscreenDismissed = true;
             }
 
             this._wasFullscreenActive = isFull;
+            this.syncMobileEnvironmentClasses();
         };
         const handleViewportChange = () => {
             window.requestAnimationFrame(() => {
                 this.syncOrientationLock();
+                this.syncMobileEnvironmentClasses();
                 this.updateLandscapeAutoFullscreen();
             });
         };
@@ -3695,15 +3745,84 @@ export class UIManager {
         });
     }
 
+    isTouchDevice() {
+        return !!(window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0);
+    }
+
+    isIosLikeDevice() {
+        const userAgent = navigator.userAgent || '';
+        const platform = navigator.platform || '';
+        return /iPad|iPhone|iPod/i.test(userAgent)
+            || (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+
+    isMobilePortraitViewport() {
+        const isNarrow = window.innerWidth <= 1024;
+        const isPortrait = window.matchMedia?.('(orientation: portrait)')?.matches ?? (window.innerHeight >= window.innerWidth);
+        return this.isTouchDevice() && isNarrow && isPortrait;
+    }
+
+    isImmersiveMobileActive() {
+        return this.isTouchDevice() && (this.isStandaloneDisplayMode() || this.isFullscreenActive());
+    }
+
+    syncMobileEnvironmentClasses() {
+        const body = document.body;
+        if (!body) return;
+
+        body.classList.toggle('is-ios-device', this.isIosLikeDevice());
+        body.classList.toggle('is-mobile-landscape', this.isMobileLandscapeViewport());
+        body.classList.toggle('is-mobile-portrait', this.isMobilePortraitViewport());
+        body.classList.toggle('is-mobile-immersive', this.isImmersiveMobileActive());
+
+        const fullscreenButton = document.getElementById('btn-fullscreen');
+        const exitButton = document.getElementById('btn-fullscreen-exit');
+        const immersiveMobile = this.isImmersiveMobileActive();
+        const fullscreenTitle = immersiveMobile
+            ? (this.mobileOrientationPreference === 'portrait' ? '가로모드' : '세로모드')
+            : '전체화면';
+
+        if (fullscreenButton) {
+            fullscreenButton.classList.toggle('is-orientation-toggle', immersiveMobile);
+            fullscreenButton.title = fullscreenTitle;
+            fullscreenButton.setAttribute('aria-label', fullscreenTitle);
+        }
+
+        if (exitButton) {
+            exitButton.classList.toggle('hidden', !immersiveMobile);
+            exitButton.setAttribute('aria-hidden', immersiveMobile ? 'false' : 'true');
+        }
+    }
+
+    setMobileOrientationPreference(preference = 'landscape') {
+        this.mobileOrientationPreference = preference === 'portrait' ? 'portrait' : 'landscape';
+        this.landscapeFullscreenDismissed = this.mobileOrientationPreference === 'portrait';
+        this.scheduleOrientationLockRefresh();
+        this.syncMobileEnvironmentClasses();
+    }
+
+    toggleMobileOrientationPreference() {
+        const nextPreference = this.mobileOrientationPreference === 'portrait' ? 'landscape' : 'portrait';
+        this.setMobileOrientationPreference(nextPreference);
+    }
+
     syncOrientationLock() {
         if (screen.orientation && screen.orientation.lock) {
-            const isTouch = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
-            const shouldPreferLandscape = isTouch && (this.isStandaloneDisplayMode() || this.isFullscreenActive());
-            const preferredMode = shouldPreferLandscape ? 'landscape-primary' : 'any';
+            const shouldLock = this.isImmersiveMobileActive();
+            if (!shouldLock) {
+                screen.orientation.lock('any').catch(() => {
+                    screen.orientation.unlock?.();
+                });
+                return;
+            }
+
+            const preferPortrait = this.mobileOrientationPreference === 'portrait';
+            const preferredMode = preferPortrait ? 'portrait-primary' : 'landscape-primary';
+            const fallbackMode = preferPortrait ? 'portrait' : 'landscape';
             screen.orientation.lock(preferredMode).catch(() => {
-                if (shouldPreferLandscape) {
-                    screen.orientation.lock('landscape').catch(() => { });
-                }
+                screen.orientation.lock(fallbackMode).catch(() => {
+                    screen.orientation.unlock?.();
+                });
             });
         }
     }
@@ -3723,7 +3842,7 @@ export class UIManager {
     }
 
     isMobileLandscapeViewport() {
-        const isTouch = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
+        const isTouch = this.isTouchDevice();
         const isNarrow = window.innerWidth <= 1024;
         const isLandscape = window.matchMedia?.('(orientation: landscape)')?.matches ?? (window.innerWidth > window.innerHeight);
         return isTouch && isNarrow && isLandscape;
@@ -4095,6 +4214,10 @@ export class UIManager {
     }
 
     enterFullscreen() {
+        if (this.isTouchDevice()) {
+            this.mobileOrientationPreference = 'landscape';
+            this.landscapeFullscreenDismissed = false;
+        }
         if (this.isFullscreenActive() || this.isStandaloneDisplayMode()) return Promise.resolve(true);
 
         const elem = document.documentElement;
@@ -4390,6 +4513,18 @@ export class UIManager {
             };
             fsBtn.addEventListener('click', handleFs);
             fsBtn.addEventListener('touchstart', handleFs, { passive: false });
+        }
+
+        const exitFsBtn = document.getElementById('btn-fullscreen-exit');
+        if (exitFsBtn) {
+            const handleExitFs = (e) => {
+                if (this.uiLayoutEditMode) return;
+                e.preventDefault();
+                e.stopPropagation();
+                this.exitFullscreenMode();
+            };
+            exitFsBtn.addEventListener('click', handleExitFs);
+            exitFsBtn.addEventListener('touchstart', handleExitFs, { passive: false });
         }
 
         // Quick Menu Buttons (Add these listeners)
@@ -10226,23 +10361,61 @@ export class UIManager {
     }
 
     toggleFullscreen() {
+        if (this.isTouchDevice() && this.isImmersiveMobileActive()) {
+            this.toggleMobileOrientationPreference();
+            return;
+        }
+
         if (!this.isFullscreenActive()) {
             this.landscapeFullscreenDismissed = false;
             this.pendingLandscapeFullscreen = false;
             this.enterFullscreen();
         } else {
-            this.pendingLandscapeFullscreen = false;
-            this.landscapeFullscreenDismissed = true;
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.mozCancelFullScreen) {
-                document.mozCancelFullScreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
-            }
+            this.exitFullscreenMode();
         }
+    }
+
+    exitFullscreenMode() {
+        this.pendingLandscapeFullscreen = false;
+        this.landscapeFullscreenDismissed = true;
+        this.mobileOrientationPreference = 'portrait';
+
+        const finalize = () => {
+            screen.orientation?.unlock?.();
+            this.syncMobileEnvironmentClasses();
+            window.setTimeout(() => {
+                this.syncOrientationLock();
+                this.refreshUiLayoutForViewport();
+            }, 60);
+        };
+
+        const exitRequest = document.exitFullscreen
+            || document.webkitExitFullscreen
+            || document.mozCancelFullScreen
+            || document.msExitFullscreen;
+
+        if (!this.isFullscreenActive() || !exitRequest) {
+            finalize();
+            return Promise.resolve(false);
+        }
+
+        try {
+            const result = exitRequest.call(document);
+            if (result && typeof result.then === 'function') {
+                return result.then(() => {
+                    finalize();
+                    return true;
+                }).catch(() => {
+                    finalize();
+                    return false;
+                });
+            }
+        } catch (error) {
+            Logger.warn('[UIManager] Failed to exit fullscreen', error);
+        }
+
+        finalize();
+        return Promise.resolve(true);
     }
 
     toggleUpdateHistory() {

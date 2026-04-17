@@ -14271,3 +14271,76 @@ body.low-power-pwa #ui-layer #minimap-container {
         display: none;
     }
 }
+
+body {
+    --mobile-ios-safe-top-offset: 0px;
+}
+
+body.is-ios-device {
+    --mobile-ios-safe-top-offset: 16px;
+}
+
+#btn-fullscreen-exit {
+    display: none;
+}
+
+@media screen and (max-width: 1024px) and (pointer: coarse) {
+    body.is-ios-device #popup-overlay,
+    body.is-ios-device .confirm-modal-overlay,
+    body.is-ios-device #confirm-modal,
+    body.is-ios-device #death-modal {
+        padding-top: calc(env(safe-area-inset-top) + 22px) !important;
+    }
+
+    body.is-ios-device .game-popup:not(.hidden) {
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 34px) !important;
+    }
+
+    body.is-ios-device:not(.ui-layout-edit-mode) #ui-layer .top-bar,
+    body.is-ios-device:not(.ui-layout-edit-mode) #ui-layer .left-ui-container,
+    body.is-ios-device:not(.ui-layout-edit-mode) #ui-layer #minimap-container,
+    body.is-ios-device:not(.ui-layout-edit-mode) #ui-layer .minimap-menu,
+    body.is-ios-device:not(.ui-layout-edit-mode) #ui-layer #btn-emote-shortcut {
+        margin-top: var(--mobile-ios-safe-top-offset) !important;
+    }
+
+    body.is-mobile-immersive #ui-layer #btn-fullscreen,
+    body.is-mobile-immersive #ui-layer #btn-fullscreen-exit {
+        position: fixed !important;
+        top: calc(env(safe-area-inset-top) + 10px + var(--mobile-ios-safe-top-offset)) !important;
+        left: auto !important;
+        bottom: auto !important;
+        width: 40px !important;
+        height: 40px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
+        border-radius: 10px !important;
+        border: 2px solid rgba(255, 255, 255, 0.8) !important;
+        background: rgba(253, 250, 246, 0.72) !important;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16) !important;
+        backdrop-filter: blur(6px) !important;
+        transform: none !important;
+        z-index: 1455 !important;
+    }
+
+    body.is-mobile-immersive #ui-layer #btn-fullscreen {
+        right: calc(env(safe-area-inset-right) + 58px) !important;
+    }
+
+    body.is-mobile-immersive #ui-layer #btn-fullscreen-exit {
+        right: calc(env(safe-area-inset-right) + 10px) !important;
+    }
+
+    body.is-mobile-immersive #ui-layer #btn-fullscreen .menu-icon,
+    body.is-mobile-immersive #ui-layer #btn-fullscreen-exit .menu-icon {
+        font-size: 16px !important;
+        line-height: 1 !important;
+        filter: none !important;
+    }
+
+    body.popup-open #ui-layer #btn-fullscreen-exit {
+        display: none !important;
+    }
+}
