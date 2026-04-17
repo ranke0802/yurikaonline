@@ -2149,13 +2149,7 @@ export default class MonsterManager {
                 this.slimeKillCount++;
                 Logger.log(`[MonsterManager] Slime Kill Count: ${this.slimeKillCount}`);
 
-                if (this.slimeKillCount === 10) {
-                    this.net.sendSystemMessage("슬라임의 왕이 백성의 죽음에 슬퍼하고 있습니다. (10/30)", "#ffeb3b");
-                } else if (this.slimeKillCount === 20) {
-                    this.net.sendSystemMessage("슬라임의 왕이 백성의 죽음에 분노하고 있습니다. (20/30)", "#ffeb3b");
-                } else if (this.slimeKillCount === 30) {
-                    this.net.sendSystemMessage("대왕 슬라임이 강림할 준비를 마쳤습니다. 퀘스트 보상을 수령해 소환하세요. (30/30)", "#ff4757");
-                }
+                // 초반 슬라임 10/20/30 누적 전역 메시지는 함께하기/싱글 필드 혼선이 있어 노출하지 않는다.
             }
         } else if (m.typeId === 'king_slime') {
             // Boss died.

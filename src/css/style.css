@@ -12032,6 +12032,8 @@ body.low-power-pwa #ui-layer #minimap-container {
 .friends-app-main {
     position: relative;
     min-width: 0;
+    min-height: 0;
+    overflow: auto;
     padding: 16px;
 }
 
@@ -12119,6 +12121,10 @@ body.low-power-pwa #ui-layer #minimap-container {
     gap: 8px;
 }
 
+.friends-profile-summary-grid.is-simple {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .friends-profile-summary span,
 .friends-search-candidate-tags span {
     display: inline-flex;
@@ -12190,6 +12196,12 @@ body.low-power-pwa #ui-layer #minimap-container {
 
 .friends-profile-stats {
     display: block;
+}
+
+.friends-profile-stat-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
 }
 
 .friends-profile-stat-card {
@@ -12769,15 +12781,18 @@ body.low-power-pwa #ui-layer #minimap-container {
 
     .friends-app-main {
         padding: 12px;
+        overflow: auto;
     }
 
     .friends-profile-panel {
         gap: 10px;
+        padding-right: 2px;
     }
 
     .friends-profile-summary-grid,
     .friends-profile-status-grid,
-    .friends-profile-stats {
+    .friends-profile-stats,
+    .friends-profile-stat-list {
         grid-template-columns: 1fr;
     }
 
@@ -12805,6 +12820,16 @@ body.low-power-pwa #ui-layer #minimap-container {
 
     .friends-chat-card {
         height: calc(100% - 16px);
+    }
+
+    .friend-chat-profile-card {
+        width: min(96vw, 640px);
+        max-width: 96vw;
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px);
+    }
+
+    .friend-chat-profile-body {
+        padding-right: 0;
     }
 
     .friends-chat-header {
@@ -13384,13 +13409,15 @@ body.low-power-pwa #ui-layer #minimap-container {
 .friend-chat-profile-card {
     width: min(640px, calc(100% - 24px));
     max-width: calc(100% - 24px);
-    max-height: calc(100% - 24px);
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 12px);
+    overflow: hidden;
 }
 
 .friend-chat-profile-body {
     min-height: 0;
     overflow: auto;
     padding-right: 2px;
+    -webkit-overflow-scrolling: touch;
 }
 
 .friend-gift-item-tooltip .inventory-detail-head {

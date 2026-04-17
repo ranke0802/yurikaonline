@@ -1577,6 +1577,9 @@ export default class FriendsUIController {
                 state.height = Math.max(Number(state.height) || 0, preset.height);
             }
             this.refreshFriendGiftOptions();
+            if (this.friendGiftKind === 'item' && !this.isFriendChatMinimized()) {
+                this.toggleFriendGiftItemPicker(true);
+            }
         } else {
             this.toggleFriendGiftItemPicker(false);
         }
@@ -1602,11 +1605,16 @@ export default class FriendsUIController {
         document.getElementById('friend-gift-kind-item')?.classList.toggle('is-active', this.friendGiftKind === 'item');
         document.getElementById('friend-gift-manastone-panel')?.classList.toggle('hidden', this.friendGiftKind !== 'manastone');
         document.getElementById('friend-gift-item-panel')?.classList.toggle('hidden', this.friendGiftKind !== 'item');
-        if (this.friendGiftKind !== 'item') {
+        if (this.friendGiftKind === 'item') {
+            this.refreshFriendGiftOptions();
+            if (!this.isFriendChatMinimized()) {
+                this.toggleFriendGiftItemPicker(true);
+            }
+        } else {
             this.toggleFriendGiftItemPicker(false);
+            this.refreshFriendGiftOptions();
         }
         this.syncFriendGiftComposerLayoutState();
-        this.refreshFriendGiftOptions();
     }
 
     refreshFriendGiftOptions() {
@@ -1615,6 +1623,7 @@ export default class FriendsUIController {
         const manastoneAmountInput = document.getElementById('friend-gift-manastone-amount');
         const sendBtn = document.getElementById('friend-gift-send-btn');
         const itemSummaryEl = document.getElementById('friend-gift-item-summary');
+        const actionsEl = document.querySelector('#friend-gift-composer .friend-gift-actions');
         const player = this.game.localPlayer;
         if (!player) return;
 
@@ -1666,6 +1675,7 @@ export default class FriendsUIController {
                 ? !selectedItem
                 : manastone <= 0;
         }
+        actionsEl?.classList.toggle('hidden', this.friendGiftKind === 'item' && !selectedItem);
 
         this.renderFriendGiftPicker(giftableItems);
         this.renderFriendGiftSelectionPreview(selection?.item || null, Math.max(1, Number(itemAmountInput?.value || 1)));
@@ -2203,7 +2213,7 @@ export default class FriendsUIController {
         };
     }
 
-    buildFriendProfileSummaryMarkup(selected, meta = {}, derived = null) {
+    buildFriendProfileSummaryMarkupLegacy(selected, meta = {}, derived = null) {
         const lastMessage = String(meta?.lastMessage || '아직 주고받은 메시지가 없습니다.');
         const lastUpdated = meta?.updatedAt ? this.formatFriendTime(meta.updatedAt) : '기록 없음';
         const levelText = derived ? `Lv.${derived.level}` : '프로필 동기화 중';
@@ -2228,7 +2238,7 @@ export default class FriendsUIController {
         `;
     }
 
-    buildFriendProfileStatsMarkup(derived) {
+    buildFriendProfileStatsMarkupLegacy(derived) {
         if (!derived) return '';
 
         return `
@@ -2425,7 +2435,7 @@ export default class FriendsUIController {
     populateFriendProfileElements(selected, elements = {}) {
         if (!selected) return;
         const profile = this.friendProfileCache.get(selected.uid) || null;
-        const displayName = profile?.name || selected.name || selected.uid;
+        const displayName = profile?.name || selected.name || '친구';
         const meta = this.getFriendThreadMeta(selected.uid);
         const {
             avatarEl = null,
@@ -2447,7 +2457,8 @@ export default class FriendsUIController {
             statusEl.classList.toggle('is-online', !!selected.online);
         }
         if (metaEl) {
-            metaEl.textContent = `ID ${selected.uid}`;
+            metaEl.textContent = '';
+            metaEl.classList.add('hidden');
         }
         if (togetherBtn) {
             togetherBtn.disabled = !selected.online;
@@ -2621,6 +2632,49 @@ export default class FriendsUIController {
         rowEl.appendChild(metaEl);
         weaponCard.appendChild(rowEl);
         weaponEl.appendChild(weaponCard);
+    }
+
+    buildFriendProfileSummaryMarkup(selected, meta = {}, derived = null) {
+        const levelText = derived ? `Lv.${derived.level}` : '프로필 불러오는 중';
+        const statusText = selected.online ? '온라인' : '오프라인';
+        const hpText = derived
+            ? `HP ${Math.floor(derived.hp)} / ${Math.floor(derived.maxHp)}`
+            : 'HP 확인 중';
+        const mpText = derived
+            ? `MP ${Math.floor(derived.mp)} / ${Math.floor(derived.maxMp)}`
+            : 'MP 확인 중';
+
+        return `
+            <div class="friends-profile-summary-card">
+                <div class="friends-profile-summary-grid is-simple">
+                    <span class="friends-profile-summary-chip">${this.escapeHtml(levelText)}</span>
+                    <span class="friends-profile-summary-chip${selected.online ? ' is-online' : ''}">${this.escapeHtml(statusText)}</span>
+                    <span class="friends-profile-summary-chip">${this.escapeHtml(hpText)}</span>
+                    <span class="friends-profile-summary-chip">${this.escapeHtml(mpText)}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    buildFriendProfileStatsMarkup(derived) {
+        if (!derived) return '';
+
+        return `
+            <div class="friends-profile-stat-list">
+                <div class="friends-profile-stat-card">
+                    <strong>레벨</strong>
+                    <span>Lv.${derived.level}</span>
+                </div>
+                <div class="friends-profile-stat-card">
+                    <strong>HP</strong>
+                    <span>${Math.floor(derived.hp)} / ${Math.floor(derived.maxHp)}</span>
+                </div>
+                <div class="friends-profile-stat-card">
+                    <strong>MP</strong>
+                    <span>${Math.floor(derived.mp)} / ${Math.floor(derived.maxMp)}</span>
+                </div>
+            </div>
+        `;
     }
 
     refreshFriendsPopup() {
