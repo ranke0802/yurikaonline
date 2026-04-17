@@ -10,6 +10,7 @@ export default class TutorialManager {
         this.progress = { count: 0 };
         this.pendingStepSpawnKeys = new Set();
         this.stepSpawnRetryTimer = 0;
+        this.stepCompletionTimer = 0;
     }
 
     async loadTutorial(id) {
@@ -136,7 +137,7 @@ export default class TutorialManager {
         if (!step) return 'info';
         if (step.type) return step.type;
 
-        if (['move', 'kill', 'skill_use', 'skill_aim_adjust'].includes(step.trigger)) {
+        if (['move', 'kill', 'skill_use', 'skill_aim_adjust', 'skill_motion_complete'].includes(step.trigger)) {
             return 'combat';
         }
 
@@ -480,6 +481,7 @@ export default class TutorialManager {
         if (!this.activeTutorial) return;
 
         Logger.log(`[Tutorial] Stopped: ${this.activeTutorial.title}`);
+        this._clearPendingStepCompletion();
         this.activeTutorial = null;
         this.pendingTutorialId = null;
         this.currentStepIndex = -1;
@@ -501,6 +503,7 @@ export default class TutorialManager {
     }
 
     _showCurrentStep() {
+        this._clearPendingStepCompletion();
         let step = this.getCurrentStep();
         while (step && !this.isStepAvailable(step)) {
             this.currentStepIndex++;
@@ -698,7 +701,7 @@ export default class TutorialManager {
         this.progress.count++;
 
         if (this.progress.count >= (step.count || 1)) {
-            this._completeStep();
+            this._scheduleStepCompletion(step);
         }
     }
 
@@ -724,6 +727,7 @@ export default class TutorialManager {
         const step = this.getCurrentStep();
         if (!step) return;
 
+        this._clearPendingStepCompletion();
         Logger.log(`[Tutorial] Step completed: ${step.id}`);
         this._runActions(step.onComplete);
 
@@ -739,6 +743,7 @@ export default class TutorialManager {
         if (!this.activeTutorial) return;
 
         const tutorialId = this.activeTutorial.id;
+        this._clearPendingStepCompletion();
         Logger.log(`[Tutorial] Completed: ${this.activeTutorial.title}`);
         this.completedTutorials.add(tutorialId);
 
@@ -793,5 +798,33 @@ export default class TutorialManager {
         if (this.game.ui?.updateQuestUI) {
             this.game.ui.updateQuestUI();
         }
+    }
+
+    _scheduleStepCompletion(step = this.getCurrentStep()) {
+        if (!step) return;
+
+        const delayMs = Math.max(0, Number(step.completionDelay || 0));
+        if (delayMs <= 0) {
+            this._completeStep();
+            return;
+        }
+
+        if (this.stepCompletionTimer) return;
+
+        const tutorialId = this.activeTutorial?.id || null;
+        const stepIndex = this.currentStepIndex;
+        this.stepCompletionTimer = window.setTimeout(() => {
+            this.stepCompletionTimer = 0;
+            if (!this.activeTutorial || this.activeTutorial.id !== tutorialId) return;
+            if (this.currentStepIndex !== stepIndex) return;
+            this._completeStep();
+        }, delayMs);
+    }
+
+    _clearPendingStepCompletion() {
+        if (!this.stepCompletionTimer) return;
+
+        window.clearTimeout(this.stepCompletionTimer);
+        this.stepCompletionTimer = 0;
     }
 }

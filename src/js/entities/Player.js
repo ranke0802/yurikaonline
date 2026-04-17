@@ -1434,6 +1434,39 @@ export default class Player extends CharacterBase {
         return nearest;
     }
 
+    findNearestFireballTarget(sourceX = this.x + this.width / 2, sourceY = this.y + this.height / 2) {
+        const candidates = [];
+        const maxDist = this.getFireballRange();
+
+        if (this.isValidMagicMissileTarget(this.currentTarget)) {
+            candidates.push(this.currentTarget);
+        }
+
+        if (window.game?.monsterManager?.monsters) {
+            candidates.push(...window.game.monsterManager.monsters.values());
+        }
+
+        if (window.game?.remotePlayers) {
+            candidates.push(...window.game.remotePlayers.values());
+        }
+
+        let nearest = null;
+        let minDist = maxDist;
+
+        for (const target of candidates) {
+            if (!this.isValidMagicMissileTarget(target)) continue;
+
+            const targetPoint = this.getCombatTargetPoint(target);
+            const distance = Math.hypot(sourceX - targetPoint.x, sourceY - targetPoint.y);
+            if (distance <= minDist) {
+                minDist = distance;
+                nearest = target;
+            }
+        }
+
+        return nearest;
+    }
+
     resolveMagicMissileTargetById(targetId, targetType = null) {
         if (!targetId) return null;
 
@@ -1924,22 +1957,41 @@ export default class Player extends CharacterBase {
 
                 // v0.28.0: Sync Fireball skill
                 // v0.29.0: Updates to sendPlayerAttack
-                const angle = Number.isFinite(castOptions?.angle)
-                    ? castOptions.angle
-                    : this.getCurrentFacingAngle();
-                const range = Number.isFinite(castOptions?.range)
-                    ? castOptions.range
-                    : this.getFireballRange();
                 const originX = this.x + this.width / 2;
                 const originY = this.y + this.height / 2;
+                const defaultRange = this.getFireballRange();
+                const autoTarget = (
+                    !Number.isFinite(castOptions?.targetX)
+                    || !Number.isFinite(castOptions?.targetY)
+                )
+                    ? this.findNearestFireballTarget(originX, originY)
+                    : null;
+                const autoTargetPoint = this.getCombatTargetPoint(autoTarget);
+                const angle = Number.isFinite(castOptions?.angle)
+                    ? castOptions.angle
+                    : autoTargetPoint
+                        ? Math.atan2(autoTargetPoint.y - originY, autoTargetPoint.x - originX)
+                        : this.getCurrentFacingAngle();
                 const targetX = Number.isFinite(castOptions?.targetX)
                     ? castOptions.targetX
-                    : originX + Math.cos(angle) * range;
+                    : Number.isFinite(autoTargetPoint?.x)
+                        ? autoTargetPoint.x
+                        : originX + Math.cos(angle) * defaultRange;
                 const targetY = Number.isFinite(castOptions?.targetY)
                     ? castOptions.targetY
-                    : originY + Math.sin(angle) * range;
+                    : Number.isFinite(autoTargetPoint?.y)
+                        ? autoTargetPoint.y
+                        : originY + Math.sin(angle) * defaultRange;
+                const range = Number.isFinite(castOptions?.range)
+                    ? castOptions.range
+                    : Math.min(defaultRange, Math.hypot(targetX - originX, targetY - originY));
                 const chainSeed = (Date.now() ^ Math.round(originX) ^ Math.round(originY)) >>> 0;
                 const travelTime = Math.max(0.25, (Math.hypot(targetX - originX, targetY - originY) / 800) + 0.08);
+                const tutorialMotionDelayMs = Math.max(260, Math.round((travelTime * 1000) + 140));
+
+                window.setTimeout(() => {
+                    window.game?.tutorial?.trigger?.('skill_motion_complete', { target: skillId, slot });
+                }, tutorialMotionDelayMs);
 
                 if (this.net) {
                     this.net.sendPlayerAttack(this.x, this.y, this.direction, 'fireball', {
@@ -1974,6 +2026,8 @@ export default class Player extends CharacterBase {
                         visualTint: weaponCombat.fireballTint || null,
                         targetX,
                         targetY,
+                        tutorialSkillTarget: skillId,
+                        tutorialSkillSlot: slot,
                         burnDuration: 2.0 + (lv - 1) * 0.5,
                         penetrationDelay: (lv - 1) * 0.05, // v1.99.33: Scaled delay
                         critRate: this.critRate,

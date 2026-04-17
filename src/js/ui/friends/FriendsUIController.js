@@ -117,6 +117,7 @@ export default class FriendsUIController {
         this.friendPresenceSnapshotCache = this.friendPresenceSnapshotCache instanceof Map ? this.friendPresenceSnapshotCache : new Map();
         this.friendGiftTouchSelection = null;
         this.friendGiftTouchSelectionTimer = null;
+        this.friendGiftDetailModalAnchor = null;
         this.ensureFriendPortraitAsset().then(() => {
             this.refreshFriendsPopup();
             this.renderFriendSearchResult();
@@ -380,7 +381,10 @@ export default class FriendsUIController {
                 this.cancelFriendGiftQuantityModal();
             }
         });
-        giftPicker?.addEventListener('scroll', () => this.positionFriendGiftItemTooltip());
+        giftPicker?.addEventListener('scroll', () => {
+            this.positionFriendGiftItemTooltip();
+            this.positionFriendGiftItemDetailModal();
+        });
         giftItemAmountInput?.addEventListener('input', () => this.refreshFriendGiftOptions());
         giftQuantityInput?.addEventListener('input', () => this.renderFriendGiftQuantityModal());
 
@@ -1033,6 +1037,7 @@ export default class FriendsUIController {
             this.applyFriendChatWindowState();
             this.renderFriendChatMessages();
             this.positionFriendGiftItemTooltip();
+            this.positionFriendGiftItemDetailModal();
         });
     }
 
@@ -1529,6 +1534,7 @@ export default class FriendsUIController {
             this.friendGiftTouchSelectionTimer = null;
         }
         this.friendGiftTouchSelection = null;
+        this.hideFriendGiftItemDetailModal();
     }
 
     syncFriendPresenceSnapshot(friends = []) {
@@ -1934,6 +1940,20 @@ export default class FriendsUIController {
         return Math.max(1, Number(item.amount || 1));
     }
 
+    normalizeFriendGiftAmountValue(rawValue, maxAmount = 1, options = {}) {
+        const {
+            allowEmpty = false
+        } = options;
+        const safeMax = Math.max(1, Number(maxAmount || 1));
+        const text = String(rawValue ?? '').trim();
+        if (allowEmpty && text === '') {
+            return null;
+        }
+
+        const requestedAmount = Math.floor(Number(text || 1));
+        return Math.max(1, Math.min(Number.isFinite(requestedAmount) ? requestedAmount : 1, safeMax));
+    }
+
     shouldConfirmFriendGiftImmediately(item = null) {
         return this.getFriendGiftMaxAmount(item) <= 1;
     }
@@ -1957,12 +1977,26 @@ export default class FriendsUIController {
         if (!selection) return null;
 
         const identity = selection.identity || null;
-        const resolvedIndex = identity
-            ? this.findInventoryIndexByIdentity(this.game.localPlayer, identity)
-            : Number(selection.index ?? -1);
-        if (resolvedIndex <= 0) return null;
+        const selectedIndex = Number(selection.index ?? -1);
+        if (selectedIndex > 0) {
+            const indexedSelection = entries.find(({ index }) => index === selectedIndex) || null;
+            if (indexedSelection) {
+                const indexedIdentity = this.getInventoryItemIdentity(indexedSelection.item);
+                if (!identity || this.isSameFriendGiftIdentity(identity, indexedIdentity, { ignoreAmount: true })) {
+                    return {
+                        item: indexedSelection.item,
+                        index: indexedSelection.index,
+                        identity: indexedIdentity
+                    };
+                }
+            }
+        }
 
-        const nextSelection = entries.find(({ index }) => index === resolvedIndex) || null;
+        if (!identity) return null;
+
+        const nextSelection = entries.find(({ item }) => (
+            this.isSameFriendGiftIdentity(identity, this.getInventoryItemIdentity(item), { ignoreAmount: true })
+        )) || null;
         if (!nextSelection) return null;
 
         return {
@@ -1970,6 +2004,10 @@ export default class FriendsUIController {
             index: nextSelection.index,
             identity: this.getInventoryItemIdentity(nextSelection.item)
         };
+    }
+
+    resolveFriendGiftInventorySelection(selectionState = null, player = this.game.localPlayer) {
+        return this.resolveFriendGiftSelectionFromState(selectionState, this.getGiftableFriendInventoryItems(player));
     }
 
     toggleFriendGiftQuantityModal(visible, options = {}) {
@@ -2022,8 +2060,7 @@ export default class FriendsUIController {
         const item = selection?.item || null;
         const maxAmount = this.getFriendGiftMaxAmount(item);
         const hasTypedAmount = !!input && input.value !== '';
-        const requestedAmount = Math.floor(Number(input?.value || 1));
-        const amount = Math.max(1, Math.min(Number.isFinite(requestedAmount) ? requestedAmount : 1, maxAmount));
+        const amount = this.normalizeFriendGiftAmountValue(input?.value, maxAmount);
 
         if (input) {
             input.min = '1';
@@ -2044,6 +2081,11 @@ export default class FriendsUIController {
             }
             return;
         }
+
+        this.friendGiftQuantitySelection = {
+            index: selection.index,
+            identity: selection.identity
+        };
 
         if (previewEl) {
             previewEl.innerHTML = `
@@ -2106,6 +2148,7 @@ export default class FriendsUIController {
         this.renderFriendGiftPicker(giftableItems);
         this.renderFriendGiftPickerPreview(giftableItems);
         this.renderFriendGiftSelectionPreview(selection?.item || null, this.shouldConfirmFriendGiftImmediately(selectedItem) ? 1 : null);
+        this.syncFriendGiftPickerDetailModal(giftableItems);
         if (!document.getElementById('friend-gift-quantity-modal')?.classList.contains('hidden')) {
             this.renderFriendGiftQuantityModal();
         }
@@ -2129,6 +2172,17 @@ export default class FriendsUIController {
             identity: this.getInventoryItemIdentity(nextSelection.item)
         };
         return nextSelection;
+    }
+
+    isSameFriendGiftIdentity(left = null, right = null, options = {}) {
+        const ignoreAmount = options.ignoreAmount === true;
+        if (!left || !right) return false;
+        if (left === right) return true;
+        return (left.instanceId || null) === (right.instanceId || null)
+            && (left.type || null) === (right.type || null)
+            && (left.slot || null) === (right.slot || null)
+            && Number(left.enhancementLevel || 0) === Number(right.enhancementLevel || 0)
+            && (ignoreAmount || Number(left.amount || 1) === Number(right.amount || 1));
     }
 
     resolveFriendGiftPreviewSelection(entries = this.getGiftableFriendInventoryItems()) {
@@ -2158,11 +2212,10 @@ export default class FriendsUIController {
             return false;
         }
 
-        const requestedAmount = Math.floor(Number(input?.value || 1));
-        const amount = Math.max(
-            1,
-            Math.min(Number.isFinite(requestedAmount) ? requestedAmount : 1, this.getFriendGiftMaxAmount(item))
-        );
+        const amount = this.normalizeFriendGiftAmountValue(input?.value, this.getFriendGiftMaxAmount(item));
+        if (input) {
+            input.value = String(amount);
+        }
 
         const selectionState = {
             index: selection.index,
@@ -2204,8 +2257,7 @@ export default class FriendsUIController {
         const itemAmountInput = document.getElementById('friend-gift-item-amount');
         const maxAmount = this.getFriendGiftMaxAmount(selectedItem);
         const rawAmount = options.amount ?? itemAmountInput?.value ?? 1;
-        const requestedAmount = Math.max(1, Math.floor(Number(rawAmount)));
-        const amount = Math.max(1, Math.min(requestedAmount, maxAmount));
+        const amount = this.normalizeFriendGiftAmountValue(rawAmount, maxAmount);
         if (itemAmountInput) {
             itemAmountInput.value = String(amount);
         }
@@ -2230,10 +2282,9 @@ export default class FriendsUIController {
         if (!targetUid || !this.game.net) return false;
 
         const player = this.game.localPlayer;
-        const resolvedIndex = selectionState?.identity
-            ? this.findInventoryIndexByIdentity(player, selectionState.identity)
-            : Number(selectionState?.index ?? -1);
-        const selectedItem = resolvedIndex > 0 ? (player?.inventory || [])[resolvedIndex] || null : null;
+        const resolvedSelection = this.resolveFriendGiftInventorySelection(selectionState, player);
+        const resolvedIndex = Number(resolvedSelection?.index ?? -1);
+        const selectedItem = resolvedSelection?.item || null;
         if (!selectedItem) {
             this.showGenericModal('선물 보내기', '보낼 수 있는 아이템을 다시 선택해 주세요.', null, null, { hideNo: true, yesText: '확인' });
             this.friendGiftSelection = null;
@@ -2241,7 +2292,7 @@ export default class FriendsUIController {
             return false;
         }
 
-        const safeAmount = Math.max(1, Math.min(Math.floor(Number(amount || 1)), this.getFriendGiftMaxAmount(selectedItem)));
+        const safeAmount = this.normalizeFriendGiftAmountValue(amount, this.getFriendGiftMaxAmount(selectedItem));
         const result = await this.game.net.sendFriendGift(targetUid, {
             kind: 'item',
             inventoryIndex: resolvedIndex,
@@ -2292,12 +2343,14 @@ export default class FriendsUIController {
         this.applyFriendChatWindowState();
         if (!nextVisible) {
             this.hideFriendGiftItemTooltip();
+            this.hideFriendGiftItemDetailModal();
             this.clearFriendGiftTouchSelectionState();
             this.restoreFriendChatCompactPosition(preservedPosition);
             return;
         }
         this.renderFriendGiftPicker();
         this.renderFriendGiftPickerPreview();
+        this.syncFriendGiftPickerDetailModal();
         window.requestAnimationFrame(() => {
             picker.scrollTop = 0;
         });
@@ -2316,6 +2369,7 @@ export default class FriendsUIController {
         }
 
         entries.forEach(({ item, index }) => {
+            const itemIdentity = this.getInventoryItemIdentity(item);
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'friend-gift-picker-item';
@@ -2323,7 +2377,7 @@ export default class FriendsUIController {
             button.classList.toggle(
                 'is-previewing',
                 this.friendGiftTouchSelection?.index === index
-                    && this.friendGiftTouchSelection?.identity === this.getInventoryItemIdentity(item)
+                    && this.isSameFriendGiftIdentity(this.friendGiftTouchSelection?.identity, itemIdentity)
             );
             button.dataset.friendGiftPreviewIndex = String(index);
             button.innerHTML = `
@@ -2334,9 +2388,8 @@ export default class FriendsUIController {
                 </span>
             `;
             button.addEventListener('click', async (event) => {
-                const itemIdentity = this.getInventoryItemIdentity(item);
                 const isPendingTap = this.friendGiftTouchSelection?.index === index
-                    && this.friendGiftTouchSelection?.identity === itemIdentity;
+                    && this.isSameFriendGiftIdentity(this.friendGiftTouchSelection?.identity, itemIdentity);
 
                 if (!isPendingTap) {
                     event.preventDefault();
@@ -2387,29 +2440,16 @@ export default class FriendsUIController {
         if (!previewEl) return;
 
         previewEl.innerHTML = '';
-        previewEl.classList.remove('is-empty');
+        previewEl.classList.add('is-empty');
 
         const previewSelection = this.resolveFriendGiftPreviewSelection(entries);
-        const selectedSelection = this.resolveFriendGiftSelectionFromState(this.friendGiftSelection, entries);
         const previewItem = previewSelection?.item || null;
-        const selectedItem = selectedSelection?.item || null;
-        const activeItem = previewItem || selectedItem || null;
+        const activeItem = previewItem || null;
 
         if (!activeItem) {
             previewEl.classList.add('is-empty');
             previewEl.innerHTML = '<p class="friend-gift-picker-help">아이템을 한 번 누르면 상세 설명이 보이고, 같은 아이템을 한 번 더 누르면 선택됩니다.</p>';
             return;
-        }
-
-        const tooltipData = this.buildFriendGiftItemTooltipData(activeItem);
-        const detailCard = tooltipData
-            ? this.createFriendGiftDetailCardElement(tooltipData, {
-                className: 'friend-gift-inline-detail-card friend-gift-picker-preview-detail-card'
-            })
-            : null;
-
-        if (detailCard) {
-            previewEl.appendChild(detailCard);
         }
 
         const hint = document.createElement('p');
@@ -2436,7 +2476,7 @@ export default class FriendsUIController {
             return;
         }
 
-        if (previewItem && (!selectedIdentity || selectedIdentity !== previewIdentity) && !isPickerOpen) {
+        if (previewItem && (!selectedIdentity || !this.isSameFriendGiftIdentity(selectedIdentity, previewIdentity)) && !isPickerOpen) {
             const tooltipData = this.buildFriendGiftItemTooltipData(previewItem);
             const detailWrap = document.createElement('div');
             detailWrap.className = 'friend-gift-inline-detail';
@@ -2548,6 +2588,137 @@ export default class FriendsUIController {
         }
 
         return card;
+    }
+
+    ensureFriendGiftItemDetailModal() {
+        let modal = document.getElementById('friend-gift-item-detail-modal');
+        if (modal) return modal;
+
+        modal = document.createElement('div');
+        modal.id = 'friend-gift-item-detail-modal';
+        modal.className = 'friend-gift-item-detail-modal hidden';
+        modal.innerHTML = `
+            <div class="friend-gift-item-detail-frame">
+                <button
+                    type="button"
+                    class="inventory-item-modal-close friend-gift-item-detail-close"
+                    aria-label="아이템 상세 닫기"
+                >X</button>
+                <div class="friend-gift-item-detail-body"></div>
+            </div>
+        `;
+        modal.querySelector('.friend-gift-item-detail-close')?.addEventListener('click', (event) => {
+            event.preventDefault();
+            this.clearFriendGiftTouchSelectionState();
+            this.refreshFriendGiftOptions();
+        });
+        document.body.appendChild(modal);
+        return modal;
+    }
+
+    showFriendGiftItemDetailModal(tooltipData, anchorEl) {
+        if (!tooltipData || !anchorEl) {
+            this.hideFriendGiftItemDetailModal();
+            return;
+        }
+
+        const modal = this.ensureFriendGiftItemDetailModal();
+        const body = modal.querySelector('.friend-gift-item-detail-body');
+        if (!body) return;
+
+        body.innerHTML = '';
+        const card = this.createFriendGiftDetailCardElement(tooltipData, {
+            className: 'friend-gift-item-detail-card'
+        });
+        if (!card) {
+            this.hideFriendGiftItemDetailModal();
+            return;
+        }
+
+        body.appendChild(card);
+        modal.classList.remove('hidden');
+        this.friendGiftDetailModalAnchor = anchorEl;
+        this.positionFriendGiftItemDetailModal(anchorEl);
+    }
+
+    syncFriendGiftPickerDetailModal(entries = this.getGiftableFriendInventoryItems()) {
+        if (!this.isFriendGiftPickerOpen()) {
+            this.hideFriendGiftItemDetailModal();
+            return;
+        }
+
+        const previewSelection = this.resolveFriendGiftPreviewSelection(entries);
+        if (!previewSelection?.item) {
+            this.hideFriendGiftItemDetailModal();
+            return;
+        }
+
+        const anchorEl = document.querySelector(
+            `#friend-gift-item-picker [data-friend-gift-preview-index="${previewSelection.index}"]`
+        );
+        if (!anchorEl) {
+            this.hideFriendGiftItemDetailModal();
+            return;
+        }
+
+        const tooltipData = this.buildFriendGiftItemTooltipData(previewSelection.item);
+        if (!tooltipData) {
+            this.hideFriendGiftItemDetailModal();
+            return;
+        }
+
+        window.requestAnimationFrame(() => {
+            this.showFriendGiftItemDetailModal(tooltipData, anchorEl);
+        });
+    }
+
+    positionFriendGiftItemDetailModal(anchorEl = this.friendGiftDetailModalAnchor) {
+        const modal = document.getElementById('friend-gift-item-detail-modal');
+        const frame = modal?.querySelector('.friend-gift-item-detail-frame');
+        if (!modal || !frame || modal.classList.contains('hidden')) return;
+        if (!anchorEl?.isConnected) {
+            this.hideFriendGiftItemDetailModal();
+            return;
+        }
+
+        const sheet = anchorEl.closest('.friend-gift-picker-sheet');
+        const anchorRect = anchorEl.getBoundingClientRect();
+        const sheetRect = sheet?.getBoundingClientRect() || anchorRect;
+        const margin = window.innerWidth <= 1024 ? 10 : 12;
+        const gap = 10;
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        const availableHeight = Math.max(120, sheetRect.top - margin - gap);
+        const maxHeight = Math.max(
+            120,
+            Math.min(
+                Math.round((window.innerWidth <= 1024 ? 0.44 : 0.52) * viewportHeight),
+                Math.round(availableHeight)
+            )
+        );
+        frame.style.maxHeight = `${maxHeight}px`;
+
+        const frameRect = frame.getBoundingClientRect();
+        let left = sheetRect.left + ((sheetRect.width - frameRect.width) / 2);
+        left = Math.max(margin, Math.min(left, viewportWidth - frameRect.width - margin));
+
+        let top = sheetRect.top - frameRect.height - gap;
+        if (top < margin) {
+            top = Math.max(margin, anchorRect.top - frameRect.height - gap);
+        }
+        top = Math.max(margin, Math.min(top, viewportHeight - frameRect.height - margin));
+
+        modal.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+    }
+
+    hideFriendGiftItemDetailModal() {
+        const modal = document.getElementById('friend-gift-item-detail-modal');
+        if (!modal) return;
+
+        modal.classList.add('hidden');
+        modal.style.removeProperty('transform');
+        modal.querySelector('.friend-gift-item-detail-body')?.replaceChildren();
+        this.friendGiftDetailModalAnchor = null;
     }
 
     renderFriendChatMessages(options = {}) {

@@ -231,16 +231,16 @@ export default class TouchHandler extends EventEmitter {
                 e.preventDefault();
                 e.stopPropagation();
                 const pointer = this._getPointerFromEvent(e, null, true);
+                if (!pointer) return;
                 const pointerId = pointer?.identifier ?? 'mouse';
+
                 if (action === 'SKILL_2') {
                     this._startAimActionTracking(e, action);
-                    if (pointer) {
-                        this.emit('aimStart', {
-                            action,
-                            clientX: pointer.clientX,
-                            clientY: pointer.clientY
-                        });
-                    }
+                    this.emit('aimStart', {
+                        action,
+                        clientX: pointer?.clientX ?? 0,
+                        clientY: pointer?.clientY ?? 0
+                    });
                     return;
                 }
 
@@ -249,9 +249,6 @@ export default class TouchHandler extends EventEmitter {
             };
 
             const endAction = (e) => {
-                if (action === 'SKILL_2') {
-                    return;
-                }
                 if (e.changedTouches?.length) {
                     for (let i = 0; i < e.changedTouches.length; i++) {
                         this._releaseTrackedAction(e.changedTouches[i].identifier);

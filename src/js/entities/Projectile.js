@@ -23,6 +23,9 @@ export class Projectile {
         this.weaponEffect = options.weaponEffect || null;
         this.lockTargetPosition = !!options.lockTargetPosition;
         this.visualOnly = !!options.visualOnly;
+        this.tutorialSkillTarget = options.tutorialSkillTarget || null;
+        this.tutorialSkillSlot = Number.isFinite(options.tutorialSkillSlot) ? options.tutorialSkillSlot : null;
+        this.tutorialSkillMotionTriggered = false;
         this.fireballChainChance = Math.max(0, Math.min(1, this.weaponEffect?.fireballChainChance || 0));
         this.fireballChainDamageRatio = Math.max(0, this.weaponEffect?.fireballChainDamageRatio || 0);
         this.fireballChainRandomState = Number.isFinite(this.weaponEffect?.chainSeed)
@@ -594,6 +597,7 @@ export class Projectile {
             this._tryTriggerBlueFlameChainExplosions(target, monsters, net, targetIsMonster);
         }
 
+        this._triggerTutorialSkillMotionComplete();
         this.isDead = true;
     }
 
@@ -611,6 +615,18 @@ export class Projectile {
         } else if (this.type === 'missile' && window.game.sound) {
             window.game.sound.playSfx('missile_hit');
         }
+    }
+
+    _triggerTutorialSkillMotionComplete() {
+        if (this.tutorialSkillMotionTriggered || !this.tutorialSkillTarget) return;
+        if (this.type !== 'fireball') return;
+        if (this.ownerId !== window.game?.localPlayer?.id) return;
+
+        this.tutorialSkillMotionTriggered = true;
+        window.game?.tutorial?.trigger?.('skill_motion_complete', {
+            target: this.tutorialSkillTarget,
+            slot: this.tutorialSkillSlot
+        });
     }
 
     _nextFireballChainRoll() {

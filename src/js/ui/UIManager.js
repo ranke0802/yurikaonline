@@ -6,6 +6,7 @@ export class UIManager {
         this.game = game;
         this.overlay = document.getElementById('popup-overlay');
         this.pendingStats = { vitality: 0, intelligence: 0, wisdom: 0, agility: 0 };
+        this.statInsightPreviewShown = { vitality: false, intelligence: false, wisdom: false, agility: false };
         this.initialPoints = 0;
         this.isPaused = false;
         this.devMode = false;
@@ -2546,12 +2547,24 @@ export class UIManager {
     }
 
     getActivePopupAvoidZones() {
+        const currentStep = this.game?.tutorial?.getCurrentStep?.();
+        const preserveStatusPanels = currentStep?.trigger !== 'stats_saved';
+        const preserveWholeSkillPopup = (
+            currentStep?.target === 'skill-popup'
+            || ['skill_detail_open', 'skill_detail_close', 'skill_upgrade'].includes(currentStep?.trigger)
+        );
         const popupZoneSelectors = [
-            '#status-popup:not(.hidden) #status-derived-panel',
-            '#status-popup:not(.hidden) #status-stat-main',
-            '#status-popup:not(.hidden) .status-basic-info',
-            '#skill-popup:not(.hidden) .skill-content-wrapper',
-            '#skill-popup:not(.hidden) .skill-point-info',
+            ...(preserveStatusPanels ? [
+                '#status-popup:not(.hidden) #status-derived-panel',
+                '#status-popup:not(.hidden) #status-stat-main',
+                '#status-popup:not(.hidden) .status-basic-info'
+            ] : []),
+            ...(preserveWholeSkillPopup
+                ? ['#skill-popup:not(.hidden)']
+                : [
+                    '#skill-popup:not(.hidden) .skill-content-wrapper',
+                    '#skill-popup:not(.hidden) .skill-point-info'
+                ]),
             '#skill-detail-modal:not(.hidden) .skill-detail-modal-header',
             '#skill-detail-modal:not(.hidden) #skill-detail-modal-body',
             '#inventory-popup:not(.hidden) #inventory-grid',
@@ -3333,6 +3346,8 @@ export class UIManager {
 
         const shouldResetManualPosition = this.tutorialGuideState?.stepId !== normalizedPayload.stepId;
         if (shouldResetManualPosition) {
+            guide.style.display = 'none';
+            this.clearTutorialHighlightLayer();
             this.tutorialGuideManualPosition = null;
             this.handleTutorialGuideDragEnd();
             this.tutorialDimSuppressed = false;
@@ -3606,7 +3621,7 @@ export class UIManager {
         if (step.trigger === 'stats_saved') {
             const confirmVisible = !!this.confirmModal && !this.confirmModal.classList.contains('hidden');
             return confirmVisible
-                ? ['#confirm-yes', '#confirm-no']
+                ? ['#confirm-modal .confirm-content', '#confirm-yes', '#confirm-no']
                 : ['#status-close-btn-top', '#status-close-btn-bottom'];
         }
 
@@ -4336,6 +4351,8 @@ export class UIManager {
         this.confirmYes = document.getElementById('confirm-yes');
         this.confirmNo = document.getElementById('confirm-no');
         this.confirmCallback = null;
+        this.confirmTutorialRefreshFrame = 0;
+        this.confirmTutorialRefreshTimer = 0;
 
         this.confirmYes.addEventListener('click', () => {
             if (this.confirmCallback) this.confirmCallback(true);
@@ -4344,6 +4361,9 @@ export class UIManager {
         this.confirmNo.addEventListener('click', () => {
             if (this.confirmCallback) this.confirmCallback(false);
             this.hideConfirm();
+        });
+        this.confirmModal?.querySelector('.confirm-content')?.addEventListener('animationend', () => {
+            this.refreshTutorialOverlayState();
         });
 
         // Skill Tooltips
@@ -7047,19 +7067,45 @@ export class UIManager {
         this.refreshTutorialGuideLayout();
     }
 
+    scheduleTutorialOverlayRefresh(afterAnimation = false) {
+        this.refreshTutorialOverlayState();
+
+        if (this.confirmTutorialRefreshFrame) {
+            window.cancelAnimationFrame(this.confirmTutorialRefreshFrame);
+            this.confirmTutorialRefreshFrame = 0;
+        }
+        this.confirmTutorialRefreshFrame = window.requestAnimationFrame(() => {
+            this.confirmTutorialRefreshFrame = 0;
+            this.refreshTutorialOverlayState();
+        });
+
+        if (this.confirmTutorialRefreshTimer) {
+            window.clearTimeout(this.confirmTutorialRefreshTimer);
+            this.confirmTutorialRefreshTimer = 0;
+        }
+        if (!afterAnimation) return;
+
+        this.confirmTutorialRefreshTimer = window.setTimeout(() => {
+            this.confirmTutorialRefreshTimer = 0;
+            this.refreshTutorialOverlayState();
+        }, 320);
+    }
+
     showConfirm(message, callback) {
         document.getElementById('confirm-message').innerHTML = message;
+        this.clearTutorialHighlightLayer();
         this.confirmModal.classList.remove('hidden');
         this.confirmCallback = callback;
         this.refreshDesktopShortcutHints();
-        this.refreshTutorialOverlayState();
+        this.scheduleTutorialOverlayRefresh(true);
     }
 
     hideConfirm() {
+        this.clearTutorialHighlightLayer();
         this.confirmModal.classList.add('hidden');
         this.confirmCallback = null;
         this.refreshDesktopShortcutHints();
-        this.refreshTutorialOverlayState();
+        this.scheduleTutorialOverlayRefresh(false);
     }
 
     formatSkillPercent(value, digits = 0) {
@@ -7886,14 +7932,18 @@ export class UIManager {
         this.refreshTutorialGuideLayout();
     }
 
+    clearTutorialHighlightLayer() {
+        if (this.tutorialHighlightLayer) {
+            this.tutorialHighlightLayer.innerHTML = '';
+        }
+    }
+
     clearTutorialHighlight() {
         this.tutorialHighlightTargets = [];
         this.tutorialHighlightState = { targets: [], mode: 'ring', label: '', avoidTargets: [], suppressDim: false };
         this.tutorialDimSuppressed = false;
         this.tutorialDimSuppressedStepId = '';
-        if (this.tutorialHighlightLayer) {
-            this.tutorialHighlightLayer.innerHTML = '';
-        }
+        this.clearTutorialHighlightLayer();
     }
 
     showTooltip(skillId, x, y) {
@@ -7959,6 +8009,10 @@ export class UIManager {
         };
     }
 
+    resetStatInsightPreviewState() {
+        this.statInsightPreviewShown = this.createEmptyStatInsightFlags();
+    }
+
     ensureStatInsightFlags(player = this.game.localPlayer) {
         const nextFlags = this.createEmptyStatInsightFlags();
         if (!player) return nextFlags;
@@ -7981,6 +8035,20 @@ export class UIManager {
         ];
     }
 
+    getStatInsightLabel(statKey) {
+        return {
+            vitality: '체력',
+            intelligence: '지능',
+            wisdom: '지혜',
+            agility: '순발력'
+        }[statKey] || '스탯';
+    }
+
+    getStatInsightPreviewFallbackText(statKey) {
+        const label = this.getStatInsightLabel(statKey);
+        return `${label} +1 미리보기. 오른쪽 수치 변화를 확인하세요.`;
+    }
+
     collectFirstStatInsightMessages(player = this.game.localPlayer, pendingStats = this.pendingStats) {
         const flags = this.ensureStatInsightFlags(player);
         const orderedInsights = this.getStatInsightDefinitions();
@@ -7988,10 +8056,35 @@ export class UIManager {
         return orderedInsights.reduce((messages, insight) => {
             if ((Number(pendingStats?.[insight.key] || 0) > 0) && !flags[insight.key]) {
                 flags[insight.key] = true;
-                messages.push({ text: insight.text, durationMs: 3600 });
+                messages.push({ key: insight.key, text: insight.text, durationMs: 3600 });
             }
             return messages;
         }, []);
+    }
+
+    maybeShowStatInsightPreview(statKey, player = this.game.localPlayer) {
+        if (!statKey) return;
+
+        const flags = this.ensureStatInsightFlags(player);
+        if (!this.statInsightPreviewShown || typeof this.statInsightPreviewShown !== 'object') {
+            this.resetStatInsightPreviewState();
+        }
+
+        const insight = this.getStatInsightDefinitions().find((entry) => entry.key === statKey);
+        const shouldShowInsight = !flags[statKey] && !this.statInsightPreviewShown[statKey] && !!insight?.text;
+        if (shouldShowInsight) {
+            this.statInsightPreviewShown[statKey] = true;
+        }
+
+        const previewText = shouldShowInsight
+            ? insight.text
+            : this.getStatInsightPreviewFallbackText(statKey);
+        if (!previewText) return;
+
+        this.showCenterMessage(previewText, '#ffeb3b', {
+            durationMs: shouldShowInsight ? 2800 : 2000,
+            lightweight: true
+        });
     }
 
     queueStatInsightMessages(messages = []) {
@@ -8000,7 +8093,10 @@ export class UIManager {
         window.setTimeout(() => {
             messages.forEach((message) => {
                 if (!message?.text) return;
-                this.showCenterMessage(message.text, '#ffeb3b', { durationMs: message.durationMs });
+                this.showCenterMessage(message.text, '#ffeb3b', {
+                    durationMs: message.durationMs,
+                    lightweight: true
+                });
             });
         }, 0);
     }
@@ -8015,6 +8111,7 @@ export class UIManager {
         if (this.getPendingStatTotal() <= 0) return;
         const pendingSnapshot = { ...(this.pendingStats || {}) };
         const firstStatInsightMessages = this.collectFirstStatInsightMessages(p, pendingSnapshot);
+        const queuedInsightMessages = firstStatInsightMessages.filter((message) => !this.statInsightPreviewShown?.[message.key]);
         p.vitality += pendingSnapshot.vitality;
         p.intelligence += pendingSnapshot.intelligence;
         p.wisdom += pendingSnapshot.wisdom;
@@ -8026,7 +8123,8 @@ export class UIManager {
         this.pendingStats = this.createEmptyPendingStats();
         p.saveState(); // v0.00.01: Persist stats to DB
         this.game.tutorial?.trigger?.('stats_saved');
-        this.queueStatInsightMessages(firstStatInsightMessages);
+        this.queueStatInsightMessages(queuedInsightMessages);
+        this.resetStatInsightPreviewState();
     }
 
     cancelPendingStats(options = {}) {
@@ -8037,6 +8135,7 @@ export class UIManager {
             p.statPoints += totalPending;
         }
         this.pendingStats = this.createEmptyPendingStats();
+        this.resetStatInsightPreviewState();
         if (refreshUi) {
             this.updateStatusPopup();
         }
@@ -9757,11 +9856,6 @@ export class UIManager {
                         this.startInventorySlotDrag(event, index, button);
                     });
                 }
-            } else {
-                const emptyLabel = document.createElement('span');
-                emptyLabel.className = 'grid-item-slot-index';
-                emptyLabel.textContent = `${index}`;
-                button.appendChild(emptyLabel);
             }
 
             button.addEventListener('click', () => {

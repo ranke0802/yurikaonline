@@ -2103,12 +2103,6 @@ body.ui-layout-edit-mode #joystick-container[data-ui-layout-selected="true"] #jo
     box-shadow: 0 0 0 3px rgba(255, 177, 122, 0.28);
 }
 
-.grid-item-slot-index {
-    font-size: 11px;
-    font-weight: 700;
-    color: rgba(110, 91, 72, 0.5);
-}
-
 .utility-slot {
     background: linear-gradient(180deg, rgba(255, 250, 241, 0.96), rgba(248, 235, 212, 0.82));
 }
@@ -11255,6 +11249,15 @@ body.low-power-pwa #ui-layer #minimap-container {
     position: relative;
 }
 
+#status-popup .status-basic-info {
+    display: none !important;
+}
+
+#status-popup .status-top {
+    align-items: center !important;
+    justify-content: center !important;
+}
+
 .status-dev-lookup-overlay {
     position: absolute;
     top: 12px;
@@ -13725,6 +13728,11 @@ body.low-power-pwa #ui-layer #minimap-container {
 .friend-gift-icon {
     width: 38px;
     height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: auto;
+    line-height: 1;
     object-fit: contain;
 }
 
@@ -13784,6 +13792,66 @@ body.low-power-pwa #ui-layer #minimap-container {
     -webkit-overflow-scrolling: touch;
 }
 
+.friend-gift-item-detail-modal {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 2420;
+    pointer-events: none;
+}
+
+.friend-gift-item-detail-modal.hidden {
+    display: none;
+}
+
+.friend-gift-item-detail-frame {
+    width: min(360px, calc(100vw - 24px));
+    max-height: min(52dvh, calc(100vh - 24px));
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 12px;
+    border: 1px solid rgba(255, 242, 196, 0.18);
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(8, 8, 10, 0.88), rgba(8, 8, 10, 0.72));
+    box-shadow: 0 18px 30px rgba(6, 6, 8, 0.34);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    pointer-events: auto;
+    color: #f6edd1;
+}
+
+.friend-gift-item-detail-body {
+    min-height: 0;
+    overflow: auto;
+    padding-right: 2px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.friend-gift-item-detail-card {
+    padding: 6px 8px 2px;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    color: #f6edd1;
+}
+
+.friend-gift-item-detail-card .inventory-detail-head {
+    margin-bottom: 8px;
+}
+
+.friend-gift-item-detail-card .inventory-detail-icon {
+    display: inline-flex;
+}
+
+.friend-gift-item-detail-card .inventory-detail-title-block h3 {
+    font-size: 18px;
+}
+
+.friend-gift-item-detail-close {
+    z-index: 1;
+}
+
 .friend-gift-item-tooltip {
     position: fixed;
     left: 0;
@@ -13838,6 +13906,20 @@ body.low-power-pwa #ui-layer #minimap-container {
 }
 
 @media screen and (max-width: 1024px) and (pointer: coarse) {
+    .friend-gift-item-detail-frame {
+        width: min(280px, calc(100vw - 20px));
+        max-height: min(44dvh, calc(100dvh - 20px));
+        padding: 10px;
+    }
+
+    .friend-gift-item-detail-card {
+        padding: 4px 6px 2px;
+    }
+
+    .friend-gift-item-detail-card .inventory-detail-title-block h3 {
+        font-size: 16px;
+    }
+
     .friend-gift-item-tooltip-card {
         width: min(268px, calc(100vw - 20px));
         max-height: min(44dvh, calc(100dvh - 20px));
@@ -13850,6 +13932,11 @@ body.low-power-pwa #ui-layer #minimap-container {
 }
 
 @media screen and (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
+    .friend-gift-item-detail-frame {
+        width: min(252px, calc(100vw - 20px));
+        max-height: min(50dvh, calc(100dvh - 20px));
+    }
+
     .friend-gift-item-tooltip-card {
         width: min(248px, calc(100vw - 20px));
         max-height: min(52dvh, calc(100dvh - 20px));
@@ -14495,4 +14582,44 @@ body.is-ios-device {
     body.popup-open #ui-layer #btn-fullscreen-exit {
         display: none !important;
     }
+}
+
+/* Prevent global hover scaling from creating horizontal scrollbars inside modal UIs. */
+:where(.game-popup, .inventory-item-modal, #skill-detail-modal, #confirm-modal, #reward-modal, #history-modal, #generic-modal, .friend-gift-picker-modal, .friend-gift-quantity-modal, .friend-gift-item-detail-modal)
+    :is(button, .btn, .skill-icon, .item-slot, .stat-up-btn, .stat-down-btn, .close-popup, .login-btn, .action-btn):hover,
+:where(.game-popup, .inventory-item-modal, #skill-detail-modal, #confirm-modal, #reward-modal, #history-modal, #generic-modal, .friend-gift-picker-modal, .friend-gift-quantity-modal, .friend-gift-item-detail-modal)
+    :is(button, .btn, .skill-icon, .item-slot, .stat-up-btn, .stat-down-btn, .close-popup, .login-btn, .action-btn):active {
+    transform: none !important;
+    z-index: auto !important;
+}
+
+:where(.game-popup, .friend-gift-picker-modal, .friend-gift-quantity-modal)
+    :is(.friends-icon-action, .friends-icon-ghost, .friends-small-action, .friends-primary-action, .friends-secondary-action, .friends-danger-action, .friend-gift-kind-btn, .friend-gift-claim-btn, .friends-back-btn):hover {
+    transform: translateY(-1px) !important;
+}
+
+:where(.game-popup, .friend-gift-picker-modal, .friend-gift-quantity-modal)
+    :is(.friends-icon-action, .friends-icon-ghost, .friends-small-action, .friends-primary-action, .friends-secondary-action, .friends-danger-action, .friend-gift-kind-btn, .friend-gift-claim-btn, .friends-back-btn):active {
+    transform: translateY(1px) !important;
+}
+
+#status-popup .status-content-wrapper,
+#skill-popup .skill-content-wrapper,
+#skill-popup .skill-list,
+#settings-popup .settings-content-wrapper,
+.friends-profile-panel,
+.friends-chat-messages,
+.friend-thread-list,
+.friend-gift-picker-sheet,
+.friend-gift-quantity-sheet,
+.friend-gift-item-picker,
+.friend-gift-selected-list,
+.friend-gift-picker-preview,
+.friend-gift-item-detail-frame,
+.friend-gift-item-detail-body,
+.inventory-item-modal-card,
+#skill-detail-modal .skill-detail-modal-content,
+.confirm-content,
+.confirm-modal-content {
+    overflow-x: hidden;
 }

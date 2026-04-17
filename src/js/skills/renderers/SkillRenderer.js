@@ -361,18 +361,18 @@ export default class SkillRenderer {
 
         const palette = variant === 'blue_fireball'
             ? {
-                fill: 'rgba(76, 183, 255, 0.12)',
-                edge: 'rgba(125, 211, 252, 0.42)',
-                line: 'rgba(224, 242, 254, 0.95)',
-                impactStroke: 'rgba(76, 183, 255, 0.55)',
-                impactFill: 'rgba(76, 183, 255, 0.14)'
+                fill: 'rgba(76, 183, 255, 0.24)',
+                edge: 'rgba(191, 229, 255, 0.72)',
+                line: 'rgba(235, 247, 255, 0.92)',
+                impactStroke: 'rgba(191, 229, 255, 0.68)',
+                impactFill: 'rgba(76, 183, 255, 0.18)'
             }
             : {
-                fill: 'rgba(249, 115, 22, 0.12)',
-                edge: 'rgba(253, 186, 116, 0.42)',
-                line: 'rgba(255, 237, 213, 0.95)',
-                impactStroke: 'rgba(249, 115, 22, 0.55)',
-                impactFill: 'rgba(249, 115, 22, 0.14)'
+                fill: 'rgba(255, 88, 88, 0.22)',
+                edge: 'rgba(255, 188, 188, 0.72)',
+                line: 'rgba(255, 235, 235, 0.92)',
+                impactStroke: 'rgba(255, 188, 188, 0.68)',
+                impactFill: 'rgba(255, 88, 88, 0.16)'
             };
 
         const dx = targetX - originX;
@@ -381,57 +381,28 @@ export default class SkillRenderer {
         const dirY = dy / distance;
         const perpX = -dirY;
         const perpY = dx / distance;
-        const startHalfWidth = Math.max(10, widthRadius * 0.55);
-        const endHalfWidth = Math.max(14, widthRadius * 0.95);
+        const telegraphHalfWidth = Math.max(14, widthRadius * 0.9);
 
         ctx.save();
+        ctx.fillStyle = palette.fill;
+        ctx.strokeStyle = palette.edge;
+        ctx.lineWidth = this.isReducedEffectsMode() ? 1.8 : 2.2;
+        ctx.beginPath();
+        ctx.moveTo(originX + perpX * telegraphHalfWidth, originY + perpY * telegraphHalfWidth);
+        ctx.lineTo(targetX + perpX * telegraphHalfWidth, targetY + perpY * telegraphHalfWidth);
+        ctx.lineTo(targetX - perpX * telegraphHalfWidth, targetY - perpY * telegraphHalfWidth);
+        ctx.lineTo(originX - perpX * telegraphHalfWidth, originY - perpY * telegraphHalfWidth);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
 
-        if (this.isReducedEffectsMode()) {
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.strokeStyle = palette.edge;
-            ctx.lineWidth = endHalfWidth * 2;
-            ctx.beginPath();
-            ctx.moveTo(originX, originY);
-            ctx.lineTo(targetX, targetY);
-            ctx.stroke();
+        ctx.strokeStyle = palette.line;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(originX, originY);
+        ctx.lineTo(targetX, targetY);
+        ctx.stroke();
 
-            ctx.strokeStyle = palette.line;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(originX, originY);
-            ctx.lineTo(targetX, targetY);
-            ctx.stroke();
-        } else {
-            ctx.fillStyle = palette.fill;
-            ctx.beginPath();
-            ctx.moveTo(originX + perpX * startHalfWidth, originY + perpY * startHalfWidth);
-            ctx.lineTo(targetX + perpX * endHalfWidth, targetY + perpY * endHalfWidth);
-            ctx.lineTo(targetX - perpX * endHalfWidth, targetY - perpY * endHalfWidth);
-            ctx.lineTo(originX - perpX * startHalfWidth, originY - perpY * startHalfWidth);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.strokeStyle = palette.edge;
-            ctx.lineWidth = 1.8;
-            ctx.setLineDash([14, 12]);
-            ctx.beginPath();
-            ctx.moveTo(originX + perpX * startHalfWidth, originY + perpY * startHalfWidth);
-            ctx.lineTo(targetX + perpX * endHalfWidth, targetY + perpY * endHalfWidth);
-            ctx.moveTo(originX - perpX * startHalfWidth, originY - perpY * startHalfWidth);
-            ctx.lineTo(targetX - perpX * endHalfWidth, targetY - perpY * endHalfWidth);
-            ctx.stroke();
-
-            ctx.setLineDash([10, 10]);
-            ctx.strokeStyle = palette.line;
-            ctx.lineWidth = 2.2;
-            ctx.beginPath();
-            ctx.moveTo(originX, originY);
-            ctx.lineTo(targetX, targetY);
-            ctx.stroke();
-        }
-
-        ctx.setLineDash([]);
         ctx.fillStyle = palette.impactFill;
         ctx.beginPath();
         ctx.arc(targetX, targetY, aoeRadius, 0, Math.PI * 2);
@@ -439,12 +410,10 @@ export default class SkillRenderer {
 
         ctx.strokeStyle = palette.impactStroke;
         ctx.lineWidth = 2.2;
-        ctx.setLineDash([12, 8]);
         ctx.beginPath();
         ctx.arc(targetX, targetY, aoeRadius, 0, Math.PI * 2);
         ctx.stroke();
 
-        ctx.setLineDash([]);
         ctx.strokeStyle = this.withAlpha(palette.line, 0.9);
         ctx.lineWidth = 1.6;
         ctx.beginPath();

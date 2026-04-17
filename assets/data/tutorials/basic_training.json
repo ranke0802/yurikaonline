@@ -279,9 +279,6 @@
                 "#status-close-btn-top",
                 "#status-close-btn-bottom"
             ],
-            "avoidTargets": [
-                "#status-derived-panel"
-            ],
             "trigger": "stats_saved",
             "count": 1,
             "allowedActions": [
@@ -575,6 +572,7 @@
             ],
             "trigger": "skill_use",
             "target": "missile",
+            "completionDelay": 1000,
             "count": 1,
             "allowedActions": [
                 "MOVE_UP",
@@ -728,11 +726,11 @@
                 "mobile-portrait",
                 "mobile-landscape"
             ],
-            "instructionMobile": "이제 파이어볼 버튼을 누른 채 손가락을 움직여 조준해 보세요. 이동 조이스틱과는 별개로, 파이어볼을 누른 손가락으로만 각도를 바꿀 수 있어요.",
-            "instructionMobileLandscape": "이제 파이어볼 버튼을 누른 채 손가락을 움직여 조준해 보세요. 이동 조이스틱과 별개로, 파이어볼 버튼을 누른 손가락으로만 각도를 바꿀 수 있어요.",
+            "instructionMobile": "이제 파이어볼 버튼을 누른 채로 조준해 보세요. 손가락을 움직이면 조준선이 바뀌고, 떼면 발사됩니다.",
+            "instructionMobileLandscape": "이제 파이어볼 버튼을 누른 채로 조준해 보세요. 손가락을 움직이면 조준선이 바뀌고, 떼면 발사됩니다.",
             "questText": {
-                "mobilePortrait": "파이어볼 버튼을 누른 채 각도를 조준하세요.",
-                "mobileLandscape": "파이어볼 버튼을 누른 채 각도를 조준하세요."
+                "mobilePortrait": "파이어볼 버튼을 누른 채 조준하세요.",
+                "mobileLandscape": "파이어볼 버튼을 누른 채 조준하세요."
             },
             "focus": {
                 "mobilePortrait": {
@@ -754,13 +752,13 @@
                 "mobilePortrait": {
                     "guideMode": "top-card",
                     "highlightMode": "ring",
-                    "guideTitle": "파이어볼 조준",
+                    "guideTitle": "스킬 사용",
                     "compact": true
                 },
                 "mobileLandscape": {
                     "guideMode": "top-card",
                     "highlightMode": "ring",
-                    "guideTitle": "파이어볼 조준",
+                    "guideTitle": "스킬 사용",
                     "compact": true
                 }
             },
@@ -811,11 +809,14 @@
         },
         {
             "id": "use_fireball",
-            "instructionDesktop": "강화한 파이어볼을 사용해 보세요. `U` 키나 우측 하단 파이어볼 버튼을 누르면 됩니다.",
+            "layouts": [
+                "desktop"
+            ],
+            "instructionDesktop": "강화한 파이어볼을 사용해 보세요. 우측 하단 파이어볼 버튼을 누른 채 조준한 뒤 떼어 발사해 보세요.",
             "instructionMobile": "좋아요. 이제 손가락을 떼어 파이어볼을 발사해 보세요.",
             "instructionMobileLandscape": "좋아요. 이제 손가락을 떼어 파이어볼을 발사해 보세요.",
             "questText": {
-                "desktop": "파이어볼을 사용해 보세요.",
+                "desktop": "조준 후 파이어볼을 발사하세요.",
                 "mobilePortrait": "손을 떼어 파이어볼을 발사하세요.",
                 "mobileLandscape": "손을 떼어 파이어볼을 발사하세요."
             },
@@ -861,7 +862,7 @@
                 "mobilePortrait": [],
                 "mobileLandscape": []
             },
-            "trigger": "skill_use",
+            "trigger": "skill_motion_complete",
             "target": "fireball",
             "count": 1,
             "allowedActions": [
