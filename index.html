@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json?v=0.01.187">
+    <link rel="manifest" href="manifest.json?v=0.01.188">
     <meta name="theme-color" content="#2d3436">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
-        window.BOOTSTRAP_VERSION = '0.01.187';
+        window.BOOTSTRAP_VERSION = '0.01.188';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -213,7 +213,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.01.187', { updateViaCache: 'none' });
+                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.01.188', { updateViaCache: 'none' });
                     await registration.update();
                     registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
                     registration.addEventListener('updatefound', () => {
@@ -245,10 +245,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.01.187</title>
+    <title>Yurika Online v0.01.188</title>
 
-    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.01.187">
-    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.01.187">
+    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.01.188">
+    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.01.188">
     <script>
         // v0.29.20+: Prefer the actually loaded client build for UI, and auto-reset caches on mismatch.
         (async function initCacheBusting() {
@@ -269,7 +269,7 @@
             }
         });
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.01.187">
+    <link rel="stylesheet" href="src/css/style.css?v=0.01.188">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -1050,7 +1050,10 @@
                     <div id="friend-chat-messages" class="friends-chat-messages"></div>
 
                     <div id="friend-gift-composer" class="friend-gift-composer hidden">
-                        <div id="friend-gift-balance" class="friend-gift-balance"></div>
+                        <div class="friend-gift-toolbar">
+                            <div id="friend-gift-balance" class="friend-gift-balance"></div>
+                            <button id="friend-gift-open-picker-btn" type="button" class="friends-secondary-action">아이템 선택</button>
+                        </div>
 
                         <div id="friend-gift-item-panel" class="friend-gift-panel">
                             <div id="friend-gift-selected-list" class="friend-gift-selected-list"></div>
@@ -1058,12 +1061,21 @@
                                 <label for="friend-gift-item-amount">수량</label>
                                 <input id="friend-gift-item-amount" type="number" min="1" step="1" inputmode="numeric" value="1">
                             </div>
-                            <div id="friend-gift-item-picker" class="friend-gift-item-picker hidden"></div>
                         </div>
 
                         <div class="friend-gift-actions hidden">
                             <button id="friend-gift-cancel-btn" type="button" class="friends-secondary-action">접기</button>
                             <button id="friend-gift-send-btn" type="button" class="friends-primary-action">선물 보내기</button>
+                        </div>
+
+                        <div id="friend-gift-picker-modal" class="friend-gift-picker-modal hidden">
+                            <div class="friend-gift-picker-sheet">
+                                <div class="friend-gift-picker-sheet-header">
+                                    <strong id="friend-gift-picker-title">보낼 아이템 선택</strong>
+                                    <button id="friend-gift-picker-close-btn" type="button" class="friends-icon-ghost" aria-label="선물 아이템 선택 닫기">×</button>
+                                </div>
+                                <div id="friend-gift-item-picker" class="friend-gift-item-picker"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -1267,7 +1279,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.01.187"></script>
+    <script type="module" src="./src/js/main.js?v=0.01.188"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

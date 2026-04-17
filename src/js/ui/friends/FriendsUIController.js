@@ -88,6 +88,9 @@ export default class FriendsUIController {
         const chatGiftToggleBtn = document.getElementById('friend-chat-gift-toggle-btn');
         const chatOpacitySlider = document.getElementById('friend-chat-opacity-slider');
         const giftItemAmountInput = document.getElementById('friend-gift-item-amount');
+        const giftOpenPickerBtn = document.getElementById('friend-gift-open-picker-btn');
+        const giftPickerModal = document.getElementById('friend-gift-picker-modal');
+        const giftPickerCloseBtn = document.getElementById('friend-gift-picker-close-btn');
         const giftSendBtn = document.getElementById('friend-gift-send-btn');
         const chatProfileTogetherBtn = document.getElementById('friend-chat-profile-together-btn');
         const chatProfileChatBtn = document.getElementById('friend-chat-profile-chat-btn');
@@ -340,34 +343,17 @@ export default class FriendsUIController {
         });
 
         document.getElementById('friend-gift-cancel-btn')?.addEventListener('click', () => this.setFriendGiftComposerVisible(false));
+        giftOpenPickerBtn?.addEventListener('click', () => this.toggleFriendGiftItemPicker(true));
+        giftPickerCloseBtn?.addEventListener('click', () => this.toggleFriendGiftItemPicker(false));
+        giftPickerModal?.addEventListener('click', (event) => {
+            if (event.target === giftPickerModal) {
+                this.toggleFriendGiftItemPicker(false);
+            }
+        });
         giftItemAmountInput?.addEventListener('input', () => this.refreshFriendGiftOptions());
 
         giftSendBtn?.addEventListener('click', async () => {
-            const targetUid = this.friendChatUid || this.selectedFriendUid;
-            if (!targetUid || !this.game.net) return;
-
-            const selection = this.resolveFriendGiftSelection();
-            const inventoryIndex = Number(selection?.index ?? -1);
-            const amount = Math.max(1, Math.floor(Number(giftItemAmountInput?.value || 1)));
-            const result = await this.game.net.sendFriendGift(targetUid, { kind: 'item', inventoryIndex, amount });
-
-            if (!result?.ok) {
-                const messages = {
-                    invalid_gift: '보낼 선물 정보를 다시 확인해 주세요.',
-                    invalid_item: '보낼 수 있는 아이템이 아닙니다.',
-                    invalid_amount: '수량을 다시 확인해 주세요.',
-                    insufficient_manastone: '마석이 부족합니다.',
-                    not_friend: '친구에게만 선물을 보낼 수 있습니다.',
-                    send_failed: '선물 전송 중 오류가 발생했습니다.'
-                };
-                this.showGenericModal('선물 보내기', messages[result?.reason] || '선물 전송 중 오류가 발생했습니다.', null, null, { hideNo: true, yesText: '확인' });
-                return;
-            }
-
-            this.setFriendGiftComposerVisible(false);
-            this.friendGiftSelection = null;
-            this.refreshFriendGiftOptions();
-            this.renderFriendChatMessages({ forceToLatest: true });
+            await this.requestSendSelectedFriendGift();
         });
 
         chatMessages?.addEventListener('click', async (event) => {
@@ -730,7 +716,7 @@ export default class FriendsUIController {
         statusDot?.classList.toggle('is-online', false);
         statusDot?.classList.toggle('is-offline', true);
         backBtn?.classList.toggle('is-compact-mode', !!state.compact);
-        backBtn?.classList.toggle('hidden', !!state.compact && !!state.minimized && this.getFriendsPopupMode() === 'mobileLandscape');
+        backBtn?.classList.toggle('hidden', !!state.compact && !!state.minimized);
         togetherBtn?.classList.toggle('hidden', !!state.compact && !!state.minimized);
 
         if (!state.compact) {
@@ -1545,6 +1531,7 @@ export default class FriendsUIController {
         const composer = document.getElementById('friend-gift-composer');
         const toggleBtn = document.getElementById('friend-chat-gift-toggle-btn');
         const nextVisible = !!visible;
+        const wasVisible = !!composer && !composer.classList.contains('hidden');
 
         composer?.classList.toggle('hidden', !nextVisible);
         if (toggleBtn) {
@@ -1553,6 +1540,13 @@ export default class FriendsUIController {
             toggleBtn.setAttribute('aria-label', toggleBtn.title);
         }
         if (nextVisible) {
+            if (!wasVisible) {
+                this.friendGiftSelection = null;
+                const itemAmountInput = document.getElementById('friend-gift-item-amount');
+                if (itemAmountInput) {
+                    itemAmountInput.value = '1';
+                }
+            }
             const state = this.ensureFriendChatWindowState();
             const preset = this.getFriendChatCompactViewportPreset({ isGiftOpen: true });
             if (this.isFriendChatCompactMode()) {
@@ -1593,10 +1587,25 @@ export default class FriendsUIController {
         this.syncFriendGiftComposerLayoutState();
     }
 
+    getFriendGiftMaxAmount(item = null) {
+        if (!item) return 1;
+        if (item.stackable === false || item.slot) return 1;
+        return Math.max(1, Number(item.amount || 1));
+    }
+
+    shouldConfirmFriendGiftImmediately(item = null) {
+        return this.getFriendGiftMaxAmount(item) <= 1;
+    }
+
+    getFriendGiftTargetName(uid = this.friendChatUid || this.selectedFriendUid) {
+        return this.getFriendDisplayName(uid) || '친구';
+    }
+
     refreshFriendGiftOptions() {
         const balanceEl = document.getElementById('friend-gift-balance');
         const itemAmountInput = document.getElementById('friend-gift-item-amount');
         const itemAmountRow = document.getElementById('friend-gift-item-amount-row');
+        const openPickerBtn = document.getElementById('friend-gift-open-picker-btn');
         const sendBtn = document.getElementById('friend-gift-send-btn');
         const actionsEl = document.querySelector('#friend-gift-composer .friend-gift-actions');
         const player = this.game.localPlayer;
@@ -1605,23 +1614,14 @@ export default class FriendsUIController {
         const giftableItems = this.getGiftableFriendInventoryItems(player);
         const selection = this.resolveFriendGiftSelection(giftableItems);
         const selectedItem = selection?.item || null;
-        const maxAmount = selectedItem
-            ? (selectedItem.stackable === false || selectedItem.slot ? 1 : Math.max(1, Number(selectedItem.amount || 1)))
-            : 1;
+        const maxAmount = this.getFriendGiftMaxAmount(selectedItem);
         const canAdjustAmount = !!selectedItem && maxAmount > 1;
+        const nextAmount = Math.max(1, Math.min(Math.floor(Number(itemAmountInput?.value || 1)), maxAmount));
 
         if (itemAmountInput) {
             itemAmountInput.max = String(maxAmount);
             itemAmountInput.disabled = !canAdjustAmount;
-            if (Number(itemAmountInput.value || 0) <= 0) {
-                itemAmountInput.value = '1';
-            }
-            if (Number(itemAmountInput.value || 0) > maxAmount) {
-                itemAmountInput.value = String(maxAmount);
-            }
-            if (!canAdjustAmount) {
-                itemAmountInput.value = '1';
-            }
+            itemAmountInput.value = String(canAdjustAmount ? nextAmount : 1);
         }
         itemAmountRow?.classList.toggle('hidden', !canAdjustAmount);
 
@@ -1629,6 +1629,10 @@ export default class FriendsUIController {
             balanceEl.textContent = giftableItems.length
                 ? `보낼 수 있는 아이템 ${giftableItems.length}종`
                 : '보낼 수 있는 아이템이 없습니다.';
+        }
+        if (openPickerBtn) {
+            openPickerBtn.disabled = !giftableItems.length;
+            openPickerBtn.textContent = selectedItem ? '다른 아이템' : '아이템 선택';
         }
 
         if (sendBtn) {
@@ -1638,57 +1642,6 @@ export default class FriendsUIController {
 
         this.renderFriendGiftPicker(giftableItems);
         this.renderFriendGiftSelectionPreview(selection?.item || null, Math.max(1, Number(itemAmountInput?.value || 1)));
-        return;
-        /*
-
-        const giftableItems = this.getGiftableFriendInventoryItems(player);
-        const selection = this.resolveFriendGiftSelection(giftableItems);
-        const selectedItem = selection?.item || null;
-        const maxAmount = selectedItem
-            ? (selectedItem.stackable === false || selectedItem.slot ? 1 : Math.max(1, Number(selectedItem.amount || 1)))
-            : 1;
-        const canAdjustAmount = !!selectedItem && maxAmount > 1;
-        if (itemAmountInput) {
-            itemAmountInput.max = String(maxAmount);
-            itemAmountInput.disabled = !canAdjustAmount;
-            if (Number(itemAmountInput.value || 0) <= 0) {
-                itemAmountInput.value = '1';
-            }
-            if (Number(itemAmountInput.value || 0) > maxAmount) {
-                itemAmountInput.value = String(maxAmount);
-            }
-            if (!canAdjustAmount) {
-                itemAmountInput.value = '1';
-            }
-        }
-        itemAmountRow?.classList.toggle('hidden', !canAdjustAmount);
-
-        if (balanceEl) {
-            if (this.friendGiftKind === 'item') {
-                balanceEl.textContent = giftableItems.length
-                    ? `보유 아이템 ${giftableItems.length}종`
-                    : '보낼 수 있는 아이템이 없습니다.';
-            } else {
-                balanceEl.textContent = `보유 마석 ${manastone.toLocaleString('ko-KR')}`;
-            }
-        }
-        if (itemSummaryEl) {
-            itemSummaryEl.textContent = selectedItem
-                ? this.buildFriendGiftItemLabel(selectedItem, Math.max(1, Number(itemAmountInput?.value || 1)))
-                : '선택한 아이템이 없습니다.';
-        }
-
-        if (sendBtn) {
-            sendBtn.disabled = this.friendGiftKind === 'item'
-                ? !selectedItem
-                : manastone <= 0;
-        }
-        actionsEl?.classList.toggle('hidden', this.friendGiftKind === 'item' && !selectedItem);
-
-        this.renderFriendGiftPicker(giftableItems);
-        this.renderFriendGiftSelectionPreview(selection?.item || null, Math.max(1, Number(itemAmountInput?.value || 1)));
-        this.positionFriendGiftItemPicker();
-        */
     }
 
     getGiftableFriendInventoryItems(player = this.game.localPlayer) {
@@ -1718,14 +1671,104 @@ export default class FriendsUIController {
         return nextSelection;
     }
 
+    async requestSendSelectedFriendGift(options = {}) {
+        const targetUid = this.friendChatUid || this.selectedFriendUid;
+        if (!targetUid || !this.game.net) return;
+
+        const selection = this.resolveFriendGiftSelection();
+        const selectedItem = selection?.item || null;
+        if (!selectedItem) {
+            this.showGenericModal('선물 보내기', '보낼 아이템을 먼저 선택해 주세요.', null, null, { hideNo: true, yesText: '확인' });
+            return;
+        }
+
+        const itemAmountInput = document.getElementById('friend-gift-item-amount');
+        const maxAmount = this.getFriendGiftMaxAmount(selectedItem);
+        const requestedAmount = Math.max(1, Math.floor(Number(options.amount ?? itemAmountInput?.value || 1)));
+        const amount = Math.max(1, Math.min(requestedAmount, maxAmount));
+        if (itemAmountInput) {
+            itemAmountInput.value = String(amount);
+        }
+
+        const selectionState = {
+            index: selection.index,
+            identity: selection.identity || this.getInventoryItemIdentity(selectedItem)
+        };
+        const itemLabel = this.escapeHtml(this.buildFriendGiftItemLabel(selectedItem, amount));
+        const targetName = this.escapeHtml(this.getFriendGiftTargetName(targetUid));
+        this.showConfirm(`<strong>${itemLabel}</strong><br>${targetName}님께 선물하시겠습니까?`, async (confirmed) => {
+            if (!confirmed) return;
+            await this.sendFriendGiftSelection({
+                targetUid,
+                selectionState,
+                amount
+            });
+        });
+    }
+
+    async sendFriendGiftSelection({ targetUid, selectionState = null, amount = 1 } = {}) {
+        if (!targetUid || !this.game.net) return false;
+
+        const player = this.game.localPlayer;
+        const resolvedIndex = selectionState?.identity
+            ? this.findInventoryIndexByIdentity(player, selectionState.identity)
+            : Number(selectionState?.index ?? -1);
+        const selectedItem = resolvedIndex > 0 ? (player?.inventory || [])[resolvedIndex] || null : null;
+        if (!selectedItem) {
+            this.showGenericModal('선물 보내기', '보낼 수 있는 아이템을 다시 선택해 주세요.', null, null, { hideNo: true, yesText: '확인' });
+            this.friendGiftSelection = null;
+            this.refreshFriendGiftOptions();
+            return false;
+        }
+
+        const safeAmount = Math.max(1, Math.min(Math.floor(Number(amount || 1)), this.getFriendGiftMaxAmount(selectedItem)));
+        const result = await this.game.net.sendFriendGift(targetUid, {
+            kind: 'item',
+            inventoryIndex: resolvedIndex,
+            amount: safeAmount
+        });
+
+        if (!result?.ok) {
+            const messages = {
+                invalid_gift: '보낼 선물 정보를 다시 확인해 주세요.',
+                invalid_item: '보낼 수 있는 아이템이 아닙니다.',
+                invalid_amount: '수량을 다시 확인해 주세요.',
+                insufficient_manastone: '마석이 부족합니다.',
+                not_friend: '친구에게만 선물을 보낼 수 있습니다.',
+                send_failed: '선물 전송 중 오류가 발생했습니다.'
+            };
+            this.showGenericModal('선물 보내기', messages[result?.reason] || '선물 전송 중 오류가 발생했습니다.', null, null, { hideNo: true, yesText: '확인' });
+            return false;
+        }
+
+        this.setFriendGiftComposerVisible(false);
+        this.friendGiftSelection = null;
+        const itemAmountInput = document.getElementById('friend-gift-item-amount');
+        if (itemAmountInput) {
+            itemAmountInput.value = '1';
+        }
+        this.refreshFriendGiftOptions();
+        this.renderFriendChatMessages({ forceToLatest: true });
+        return true;
+    }
+
     toggleFriendGiftItemPicker(visible) {
+        const composer = document.getElementById('friend-gift-composer');
+        const modal = document.getElementById('friend-gift-picker-modal');
         const picker = document.getElementById('friend-gift-item-picker');
-        if (!picker) return;
-        picker.classList.toggle('hidden', !visible);
-        if (!visible) {
+        if (!composer || !modal || !picker) return;
+
+        const nextVisible = !!visible;
+        composer.classList.toggle('is-picker-open', nextVisible);
+        modal.classList.toggle('hidden', !nextVisible);
+        if (!nextVisible) {
             this.hideFriendGiftItemTooltip();
             return;
         }
+        this.renderFriendGiftPicker();
+        window.requestAnimationFrame(() => {
+            picker.scrollTop = 0;
+        });
     }
 
     renderFriendGiftPicker(entries = this.getGiftableFriendInventoryItems()) {
@@ -1751,12 +1794,20 @@ export default class FriendsUIController {
                     <span>${this.escapeHtml(item.stackable === false || item.slot ? '장비' : `보유 x${Math.max(1, Number(item.amount || 1)).toLocaleString('ko-KR')}`)}</span>
                 </span>
             `;
-            button.addEventListener('click', () => {
+            button.addEventListener('click', async () => {
                 this.friendGiftSelection = {
                     index,
                     identity: this.getInventoryItemIdentity(item)
                 };
+                const itemAmountInput = document.getElementById('friend-gift-item-amount');
+                if (itemAmountInput) {
+                    itemAmountInput.value = '1';
+                }
                 this.refreshFriendGiftOptions();
+                this.toggleFriendGiftItemPicker(false);
+                if (this.shouldConfirmFriendGiftImmediately(item)) {
+                    await this.requestSendSelectedFriendGift({ amount: 1 });
+                }
             });
             button.addEventListener('mouseenter', () => this.toggleFriendGiftItemDetailFromElement(button, { forceShow: true }));
             button.addEventListener('mouseleave', () => this.hideFriendGiftItemTooltip());
@@ -1791,7 +1842,7 @@ export default class FriendsUIController {
         `;
         preview.addEventListener('click', (event) => {
             event.preventDefault();
-            this.toggleFriendGiftItemDetailFromElement(preview);
+            this.toggleFriendGiftItemPicker(true);
         });
         preview.addEventListener('mouseenter', () => this.toggleFriendGiftItemDetailFromElement(preview, { forceShow: true }));
         preview.addEventListener('mouseleave', () => this.hideFriendGiftItemTooltip());
