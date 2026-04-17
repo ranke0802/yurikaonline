@@ -12527,6 +12527,9 @@ body.low-power-pwa #ui-layer #minimap-container {
     align-items: center;
     gap: 8px;
     flex: 0 0 auto;
+    min-width: 0;
+    max-width: 100%;
+    justify-content: flex-end;
 }
 
 .friends-icon-action {
@@ -13012,6 +13015,38 @@ body.low-power-pwa #ui-layer #minimap-container {
     gap: 8px;
 }
 
+.friends-chat-card.is-compact:not(.is-minimized) .friends-chat-avatar,
+.friends-chat-card.is-compact:not(.is-minimized) .friends-back-btn,
+.friends-chat-card.is-compact:not(.is-minimized) .friends-icon-action,
+.friends-chat-card.is-compact:not(.is-minimized) .friends-icon-ghost {
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
+}
+
+.friends-chat-card.is-compact:not(.is-minimized) .friends-back-btn {
+    min-width: 34px;
+    min-height: 34px;
+}
+
+.friends-chat-card.is-compact:not(.is-minimized) .friends-chat-avatar {
+    flex-basis: 34px;
+}
+
+.friends-chat-card.is-compact:not(.is-minimized) .friends-back-icon {
+    font-size: 18px;
+}
+
+.friends-chat-card.is-compact:not(.is-minimized) .friends-action-icon,
+.friends-chat-card.is-compact:not(.is-minimized) .friends-action-icon svg {
+    width: 15px;
+    height: 15px;
+}
+
+.friends-chat-card.is-compact:not(.is-minimized) .friends-chat-title-row strong {
+    font-size: 14px;
+}
+
 .friends-chat-card.is-compact .friends-chat-header button,
 .friends-chat-card.is-compact .friends-chat-header textarea,
 .friends-chat-card.is-compact .friends-chat-header input {
@@ -13066,23 +13101,34 @@ body.low-power-pwa #ui-layer #minimap-container {
 }
 
 .friends-chat-card.is-compact .friends-chat-header-actions {
+    gap: 4px;
+}
+
+.friends-chat-card.is-compact.is-narrow:not(.is-minimized) .friends-chat-header {
+    grid-template-columns: auto auto minmax(0, 1fr);
     gap: 6px;
+    align-items: center;
+}
+
+.friends-chat-card.is-compact.is-narrow:not(.is-minimized) .friends-chat-header-actions {
+    grid-column: 1 / -1;
+    justify-self: end;
 }
 
 .friends-chat-card.is-minimized .friends-icon-ghost,
 .friends-chat-card.is-minimized .friends-icon-action {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.44);
     border-color: rgba(22, 41, 61, 0.1);
-    font-size: 16px;
+    font-size: 14px;
 }
 
 .friends-chat-card.is-minimized .friends-action-icon,
 .friends-chat-card.is-minimized .friends-action-icon svg {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
 }
 
 .friends-chat-card.is-minimized .friend-chat-status-dot {

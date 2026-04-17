@@ -706,6 +706,7 @@ export default class FriendsUIController {
         const state = this.ensureFriendChatWindowState();
         const viewportPreset = this.getFriendChatCompactViewportPreset();
         const viewportChanged = state.viewportPreset !== viewportPreset.id;
+        let compactWidthForLayout = null;
 
         if (!modal || !card) return;
 
@@ -732,6 +733,7 @@ export default class FriendsUIController {
             state.width = nextWidth;
             state.height = nextHeight;
             state.scale = 1;
+            compactWidthForLayout = nextWidth;
             card.style.setProperty('--friend-chat-compact-width', `${Math.round(nextWidth)}px`);
             card.style.setProperty('--friend-chat-compact-height', `${Math.round(nextHeight)}px`);
         } else {
@@ -739,6 +741,11 @@ export default class FriendsUIController {
             card.style.removeProperty('--friend-chat-compact-width');
             card.style.removeProperty('--friend-chat-compact-height');
         }
+
+        this.syncFriendChatCompactLayoutState(card, {
+            state,
+            width: compactWidthForLayout
+        });
 
         if (compactBtn) {
             compactBtn.classList.toggle('is-active', !!state.compact);
@@ -774,6 +781,7 @@ export default class FriendsUIController {
             card.style.removeProperty('transform');
             card.style.removeProperty('transform-origin');
             card.style.removeProperty('margin');
+            card.classList.remove('is-narrow');
         } else {
             card.dataset.preserveFloatingTransform = 'true';
             card.style.setProperty('position', 'fixed', 'important');
@@ -788,11 +796,14 @@ export default class FriendsUIController {
             } else {
                 card.style.setProperty('left', `${Math.round(state.left)}px`, 'important');
                 card.style.setProperty('top', `${Math.round(state.top)}px`, 'important');
-                this.clampFloatingPanelToViewport?.(card);
-                const rect = card.getBoundingClientRect();
-                state.left = Math.round(rect.left);
-                state.top = Math.round(rect.top);
             }
+            this.clampFriendChatCompactPosition(card, { state });
+            const rect = card.getBoundingClientRect();
+            compactWidthForLayout = rect.width || compactWidthForLayout;
+            this.syncFriendChatCompactLayoutState(card, {
+                state,
+                width: compactWidthForLayout
+            });
         }
 
         if (titleEl && this.friendChatUid && state.compact && state.minimized) {
@@ -1082,6 +1093,48 @@ export default class FriendsUIController {
         };
     }
 
+    getFriendChatCompactNarrowThreshold() {
+        return 320;
+    }
+
+    syncFriendChatCompactLayoutState(card = document.getElementById('friend-chat-card'), options = {}) {
+        if (!card) return;
+
+        const state = options.state || this.ensureFriendChatWindowState();
+        const requestedWidth = Number(options.width);
+        const measuredWidth = Number.isFinite(requestedWidth) && requestedWidth > 0
+            ? requestedWidth
+            : (card.getBoundingClientRect().width || 0);
+        const isNarrow = !!state.compact
+            && !state.minimized
+            && measuredWidth > 0
+            && measuredWidth <= this.getFriendChatCompactNarrowThreshold();
+        card.classList.toggle('is-narrow', isNarrow);
+    }
+
+    clampFriendChatCompactPosition(card = document.getElementById('friend-chat-card'), options = {}) {
+        if (!card || !card.isConnected) return;
+
+        const state = options.state || this.ensureFriendChatWindowState();
+        if (!state.compact) return;
+
+        const rect = card.getBoundingClientRect();
+        const baseLeft = Number.isFinite(state.left) ? state.left : rect.left;
+        const baseTop = Number.isFinite(state.top) ? state.top : rect.top;
+        const clamped = this.clampFloatingPanelPosition(
+            baseLeft,
+            baseTop,
+            rect.width,
+            rect.height,
+            this.getFriendChatCompactMargin()
+        );
+
+        state.left = clamped.left;
+        state.top = clamped.top;
+        card.style.setProperty('left', `${Math.round(clamped.left)}px`, 'important');
+        card.style.setProperty('top', `${Math.round(clamped.top)}px`, 'important');
+    }
+
     resetFriendChatCompactPosition(card = document.getElementById('friend-chat-card'), options = {}) {
         if (!card) return;
 
@@ -1204,18 +1257,25 @@ export default class FriendsUIController {
             nextLeft = resizeState.startRight - width;
         }
 
-        const clamped = this.clampFloatingPanelPosition(nextLeft, nextTop, width, height, this.getFriendChatCompactMargin());
         const state = this.ensureFriendChatWindowState();
         state.scale = 1;
         state.width = width;
         state.height = height;
-        state.left = clamped.left;
-        state.top = clamped.top;
-
+        this.syncFriendChatCompactLayoutState(card, { state, width });
         card.style.setProperty('--friend-chat-compact-width', `${Math.round(width)}px`);
         card.style.setProperty('--friend-chat-compact-height', `${Math.round(height)}px`);
         card.style.removeProperty('transform');
         card.style.removeProperty('transform-origin');
+        const actualRect = card.getBoundingClientRect();
+        const clamped = this.clampFloatingPanelPosition(
+            nextLeft,
+            nextTop,
+            actualRect.width || width,
+            actualRect.height || height,
+            this.getFriendChatCompactMargin()
+        );
+        state.left = clamped.left;
+        state.top = clamped.top;
         card.style.setProperty('left', `${clamped.left}px`, 'important');
         card.style.setProperty('top', `${clamped.top}px`, 'important');
         this.positionFriendGiftItemPicker();
