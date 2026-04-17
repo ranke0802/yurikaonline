@@ -2589,7 +2589,6 @@ export default class FriendsUIController {
             <span class="friend-gift-preview-icon">${this.createInventoryIconElement(item, 'friend-gift-icon').outerHTML}</span>
             <span class="friend-gift-preview-meta">
                 <strong>${this.escapeHtml(this.buildFriendGiftItemLabel(item, amount))}</strong>
-                <span>${this.escapeHtml(this.buildFriendGiftItemQuantityLabel(item, amount))}</span>
             </span>
         `;
         preview.addEventListener('click', (event) => {
