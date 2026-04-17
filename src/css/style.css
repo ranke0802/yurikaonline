@@ -12668,18 +12668,20 @@ body.low-power-pwa #ui-layer #minimap-container {
 }
 
 #friend-gift-item-panel {
-    grid-template-columns: minmax(0, 1fr) auto minmax(88px, 108px);
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    align-items: stretch;
+}
+
+.friend-gift-amount-row {
+    display: grid;
+    grid-template-columns: auto minmax(88px, 108px);
     gap: 8px 10px;
     align-items: center;
+    justify-content: end;
 }
 
-#friend-gift-item-panel .friend-gift-item-picker-row,
-#friend-gift-item-panel #friend-gift-selected-list,
-#friend-gift-item-panel #friend-gift-item-picker {
-    grid-column: 1 / -1;
-}
-
-#friend-gift-item-panel label[for="friend-gift-item-amount"] {
+.friend-gift-amount-row label {
     margin: 0;
     justify-self: end;
 }
@@ -13275,12 +13277,15 @@ body.low-power-pwa #ui-layer #minimap-container {
 }
 
 .friend-gift-item-picker {
-    max-height: 220px;
+    max-height: min(34dvh, 280px);
     padding: 8px;
     border: 1px solid rgba(22, 41, 61, 0.08);
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.58);
     overflow: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
@@ -13316,6 +13321,11 @@ body.low-power-pwa #ui-layer #minimap-container {
 .friend-gift-preview-card,
 .friend-gift-item-card {
     padding: 8px 10px;
+}
+
+.friend-gift-picker-item.is-selected {
+    border-color: rgba(42, 167, 161, 0.28);
+    background: rgba(42, 167, 161, 0.12);
 }
 
 .friend-gift-picker-empty {
@@ -13595,27 +13605,16 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 
     #friend-chat-modal:not(.is-compact) .friends-chat-card.is-gift-open .friend-gift-composer {
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 10px 12px;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
         max-height: none;
         overflow: auto;
         align-items: start;
     }
 
-    #friend-chat-modal:not(.is-compact) .friends-chat-card.is-gift-open .friend-gift-kind-row {
-        grid-column: 1;
-    }
-
     #friend-chat-modal:not(.is-compact) .friends-chat-card.is-gift-open #friend-gift-balance {
-        grid-column: 2;
-        justify-self: end;
-        align-self: center;
-    }
-
-    #friend-chat-modal:not(.is-compact) .friends-chat-card.is-gift-open #friend-gift-manastone-panel,
-    #friend-chat-modal:not(.is-compact) .friends-chat-card.is-gift-open #friend-gift-item-panel,
-    #friend-chat-modal:not(.is-compact) .friends-chat-card.is-gift-open .friend-gift-actions {
-        grid-column: 1 / -1;
+        justify-self: start;
+        align-self: start;
     }
 
     #friend-chat-modal:not(.is-compact) .friends-chat-card.is-gift-open .friend-gift-actions {
@@ -13751,12 +13750,12 @@ body.low-power-pwa #ui-layer #minimap-container {
         padding: 8px;
     }
 
-    #friend-gift-manastone-panel,
-    #friend-gift-item-panel {
+    #friend-gift-item-panel,
+    .friend-gift-amount-row {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    #friend-gift-item-panel label[for="friend-gift-item-amount"] {
+    .friend-gift-amount-row label {
         justify-self: start;
     }
 

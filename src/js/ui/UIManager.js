@@ -40,7 +40,7 @@ export class UIManager {
         this.friendProfileCache = new Map();
         this.friendChatUid = null;
         this.friendChatReturnView = 'list';
-        this.friendGiftKind = 'manastone';
+        this.friendGiftKind = 'item';
         this.friendGiftSelection = null;
         this.friendAlertCount = 0;
         this.friendChatWindowState = {
