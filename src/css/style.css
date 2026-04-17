@@ -13081,6 +13081,8 @@ body.low-power-pwa #ui-layer #minimap-container {
 
 .friends-chat-card.is-minimized .friends-chat-header-actions {
     gap: 6px;
+    position: relative;
+    overflow: visible;
 }
 
 .friends-chat-card.is-minimized .friend-chat-opacity-control {
@@ -13141,9 +13143,14 @@ body.low-power-pwa #ui-layer #minimap-container {
 .friends-chat-card.is-minimized .friend-chat-unread-dot {
     width: 8px;
     height: 8px;
-    flex-basis: 8px;
-    margin-left: 2px;
+    position: absolute;
+    top: 50%;
+    right: calc(100% + 6px);
+    margin: 0;
+    transform: translateY(-50%);
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.38);
+    flex: none;
+    z-index: 1;
 }
 
 .friends-chat-title-row {
