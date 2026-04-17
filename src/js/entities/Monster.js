@@ -2,6 +2,11 @@ import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
 
+function shouldFreezeForModalUi() {
+    const ui = window.game?.ui;
+    const net = window.game?.net;
+    return !!ui?.isPaused && !net?.isSharedFieldActive?.();
+}
 
 export default class Monster extends CharacterBase {
     constructor(x, y, definition) {
@@ -422,7 +427,7 @@ export default class Monster extends CharacterBase {
         // v1.99.9: Hard cap on dt to prevent physics tunneling or explosions during lag
         const safeDt = Math.min(0.1, dt);
         const isPassive = !!this.behavior?.passive || this.typeId === 'training_dummy';
-        const isPaused = !!window.game?.ui?.isPaused;
+        const isPaused = shouldFreezeForModalUi();
         const isStoryActive = !!window.game?.story?.isStoryActive;
 
         if (this.hp <= 0 && !this.isDead) {
@@ -520,7 +525,7 @@ export default class Monster extends CharacterBase {
                     players.push(player);
                 };
                 // v0.00.55: Filter candidates who are viewing modals (isPaused)
-                const isLocalPaused = !!window.game?.ui?.isPaused;
+                const isLocalPaused = shouldFreezeForModalUi();
                 if (window.game?.localPlayer && !window.game.localPlayer.isDead && !isLocalPaused && !this._isProtectedPlayer(window.game.localPlayer)) {
                     seenIds.add(window.game.localPlayer.id);
                     players.push(window.game.localPlayer);

@@ -4,6 +4,12 @@ import { Sprite } from '../core/Sprite.js';
 import SkillRenderer from '../skills/renderers/SkillRenderer.js';
 import { INVENTORY_TOTAL_SLOTS } from '../constants/inventory.js';
 
+function shouldApplyModalSafetyPause(netInstance = null) {
+    const ui = window.game?.ui;
+    const net = netInstance || window.game?.net;
+    return !!ui?.isPaused && !net?.isSharedFieldActive?.();
+}
+
 const ITEM_DEFINITIONS = {
     slime_gel: { name: '슬라임 젤', icon: '🟢' },
     potion_hp_small: { name: '소형 HP 포션', icon: '🧪' },
@@ -956,7 +962,7 @@ export default class Player extends CharacterBase {
     takeDamage(amount, fromNetwork = false, isCrit = false, sourceX = null, sourceY = null, attacker = null, effectType = null, effectDuration = 0, effectDamage = 0) {
         if (this.isDead) return 0;
         // v0.00.54: Prevent damage while in modals (Character Status, Inventory, etc.)
-        if (window.game?.ui?.isPaused) return 0;
+        if (shouldApplyModalSafetyPause(this.net)) return 0;
         if (this.isProtected()) return 0;
         const suppressTransientEffects = !!window.game?.shouldSuppressTransientWorldEffects?.();
 
@@ -1127,7 +1133,7 @@ export default class Player extends CharacterBase {
             manastone: this.manastone,
             vitality: this.vitality,
             defense: this.defense || 0, // v0.00.53: Sync defense to others
-            isPaused: !!window.game?.ui?.isPaused, // v0.00.55: Sync safety state
+            isPaused: shouldApplyModalSafetyPause(this.net), // Sync modal safety only for solo field play
             intelligence: this.intelligence,
             wisdom: this.wisdom,
             agility: this.agility,
@@ -1232,7 +1238,7 @@ export default class Player extends CharacterBase {
                     patch.equipment = this._cloneProfilePatchValue(this.equipment);
                     break;
                 case 'isPaused':
-                    patch.isPaused = !!window.game?.ui?.isPaused;
+                    patch.isPaused = shouldApplyModalSafetyPause(this.net);
                     break;
                 case 'protectedUntil':
                     patch.protectedUntil = this.spawnProtectionTimer > 0
