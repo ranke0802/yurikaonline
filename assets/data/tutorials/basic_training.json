@@ -726,11 +726,11 @@
                 "mobile-portrait",
                 "mobile-landscape"
             ],
-            "instructionMobile": "이제 파이어볼 버튼을 누른 채로 조준해 보세요. 손가락을 움직이면 조준선이 바뀌고, 떼면 발사됩니다.",
-            "instructionMobileLandscape": "이제 파이어볼 버튼을 누른 채로 조준해 보세요. 손가락을 움직이면 조준선이 바뀌고, 떼면 발사됩니다.",
+            "instructionMobile": "이제 파이어볼 버튼을 누른 채로 조준하고, 손을 떼어 발사해 보세요. 처음 조준선은 가장 가까운 적을 향합니다.",
+            "instructionMobileLandscape": "이제 파이어볼 버튼을 누른 채로 조준하고, 손을 떼어 발사해 보세요. 처음 조준선은 가장 가까운 적을 향합니다.",
             "questText": {
-                "mobilePortrait": "파이어볼 버튼을 누른 채 조준하세요.",
-                "mobileLandscape": "파이어볼 버튼을 누른 채 조준하세요."
+                "mobilePortrait": "조준 후 손을 떼어 파이어볼을 발사하세요.",
+                "mobileLandscape": "조준 후 손을 떼어 파이어볼을 발사하세요."
             },
             "focus": {
                 "mobilePortrait": {
@@ -796,7 +796,7 @@
                     }
                 ]
             },
-            "trigger": "skill_aim_adjust",
+            "trigger": "skill_motion_complete",
             "target": "fireball",
             "count": 1,
             "allowedActions": [

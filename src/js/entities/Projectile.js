@@ -25,6 +25,8 @@ export class Projectile {
         this.visualOnly = !!options.visualOnly;
         this.tutorialSkillTarget = options.tutorialSkillTarget || null;
         this.tutorialSkillSlot = Number.isFinite(options.tutorialSkillSlot) ? options.tutorialSkillSlot : null;
+        this.tutorialSkillTutorialId = options.tutorialSkillTutorialId || null;
+        this.tutorialSkillStepId = options.tutorialSkillStepId || null;
         this.tutorialSkillMotionTriggered = false;
         this.fireballChainChance = Math.max(0, Math.min(1, this.weaponEffect?.fireballChainChance || 0));
         this.fireballChainDamageRatio = Math.max(0, this.weaponEffect?.fireballChainDamageRatio || 0);
@@ -621,6 +623,8 @@ export class Projectile {
         if (this.tutorialSkillMotionTriggered || !this.tutorialSkillTarget) return;
         if (this.type !== 'fireball') return;
         if (this.ownerId !== window.game?.localPlayer?.id) return;
+        if (this.tutorialSkillTutorialId && window.game?.tutorial?.activeTutorial?.id !== this.tutorialSkillTutorialId) return;
+        if (this.tutorialSkillStepId && window.game?.tutorial?.getCurrentStep?.()?.id !== this.tutorialSkillStepId) return;
 
         this.tutorialSkillMotionTriggered = true;
         window.game?.tutorial?.trigger?.('skill_motion_complete', {

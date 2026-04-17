@@ -2041,9 +2041,15 @@ export default class FriendsUIController {
 
     cancelFriendGiftQuantityModal(options = {}) {
         const {
-            reopenPicker = true,
-            clearSelection = false
+            reopenPicker = false,
+            clearSelection = true,
+            closeComposer = true
         } = options;
+
+        if (closeComposer) {
+            this.setFriendGiftComposerVisible(false);
+            return;
+        }
 
         this.toggleFriendGiftQuantityModal(false, { clearSelection });
         if (reopenPicker && this.isFriendGiftComposerVisible() && !this.isFriendChatMinimized()) {
@@ -2226,7 +2232,7 @@ export default class FriendsUIController {
 
         this.showConfirm(`<strong>${itemLabel}</strong><br>${targetName}님께 선물하시겠습니까?`, async (confirmed) => {
             if (!confirmed) {
-                this.renderFriendGiftQuantityModal();
+                this.cancelFriendGiftQuantityModal();
                 return;
             }
 
@@ -2269,7 +2275,10 @@ export default class FriendsUIController {
         const itemLabel = this.escapeHtml(this.buildFriendGiftItemLabel(selectedItem, amount));
         const targetName = this.escapeHtml(this.getFriendGiftTargetName(targetUid));
         this.showConfirm(`<strong>${itemLabel}</strong><br>${targetName}님께 선물하시겠습니까?`, async (confirmed) => {
-            if (!confirmed) return;
+            if (!confirmed) {
+                this.setFriendGiftComposerVisible(false);
+                return;
+            }
             await this.sendFriendGiftSelection({
                 targetUid,
                 selectionState,
