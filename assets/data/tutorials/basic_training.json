@@ -241,7 +241,7 @@
                 "#status-intelligence-row"
             ],
             "avoidTargets": [
-                "#status-derived-panel"
+                "#status-popup"
             ],
             "trigger": "stat_allocated",
             "target": "intelligence",
@@ -278,6 +278,9 @@
             "focus": [
                 "#status-close-btn-top",
                 "#status-close-btn-bottom"
+            ],
+            "avoidTargets": [
+                "#status-popup"
             ],
             "trigger": "stats_saved",
             "count": 1,
@@ -798,6 +801,7 @@
             },
             "trigger": "skill_motion_complete",
             "target": "fireball",
+            "completionDelay": 1000,
             "count": 1,
             "allowedActions": [
                 "MOVE_UP",
@@ -864,6 +868,7 @@
             },
             "trigger": "skill_motion_complete",
             "target": "fireball",
+            "completionDelay": 1000,
             "count": 1,
             "allowedActions": [
                 "MOVE_UP",
@@ -1026,6 +1031,7 @@
             ],
             "trigger": "skill_use",
             "target": "shield",
+            "completionDelay": 1000,
             "count": 1,
             "allowedActions": [
                 "MOVE_UP",
