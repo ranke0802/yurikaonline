@@ -14745,6 +14745,14 @@ body.is-ios-device {
     }
 }
 
+@media screen and (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
+    body #ui-layer #btn-fullscreen,
+    body #ui-layer #btn-fullscreen-exit {
+        display: none !important;
+        pointer-events: none !important;
+    }
+}
+
 /* Prevent global hover scaling from creating horizontal scrollbars inside modal UIs. */
 :where(.game-popup, .inventory-item-modal, #skill-detail-modal, #confirm-modal, #reward-modal, #history-modal, #generic-modal, .friend-gift-picker-modal, .friend-gift-quantity-modal, .friend-gift-item-detail-modal)
     :is(button, .btn, .skill-icon, .item-slot, .stat-up-btn, .stat-down-btn, .close-popup, .login-btn, .action-btn):hover,

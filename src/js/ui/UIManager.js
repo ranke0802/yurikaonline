@@ -3820,19 +3820,22 @@ export class UIManager {
         const fullscreenButton = document.getElementById('btn-fullscreen');
         const exitButton = document.getElementById('btn-fullscreen-exit');
         const immersiveMobile = this.isImmersiveMobileActive();
+        const hideLandscapeHudButtons = immersiveMobile && this.isMobileLandscapeViewport();
         const fullscreenTitle = immersiveMobile
             ? (this.mobileOrientationPreference === 'portrait' ? '가로모드' : '세로모드')
             : '전체화면';
 
         if (fullscreenButton) {
             fullscreenButton.classList.toggle('is-orientation-toggle', immersiveMobile);
+            fullscreenButton.classList.toggle('hidden', hideLandscapeHudButtons);
             fullscreenButton.title = fullscreenTitle;
             fullscreenButton.setAttribute('aria-label', fullscreenTitle);
+            fullscreenButton.setAttribute('aria-hidden', hideLandscapeHudButtons ? 'true' : 'false');
         }
 
         if (exitButton) {
-            exitButton.classList.toggle('hidden', !immersiveMobile);
-            exitButton.setAttribute('aria-hidden', immersiveMobile ? 'false' : 'true');
+            exitButton.classList.toggle('hidden', !immersiveMobile || hideLandscapeHudButtons);
+            exitButton.setAttribute('aria-hidden', immersiveMobile && !hideLandscapeHudButtons ? 'false' : 'true');
         }
     }
 
