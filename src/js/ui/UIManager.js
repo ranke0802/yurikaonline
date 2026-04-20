@@ -3804,6 +3804,11 @@ export class UIManager {
         return this.isTouchDevice() && isNarrow && isPortrait;
     }
 
+    isTouchLandscapeViewport() {
+        const isLandscape = window.matchMedia?.('(orientation: landscape)')?.matches ?? (window.innerWidth > window.innerHeight);
+        return this.isTouchDevice() && isLandscape;
+    }
+
     isImmersiveMobileActive() {
         return this.isTouchDevice() && (this.isStandaloneDisplayMode() || this.isFullscreenActive());
     }
@@ -3812,15 +3817,17 @@ export class UIManager {
         const body = document.body;
         if (!body) return;
 
+        const touchLandscape = this.isTouchLandscapeViewport();
         body.classList.toggle('is-ios-device', this.isIosLikeDevice());
         body.classList.toggle('is-mobile-landscape', this.isMobileLandscapeViewport());
         body.classList.toggle('is-mobile-portrait', this.isMobilePortraitViewport());
         body.classList.toggle('is-mobile-immersive', this.isImmersiveMobileActive());
+        body.classList.toggle('is-touch-landscape', touchLandscape);
 
         const fullscreenButton = document.getElementById('btn-fullscreen');
         const exitButton = document.getElementById('btn-fullscreen-exit');
         const immersiveMobile = this.isImmersiveMobileActive();
-        const hideLandscapeHudButtons = immersiveMobile && this.isMobileLandscapeViewport();
+        const hideLandscapeHudButtons = touchLandscape;
         const fullscreenTitle = immersiveMobile
             ? (this.mobileOrientationPreference === 'portrait' ? '가로모드' : '세로모드')
             : '전체화면';

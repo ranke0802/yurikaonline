@@ -14684,6 +14684,12 @@ body.is-ios-device {
     display: none;
 }
 
+body.is-touch-landscape #ui-layer #btn-fullscreen,
+body.is-touch-landscape #ui-layer #btn-fullscreen-exit {
+    display: none !important;
+    pointer-events: none !important;
+}
+
 @media screen and (max-width: 1024px) and (pointer: coarse) {
     body.is-ios-device #popup-overlay,
     body.is-ios-device .confirm-modal-overlay,
