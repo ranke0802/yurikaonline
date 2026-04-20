@@ -4339,8 +4339,11 @@ export class UIManager {
                 e.preventDefault();
                 e.stopImmediatePropagation();
                 if (!this.game.net || !this.game.localPlayer?.party || this.game.localPlayer.party.members.length < 2) return;
-                await this.game.net.leaveParty();
-                this.updatePartyUI();
+                this.showConfirm('함께하기를 종료하시겠습니까?', async (confirmed) => {
+                    if (!confirmed) return;
+                    await this.game.net.leaveParty();
+                    this.updatePartyUI();
+                });
             };
             btn.addEventListener('click', handleLeaveParty);
             btn.addEventListener('touchstart', handleLeaveParty, { passive: false });
