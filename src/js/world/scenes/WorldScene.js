@@ -378,6 +378,7 @@ export default class WorldScene extends Scene {
         } else {
             this.activateZoneParticipation();
         }
+        this.ui?.armBrowserBackExitGuard?.();
     }
 
     isPointInSafeZone(x, y, padding = 0) {
@@ -754,6 +755,7 @@ export default class WorldScene extends Scene {
     }
 
     async exit() {
+        this.ui?.disarmBrowserBackExitGuard?.();
         if (this._handleHostChanged) {
             this.net.off('hostChanged', this._handleHostChanged);
             this._handleHostChanged = null;

@@ -57,6 +57,12 @@ export class UIManager {
         this.partyPanelUiState = {
             minimized: false
         };
+        this.browserBackExitGuardArmed = false;
+        this.browserBackExitConfirmPending = false;
+        this.browserBackExitGuardKey = '__yurikaWorldExitGuard';
+        this.ignoreNextBrowserBackPopstate = false;
+        this.pendingBrowserBackExitAction = null;
+        this.gameExitSceneTransitioning = false;
         this.statusDevLookupExpanded = false;
         this.handleDesktopShortcutKeydown = this.handleDesktopShortcutKeydown.bind(this);
         this.refreshDesktopShortcutHints = this.refreshDesktopShortcutHints.bind(this);
@@ -169,6 +175,7 @@ export class UIManager {
         this.handleTutorialGuideDragEnd = this.handleTutorialGuideDragEnd.bind(this);
         this.handleFloatingPanelDragMove = this.handleFloatingPanelDragMove.bind(this);
         this.handleFloatingPanelDragEnd = this.handleFloatingPanelDragEnd.bind(this);
+        this.handleBrowserBackPopState = this.handleBrowserBackPopState.bind(this);
         this.handleUiLayoutControlPointerDown = this.handleUiLayoutControlPointerDown.bind(this);
         this.handleUiLayoutControlPointerMove = this.handleUiLayoutControlPointerMove.bind(this);
         this.handleUiLayoutControlPointerUp = this.handleUiLayoutControlPointerUp.bind(this);
@@ -4305,6 +4312,7 @@ export class UIManager {
 
     setupEventListeners() {
         document.addEventListener('keydown', this.handleDesktopShortcutKeydown);
+        window.addEventListener('popstate', this.handleBrowserBackPopState);
         document.addEventListener('pointermove', this.handleTutorialGuideDragMove, { passive: false });
         document.addEventListener('pointermove', this.handleFloatingPanelDragMove, { passive: false });
         document.addEventListener('pointermove', this.handleUiLayoutControlPointerMove, { passive: false });
@@ -7115,6 +7123,142 @@ export class UIManager {
         this.confirmCallback = null;
         this.refreshDesktopShortcutHints();
         this.scheduleTutorialOverlayRefresh(false);
+    }
+
+    isWorldSceneActive() {
+        return this.game?.sceneManager?.currentScene === this.game?.sceneManager?.scenes?.get('world');
+    }
+
+    isBrowserBackExitGuardState(state = window.history?.state) {
+        return !!(state && typeof state === 'object' && state[this.browserBackExitGuardKey]);
+    }
+
+    armBrowserBackExitGuard() {
+        if (!window.history?.pushState || !this.isWorldSceneActive()) return false;
+        if (this.isBrowserBackExitGuardState()) {
+            this.browserBackExitGuardArmed = true;
+            return true;
+        }
+
+        const nextState = {
+            ...(window.history.state && typeof window.history.state === 'object' ? window.history.state : {}),
+            [this.browserBackExitGuardKey]: Date.now()
+        };
+
+        try {
+            window.history.pushState(nextState, '', window.location.href);
+            this.browserBackExitGuardArmed = true;
+            return true;
+        } catch (error) {
+            Logger.warn('[UIManager] Failed to arm browser back exit guard', error);
+            this.browserBackExitGuardArmed = false;
+            return false;
+        }
+    }
+
+    disarmBrowserBackExitGuard() {
+        this.browserBackExitGuardArmed = false;
+        this.browserBackExitConfirmPending = false;
+        this.pendingBrowserBackExitAction = null;
+        this.ignoreNextBrowserBackPopstate = false;
+
+        if (!window.history?.replaceState || !this.isBrowserBackExitGuardState()) return;
+
+        const nextState = {
+            ...(window.history.state && typeof window.history.state === 'object' ? window.history.state : {})
+        };
+        delete nextState[this.browserBackExitGuardKey];
+
+        try {
+            window.history.replaceState(Object.keys(nextState).length ? nextState : null, '', window.location.href);
+        } catch (error) {
+            Logger.warn('[UIManager] Failed to disarm browser back exit guard', error);
+        }
+    }
+
+    handleBrowserBackPopState() {
+        if (this.ignoreNextBrowserBackPopstate) {
+            this.ignoreNextBrowserBackPopstate = false;
+            const pendingAction = this.pendingBrowserBackExitAction;
+            this.pendingBrowserBackExitAction = null;
+            if (typeof pendingAction === 'function') {
+                void pendingAction();
+            }
+            return;
+        }
+
+        if (!this.browserBackExitGuardArmed || !this.isWorldSceneActive()) {
+            this.browserBackExitGuardArmed = false;
+            this.browserBackExitConfirmPending = false;
+            return;
+        }
+
+        this.armBrowserBackExitGuard();
+        if (this.browserBackExitConfirmPending || this.gameExitSceneTransitioning) return;
+
+        this.browserBackExitConfirmPending = true;
+        this.showConfirm('게임을 종료하시겠습니까?', (confirmed) => {
+            this.browserBackExitConfirmPending = false;
+            if (!confirmed) return;
+
+            this.pendingBrowserBackExitAction = async () => {
+                await this.exitGameToCharacterSelection({ reason: 'browser_back_exit' });
+            };
+            this.ignoreNextBrowserBackPopstate = true;
+
+            try {
+                window.history.back();
+            } catch (error) {
+                Logger.warn('[UIManager] Failed to step back to base history entry', error);
+                this.ignoreNextBrowserBackPopstate = false;
+                const pendingAction = this.pendingBrowserBackExitAction;
+                this.pendingBrowserBackExitAction = null;
+                if (typeof pendingAction === 'function') {
+                    void pendingAction();
+                }
+            }
+        });
+    }
+
+    async exitGameToCharacterSelection(options = {}) {
+        if (this.gameExitSceneTransitioning) return false;
+        if (!this.isWorldSceneActive()) return false;
+
+        const currentUser = this.game?.auth?.currentUser || window.firebase?.auth?.().currentUser || null;
+        if (!currentUser) {
+            Logger.warn('[UIManager] Cannot exit game to character selection without an authenticated user.');
+            return false;
+        }
+
+        this.gameExitSceneTransitioning = true;
+        try {
+            this.disarmBrowserBackExitGuard();
+            this.game?._resetTransientInputState?.(options.reason || 'exit_game_to_char_select');
+
+            const player = this.game.localPlayer;
+            if (player?.saveState) {
+                player.saveState(false, {
+                    debounceMs: 0,
+                    reason: options.reason || 'exit_game_to_char_select'
+                });
+            }
+
+            await this.game?.net?.flushQueuedProfileSaves?.();
+            await this.game?.net?.flushQueuedProfilePatches?.();
+            this.game?.net?.setZoneParticipationEnabled?.(false);
+            this.game.localPlayer = null;
+
+            await this.game?.sceneManager?.changeScene('charSelect', { user: currentUser });
+            return true;
+        } catch (error) {
+            Logger.error('[UIManager] Failed to exit game to character selection', error);
+            if (this.isWorldSceneActive()) {
+                this.armBrowserBackExitGuard();
+            }
+            return false;
+        } finally {
+            this.gameExitSceneTransitioning = false;
+        }
     }
 
     formatSkillPercent(value, digits = 0) {
