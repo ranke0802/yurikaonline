@@ -441,6 +441,14 @@ export default class Monster extends CharacterBase {
             Logger.log(`[Monster] Local death trigger for ${this.id}`);
         }
 
+        // v0.02.017: In solo modal pause, freeze the monster exactly as-is so
+        // charge/cast targeting resumes from the remaining state after closing the popup.
+        if (isPaused) {
+            this.vx = 0;
+            this.vy = 0;
+            return;
+        }
+
         if (this.isDead) {
             this.deathTimer += dt;
             this.alpha = Math.max(0, 1 - (this.deathTimer / this.deathDuration));
@@ -450,13 +458,12 @@ export default class Monster extends CharacterBase {
             return; // Dead monsters only fade out, no AI
         }
 
-        // v0.00.85: Pause AI/Movement if UI is in a modal or Story is active
-        if (isPaused || isStoryActive) {
-            // v0.00.85: Reset velocity to prevent persistent sliding during stories
+        // v0.00.85: Pause AI/Movement if Story is active
+        if (isStoryActive) {
+            // Reset velocity to prevent persistent sliding during stories
             this.vx = 0;
             this.vy = 0;
             this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
-
             if (this.hitTimer > 0) this.hitTimer = Math.max(0, this.hitTimer - dt);
 
             if (this.chargeState === 'casting') {

@@ -42,6 +42,10 @@ export default class WorldScene extends Scene {
         this._handleHostChanged = null;
     }
 
+    shouldFreezeWorldForModalUi() {
+        return !!this.ui?.isPaused && !this.net?.isSharedFieldActive?.();
+    }
+
     /**
      * v0.00.22: Check if entity is within camera viewport + margin
      */
@@ -857,6 +861,10 @@ export default class WorldScene extends Scene {
     }
 
     update(dt) {
+        if (this.shouldFreezeWorldForModalUi()) {
+            return;
+        }
+
         this.time += dt;
         this.hudUpdateTimer += dt;
         this.minimapUpdateTimer += dt;
