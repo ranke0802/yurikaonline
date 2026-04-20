@@ -9315,34 +9315,36 @@ export class UIManager {
     positionInventoryItemModal() {
         const modal = document.getElementById('inventory-item-modal');
         const card = modal?.querySelector('.inventory-item-modal-card');
-        const shell = modal?.parentElement;
+        const popup = document.getElementById('inventory-popup');
         const anchor = this.getInventoryEnhancementTargetElement(this.selectedInventoryRef);
         const useBottomSheet = window.matchMedia('(max-width: 1024px) and (orientation: portrait)').matches;
 
         if (!modal || !card) return;
 
-        if (modal.classList.contains('hidden') || useBottomSheet || !shell || !anchor) {
+        if (modal.classList.contains('hidden') || useBottomSheet || !popup || !anchor) {
             modal.style.removeProperty('--inventory-modal-left');
             modal.style.removeProperty('--inventory-modal-top');
             return;
         }
 
-        const shellRect = shell.getBoundingClientRect();
+        const popupRect = popup.getBoundingClientRect();
         const anchorRect = anchor.getBoundingClientRect();
         const cardRect = card.getBoundingClientRect();
+        const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
+        const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
         const margin = 8;
         const gap = 12;
-        const availableRight = shellRect.right - anchorRect.right;
-        const availableLeft = anchorRect.left - shellRect.left;
-        const maxLeft = Math.max(margin, shellRect.width - cardRect.width - margin);
-        const maxTop = Math.max(margin, shellRect.height - cardRect.height - margin);
+        const availableRight = popupRect.right - anchorRect.right;
+        const availableLeft = anchorRect.left - popupRect.left;
+        const maxLeft = Math.max(margin, viewportW - cardRect.width - margin);
+        const maxTop = Math.max(margin, viewportH - cardRect.height - margin);
 
-        let left = anchorRect.right - shellRect.left + gap;
+        let left = anchorRect.right + gap;
         if (availableRight < (cardRect.width + gap) && availableLeft >= (cardRect.width + gap)) {
-            left = anchorRect.left - shellRect.left - cardRect.width - gap;
+            left = anchorRect.left - cardRect.width - gap;
         }
 
-        let top = anchorRect.top - shellRect.top + ((anchorRect.height - cardRect.height) / 2);
+        let top = anchorRect.top + ((anchorRect.height - cardRect.height) / 2);
         left = Math.min(maxLeft, Math.max(margin, left));
         top = Math.min(maxTop, Math.max(margin, top));
 
@@ -9923,7 +9925,7 @@ export class UIManager {
         const enhanceBtn = document.getElementById('inventory-action-enhance');
         const blessedEnhanceBtn = document.getElementById('inventory-action-enhance-blessed');
         const dismantleBtn = document.getElementById('inventory-action-dismantle');
-        const actionsEl = document.querySelector('#inventory-popup .inventory-detail-actions');
+        const actionsEl = document.querySelector('#inventory-item-modal .inventory-detail-actions');
         const headActionsEl = document.getElementById('inventory-detail-head-actions');
 
         if (actionsEl && enhanceBtn && enhanceBtn.parentElement !== actionsEl) {

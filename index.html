@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json?v=0.02.022">
+    <link rel="manifest" href="manifest.json?v=0.02.023">
     <meta name="theme-color" content="#2d3436">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
-        window.BOOTSTRAP_VERSION = '0.02.022';
+        window.BOOTSTRAP_VERSION = '0.02.023';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -213,7 +213,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.022', { updateViaCache: 'none' });
+                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.023', { updateViaCache: 'none' });
                     await registration.update();
                     registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
                     registration.addEventListener('updatefound', () => {
@@ -245,10 +245,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.02.022</title>
+    <title>Yurika Online v0.02.023</title>
 
-    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.02.022">
-    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.02.022">
+    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.02.023">
+    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.02.023">
     <script>
         // v0.29.20+: Prefer the actually loaded client build for UI, and auto-reset caches on mismatch.
         (async function initCacheBusting() {
@@ -269,7 +269,7 @@
             }
         });
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.02.022">
+    <link rel="stylesheet" href="src/css/style.css?v=0.02.023">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -523,33 +523,34 @@
                     <div class="inventory-scroll-shell">
                         <div id="inventory-grid" class="inventory-grid"></div>
                     </div>
-                    <div id="inventory-item-modal" class="inventory-item-modal hidden">
-                        <div class="inventory-item-modal-card">
-                            <button type="button" id="inventory-item-modal-close" class="inventory-item-modal-close" aria-label="상세 닫기">✕</button>
-                            <div class="inventory-detail-head">
-                                <div id="inventory-detail-icon" class="inventory-detail-icon"></div>
-                                <div class="inventory-detail-title-block">
-                                    <h3 id="inventory-detail-name">아이템 이름</h3>
-                                    <p id="inventory-detail-subtitle"></p>
-                                </div>
-                                <div id="inventory-detail-head-actions" class="inventory-detail-head-actions hidden"></div>
-                            </div>
-                            <p id="inventory-detail-desc" class="inventory-detail-desc"></p>
-                            <ul id="inventory-detail-stats" class="inventory-detail-stats"></ul>
-                            <div id="inventory-enhance-hint" class="inventory-enhance-hint"></div>
-                            <div class="inventory-detail-actions">
-                                <button type="button" id="inventory-action-equip" class="inventory-action-btn">장착</button>
-                                <button type="button" id="inventory-action-unequip" class="inventory-action-btn hidden">해제</button>
-                                <button type="button" id="inventory-action-enhance" class="inventory-action-btn accent hidden">강화</button>
-                                <button type="button" id="inventory-action-enhance-blessed" class="inventory-action-btn blessed hidden">축복 강화</button>
-                                <button type="button" id="inventory-action-dismantle" class="inventory-action-btn warning hidden">분해</button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 <div class="popup-footer inventory-popup-footer">
                     <div id="inventory-count-display" class="inventory-count-display">0 / 300</div>
                     <button id="inventory-close-btn-bottom" class="close-btn-bottom close-popup">닫기</button>
+                </div>
+            </div>
+
+            <div id="inventory-item-modal" class="inventory-item-modal hidden">
+                <div class="inventory-item-modal-card">
+                    <button type="button" id="inventory-item-modal-close" class="inventory-item-modal-close" aria-label="상세 닫기">✕</button>
+                    <div class="inventory-detail-head">
+                        <div id="inventory-detail-icon" class="inventory-detail-icon"></div>
+                        <div class="inventory-detail-title-block">
+                            <h3 id="inventory-detail-name">아이템 이름</h3>
+                            <p id="inventory-detail-subtitle"></p>
+                        </div>
+                        <div id="inventory-detail-head-actions" class="inventory-detail-head-actions hidden"></div>
+                    </div>
+                    <p id="inventory-detail-desc" class="inventory-detail-desc"></p>
+                    <ul id="inventory-detail-stats" class="inventory-detail-stats"></ul>
+                    <div id="inventory-enhance-hint" class="inventory-enhance-hint"></div>
+                    <div class="inventory-detail-actions">
+                        <button type="button" id="inventory-action-equip" class="inventory-action-btn">장착</button>
+                        <button type="button" id="inventory-action-unequip" class="inventory-action-btn hidden">해제</button>
+                        <button type="button" id="inventory-action-enhance" class="inventory-action-btn accent hidden">강화</button>
+                        <button type="button" id="inventory-action-enhance-blessed" class="inventory-action-btn blessed hidden">축복 강화</button>
+                        <button type="button" id="inventory-action-dismantle" class="inventory-action-btn warning hidden">분해</button>
+                    </div>
                 </div>
             </div>
 
@@ -1302,7 +1303,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.02.022"></script>
+    <script type="module" src="./src/js/main.js?v=0.02.023"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

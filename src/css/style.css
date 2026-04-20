@@ -1236,12 +1236,13 @@ button:active,
 }
 
 .inventory-item-modal {
-    position: absolute;
+    position: fixed;
     inset: 0;
     display: block;
     padding: 0;
     background: transparent;
-    z-index: 4;
+    z-index: 2050;
+    pointer-events: auto;
 }
 
 .inventory-item-modal.hidden {
@@ -8431,13 +8432,15 @@ body.is-fullscreen .version-info {
         overflow: hidden !important;
     }
 
-    #inventory-popup .inventory-detail-stats {
+    #inventory-popup .inventory-detail-stats,
+    #inventory-item-modal .inventory-detail-stats {
         flex: 1 1 auto !important;
         min-height: 0 !important;
         overflow: auto !important;
     }
 
-    #inventory-popup .inventory-enhance-hint {
+    #inventory-popup .inventory-enhance-hint,
+    #inventory-item-modal .inventory-enhance-hint {
         margin-top: 8px !important;
         font-size: 11px !important;
         line-height: 1.35 !important;
@@ -8445,7 +8448,8 @@ body.is-fullscreen .version-info {
         word-break: keep-all !important;
     }
 
-    #inventory-popup .inventory-detail-actions {
+    #inventory-popup .inventory-detail-actions,
+    #inventory-item-modal .inventory-detail-actions {
         margin-top: 10px !important;
         display: flex !important;
         justify-content: flex-start !important;
@@ -8454,11 +8458,13 @@ body.is-fullscreen .version-info {
         flex-shrink: 0 !important;
     }
 
-    #inventory-popup .inventory-detail-actions.inventory-detail-actions-centered {
+    #inventory-popup .inventory-detail-actions.inventory-detail-actions-centered,
+    #inventory-item-modal .inventory-detail-actions.inventory-detail-actions-centered {
         justify-content: center !important;
     }
 
-    #inventory-popup .inventory-action-btn {
+    #inventory-popup .inventory-action-btn,
+    #inventory-item-modal .inventory-action-btn {
         min-width: 0 !important;
         padding: 8px 10px !important;
         font-size: 12px !important;
@@ -8817,7 +8823,7 @@ body #ui-layer #hostility-panel .hostility-item,
     align-content: start !important;
 }
 
-#inventory-popup .inventory-item-modal-card .pc-shortcut-hint {
+#inventory-item-modal .inventory-item-modal-card .pc-shortcut-hint {
     margin-top: 10px;
     align-self: flex-start;
 }
@@ -8849,8 +8855,9 @@ body #ui-layer #hostility-panel .hostility-item,
         font-size: 32px !important;
     }
 
-    #inventory-popup .inventory-item-modal-card {
-        width: min(360px, calc(100% - 28px)) !important;
+    #inventory-item-modal .inventory-item-modal-card {
+        width: min(360px, calc(100vw - 32px)) !important;
+        max-width: calc(100vw - 32px) !important;
     }
 }
 
@@ -8890,25 +8897,26 @@ body #ui-layer #hostility-panel .hostility-item,
         font-size: 9px !important;
     }
 
-    #inventory-popup .inventory-item-modal:not(.hidden) {
+    #inventory-item-modal:not(.hidden) {
         display: flex !important;
-        align-items: flex-end !important;
-        justify-content: stretch !important;
-        padding: 10px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 12px !important;
     }
 
-    #inventory-popup .inventory-item-modal-card {
+    #inventory-item-modal .inventory-item-modal-card {
         position: relative !important;
         left: auto !important;
         top: auto !important;
-        width: 100% !important;
-        max-width: none !important;
-        max-height: min(68vh, 480px) !important;
+        width: min(420px, calc(100vw - 24px)) !important;
+        max-width: calc(100vw - 24px) !important;
+        max-height: min(72dvh, 560px) !important;
         padding: 16px !important;
         border-radius: 16px !important;
+        transform: none !important;
     }
 
-    #inventory-popup .inventory-detail-stats {
+    #inventory-item-modal .inventory-detail-stats {
         max-height: none !important;
     }
 
@@ -8987,31 +8995,36 @@ body #ui-layer #hostility-panel .hostility-item,
         font-size: 8px !important;
     }
 
-    #inventory-popup .inventory-item-modal:not(.hidden) {
-        position: absolute !important;
+    #inventory-item-modal:not(.hidden) {
+        position: fixed !important;
         inset: 0 !important;
-        z-index: 20 !important;
-        padding: 0 !important;
-        align-items: stretch !important;
-        justify-content: flex-start !important;
+        z-index: 2050 !important;
+        padding: 12px !important;
+        align-items: center !important;
+        justify-content: center !important;
         background: transparent !important;
         backdrop-filter: none !important;
     }
 
-    #inventory-popup .inventory-item-modal-card {
-        width: min(320px, calc(100% - 20px)) !important;
+    #inventory-item-modal .inventory-item-modal-card {
+        position: relative !important;
+        left: auto !important;
+        top: auto !important;
+        width: min(420px, calc(100vw - 24px)) !important;
+        max-width: calc(100vw - 24px) !important;
         height: auto !important;
         min-height: 0 !important;
-        max-height: calc(100% - 16px) !important;
+        max-height: min(78dvh, calc(100vh - 24px)) !important;
         padding: 14px 16px 12px !important;
         border-radius: 14px !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: flex-start !important;
         overflow: auto !important;
+        transform: none !important;
     }
 
-    #inventory-popup .inventory-item-modal-close {
+    #inventory-item-modal .inventory-item-modal-close {
         top: 10px !important;
         right: 10px !important;
         width: 30px !important;
@@ -9019,7 +9032,7 @@ body #ui-layer #hostility-panel .hostility-item,
         font-size: 18px !important;
     }
 
-    #inventory-popup .inventory-detail-head {
+    #inventory-item-modal .inventory-detail-head {
         align-items: flex-start !important;
         gap: 0 !important;
         margin-bottom: 8px !important;
@@ -9027,34 +9040,34 @@ body #ui-layer #hostility-panel .hostility-item,
         padding-right: 34px !important;
     }
 
-    #inventory-popup .inventory-detail-icon {
+    #inventory-item-modal .inventory-detail-icon {
         display: none !important;
     }
 
-    #inventory-popup .inventory-detail-title-block h3 {
+    #inventory-item-modal .inventory-detail-title-block h3 {
         font-size: 18px !important;
         line-height: 1.2 !important;
     }
 
-    #inventory-popup .inventory-detail-title-block p {
+    #inventory-item-modal .inventory-detail-title-block p {
         margin-top: 4px !important;
         font-size: 12px !important;
         line-height: 1.35 !important;
     }
 
-    #inventory-popup .inventory-detail-head-actions {
+    #inventory-item-modal .inventory-detail-head-actions {
         margin-left: 8px !important;
         gap: 6px !important;
     }
 
-    #inventory-popup .inventory-detail-desc {
+    #inventory-item-modal .inventory-detail-desc {
         margin-bottom: 8px !important;
         font-size: 12px !important;
         line-height: 1.5 !important;
         flex: 0 0 auto !important;
     }
 
-    #inventory-popup .inventory-detail-stats {
+    #inventory-item-modal .inventory-detail-stats {
         flex: 1 1 auto !important;
         min-height: 0 !important;
         max-height: none !important;
@@ -9065,14 +9078,14 @@ body #ui-layer #hostility-panel .hostility-item,
         overflow: auto !important;
     }
 
-    #inventory-popup .inventory-enhance-hint {
+    #inventory-item-modal .inventory-enhance-hint {
         margin-top: 8px !important;
         font-size: 11px !important;
         line-height: 1.4 !important;
         flex: 0 0 auto !important;
     }
 
-    #inventory-popup .inventory-detail-actions {
+    #inventory-item-modal .inventory-detail-actions {
         margin-top: 10px !important;
         padding-top: 10px !important;
         justify-content: flex-start !important;
@@ -9082,11 +9095,11 @@ body #ui-layer #hostility-panel .hostility-item,
         flex: 0 0 auto !important;
     }
 
-    #inventory-popup .inventory-detail-actions.inventory-detail-actions-centered {
+    #inventory-item-modal .inventory-detail-actions.inventory-detail-actions-centered {
         justify-content: center !important;
     }
 
-    #inventory-popup .inventory-action-btn {
+    #inventory-item-modal .inventory-action-btn {
         min-height: 36px !important;
         min-width: 0 !important;
         padding: 6px 10px !important;
@@ -9115,14 +9128,14 @@ body #ui-layer #hostility-panel .hostility-item,
     }
 }
 
-#inventory-popup .inventory-item-modal.hidden {
+#inventory-item-modal.hidden {
     display: none !important;
 }
 
 body.low-power-pwa .confirm-modal-overlay,
 body.low-power-pwa #confirm-modal,
 body.low-power-pwa #death-modal,
-body.low-power-pwa #inventory-popup .inventory-item-modal,
+body.low-power-pwa #inventory-item-modal,
 body.low-power-pwa #ui-layer #minimap-container,
 body.low-power-pwa #ui-layer .minimap-menu {
     backdrop-filter: none !important;
@@ -9135,7 +9148,7 @@ body.low-power-pwa #death-modal {
     background: rgba(17, 15, 20, 0.7) !important;
 }
 
-body.low-power-pwa #inventory-popup .inventory-item-modal {
+body.low-power-pwa #inventory-item-modal {
     background: transparent !important;
 }
 
