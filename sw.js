@@ -1,4 +1,4 @@
-const APP_VERSION = '0.02.028';
+const APP_VERSION = '0.02.029';
 const SHELL_CACHE = `yurika-online-shell-${APP_VERSION}`;
 const STATIC_CACHE = `yurika-online-static-${APP_VERSION}`;
 const ACTIVE_CACHES = [SHELL_CACHE, STATIC_CACHE];
@@ -9,6 +9,7 @@ const APP_SHELL = [
     `./manifest.json?v=${APP_VERSION}`,
     `./src/css/style.css?v=${APP_VERSION}`,
     `./src/js/main.js?v=${APP_VERSION}`,
+    `./src/js/firebaseConfig.js?v=${APP_VERSION}`,
     `./src/assets/icon_192_clean.webp?v=${APP_VERSION}`,
     `./src/assets/icon_512_clean.webp?v=${APP_VERSION}`
 ];

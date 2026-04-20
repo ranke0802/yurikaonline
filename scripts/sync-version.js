@@ -172,6 +172,12 @@ function syncFiles(version, changedFiles) {
     );
     indexHtml = replaceOrThrow(
         indexHtml,
+        /<script src="src\/js\/firebaseConfig\.js(?:\?v=[^"]+)?"><\/script>/,
+        `<script src="src/js/firebaseConfig.js?v=${version}"></script>`,
+        'index.html firebase config version'
+    );
+    indexHtml = replaceOrThrow(
+        indexHtml,
         /<title>Yurika Online v?[^<]+<\/title>/,
         `<title>Yurika Online v${version}</title>`,
         'index.html title version'
