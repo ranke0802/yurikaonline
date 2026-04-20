@@ -14,6 +14,9 @@ export class UIManager {
         this.landscapeFullscreenDismissed = false;
         this._wasFullscreenActive = false;
         this.mobileOrientationPreference = this.isMobileLandscapeViewport() ? 'landscape' : 'portrait';
+        this.transientOrientationPreference = null;
+        this.transientOrientationLockUntil = 0;
+        this.transientOrientationReleaseTimer = null;
         this.pcQuestClaimHandler = null;
         this.hudRefs = {};
         this.cooldownRefs = {};
@@ -3796,6 +3799,36 @@ export class UIManager {
         });
     }
 
+    isTransientOrientationLockActive() {
+        if (!this.transientOrientationPreference) return false;
+        if (Date.now() < this.transientOrientationLockUntil) return true;
+        this.clearTransientOrientationPreference();
+        return false;
+    }
+
+    setTransientOrientationPreference(preference = 'landscape', durationMs = 1200) {
+        this.clearTransientOrientationPreference();
+        this.transientOrientationPreference = preference === 'portrait' ? 'portrait' : 'landscape';
+        this.transientOrientationLockUntil = Date.now() + Math.max(300, durationMs);
+        const remainingMs = Math.max(0, this.transientOrientationLockUntil - Date.now()) + 50;
+        this.transientOrientationReleaseTimer = window.setTimeout(() => {
+            if (!this.getSetting('orientationLock')) {
+                this.clearTransientOrientationPreference();
+                this.syncOrientationLock();
+                this.syncMobileEnvironmentClasses();
+            }
+        }, remainingMs);
+    }
+
+    clearTransientOrientationPreference() {
+        if (this.transientOrientationReleaseTimer) {
+            window.clearTimeout(this.transientOrientationReleaseTimer);
+            this.transientOrientationReleaseTimer = null;
+        }
+        this.transientOrientationPreference = null;
+        this.transientOrientationLockUntil = 0;
+    }
+
     isTouchDevice() {
         return !!(window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0);
     }
@@ -3864,6 +3897,7 @@ export class UIManager {
     }
 
     setMobileOrientationPreference(preference = 'landscape') {
+        this.clearTransientOrientationPreference();
         this.mobileOrientationPreference = preference === 'portrait' ? 'portrait' : 'landscape';
         this.landscapeFullscreenDismissed = this.mobileOrientationPreference === 'portrait';
         this.scheduleOrientationLockRefresh();
@@ -3877,13 +3911,18 @@ export class UIManager {
 
     syncOrientationLock() {
         if (screen.orientation && screen.orientation.lock) {
-            const shouldLock = this.isImmersiveMobileActive() && this.getSetting('orientationLock');
+            const transientLockActive = this.isTransientOrientationLockActive();
+            const shouldLock = this.isImmersiveMobileActive() && (this.getSetting('orientationLock') || transientLockActive);
             if (!shouldLock) {
+                this.clearTransientOrientationPreference();
                 screen.orientation.unlock?.();
                 return;
             }
 
-            const preferPortrait = this.mobileOrientationPreference === 'portrait';
+            const effectivePreference = transientLockActive
+                ? this.transientOrientationPreference
+                : this.mobileOrientationPreference;
+            const preferPortrait = effectivePreference === 'portrait';
             const preferredMode = preferPortrait ? 'portrait-primary' : 'landscape-primary';
             const fallbackMode = preferPortrait ? 'portrait' : 'landscape';
             screen.orientation.lock(preferredMode).catch(() => {
@@ -4280,10 +4319,18 @@ export class UIManager {
         this.syncLandscapeChatLayout();
     }
 
-    enterFullscreen() {
+    enterFullscreen(options = {}) {
+        const { preferredOrientation = null } = options;
         if (this.isTouchDevice()) {
-            this.mobileOrientationPreference = this.getCurrentMobileOrientationPreference();
+            const nextOrientationPreference = preferredOrientation === 'portrait' || preferredOrientation === 'landscape'
+                ? preferredOrientation
+                : this.getCurrentMobileOrientationPreference();
+            this.clearTransientOrientationPreference();
+            this.mobileOrientationPreference = nextOrientationPreference;
             this.landscapeFullscreenDismissed = false;
+            if (preferredOrientation && !this.getSetting('orientationLock')) {
+                this.setTransientOrientationPreference(nextOrientationPreference);
+            }
         }
         if (this.isFullscreenActive() || this.isStandaloneDisplayMode()) return Promise.resolve(true);
 
@@ -4291,16 +4338,25 @@ export class UIManager {
         const request = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.mozRequestFullScreen || elem.msRequestFullscreen;
         if (!request) {
             this.pendingLandscapeFullscreen = false;
+            this.clearTransientOrientationPreference();
             return Promise.resolve(false);
         }
 
         try {
             const result = request.call(elem);
             if (result && typeof result.then === 'function') {
-                return result.then(() => true).catch(() => false);
+                return result.then(() => {
+                    this.syncOrientationLock();
+                    return true;
+                }).catch(() => {
+                    this.clearTransientOrientationPreference();
+                    return false;
+                });
             }
+            this.syncOrientationLock();
             return Promise.resolve(true);
         } catch {
+            this.clearTransientOrientationPreference();
             return Promise.resolve(false);
         }
     }
@@ -10676,7 +10732,10 @@ export class UIManager {
         if (!this.isFullscreenActive()) {
             this.landscapeFullscreenDismissed = false;
             this.pendingLandscapeFullscreen = false;
-            this.enterFullscreen();
+            const preferredOrientation = this.isTouchDevice() && this.isMobilePortraitViewport()
+                ? 'landscape'
+                : null;
+            this.enterFullscreen({ preferredOrientation });
         } else {
             this.exitFullscreenMode();
         }
@@ -10685,6 +10744,7 @@ export class UIManager {
     exitFullscreenMode() {
         this.pendingLandscapeFullscreen = false;
         this.landscapeFullscreenDismissed = true;
+        this.clearTransientOrientationPreference();
         this.mobileOrientationPreference = this.getCurrentMobileOrientationPreference();
 
         const finalize = () => {
