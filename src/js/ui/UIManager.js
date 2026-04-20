@@ -268,6 +268,7 @@ export class UIManager {
             basicAttackSound: 'deep_shock',
             muted: false,
             autoFullscreen: true,
+            orientationLock: false,
             reducedEffects: false,
             desktopShortcutHints: true,
             developerLogLevel: 'warn',
@@ -337,6 +338,7 @@ export class UIManager {
             basicAttackSound: this.sanitizeBasicAttackSound(candidate.basicAttackSound, defaults.basicAttackSound),
             muted: !!candidate.muted,
             autoFullscreen: candidate.autoFullscreen !== false,
+            orientationLock: !!candidate.orientationLock,
             reducedEffects: !!candidate.reducedEffects,
             desktopShortcutHints: candidate.desktopShortcutHints !== false,
             developerLogLevel: this.sanitizeLogLevel(candidate.developerLogLevel, defaults.developerLogLevel),
@@ -753,11 +755,17 @@ export class UIManager {
         this.game.sound?.setMuted?.(this.getSetting('muted'));
         this.friendsUI?.syncFriendChatOpacityUi?.(this.getSetting('friendCompactOpacity'));
 
+        if (this.getSetting('orientationLock')) {
+            this.mobileOrientationPreference = this.getCurrentMobileOrientationPreference();
+        }
+
         if (syncUi) {
             this.syncSettingsUi();
         }
 
         this.updateLandscapeAutoFullscreen();
+        this.syncOrientationLock();
+        this.syncMobileEnvironmentClasses();
         this.refreshDesktopShortcutHints();
 
         if (refreshGame) {
@@ -790,6 +798,7 @@ export class UIManager {
         const checkboxBindings = [
             ['settings-muted', 'muted'],
             ['settings-auto-fullscreen', 'autoFullscreen'],
+            ['settings-orientation-lock', 'orientationLock'],
             ['settings-reduced-effects', 'reducedEffects'],
             ['settings-shortcut-hints', 'desktopShortcutHints']
         ];
@@ -3813,27 +3822,35 @@ export class UIManager {
         return this.isTouchDevice() && (this.isStandaloneDisplayMode() || this.isFullscreenActive());
     }
 
+    getCurrentMobileOrientationPreference() {
+        return this.isMobilePortraitViewport() ? 'portrait' : 'landscape';
+    }
+
     syncMobileEnvironmentClasses() {
         const body = document.body;
         if (!body) return;
 
         const touchLandscape = this.isTouchLandscapeViewport();
+        const immersiveMobile = this.isImmersiveMobileActive();
+        const orientationLocked = !!this.getSetting('orientationLock');
+        if (!orientationLocked) {
+            this.mobileOrientationPreference = this.getCurrentMobileOrientationPreference();
+        }
+
         body.classList.toggle('is-ios-device', this.isIosLikeDevice());
         body.classList.toggle('is-mobile-landscape', this.isMobileLandscapeViewport());
         body.classList.toggle('is-mobile-portrait', this.isMobilePortraitViewport());
-        body.classList.toggle('is-mobile-immersive', this.isImmersiveMobileActive());
+        body.classList.toggle('is-mobile-immersive', immersiveMobile);
         body.classList.toggle('is-touch-landscape', touchLandscape);
+        body.classList.toggle('is-orientation-locked', orientationLocked);
 
         const fullscreenButton = document.getElementById('btn-fullscreen');
         const exitButton = document.getElementById('btn-fullscreen-exit');
-        const immersiveMobile = this.isImmersiveMobileActive();
-        const hideLandscapeHudButtons = touchLandscape;
-        const fullscreenTitle = immersiveMobile
-            ? (this.mobileOrientationPreference === 'portrait' ? '가로모드' : '세로모드')
-            : '전체화면';
+        const hideLandscapeHudButtons = touchLandscape || (this.isTouchDevice() && immersiveMobile);
+        const fullscreenTitle = '전체화면';
 
         if (fullscreenButton) {
-            fullscreenButton.classList.toggle('is-orientation-toggle', immersiveMobile);
+            fullscreenButton.classList.toggle('is-orientation-toggle', false);
             fullscreenButton.classList.toggle('hidden', hideLandscapeHudButtons);
             fullscreenButton.title = fullscreenTitle;
             fullscreenButton.setAttribute('aria-label', fullscreenTitle);
@@ -3841,8 +3858,8 @@ export class UIManager {
         }
 
         if (exitButton) {
-            exitButton.classList.toggle('hidden', !immersiveMobile || hideLandscapeHudButtons);
-            exitButton.setAttribute('aria-hidden', immersiveMobile && !hideLandscapeHudButtons ? 'false' : 'true');
+            exitButton.classList.toggle('hidden', true);
+            exitButton.setAttribute('aria-hidden', 'true');
         }
     }
 
@@ -3860,11 +3877,9 @@ export class UIManager {
 
     syncOrientationLock() {
         if (screen.orientation && screen.orientation.lock) {
-            const shouldLock = this.isImmersiveMobileActive();
+            const shouldLock = this.isImmersiveMobileActive() && this.getSetting('orientationLock');
             if (!shouldLock) {
-                screen.orientation.lock('any').catch(() => {
-                    screen.orientation.unlock?.();
-                });
+                screen.orientation.unlock?.();
                 return;
             }
 
@@ -4267,7 +4282,7 @@ export class UIManager {
 
     enterFullscreen() {
         if (this.isTouchDevice()) {
-            this.mobileOrientationPreference = 'landscape';
+            this.mobileOrientationPreference = this.getCurrentMobileOrientationPreference();
             this.landscapeFullscreenDismissed = false;
         }
         if (this.isFullscreenActive() || this.isStandaloneDisplayMode()) return Promise.resolve(true);
@@ -4633,6 +4648,7 @@ export class UIManager {
         const toggleSettings = [
             ['settings-muted', 'muted', { refreshGame: false }],
             ['settings-auto-fullscreen', 'autoFullscreen', { refreshGame: false }],
+            ['settings-orientation-lock', 'orientationLock', { refreshGame: false }],
             ['settings-reduced-effects', 'reducedEffects', { refreshGame: true }],
             ['settings-shortcut-hints', 'desktopShortcutHints', { refreshGame: false }]
         ];
@@ -10657,11 +10673,6 @@ export class UIManager {
     }
 
     toggleFullscreen() {
-        if (this.isTouchDevice() && this.isImmersiveMobileActive()) {
-            this.toggleMobileOrientationPreference();
-            return;
-        }
-
         if (!this.isFullscreenActive()) {
             this.landscapeFullscreenDismissed = false;
             this.pendingLandscapeFullscreen = false;
@@ -10674,7 +10685,7 @@ export class UIManager {
     exitFullscreenMode() {
         this.pendingLandscapeFullscreen = false;
         this.landscapeFullscreenDismissed = true;
-        this.mobileOrientationPreference = 'portrait';
+        this.mobileOrientationPreference = this.getCurrentMobileOrientationPreference();
 
         const finalize = () => {
             screen.orientation?.unlock?.();

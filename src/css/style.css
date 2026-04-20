@@ -14759,6 +14759,30 @@ body.is-touch-landscape #ui-layer #btn-fullscreen-exit {
     }
 }
 
+@media screen and (max-width: 1024px) and (pointer: coarse) {
+    body.is-mobile-immersive #ui-layer #btn-fullscreen,
+    body.is-mobile-immersive #ui-layer #btn-fullscreen-exit {
+        display: none !important;
+        pointer-events: none !important;
+    }
+
+    body.is-ios-device.is-mobile-portrait {
+        --mobile-ios-safe-top-offset: 24px;
+    }
+
+    body.is-ios-device.is-mobile-portrait #popup-overlay,
+    body.is-ios-device.is-mobile-portrait .confirm-modal-overlay,
+    body.is-ios-device.is-mobile-portrait #confirm-modal,
+    body.is-ios-device.is-mobile-portrait #death-modal {
+        padding-top: calc(env(safe-area-inset-top) + 30px) !important;
+        padding-bottom: calc(env(safe-area-inset-bottom) + 12px) !important;
+    }
+
+    body.is-ios-device.is-mobile-portrait .game-popup:not(.hidden) {
+        max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 52px) !important;
+    }
+}
+
 /* Prevent global hover scaling from creating horizontal scrollbars inside modal UIs. */
 :where(.game-popup, .inventory-item-modal, #skill-detail-modal, #confirm-modal, #reward-modal, #history-modal, #generic-modal, .friend-gift-picker-modal, .friend-gift-quantity-modal, .friend-gift-item-detail-modal)
     :is(button, .btn, .skill-icon, .item-slot, .stat-up-btn, .stat-down-btn, .close-popup, .login-btn, .action-btn):hover,
