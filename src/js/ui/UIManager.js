@@ -3227,6 +3227,9 @@ export class UIManager {
             panel.style.removeProperty('transform-origin');
         }
         panel.style.setProperty('margin', '0', 'important');
+        if (panel.matches?.('#party-panel')) {
+            panel.style.setProperty('z-index', '1545', 'important');
+        }
 
         this.floatingPanelDragState = {
             active: true,
@@ -3283,6 +3286,9 @@ export class UIManager {
         };
 
         captureTarget?.releasePointerCapture?.(e?.pointerId);
+        if (panel?.matches?.('#party-panel')) {
+            panel.style.setProperty('z-index', '1535', 'important');
+        }
         panel?.classList.remove('floating-panel-dragging');
     }
 

@@ -6449,7 +6449,7 @@ body.is-fullscreen .version-info {
     padding: 10px;
     width: 180px;
     color: white;
-    z-index: 50;
+    z-index: 1535;
     backdrop-filter: blur(4px);
 }
 
@@ -6567,6 +6567,10 @@ body.is-fullscreen .version-info {
     display: none !important;
 }
 
+#party-panel.floating-panel-dragging {
+    z-index: 1545 !important;
+}
+
 @media screen and (min-width: 901px) {
     #party-panel {
         position: fixed;
@@ -6577,7 +6581,7 @@ body.is-fullscreen .version-info {
         max-height: 240px;
         overflow-y: auto;
         margin-bottom: 0;
-        z-index: 89;
+        z-index: 1535;
     }
 }
 
@@ -8729,7 +8733,7 @@ body.is-fullscreen .version-info {
         max-height: calc(42dvh - env(safe-area-inset-top)) !important;
         margin: 0 !important;
         padding: 8px !important;
-        z-index: 1345 !important;
+        z-index: 1535 !important;
         overflow-y: auto !important;
         pointer-events: auto !important;
     }
@@ -11271,6 +11275,28 @@ body.low-power-pwa #ui-layer #minimap-container {
     body:not(.ui-layout-edit-mode):not(.popup-open) .quest-list-panel,
     body:not(.ui-layout-edit-mode):not(.popup-open) .chat-window {
         pointer-events: auto !important;
+    }
+}
+
+@media screen and (max-width: 1024px) and (orientation: portrait) and (pointer: coarse) {
+    body #ui-layer .left-ui-container #party-panel {
+        position: fixed !important;
+        top: calc(132px + env(safe-area-inset-top)) !important;
+        right: calc(8px + env(safe-area-inset-right)) !important;
+        left: auto !important;
+        width: min(42vw, 168px) !important;
+        max-height: calc(34dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+        margin: 0 !important;
+        padding: 8px !important;
+        z-index: 1535 !important;
+        overflow-y: auto !important;
+        pointer-events: auto !important;
+    }
+
+    body #ui-layer .left-ui-container #party-panel.is-minimized {
+        width: min(34vw, 136px) !important;
+        max-height: none !important;
+        overflow: hidden !important;
     }
 }
 
