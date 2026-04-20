@@ -498,10 +498,10 @@ export default class FriendsUIController {
                     }, amount);
                 this.showGenericModal(
                     '선물 수령',
-                    `<strong>${this.escapeHtml(itemLabel)}</strong><br>획득했습니다.`,
+                    `${itemLabel}을(를) 획득했습니다.`,
                     null,
                     null,
-                    { hideNo: true, yesText: '확인', allowHtml: true }
+                    { hideNo: true, yesText: '확인' }
                 );
             }
             this.renderFriendChatMessages();
