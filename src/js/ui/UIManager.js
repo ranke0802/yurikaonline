@@ -1,5 +1,6 @@
 import Logger from '../utils/Logger.js';
 import FriendsUIController, { FRIENDS_UI_METHOD_NAMES } from './friends/FriendsUIController.js';
+import { escapeHtml as escapeHtmlValue, setTextContent, setTrustedHtml } from './htmlSafety.js';
 
 export class UIManager {
     constructor(game) {
@@ -4994,12 +4995,12 @@ export class UIManager {
         const contentEl = modal.querySelector('.confirm-modal-content');
         const { yesText, noText, hideNo = !onNo, allowHtml = false, onShow = null } = options;
 
-        if (titleEl) titleEl.textContent = title;
+        if (titleEl) setTextContent(titleEl, title);
         if (msgEl) {
             if (allowHtml) {
-                msgEl.innerHTML = message;
+                setTrustedHtml(msgEl, message);
             } else {
-                msgEl.textContent = message;
+                setTextContent(msgEl, message);
             }
             msgEl.scrollTop = 0;
         }
@@ -7191,7 +7192,7 @@ export class UIManager {
     }
 
     showConfirm(message, callback) {
-        document.getElementById('confirm-message').innerHTML = message;
+        setTrustedHtml(document.getElementById('confirm-message'), message);
         this.clearTutorialHighlightLayer();
         this.confirmModal.classList.remove('hidden');
         this.confirmCallback = callback;
@@ -7406,12 +7407,7 @@ export class UIManager {
     }
 
     escapeHtml(value = '') {
-        return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+        return escapeHtmlValue(value);
     }
 
     renderReadmeInlineMarkdown(text = '') {
@@ -9183,9 +9179,9 @@ export class UIManager {
         const msgEl = document.getElementById('reward-message');
         const contentEl = modal?.querySelector('.confirm-modal-content');
 
-        if (titleEl) titleEl.textContent = title;
+        if (titleEl) setTextContent(titleEl, title);
         if (msgEl) {
-            msgEl.innerHTML = message;
+            setTrustedHtml(msgEl, message);
             msgEl.scrollTop = 0;
         }
         if (contentEl) contentEl.scrollTop = 0;

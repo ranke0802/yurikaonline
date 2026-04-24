@@ -1,6 +1,8 @@
 {
     "id": "zone_id",
+    "type": "field",
     "name": "Zone Name",
+    "defaultSpawnId": "default",
     "width": 2000,
     "height": 2000,
     "background": {
@@ -26,6 +28,39 @@
             "y": 1000
         }
     ],
+    "portals": [
+        {
+            "id": "portal_to_zone_2",
+            "enabled": false,
+            "label": "Transition to another zone",
+            "trigger": {
+                "type": "rect",
+                "x": 1900,
+                "y": 950,
+                "width": 120,
+                "height": 120
+            },
+            "target": {
+                "zoneId": "zone_2",
+                "spawnId": "default"
+            },
+            "transition": {
+                "type": "field",
+                "requiresConfirmation": true,
+                "storyGate": null
+            }
+        }
+    ],
+    "transitions": {
+        "onEnter": [
+            {
+                "type": "story",
+                "storyId": null,
+                "onceFlag": null
+            }
+        ],
+        "onExit": []
+    },
     "objects": [
         {
             "type": "structure",

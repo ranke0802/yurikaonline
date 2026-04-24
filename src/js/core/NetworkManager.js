@@ -1,11 +1,14 @@
 import Logger from '../utils/Logger.js';
 import EventEmitter from './EventEmitter.js';
 
+const DEFAULT_ZONE_ID = 'zone_1';
+
 export default class NetworkManager extends EventEmitter {
     constructor() {
         super();
         this.connected = false;
-        this.roomId = 'zone_1'; // Currently hardcoded zone
+        this.defaultRoomId = DEFAULT_ZONE_ID;
+        this.roomId = DEFAULT_ZONE_ID; // Realtime room root; field IDs carry the loaded zone id.
         this.playerId = null;
         this.dbRef = null;
         this.zoneParticipationEnabled = true;
@@ -685,12 +688,22 @@ export default class NetworkManager extends EventEmitter {
     }
 
     _normalizeFieldId(fieldId) {
-        return String(fieldId || this.roomId || 'zone_1');
+        const normalized = String(fieldId || this.roomId || DEFAULT_ZONE_ID).trim();
+        return normalized || DEFAULT_ZONE_ID;
+    }
+
+    _getLoadedZoneId() {
+        const zone = window.game?.zone;
+        return this._normalizeFieldId(
+            zone?.currentZoneId
+            || zone?.currentZone?.id
+            || zone?.getDefaultZoneId?.()
+            || this.defaultRoomId
+        );
     }
 
     _getZoneBaseFieldId() {
-        const zoneFieldId = window.game?.zone?.currentZone?.id;
-        return this._normalizeFieldId(zoneFieldId);
+        return this._getLoadedZoneId();
     }
 
     _buildSoloFieldId(uid = null) {

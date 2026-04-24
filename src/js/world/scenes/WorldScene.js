@@ -96,7 +96,8 @@ export default class WorldScene extends Scene {
         );
     }
 
-    async enter(params) {
+    async enter(params = {}) {
+        params = params || {};
         Logger.info("[WorldScene] Entering game world...");
         this.ui?.showHUD();
         this.remotePlayers.clear();
@@ -111,16 +112,27 @@ export default class WorldScene extends Scene {
         if (this.game.updateLoading) this.game.updateLoading('월드 데이터 다운로드 중...', 40);
 
         // 1. Load Zone Data
-        const zoneData = await this.game.zone.loadZone('zone_1');
+        const requestedZoneId = typeof params.zoneId === 'string' && params.zoneId.trim()
+            ? params.zoneId.trim()
+            : null;
+        const zoneData = await this.game.zone.loadZone(requestedZoneId || null);
+        const zoneId = this.game.zone.currentZoneId || zoneData?.id || requestedZoneId || 'zone_1';
+        const loadedZoneId = zoneData?.id || zoneId || 'zone_1';
+        const defaultSpawnId = zoneData?.defaultSpawnId || this.game.zone.getDefaultSpawnId?.(loadedZoneId) || 'default';
+        const requestedSpawnId = typeof params.spawnId === 'string' && params.spawnId.trim()
+            ? params.spawnId.trim()
+            : defaultSpawnId;
+        const routeSpawn = this.game.zone.getSpawnPoint(requestedSpawnId)
+            || this.game.zone.getSpawnPoint(defaultSpawnId)
+            || { x: 1500, y: 1900 };
 
         // 2. Setup Camera Bounds
         if (zoneData) {
             this.zoneSpawnRules = zoneData.monsterSpawns || zoneData.spawns || [];
             this.camera.setWorldBounds(this.game.zone.width, this.game.zone.height);
-            const defaultSpawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
             this.safeZone = {
-                x: defaultSpawn.x,
-                y: defaultSpawn.y,
+                x: routeSpawn.x,
+                y: routeSpawn.y,
                 radius: 260
             };
 
@@ -148,10 +160,15 @@ export default class WorldScene extends Scene {
             Logger.error('Failed to load character sprite', e);
         }
 
-        const user = params.user;
-        const startX = params.startX;
-        const startY = params.startY;
-        const profile = params.profile;
+        const user = params.user || this.game.auth?.currentUser || window.firebase?.auth?.().currentUser || null;
+        if (!user) {
+            Logger.error('[WorldScene] Cannot enter world without an authenticated user.');
+            return;
+        }
+
+        const startX = Number.isFinite(params.startX) ? params.startX : routeSpawn.x;
+        const startY = Number.isFinite(params.startY) ? params.startY : routeSpawn.y;
+        const profile = params.profile || null;
         const localName = params.localName;
 
         // v1.99.12: Load FULL sprite sheet (preview loaded only partial)
@@ -269,9 +286,14 @@ export default class WorldScene extends Scene {
             }
 
             // v0.00.84: Restore saved position with params priority
-            const fallbackSpawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
-            const posX = shouldRecoverFromStoredDeath ? fallbackSpawn.x : (profile.x ?? params.startX);
-            const posY = shouldRecoverFromStoredDeath ? fallbackSpawn.y : (profile.y ?? params.startY);
+            const fallbackSpawn = routeSpawn || this.game.zone.getSpawnPoint(defaultSpawnId) || { x: 1500, y: 1900 };
+            const shouldRestoreProfilePosition = !requestedZoneId && !params.spawnId;
+            const posX = shouldRecoverFromStoredDeath
+                ? fallbackSpawn.x
+                : (shouldRestoreProfilePosition ? (profile.x ?? startX) : startX);
+            const posY = shouldRecoverFromStoredDeath
+                ? fallbackSpawn.y
+                : (shouldRestoreProfilePosition ? (profile.y ?? startY) : startY);
 
             if (typeof posX === 'number' && typeof posY === 'number') {
                 this.player.x = posX;
@@ -281,7 +303,7 @@ export default class WorldScene extends Scene {
                 // v2.3.3: Boundary Check (Move to after Restoration)
                 if (this.player.x >= this.game.zone.width || this.player.y >= this.game.zone.height) {
                     Logger.warn(`[WorldScene] Restoration out of bounds (${this.player.x}, ${this.player.y}). Resetting.`);
-                    const spawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
+                    const spawn = this.game.zone.getSpawnPoint(defaultSpawnId) || fallbackSpawn || { x: 1500, y: 1900 };
                     this.player.x = spawn.x;
                     this.player.y = spawn.y;
                     this.player.saveState();
@@ -290,7 +312,7 @@ export default class WorldScene extends Scene {
                 // v2.3.4: Collision Fail-safe (Stuck at old spawn or invalid place)
                 if (this.checkCollision(this.player.x, this.player.y, this.player.width, this.player.height)) {
                     Logger.warn(`[WorldScene] Player stuck in collision at (${this.player.x}, ${this.player.y}). Resetting to safe spawn.`);
-                    const spawn = this.game.zone.getSpawnPoint('default');
+                    const spawn = this.game.zone.getSpawnPoint(defaultSpawnId) || fallbackSpawn || { x: 1500, y: 1900 };
                     this.player.x = spawn.x;
                     this.player.y = spawn.y;
                     this.player.saveState();

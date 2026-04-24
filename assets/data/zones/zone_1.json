@@ -1,6 +1,8 @@
 {
     "id": "zone_1",
+    "type": "field",
     "name": "바람 언덕 (Starting Field)",
+    "defaultSpawnId": "default",
     "width": 3200,
     "height": 3200,
     "background": {
@@ -48,5 +50,32 @@
             }
         }
     ],
+    "portals": [
+        {
+            "id": "field_path_future",
+            "enabled": false,
+            "label": "Future field path transition",
+            "trigger": {
+                "type": "rect",
+                "x": 1500,
+                "y": 1450,
+                "width": 160,
+                "height": 120
+            },
+            "target": {
+                "zoneId": null,
+                "spawnId": "default"
+            },
+            "transition": {
+                "type": "field",
+                "requiresConfirmation": true,
+                "storyGate": null
+            }
+        }
+    ],
+    "transitions": {
+        "onEnter": [],
+        "onExit": []
+    },
     "objects": []
 }

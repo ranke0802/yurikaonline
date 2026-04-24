@@ -1,9 +1,18 @@
 import Logger from '../utils/Logger.js';
 
+const DEFAULT_ZONE_ID = 'zone_1';
+const ZONE_MANIFEST_PATH = 'assets/data/world/zone_manifest.json';
+const SUPPORTED_ZONE_TYPES = ['field', 'town', 'dungeon', 'story'];
+
 export default class ZoneManager {
     constructor(resourceManager) {
         this.res = resourceManager;
+        this.manifest = null;
+        this.manifestLoadPromise = null;
+        this.defaultZoneId = DEFAULT_ZONE_ID;
+        this.supportedZoneTypes = SUPPORTED_ZONE_TYPES;
         this.currentZone = null;
+        this.currentZoneId = DEFAULT_ZONE_ID;
         this.tiles = null;
         this.width = 6400; // v0.00.03: Set default 200*32 to allow center calculation before load
         this.height = 6400;
@@ -12,18 +21,158 @@ export default class ZoneManager {
         this.chunks = new Map(); // Chunk caching
     }
 
+    _createFallbackManifest() {
+        return {
+            schemaVersion: 1,
+            defaultZoneId: DEFAULT_ZONE_ID,
+            supportedZoneTypes: [...SUPPORTED_ZONE_TYPES],
+            zones: [
+                {
+                    id: DEFAULT_ZONE_ID,
+                    type: 'field',
+                    path: `assets/data/zones/${DEFAULT_ZONE_ID}.json`,
+                    defaultSpawnId: 'default'
+                }
+            ]
+        };
+    }
 
-    async loadZone(zoneId) {
-        Logger.log(`Loading Zone: ${zoneId}`);
+    _normalizeZoneEntry(entry) {
+        if (!entry || typeof entry !== 'object') return null;
+
+        const id = typeof entry.id === 'string' && entry.id.trim()
+            ? entry.id.trim()
+            : null;
+        if (!id) return null;
+
+        const type = SUPPORTED_ZONE_TYPES.includes(entry.type) ? entry.type : 'field';
+        return {
+            ...entry,
+            id,
+            type,
+            path: typeof entry.path === 'string' && entry.path.trim()
+                ? entry.path.trim()
+                : `assets/data/zones/${id}.json`,
+            defaultSpawnId: typeof entry.defaultSpawnId === 'string' && entry.defaultSpawnId.trim()
+                ? entry.defaultSpawnId.trim()
+                : 'default'
+        };
+    }
+
+    _normalizeManifest(data) {
+        const fallback = this._createFallbackManifest();
+        if (!data || typeof data !== 'object') return fallback;
+
+        const zones = Array.isArray(data.zones)
+            ? data.zones.map((entry) => this._normalizeZoneEntry(entry)).filter(Boolean)
+            : [];
+
+        const defaultZoneId = typeof data.defaultZoneId === 'string' && data.defaultZoneId.trim()
+            ? data.defaultZoneId.trim()
+            : DEFAULT_ZONE_ID;
+
+        if (!zones.some((entry) => entry.id === DEFAULT_ZONE_ID)) {
+            zones.unshift(...fallback.zones.filter((entry) => !zones.some((zone) => zone.id === entry.id)));
+        }
+
+        if (!zones.some((entry) => entry.id === defaultZoneId)) {
+            Logger.warn(`[ZoneManager] Manifest default zone is missing: ${defaultZoneId}. Falling back to ${DEFAULT_ZONE_ID}.`);
+        }
+
+        const supportedZoneTypes = Array.isArray(data.supportedZoneTypes)
+            ? data.supportedZoneTypes.filter((type) => SUPPORTED_ZONE_TYPES.includes(type))
+            : [];
+
+        return {
+            ...data,
+            schemaVersion: data.schemaVersion || fallback.schemaVersion,
+            defaultZoneId: zones.some((entry) => entry.id === defaultZoneId) ? defaultZoneId : DEFAULT_ZONE_ID,
+            supportedZoneTypes: supportedZoneTypes.length > 0 ? supportedZoneTypes : [...SUPPORTED_ZONE_TYPES],
+            zones
+        };
+    }
+
+    async loadManifest(options = {}) {
+        if (this.manifest && !options.force) return this.manifest;
+        if (this.manifestLoadPromise && !options.force) return this.manifestLoadPromise;
+
+        this.manifestLoadPromise = this.res.loadJSON(ZONE_MANIFEST_PATH)
+            .then((data) => {
+                this.manifest = this._normalizeManifest(data);
+                this.defaultZoneId = this.manifest.defaultZoneId || DEFAULT_ZONE_ID;
+                this.supportedZoneTypes = this.manifest.supportedZoneTypes || SUPPORTED_ZONE_TYPES;
+                return this.manifest;
+            })
+            .catch((error) => {
+                Logger.warn(`[ZoneManager] Failed to load zone manifest. Falling back to ${DEFAULT_ZONE_ID}.`, error);
+                this.manifest = this._createFallbackManifest();
+                this.defaultZoneId = DEFAULT_ZONE_ID;
+                this.supportedZoneTypes = SUPPORTED_ZONE_TYPES;
+                return this.manifest;
+            })
+            .finally(() => {
+                this.manifestLoadPromise = null;
+            });
+
+        return this.manifestLoadPromise;
+    }
+
+    getManifest() {
+        return this.manifest || this._createFallbackManifest();
+    }
+
+    getDefaultZoneId() {
+        return this.getManifest().defaultZoneId || DEFAULT_ZONE_ID;
+    }
+
+    getZoneEntry(zoneId) {
+        const id = String(zoneId || '').trim();
+        if (!id) return null;
+        return (this.getManifest().zones || []).find((entry) => entry.id === id) || null;
+    }
+
+    getZonePath(zoneId) {
+        const id = this.resolveZoneId(zoneId);
+        return this.getZoneEntry(id)?.path || `assets/data/zones/${id}.json`;
+    }
+
+    getDefaultSpawnId(zoneId = null) {
+        const id = zoneId ? this.resolveZoneId(zoneId) : this.getDefaultZoneId();
+        return this.getZoneEntry(id)?.defaultSpawnId || 'default';
+    }
+
+    resolveZoneId(zoneId = null) {
+        const requestedId = typeof zoneId === 'string' && zoneId.trim()
+            ? zoneId.trim()
+            : null;
+        const manifest = this.getManifest();
+        const zones = Array.isArray(manifest.zones) ? manifest.zones : [];
+
+        if (requestedId && (zones.length === 0 || zones.some((entry) => entry.id === requestedId))) {
+            return requestedId;
+        }
+
+        return manifest.defaultZoneId || DEFAULT_ZONE_ID;
+    }
+
+    async loadZone(zoneId = null) {
+        await this.loadManifest();
+
+        const resolvedZoneId = this.resolveZoneId(zoneId);
+        Logger.log(`Loading Zone: ${resolvedZoneId}`);
 
         try {
             // 1. Load Zone JSON
-            const zoneData = await this.res.loadJSON(`assets/data/zones/${zoneId}.json`);
+            const zoneData = await this.res.loadJSON(this.getZonePath(resolvedZoneId));
             if (!zoneData) {
-                throw new Error(`Zone data not found: ${zoneId}`);
+                throw new Error(`Zone data not found: ${resolvedZoneId}`);
             }
 
-            this.currentZone = zoneData;
+            this.currentZone = {
+                ...zoneData,
+                id: zoneData.id || resolvedZoneId
+            };
+            this.currentZoneId = this.currentZone.id || resolvedZoneId;
 
             // 2. Setup Dimensions
             this.tileSize = zoneData.tileSize || 32;
@@ -47,13 +196,15 @@ export default class ZoneManager {
                     this.bgPattern = null;
                 }
             } else {
-                Logger.warn(`No background defined for zone: ${zoneId}`);
+                Logger.warn(`No background defined for zone: ${resolvedZoneId}`);
             }
 
             // 4. Setup Boundaries & Spawns & Objects
             this.boundaries = zoneData.boundaries || { minX: 0, maxX: this.width, minY: 0, maxY: this.height };
             this.spawns = zoneData.spawnPoints || [];
             this.objects = zoneData.objects || [];
+            this.portals = zoneData.portals || [];
+            this.transitions = zoneData.transitions || [];
 
             // 4.1 Preload Object Assets
             const assetPromises = this.objects.map(obj => {
@@ -73,26 +224,42 @@ export default class ZoneManager {
             return this.currentZone;
 
         } catch (e) {
-            Logger.error(`Failed to load zone: ${zoneId}`, e);
+            Logger.error(`Failed to load zone: ${resolvedZoneId}`, e);
+            if (resolvedZoneId !== DEFAULT_ZONE_ID) {
+                Logger.warn(`[ZoneManager] Falling back to ${DEFAULT_ZONE_ID}.`);
+                return this.loadZone(DEFAULT_ZONE_ID);
+            }
+
             // Fallback to avoid crash
             this.currentZone = {
-                id: 'fallback',
+                id: DEFAULT_ZONE_ID,
                 name: 'Fallback Field',
                 width: 100,
                 height: 100,
                 objects: [],
-                spawns: [],
+                spawnPoints: [{ id: 'default', x: 1500, y: 1900 }],
+                portals: [],
+                transitions: [],
                 background: { type: 'solid', color: '#76b041' }
             };
+            this.currentZoneId = DEFAULT_ZONE_ID;
             this.width = 3200;
             this.height = 3200;
+            this.boundaries = { minX: 0, maxX: this.width, minY: 0, maxY: this.height };
+            this.spawns = this.currentZone.spawnPoints;
+            this.objects = [];
+            this.portals = [];
+            this.transitions = [];
             return this.currentZone;
         }
     }
 
-    getSpawnPoint(id) {
-        if (!this.spawns) return null;
-        return this.spawns.find(s => s.id === id) || this.spawns[0];
+    getSpawnPoint(id = 'default') {
+        if (!Array.isArray(this.spawns) || this.spawns.length === 0) return null;
+        const spawnId = typeof id === 'string' && id.trim() ? id.trim() : 'default';
+        return this.spawns.find(s => s.id === spawnId)
+            || this.spawns.find(s => s.id === 'default')
+            || this.spawns[0];
     }
 
     getBoundaries() {

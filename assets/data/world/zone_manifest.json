@@ -1,0 +1,34 @@
+{
+    "schemaVersion": 1,
+    "description": "World zone registry used by WorldScene and ZoneManager. Supported zone types are documented here so future fields, towns, dungeons, and story-only spaces can be added without hardcoding zone_1.",
+    "defaultZoneId": "zone_1",
+    "supportedZoneTypes": [
+        "field",
+        "town",
+        "dungeon",
+        "story"
+    ],
+    "zoneTypeDescriptions": {
+        "field": "Open combat/exploration zone with normal monsters and field presence.",
+        "town": "Safe social/vendor/crafting zone with little or no combat.",
+        "dungeon": "Instanced or progression-gated combat zone.",
+        "story": "Narrative or prologue-only scene space with controlled movement/combat."
+    },
+    "zones": [
+        {
+            "id": "zone_1",
+            "type": "field",
+            "name": "바람 언덕 (Starting Field)",
+            "path": "assets/data/zones/zone_1.json",
+            "defaultSpawnId": "default",
+            "entryPolicy": {
+                "requiresStoryFlag": null,
+                "requiresLevel": 1
+            },
+            "network": {
+                "presenceMode": "field",
+                "baseFieldId": "zone_1"
+            }
+        }
+    ]
+}
