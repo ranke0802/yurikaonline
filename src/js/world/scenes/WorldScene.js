@@ -63,6 +63,28 @@ export default class WorldScene extends Scene {
             ey >= cam.y - margin && ey <= cam.y + vh + margin;
     }
 
+    getRemoteVisualSmoothingContext(entity) {
+        if (!entity || !this.camera) {
+            return { sameView: false, distanceToLocal: Number.POSITIVE_INFINITY };
+        }
+
+        const cam = this.camera;
+        const vw = (this.game.canvas.width / this.game.dpr) / this.game.zoom;
+        const vh = (this.game.canvas.height / this.game.dpr) / this.game.zoom;
+        const margin = 64;
+        const ex = entity.x + (entity.width || 0) / 2;
+        const ey = entity.y + (entity.height || 0) / 2;
+        const sameView = ex >= cam.x - margin && ex <= cam.x + vw + margin
+            && ey >= cam.y - margin && ey <= cam.y + vh + margin;
+
+        const local = this.player;
+        const distanceToLocal = local
+            ? Math.hypot((entity.x || 0) - (local.x || 0), (entity.y || 0) - (local.y || 0))
+            : Number.POSITIVE_INFINITY;
+
+        return { sameView, distanceToLocal };
+    }
+
     onPointerDown(e) {
         const isCoarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches || navigator.maxTouchPoints > 0;
         if (isCoarsePointer) return;
@@ -975,6 +997,7 @@ export default class WorldScene extends Scene {
             let remoteUpdatesThisTick = 0;
             this.remotePlayers.forEach(rp => {
                 const onScreen = this.isOnScreen(rp);
+                rp.setVisualSmoothingContext?.(this.getRemoteVisualSmoothingContext(rp));
                 if (!onScreen && this.remoteOffscreenUpdateInterval > 0) {
                     rp._offscreenUpdateAccumulator = (rp._offscreenUpdateAccumulator || 0) + dt;
                     if (rp._offscreenUpdateAccumulator < this.remoteOffscreenUpdateInterval) return;

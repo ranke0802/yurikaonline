@@ -22,6 +22,11 @@ export default class RemotePlayer extends CharacterBase {
         this.packetJitterHistory = [];
         this.lastPacketTime = 0;
         this.lastPacketInterval = 100;
+        this.visualSmoothingContext = {
+            sameView: false,
+            distanceToLocal: Number.POSITIVE_INFINITY,
+            updatedAt: 0
+        };
 
         // Extrapolation state
         this.isExtrapolating = false;
@@ -68,6 +73,43 @@ export default class RemotePlayer extends CharacterBase {
         if (!RemotePlayer.projectilePromise) {
             RemotePlayer.projectilePromise = import('./Projectile.js');
         }
+    }
+
+    setVisualSmoothingContext(context = {}) {
+        this.visualSmoothingContext = {
+            sameView: !!context.sameView,
+            distanceToLocal: Number.isFinite(context.distanceToLocal)
+                ? Math.max(0, context.distanceToLocal)
+                : Number.POSITIVE_INFINITY,
+            updatedAt: Date.now()
+        };
+    }
+
+    _isSameViewVisualPriority(now = Date.now()) {
+        const context = this.visualSmoothingContext || {};
+        return !!context.sameView
+            && (now - Number(context.updatedAt || 0)) < 250
+            && Number(context.distanceToLocal || Number.POSITIVE_INFINITY) < 1200;
+    }
+
+    _getEffectiveInterpolationDelay(now = Date.now()) {
+        const baseDelay = this.adaptiveDelay || this.interpolationDelay;
+        if (!this._isSameViewVisualPriority(now)) return baseDelay;
+
+        // Same-screen peers need a little more buffer so packet jitter does not
+        // become visible as micro-snaps.
+        return Math.max(135, Math.min(240, baseDelay + 35));
+    }
+
+    _updateBaseWithoutRemoteVelocity(dt) {
+        const renderVx = this.vx || 0;
+        const renderVy = this.vy || 0;
+
+        this.vx = 0;
+        this.vy = 0;
+        super.update(dt);
+        this.vx = renderVx;
+        this.vy = renderVy;
     }
 
     normalizeEquipmentState(equipment) {
@@ -412,8 +454,10 @@ export default class RemotePlayer extends CharacterBase {
         }
 
         // Phase 1: Enhanced interpolation with adaptive delay and extrapolation
-        const effectiveDelay = this.adaptiveDelay || this.interpolationDelay;
-        const renderTime = Date.now() - effectiveDelay;
+        const now = Date.now();
+        const sameViewVisualPriority = this._isSameViewVisualPriority(now);
+        const effectiveDelay = this._getEffectiveInterpolationDelay(now);
+        const renderTime = now - effectiveDelay;
         let finalX = this.x;
         let finalY = this.y;
         let finalVx = this.vx;
@@ -503,7 +547,7 @@ export default class RemotePlayer extends CharacterBase {
             ? Math.hypot(latestPacket.vx || 0, latestPacket.vy || 0)
             : Number.POSITIVE_INFINITY;
         const latestPacketAge = latestPacket
-            ? (Date.now() - (latestPacket.receivedAt || latestPacket.ts || 0))
+            ? (now - (latestPacket.receivedAt || latestPacket.ts || 0))
             : Number.POSITIVE_INFINITY;
 
         // If the newest packet is a fresh stop packet, snap to it immediately
@@ -513,13 +557,20 @@ export default class RemotePlayer extends CharacterBase {
             && latestPacketSpeed < 1
             && latestPacketAge < 260
         ) {
+            const stopDx = latestPacket.x - this.x;
+            const stopDy = latestPacket.y - this.y;
+            const stopDistSq = stopDx * stopDx + stopDy * stopDy;
+            const shouldSnapStop = !sameViewVisualPriority || stopDistSq <= 6 * 6;
+
             finalX = latestPacket.x;
             finalY = latestPacket.y;
             finalVx = 0;
             finalVy = 0;
             this.isExtrapolating = false;
             this.extrapolationConfidence = 1;
-            this.serverUpdates = [latestPacket];
+            if (shouldSnapStop) {
+                this.serverUpdates = [latestPacket];
+            }
         }
 
         // Apply position with adaptive smoothing
@@ -539,9 +590,14 @@ export default class RemotePlayer extends CharacterBase {
             this.y = finalY;
         } else {
             // Adaptive lerp based on distance and extrapolation state
-            const baseLerp = this.isExtrapolating ? 0.18 : 0.25;
-            const distanceBoost = Math.min(0.55, dist * 0.018);
-            const lerpFactor = Math.min(0.8, baseLerp + distanceBoost);
+            const baseLerp = this.isExtrapolating
+                ? (sameViewVisualPriority ? 0.14 : 0.18)
+                : (sameViewVisualPriority ? 0.22 : 0.25);
+            const distanceBoost = Math.min(
+                sameViewVisualPriority ? 0.38 : 0.55,
+                dist * (sameViewVisualPriority ? 0.014 : 0.018)
+            );
+            const lerpFactor = Math.min(sameViewVisualPriority ? 0.62 : 0.8, baseLerp + distanceBoost);
             this.x += dx * lerpFactor;
             this.y += dy * lerpFactor;
         }
@@ -613,7 +669,7 @@ export default class RemotePlayer extends CharacterBase {
         }
 
         this._updateAnimation(dt);
-        super.update(dt);
+        this._updateBaseWithoutRemoteVelocity(dt);
 
         if (this.chatTimer > 0) {
             this.chatTimer -= dt;

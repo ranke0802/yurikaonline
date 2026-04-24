@@ -18,6 +18,7 @@ export class UIManager {
         this.transientOrientationPreference = null;
         this.transientOrientationLockUntil = 0;
         this.transientOrientationReleaseTimer = null;
+        this.fullscreenOrientationPreference = null;
         this.pcQuestClaimHandler = null;
         this.hudRefs = {};
         this.cooldownRefs = {};
@@ -3753,6 +3754,10 @@ export class UIManager {
             } else if (this._wasFullscreenActive && this.isMobileLandscapeViewport()) {
                 this.pendingLandscapeFullscreen = false;
                 this.landscapeFullscreenDismissed = true;
+                this.fullscreenOrientationPreference = null;
+            } else if (!isFull && !isStandalone) {
+                this.fullscreenOrientationPreference = null;
+                this.syncOrientationLock();
             }
 
             this._wasFullscreenActive = isFull;
@@ -3913,7 +3918,11 @@ export class UIManager {
     syncOrientationLock() {
         if (screen.orientation && screen.orientation.lock) {
             const transientLockActive = this.isTransientOrientationLockActive();
-            const shouldLock = this.isImmersiveMobileActive() && (this.getSetting('orientationLock') || transientLockActive);
+            const fullscreenPreference = this.isImmersiveMobileActive()
+                ? this.fullscreenOrientationPreference
+                : null;
+            const shouldLock = this.isImmersiveMobileActive()
+                && (this.getSetting('orientationLock') || transientLockActive || !!fullscreenPreference);
             if (!shouldLock) {
                 this.clearTransientOrientationPreference();
                 screen.orientation.unlock?.();
@@ -3922,7 +3931,7 @@ export class UIManager {
 
             const effectivePreference = transientLockActive
                 ? this.transientOrientationPreference
-                : this.mobileOrientationPreference;
+                : (fullscreenPreference || this.mobileOrientationPreference);
             const preferPortrait = effectivePreference === 'portrait';
             const preferredMode = preferPortrait ? 'portrait-primary' : 'landscape-primary';
             const fallbackMode = preferPortrait ? 'portrait' : 'landscape';
@@ -4328,6 +4337,9 @@ export class UIManager {
                 : this.getCurrentMobileOrientationPreference();
             this.clearTransientOrientationPreference();
             this.mobileOrientationPreference = nextOrientationPreference;
+            this.fullscreenOrientationPreference = preferredOrientation === 'portrait' || preferredOrientation === 'landscape'
+                ? nextOrientationPreference
+                : null;
             this.landscapeFullscreenDismissed = false;
             if (preferredOrientation && !this.getSetting('orientationLock')) {
                 this.setTransientOrientationPreference(nextOrientationPreference);
@@ -4339,6 +4351,7 @@ export class UIManager {
         const request = elem.requestFullscreen || elem.webkitRequestFullscreen || elem.mozRequestFullScreen || elem.msRequestFullscreen;
         if (!request) {
             this.pendingLandscapeFullscreen = false;
+            this.fullscreenOrientationPreference = null;
             this.clearTransientOrientationPreference();
             return Promise.resolve(false);
         }
@@ -4350,6 +4363,7 @@ export class UIManager {
                     this.syncOrientationLock();
                     return true;
                 }).catch(() => {
+                    this.fullscreenOrientationPreference = null;
                     this.clearTransientOrientationPreference();
                     return false;
                 });
@@ -4357,6 +4371,7 @@ export class UIManager {
             this.syncOrientationLock();
             return Promise.resolve(true);
         } catch {
+            this.fullscreenOrientationPreference = null;
             this.clearTransientOrientationPreference();
             return Promise.resolve(false);
         }
@@ -10740,6 +10755,7 @@ export class UIManager {
     exitFullscreenMode() {
         this.pendingLandscapeFullscreen = false;
         this.landscapeFullscreenDismissed = true;
+        this.fullscreenOrientationPreference = null;
         this.clearTransientOrientationPreference();
         this.mobileOrientationPreference = this.getCurrentMobileOrientationPreference();
 
