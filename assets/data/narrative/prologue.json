@@ -1,9 +1,15 @@
 {
     "id": "prologue",
-    "title": "바람의 언덕으로",
+    "title": "오두막에 내린 푸른 밤",
     "sequences": [
         {
             "id": "start",
+            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "mood": "quiet",
+            "cameraTarget": {
+                "x": 1260,
+                "y": 1760
+            },
             "actions": [
                 {
                     "type": "fade_out",
@@ -15,11 +21,11 @@
                 },
                 {
                     "type": "delay",
-                    "duration": 500
+                    "duration": 400
                 },
                 {
                     "type": "fade_in",
-                    "duration": 1500
+                    "duration": 1200
                 },
                 {
                     "type": "camera_pan",
@@ -27,79 +33,200 @@
                         "x": 1500,
                         "y": 1900
                     },
-                    "duration": 3000
-                },
+                    "duration": 2200
+                }
+            ],
+            "next": "seq_01"
+        },
+        {
+            "id": "seq_01",
+            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "name": "나",
+            "text": "숲 끝의 오두막은 오늘도 작게 숨을 쉰다.",
+            "next": "seq_02"
+        },
+        {
+            "id": "seq_02",
+            "portrait": "assets/story/portraits/portrait_yurika_forest_anxious.jpeg",
+            "mood": "tender",
+            "name": "나",
+            "text": "이 집에 남은 온기는 모두 유리카의 작은 손에서 시작된다.",
+            "next": "seq_03"
+        },
+        {
+            "id": "seq_03",
+            "portrait": "assets/story/portraits/portrait_yurika_forest_anxious.jpeg",
+            "mood": "wistful",
+            "name": "나",
+            "text": "그 아이를 품에 안기까지, 우리는 너무 많은 것을 잃었다.",
+            "next": "seq_04"
+        },
+        {
+            "id": "seq_04",
+            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "actions": [
                 {
                     "type": "sound",
                     "id": "sfx_bell"
                 }
             ],
-            "next": "seq_intro"
+            "name": "나",
+            "text": "그래도 나는 약속했다. 이 오두막만큼은 지키겠다고.",
+            "next": "seq_05"
         },
         {
-            "id": "seq_intro",
-            "name": "낯선 목소리",
-            "text": "정신이 드시나요? 이곳은 유리카 대륙의 '바람의 언덕'입니다.",
-            "duration": 3500,
-            "next": "seq_2"
-        },
-        {
-            "id": "seq_2",
+            "id": "seq_05",
+            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "mood": "uneasy",
             "actions": [
                 {
                     "type": "shake",
-                    "intensity": 5,
+                    "intensity": 3,
                     "duration": 500
                 },
-                {
-                    "type": "sound",
-                    "id": "sfx_quest_start"
-                }
-            ],
-            "name": "가이드",
-            "text": "마을 주변의 슬라임들이 갑자기 흉폭해졌습니다. 여행자님도 조심하세요!",
-            "duration": 4000,
-            "next": "seq_3"
-        },
-        {
-            "id": "seq_3",
-            "actions": [
                 {
                     "type": "sound",
                     "id": "sfx_birds"
                 }
             ],
-            "name": "가이드",
-            "text": "한때는 평화로웠던 곳인데... 혹시 저희를 도와 슬라임들을 조금만 잠재워 주시겠습니까?",
-            "duration": 4500,
-            "options": [
-                {
-                    "text": "알겠습니다. 제가 돕죠.",
-                    "next": "accept"
-                },
-                {
-                    "text": "아직은 무리인 듯 합니다.",
-                    "next": "reject"
-                }
-            ]
+            "name": "낡은 창문",
+            "text": "툭. 툭. 유리창 너머로 젖은 흙이 튄다.",
+            "next": "seq_06"
         },
         {
-            "id": "accept",
+            "id": "seq_06",
+            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "mood": "alert",
+            "name": "나",
+            "text": "또 슬라임인가. 어제보다 훨씬 가까워졌다.",
+            "next": "seq_07"
+        },
+        {
+            "id": "seq_07",
+            "portrait": "assets/story/portraits/portrait_yurika_forest_frightened.jpeg",
+            "mood": "frightened",
+            "name": "유리카",
+            "text": "아빠... 밖에서 반짝이는 돌 냄새가 나.",
+            "next": "seq_08"
+        },
+        {
+            "id": "seq_08",
+            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "mood": "ominous",
+            "name": "나",
+            "text": "마석의 기척이다. 마물들이 그 빛에 끌리고 있다.",
+            "next": "seq_09"
+        },
+        {
+            "id": "seq_09",
+            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "actions": [
+                {
+                    "type": "sound",
+                    "id": "sfx_quest_start"
+                }
+            ],
+            "name": "나",
+            "text": "먼저 오두막 주변을 확인해야 한다. 흔적을 놓치면 밤을 넘기지 못한다.",
+            "next": "seq_10"
+        },
+        {
+            "id": "seq_10",
+            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "cameraTarget": {
+                "x": 1620,
+                "y": 1880
+            },
+            "actions": [
+                {
+                    "type": "camera_pan",
+                    "target": {
+                        "x": 1620,
+                        "y": 1880
+                    },
+                    "duration": 1400
+                }
+            ],
+            "name": "나",
+            "text": "울타리 아래가 녹아 있다. 작은 슬라임들이 지나간 자국이다.",
+            "next": "seq_11"
+        },
+        {
+            "id": "seq_11",
+            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "mood": "resolved",
+            "name": "나",
+            "text": "내 마법만으로는 오래 버티기 어렵다. 마을에 도움을 청해야 한다.",
+            "next": "seq_12"
+        },
+        {
+            "id": "seq_12",
+            "background": "assets/story/backgrounds/bg_town_gate_first_arrival.jpeg",
+            "mood": "urgent",
+            "actions": [
+                {
+                    "type": "fade_out",
+                    "duration": 500
+                },
+                {
+                    "type": "fade_in",
+                    "duration": 900
+                }
+            ],
+            "name": "마을 경비병",
+            "text": "숲의 오두막이라면... 며칠 전부터 파란 불빛이 보였습니다.",
+            "next": "seq_13"
+        },
+        {
+            "id": "seq_13",
+            "background": "assets/story/backgrounds/bg_town_gate_first_arrival.jpeg",
+            "name": "마을 경비병",
+            "text": "촌장님께 전하겠습니다. 그 전까지 숲길을 막아 주세요.",
+            "next": "seq_14"
+        },
+        {
+            "id": "seq_14",
+            "background": "assets/story/backgrounds/bg_dark_forest_path_yurika_back.jpeg",
+            "portrait": "assets/story/portraits/portrait_yurika_forest_anxious.jpeg",
+            "mood": "guarded",
+            "actions": [
+                {
+                    "type": "sound",
+                    "id": "sfx_birds"
+                },
+                {
+                    "type": "camera_pan",
+                    "target": {
+                        "x": 1480,
+                        "y": 1760
+                    },
+                    "duration": 1600
+                }
+            ],
+            "name": "유리카",
+            "text": "아빠, 숲이 우리를 보고 있어.",
+            "next": "seq_15"
+        },
+        {
+            "id": "seq_15",
+            "background": "assets/story/backgrounds/bg_dark_forest_path_yurika_back.jpeg",
+            "mood": "determined",
+            "name": "나",
+            "text": "내 뒤에 있어라, 유리카. 길목을 지키고 새벽까지 버틴다.",
+            "next": "complete"
+        },
+        {
+            "id": "complete",
+            "background": "assets/story/backgrounds/bg_dark_forest_path_yurika_back.jpeg",
             "actions": [
                 {
                     "type": "sound",
                     "id": "sfx_ui_confirm"
                 }
             ],
-            "name": "가이드",
-            "text": "정말 감사합니다! 마을 서쪽으로 가시면 슬라임들을 발견하실 수 있을 겁니다. 부디 무사하시길...",
-            "action": "start_quest_1"
-        },
-        {
-            "id": "reject",
-            "name": "가이드",
-            "text": "알겠습니다. 충분한 준비가 되면 다시 저를 찾아와 주세요.",
-            "action": "none"
+            "name": "나",
+            "text": "오두막의 밤은 아직 끝나지 않았다. 이제 첫 경계를 시작한다.",
+            "action": "complete_prologue"
         }
     ]
 }

@@ -1,0 +1,117 @@
+{
+    "id": "field_dark_forest",
+    "type": "field",
+    "name": "어둠숲 (Dark Forest)",
+    "defaultSpawnId": "default",
+    "width": 3000,
+    "height": 2600,
+    "background": {
+        "image": "assets/world/tiles/tile_dark_forest_eyes_mushrooms.jpeg",
+        "music": "bgm_act2_threat",
+        "ambient": "sfx_wind"
+    },
+    "boundaries": {
+        "minX": 0,
+        "maxX": 3000,
+        "minY": 0,
+        "maxY": 2600
+    },
+    "spawnPoints": [
+        {
+            "id": "default",
+            "x": 620,
+            "y": 1320
+        },
+        {
+            "id": "from_town_moonwell",
+            "x": 420,
+            "y": 1320
+        },
+        {
+            "id": "from_dungeon_lantern_woods",
+            "x": 2550,
+            "y": 1320
+        }
+    ],
+    "monsterSpawns": [
+        {
+            "monsterId": "monster_golden_flower_slime",
+            "count": 5,
+            "area": {
+                "x": 780,
+                "y": 820,
+                "w": 520,
+                "h": 520
+            }
+        },
+        {
+            "monsterId": "monster_tiny_lantern_wisp",
+            "count": 4,
+            "area": {
+                "x": 1420,
+                "y": 980,
+                "w": 560,
+                "h": 600
+            }
+        },
+        {
+            "monsterId": "monster_magma_rock_slime",
+            "count": 3,
+            "area": {
+                "x": 1780,
+                "y": 1540,
+                "w": 520,
+                "h": 520
+            }
+        }
+    ],
+    "portals": [
+        {
+            "id": "portal_to_town_moonwell",
+            "enabled": true,
+            "label": "달샘 마을로 돌아가는 숲길",
+            "trigger": {
+                "type": "rect",
+                "x": 300,
+                "y": 1240,
+                "width": 180,
+                "height": 160
+            },
+            "target": {
+                "zoneId": "town_moonwell",
+                "spawnId": "from_field_dark_forest"
+            },
+            "transition": {
+                "type": "town",
+                "requiresConfirmation": true,
+                "storyGate": null
+            }
+        },
+        {
+            "id": "portal_to_dungeon_lantern_woods",
+            "enabled": true,
+            "label": "랜턴 숲 던전 입구",
+            "trigger": {
+                "type": "rect",
+                "x": 2480,
+                "y": 1240,
+                "width": 180,
+                "height": 160
+            },
+            "target": {
+                "zoneId": "dungeon_lantern_woods",
+                "spawnId": "from_field_dark_forest"
+            },
+            "transition": {
+                "type": "dungeon",
+                "requiresConfirmation": true,
+                "storyGate": null
+            }
+        }
+    ],
+    "transitions": {
+        "onEnter": [],
+        "onExit": []
+    },
+    "objects": []
+}

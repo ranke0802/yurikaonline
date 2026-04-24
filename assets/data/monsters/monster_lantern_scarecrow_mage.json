@@ -1,0 +1,45 @@
+{
+    "id": "monster_lantern_scarecrow_mage",
+    "name": "랜턴 허수아비 마법사",
+    "type": "monster",
+    "baseStats": {
+        "hp": 420,
+        "maxHp": 420,
+        "atk": 34,
+        "def": 10,
+        "speed": 34,
+        "exp": 95
+    },
+    "visual": {
+        "assetPath": "assets/monsters/shadows/monster_lantern_scarecrow_mage.jpeg",
+        "width": 112,
+        "height": 142,
+        "frameSpeed": 0.18,
+        "frameCount": 1,
+        "scale": 1.25
+    },
+    "behavior": {
+        "aggroRange": 430
+    },
+    "sounds": {
+        "attack": "sfx_boss_attack",
+        "hit": "sfx_boss_hit",
+        "die": "sfx_boss_die",
+        "move": "sfx_boss_move"
+    },
+    "skills": [],
+    "drops": [
+        {
+            "itemId": "manastone",
+            "min": 95,
+            "max": 150,
+            "chance": 1.0
+        },
+        {
+            "itemId": "weapon_upgrade_stone",
+            "min": 1,
+            "max": 1,
+            "chance": 0.22
+        }
+    ]
+}

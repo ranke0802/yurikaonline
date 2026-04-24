@@ -1685,7 +1685,7 @@ export default class MonsterManager {
         let definition = await this.game.monsterData.loadDefinition(type);
         if (!definition) definition = {}; // Fallback if missing
 
-        const forceChargeOnly = isSlimeFamilyType(type) || !!options.chargeOnly;
+        const forceChargeOnly = isSlimeFamilyType(type) || !!options.chargeOnly || !!definition.chargeOnly;
         const data = {
             id: id,
             x: Math.round(x),

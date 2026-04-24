@@ -13,6 +13,7 @@ export default class StoryManager {
         this.fadeTarget = 0;
         this.fadeSpeed = 0;
         this.isFading = false;
+        this.executedSequenceActions = new Set();
     }
 
     resetFade() {
@@ -59,6 +60,7 @@ export default class StoryManager {
                 if (this.game.ui) this.game.ui.hideHUD();
 
                 this.isStoryActive = true;
+                this.executedSequenceActions.clear();
                 this.playSequence(startSequenceId);
             }
         });
@@ -82,9 +84,7 @@ export default class StoryManager {
             });
         } else {
             // Trigger legacy action
-            if (seq.action) {
-                this._handleAction(seq.action);
-            }
+            this._runSequenceAction(seq);
             this._showSequenceDialog(seq);
         }
     }
@@ -94,6 +94,7 @@ export default class StoryManager {
         if (seq.text && this.game.ui) {
             this.game.ui.showDialog([seq], { storyControlled: true });
         } else if (!seq.text) {
+            this._runSequenceAction(seq);
             // No dialog, auto-advance
             if (seq.next) {
                 this.playSequence(seq.next);
@@ -280,6 +281,7 @@ export default class StoryManager {
         if (!this.isStoryActive || !this.currentSequence) return;
 
         const seq = this.currentSequence;
+        this._runSequenceAction(seq);
 
         if (seq.options && optionIndex !== null) {
             const nextId = seq.options[optionIndex].next;
@@ -306,6 +308,7 @@ export default class StoryManager {
         this.isStoryActive = false;
         this.currentStory = null;
         this.currentSequence = null;
+        this.executedSequenceActions.clear();
         this.fadeAlpha = 0;
         this.isFading = false;
 
@@ -319,9 +322,28 @@ export default class StoryManager {
 
     _handleAction(action) {
         Logger.log(`[Story] Triggering action: ${action}`);
-        if (action === 'start_quest_1') {
+        if (!action || action === 'none') return;
+
+        if (action === 'complete_prologue') {
+            if (this.game.localPlayer?.questData) {
+                this.game.localPlayer.questData.prologueCompleted = true;
+                this.game.localPlayer.saveState(false, {
+                    debounceMs: 0,
+                    reason: 'complete_prologue'
+                });
+            }
+            this.game.ui?.logSystemMessage('프롤로그를 완료했습니다. 오두막 주변의 이상 징후를 조사하세요.');
+        } else if (action === 'start_quest_1') {
             this.game.ui?.logSystemMessage('기초 훈련을 마치면 첫 슬라임 퀘스트가 열립니다.');
             if (this.game.ui?.updateQuestUI) this.game.ui.updateQuestUI();
         }
+    }
+
+    _runSequenceAction(seq = null) {
+        if (!seq?.action || seq.action === 'none') return;
+        const key = `${this.currentStory?.id || 'story'}:${seq.id || 'sequence'}:${seq.action}`;
+        if (this.executedSequenceActions.has(key)) return;
+        this.executedSequenceActions.add(key);
+        this._handleAction(seq.action);
     }
 }

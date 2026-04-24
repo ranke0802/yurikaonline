@@ -217,6 +217,8 @@ export class UIManager {
         this.dialogText = document.getElementById('dialog-text');
         this.dialogName = document.getElementById('dialog-name');
         this.dialogNext = document.getElementById('dialog-next');
+        this.dialogPortrait = null;
+        this.storyBackdropLayer = null;
 
         if (this.dialogNext) {
             this.dialogNext.addEventListener('click', () => this.advanceDialog());
@@ -2150,10 +2152,88 @@ export class UIManager {
         this.advanceDialog();
     }
 
+    ensureStoryBackdropLayer() {
+        if (this.storyBackdropLayer?.isConnected) return this.storyBackdropLayer;
+
+        let layer = document.getElementById('story-backdrop-layer');
+        if (!layer) {
+            layer = document.createElement('div');
+            layer.id = 'story-backdrop-layer';
+            layer.className = 'story-backdrop-layer hidden';
+            document.body.appendChild(layer);
+        }
+        this.storyBackdropLayer = layer;
+        return layer;
+    }
+
+    ensureDialogPortraitElement() {
+        if (this.dialogPortrait?.isConnected) return this.dialogPortrait;
+        if (!this.dialogBox) return null;
+
+        let portrait = document.getElementById('dialog-portrait');
+        if (!portrait) {
+            portrait = document.createElement('div');
+            portrait.id = 'dialog-portrait';
+            portrait.className = 'dialog-portrait hidden';
+            portrait.setAttribute('aria-hidden', 'true');
+            this.dialogBox.querySelector('.dialog-content')?.prepend(portrait);
+        }
+        this.dialogPortrait = portrait;
+        return portrait;
+    }
+
+    normalizeAssetUrlForStyle(url) {
+        return String(url || '').replace(/["\\\n\r]/g, '');
+    }
+
+    applyStoryDialogMedia(data = {}) {
+        if (!this.storyDialogActive) return;
+
+        const background = data.background || data.visual?.background || null;
+        const portrait = data.portrait || data.visual?.portrait || null;
+        const mood = data.mood || data.visual?.mood || 'default';
+        const content = this.dialogBox?.querySelector('.dialog-content');
+
+        document.body.classList.add('story-dialog-active');
+        document.body.dataset.storyMood = mood;
+        content?.classList.toggle('has-portrait', !!portrait);
+
+        if (background) {
+            const layer = this.ensureStoryBackdropLayer();
+            layer.style.backgroundImage = `linear-gradient(180deg, rgba(8, 10, 18, 0.28), rgba(8, 10, 18, 0.72)), url("${this.normalizeAssetUrlForStyle(background)}")`;
+            layer.classList.remove('hidden');
+        }
+
+        const portraitEl = this.ensureDialogPortraitElement();
+        if (portraitEl && portrait) {
+            portraitEl.style.backgroundImage = `url("${this.normalizeAssetUrlForStyle(portrait)}")`;
+            portraitEl.classList.remove('hidden');
+        } else if (portraitEl) {
+            portraitEl.classList.add('hidden');
+            portraitEl.style.backgroundImage = '';
+        }
+    }
+
+    clearStoryDialogMedia() {
+        const layer = this.storyBackdropLayer || document.getElementById('story-backdrop-layer');
+        if (layer) {
+            layer.classList.add('hidden');
+            layer.style.backgroundImage = '';
+        }
+        const portrait = this.dialogPortrait || document.getElementById('dialog-portrait');
+        if (portrait) {
+            portrait.classList.add('hidden');
+            portrait.style.backgroundImage = '';
+        }
+        this.dialogBox?.querySelector('.dialog-content')?.classList.remove('has-portrait');
+        document.body.classList.remove('story-dialog-active');
+        delete document.body.dataset.storyMood;
+    }
+
     advanceDialog() {
         if (this.currentDialogQueue.length === 0 && !this.waitingForOption) {
             const shouldAdvanceStory = this.storyDialogActive && this.game.story?.isStoryActive;
-            this.hideDialog();
+            this.hideDialog({ preserveStoryMedia: shouldAdvanceStory });
             if (shouldAdvanceStory) {
                 this.game.story.advance();
             }
@@ -2165,6 +2245,7 @@ export class UIManager {
         const data = this.currentDialogQueue.shift();
         if (this.dialogText) this.dialogText.textContent = data.text;
         if (this.dialogName) this.dialogName.textContent = data.name || '';
+        this.applyStoryDialogMedia(data);
 
         // Handle Options
         const optionsContainer = document.getElementById('dialog-options'); // Assuming this exists or we create it
@@ -2192,7 +2273,7 @@ export class UIManager {
         }
     }
 
-    hideDialog() {
+    hideDialog(options = {}) {
         if (this.dialogBox) this.dialogBox.style.display = 'none';
         if (this.dialogNext) this.dialogNext.style.display = 'block';
         const optionsContainer = document.getElementById('dialog-options');
@@ -2200,6 +2281,9 @@ export class UIManager {
         this.currentDialogQueue = [];
         this.waitingForOption = false;
         this.storyDialogActive = false;
+        if (!options.preserveStoryMedia) {
+            this.clearStoryDialogMedia();
+        }
     }
 
     // v2.3: Tutorial UI

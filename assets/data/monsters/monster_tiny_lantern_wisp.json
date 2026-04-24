@@ -1,0 +1,39 @@
+{
+    "id": "monster_tiny_lantern_wisp",
+    "name": "작은 랜턴 망령",
+    "type": "monster",
+    "baseStats": {
+        "hp": 180,
+        "maxHp": 180,
+        "atk": 18,
+        "def": 4,
+        "speed": 58,
+        "exp": 38
+    },
+    "visual": {
+        "assetPath": "assets/monsters/shadows/monster_tiny_lantern_wisp.jpeg",
+        "width": 82,
+        "height": 112,
+        "frameSpeed": 0.2,
+        "frameCount": 1,
+        "scale": 1.05
+    },
+    "behavior": {
+        "aggroRange": 360
+    },
+    "sounds": {
+        "attack": "sfx_slime_attack",
+        "hit": "sfx_slime_hit",
+        "die": "sfx_slime_die",
+        "move": "sfx_slime_move"
+    },
+    "skills": [],
+    "drops": [
+        {
+            "itemId": "manastone",
+            "min": 32,
+            "max": 58,
+            "chance": 1.0
+        }
+    ]
+}

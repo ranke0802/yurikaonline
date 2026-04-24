@@ -1,0 +1,86 @@
+{
+    "id": "town_moonwell",
+    "type": "town",
+    "name": "달샘 마을 (Moonwell Town)",
+    "defaultSpawnId": "default",
+    "width": 2400,
+    "height": 2200,
+    "background": {
+        "image": "assets/world/tiles/tile_moon_magic_plaza.jpeg",
+        "music": "bgm_cabin",
+        "ambient": "sfx_wind"
+    },
+    "boundaries": {
+        "minX": 0,
+        "maxX": 2400,
+        "minY": 0,
+        "maxY": 2200
+    },
+    "spawnPoints": [
+        {
+            "id": "default",
+            "x": 1200,
+            "y": 1220
+        },
+        {
+            "id": "from_zone_1",
+            "x": 420,
+            "y": 1180
+        },
+        {
+            "id": "from_field_dark_forest",
+            "x": 2010,
+            "y": 1180
+        }
+    ],
+    "monsterSpawns": [],
+    "portals": [
+        {
+            "id": "portal_to_zone_1",
+            "enabled": true,
+            "label": "바람 언덕으로 돌아가는 길",
+            "trigger": {
+                "type": "rect",
+                "x": 300,
+                "y": 1100,
+                "width": 180,
+                "height": 160
+            },
+            "target": {
+                "zoneId": "zone_1",
+                "spawnId": "from_town_moonwell"
+            },
+            "transition": {
+                "type": "field",
+                "requiresConfirmation": true,
+                "storyGate": null
+            }
+        },
+        {
+            "id": "portal_to_field_dark_forest",
+            "enabled": true,
+            "label": "어둠숲으로 향하는 동쪽 문",
+            "trigger": {
+                "type": "rect",
+                "x": 1960,
+                "y": 1100,
+                "width": 180,
+                "height": 160
+            },
+            "target": {
+                "zoneId": "field_dark_forest",
+                "spawnId": "from_town_moonwell"
+            },
+            "transition": {
+                "type": "field",
+                "requiresConfirmation": true,
+                "storyGate": null
+            }
+        }
+    ],
+    "transitions": {
+        "onEnter": [],
+        "onExit": []
+    },
+    "objects": []
+}

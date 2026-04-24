@@ -71,6 +71,7 @@ export default class Monster extends CharacterBase {
 
         this.isAggro = false;
         this.isBoss = (this.typeId === 'king_slime');
+        this.chargeOnly = !!definition.chargeOnly;
         this.electrocutedTimer = 0;
         this.slowRatio = 0;
         this.sparkTimer = 0;
@@ -131,7 +132,11 @@ export default class Monster extends CharacterBase {
         const targetH = 256;
 
         // Support both single file and directory logic
-        const isSingleFile = path.toLowerCase().endsWith('.webp') || path.toLowerCase().endsWith('.png');
+        const lowerPath = path.toLowerCase();
+        const isSingleFile = lowerPath.endsWith('.webp')
+            || lowerPath.endsWith('.png')
+            || lowerPath.endsWith('.jpg')
+            || lowerPath.endsWith('.jpeg');
 
         if (isSingleFile) {
             const img = new Image();

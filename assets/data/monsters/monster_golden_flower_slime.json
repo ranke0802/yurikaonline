@@ -1,0 +1,43 @@
+{
+    "id": "monster_golden_flower_slime",
+    "name": "꽃빛 슬라임",
+    "type": "monster",
+    "chargeOnly": true,
+    "baseStats": {
+        "hp": 140,
+        "maxHp": 140,
+        "atk": 12,
+        "def": 3,
+        "speed": 46,
+        "exp": 24
+    },
+    "visual": {
+        "assetPath": "assets/monsters/slimes/monster_golden_flower_slime.jpeg",
+        "width": 88,
+        "height": 78,
+        "frameSpeed": 0.18,
+        "frameCount": 1,
+        "scale": 1.15
+    },
+    "sounds": {
+        "attack": "sfx_slime_attack",
+        "hit": "sfx_slime_hit",
+        "die": "sfx_slime_die",
+        "move": "sfx_slime_move"
+    },
+    "skills": [],
+    "drops": [
+        {
+            "itemId": "manastone",
+            "min": 22,
+            "max": 42,
+            "chance": 1.0
+        },
+        {
+            "itemId": "weapon_upgrade_stone",
+            "min": 1,
+            "max": 1,
+            "chance": 0.08
+        }
+    ]
+}

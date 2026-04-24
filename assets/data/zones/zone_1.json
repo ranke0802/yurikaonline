@@ -26,6 +26,11 @@
             "id": "field_path",
             "x": 1550,
             "y": 1550
+        },
+        {
+            "id": "from_town_moonwell",
+            "x": 1580,
+            "y": 1680
         }
     ],
     "monsterSpawns": [
@@ -52,9 +57,9 @@
     ],
     "portals": [
         {
-            "id": "field_path_future",
-            "enabled": false,
-            "label": "Future field path transition",
+            "id": "portal_to_town_moonwell",
+            "enabled": true,
+            "label": "달샘 마을로 가는 언덕길",
             "trigger": {
                 "type": "rect",
                 "x": 1500,
@@ -63,11 +68,11 @@
                 "height": 120
             },
             "target": {
-                "zoneId": null,
-                "spawnId": "default"
+                "zoneId": "town_moonwell",
+                "spawnId": "from_zone_1"
             },
             "transition": {
-                "type": "field",
+                "type": "town",
                 "requiresConfirmation": true,
                 "storyGate": null
             }

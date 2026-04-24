@@ -1,0 +1,81 @@
+{
+    "id": "dungeon_lantern_woods",
+    "type": "dungeon",
+    "name": "랜턴 숲 던전 (Lantern Woods)",
+    "defaultSpawnId": "default",
+    "width": 2600,
+    "height": 2400,
+    "background": {
+        "image": "assets/world/tiles/tile_dungeon_wood_stone_candles.jpeg",
+        "music": "bgm_boss",
+        "ambient": "sfx_wind"
+    },
+    "boundaries": {
+        "minX": 0,
+        "maxX": 2600,
+        "minY": 0,
+        "maxY": 2400
+    },
+    "spawnPoints": [
+        {
+            "id": "default",
+            "x": 420,
+            "y": 1220
+        },
+        {
+            "id": "from_field_dark_forest",
+            "x": 360,
+            "y": 1220
+        }
+    ],
+    "monsterSpawns": [
+        {
+            "monsterId": "monster_lantern_scarecrow_mage",
+            "count": 3,
+            "area": {
+                "x": 820,
+                "y": 760,
+                "w": 620,
+                "h": 620
+            }
+        },
+        {
+            "monsterId": "monster_lantern_watcher_boss",
+            "count": 1,
+            "area": {
+                "x": 1880,
+                "y": 980,
+                "w": 320,
+                "h": 320
+            }
+        }
+    ],
+    "portals": [
+        {
+            "id": "portal_to_field_dark_forest",
+            "enabled": true,
+            "label": "어둠숲으로 나가는 던전 입구",
+            "trigger": {
+                "type": "rect",
+                "x": 260,
+                "y": 1140,
+                "width": 180,
+                "height": 160
+            },
+            "target": {
+                "zoneId": "field_dark_forest",
+                "spawnId": "from_dungeon_lantern_woods"
+            },
+            "transition": {
+                "type": "field",
+                "requiresConfirmation": true,
+                "storyGate": null
+            }
+        }
+    ],
+    "transitions": {
+        "onEnter": [],
+        "onExit": []
+    },
+    "objects": []
+}

@@ -33,6 +33,8 @@ export default class WorldScene extends Scene {
         this.remoteOffscreenUpdateInterval = 0;
         this.transientSyncSuppressedUntil = 0;
         this.transientSyncResumeGraceMs = 900;
+        this.portalTransitionLock = false;
+        this.portalPromptOpen = false;
 
         // v0.33.0: Monster Attack Queue
         this.monsterMissileQueue = [];
@@ -43,6 +45,7 @@ export default class WorldScene extends Scene {
     }
 
     shouldFreezeWorldForModalUi() {
+        if (this.game.story?.isStoryActive) return true;
         return !!this.ui?.isPaused && !this.net?.isSharedFieldActive?.();
     }
 
@@ -124,6 +127,8 @@ export default class WorldScene extends Scene {
         this.ui?.showHUD();
         this.remotePlayers.clear();
         this.monsterManager?.clearAll?.({ preserveNetwork: true });
+        this.portalTransitionLock = false;
+        this.portalPromptOpen = false;
 
         // v0.35.0: Ensure Story Fade is reset to prevent black screen
         if (this.game.story) {
@@ -414,11 +419,18 @@ export default class WorldScene extends Scene {
         }
         // v0.00.57: Play BGM
         if (this.game.sound) {
-            this.game.sound.loadAndPlayBgm('bgm_cabin');
+            this.game.sound.loadAndPlayBgm(zoneData?.background?.music || 'bgm_cabin');
+        }
+        if (params.zoneId && zoneData?.name) {
+            this.ui?.showCenterMessage?.(zoneData.name, '#bfe8ff');
         }
 
         if (shouldDeferZoneParticipation) {
-            this.game.tutorial?.startTutorial?.('basic_training');
+            if (!this.player.questData.prologueCompleted && this.game.story) {
+                this.game.story.startStory('prologue');
+            } else {
+                this.game.tutorial?.startTutorial?.('basic_training');
+            }
         } else {
             this.activateZoneParticipation();
         }
@@ -524,6 +536,10 @@ export default class WorldScene extends Scene {
             : (this.game.zone?.currentZone?.monsterSpawns || this.game.zone?.currentZone?.spawns || []);
 
         if (!Array.isArray(spawnRules) || spawnRules.length === 0) {
+            this.monsterManager.setSpawnRules([]);
+            if (options.clearExisting) {
+                this.monsterManager.clearAll();
+            }
             return false;
         }
 
@@ -538,6 +554,196 @@ export default class WorldScene extends Scene {
         }
 
         return true;
+    }
+
+    getPlayerProfileSnapshotForTransition() {
+        const player = this.player;
+        if (!player) return null;
+
+        return {
+            level: player.level,
+            exp: player.exp,
+            maxExp: player.maxExp,
+            hp: player.hp,
+            mp: player.mp,
+            manastone: player.manastone,
+            vitality: player.vitality,
+            defense: player.defense || 0,
+            intelligence: player.intelligence,
+            wisdom: player.wisdom,
+            agility: player.agility,
+            statPoints: player.statPoints,
+            skillLevels: player.skillLevels,
+            autoAttackEnabled: !!player.autoAttackEnabled,
+            inventory: player.inventory,
+            equipment: player.equipment,
+            questData: player.questData,
+            uiLayout: player.uiLayout,
+            clientSettings: player.clientSettings,
+            recoveryUid: player.recoveryUid || player.id,
+            name: player.name,
+            party: player.party,
+            hostility: player.hostileTargets
+                ? Object.fromEntries(player.hostileTargets.entries())
+                : (player.hostility || {}),
+            x: Math.round(player.x),
+            y: Math.round(player.y),
+            ts: Date.now()
+        };
+    }
+
+    isPlayerInsideRect(rect) {
+        if (!this.player || !rect) return false;
+        const px = this.player.x;
+        const py = this.player.y;
+        const pw = this.player.width || 0;
+        const ph = this.player.height || 0;
+        const rx = Number(rect.x || 0);
+        const ry = Number(rect.y || 0);
+        const rw = Number(rect.width || rect.w || 0);
+        const rh = Number(rect.height || rect.h || 0);
+
+        return px < rx + rw && px + pw > rx && py < ry + rh && py + ph > ry;
+    }
+
+    findActivePortalAtPlayer() {
+        const portals = this.game.zone?.portals || this.game.zone?.currentZone?.portals || [];
+        if (!Array.isArray(portals) || portals.length === 0) return null;
+
+        return portals.find((portal) => {
+            if (!portal || portal.enabled === false) return false;
+            if (!portal.target?.zoneId) return false;
+            const trigger = portal.trigger || {};
+            if (trigger.type !== 'rect') return false;
+            return this.isPlayerInsideRect(trigger);
+        }) || null;
+    }
+
+    updatePortalTransitions() {
+        if (this.portalTransitionLock || this.portalPromptOpen || this.game.story?.isStoryActive) return;
+        const portal = this.findActivePortalAtPlayer();
+        if (!portal) return;
+
+        const label = portal.label || portal.name || '다음 지역';
+        const requiresConfirmation = portal.transition?.requiresConfirmation !== false;
+
+        if (requiresConfirmation && this.ui?.showConfirm) {
+            this.portalPromptOpen = true;
+            this.ui.showConfirm(`${label}(으)로 이동하시겠습니까?`, (confirmed) => {
+                this.portalPromptOpen = false;
+                if (confirmed) {
+                    this.transitionThroughPortal(portal);
+                } else {
+                    this.portalTransitionLock = true;
+                    window.setTimeout(() => {
+                        this.portalTransitionLock = false;
+                    }, 650);
+                }
+            });
+            return;
+        }
+
+        this.transitionThroughPortal(portal);
+    }
+
+    async transitionThroughPortal(portal) {
+        if (!portal?.target?.zoneId || this.portalTransitionLock) return;
+        this.portalTransitionLock = true;
+
+        const targetZoneId = portal.target.zoneId;
+        const targetSpawnId = portal.target.spawnId || 'default';
+        this.ui?.showCenterMessage?.(`${portal.label || '다음 지역'} 이동 중...`, '#ffd88a');
+        this.player?.saveState?.(true, {
+            debounceMs: 0,
+            reason: `portal_${portal.id || targetZoneId}`
+        });
+
+        if (this.game.story) {
+            this.game.story.fadeAlpha = Math.max(this.game.story.fadeAlpha || 0, 0.25);
+        }
+
+        await this.game.sceneManager.changeScene('world', {
+            user: this.game.auth?.currentUser || window.firebase?.auth?.().currentUser || null,
+            profile: this.getPlayerProfileSnapshotForTransition(),
+            localName: this.player?.name,
+            zoneId: targetZoneId,
+            spawnId: targetSpawnId
+        });
+    }
+
+    isRectNearViewport(rect, margin = 160) {
+        if (!this.camera || !rect) return true;
+        const vw = (this.game.canvas.width / this.game.dpr) / this.game.zoom;
+        const vh = (this.game.canvas.height / this.game.dpr) / this.game.zoom;
+        const x = Number(rect.x || 0);
+        const y = Number(rect.y || 0);
+        const w = Number(rect.width || rect.w || 0);
+        const h = Number(rect.height || rect.h || 0);
+
+        return x + w >= this.camera.x - margin
+            && x <= this.camera.x + vw + margin
+            && y + h >= this.camera.y - margin
+            && y <= this.camera.y + vh + margin;
+    }
+
+    renderZonePortals(ctx) {
+        const portals = this.game.zone?.portals || this.game.zone?.currentZone?.portals || [];
+        if (!Array.isArray(portals) || portals.length === 0) return;
+
+        ctx.save();
+        portals.forEach((portal, index) => {
+            if (!portal || portal.enabled === false) return;
+            const trigger = portal.trigger || portal.bounds;
+            if (!trigger || (trigger.type && trigger.type !== 'rect')) return;
+            if (!this.isRectNearViewport(trigger)) return;
+
+            const x = Number(trigger.x || 0);
+            const y = Number(trigger.y || 0);
+            const w = Number(trigger.width || trigger.w || 0);
+            const h = Number(trigger.height || trigger.h || 0);
+            if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return;
+
+            const cx = x + w / 2;
+            const cy = y + h / 2;
+            const pulse = 0.5 + Math.sin((this.time * 3.2) + index) * 0.5;
+            const radius = Math.max(w, h) * (0.62 + pulse * 0.1);
+            const gradient = ctx.createRadialGradient(cx, cy, 8, cx, cy, radius);
+            gradient.addColorStop(0, `rgba(174, 232, 255, ${0.36 + pulse * 0.16})`);
+            gradient.addColorStop(0.58, 'rgba(96, 196, 255, 0.18)');
+            gradient.addColorStop(1, 'rgba(96, 196, 255, 0)');
+
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, radius * 0.72, radius * 0.38, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = `rgba(218, 248, 255, ${0.58 + pulse * 0.22})`;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([12, 8]);
+            ctx.strokeRect(x, y, w, h);
+            ctx.setLineDash([]);
+
+            const label = portal.label || portal.name;
+            if (label) {
+                ctx.font = '700 15px "Noto Sans KR", "Outfit", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const labelY = y - 22;
+                const textWidth = Math.min(260, ctx.measureText(label).width + 24);
+                ctx.fillStyle = 'rgba(5, 12, 24, 0.72)';
+                ctx.strokeStyle = 'rgba(177, 229, 255, 0.64)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(cx - textWidth / 2, labelY - 15, textWidth, 30, 8);
+                else ctx.rect(cx - textWidth / 2, labelY - 15, textWidth, 30);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = '#ecfbff';
+                ctx.fillText(label, cx, labelY, textWidth - 16);
+            }
+        });
+        ctx.restore();
     }
 
     // v2.3.4: Effect Bridge
@@ -951,6 +1157,8 @@ export default class WorldScene extends Scene {
                 }
             }
 
+            this.updatePortalTransitions();
+
             // Sync Position
             this.net.sendMovePacket(
                 this.player.x,
@@ -1145,6 +1353,7 @@ export default class WorldScene extends Scene {
 
         // 1. World & Entities
         this.game.zone.render(ctx, this.camera);
+        this.renderZonePortals(ctx);
 
         // 2. Prepare Render List (Y-Sort)
         const renderList = [];

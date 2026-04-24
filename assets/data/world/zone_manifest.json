@@ -29,6 +29,51 @@
                 "presenceMode": "field",
                 "baseFieldId": "zone_1"
             }
+        },
+        {
+            "id": "town_moonwell",
+            "type": "town",
+            "name": "달샘 마을 (Moonwell Town)",
+            "path": "assets/data/zones/town_moonwell.json",
+            "defaultSpawnId": "default",
+            "entryPolicy": {
+                "requiresStoryFlag": null,
+                "requiresLevel": 1
+            },
+            "network": {
+                "presenceMode": "town",
+                "baseFieldId": "town_moonwell"
+            }
+        },
+        {
+            "id": "field_dark_forest",
+            "type": "field",
+            "name": "어둠숲 (Dark Forest)",
+            "path": "assets/data/zones/field_dark_forest.json",
+            "defaultSpawnId": "default",
+            "entryPolicy": {
+                "requiresStoryFlag": null,
+                "requiresLevel": 1
+            },
+            "network": {
+                "presenceMode": "field",
+                "baseFieldId": "field_dark_forest"
+            }
+        },
+        {
+            "id": "dungeon_lantern_woods",
+            "type": "dungeon",
+            "name": "랜턴 숲 던전 (Lantern Woods)",
+            "path": "assets/data/zones/dungeon_lantern_woods.json",
+            "defaultSpawnId": "default",
+            "entryPolicy": {
+                "requiresStoryFlag": null,
+                "requiresLevel": 1
+            },
+            "network": {
+                "presenceMode": "dungeon",
+                "baseFieldId": "dungeon_lantern_woods"
+            }
         }
     ]
 }
