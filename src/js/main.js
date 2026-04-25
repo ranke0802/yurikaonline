@@ -1,6 +1,7 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.02.031'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.046'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
+const OPENING_PROLOGUE_STORAGE_KEY = 'yurika_opening_prologue_completed';
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';
@@ -14,6 +15,7 @@ import MonsterManager from './world/MonsterManager.js';
 import MonsterDataManager from './core/MonsterDataManager.js';
 import CharacterDataManager from './core/CharacterDataManager.js';
 import ItemDataManager from './core/ItemDataManager.js';
+import LocalizationManager from './core/LocalizationManager.js';
 import StoryManager from './core/StoryManager.js';
 import { UIManager } from './ui/UIManager.js';
 import SoundManager from './core/SoundManager.js';
@@ -21,6 +23,8 @@ import QuestManager from './core/QuestManager.js';
 import TutorialManager from './core/TutorialManager.js'; // v2.3
 import ObjectPool from './utils/ObjectPool.js';
 import SceneManager from './core/SceneManager.js';
+import OpeningScene from './world/scenes/OpeningScene.js';
+import OpeningPrologueScene from './world/scenes/OpeningPrologueScene.js';
 import WorldScene from './world/scenes/WorldScene.js';
 import LoginScene from './world/scenes/LoginScene.js';
 import CharacterSelectionScene from './world/scenes/CharacterSelectionScene.js';
@@ -126,6 +130,7 @@ class Game {
         this.auth = new AuthManager();
         this.net = new NetworkManager();
         this.resources = new ResourceManager();
+        this.i18n = new LocalizationManager();
         this.monsterData = new MonsterDataManager(this.resources); // Initialize MonsterDataManager
         this.characterData = new CharacterDataManager(this.resources);
         this.itemData = new ItemDataManager(this.resources);
@@ -138,7 +143,7 @@ class Game {
         window.game = this;
 
         // 2. World Systems
-        this.zone = new ZoneManager(this.resources);
+        this.zone = new ZoneManager(this.resources, this.i18n);
         this.monsterManager = new MonsterManager(this);
         this.ui = new UIManager(this);
         // Map is 6400x6400 based on ZoneManager (200 * 32)
@@ -158,6 +163,8 @@ class Game {
         this.player = null; // Local Player
         this.localPlayer = null; // Alias for compatibility
         this.time = 0; // Game Time for Throttling/Sync
+        this.hasPassedOpening = false;
+        this.openingPrologueCompleted = this.hasCompletedOpeningPrologue();
 
         // Performance: Object Pools
         this.sparkPool = new ObjectPool(
@@ -184,6 +191,8 @@ class Game {
 
         // 6. Scene Manager
         this.sceneManager = new SceneManager(this);
+        this.sceneManager.addScene('opening', new OpeningScene(this));
+        this.sceneManager.addScene('openingPrologue', new OpeningPrologueScene(this));
         this.sceneManager.addScene('login', new LoginScene(this));
         this.sceneManager.addScene('charSelect', new CharacterSelectionScene(this));
         this.sceneManager.addScene('world', new WorldScene(this));
@@ -201,6 +210,42 @@ class Game {
         this.loop.setUpdateFps(initialPerfProfile.maxUpdateFps);
 
         this.init();
+    }
+
+    hasCompletedOpeningPrologue() {
+        try {
+            return localStorage.getItem(OPENING_PROLOGUE_STORAGE_KEY) === 'true';
+        } catch (error) {
+            return false;
+        }
+    }
+
+    markOpeningPrologueCompleted() {
+        this.openingPrologueCompleted = true;
+        try {
+            localStorage.setItem(OPENING_PROLOGUE_STORAGE_KEY, 'true');
+        } catch (error) {
+            // Keep the in-memory flag when localStorage is unavailable.
+        }
+    }
+
+    enterOpeningPrologue() {
+        if (this.hasCompletedOpeningPrologue()) {
+            this.openingPrologueCompleted = true;
+            this.enterPostOpeningScene();
+            return;
+        }
+        this.sceneManager.changeScene('openingPrologue');
+    }
+
+    enterPostOpeningScene() {
+        this.hasPassedOpening = true;
+        const user = this.auth?.currentUser || window.firebase?.auth?.().currentUser || null;
+        if (user) {
+            this.sceneManager.changeScene('charSelect', { user });
+        } else {
+            this.sceneManager.changeScene('login');
+        }
     }
 
     _resetTransientInputState(reason = 'manual') {
@@ -478,15 +523,19 @@ class Game {
 
         // 1. Prepare Scene Manager & Initial Load
         this.loop.start(); // Start loop for background rendering
+        if (!this.sceneManager.currentScene) {
+            this.sceneManager.changeScene('opening');
+        }
+        this.updateLoading('완료', 100);
+        this._hideLoader();
 
         // 2. Auth Flow
         this.auth.on('initialized', () => {
-            if (!this.auth.isAuthenticated()) {
-                // If not logged in, go to Login Scene
-                this.sceneManager.changeScene('login');
-                this.updateLoading('완료', 100);
-                this._hideLoader();
+            if (!this.hasPassedOpening && !this.sceneManager.currentScene) {
+                this.sceneManager.changeScene('opening');
             }
+            this.updateLoading('완료', 100);
+            this._hideLoader();
         });
 
         this.auth.on('authStateChanged', (user) => {
@@ -498,14 +547,18 @@ class Game {
                 // IMPORTANT: One-time database reset as requested by user
                 // this.net.resetAllUserData(); // UNCOMMENT AND RUN ONCE IF NEEDED, THEN COMMENT BACK
 
-                // If logged in, go to Char Select
-                this.sceneManager.changeScene('charSelect', { user });
+                if (this.hasPassedOpening) {
+                    this.sceneManager.changeScene('charSelect', { user });
+                }
                 this.updateLoading('완료', 100);
                 this._hideLoader();
             } else {
                 this.net.disconnect();
-                // Return to login on logout
-                this.sceneManager.changeScene('login');
+                if (this.hasPassedOpening) {
+                    this.sceneManager.changeScene('login');
+                } else if (!this.sceneManager.currentScene) {
+                    this.sceneManager.changeScene('opening');
+                }
             }
         });
 

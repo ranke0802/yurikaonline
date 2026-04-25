@@ -1,10 +1,10 @@
 {
     "id": "prologue",
-    "title": "오두막에 내린 푸른 밤",
+    "title": "오두막의 푸른 밤",
     "sequences": [
         {
             "id": "start",
-            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
             "mood": "quiet",
             "cameraTarget": {
                 "x": 1260,
@@ -24,6 +24,23 @@
                     "duration": 400
                 },
                 {
+                    "type": "cinematic_title",
+                    "title": "푸른 밤",
+                    "subtitle": "오두막에 불이 남아 있다",
+                    "accent": "#9fd8ff",
+                    "duration": 1700,
+                    "i18n": {
+                        "en": {
+                            "title": "Blue Night",
+                            "subtitle": "The cottage is still breathing"
+                        },
+                        "ja": {
+                            "title": "青い夜",
+                            "subtitle": "小屋はまだ息をしている"
+                        }
+                    }
+                },
+                {
                     "type": "fade_in",
                     "duration": 1200
                 },
@@ -40,30 +57,60 @@
         },
         {
             "id": "seq_01",
-            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
             "name": "나",
-            "text": "숲 끝의 오두막은 오늘도 작게 숨을 쉰다.",
-            "next": "seq_02"
+            "text": "숲 끝 오두막은 오늘도 조용하다.",
+            "next": "seq_02",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "The cottage at the edge of the forest is quiet again today."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "森の端の小屋は、今日も静かだ。"
+                }
+            }
         },
         {
             "id": "seq_02",
-            "portrait": "assets/story/portraits/portrait_yurika_forest_anxious.jpeg",
+            "portrait": "assets/generated/characters/yurika_portrait_anxious.webp",
             "mood": "tender",
             "name": "나",
-            "text": "이 집에 남은 온기는 모두 유리카의 작은 손에서 시작된다.",
-            "next": "seq_03"
+            "text": "요람 옆에는 유리카의 담요와 빈 약병이 놓여 있다.",
+            "next": "seq_03",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "Yurika's blanket and empty medicine bottles are beside the cradle."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "揺りかごのそばには、ユリカの毛布と空の薬瓶が置いてある。"
+                }
+            }
         },
         {
             "id": "seq_03",
-            "portrait": "assets/story/portraits/portrait_yurika_forest_anxious.jpeg",
+            "portrait": "assets/generated/characters/yurika_portrait_anxious.webp",
             "mood": "wistful",
             "name": "나",
-            "text": "그 아이를 품에 안기까지, 우리는 너무 많은 것을 잃었다.",
-            "next": "seq_04"
+            "text": "유리카가 태어난 밤, 우리는 많은 것을 잃었다.",
+            "next": "seq_04",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "On the night Yurika was born, we lost too much."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "ユリカが生まれた夜、私たちは多くを失った。"
+                }
+            }
         },
         {
             "id": "seq_04",
-            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
             "actions": [
                 {
                     "type": "sound",
@@ -71,12 +118,22 @@
                 }
             ],
             "name": "나",
-            "text": "그래도 나는 약속했다. 이 오두막만큼은 지키겠다고.",
-            "next": "seq_05"
+            "text": "그래도 정한 건 있다. 이 오두막은 빼앗기지 않는다.",
+            "next": "seq_05",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "I made one decision. This cottage will not be taken."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "それでも決めた。この小屋は奪わせない。"
+                }
+            }
         },
         {
             "id": "seq_05",
-            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
             "mood": "uneasy",
             "actions": [
                 {
@@ -87,39 +144,93 @@
                 {
                     "type": "sound",
                     "id": "sfx_birds"
+                },
+                {
+                    "type": "message",
+                    "text": "창밖의 소리를 확인하세요.",
+                    "color": "#9fd8ff",
+                    "duration": 1600,
+                    "i18n": {
+                        "en": {
+                            "text": "Find the source before Yurika wakes."
+                        },
+                        "ja": {
+                            "text": "ユリカが起きる前に、音の出どころを探してください。"
+                        }
+                    }
                 }
             ],
             "name": "낡은 창문",
             "text": "툭. 툭. 유리창 너머로 젖은 흙이 튄다.",
-            "next": "seq_06"
+            "next": "seq_06",
+            "i18n": {
+                "en": {
+                    "name": "Old Window",
+                    "text": "Tap. Tap. Wet soil spatters against the window glass."
+                },
+                "ja": {
+                    "name": "古い窓",
+                    "text": "こつ。こつ。窓ガラスの向こうで濡れた土が跳ねる。"
+                }
+            }
         },
         {
             "id": "seq_06",
-            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
             "mood": "alert",
             "name": "나",
             "text": "또 슬라임인가. 어제보다 훨씬 가까워졌다.",
-            "next": "seq_07"
+            "next": "seq_07",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "Slimes again? They are much closer than yesterday."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "またスライムか。昨日よりずっと近づいている。"
+                }
+            }
         },
         {
             "id": "seq_07",
-            "portrait": "assets/story/portraits/portrait_yurika_forest_frightened.jpeg",
+            "portrait": "assets/generated/characters/yurika_portrait_frightened.webp",
             "mood": "frightened",
             "name": "유리카",
-            "text": "아빠... 밖에서 반짝이는 돌 냄새가 나.",
-            "next": "seq_08"
+            "text": "아빠... 밖에서 파란 돌 냄새가 나.",
+            "next": "seq_08",
+            "i18n": {
+                "en": {
+                    "name": "Yurika",
+                    "text": "Daddy... I smell shiny stones outside."
+                },
+                "ja": {
+                    "name": "ユリカ",
+                    "text": "お父さん……外から、光る石の匂いがする。"
+                }
+            }
         },
         {
             "id": "seq_08",
-            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
             "mood": "ominous",
             "name": "나",
-            "text": "마석의 기척이다. 마물들이 그 빛에 끌리고 있다.",
-            "next": "seq_09"
+            "text": "마석이다. 그 냄새를 따라 마물이 온다.",
+            "next": "seq_09",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "Manastone. Monsters follow that smell."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "魔石だ。魔物はその匂いを追ってくる。"
+                }
+            }
         },
         {
             "id": "seq_09",
-            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
             "actions": [
                 {
                     "type": "sound",
@@ -127,12 +238,22 @@
                 }
             ],
             "name": "나",
-            "text": "먼저 오두막 주변을 확인해야 한다. 흔적을 놓치면 밤을 넘기지 못한다.",
-            "next": "seq_10"
+            "text": "오두막 주변부터 본다. 흔적을 놓치면 밤을 못 넘긴다.",
+            "next": "seq_10",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "I check the cottage first. If I miss the tracks, we do not make it through the night."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "まず小屋の周りを見る。痕跡を見落とせば、夜を越せない。"
+                }
+            }
         },
         {
             "id": "seq_10",
-            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
             "cameraTarget": {
                 "x": 1620,
                 "y": 1880
@@ -149,19 +270,39 @@
             ],
             "name": "나",
             "text": "울타리 아래가 녹아 있다. 작은 슬라임들이 지나간 자국이다.",
-            "next": "seq_11"
+            "next": "seq_11",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "The ground under the fence has melted. Small slimes passed through here."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "柵の下が溶けている。小さなスライムが通った跡だ。"
+                }
+            }
         },
         {
             "id": "seq_11",
-            "background": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
             "mood": "resolved",
             "name": "나",
             "text": "내 마법만으로는 오래 버티기 어렵다. 마을에 도움을 청해야 한다.",
-            "next": "seq_12"
+            "next": "seq_12",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "My magic alone will not hold for long. I need to ask the village for help."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "私の魔法だけでは長く持ちこたえられない。村に助けを求めなければ。"
+                }
+            }
         },
         {
             "id": "seq_12",
-            "background": "assets/story/backgrounds/bg_town_gate_first_arrival.jpeg",
+            "background": "assets/generated/concepts/town_moonwell.webp",
             "mood": "urgent",
             "actions": [
                 {
@@ -171,23 +312,57 @@
                 {
                     "type": "fade_in",
                     "duration": 900
+                },
+                {
+                    "type": "message",
+                    "text": "지원은 없다. 보고만 들어왔다.",
+                    "color": "#ffd18a",
+                    "duration": 1500,
+                    "i18n": {
+                        "en": {
+                            "text": "Help has not arrived. Only reports have."
+                        },
+                        "ja": {
+                            "text": "助けは来ていません。先に届いたのは報告だけです。"
+                        }
+                    }
                 }
             ],
             "name": "마을 경비병",
-            "text": "숲의 오두막이라면... 며칠 전부터 파란 불빛이 보였습니다.",
-            "next": "seq_13"
+            "text": "숲 오두막 말입니까. 며칠 전부터 파란 불빛이 보였습니다.",
+            "next": "seq_13",
+            "i18n": {
+                "en": {
+                    "name": "Village Guard",
+                    "text": "The forest cottage...? We have seen a blue light there for several days."
+                },
+                "ja": {
+                    "name": "村の衛兵",
+                    "text": "森の小屋でしたら……数日前から青い光が見えていました。"
+                }
+            }
         },
         {
             "id": "seq_13",
-            "background": "assets/story/backgrounds/bg_town_gate_first_arrival.jpeg",
+            "background": "assets/generated/concepts/town_moonwell.webp",
             "name": "마을 경비병",
-            "text": "촌장님께 전하겠습니다. 그 전까지 숲길을 막아 주세요.",
-            "next": "seq_14"
+            "text": "촌장에게 전하겠습니다. 그동안 숲길을 막아 주십시오.",
+            "next": "seq_14",
+            "i18n": {
+                "en": {
+                    "name": "Village Guard",
+                    "text": "I will inform the village chief. Until then, please block the forest path."
+                },
+                "ja": {
+                    "name": "村の衛兵",
+                    "text": "村長に伝えます。それまで森道を塞いでください。"
+                }
+            }
         },
         {
             "id": "seq_14",
-            "background": "assets/story/backgrounds/bg_dark_forest_path_yurika_back.jpeg",
-            "portrait": "assets/story/portraits/portrait_yurika_forest_anxious.jpeg",
+            "background": "assets/generated/concepts/field_dark_forest.webp",
+            "portrait": "assets/generated/characters/yurika_portrait_anxious.webp",
             "mood": "guarded",
             "actions": [
                 {
@@ -204,20 +379,40 @@
                 }
             ],
             "name": "유리카",
-            "text": "아빠, 숲이 우리를 보고 있어.",
-            "next": "seq_15"
+            "text": "아빠, 숲에 누가 있어.",
+            "next": "seq_15",
+            "i18n": {
+                "en": {
+                    "name": "Yurika",
+                    "text": "Daddy, the forest is watching us."
+                },
+                "ja": {
+                    "name": "ユリカ",
+                    "text": "お父さん、森が私たちを見てる。"
+                }
+            }
         },
         {
             "id": "seq_15",
-            "background": "assets/story/backgrounds/bg_dark_forest_path_yurika_back.jpeg",
+            "background": "assets/generated/concepts/field_dark_forest.webp",
             "mood": "determined",
             "name": "나",
-            "text": "내 뒤에 있어라, 유리카. 길목을 지키고 새벽까지 버틴다.",
-            "next": "complete"
+            "text": "뒤에 붙어라, 유리카. 길목은 내가 막는다.",
+            "next": "complete",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "Stay behind me, Yurika. We hold the pass until dawn."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "私の後ろにいなさい、ユリカ。道を守り、夜明けまで耐える。"
+                }
+            }
         },
         {
             "id": "complete",
-            "background": "assets/story/backgrounds/bg_dark_forest_path_yurika_back.jpeg",
+            "background": "assets/generated/concepts/field_dark_forest.webp",
             "actions": [
                 {
                     "type": "sound",
@@ -225,8 +420,26 @@
                 }
             ],
             "name": "나",
-            "text": "오두막의 밤은 아직 끝나지 않았다. 이제 첫 경계를 시작한다.",
-            "action": "complete_prologue"
+            "text": "밤은 끝나지 않았다. 첫 경계를 시작한다.",
+            "action": "complete_prologue",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "The cottage's night is not over yet. The first watch begins now."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "小屋の夜はまだ終わっていない。これから最初の警戒を始める。"
+                }
+            }
         }
-    ]
+    ],
+    "i18n": {
+        "en": {
+            "title": "A Blue Night Falls on the Cottage"
+        },
+        "ja": {
+            "title": "小屋に降りた青い夜"
+        }
+    }
 }

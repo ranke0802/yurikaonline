@@ -15,7 +15,8 @@ export default class TutorialManager {
 
     async loadTutorial(id) {
         try {
-            return await this.game.resources.loadJSON(`/assets/data/tutorials/${id}.json`);
+            const data = await this.game.resources.loadJSON(`/assets/data/tutorials/${id}.json`);
+            return this.game.i18n?.localizeContent?.(data) || data;
         } catch (e) {
             Logger.error(`[Tutorial] Failed to load tutorial: ${id}`, e);
             return null;
@@ -750,7 +751,10 @@ export default class TutorialManager {
         if (this.game.ui) {
             this.game.ui.hideTutorialGuide();
             this.game.ui.clearTutorialHighlight?.();
-            this.game.ui.logSystemMessage(`튜토리얼 완료: ${this.activeTutorial.title}`);
+            this.game.ui.logSystemMessage(
+                this.game.i18n?.t?.('system.tutorialCompleted', { title: this.activeTutorial.title })
+                || `튜토리얼 완료: ${this.activeTutorial.title}`
+            );
         }
 
         this.game.input?.setAllowedActions(null);
@@ -781,7 +785,7 @@ export default class TutorialManager {
             }
 
             this.game.monsterManager?.primeSpawnCycle?.();
-            this.game.ui?.logSystemMessage('튜토리얼이 끝났습니다. 이제 슬라임 사냥을 시작해 보세요.');
+            this.game.ui?.logSystemMessage(this.game.i18n?.t?.('system.tutorialEnd') || '튜토리얼이 끝났습니다. 이제 슬라임 사냥을 시작해 보세요.');
         }
 
         if (this.game.localPlayer) {

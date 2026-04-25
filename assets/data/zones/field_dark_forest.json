@@ -6,9 +6,16 @@
     "width": 3000,
     "height": 2600,
     "background": {
+        "generatedImage": "assets/generated/tiles/tile_dark_forest_floor.webp",
         "image": "assets/world/tiles/tile_dark_forest_eyes_mushrooms.jpeg",
         "music": "bgm_act2_threat",
         "ambient": "sfx_wind"
+    },
+    "transitionOverlay": {
+        "type": "field",
+        "label": "어둠숲",
+        "description": "버섯빛과 오래된 나무 그림자가 길을 좁히는 숲입니다.",
+        "conceptArt": "assets/generated/concepts/field_dark_forest.webp"
     },
     "boundaries": {
         "minX": 0,
@@ -24,12 +31,12 @@
         },
         {
             "id": "from_town_moonwell",
-            "x": 420,
+            "x": 560,
             "y": 1320
         },
         {
             "id": "from_dungeon_lantern_woods",
-            "x": 2550,
+            "x": 2380,
             "y": 1320
         }
     ],
@@ -83,6 +90,10 @@
             },
             "transition": {
                 "type": "town",
+                "label": "달샘 마을",
+                "description": "서쪽 숲길 끝에서 마을의 달빛 광장이 다시 보입니다.",
+                "loadingArt": "assets/generated/loading/loading_moonwell_town_gate.webp",
+                "conceptArt": "assets/generated/concepts/town_moonwell.webp",
                 "requiresConfirmation": true,
                 "storyGate": null
             }
@@ -104,6 +115,10 @@
             },
             "transition": {
                 "type": "dungeon",
+                "label": "랜턴 숲 던전",
+                "description": "낡은 랜턴들이 어둠 속에서 던전 입구를 가리킵니다.",
+                "loadingArt": "assets/generated/loading/loading_lantern_woods.webp",
+                "conceptArt": "assets/generated/concepts/dungeon_lantern_woods.webp",
                 "requiresConfirmation": true,
                 "storyGate": null
             }
@@ -113,5 +128,257 @@
         "onEnter": [],
         "onExit": []
     },
-    "objects": []
+    "objects": [
+        {
+            "type": "path",
+            "id": "dark_forest_west_path",
+            "label": "마을에서 이어지는 숲 입구 길",
+            "x": 470,
+            "y": 1180,
+            "visual": {
+                "image": "assets/story/backgrounds/bg_dark_forest_path_yurika_back.jpeg",
+                "width": 520,
+                "height": 300,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/overlays/path_dark_forest_moss.webp",
+                "variant": "forest",
+                "curveA": 0.4,
+                "curveB": 0.75
+            },
+            "collision": {
+                "enabled": false,
+                "width": 0,
+                "height": 0
+            }
+        },
+        {
+            "type": "path",
+            "id": "dark_forest_middle_path",
+            "label": "어둠숲의 구불구불한 주길",
+            "x": 1210,
+            "y": 1160,
+            "visual": {
+                "image": "assets/world/tiles/tile_dark_forest_eyes_mushrooms.jpeg",
+                "width": 560,
+                "height": 310,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/overlays/path_dark_forest_moss.webp",
+                "variant": "forest",
+                "curveA": 0.28,
+                "curveB": 0.82
+            },
+            "collision": {
+                "enabled": false,
+                "width": 0,
+                "height": 0
+            }
+        },
+        {
+            "type": "path",
+            "id": "dark_forest_dungeon_path",
+            "label": "랜턴 숲 던전으로 꺾이는 동쪽 길",
+            "x": 1970,
+            "y": 1180,
+            "visual": {
+                "image": "assets/story/backgrounds/bg_dark_forest_path_yurika_back.jpeg",
+                "width": 520,
+                "height": 300,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/overlays/path_dark_forest_moss.webp",
+                "variant": "forest",
+                "curveA": 0.48,
+                "curveB": 0.68
+            },
+            "collision": {
+                "enabled": false,
+                "width": 0,
+                "height": 0
+            }
+        },
+        {
+            "type": "forest_cluster",
+            "id": "moonwell_edge_bramble",
+            "label": "마을 경계의 가시덤불",
+            "x": 560,
+            "y": 560,
+            "visual": {
+                "image": "assets/world/tiles/tile_dark_forest_eyes_mushrooms.jpeg",
+                "width": 420,
+                "height": 300,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/shrub_glow_mushroom.webp",
+                "opacity": 0.92
+            },
+            "collision": {
+                "enabled": true,
+                "width": 310,
+                "height": 82,
+                "offsetX": 58,
+                "offsetY": 188
+            }
+        },
+        {
+            "type": "ruin",
+            "id": "sunken_milestone_ruin",
+            "label": "이끼 낀 거리 표석",
+            "x": 1040,
+            "y": 1570,
+            "visual": {
+                "image": "assets/world/tiles/tile_meadow_stone_path_runes.jpeg",
+                "width": 330,
+                "height": 210,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/rock_rune_obelisk.webp",
+                "opacity": 0.9
+            },
+            "collision": {
+                "enabled": true,
+                "width": 230,
+                "height": 58,
+                "offsetX": 50,
+                "offsetY": 130
+            }
+        },
+        {
+            "type": "forest_cluster",
+            "id": "lantern_mushroom_grove",
+            "label": "희미하게 빛나는 버섯 숲",
+            "x": 1510,
+            "y": 640,
+            "visual": {
+                "image": "assets/world/tiles/tile_dark_forest_eyes_mushrooms.jpeg",
+                "width": 440,
+                "height": 330,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/shrub_glow_mushroom.webp",
+                "mirrorX": true,
+                "opacity": 0.94
+            },
+            "collision": {
+                "enabled": true,
+                "width": 320,
+                "height": 88,
+                "offsetX": 60,
+                "offsetY": 208
+            }
+        },
+        {
+            "type": "ruin",
+            "id": "collapsed_watchtower",
+            "label": "무너진 감시탑 터",
+            "x": 1660,
+            "y": 1790,
+            "visual": {
+                "image": "assets/story/backgrounds/bg_prologue_ruined_city_moon.jpeg",
+                "width": 430,
+                "height": 310,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/rock_moss_cluster.webp",
+                "opacity": 0.88
+            },
+            "collision": {
+                "enabled": true,
+                "width": 300,
+                "height": 82,
+                "offsetX": 66,
+                "offsetY": 196
+            }
+        },
+        {
+            "type": "forest_cluster",
+            "id": "deepwood_black_pines",
+            "label": "동쪽 깊은 숲의 검은 소나무",
+            "x": 2180,
+            "y": 650,
+            "visual": {
+                "image": "assets/world/tiles/tile_dark_forest_eyes_mushrooms.jpeg",
+                "width": 450,
+                "height": 340,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/tree_twisted_lantern.webp",
+                "mirrorX": true,
+                "opacity": 0.96
+            },
+            "collision": {
+                "enabled": true,
+                "width": 330,
+                "height": 90,
+                "offsetX": 60,
+                "offsetY": 214
+            }
+        },
+        {
+            "type": "landmark",
+            "id": "lantern_woods_outer_gate",
+            "label": "랜턴 숲 던전 외곽문",
+            "x": 2320,
+            "y": 980,
+            "visual": {
+                "image": "assets/world/tiles/tile_dungeon_wood_stone_candles.jpeg",
+                "width": 360,
+                "height": 280,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/building_rune_gate.webp",
+                "opacity": 0.96
+            },
+            "collision": {
+                "enabled": false,
+                "width": 0,
+                "height": 0
+            }
+        },
+        {
+            "type": "signpost",
+            "id": "signpost_back_to_moonwell",
+            "label": "달샘 마을 귀환 표지",
+            "x": 590,
+            "y": 1450,
+            "collision": {
+                "enabled": true,
+                "width": 34,
+                "height": 34,
+                "offsetX": 0,
+                "offsetY": 0
+            },
+            "visual": {
+                "generatedImage": "assets/generated/objects/sign_moonwell_crossroads.webp"
+            }
+        },
+        {
+            "type": "signpost",
+            "id": "signpost_lantern_woods_warning",
+            "label": "랜턴 숲 경고 표지",
+            "x": 2385,
+            "y": 1450,
+            "collision": {
+                "enabled": true,
+                "width": 34,
+                "height": 34,
+                "offsetX": 0,
+                "offsetY": 0
+            },
+            "visual": {
+                "generatedImage": "assets/generated/objects/sign_moonwell_crossroads.webp"
+            }
+        },
+        {
+            "type": "terrain_patch",
+            "id": "cold_mist_mushroom_scatter",
+            "label": "차가운 안개의 버섯빛",
+            "x": 1240,
+            "y": 1455,
+            "visual": {
+                "width": 620,
+                "height": 260,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/overlays/clearing_grass.webp",
+                "variant": "forest"
+            },
+            "collision": {
+                "enabled": false,
+                "width": 0,
+                "height": 0
+            }
+        }
+    ]
 }

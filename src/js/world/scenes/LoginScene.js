@@ -54,27 +54,67 @@ export default class LoginScene extends Scene {
         }
     }
 
+    escapeHtml(value = '') {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    t(key, params = {}) {
+        return this.game.i18n?.t(key, params) || key;
+    }
+
     createUI() {
         this.loginUI = document.createElement('div');
         this.loginUI.id = 'login-scene-ui';
-        this.loginUI.className = 'scene-overlay';
-        const version = window.GAME_VERSION || '0.02.031';
+        this.loginUI.className = 'scene-overlay yurika-auth-scene';
+        const version = window.GAME_VERSION || '0.02.046';
 
         this.loginUI.innerHTML = `
-            <div class="login-card glass">
-                <h1 class="game-logo">YURIKA ONLINE</h1>
-                <p class="game-subtitle">Advanced Agentic MMORPG</p>
+            <div class="scene-atmosphere" aria-hidden="true">
+                <div class="forest-line forest-line-back"></div>
+                <div class="forest-line forest-line-front"></div>
+                <div class="cabin-silhouette">
+                    <div class="cabin-roof"></div>
+                    <div class="cabin-body">
+                        <span class="cabin-window"></span>
+                    </div>
+                </div>
+                <div class="manastone-shards">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
 
-                <div class="login-options">
-                    <button id="google-login-btn" class="login-btn google">
-                        <span class="btn-icon">G</span> Google로 로그인
-                    </button>
-                    <button id="guest-login-btn" class="login-btn guest">
-                        게스트로 시작하기
-                    </button>
+            <div class="login-card glass yurika-gate-card">
+                <div class="login-copy">
+                    <div class="story-kicker">${this.escapeHtml(this.t('login.kicker'))}</div>
+                    <h1 class="game-logo">YURIKA ONLINE</h1>
+                    <p class="game-subtitle">${this.escapeHtml(this.t('login.subtitle'))}</p>
+                    <p class="login-lore">
+                        ${this.escapeHtml(this.t('login.lore'))}
+                    </p>
+                    <div class="login-oath">
+                        <span>${this.escapeHtml(this.t('login.oath.boundary'))}</span>
+                        <span>${this.escapeHtml(this.t('login.oath.cabin'))}</span>
+                        <span>${this.escapeHtml(this.t('login.oath.promise'))}</span>
+                    </div>
                 </div>
 
-                <div class="version-tag">${version}</div>
+                <div class="login-options">
+                    <div class="login-options-title">${this.escapeHtml(this.t('login.continue'))}</div>
+                    <button id="google-login-btn" class="login-btn google">
+                        <span class="btn-icon">G</span> ${this.escapeHtml(this.t('login.google'))}
+                    </button>
+                    <button id="guest-login-btn" class="login-btn guest">
+                        ${this.escapeHtml(this.t('login.guest'))}
+                    </button>
+                    <p class="login-hint">${this.escapeHtml(this.t('login.hint'))}</p>
+                </div>
+
+                <div class="version-tag">${this.escapeHtml(version)}</div>
             </div>
         `;
 
@@ -96,7 +136,7 @@ export default class LoginScene extends Scene {
         try {
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = `<span class="btn-icon">...</span> 구글 로그인 중...`;
+                btn.innerHTML = `<span class="btn-icon">...</span> ${this.escapeHtml(this.t('login.googleLoading'))}`;
             }
             await this.game.auth.loginGoogle();
         } catch (e) {
@@ -104,16 +144,16 @@ export default class LoginScene extends Scene {
 
             // Special handling for domain issues
             if (e.code === 'auth/unauthorized-domain') {
-                alert(`승인되지 않은 도메인입니다 (${window.location.hostname}).\nFirebase 콘솔에서 승인된 도메인에 추가해주세요.`);
+                alert(this.t('login.unauthorizedDomain', { host: window.location.hostname }));
             } else if (e.code === 'auth/popup-closed-by-user') {
                 Logger.log("User closed the popup.");
             } else {
-                alert("로그인 중 오류가 발생했습니다: " + (e.message || "알 수 없는 오류"));
+                alert(this.t('login.error', { message: e.message || 'unknown' }));
             }
 
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = `<span class="btn-icon">G</span> Google로 로그인`;
+                btn.innerHTML = `<span class="btn-icon">G</span> ${this.escapeHtml(this.t('login.google'))}`;
             }
         }
     }
@@ -131,15 +171,58 @@ export default class LoginScene extends Scene {
     }
 
     render(ctx) {
-        // Render cool background on canvas
         const w = this.game.canvas.width;
         const h = this.game.canvas.height;
 
-        const grad = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w);
-        grad.addColorStop(0, '#2d3436');
-        grad.addColorStop(1, '#000000');
-
-        ctx.fillStyle = grad;
+        const sky = ctx.createLinearGradient(0, 0, 0, h);
+        sky.addColorStop(0, '#111a24');
+        sky.addColorStop(0.48, '#0a1018');
+        sky.addColorStop(1, '#030506');
+        ctx.fillStyle = sky;
         ctx.fillRect(0, 0, w, h);
+
+        ctx.save();
+        ctx.globalAlpha = 0.16;
+        const moonR = Math.max(34, Math.min(w, h) * 0.07);
+        ctx.fillStyle = '#d7e3dc';
+        ctx.beginPath();
+        ctx.arc(w * 0.72, h * 0.18, moonR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        const drawTrees = (baseY, color, alpha, step, heightRatio) => {
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(0, h);
+            for (let x = -step; x <= w + step; x += step) {
+                const variance = ((x / step) % 3) * 0.04;
+                const treeH = h * (heightRatio + variance);
+                ctx.lineTo(x + step * 0.5, baseY - treeH);
+                ctx.lineTo(x + step, baseY);
+            }
+            ctx.lineTo(w, h);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        };
+
+        drawTrees(h * 0.9, '#13251e', 0.62, Math.max(42, w * 0.06), 0.2);
+        drawTrees(h * 0.98, '#07100d', 0.9, Math.max(34, w * 0.048), 0.28);
+
+        ctx.save();
+        ctx.globalAlpha = 0.28;
+        ctx.fillStyle = '#43d1b7';
+        const stoneX = w * 0.5;
+        const stoneY = h * 0.62;
+        ctx.beginPath();
+        ctx.moveTo(stoneX, stoneY - 18);
+        ctx.lineTo(stoneX + 12, stoneY);
+        ctx.lineTo(stoneX, stoneY + 22);
+        ctx.lineTo(stoneX - 12, stoneY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
     }
 }

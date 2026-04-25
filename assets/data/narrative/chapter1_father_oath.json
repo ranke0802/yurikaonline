@@ -1,0 +1,940 @@
+{
+    "id": "chapter1_father_oath",
+    "title": "1막: 첫 경계",
+    "sequences": [
+        {
+            "id": "start",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "mood": "quiet",
+            "actions": [
+                {
+                    "type": "fade_out",
+                    "duration": 0
+                },
+                {
+                    "type": "sound",
+                    "id": "bgm_cabin"
+                },
+                {
+                    "type": "delay",
+                    "duration": 300
+                },
+                {
+                    "type": "cinematic_title",
+                    "title": "1막",
+                    "subtitle": "첫 경계",
+                    "accent": "#9fd8ff",
+                    "duration": 1800,
+                    "i18n": {
+                        "en": {
+                            "title": "Act 1",
+                            "subtitle": "A Father's Oath"
+                        },
+                        "ja": {
+                            "title": "第1幕",
+                            "subtitle": "父の誓い"
+                        }
+                    }
+                },
+                {
+                    "type": "fade_in",
+                    "duration": 1100
+                },
+                {
+                    "type": "camera_pan",
+                    "target": {
+                        "x": 1500,
+                        "y": 1900
+                    },
+                    "duration": 1500
+                }
+            ],
+            "next": "c1_001"
+        },
+        {
+            "id": "c1_001",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "mood": "wistful",
+            "name": "나",
+            "text": "난로는 꺼진 지 오래다. 요람 옆에는 덜 마른 담요와 빈 약병이 놓여 있다.",
+            "next": "c1_002",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "The stove went out long ago. Yet a lukewarm breath still lingers beside the cradle."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "暖炉の火はとっくに消えている。それでも揺りかごのそばには、まだぬるい息が残っている。"
+                }
+            }
+        },
+        {
+            "id": "c1_002",
+            "portrait": "assets/generated/characters/yurika_portrait_anxious.webp",
+            "mood": "tender",
+            "name": "나",
+            "text": "유리카는 울지 않았다. 너무 조용해서 더 불길했다.",
+            "next": "c1_003",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "Yurika did not cry. She was quiet, like a child abandoned by the world for the first time, and that frightened me more."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "ユリカは泣かなかった。初めて世界に捨てられた子のように静かで、だからこそ私はいっそう怖かった。"
+                }
+            }
+        },
+        {
+            "id": "c1_003",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "mood": "grief",
+            "name": "나",
+            "text": "아내가 붙잡았던 내 손에는 손톱자국이 남아 있다. 마지막 부탁은 하나였다. 아이를 지켜라.",
+            "next": "c1_004",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "The nail marks from my wife's final grip are still on my hand. She was not asking me to save her. She was asking me to protect the child."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "妻が最後に握った私の手には、まだ爪痕が残っている。助けてほしいという言葉ではなかった。守ってほしいという言葉だった。"
+                }
+            }
+        },
+        {
+            "id": "c1_004",
+            "portrait": "assets/generated/characters/yurika_portrait_anxious.webp",
+            "mood": "uneasy",
+            "actions": [
+                {
+                    "type": "sound",
+                    "id": "sfx_bell"
+                }
+            ],
+            "name": "유리카",
+            "text": "아빠... 담요 밑에서 파란 돌 냄새가 나.",
+            "next": "c1_005",
+            "i18n": {
+                "en": {
+                    "name": "Yurika",
+                    "text": "Daddy... there is a blue smell under the blanket."
+                },
+                "ja": {
+                    "name": "ユリカ",
+                    "text": "お父さん……毛布の下から青い匂いがする。"
+                }
+            }
+        },
+        {
+            "id": "c1_005",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "mood": "alert",
+            "name": "나",
+            "text": "마석 가루다. 분명 어젯밤까지는 없었다.",
+            "next": "c1_006",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "Manastone dust. It definitely was not here last night."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "魔石の粉だ。確かに昨夜まではなかった。"
+                }
+            }
+        },
+        {
+            "id": "c1_006",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "mood": "ominous",
+            "actions": [
+                {
+                    "type": "shake",
+                    "intensity": 2,
+                    "duration": 450
+                },
+                {
+                    "type": "sound",
+                    "id": "sfx_birds"
+                }
+            ],
+            "name": "낡은 창문",
+            "text": "긁는 소리가 났다. 밖이 아니라, 문턱 바로 아래에서.",
+            "next": "c1_007",
+            "i18n": {
+                "en": {
+                    "name": "Old Window",
+                    "text": "There was a scratching sound. Not outside, but right beneath the threshold."
+                },
+                "ja": {
+                    "name": "古い窓",
+                    "text": "引っかく音がした。外ではなく、敷居のすぐ下から。"
+                }
+            }
+        },
+        {
+            "id": "c1_007",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "mood": "resolved",
+            "name": "나",
+            "text": "유리카, 소리 내지 마라. 내가 문을 열 때까지 요람 안에 있어.",
+            "next": "c1_008",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "Yurika. Breathe softly. Until Daddy opens the door, do not leave the cradle."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "ユリカ。小さく息をしなさい。お父さんが扉を開けるまで、絶対に揺りかごから出てはいけない。"
+                }
+            }
+        },
+        {
+            "id": "c1_008",
+            "background": "assets/generated/concepts/field_dark_forest.webp",
+            "mood": "guarded",
+            "actions": [
+                {
+                    "type": "fade_out",
+                    "duration": 450
+                },
+                {
+                    "type": "fade_in",
+                    "duration": 800
+                },
+                {
+                    "type": "cinematic_title",
+                    "title": "첫 경계",
+                    "subtitle": "문턱 아래의 파란 이빨 자국",
+                    "accent": "#77c7ff",
+                    "duration": 1500,
+                    "i18n": {
+                        "en": {
+                            "title": "First Watch",
+                            "subtitle": "Blue tooth marks beneath the threshold"
+                        },
+                        "ja": {
+                            "title": "最初の警戒",
+                            "subtitle": "敷居の下の青い牙痕"
+                        }
+                    }
+                },
+                {
+                    "type": "camera_pan",
+                    "target": {
+                        "x": 1480,
+                        "y": 1760
+                    },
+                    "duration": 1400
+                }
+            ],
+            "name": "나",
+            "text": "울타리 아래 흙이 녹아 있었다. 마물 발자국마다 파란 자국이 남았다.",
+            "next": "c1_009",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "The soil under the fence had melted. Blue tooth marks spread where small monsters had passed."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "柵の下の土が溶けていた。小さな魔物たちが通った跡に、青い牙の痕が広がっていた。"
+                }
+            }
+        },
+        {
+            "id": "c1_009",
+            "background": "assets/generated/concepts/field_dark_forest.webp",
+            "mood": "urgent",
+            "actions": [
+                {
+                    "type": "sound",
+                    "id": "sfx_quest_start"
+                },
+                {
+                    "type": "message",
+                    "text": "목표 갱신: 울타리 흔적을 추적하세요.",
+                    "color": "#9fd8ff",
+                    "duration": 1700,
+                    "i18n": {
+                        "en": {
+                            "text": "Objective updated: Follow the fence trail and cut off the monsters' path."
+                        },
+                        "ja": {
+                            "text": "目標更新：柵の痕跡を追い、魔物の通り道を断ってください。"
+                        }
+                    }
+                }
+            ],
+            "name": "나",
+            "text": "울타리부터 확인한다. 흔적을 따라가 길목을 막는다.",
+            "next": "c1_010",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "The fence is the first target. Follow the monsters' trail and cut off the path to the cottage."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "最初の目標は柵だ。魔物の痕跡を追い、小屋へ向かう道筋を断つ。"
+                }
+            }
+        },
+        {
+            "id": "c1_010",
+            "background": "assets/generated/concepts/field_dark_forest.webp",
+            "mood": "battle",
+            "actions": [
+                {
+                    "type": "shake",
+                    "intensity": 4,
+                    "duration": 500
+                },
+                {
+                    "type": "sound",
+                    "id": "sfx_ui_confirm"
+                }
+            ],
+            "name": "나",
+            "text": "모르는 방어식이 입에서 나왔다. 푸른 막이 문 앞에 서고, 발톱이 그 위에서 꺾였다.",
+            "next": "c1_011",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "A defensive formula I had never memorized burst from my tongue. A blue barrier rose before the door, and the monster's claws shattered against it."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "覚えたことのない防御式が舌先で弾けた。青い膜が扉の前に立ち上がり、魔物の爪がその上で砕けた。"
+                }
+            }
+        },
+        {
+            "id": "c1_011",
+            "background": "assets/generated/concepts/field_dark_forest.webp",
+            "mood": "confused",
+            "name": "나",
+            "text": "배운 주문이 아니다. 그런데 손은 망설이지 않았다.",
+            "next": "c1_012",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "I never learned this spell. But my body moved as if it had known it for ages."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "この呪文を私は学んだことがない。それなのに体は、ずっと前から知っていたかのように動いた。"
+                }
+            }
+        },
+        {
+            "id": "c1_012",
+            "background": "assets/generated/concepts/field_dark_forest.webp",
+            "mood": "uneasy",
+            "name": "나",
+            "text": "마물 잔해에서 마석이 굴러 나왔다. 돈이 되고, 사람을 부르고, 오늘은 마물을 불렀다.",
+            "next": "c1_013",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "A manastone rolled out from the monster's remains. A light worth money. A light that calls people. And tonight, a light that came for my daughter."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "魔物の残骸から魔石が転がり出た。金になる光。人を呼ぶ光。そして今夜、私の娘へ向かって来た光。"
+                }
+            }
+        },
+        {
+            "id": "c1_013",
+            "portrait": "assets/generated/characters/yurika_portrait_frightened.webp",
+            "mood": "frightened",
+            "name": "유리카",
+            "text": "그 돌... 소리가 나. 엄마랑 조금 비슷해.",
+            "next": "c1_014",
+            "i18n": {
+                "en": {
+                    "name": "Yurika",
+                    "text": "That stone... it is crying. It sounds a little like Mom."
+                },
+                "ja": {
+                    "name": "ユリカ",
+                    "text": "その石……泣いてる。お母さんの声に少し似てる。"
+                }
+            }
+        },
+        {
+            "id": "c1_014",
+            "background": "assets/generated/concepts/field_dark_forest.webp",
+            "mood": "aching",
+            "actions": [
+                {
+                    "type": "message",
+                    "text": "마석은 자원입니다. 동시에 표식입니다.",
+                    "color": "#ffd18a",
+                    "duration": 1700,
+                    "i18n": {
+                        "en": {
+                            "text": "Manastone is a reward. It is also a danger that lights up the cottage."
+                        },
+                        "ja": {
+                            "text": "魔石は報酬です。同時に、小屋を照らしてしまう危険でもあります。"
+                        }
+                    }
+                }
+            ],
+            "name": "나",
+            "text": "마석을 주머니에 넣었다. 버릴 수 없다. 약초, 목재, 더 나은 지팡이가 필요하다.",
+            "next": "c1_015",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "I put the manastone in my pocket. I could not throw it away. To protect her, I needed herbs, lumber, and a stronger staff."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "私は魔石をポケットに入れた。捨てることはできなかった。守るには薬草も、木材も、もっと強い杖も必要だった。"
+                }
+            }
+        },
+        {
+            "id": "c1_015",
+            "background": "assets/generated/concepts/field_dark_forest.webp",
+            "mood": "choice",
+            "name": "나",
+            "text": "하지만 마석이 쌓이면 오두막은 더 멀리서도 보인다.",
+            "options": [
+                {
+                    "text": "마석을 숨긴다.",
+                    "next": "c1_016_hide",
+                    "i18n": {
+                        "en": {
+                            "text": "Hide the manastone."
+                        },
+                        "ja": {
+                            "text": "魔石を隠す。"
+                        }
+                    }
+                },
+                {
+                    "text": "마석을 힘으로 바꾼다.",
+                    "next": "c1_016_power",
+                    "i18n": {
+                        "en": {
+                            "text": "Turn the manastone into power."
+                        },
+                        "ja": {
+                            "text": "魔石を力に変える。"
+                        }
+                    }
+                }
+            ],
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "But the more this light gathers, the farther away the cottage will be seen."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "だがこの光が増えるほど、小屋はより遠くからでも見えるようになるだろう。"
+                }
+            }
+        },
+        {
+            "id": "c1_016_hide",
+            "background": "assets/generated/concepts/field_dark_forest.webp",
+            "mood": "guarded",
+            "name": "나",
+            "text": "우선 숨긴다. 가진 게 없어 보일수록 하루는 더 조용할 수 있다.",
+            "next": "c1_017",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "For now, I hide it. The poorer this house looks, the safer Yurika may be for one more day."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "まずは隠す。この家が貧しく見えるほど、ユリカはもう一日安全かもしれない。"
+                }
+            }
+        },
+        {
+            "id": "c1_016_power",
+            "background": "assets/generated/concepts/field_dark_forest.webp",
+            "mood": "determined",
+            "name": "나",
+            "text": "힘으로 바꾼다. 장비가 약하면 다음 밤을 못 버틴다.",
+            "next": "c1_017",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "Turn it into power. A poor father may be forgiven, but a weak father loses his child."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "力に変える。貧しい父は許されても、弱い父は子を失う。"
+                }
+            }
+        },
+        {
+            "id": "c1_017",
+            "background": "assets/generated/concepts/town_moonwell.webp",
+            "mood": "cold",
+            "actions": [
+                {
+                    "type": "fade_out",
+                    "duration": 500
+                },
+                {
+                    "type": "fade_in",
+                    "duration": 900
+                }
+            ],
+            "name": "마을 경비병",
+            "text": "숲의 오두막에서 마석 반응이 늘었다는 보고가 있습니다. 아이 상태는 어떻습니까?",
+            "next": "c1_018",
+            "i18n": {
+                "en": {
+                    "name": "Village Guard",
+                    "text": "There are reports of increased manastone reactions at the forest cottage. Is the child... still alive?"
+                },
+                "ja": {
+                    "name": "村の衛兵",
+                    "text": "森の小屋で魔石反応が増えたとの報告があります。子どもは……まだ生きていますか？"
+                }
+            }
+        },
+        {
+            "id": "c1_018",
+            "background": "assets/generated/concepts/town_moonwell.webp",
+            "mood": "restrained",
+            "name": "나",
+            "text": "무사하다. 그래서 온 거다. 마물들이 내 집을 길로 삼기 전에 지원이 필요하다.",
+            "next": "c1_019",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "She is alive. That is why I came. Help me before the monsters turn my home into a road."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "生きている。だから来た。魔物たちが私の家を道にする前に、助けてくれ。"
+                }
+            }
+        },
+        {
+            "id": "c1_019",
+            "background": "assets/generated/concepts/town_moonwell.webp",
+            "mood": "ominous",
+            "name": "마을 경비병",
+            "text": "왕국에 보고하겠습니다. 아이 주변의 반응도 기록해야 합니다. 마석 냄새를 맡는 아기는 드뭅니다.",
+            "next": "c1_020",
+            "i18n": {
+                "en": {
+                    "name": "Village Guard",
+                    "text": "I will report this to the kingdom. But we must record the phenomena around the child. Infants who smell manastone are rare."
+                },
+                "ja": {
+                    "name": "村の衛兵",
+                    "text": "王国に報告します。ただし、子どもの周囲の現象は記録しなければなりません。魔石の匂いを嗅ぐ赤子は珍しいのです。"
+                }
+            }
+        },
+        {
+            "id": "c1_020",
+            "background": "assets/generated/concepts/town_moonwell.webp",
+            "mood": "warning",
+            "name": "나",
+            "text": "기록할 대상이 아니다. 내 딸이다.",
+            "next": "c1_021",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "That child is not a phenomenon. She is my daughter."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "あの子は現象ではない。私の娘だ。"
+                }
+            }
+        },
+        {
+            "id": "c1_021",
+            "background": "assets/generated/concepts/town_moonwell.webp",
+            "mood": "guarded",
+            "name": "마을 경비병",
+            "text": "그럼 더 조심하십시오. 왕국은 위험하다고 판단한 것부터 번호를 붙입니다.",
+            "next": "c1_022",
+            "i18n": {
+                "en": {
+                    "name": "Village Guard",
+                    "text": "Then be even more careful. Before the kingdom protects something dangerous, it gives it a name."
+                },
+                "ja": {
+                    "name": "村の衛兵",
+                    "text": "ならばなおさらご注意を。王国は危険なものを守る前に、まず名前を付けます。"
+                }
+            }
+        },
+        {
+            "id": "c1_022",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "mood": "quiet",
+            "actions": [
+                {
+                    "type": "fade_out",
+                    "duration": 500
+                },
+                {
+                    "type": "fade_in",
+                    "duration": 900
+                },
+                {
+                    "type": "sound",
+                    "id": "bgm_cabin"
+                }
+            ],
+            "name": "나",
+            "text": "돌아오니 요람 위에 파란 빛이 떠 있었다. 유리카의 손끝에서 나온 것이다.",
+            "next": "c1_023",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "When I returned, a blue light hovered over the cradle. It came from the tip of Yurika's tiny finger."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "戻ると、揺りかごの上に青い光が浮かんでいた。ユリカの小さな指先から出た光だった。"
+                }
+            }
+        },
+        {
+            "id": "c1_023",
+            "portrait": "assets/generated/characters/yurika_portrait_anxious.webp",
+            "mood": "wonder",
+            "name": "유리카",
+            "text": "아빠가 늦어서... 문틈을 막았어.",
+            "next": "c1_024",
+            "i18n": {
+                "en": {
+                    "name": "Yurika",
+                    "text": "Daddy was late... so I told the door not to be scared."
+                },
+                "ja": {
+                    "name": "ユリカ",
+                    "text": "お父さんが遅いから……扉に怖がらないでって言ったの。"
+                }
+            }
+        },
+        {
+            "id": "c1_024",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "mood": "shaken",
+            "name": "나",
+            "text": "가르친 적 없는 결계가 문틈을 막고 있었다. 내 방어식보다 단단했고, 구조는 낯설었다.",
+            "next": "c1_025",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "A barrier I had never taught her sealed the gap in the door. It was clearer, older, and strangely sadder than my defensive formula."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "教えたことのない結界が扉の隙間を塞いでいた。私の防御式より澄んでいて、古く、妙に悲しい形だった。"
+                }
+            }
+        },
+        {
+            "id": "c1_025",
+            "portrait": "assets/generated/characters/yurika_portrait_frightened.webp",
+            "mood": "frightened",
+            "actions": [
+                {
+                    "type": "vignette",
+                    "color": "#00182c",
+                    "alpha": 0.32,
+                    "duration": 900
+                },
+                {
+                    "type": "shake",
+                    "intensity": 2,
+                    "duration": 350
+                }
+            ],
+            "name": "유리카",
+            "text": "나 때문에 오는 거야? 돌 냄새가 나서?",
+            "next": "c1_026",
+            "i18n": {
+                "en": {
+                    "name": "Yurika",
+                    "text": "Am I a bad child? Are the monsters coming because the stones like me?"
+                },
+                "ja": {
+                    "name": "ユリカ",
+                    "text": "私、悪い子なの？ 石たちが私を好きだから、魔物が来るの？"
+                }
+            }
+        },
+        {
+            "id": "c1_026",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "mood": "tender",
+            "name": "나",
+            "text": "나는 대답하지 못하고 유리카를 안았다. 밖에서는 이미 유리카를 위험물처럼 부르고 있었다.",
+            "next": "c1_027",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "Instead of answering, I held the child. The world was already trying to choose a name for her guilt."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "私は答える代わりに子どもを抱いた。世界はもう、あの子に罪の名前を選ぼうとしていた。"
+                }
+            }
+        },
+        {
+            "id": "c1_027",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "mood": "choice",
+            "name": "나",
+            "text": "아내가 남긴 말은 짧았다. 아이를 부탁해. 그 뒤로 내 선택지는 많지 않았다.",
+            "options": [
+                {
+                    "text": "문을 잠근다.",
+                    "next": "c1_028_lock",
+                    "i18n": {
+                        "en": {
+                            "text": "Lock the door."
+                        },
+                        "ja": {
+                            "text": "扉に鍵をかける。"
+                        }
+                    }
+                },
+                {
+                    "text": "숲을 태운다.",
+                    "next": "c1_028_burn",
+                    "i18n": {
+                        "en": {
+                            "text": "Burn the forest."
+                        },
+                        "ja": {
+                            "text": "森を焼く。"
+                        }
+                    }
+                },
+                {
+                    "text": "유리카를 부른다.",
+                    "next": "c1_028_name",
+                    "i18n": {
+                        "en": {
+                            "text": "Call the child's name."
+                        },
+                        "ja": {
+                            "text": "子どもの名を呼ぶ。"
+                        }
+                    }
+                }
+            ],
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "My wife's final breath touched my ear. Protect her. That one phrase still has not let go of my hand."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "妻の最後の息が耳元に触れた。守って。その一言が、今も私の手を離さない。"
+                }
+            }
+        },
+        {
+            "id": "c1_028_lock",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "mood": "protective",
+            "name": "나",
+            "text": "나는 문을 잠갔다. 쇠는 약해도 시간을 벌 수 있다.",
+            "next": "c1_029",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "I locked the door. Iron is weak, but a promise lasts longer."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "私は扉に鍵をかけた。鉄は弱いが、約束はそれより長く持ちこたえる。"
+                }
+            }
+        },
+        {
+            "id": "c1_028_burn",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "mood": "fierce",
+            "name": "나",
+            "text": "숲을 태울 주문을 멈췄다. 불길은 길을 막지만, 우리 위치도 드러낸다.",
+            "next": "c1_029",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "I swallowed the spell that would burn the forest. A wall built from rage will one day cast its shadow over the child as well."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "私は森を焼く呪文を飲み込んだ。怒りで築いた壁は、いつか子どもにも影を落とす。"
+                }
+            }
+        },
+        {
+            "id": "c1_028_name",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "mood": "tender",
+            "name": "나",
+            "text": "유리카. 이름을 부르자 내 옷깃을 잡았다. 그걸로 충분했다.",
+            "next": "c1_029",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "Yurika. When I called that name, the child clutched my collar as if it were the first spell she learned before the world."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "ユリカ。その名を呼ぶと、子どもは私の襟を握りしめた。世界より先に覚えた呪文のように。"
+                }
+            }
+        },
+        {
+            "id": "c1_029",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "mood": "resolved",
+            "actions": [
+                {
+                    "type": "cinematic_title",
+                    "title": "오두막 경계",
+                    "subtitle": "문 앞에서 막는다",
+                    "accent": "#9fd8ff",
+                    "duration": 1700,
+                    "i18n": {
+                        "en": {
+                            "title": "A Father's Oath",
+                            "subtitle": "Stronger by night, kinder by day"
+                        },
+                        "ja": {
+                            "title": "父の誓い",
+                            "subtitle": "夜ごとに強く、昼ごとに優しく"
+                        }
+                    }
+                },
+                {
+                    "type": "message",
+                    "text": "1막 퀘스트: 오두막 방어, 마석 흔적 추적.",
+                    "color": "#9fd8ff",
+                    "duration": 1800,
+                    "i18n": {
+                        "en": {
+                            "text": "Act 1 Quest: Protect the cottage and trace the manastone trail."
+                        },
+                        "ja": {
+                            "text": "第1幕クエスト：小屋を守り、魔石の痕跡を追跡してください。"
+                        }
+                    }
+                }
+            ],
+            "name": "나",
+            "text": "예전의 내가 누구였는지는 모른다. 지금 확인할 건 하나다.",
+            "next": "c1_030",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "I have no memory of saving the world. Perhaps I was that kind of person. But tonight, I know who I am."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "私には世界を救った記憶がない。そういう人間だったのかもしれない。だが今夜の私は知っている。"
+                }
+            }
+        },
+        {
+            "id": "c1_030",
+            "background": "assets/generated/backgrounds/prologue_guardian_oath.webp",
+            "portrait": "assets/generated/characters/yurika_portrait_anxious.webp",
+            "mood": "oath",
+            "actions": [
+                {
+                    "type": "sound",
+                    "id": "sfx_ui_confirm"
+                }
+            ],
+            "name": "나",
+            "text": "유리카는 내 딸이다. 마물은 막고, 사람은 돌려보내고, 왕국이 오면 문 앞에 선다.",
+            "next": "c1_031",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "I am this child's father. If monsters come, I stop them. If people come, I persuade them. If the kingdom comes, I stand before it."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "私はこの子の父だ。魔物が来れば防ぎ、人が来れば説得し、王国が来ればその前に立つ。"
+                }
+            }
+        },
+        {
+            "id": "c1_031",
+            "background": "assets/generated/concepts/field_dark_forest.webp",
+            "mood": "ominous",
+            "actions": [
+                {
+                    "type": "fade_out",
+                    "duration": 700
+                },
+                {
+                    "type": "fade_in",
+                    "duration": 1100
+                }
+            ],
+            "name": "숲",
+            "text": "새벽녘, 오두막에서 멀리 떨어진 진흙 위에 왕국의 문장이 찍힌 발자국이 남았다.",
+            "next": "c1_032",
+            "i18n": {
+                "en": {
+                    "name": "Forest",
+                    "text": "At daybreak, footprints stamped with the kingdom's crest remained in the mud far from the cottage."
+                },
+                "ja": {
+                    "name": "森",
+                    "text": "明け方、小屋から遠く離れた泥の上に、王国の紋章が刻まれた足跡が残っていた。"
+                }
+            }
+        },
+        {
+            "id": "c1_032",
+            "background": "assets/generated/concepts/field_dark_forest.webp",
+            "mood": "resolved",
+            "name": "나",
+            "text": "아직 끝나지 않았다. 밤에는 장비를 갖추고, 낮에는 마을의 눈을 살핀다.",
+            "i18n": {
+                "en": {
+                    "name": "Me",
+                    "text": "It is not over yet. From now on, I must grow stronger every night and kinder every day."
+                },
+                "ja": {
+                    "name": "私",
+                    "text": "まだ終わっていない。これから私は夜ごとに強くなり、昼ごとに優しくならなければならない。"
+                }
+            }
+        }
+    ],
+    "i18n": {
+        "en": {
+            "title": "Act 1: A Father's Oath"
+        },
+        "ja": {
+            "title": "第1幕：父の誓い"
+        }
+    }
+}

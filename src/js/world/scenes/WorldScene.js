@@ -35,6 +35,13 @@ export default class WorldScene extends Scene {
         this.transientSyncResumeGraceMs = 900;
         this.portalTransitionLock = false;
         this.portalPromptOpen = false;
+        this.portalCooldownUntil = 0;
+        this.portalRequiresExit = false;
+        this.portalArrivalPosition = null;
+        this.portalExitMoveDistance = 96;
+        this.zoneTransitionOverlay = null;
+        this.zoneTransitionHideTimer = null;
+        this.zoneTransitionArtRequest = '';
 
         // v0.33.0: Monster Attack Queue
         this.monsterMissileQueue = [];
@@ -129,6 +136,9 @@ export default class WorldScene extends Scene {
         this.monsterManager?.clearAll?.({ preserveNetwork: true });
         this.portalTransitionLock = false;
         this.portalPromptOpen = false;
+        this.portalCooldownUntil = params.portalArrival ? Date.now() + 1800 : 0;
+        this.portalRequiresExit = !!params.portalArrival;
+        this.portalArrivalPosition = null;
 
         // v0.35.0: Ensure Story Fade is reset to prevent black screen
         if (this.game.story) {
@@ -143,6 +153,10 @@ export default class WorldScene extends Scene {
             ? params.zoneId.trim()
             : null;
         const zoneData = await this.game.zone.loadZone(requestedZoneId || null);
+        const transitionMeta = this.getZoneTransitionMeta(zoneData, params.transitionMeta || null);
+        if (params.transitionMeta || params.portalArrival) {
+            this.showZoneTransitionOverlay(transitionMeta);
+        }
         const zoneId = this.game.zone.currentZoneId || zoneData?.id || requestedZoneId || 'zone_1';
         const loadedZoneId = zoneData?.id || zoneId || 'zone_1';
         const defaultSpawnId = zoneData?.defaultSpawnId || this.game.zone.getDefaultSpawnId?.(loadedZoneId) || 'default';
@@ -182,9 +196,9 @@ export default class WorldScene extends Scene {
         }
 
         try {
-            await this.resources.loadImage('/src/assets/character.webp');
+            await this.resources.loadImage('/assets/resource/magicion_front/1.webp');
         } catch (e) {
-            Logger.error('Failed to load character sprite', e);
+            Logger.error('Failed to load legacy character sprite', e);
         }
 
         const user = params.user || this.game.auth?.currentUser || window.firebase?.auth?.().currentUser || null;
@@ -231,7 +245,8 @@ export default class WorldScene extends Scene {
             this.player.statPoints = profile.statPoints || 0;
             this.player.skillLevels = profile.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
             this.player.autoAttackEnabled = !!profile.autoAttackEnabled;
-            this.player.name = profile.name || localName || user.displayName || "유리카";
+            this.player.name = profile.name || localName || user.displayName || "아빠";
+            this.player.characterId = profile.characterId === 'yurika' ? 'yurika' : 'father';
             this.player.uiLayout = profile.uiLayout || null;
             this.player.clientSettings = profile.clientSettings || null;
             this.player.recoveryUid = profile.recoveryUid || user.uid;
@@ -368,6 +383,14 @@ export default class WorldScene extends Scene {
             }
         }
 
+        if (this.game.openingPrologueCompleted && this.player?.questData && !this.player.questData.prologueCompleted) {
+            this.player.questData.prologueCompleted = true;
+            this.player.saveProfilePatch?.(['questData'], {
+                debounceMs: 0,
+                reason: 'sync_opening_prologue_completion'
+            });
+        }
+
         const shouldDeferZoneParticipation = !this.player.questData.basicTrainingCompleted &&
             !this.player.questData.slimeQuestClaimed &&
             (((this.player.questData.slimeKills || 0) === 0) || !!this.player.questData.prologueCompleted);
@@ -376,6 +399,12 @@ export default class WorldScene extends Scene {
 
         this.ui?.loadPlayerSettings?.(this.player.clientSettings || null);
         this.player.init(this.input, this.resources, this.net);
+        if (params.portalArrival && this.player) {
+            this.portalArrivalPosition = {
+                x: this.player.x,
+                y: this.player.y
+            };
+        }
         this.net.flushPendingFriendGiftRefunds?.();
         if (!this.player.recoveryUid) {
             this.player.recoveryUid = user.uid;
@@ -422,12 +451,20 @@ export default class WorldScene extends Scene {
             this.game.sound.loadAndPlayBgm(zoneData?.background?.music || 'bgm_cabin');
         }
         if (params.zoneId && zoneData?.name) {
-            this.ui?.showCenterMessage?.(zoneData.name, '#bfe8ff');
+            this.ui?.showCenterMessage?.(
+                this.game.i18n?.t?.('system.zoneEnter', { name: zoneData.name }) || zoneData.name,
+                '#bfe8ff'
+            );
+        }
+        if (params.transitionMeta || params.portalArrival) {
+            this.hideZoneTransitionOverlay(520);
         }
 
         if (shouldDeferZoneParticipation) {
             if (!this.player.questData.prologueCompleted && this.game.story) {
                 this.game.story.startStory('prologue');
+            } else if (!this.player.questData.chapter1FatherOathCompleted && this.game.story) {
+                this.game.story.startStory('chapter1_father_oath');
             } else {
                 this.game.tutorial?.startTutorial?.('basic_training');
             }
@@ -465,6 +502,7 @@ export default class WorldScene extends Scene {
             this.net?.remotePlayers?.get?.(data.id)?.name
         ) || data.name || "Unknown";
         rp.name = resolvedName;
+        rp.setCharacterId?.(data.characterId || 'father', this.resources);
         if (typeof data.level === 'number') {
             rp.level = data.level;
         }
@@ -582,6 +620,7 @@ export default class WorldScene extends Scene {
             clientSettings: player.clientSettings,
             recoveryUid: player.recoveryUid || player.id,
             name: player.name,
+            characterId: player.characterId === 'yurika' ? 'yurika' : 'father',
             party: player.party,
             hostility: player.hostileTargets
                 ? Object.fromEntries(player.hostileTargets.entries())
@@ -619,9 +658,144 @@ export default class WorldScene extends Scene {
         }) || null;
     }
 
+    getZoneTransitionMeta(zoneData = null, override = null) {
+        const zoneOverlay = zoneData?.transitionOverlay || this.game.zone?.transitionOverlay || {};
+        const meta = { ...zoneOverlay, ...(override || {}) };
+        return {
+            type: meta.type || zoneData?.type || 'field',
+            label: meta.label || meta.title || zoneData?.name || '다음 지역',
+            description: meta.description || meta.subtitle || '새 지역을 불러오는 중입니다.',
+            conceptArt: meta.loadingArt || meta.conceptArt || meta.conceptArtPath || meta.image || ''
+        };
+    }
+
+    buildPortalTransitionMeta(portal) {
+        const transition = portal?.transition || {};
+        return {
+            type: transition.type || 'field',
+            label: transition.label || portal?.label || portal?.name || '다음 지역',
+            description: transition.description || '주변의 기척이 바뀌고 있습니다.',
+            conceptArt: transition.loadingArt || transition.conceptArt || transition.conceptArtPath || transition.image || ''
+        };
+    }
+
+    ensureZoneTransitionOverlay() {
+        if (this.zoneTransitionOverlay?.isConnected) return this.zoneTransitionOverlay;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'world-transition-overlay';
+        overlay.className = 'world-transition-overlay hidden';
+        overlay.setAttribute('aria-hidden', 'true');
+
+        const art = document.createElement('div');
+        art.className = 'world-transition-art';
+
+        const copy = document.createElement('div');
+        copy.className = 'world-transition-copy';
+
+        const kicker = document.createElement('div');
+        kicker.className = 'world-transition-kicker';
+        kicker.textContent = this.game.i18n?.t?.('system.transitionKicker') || '이동 중';
+
+        const title = document.createElement('h2');
+        title.className = 'world-transition-title';
+
+        const description = document.createElement('p');
+        description.className = 'world-transition-description';
+
+        const bar = document.createElement('div');
+        bar.className = 'world-transition-bar';
+
+        copy.append(kicker, title, description, bar);
+        overlay.append(art, copy);
+        document.body.appendChild(overlay);
+
+        this.zoneTransitionOverlay = overlay;
+        return overlay;
+    }
+
+    showZoneTransitionOverlay(meta = {}) {
+        if (this.zoneTransitionHideTimer) {
+            window.clearTimeout(this.zoneTransitionHideTimer);
+            this.zoneTransitionHideTimer = null;
+        }
+
+        const overlay = this.ensureZoneTransitionOverlay();
+        const normalized = this.getZoneTransitionMeta(this.game.zone?.currentZone || null, meta);
+        const title = overlay.querySelector('.world-transition-title');
+        const description = overlay.querySelector('.world-transition-description');
+        const art = overlay.querySelector('.world-transition-art');
+        const theme = String(normalized.type || 'field').replace(/[^a-z0-9_-]/gi, '').toLowerCase() || 'field';
+
+        overlay.dataset.theme = theme;
+        overlay.classList.remove('hidden');
+        overlay.setAttribute('aria-hidden', 'false');
+        window.requestAnimationFrame?.(() => {
+            if (this.zoneTransitionOverlay === overlay && overlay.getAttribute('aria-hidden') === 'false') {
+                overlay.classList.add('is-visible');
+            }
+        });
+        if (!window.requestAnimationFrame) overlay.classList.add('is-visible');
+        if (title) title.textContent = normalized.label;
+        if (description) description.textContent = normalized.description;
+        if (art) {
+            art.style.backgroundImage = '';
+            art.dataset.hasArt = 'false';
+        }
+
+        const conceptArt = typeof normalized.conceptArt === 'string' ? normalized.conceptArt.trim() : '';
+        this.zoneTransitionArtRequest = conceptArt;
+        if (conceptArt && art) {
+            const artPromise = this.resources?.loadImage?.(conceptArt);
+            if (artPromise?.then) {
+                artPromise.then(() => {
+                    if (this.zoneTransitionArtRequest !== conceptArt) return;
+                    art.style.backgroundImage = `url("${conceptArt.replace(/"/g, '\\"')}")`;
+                    art.dataset.hasArt = 'true';
+                })
+                .catch(() => {
+                    if (this.zoneTransitionArtRequest === conceptArt) {
+                        art.style.backgroundImage = '';
+                        art.dataset.hasArt = 'false';
+                    }
+                });
+            }
+        }
+    }
+
+    hideZoneTransitionOverlay(delayMs = 0) {
+        const overlay = this.zoneTransitionOverlay;
+        if (!overlay) return;
+
+        const hide = () => {
+            overlay.classList.remove('is-visible');
+            overlay.setAttribute('aria-hidden', 'true');
+            this.zoneTransitionHideTimer = window.setTimeout(() => {
+                overlay.classList.add('hidden');
+                this.zoneTransitionHideTimer = null;
+            }, 190);
+        };
+
+        if (this.zoneTransitionHideTimer) {
+            window.clearTimeout(this.zoneTransitionHideTimer);
+        }
+        this.zoneTransitionHideTimer = window.setTimeout(hide, Math.max(0, delayMs));
+    }
+
     updatePortalTransitions() {
         if (this.portalTransitionLock || this.portalPromptOpen || this.game.story?.isStoryActive) return;
         const portal = this.findActivePortalAtPlayer();
+        if (this.portalRequiresExit) {
+            const origin = this.portalArrivalPosition;
+            const movedEnough = !origin || !this.player
+                || Math.hypot((this.player.x || 0) - origin.x, (this.player.y || 0) - origin.y) >= this.portalExitMoveDistance;
+            if (!portal && movedEnough) {
+                this.portalRequiresExit = false;
+                this.portalArrivalPosition = null;
+            }
+            return;
+        }
+        if (Date.now() < this.portalCooldownUntil) return;
         if (!portal) return;
 
         const label = portal.label || portal.name || '다음 지역';
@@ -635,6 +809,9 @@ export default class WorldScene extends Scene {
                     this.transitionThroughPortal(portal);
                 } else {
                     this.portalTransitionLock = true;
+                    this.portalRequiresExit = true;
+                    this.portalArrivalPosition = this.player ? { x: this.player.x, y: this.player.y } : null;
+                    this.portalCooldownUntil = Date.now() + 650;
                     window.setTimeout(() => {
                         this.portalTransitionLock = false;
                     }, 650);
@@ -652,7 +829,12 @@ export default class WorldScene extends Scene {
 
         const targetZoneId = portal.target.zoneId;
         const targetSpawnId = portal.target.spawnId || 'default';
-        this.ui?.showCenterMessage?.(`${portal.label || '다음 지역'} 이동 중...`, '#ffd88a');
+        const transitionMeta = this.buildPortalTransitionMeta(portal);
+        this.showZoneTransitionOverlay(transitionMeta);
+        this.ui?.showCenterMessage?.(
+            this.game.i18n?.t?.('system.portalMoving', { label: portal.label || '다음 지역' }) || `${portal.label || '다음 지역'} 이동 중...`,
+            '#ffd88a'
+        );
         this.player?.saveState?.(true, {
             debounceMs: 0,
             reason: `portal_${portal.id || targetZoneId}`
@@ -667,7 +849,13 @@ export default class WorldScene extends Scene {
             profile: this.getPlayerProfileSnapshotForTransition(),
             localName: this.player?.name,
             zoneId: targetZoneId,
-            spawnId: targetSpawnId
+            spawnId: targetSpawnId,
+            transitionMeta,
+            portalArrival: {
+                fromZoneId: this.game.zone?.currentZoneId || this.game.zone?.currentZone?.id || null,
+                fromPortalId: portal.id || null,
+                targetSpawnId
+            }
         });
     }
 
@@ -708,8 +896,8 @@ export default class WorldScene extends Scene {
             const pulse = 0.5 + Math.sin((this.time * 3.2) + index) * 0.5;
             const radius = Math.max(w, h) * (0.62 + pulse * 0.1);
             const gradient = ctx.createRadialGradient(cx, cy, 8, cx, cy, radius);
-            gradient.addColorStop(0, `rgba(174, 232, 255, ${0.36 + pulse * 0.16})`);
-            gradient.addColorStop(0.58, 'rgba(96, 196, 255, 0.18)');
+            gradient.addColorStop(0, `rgba(174, 232, 255, ${0.16 + pulse * 0.08})`);
+            gradient.addColorStop(0.58, 'rgba(96, 196, 255, 0.08)');
             gradient.addColorStop(1, 'rgba(96, 196, 255, 0)');
 
             ctx.globalAlpha = 1;
@@ -717,12 +905,6 @@ export default class WorldScene extends Scene {
             ctx.beginPath();
             ctx.ellipse(cx, cy, radius * 0.72, radius * 0.38, 0, 0, Math.PI * 2);
             ctx.fill();
-
-            ctx.strokeStyle = `rgba(218, 248, 255, ${0.58 + pulse * 0.22})`;
-            ctx.lineWidth = 3;
-            ctx.setLineDash([12, 8]);
-            ctx.strokeRect(x, y, w, h);
-            ctx.setLineDash([]);
 
             const label = portal.label || portal.name;
             if (label) {
@@ -1284,18 +1466,28 @@ export default class WorldScene extends Scene {
 
     _createMapObject(def) {
         // Simple entity creation based on definition
+        const visual = def.visual || {};
+        const imageCandidates = [visual.generatedImage, visual.image, visual.fallbackImage]
+            .filter((url) => typeof url === 'string' && url.trim());
+        const loadedImagePath = imageCandidates.find((url) => this.resources.getImage(url));
+        const imagePath = loadedImagePath || imageCandidates[0] || '';
+        const hasGeneratedImage = typeof visual.generatedImage === 'string' && !!visual.generatedImage.trim();
         const obj = {
             id: def.id,
             type: def.type,
             x: def.x,
             y: def.y,
-            width: def.visual?.width || 32,
-            height: def.visual?.height || 32,
-            image: def.visual?.image ? this.resources.getImage(def.visual.image) : null,
-            scale: def.visual?.scale || 1.0,
+            width: visual.width || 32,
+            height: visual.height || 32,
+            image: loadedImagePath ? this.resources.getImage(loadedImagePath) : null,
+            imagePath,
+            hasGeneratedImage,
+            visual,
+            scale: visual.scale || 1.0,
             collision: def.collision,
             interaction: def.interaction,
-            zIndex: def.y // Simple Y-sort base
+            label: def.label || def.name || '',
+            zIndex: Number.isFinite(def.zIndex) ? def.zIndex : def.y // Simple Y-sort base
         };
 
         // Add to list
@@ -1330,6 +1522,165 @@ export default class WorldScene extends Scene {
         }
 
         return false;
+    }
+
+    renderMapObject(ctx, entity) {
+        const x = Math.round(entity.x);
+        const y = Math.round(entity.y);
+        const w = Math.max(12, (entity.width || 32) * (entity.scale || 1));
+        const h = Math.max(12, (entity.height || 32) * (entity.scale || 1));
+        const visual = entity.visual || {};
+        const shouldUseImage = !!entity.image
+            && (entity.hasGeneratedImage || visual.allowImage === true);
+
+        if (shouldUseImage) {
+            ctx.save();
+            ctx.globalAlpha = Number.isFinite(visual.opacity) ? Math.max(0, Math.min(1, visual.opacity)) : 1;
+            ctx.shadowColor = visual.shadowColor || 'rgba(0, 0, 0, 0.22)';
+            ctx.shadowBlur = Number.isFinite(visual.shadowBlur) ? Math.max(0, visual.shadowBlur) : 10;
+            ctx.shadowOffsetY = Number.isFinite(visual.shadowOffsetY) ? visual.shadowOffsetY : 5;
+            if (visual.filter) ctx.filter = visual.filter;
+            if (visual.mirrorX) {
+                ctx.translate(x + w, y);
+                ctx.scale(-1, 1);
+                ctx.drawImage(entity.image, 0, 0, w, h);
+            } else {
+                ctx.drawImage(entity.image, x, y, w, h);
+            }
+            if (visual.tint) {
+                ctx.globalCompositeOperation = 'source-atop';
+                ctx.shadowColor = 'transparent';
+                ctx.fillStyle = visual.tint;
+                if (visual.mirrorX) ctx.fillRect(0, 0, w, h);
+                else ctx.fillRect(x, y, w, h);
+            }
+            ctx.restore();
+            return;
+        }
+
+        if (visual.allowProcedural !== true) {
+            return;
+        }
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(7, 12, 18, 0.18)';
+        ctx.beginPath();
+        ctx.ellipse(x + w / 2, y + h * 0.84, w * 0.42, Math.max(6, h * 0.08), 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (entity.type === 'path') {
+            const variant = visual.variant || 'meadow';
+            const isDark = variant === 'forest' || variant === 'dungeon';
+            const grd = ctx.createLinearGradient(x, y, x + w, y + h);
+            grd.addColorStop(0, isDark ? 'rgba(58, 53, 48, 0.58)' : 'rgba(130, 110, 72, 0.56)');
+            grd.addColorStop(0.5, isDark ? 'rgba(111, 96, 74, 0.5)' : 'rgba(180, 158, 105, 0.48)');
+            grd.addColorStop(1, isDark ? 'rgba(43, 40, 39, 0.52)' : 'rgba(96, 82, 58, 0.5)');
+            ctx.fillStyle = grd;
+            ctx.strokeStyle = isDark ? 'rgba(184, 224, 213, 0.18)' : 'rgba(235, 220, 164, 0.28)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.08, y + h * 0.58);
+            ctx.bezierCurveTo(x + w * 0.34, y + h * (visual.curveA || 0.34), x + w * 0.66, y + h * (visual.curveB || 0.78), x + w * 0.92, y + h * 0.48);
+            ctx.lineTo(x + w * 0.94, y + h * 0.68);
+            ctx.bezierCurveTo(x + w * 0.66, y + h * 0.92, x + w * 0.32, y + h * 0.54, x + w * 0.06, y + h * 0.78);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = isDark ? 'rgba(124, 232, 205, 0.16)' : 'rgba(255, 246, 198, 0.24)';
+            for (let i = 0; i < 7; i++) {
+                const sx = x + w * (0.14 + i * 0.12);
+                const sy = y + h * (0.6 + Math.sin(i * 1.9) * 0.08);
+                ctx.beginPath();
+                ctx.ellipse(sx, sy, 4 + (i % 3), 2.5, -0.25, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else if (entity.type === 'terrain_patch') {
+            const grd = ctx.createRadialGradient(x + w / 2, y + h * 0.55, 8, x + w / 2, y + h * 0.58, Math.max(w, h) * 0.48);
+            grd.addColorStop(0, 'rgba(115, 204, 144, 0.58)');
+            grd.addColorStop(0.72, 'rgba(48, 127, 82, 0.38)');
+            grd.addColorStop(1, 'rgba(36, 92, 62, 0)');
+            ctx.fillStyle = grd;
+            ctx.beginPath();
+            ctx.ellipse(x + w / 2, y + h * 0.58, w * 0.44, h * 0.26, -0.08, 0, Math.PI * 2);
+            ctx.fill();
+            for (let i = 0; i < 10; i++) {
+                const px = x + w * (0.15 + ((i * 37) % 70) / 100);
+                const py = y + h * (0.42 + ((i * 19) % 36) / 100);
+                ctx.fillStyle = i % 2 ? 'rgba(255, 225, 132, 0.72)' : 'rgba(168, 239, 224, 0.7)';
+                ctx.beginPath();
+                ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else if (entity.type === 'forest_cluster') {
+            const treeCount = Math.max(3, Math.min(7, Math.round(w / 70)));
+            for (let i = 0; i < treeCount; i++) {
+                const tx = x + (w * (i + 0.5) / treeCount) + Math.sin(i * 1.7) * 12;
+                const ty = y + h * (0.44 + (i % 2) * 0.08);
+                const treeH = Math.max(76, h * (0.5 + (i % 3) * 0.06));
+                ctx.fillStyle = 'rgba(44, 35, 24, 0.92)';
+                ctx.fillRect(tx - 5, ty, 10, treeH * 0.34);
+                ctx.fillStyle = i % 2 ? '#123526' : '#164331';
+                ctx.beginPath();
+                ctx.moveTo(tx, ty - treeH * 0.58);
+                ctx.lineTo(tx + treeH * 0.28, ty + treeH * 0.18);
+                ctx.lineTo(tx - treeH * 0.28, ty + treeH * 0.18);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = 'rgba(104, 236, 204, 0.18)';
+                ctx.beginPath();
+                ctx.arc(tx + treeH * 0.08, ty - treeH * 0.12, treeH * 0.08, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else if (entity.type === 'signpost') {
+            ctx.fillStyle = '#5b402b';
+            ctx.fillRect(x + w * 0.44, y + h * 0.28, Math.max(7, w * 0.12), h * 0.58);
+            ctx.fillStyle = '#9a7048';
+            ctx.strokeStyle = 'rgba(22, 12, 8, 0.7)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            const boardX = x - w * 0.52;
+            const boardY = y + h * 0.18;
+            const boardW = Math.max(76, w * 2.1);
+            const boardH = Math.max(28, h * 0.34);
+            ctx.roundRect?.(boardX, boardY, boardW, boardH, 5);
+            if (!ctx.roundRect) ctx.rect(boardX, boardY, boardW, boardH);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#fff3cf';
+            ctx.font = '700 10px "Noto Sans KR", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(entity.label || '길목', boardX + boardW / 2, boardY + boardH * 0.62, boardW - 12);
+        } else if (entity.type === 'ruin') {
+            ctx.fillStyle = 'rgba(94, 101, 100, 0.76)';
+            ctx.strokeStyle = 'rgba(191, 229, 225, 0.22)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 5; i++) {
+                const sx = x + 18 + i * (w / 6);
+                const sy = y + h * 0.55 + Math.sin(i) * 8;
+                ctx.beginPath();
+                ctx.roundRect?.(sx, sy, 34, 22, 4);
+                if (!ctx.roundRect) ctx.rect(sx, sy, 34, 22);
+                ctx.fill();
+                ctx.stroke();
+            }
+        } else {
+            const grd = ctx.createLinearGradient(x, y, x, y + h);
+            grd.addColorStop(0, 'rgba(137, 158, 148, 0.7)');
+            grd.addColorStop(1, 'rgba(70, 87, 78, 0.82)');
+            ctx.fillStyle = grd;
+            ctx.strokeStyle = 'rgba(225, 247, 233, 0.28)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect?.(x + w * 0.18, y + h * 0.18, w * 0.64, h * 0.56, 8);
+            if (!ctx.roundRect) ctx.rect(x + w * 0.18, y + h * 0.18, w * 0.64, h * 0.56);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(185, 244, 224, 0.16)';
+            ctx.beginPath();
+            ctx.ellipse(x + w * 0.5, y + h * 0.34, w * 0.22, h * 0.08, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
     }
 
     render(ctx) {
@@ -1388,18 +1739,15 @@ export default class WorldScene extends Scene {
         }
 
         // Sort by Y for depth
-        renderList.sort((a, b) => a.y - b.y);
+        renderList.sort((a, b) => (a.zIndex ?? a.y) - (b.zIndex ?? b.y));
 
         // Render All
         renderList.forEach(entity => {
             if (this.isOnScreen(entity)) {
                 if (entity.render) {
                     entity.render(ctx, this.camera);
-                } else if (entity.image) {
-                    // Simple Object Render
-                    const screenX = Math.round(entity.x);
-                    const screenY = Math.round(entity.y);
-                    ctx.drawImage(entity.image, screenX, screenY, entity.width * entity.scale, entity.height * entity.scale);
+                } else if (entity.type) {
+                    this.renderMapObject(ctx, entity);
                 }
             }
         });

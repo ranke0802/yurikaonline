@@ -11,6 +11,7 @@ import Logger from '../utils/Logger.js';
 export default class QuestManager {
     constructor(game) {
         this.game = game;
+        this.rawDefinitions = new Map();
         this.definitions = new Map();   // questId -> definition (from JSON)
         this.activeQuests = new Map();   // questId -> { definition, progress: { objectives: [{current, complete}] } }
         this.completedQuests = new Set(); // questId set
@@ -32,7 +33,8 @@ export default class QuestManager {
             try {
                 const data = await this.game.resources.loadJSON(`/assets/data/quests/${id}.json`);
                 if (data) {
-                    this.definitions.set(data.id, data);
+                    this.rawDefinitions.set(data.id, data);
+                    this.definitions.set(data.id, this.game.i18n?.localizeContent?.(data) || data);
                 }
             } catch (e) {
                 Logger.warn(`[QuestManager] Failed to load quest: ${id}`, e);
@@ -41,6 +43,17 @@ export default class QuestManager {
 
         this._loaded = true;
         Logger.log(`[QuestManager] Loaded ${this.definitions.size} quest definitions`);
+    }
+
+    refreshLanguage() {
+        if (!this._loaded) return;
+        this.definitions.clear();
+        this.rawDefinitions.forEach((definition, id) => {
+            this.definitions.set(id, this.game.i18n?.localizeContent?.(definition) || definition);
+        });
+        if (this.game.localPlayer?.questData) {
+            this.restoreFromLegacy(this.game.localPlayer.questData);
+        }
     }
 
     /**
@@ -183,7 +196,10 @@ export default class QuestManager {
             if (allComplete) {
                 // UI에 완료 가능 알림
                 if (this.game.ui) {
-                    this.game.ui.logSystemMessage(`📋 퀘스트 완료 가능: ${quest.definition.title}`);
+                    this.game.ui.logSystemMessage(
+                        this.game.i18n?.t?.('system.questAvailable', { title: quest.definition.title })
+                        || `퀘스트 완료 가능: ${quest.definition.title}`
+                    );
                 }
             }
         });

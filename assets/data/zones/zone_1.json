@@ -1,7 +1,7 @@
 {
     "id": "zone_1",
     "type": "field",
-    "name": "바람 언덕 (Starting Field)",
+    "name": "바람 언덕",
     "defaultSpawnId": "default",
     "width": 3200,
     "height": 3200,
@@ -9,6 +9,12 @@
         "image": "assets/resource/background.webp",
         "music": "bgm_cabin",
         "ambient": null
+    },
+    "transitionOverlay": {
+        "type": "field",
+        "label": "바람 언덕",
+        "description": "오두막과 달샘 마을 사이로 바람이 낮게 흐르는 초원입니다.",
+        "conceptArt": "assets/generated/concepts/zone_1_windhill.webp"
     },
     "boundaries": {
         "minX": 0,
@@ -24,13 +30,13 @@
         },
         {
             "id": "field_path",
-            "x": 1550,
-            "y": 1550
+            "x": 1690,
+            "y": 1600
         },
         {
             "id": "from_town_moonwell",
             "x": 1580,
-            "y": 1680
+            "y": 1660
         }
     ],
     "monsterSpawns": [
@@ -73,6 +79,10 @@
             },
             "transition": {
                 "type": "town",
+                "label": "달샘 마을",
+                "description": "언덕길 너머로 달빛이 고인 작은 마을이 나타납니다.",
+                "loadingArt": "assets/generated/loading/loading_moonwell_town_gate.webp",
+                "conceptArt": "assets/generated/concepts/town_moonwell.webp",
                 "requiresConfirmation": true,
                 "storyGate": null
             }

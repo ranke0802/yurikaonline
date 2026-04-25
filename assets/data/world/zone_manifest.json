@@ -1,6 +1,6 @@
 {
     "schemaVersion": 1,
-    "description": "World zone registry used by WorldScene and ZoneManager. Supported zone types are documented here so future fields, towns, dungeons, and story-only spaces can be added without hardcoding zone_1.",
+    "description": "World zone registry used by WorldScene and ZoneManager. Act 1 currently flows as cabin and wind hill -> Moonwell Town -> Dark Forest -> Lantern Woods dungeon without hardcoding zone_1.",
     "defaultZoneId": "zone_1",
     "supportedZoneTypes": [
         "field",

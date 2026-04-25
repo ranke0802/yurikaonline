@@ -1,15 +1,25 @@
 {
     "id": "quest_slime_10",
-    "title": "슬라임 토벌",
-    "description": "숲 근처에 출몰하는 슬라임 10마리를 처치하세요.",
+    "title": "문턱의 첫 경계",
+    "description": "유리카가 잠든 오두막으로 이어지는 길목에서 슬라임 10마리를 막으세요.",
     "type": "main",
-    "prerequisites": [],
+    "prerequisites": [
+
+    ],
     "objectives": [
         {
             "type": "kill",
             "target": "slime",
             "count": 10,
-            "description": "슬라임 처치: {current}/{count}"
+            "description": "문턱으로 향하는 슬라임 저지: {current}/{count}",
+            "i18n": {
+                "en": {
+                    "description": "Slimes stopped before the threshold: {current}/{count}"
+                },
+                "ja": {
+                    "description": "敷居へ向かうスライム阻止：{current}/{count}"
+                }
+            }
         }
     ],
     "rewards": {
@@ -17,9 +27,27 @@
         "manastone": 500
     },
     "onComplete": {
-        "message": "슬라임 토벌 완료! 보상을 수령하세요.",
+        "message": "첫 경계를 지켜냈습니다. 마석을 챙겨 더 먼 길목을 막으세요.",
         "unlocks": [
             "quest_slime_30"
-        ]
+        ],
+        "i18n": {
+            "en": {
+                "message": "The first watch held. Take the manastones and guard the farther path."
+            },
+            "ja": {
+                "message": "最初の警戒を守り抜きました。魔石を受け取り、さらに遠い道を守ってください。"
+            }
+        }
+    },
+    "i18n": {
+        "en": {
+            "title": "First Watch at the Threshold",
+            "description": "Stop 10 slimes on the path leading to the cottage where Yurika sleeps."
+        },
+        "ja": {
+            "title": "敷居の最初の警戒",
+            "description": "ユリカが眠る小屋へ続く道で、スライムを10体食い止めてください。"
+        }
     }
 }

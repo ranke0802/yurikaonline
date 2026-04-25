@@ -1,17 +1,17 @@
 {
     "id": "basic_training",
-    "title": "기초 훈련",
+    "title": "오두막 앞의 첫 약속",
     "steps": [
         {
             "id": "move_check",
-            "instruction": "WASD 또는 이동 패드로 조금 걸어 보세요. 지금 단계에서는 이동만 할 수 있어요.",
-            "instructionDesktop": "WASD나 방향키로 조금 걸어 보세요. 지금 단계에서는 이동만 할 수 있어요.",
-            "instructionMobile": "왼쪽 아래 이동 패드 영역을 눌러 조금 걸어 보세요. 지금 단계에서는 이동만 할 수 있어요.",
-            "instructionMobileLandscape": "화면 왼쪽 아래 이동 패드 영역을 눌러 조금 걸어 보세요. 지금 단계에서는 이동만 할 수 있어요.",
+            "instruction": "유리카가 숨을 죽였습니다. 문 앞까지 조용히 나가세요.",
+            "instructionDesktop": "WASD나 방향키로 문 앞까지 조용히 나가세요.",
+            "instructionMobile": "왼쪽 아래 이동 패드로 문 앞까지 조용히 나가세요.",
+            "instructionMobileLandscape": "왼쪽 아래 이동 패드로 문 앞까지 조용히 나가세요.",
             "questText": {
-                "desktop": "이동 키로 잠깐 걸어 보세요.",
-                "mobilePortrait": "왼쪽 아래 이동 패드로 잠깐 움직여 보세요.",
-                "mobileLandscape": "화면 왼쪽 아래 조이스틱으로 잠깐 움직여 보세요."
+                "desktop": "문 앞까지 걸어 나가세요.",
+                "mobilePortrait": "이동 패드로 문 앞까지 나가세요.",
+                "mobileLandscape": "이동 패드로 문 앞까지 나가세요."
             },
             "focus": {
                 "mobilePortrait": {
@@ -24,8 +24,16 @@
                         }
                     ],
                     "mode": "ring",
-                    "label": "이쪽을 눌러 이동",
-                    "padding": 0
+                    "label": "발소리를 낮춰 이동",
+                    "padding": 0,
+                    "i18n": {
+                        "en": {
+                            "label": "Move softly"
+                        },
+                        "ja": {
+                            "label": "足音を抑えて移動"
+                        }
+                    }
                 },
                 "mobileLandscape": {
                     "targets": [
@@ -37,67 +45,147 @@
                         }
                     ],
                     "mode": "ring",
-                    "label": "여기를 눌러 이동",
-                    "padding": 0
+                    "label": "발소리를 낮춰 이동",
+                    "padding": 0,
+                    "i18n": {
+                        "en": {
+                            "label": "Move softly"
+                        },
+                        "ja": {
+                            "label": "足音を抑えて移動"
+                        }
+                    }
                 }
             },
             "presentation": {
                 "desktop": {
                     "guideMode": "top-card",
                     "highlightMode": "frame",
-                    "guideTitle": "이동 연습",
-                    "compact": true
+                    "guideTitle": "문 앞의 숨",
+                    "compact": true,
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "Breath at the Door"
+                        },
+                        "ja": {
+                            "guideTitle": "扉の前の息"
+                        }
+                    }
                 },
                 "mobilePortrait": {
                     "guideMode": "top-card",
                     "highlightMode": "ring",
-                    "guideTitle": "이동 연습",
-                    "compact": true
+                    "guideTitle": "문 앞의 숨",
+                    "compact": true,
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "Breath at the Door"
+                        },
+                        "ja": {
+                            "guideTitle": "扉の前の息"
+                        }
+                    }
                 },
                 "mobileLandscape": {
                     "guideMode": "top-card",
                     "highlightMode": "ring",
-                    "guideTitle": "이동 연습",
-                    "compact": true
+                    "guideTitle": "문 앞의 숨",
+                    "compact": true,
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "Breath at the Door"
+                        },
+                        "ja": {
+                            "guideTitle": "扉の前の息"
+                        }
+                    }
                 }
             },
             "trigger": "move",
-            "count": 36,
+            "count": 24,
             "allowedActions": [
                 "MOVE_UP",
                 "MOVE_DOWN",
                 "MOVE_LEFT",
                 "MOVE_RIGHT"
-            ]
+            ],
+            "i18n": {
+                "en": {
+                    "instruction": "Yurika is holding her breath. Walk quietly to the door.",
+                    "instructionDesktop": "Use WASD or the arrow keys to walk quietly to the door.",
+                    "instructionMobile": "Use the movement pad at the lower left to walk quietly to the door.",
+                    "instructionMobileLandscape": "Use the movement pad at the lower left to walk quietly to the door.",
+                    "questText": {
+                        "desktop": "Walk to the door.",
+                        "mobilePortrait": "Use the movement pad and reach the door.",
+                        "mobileLandscape": "Use the movement pad and reach the door."
+                    }
+                },
+                "ja": {
+                    "instruction": "ユリカが息を殺しています。扉の前まで静かに進んでください。",
+                    "instructionDesktop": "WASDまたは方向キーで扉の前まで静かに進んでください。",
+                    "instructionMobile": "左下の移動パッドで扉の前まで静かに進んでください。",
+                    "instructionMobileLandscape": "左下の移動パッドで扉の前まで静かに進んでください。",
+                    "questText": {
+                        "desktop": "扉の前まで歩いてください。",
+                        "mobilePortrait": "移動パッドで扉の前まで進んでください。",
+                        "mobileLandscape": "移動パッドで扉の前まで進んでください。"
+                    }
+                }
+            }
         },
         {
             "id": "attack_dummy",
-            "instructionDesktop": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. `J` 키나 우측 하단 공격 버튼을 누른 상태로 유지하면 연속으로 공격할 수 있어요.",
-            "instructionMobile": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. 우측 하단 공격 버튼을 누른 상태로 유지하면 연속으로 공격할 수 있어요.",
-            "instructionMobileLandscape": "좋아요. 이제 기본 공격인 체인 라이트닝으로 허수아비를 쓰러뜨려 보세요. 오른쪽 아래 공격 버튼을 누른 상태로 유지하면 연속으로 공격할 수 있어요.",
+            "instructionDesktop": "문턱 아래 푸른 흔적이 움직입니다. `J` 키나 공격 버튼을 누른 채 기본 공격으로 훈련 표식을 쓰러뜨리세요.",
+            "instructionMobile": "문턱 아래 푸른 흔적이 움직입니다. 오른쪽 아래 공격 버튼을 누른 채 기본 공격으로 훈련 표식을 쓰러뜨리세요.",
+            "instructionMobileLandscape": "문턱 아래 푸른 흔적이 움직입니다. 오른쪽 아래 공격 버튼을 누른 채 기본 공격으로 훈련 표식을 쓰러뜨리세요.",
             "questText": {
-                "desktop": "기본 공격을 누른 상태로 유지해 허수아비를 처치하세요.",
-                "mobilePortrait": "공격 버튼을 누른 상태로 유지해 허수아비를 처치하세요.",
-                "mobileLandscape": "공격 버튼을 누른 상태로 유지해 허수아비를 처치하세요."
+                "desktop": "기본 공격으로 푸른 흔적을 끊으세요.",
+                "mobilePortrait": "공격 버튼으로 푸른 흔적을 끊으세요.",
+                "mobileLandscape": "공격 버튼으로 푸른 흔적을 끊으세요."
             },
             "presentation": {
                 "desktop": {
                     "guideMode": "top-card",
                     "highlightMode": "ring",
-                    "guideTitle": "기본 공격",
-                    "compact": true
+                    "guideTitle": "문턱 방어",
+                    "compact": true,
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "Defend the Threshold"
+                        },
+                        "ja": {
+                            "guideTitle": "敷居を守る"
+                        }
+                    }
                 },
                 "mobilePortrait": {
                     "guideMode": "top-card",
                     "highlightMode": "ring",
-                    "guideTitle": "기본 공격",
-                    "compact": true
+                    "guideTitle": "문턱 방어",
+                    "compact": true,
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "Defend the Threshold"
+                        },
+                        "ja": {
+                            "guideTitle": "敷居を守る"
+                        }
+                    }
                 },
                 "mobileLandscape": {
                     "guideMode": "top-card",
                     "highlightMode": "ring",
-                    "guideTitle": "기본 공격",
-                    "compact": true
+                    "guideTitle": "문턱 방어",
+                    "compact": true,
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "Defend the Threshold"
+                        },
+                        "ja": {
+                            "guideTitle": "敷居を守る"
+                        }
+                    }
                 }
             },
             "focus": {
@@ -106,21 +194,45 @@
                         "#action-attack-j"
                     ],
                     "mode": "ring",
-                    "label": "누른 상태 유지"
+                    "label": "누른 채 막기",
+                    "i18n": {
+                        "en": {
+                            "label": "Hold to defend"
+                        },
+                        "ja": {
+                            "label": "押し続けて守る"
+                        }
+                    }
                 },
                 "mobilePortrait": {
                     "targets": [
                         "#action-attack-j"
                     ],
                     "mode": "ring",
-                    "label": "누른 상태 유지"
+                    "label": "누른 채 막기",
+                    "i18n": {
+                        "en": {
+                            "label": "Hold to defend"
+                        },
+                        "ja": {
+                            "label": "押し続けて守る"
+                        }
+                    }
                 },
                 "mobileLandscape": {
                     "targets": [
                         "#action-attack-j"
                     ],
                     "mode": "ring",
-                    "label": "누른 상태 유지"
+                    "label": "누른 채 막기",
+                    "i18n": {
+                        "en": {
+                            "label": "Hold to defend"
+                        },
+                        "ja": {
+                            "label": "押し続けて守る"
+                        }
+                    }
                 }
             },
             "onStart": [
@@ -146,178 +258,84 @@
                 "MOVE_LEFT",
                 "MOVE_RIGHT",
                 "ATTACK"
-            ]
-        },
-        {
-            "id": "open_status",
-            "instruction": "이번에는 스탯 창을 열어 주세요. `I` 키나 하단 스탯 버튼을 사용할 수 있어요. 스탯을 올리기 전에 오른쪽 수치가 어떻게 바뀌는지도 바로 확인할 수 있습니다.",
-            "instructionDesktop": "이번에는 스탯 창을 열어 주세요. PC에서는 우측 상단 미니맵 왼쪽의 내 정보 아이콘이나 `I` 키를 사용하면 됩니다.",
-            "instructionMobile": "이번에는 스탯 창을 열어 주세요. 모바일에서는 하단 중앙의 내 정보 아이콘을 누르면 됩니다.",
-            "instructionMobileLandscape": "이번에는 스탯 창을 열어 주세요. 모바일 가로에서는 오른쪽 위 내 정보 아이콘을 누르면 됩니다.",
-            "questText": "스탯 창을 열어 주세요.",
-            "presentation": {
-                "desktop": {
-                    "guideMode": "top-card",
-                    "highlightMode": "ring",
-                    "guideTitle": "스탯 창"
+            ],
+            "i18n": {
+                "en": {
+                    "instructionDesktop": "The blue trace beneath the threshold is moving. Hold `J` or the attack button and bring down the training mark with your basic attack.",
+                    "instructionMobile": "The blue trace beneath the threshold is moving. Hold the attack button at the lower right and bring down the training mark with your basic attack.",
+                    "instructionMobileLandscape": "The blue trace beneath the threshold is moving. Hold the attack button at the lower right and bring down the training mark with your basic attack.",
+                    "questText": {
+                        "desktop": "Break the blue trace with a basic attack.",
+                        "mobilePortrait": "Break the blue trace with the attack button.",
+                        "mobileLandscape": "Break the blue trace with the attack button."
+                    }
                 },
-                "mobilePortrait": {
-                    "guideMode": "bottom-sheet",
-                    "highlightMode": "ring",
-                    "guideTitle": "스탯 창"
-                },
-                "mobileLandscape": {
-                    "guideMode": "top-card",
-                    "highlightMode": "ring",
-                    "guideTitle": "스탯 창",
-                    "compact": true
+                "ja": {
+                    "instructionDesktop": "敷居の下の青い痕跡が動いています。`J`キーまたは攻撃ボタンを押し続け、通常攻撃で訓練標的を倒してください。",
+                    "instructionMobile": "敷居の下の青い痕跡が動いています。右下の攻撃ボタンを押し続け、通常攻撃で訓練標的を倒してください。",
+                    "instructionMobileLandscape": "敷居の下の青い痕跡が動いています。右下の攻撃ボタンを押し続け、通常攻撃で訓練標的を倒してください。",
+                    "questText": {
+                        "desktop": "通常攻撃で青い痕跡を断ってください。",
+                        "mobilePortrait": "攻撃ボタンで青い痕跡を断ってください。",
+                        "mobileLandscape": "攻撃ボタンで青い痕跡を断ってください。"
+                    }
                 }
-            },
-            "highlightTarget": "#btn-status",
-            "onStart": [
-                {
-                    "type": "grant_stat_points",
-                    "amount": 1
-                },
-                {
-                    "type": "close_popups"
-                }
-            ],
-            "trigger": "popup_open",
-            "target": "status-popup",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_STATUS"
-            ]
-        },
-        {
-            "id": "preview_status_change",
-            "instruction": "지능에 1포인트를 눌러 보세요. 오른쪽 수치가 초록색으로 변하면서 저장 전 결과를 미리 보여줍니다.",
-            "instructionMobileLandscape": "왼쪽 지능 줄의 + 버튼을 눌러 보세요. 오른쪽 미리보기 수치가 초록색으로 변하면서 저장 전 결과를 보여줍니다.",
-            "questText": "지능 + 버튼을 눌러 미리보기를 확인하세요.",
-            "focus": {
-                "desktop": {
-                    "targets": [
-                        "#status-intelligence-row"
-                    ],
-                    "mode": "frame"
-                },
-                "mobilePortrait": {
-                    "targets": [
-                        "#status-intelligence-row"
-                    ],
-                    "mode": "frame"
-                },
-                "mobileLandscape": {
-                    "targets": [
-                        "#status-intelligence-row"
-                    ],
-                    "mode": "frame"
-                }
-            },
-            "presentation": {
-                "desktop": {
-                    "guideMode": "popup-near-left",
-                    "highlightMode": "frame",
-                    "guideTitle": "수치 미리보기"
-                },
-                "mobilePortrait": {
-                    "guideMode": "popup-header-strip",
-                    "highlightMode": "frame",
-                    "guideTitle": "수치 미리보기",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "popup-header-strip",
-                    "highlightMode": "frame",
-                    "guideTitle": "수치 미리보기",
-                    "compact": true
-                }
-            },
-            "highlightTargets": [
-                "#status-intelligence-row"
-            ],
-            "highlightTargetsMobileLandscape": [
-                "#status-intelligence-row"
-            ],
-            "avoidTargets": [
-                "#status-popup"
-            ],
-            "trigger": "stat_allocated",
-            "target": "intelligence",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_STATUS"
-            ]
-        },
-        {
-            "id": "save_status",
-            "instruction": "좋아요. 방금 오른쪽 미리보기를 확인했어요. 이제 오른쪽 위 X 또는 아래 닫기 버튼으로 창을 닫아 스탯을 저장해 주세요.",
-            "instructionMobile": "좋아요. 방금 오른쪽 미리보기를 확인했어요. 이제 아래 닫기 버튼으로 창을 닫아 스탯을 저장해 주세요.",
-            "instructionMobileLandscape": "좋아요. 방금 오른쪽 미리보기를 확인했어요. 이제 오른쪽 위 X 또는 아래 닫기 버튼으로 창을 닫아 스탯을 저장해 주세요.",
-            "questText": "닫기 버튼으로 스탯 창을 닫아 저장해 주세요.",
-            "presentation": {
-                "desktop": {
-                    "guideMode": "popup-near-right",
-                    "highlightMode": "ring",
-                    "guideTitle": "스탯 저장"
-                },
-                "mobilePortrait": {
-                    "guideMode": "popup-header-strip",
-                    "highlightMode": "ring",
-                    "guideTitle": "스탯 저장",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "popup-header-strip",
-                    "highlightMode": "ring",
-                    "guideTitle": "스탯 저장",
-                    "compact": true
-                }
-            },
-            "focus": [
-                "#status-close-btn-top",
-                "#status-close-btn-bottom"
-            ],
-            "avoidTargets": [
-                "#status-popup"
-            ],
-            "trigger": "stats_saved",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_STATUS"
-            ]
+            }
         },
         {
             "id": "open_skill",
-            "instruction": "좋아요. 이제 스킬 창을 열어 주세요. `Shift+S` 또는 스킬 버튼을 사용하면 됩니다. 이 창에서는 아이콘 위에 마우스를 올리거나 터치해서 특징과 성장 포인트를 확인할 수 있어요.",
-            "instructionDesktop": "좋아요. 이제 스킬 창을 열어 주세요. PC에서는 우측 상단 미니맵 왼쪽의 스킬 아이콘이나 `Shift+S`를 사용하면 됩니다.",
-            "instructionMobile": "좋아요. 이제 스킬 창을 열어 주세요. 모바일에서는 하단 중앙의 스킬 아이콘을 누르면 됩니다.",
-            "instructionMobileLandscape": "좋아요. 이제 스킬 창을 열어 주세요. 모바일 가로에서는 오른쪽 위 스킬 아이콘을 누르면 됩니다. 이 창에서는 아이콘을 탭해 특징과 성장 포인트를 확인할 수 있어요.",
-            "questText": "스킬 창을 열어 주세요.",
+            "instruction": "쓰러진 흔적에서 마석이 굴러 나왔습니다. 스킬 창을 열어 그 빛을 힘으로 바꿀 준비를 하세요.",
+            "instructionDesktop": "쓰러진 흔적에서 마석이 굴러 나왔습니다. `Shift+S`나 스킬 버튼으로 스킬 창을 열어 그 빛을 힘으로 바꿀 준비를 하세요.",
+            "instructionMobile": "쓰러진 흔적에서 마석이 굴러 나왔습니다. 하단 중앙의 스킬 버튼으로 스킬 창을 열어 그 빛을 힘으로 바꿀 준비를 하세요.",
+            "instructionMobileLandscape": "쓰러진 흔적에서 마석이 굴러 나왔습니다. 오른쪽 위 스킬 버튼으로 스킬 창을 열어 그 빛을 힘으로 바꿀 준비를 하세요.",
+            "questText": "스킬 창을 열어 마석을 확인하세요.",
             "presentation": {
                 "desktop": {
                     "guideMode": "top-card",
                     "highlightMode": "ring",
-                    "guideTitle": "스킬 창"
+                    "guideTitle": "마석의 빛",
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "Manastone Light"
+                        },
+                        "ja": {
+                            "guideTitle": "魔石の光"
+                        }
+                    }
                 },
                 "mobilePortrait": {
                     "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "ring",
-                    "guideTitle": "스킬 창"
+                    "guideTitle": "마석의 빛",
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "Manastone Light"
+                        },
+                        "ja": {
+                            "guideTitle": "魔石の光"
+                        }
+                    }
                 },
                 "mobileLandscape": {
                     "guideMode": "left-card",
                     "highlightMode": "ring",
-                    "guideTitle": "스킬 창",
-                    "compact": true
+                    "guideTitle": "마석의 빛",
+                    "compact": true,
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "Manastone Light"
+                        },
+                        "ja": {
+                            "guideTitle": "魔石の光"
+                        }
+                    }
                 }
             },
             "highlightTarget": "#btn-skill",
             "onStart": [
                 {
                     "type": "grant_manastone",
-                    "amount": 1000
+                    "amount": 300
                 },
                 {
                     "type": "close_popups"
@@ -328,197 +346,69 @@
             "count": 1,
             "allowedActions": [
                 "OPEN_SKILL"
-            ]
-        },
-        {
-            "id": "inspect_laser_detail",
-            "instructionDesktop": "먼저 체인 라이트닝 아이콘을 클릭해 상세 설명 창을 열어 보세요. 연쇄 타격형 기본 공격이고, 강화하면 연쇄 횟수와 충전당 피해 상승폭이 커집니다.",
-            "instructionMobile": "먼저 체인 라이트닝 아이콘을 탭해 상세 설명 창을 열어 보세요. 연쇄 타격형 기본 공격이고, 강화하면 연쇄 횟수와 충전당 피해 상승폭이 커집니다.",
-            "instructionMobileLandscape": "먼저 체인 라이트닝 아이콘을 탭해 상세 설명 창을 열어 보세요. 연쇄 타격형 기본 공격이고, 강화하면 연쇄 횟수와 충전당 피해 상승폭이 커집니다.",
-            "questText": "체인 라이트닝 설명을 확인하세요.",
-            "focus": {
-                "targets": [
-                    {
-                        "type": "skill-detail-trigger",
-                        "skillId": "laser"
-                    }
-                ]
-            },
-            "highlightTarget": "#skill-item-laser",
-            "avoidTargets": [
-                "#skill-detail-modal .skill-detail-modal-content",
-                "#skill-popup .skill-content-wrapper"
             ],
-            "presentation": {
-                "desktop": {
-                    "guideMode": "popup-near-left",
-                    "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인"
+            "i18n": {
+                "en": {
+                    "instruction": "A manastone rolls out of the fallen trace. Open the skill window and prepare to turn that light into strength.",
+                    "instructionDesktop": "A manastone rolls out of the fallen trace. Press `Shift+S` or the skill button to open the skill window and prepare to turn that light into strength.",
+                    "instructionMobile": "A manastone rolls out of the fallen trace. Tap the skill button at the bottom center to open the skill window and prepare to turn that light into strength.",
+                    "instructionMobileLandscape": "A manastone rolls out of the fallen trace. Tap the skill button at the upper right to open the skill window and prepare to turn that light into strength.",
+                    "questText": "Open the skill window and check the manastone."
                 },
-                "mobilePortrait": {
-                    "guideMode": "viewport-bottom-sheet-safe",
-                    "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "popup-header-strip",
-                    "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인",
-                    "compact": true
+                "ja": {
+                    "instruction": "倒れた痕跡から魔石が転がり出ました。スキル画面を開き、その光を力に変える準備をしてください。",
+                    "instructionDesktop": "倒れた痕跡から魔石が転がり出ました。`Shift+S`またはスキルボタンでスキル画面を開き、その光を力に変える準備をしてください。",
+                    "instructionMobile": "倒れた痕跡から魔石が転がり出ました。下中央のスキルボタンでスキル画面を開き、その光を力に変える準備をしてください。",
+                    "instructionMobileLandscape": "倒れた痕跡から魔石が転がり出ました。右上のスキルボタンでスキル画面を開き、その光を力に変える準備をしてください。",
+                    "questText": "スキル画面を開き、魔石を確認してください。"
                 }
-            },
-            "trigger": "skill_detail_open",
-            "target": "laser",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_SKILL"
-            ]
-        },
-        {
-            "id": "close_laser_detail",
-            "instructionDesktop": "설명을 확인했으면 오른쪽 위 X 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobile": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobileLandscape": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
-            "questText": "체인 라이트닝 설명 창을 닫아 주세요.",
-            "presentation": {
-                "desktop": {
-                    "guideMode": "popup-near-right",
-                    "highlightMode": "ring",
-                    "guideTitle": "설명 닫기",
-                    "compact": true
-                },
-                "mobilePortrait": {
-                    "guideMode": "viewport-bottom-sheet-safe",
-                    "highlightMode": "ring",
-                    "guideTitle": "설명 닫기",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "popup-header-strip",
-                    "highlightMode": "ring",
-                    "guideTitle": "설명 닫기",
-                    "compact": true
-                }
-            },
-            "focus": [
-                "#skill-detail-modal-close"
-            ],
-            "avoidTargets": [
-                "#skill-detail-modal-body"
-            ],
-            "trigger": "skill_detail_close",
-            "target": "laser",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_SKILL"
-            ]
-        },
-        {
-            "id": "inspect_missile_detail",
-            "instructionDesktop": "다음은 매직 미사일 아이콘을 클릭해 상세 설명 창을 열어 보세요. 자동 추적형 스킬이며, 강화할수록 한 번에 발사되는 미사일 수가 늘어납니다.",
-            "instructionMobile": "다음은 매직 미사일 아이콘을 탭해 상세 설명 창을 열어 보세요. 자동 추적형 스킬이며, 강화할수록 한 번에 발사되는 미사일 수가 늘어납니다.",
-            "instructionMobileLandscape": "다음은 매직 미사일 아이콘을 탭해 상세 설명 창을 열어 보세요. 자동 추적형 스킬이며, 강화할수록 한 번에 발사되는 미사일 수가 늘어납니다.",
-            "questText": "매직 미사일 설명을 확인하세요.",
-            "focus": {
-                "targets": [
-                    {
-                        "type": "skill-detail-trigger",
-                        "skillId": "missile"
-                    }
-                ]
-            },
-            "presentation": {
-                "desktop": {
-                    "guideMode": "popup-near-left",
-                    "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인"
-                },
-                "mobilePortrait": {
-                    "guideMode": "viewport-bottom-sheet-safe",
-                    "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "popup-header-strip",
-                    "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인",
-                    "compact": true
-                }
-            },
-            "highlightTarget": "#skill-item-missile",
-            "avoidTargets": [
-                "#skill-popup .skill-content-wrapper",
-                "#skill-detail-modal .skill-detail-modal-content"
-            ],
-            "trigger": "skill_detail_open",
-            "target": "missile",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_SKILL"
-            ]
-        },
-        {
-            "id": "close_missile_detail",
-            "instructionDesktop": "설명을 확인했으면 오른쪽 위 X 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobile": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobileLandscape": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
-            "questText": "매직 미사일 설명 창을 닫아 주세요.",
-            "presentation": {
-                "desktop": {
-                    "guideMode": "popup-near-right",
-                    "highlightMode": "ring",
-                    "guideTitle": "설명 닫기",
-                    "compact": true
-                },
-                "mobilePortrait": {
-                    "guideMode": "viewport-bottom-sheet-safe",
-                    "highlightMode": "ring",
-                    "guideTitle": "설명 닫기",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "popup-header-strip",
-                    "highlightMode": "ring",
-                    "guideTitle": "설명 닫기",
-                    "compact": true
-                }
-            },
-            "focus": [
-                "#skill-detail-modal-close"
-            ],
-            "avoidTargets": [
-                "#skill-detail-modal-body"
-            ],
-            "trigger": "skill_detail_close",
-            "target": "missile",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_SKILL"
-            ]
+            }
         },
         {
             "id": "upgrade_missile",
-            "instruction": "상세 정보를 확인했으니 매직 미사일을 한 번 강화해 보세요. 강화 직후 발사 수가 바로 늘어납니다.",
-            "questText": "매직 미사일을 1회 강화하세요.",
+            "instruction": "매직 미사일을 한 번 강화하세요. 더 멀리 있는 것을 유리카에게 닿기 전에 막아야 합니다.",
+            "questText": "마석으로 매직 미사일을 강화하세요.",
             "presentation": {
                 "desktop": {
                     "guideMode": "popup-near-left",
                     "highlightMode": "ring",
-                    "guideTitle": "스킬 강화"
+                    "guideTitle": "마석을 힘으로",
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "Turn Stone into Strength"
+                        },
+                        "ja": {
+                            "guideTitle": "魔石を力へ"
+                        }
+                    }
                 },
                 "mobilePortrait": {
                     "guideMode": "viewport-bottom-sheet-safe",
                     "highlightMode": "ring",
-                    "guideTitle": "스킬 강화",
-                    "compact": true
+                    "guideTitle": "마석을 힘으로",
+                    "compact": true,
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "Turn Stone into Strength"
+                        },
+                        "ja": {
+                            "guideTitle": "魔石を力へ"
+                        }
+                    }
                 },
                 "mobileLandscape": {
                     "guideMode": "popup-header-strip",
                     "highlightMode": "ring",
-                    "guideTitle": "스킬 강화",
-                    "compact": true
+                    "guideTitle": "마석을 힘으로",
+                    "compact": true,
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "Turn Stone into Strength"
+                        },
+                        "ja": {
+                            "guideTitle": "魔石を力へ"
+                        }
+                    }
                 }
             },
             "highlightTarget": "#skill-up-missile",
@@ -527,32 +417,66 @@
             "count": 1,
             "allowedActions": [
                 "OPEN_SKILL"
-            ]
+            ],
+            "i18n": {
+                "en": {
+                    "instruction": "Upgrade Magic Missile once. You need to stop distant threats before they can reach Yurika.",
+                    "questText": "Use the manastone to upgrade Magic Missile."
+                },
+                "ja": {
+                    "instruction": "マジックミサイルを一度強化してください。遠くの脅威がユリカに届く前に止めなければなりません。",
+                    "questText": "魔石でマジックミサイルを強化してください。"
+                }
+            }
         },
         {
             "id": "use_missile",
-            "instructionDesktop": "강화한 매직 미사일을 사용해 보세요. `H` 키나 우측 하단 매직 미사일 버튼을 누르면 됩니다.",
-            "instructionMobile": "강화한 매직 미사일을 사용해 보세요. 우측 하단 매직 미사일 버튼을 누르면 됩니다.",
-            "instructionMobileLandscape": "강화한 매직 미사일을 사용해 보세요. 오른쪽 아래 매직 미사일 버튼을 누르면 됩니다.",
-            "questText": "매직 미사일을 사용해 보세요.",
+            "instructionDesktop": "울타리 너머로 작은 그림자가 다시 고개를 듭니다. `H` 키나 매직 미사일 버튼으로 먼저 맞히세요.",
+            "instructionMobile": "울타리 너머로 작은 그림자가 다시 고개를 듭니다. 오른쪽 아래 매직 미사일 버튼으로 먼저 맞히세요.",
+            "instructionMobileLandscape": "울타리 너머로 작은 그림자가 다시 고개를 듭니다. 오른쪽 아래 매직 미사일 버튼으로 먼저 맞히세요.",
+            "questText": "매직 미사일로 멀리 있는 위협을 막으세요.",
             "presentation": {
                 "desktop": {
                     "guideMode": "floating-compact",
                     "highlightMode": "ring",
-                    "guideTitle": "스킬 사용",
-                    "compact": true
+                    "guideTitle": "먼저 닿는 빛",
+                    "compact": true,
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "The Light That Reaches First"
+                        },
+                        "ja": {
+                            "guideTitle": "先に届く光"
+                        }
+                    }
                 },
                 "mobilePortrait": {
                     "guideMode": "top-card",
                     "highlightMode": "ring",
-                    "guideTitle": "스킬 사용",
-                    "compact": true
+                    "guideTitle": "먼저 닿는 빛",
+                    "compact": true,
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "The Light That Reaches First"
+                        },
+                        "ja": {
+                            "guideTitle": "先に届く光"
+                        }
+                    }
                 },
                 "mobileLandscape": {
                     "guideMode": "top-card",
                     "highlightMode": "ring",
-                    "guideTitle": "스킬 사용",
-                    "compact": true
+                    "guideTitle": "먼저 닿는 빛",
+                    "compact": true,
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "The Light That Reaches First"
+                        },
+                        "ja": {
+                            "guideTitle": "先に届く光"
+                        }
+                    }
                 }
             },
             "highlightTarget": "#action-skill-h",
@@ -575,7 +499,7 @@
             ],
             "trigger": "skill_use",
             "target": "missile",
-            "completionDelay": 1000,
+            "completionDelay": 900,
             "count": 1,
             "allowedActions": [
                 "MOVE_UP",
@@ -583,487 +507,69 @@
                 "MOVE_LEFT",
                 "MOVE_RIGHT",
                 "SKILL_1"
-            ]
-        },
-        {
-            "id": "reopen_skill_for_fireball",
-            "instructionDesktop": "좋아요. 이제 다시 스킬 창을 열어 파이어볼을 살펴볼게요. PC에서는 우측 상단 미니맵 왼쪽의 스킬 아이콘이나 `Shift+S`를 사용하면 됩니다.",
-            "instructionMobile": "좋아요. 이제 다시 스킬 창을 열어 파이어볼을 살펴볼게요. 모바일에서는 하단 중앙의 스킬 아이콘을 누르세요.",
-            "instructionMobileLandscape": "좋아요. 이제 다시 스킬 창을 열어 파이어볼을 살펴볼게요. 모바일 가로에서는 오른쪽 위 스킬 아이콘을 누르세요.",
-            "highlightTarget": "#btn-skill",
-            "trigger": "popup_open",
-            "target": "skill-popup",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_SKILL"
             ],
-            "presentation": {
-                "desktop": {
-                    "guideMode": "top-card",
-                    "highlightMode": "ring"
+            "i18n": {
+                "en": {
+                    "instructionDesktop": "A small shadow rises again beyond the fence. Press `H` or the Magic Missile button and strike it first.",
+                    "instructionMobile": "A small shadow rises again beyond the fence. Use the Magic Missile button at the lower right and strike it first.",
+                    "instructionMobileLandscape": "A small shadow rises again beyond the fence. Use the Magic Missile button at the lower right and strike it first.",
+                    "questText": "Use Magic Missile to stop the distant threat."
                 },
-                "mobilePortrait": {
-                    "guideMode": "viewport-bottom-sheet-safe",
-                    "highlightMode": "ring",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "left-card",
-                    "highlightMode": "ring",
-                    "compact": true
+                "ja": {
+                    "instructionDesktop": "柵の向こうで小さな影がまた顔を上げます。`H`キーまたはマジックミサイルボタンで先に撃ち抜いてください。",
+                    "instructionMobile": "柵の向こうで小さな影がまた顔を上げます。右下のマジックミサイルボタンで先に撃ち抜いてください。",
+                    "instructionMobileLandscape": "柵の向こうで小さな影がまた顔を上げます。右下のマジックミサイルボタンで先に撃ち抜いてください。",
+                    "questText": "マジックミサイルで遠くの脅威を止めてください。"
                 }
             }
-        },
-        {
-            "id": "inspect_fireball_detail",
-            "instructionDesktop": "파이어볼 아이콘을 클릭해 상세 설명 창을 열어 보세요. 직선으로 날아가 폭발하고 화상을 남기는 광역 스킬이며, 강화하면 직격 피해와 폭발 반경, 화상 지속시간이 함께 커져요.",
-            "instructionMobile": "파이어볼 아이콘을 탭해 상세 설명 창을 열어 보세요. 직선으로 날아가 폭발하고 화상을 남기는 광역 스킬이며, 강화하면 직격 피해와 폭발 반경, 화상 지속시간이 함께 커져요.",
-            "instructionMobileLandscape": "파이어볼 아이콘을 탭해 상세 설명 창을 열어 보세요. 직선으로 날아가 폭발하고 화상을 남기는 광역 스킬이며, 강화하면 직격 피해와 폭발 반경, 화상 지속시간이 함께 커져요.",
-            "questText": "파이어볼 설명을 확인하세요.",
-            "focus": {
-                "targets": [
-                    {
-                        "type": "skill-detail-trigger",
-                        "skillId": "fireball"
-                    }
-                ]
-            },
-            "presentation": {
-                "desktop": {
-                    "guideMode": "popup-near-left",
-                    "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인"
-                },
-                "mobilePortrait": {
-                    "guideMode": "viewport-bottom-sheet-safe",
-                    "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "popup-header-strip",
-                    "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인",
-                    "compact": true
-                }
-            },
-            "highlightTarget": "#skill-item-fireball",
-            "avoidTargets": [
-                "#skill-popup .skill-content-wrapper",
-                "#skill-detail-modal .skill-detail-modal-content"
-            ],
-            "trigger": "skill_detail_open",
-            "target": "fireball",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_SKILL"
-            ]
-        },
-        {
-            "id": "close_fireball_detail",
-            "instructionDesktop": "설명을 확인했으면 오른쪽 위 X 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobile": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobileLandscape": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
-            "questText": "파이어볼 설명 창을 닫아 주세요.",
-            "presentation": {
-                "desktop": {
-                    "guideMode": "popup-near-right",
-                    "highlightMode": "ring",
-                    "guideTitle": "설명 닫기",
-                    "compact": true
-                },
-                "mobilePortrait": {
-                    "guideMode": "viewport-bottom-sheet-safe",
-                    "highlightMode": "ring",
-                    "guideTitle": "설명 닫기",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "popup-header-strip",
-                    "highlightMode": "ring",
-                    "guideTitle": "설명 닫기",
-                    "compact": true
-                }
-            },
-            "focus": [
-                "#skill-detail-modal-close"
-            ],
-            "avoidTargets": [
-                "#skill-detail-modal-body"
-            ],
-            "trigger": "skill_detail_close",
-            "target": "fireball",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_SKILL"
-            ]
-        },
-        {
-            "id": "upgrade_fireball",
-            "instruction": "이번에는 파이어볼을 한 번 강화해 보세요. 한 번만 강화해도 폭발 반경과 지속 화상 시간이 더 좋아집니다.",
-            "highlightTarget": "#skill-up-fireball",
-            "trigger": "skill_upgrade",
-            "target": "fireball",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_SKILL"
-            ],
-            "presentation": {
-                "desktop": {
-                    "guideMode": "popup-near-left",
-                    "highlightMode": "ring"
-                },
-                "mobilePortrait": {
-                    "guideMode": "viewport-bottom-sheet-safe",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "popup-header-strip",
-                    "compact": true
-                }
-            }
-        },
-        {
-            "id": "aim_fireball_mobile",
-            "layouts": [
-                "mobile-portrait",
-                "mobile-landscape"
-            ],
-            "instructionMobile": "이제 파이어볼 버튼을 누른 채로 조준하고, 손을 떼어 발사해 보세요. 처음 조준선은 가장 가까운 적을 향합니다.",
-            "instructionMobileLandscape": "이제 파이어볼 버튼을 누른 채로 조준하고, 손을 떼어 발사해 보세요. 처음 조준선은 가장 가까운 적을 향합니다.",
-            "questText": {
-                "mobilePortrait": "조준 후 손을 떼어 파이어볼을 발사하세요.",
-                "mobileLandscape": "조준 후 손을 떼어 파이어볼을 발사하세요."
-            },
-            "focus": {
-                "mobilePortrait": {
-                    "targets": [
-                        "#action-skill-u"
-                    ],
-                    "mode": "ring",
-                    "label": "누른 채 조준"
-                },
-                "mobileLandscape": {
-                    "targets": [
-                        "#action-skill-u"
-                    ],
-                    "mode": "ring",
-                    "label": "누른 채 조준"
-                }
-            },
-            "presentation": {
-                "mobilePortrait": {
-                    "guideMode": "top-card",
-                    "highlightMode": "ring",
-                    "guideTitle": "스킬 사용",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "top-card",
-                    "highlightMode": "ring",
-                    "guideTitle": "스킬 사용",
-                    "compact": true
-                }
-            },
-            "highlightTarget": "#action-skill-u",
-            "avoidTargets": [
-                "#gameCanvas"
-            ],
-            "onStart": {
-                "mobilePortrait": [
-                    {
-                        "type": "close_popups"
-                    },
-                    {
-                        "type": "clear_tutorial_monsters"
-                    },
-                    {
-                        "type": "spawn_monster",
-                        "monsterId": "training_dummy",
-                        "offsetX": 220,
-                        "offsetY": 0
-                    }
-                ],
-                "mobileLandscape": [
-                    {
-                        "type": "close_popups"
-                    },
-                    {
-                        "type": "clear_tutorial_monsters"
-                    },
-                    {
-                        "type": "spawn_monster",
-                        "monsterId": "training_dummy",
-                        "offsetX": 220,
-                        "offsetY": 0
-                    }
-                ]
-            },
-            "trigger": "skill_motion_complete",
-            "target": "fireball",
-            "completionDelay": 1000,
-            "count": 1,
-            "allowedActions": [
-                "MOVE_UP",
-                "MOVE_DOWN",
-                "MOVE_LEFT",
-                "MOVE_RIGHT",
-                "SKILL_2"
-            ]
-        },
-        {
-            "id": "use_fireball",
-            "layouts": [
-                "desktop"
-            ],
-            "instructionDesktop": "강화한 파이어볼을 사용해 보세요. 우측 하단 파이어볼 버튼을 누른 채 조준한 뒤 떼어 발사해 보세요.",
-            "instructionMobile": "좋아요. 이제 손가락을 떼어 파이어볼을 발사해 보세요.",
-            "instructionMobileLandscape": "좋아요. 이제 손가락을 떼어 파이어볼을 발사해 보세요.",
-            "questText": {
-                "desktop": "조준 후 파이어볼을 발사하세요.",
-                "mobilePortrait": "손을 떼어 파이어볼을 발사하세요.",
-                "mobileLandscape": "손을 떼어 파이어볼을 발사하세요."
-            },
-            "presentation": {
-                "desktop": {
-                    "guideMode": "floating-compact",
-                    "highlightMode": "ring",
-                    "guideTitle": "스킬 사용",
-                    "compact": true
-                },
-                "mobilePortrait": {
-                    "guideMode": "top-card",
-                    "highlightMode": "ring",
-                    "guideTitle": "스킬 사용",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "top-card",
-                    "highlightMode": "ring",
-                    "guideTitle": "스킬 사용",
-                    "compact": true
-                }
-            },
-            "highlightTarget": "#action-skill-u",
-            "avoidTargets": [
-                "#gameCanvas"
-            ],
-            "onStart": {
-                "desktop": [
-                    {
-                        "type": "close_popups"
-                    },
-                    {
-                        "type": "clear_tutorial_monsters"
-                    },
-                    {
-                        "type": "spawn_monster",
-                        "monsterId": "training_dummy",
-                        "offsetX": 220,
-                        "offsetY": 0
-                    }
-                ],
-                "mobilePortrait": [],
-                "mobileLandscape": []
-            },
-            "trigger": "skill_motion_complete",
-            "target": "fireball",
-            "completionDelay": 1000,
-            "count": 1,
-            "allowedActions": [
-                "MOVE_UP",
-                "MOVE_DOWN",
-                "MOVE_LEFT",
-                "MOVE_RIGHT",
-                "SKILL_2"
-            ]
-        },
-        {
-            "id": "reopen_skill_for_shield",
-            "instructionDesktop": "마지막으로 스킬 창을 다시 열어 앱솔루트 베리어를 확인해 볼게요. PC에서는 우측 상단 미니맵 왼쪽의 스킬 아이콘이나 `Shift+S`를 사용하세요.",
-            "instructionMobile": "마지막으로 스킬 창을 다시 열어 앱솔루트 베리어를 확인해 볼게요. 모바일에서는 하단 중앙의 스킬 아이콘을 누르세요.",
-            "instructionMobileLandscape": "마지막으로 스킬 창을 다시 열어 앱솔루트 베리어를 확인해 볼게요. 모바일 가로에서는 오른쪽 위 스킬 아이콘을 누르세요.",
-            "highlightTarget": "#btn-skill",
-            "trigger": "popup_open",
-            "target": "skill-popup",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_SKILL"
-            ],
-            "presentation": {
-                "desktop": {
-                    "guideMode": "top-card",
-                    "highlightMode": "ring"
-                },
-                "mobilePortrait": {
-                    "guideMode": "viewport-bottom-sheet-safe",
-                    "highlightMode": "ring",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "left-card",
-                    "highlightMode": "ring",
-                    "compact": true
-                }
-            }
-        },
-        {
-            "id": "inspect_shield_detail",
-            "instructionDesktop": "앱솔루트 베리어 아이콘을 클릭해 상세 설명 창을 열어 보세요. 다음 1회의 피해를 완전히 막는 생존 스킬이며, 레벨업 없이 고정 성능으로 사용됩니다.",
-            "instructionMobile": "앱솔루트 베리어 아이콘을 탭해 상세 설명 창을 열어 보세요. 다음 1회의 피해를 완전히 막는 생존 스킬이며, 레벨업 없이 고정 성능으로 사용됩니다.",
-            "instructionMobileLandscape": "앱솔루트 베리어 아이콘을 탭해 상세 설명 창을 열어 보세요. 다음 1회의 피해를 완전히 막는 생존 스킬이며, 레벨업 없이 고정 성능으로 사용됩니다.",
-            "questText": "앱솔루트 베리어 설명을 확인하세요.",
-            "focus": {
-                "targets": [
-                    {
-                        "type": "skill-detail-trigger",
-                        "skillId": "shield"
-                    }
-                ]
-            },
-            "presentation": {
-                "desktop": {
-                    "guideMode": "popup-near-left",
-                    "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인"
-                },
-                "mobilePortrait": {
-                    "guideMode": "viewport-bottom-sheet-safe",
-                    "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "popup-header-strip",
-                    "highlightMode": "spotlight",
-                    "guideTitle": "설명 확인",
-                    "compact": true
-                }
-            },
-            "highlightTarget": "#skill-item-shield",
-            "avoidTargets": [
-                "#skill-popup .skill-content-wrapper",
-                "#skill-detail-modal .skill-detail-modal-content"
-            ],
-            "trigger": "skill_detail_open",
-            "target": "shield",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_SKILL"
-            ]
-        },
-        {
-            "id": "close_shield_detail",
-            "instructionDesktop": "설명을 확인했으면 오른쪽 위 X 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobile": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
-            "instructionMobileLandscape": "설명을 확인했으면 X 버튼으로 상세 설명 창을 닫아 주세요.",
-            "questText": "앱솔루트 베리어 설명 창을 닫아 주세요.",
-            "presentation": {
-                "desktop": {
-                    "guideMode": "popup-near-right",
-                    "highlightMode": "ring",
-                    "guideTitle": "설명 닫기",
-                    "compact": true
-                },
-                "mobilePortrait": {
-                    "guideMode": "viewport-bottom-sheet-safe",
-                    "highlightMode": "ring",
-                    "guideTitle": "설명 닫기",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "popup-header-strip",
-                    "highlightMode": "ring",
-                    "guideTitle": "설명 닫기",
-                    "compact": true
-                }
-            },
-            "focus": [
-                "#skill-detail-modal-close"
-            ],
-            "avoidTargets": [
-                "#skill-detail-modal-body"
-            ],
-            "trigger": "skill_detail_close",
-            "target": "shield",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_SKILL"
-            ]
-        },
-        {
-            "id": "use_shield",
-            "instructionDesktop": "이제 앱솔루트 베리어를 한 번 사용해 보세요. `K` 키나 우측 하단 보호막 버튼을 누르면 됩니다.",
-            "instructionMobile": "이제 앱솔루트 베리어를 한 번 사용해 보세요. 우측 하단 보호막 버튼을 누르면 됩니다.",
-            "instructionMobileLandscape": "이제 앱솔루트 베리어를 한 번 사용해 보세요. 오른쪽 아래 보호막 버튼을 누르면 됩니다.",
-            "questText": "앱솔루트 베리어를 사용해 보세요.",
-            "presentation": {
-                "desktop": {
-                    "guideMode": "floating-compact",
-                    "highlightMode": "ring",
-                    "guideTitle": "스킬 사용",
-                    "compact": true
-                },
-                "mobilePortrait": {
-                    "guideMode": "top-card",
-                    "highlightMode": "ring",
-                    "guideTitle": "스킬 사용",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "top-card",
-                    "highlightMode": "ring",
-                    "guideTitle": "스킬 사용",
-                    "compact": true
-                }
-            },
-            "highlightTarget": "#action-skill-k",
-            "avoidTargets": [
-                "#gameCanvas"
-            ],
-            "onStart": [
-                {
-                    "type": "close_popups"
-                },
-                {
-                    "type": "clear_tutorial_monsters"
-                }
-            ],
-            "trigger": "skill_use",
-            "target": "shield",
-            "completionDelay": 1000,
-            "count": 1,
-            "allowedActions": [
-                "MOVE_UP",
-                "MOVE_DOWN",
-                "MOVE_LEFT",
-                "MOVE_RIGHT",
-                "SKILL_3"
-            ]
         },
         {
             "id": "open_inventory",
-            "instruction": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. `B` 키나 가방 버튼을 사용하세요.",
-            "instructionDesktop": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. PC에서는 우측 상단 미니맵 왼쪽의 가방 아이콘이나 `B` 키를 사용하세요.",
-            "instructionMobile": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. 모바일에서는 하단 중앙의 가방 아이콘을 누르세요.",
-            "instructionMobileLandscape": "마지막으로 인벤토리를 열어 소지품 화면을 확인해 보세요. 모바일 가로에서는 오른쪽 위 가방 아이콘을 누르세요.",
-            "questText": "인벤토리를 열어 주세요.",
+            "instruction": "방금 얻은 마석과 앞으로 받을 보상은 가방에 쌓입니다. 인벤토리를 열어 지켜 낸 것들을 확인하세요.",
+            "instructionDesktop": "방금 얻은 마석과 앞으로 받을 보상은 가방에 쌓입니다. `B` 키나 가방 버튼으로 인벤토리를 열어 확인하세요.",
+            "instructionMobile": "방금 얻은 마석과 앞으로 받을 보상은 가방에 쌓입니다. 하단 중앙의 가방 버튼으로 인벤토리를 열어 확인하세요.",
+            "instructionMobileLandscape": "방금 얻은 마석과 앞으로 받을 보상은 가방에 쌓입니다. 오른쪽 위 가방 버튼으로 인벤토리를 열어 확인하세요.",
+            "questText": "가방을 열어 보상 위치를 확인하세요.",
             "presentation": {
                 "desktop": {
                     "guideMode": "dock-left",
                     "highlightMode": "ring",
-                    "guideTitle": "인벤토리"
+                    "guideTitle": "지켜 낸 것들",
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "What You Protected"
+                        },
+                        "ja": {
+                            "guideTitle": "守り抜いたもの"
+                        }
+                    }
                 },
                 "mobilePortrait": {
                     "guideMode": "bottom-sheet",
                     "highlightMode": "ring",
-                    "guideTitle": "인벤토리"
+                    "guideTitle": "지켜 낸 것들",
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "What You Protected"
+                        },
+                        "ja": {
+                            "guideTitle": "守り抜いたもの"
+                        }
+                    }
                 },
                 "mobileLandscape": {
                     "guideMode": "top-card",
                     "highlightMode": "ring",
-                    "guideTitle": "인벤토리",
-                    "compact": true
+                    "guideTitle": "지켜 낸 것들",
+                    "compact": true,
+                    "i18n": {
+                        "en": {
+                            "guideTitle": "What You Protected"
+                        },
+                        "ja": {
+                            "guideTitle": "守り抜いたもの"
+                        }
+                    }
                 }
             },
             "highlightTarget": "#btn-inventory",
@@ -1080,78 +586,31 @@
             "count": 1,
             "allowedActions": [
                 "OPEN_INVENTORY"
-            ]
-        },
-        {
-            "id": "close_inventory",
-            "instruction": "좋아요. 인벤토리를 확인했어요. 이제 `B` 키나 닫기 버튼으로 다시 닫아 주세요.",
-            "instructionMobile": "좋아요. 인벤토리를 확인했어요. 이제 닫기 버튼으로 다시 닫아 주세요.",
-            "instructionMobileLandscape": "좋아요. 인벤토리를 확인했어요. 이제 닫기 버튼으로 다시 닫아 주세요.",
-            "questText": "인벤토리를 닫아 주세요.",
-            "presentation": {
-                "desktop": {
-                    "guideMode": "dock-left",
-                    "highlightMode": "ring",
-                    "guideTitle": "인벤토리 닫기"
-                },
-                "mobilePortrait": {
-                    "guideMode": "viewport-bottom-sheet-safe",
-                    "highlightMode": "ring",
-                    "guideTitle": "인벤토리 닫기",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "popup-header-strip",
-                    "highlightMode": "ring",
-                    "guideTitle": "인벤토리 닫기",
-                    "compact": true
-                }
-            },
-            "highlightTarget": "#inventory-close-btn-bottom",
-            "avoidTargets": [
-                "#inventory-popup"
             ],
-            "trigger": "popup_close",
-            "target": "inventory-popup",
-            "count": 1,
-            "allowedActions": [
-                "OPEN_INVENTORY"
-            ]
-        },
-        {
-            "id": "finish",
-            "instruction": "준비 완료. 이제 실제 전투를 시작해 볼까요?",
-            "questText": "튜토리얼 마무리 중입니다.",
-            "presentation": {
-                "desktop": {
-                    "guideMode": "floating-compact",
-                    "highlightMode": "frame",
-                    "guideTitle": "튜토리얼 마무리",
-                    "compact": true
+            "i18n": {
+                "en": {
+                    "instruction": "The manastones you just earned, and the rewards you will claim later, gather in your bag. Open the inventory and check what you protected.",
+                    "instructionDesktop": "The manastones you just earned, and the rewards you will claim later, gather in your bag. Press `B` or the bag button to open the inventory.",
+                    "instructionMobile": "The manastones you just earned, and the rewards you will claim later, gather in your bag. Tap the bag button at the bottom center to open the inventory.",
+                    "instructionMobileLandscape": "The manastones you just earned, and the rewards you will claim later, gather in your bag. Tap the bag button at the upper right to open the inventory.",
+                    "questText": "Open your bag and find where rewards go."
                 },
-                "mobilePortrait": {
-                    "guideMode": "top-card",
-                    "highlightMode": "frame",
-                    "guideTitle": "튜토리얼 마무리",
-                    "compact": true
-                },
-                "mobileLandscape": {
-                    "guideMode": "top-card",
-                    "highlightMode": "frame",
-                    "guideTitle": "튜토리얼 마무리",
-                    "compact": true
+                "ja": {
+                    "instruction": "今手に入れた魔石と、これから受け取る報酬はバッグに集まります。インベントリを開き、守り抜いたものを確認してください。",
+                    "instructionDesktop": "今手に入れた魔石と、これから受け取る報酬はバッグに集まります。`B`キーまたはバッグボタンでインベントリを開いてください。",
+                    "instructionMobile": "今手に入れた魔石と、これから受け取る報酬はバッグに集まります。下中央のバッグボタンでインベントリを開いてください。",
+                    "instructionMobileLandscape": "今手に入れた魔石と、これから受け取る報酬はバッグに集まります。右上のバッグボタンでインベントリを開いてください。",
+                    "questText": "バッグを開き、報酬の場所を確認してください。"
                 }
-            },
-            "onStart": [
-                {
-                    "type": "center_message",
-                    "text": "튜토리얼 완료 준비"
-                }
-            ],
-            "trigger": "auto_next",
-            "duration": 1000,
-            "count": 1,
-            "allowedActions": []
+            }
         }
-    ]
+    ],
+    "i18n": {
+        "en": {
+            "title": "The First Promise at the Cabin"
+        },
+        "ja": {
+            "title": "小屋の前の最初の約束"
+        }
+    }
 }

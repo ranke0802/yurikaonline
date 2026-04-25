@@ -138,6 +138,12 @@ export default class ResourceManager {
                 await Promise.all(loadPromises);
 
                 this.cache.set(cacheKey, finalCanvas);
+                this.cache.set('character_spritesheet_father', finalCanvas);
+                this.cache.set('character_spritesheet_yurika', finalCanvas);
+                if (previewOnly) {
+                    this.cache.set('character_spritesheet_preview_father', finalCanvas);
+                    this.cache.set('character_spritesheet_preview_yurika', finalCanvas);
+                }
                 this.loading.delete(cacheKey);
                 Logger.info('Character SpriteSheet generated successfully.');
                 resolve(finalCanvas);

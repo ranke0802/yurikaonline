@@ -1611,6 +1611,7 @@ export default class NetworkManager extends EventEmitter {
                 : (player.hostility || {}),
             defense: Number(player.defense || 0),
             isPaused: !!player.isPaused,
+            characterId: player.characterId === 'yurika' ? 'yurika' : 'father',
             protectedUntil: player.spawnProtectionTimer > 0
                 ? Date.now() + Math.round(player.spawnProtectionTimer * 1000)
                 : 0
@@ -1839,6 +1840,7 @@ export default class NetworkManager extends EventEmitter {
             level: profile.level || 1,
             defense: profile.defense ?? 0,
             isPaused: !!profile.isPaused,
+            characterId: profile.characterId === 'yurika' ? 'yurika' : 'father',
             protectedUntil: Number(profile.protectedUntil || 0),
             equipment: profile.equipment || null,
             party: profile.party || null,
@@ -1926,6 +1928,7 @@ export default class NetworkManager extends EventEmitter {
             isPaused: newPlayer.isPaused,
             equipment: newPlayer.equipment,
             party: newPlayer.party,
+            characterId: newPlayer.characterId || 'father',
             hostility: newPlayer.hostility
         });
 
@@ -1954,6 +1957,7 @@ export default class NetworkManager extends EventEmitter {
         if (profile.protectedUntil !== undefined) existing.protectedUntil = Number(profile.protectedUntil) || 0;
         if (profile.equipment !== undefined) existing.equipment = profile.equipment;
         if (profile.party !== undefined) existing.party = profile.party;
+        if (profile.characterId !== undefined) existing.characterId = profile.characterId === 'yurika' ? 'yurika' : 'father';
         if (hostility !== undefined) existing.hostility = hostility;
 
         this.emit('playerUpdate', {
@@ -1965,6 +1969,7 @@ export default class NetworkManager extends EventEmitter {
             protectedUntil: existing.protectedUntil || 0,
             equipment: existing.equipment,
             party: existing.party,
+            characterId: existing.characterId || 'father',
             hostility: existing.hostility
         });
     }
@@ -2378,6 +2383,7 @@ export default class NetworkManager extends EventEmitter {
             hostility: profile.hostility || {},
             defense: profile.defense ?? 0,
             isPaused: !!profile.isPaused,
+            characterId: profile.characterId === 'yurika' ? 'yurika' : 'father',
             protectedUntil: Number(profile.protectedUntil || 0)
         };
     }
@@ -2394,6 +2400,7 @@ export default class NetworkManager extends EventEmitter {
         if (patch.defense !== undefined) zonePatch.defense = Number(patch.defense || 0);
         if (patch.isPaused !== undefined) zonePatch.isPaused = !!patch.isPaused;
         if (patch.protectedUntil !== undefined) zonePatch.protectedUntil = Number(patch.protectedUntil || 0);
+        if (patch.characterId !== undefined) zonePatch.characterId = patch.characterId === 'yurika' ? 'yurika' : 'father';
 
         return Object.keys(zonePatch).length > 0 ? zonePatch : null;
     }
@@ -5557,6 +5564,7 @@ export default class NetworkManager extends EventEmitter {
                 if (val.profile.equipment !== undefined) existing.equipment = val.profile.equipment;
                 if (val.profile.party !== undefined) existing.party = val.profile.party;
                 if (val.profile.hostility !== undefined) existing.hostility = val.profile.hostility;
+                if (val.profile.characterId !== undefined) existing.characterId = val.profile.characterId === 'yurika' ? 'yurika' : 'father';
             }
         }
 
@@ -5625,6 +5633,7 @@ export default class NetworkManager extends EventEmitter {
                         if (level) update.level = level;
                         if (equipment !== undefined) update.equipment = equipment;
                         if (party !== undefined) update.party = party;
+                        if (val.profile?.characterId !== undefined) update.characterId = val.profile.characterId === 'yurika' ? 'yurika' : 'father';
                         if (val.profile?.protectedUntil !== undefined) update.protectedUntil = Number(val.profile.protectedUntil) || 0;
                         if (hostility) update.hostility = hostility;
 

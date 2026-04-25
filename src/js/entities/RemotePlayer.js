@@ -9,6 +9,7 @@ export default class RemotePlayer extends CharacterBase {
         this.id = id;
         this.name = "Unknown";
         this.type = 'player';
+        this.characterId = 'father';
         this.hostility = {};
         this.equipment = { weapon: null };
 
@@ -224,12 +225,19 @@ export default class RemotePlayer extends CharacterBase {
     async _loadSpriteSheet(res) {
         if (!res) return;
         try {
-            const sheetCanvas = await res.loadCharacterSpriteSheet();
+            const sheetCanvas = await res.loadCharacterSpriteSheet(false);
             this.sprite = new Sprite(sheetCanvas, 8, 5);
             this.frameCounts = { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 };
         } catch (e) {
             Logger.error("Failed to load character sprite sheet for RemotePlayer:", e);
         }
+    }
+
+    setCharacterId(characterId = 'father', resourceManager = null) {
+        const normalized = characterId === 'yurika' ? 'yurika' : 'father';
+        if (this.characterId === normalized) return;
+        this.characterId = normalized;
+        this._loadSpriteSheet(resourceManager || window.game?.resources);
     }
 
     // Phase 1: Enhanced server update with adaptive delay calculation
@@ -248,6 +256,7 @@ export default class RemotePlayer extends CharacterBase {
             }
         }
         if (packet.level !== undefined) this.level = packet.level;
+        if (packet.characterId !== undefined) this.setCharacterId(packet.characterId);
         if (packet.defense !== undefined) this.defense = packet.defense;
         if (packet.isPaused !== undefined) this.isPaused = packet.isPaused;
         if (packet.equipment !== undefined) this.equipment = this.normalizeEquipmentState(packet.equipment);
@@ -350,9 +359,12 @@ export default class RemotePlayer extends CharacterBase {
     }
 
     _holdRemoteAttackState(duration = 0.6, options = {}) {
+        const shouldRestartAnimation = !this.isAttacking || this.remoteAttackTimer <= 0 || options.restartAnimation === true;
         this.isAttacking = true;
         this.state = 'attack';
-        this.animTimer = 0;
+        if (shouldRestartAnimation) {
+            this.animTimer = 0;
+        }
         this.remoteAttackTimer = Math.max(this.remoteAttackTimer || 0, duration);
 
         if (options.lockChannel) {
@@ -760,16 +772,29 @@ export default class RemotePlayer extends CharacterBase {
         }
     }
 
+    getAnimationRow() {
+        return (this.isAttacking || this.state === 'attack' || this.remoteAttackTimer > 0) ? 4 : this.direction;
+    }
+
+    getCurrentFacingAngle() {
+        if (Number.isFinite(this.lastAttackAngle)) return this.lastAttackAngle;
+        const angles = {
+            0: -Math.PI / 2,
+            1: Math.PI / 2,
+            2: Math.PI,
+            3: 0
+        };
+        return angles[this.direction] ?? 0;
+    }
+
     _updateAnimation(dt) {
-        let row = this.direction;
-        if (this.state === 'attack') {
-            row = 4; // Attack Row
-        }
+        const row = this.getAnimationRow();
 
         const maxFrames = this.frameCounts ? (this.frameCounts[row] || 8) : 8;
 
         if (this.state === 'move' || this.state === 'attack') {
-            this.animTimer += dt * this.animSpeed;
+            const actionSpeed = row === 4 ? 15 : this.animSpeed;
+            this.animTimer += dt * actionSpeed;
             if (this.animTimer >= maxFrames) {
                 this.animTimer = 0;
             }
@@ -841,8 +866,7 @@ export default class RemotePlayer extends CharacterBase {
             // Force reset dying state if we are rendering sprite but flag is stuck
             if (this.isDying && this.hp > 0) this.isDying = false;
 
-            let row = Math.max(0, Math.min(4, this.direction));
-            if (this.state === 'attack') row = 4;
+            let row = Math.max(0, Math.min(4, this.getAnimationRow()));
 
             // Safety check for animFrame
             const maxFrames = this.frameCounts[row] || 8;
@@ -851,8 +875,16 @@ export default class RemotePlayer extends CharacterBase {
 
             const drawW = 120;
             const drawH = 120;
-            const drawX = centerX - drawW / 2;
-            const drawY = this.y + this.height - drawH + 10;
+            let drawX = centerX - drawW / 2;
+            let drawY = this.y + this.height - drawH + 10;
+            if (row === 4) {
+                const maxFrames = this.frameCounts?.[row] || 8;
+                const progress = ((this.animTimer % maxFrames) / maxFrames);
+                const pulse = Math.sin(progress * Math.PI);
+                const angle = this.getCurrentFacingAngle();
+                drawX += Math.cos(angle) * 4 * pulse;
+                drawY += Math.sin(angle) * 4 * pulse - (2 * pulse);
+            }
             this.sprite.draw(ctx, row, col, drawX, drawY, drawW, drawH);
         } else {
             // v0.28.7: Restore Fallback (Red Circle) for missing sprite or loading state

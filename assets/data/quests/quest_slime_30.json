@@ -1,7 +1,7 @@
 {
     "id": "quest_slime_30",
-    "title": "슬라임 정화",
-    "description": "더 많은 슬라임을 처치하여 지역을 정화하세요. (누적 30마리)",
+    "title": "파란 이빨 자국",
+    "description": "울타리 아래 녹은 흙을 따라가며 슬라임을 누적 30마리 저지하세요.",
     "type": "main",
     "prerequisites": [
         "quest_slime_10"
@@ -12,7 +12,15 @@
             "target": "slime",
             "count": 30,
             "cumulative": true,
-            "description": "슬라임 처치: {current}/{count}"
+            "description": "파란 흔적 추적 및 슬라임 저지: {current}/{count}",
+            "i18n": {
+                "en": {
+                    "description": "Blue trail tracked, slimes stopped: {current}/{count}"
+                },
+                "ja": {
+                    "description": "青い痕跡追跡・スライム阻止：{current}/{count}"
+                }
+            }
         }
     ],
     "rewards": {
@@ -20,9 +28,27 @@
         "manastone": 1000
     },
     "onComplete": {
-        "message": "지역 정화 완료! 대왕 슬라임의 기운이 느껴집니다...",
+        "message": "흔적의 근원에 닿았습니다. 더 큰 파란 기척이 오두막을 바라봅니다.",
         "unlocks": [
             "quest_boss_king_slime"
-        ]
+        ],
+        "i18n": {
+            "en": {
+                "message": "You reached the source of the trail. A larger blue presence is watching the cottage."
+            },
+            "ja": {
+                "message": "痕跡の源にたどり着きました。より大きな青い気配が小屋を見ています。"
+            }
+        }
+    },
+    "i18n": {
+        "en": {
+            "title": "Blue Tooth Marks",
+            "description": "Follow the melted soil beneath the fence and stop 30 slimes total."
+        },
+        "ja": {
+            "title": "青い牙痕",
+            "description": "柵の下の溶けた土を追い、累計30体のスライムを食い止めてください。"
+        }
     }
 }

@@ -11,11 +11,21 @@
         "exp": 95
     },
     "visual": {
-        "assetPath": "assets/monsters/shadows/monster_lantern_scarecrow_mage.jpeg",
+        "assetPath": "assets/resource/animated_monsters/lantern_scarecrow_mage",
+        "frames": [
+            "assets/resource/animated_monsters/lantern_scarecrow_mage/idle_01.webp",
+            "assets/resource/animated_monsters/lantern_scarecrow_mage/idle_02.webp",
+            "assets/resource/animated_monsters/lantern_scarecrow_mage/idle_03.webp",
+            "assets/resource/animated_monsters/lantern_scarecrow_mage/idle_04.webp",
+            "assets/resource/animated_monsters/lantern_scarecrow_mage/idle_05.webp",
+            "assets/resource/animated_monsters/lantern_scarecrow_mage/idle_06.webp",
+            "assets/resource/animated_monsters/lantern_scarecrow_mage/idle_07.webp",
+            "assets/resource/animated_monsters/lantern_scarecrow_mage/idle_08.webp"
+        ],
         "width": 112,
         "height": 142,
-        "frameSpeed": 0.18,
-        "frameCount": 1,
+        "frameSpeed": 0.112,
+        "frameCount": 8,
         "scale": 1.25
     },
     "behavior": {

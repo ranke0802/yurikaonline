@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json?v=0.02.031">
+    <link rel="manifest" href="manifest.json?v=0.02.046">
     <meta name="theme-color" content="#2d3436">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +16,7 @@
     <meta name="browsermode" content="application">
     <meta name="full-screen" content="yes">
     <script>
-        window.BOOTSTRAP_VERSION = '0.02.031';
+        window.BOOTSTRAP_VERSION = '0.02.046';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -243,7 +243,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.031', { updateViaCache: 'none' });
+                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.046', { updateViaCache: 'none' });
                     await registration.update();
                     registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
                     registration.addEventListener('updatefound', () => {
@@ -267,7 +267,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
     <!-- Firebase Config -->
-    <script src="src/js/firebaseConfig.js?v=0.02.031"></script>
+    <script src="src/js/firebaseConfig.js?v=0.02.046"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Nanum+Gothic:wght@400;700&display=swap"
         rel="stylesheet">
@@ -275,10 +275,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.02.031</title>
+    <title>Yurika Online v0.02.046</title>
 
-    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.02.031">
-    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.02.031">
+    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.02.046">
+    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.02.046">
     <script>
         // v0.29.20+: Prefer the actually loaded client build for UI, and auto-reset caches on mismatch.
         (async function initCacheBusting() {
@@ -299,7 +299,7 @@
             }
         });
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.02.031">
+    <link rel="stylesheet" href="src/css/style.css?v=0.02.046">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -362,7 +362,7 @@
 
                 <!-- Minimap & Quick Menu (Top Right) -->
                 <div id="minimap-container">
-                    <div class="minimap-header">Yurika Map</div>
+                    <div class="minimap-header">유리카 지도</div>
                     <canvas id="minimapCanvas"></canvas>
                     <div class="minimap-footer">X: <span id="mini-pos-x">0</span> Y: <span id="mini-pos-y">0</span>
                     </div>
@@ -446,7 +446,7 @@
                     <!-- Chat Window -->
                     <div class="chat-window">
                         <div class="chat-header">
-                            <span>💬 Chat</span>
+                            <span>💬 채팅</span>
                             <div class="chat-controls">
                                 <span class="emote-btn" title="이모티콘">😊</span>
                                 <span class="minimize-btn">_</span>
@@ -505,7 +505,7 @@
                             <div class="cooldown-time"></div>
                         </div>
                     </div>
-                    <button id="action-auto-toggle" class="attack-auto-toggle" type="button" aria-pressed="false">[Auto]</button>
+                    <button id="action-auto-toggle" class="attack-auto-toggle" type="button" aria-pressed="false">[자동]</button>
                 </div>
             </div>
         </div>
@@ -809,6 +809,16 @@
 
                     <div class="settings-section">
                         <h3>게임 플레이</h3>
+                        <div class="settings-row">
+                            <label for="settings-language">언어</label>
+                            <div class="settings-control settings-inline-control">
+                                <select id="settings-language" class="settings-select">
+                                    <option value="ko">한국어</option>
+                                    <option value="ja">日本語</option>
+                                    <option value="en">English</option>
+                                </select>
+                            </div>
+                        </div>
                         <div class="settings-row settings-toggle-row">
                             <span>모바일 가로 자동 전체화면</span>
                             <label class="settings-switch">
@@ -1340,7 +1350,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.02.031"></script>
+    <script type="module" src="./src/js/main.js?v=0.02.046"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

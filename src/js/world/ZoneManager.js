@@ -5,20 +5,23 @@ const ZONE_MANIFEST_PATH = 'assets/data/world/zone_manifest.json';
 const SUPPORTED_ZONE_TYPES = ['field', 'town', 'dungeon', 'story'];
 
 export default class ZoneManager {
-    constructor(resourceManager) {
+    constructor(resourceManager, localizationManager = null) {
         this.res = resourceManager;
+        this.i18n = localizationManager;
         this.manifest = null;
         this.manifestLoadPromise = null;
         this.defaultZoneId = DEFAULT_ZONE_ID;
         this.supportedZoneTypes = SUPPORTED_ZONE_TYPES;
         this.currentZone = null;
         this.currentZoneId = DEFAULT_ZONE_ID;
+        this.transitionOverlay = null;
         this.tiles = null;
         this.width = 6400; // v0.00.03: Set default 200*32 to allow center calculation before load
         this.height = 6400;
         this.tileSize = 32;
         this.chunkSize = 512; // 16x16 tiles per chunk
         this.chunks = new Map(); // Chunk caching
+        this.backgroundRenderMode = 'repeat';
     }
 
     _createFallbackManifest() {
@@ -163,7 +166,8 @@ export default class ZoneManager {
 
         try {
             // 1. Load Zone JSON
-            const zoneData = await this.res.loadJSON(this.getZonePath(resolvedZoneId));
+            const rawZoneData = await this.res.loadJSON(this.getZonePath(resolvedZoneId));
+            const zoneData = this.i18n?.localizeContent?.(rawZoneData) || rawZoneData;
             if (!zoneData) {
                 throw new Error(`Zone data not found: ${resolvedZoneId}`);
             }
@@ -187,16 +191,29 @@ export default class ZoneManager {
             // 3. Load Background
             // Support different background types (image, tilemap, etc.)
             if (zoneData.background) {
-                if (zoneData.background.image) {
-                    this.bgImage = await this.res.loadImage(zoneData.background.image);
-                    this.bgPattern = null;
-                } else if (zoneData.background.src) {
-                    // Legacy support
-                    this.bgImage = await this.res.loadImage(zoneData.background.src);
-                    this.bgPattern = null;
+                const backgroundCandidates = [
+                    zoneData.background.worldImage,
+                    zoneData.background.generatedImage,
+                    zoneData.background.image,
+                    zoneData.background.fallbackImage,
+                    zoneData.background.src
+                ].filter((url) => typeof url === 'string' && url.trim());
+                this.bgImage = null;
+                this.bgPattern = null;
+                this.backgroundRenderMode = zoneData.background.worldImage
+                    ? 'world'
+                    : (zoneData.background.renderMode || 'repeat');
+                for (const url of backgroundCandidates) {
+                    try {
+                        this.bgImage = await this.res.loadImage(url);
+                        break;
+                    } catch (error) {
+                        Logger.warn(`[ZoneManager] Failed to load background candidate: ${url}`);
+                    }
                 }
             } else {
                 Logger.warn(`No background defined for zone: ${resolvedZoneId}`);
+                this.backgroundRenderMode = 'repeat';
             }
 
             // 4. Setup Boundaries & Spawns & Objects
@@ -205,16 +222,28 @@ export default class ZoneManager {
             this.objects = zoneData.objects || [];
             this.portals = zoneData.portals || [];
             this.transitions = zoneData.transitions || [];
+            this.transitionOverlay = zoneData.transitionOverlay || null;
 
             // 4.1 Preload Object Assets
-            const assetPromises = this.objects.map(obj => {
-                if (obj.visual && obj.visual.image) {
-                    return this.res.loadImage(obj.visual.image).catch(e => {
-                        Logger.warn(`Failed to preload asset for object ${obj.id}: ${obj.visual.image}`);
-                    });
-                }
-                return Promise.resolve();
+            const objectAssetUrls = new Set();
+            this.objects.forEach((obj) => {
+                if (!obj?.visual) return;
+                const url = obj.visual.generatedImage || obj.visual.image || obj.visual.fallbackImage;
+                if (typeof url === 'string' && url.trim()) objectAssetUrls.add(url.trim());
             });
+            [
+                this.transitionOverlay?.loadingArt,
+                this.transitionOverlay?.conceptArt,
+                ...this.portals.map((portal) => portal?.transition?.loadingArt),
+                ...this.portals.map((portal) => portal?.transition?.conceptArt)
+            ].forEach((url) => {
+                if (typeof url === 'string' && url.trim()) objectAssetUrls.add(url.trim());
+            });
+            const assetPromises = [...objectAssetUrls].map((url) => (
+                this.res.loadImage(url).catch(() => {
+                    Logger.warn(`[ZoneManager] Failed to preload world object asset: ${url}`);
+                })
+            ));
             await Promise.all(assetPromises);
 
             // 5. Clear & Reset Chunks
@@ -240,6 +269,7 @@ export default class ZoneManager {
                 spawnPoints: [{ id: 'default', x: 1500, y: 1900 }],
                 portals: [],
                 transitions: [],
+                transitionOverlay: null,
                 background: { type: 'solid', color: '#76b041' }
             };
             this.currentZoneId = DEFAULT_ZONE_ID;
@@ -250,6 +280,7 @@ export default class ZoneManager {
             this.objects = [];
             this.portals = [];
             this.transitions = [];
+            this.transitionOverlay = null;
             return this.currentZone;
         }
     }
@@ -288,7 +319,7 @@ export default class ZoneManager {
                     this.chunks.set(chunkKey, chunkCanvas);
                 }
 
-                ctx.drawImage(chunkCanvas, cx * this.chunkSize, cy * this.chunkSize);
+                ctx.drawImage(chunkCanvas, cx * this.chunkSize - 1, cy * this.chunkSize - 1);
             }
         }
 
@@ -300,41 +331,66 @@ export default class ZoneManager {
 
     getChunkCanvas(cx, cy) {
         const canvas = document.createElement('canvas');
-        canvas.width = this.chunkSize;
-        canvas.height = this.chunkSize;
+        canvas.width = this.chunkSize + 2;
+        canvas.height = this.chunkSize + 2;
         const cctx = canvas.getContext('2d');
+        cctx.imageSmoothingEnabled = false;
 
         if (this.bgImage && this.bgImage.width > 0 && this.bgImage.height > 0) {
-            // Draw tile pattern to chunk
-            if (!this.bgPattern) {
-                // Temporary pattern for drawing to offscreen
-                this.bgPattern = canvas.getContext('2d').createPattern(this.bgImage, 'repeat');
-            }
-            cctx.fillStyle = this.bgPattern;
+            const worldX = cx * this.chunkSize - 1;
+            const worldY = cy * this.chunkSize - 1;
 
-            // To align pattern with world (0,0), we need to set transform or use offset
-            // But since chunks are aligned to chunkSize, if chunkSize is a multiple of bgImage size, it's easy.
-            // If not, we translate.
-            cctx.save();
-            cctx.translate(-(cx * this.chunkSize % this.bgImage.width), -(cy * this.chunkSize % this.bgImage.height));
-            cctx.fillRect(0, 0, this.chunkSize + this.bgImage.width, this.chunkSize + this.bgImage.height);
-            cctx.restore();
+            if (this.backgroundRenderMode === 'world') {
+                cctx.save();
+                cctx.translate(-worldX, -worldY);
+                cctx.drawImage(this.bgImage, 0, 0, this.width, this.height);
+                cctx.restore();
+            } else {
+                const pattern = cctx.createPattern(this.bgImage, 'repeat');
+                cctx.fillStyle = pattern || '#76b041';
+
+                cctx.save();
+                cctx.translate(-(worldX % this.bgImage.width), -(worldY % this.bgImage.height));
+                cctx.fillRect(0, 0, canvas.width + this.bgImage.width, canvas.height + this.bgImage.height);
+                cctx.restore();
+            }
         } else {
             cctx.fillStyle = '#76b041';
-            cctx.fillRect(0, 0, this.chunkSize, this.chunkSize);
+            cctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        // Optional: Draw tile grid for debugging or aesthetics
-        cctx.strokeStyle = 'rgba(0,0,0,0.05)';
-        cctx.lineWidth = 1;
-        for (let x = 0; x < this.chunkSize; x += this.tileSize) {
-            cctx.beginPath(); cctx.moveTo(x, 0); cctx.lineTo(x, this.chunkSize); cctx.stroke();
-        }
-        for (let y = 0; y < this.chunkSize; y += this.tileSize) {
-            cctx.beginPath(); cctx.moveTo(0, y); cctx.lineTo(this.chunkSize, y); cctx.stroke();
+        if (this.backgroundRenderMode !== 'world') {
+            this.drawTerrainVariation(cctx, cx, cy);
         }
 
         return canvas;
+    }
+
+    drawTerrainVariation(ctx, cx, cy) {
+        const theme = this.currentZone?.type || 'field';
+        const seed = ((cx * 73856093) ^ (cy * 19349663) ^ String(this.currentZoneId || '').length) >>> 0;
+        const r = (n) => {
+            const v = Math.sin(seed + n * 12.9898) * 43758.5453;
+            return v - Math.floor(v);
+        };
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'source-over';
+        for (let i = 0; i < 5; i++) {
+            const x = r(i + 1) * this.chunkSize;
+            const y = r(i + 7) * this.chunkSize;
+            const w = 72 + r(i + 13) * 180;
+            const h = 34 + r(i + 19) * 92;
+            const alpha = 0.035 + r(i + 23) * 0.045;
+            if (theme === 'town') ctx.fillStyle = `rgba(184, 225, 242, ${alpha})`;
+            else if (theme === 'dungeon') ctx.fillStyle = `rgba(255, 199, 118, ${alpha})`;
+            else ctx.fillStyle = `rgba(121, 214, 158, ${alpha})`;
+            ctx.beginPath();
+            ctx.ellipse(x, y, w, h, r(i + 29) * Math.PI, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
     }
 
 }

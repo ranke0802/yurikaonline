@@ -12,11 +12,21 @@
         "exp": 55
     },
     "visual": {
-        "assetPath": "assets/monsters/slimes/monster_magma_rock_slime.jpeg",
+        "assetPath": "assets/resource/animated_monsters/magma_rock_slime",
+        "frames": [
+            "assets/resource/animated_monsters/magma_rock_slime/idle_01.webp",
+            "assets/resource/animated_monsters/magma_rock_slime/idle_02.webp",
+            "assets/resource/animated_monsters/magma_rock_slime/idle_03.webp",
+            "assets/resource/animated_monsters/magma_rock_slime/idle_04.webp",
+            "assets/resource/animated_monsters/magma_rock_slime/idle_05.webp",
+            "assets/resource/animated_monsters/magma_rock_slime/idle_06.webp",
+            "assets/resource/animated_monsters/magma_rock_slime/idle_07.webp",
+            "assets/resource/animated_monsters/magma_rock_slime/idle_08.webp"
+        ],
         "width": 104,
         "height": 86,
-        "frameSpeed": 0.16,
-        "frameCount": 1,
+        "frameSpeed": 0.074,
+        "frameCount": 8,
         "scale": 1.2
     },
     "sounds": {

@@ -6,9 +6,16 @@
     "width": 2400,
     "height": 2200,
     "background": {
+        "generatedImage": "assets/generated/tiles/tile_moonwell_plaza.webp",
         "image": "assets/world/tiles/tile_moon_magic_plaza.jpeg",
         "music": "bgm_cabin",
         "ambient": "sfx_wind"
+    },
+    "transitionOverlay": {
+        "type": "town",
+        "label": "달샘 마을",
+        "description": "푸른 달빛과 룬 석길이 모이는 조용한 마을 광장입니다.",
+        "conceptArt": "assets/generated/concepts/town_moonwell.webp"
     },
     "boundaries": {
         "minX": 0,
@@ -24,12 +31,12 @@
         },
         {
             "id": "from_zone_1",
-            "x": 420,
+            "x": 560,
             "y": 1180
         },
         {
             "id": "from_field_dark_forest",
-            "x": 2010,
+            "x": 1840,
             "y": 1180
         }
     ],
@@ -52,6 +59,10 @@
             },
             "transition": {
                 "type": "field",
+                "label": "바람 언덕",
+                "description": "마을 서쪽 길을 지나 초원의 오두막 쪽으로 돌아갑니다.",
+                "loadingArt": "assets/generated/concepts/zone_1_windhill.webp",
+                "conceptArt": "assets/generated/concepts/zone_1_windhill.webp",
                 "requiresConfirmation": true,
                 "storyGate": null
             }
@@ -73,6 +84,10 @@
             },
             "transition": {
                 "type": "field",
+                "label": "어둠숲",
+                "description": "동쪽 문 너머로 빛이 줄어들고 숲의 숨결이 가까워집니다.",
+                "loadingArt": "assets/generated/concepts/field_dark_forest.webp",
+                "conceptArt": "assets/generated/concepts/field_dark_forest.webp",
                 "requiresConfirmation": true,
                 "storyGate": null
             }
@@ -82,5 +97,279 @@
         "onEnter": [],
         "onExit": []
     },
-    "objects": []
+    "objects": [
+        {
+            "type": "landmark",
+            "id": "moonwell_plaza_core",
+            "label": "달샘 광장",
+            "x": 1000,
+            "y": 760,
+            "visual": {
+                "image": "assets/world/tiles/tile_moon_magic_plaza.jpeg",
+                "width": 430,
+                "height": 330,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/fountain_moonwell_plaza.webp"
+            },
+            "collision": {
+                "enabled": true,
+                "width": 170,
+                "height": 80,
+                "offsetX": 130,
+                "offsetY": 170
+            }
+        },
+        {
+            "type": "path",
+            "id": "moonwell_west_road",
+            "label": "바람 언덕에서 들어오는 서쪽 길",
+            "x": 470,
+            "y": 1040,
+            "visual": {
+                "image": "assets/world/tiles/tile_meadow_stone_path_runes.jpeg",
+                "width": 520,
+                "height": 250,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/overlays/path_moonwell_stone.webp",
+                "variant": "meadow",
+                "curveA": 0.34,
+                "curveB": 0.7
+            },
+            "collision": {
+                "enabled": false,
+                "width": 0,
+                "height": 0
+            }
+        },
+        {
+            "type": "path",
+            "id": "moonwell_east_road",
+            "label": "어둠숲으로 이어지는 동쪽 길",
+            "x": 1420,
+            "y": 1040,
+            "visual": {
+                "image": "assets/world/tiles/tile_meadow_stone_path_runes.jpeg",
+                "width": 520,
+                "height": 250,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/overlays/path_moonwell_stone.webp",
+                "variant": "forest",
+                "curveA": 0.43,
+                "curveB": 0.74
+            },
+            "collision": {
+                "enabled": false,
+                "width": 0,
+                "height": 0
+            }
+        },
+        {
+            "type": "structure",
+            "id": "west_gate_watchhouse",
+            "label": "서문 파수막",
+            "x": 220,
+            "y": 780,
+            "visual": {
+                "image": "assets/story/backgrounds/bg_town_gate_first_arrival.jpeg",
+                "width": 360,
+                "height": 260,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/building_rune_gate.webp",
+                "opacity": 0.96
+            },
+            "collision": {
+                "enabled": true,
+                "width": 220,
+                "height": 72,
+                "offsetX": 72,
+                "offsetY": 166
+            }
+        },
+        {
+            "type": "structure",
+            "id": "east_gate_lantern_arch",
+            "label": "동문 랜턴 아치",
+            "x": 1840,
+            "y": 780,
+            "visual": {
+                "image": "assets/story/backgrounds/bg_town_gate_first_arrival.jpeg",
+                "width": 360,
+                "height": 260,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/building_rune_gate.webp",
+                "mirrorX": true,
+                "opacity": 0.96
+            },
+            "collision": {
+                "enabled": true,
+                "width": 220,
+                "height": 72,
+                "offsetX": 72,
+                "offsetY": 166
+            }
+        },
+        {
+            "type": "structure",
+            "id": "moonwell_inn",
+            "label": "달샘 여관",
+            "x": 690,
+            "y": 430,
+            "visual": {
+                "image": "assets/story/backgrounds/bg_town_gate_first_arrival.jpeg",
+                "width": 360,
+                "height": 250,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/building_moonwell_shop.webp",
+                "opacity": 0.94
+            },
+            "collision": {
+                "enabled": true,
+                "width": 260,
+                "height": 76,
+                "offsetX": 48,
+                "offsetY": 158
+            }
+        },
+        {
+            "type": "structure",
+            "id": "moonwell_workshop",
+            "label": "달빛 공방",
+            "x": 1370,
+            "y": 420,
+            "visual": {
+                "image": "assets/story/backgrounds/bg_town_gate_first_arrival.jpeg",
+                "width": 360,
+                "height": 250,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/building_moonwell_shop.webp",
+                "mirrorX": true,
+                "opacity": 0.94
+            },
+            "collision": {
+                "enabled": true,
+                "width": 260,
+                "height": 76,
+                "offsetX": 48,
+                "offsetY": 158
+            }
+        },
+        {
+            "type": "structure",
+            "id": "south_market_awning",
+            "label": "남쪽 장터 가판",
+            "x": 830,
+            "y": 1530,
+            "visual": {
+                "image": "assets/world/tiles/tile_moon_magic_plaza.jpeg",
+                "width": 300,
+                "height": 210,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/building_moonwell_shop.webp",
+                "opacity": 0.9
+            },
+            "collision": {
+                "enabled": true,
+                "width": 210,
+                "height": 60,
+                "offsetX": 46,
+                "offsetY": 122
+            }
+        },
+        {
+            "type": "structure",
+            "id": "south_storage_house",
+            "label": "남쪽 창고집",
+            "x": 1280,
+            "y": 1540,
+            "visual": {
+                "image": "assets/story/backgrounds/bg_town_gate_first_arrival.jpeg",
+                "width": 340,
+                "height": 240,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/building_moonwell_shop.webp",
+                "mirrorX": true,
+                "opacity": 0.88
+            },
+            "collision": {
+                "enabled": true,
+                "width": 250,
+                "height": 74,
+                "offsetX": 46,
+                "offsetY": 150
+            }
+        },
+        {
+            "type": "signpost",
+            "id": "signpost_windhill",
+            "label": "바람 언덕 표지판",
+            "x": 560,
+            "y": 1310,
+            "collision": {
+                "enabled": true,
+                "width": 32,
+                "height": 32,
+                "offsetX": 0,
+                "offsetY": 0
+            },
+            "visual": {
+                "generatedImage": "assets/generated/objects/sign_moonwell_crossroads.webp"
+            }
+        },
+        {
+            "type": "signpost",
+            "id": "signpost_dark_forest",
+            "label": "어둠숲 경고 표지판",
+            "x": 1810,
+            "y": 1310,
+            "collision": {
+                "enabled": true,
+                "width": 32,
+                "height": 32,
+                "offsetX": 0,
+                "offsetY": 0
+            },
+            "visual": {
+                "generatedImage": "assets/generated/objects/sign_moonwell_crossroads.webp"
+            }
+        },
+        {
+            "type": "structure",
+            "id": "plaza_lantern_northwest",
+            "label": "광장 북서쪽 수정등",
+            "x": 885,
+            "y": 690,
+            "visual": {
+                "width": 110,
+                "height": 170,
+                "scale": 0.82,
+                "generatedImage": "assets/generated/objects/lamp_crystal_post.webp",
+                "opacity": 0.88
+            },
+            "collision": {
+                "enabled": false,
+                "width": 0,
+                "height": 0
+            }
+        },
+        {
+            "type": "structure",
+            "id": "plaza_lantern_southeast",
+            "label": "광장 남동쪽 수정등",
+            "x": 1470,
+            "y": 1325,
+            "visual": {
+                "width": 110,
+                "height": 170,
+                "scale": 0.82,
+                "generatedImage": "assets/generated/objects/lamp_crystal_post.webp",
+                "mirrorX": true,
+                "opacity": 0.88
+            },
+            "collision": {
+                "enabled": false,
+                "width": 0,
+                "height": 0
+            }
+        }
+    ]
 }

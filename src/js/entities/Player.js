@@ -29,13 +29,14 @@ const BLESSED_WEAPON_ENHANCEMENT = Object.freeze({
 });
 
 export default class Player extends CharacterBase {
-    constructor(x, y, name = "유리카", definition = null) {
+    constructor(x, y, name = "아빠", definition = null) {
         super(x, y, definition?.baseStats?.speed || 180); // Speed from JSON or Default 180
         this.name = name;
         this.spawnX = x;
         this.spawnY = y;
         this.type = 'player'; // v1.99.38: Explicit type
         this.definition = definition; // Save for growth ref
+        this.characterId = 'father';
 
         // Stats (Base) - Loaded from JSON or Default
         const base = definition?.baseStats || {};
@@ -68,6 +69,7 @@ export default class Player extends CharacterBase {
         // Quest Data (v0.22.4+)
         this.questData = {
             prologueCompleted: false,
+            chapter1FatherOathCompleted: false,
             basicTrainingCompleted: false,
             slimeKills: 0,
             slimeQuestClaimed: false,
@@ -240,7 +242,7 @@ export default class Player extends CharacterBase {
         if (!res) return;
 
         try {
-            const sheetCanvas = await res.loadCharacterSpriteSheet();
+            const sheetCanvas = await res.loadCharacterSpriteSheet(false);
             // Max Frames 8, Rows 5 (Back, Front, Left, Right, Attack)
             this.sprite = new Sprite(sheetCanvas, 8, 5);
             // Frame counts per row (0:Back, 1:Front, 2:Left, 3:Right, 4:Attack)
@@ -253,6 +255,15 @@ export default class Player extends CharacterBase {
 
         } catch (e) {
             Logger.error('Failed to load character sprite sheet', e);
+        }
+    }
+
+    setCharacterId(characterId = 'father', options = {}) {
+        const normalized = characterId === 'yurika' ? 'yurika' : 'father';
+        if (this.characterId === normalized) return;
+        this.characterId = normalized;
+        if (options.reload !== false && window.game?.resources) {
+            this._loadSpriteSheet(window.game.resources);
         }
     }
 
@@ -636,7 +647,7 @@ export default class Player extends CharacterBase {
     }
 
     _handleRegen(dt) {
-        // v0.22.7: Optimized regeneration timing. 
+        // v0.22.7: Optimized regeneration timing.
         // First tick happens at exactly 1.0s after hit, then every 1.0s.
         this.lastHitTimer += dt;
 
@@ -822,20 +833,19 @@ export default class Player extends CharacterBase {
         }
     }
 
+    getAnimationRow() {
+        return (this.isAttacking || this.isChanneling || this.skillAttackTimer > 0) ? 4 : this.direction;
+    }
+
     _updateAnimation(dt) {
-        // Determine Row
-        let row = this.direction;
-        if (this.isAttacking) {
-            row = 4; // Attack Row
-            // If attack, override direction visually just for sprite? 
-            // Legacy uses row 4 for attack.
-        }
+        const row = this.getAnimationRow();
 
         const maxFrames = this.frameCounts ? (this.frameCounts[row] || 8) : 8;
 
-        if (this.state === 'move' || this.isAttacking) {
+        if (this.state === 'move' || this.isAttacking || this.isChanneling) {
             const speedFact = (this.isRunning || this.turnGraceTimer > 0) ? 1.5 : 1.0;
-            this.animTimer += dt * this.animSpeed * speedFact;
+            const actionSpeed = row === 4 ? 15 : this.animSpeed;
+            this.animTimer += dt * actionSpeed * speedFact;
             if (this.animTimer >= maxFrames) {
                 this.animTimer = 0;
             }
@@ -919,6 +929,7 @@ export default class Player extends CharacterBase {
         this.inventory = Array.from({ length: INVENTORY_TOTAL_SLOTS }, () => null);
         this.questData = {
             prologueCompleted: false,
+            chapter1FatherOathCompleted: false,
             basicTrainingCompleted: false,
             slimeKills: 0,
             slimeQuestClaimed: false,
@@ -1147,6 +1158,7 @@ export default class Player extends CharacterBase {
             clientSettings: this._cloneProfilePatchValue(this.clientSettings),
             recoveryUid: this.recoveryUid || this.id,
             name: this.name,
+            characterId: this.characterId === 'yurika' ? 'yurika' : 'father',
             party: this.party, // v0.00.14: Sync party state
             hostility: Object.fromEntries(
                 Array.from(this.hostileTargets.entries()).map(([k, v]) => [k, { name: v.name || "Unknown", ts: v.ts || Date.now() }])
@@ -1230,6 +1242,9 @@ export default class Player extends CharacterBase {
                     break;
                 case 'name':
                     patch.name = this.name;
+                    break;
+                case 'characterId':
+                    patch.characterId = this.characterId === 'yurika' ? 'yurika' : 'father';
                     break;
                 case 'defense':
                     patch.defense = this.defense || 0;
@@ -1731,8 +1746,6 @@ export default class Player extends CharacterBase {
             this.skillCooldowns.j = tickInterval;
             this.skillMaxCooldowns.j = tickInterval;
 
-            this.animTimer = 0; // Restart attack animation
-
             // v0.00.57: SFX
             if (window.game?.sound) window.game.sound.playSfx(this.getBasicAttackSoundId());
         }
@@ -1899,7 +1912,7 @@ export default class Player extends CharacterBase {
                 // v0.22.3: Visual Attack FeedBack
                 this.isAttacking = true;
                 this.isChanneling = true; // v0.26.1
-                this.skillAttackTimer = 0.4;
+                this.skillAttackTimer = 0.62;
                 this.animTimer = 0;
 
                 // v0.00.37: Send channeling for casting effect sync
@@ -1996,9 +2009,8 @@ export default class Player extends CharacterBase {
                 this.skillCooldowns.u = 2.0; // v1.99.31: Reduced to 2s
 
                 // v0.22.3: Visual Attack FeedBack
-                // v0.22.3: Visual Attack FeedBack
                 this.isAttacking = true;
-                this.skillAttackTimer = 0.4;
+                this.skillAttackTimer = 0.62;
                 this.animTimer = 0;
 
                 // v0.28.0: Sync Fireball skill
@@ -2110,7 +2122,7 @@ export default class Player extends CharacterBase {
 
                 // v0.22.3: Visual Attack FeedBack
                 this.isAttacking = true;
-                this.skillAttackTimer = 0.4;
+                this.skillAttackTimer = 0.62;
                 this.animTimer = 0;
                 this.shieldTimer = 9999; // v0.00.46: Permanent until hit
                 this.skillCooldowns.k = 3;  // 3 second cooldown
@@ -2449,7 +2461,7 @@ export default class Player extends CharacterBase {
 
             // Override message for boss
             if (data.questKill === 'king_slime') {
-                // Already handled above? 
+                // Already handled above?
                 // We want to log the specific reward message constructed above?
                 // Wait, `rewardMsg` is local scope above.
                 // Let's reconstruct or simplify.
@@ -2620,15 +2632,23 @@ export default class Player extends CharacterBase {
 
         // 4. Draw Sprite
         if (this.sprite) {
-            let row = this.isAttacking ? 4 : this.direction;
+            let row = this.getAnimationRow();
             let col = this.animFrame;
 
-            // Legacy visual size: 120x120
             const drawW = 120;
             const drawH = 120;
 
-            const drawX = centerX - drawW / 2;
-            const drawY = y + this.height - drawH + 10;
+            let drawX = centerX - drawW / 2;
+            let drawY = y + this.height - drawH + 10;
+            if (row === 4) {
+                const maxFrames = this.frameCounts?.[row] || 8;
+                const progress = ((this.animTimer % maxFrames) / maxFrames);
+                const pulse = Math.sin(progress * Math.PI);
+                const angle = this.getCurrentFacingAngle();
+                const lunge = this.isChanneling ? 2.5 : 5;
+                drawX += Math.cos(angle) * lunge * pulse;
+                drawY += Math.sin(angle) * lunge * pulse - (2 * pulse);
+            }
 
             const burnEffect = this.statusEffects.find(e => e.type === 'burn');
             const isElec = this.electrocutedTimer > 0;

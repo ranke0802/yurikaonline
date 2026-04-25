@@ -11,11 +11,21 @@
         "exp": 38
     },
     "visual": {
-        "assetPath": "assets/monsters/shadows/monster_tiny_lantern_wisp.jpeg",
+        "assetPath": "assets/resource/animated_monsters/tiny_lantern_wisp",
+        "frames": [
+            "assets/resource/animated_monsters/tiny_lantern_wisp/idle_01.webp",
+            "assets/resource/animated_monsters/tiny_lantern_wisp/idle_02.webp",
+            "assets/resource/animated_monsters/tiny_lantern_wisp/idle_03.webp",
+            "assets/resource/animated_monsters/tiny_lantern_wisp/idle_04.webp",
+            "assets/resource/animated_monsters/tiny_lantern_wisp/idle_05.webp",
+            "assets/resource/animated_monsters/tiny_lantern_wisp/idle_06.webp",
+            "assets/resource/animated_monsters/tiny_lantern_wisp/idle_07.webp",
+            "assets/resource/animated_monsters/tiny_lantern_wisp/idle_08.webp"
+        ],
         "width": 82,
         "height": 112,
-        "frameSpeed": 0.2,
-        "frameCount": 1,
+        "frameSpeed": 0.07,
+        "frameCount": 8,
         "scale": 1.05
     },
     "behavior": {

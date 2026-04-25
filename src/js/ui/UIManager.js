@@ -38,6 +38,8 @@ export class UIManager {
         this.centerMessageActive = false;
         this._centerMsgTimer = null;
         this._centerMsgFadeTimer = null;
+        this._cinematicTitleTimer = null;
+        this._cinematicVignetteTimer = null;
         this.pendingExpGainHint = 0;
         this._pendingExpGainTimer = null;
         this.selectedFriendUid = null;
@@ -219,6 +221,7 @@ export class UIManager {
         this.dialogNext = document.getElementById('dialog-next');
         this.dialogPortrait = null;
         this.storyBackdropLayer = null;
+        this.storyCharacterIllustration = null;
 
         if (this.dialogNext) {
             this.dialogNext.addEventListener('click', () => this.advanceDialog());
@@ -273,6 +276,7 @@ export class UIManager {
         return {
             masterVolume: 40,
             basicAttackSound: 'deep_shock',
+            language: this.game?.i18n?.getLanguage?.() || 'ko',
             muted: false,
             autoFullscreen: true,
             orientationLock: false,
@@ -311,6 +315,10 @@ export class UIManager {
             : fallback;
     }
 
+    sanitizeLanguageSetting(value, fallback = 'ko') {
+        return this.game?.i18n?.sanitizeLanguage?.(value || fallback) || 'ko';
+    }
+
     ensureBasicAttackSoundOptions() {
         const select = document.getElementById('settings-basic-attack-sound');
         if (!select) return;
@@ -343,6 +351,7 @@ export class UIManager {
         const normalized = {
             masterVolume: this.clampNumericSetting(candidate.masterVolume, defaults.masterVolume, 0, 100),
             basicAttackSound: this.sanitizeBasicAttackSound(candidate.basicAttackSound, defaults.basicAttackSound),
+            language: this.sanitizeLanguageSetting(candidate.language, defaults.language),
             muted: !!candidate.muted,
             autoFullscreen: candidate.autoFullscreen !== false,
             orientationLock: !!candidate.orientationLock,
@@ -722,7 +731,7 @@ export class UIManager {
     }
 
     updateSetting(key, value, options = {}) {
-        const { refreshGame = false } = options;
+        const { refreshGame = false, syncProfile = true, announce = true } = options;
         const previousSerialized = this.serializeSettings(this.settings);
         const nextSettings = this.sanitizeSettings({
             ...this.settings,
@@ -734,7 +743,13 @@ export class UIManager {
             return;
         }
         this.settings = nextSettings;
-        this.persistSettings();
+        if (key === 'language') {
+            this.game.i18n?.setLanguage?.(nextSettings.language, { announce });
+            this.game.quests?.refreshLanguage?.();
+            this.applyStaticTranslations();
+            this.updateQuestUI?.();
+        }
+        this.persistSettings({ syncProfile });
         this.applySettings({ refreshGame, syncUi: true });
     }
 
@@ -750,6 +765,7 @@ export class UIManager {
         const menuOpacity = (this.getSetting('menuOpacity') / 100).toFixed(2);
 
         Logger.setLevel(this.getSetting('developerLogLevel'));
+        this.game.i18n?.setLanguage?.(this.getSetting('language'), { announce: false });
         root.style.setProperty('--ui-chat-opacity', chatOpacity);
         root.style.setProperty('--ui-friends-opacity', friendsOpacity);
         root.style.setProperty('--ui-friend-compact-opacity', friendCompactOpacity);
@@ -774,6 +790,7 @@ export class UIManager {
         this.syncOrientationLock();
         this.syncMobileEnvironmentClasses();
         this.refreshDesktopShortcutHints();
+        this.applyStaticTranslations();
 
         if (refreshGame) {
             this.game.resize?.();
@@ -821,8 +838,44 @@ export class UIManager {
         const basicAttackSoundSelect = document.getElementById('settings-basic-attack-sound');
         if (basicAttackSoundSelect) basicAttackSoundSelect.value = this.getSetting('basicAttackSound');
 
+        const languageSelect = document.getElementById('settings-language');
+        if (languageSelect) {
+            Array.from(languageSelect.options).forEach((option) => {
+                option.textContent = this.game.i18n?.t?.(`language.${option.value}`) || option.textContent;
+            });
+            languageSelect.value = this.getSetting('language');
+        }
+
         this.syncDeveloperSettingsUi();
         this.syncUiLayoutEditor();
+    }
+
+    applyStaticTranslations() {
+        const t = (key, params = {}) => this.game?.i18n?.t?.(key, params) || key;
+        const bindings = [
+            ['#settings-popup .popup-header h2', 'settings.title'],
+            ['#settings-popup .settings-section:nth-of-type(1) h3', 'settings.sound'],
+            ['label[for="settings-master-volume"]', 'settings.masterVolume'],
+            ['label[for="settings-basic-attack-sound"]', 'settings.basicAttackSound'],
+            ['#settings-muted', 'settings.muted', 'settingsToggle'],
+            ['#settings-popup .settings-section:nth-of-type(2) h3', 'settings.gameplay'],
+            ['label[for="settings-language"]', 'settings.language'],
+            ['#settings-auto-fullscreen', 'settings.autoFullscreen', 'settingsToggle'],
+            ['#settings-orientation-lock', 'settings.orientationLock', 'settingsToggle'],
+            ['#settings-reduced-effects', 'settings.reducedEffects', 'settingsToggle'],
+            ['#settings-shortcut-hints', 'settings.shortcutHints', 'settingsToggle'],
+            ['#settings-close-btn-bottom', 'settings.close']
+        ];
+
+        bindings.forEach(([selector, key, mode]) => {
+            const node = document.querySelector(selector);
+            const target = mode === 'settingsToggle'
+                ? node?.closest?.('.settings-toggle-row')?.querySelector('span')
+                : node;
+            if (target) target.textContent = t(key);
+        });
+
+        this.game?.i18n?.translateStaticDom?.(document.body);
     }
 
     cloneStructuredData(value) {
@@ -1750,7 +1803,7 @@ export class UIManager {
         const enabled = typeof forceState === 'boolean'
             ? forceState
             : !!this.game.localPlayer?.autoAttackEnabled;
-        const nextText = '[Auto]';
+        const nextText = this.game?.i18n?.t?.('ui.autoAttackToggle') || '[자동]';
 
         if (button.textContent !== nextText) {
             button.textContent = nextText;
@@ -1758,7 +1811,9 @@ export class UIManager {
 
         button.classList.toggle('active', enabled);
         button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-        button.setAttribute('title', enabled ? '자동 일반공격 활성화' : '자동 일반공격 비활성화');
+        button.setAttribute('title', enabled
+            ? (this.game?.i18n?.t?.('ui.autoAttackEnabled') || '자동 일반공격 활성화')
+            : (this.game?.i18n?.t?.('ui.autoAttackDisabled') || '자동 일반공격 비활성화'));
     }
 
     hasAnySkillUpgradeAvailable(player = this.game.localPlayer) {
@@ -2182,6 +2237,21 @@ export class UIManager {
         return portrait;
     }
 
+    ensureStoryCharacterIllustrationElement() {
+        if (this.storyCharacterIllustration?.isConnected) return this.storyCharacterIllustration;
+
+        let illustration = document.getElementById('story-character-illustration');
+        if (!illustration) {
+            illustration = document.createElement('div');
+            illustration.id = 'story-character-illustration';
+            illustration.className = 'story-character-illustration hidden';
+            illustration.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(illustration);
+        }
+        this.storyCharacterIllustration = illustration;
+        return illustration;
+    }
+
     normalizeAssetUrlForStyle(url) {
         return String(url || '').replace(/["\\\n\r]/g, '');
     }
@@ -2191,12 +2261,13 @@ export class UIManager {
 
         const background = data.background || data.visual?.background || null;
         const portrait = data.portrait || data.visual?.portrait || null;
+        const illustration = data.illustration || data.visual?.illustration || portrait;
         const mood = data.mood || data.visual?.mood || 'default';
         const content = this.dialogBox?.querySelector('.dialog-content');
 
         document.body.classList.add('story-dialog-active');
         document.body.dataset.storyMood = mood;
-        content?.classList.toggle('has-portrait', !!portrait);
+        content?.classList.remove('has-portrait');
 
         if (background) {
             const layer = this.ensureStoryBackdropLayer();
@@ -2204,13 +2275,23 @@ export class UIManager {
             layer.classList.remove('hidden');
         }
 
-        const portraitEl = this.ensureDialogPortraitElement();
-        if (portraitEl && portrait) {
-            portraitEl.style.backgroundImage = `url("${this.normalizeAssetUrlForStyle(portrait)}")`;
-            portraitEl.classList.remove('hidden');
-        } else if (portraitEl) {
+        const portraitEl = this.dialogPortrait || document.getElementById('dialog-portrait');
+        if (portraitEl) {
             portraitEl.classList.add('hidden');
             portraitEl.style.backgroundImage = '';
+        }
+
+        const illustrationEl = this.ensureStoryCharacterIllustrationElement();
+        if (illustrationEl && illustration) {
+            illustrationEl.style.backgroundImage = `url("${this.normalizeAssetUrlForStyle(illustration)}")`;
+            illustrationEl.dataset.mood = mood;
+            illustrationEl.dataset.speaker = data.name || '';
+            illustrationEl.classList.remove('hidden');
+        } else if (illustrationEl) {
+            illustrationEl.classList.add('hidden');
+            illustrationEl.style.backgroundImage = '';
+            delete illustrationEl.dataset.mood;
+            delete illustrationEl.dataset.speaker;
         }
     }
 
@@ -2224,6 +2305,13 @@ export class UIManager {
         if (portrait) {
             portrait.classList.add('hidden');
             portrait.style.backgroundImage = '';
+        }
+        const illustration = this.storyCharacterIllustration || document.getElementById('story-character-illustration');
+        if (illustration) {
+            illustration.classList.add('hidden');
+            illustration.style.backgroundImage = '';
+            delete illustration.dataset.mood;
+            delete illustration.dataset.speaker;
         }
         this.dialogBox?.querySelector('.dialog-content')?.classList.remove('has-portrait');
         document.body.classList.remove('story-dialog-active');
@@ -4830,6 +4918,12 @@ export class UIManager {
             this.game.sound?.playSfx?.(nextValue);
         });
 
+        document.getElementById('settings-language')?.addEventListener('change', (e) => {
+            const nextValue = e.currentTarget.value;
+            this.updateSetting('language', nextValue, { refreshGame: false });
+            this.logSystemMessage(this.game.i18n?.t?.('system.languageChanged') || '');
+        });
+
         document.getElementById('settings-dev-exit')?.addEventListener('click', () => {
             this.setDevMode(false, { announce: true });
         });
@@ -5093,13 +5187,17 @@ export class UIManager {
         const noBtn = document.getElementById('generic-modal-no');
         const contentEl = modal.querySelector('.confirm-modal-content');
         const { yesText, noText, hideNo = !onNo, allowHtml = false, onShow = null } = options;
+        const displayTitle = this.game?.i18n?.translateRichText?.(title) || title;
+        const displayMessage = this.game?.i18n?.translateRichText?.(message) || message;
+        const displayYesText = this.game?.i18n?.translateLiteral?.(yesText || (hideNo ? '확인' : '수락'));
+        const displayNoText = this.game?.i18n?.translateLiteral?.(noText || '거절');
 
-        if (titleEl) setTextContent(titleEl, title);
+        if (titleEl) setTextContent(titleEl, displayTitle);
         if (msgEl) {
             if (allowHtml) {
-                setTrustedHtml(msgEl, message);
+                setTrustedHtml(msgEl, displayMessage);
             } else {
-                setTextContent(msgEl, message);
+                setTextContent(msgEl, displayMessage);
             }
             msgEl.scrollTop = 0;
         }
@@ -5108,8 +5206,8 @@ export class UIManager {
         const newNo = noBtn.cloneNode(true);
         yesBtn.parentNode.replaceChild(newYes, yesBtn);
         noBtn.parentNode.replaceChild(newNo, noBtn);
-        newYes.textContent = yesText || (hideNo ? '확인' : '수락');
-        newNo.textContent = noText || '거절';
+        newYes.textContent = displayYesText || (hideNo ? '확인' : '수락');
+        newNo.textContent = displayNoText || '거절';
         newNo.style.display = hideNo ? 'none' : '';
         newYes.disabled = false;
         newNo.disabled = false;
@@ -7291,7 +7389,8 @@ export class UIManager {
     }
 
     showConfirm(message, callback) {
-        setTrustedHtml(document.getElementById('confirm-message'), message);
+        const displayMessage = this.game?.i18n?.translateRichText?.(message) || message;
+        setTrustedHtml(document.getElementById('confirm-message'), displayMessage);
         this.clearTutorialHighlightLayer();
         this.confirmModal.classList.remove('hidden');
         this.confirmCallback = callback;
@@ -8937,6 +9036,7 @@ export class UIManager {
     updateQuestUI() {
         const p = this.game.localPlayer;
         if (!p || !p.questData) return;
+        const t = (key, params = {}) => this.game.i18n?.t?.(key, params) || key;
 
         const taskDisplay = document.getElementById('quest-task-display');
         const rewardDisplay = document.getElementById('quest-reward-display');
@@ -8970,17 +9070,17 @@ export class UIManager {
 
             taskDisplay.style.display = 'flex';
             rewardDisplay.style.display = 'flex';
-            taskTitle.textContent = `튜토리얼 · ${tutorial.activeTutorial.title}`;
+            taskTitle.textContent = t('quest.tutorialTitle', { title: tutorial.activeTutorial.title });
             taskProgress.textContent = tutorial.getStepQuestText?.(tutorialStep) || tutorial.getStepInstruction?.(tutorialStep) || tutorialStep.instruction;
             rewardDisplay.classList.remove('quest-reward-claimable');
             syncQuestAttention(false, false);
             if (rewardIcon) rewardIcon.textContent = 'T';
-            if (rewardTitle) rewardTitle.textContent = '진행 안내';
+            if (rewardTitle) rewardTitle.textContent = t('quest.guideRewardTitle');
             const totalSteps = tutorial.activeTutorial.steps.length;
             const stepNumber = tutorial.currentStepIndex + 1;
             rewardText.textContent = targetCount > 1
-                ? `단계 ${stepNumber}/${totalSteps} · 진행도 ${currentCount}/${targetCount}`
-                : `단계 ${stepNumber}/${totalSteps} · 튜토리얼 완료 후 슬라임 퀘스트가 시작됩니다.`;
+                ? t('quest.tutorialProgress', { step: stepNumber, total: totalSteps, current: currentCount, target: targetCount })
+                : t('quest.tutorialAfter', { step: stepNumber, total: totalSteps });
             rewardDisplay.onclick = null;
             this.refreshDesktopShortcutHints();
             return;
@@ -9003,9 +9103,9 @@ export class UIManager {
             // Quest 1: 10 Slimes (Wisdom +2)
             currentQuest = {
                 id: 'slime_intro',
-                title: "1. 슬라임 10마리 처치",
-                task: `진행도: ${Math.min(10, p.questData.slimeKills)}/10`,
-                reward: "지혜 스탯 +2",
+                title: t('quest.slime10.title'),
+                task: t('quest.progress', { current: Math.min(10, p.questData.slimeKills), target: 10 }),
+                reward: t('quest.slime10.reward'),
                 canClaim: p.questData.slimeKills >= 10,
                 claimFn: () => this.claimSlimeReward(p)
             };
@@ -9015,9 +9115,9 @@ export class UIManager {
             const count = p.questData.slimeKills || 0;
             currentQuest = {
                 id: 'slime_boss_unlock',
-                title: "2. 슬라임 30마리 처치 (강림)",
-                task: `진행도: ${Math.min(30, count)}/30`,
-                reward: "체력 스탯 +3, 대왕 슬라임 소환",
+                title: t('quest.slime30.title'),
+                task: t('quest.progress', { current: Math.min(30, count), target: 30 }),
+                reward: t('quest.slime30.reward'),
                 canClaim: count >= 30,
                 claimFn: () => this.claimSlime30Reward(p)
             };
@@ -9025,9 +9125,9 @@ export class UIManager {
             // Quest 3: First King Slime
             currentQuest = {
                 id: 'king_slime_intro',
-                title: "3. 대왕 슬라임 처치",
-                task: `진행도: ${p.questData.bossKilled ? '1' : '0'}/1`,
-                reward: "축복받은 무기 강화석 x3",
+                title: t('quest.king.title'),
+                task: t('quest.progress', { current: p.questData.bossKilled ? '1' : '0', target: 1 }),
+                reward: t('quest.king.reward'),
                 canClaim: false, // Auto-claimed on kill
                 claimFn: null
             };
@@ -9040,9 +9140,9 @@ export class UIManager {
                 // Quest 5: Boss Active (Repeatable)
                 currentQuest = {
                     id: 'boss_repeat',
-                    title: "5. 대왕 슬라임 처치 (반복)",
-                    task: "진행도: 0/1",
-                    reward: "축복받은 무기 강화석 x1",
+                    title: t('quest.repeatBoss.title'),
+                    task: t('quest.progress', { current: 0, target: 1 }),
+                    reward: t('quest.repeatBoss.reward'),
                     canClaim: false,
                     claimFn: null
                 };
@@ -9052,9 +9152,9 @@ export class UIManager {
                 const count = p.questData.slimeRepeatKills || 0;
                 currentQuest = {
                     id: 'slime_repeat',
-                    title: "4. 슬라임 50마리 처치 (소환)",
-                    task: `진행도: ${Math.min(50, count)}/50`,
-                    reward: "대왕 슬라임 소환",
+                    title: t('quest.repeatSlime.title'),
+                    task: t('quest.progress', { current: Math.min(50, count), target: 50 }),
+                    reward: t('quest.repeatSlime.reward'),
                     canClaim: count >= 50, // v0.00.77: Shared Summon
                     claimFn: () => {
                         if (this.game.monsterManager) {
@@ -9084,10 +9184,10 @@ export class UIManager {
                 rewardDisplay.classList.add('quest-reward-claimable');
                 syncQuestAttention(true, currentQuest.id === 'slime_intro');
                 if (rewardIcon) rewardIcon.textContent = '🎉';
-                if (rewardTitle) rewardTitle.textContent = '보상 수령하기!';
+                if (rewardTitle) rewardTitle.textContent = t('quest.claimTitle');
                 rewardText.textContent = this.isDesktopShortcutMode()
-                    ? `클릭 또는 Q로 ${currentQuest.reward} 획득`
-                    : `클릭하여 ${currentQuest.reward} 획득`;
+                    ? t('quest.claimDesktop', { reward: currentQuest.reward })
+                    : t('quest.claimTouch', { reward: currentQuest.reward });
                 this.pcQuestClaimHandler = currentQuest.claimFn;
 
                 // 클릭 이벤트 (중복 방지)
@@ -9099,7 +9199,7 @@ export class UIManager {
                 rewardDisplay.classList.remove('quest-reward-claimable');
                 syncQuestAttention(false, false);
                 if (rewardIcon) rewardIcon.textContent = '🎁';
-                if (rewardTitle) rewardTitle.textContent = '퀘스트 보상';
+                if (rewardTitle) rewardTitle.textContent = t('quest.rewardTitle');
                 rewardText.textContent = currentQuest.reward;
                 rewardDisplay.onclick = null;
             }
@@ -9277,10 +9377,12 @@ export class UIManager {
         const titleEl = document.getElementById('reward-title');
         const msgEl = document.getElementById('reward-message');
         const contentEl = modal?.querySelector('.confirm-modal-content');
+        const displayTitle = this.game?.i18n?.translateRichText?.(title) || title;
+        const displayMessage = this.game?.i18n?.translateRichText?.(message) || message;
 
-        if (titleEl) setTextContent(titleEl, title);
+        if (titleEl) setTextContent(titleEl, displayTitle);
         if (msgEl) {
-            setTrustedHtml(msgEl, message);
+            setTrustedHtml(msgEl, displayMessage);
             msgEl.scrollTop = 0;
         }
         if (contentEl) contentEl.scrollTop = 0;
@@ -10805,7 +10907,8 @@ export class UIManager {
 
     logSystemMessage(text) {
         const msgArea = document.querySelector('.chat-messages');
-        const normalizedText = this.sanitizeSystemMessageText(text);
+        const translatedText = this.game?.i18n?.translateRichText?.(text) || text;
+        const normalizedText = this.sanitizeSystemMessageText(translatedText);
         if (msgArea && normalizedText) {
             const div = document.createElement('div');
             div.style.color = '#444444'; // Darker grey for better visibility
@@ -11310,7 +11413,8 @@ export class UIManager {
 
     // v0.00.43: Center System Message (Warning Text)
     showCenterMessage(text, color = '#ffeb3b', options = {}) {
-        const normalizedText = this.sanitizeSystemMessageText(text);
+        const translatedText = this.game?.i18n?.translateRichText?.(text) || text;
+        const normalizedText = this.sanitizeSystemMessageText(translatedText);
         if (!normalizedText) return;
         this.centerMessageQueue.push({
             text: normalizedText,
@@ -11406,6 +11510,110 @@ export class UIManager {
 
             this.loadEmotes();
         }
+    }
+
+    showCinematicTitle(payload = {}) {
+        const title = this.sanitizeSystemMessageText(payload.title || payload.text || '');
+        const subtitle = this.sanitizeSystemMessageText(payload.subtitle || '');
+        if (!title && !subtitle) return;
+
+        let el = document.getElementById('cinematic-title-overlay');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'cinematic-title-overlay';
+            el.className = 'cinematic-title-overlay';
+            el.style.position = 'fixed';
+            el.style.inset = '0';
+            el.style.zIndex = '5300';
+            el.style.pointerEvents = 'none';
+            el.style.display = 'grid';
+            el.style.placeItems = 'center';
+            el.style.padding = 'min(8vw, 84px)';
+            el.style.textAlign = 'center';
+            el.style.opacity = '0';
+            el.style.transition = 'opacity 520ms ease, transform 900ms ease';
+            el.style.transform = 'scale(1.025)';
+            el.style.background = 'radial-gradient(circle at center, rgba(8, 10, 18, 0.1), rgba(0, 0, 0, 0.62))';
+            document.body.appendChild(el);
+        }
+
+        const accent = payload.accent || '#c8f7ff';
+        const titleSize = payload.size || 'clamp(34px, 7vw, 86px)';
+        el.innerHTML = '';
+
+        const wrap = document.createElement('div');
+        wrap.className = 'cinematic-title-wrap';
+        wrap.style.maxWidth = 'min(980px, 92vw)';
+        wrap.style.display = 'grid';
+        wrap.style.gap = '14px';
+        wrap.style.justifyItems = 'center';
+
+        if (title) {
+            const titleEl = document.createElement('div');
+            titleEl.className = 'cinematic-title-main';
+            titleEl.textContent = title;
+            titleEl.style.fontFamily = '"Noto Sans KR", "Outfit", sans-serif';
+            titleEl.style.fontSize = titleSize;
+            titleEl.style.fontWeight = '900';
+            titleEl.style.letterSpacing = '0';
+            titleEl.style.lineHeight = '1.05';
+            titleEl.style.color = '#fffaf0';
+            titleEl.style.textShadow = `0 0 28px ${accent}, 0 8px 28px rgba(0, 0, 0, 0.84)`;
+            wrap.appendChild(titleEl);
+        }
+
+        if (subtitle) {
+            const subtitleEl = document.createElement('div');
+            subtitleEl.className = 'cinematic-title-subtitle';
+            subtitleEl.textContent = subtitle;
+            subtitleEl.style.maxWidth = '760px';
+            subtitleEl.style.fontFamily = '"Noto Sans KR", "Outfit", sans-serif';
+            subtitleEl.style.fontSize = 'clamp(15px, 2.6vw, 24px)';
+            subtitleEl.style.fontWeight = '700';
+            subtitleEl.style.lineHeight = '1.45';
+            subtitleEl.style.color = '#e7f7ff';
+            subtitleEl.style.textShadow = '0 4px 20px rgba(0, 0, 0, 0.86)';
+            wrap.appendChild(subtitleEl);
+        }
+
+        el.appendChild(wrap);
+        requestAnimationFrame(() => {
+            el.style.opacity = '1';
+            el.style.transform = 'scale(1)';
+        });
+
+        if (this._cinematicTitleTimer) clearTimeout(this._cinematicTitleTimer);
+        const durationMs = Number.isFinite(payload.durationMs) ? payload.durationMs : 3600;
+        this._cinematicTitleTimer = setTimeout(() => {
+            el.style.opacity = '0';
+            el.style.transform = 'scale(0.985)';
+        }, Math.max(900, durationMs));
+    }
+
+    showCinematicVignette(payload = {}) {
+        let el = document.getElementById('cinematic-vignette-overlay');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'cinematic-vignette-overlay';
+            el.style.position = 'fixed';
+            el.style.inset = '0';
+            el.style.zIndex = '3450';
+            el.style.pointerEvents = 'none';
+            el.style.opacity = '0';
+            el.style.transition = 'opacity 600ms ease';
+            document.body.appendChild(el);
+        }
+
+        const color = payload.color || 'rgba(4, 7, 14, 0.72)';
+        const center = payload.center || '50% 45%';
+        el.style.background = `radial-gradient(circle at ${center}, rgba(255, 255, 255, 0), ${color})`;
+        el.style.opacity = String(Math.max(0, Math.min(1, Number(payload.alpha ?? 0.82))));
+
+        if (this._cinematicVignetteTimer) clearTimeout(this._cinematicVignetteTimer);
+        const durationMs = Number.isFinite(payload.durationMs) ? payload.durationMs : 2600;
+        this._cinematicVignetteTimer = setTimeout(() => {
+            el.style.opacity = '0';
+        }, Math.max(600, durationMs));
     }
 
     async loadEmotes() {

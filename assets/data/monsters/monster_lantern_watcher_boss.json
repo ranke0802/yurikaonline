@@ -14,11 +14,21 @@
         "hpRegen": 3
     },
     "visual": {
-        "assetPath": "assets/monsters/shadows/monster_lantern_watcher_boss.jpeg",
+        "assetPath": "assets/resource/animated_monsters/lantern_watcher_boss",
+        "frames": [
+            "assets/resource/animated_monsters/lantern_watcher_boss/idle_01.webp",
+            "assets/resource/animated_monsters/lantern_watcher_boss/idle_02.webp",
+            "assets/resource/animated_monsters/lantern_watcher_boss/idle_03.webp",
+            "assets/resource/animated_monsters/lantern_watcher_boss/idle_04.webp",
+            "assets/resource/animated_monsters/lantern_watcher_boss/idle_05.webp",
+            "assets/resource/animated_monsters/lantern_watcher_boss/idle_06.webp",
+            "assets/resource/animated_monsters/lantern_watcher_boss/idle_07.webp",
+            "assets/resource/animated_monsters/lantern_watcher_boss/idle_08.webp"
+        ],
         "width": 164,
         "height": 210,
-        "frameSpeed": 0.14,
-        "frameCount": 1,
+        "frameSpeed": 0.087,
+        "frameCount": 8,
         "scale": 1.55
     },
     "behavior": {

@@ -12,11 +12,21 @@
         "exp": 24
     },
     "visual": {
-        "assetPath": "assets/monsters/slimes/monster_golden_flower_slime.jpeg",
+        "assetPath": "assets/resource/animated_monsters/golden_flower_slime",
+        "frames": [
+            "assets/resource/animated_monsters/golden_flower_slime/idle_01.webp",
+            "assets/resource/animated_monsters/golden_flower_slime/idle_02.webp",
+            "assets/resource/animated_monsters/golden_flower_slime/idle_03.webp",
+            "assets/resource/animated_monsters/golden_flower_slime/idle_04.webp",
+            "assets/resource/animated_monsters/golden_flower_slime/idle_05.webp",
+            "assets/resource/animated_monsters/golden_flower_slime/idle_06.webp",
+            "assets/resource/animated_monsters/golden_flower_slime/idle_07.webp",
+            "assets/resource/animated_monsters/golden_flower_slime/idle_08.webp"
+        ],
         "width": 88,
         "height": 78,
-        "frameSpeed": 0.18,
-        "frameCount": 1,
+        "frameSpeed": 0.081,
+        "frameCount": 8,
         "scale": 1.15
     },
     "sounds": {

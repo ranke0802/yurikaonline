@@ -6,9 +6,16 @@
     "width": 2600,
     "height": 2400,
     "background": {
+        "generatedImage": "assets/generated/tiles/tile_lantern_dungeon_floor.webp",
         "image": "assets/world/tiles/tile_dungeon_wood_stone_candles.jpeg",
         "music": "bgm_boss",
         "ambient": "sfx_wind"
+    },
+    "transitionOverlay": {
+        "type": "dungeon",
+        "label": "랜턴 숲 던전",
+        "description": "촛불과 오래된 목재 냄새가 섞인 숲속 던전입니다.",
+        "conceptArt": "assets/generated/concepts/dungeon_lantern_woods.webp"
     },
     "boundaries": {
         "minX": 0,
@@ -19,12 +26,12 @@
     "spawnPoints": [
         {
             "id": "default",
-            "x": 420,
+            "x": 560,
             "y": 1220
         },
         {
             "id": "from_field_dark_forest",
-            "x": 360,
+            "x": 540,
             "y": 1220
         }
     ],
@@ -68,6 +75,10 @@
             },
             "transition": {
                 "type": "field",
+                "label": "어둠숲",
+                "description": "던전 입구를 빠져나오면 축축한 숲길이 다시 이어집니다.",
+                "loadingArt": "assets/generated/concepts/field_dark_forest.webp",
+                "conceptArt": "assets/generated/concepts/field_dark_forest.webp",
                 "requiresConfirmation": true,
                 "storyGate": null
             }
@@ -77,5 +88,241 @@
         "onEnter": [],
         "onExit": []
     },
-    "objects": []
+    "objects": [
+        {
+            "type": "landmark",
+            "id": "dungeon_entry_threshold",
+            "label": "랜턴 숲 던전 입구",
+            "x": 430,
+            "y": 1000,
+            "visual": {
+                "image": "assets/world/tiles/tile_dungeon_wood_stone_candles.jpeg",
+                "width": 430,
+                "height": 300,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/building_rune_gate.webp",
+                "opacity": 0.94
+            },
+            "collision": {
+                "enabled": false,
+                "width": 0,
+                "height": 0
+            }
+        },
+        {
+            "type": "path",
+            "id": "lantern_dungeon_main_aisle_01",
+            "label": "낡은 촛불 복도",
+            "x": 750,
+            "y": 1080,
+            "visual": {
+                "image": "assets/world/tiles/tile_dungeon_wood_stone_candles.jpeg",
+                "width": 520,
+                "height": 300,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/overlays/path_lantern_dungeon_wood.webp",
+                "variant": "dungeon",
+                "curveA": 0.36,
+                "curveB": 0.7
+            },
+            "collision": {
+                "enabled": false,
+                "width": 0,
+                "height": 0
+            }
+        },
+        {
+            "type": "path",
+            "id": "lantern_dungeon_main_aisle_02",
+            "label": "보스방으로 이어지는 숲속 석도",
+            "x": 1300,
+            "y": 1080,
+            "visual": {
+                "image": "assets/world/tiles/tile_dungeon_wood_stone_candles.jpeg",
+                "width": 520,
+                "height": 300,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/overlays/path_lantern_dungeon_wood.webp",
+                "variant": "dungeon",
+                "curveA": 0.46,
+                "curveB": 0.63
+            },
+            "collision": {
+                "enabled": false,
+                "width": 0,
+                "height": 0
+            }
+        },
+        {
+            "type": "structure",
+            "id": "left_lantern_pillar",
+            "label": "왼쪽 랜턴 기둥",
+            "x": 760,
+            "y": 760,
+            "visual": {
+                "image": "assets/world/tiles/tile_dungeon_wood_stone_candles.jpeg",
+                "width": 250,
+                "height": 260,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/lamp_crystal_post.webp",
+                "opacity": 0.9
+            },
+            "collision": {
+                "enabled": true,
+                "width": 150,
+                "height": 62,
+                "offsetX": 50,
+                "offsetY": 166
+            }
+        },
+        {
+            "type": "structure",
+            "id": "right_lantern_pillar",
+            "label": "오른쪽 랜턴 기둥",
+            "x": 760,
+            "y": 1510,
+            "visual": {
+                "image": "assets/world/tiles/tile_dungeon_wood_stone_candles.jpeg",
+                "width": 250,
+                "height": 260,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/lamp_crystal_post.webp",
+                "mirrorX": true,
+                "opacity": 0.9
+            },
+            "collision": {
+                "enabled": true,
+                "width": 150,
+                "height": 62,
+                "offsetX": 50,
+                "offsetY": 166
+            }
+        },
+        {
+            "type": "ruin",
+            "id": "broken_wooden_barricade_north",
+            "label": "북쪽 부서진 목책",
+            "x": 1220,
+            "y": 720,
+            "visual": {
+                "image": "assets/world/tiles/tile_dungeon_wood_stone_candles.jpeg",
+                "width": 360,
+                "height": 240,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/barricade_broken_wood.webp",
+                "opacity": 0.86
+            },
+            "collision": {
+                "enabled": true,
+                "width": 250,
+                "height": 64,
+                "offsetX": 56,
+                "offsetY": 146
+            }
+        },
+        {
+            "type": "ruin",
+            "id": "broken_wooden_barricade_south",
+            "label": "남쪽 부서진 목책",
+            "x": 1220,
+            "y": 1630,
+            "visual": {
+                "image": "assets/world/tiles/tile_dungeon_wood_stone_candles.jpeg",
+                "width": 360,
+                "height": 240,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/barricade_broken_wood.webp",
+                "mirrorX": true,
+                "opacity": 0.86
+            },
+            "collision": {
+                "enabled": true,
+                "width": 250,
+                "height": 64,
+                "offsetX": 56,
+                "offsetY": 146
+            }
+        },
+        {
+            "type": "landmark",
+            "id": "watcher_altar",
+            "label": "랜턴 감시자의 제단",
+            "x": 1760,
+            "y": 820,
+            "visual": {
+                "image": "assets/world/tiles/tile_dungeon_wood_stone_candles.jpeg",
+                "width": 480,
+                "height": 360,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/rock_rune_obelisk.webp",
+                "opacity": 0.94
+            },
+            "collision": {
+                "enabled": true,
+                "width": 260,
+                "height": 84,
+                "offsetX": 110,
+                "offsetY": 222
+            }
+        },
+        {
+            "type": "structure",
+            "id": "sealed_root_wall",
+            "label": "뿌리에 봉인된 벽",
+            "x": 2140,
+            "y": 1320,
+            "visual": {
+                "image": "assets/story/backgrounds/bg_dark_forest_cottage.jpeg",
+                "width": 330,
+                "height": 250,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/objects/building_rune_gate.webp",
+                "mirrorX": true,
+                "opacity": 0.88
+            },
+            "collision": {
+                "enabled": true,
+                "width": 230,
+                "height": 76,
+                "offsetX": 50,
+                "offsetY": 150
+            }
+        },
+        {
+            "type": "signpost",
+            "id": "signpost_exit_to_dark_forest",
+            "label": "어둠숲 출구 표지",
+            "x": 510,
+            "y": 1335,
+            "collision": {
+                "enabled": true,
+                "width": 34,
+                "height": 34,
+                "offsetX": 0,
+                "offsetY": 0
+            },
+            "visual": {
+                "generatedImage": "assets/generated/objects/sign_moonwell_crossroads.webp"
+            }
+        },
+        {
+            "type": "terrain_patch",
+            "id": "waxlit_root_shadows",
+            "label": "촛농빛 뿌리 그림자",
+            "x": 1510,
+            "y": 1310,
+            "visual": {
+                "width": 560,
+                "height": 260,
+                "scale": 1.0,
+                "generatedImage": "assets/generated/overlays/portal_landing_rune.webp",
+                "variant": "dungeon"
+            },
+            "collision": {
+                "enabled": false,
+                "width": 0,
+                "height": 0
+            }
+        }
+    ]
 }

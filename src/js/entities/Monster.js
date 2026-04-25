@@ -2,6 +2,10 @@ import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
 
+const GENERATED_MONSTER_IDLE_FRAMES = Array.from({ length: 8 }, (_, index) => `idle_${String(index + 1).padStart(2, '0')}.webp`);
+const IMAGE_FILE_EXTENSION_PATTERN = /\.(?:avif|gif|jpe?g|png|svg|webp)(?:[?#].*)?$/i;
+const FALLBACK_MONSTER_ASSET_PATH = 'assets/resource/monster_slime';
+
 function shouldFreezeForModalUi() {
     const ui = window.game?.ui;
     const net = window.game?.net;
@@ -39,7 +43,11 @@ export default class Monster extends CharacterBase {
         this.height = definition.visual?.height ?? 80;
         this.frameSpeed = definition.visual?.frameSpeed ?? 0.15;
         this.frameCount = definition.visual?.frameCount ?? 5;
-        this.assetPath = definition.visual?.assetPath || 'assets/resource/monster_slime';
+        this.assetPath = definition.visual?.assetPath || FALLBACK_MONSTER_ASSET_PATH;
+        this.visualFrames = this._normalizeFrameList(definition.visual?.frames);
+        if (this.visualFrames.length > 0) {
+            this.frameCount = this.visualFrames.length;
+        }
         this.scale = definition.visual?.scale ?? 1.0;
 
         // Components
@@ -55,6 +63,11 @@ export default class Monster extends CharacterBase {
         this.ready = false;
         this.frame = 0;
         this.timer = 0;
+        this.visualTime = Math.random() * Math.PI * 2;
+        this.visualSeed = Math.random() * 1000;
+        this.impactPulseTimer = 0;
+        this.attackPulseTimer = 0;
+        this.attackPulseDuration = 0.24;
         this.hitTimer = 0;
         this.isDead = false;
         this.alpha = 1.0;
@@ -116,14 +129,112 @@ export default class Monster extends CharacterBase {
 
     static spriteCache = {};
 
+    _normalizeFrameList(frames) {
+        if (!Array.isArray(frames)) return [];
+        return frames
+            .map(frame => typeof frame === 'string' ? frame.trim() : '')
+            .filter(Boolean);
+    }
+
+    _isSingleImagePath(path) {
+        return typeof path === 'string' && IMAGE_FILE_EXTENSION_PATTERN.test(path);
+    }
+
+    _isStandaloneFramePath(framePath) {
+        return /^(?:[a-z]+:|\/|assets\/)/i.test(framePath);
+    }
+
+    _resolveFramePath(basePath, framePath) {
+        if (this._isStandaloneFramePath(framePath)) return framePath;
+        if (!basePath) return framePath;
+        return `${basePath.replace(/\/+$/, '')}/${framePath.replace(/^\/+/, '')}`;
+    }
+
+    _withVersion(url) {
+        if (/^(?:data:|blob:)/i.test(url)) return url;
+        let v = window.GAME_VERSION;
+        if (!v || v === 'error' || v === 'unknown') v = Date.now();
+        return `${url}${url.includes('?') ? '&' : '?'}v=${v}`;
+    }
+
+    _getFrameSources(path) {
+        if (this.visualFrames.length > 0) {
+            return this.visualFrames.map(framePath => this._resolveFramePath(path, framePath));
+        }
+
+        if (this._isSingleImagePath(path)) {
+            return [path];
+        }
+
+        if (typeof path === 'string' && path.includes('/animated_monsters/')) {
+            return GENERATED_MONSTER_IDLE_FRAMES.map(frameFile => this._resolveFramePath(path, frameFile));
+        }
+
+        const frameCount = Math.max(1, Number(this.frameCount) || 5);
+        return Array.from({ length: frameCount }, (_, index) => this._resolveFramePath(path, `${index + 1}.webp`));
+    }
+
+    _getFallbackFrameSources() {
+        return Array.from({ length: 5 }, (_, index) => this._resolveFramePath(FALLBACK_MONSTER_ASSET_PATH, `${index + 1}.webp`));
+    }
+
+    async _loadFrameImages(frames) {
+        if (!Array.isArray(frames) || frames.length === 0) return [];
+
+        let loadedFrames = [];
+        if (window.game && window.game.resources) {
+            loadedFrames = await Promise.all(frames.map((framePath) => {
+                const url = this._withVersion(framePath);
+
+                return window.game.resources.loadImage(url).then(img => {
+                    return img;
+                }).catch(err => {
+                    Logger.warn(`Failed to load monster frame: ${url}`, err);
+                    return null;
+                });
+            }));
+        } else {
+            loadedFrames = await Promise.all(frames.map((framePath) => {
+                const img = new Image();
+                img.src = this._withVersion(framePath);
+                return new Promise((resolve) => {
+                    img.onload = () => {
+                        resolve(img);
+                    };
+                    img.onerror = () => {
+                        Logger.warn(`Failed to load monster frame: ${img.src}`);
+                        resolve(null);
+                    };
+                });
+            }));
+        }
+
+        return loadedFrames.filter(img => img && img.width > 0 && img.height > 0);
+    }
+
+    _buildSpriteFromFrames(loadedFrames, targetW, targetH) {
+        if (!Array.isArray(loadedFrames) || loadedFrames.length === 0) return null;
+
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = targetW * loadedFrames.length;
+        finalCanvas.height = targetH;
+        const finalCtx = finalCanvas.getContext('2d');
+        loadedFrames.forEach((img, i) => {
+            this.processAndDrawFrame(img, finalCtx, i * targetW, 0, targetW, targetH);
+        });
+
+        return new Sprite(finalCanvas, loadedFrames.length, 1);
+    }
+
     async init(path) {
-        if (!path) path = 'assets/resource/monster_slime'; // v2.3.5: Fixed typo and removed leading slash
-        const frames = ['1.webp', '2.webp', '3.webp', '4.webp', '5.webp'];
-        const cacheKey = path;
+        if (!path) path = FALLBACK_MONSTER_ASSET_PATH;
+        const frames = this._getFrameSources(path);
+        const cacheKey = JSON.stringify({ path, frames });
 
         // Check Cache
         if (Monster.spriteCache[cacheKey]) {
             this.sprite = Monster.spriteCache[cacheKey];
+            this.frameCount = Math.max(1, this.sprite.cols || this.frameCount);
             this.ready = true;
             return;
         }
@@ -131,91 +242,32 @@ export default class Monster extends CharacterBase {
         const targetW = 256;
         const targetH = 256;
 
-        // Support both single file and directory logic
-        const lowerPath = path.toLowerCase();
-        const isSingleFile = lowerPath.endsWith('.webp')
-            || lowerPath.endsWith('.png')
-            || lowerPath.endsWith('.jpg')
-            || lowerPath.endsWith('.jpeg');
+        let loadedFrames = await this._loadFrameImages(frames);
+        let activeFrames = frames;
 
-        if (isSingleFile) {
-            const img = new Image();
-            let v = window.GAME_VERSION;
-            // Fallback if version check failed
-            if (!v || v === 'error' || v === 'unknown') v = Date.now();
-            img.src = `${path}?v=${v}`;
-
-            await new Promise((resolve) => {
-                img.onload = () => {
-                    const finalCanvas = document.createElement('canvas');
-                    finalCanvas.width = targetW;
-                    finalCanvas.height = targetH;
-                    const finalCtx = finalCanvas.getContext('2d');
-                    this.processAndDrawFrame(img, finalCtx, 0, 0, targetW, targetH);
-                    this.sprite = new Sprite(finalCanvas, 1, 1);
-                    Monster.spriteCache[cacheKey] = this.sprite;
-                    this.ready = true;
-                    resolve();
-                };
-                img.onerror = () => {
-                    this.ready = true; // Still mark as ready to avoid infinite wait
-                    resolve();
-                };
-            });
-            return;
+        if (loadedFrames.length === 0) {
+            const fallbackFrames = this._getFallbackFrameSources();
+            const isAlreadyFallback = JSON.stringify(frames) === JSON.stringify(fallbackFrames);
+            if (!isAlreadyFallback) {
+                Logger.warn(`No custom monster frames loaded for ${path}, trying slime WebP fallback.`);
+                loadedFrames = await this._loadFrameImages(fallbackFrames);
+                activeFrames = fallbackFrames;
+            }
         }
 
-        const finalCanvas = document.createElement('canvas');
-        finalCanvas.width = targetW * frames.length;
-        finalCanvas.height = targetH;
-        const finalCtx = finalCanvas.getContext('2d');
-        let loadedCount = 0;
-        let loadPromises = [];
-
-        if (window.game && window.game.resources) {
-            // Use ResourceManager to ensure we hit the preloaded cache
-            loadPromises = frames.map((frameFile, i) => {
-                let v = window.GAME_VERSION;
-                if (!v || v === 'error' || v === 'unknown') v = Date.now();
-                const url = `${path}/${frameFile}?v=${v}`;
-
-                return window.game.resources.loadImage(url).then(img => {
-                    this.processAndDrawFrame(img, finalCtx, i * targetW, 0, targetW, targetH);
-                    loadedCount++;
-                }).catch(err => {
-                    Logger.warn(`Failed to load monster frame: ${url}`, err);
-                });
-            });
-            await Promise.all(loadPromises);
-        } else {
-            // Fallback if no game instance (should not happen in normal flow)
-            loadPromises = frames.map((frameFile, i) => {
-                const img = new Image();
-                const v = window.GAME_VERSION || Date.now();
-                img.src = `${path}/${frameFile}?v=${v}`;
-                return new Promise((resolve) => {
-                    img.onload = () => {
-                        this.processAndDrawFrame(img, finalCtx, i * targetW, 0, targetW, targetH);
-                        loadedCount++;
-                        resolve();
-                    };
-                    img.onerror = () => {
-                        Logger.warn(`Failed to load monster frame: ${img.src}`);
-                        resolve();
-                    };
-                });
-            });
-            await Promise.all(loadPromises);
-        }
-
-        await Promise.all(loadPromises);
-
-        if (loadedCount > 0) {
-            this.sprite = new Sprite(finalCanvas, frames.length, 1);
+        if (loadedFrames.length > 0) {
+            this.sprite = this._buildSpriteFromFrames(loadedFrames, targetW, targetH);
+            this.frameCount = loadedFrames.length;
+            this.frame = this.frame % this.frameCount;
             Monster.spriteCache[cacheKey] = this.sprite; // Save to cache
+            if (activeFrames !== frames) {
+                Monster.spriteCache[JSON.stringify({ path: FALLBACK_MONSTER_ASSET_PATH, frames: activeFrames })] = this.sprite;
+            }
         } else {
             Logger.warn(`No frames loaded for ${path}, using fallback.`);
             this.sprite = null; // Force fallback rendering
+            this.frameCount = 1;
+            this.frame = 0;
         }
         this.ready = true;
     }
@@ -234,11 +286,37 @@ export default class Monster extends CharacterBase {
         const imgData = tempCtx.getImageData(0, 0, img.width, img.height);
         const data = imgData.data;
 
+        if (data[3] === 0 && img.width === destW && img.height === destH) {
+            ctx.drawImage(img, destX, destY, destW, destH);
+            return;
+        }
+
         // 1. Check if image is ALREADY transparent (WebP/PNG)
-        // Check top-left pixel alpha. If it's 0, assume the image is pre-processed.
+        // Check top-left pixel alpha. If it's 0, crop to visible pixels before atlas packing.
         if (data[3] === 0) {
-            // Just draw resizing to destination, don't chroma key
-            ctx.drawImage(img, 0, 0, img.width, img.height, destX, destY, destW, destH);
+            let minX = img.width, maxX = 0, minY = img.height, maxY = 0;
+            let foundPixels = false;
+            for (let y = 0; y < img.height; y++) {
+                for (let x = 0; x < img.width; x++) {
+                    const idx = (y * img.width + x) * 4;
+                    if (data[idx + 3] <= 8) continue;
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                    foundPixels = true;
+                }
+            }
+
+            if (!foundPixels) return;
+            const charW = maxX - minX + 1;
+            const charH = maxY - minY + 1;
+            const scale = Math.min(destW / charW, destH / charH) * 0.9;
+            const drawW = charW * scale;
+            const drawH = charH * scale;
+            const offX = (destW - drawW) / 2;
+            const offY = (destH - drawH) / 2;
+            ctx.drawImage(tempCanvas, minX, minY, charW, charH, destX + offX, destY + offY, drawW, drawH);
             return;
         }
 
@@ -333,6 +411,7 @@ export default class Monster extends CharacterBase {
         this.chargeTarget = { x: targetX, y: targetY };
         this.vx = 0;
         this.vy = 0;
+        this.attackPulseTimer = Math.max(this.attackPulseTimer, 0.18);
         // Optionally play warning sound?
         Logger.log(`[Monster] ${this.id} started charge casting.`);
     }
@@ -365,8 +444,9 @@ export default class Monster extends CharacterBase {
                 const speed = 300;
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
+                this.attackPulseTimer = this.attackPulseDuration;
 
-                // Calculate max duration based on distance (or fixed duration?) 
+                // Calculate max duration based on distance (or fixed duration?)
                 // Requirement: "Rush to player position".
                 // Stop when close to that point.
                 const dist = Math.sqrt((this.chargeTarget.x - this.x) ** 2 + (this.chargeTarget.y - this.y) ** 2);
@@ -403,13 +483,12 @@ export default class Monster extends CharacterBase {
 
         const screenX = Math.round(this.x);
         const screenY = Math.round(this.y);
-        const targetScreenX = Math.round(this.chargeTarget.x); // Assumes static target point in world space? 
-        // Wait, render is camera relative? No, ctx is transformed.
-        // this.x is world, target.x is world.
+        // Context is already camera-transformed; charge target is in world space.
 
         ctx.save();
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
-        ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+        const pulse = 0.55 + Math.sin(this.visualTime * 10) * 0.25;
+        ctx.fillStyle = `rgba(255, 0, 0, ${0.18 + pulse * 0.12})`;
+        ctx.strokeStyle = `rgba(255, 80, 64, ${0.35 + pulse * 0.25})`;
         ctx.lineWidth = 2;
 
         const dx = this.chargeTarget.x - this.x;
@@ -425,7 +504,59 @@ export default class Monster extends CharacterBase {
         ctx.fillRect(0, -width / 2, dist, width);
         ctx.strokeRect(0, -width / 2, dist, width);
 
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.2 + pulse * 0.35})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.max(16, (width * 0.45) + pulse * 10), 0, Math.PI * 2);
+        ctx.stroke();
+
         ctx.restore();
+    }
+
+    _updateVisualMotion(dt) {
+        this.visualTime += Math.min(0.1, dt);
+        const isMoving = Math.hypot(this.vx || 0, this.vy || 0) > 8;
+        const baseAmp = isMoving ? 1.8 : 1.1;
+        const chargeAmp = this.chargeState === 'casting' ? 2.2 : 0;
+        this.renderOffY = Math.sin((this.visualTime * 5.5) + this.visualSeed) * (baseAmp + chargeAmp);
+        if (this.impactPulseTimer > 0) {
+            this.impactPulseTimer = Math.max(0, this.impactPulseTimer - dt);
+        }
+        if (this.attackPulseTimer > 0) {
+            this.attackPulseTimer = Math.max(0, this.attackPulseTimer - dt);
+        }
+    }
+
+    _getVisualScale() {
+        const isMoving = Math.hypot(this.vx || 0, this.vy || 0) > 8;
+        const breathe = Math.sin((this.visualTime * 5.5) + this.visualSeed);
+        const squash = isMoving ? 0.018 : 0.012;
+        let scaleX = 1 + (breathe * squash);
+        let scaleY = 1 - (breathe * squash);
+
+        if (this.chargeState === 'casting') {
+            const pulse = 0.03 + Math.max(0, Math.sin(this.visualTime * 12)) * 0.025;
+            scaleX += pulse;
+            scaleY -= pulse * 0.55;
+        } else if (this.chargeState === 'charging') {
+            scaleX += 0.035;
+            scaleY -= 0.025;
+        }
+
+        if (this.impactPulseTimer > 0) {
+            const t = this.impactPulseTimer / 0.16;
+            scaleX += t * 0.08;
+            scaleY -= t * 0.05;
+        }
+
+        if (this.attackPulseTimer > 0) {
+            const progress = 1 - (this.attackPulseTimer / Math.max(0.01, this.attackPulseDuration));
+            const punch = Math.sin(Math.max(0, Math.min(1, progress)) * Math.PI);
+            scaleX += punch * 0.1;
+            scaleY -= punch * 0.08;
+        }
+
+        return { scaleX, scaleY };
     }
 
     update(dt) {
@@ -468,7 +599,7 @@ export default class Monster extends CharacterBase {
             // Reset velocity to prevent persistent sliding during stories
             this.vx = 0;
             this.vy = 0;
-            this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
+            this._updateVisualMotion(dt);
             if (this.hitTimer > 0) this.hitTimer = Math.max(0, this.hitTimer - dt);
 
             if (this.chargeState === 'casting') {
@@ -516,7 +647,7 @@ export default class Monster extends CharacterBase {
             return;
         }
 
-        this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
+        this._updateVisualMotion(safeDt);
 
         // 2. Targeting (AI Awareness) - Skip if Charging (already locked)
         if (!isCharging) {
@@ -644,6 +775,8 @@ export default class Monster extends CharacterBase {
 
                                 this.attackCooldown = 1.5; // Default Attack Speed
                                 this.hitTimer = 0.1;
+                                this.attackPulseTimer = this.attackPulseDuration;
+                                this.impactPulseTimer = Math.max(this.impactPulseTimer, 0.12);
                             }
                         }
                     }
@@ -809,7 +942,6 @@ export default class Monster extends CharacterBase {
 
         // 4. Cleanup & Feedback
         if (this.hitTimer > 0) this.hitTimer -= dt;
-
         if (this.electrocutedTimer > 0) {
             this.electrocutedTimer -= dt;
             this.sparkTimer -= dt;
@@ -908,7 +1040,10 @@ export default class Monster extends CharacterBase {
         }
 
         // Visual feedback for ALL clients
-        if (triggerFlash && !suppressTransientEffects) this.hitTimer = 0.2;
+        if (triggerFlash && !suppressTransientEffects) {
+            this.hitTimer = 0.2;
+            this.impactPulseTimer = 0.16;
+        }
 
         // Damage text for ALL clients
         if (!suppressTransientEffects && amount > 0 && window.game && typeof window.game.addDamageText === 'function') {
@@ -1064,12 +1199,12 @@ export default class Monster extends CharacterBase {
         } else if (skill.id === 'shield') {
             this.applyEffect('shield', (skill.data?.duration || 1000) / 1000, 0);
         } else if (skill.id === 'missile') {
-            // Handled by MonsterManager/WorldScene queue via Network Event. 
+            // Handled by MonsterManager/WorldScene queue via Network Event.
             // Host also processes the event via loopback or direct call?
             // Currently WorldScene listens to 'monsterAttack'.
             // Host needs to ensure visual consistency.
             // WorldScene.js: this.net.on('monsterAttack') handles it.
-            // If we are Host, we send it, do we also receive it? 
+            // If we are Host, we send it, do we also receive it?
             // NetworkManager usually sends to server. Server broadcasts to ALL (including sender?).
             // If local-only server (p2p/firebase), we might need to simulate echo.
             // For now, assume network handles broadcast.
@@ -1216,14 +1351,24 @@ export default class Monster extends CharacterBase {
         this.renderTelegraph(ctx);
 
         // Fallback or Sprite Draw
+        const { scaleX, scaleY } = this._getVisualScale();
+        const previousFilter = ctx.filter;
+        if (this.hitTimer > 0 && !this.isDead) {
+            ctx.filter = 'brightness(1.7) saturate(1.35)';
+        }
+        ctx.save();
+        ctx.translate(screenX, drawY);
+        ctx.scale(scaleX, scaleY);
         if (useTrainingDummyRender) {
-            this._renderTrainingDummy(ctx, screenX, drawY);
+            this._renderTrainingDummy(ctx, 0, 0);
         } else if (this.sprite) {
-            this.sprite.draw(ctx, 0, this.frame, screenX - this.width / 2, drawY - this.height / 2, this.width, this.height);
+            this.sprite.draw(ctx, 0, this.frame, -this.width / 2, -this.height / 2, this.width, this.height);
         } else {
             // Loading fallback: avoid a harsh red disk while sprite assets warm up.
-            this._renderLoadingPlaceholder(ctx, screenX, drawY);
+            this._renderLoadingPlaceholder(ctx, 0, 0);
         }
+        ctx.restore();
+        ctx.filter = previousFilter;
 
         // Aggro Indicator (!)
         if (this.isAggro && !this.isDead) {

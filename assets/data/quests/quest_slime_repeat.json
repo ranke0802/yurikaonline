@@ -1,7 +1,7 @@
 {
     "id": "quest_slime_repeat",
-    "title": "슬라임 반복 토벌",
-    "description": "슬라임 50마리를 처치하세요. (반복 퀘스트)",
+    "title": "밤마다 더 강하게",
+    "description": "오두막 주변의 슬라임 50마리를 저지하고, 다음 밤을 버틸 마석을 모으세요. (반복)",
     "type": "repeat",
     "prerequisites": [
         "quest_boss_king_slime"
@@ -11,7 +11,15 @@
             "type": "kill",
             "target": "slime",
             "count": 50,
-            "description": "슬라임 처치: {current}/{count}"
+            "description": "다음 밤을 위한 슬라임 저지: {current}/{count}",
+            "i18n": {
+                "en": {
+                    "description": "Slimes stopped for the next night: {current}/{count}"
+                },
+                "ja": {
+                    "description": "次の夜に備えたスライム阻止：{current}/{count}"
+                }
+            }
         }
     ],
     "rewards": {
@@ -19,7 +27,27 @@
         "manastone": 300
     },
     "onComplete": {
-        "message": "반복 토벌 완료! 보상을 수령하세요.",
-        "unlocks": []
+        "message": "또 한 번의 밤을 준비했습니다. 마석의 빛이 커질수록 경계도 깊어집니다.",
+        "unlocks": [
+
+        ],
+        "i18n": {
+            "en": {
+                "message": "You prepared for another night. As the manastone light grows, the watch grows deeper."
+            },
+            "ja": {
+                "message": "また一夜を迎える準備ができました。魔石の光が増すほど、警戒も深まります。"
+            }
+        }
+    },
+    "i18n": {
+        "en": {
+            "title": "Stronger Every Night",
+            "description": "Stop 50 slimes around the cottage and gather manastones for the next night. (Repeat)"
+        },
+        "ja": {
+            "title": "夜ごとに強く",
+            "description": "小屋の周囲のスライムを50体食い止め、次の夜に備える魔石を集めてください。（反復）"
+        }
     }
 }

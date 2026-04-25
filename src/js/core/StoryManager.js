@@ -7,6 +7,7 @@ export default class StoryManager {
         this.currentStory = null;
         this.currentSequence = null;
         this.isStoryActive = false;
+        this.storyContext = null;
 
         // v2.2: Cutscene state
         this.fadeAlpha = 0;   // 0 = clear, 1 = fully black
@@ -22,12 +23,18 @@ export default class StoryManager {
         this.isFading = false;
     }
 
+    syncStoryOriginClass() {
+        if (typeof document === 'undefined') return;
+        document.body?.classList.toggle('story-origin-opening', this.storyContext?.origin === 'opening');
+    }
+
     async loadStory(id) {
         try {
             const data = await this.resourceManager.loadJSON(`/assets/data/narrative/${id}.json`);
-            this.currentStory = data;
-            Logger.log(`Story loaded: ${data.title}`);
-            return data;
+            const localizedData = this.game.i18n?.localizeContent?.(data) || data;
+            this.currentStory = localizedData;
+            Logger.log(`Story loaded: ${localizedData.title}`);
+            return localizedData;
         } catch (e) {
             Logger.error(`Failed to load story: ${id}`, e);
             return null;
@@ -53,8 +60,20 @@ export default class StoryManager {
         }
     }
 
-    startStory(id, startSequenceId = 'start') {
-        this.loadStory(id).then(data => {
+    startStory(id, startSequenceId = 'start', options = {}) {
+        if (typeof startSequenceId === 'object' && startSequenceId !== null) {
+            options = startSequenceId;
+            startSequenceId = 'start';
+        }
+
+        this.storyContext = {
+            origin: options.origin || 'world',
+            restoreHud: options.restoreHud !== false,
+            onComplete: typeof options.onComplete === 'function' ? options.onComplete : null
+        };
+        this.syncStoryOriginClass();
+
+        return this.loadStory(id).then(data => {
             if (data) {
                 // v2.3.1: Hide HUD during story
                 if (this.game.ui) this.game.ui.hideHUD();
@@ -62,6 +81,10 @@ export default class StoryManager {
                 this.isStoryActive = true;
                 this.executedSequenceActions.clear();
                 this.playSequence(startSequenceId);
+            } else if (this.storyContext?.origin === 'opening') {
+                this.storyContext.onComplete?.({ storyId: id, failed: true });
+                this.storyContext = null;
+                this.syncStoryOriginClass();
             }
         });
     }
@@ -76,6 +99,8 @@ export default class StoryManager {
         }
 
         this.currentSequence = seq;
+        this._applySequenceCameraTarget(seq);
+        this._preloadSequenceMedia(seq);
 
         // v2.2: Execute cutscene actions before dialog
         if (seq.actions && seq.actions.length > 0) {
@@ -87,6 +112,35 @@ export default class StoryManager {
             this._runSequenceAction(seq);
             this._showSequenceDialog(seq);
         }
+    }
+
+    _applySequenceCameraTarget(seq) {
+        const target = seq?.cameraTarget;
+        const camera = this.game.camera;
+        if (!target || !camera) return;
+
+        const targetX = Number(target.x);
+        const targetY = Number(target.y);
+        if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) return;
+
+        camera.x = targetX - camera.width / 2;
+        camera.y = targetY - camera.height / 2;
+        camera.clampToBounds?.();
+    }
+
+    _preloadSequenceMedia(seq) {
+        if (!seq || !this.resourceManager?.loadImage) return;
+        const visual = seq.visual || {};
+        [
+            seq.background || visual.background,
+            seq.illustration || visual.illustration,
+            seq.portrait || visual.portrait
+        ].forEach((url) => {
+            if (typeof url !== 'string' || !url.trim()) return;
+            this.resourceManager.loadImage(url).catch(() => {
+                Logger.warn(`[StoryManager] Failed to preload story media: ${url}`);
+            });
+        });
     }
 
     _showSequenceDialog(seq) {
@@ -214,6 +268,29 @@ export default class StoryManager {
                         else setTimeout(resolve, duration);
                         break;
 
+                    case 'cinematic_title':
+                        this.game.ui?.showCinematicTitle?.({
+                            title: action.title || action.text,
+                            subtitle: action.subtitle || '',
+                            accent: action.accent,
+                            size: action.size,
+                            durationMs: duration || action.durationMs
+                        });
+                        if (duration <= 0) resolve();
+                        else setTimeout(resolve, duration);
+                        break;
+
+                    case 'vignette':
+                        this.game.ui?.showCinematicVignette?.({
+                            color: action.color,
+                            center: action.center,
+                            alpha: action.alpha,
+                            durationMs: duration || action.durationMs
+                        });
+                        if (duration <= 0) resolve();
+                        else setTimeout(resolve, duration);
+                        break;
+
                     case 'action':
                         this._handleAction(action.id);
                         resolve();
@@ -294,20 +371,35 @@ export default class StoryManager {
     }
 
     endStory() {
+        const storyId = this.currentStory?.id || null;
+        const context = this.storyContext || { origin: 'world', restoreHud: true, onComplete: null };
+        let nextStoryId = null;
+        let shouldStartBasicTraining = false;
+
         // v2.3: Start Tutorial after Prologue
-        if (this.currentStory && this.currentStory.id === 'prologue') {
+        if (context.origin !== 'opening' && storyId === 'prologue') {
             if (this.game.localPlayer?.questData) {
                 this.game.localPlayer.questData.prologueCompleted = true;
                 this.game.localPlayer.saveState();
             }
-            if (this.game.tutorial) {
-                this.game.tutorial.startTutorial('basic_training');
+            if (!this.game.localPlayer?.questData?.chapter1FatherOathCompleted) {
+                nextStoryId = 'chapter1_father_oath';
+            } else {
+                shouldStartBasicTraining = true;
             }
+        } else if (context.origin !== 'opening' && storyId === 'chapter1_father_oath') {
+            if (this.game.localPlayer?.questData) {
+                this.game.localPlayer.questData.chapter1FatherOathCompleted = true;
+                this.game.localPlayer.saveState();
+            }
+            shouldStartBasicTraining = true;
         }
 
         this.isStoryActive = false;
         this.currentStory = null;
         this.currentSequence = null;
+        this.storyContext = null;
+        this.syncStoryOriginClass();
         this.executedSequenceActions.clear();
         this.fadeAlpha = 0;
         this.isFading = false;
@@ -315,9 +407,22 @@ export default class StoryManager {
         // v2.3.1: Restore HUD
         if (this.game.ui) {
             this.game.ui.hideDialog();
-            this.game.ui.showHUD();
+            if (context.restoreHud) {
+                this.game.ui.showHUD();
+            } else {
+                this.game.ui.hideHUD?.();
+            }
         }
         Logger.log('Story ended.');
+
+        if (context.origin === 'opening') {
+            this.game.markOpeningPrologueCompleted?.();
+            window.setTimeout(() => context.onComplete?.({ storyId }), 80);
+        } else if (nextStoryId) {
+            window.setTimeout(() => this.startStory(nextStoryId), 120);
+        } else if (shouldStartBasicTraining && this.game.tutorial) {
+            window.setTimeout(() => this.game.tutorial.startTutorial('basic_training'), 120);
+        }
     }
 
     _handleAction(action) {
@@ -325,6 +430,7 @@ export default class StoryManager {
         if (!action || action === 'none') return;
 
         if (action === 'complete_prologue') {
+            if (this.storyContext?.origin === 'opening') return;
             if (this.game.localPlayer?.questData) {
                 this.game.localPlayer.questData.prologueCompleted = true;
                 this.game.localPlayer.saveState(false, {
@@ -332,9 +438,9 @@ export default class StoryManager {
                     reason: 'complete_prologue'
                 });
             }
-            this.game.ui?.logSystemMessage('프롤로그를 완료했습니다. 오두막 주변의 이상 징후를 조사하세요.');
+            this.game.ui?.logSystemMessage(this.game.i18n?.t?.('system.prologueCompleted') || '프롤로그를 완료했습니다. 오두막 주변의 이상 징후를 조사하세요.');
         } else if (action === 'start_quest_1') {
-            this.game.ui?.logSystemMessage('기초 훈련을 마치면 첫 슬라임 퀘스트가 열립니다.');
+            this.game.ui?.logSystemMessage(this.game.i18n?.t?.('system.questStart') || '기초 훈련을 마치면 첫 슬라임 퀘스트가 열립니다.');
             if (this.game.ui?.updateQuestUI) this.game.ui.updateQuestUI();
         }
     }
