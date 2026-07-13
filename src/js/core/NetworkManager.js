@@ -6783,8 +6783,15 @@ export default class NetworkManager extends EventEmitter {
         return `${String(uid || 'player').slice(0, 48)}:${randomId}`.slice(0, 128);
     }
 
+    _shouldUseProfileWriterSession(uid) {
+        if (!uid || uid !== this.playerId || !window.firebase) return false;
+        const currentUser = window.game?.auth?.currentUser || firebase.auth?.().currentUser || null;
+        if (currentUser?.uid === uid && currentUser.isAnonymous === true) return false;
+        return true;
+    }
+
     _beginProfileWriterSession(uid, attempt = 0) {
-        if (!uid || !window.firebase) return null;
+        if (!this._shouldUseProfileWriterSession(uid)) return null;
         const session = {
             uid,
             token: this._createProfileWriterToken(uid),
@@ -6833,7 +6840,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     async _ensureProfileWriterSession(uid) {
-        if (!uid || uid !== this.playerId || !window.firebase) return null;
+        if (!this._shouldUseProfileWriterSession(uid)) return null;
         let session = this._profileWriterSession;
         if (!session || session.uid !== uid) session = this._beginProfileWriterSession(uid);
         if (!session) return null;
@@ -7433,8 +7440,10 @@ export default class NetworkManager extends EventEmitter {
     async _commitPlayerData(uid, data, syncToZone = false, options = {}) {
         if (!uid || !window.firebase || !data) return { ok: false, reason: 'invalid_args' };
         try {
-            const requiresWriterSession = uid === this.playerId;
-            const writerSession = await this._ensureProfileWriterSession(uid);
+            const requiresWriterSession = this._shouldUseProfileWriterSession(uid);
+            const writerSession = requiresWriterSession
+                ? await this._ensureProfileWriterSession(uid)
+                : null;
             if (requiresWriterSession && !writerSession) {
                 return { ok: false, reason: 'writer_session_unavailable' };
             }
@@ -7508,8 +7517,10 @@ export default class NetworkManager extends EventEmitter {
         }
 
         try {
-            const requiresWriterSession = uid === this.playerId;
-            const writerSession = await this._ensureProfileWriterSession(uid);
+            const requiresWriterSession = this._shouldUseProfileWriterSession(uid);
+            const writerSession = requiresWriterSession
+                ? await this._ensureProfileWriterSession(uid)
+                : null;
             if (requiresWriterSession && !writerSession) {
                 return { ok: false, reason: 'writer_session_unavailable' };
             }

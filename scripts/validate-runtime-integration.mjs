@@ -1935,6 +1935,7 @@ async function validateWorldSceneListenerLifecycle() {
     });
     let modalClosed = 0;
     let supersededModalTitle = null;
+    let supersededModalMessage = null;
     const game = {
         net,
         camera: null,
@@ -1943,7 +1944,10 @@ async function validateWorldSceneListenerLifecycle() {
             hideGenericModal: () => { modalClosed += 1; },
             disarmBrowserBackExitGuard: () => {},
             updateAutoAttackToggle: () => {},
-            showGenericModal: (title) => { supersededModalTitle = title; }
+            showGenericModal: (title, message) => {
+                supersededModalTitle = title;
+                supersededModalMessage = message;
+            }
         },
         resources: null,
         input: null
@@ -1965,6 +1969,7 @@ async function validateWorldSceneListenerLifecycle() {
     assert.equal(clearedTarget, 1);
     assert.equal(participationDisabled, 1);
     assert.equal(supersededModalTitle, '중복 접속 감지');
+    assert.equal(supersededModalMessage.includes('<br>'), false);
     await scene.exit();
     const remaining = Array.from(net.events.values()).reduce((sum, entries) => sum + entries.length, 0);
     assert.equal(remaining, 0, 'world listeners must be detached on scene exit');
@@ -2128,7 +2133,22 @@ async function validateProfileWriterFencingContracts() {
         assert.equal(supersededEvents, 1, 'the superseded tab must be told to stop gameplay exactly once');
         assert.equal(profile.inventory[0].instanceId, rewardItem.instanceId);
         assert.deepEqual(profile.claimedRewardIds, [rewardId], 'an older tab must never roll back a claimed durable reward');
+
+        window.game = { auth: { currentUser: { uid, isAnonymous: true } } };
+        const guestTab = new NetworkManager();
+        guestTab.playerId = uid;
+        assert.equal(guestTab._shouldUseProfileWriterSession(uid), false);
+        guestTab._writeProfileBackup = async () => true;
+        guestTab._syncRecoveryProfile = async () => true;
+        const guestSave = await guestTab._commitPlayerData(uid, {
+            inventory: [],
+            pendingItemRewards: [],
+            claimedRewardIds: [],
+            ts: Date.now() + 20_000
+        });
+        assert.equal(guestSave.ok, true, 'anonymous guest profiles must not be blocked by writer-session fencing');
     } finally {
+        window.game = undefined;
         window.firebase = previousWindowFirebase;
         if (previousGlobalFirebase === undefined) delete globalThis.firebase;
         else globalThis.firebase = previousGlobalFirebase;

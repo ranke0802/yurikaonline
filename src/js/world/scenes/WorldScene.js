@@ -784,7 +784,7 @@ export default class WorldScene extends Scene {
             this.ui?.updateAutoAttackToggle?.(false);
             this.ui?.showGenericModal?.(
                 '중복 접속 감지',
-                '같은 계정으로 열린 새 세션이 확인되어 이 화면의 플레이와 저장을 중단했습니다.<br><br>진행 유실을 막기 위해 이 탭을 다시 접속해 주세요.',
+                '같은 계정으로 열린 새 세션이 확인되어 이 화면의 플레이와 저장을 중단했습니다.\n\n진행 유실을 막기 위해 이 탭을 다시 접속해 주세요.',
                 () => window.location?.reload?.(),
                 null,
                 { hideNo: true, yesText: '다시 접속' }
