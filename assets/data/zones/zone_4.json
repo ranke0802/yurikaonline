@@ -1,0 +1,60 @@
+{
+  "id": "zone_4",
+  "name": "별그늘 유적",
+  "requiredLevel": 15,
+  "recommendedLevel": {
+    "min": 15,
+    "max": 20
+  },
+  "width": 3800,
+  "height": 3800,
+  "background": {
+    "image": "assets/resource/background.webp",
+    "music": "bgm_act4_hope",
+    "ambient": null
+  },
+  "theme": {
+    "tint": "#35245f",
+    "tintAlpha": 0.48,
+    "motif": "astral_ruins",
+    "motifColor": "#e7bdff"
+  },
+  "boundaries": {
+    "minX": 0,
+    "maxX": 3800,
+    "minY": 0,
+    "maxY": 3800
+  },
+  "spawnPoints": [
+    {
+      "id": "default",
+      "x": 1900,
+      "y": 3400
+    }
+  ],
+  "monsterSpawns": [
+    {
+      "monsterId": "gastly",
+      "count": 8,
+      "initialDelaySeconds": 4,
+      "respawnSeconds": 12,
+      "area": {
+        "x": 700,
+        "y": 700,
+        "w": 2400,
+        "h": 2050
+      }
+    }
+  ],
+  "bossSpawn": {
+    "monsterId": "astral_sylveon",
+    "displayName": "성좌의 님피아",
+    "point": {
+      "x": 1900,
+      "y": 820
+    },
+    "initialDelaySeconds": 60,
+    "respawnSeconds": 600
+  },
+  "objects": []
+}

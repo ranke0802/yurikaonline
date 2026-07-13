@@ -2,6 +2,11 @@ import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
 import SkillRenderer from '../skills/renderers/SkillRenderer.js';
+import {
+    captureProjectileWorldContext,
+    isProjectileWorldContextCurrent,
+    toProjectileAuthoredOptions
+} from './ProjectileWorldContext.js';
 
 export default class RemotePlayer extends CharacterBase {
     constructor(id, x, y, resourceManager) {
@@ -1010,8 +1015,11 @@ export default class RemotePlayer extends CharacterBase {
         if (skillType === 'fireball' || skillType === 'missile') {
             const centerX = data.x + this.width / 2;
             const centerY = data.y + this.height / 2;
+            const authoredWorldContext = captureProjectileWorldContext();
             RemotePlayer.projectilePromise.then(({ Projectile }) => {
-                if (!window.game) return;
+                if (!isProjectileWorldContextCurrent(authoredWorldContext)) return;
+                const game = authoredWorldContext.game;
+                if (!Array.isArray(game?.projectiles)) return;
                 if (skillType === 'fireball') {
                     let vx = 0, vy = 0, speed = 800;
                     // v0.29.13: Use angle from extraData if available (8-direction)
@@ -1038,14 +1046,16 @@ export default class RemotePlayer extends CharacterBase {
                         ? Math.max(0.25, (Math.hypot(targetX - centerX, targetY - centerY) / speed) + 0.08)
                         : 1.5;
 
-                    window.game.projectiles.push(new Projectile(centerX, centerY, null, 'fireball', {
+                    game.projectiles.push(new Projectile(centerX, centerY, null, 'fireball', {
                         vx, vy, speed, damage: 0, ownerId: this.id, radius: baseRad, aoeRadius: aoeRad,
+                        ...toProjectileAuthoredOptions(authoredWorldContext),
                         penetrationDelay: (attackerLevel - 1) * 0.05,
                         variant: data.extraData?.variant || null,
                         targetX,
                         targetY,
                         lifeTime: travelTime,
                         visualOnly: true,
+                        replayWeaponEffectVisuals: true,
                         weaponEffect: data.extraData?.weaponEffect || null
                     }));
                 } else if (skillType === 'missile') {
@@ -1060,7 +1070,8 @@ export default class RemotePlayer extends CharacterBase {
                         targetY: data.extraData?.targetY,
                         targetWidth: data.extraData?.targetWidth,
                         targetHeight: data.extraData?.targetHeight,
-                        variant: data.extraData?.variant || null
+                        variant: data.extraData?.variant || null,
+                        authoredWorldContext
                     });
                 }
             });
@@ -1078,6 +1089,8 @@ export default class RemotePlayer extends CharacterBase {
     }
 
     _triggerRemoteMissileVisual(centerX, centerY, count = 1, options = {}) {
+        const authoredWorldContext = options.authoredWorldContext || captureProjectileWorldContext();
+        if (!isProjectileWorldContextCurrent(authoredWorldContext)) return;
         const angles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
         const baseAngle = angles[this.direction] + Math.PI;
 
@@ -1092,7 +1105,8 @@ export default class RemotePlayer extends CharacterBase {
                 targetId: options.targetId || null,
                 targetType: options.targetType || null,
                 fallbackTargetX: Number.isFinite(options.targetX) ? options.targetX : null,
-                fallbackTargetY: Number.isFinite(options.targetY) ? options.targetY : null
+                fallbackTargetY: Number.isFinite(options.targetY) ? options.targetY : null,
+                authoredWorldContext
             });
         }
 
@@ -1145,19 +1159,25 @@ export default class RemotePlayer extends CharacterBase {
     }
 
     _launchRemoteMissileVisual(data) {
+        const authoredWorldContext = data?.authoredWorldContext || captureProjectileWorldContext();
+        if (!isProjectileWorldContextCurrent(authoredWorldContext)) return;
+        const originX = this.x + this.width / 2;
+        const originY = this.y + this.height / 2;
+        const targetPoint = this._resolveRemoteMissilePoint(data);
+        const speed = 350 + Math.random() * 300;
+
         RemotePlayer.projectilePromise.then(({ Projectile }) => {
-            if (!window.game) return;
+            if (!isProjectileWorldContextCurrent(authoredWorldContext)) return;
+            const game = authoredWorldContext.game;
+            if (!Array.isArray(game?.projectiles)) return;
 
-            const originX = this.x + this.width / 2;
-            const originY = this.y + this.height / 2;
-            const targetPoint = this._resolveRemoteMissilePoint(data);
-            const speed = 350 + Math.random() * 300;
-
-            window.game.projectiles.push(new Projectile(originX, originY, null, 'missile', {
+            game.projectiles.push(new Projectile(originX, originY, null, 'missile', {
                 vx: Math.cos(data.angle) * speed,
                 vy: Math.sin(data.angle) * speed,
                 speed: 600,
                 damage: 0,
+                visualOnly: true,
+                ...toProjectileAuthoredOptions(authoredWorldContext),
                 ownerId: this.id,
                 variant: data.variant || null,
                 targetX: targetPoint?.x ?? null,

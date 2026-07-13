@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "astral_staff",
+  "name": "성운의 지팡이",
+  "description": "별그늘 유적의 성좌 마력이 체인 라이트닝을 진홍빛 생명 흡수 번개로 바꿉니다.",
+  "slot": "weapon",
+  "rarity": "boss",
+  "stackable": false,
+  "dropSource": [
+    "astral_sylveon"
+  ],
+  "baseStats": {
+    "attackPower": 20,
+    "critRate": 0.09,
+    "mpRegen": 7
+  },
+  "icon": {
+    "type": "image",
+    "path": "src/assets/items/astral_staff.svg",
+    "fallbackEmoji": "🌌"
+  },
+  "prefixPool": "astral_staff_affixes",
+  "enhancementRuleSet": "weapon_standard_1_to_10",
+  "enhancementBonuses": {
+    "attackPowerPerLevel": 1,
+    "critRatePerLevel": 0.01
+  },
+  "inventoryTooltip": {
+    "className": "마법 지팡이",
+    "material": "성운 결정",
+    "weight": 7,
+    "tradeable": false,
+    "dismantleable": true
+  },
+  "visuals": {
+    "equipAura": {
+      "mode": "prefix_plus_enhancement",
+      "prefixAuraProfiles": {
+        "astral_crimson": {
+          "baseColor": "#e3538b",
+          "secondaryColor": "#ffd4f0",
+          "particleStyle": "red_spark"
+        }
+      }
+    }
+  },
+  "instanceData": {
+    "prefixId": "random_from_pool",
+    "rolledValues": "from_affix_roll_ranges",
+    "enhancementLevel": 0
+  }
+}

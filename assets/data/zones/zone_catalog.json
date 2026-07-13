@@ -1,0 +1,96 @@
+{
+  "zones": [
+    {
+      "id": "zone_1",
+      "name": "바람 언덕",
+      "subtitle": "모험이 시작되는 초원",
+      "requiredLevel": 1,
+      "recommendedLevel": {
+        "min": 1,
+        "max": 4
+      },
+      "description": "순한 슬라임을 상대하며 기본 전투와 성장을 익히는 시작 지역입니다.",
+      "normalMonsters": [
+        {
+          "id": "slime",
+          "name": "슬라임"
+        }
+      ],
+      "boss": {
+        "id": "king_slime",
+        "name": "대왕 슬라임",
+        "weaponName": "마력의 지팡이"
+      },
+      "accentColor": "#8fd36f"
+    },
+    {
+      "id": "zone_2",
+      "name": "안개빛 호수",
+      "subtitle": "물안개가 잠든 습지",
+      "requiredLevel": 5,
+      "recommendedLevel": {
+        "min": 5,
+        "max": 9
+      },
+      "description": "차가운 물결과 짙은 안개 사이에서 단단한 물속성 몬스터가 출몰합니다.",
+      "normalMonsters": [
+        {
+          "id": "squirtle",
+          "name": "물방울 꼬부기"
+        }
+      ],
+      "boss": {
+        "id": "ruin_wobbuffet",
+        "name": "유적의 마자용",
+        "weaponName": "해일의 지팡이"
+      },
+      "accentColor": "#65d9e8"
+    },
+    {
+      "id": "zone_3",
+      "name": "뇌광 숲",
+      "subtitle": "천둥이 숨 쉬는 수림",
+      "requiredLevel": 10,
+      "recommendedLevel": {
+        "min": 10,
+        "max": 14
+      },
+      "description": "번개가 나뭇가지를 타고 흐르는 숲으로, 빠르고 공격적인 몬스터가 지배합니다.",
+      "normalMonsters": [
+        {
+          "id": "emolga",
+          "name": "번개날개 에몽가"
+        }
+      ],
+      "boss": {
+        "id": "thunder_pikachu",
+        "name": "뇌제 피카츄",
+        "weaponName": "뇌광의 지팡이"
+      },
+      "accentColor": "#f4d44e"
+    },
+    {
+      "id": "zone_4",
+      "name": "별그늘 유적",
+      "subtitle": "달빛 아래 깨어난 성소",
+      "requiredLevel": 15,
+      "recommendedLevel": {
+        "min": 15,
+        "max": 20
+      },
+      "description": "별빛과 망령의 기운이 뒤섞인 고대 성소로, 숙련된 모험가를 위한 최상위 지역입니다.",
+      "normalMonsters": [
+        {
+          "id": "gastly",
+          "name": "그림자 고오스"
+        }
+      ],
+      "boss": {
+        "id": "astral_sylveon",
+        "name": "성좌의 님피아",
+        "weaponName": "성운의 지팡이"
+      },
+      "accentColor": "#d79cff"
+    }
+  ]
+}

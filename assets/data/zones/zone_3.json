@@ -1,0 +1,60 @@
+{
+  "id": "zone_3",
+  "name": "뇌광 숲",
+  "requiredLevel": 10,
+  "recommendedLevel": {
+    "min": 10,
+    "max": 14
+  },
+  "width": 3600,
+  "height": 3600,
+  "background": {
+    "image": "assets/resource/background.webp",
+    "music": "bgm_act2_threat",
+    "ambient": null
+  },
+  "theme": {
+    "tint": "#465d27",
+    "tintAlpha": 0.4,
+    "motif": "lightning_canopy",
+    "motifColor": "#ffe86a"
+  },
+  "boundaries": {
+    "minX": 0,
+    "maxX": 3600,
+    "minY": 0,
+    "maxY": 3600
+  },
+  "spawnPoints": [
+    {
+      "id": "default",
+      "x": 1800,
+      "y": 3150
+    }
+  ],
+  "monsterSpawns": [
+    {
+      "monsterId": "emolga",
+      "count": 10,
+      "initialDelaySeconds": 3,
+      "respawnSeconds": 10,
+      "area": {
+        "x": 650,
+        "y": 650,
+        "w": 2300,
+        "h": 1920
+      }
+    }
+  ],
+  "bossSpawn": {
+    "monsterId": "thunder_pikachu",
+    "displayName": "뇌제 피카츄",
+    "point": {
+      "x": 1800,
+      "y": 780
+    },
+    "initialDelaySeconds": 45,
+    "respawnSeconds": 420
+  },
+  "objects": []
+}

@@ -1,4 +1,5 @@
 import SkillRenderer from '../skills/renderers/SkillRenderer.js';
+import { isProjectileWorldContextCurrent } from './ProjectileWorldContext.js';
 
 export class Projectile {
     constructor(x, y, target, type = 'missile', options = {}) {
@@ -23,6 +24,7 @@ export class Projectile {
         this.weaponEffect = options.weaponEffect || null;
         this.lockTargetPosition = !!options.lockTargetPosition;
         this.visualOnly = !!options.visualOnly;
+        this.replayWeaponEffectVisuals = options.replayWeaponEffectVisuals === true;
         this.tutorialSkillTarget = options.tutorialSkillTarget || null;
         this.tutorialSkillSlot = Number.isFinite(options.tutorialSkillSlot) ? options.tutorialSkillSlot : null;
         this.tutorialSkillTutorialId = options.tutorialSkillTutorialId || null;
@@ -33,6 +35,21 @@ export class Projectile {
         this.fireballChainRandomState = Number.isFinite(this.weaponEffect?.chainSeed)
             ? (Number(this.weaponEffect.chainSeed) >>> 0)
             : ((Date.now() ^ Math.round(x) ^ Math.round(y)) >>> 0);
+        const authoredScene = options.authoredScene || window.game?.sceneManager?.currentScene || null;
+        const authoredWorldGeneration = Number.isFinite(options.authoredWorldGeneration)
+            ? Number(options.authoredWorldGeneration)
+            : Number(window.game?.monsterManager?.worldGeneration);
+        const authoredZoneTransitionToken = Number.isFinite(options.authoredZoneTransitionToken)
+            ? Number(options.authoredZoneTransitionToken)
+            : Number(authoredScene?.zoneTransitionToken);
+        this.authoredWorldContext = {
+            game: window.game || null,
+            scene: authoredScene,
+            zoneId: options.authoredZoneId || window.game?.zone?.currentZone?.id || null,
+            fieldId: options.authoredFieldId || window.game?.net?._getCurrentFieldId?.() || null,
+            worldGeneration: Number.isFinite(authoredWorldGeneration) ? authoredWorldGeneration : null,
+            zoneTransitionToken: Number.isFinite(authoredZoneTransitionToken) ? authoredZoneTransitionToken : null
+        };
 
         // v1.99.16: Separate hit detection radius from AOE/visual radius
         this.aoeRadius = options.aoeRadius || this.radius * 2; // v1.99.30: Explosion 2x wider than projectile (balanced)
@@ -169,6 +186,10 @@ export class Projectile {
 
     update(dt, monsters) {
         if (this.isDead) return;
+        if (!this._isAuthoredWorldContextCurrent()) {
+            this.isDead = true;
+            return;
+        }
 
         const lp = window.game?.localPlayer;
         const rps = window.game?.remotePlayers;
@@ -484,9 +505,15 @@ export class Projectile {
     _executeActualExplosion(manualTarget = null, manualMonsters = null) {
         const target = manualTarget || (this.explosionContext ? this.explosionContext.target : null);
         const monsters = this._getCurrentMonsters(manualMonsters || (this.explosionContext ? this.explosionContext.monsters : null));
+        const targetIsMonster = !!(target?.isMonster || target?.type === 'monster');
 
         if (this.visualOnly) {
             this._playImpactEffects();
+            if (this.type === 'fireball' && this.replayWeaponEffectVisuals) {
+                this._tryTriggerBlueFlameChainExplosions(target, monsters, null, targetIsMonster, {
+                    visualOnly: true
+                });
+            }
             this.isDead = true;
             return;
         }
@@ -510,8 +537,6 @@ export class Projectile {
         this._playImpactEffects();
 
         const net = window.game?.net;
-        const targetIsMonster = target.isMonster || (target.type === 'monster');
-
         // Case A: Monster Hit
         if (targetIsMonster) {
             if (this.type === 'fireball') {
@@ -681,33 +706,44 @@ export class Projectile {
         return Array.isArray(fallbackMonsters) ? fallbackMonsters : [];
     }
 
-    _tryTriggerBlueFlameChainExplosions(target, monsters, net, targetIsMonster) {
+    _isAuthoredWorldContextCurrent() {
+        return isProjectileWorldContextCurrent(this.authoredWorldContext);
+    }
+
+    _playBlueFlameChainImpact() {
+        if (!window.game) return;
+        window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3, {
+            variant: 'blue_flame',
+            duration: 0.45,
+            collapse: true
+        });
+        for (let i = 0; i < 10; i++) window.game.addSpark(this.x, this.y);
+        if (window.game.sound) {
+            window.game.sound.playSfx('fireball_explosion');
+        }
+    }
+
+    _tryTriggerBlueFlameChainExplosions(target, monsters, net, targetIsMonster, options = {}) {
         if (this.variant !== 'blue_fireball') return;
         if (this.fireballChainChance <= 0 || this.fireballChainDamageRatio <= 0) return;
+        if (!this._isAuthoredWorldContextCurrent()) return;
 
         const chainDamage = Math.ceil(this.damage * this.fireballChainDamageRatio);
         const maxChains = 12;
         const chainDelayMs = 300;
+        const shouldApplyDamage = !this.visualOnly && options.visualOnly !== true;
         const triggerNextChain = (chainIndex = 1) => {
             if (chainIndex > maxChains) return;
+            if (!this._isAuthoredWorldContextCurrent()) return;
             if (this._nextFireballChainRoll() >= this.fireballChainChance) return;
 
             window.setTimeout(() => {
-                if (window.game) {
-                    window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3, {
-                        variant: 'blue_flame',
-                        duration: 0.45,
-                        collapse: true
-                    });
-                    for (let i = 0; i < 10; i++) window.game.addSpark(this.x, this.y);
-                    if (window.game.sound) {
-                        window.game.sound.playSfx('fireball_explosion');
-                    }
-                }
+                if (!this._isAuthoredWorldContextCurrent()) return;
+                this._playBlueFlameChainImpact();
 
-                if (targetIsMonster) {
+                if (shouldApplyDamage && targetIsMonster) {
                     this._applyBlueFlameChainToMonsters(this._getCurrentMonsters(monsters), net, chainDamage, chainIndex);
-                } else {
+                } else if (shouldApplyDamage) {
                     this._applyBlueFlameChainToPlayers(target, net, chainDamage, chainIndex);
                 }
 
@@ -735,11 +771,20 @@ export class Projectile {
             });
 
             if (net && chainDamage > 0) {
-                net.sendMonsterDamage(m.id, Math.ceil(finalDmg), damageMeta);
+                const networkAccepted = net.sendMonsterDamage(m.id, Math.ceil(finalDmg), damageMeta) !== false;
+                if (!networkAccepted) return;
                 m.lastAttackerId = net.playerId;
             }
 
-            m.takeDamage(Math.ceil(finalDmg), true, resolved.isCrit, this.x, this.y, damageMeta);
+            const damageAccepted = m.takeDamage(
+                Math.ceil(finalDmg),
+                true,
+                resolved.isCrit,
+                this.x,
+                this.y,
+                damageMeta
+            ) !== false;
+            if (!damageAccepted) return;
             m.applyEffect('burn', this.burnDuration, resolved.burnDamage, {
                 ...damageMeta,
                 cause: 'burn',
@@ -830,7 +875,8 @@ export class Projectile {
                 const damageMeta = this.type === 'fireball'
                     ? this._buildFireballDamageMeta('fireball', finalDmg, { isCrit })
                     : null;
-                net.sendMonsterDamage(m.id, Math.ceil(finalDmg), damageMeta);
+                const networkAccepted = net.sendMonsterDamage(m.id, Math.ceil(finalDmg), damageMeta) !== false;
+                if (!networkAccepted) return false;
                 m.lastAttackerId = net.playerId;
             }
         }
@@ -838,7 +884,15 @@ export class Projectile {
         const damageMeta = this.type === 'fireball'
             ? this._buildFireballDamageMeta('fireball', finalDmg, { isCrit })
             : null;
-        m.takeDamage(Math.ceil(finalDmg), true, isCrit, this.x, this.y, damageMeta);
+        const damageAccepted = m.takeDamage(
+            Math.ceil(finalDmg),
+            true,
+            isCrit,
+            this.x,
+            this.y,
+            damageMeta
+        ) !== false;
+        if (!damageAccepted) return false;
 
         // v0.00.42: Apply burn locally for visual, host syncs to DB
         if (this.type === 'fireball' && isMonster) {
@@ -849,6 +903,7 @@ export class Projectile {
                 })
             });
         }
+        return true;
     }
 
     render(ctx, camera) {

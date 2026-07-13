@@ -3,6 +3,7 @@
     "name": "대왕 슬라임",
     "type": "monster",
     "baseStats": {
+        "level": 4,
         "hp": 2000,
         "maxHp": 2000,
         "mp": 500,
@@ -11,6 +12,7 @@
         "def": 15,
         "speed": 40,
         "exp": 500,
+        "manastone": 2000,
         "hpRegen": 5
     },
     "visual": {

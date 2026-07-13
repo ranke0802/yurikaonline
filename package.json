@@ -1,6 +1,10 @@
 {
   "scripts": {
     "start": "npx -y live-server . --host=127.0.0.1 --port=8081 --no-browser",
+    "validate:world": "node scripts/validate-world-content.js",
+    "validate:runtime": "node --experimental-default-type=module scripts/validate-runtime-integration.mjs",
+    "validate:projectiles": "node --experimental-default-type=module scripts/validate-projectile-chain.mjs",
+    "validate": "npm run validate:world && npm run validate:runtime && npm run validate:projectiles",
     "version:sync": "node scripts/sync-version.js",
     "version:bump": "node scripts/sync-version.js --bump patch"
   },

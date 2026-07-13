@@ -29,6 +29,14 @@ const BUILTIN_MONSTER_DEFINITIONS = {
     }
 };
 
+function getMonsterDefinitionCacheVersion() {
+    const rawVersion = globalThis.window?.GAME_VERSION
+        || globalThis.window?.RUNTIME_BUILD_VERSION
+        || globalThis.window?.BOOTSTRAP_VERSION
+        || 'unversioned';
+    return String(rawVersion).trim().replace(/[^0-9A-Za-z._-]/g, '_').slice(0, 64) || 'unversioned';
+}
+
 /**
  * MonsterDataManager - Handles loading and caching of monster definitions (JSON).
  */
@@ -86,7 +94,7 @@ export default class MonsterDataManager {
         const fetchPromise = (async () => {
             try {
                 // 3. SessionStorage Cache (Persistent across page reloads in same session)
-                const sessionKey = `monster_def_${normalizedId}`;
+                const sessionKey = `monster_def_${getMonsterDefinitionCacheVersion()}_${normalizedId}`;
                 const cachedSession = sessionStorage.getItem(sessionKey);
                 if (cachedSession) {
                     try {

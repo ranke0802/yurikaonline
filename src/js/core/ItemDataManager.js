@@ -1,12 +1,27 @@
 import Logger from '../utils/Logger.js';
+import {
+    resolveDurableBossEntitlementPolicy,
+    resolveLegacyBossEntitlementMigration
+} from './DurableBossRewardPolicy.js';
 
-const ITEM_FILES = {
-    magic_staff: '/assets/data/items/magic_staff.json',
-    magic_staff_affixes: '/assets/data/items/magic_staff_affixes.json',
-    equipment_enhancement_rules: '/assets/data/items/equipment_enhancement_rules.json',
-    weapon_upgrade_stone: '/assets/data/items/weapon_upgrade_stone.json',
-    blessed_weapon_upgrade_stone: '/assets/data/items/blessed_weapon_upgrade_stone.json',
-    equipment_drop_rules: '/assets/data/items/equipment_drop_rules.json'
+const ITEM_CATALOG_PATH = '/assets/data/items/item_catalog.json';
+const ITEM_DATA_BASE_PATH = '/assets/data/items/';
+
+const LEGACY_ITEM_CATALOG = {
+    items: [
+        'magic_staff.json',
+        'weapon_upgrade_stone.json',
+        'blessed_weapon_upgrade_stone.json'
+    ],
+    affixPools: [
+        'magic_staff_affixes.json'
+    ],
+    enhancementRules: [
+        'equipment_enhancement_rules.json'
+    ],
+    dropRules: [
+        'equipment_drop_rules.json'
+    ]
 };
 
 const ENHANCEMENT_VISUAL_STYLES = [
@@ -157,49 +172,94 @@ export default class ItemDataManager {
         this.enhancementRuleSets = new Map();
         this.globalDrops = [];
         this.bossDropsByMonster = new Map();
+        this.loadedCatalog = null;
     }
 
     async loadAll() {
         try {
-            const [magicStaff, affixPool, enhancementRules, upgradeStone, blessedUpgradeStone, dropRules] = await Promise.all([
-                this.resourceManager.loadJSON(ITEM_FILES.magic_staff),
-                this.resourceManager.loadJSON(ITEM_FILES.magic_staff_affixes),
-                this.resourceManager.loadJSON(ITEM_FILES.equipment_enhancement_rules),
-                this.resourceManager.loadJSON(ITEM_FILES.weapon_upgrade_stone),
-                this.resourceManager.loadJSON(ITEM_FILES.blessed_weapon_upgrade_stone),
-                this.resourceManager.loadJSON(ITEM_FILES.equipment_drop_rules)
+            const catalog = await this._loadCatalog();
+            const [itemDefinitions, affixPools, enhancementRuleDocuments, dropRuleDocuments] = await Promise.all([
+                this._loadCatalogEntries(catalog.items),
+                this._loadCatalogEntries(catalog.affixPools),
+                this._loadCatalogEntries(catalog.enhancementRules),
+                this._loadCatalogEntries(catalog.dropRules)
             ]);
 
-            if (magicStaff?.id) this.itemDefinitions.set(magicStaff.id, magicStaff);
-            if (upgradeStone?.id) this.itemDefinitions.set(upgradeStone.id, upgradeStone);
-            if (blessedUpgradeStone?.id) this.itemDefinitions.set(blessedUpgradeStone.id, blessedUpgradeStone);
+            this.itemDefinitions.clear();
+            this.affixPools.clear();
+            this.affixesById.clear();
+            this.enhancementRuleSets.clear();
+            this.bossDropsByMonster.clear();
 
-            if (affixPool?.id && Array.isArray(affixPool.affixes)) {
+            itemDefinitions.forEach((definition) => {
+                if (definition?.id) this.itemDefinitions.set(definition.id, definition);
+            });
+
+            affixPools.forEach((affixPool) => {
+                if (!affixPool?.id || !Array.isArray(affixPool.affixes)) return;
                 this.affixPools.set(affixPool.id, affixPool);
                 affixPool.affixes.forEach((affix) => {
                     if (affix?.id) this.affixesById.set(affix.id, affix);
                 });
-            }
+            });
 
-            if (Array.isArray(enhancementRules?.ruleSets)) {
-                enhancementRules.ruleSets.forEach((ruleSet) => {
+            enhancementRuleDocuments.forEach((document) => {
+                if (!Array.isArray(document?.ruleSets)) return;
+                document.ruleSets.forEach((ruleSet) => {
                     if (ruleSet?.id) this.enhancementRuleSets.set(ruleSet.id, ruleSet);
                 });
-            }
+            });
 
-            this.globalDrops = Array.isArray(dropRules?.globalDrops) ? dropRules.globalDrops : [];
-            this.bossDropsByMonster.clear();
-            if (Array.isArray(dropRules?.bossDrops)) {
-                dropRules.bossDrops.forEach((drop) => {
+            this.globalDrops = dropRuleDocuments.flatMap((document) => (
+                Array.isArray(document?.globalDrops) ? document.globalDrops : []
+            ));
+            dropRuleDocuments.forEach((document) => {
+                if (!Array.isArray(document?.bossDrops)) return;
+                document.bossDrops.forEach((drop) => {
                     if (!drop?.monsterId) return;
                     const list = this.bossDropsByMonster.get(drop.monsterId) || [];
                     list.push(drop);
                     this.bossDropsByMonster.set(drop.monsterId, list);
                 });
-            }
+            });
+
+            this.loadedCatalog = catalog;
         } catch (error) {
             Logger.error('Failed to load item data', error);
         }
+    }
+
+    async _loadCatalog() {
+        try {
+            const catalog = await this.resourceManager.loadJSON(ITEM_CATALOG_PATH);
+            if (!catalog || !Array.isArray(catalog.items)) {
+                throw new Error('Item catalog is missing its items array');
+            }
+            return catalog;
+        } catch (error) {
+            Logger.warn('Item catalog unavailable; loading the legacy item manifest', error);
+            return LEGACY_ITEM_CATALOG;
+        }
+    }
+
+    async _loadCatalogEntries(entries) {
+        const normalizedEntries = Array.isArray(entries)
+            ? entries
+            : (entries ? [entries] : []);
+        return Promise.all(normalizedEntries.map((entry) => (
+            this.resourceManager.loadJSON(this._resolveCatalogEntryPath(entry))
+        )));
+    }
+
+    _resolveCatalogEntryPath(entry) {
+        const file = typeof entry === 'string'
+            ? entry
+            : (entry?.file || entry?.path);
+        if (!file || typeof file !== 'string') {
+            throw new Error('Item catalog entry must contain a file path');
+        }
+        if (file.startsWith('/')) return file;
+        return `${ITEM_DATA_BASE_PATH}${file.replace(/^\.\//, '')}`;
     }
 
     getItemDefinition(id) {
@@ -217,6 +277,58 @@ export default class ItemDataManager {
 
     getEnhancementRuleSet(id) {
         return this.enhancementRuleSets.get(id) || null;
+    }
+
+    getDurableEntitlementPolicy(item) {
+        return resolveDurableBossEntitlementPolicy(item);
+    }
+
+    isDurableEntitlement(item) {
+        const version = Number(item?.durableEntitlementVersion);
+        return Number.isInteger(version) && version > 0;
+    }
+
+    getEffectiveItemDefinition(item) {
+        if (!item) return null;
+        const durablePolicy = this.getDurableEntitlementPolicy(item);
+        if (!durablePolicy) {
+            return this.isDurableEntitlement(item)
+                ? null
+                : this.getItemDefinition(item.type || item.id);
+        }
+        const policy = durablePolicy.item;
+        return {
+            id: durablePolicy.itemId,
+            name: policy.name,
+            description: policy.description || '',
+            stackable: false,
+            slot: 'weapon',
+            rarity: policy.rarity || 'boss',
+            baseStats: policy.baseStats,
+            enhancementBonuses: policy.enhancementBonuses,
+            enhancementRuleSet: policy.enhancementRuleSet,
+            icon: {
+                fallbackEmoji: policy.icon,
+                path: policy.iconPath
+            },
+            visuals: policy.visuals || null
+        };
+    }
+
+    getEffectiveAffixDefinition(item) {
+        if (!item) return null;
+        const durablePolicy = this.getDurableEntitlementPolicy(item);
+        if (durablePolicy) return durablePolicy.affix;
+        return this.isDurableEntitlement(item) ? null : this.getAffixDefinition(item.prefixId);
+    }
+
+    getEffectiveEnhancementRuleSet(item) {
+        if (!item) return null;
+        const durablePolicy = this.getDurableEntitlementPolicy(item);
+        if (durablePolicy) return durablePolicy.enhancementRuleSet;
+        if (this.isDurableEntitlement(item)) return null;
+        const definition = this.getItemDefinition(item.type || item.id);
+        return this.getEnhancementRuleSet(item.enhancementRuleSet || definition?.enhancementRuleSet);
     }
 
     getGlobalDrops() {
@@ -309,6 +421,57 @@ export default class ItemDataManager {
         if (item.type === 'manastone' || item.type === 'gold') return item;
         if (REMOVED_LEGACY_ITEM_IDS.has(item.type || item.id)) return null;
 
+        // Resolve durable weapons exclusively from the append-only policy. This
+        // both survives live catalog drift and prevents saved profile fields from
+        // redefining the weapon's stats, affix hooks, or visuals.
+        const legacyMigration = this.isDurableEntitlement(item)
+            ? null
+            : resolveLegacyBossEntitlementMigration(item);
+        const entitlementItem = legacyMigration?.migratedItem || item;
+        if (this.isDurableEntitlement(entitlementItem)) {
+            const durablePolicy = this.getDurableEntitlementPolicy(entitlementItem);
+            if (!durablePolicy
+                || typeof entitlementItem.instanceId !== 'string'
+                || !entitlementItem.instanceId
+                || entitlementItem.instanceId.length > 128) return null;
+            const policy = durablePolicy.item;
+            const affix = durablePolicy.affix;
+            const rawEnhancementLevel = Number(entitlementItem.enhancementLevel || 0);
+            const enhancementLevel = Number.isFinite(rawEnhancementLevel)
+                ? Math.max(0, Math.min(
+                    durablePolicy.enhancementRuleSet?.maxLevel || 10,
+                    Math.floor(rawEnhancementLevel)
+                ))
+                : 0;
+            return {
+                id: durablePolicy.itemId,
+                type: durablePolicy.itemId,
+                amount: 1,
+                instanceId: entitlementItem.instanceId,
+                name: affix.displayName || policy.name,
+                baseName: policy.name,
+                icon: policy.icon,
+                iconPath: policy.iconPath,
+                stackable: false,
+                slot: 'weapon',
+                rarity: policy.rarity || 'boss',
+                prefixId: affix.id,
+                prefix: affix.prefix || null,
+                rolledValues: Object.fromEntries(
+                    Object.keys(affix.rolledEffects || {}).map((key) => [key, Number(entitlementItem.rolledValues[key])])
+                ),
+                isNewlyAcquired: !!entitlementItem.isNewlyAcquired,
+                enhancementLevel,
+                enhancementRuleSet: policy.enhancementRuleSet,
+                enhancementBonuses: { ...policy.enhancementBonuses },
+                baseStats: { ...policy.baseStats },
+                description: policy.description || '',
+                visuals: policy.visuals || null,
+                durableEntitlementVersion: durablePolicy.version,
+                durableEntitlementBossTypeId: durablePolicy.bossTypeId
+            };
+        }
+
         const definition = this.getItemDefinition(item.type || item.id);
         if (!definition) {
             return {
@@ -383,8 +546,8 @@ export default class ItemDataManager {
 
     getAuraState(item) {
         if (!item) return null;
-        const definition = this.getItemDefinition(item.type || item.id);
-        const affix = this.getAffixDefinition(item.prefixId);
+        const definition = this.getEffectiveItemDefinition(item);
+        const affix = this.getEffectiveAffixDefinition(item);
         if (!definition?.visuals?.equipAura || !affix) return null;
 
         const auraConfig = definition.visuals.equipAura;
@@ -421,9 +584,7 @@ export default class ItemDataManager {
 
     getEnhancementConfig(item) {
         if (!item) return null;
-        const definition = this.getItemDefinition(item.type || item.id);
-        const ruleSetId = item.enhancementRuleSet || definition?.enhancementRuleSet;
-        const ruleSet = this.getEnhancementRuleSet(ruleSetId);
+        const ruleSet = this.getEffectiveEnhancementRuleSet(item);
         if (!ruleSet) return null;
 
         const nextLevel = Math.min(ruleSet.maxLevel || 10, Math.max(0, item.enhancementLevel || 0) + 1);

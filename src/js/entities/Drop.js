@@ -8,6 +8,9 @@ export default class Drop extends Entity {
         this.itemId = options.itemId || null;
         this.name = options.name || '';
         this.icon = options.icon || null;
+        this.sourceRewardId = options.sourceRewardId || null;
+        this.dropWorldEpoch = Math.max(0, Math.floor(Number(options.dropWorldEpoch || 0)));
+        this.dropFieldEpoch = Math.max(0, Math.floor(Number(options.dropFieldEpoch || 0)));
         this.amount = amount;
         this.ownerId = options.ownerId || null;
         this.partyMembers = Array.isArray(options.partyMembers) ? options.partyMembers : null;
@@ -16,6 +19,8 @@ export default class Drop extends Entity {
             : null;
         this.spawnedAt = Number(options.ts || Date.now());
         this.expiresAt = Number(options.expiresAt || (this.spawnedAt + 30000));
+        this.sourceAuthoredAt = Number(options.sourceAuthoredAt || 0);
+        this.sourceExpiresAt = Number(options.sourceExpiresAt || 0);
         this.radius = 15;
         this.isCollected = false;
         this.isLocallyCollected = false; // Prevent spam
@@ -87,7 +92,8 @@ export default class Drop extends Entity {
     }
 
     isExpired(now = Date.now()) {
-        return now >= this.expiresAt;
+        return now >= this.expiresAt
+            || (this.sourceExpiresAt > 0 && now >= this.sourceExpiresAt);
     }
 
     render(ctx, camera) {

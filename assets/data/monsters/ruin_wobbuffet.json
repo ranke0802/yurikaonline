@@ -1,0 +1,104 @@
+{
+  "id": "ruin_wobbuffet",
+  "name": "유적의 마자용",
+  "type": "boss",
+  "isBoss": true,
+  "spriteVersionNumber": 2,
+  "baseStats": {
+    "level": 9,
+    "hp": 4500,
+    "maxHp": 4500,
+    "mp": 800,
+    "maxMp": 800,
+    "atk": 24,
+    "def": 12,
+    "speed": 34,
+    "exp": 1800,
+    "hpRegen": 3
+  },
+  "visual": {
+    "assetPath": "assets/resource/monsters/ruin_wobbuffet/spritesheet.webp",
+    "spriteVersionNumber": 2,
+    "width": 132,
+    "height": 150,
+    "renderWidth": 240,
+    "renderHeight": 260,
+    "frameSpeed": 0.11,
+    "frameCount": 7,
+    "scale": 1,
+    "spriteSheet": {
+      "columns": 8,
+      "rows": 11,
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "contentBounds": {
+        "left": 54,
+        "top": 98,
+        "right": 138,
+        "bottom": 194
+      },
+      "alignContentToGround": true,
+      "rowMap": {
+        "idle": 0,
+        "moveRight": 1,
+        "moveLeft": 2
+      },
+      "frameCounts": {
+        "idle": 7,
+        "moveRight": 8,
+        "moveLeft": 8
+      },
+      "sha256": "60059916937bc933e56153cfa5585d144e6812fd116c1f28011bac18954f4f16"
+    },
+    "bossEffects": {
+      "auraColor": "#56dce8",
+      "secondaryColor": "#c6fbff",
+      "particleColor": "#72e9ff",
+      "pulseSpeed": 1.15,
+      "ringCount": 2,
+      "shadowScale": 1.35,
+      "shakeIntensity": 12,
+      "shakeDuration": 0.35,
+      "hitstopMs": 80
+    }
+  },
+  "behavior": {
+    "isBoss": true,
+    "aggroRange": 480,
+    "attackRange": 112,
+    "attackCooldownMs": 1350,
+    "leashRange": 900
+  },
+  "sounds": {
+    "attack": "sfx_boss_attack",
+    "hit": "sfx_boss_hit",
+    "die": "sfx_boss_die",
+    "move": "sfx_boss_move"
+  },
+  "skills": [
+    {
+      "id": "shield",
+      "trigger": "cooldown",
+      "cooldown": 10000,
+      "data": {
+        "duration": 1400
+      }
+    },
+    {
+      "id": "missile",
+      "trigger": "cooldown",
+      "cooldown": 7500,
+      "data": {
+        "count": 3
+      }
+    }
+  ],
+  "drops": [
+    {
+      "itemId": "manastone",
+      "min": 2400,
+      "max": 3000,
+      "chance": 1
+    }
+  ]
+}

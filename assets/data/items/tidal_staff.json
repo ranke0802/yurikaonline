@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "tidal_staff",
+  "name": "해일의 지팡이",
+  "description": "안개빛 호수의 마력을 머금어 파이어볼을 푸른 연쇄 폭발로 바꿉니다.",
+  "slot": "weapon",
+  "rarity": "boss",
+  "stackable": false,
+  "dropSource": [
+    "ruin_wobbuffet"
+  ],
+  "baseStats": {
+    "attackPower": 8,
+    "critRate": 0.06,
+    "mpRegen": 4
+  },
+  "icon": {
+    "type": "image",
+    "path": "src/assets/items/tidal_staff.svg",
+    "fallbackEmoji": "🔱"
+  },
+  "prefixPool": "tidal_staff_affixes",
+  "enhancementRuleSet": "weapon_standard_1_to_10",
+  "enhancementBonuses": {
+    "attackPowerPerLevel": 1,
+    "critRatePerLevel": 0.01
+  },
+  "inventoryTooltip": {
+    "className": "마법 지팡이",
+    "material": "안개 수정",
+    "weight": 9,
+    "tradeable": false,
+    "dismantleable": true
+  },
+  "visuals": {
+    "equipAura": {
+      "mode": "prefix_plus_enhancement",
+      "prefixAuraProfiles": {
+        "tidal_blue": {
+          "baseColor": "#38c8f0",
+          "secondaryColor": "#c4f7ff",
+          "particleStyle": "blue_flame"
+        }
+      }
+    }
+  },
+  "instanceData": {
+    "prefixId": "random_from_pool",
+    "rolledValues": "from_affix_roll_ranges",
+    "enhancementLevel": 0
+  }
+}

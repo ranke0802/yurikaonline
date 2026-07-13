@@ -39,6 +39,9 @@ export default class WorldScene extends Scene {
         this.monsterMissileTimer = 0;
         this.safeZone = null;
         this.zoneSpawnRules = [];
+        this.zoneCatalog = [];
+        this.isZoneTransitioning = false;
+        this.zoneTransitionToken = 0;
         this._handleHostChanged = null;
     }
 
@@ -98,6 +101,9 @@ export default class WorldScene extends Scene {
 
     async enter(params) {
         Logger.info("[WorldScene] Entering game world...");
+        const user = params.user;
+        const profile = params.profile || null;
+        const localName = params.localName;
         this.ui?.showHUD();
         this.remotePlayers.clear();
         this.monsterManager?.clearAll?.({ preserveNetwork: true });
@@ -110,37 +116,16 @@ export default class WorldScene extends Scene {
         // v0.00.02: Restore asset loading which was cut from main.js
         if (this.game.updateLoading) this.game.updateLoading('월드 데이터 다운로드 중...', 40);
 
-        // 1. Load Zone Data
-        const zoneData = await this.game.zone.loadZone('zone_1');
-
-        // 2. Setup Camera Bounds
-        if (zoneData) {
-            this.zoneSpawnRules = zoneData.monsterSpawns || zoneData.spawns || [];
-            this.camera.setWorldBounds(this.game.zone.width, this.game.zone.height);
-            const defaultSpawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
-            this.safeZone = {
-                x: defaultSpawn.x,
-                y: defaultSpawn.y,
-                radius: 260
-            };
-
-            // 3. Setup Monster Spawns
-            if (this.net.isHost && this.monsterManager) {
-                this._ensureHostSpawnRulesLoaded({ clearExisting: true, primeSpawn: false });
-            }
-
-            // 4. Place Objects
-            // v2.0: Dynamic Object Placement from JSON
-            this.mapObjects = []; // Reset objects
-            this.staticColliders = []; // For collision checking
-
-            if (zoneData.objects) {
-                Logger.log(`[WorldScene] Placing ${zoneData.objects.length} objects...`);
-                zoneData.objects.forEach(objDef => {
-                    this._createMapObject(objDef);
-                });
-            }
-        }
+        // 1. Load the saved field when it is still unlocked. Legacy profiles default to zone_1.
+        this.zoneCatalog = await this.game.zone.loadZoneCatalog();
+        const requestedZoneId = profile?.currentZoneId || profile?.mapId || 'zone_1';
+        const requestedZoneMeta = this.game.zone.getZoneMeta(requestedZoneId);
+        const profileLevel = Math.max(1, Number(profile?.level || 1));
+        const initialZoneId = requestedZoneMeta && profileLevel >= Number(requestedZoneMeta.requiredLevel || 1)
+            ? requestedZoneId
+            : 'zone_1';
+        const zoneData = await this.game.zone.loadZone(initialZoneId);
+        this._applyZoneData(zoneData, { clearExisting: true, primeSpawn: false });
 
         try {
             await this.resources.loadImage('/src/assets/character.webp');
@@ -148,11 +133,9 @@ export default class WorldScene extends Scene {
             Logger.error('Failed to load character sprite', e);
         }
 
-        const user = params.user;
-        const startX = params.startX;
-        const startY = params.startY;
-        const profile = params.profile;
-        const localName = params.localName;
+        const defaultSpawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
+        const startX = Number.isFinite(params.startX) ? params.startX : defaultSpawn.x;
+        const startY = Number.isFinite(params.startY) ? params.startY : defaultSpawn.y;
 
         // v1.99.12: Load FULL sprite sheet (preview loaded only partial)
         await this.resources.loadCharacterSpriteSheet();
@@ -167,6 +150,16 @@ export default class WorldScene extends Scene {
         // Spawn Player
         this.player = new Player(startX, startY, localName, charDef);
         this.player.id = user.uid;
+        this.player.currentZoneId = initialZoneId;
+        this.player.mapPositions = profile?.mapPositions && typeof profile.mapPositions === 'object'
+            ? { ...profile.mapPositions }
+            : {};
+        this.player.pendingItemRewards = Array.isArray(profile?.pendingItemRewards)
+            ? profile.pendingItemRewards.map((item) => ({ ...item }))
+            : [];
+        this.player.claimedRewardIds = Array.isArray(profile?.claimedRewardIds)
+            ? profile.claimedRewardIds.filter((id) => typeof id === 'string' && id).slice(-128)
+            : [];
         this.game.localPlayer = this.player; // Global reference for UIManager / MonsterAI
         let shouldRecoverFromStoredDeath = false;
 
@@ -268,10 +261,17 @@ export default class WorldScene extends Scene {
                 this.player.mp = Math.min(this.player.maxMp, Math.max(0, Number(profile.mp) || 0));
             }
 
-            // v0.00.84: Restore saved position with params priority
+            // Restore a position only from the same field. Legacy profiles use x/y in zone_1.
             const fallbackSpawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
-            const posX = shouldRecoverFromStoredDeath ? fallbackSpawn.x : (profile.x ?? params.startX);
-            const posY = shouldRecoverFromStoredDeath ? fallbackSpawn.y : (profile.y ?? params.startY);
+            const legacyProfileZoneId = profile.currentZoneId || profile.mapId || 'zone_1';
+            const storedMapPosition = profile.mapPositions?.[initialZoneId]
+                || (legacyProfileZoneId === initialZoneId ? { x: profile.x, y: profile.y } : null);
+            const posX = shouldRecoverFromStoredDeath
+                ? fallbackSpawn.x
+                : (Number.isFinite(storedMapPosition?.x) ? storedMapPosition.x : fallbackSpawn.x);
+            const posY = shouldRecoverFromStoredDeath
+                ? fallbackSpawn.y
+                : (Number.isFinite(storedMapPosition?.y) ? storedMapPosition.y : fallbackSpawn.y);
 
             if (typeof posX === 'number' && typeof posY === 'number') {
                 this.player.x = posX;
@@ -279,7 +279,9 @@ export default class WorldScene extends Scene {
                 Logger.debug(`[WorldScene] Position set to: (${this.player.x}, ${this.player.y})`);
 
                 // v2.3.3: Boundary Check (Move to after Restoration)
-                if (this.player.x >= this.game.zone.width || this.player.y >= this.game.zone.height) {
+                if (this.player.x < 0 || this.player.y < 0
+                    || this.player.x + this.player.width > this.game.zone.width
+                    || this.player.y + this.player.height > this.game.zone.height) {
                     Logger.warn(`[WorldScene] Restoration out of bounds (${this.player.x}, ${this.player.y}). Resetting.`);
                     const spawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
                     this.player.x = spawn.x;
@@ -327,6 +329,7 @@ export default class WorldScene extends Scene {
 
         this.ui?.loadPlayerSettings?.(this.player.clientSettings || null);
         this.player.init(this.input, this.resources, this.net);
+        this.player.claimPendingItemRewards?.();
         this.net.flushPendingFriendGiftRefunds?.();
         if (!this.player.recoveryUid) {
             this.player.recoveryUid = user.uid;
@@ -338,6 +341,7 @@ export default class WorldScene extends Scene {
                 reason: 'normalize_recovery_uid'
             });
         }
+        await this.net.handleLocalZoneChanged?.('zone_restore');
         this.net.resetToSoloPartyState(false);
         this.net.handleLocalPartyStateChanged('world_enter_force_solo');
         this.player.grantSpawnProtection(5);
@@ -345,6 +349,14 @@ export default class WorldScene extends Scene {
 
         // Setup Network Handlers
         this._setupNetworkHandlers();
+        await this.net.setNormalRewardConsumer?.((reward) => (
+            this.player?.receiveNormalRewardDurably?.(reward)
+                || Promise.resolve({ ok: false, reason: 'player_unavailable' })
+        ));
+        await this.net.setDurableRewardConsumer?.((reward) => (
+            this.player?.receiveRewardDurably?.(reward)
+                || Promise.resolve({ ok: false, reason: 'player_unavailable' })
+        ));
 
         await this.monsterManager?.restorePendingIntroBossQuest?.(this.player, {
             reason: 'world_enter_reconnect'
@@ -368,10 +380,8 @@ export default class WorldScene extends Scene {
                 Logger.debug(`[WorldScene] Claimed name mapping: ${this.player.name} -> ${this.player.id}`);
             }
         }
-        // v0.00.57: Play BGM
-        if (this.game.sound) {
-            this.game.sound.loadAndPlayBgm('bgm_cabin');
-        }
+        this.ui?.updateMapContext?.(this.game.zone.currentZone, this.game.zone.getZoneMeta(initialZoneId));
+        this._playZoneBgm(zoneData);
 
         if (shouldDeferZoneParticipation) {
             this.game.tutorial?.startTutorial?.('basic_training');
@@ -379,6 +389,175 @@ export default class WorldScene extends Scene {
             this.activateZoneParticipation();
         }
         this.ui?.armBrowserBackExitGuard?.();
+    }
+
+    _applyZoneData(zoneData, options = {}) {
+        if (!zoneData) return;
+        this.zoneSpawnRules = zoneData.monsterSpawns || zoneData.spawns || [];
+        this.camera.setWorldBounds(this.game.zone.width, this.game.zone.height);
+        const defaultSpawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
+        this.safeZone = {
+            x: defaultSpawn.x,
+            y: defaultSpawn.y,
+            radius: Math.max(120, Number(zoneData.safeZoneRadius || 260))
+        };
+
+        this.mapObjects = [];
+        this.staticColliders = [];
+        (zoneData.objects || []).forEach((objectDefinition) => this._createMapObject(objectDefinition));
+
+        this.monsterManager?.setSpawnRules?.(this.zoneSpawnRules, {
+            zoneId: zoneData.id,
+            bossSpawn: zoneData.bossSpawn || null,
+            primeSpawn: options.primeSpawn !== false
+        });
+        if (options.clearExisting) {
+            this.monsterManager?.clearAll?.({ preserveNetwork: !!options.preserveNetwork });
+        }
+        this.ui?.updateMapContext?.(zoneData, this.game.zone.getZoneMeta(zoneData.id));
+    }
+
+    _playZoneBgm(zoneData = this.game.zone?.currentZone) {
+        const bgmId = zoneData?.background?.music || 'bgm_cabin';
+        this.game.sound?.loadAndPlayBgm?.(bgmId);
+    }
+
+    getZoneTravelState(zoneId) {
+        const meta = this.game.zone?.getZoneMeta?.(zoneId);
+        if (!meta) return { ok: false, reason: 'unknown_zone', meta: null };
+        if (!this.player) return { ok: false, reason: 'no_player', meta };
+        if (this.game.zone?.currentZone?.id === zoneId) return { ok: false, reason: 'current_zone', meta };
+        if (this.player.level < Number(meta.requiredLevel || 1)) return { ok: false, reason: 'level_locked', meta };
+        if (this.player.isDead || this.player.isDying) return { ok: false, reason: 'dead', meta };
+        if (this.game.story?.isStoryActive || this.game.tutorial?.activeTutorial) return { ok: false, reason: 'story_locked', meta };
+        if (this.isZoneTransitioning) return { ok: false, reason: 'transitioning', meta };
+        return { ok: true, reason: 'available', meta };
+    }
+
+    async changeZone(targetZoneId) {
+        const travelState = this.getZoneTravelState(targetZoneId);
+        if (!travelState.ok) {
+            const messages = {
+                current_zone: '현재 머무르고 있는 필드입니다.',
+                level_locked: `레벨 ${travelState.meta?.requiredLevel || 1}부터 이동할 수 있습니다.`,
+                dead: '부활한 뒤 필드를 이동할 수 있습니다.',
+                story_locked: '진행 중인 이야기나 훈련을 마친 뒤 이동할 수 있습니다.',
+                transitioning: '이미 필드를 이동하고 있습니다.',
+                unknown_zone: '존재하지 않는 필드입니다.'
+            };
+            this.ui?.logSystemMessage?.(`⚠️ ${messages[travelState.reason] || '지금은 이동할 수 없습니다.'}`);
+            return false;
+        }
+
+        const previousZoneId = this.game.zone.currentZone?.id || 'zone_1';
+        const previousPosition = { x: this.player.x, y: this.player.y };
+        const previousRespawn = { x: this.player.spawnX, y: this.player.spawnY };
+        const previousMapPositions = { ...(this.player.mapPositions || {}) };
+        const previousZoneMeta = this.game.zone.getZoneMeta(previousZoneId);
+        const previousZoneRuntime = this.game.zone.createRuntimeSnapshot?.() || null;
+        const transitionToken = ++this.zoneTransitionToken;
+        this.isZoneTransitioning = true;
+        this.player.grantSpawnProtection?.(7);
+        this.ui?.hideGenericModal?.();
+        this.ui?.showCenterMessage?.(`${travelState.meta.name}(으)로 이동 중...`, '#bfe8ff', { duration: 1200 });
+
+        try {
+            this.player.saveState(true, { debounceMs: 0, reason: 'zone_departure' });
+            this.player.stopBasicAttackChanneling?.();
+            this.player.cancelFireballAim?.();
+            this.player.clearCurrentTarget?.();
+            this.player.isAttacking = false;
+            this.player.isChanneling = false;
+            this.player.vx = 0;
+            this.player.vy = 0;
+            this.player.missileFireQueue.length = 0;
+            // Settle attacks in the field where they were authored before any
+            // local entities are cleared or the network field id changes.
+            await Promise.resolve(this.net?.flushBatchQueue?.());
+            if (this.net?.isHost && !this.net?.shouldUseMonsterQuietMode?.()) {
+                await Promise.resolve(this.monsterManager?.forceSyncAll?.({ includeDead: true }));
+            }
+            this._clearTransientWorldEffects();
+            this.monsterManager?.resetCombatTargets?.();
+            this.monsterManager?.clearAll?.({ preserveNetwork: true });
+            this.remotePlayers.clear();
+
+            const zoneData = await this.game.zone.loadZone(targetZoneId);
+            if (transitionToken !== this.zoneTransitionToken) return false;
+            if (!zoneData || zoneData.id !== targetZoneId) {
+                throw new Error(`Zone load mismatch: requested=${targetZoneId}, loaded=${zoneData?.id || 'none'}`);
+            }
+
+            this._applyZoneData(zoneData, { clearExisting: false, primeSpawn: false });
+            const spawn = this.game.zone.getSpawnPoint('default') || { x: this.game.zone.width / 2, y: this.game.zone.height / 2 };
+            const storedPosition = this.player.mapPositions?.[targetZoneId];
+            this.player.x = Number.isFinite(storedPosition?.x) ? storedPosition.x : spawn.x;
+            this.player.y = Number.isFinite(storedPosition?.y) ? storedPosition.y : spawn.y;
+            if (this.checkCollision(this.player.x, this.player.y, this.player.width, this.player.height)) {
+                this.player.x = spawn.x;
+                this.player.y = spawn.y;
+            }
+            this.player.currentZoneId = targetZoneId;
+            this.player.mapPositions = {
+                ...(this.player.mapPositions || {}),
+                [targetZoneId]: { x: Math.round(this.player.x), y: Math.round(this.player.y) }
+            };
+            this.player.spawnX = spawn.x;
+            this.player.spawnY = spawn.y;
+            this.player.grantSpawnProtection?.(7);
+
+            await Promise.resolve(this.net?.handleLocalZoneChanged?.('zone_travel'));
+            this._ensureHostSpawnRulesLoaded({ clearExisting: false, primeSpawn: true });
+            if (targetZoneId === 'zone_1') {
+                await this.monsterManager?.restorePendingIntroBossQuest?.(this.player, {
+                    reason: 'zone_return'
+                });
+            }
+            this._syncRemotePlayersFromBuffer();
+            this.net?.sendMovePacket?.(this.player.x, this.player.y, 0, 0, this.player.name);
+            this.net?.sendPlayerHp?.(this.player.hp, this.player.maxHp);
+            this.net?.sendHeartbeat?.();
+            this.player.saveState(true, { debounceMs: 0, reason: 'zone_arrival' });
+            this._playZoneBgm(zoneData);
+            this.ui?.updateMapContext?.(zoneData, travelState.meta);
+            this.ui?.showCenterMessage?.(`${travelState.meta.name} 도착`, travelState.meta.accentColor || '#9fffc8', {
+                duration: 2200
+            });
+            this.ui?.logSystemMessage?.(`🗺️ ${travelState.meta.name}에 도착했습니다. 7초 동안 보호됩니다.`);
+            return true;
+        } catch (error) {
+            Logger.error(`[WorldScene] Failed to change zone to ${targetZoneId}`, error);
+            let restoredZone = await this.game.zone.loadZone(previousZoneId);
+            if (!restoredZone || restoredZone.id !== previousZoneId) {
+                Logger.warn(`[WorldScene] Reloading ${previousZoneId} failed; restoring the in-memory zone snapshot.`);
+                restoredZone = this.game.zone.restoreRuntimeSnapshot?.(previousZoneRuntime) || null;
+            }
+            if (!restoredZone || restoredZone.id !== previousZoneId) {
+                throw new Error(`Zone rollback failed: expected=${previousZoneId}, restored=${restoredZone?.id || 'none'}`);
+            }
+            this._applyZoneData(restoredZone, { clearExisting: false, primeSpawn: false });
+            this.player.x = previousPosition.x;
+            this.player.y = previousPosition.y;
+            this.player.currentZoneId = previousZoneId;
+            this.player.mapPositions = previousMapPositions;
+            const restoredSpawn = this.game.zone.getSpawnPoint('default') || previousPosition;
+            this.player.spawnX = Number.isFinite(previousRespawn.x) ? previousRespawn.x : restoredSpawn.x;
+            this.player.spawnY = Number.isFinite(previousRespawn.y) ? previousRespawn.y : restoredSpawn.y;
+            await Promise.resolve(this.net?.handleLocalZoneChanged?.('zone_travel_rollback'));
+            this._ensureHostSpawnRulesLoaded({ clearExisting: false, primeSpawn: true });
+            this._playZoneBgm(restoredZone);
+            this.ui?.updateMapContext?.(restoredZone, previousZoneMeta);
+            this.player.saveState(true, { debounceMs: 0, reason: 'zone_travel_rollback' });
+            this.ui?.showGenericModal?.('필드 이동 실패', '필드 데이터를 불러오지 못했습니다. 기존 위치로 돌아왔습니다.', null, null, {
+                hideNo: true,
+                yesText: '확인'
+            });
+            return false;
+        } finally {
+            if (transitionToken === this.zoneTransitionToken) {
+                this.isZoneTransitioning = false;
+            }
+        }
     }
 
     isPointInSafeZone(x, y, padding = 0) {
@@ -391,6 +570,7 @@ export default class WorldScene extends Scene {
     isPlayerProtected(player) {
         if (!player) return false;
 
+        if (this.isZoneTransitioning) return true;
         if (this.game.story?.isStoryActive) return true;
         if (this.game.tutorial?.activeTutorial) return true;
 
@@ -478,12 +658,26 @@ export default class WorldScene extends Scene {
         const spawnRules = Array.isArray(this.zoneSpawnRules) && this.zoneSpawnRules.length > 0
             ? this.zoneSpawnRules
             : (this.game.zone?.currentZone?.monsterSpawns || this.game.zone?.currentZone?.spawns || []);
+        const zoneData = this.game.zone?.currentZone;
 
-        if (!Array.isArray(spawnRules) || spawnRules.length === 0) {
+        if ((!Array.isArray(spawnRules) || spawnRules.length === 0) && !zoneData?.bossSpawn) {
             return false;
         }
 
-        this.monsterManager.setSpawnRules(spawnRules);
+        const zoneId = zoneData?.id || 'zone_1';
+        const currentBossId = this.monsterManager.zoneBossRule?.monsterId || null;
+        const nextBossId = zoneData?.bossSpawn?.monsterId || null;
+        const alreadyConfiguredForZone = this.monsterManager.activeZoneId === zoneId
+            && Array.isArray(this.monsterManager.spawnRules)
+            && this.monsterManager.spawnRules.length === spawnRules.length
+            && currentBossId === nextBossId;
+        if (!alreadyConfiguredForZone) {
+            this.monsterManager.setSpawnRules(spawnRules, {
+                zoneId,
+                bossSpawn: zoneData?.bossSpawn || null,
+                primeSpawn: options.primeSpawn !== false
+            });
+        }
 
         if (options.clearExisting) {
             this.monsterManager.clearAll();
@@ -538,11 +732,26 @@ export default class WorldScene extends Scene {
     }
 
     _setupNetworkHandlers() {
+        if (Array.isArray(this._networkHandlerBindings) && this._networkHandlerBindings.length > 0) return;
+        this._networkHandlerBindings = [];
+        const bindNetworkHandler = (eventName, handler) => {
+            this.net.on(eventName, handler);
+            this._networkHandlerBindings.push({ eventName, handler });
+            return handler;
+        };
+
         if (!this._handleHostChanged) {
             const promoteToHost = () => {
                 this._ensureHostSpawnRulesLoaded();
                 this.monsterManager?.resetCombatTargets?.({ clearChargeState: true });
-                this.monsterManager?.restoreAuthoritativeMonstersFromHostSnapshot?.()
+                const restorePromise = this.monsterManager?.restoreAuthoritativeFieldState
+                    ? this.monsterManager.restoreAuthoritativeFieldState({
+                        settleMs: 0,
+                        publishWhenReady: this.net?.isSharedFieldActive?.() || false,
+                        waitForResidentPublish: this.net?.isSharedFieldActive?.() || false
+                    })
+                    : this.monsterManager?.restoreAuthoritativeMonstersFromHostSnapshot?.();
+                Promise.resolve(restorePromise)
                     .then(() => {
                         this.monsterManager?.resetCombatTargets?.({ clearChargeState: true });
                     })
@@ -554,28 +763,48 @@ export default class WorldScene extends Scene {
                 if (!isHost) return;
                 promoteToHost();
             };
-            this.net.on('hostChanged', this._handleHostChanged);
+            bindNetworkHandler('hostChanged', this._handleHostChanged);
             if (this.net.isHost) {
                 promoteToHost();
             }
         }
 
-        this.net.on('rewardReceived', (data) => {
+        bindNetworkHandler('rewardReceived', (data) => {
             if (this.player) this.player.receiveReward(data);
         });
 
+        const handleProfileWriterSuperseded = () => {
+            if (this._profileWriterSuperseded) return;
+            this._profileWriterSuperseded = true;
+            if (this.player) {
+                this.player.autoAttackEnabled = false;
+                this.player.clearCurrentTarget?.();
+            }
+            this.net?.setZoneParticipationEnabled?.(false);
+            this.ui?.updateAutoAttackToggle?.(false);
+            this.ui?.showGenericModal?.(
+                '중복 접속 감지',
+                '같은 계정으로 열린 새 세션이 확인되어 이 화면의 플레이와 저장을 중단했습니다.<br><br>진행 유실을 막기 위해 이 탭을 다시 접속해 주세요.',
+                () => window.location?.reload?.(),
+                null,
+                { hideNo: true, yesText: '다시 접속' }
+            );
+        };
+        bindNetworkHandler('profileWriterSuperseded', handleProfileWriterSuperseded);
+        if (this.net?.isProfileWriterSuperseded?.()) handleProfileWriterSuperseded();
+
         // v0.00.43: Center Screen System Messages
-        this.net.on('systemMessage', (data) => {
+        bindNetworkHandler('systemMessage', (data) => {
             if (this.ui) this.ui.showCenterMessage(data.message, data.color);
         });
 
-        this.net.on('monsterDamageReceived', (data) => {
+        bindNetworkHandler('monsterDamageReceived', (data) => {
             const m = this.monsterManager?.monsters.get(data.mid);
             if (m) this.game.addSpark(m.x, m.y);
         });
 
         // v2.1: Emote Sync
-        this.net.on('emoteReceived', (data) => {
+        bindNetworkHandler('emoteReceived', (data) => {
             if (this.player && this.player.id === data.uid) {
                 this.player.showEmote(data.emoteId);
             } else {
@@ -597,7 +826,7 @@ export default class WorldScene extends Scene {
             }
         });
 
-        this.net.on('playerDamageReceived', (data) => {
+        bindNetworkHandler('playerDamageReceived', (data) => {
             let target = (this.player && this.player.id === data.tid) ? this.player : this.remotePlayers.get(data.tid);
             if (target) {
                 this.game.addSpark(target.x + target.width / 2, target.y + target.height / 2);
@@ -646,12 +875,12 @@ export default class WorldScene extends Scene {
             }
         });
 
-        this.net.on('playerJoined', (data) => {
+        bindNetworkHandler('playerJoined', (data) => {
             if (!this.net.isZoneParticipationEnabled()) return;
             this._spawnRemotePlayerFromData(data);
         });
 
-        this.net.on('playerUpdate', (data) => {
+        bindNetworkHandler('playerUpdate', (data) => {
             if (!this.net.isZoneParticipationEnabled()) return;
             if (!this.remotePlayers.has(data.id)) {
                 this._spawnRemotePlayerFromData(this.net.remotePlayers.get(data.id) || data);
@@ -660,11 +889,11 @@ export default class WorldScene extends Scene {
             if (rp) rp.onServerUpdate(data);
         });
 
-        this.net.on('playerLeft', (id) => {
+        bindNetworkHandler('playerLeft', (id) => {
             this.remotePlayers.delete(id);
         });
 
-        this.net.on('playerAttack', (data) => {
+        bindNetworkHandler('playerAttack', (data) => {
             if (!this.net.isZoneParticipationEnabled()) return;
             if (this.shouldSuppressTransientWorldEffects()) return;
             const rp = this._getOrSpawnRemotePlayer(data.id, data);
@@ -672,14 +901,14 @@ export default class WorldScene extends Scene {
         });
 
         // v0.00.37: Channeling sync for casting effects (spark, magic circle, attack motion)
-        this.net.on('playerChanneling', (data) => {
+        bindNetworkHandler('playerChanneling', (data) => {
             if (!this.net.isZoneParticipationEnabled()) return;
             if (this.shouldSuppressTransientWorldEffects()) return;
             const rp = this._getOrSpawnRemotePlayer(data.id, data);
             if (rp) rp.triggerChanneling(data);
         });
 
-        this.net.on('playerHpUpdate', (data) => {
+        bindNetworkHandler('playerHpUpdate', (data) => {
             if (!this.net.isZoneParticipationEnabled()) return;
             const rp = this._getOrSpawnRemotePlayer(data.id, data);
             if (rp) {
@@ -689,7 +918,7 @@ export default class WorldScene extends Scene {
         });
 
         // v0.33.0: Monster Attack Sync
-        this.net.on('monsterAttack', (data) => {
+        bindNetworkHandler('monsterAttack', (data) => {
             if (this.shouldSuppressTransientWorldEffects()) return;
             const m = this.monsterManager?.monsters.get(data.mid);
             if (!m) return;
@@ -755,11 +984,15 @@ export default class WorldScene extends Scene {
     }
 
     async exit() {
+        await this.net?.setNormalRewardConsumer?.(null);
+        await this.net?.setDurableRewardConsumer?.(null);
         this.ui?.disarmBrowserBackExitGuard?.();
-        if (this._handleHostChanged) {
-            this.net.off('hostChanged', this._handleHostChanged);
-            this._handleHostChanged = null;
-        }
+        this.ui?.hideGenericModal?.();
+        (this._networkHandlerBindings || []).forEach(({ eventName, handler }) => {
+            this.net.off(eventName, handler);
+        });
+        this._networkHandlerBindings = [];
+        this._handleHostChanged = null;
         this.remotePlayers.clear();
     }
 
@@ -863,6 +1096,7 @@ export default class WorldScene extends Scene {
     }
 
     update(dt) {
+        if (this.isZoneTransitioning || this._profileWriterSuperseded) return;
         if (this.shouldFreezeWorldForModalUi()) {
             return;
         }

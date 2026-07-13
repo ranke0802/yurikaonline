@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "tidal_staff_affixes",
+  "affixes": [
+    {
+      "id": "tidal_blue_flame",
+      "prefix": "해일을 품은",
+      "displayName": "해일을 품은 푸른 지팡이",
+      "skillOverrides": {
+        "fireballVisualVariant": "blue_fireball"
+      },
+      "rolledEffects": {
+        "fireballChainChance": {
+          "type": "multiplier_bonus",
+          "min": 0.24,
+          "max": 0.38,
+          "displayAsPercent": true
+        },
+        "fireballChainDamageRatio": {
+          "type": "multiplier_bonus",
+          "min": 0.45,
+          "max": 0.65,
+          "displayAsPercent": true
+        }
+      },
+      "visuals": {
+        "auraProfile": "tidal_blue",
+        "projectileTint": "#58ddff"
+      }
+    }
+  ]
+}

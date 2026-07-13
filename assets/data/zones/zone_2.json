@@ -1,0 +1,60 @@
+{
+  "id": "zone_2",
+  "name": "안개빛 호수",
+  "requiredLevel": 5,
+  "recommendedLevel": {
+    "min": 5,
+    "max": 9
+  },
+  "width": 3400,
+  "height": 3400,
+  "background": {
+    "image": "assets/resource/background.webp",
+    "music": "bgm_act1_peaceful",
+    "ambient": null
+  },
+  "theme": {
+    "tint": "#2f778c",
+    "tintAlpha": 0.34,
+    "motif": "mist_ripples",
+    "motifColor": "#9af3ff"
+  },
+  "boundaries": {
+    "minX": 0,
+    "maxX": 3400,
+    "minY": 0,
+    "maxY": 3400
+  },
+  "spawnPoints": [
+    {
+      "id": "default",
+      "x": 1700,
+      "y": 2920
+    }
+  ],
+  "monsterSpawns": [
+    {
+      "monsterId": "squirtle",
+      "count": 12,
+      "initialDelaySeconds": 2,
+      "respawnSeconds": 8,
+      "area": {
+        "x": 620,
+        "y": 620,
+        "w": 2160,
+        "h": 1760
+      }
+    }
+  ],
+  "bossSpawn": {
+    "monsterId": "ruin_wobbuffet",
+    "displayName": "유적의 마자용",
+    "point": {
+      "x": 1700,
+      "y": 760
+    },
+    "initialDelaySeconds": 35,
+    "respawnSeconds": 300
+  },
+  "objects": []
+}

@@ -19,6 +19,7 @@ export default class Monster extends CharacterBase {
 
         this.definition = definition;
         this.initialX = x;
+        this.initialY = y;
 
         // Apply Definition Data
         this.id = null; // Set by Manager
@@ -28,6 +29,10 @@ export default class Monster extends CharacterBase {
         this.maxHp = definition.baseStats?.maxHp ?? 100;
         this.atk = definition.baseStats?.atk ?? 10;
         this.def = definition.baseStats?.def ?? 0;
+        // Combat code consistently reads `defense` for both players and monsters.
+        // Keep the legacy `def` field for data/debug compatibility while exposing
+        // the canonical runtime property so authored monster DEF is not ignored.
+        this.defense = this.def;
         this.mp = definition.baseStats?.mp ?? 0;
         this.maxMp = definition.baseStats?.maxMp ?? 0;
         this.hpRegen = definition.baseStats?.hpRegen ?? 0;
@@ -35,12 +40,20 @@ export default class Monster extends CharacterBase {
         this.exp = definition.baseStats?.exp ?? 10;
 
         // Visual
-        this.width = definition.visual?.width ?? 80;
-        this.height = definition.visual?.height ?? 80;
-        this.frameSpeed = definition.visual?.frameSpeed ?? 0.15;
-        this.frameCount = definition.visual?.frameCount ?? 5;
-        this.assetPath = definition.visual?.assetPath || 'assets/resource/monster_slime';
-        this.scale = definition.visual?.scale ?? 1.0;
+        const visual = definition.visual || {};
+        this.width = visual.width ?? 80;
+        this.height = visual.height ?? 80;
+        this.renderWidth = Number.isFinite(visual.renderWidth) ? visual.renderWidth : null;
+        this.renderHeight = Number.isFinite(visual.renderHeight) ? visual.renderHeight : null;
+        this.frameSpeed = visual.frameSpeed ?? 0.15;
+        this.frameCount = visual.frameCount ?? 5;
+        this.assetPath = visual.assetPath || 'assets/resource/monster_slime';
+        this.scale = visual.scale ?? 1.0;
+        this.spriteVersionNumber = Number(visual.spriteVersionNumber ?? definition.spriteVersionNumber ?? 1);
+        this.spriteSheetDefinition = visual.spriteSheet || null;
+        this.spriteContentBounds = this.spriteSheetDefinition?.contentBounds || null;
+        this.alignSpriteContentToGround = this.spriteSheetDefinition?.alignContentToGround === true;
+        this.bossEffects = visual.bossEffects || {};
 
         // Components
         this.skills = definition.skills || [];
@@ -49,6 +62,24 @@ export default class Monster extends CharacterBase {
         this.sounds = definition.sounds || {};
         this.behavior = definition.behavior || {};
         this.fallbackShape = definition.visual?.fallbackShape || null;
+
+        const configuredAggroRange = Number(this.behavior.aggroRange);
+        const configuredAttackRange = Number(this.behavior.attackRange);
+        const configuredAttackCooldownMs = Number(this.behavior.attackCooldownMs);
+        const configuredLeashRange = Number(this.behavior.leashRange);
+        // Preserve legacy global acquisition when no aggro/leash values exist.
+        this.aggroRange = Number.isFinite(configuredAggroRange) && configuredAggroRange >= 0
+            ? configuredAggroRange
+            : Infinity;
+        this.attackRange = Number.isFinite(configuredAttackRange) && configuredAttackRange > 0
+            ? configuredAttackRange
+            : 55;
+        this.attackCooldownSeconds = Number.isFinite(configuredAttackCooldownMs) && configuredAttackCooldownMs >= 0
+            ? Math.max(0.05, configuredAttackCooldownMs / 1000)
+            : 1.5;
+        this.leashRange = Number.isFinite(configuredLeashRange) && configuredLeashRange > 0
+            ? configuredLeashRange
+            : Infinity;
 
         // States
         this.sprite = null;
@@ -70,7 +101,12 @@ export default class Monster extends CharacterBase {
         this.wanderVy = 0;
 
         this.isAggro = false;
-        this.isBoss = (this.typeId === 'king_slime');
+        this.isBoss = !!(
+            definition.isBoss
+            || definition.behavior?.isBoss
+            || definition.type === 'boss'
+            || this.typeId === 'king_slime'
+        );
         this.electrocutedTimer = 0;
         this.slowRatio = 0;
         this.sparkTimer = 0;
@@ -78,6 +114,7 @@ export default class Monster extends CharacterBase {
         this.lastAttackerId = null;
         this.lastDamageMeta = null;
         this.damageContributors = new Set();
+        this.damageContributorLevels = new Map();
         this.targetX = x;
         this.targetY = y;
         this.targetPlayer = null;
@@ -90,6 +127,28 @@ export default class Monster extends CharacterBase {
         this.remoteSyncTs = 0;
         this.remoteSyncState = 'idle';
         this.remoteCellId = '0_0';
+
+        // Codex pet v2 atlas runtime state. The imported monster sheets have an
+        // authored seventh idle frame even though other v2 packages may use six.
+        this.usesV2Atlas = false;
+        this.atlasColumns = 1;
+        this.atlasRows = 1;
+        this.atlasFrameWidth = 0;
+        this.atlasFrameHeight = 0;
+        this.atlasRowMap = {
+            idle: 0,
+            moveRight: 1,
+            moveLeft: 2,
+            ...(this.spriteSheetDefinition?.rowMap || {})
+        };
+        const configuredFrameCounts = this.spriteSheetDefinition?.frameCounts || {};
+        this.atlasFrameCounts = {
+            [this.atlasRowMap.idle]: Math.max(1, Number(configuredFrameCounts.idle || 7)),
+            [this.atlasRowMap.moveRight]: Math.max(1, Number(configuredFrameCounts.moveRight || 8)),
+            [this.atlasRowMap.moveLeft]: Math.max(1, Number(configuredFrameCounts.moveLeft || 8))
+        };
+        this.animationRow = this.atlasRowMap.idle;
+        this.lastHorizontalFacing = 1;
 
         // Specific Skill Cooldowns (Legacy Support)
         this.missileCooldown = 0;
@@ -114,6 +173,88 @@ export default class Monster extends CharacterBase {
 
 
     static spriteCache = {};
+    static spriteLoadPromises = {};
+
+    _getConfiguredAtlasLayout() {
+        const configured = this.spriteSheetDefinition || {};
+        return {
+            columns: Number(configured.columns || 8),
+            rows: Number(configured.rows || 11),
+            frameWidth: Number(configured.frameWidth || 192),
+            frameHeight: Number(configured.frameHeight || 208)
+        };
+    }
+
+    _applySpriteCacheEntry(entry) {
+        if (!entry) {
+            this.sprite = null;
+            return;
+        }
+
+        // Backward compatibility for cache entries created by the legacy
+        // directory-frame path before atlas metadata was added.
+        if (entry instanceof Sprite || !entry.sprite) {
+            this.sprite = entry;
+            this.usesV2Atlas = entry?.cols === 8 && entry?.rows === 11;
+            if (this.usesV2Atlas) {
+                this.atlasColumns = entry.cols;
+                this.atlasRows = entry.rows;
+                this.atlasFrameWidth = entry.sw;
+                this.atlasFrameHeight = entry.sh;
+            }
+            return;
+        }
+
+        this.sprite = entry.sprite;
+        this.usesV2Atlas = !!entry.usesV2Atlas;
+        if (entry.atlas) {
+            this.atlasColumns = entry.atlas.columns;
+            this.atlasRows = entry.atlas.rows;
+            this.atlasFrameWidth = entry.atlas.frameWidth;
+            this.atlasFrameHeight = entry.atlas.frameHeight;
+        }
+    }
+
+    _buildSingleFileSpriteEntry(img) {
+        const layout = this._getConfiguredAtlasLayout();
+        const matchesAtlas = img.width === layout.columns * layout.frameWidth
+            && img.height === layout.rows * layout.frameHeight;
+        const explicitlyV2 = this.spriteVersionNumber === 2 || !!this.spriteSheetDefinition;
+        const isCanonicalV2 = img.width === 1536 && img.height === 2288;
+
+        if (matchesAtlas && (explicitlyV2 || isCanonicalV2)) {
+            return {
+                sprite: new Sprite(img, layout.columns, layout.rows),
+                usesV2Atlas: true,
+                atlas: layout
+            };
+        }
+
+        if (explicitlyV2) {
+            Logger.warn(
+                `[Monster] Invalid v2 atlas dimensions for ${this.assetPath}: `
+                + `${img.width}x${img.height}, expected `
+                + `${layout.columns * layout.frameWidth}x${layout.rows * layout.frameHeight}.`
+            );
+            // Never squeeze a malformed atlas into one frame: that would make
+            // every cell appear at once. A neutral placeholder is safer and
+            // makes the asset contract violation immediately visible in logs.
+            return null;
+        }
+
+        const targetW = 256;
+        const targetH = 256;
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = targetW;
+        finalCanvas.height = targetH;
+        const finalCtx = finalCanvas.getContext('2d');
+        this.processAndDrawFrame(img, finalCtx, 0, 0, targetW, targetH);
+        return {
+            sprite: new Sprite(finalCanvas, 1, 1),
+            usesV2Atlas: false,
+            atlas: null
+        };
+    }
 
     async init(path) {
         if (!path) path = 'assets/resource/monster_slime'; // v2.3.5: Fixed typo and removed leading slash
@@ -122,7 +263,7 @@ export default class Monster extends CharacterBase {
 
         // Check Cache
         if (Monster.spriteCache[cacheKey]) {
-            this.sprite = Monster.spriteCache[cacheKey];
+            this._applySpriteCacheEntry(Monster.spriteCache[cacheKey]);
             this.ready = true;
             return;
         }
@@ -134,29 +275,29 @@ export default class Monster extends CharacterBase {
         const isSingleFile = path.toLowerCase().endsWith('.webp') || path.toLowerCase().endsWith('.png');
 
         if (isSingleFile) {
-            const img = new Image();
-            let v = window.GAME_VERSION;
-            // Fallback if version check failed
-            if (!v || v === 'error' || v === 'unknown') v = Date.now();
-            img.src = `${path}?v=${v}`;
+            if (!Monster.spriteLoadPromises[cacheKey]) {
+                Monster.spriteLoadPromises[cacheKey] = new Promise((resolve) => {
+                    const img = new Image();
+                    let v = window.GAME_VERSION;
+                    // Fallback if version check failed
+                    if (!v || v === 'error' || v === 'unknown') v = Date.now();
+                    img.onload = () => resolve(this._buildSingleFileSpriteEntry(img));
+                    img.onerror = () => {
+                        Logger.warn(`[Monster] Failed to load monster sprite: ${path}`);
+                        resolve(null);
+                    };
+                    img.src = `${path}?v=${v}`;
+                });
+            }
 
-            await new Promise((resolve) => {
-                img.onload = () => {
-                    const finalCanvas = document.createElement('canvas');
-                    finalCanvas.width = targetW;
-                    finalCanvas.height = targetH;
-                    const finalCtx = finalCanvas.getContext('2d');
-                    this.processAndDrawFrame(img, finalCtx, 0, 0, targetW, targetH);
-                    this.sprite = new Sprite(finalCanvas, 1, 1);
-                    Monster.spriteCache[cacheKey] = this.sprite;
-                    this.ready = true;
-                    resolve();
-                };
-                img.onerror = () => {
-                    this.ready = true; // Still mark as ready to avoid infinite wait
-                    resolve();
-                };
-            });
+            try {
+                const entry = await Monster.spriteLoadPromises[cacheKey];
+                if (entry) Monster.spriteCache[cacheKey] = entry;
+                this._applySpriteCacheEntry(entry);
+            } finally {
+                delete Monster.spriteLoadPromises[cacheKey];
+                this.ready = true; // Avoid an infinite loading loop after a failed request.
+            }
             return;
         }
 
@@ -207,7 +348,11 @@ export default class Monster extends CharacterBase {
 
         if (loadedCount > 0) {
             this.sprite = new Sprite(finalCanvas, frames.length, 1);
-            Monster.spriteCache[cacheKey] = this.sprite; // Save to cache
+            Monster.spriteCache[cacheKey] = {
+                sprite: this.sprite,
+                usesV2Atlas: false,
+                atlas: null
+            }; // Save to cache
         } else {
             Logger.warn(`No frames loaded for ${path}, using fallback.`);
             this.sprite = null; // Force fallback rendering
@@ -287,6 +432,117 @@ export default class Monster extends CharacterBase {
             Logger.warn('[Monster] Chroma Key removed all pixels! Reverting to raw image.');
             ctx.drawImage(img, 0, 0, img.width, img.height, destX, destY, destW, destH);
         }
+    }
+
+    _getWorldBounds() {
+        const zone = window.game?.zone;
+        const currentZone = zone?.currentZone || {};
+        const boundaries = currentZone.boundaries || zone?.boundaries || {};
+        // ZoneManager normalizes legacy tile-based dimensions on its own fields,
+        // so prefer those over the raw definition values in currentZone.
+        const zoneWidth = Number(zone?.width ?? currentZone.width ?? 6000);
+        const zoneHeight = Number(zone?.height ?? currentZone.height ?? 6000);
+
+        const minX = Number.isFinite(Number(boundaries.minX))
+            ? Number(boundaries.minX)
+            : (Number.isFinite(Number(boundaries.x)) ? Number(boundaries.x) : 0);
+        const minY = Number.isFinite(Number(boundaries.minY))
+            ? Number(boundaries.minY)
+            : (Number.isFinite(Number(boundaries.y)) ? Number(boundaries.y) : 0);
+        const inferredMaxX = Number.isFinite(Number(boundaries.w))
+            ? minX + Number(boundaries.w)
+            : zoneWidth;
+        const inferredMaxY = Number.isFinite(Number(boundaries.h))
+            ? minY + Number(boundaries.h)
+            : zoneHeight;
+        const rawMaxX = Number.isFinite(Number(boundaries.maxX))
+            ? Number(boundaries.maxX)
+            : inferredMaxX;
+        const rawMaxY = Number.isFinite(Number(boundaries.maxY))
+            ? Number(boundaries.maxY)
+            : inferredMaxY;
+
+        return {
+            minX,
+            minY,
+            maxX: Number.isFinite(rawMaxX) && rawMaxX >= minX ? rawMaxX : Math.max(minX, zoneWidth),
+            maxY: Number.isFinite(rawMaxY) && rawMaxY >= minY ? rawMaxY : Math.max(minY, zoneHeight)
+        };
+    }
+
+    _clampToWorld(x, y) {
+        const bounds = this._getWorldBounds();
+        return {
+            x: Math.max(bounds.minX, Math.min(bounds.maxX, Number.isFinite(x) ? x : this.x)),
+            y: Math.max(bounds.minY, Math.min(bounds.maxY, Number.isFinite(y) ? y : this.y))
+        };
+    }
+
+    _isInsideLeash(x, y) {
+        if (!Number.isFinite(this.leashRange)) return true;
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+        return Math.hypot(x - this.initialX, y - this.initialY) <= this.leashRange;
+    }
+
+    _getActiveFrameCount() {
+        if (!this.usesV2Atlas) return Math.max(1, Number(this.frameCount) || 1);
+        return Math.max(1, Number(this.atlasFrameCounts[this.animationRow]) || 8);
+    }
+
+    _setAtlasAnimationRow(row) {
+        if (!this.usesV2Atlas || !Number.isFinite(Number(row))) return;
+        const normalizedRow = Math.max(0, Math.min(this.atlasRows - 1, Number(row)));
+        if (this.animationRow !== normalizedRow) {
+            this.animationRow = normalizedRow;
+            this.frame = 0;
+            this.timer = 0;
+            return;
+        }
+
+        const frameCount = this._getActiveFrameCount();
+        if (this.frame >= frameCount) this.frame = 0;
+    }
+
+    _updateAtlasAnimationFromMovement(previousX, previousY) {
+        if (!this.usesV2Atlas) return;
+
+        const movedX = Number(this.x) - Number(previousX);
+        const movedY = Number(this.y) - Number(previousY);
+        const movementDistance = Math.hypot(movedX, movedY);
+        const isGuest = !!window.game?.net && !window.game.net.isHost;
+        const targetDx = isGuest && Number.isFinite(this.targetX) ? this.targetX - this.x : 0;
+        const targetDy = isGuest && Number.isFinite(this.targetY) ? this.targetY - this.y : 0;
+        const targetDistance = Math.hypot(targetDx, targetDy);
+        const isMoving = movementDistance > 0.025 || (isGuest && targetDistance > 0.75);
+
+        if (!isMoving) {
+            this._setAtlasAnimationRow(this.atlasRowMap.idle);
+            return;
+        }
+
+        // Position delta is authoritative for the host/solo simulation. Guests
+        // additionally use the remaining interpolation delta because their vx/vy
+        // are intentionally not part of the compact monster network payload.
+        let horizontalHint = Math.abs(movedX) > 0.01 ? movedX : targetDx;
+        if (Math.abs(horizontalHint) > 0.01) {
+            this.lastHorizontalFacing = horizontalHint > 0 ? 1 : -1;
+        }
+
+        const nextRow = this.lastHorizontalFacing < 0
+            ? this.atlasRowMap.moveLeft
+            : this.atlasRowMap.moveRight;
+        this._setAtlasAnimationRow(nextRow);
+    }
+
+    _advanceAnimation(dt) {
+        const frameDuration = Math.max(0.01, Number(this.frameSpeed) || 0.15);
+        this.timer += dt;
+        if (this.timer < frameDuration) return;
+
+        // Preserve leftover time so animation cadence remains stable during
+        // occasional long frames without skipping into an unused atlas cell.
+        this.timer %= frameDuration;
+        this.frame = (this.frame + 1) % this._getActiveFrameCount();
     }
 
     // v0.33.0: Regen Logic
@@ -426,6 +682,8 @@ export default class Monster extends CharacterBase {
     update(dt) {
         // v1.99.9: Hard cap on dt to prevent physics tunneling or explosions during lag
         const safeDt = Math.min(0.1, dt);
+        const previousX = Number(this.x);
+        const previousY = Number(this.y);
         const isPassive = !!this.behavior?.passive || this.typeId === 'training_dummy';
         const isPaused = shouldFreezeForModalUi();
         const isStoryActive = !!window.game?.story?.isStoryActive;
@@ -571,27 +829,26 @@ export default class Monster extends CharacterBase {
             }
 
             const candidates = getAllPlayers();
-            if (!isPassive && this.spawnGraceTimer <= 0 && candidates.length > 0) {
+            const canAcquireTarget = this._isInsideLeash(this.x, this.y);
+            if (!isPassive && canAcquireTarget && this.spawnGraceTimer <= 0 && candidates.length > 0) {
                 let nearest = null;
                 let minDist = Infinity;
                 candidates.forEach(p => {
                     const dx = p.x - this.x;
                     const dy = p.y - this.y;
                     const d = Math.sqrt(dx * dx + dy * dy);
-                    if (d < minDist) {
+                    const targetInsideAggro = d <= this.aggroRange;
+                    const targetInsideLeash = this._isInsideLeash(Number(p.x), Number(p.y));
+                    if (targetInsideAggro && targetInsideLeash && d < minDist) {
                         minDist = d;
                         nearest = p;
                     }
                 });
-                this.targetPlayer = nearest;
-                this.isAggro = true;
+                if (nearest) {
+                    this.targetPlayer = nearest;
+                    this.isAggro = true;
+                }
             }
-        }
-
-        this.timer += dt;
-        if (this.timer >= this.frameSpeed) {
-            this.timer = 0;
-            this.frame = (this.frame + 1) % this.frameCount;
         }
 
         // 3. Movement Logic (Host Authority)
@@ -607,7 +864,7 @@ export default class Monster extends CharacterBase {
                     aiVy = 0;
                 } else if (target) {
                     const dist = Math.sqrt((target.x - this.x) ** 2 + (target.y - this.y) ** 2);
-                    if (dist > 55) {
+                    if (dist > this.attackRange) {
                         // Chase mode
                         const angle = Math.atan2(target.y - this.y, target.x - this.x);
                         let speed = this.speed || 50;
@@ -637,7 +894,7 @@ export default class Monster extends CharacterBase {
                                     window.game.sound.playSfx(this.sounds.attack);
                                 }
 
-                                this.attackCooldown = 1.5; // Default Attack Speed
+                                this.attackCooldown = this.attackCooldownSeconds;
                                 this.hitTimer = 0.1;
                             }
                         }
@@ -647,23 +904,39 @@ export default class Monster extends CharacterBase {
                     this._updateSkills(dt, target);
 
                 } else {
-                    // Wandering mode
-                    this.moveTimer -= dt;
-                    if (this.moveTimer <= 0) {
-                        if (Math.random() < 0.7) {
-                            const angle = Math.random() * Math.PI * 2;
-                            let speed = 5 + Math.random() * 10;
-                            if (this.electrocutedTimer > 0) speed *= (1 - this.slowRatio);
-                            this.wanderVx = Math.cos(angle) * speed;
-                            this.wanderVy = Math.sin(angle) * speed;
-                        } else {
-                            this.wanderVx = 0;
-                            this.wanderVy = 0;
+                    const homeDx = this.initialX - this.x;
+                    const homeDy = this.initialY - this.y;
+                    const distanceFromHome = Math.hypot(homeDx, homeDy);
+
+                    if (Number.isFinite(this.leashRange) && distanceFromHome > this.leashRange) {
+                        // Knockback, separation, or a charge can push a monster
+                        // beyond its territory. Stop acquiring players and walk
+                        // it home instead of allowing an endless map-wide chase.
+                        let returnSpeed = this.speed || 50;
+                        if (this.electrocutedTimer > 0) returnSpeed *= (1 - this.slowRatio);
+                        aiVx = (homeDx / distanceFromHome) * returnSpeed;
+                        aiVy = (homeDy / distanceFromHome) * returnSpeed;
+                        this.wanderVx = 0;
+                        this.wanderVy = 0;
+                    } else {
+                        // Wandering mode
+                        this.moveTimer -= dt;
+                        if (this.moveTimer <= 0) {
+                            if (Math.random() < 0.7) {
+                                const angle = Math.random() * Math.PI * 2;
+                                let speed = 5 + Math.random() * 10;
+                                if (this.electrocutedTimer > 0) speed *= (1 - this.slowRatio);
+                                this.wanderVx = Math.cos(angle) * speed;
+                                this.wanderVy = Math.sin(angle) * speed;
+                            } else {
+                                this.wanderVx = 0;
+                                this.wanderVy = 0;
+                            }
+                            this.moveTimer = 1 + Math.random() * 3;
                         }
-                        this.moveTimer = 1 + Math.random() * 3;
+                        aiVx = this.wanderVx;
+                        aiVy = this.wanderVy;
                     }
-                    aiVx = this.wanderVx;
-                    aiVy = this.wanderVy;
                 }
 
                 // v1.99.9: Apply fresh calculated velocity (Guard against NaN and invalid numbers)
@@ -767,8 +1040,9 @@ export default class Monster extends CharacterBase {
                     window._moveLogShown = true;
                 }
 
-                this.x = Math.max(0, Math.min(6000, targetX));
-                this.y = Math.max(0, Math.min(6000, targetY));
+                const clamped = this._clampToWorld(targetX, targetY);
+                this.x = clamped.x;
+                this.y = clamped.y;
             }
 
             // Dissipate knockback forces
@@ -793,14 +1067,25 @@ export default class Monster extends CharacterBase {
                 const correctedY = predictedY + ((targetY - predictedY) * 0.18);
                 const arrived = Math.hypot(this.chargeTarget.x - correctedX, this.chargeTarget.y - correctedY) < 14;
 
-                this.x = Math.max(0, Math.min(6000, arrived ? this.chargeTarget.x : correctedX));
-                this.y = Math.max(0, Math.min(6000, arrived ? this.chargeTarget.y : correctedY));
+                const clamped = this._clampToWorld(
+                    arrived ? this.chargeTarget.x : correctedX,
+                    arrived ? this.chargeTarget.y : correctedY
+                );
+                this.x = clamped.x;
+                this.y = clamped.y;
             } else {
                 const lerpFactor = this.chargeState === 'casting' ? 0.45 : 0.35; // Snappy
-                this.x += (targetX - this.x) * lerpFactor;
-                this.y += (targetY - this.y) * lerpFactor;
+                const clamped = this._clampToWorld(
+                    this.x + ((targetX - this.x) * lerpFactor),
+                    this.y + ((targetY - this.y) * lerpFactor)
+                );
+                this.x = clamped.x;
+                this.y = clamped.y;
             }
         }
+
+        this._updateAtlasAnimationFromMovement(previousX, previousY);
+        this._advanceAnimation(dt);
 
         // 4. Cleanup & Feedback
         if (this.hitTimer > 0) this.hitTimer -= dt;
@@ -837,6 +1122,7 @@ export default class Monster extends CharacterBase {
 
     applyEffect(type, duration, damage, sourceMeta = null) {
         if (this.isDead) return;
+        if (Number(damage) > 0 && window.game?.monsterManager?.isMonsterCombatBlocked?.()) return false;
         const existing = this.statusEffects.find(e => e.type === type);
         if (existing) {
             existing.timer = duration; // Refresh duration
@@ -847,8 +1133,31 @@ export default class Monster extends CharacterBase {
         }
     }
 
+    _rememberDamageContributorLevel(damageMeta = null) {
+        const uid = this.lastAttackerId;
+        if (!uid) return;
+        if (!(this.damageContributorLevels instanceof Map)) {
+            this.damageContributorLevels = new Map();
+        }
+
+        const localPlayer = window.game?.localPlayer;
+        const sceneRemotePlayer = window.game?.sceneManager?.currentScene?.remotePlayers?.get?.(uid);
+        const networkRemotePlayer = window.game?.net?.remotePlayers?.get?.(uid);
+        const liveLevels = uid === localPlayer?.id
+            ? [Number(localPlayer?.level)]
+            : [Number(sceneRemotePlayer?.level), Number(networkRemotePlayer?.level)];
+        const reportedLevel = Number(damageMeta?.attackerLevel);
+        const previousLevel = Number(this.damageContributorLevels.get(uid) || 0);
+        const validLevels = [previousLevel, ...liveLevels, reportedLevel]
+            .filter((level) => Number.isFinite(level) && level >= 1)
+            .map((level) => Math.max(1, Math.min(999, Math.floor(level))));
+        if (validLevels.length === 0) return;
+
+        this.damageContributorLevels.set(uid, Math.max(...validLevels));
+    }
+
     takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null, damageMeta = null) {
-        if (this.isDead) return;
+        if (this.isDead || window.game?.monsterManager?.isMonsterCombatBlocked?.()) return false;
         this.lastHitAt = Date.now();
         this.lastNetworkEventAt = this.lastHitAt;
         const suppressTransientEffects = !!window.game?.shouldSuppressTransientWorldEffects?.();
@@ -878,6 +1187,7 @@ export default class Monster extends CharacterBase {
 
         if (dmg > 0 && this.lastAttackerId) {
             this.damageContributors.add(this.lastAttackerId);
+            this._rememberDamageContributorLevel(damageMeta);
         }
 
         // v0.33.0: Trigger Shield on Hit (Host Only)
@@ -961,6 +1271,8 @@ export default class Monster extends CharacterBase {
                 this.chargeTarget = null;
                 // v1.86: Ensure immediate sync for death state
                 if (window.game?.net?.isHost && window.game?.monsterManager) {
+                    window.game.monsterManager.settleMonsterDeathImmediately?.(this);
+                    window.game.monsterManager.recordFieldBossDefeat?.(this);
                     window.game.monsterManager.forceSync(this.id);
                 }
 
@@ -971,11 +1283,12 @@ export default class Monster extends CharacterBase {
 
                 // v2.2: Death Feedback — Strong shake for bosses
                 if (!suppressTransientEffects && window.game?.camera?.shake) {
-                    const isBoss = this.typeId === 'king_slime';
-                    window.game.camera.shake(isBoss ? 20 : 6, isBoss ? 0.5 : 0.2);
+                    const bossShake = Math.max(0, Number(this.bossEffects.shakeIntensity) || 20);
+                    const bossDuration = Math.max(0, Number(this.bossEffects.shakeDuration) || 0.5);
+                    window.game.camera.shake(this.isBoss ? bossShake : 6, this.isBoss ? bossDuration : 0.2);
                 }
-                if (!suppressTransientEffects && this.typeId === 'king_slime' && window.game?.loop?.hitstop) {
-                    window.game.loop.hitstop(120);
+                if (!suppressTransientEffects && this.isBoss && window.game?.loop?.hitstop) {
+                    window.game.loop.hitstop(Math.max(0, Number(this.bossEffects.hitstopMs) || 120));
                 }
 
                 // v2.3: Tutorial Kill Trigger
@@ -1173,6 +1486,71 @@ export default class Monster extends CharacterBase {
         ctx.restore();
     }
 
+    _renderBossAura(ctx, x, groundY, renderWidth, renderHeight) {
+        if (!this.isBoss || this.isDead) return;
+
+        const effects = this.bossEffects || {};
+        const auraColor = effects.auraColor || '#8b5cf6';
+        const secondaryColor = effects.secondaryColor || '#fbbf24';
+        const particleColor = effects.particleColor || secondaryColor;
+        const pulseSpeed = Math.max(0.1, Number(effects.pulseSpeed) || 2.4);
+        const ringCount = Math.max(1, Math.min(6, Math.round(Number(effects.ringCount) || 2)));
+        const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        const phase = (now / 1000) * pulseSpeed;
+        const pulse = 1 + Math.sin(phase * Math.PI * 2) * 0.06;
+        const radiusX = Math.max(this.width * 0.65, renderWidth * 0.34) * pulse;
+        const radiusY = Math.max(8, this.height * 0.1);
+
+        const inheritedAlpha = Number.isFinite(ctx.globalAlpha) ? ctx.globalAlpha : 1;
+        ctx.save();
+
+        // Keep the aura separate from the atlas so every authored cell remains
+        // intact and is never trimmed or destructively composited at runtime.
+        ctx.globalAlpha = inheritedAlpha * 0.09;
+        ctx.fillStyle = auraColor;
+        ctx.beginPath();
+        ctx.ellipse(
+            x,
+            groundY - renderHeight * 0.38,
+            Math.max(12, renderWidth * 0.34) * pulse,
+            Math.max(16, renderHeight * 0.42) * pulse,
+            0,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+
+        for (let i = 0; i < ringCount; i += 1) {
+            const ringPhase = (phase + (i / ringCount)) % 1;
+            const expansion = 0.72 + ringPhase * 0.52;
+            ctx.globalAlpha = inheritedAlpha * Math.max(0.035, 0.2 * (1 - ringPhase));
+            ctx.strokeStyle = i % 2 === 0 ? auraColor : secondaryColor;
+            ctx.lineWidth = Math.max(1, 3 - i * 0.35);
+            ctx.beginPath();
+            ctx.ellipse(x, groundY, radiusX * expansion, radiusY * expansion, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        const particleCount = Math.max(6, ringCount * 2);
+        for (let i = 0; i < particleCount; i += 1) {
+            const direction = i % 2 === 0 ? 1 : -1;
+            const angle = (i / particleCount) * Math.PI * 2 + phase * 0.75 * direction;
+            const orbitX = radiusX * (0.68 + (i % 3) * 0.11);
+            const lift = renderHeight * (0.18 + (i % 4) * 0.12);
+            const particleX = x + Math.cos(angle) * orbitX;
+            const particleY = groundY - lift + Math.sin(angle * 1.7) * radiusY * 0.8;
+            const particleSize = 1.8 + ((Math.sin(phase * 4 + i) + 1) * 0.8);
+
+            ctx.globalAlpha = inheritedAlpha * (0.35 + ((Math.sin(phase * 3 + i) + 1) * 0.12));
+            ctx.fillStyle = i % 2 === 0 ? particleColor : secondaryColor;
+            ctx.beginPath();
+            ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
     render(ctx, camera) {
         const useTrainingDummyRender = this.fallbackShape === 'training_dummy' || this.typeId === 'training_dummy';
 
@@ -1198,11 +1576,49 @@ export default class Monster extends CharacterBase {
         const screenX = Math.round(this.x);
         const screenY = Math.round(this.y);
         const drawY = screenY + (this.renderOffY || 0);
+        const renderWidth = Math.max(1, Number(this.renderWidth) || this.width);
+        const renderHeight = Math.max(1, Number(this.renderHeight) || this.height);
+        const groundY = drawY + this.height / 2;
+        const spriteX = screenX - renderWidth / 2;
+        const atlasFrameHeight = Math.max(
+            1,
+            Number(this.atlasFrameHeight)
+                || Number(this.spriteSheetDefinition?.frameHeight)
+                || renderHeight
+        );
+        const contentTop = Math.max(
+            0,
+            Math.min(atlasFrameHeight, Number(this.spriteContentBounds?.top) || 0)
+        );
+        const contentBottom = Math.max(
+            contentTop,
+            Math.min(atlasFrameHeight, Number(this.spriteContentBounds?.bottom) || atlasFrameHeight)
+        );
+        const groundedAtlasOffset = this.usesV2Atlas && this.alignSpriteContentToGround
+            ? ((atlasFrameHeight - contentBottom) / atlasFrameHeight) * renderHeight
+            : 0;
+        const spriteY = this.usesV2Atlas
+            ? groundY - renderHeight + groundedAtlasOffset
+            : drawY - renderHeight / 2;
+        const hudSpriteTop = this.usesV2Atlas
+            ? spriteY + (contentTop / atlasFrameHeight) * renderHeight
+            : screenY - renderHeight / 2;
 
         // Draw shadow (Grounded)
+        const shadowScale = this.isBoss
+            ? Math.max(0.25, Number(this.bossEffects.shadowScale) || 1.35)
+            : 1;
         ctx.fillStyle = 'rgba(0,0,0,0.15)';
         ctx.beginPath();
-        ctx.ellipse(screenX, screenY + this.height / 2, this.width / 2 * 0.7, 5, 0, 0, Math.PI * 2);
+        ctx.ellipse(
+            screenX,
+            screenY + this.height / 2,
+            this.width / 2 * 0.7 * shadowScale,
+            5 * shadowScale,
+            0,
+            0,
+            Math.PI * 2
+        );
         ctx.fill();
 
         const burnEffect = this.statusEffects.find(e => e.type === 'burn');
@@ -1210,11 +1626,15 @@ export default class Monster extends CharacterBase {
         // v0.00.43: Render Charge Telegraph (Underneath monster)
         this.renderTelegraph(ctx);
 
+        // Boss presentation stays independent from the authored atlas frames.
+        this._renderBossAura(ctx, screenX, groundY, renderWidth, renderHeight);
+
         // Fallback or Sprite Draw
         if (useTrainingDummyRender) {
             this._renderTrainingDummy(ctx, screenX, drawY);
         } else if (this.sprite) {
-            this.sprite.draw(ctx, 0, this.frame, screenX - this.width / 2, drawY - this.height / 2, this.width, this.height);
+            const row = this.usesV2Atlas ? this.animationRow : 0;
+            this.sprite.draw(ctx, row, this.frame, spriteX, spriteY, renderWidth, renderHeight);
         } else {
             // Loading fallback: avoid a harsh red disk while sprite assets warm up.
             this._renderLoadingPlaceholder(ctx, screenX, drawY);
@@ -1244,23 +1664,23 @@ export default class Monster extends CharacterBase {
                 ctx.restore();
             }
 
-            ctx.fillText('!', screenX, drawY - this.height / 2 - 30);
+            ctx.fillText('!', screenX, Math.min(screenY - this.height / 2, hudSpriteTop) - 30);
             ctx.restore();
         }
 
         // Monster Name (back to top - adjusted down by 15px)
-        const nameY = screenY - this.height / 2 - 5;
-        ctx.font = 'bold 13px "Outfit", sans-serif';
+        const nameY = Math.min(screenY - this.height / 2, hudSpriteTop) - 5;
+        ctx.font = `bold ${this.isBoss ? 16 : 13}px "Outfit", sans-serif`;
         ctx.textAlign = 'center';
 
         // Black Outline
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = this.isBoss ? 'rgba(23, 9, 40, 0.95)' : '#000000';
+        ctx.lineWidth = this.isBoss ? 4 : 2;
         ctx.strokeText(this.name, screenX, nameY);
 
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = 4;
+        ctx.fillStyle = this.isBoss ? (this.bossEffects.secondaryColor || '#fef3c7') : '#ffffff';
+        ctx.shadowColor = this.isBoss ? (this.bossEffects.auraColor || '#8b5cf6') : 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = this.isBoss ? 10 : 4;
         ctx.fillText(this.name, screenX, nameY);
         ctx.shadowBlur = 0;
 

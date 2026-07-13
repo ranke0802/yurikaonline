@@ -1,0 +1,82 @@
+{
+  "id": "gastly",
+  "name": "그림자 고오스",
+  "type": "monster",
+  "isBoss": false,
+  "spriteVersionNumber": 2,
+  "baseStats": {
+    "level": 15,
+    "hp": 1400,
+    "maxHp": 1400,
+    "mp": 300,
+    "maxMp": 300,
+    "atk": 32,
+    "def": 13,
+    "speed": 65,
+    "exp": 4300
+  },
+  "visual": {
+    "assetPath": "assets/resource/monsters/gastly/spritesheet.webp",
+    "spriteVersionNumber": 2,
+    "width": 76,
+    "height": 76,
+    "renderWidth": 144,
+    "renderHeight": 156,
+    "frameSpeed": 0.12,
+    "frameCount": 7,
+    "scale": 1,
+    "spriteSheet": {
+      "columns": 8,
+      "rows": 11,
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "contentBounds": {
+        "left": 27,
+        "top": 40,
+        "right": 165,
+        "bottom": 188
+      },
+      "rowMap": {
+        "idle": 0,
+        "moveRight": 1,
+        "moveLeft": 2
+      },
+      "frameCounts": {
+        "idle": 7,
+        "moveRight": 8,
+        "moveLeft": 8
+      },
+      "sha256": "2c7b1db48a6c0b831034ed898e5a90a14c6ae02a7ed4b50a6248d831c2147f9d"
+    }
+  },
+  "behavior": {
+    "aggroRange": 440,
+    "attackRange": 108,
+    "attackCooldownMs": 1200,
+    "leashRange": 800
+  },
+  "sounds": {
+    "attack": "sfx_slime_attack",
+    "hit": "sfx_slime_hit",
+    "die": "sfx_slime_die",
+    "move": "sfx_slime_move"
+  },
+  "skills": [
+    {
+      "id": "missile",
+      "trigger": "cooldown",
+      "cooldown": 7600,
+      "data": {
+        "count": 3
+      }
+    }
+  ],
+  "drops": [
+    {
+      "itemId": "manastone",
+      "min": 1050,
+      "max": 1400,
+      "chance": 1
+    }
+  ]
+}

@@ -3,6 +3,11 @@ import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
 import SkillRenderer from '../skills/renderers/SkillRenderer.js';
 import { INVENTORY_TOTAL_SLOTS } from '../constants/inventory.js';
+import {
+    captureProjectileWorldContext,
+    isProjectileWorldContextCurrent,
+    toProjectileAuthoredOptions
+} from './ProjectileWorldContext.js';
 
 function shouldApplyModalSafetyPause(netInstance = null) {
     const ui = window.game?.ui;
@@ -65,6 +70,11 @@ export default class Player extends CharacterBase {
         this.manastone = 0;
         this.inventory = Array.from({ length: INVENTORY_TOTAL_SLOTS }, () => null);
         this.equipment = { weapon: null };
+        this.pendingItemRewards = [];
+        this.claimedRewardIds = [];
+        this.pendingRewardClaimTimer = 0;
+        this.currentZoneId = 'zone_1';
+        this.mapPositions = {};
         // Quest Data (v0.22.4+)
         this.questData = {
             prologueCompleted: false,
@@ -279,6 +289,14 @@ export default class Player extends CharacterBase {
             }
         }
 
+        this.pendingRewardClaimTimer += dt;
+        if (this.pendingRewardClaimTimer >= 1) {
+            this.pendingRewardClaimTimer = 0;
+            if (this.pendingItemRewards.length > 0) {
+                this.claimPendingItemRewards();
+            }
+        }
+
         this._handleMovement(dt);
         if (this.fireballAimActive) {
             if (this.canStartFireballAim()) {
@@ -315,28 +333,31 @@ export default class Player extends CharacterBase {
             if (this.missileFireTimer <= 0) {
                 this.missileFireTimer = 0.05; // 0.05s interval between shots
                 const data = this.missileFireQueue.shift();
+                const authoredWorldContext = captureProjectileWorldContext();
+                const spawnX = this.x + this.width / 2 + (data.options.spawnOffsetX || 0);
+                const spawnY = this.y + this.height / 2 + (data.options.spawnOffsetY || 0);
+                const launchTarget = this.resolveQueuedMagicMissilePoint(data);
+                const targetX = Number.isFinite(launchTarget?.x)
+                    ? launchTarget.x
+                    : data.options.fallbackTargetX;
+                const targetY = Number.isFinite(launchTarget?.y)
+                    ? launchTarget.y
+                    : data.options.fallbackTargetY;
 
                 import('./Projectile.js').then(({ Projectile }) => {
-                    if (window.game) {
-                        const spawnX = this.x + this.width / 2 + (data.options.spawnOffsetX || 0);
-                        const spawnY = this.y + this.height / 2 + (data.options.spawnOffsetY || 0);
-                        const launchTarget = this.resolveQueuedMagicMissilePoint(data);
-                        const targetX = Number.isFinite(launchTarget?.x)
-                            ? launchTarget.x
-                            : data.options.fallbackTargetX;
-                        const targetY = Number.isFinite(launchTarget?.y)
-                            ? launchTarget.y
-                            : data.options.fallbackTargetY;
+                    if (!isProjectileWorldContextCurrent(authoredWorldContext)) return;
+                    const game = authoredWorldContext.game;
+                    if (!Array.isArray(game?.projectiles)) return;
 
-                        // v0.00.05: Inject ownerId for PvP safety
-                        window.game.projectiles.push(new Projectile(spawnX, spawnY, null, 'missile', {
-                            ...data.options,
-                            ownerId: this.id,
-                            targetX,
-                            targetY,
-                            lockTargetPosition: Number.isFinite(targetX) && Number.isFinite(targetY)
-                        }));
-                    }
+                    // v0.00.05: Inject ownerId for PvP safety
+                    game.projectiles.push(new Projectile(spawnX, spawnY, null, 'missile', {
+                        ...data.options,
+                        ...toProjectileAuthoredOptions(authoredWorldContext),
+                        ownerId: this.id,
+                        targetX,
+                        targetY,
+                        lockTargetPosition: Number.isFinite(targetX) && Number.isFinite(targetY)
+                    }));
                 });
             }
         }
@@ -1116,7 +1137,7 @@ export default class Player extends CharacterBase {
     }
 
     saveState(syncToWorld = false, options = {}) {
-        if (!this.net || !this.id) return;
+        if (!this.net || !this.id) return Promise.resolve({ ok: false, reason: 'player_unavailable' });
         const isSharedFieldActive = !!this.net.isSharedFieldActive?.();
         const overrideDebounceMs = Number.isFinite(options.debounceMs) ? Math.max(0, Number(options.debounceMs)) : null;
         const profileSaveDebounceMs = syncToWorld
@@ -1124,6 +1145,12 @@ export default class Player extends CharacterBase {
             : (overrideDebounceMs ?? (isSharedFieldActive ? 2500 : 3200));
         const safeHp = Math.min(this.maxHp, Math.max(0, Math.round(this.hp)));
         const safeMp = Math.min(this.maxMp, Math.max(0, Math.round(this.mp)));
+        const currentZoneId = window.game?.zone?.currentZone?.id || this.currentZoneId || 'zone_1';
+        this.currentZoneId = currentZoneId;
+        this.mapPositions = {
+            ...(this.mapPositions || {}),
+            [currentZoneId]: { x: Math.round(this.x), y: Math.round(this.y) }
+        };
         const data = {
             level: this.level,
             exp: this.exp,
@@ -1142,6 +1169,8 @@ export default class Player extends CharacterBase {
             autoAttackEnabled: !!this.autoAttackEnabled,
             inventory: this.inventory, // v0.00.75: Save Inventory (Fixed Persistence Bug)
             equipment: this.equipment,
+            pendingItemRewards: this._cloneProfilePatchValue(this.pendingItemRewards),
+            claimedRewardIds: this._cloneProfilePatchValue(this.claimedRewardIds.slice(-128)),
             questData: this.questData, // Added in v0.22.4
             uiLayout: this._cloneProfilePatchValue(this.uiLayout),
             clientSettings: this._cloneProfilePatchValue(this.clientSettings),
@@ -1154,11 +1183,14 @@ export default class Player extends CharacterBase {
             // v0.00.29: Save position for persistence
             x: Math.round(this.x),
             y: Math.round(this.y),
+            currentZoneId,
+            mapId: currentZoneId,
+            mapPositions: this._cloneProfilePatchValue(this.mapPositions),
             ts: Date.now()
         };
         // Debug
         Logger.debug('[Player] Saving State:', { level: data.level, exp: data.exp, maxExp: data.maxExp, quest: data.questData });
-        this.net.savePlayerData(this.id, data, syncToWorld, {
+        return this.net.savePlayerData(this.id, data, syncToWorld, {
             debounceMs: profileSaveDebounceMs,
             forceImmediate: !!syncToWorld,
             saveReason: options.reason || 'player_save'
@@ -1236,6 +1268,22 @@ export default class Player extends CharacterBase {
                     break;
                 case 'equipment':
                     patch.equipment = this._cloneProfilePatchValue(this.equipment);
+                    break;
+                case 'pendingItemRewards':
+                    patch.pendingItemRewards = this._cloneProfilePatchValue(this.pendingItemRewards);
+                    break;
+                case 'claimedRewardIds':
+                    patch.claimedRewardIds = this._cloneProfilePatchValue(this.claimedRewardIds.slice(-128));
+                    break;
+                case 'currentZoneId':
+                case 'mapId': {
+                    const currentZoneId = window.game?.zone?.currentZone?.id || this.currentZoneId || 'zone_1';
+                    patch.currentZoneId = currentZoneId;
+                    patch.mapId = currentZoneId;
+                    break;
+                }
+                case 'mapPositions':
+                    patch.mapPositions = this._cloneProfilePatchValue(this.mapPositions);
                     break;
                 case 'isPaused':
                     patch.isPaused = shouldApplyModalSafetyPause(this.net);
@@ -1797,6 +1845,7 @@ export default class Player extends CharacterBase {
                 affectedMonsters.push(nextTarget);
 
                 if (isTick) {
+                    let targetDamageAccepted = true;
                     // v0.00.40: Damage formula: (Skill Damage - Defense), min 1
                     // Then apply crit multiplier to reduced damage
                     const baseDmg = Math.ceil(this.attackPower * finalDmgRatio * (1 + (weaponCombat.laserDamageBonus || 0)));
@@ -1808,11 +1857,13 @@ export default class Player extends CharacterBase {
                     // Support both Monster and RemotePlayer takeDamage
                     if (nextTarget.takeDamage) {
                         if (nextTarget.isMonster) {
+                            let damagePacketAccepted = true;
                             if (this.net) {
-                                this.net.sendMonsterDamage(nextTarget.id, Math.ceil(dmg));
-                                nextTarget.lastAttackerId = this.net.playerId;
+                                damagePacketAccepted = this.net.sendMonsterDamage(nextTarget.id, Math.ceil(dmg)) !== false;
+                                if (damagePacketAccepted) nextTarget.lastAttackerId = this.net.playerId;
                             }
-                            nextTarget.takeDamage(Math.ceil(dmg), true, isCrit, null, null);
+                            targetDamageAccepted = damagePacketAccepted
+                                && nextTarget.takeDamage(Math.ceil(dmg), true, isCrit, null, null) !== false;
                         } else if (this.net) {
                             // PvP damage is resolved on the target client after protection checks.
                             this.net.sendPlayerDamage(nextTarget.id, Math.ceil(dmg), 'shock', 3.0, 0);
@@ -1820,13 +1871,15 @@ export default class Player extends CharacterBase {
                     }
 
                     // Slow effect
-                    if (nextTarget.applyElectrocuted) {
+                    if (targetDamageAccepted && nextTarget.applyElectrocuted) {
                         nextTarget.applyElectrocuted(3.0, 0.8);
                     }
 
                     // v0.00.28: Mana recovery per hit (+1 MP per chain target)
-                    totalRecoveredMp += this.recoverMana(1, true);
-                    if (weaponCombat.restoreHpPerLaserHit > 0) {
+                    if (targetDamageAccepted) {
+                        totalRecoveredMp += this.recoverMana(1, true);
+                    }
+                    if (targetDamageAccepted && weaponCombat.restoreHpPerLaserHit > 0) {
                         totalRecoveredHp += this.recoverHp(weaponCombat.restoreHpPerLaserHit, {
                             reason: 'laser_hit_recover_hp_patch'
                         }) || 0;
@@ -2074,10 +2127,15 @@ export default class Player extends CharacterBase {
                 const dmg = Math.ceil(this.attackPower * (1.8 + (lv - 1) * 0.3)); // v1.99.31: 180% + 30% per level
                 const baseRad = this.getFireballProjectileRadius(lv);
                 const aoeRad = this.getFireballAoeRadius(lv); // v1.99.35: Increased to 2.5x for better coverage
+                const authoredWorldContext = captureProjectileWorldContext();
 
                 import('./Projectile.js').then(({ Projectile }) => {
-                    window.game.projectiles.push(new Projectile(originX, originY, null, 'fireball', {
+                    if (!isProjectileWorldContextCurrent(authoredWorldContext)) return;
+                    const game = authoredWorldContext.game;
+                    if (!Array.isArray(game?.projectiles)) return;
+                    game.projectiles.push(new Projectile(originX, originY, null, 'fireball', {
                         vx, vy, speed, damage: dmg, radius: baseRad, aoeRadius: aoeRad, lifeTime: travelTime,
+                        ...toProjectileAuthoredOptions(authoredWorldContext),
                         ownerId: this.id,
                         variant: weaponCombat.fireballVariant || null,
                         visualTint: weaponCombat.fireballTint || null,
@@ -2204,13 +2262,41 @@ export default class Player extends CharacterBase {
     }
 
     receiveReward(data, options = {}) {
+        const rewardId = typeof data?.rewardId === 'string' && data.rewardId
+            ? data.rewardId.slice(0, 256)
+            : null;
+        if (rewardId && this.claimedRewardIds.includes(rewardId)) {
+            Logger.warn(`[Player] Ignoring duplicate reward ${rewardId}`);
+            return false;
+        }
         const shouldSave = options.save !== false;
-        const saveDebounceMs = Number.isFinite(options.debounceMs) ? options.debounceMs : 3500;
+        const saveDebounceMs = Number.isFinite(options.debounceMs)
+            ? options.debounceMs
+            : (data?.bossReward === true ? 0 : 3500);
         const itemMessages = [];
         const normalizedQuestKills = {};
         const isIntroSharedQuest = data.introSharedQuest === true;
         let skipQuestRewardLog = false;
         let questKillLogMessage = '';
+        let hasInventoryMutation = false;
+
+        const grantBlessedUpgradeStones = (rawAmount) => {
+            const amount = Math.max(1, Math.floor(Number(rawAmount) || 1));
+            const definition = ITEM_DEFINITIONS[BLESSED_WEAPON_UPGRADE_STONE_ID];
+            const rewardMeta = {
+                id: BLESSED_WEAPON_UPGRADE_STONE_ID,
+                type: BLESSED_WEAPON_UPGRADE_STONE_ID,
+                amount,
+                name: definition.name,
+                icon: definition.icon,
+                stackable: true,
+                markAsNew: false
+            };
+            const added = this.addInventoryItem(BLESSED_WEAPON_UPGRADE_STONE_ID, amount, rewardMeta);
+            if (!added) this.queuePendingItemReward(rewardMeta);
+            hasInventoryMutation = true;
+            return !!added;
+        };
 
         const rewardManastone = Math.max(0, Number(data.manastone ?? data.gold ?? 0));
 
@@ -2229,9 +2315,12 @@ export default class Player extends CharacterBase {
                 const amount = Math.max(1, item.amount || 1);
                 const added = this.addInventoryItem(itemId, amount, item);
                 if (added) {
+                    hasInventoryMutation = true;
                     itemMessages.push(`${added.name || itemId} x${amount}`);
                 } else {
-                    itemMessages.push(`${item.name || itemId} 획득 실패(가방 가득 참)`);
+                    this.queuePendingItemReward(item);
+                    hasInventoryMutation = true;
+                    itemMessages.push(`${item.name || itemId} 보상함 보관(가방 빈칸 생성 시 자동 수령)`);
                 }
             });
         }
@@ -2329,14 +2418,14 @@ export default class Player extends CharacterBase {
                         if (this.questData.bossClearCount === 1) {
                             this.questData.slimeRepeatKills = 0;
                             this.questData.bossQuestClaimed = true;
-                            this.addInventoryItem(BLESSED_WEAPON_UPGRADE_STONE_ID, 3, { markAsNew: false });
+                            grantBlessedUpgradeStones(3);
                             window.game?.ui?.updateInventory?.();
 
                             modalTitle = '첫 보스 처치 완료!';
                             modalDesc = '대왕 슬라임을 처치했습니다!<br>보상: 축복받은 무기 강화석 3개<br>이제 슬라임 50마리 처치 후 반복 보스 퀘스트가 이어집니다.';
                             rewardMsg = '첫 대왕 슬라임 처치! (축복받은 무기 강화석 x3)';
                         } else {
-                            this.addInventoryItem(BLESSED_WEAPON_UPGRADE_STONE_ID, 1, { markAsNew: false });
+                            grantBlessedUpgradeStones(1);
                             window.game?.ui?.updateInventory?.();
 
                             modalTitle = '반복 보스 처치 완료';
@@ -2408,7 +2497,7 @@ export default class Player extends CharacterBase {
                     // First Kill Reward
                     this.questData.slimeRepeatKills = 0;
                     this.questData.bossQuestClaimed = true;
-                    this.addInventoryItem(BLESSED_WEAPON_UPGRADE_STONE_ID, 3, { markAsNew: false });
+                    grantBlessedUpgradeStones(3);
                     window.game?.ui?.updateInventory?.();
 
                     modalTitle = "👑 퀘스트 완료!";
@@ -2416,7 +2505,7 @@ export default class Player extends CharacterBase {
                     rewardMsg = "첫 대왕 슬라임 처치! (축복받은 무기 강화석 x3)";
                 } else {
                     // Repeat Kill Reward
-                    this.addInventoryItem(BLESSED_WEAPON_UPGRADE_STONE_ID, 1, { markAsNew: false });
+                    grantBlessedUpgradeStones(1);
                     window.game?.ui?.updateInventory?.();
 
                     modalTitle = "⚔️ 반복 퀘스트 완료";
@@ -2479,17 +2568,116 @@ export default class Player extends CharacterBase {
 
             window.game.ui.updateInventory();
         }
+        if (rewardId) {
+            this.claimedRewardIds = [
+                ...this.claimedRewardIds.filter((id) => id !== rewardId),
+                rewardId
+            ].slice(-128);
+        }
         if (shouldSave) {
-            const hasInventoryMutation = Array.isArray(data.items) && data.items.length > 0;
             if (hasInventoryMutation) {
                 this.saveState(false, { debounceMs: saveDebounceMs, reason: 'reward_full_save' });
             } else {
-                this.saveProfilePatch(['exp', 'maxExp', 'level', 'statPoints', 'manastone', 'hp', 'questData'], {
+                this.saveProfilePatch([
+                    'exp',
+                    'maxExp',
+                    'level',
+                    'statPoints',
+                    'manastone',
+                    'hp',
+                    'questData',
+                    ...(rewardId ? ['claimedRewardIds'] : [])
+                ], {
                     debounceMs: saveDebounceMs,
                     reason: 'reward_progress_patch'
                 });
             }
         }
+        return true;
+    }
+
+    async receiveNormalRewardDurably(data) {
+        const rewardId = typeof data?.rewardId === 'string' && data.rewardId
+            ? data.rewardId.slice(0, 256)
+            : null;
+        if (!rewardId || data?.normalRewardReceipt !== true) {
+            return { ok: false, reason: 'invalid_normal_reward' };
+        }
+
+        const alreadyClaimed = this.claimedRewardIds.includes(rewardId);
+        if (!alreadyClaimed) {
+            const applied = this.receiveReward(data, { save: false });
+            if (applied === false) {
+                return { ok: false, reason: 'reward_apply_failed' };
+            }
+            // A shared quest reward can intentionally become a no-op after the
+            // recipient has already progressed past that quest. Record its id so
+            // the durable receipt can still be finalized instead of retrying forever.
+            if (applied !== true) {
+                this.claimedRewardIds = [
+                    ...this.claimedRewardIds.filter((id) => id !== rewardId),
+                    rewardId
+                ].slice(-128);
+            }
+        } else {
+            // Keep a replayed semantic id at the newest end of the bounded
+            // profile journal while its server-side claim marker is finalized.
+            this.claimedRewardIds = [
+                ...this.claimedRewardIds.filter((id) => id !== rewardId),
+                rewardId
+            ].slice(-128);
+        }
+
+        const saveResult = await this.saveState(false, {
+            debounceMs: 0,
+            reason: 'durable_normal_reward'
+        });
+        if (saveResult?.ok !== true) {
+            return {
+                ok: false,
+                reason: saveResult?.reason || 'profile_save_failed',
+                alreadyClaimed
+            };
+        }
+        return { ok: true, alreadyClaimed };
+    }
+
+    async receiveRewardDurably(data) {
+        const rewardId = typeof data?.rewardId === 'string' && data.rewardId
+            ? data.rewardId.slice(0, 256)
+            : null;
+        const isBossItemReward = data?.rewardKind === 'boss_items'
+            && data?.kind !== 'boss_progress'
+            && Array.isArray(data?.items)
+            && data.items.length > 0;
+        const isBossProgressReward = data?.rewardKind === 'boss_exp'
+            && data?.kind === 'boss_progress'
+            && Number.isInteger(Number(data?.exp))
+            && Number(data.exp) > 0;
+        if (!rewardId || data?.bossReward !== true || (!isBossItemReward && !isBossProgressReward)) {
+            return { ok: false, reason: 'invalid_durable_reward' };
+        }
+
+        const alreadyClaimed = this.claimedRewardIds.includes(rewardId);
+        if (!alreadyClaimed) {
+            const applied = this.receiveReward(data, { save: false });
+            if (applied !== true) {
+                return { ok: false, reason: 'reward_apply_failed' };
+            }
+        }
+
+        const saveResult = await this.saveState(false, {
+            debounceMs: 0,
+            reason: 'durable_boss_reward'
+        });
+        if (saveResult?.ok !== true) {
+            return {
+                ok: false,
+                reason: saveResult?.reason || 'profile_save_failed',
+                alreadyClaimed
+            };
+        }
+        return { ok: true, alreadyClaimed };
     }
 
     updateManastoneInventory() {
@@ -2542,6 +2730,14 @@ export default class Player extends CharacterBase {
 
         if (window.game?.ui) {
             window.game.ui.logSystemMessage(`✨ LEVEL UP! 현재 레벨: ${this.level}`);
+            const unlockedZones = (window.game?.zone?.zoneCatalog || [])
+                .filter((zone) => Number(zone.requiredLevel || 1) === this.level);
+            unlockedZones.forEach((zone) => {
+                window.game.ui.logSystemMessage(`🗺️ 새 필드 개방: ${zone.name} (미니맵을 눌러 이동)`);
+                window.game.ui.showCenterMessage?.(`새 필드 개방 · ${zone.name}`, zone.accentColor || '#91e9d7', {
+                    duration: 2400
+                });
+            });
             window.game.ui.updateStatusPopup();
             // v0.29.22: 레벨업 이펙트 호출
             window.game.ui.showLevelUpEffect(this.level);
@@ -3029,7 +3225,9 @@ export default class Player extends CharacterBase {
         this.inventory = Array.from({ length: INVENTORY_TOTAL_SLOTS }, (_, index) => {
             const raw = sourceInventory[index] || null;
             if (REMOVED_ITEM_IDS.has(raw?.type || raw?.id)) return null;
-            return itemData?.normalizeInventoryItem(raw) || raw || null;
+            const normalized = itemData?.normalizeInventoryItem(raw) || null;
+            if (itemData?.isDurableEntitlement?.(raw)) return normalized;
+            return normalized || raw || null;
         });
         const sourceEquipment = savedEquipment || this.equipment || { weapon: null };
         this.equipment = itemData?.normalizeEquipmentData(sourceEquipment) || { weapon: sourceEquipment.weapon || null };
@@ -3107,7 +3305,12 @@ export default class Player extends CharacterBase {
 
     getEquippedWeaponDefinition() {
         const weapon = this.getEquippedWeapon();
-        return weapon ? this.getItemDataManager()?.getItemDefinition(weapon.type) || null : null;
+        if (!weapon) return null;
+        const itemData = this.getItemDataManager();
+        if (typeof itemData?.getEffectiveItemDefinition === 'function') {
+            return itemData.getEffectiveItemDefinition(weapon);
+        }
+        return itemData?.getItemDefinition?.(weapon.type) || null;
     }
 
     applyEquipmentStats() {
@@ -3160,7 +3363,9 @@ export default class Player extends CharacterBase {
         const itemData = this.getItemDataManager();
         if (!weapon || !itemData) return baseProfile;
 
-        const affix = itemData.getAffixDefinition(weapon.prefixId);
+        const affix = typeof itemData.getEffectiveAffixDefinition === 'function'
+            ? itemData.getEffectiveAffixDefinition(weapon)
+            : itemData.getAffixDefinition(weapon.prefixId);
         if (!affix) {
             baseProfile.auraState = itemData.getAuraState(weapon);
             return baseProfile;
@@ -3223,7 +3428,9 @@ export default class Player extends CharacterBase {
         if (enhancementLevel <= 0) return 0;
 
         const itemData = this.getItemDataManager?.();
-        const affix = itemData?.getAffixDefinition?.(weapon.prefixId);
+        const affix = typeof itemData?.getEffectiveAffixDefinition === 'function'
+            ? itemData.getEffectiveAffixDefinition(weapon)
+            : itemData?.getAffixDefinition?.(weapon.prefixId);
         if (!affix?.rolledEffects?.[key]?.displayAsPercent) return 0;
 
         return enhancementLevel * 0.01;
@@ -3250,7 +3457,9 @@ export default class Player extends CharacterBase {
         if (!weapon || !key) return 0;
 
         const itemData = this.getItemDataManager?.();
-        const affix = itemData?.getAffixDefinition?.(weapon.prefixId);
+        const affix = typeof itemData?.getEffectiveAffixDefinition === 'function'
+            ? itemData.getEffectiveAffixDefinition(weapon)
+            : itemData?.getAffixDefinition?.(weapon.prefixId);
         const hooks = affix?.combatHooks;
         if (!hooks) return 0;
 
@@ -3397,9 +3606,13 @@ export default class Player extends CharacterBase {
             return { ok: false, message: `${stoneLabel}이 부족합니다.` };
         }
 
-        const definition = itemData.getItemDefinition?.(target.item.type || target.item.id);
+        const definition = typeof itemData.getEffectiveItemDefinition === 'function'
+            ? itemData.getEffectiveItemDefinition(target.item)
+            : itemData.getItemDefinition?.(target.item.type || target.item.id);
         const ruleSetId = target.item.enhancementRuleSet || definition?.enhancementRuleSet;
-        const ruleSet = itemData.getEnhancementRuleSet?.(ruleSetId);
+        const ruleSet = typeof itemData.getEffectiveEnhancementRuleSet === 'function'
+            ? itemData.getEffectiveEnhancementRuleSet(target.item)
+            : itemData.getEnhancementRuleSet?.(ruleSetId);
         const currentLevel = Math.max(0, target.item.enhancementLevel || 0);
         const maxLevel = Math.max(0, ruleSet?.maxLevel || 10);
         if (currentLevel >= maxLevel) {
@@ -3592,6 +3805,45 @@ export default class Player extends CharacterBase {
         if (!this.shouldShowNewItemAlert(item)) return false;
         item.isNewlyAcquired = false;
         return true;
+    }
+
+    queuePendingItemReward(item) {
+        if (!item || !(item.id || item.type)) return false;
+        this.pendingItemRewards.push(this._cloneProfilePatchValue({
+            ...item,
+            id: item.id || item.type,
+            type: item.type || item.id,
+            amount: Math.max(1, Number(item.amount || 1)),
+            queuedAt: Date.now()
+        }));
+        return true;
+    }
+
+    claimPendingItemRewards(options = {}) {
+        if (!Array.isArray(this.pendingItemRewards) || this.pendingItemRewards.length === 0) return 0;
+
+        const remaining = [];
+        const claimedNames = [];
+        this.pendingItemRewards.forEach((item) => {
+            const itemId = item.id || item.type;
+            const amount = Math.max(1, Number(item.amount || 1));
+            const added = this.addInventoryItem(itemId, amount, item);
+            if (!added) {
+                remaining.push(item);
+                return;
+            }
+            claimedNames.push(added.name || item.name || itemId);
+        });
+
+        const claimedCount = this.pendingItemRewards.length - remaining.length;
+        if (claimedCount <= 0) return 0;
+        this.pendingItemRewards = remaining;
+        window.game?.ui?.updateInventory?.();
+        window.game?.ui?.logSystemMessage?.(`📦 보상함에서 ${claimedNames.join(', ')} 수령`);
+        if (options.save !== false) {
+            this.saveState(false, { debounceMs: 0, reason: 'claim_pending_item_rewards' });
+        }
+        return claimedCount;
     }
 
     addInventoryItem(itemId, amount = 1, meta = {}) {

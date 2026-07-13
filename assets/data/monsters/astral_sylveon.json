@@ -1,0 +1,105 @@
+{
+  "id": "astral_sylveon",
+  "name": "성좌의 님피아",
+  "type": "boss",
+  "isBoss": true,
+  "spriteVersionNumber": 2,
+  "baseStats": {
+    "level": 20,
+    "hp": 32000,
+    "maxHp": 32000,
+    "mp": 3200,
+    "maxMp": 3200,
+    "atk": 60,
+    "def": 28,
+    "speed": 52,
+    "exp": 42000,
+    "hpRegen": 12
+  },
+  "visual": {
+    "assetPath": "assets/resource/monsters/astral_sylveon/spritesheet.webp",
+    "spriteVersionNumber": 2,
+    "width": 148,
+    "height": 150,
+    "renderWidth": 264,
+    "renderHeight": 286,
+    "frameSpeed": 0.09,
+    "frameCount": 7,
+    "scale": 1,
+    "spriteSheet": {
+      "columns": 8,
+      "rows": 11,
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "contentBounds": {
+        "left": 41,
+        "top": 48,
+        "right": 151,
+        "bottom": 193
+      },
+      "alignContentToGround": true,
+      "rowMap": {
+        "idle": 0,
+        "moveRight": 1,
+        "moveLeft": 2
+      },
+      "frameCounts": {
+        "idle": 7,
+        "moveRight": 8,
+        "moveLeft": 8
+      },
+      "sha256": "3d887216ad9403e3e092d0761512c0f0e1e79ceca0481ca6695653ce502812e4"
+    },
+    "bossEffects": {
+      "auraColor": "#d987ff",
+      "secondaryColor": "#ffe2ff",
+      "particleColor": "#f2b8ff",
+      "pulseSpeed": 1.35,
+      "ringCount": 4,
+      "shadowScale": 1.5,
+      "shakeIntensity": 24,
+      "shakeDuration": 0.5,
+      "hitstopMs": 130
+    }
+  },
+  "behavior": {
+    "isBoss": true,
+    "aggroRange": 620,
+    "attackRange": 142,
+    "attackCooldownMs": 1000,
+    "leashRange": 1080
+  },
+  "sounds": {
+    "attack": "sfx_boss_attack",
+    "hit": "sfx_boss_hit",
+    "die": "sfx_boss_die",
+    "move": "sfx_boss_move"
+  },
+  "skills": [
+    {
+      "id": "missile",
+      "trigger": "cooldown",
+      "cooldown": 4300,
+      "data": {
+        "count": 7
+      }
+    },
+    {
+      "id": "shield",
+      "trigger": "hp_below_70",
+      "chance": 0.3,
+      "cooldown": 10500,
+      "data": {
+        "duration": 1500
+      }
+    }
+  ],
+  "drops": [
+    {
+      "itemId": "manastone",
+      "min": 42000,
+      "max": 50000,
+      "chance": 1
+    }
+  ]
+}

@@ -14,6 +14,27 @@
       "chance": 1,
       "rollAffixFromPool": "magic_staff_affixes",
       "quantity": 1
+    },
+    {
+      "monsterId": "ruin_wobbuffet",
+      "itemId": "tidal_staff",
+      "chance": 1,
+      "rollAffixFromPool": "tidal_staff_affixes",
+      "quantity": 1
+    },
+    {
+      "monsterId": "thunder_pikachu",
+      "itemId": "storm_staff",
+      "chance": 1,
+      "rollAffixFromPool": "storm_staff_affixes",
+      "quantity": 1
+    },
+    {
+      "monsterId": "astral_sylveon",
+      "itemId": "astral_staff",
+      "chance": 1,
+      "rollAffixFromPool": "astral_staff_affixes",
+      "quantity": 1
     }
   ]
 }

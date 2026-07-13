@@ -1,0 +1,82 @@
+{
+  "id": "emolga",
+  "name": "번개날개 에몽가",
+  "type": "monster",
+  "isBoss": false,
+  "spriteVersionNumber": 2,
+  "baseStats": {
+    "level": 10,
+    "hp": 620,
+    "maxHp": 620,
+    "mp": 120,
+    "maxMp": 120,
+    "atk": 22,
+    "def": 8,
+    "speed": 85,
+    "exp": 520
+  },
+  "visual": {
+    "assetPath": "assets/resource/monsters/emolga/spritesheet.webp",
+    "spriteVersionNumber": 2,
+    "width": 68,
+    "height": 72,
+    "renderWidth": 144,
+    "renderHeight": 156,
+    "frameSpeed": 0.11,
+    "frameCount": 7,
+    "scale": 1,
+    "spriteSheet": {
+      "columns": 8,
+      "rows": 11,
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "contentBounds": {
+        "left": 41,
+        "top": 64,
+        "right": 151,
+        "bottom": 159
+      },
+      "rowMap": {
+        "idle": 0,
+        "moveRight": 1,
+        "moveLeft": 2
+      },
+      "frameCounts": {
+        "idle": 7,
+        "moveRight": 8,
+        "moveLeft": 8
+      },
+      "sha256": "589a0a946c3ea85f892911e0220a3d16ca25d294fb9452f54ff4e92b1583e26f"
+    }
+  },
+  "behavior": {
+    "aggroRange": 390,
+    "attackRange": 92,
+    "attackCooldownMs": 1250,
+    "leashRange": 720
+  },
+  "sounds": {
+    "attack": "sfx_slime_attack",
+    "hit": "sfx_slime_hit",
+    "die": "sfx_slime_die",
+    "move": "sfx_slime_move"
+  },
+  "skills": [
+    {
+      "id": "missile",
+      "trigger": "cooldown",
+      "cooldown": 8500,
+      "data": {
+        "count": 2
+      }
+    }
+  ],
+  "drops": [
+    {
+      "itemId": "manastone",
+      "min": 170,
+      "max": 230,
+      "chance": 1
+    }
+  ]
+}

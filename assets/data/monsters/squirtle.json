@@ -1,0 +1,72 @@
+{
+  "id": "squirtle",
+  "name": "물방울 꼬부기",
+  "type": "monster",
+  "isBoss": false,
+  "spriteVersionNumber": 2,
+  "baseStats": {
+    "level": 5,
+    "hp": 280,
+    "maxHp": 280,
+    "atk": 14,
+    "def": 4,
+    "speed": 46,
+    "exp": 90
+  },
+  "visual": {
+    "assetPath": "assets/resource/monsters/squirtle/spritesheet.webp",
+    "spriteVersionNumber": 2,
+    "width": 72,
+    "height": 78,
+    "renderWidth": 144,
+    "renderHeight": 156,
+    "frameSpeed": 0.14,
+    "frameCount": 7,
+    "scale": 1,
+    "spriteSheet": {
+      "columns": 8,
+      "rows": 11,
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "contentBounds": {
+        "left": 49,
+        "top": 98,
+        "right": 143,
+        "bottom": 184
+      },
+      "alignContentToGround": true,
+      "rowMap": {
+        "idle": 0,
+        "moveRight": 1,
+        "moveLeft": 2
+      },
+      "frameCounts": {
+        "idle": 7,
+        "moveRight": 8,
+        "moveLeft": 8
+      },
+      "sha256": "733d5487e293c247d9406c112b16a297e3d6c120afcbab77f1aa2a37e862e8ef"
+    }
+  },
+  "behavior": {
+    "aggroRange": 320,
+    "attackRange": 72,
+    "attackCooldownMs": 1500,
+    "leashRange": 620
+  },
+  "sounds": {
+    "attack": "sfx_slime_attack",
+    "hit": "sfx_slime_hit",
+    "die": "sfx_slime_die",
+    "move": "sfx_slime_move"
+  },
+  "skills": [],
+  "drops": [
+    {
+      "itemId": "manastone",
+      "min": 38,
+      "max": 55,
+      "chance": 1
+    }
+  ]
+}

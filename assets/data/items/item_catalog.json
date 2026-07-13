@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "id": "magic_staff",
+      "file": "magic_staff.json"
+    },
+    {
+      "id": "tidal_staff",
+      "file": "tidal_staff.json"
+    },
+    {
+      "id": "storm_staff",
+      "file": "storm_staff.json"
+    },
+    {
+      "id": "astral_staff",
+      "file": "astral_staff.json"
+    },
+    {
+      "id": "weapon_upgrade_stone",
+      "file": "weapon_upgrade_stone.json"
+    },
+    {
+      "id": "blessed_weapon_upgrade_stone",
+      "file": "blessed_weapon_upgrade_stone.json"
+    }
+  ],
+  "affixPools": [
+    {
+      "id": "magic_staff_affixes",
+      "file": "magic_staff_affixes.json"
+    },
+    {
+      "id": "tidal_staff_affixes",
+      "file": "tidal_staff_affixes.json"
+    },
+    {
+      "id": "storm_staff_affixes",
+      "file": "storm_staff_affixes.json"
+    },
+    {
+      "id": "astral_staff_affixes",
+      "file": "astral_staff_affixes.json"
+    }
+  ],
+  "enhancementRules": [
+    {
+      "file": "equipment_enhancement_rules.json"
+    }
+  ],
+  "dropRules": [
+    {
+      "file": "equipment_drop_rules.json"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "storm_staff",
+  "name": "뇌광의 지팡이",
+  "description": "뇌광 숲의 응축된 전류로 매직 미사일을 황금 낙뢰탄으로 변화시킵니다.",
+  "slot": "weapon",
+  "rarity": "boss",
+  "stackable": false,
+  "dropSource": [
+    "thunder_pikachu"
+  ],
+  "baseStats": {
+    "attackPower": 13,
+    "critRate": 0.07,
+    "mpRegen": 5
+  },
+  "icon": {
+    "type": "image",
+    "path": "src/assets/items/storm_staff.svg",
+    "fallbackEmoji": "⚡"
+  },
+  "prefixPool": "storm_staff_affixes",
+  "enhancementRuleSet": "weapon_standard_1_to_10",
+  "enhancementBonuses": {
+    "attackPowerPerLevel": 1,
+    "critRatePerLevel": 0.01
+  },
+  "inventoryTooltip": {
+    "className": "마법 지팡이",
+    "material": "뇌전 호박",
+    "weight": 8,
+    "tradeable": false,
+    "dismantleable": true
+  },
+  "visuals": {
+    "equipAura": {
+      "mode": "prefix_plus_enhancement",
+      "prefixAuraProfiles": {
+        "storm_gold": {
+          "baseColor": "#f2ca3c",
+          "secondaryColor": "#fff5ad",
+          "particleStyle": "stardust"
+        }
+      }
+    }
+  },
+  "instanceData": {
+    "prefixId": "random_from_pool",
+    "rolledValues": "from_affix_roll_ranges",
+    "enhancementLevel": 0
+  }
+}

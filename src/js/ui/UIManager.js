@@ -2032,9 +2032,13 @@ export class UIManager {
             return;
         }
 
-        const definition = itemData.getItemDefinition?.(target.item.type || target.item.id);
+        const definition = typeof itemData.getEffectiveItemDefinition === 'function'
+            ? itemData.getEffectiveItemDefinition(target.item)
+            : itemData.getItemDefinition?.(target.item.type || target.item.id);
         const ruleSetId = target.item.enhancementRuleSet || definition?.enhancementRuleSet;
-        const ruleSet = itemData.getEnhancementRuleSet?.(ruleSetId);
+        const ruleSet = typeof itemData.getEffectiveEnhancementRuleSet === 'function'
+            ? itemData.getEffectiveEnhancementRuleSet(target.item)
+            : itemData.getEnhancementRuleSet?.(ruleSetId);
         const currentLevel = Math.max(0, target.item.enhancementLevel || 0);
         const maxLevel = Math.max(0, ruleSet?.maxLevel || 10);
         if (currentLevel >= maxLevel) {
@@ -4411,6 +4415,22 @@ export class UIManager {
             this.hideFriendWeaponTooltip();
         });
 
+        const minimap = document.getElementById('minimap-container');
+        const openMapTravel = (event) => {
+            if (this.uiLayoutEditMode) return;
+            if (!this.isWorldSceneActive?.()) return;
+            if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return;
+            if (this.hasBlockingShortcutModalOpen?.()) return;
+            event.preventDefault();
+            event.stopPropagation();
+            this.showMapTravelModal();
+        };
+        if (minimap && minimap.dataset.mapTravelBound !== 'true') {
+            minimap.addEventListener('click', openMapTravel);
+            minimap.addEventListener('keydown', openMapTravel);
+            minimap.dataset.mapTravelBound = 'true';
+        }
+
         const handleClose = (e) => {
             e.preventDefault();
             e.stopImmediatePropagation();
@@ -4945,7 +4965,8 @@ export class UIManager {
             if (e.key === 'Enter') {
                 const active = document.activeElement;
                 if (active === chatInput) return; // Already in chat
-                if (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') return;
+                if (active?.matches?.('input, textarea, button, select, a[href], [role="button"], [contenteditable="true"]')) return;
+                if (active?.closest?.('[role="dialog"]')) return;
 
                 if (chatInput) {
                     chatInput.focus();
@@ -4983,6 +5004,137 @@ export class UIManager {
         if (modal) modal.classList.add('hidden');
     }
 
+    updateMapContext(zoneData = this.game?.zone?.currentZone, zoneMeta = null) {
+        if (!zoneData) return;
+        const header = document.querySelector('#minimap-container .minimap-header');
+        const minimap = document.getElementById('minimap-container');
+        const resolvedMeta = zoneMeta || this.game?.zone?.getZoneMeta?.(zoneData.id);
+        if (header) header.textContent = resolvedMeta?.name || zoneData.name || 'Yurika Map';
+        if (minimap) {
+            minimap.dataset.zoneId = zoneData.id || '';
+            minimap.setAttribute('aria-label', `${resolvedMeta?.name || zoneData.name || '현재 필드'} 지도. 클릭하여 필드 이동`);
+            minimap.title = '클릭하여 필드 이동';
+        }
+        this.lastMinimapSignature = null;
+    }
+
+    showMapTravelModal() {
+        const player = this.game?.localPlayer;
+        const scene = this.game?.sceneManager?.currentScene;
+        const zones = this.game?.zone?.zoneCatalog || [];
+        const genericModal = document.getElementById('generic-modal');
+        if (genericModal && !genericModal.classList.contains('hidden')) return;
+        if (scene?.isZoneTransitioning) {
+            this.logSystemMessage?.('🗺️ 이미 다른 필드로 이동 중입니다.');
+            return;
+        }
+        if (!player || typeof scene?.changeZone !== 'function' || zones.length === 0) {
+            this.logSystemMessage?.('⚠️ 월드 지도 정보를 아직 불러오고 있습니다.');
+            return;
+        }
+
+        this.showGenericModal('월드 지도', '', null, null, {
+            hideNo: true,
+            yesText: '닫기',
+            onShow: (modal) => {
+                const content = modal.querySelector('.confirm-modal-content');
+                const message = document.getElementById('generic-modal-message');
+                if (!message) return;
+                content?.classList.add('map-travel-modal-content');
+                message.classList.add('map-travel-modal-message');
+                message.replaceChildren();
+
+                const intro = document.createElement('p');
+                intro.className = 'map-travel-intro';
+                intro.id = 'map-travel-dialog-description';
+                intro.textContent = '필드는 단계적으로 강해집니다. 레벨 차이가 4 이상 나기 시작하면 획득 경험치가 감소합니다.';
+                message.appendChild(intro);
+                modal.setAttribute('aria-describedby', intro.id);
+
+                const list = document.createElement('div');
+                list.className = 'map-travel-list';
+                const currentZoneId = this.game.zone?.currentZone?.id;
+                zones.forEach((zone) => {
+                    const isCurrent = zone.id === currentZoneId;
+                    const isLocked = player.level < Number(zone.requiredLevel || 1);
+                    const travelState = scene.getZoneTravelState?.(zone.id) || null;
+                    const isTemporarilyUnavailable = !isCurrent && !isLocked && travelState && !travelState.ok;
+                    const card = document.createElement('article');
+                    card.className = `map-travel-card ${isCurrent ? 'is-current' : (isLocked ? 'is-locked' : (isTemporarilyUnavailable ? 'is-unavailable' : 'is-available'))}`;
+                    card.style.setProperty('--map-accent', zone.accentColor || '#6ed7c7');
+
+                    const heading = document.createElement('div');
+                    heading.className = 'map-travel-card-heading';
+                    const titleWrap = document.createElement('div');
+                    const title = document.createElement('h3');
+                    title.textContent = zone.name;
+                    const subtitle = document.createElement('span');
+                    subtitle.textContent = zone.subtitle || zone.description || '';
+                    titleWrap.append(title, subtitle);
+                    const badge = document.createElement('strong');
+                    const unavailableLabels = {
+                        dead: '부활 후 이동',
+                        story_locked: '진행 완료 후 이동',
+                        transitioning: '이동 처리 중'
+                    };
+                    badge.textContent = isCurrent
+                        ? '현재 위치'
+                        : (isLocked
+                            ? `Lv.${zone.requiredLevel} 잠금`
+                            : (isTemporarilyUnavailable ? (unavailableLabels[travelState.reason] || '현재 이동 불가') : '이동 가능'));
+                    heading.append(titleWrap, badge);
+
+                    const recommended = zone.recommendedLevel || {};
+                    const levelText = document.createElement('p');
+                    levelText.className = 'map-travel-level';
+                    levelText.textContent = `입장 Lv.${zone.requiredLevel || 1} · 권장 Lv.${recommended.min || zone.requiredLevel || 1}–${recommended.max || recommended.min || zone.requiredLevel || 1}`;
+
+                    const monsterText = document.createElement('p');
+                    monsterText.className = 'map-travel-monsters';
+                    const normalNames = (zone.normalMonsters || []).map((monster) => monster.name).join(' · ') || '필드 몬스터';
+                    monsterText.textContent = `몬스터 ${normalNames}`;
+
+                    const bossText = document.createElement('p');
+                    bossText.className = 'map-travel-boss';
+                    bossText.textContent = zone.boss
+                        ? `보스 ${zone.boss.name} · 전용 무기 ${zone.boss.weaponName}`
+                        : '필드 보스 정보 없음';
+
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'map-travel-button';
+                    button.disabled = isCurrent || isLocked || isTemporarilyUnavailable;
+                    button.textContent = isCurrent
+                        ? '현재 필드'
+                        : (isLocked
+                            ? `레벨 ${zone.requiredLevel} 필요`
+                            : (isTemporarilyUnavailable ? (unavailableLabels[travelState.reason] || '현재 이동 불가') : '이동하기'));
+                    button.addEventListener('click', async (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (button.disabled) return;
+                        list.querySelectorAll('button').forEach((entry) => { entry.disabled = true; });
+                        button.textContent = '이동 중...';
+                        const moved = await scene.changeZone(zone.id);
+                        if (!moved && document.getElementById('generic-modal-title')?.textContent === '월드 지도') {
+                            this.hideGenericModal();
+                            this.showMapTravelModal();
+                        }
+                    });
+
+                    card.append(heading, levelText, monsterText, bossText, button);
+                    list.appendChild(card);
+                });
+                message.appendChild(list);
+
+                const note = document.createElement('p');
+                note.className = 'map-travel-note';
+                note.textContent = '과레벨 EXP: +0~3 100% · +4~5 75% · +6~8 50% · +9~12 25% · +13 이상 10%';
+                message.appendChild(note);
+            }
+        });
+    }
+
     showGenericModal(title, message, onYes, onNo, options = {}) {
         const modal = document.getElementById('generic-modal');
         if (!modal) return;
@@ -4993,7 +5145,18 @@ export class UIManager {
         const noBtn = document.getElementById('generic-modal-no');
         const contentEl = modal.querySelector('.confirm-modal-content');
         const { yesText, noText, hideNo = !onNo, allowHtml = false, onShow = null } = options;
+        modal.setAttribute('aria-describedby', 'generic-modal-message');
+        if (modal.classList.contains('hidden')) {
+            this._genericModalPreviousFocus = document.activeElement instanceof HTMLElement
+                ? document.activeElement
+                : null;
+        }
+        if (this._genericModalKeydownHandler) {
+            modal.removeEventListener('keydown', this._genericModalKeydownHandler);
+        }
 
+        contentEl?.classList.remove('map-travel-modal-content');
+        msgEl?.classList.remove('map-travel-modal-message');
         if (titleEl) titleEl.textContent = title;
         if (msgEl) {
             if (allowHtml) {
@@ -5014,19 +5177,25 @@ export class UIManager {
         newYes.disabled = false;
         newNo.disabled = false;
 
-        newYes.onclick = async () => {
-            const shouldClose = onYes ? await onYes() : true;
-            if (shouldClose !== false) {
-                this.hideGenericModal();
+        let modalActionPending = false;
+        const runModalAction = async (callback) => {
+            if (modalActionPending) return;
+            modalActionPending = true;
+            try {
+                const shouldClose = callback ? await callback() : true;
+                const stillOwnsModal = document.getElementById('generic-modal-yes') === newYes;
+                if (shouldClose !== false && stillOwnsModal) {
+                    this.hideGenericModal();
+                }
+            } catch (error) {
+                Logger.error('[UI] Generic modal action failed', error);
+            } finally {
+                modalActionPending = false;
             }
         };
 
-        newNo.onclick = async () => {
-            const shouldClose = onNo ? await onNo() : true;
-            if (shouldClose !== false) {
-                this.hideGenericModal();
-            }
-        };
+        newYes.onclick = () => runModalAction(onYes);
+        newNo.onclick = () => runModalAction(onNo);
 
         modal.classList.remove('hidden');
         modal.classList.add('visible');
@@ -5034,6 +5203,37 @@ export class UIManager {
         if (typeof onShow === 'function') {
             onShow(modal);
         }
+        this._genericModalKeydownHandler = (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                if (event.repeat) return;
+                if (hideNo) this.hideGenericModal();
+                else newNo.click();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const focusable = Array.from(modal.querySelectorAll(
+                'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+            )).filter((element) => element instanceof HTMLElement && element.offsetParent !== null);
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+        modal.addEventListener('keydown', this._genericModalKeydownHandler);
+        const focusModal = () => {
+            const preferred = modal.querySelector('.map-travel-button:not(:disabled)') || newYes;
+            preferred?.focus?.({ preventScroll: true });
+        };
+        if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(focusModal);
+        else setTimeout(focusModal, 0);
         this.refreshDesktopShortcutHints();
     }
 
@@ -5128,9 +5328,16 @@ export class UIManager {
     hideGenericModal() {
         const modal = document.getElementById('generic-modal');
         if (modal) {
+            if (this._genericModalKeydownHandler) {
+                modal.removeEventListener('keydown', this._genericModalKeydownHandler);
+                this._genericModalKeydownHandler = null;
+            }
             modal.classList.remove('visible');
             modal.classList.add('hidden');
         }
+        const previousFocus = this._genericModalPreviousFocus;
+        this._genericModalPreviousFocus = null;
+        if (previousFocus?.isConnected) previousFocus.focus?.({ preventScroll: true });
         this.refreshDesktopShortcutHints();
     }
 
@@ -9819,8 +10026,12 @@ export class UIManager {
 
     buildInventoryDetail(player, item) {
         const itemData = this.game.itemData;
-        const definition = itemData?.getItemDefinition(item.type) || null;
-        const affix = itemData?.getAffixDefinition(item.prefixId) || null;
+        const definition = typeof itemData?.getEffectiveItemDefinition === 'function'
+            ? itemData.getEffectiveItemDefinition(item)
+            : (itemData?.getItemDefinition(item.type) || null);
+        const affix = typeof itemData?.getEffectiveAffixDefinition === 'function'
+            ? itemData.getEffectiveAffixDefinition(item)
+            : (itemData?.getAffixDefinition(item.prefixId) || null);
         const lines = [];
         const titleBase = item.name || definition?.name || item.type;
         const enhancementLevel = Math.max(0, item.enhancementLevel || 0);
@@ -9871,29 +10082,31 @@ export class UIManager {
             lines.push(`치명타 확률 +${Math.round(critBonus * 100)}%`);
             lines.push(`마나 회복력 +${mpRegenBonus}`);
 
-            if (affix?.id === 'starlight') {
+            const skillOverrides = affix?.skillOverrides || {};
+            const rolledValues = item.rolledValues || {};
+            if (skillOverrides.missileVisualVariant || rolledValues.missileDamageBonus || rolledValues.missileManaCostReduction) {
                 lines.push(`별빛 매직 미사일 피해 +${Math.round((player.getWeaponAffixEffectiveValue?.(item, 'missileDamageBonus')
-                    ?? (item.rolledValues?.missileDamageBonus || 0)) * 100)}%`);
+                    ?? (rolledValues.missileDamageBonus || 0)) * 100)}%`);
                 pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'missileDamageBonus') || 0);
                 lines.push(`매직 미사일 마나 소모 -${Math.round((player.getWeaponAffixEffectiveValue?.(item, 'missileManaCostReduction')
-                    ?? (item.rolledValues?.missileManaCostReduction || 0)) * 100)}%`);
+                    ?? (rolledValues.missileManaCostReduction || 0)) * 100)}%`);
                 pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'missileManaCostReduction') || 0);
-            } else if (affix?.id === 'blue_flame') {
+            } else if (skillOverrides.fireballVisualVariant || rolledValues.fireballChainChance || rolledValues.fireballChainDamageRatio) {
                 const chainChance = Math.round((player.getWeaponAffixEffectiveValue?.(item, 'fireballChainChance')
-                    ?? (item.rolledValues?.fireballChainChance ?? item.rolledValues?.fireballDamageBonus ?? 0)) * 100);
+                    ?? (rolledValues.fireballChainChance ?? rolledValues.fireballDamageBonus ?? 0)) * 100);
                 const chainDamage = Math.round((player.getWeaponAffixEffectiveValue?.(item, 'fireballChainDamageRatio')
-                    ?? (item.rolledValues?.fireballChainDamageRatio ?? item.rolledValues?.fireExplosionDamageRatio ?? 0)) * 100);
+                    ?? (rolledValues.fireballChainDamageRatio ?? rolledValues.fireExplosionDamageRatio ?? 0)) * 100);
                 lines.push(`푸른 파이어볼 연속 폭발 확률 +${chainChance}%`);
                 pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'fireballChainChance') || 0);
                 lines.push(`연속 폭발 데미지 +${chainDamage}%`);
                 pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'fireballChainDamageRatio') || 0);
                 lines.push('파이어볼이 0.3초 뒤 같은 위치에서 다시 폭발');
-            } else if (affix?.id === 'crimson_flash') {
+            } else if (skillOverrides.laserVisualVariant || rolledValues.laserDamageBonus || rolledValues.attackSpeedBonus) {
                 lines.push(`붉은 전격 피해 +${Math.round((player.getWeaponAffixEffectiveValue?.(item, 'laserDamageBonus')
-                    ?? (item.rolledValues?.laserDamageBonus || 0)) * 100)}%`);
+                    ?? (rolledValues.laserDamageBonus || 0)) * 100)}%`);
                 pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'laserDamageBonus') || 0);
                 lines.push(`공격속도 +${Math.round((player.getWeaponAffixEffectiveValue?.(item, 'attackSpeedBonus')
-                    ?? (item.rolledValues?.attackSpeedBonus || 0)) * 100)}%`);
+                    ?? (rolledValues.attackSpeedBonus || 0)) * 100)}%`);
                 pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'attackSpeedBonus') || 0);
 
                 const hpRestore = player.getWeaponCombatHookValue?.(item, 'restoreHpPerLaserHit')
@@ -10376,6 +10589,7 @@ export class UIManager {
 
     buildMinimapStateSignature(player, remotePlayers, monsters, mapWidth, mapHeight, width, height, simpleMode) {
         let hash = 2166136261;
+        const zoneId = this.game?.zone?.currentZone?.id || 'zone_1';
         const step = Math.max(
             10,
             Math.round(Math.max(mapWidth / Math.max(width, 1), mapHeight / Math.max(height, 1)) * (simpleMode ? 0.9 : 0.65))
@@ -10393,6 +10607,7 @@ export class UIManager {
 
         mix(width);
         mix(height);
+        for (let index = 0; index < zoneId.length; index++) mix(zoneId.charCodeAt(index));
         mix(quantize(player?.x));
         mix(quantize(player?.y));
 
@@ -10417,7 +10632,7 @@ export class UIManager {
         mix(remoteCount);
         mix(aliveMonsterCount);
 
-        return `${width}x${height}:${step}:${remoteCount}:${aliveMonsterCount}:${hash.toString(36)}`;
+        return `${zoneId}:${width}x${height}:${step}:${remoteCount}:${aliveMonsterCount}:${hash.toString(36)}`;
     }
 
     updateMinimap(player, remotePlayers, monsters, mapWidth, mapHeight) {

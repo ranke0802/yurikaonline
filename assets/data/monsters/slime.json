@@ -4,12 +4,17 @@
     "type": "monster",
     "chargeOnly": true,
     "baseStats": {
+        "level": 1,
         "hp": 100,
         "maxHp": 100,
         "atk": 10,
         "def": 2,
         "speed": 50,
-        "exp": 15
+        "exp": 25,
+        "manastone": {
+            "min": 15,
+            "max": 30
+        }
     },
     "visual": {
         "assetPath": "assets/resource/monster_slime",
