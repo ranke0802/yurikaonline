@@ -501,7 +501,6 @@ export default class SkillRenderer {
         ctx.save();
         const reducedEffects = this.isReducedEffectsMode();
         const variant = options.variant || 'default';
-        const lowGlare = !!options.lowGlare;
         const palette = variant === 'crimson_chain'
             ? {
                 glow: '#ff5d66',
@@ -527,41 +526,6 @@ export default class SkillRenderer {
                 };
 
         const dist = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-
-        if (lowGlare) {
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.shadowBlur = 0;
-
-            ctx.strokeStyle = `${palette.main}2e`;
-            ctx.lineWidth = Math.max(4, 5 * intensity);
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
-
-            ctx.strokeStyle = `${palette.main}8a`;
-            ctx.lineWidth = Math.max(1.2, 1.7 * intensity);
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
-
-            ctx.fillStyle = `${palette.main}24`;
-            ctx.beginPath();
-            ctx.arc(x2, y2, Math.max(8, 10 * intensity), 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.strokeStyle = `${palette.main}66`;
-            ctx.lineWidth = Math.max(1, 1.2 * intensity);
-            ctx.beginPath();
-            ctx.arc(x2, y2, Math.max(9, 12 * intensity), 0, Math.PI * 2);
-            ctx.stroke();
-
-            ctx.restore();
-            return;
-        }
-
         const segments = Math.max(reducedEffects ? 2 : 3, Math.floor(dist / (reducedEffects ? 28 : 15)));
         const spread = (reducedEffects ? 6 : 12) * intensity;
 

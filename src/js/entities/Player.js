@@ -1742,10 +1742,6 @@ export default class Player extends CharacterBase {
         }
     }
 
-    isLowGlareCombatZone() {
-        return window.game?.zone?.currentZone?.id === 'zone_4';
-    }
-
     performLaserAttack(dt) {
         if (this.isDead) return;
         if (!window.game?.tutorial?.isActionAllowed?.('ATTACK')) return;
@@ -2845,11 +2841,9 @@ export default class Player extends CharacterBase {
             // --- Spark Effect during Normal Attack (Chain Lightning) ---
             if (this.isChanneling && !this.isDead) {
                 ctx.save();
-                if (window.game?.useReducedEffects || this.isLowGlareCombatZone()) {
-                    ctx.strokeStyle = this.isLowGlareCombatZone()
-                        ? 'rgba(117, 211, 255, 0.22)'
-                        : 'rgba(72, 219, 251, 0.75)';
-                    ctx.lineWidth = this.isLowGlareCombatZone() ? 1.5 : 2;
+                if (window.game?.useReducedEffects) {
+                    ctx.strokeStyle = 'rgba(72, 219, 251, 0.75)';
+                    ctx.lineWidth = 2;
                     ctx.beginPath();
                     ctx.arc(centerX, centerY, 26, 0, Math.PI * 2);
                     ctx.stroke();
@@ -3995,10 +3989,7 @@ export default class Player extends CharacterBase {
     }
 
     drawLightningSegment(ctx, x1, y1, x2, y2, intensity, variant = null) {
-        SkillRenderer.drawLightning(ctx, x1, y1, x2, y2, intensity, {
-            variant,
-            lowGlare: this.isLowGlareCombatZone()
-        });
+        SkillRenderer.drawLightning(ctx, x1, y1, x2, y2, intensity, { variant });
     }
 
     getHostileUidByName(name) {

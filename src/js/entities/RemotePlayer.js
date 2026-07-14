@@ -647,10 +647,6 @@ export default class RemotePlayer extends CharacterBase {
         this.burnDamage = damagePerTick;
     }
 
-    isLowGlareCombatZone() {
-        return window.game?.zone?.currentZone?.id === 'zone_4';
-    }
-
     _updateLightningVisual() {
         // Visual-only chain calculation for remote player
         const centerX = this.x + this.width / 2;
@@ -1335,13 +1331,9 @@ export default class RemotePlayer extends CharacterBase {
 
     drawLightningEffect(ctx, centerX, centerY) {
         if (!this.lightningEffect || !this.lightningEffect.chains.length) return;
-        const lowGlare = this.isLowGlareCombatZone();
         this.lightningEffect.chains.forEach(c => {
-            SkillRenderer.drawLightning(ctx, c.x1, c.y1, c.x2, c.y2, 1, {
-                variant: this.lightningEffect.variant || null,
-                lowGlare
-            });
-            if (!lowGlare && window.game && Math.random() < 0.3) {
+            SkillRenderer.drawLightning(ctx, c.x1, c.y1, c.x2, c.y2, 1, { variant: this.lightningEffect.variant || null });
+            if (window.game && Math.random() < 0.3) {
                 window.game.addSpark(c.x2, c.y2);
             }
         });
