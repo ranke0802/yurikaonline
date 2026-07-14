@@ -1910,6 +1910,11 @@ body.ui-layout-edit-mode #joystick-area {
     pointer-events: none !important;
 }
 
+body.ui-layout-edit-mode #loading-overlay {
+    display: none !important;
+    pointer-events: none !important;
+}
+
 body.ui-layout-edit-mode #ui-layer .action-buttons {
     display: block !important;
     opacity: 1 !important;
@@ -1928,6 +1933,13 @@ body.ui-layout-edit-mode [data-ui-layout-editable="true"] {
     pointer-events: auto !important;
     touch-action: none !important;
     filter: brightness(1.04);
+}
+
+body.ui-layout-edit-mode .action-buttons .cooldown-overlay,
+body.ui-layout-edit-mode .action-buttons .cooldown-time,
+body.ui-layout-edit-mode .action-buttons .shortcut-badge,
+body.ui-layout-edit-mode .action-buttons .inner-icon {
+    pointer-events: none !important;
 }
 
 body.ui-layout-edit-mode #dev-overlay[data-ui-layout-editable="true"] {

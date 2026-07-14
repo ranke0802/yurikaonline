@@ -1025,6 +1025,19 @@ export class UIManager {
         actionButtons.style.setProperty('pointer-events', 'none', 'important');
     }
 
+    bindUiLayoutControlHandles() {
+        Object.keys(this.uiLayoutControlDefinitions).forEach((controlId) => {
+            const element = this.getUiLayoutControlElement(controlId);
+            if (!element) return;
+
+            element.dataset.uiLayoutControlId = controlId;
+            if (element.dataset.uiLayoutBound === 'true') return;
+
+            element.addEventListener('pointerdown', this.handleUiLayoutControlPointerDown);
+            element.dataset.uiLayoutBound = 'true';
+        });
+    }
+
     getElementComputedScale(element) {
         if (!element || typeof window === 'undefined' || !window.getComputedStyle) return 1;
         const transform = window.getComputedStyle(element).transform;
@@ -1562,11 +1575,17 @@ export class UIManager {
         this.isPaused = true;
         this.setLandscapeChatActive(false);
         this.overlay?.classList.add('hidden');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.setProperty('display', 'none', 'important');
+            loadingOverlay.style.setProperty('pointer-events', 'none', 'important');
+        }
         document.querySelectorAll('.game-popup').forEach((popup) => popup.classList.add('hidden'));
         document.body.classList.remove('popup-open');
         document.body.classList.add('ui-layout-edit-mode');
         document.body.getBoundingClientRect();
         this.uiLayoutActiveMode = this.getUiLayoutMode();
+        this.bindUiLayoutControlHandles();
         this.ensureUiLayoutDraftMode(this.uiLayoutActiveMode);
         this.uiLayoutSelectedControlId = this.getDefaultUiLayoutControlId(this.uiLayoutActiveMode);
         this.setUiLayoutDirty(false);
@@ -1574,6 +1593,7 @@ export class UIManager {
         this.resetUiLayoutEditorWindowPosition();
         this.applyActiveUiLayout();
         this.syncUiLayoutEditor();
+        window.dispatchEvent?.(new CustomEvent('yurika:ui-layout-edit-mode', { detail: { active: true } }));
     }
 
     persistUiLayoutDraft() {
@@ -1633,6 +1653,8 @@ export class UIManager {
         this.isPaused = false;
         this.applyActiveUiLayout();
         this.syncUiLayoutEditor();
+        window.dispatchEvent?.(new CustomEvent('yurika:ui-layout-edit-mode', { detail: { active: false, saved: !!save } }));
+        window.flushPendingYurikaControllerReload?.();
     }
 
     updateUiLayoutEntry(controlId, nextEntry = {}, options = {}) {
@@ -4631,13 +4653,7 @@ export class UIManager {
             this.updateAutoAttackToggle();
         }
 
-        Object.keys(this.uiLayoutControlDefinitions).forEach((controlId) => {
-            const element = this.getUiLayoutControlElement(controlId);
-            if (!element || element.dataset.uiLayoutBound === 'true') return;
-            element.dataset.uiLayoutControlId = controlId;
-            element.addEventListener('pointerdown', this.handleUiLayoutControlPointerDown);
-            element.dataset.uiLayoutBound = 'true';
-        });
+        this.bindUiLayoutControlHandles();
 
         const skillDetailModal = document.getElementById('skill-detail-modal');
         const skillDetailCloseBtn = document.getElementById('skill-detail-modal-close');
