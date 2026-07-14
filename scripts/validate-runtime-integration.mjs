@@ -8,6 +8,7 @@ import { DURABLE_BOSS_REWARD_ARCHIVED_CATALOGS } from '../src/js/core/DurableBos
 import MonsterManager from '../src/js/world/MonsterManager.js';
 import Monster from '../src/js/entities/Monster.js';
 import Player from '../src/js/entities/Player.js';
+import QuestManager from '../src/js/core/QuestManager.js';
 import WorldScene from '../src/js/world/scenes/WorldScene.js';
 
 globalThis.window = globalThis.window || {};
@@ -2035,6 +2036,60 @@ async function validateRewardDedupe() {
     assert.equal(player.manastone, 50, 'duplicate host rewards must not be applied twice');
     player.saveState(false, { debounceMs: 0, reason: 'runtime_validation' });
     assert.deepEqual(savedProfiles.at(-1).claimedRewardIds, [reward.rewardId]);
+}
+
+async function validateQuestRuntimeStateSync() {
+    const previousGame = window.game;
+    const game = {
+        resources: {
+            loadJSON: async (assetPath) => JSON.parse(
+                await readFile(new URL(`..${assetPath}`, import.meta.url), 'utf8')
+            )
+        },
+        ui: {
+            updateQuestUI() {},
+            updateInventory() {},
+            logSystemMessage() {}
+        },
+        monsterManager: { bossSpawned: false },
+        localPlayer: null,
+        quests: null
+    };
+    const quests = new QuestManager(game);
+    game.quests = quests;
+    await quests.loadQuests();
+
+    const player = new Player(0, 0, 'quest_sync_tester');
+    player.questData.basicTrainingCompleted = true;
+    player.saveProfilePatch = () => {};
+    player.saveState = () => {};
+    game.localPlayer = player;
+    window.game = game;
+
+    quests.restoreFromLegacy(player.questData);
+    assert.equal(
+        quests.getActiveQuests().find((quest) => quest.id === 'quest_slime_10')?.objectives[0]?.current,
+        0,
+        'fresh post-tutorial quest state must expose the first slime quest'
+    );
+
+    assert.equal(player.receiveReward({ questKill: 'slime', monsterName: 'Slime' }, { save: false }), true);
+    assert.equal(player.questData.slimeKills, 1, 'legacy questData must count the rewarded slime kill');
+    assert.equal(
+        quests.getActiveQuests().find((quest) => quest.id === 'quest_slime_10')?.objectives[0]?.current,
+        1,
+        'QuestManager must stay in sync when reward receipts mutate questData'
+    );
+
+    player.questData.slimeKills = 10;
+    game.quests.restoreFromLegacy(player.questData);
+    assert.equal(
+        quests.getActiveQuests().find((quest) => quest.id === 'quest_slime_10')?.canComplete,
+        true,
+        'QuestManager must mark the first slime quest claimable from legacy questData'
+    );
+
+    window.game = previousGame;
 }
 
 async function validateProfileWriterFencingContracts() {
@@ -6072,6 +6127,8 @@ console.log('[runtime-integration] checking scene listener lifecycle...');
 await validateWorldSceneListenerLifecycle();
 console.log('[runtime-integration] checking reward dedupe...');
 await validateRewardDedupe();
+console.log('[runtime-integration] checking quest runtime state sync...');
+await validateQuestRuntimeStateSync();
 console.log('[runtime-integration] checking profile writer fencing...');
 await validateProfileWriterFencingContracts();
 console.log('[runtime-integration] checking durable boss rewards...');

@@ -2280,6 +2280,7 @@ export default class Player extends CharacterBase {
         let skipQuestRewardLog = false;
         let questKillLogMessage = '';
         let hasInventoryMutation = false;
+        let questStateChanged = false;
 
         const grantBlessedUpgradeStones = (rawAmount) => {
             const amount = Math.max(1, Math.floor(Number(rawAmount) || 1));
@@ -2381,10 +2382,11 @@ export default class Player extends CharacterBase {
                 if (killCount <= 0) return;
 
                 if (questKillId === 'slime' || questKillId === 'slime_split') {
-                    this.questData.slimeKills += killCount;
+                    this.questData.slimeKills = Math.max(0, Number(this.questData.slimeKills || 0)) + killCount;
                     if (!isIntroSharedQuest && canTrackRepeatSlimeKills) {
-                        this.questData.slimeRepeatKills += killCount;
+                        this.questData.slimeRepeatKills = Math.max(0, Number(this.questData.slimeRepeatKills || 0)) + killCount;
                     }
+                    questStateChanged = true;
                     if (!isIntroSharedQuest) {
                         genericQuestLogs.push(
                             killCount === 1
@@ -2411,6 +2413,7 @@ export default class Player extends CharacterBase {
                         this.questData.introSlime30RewardClaimed = true;
                         this.questData.bossClearCount = (this.questData.bossClearCount || 0) + 1;
                         this.questData.slimeRepeatKills = 0;
+                        questStateChanged = true;
 
                         let rewardMsg = '';
                         let modalTitle = '';
@@ -2456,6 +2459,10 @@ export default class Player extends CharacterBase {
 
             if (genericQuestLogs.length > 0) {
                 questKillLogMessage = `${genericQuestLogs.join(' / ')}${rewardSummarySuffix}`;
+            }
+
+            if (questStateChanged) {
+                window.game?.quests?.restoreFromLegacy?.(this.questData);
             }
 
             if (window.game?.ui) window.game.ui.updateQuestUI();

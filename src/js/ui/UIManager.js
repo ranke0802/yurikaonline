@@ -9172,6 +9172,7 @@ export class UIManager {
                         if (this.game.monsterManager) {
                             this._requestQuestBossSummon(false);
                             p.questData.slimeRepeatKills = 0; // Reset individual count
+                            this.game?.quests?.restoreFromLegacy?.(p.questData);
                             p.saveState(); // Ensure it marks as 0 in DB
                             this.updateQuestUI();
                         }
@@ -9268,6 +9269,7 @@ export class UIManager {
         const statInsightMessages = this.collectFirstStatInsightMessages(p, { wisdom: 2 });
         p.wisdom += 2; // v0.00.75: Wisdom directly +2
         p.updateDerivedStats();
+        this.game?.quests?.restoreFromLegacy?.(p.questData);
         this.logSystemMessage('QUEST 완료: 슬라임 토벌 보상 지급 (지혜 +2)');
         this.logSystemMessage('✨ 이제 마나 회복이 보다 원활해집니다');
         this.showRewardModal("슬라임 처치 퀘스트 완료!", "보상: 지혜 스탯 2개를 획득했습니다!");
@@ -9315,6 +9317,7 @@ export class UIManager {
         if (this.game.monsterManager && !this.game.monsterManager.bossSpawned) {
             this._requestQuestBossSummon(true);
         }
+        this.game?.quests?.restoreFromLegacy?.(p.questData);
 
         if (alreadyClaimedIntroReward) {
             this.logSystemMessage('QUEST 완료: 슬라임 30마리 토벌 진행 재개 (첫 체력 +3 보상은 이미 수령)');
@@ -9335,6 +9338,7 @@ export class UIManager {
     claimBossReward(p) {
         p.questData.bossQuestClaimed = true;
         p.addInventoryItem?.('blessed_weapon_upgrade_stone', 3, { markAsNew: false });
+        this.game?.quests?.restoreFromLegacy?.(p.questData);
         this.logSystemMessage('QUEST 완료: 대왕 슬라임 토벌 보상 지급 (축복받은 무기 강화석 x3)');
         this.showRewardModal("대왕 슬라임 처치 퀘스트 완료!", "보상: 축복받은 무기 강화석 3개를 획득했습니다!");
         this.updateQuestUI();
