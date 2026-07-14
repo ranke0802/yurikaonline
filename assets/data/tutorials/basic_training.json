@@ -137,9 +137,15 @@
                     "offsetY": 0
                 }
             ],
-            "trigger": "kill",
-            "target": "training_dummy",
+            "trigger": "attack",
+            "target": "normal",
             "count": 1,
+            "completionDelay": 250,
+            "onComplete": [
+                {
+                    "type": "clear_tutorial_monsters"
+                }
+            ],
             "allowedActions": [
                 "MOVE_UP",
                 "MOVE_DOWN",

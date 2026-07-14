@@ -1407,6 +1407,7 @@ export default class Player extends CharacterBase {
 
     attack() {
         if (!window.game?.tutorial?.isActionAllowed?.('ATTACK')) return;
+        window.game?.tutorial?.trigger?.('attack', { target: 'normal' });
         // Handled by update loop for channeling
     }
 
