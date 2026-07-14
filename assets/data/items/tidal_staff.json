@@ -16,7 +16,7 @@
   },
   "icon": {
     "type": "image",
-    "path": "src/assets/items/tidal_staff.svg",
+    "path": "src/assets/items/tidal_staff.png",
     "fallbackEmoji": "🔱"
   },
   "prefixPool": "tidal_staff_affixes",

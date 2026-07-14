@@ -9,7 +9,7 @@
   "width": 3800,
   "height": 3800,
   "background": {
-    "image": "assets/resource/background.webp",
+    "image": "assets/resource/maps/zone_4_astral_ruins.png",
     "music": "bgm_act4_hope",
     "ambient": null
   },

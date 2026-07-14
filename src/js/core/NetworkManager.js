@@ -205,6 +205,8 @@ const NORMAL_REWARD_CLAIMED_FIELDS = new Set([
     'claimedBy',
     'claimedAt'
 ]);
+const ACCOUNT_SESSION_HEARTBEAT_MS = 10000;
+const ACCOUNT_SESSION_STALE_MS = 45000;
 
 export default class NetworkManager extends EventEmitter {
     constructor() {
@@ -281,6 +283,11 @@ export default class NetworkManager extends EventEmitter {
         this._lastProfileSaveTs = 0;
         this._profileWriterSession = null;
         this._profileWriterSuperseded = false;
+        this._accountSessionToken = null;
+        this._accountSessionUid = null;
+        this._accountSessionRef = null;
+        this._accountSessionHandler = null;
+        this._accountSessionHeartbeatTimer = null;
         this._queuedProfileSaves = new Map();
         this._queuedProfilePatches = new Map();
         this._blockedProfileWriteUids = new Set();
@@ -387,7 +394,10 @@ export default class NetworkManager extends EventEmitter {
     connect(user) {
         if (!user || !window.firebase) return;
         if (this.connected) {
-            if (this.playerId === user.uid && this.dbRef) return;
+            if (this.playerId === user.uid && this.dbRef) {
+                this._startAccountSessionGuard(user);
+                return;
+            }
             this.disconnect();
         }
 
@@ -399,7 +409,7 @@ export default class NetworkManager extends EventEmitter {
         this.playerId = user.uid;
         this.dbRef = firebase.database().ref(`zones/${this.roomId}`);
         this._profileWriterSuperseded = false;
-        this._beginProfileWriterSession(user.uid);
+        this._startAccountSessionGuard(user);
         this._restoreDurableRewardOutbox();
         this._restoreNormalRewardOutbox();
         this._restoreDropSpawnOutbox();
@@ -824,6 +834,7 @@ export default class NetworkManager extends EventEmitter {
         this._flushRewardValidationWindowSummary(Date.now());
         this.flushQueuedProfileSaves().catch(() => { });
         this.flushQueuedProfilePatches().catch(() => { });
+        this._stopAccountSessionGuard();
         if (this._hbInterval) {
             clearInterval(this._hbInterval);
             this._hbInterval = null;
@@ -6783,11 +6794,73 @@ export default class NetworkManager extends EventEmitter {
         return `${String(uid || 'player').slice(0, 48)}:${randomId}`.slice(0, 128);
     }
 
-    _shouldUseProfileWriterSession(uid) {
-        if (!uid || uid !== this.playerId || !window.firebase) return false;
-        const currentUser = window.game?.auth?.currentUser || firebase.auth?.().currentUser || null;
-        if (currentUser?.uid === uid && currentUser.isAnonymous === true) return false;
+    _createAccountSessionToken(uid) {
+        return this._createProfileWriterToken(uid);
+    }
+
+    _stopAccountSessionGuard() {
+        if (this._accountSessionRef && this._accountSessionHandler) {
+            this._accountSessionRef.off?.('value', this._accountSessionHandler);
+        }
+        if (this._accountSessionHeartbeatTimer) {
+            clearInterval(this._accountSessionHeartbeatTimer);
+        }
+        this._accountSessionRef = null;
+        this._accountSessionHandler = null;
+        this._accountSessionHeartbeatTimer = null;
+        this._accountSessionUid = null;
+        this._accountSessionToken = null;
+    }
+
+    _startAccountSessionGuard(user = null) {
+        const uid = user?.uid || this.playerId;
+        if (!uid || !window.firebase || user?.isAnonymous === true) {
+            this._stopAccountSessionGuard();
+            return false;
+        }
+        if (this._accountSessionUid === uid && this._accountSessionRef && this._accountSessionToken) {
+            return true;
+        }
+        this._stopAccountSessionGuard();
+        const ref = firebase.database().ref(`users/${uid}/activeSession`);
+        const token = this._createAccountSessionToken(uid);
+        const now = Date.now();
+        this._accountSessionUid = uid;
+        this._accountSessionToken = token;
+        this._accountSessionRef = ref;
+
+        const publish = () => {
+            if (this._accountSessionUid !== uid || this._accountSessionToken !== token) return;
+            ref.update({
+                token,
+                uid,
+                heartbeatAt: Date.now(),
+                claimedAt: now,
+                version: 'v1'
+            }).catch((error) => Logger.warn('[Network] Account session heartbeat failed', error));
+        };
+
+        this._accountSessionHandler = (snapshot) => {
+            const value = snapshot?.val?.();
+            if (!value || value.token === token) return;
+            const heartbeatAt = Number(value.heartbeatAt || value.claimedAt || 0);
+            if (!Number.isFinite(heartbeatAt) || Date.now() - heartbeatAt > ACCOUNT_SESSION_STALE_MS) {
+                publish();
+                return;
+            }
+            this._notifyProfileWriterSuperseded(uid, {
+                _writerEpoch: 0,
+                activeSessionToken: value.token
+            });
+        };
+        publish();
+        ref.on?.('value', this._accountSessionHandler);
+        this._accountSessionHeartbeatTimer = setInterval(publish, ACCOUNT_SESSION_HEARTBEAT_MS);
         return true;
+    }
+
+    _shouldUseProfileWriterSession(uid) {
+        return false;
     }
 
     _beginProfileWriterSession(uid, attempt = 0) {
@@ -7439,6 +7512,9 @@ export default class NetworkManager extends EventEmitter {
 
     async _commitPlayerData(uid, data, syncToZone = false, options = {}) {
         if (!uid || !window.firebase || !data) return { ok: false, reason: 'invalid_args' };
+        if (uid === this.playerId && this._profileWriterSuperseded && !options.allowSupersededWrite) {
+            return { ok: false, reason: 'account_session_superseded' };
+        }
         try {
             const requiresWriterSession = this._shouldUseProfileWriterSession(uid);
             const writerSession = requiresWriterSession
@@ -7514,6 +7590,9 @@ export default class NetworkManager extends EventEmitter {
     async _commitPlayerDataPatch(uid, patchData, options = {}) {
         if (!uid || !window.firebase || !patchData || typeof patchData !== 'object') {
             return { ok: false, reason: 'invalid_args' };
+        }
+        if (uid === this.playerId && this._profileWriterSuperseded && !options.allowSupersededWrite) {
+            return { ok: false, reason: 'account_session_superseded' };
         }
 
         try {

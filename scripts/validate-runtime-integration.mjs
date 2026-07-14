@@ -2039,20 +2039,17 @@ async function validateRewardDedupe() {
 
 async function validateProfileWriterFencingContracts() {
     const uid = 'profile_fence_player';
-    let transientSessionFailures = 0;
     let profile = {
         inventory: [],
         pendingItemRewards: [],
         claimedRewardIds: [],
         ts: 1
     };
+    let activeSession = null;
+    const activeSessionHandlers = new Set();
     const clone = (value) => (value == null ? value : JSON.parse(JSON.stringify(value)));
     const profileRef = {
         async transaction(update) {
-            if (transientSessionFailures > 0) {
-                transientSessionFailures -= 1;
-                throw new Error('temporary profile session failure');
-            }
             const next = update(clone(profile));
             if (next === undefined) {
                 return { committed: false, snapshot: { val: () => clone(profile) } };
@@ -2068,6 +2065,24 @@ async function validateProfileWriterFencingContracts() {
         database: () => ({
             ref(path) {
                 if (path === `users/${uid}/profile`) return profileRef;
+                if (path === `users/${uid}/activeSession`) {
+                    return {
+                        update(value) {
+                            activeSession = { ...(activeSession || {}), ...clone(value) };
+                            const snapshot = { val: () => clone(activeSession) };
+                            activeSessionHandlers.forEach((handler) => handler(snapshot));
+                            return Promise.resolve();
+                        },
+                        on(_event, handler) {
+                            activeSessionHandlers.add(handler);
+                            handler({ val: () => clone(activeSession) });
+                        },
+                        off(_event, handler) {
+                            activeSessionHandlers.delete(handler);
+                        },
+                        once: async () => ({ val: () => clone(activeSession) })
+                    };
+                }
                 return {
                     async transaction(update) {
                         const next = update(null);
@@ -2082,31 +2097,27 @@ async function validateProfileWriterFencingContracts() {
     };
     const previousWindowFirebase = window.firebase;
     const previousGlobalFirebase = globalThis.firebase;
+    const previousGame = window.game;
     window.firebase = firebaseMock;
     globalThis.firebase = firebaseMock;
     try {
-        transientSessionFailures = 1;
-        const retryingTab = new NetworkManager();
-        retryingTab.playerId = uid;
-        const failedSession = retryingTab._beginProfileWriterSession(uid);
-        await failedSession.promise;
-        failedSession.retryAt = Date.now();
-        const recoveredSession = await retryingTab._ensureProfileWriterSession(uid);
-        assert.equal(recoveredSession?.ready, true, 'a transient writer-session claim failure must be retried');
-
         const olderTab = new NetworkManager();
         olderTab.playerId = uid;
         olderTab._writeProfileBackup = async () => true;
         olderTab._syncRecoveryProfile = async () => true;
-        await olderTab._beginProfileWriterSession(uid).promise;
         let supersededEvents = 0;
         olderTab.on('profileWriterSuperseded', () => { supersededEvents += 1; });
+        assert.equal(olderTab._startAccountSessionGuard({ uid, isAnonymous: false }), true);
+        assert.equal(olderTab.isProfileWriterSuperseded(), false);
 
         const activeTab = new NetworkManager();
         activeTab.playerId = uid;
         activeTab._writeProfileBackup = async () => true;
         activeTab._syncRecoveryProfile = async () => true;
-        await activeTab._beginProfileWriterSession(uid).promise;
+        assert.equal(activeTab._startAccountSessionGuard({ uid, isAnonymous: false }), true);
+        assert.equal(supersededEvents, 1, 'the previous Google tab must be told to stop gameplay exactly once');
+        assert.equal(olderTab.isProfileWriterSuperseded(), true);
+        assert.equal(activeTab.isProfileWriterSuperseded(), false);
 
         const rewardItem = {
             id: 'tidal_staff',
@@ -2129,15 +2140,14 @@ async function validateProfileWriterFencingContracts() {
             claimedRewardIds: [],
             ts: Date.now() + 10_000
         });
-        assert.equal(staleSave.reason, 'writer_session_superseded');
-        assert.equal(supersededEvents, 1, 'the superseded tab must be told to stop gameplay exactly once');
+        assert.equal(staleSave.reason, 'account_session_superseded');
         assert.equal(profile.inventory[0].instanceId, rewardItem.instanceId);
         assert.deepEqual(profile.claimedRewardIds, [rewardId], 'an older tab must never roll back a claimed durable reward');
 
         window.game = { auth: { currentUser: { uid, isAnonymous: true } } };
         const guestTab = new NetworkManager();
         guestTab.playerId = uid;
-        assert.equal(guestTab._shouldUseProfileWriterSession(uid), false);
+        assert.equal(guestTab._startAccountSessionGuard({ uid, isAnonymous: true }), false);
         guestTab._writeProfileBackup = async () => true;
         guestTab._syncRecoveryProfile = async () => true;
         const guestSave = await guestTab._commitPlayerData(uid, {
@@ -2146,9 +2156,9 @@ async function validateProfileWriterFencingContracts() {
             claimedRewardIds: [],
             ts: Date.now() + 20_000
         });
-        assert.equal(guestSave.ok, true, 'anonymous guest profiles must not be blocked by writer-session fencing');
+        assert.equal(guestSave.ok, true, 'anonymous guest profiles must not be blocked by account-session fencing');
     } finally {
-        window.game = undefined;
+        window.game = previousGame;
         window.firebase = previousWindowFirebase;
         if (previousGlobalFirebase === undefined) delete globalThis.firebase;
         else globalThis.firebase = previousGlobalFirebase;

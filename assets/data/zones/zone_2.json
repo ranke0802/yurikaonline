@@ -9,7 +9,7 @@
   "width": 3400,
   "height": 3400,
   "background": {
-    "image": "assets/resource/background.webp",
+    "image": "assets/resource/maps/zone_2_misty_lake.png",
     "music": "bgm_act1_peaceful",
     "ambient": null
   },
