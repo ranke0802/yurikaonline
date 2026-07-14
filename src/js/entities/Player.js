@@ -1742,6 +1742,10 @@ export default class Player extends CharacterBase {
         }
     }
 
+    isLowGlareCombatZone() {
+        return window.game?.zone?.currentZone?.id === 'zone_4';
+    }
+
     performLaserAttack(dt) {
         if (this.isDead) return;
         if (!window.game?.tutorial?.isActionAllowed?.('ATTACK')) return;
@@ -2807,7 +2811,7 @@ export default class Player extends CharacterBase {
         // 3. Lightning Effect (Wait... solo usually draws this before or after? Request specified character behind effects)
         // Correction: User said "Magic circle center at feet, Character should be in FRONT of magic circle"
         // And "Lightning effect from behind the character"
-        if (this.lightningEffect && Array.isArray(this.lightningEffect.chains)) {
+        if (!this.isLowGlareCombatZone() && this.lightningEffect && Array.isArray(this.lightningEffect.chains)) {
             this.lightningEffect.chains.forEach((c, idx) => {
                 this.drawLightningSegment(ctx, c.x1, c.y1, c.x2, c.y2, 1.0, this.lightningEffect.variant, idx);
             });
@@ -2841,9 +2845,11 @@ export default class Player extends CharacterBase {
             // --- Spark Effect during Normal Attack (Chain Lightning) ---
             if (this.isChanneling && !this.isDead) {
                 ctx.save();
-                if (window.game?.useReducedEffects) {
-                    ctx.strokeStyle = 'rgba(72, 219, 251, 0.75)';
-                    ctx.lineWidth = 2;
+                if (window.game?.useReducedEffects || this.isLowGlareCombatZone()) {
+                    ctx.strokeStyle = this.isLowGlareCombatZone()
+                        ? 'rgba(117, 211, 255, 0.22)'
+                        : 'rgba(72, 219, 251, 0.75)';
+                    ctx.lineWidth = this.isLowGlareCombatZone() ? 1.5 : 2;
                     ctx.beginPath();
                     ctx.arc(centerX, centerY, 26, 0, Math.PI * 2);
                     ctx.stroke();

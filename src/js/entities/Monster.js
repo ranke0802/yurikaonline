@@ -484,6 +484,10 @@ export default class Monster extends CharacterBase {
         return Math.hypot(x - this.initialX, y - this.initialY) <= this.leashRange;
     }
 
+    isLowGlareCombatZone() {
+        return window.game?.zone?.currentZone?.id === 'zone_4';
+    }
+
     _getActiveFrameCount() {
         if (!this.usesV2Atlas) return Math.max(1, Number(this.frameCount) || 1);
         return Math.max(1, Number(this.atlasFrameCounts[this.animationRow]) || 8);
@@ -1161,6 +1165,7 @@ export default class Monster extends CharacterBase {
         this.lastHitAt = Date.now();
         this.lastNetworkEventAt = this.lastHitAt;
         const suppressTransientEffects = !!window.game?.shouldSuppressTransientWorldEffects?.();
+        const lowGlareCombat = this.isLowGlareCombatZone();
 
         // v0.00.34: Ensure minimum 0 damage (allow full block)
         let dmg = Math.max(0, Math.ceil(parseFloat(amount))); // Changed const to let
@@ -1213,7 +1218,7 @@ export default class Monster extends CharacterBase {
         }
 
         // Visual feedback for ALL clients
-        if (triggerFlash && !suppressTransientEffects) this.hitTimer = 0.2;
+        if (triggerFlash && !suppressTransientEffects && !lowGlareCombat) this.hitTimer = 0.2;
 
         // Damage text for ALL clients
         if (!suppressTransientEffects && amount > 0 && window.game && typeof window.game.addDamageText === 'function') {
@@ -1221,10 +1226,10 @@ export default class Monster extends CharacterBase {
         }
 
         // v2.2: Hit Feedback — Screen Shake on monster hit
-        if (!suppressTransientEffects && amount > 0 && window.game?.camera?.shake) {
+        if (!suppressTransientEffects && !lowGlareCombat && amount > 0 && window.game?.camera?.shake) {
             window.game.camera.shake(isCrit ? 8 : 3, isCrit ? 0.2 : 0.1);
         }
-        if (!suppressTransientEffects && isCrit && window.game?.loop?.hitstop) {
+        if (!suppressTransientEffects && !lowGlareCombat && isCrit && window.game?.loop?.hitstop) {
             window.game.loop.hitstop(60);
         }
 
@@ -1282,12 +1287,12 @@ export default class Monster extends CharacterBase {
                 }
 
                 // v2.2: Death Feedback — Strong shake for bosses
-                if (!suppressTransientEffects && window.game?.camera?.shake) {
+                if (!suppressTransientEffects && !lowGlareCombat && window.game?.camera?.shake) {
                     const bossShake = Math.max(0, Number(this.bossEffects.shakeIntensity) || 20);
                     const bossDuration = Math.max(0, Number(this.bossEffects.shakeDuration) || 0.5);
                     window.game.camera.shake(this.isBoss ? bossShake : 6, this.isBoss ? bossDuration : 0.2);
                 }
-                if (!suppressTransientEffects && this.isBoss && window.game?.loop?.hitstop) {
+                if (!suppressTransientEffects && !lowGlareCombat && this.isBoss && window.game?.loop?.hitstop) {
                     window.game.loop.hitstop(Math.max(0, Number(this.bossEffects.hitstopMs) || 120));
                 }
 
@@ -1490,11 +1495,13 @@ export default class Monster extends CharacterBase {
         if (!this.isBoss || this.isDead) return;
 
         const effects = this.bossEffects || {};
+        const lowGlareCombat = this.isLowGlareCombatZone();
+        const auraAlphaScale = lowGlareCombat ? 0.42 : 1;
         const auraColor = effects.auraColor || '#8b5cf6';
         const secondaryColor = effects.secondaryColor || '#fbbf24';
         const particleColor = effects.particleColor || secondaryColor;
         const pulseSpeed = Math.max(0.1, Number(effects.pulseSpeed) || 2.4);
-        const ringCount = Math.max(1, Math.min(6, Math.round(Number(effects.ringCount) || 2)));
+        const ringCount = lowGlareCombat ? 1 : Math.max(1, Math.min(6, Math.round(Number(effects.ringCount) || 2)));
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
         const phase = (now / 1000) * pulseSpeed;
         const pulse = 1 + Math.sin(phase * Math.PI * 2) * 0.06;
@@ -1506,7 +1513,7 @@ export default class Monster extends CharacterBase {
 
         // Keep the aura separate from the atlas so every authored cell remains
         // intact and is never trimmed or destructively composited at runtime.
-        ctx.globalAlpha = inheritedAlpha * 0.09;
+        ctx.globalAlpha = inheritedAlpha * 0.09 * auraAlphaScale;
         ctx.fillStyle = auraColor;
         ctx.beginPath();
         ctx.ellipse(
@@ -1523,7 +1530,7 @@ export default class Monster extends CharacterBase {
         for (let i = 0; i < ringCount; i += 1) {
             const ringPhase = (phase + (i / ringCount)) % 1;
             const expansion = 0.72 + ringPhase * 0.52;
-            ctx.globalAlpha = inheritedAlpha * Math.max(0.035, 0.2 * (1 - ringPhase));
+            ctx.globalAlpha = inheritedAlpha * Math.max(0.035, 0.2 * (1 - ringPhase)) * auraAlphaScale;
             ctx.strokeStyle = i % 2 === 0 ? auraColor : secondaryColor;
             ctx.lineWidth = Math.max(1, 3 - i * 0.35);
             ctx.beginPath();
@@ -1531,7 +1538,7 @@ export default class Monster extends CharacterBase {
             ctx.stroke();
         }
 
-        const particleCount = Math.max(6, ringCount * 2);
+        const particleCount = lowGlareCombat ? 2 : Math.max(6, ringCount * 2);
         for (let i = 0; i < particleCount; i += 1) {
             const direction = i % 2 === 0 ? 1 : -1;
             const angle = (i / particleCount) * Math.PI * 2 + phase * 0.75 * direction;
@@ -1541,7 +1548,7 @@ export default class Monster extends CharacterBase {
             const particleY = groundY - lift + Math.sin(angle * 1.7) * radiusY * 0.8;
             const particleSize = 1.8 + ((Math.sin(phase * 4 + i) + 1) * 0.8);
 
-            ctx.globalAlpha = inheritedAlpha * (0.35 + ((Math.sin(phase * 3 + i) + 1) * 0.12));
+            ctx.globalAlpha = inheritedAlpha * (0.35 + ((Math.sin(phase * 3 + i) + 1) * 0.12)) * auraAlphaScale;
             ctx.fillStyle = i % 2 === 0 ? particleColor : secondaryColor;
             ctx.beginPath();
             ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
@@ -1790,7 +1797,7 @@ export default class Monster extends CharacterBase {
 
 
         // Electrocuted Spark Effect (v1.65: Slower flicker style)
-        if (this.electrocutedTimer > 0 && !this.isDead) {
+        if (this.electrocutedTimer > 0 && !this.isDead && !this.isLowGlareCombatZone()) {
             ctx.save();
 
             // v1.65: Cache bolts to slow down flicker
