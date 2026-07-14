@@ -814,7 +814,29 @@ export default class MonsterManager {
             });
             monster._deathSettlementReady = false;
         }
+        this._applyLocalQuestCreditIfDeliveryPending(recipientId, payload, accepted);
         return accepted;
+    }
+
+    _applyLocalQuestCreditIfDeliveryPending(recipientId, payload, accepted = false) {
+        const hasQuestCredit = !!(payload?.questKill || payload?.questKills);
+        if (!hasQuestCredit || !recipientId || !payload?.rewardId) return false;
+
+        const localPlayer = this.game?.localPlayer || window.game?.localPlayer || null;
+        if (!localPlayer || localPlayer.id !== recipientId) return false;
+        if (Array.isArray(localPlayer.claimedRewardIds)
+            && localPlayer.claimedRewardIds.includes(payload.rewardId)) return false;
+
+        const deliveryPending = accepted
+            || this.net?.isRewardDeliveryPending?.(recipientId, payload.rewardId) === true
+            || this.net?.isRewardServerCommitted?.(recipientId, payload.rewardId) === true;
+        if (!deliveryPending || typeof localPlayer.receiveReward !== 'function') return false;
+
+        const applied = localPlayer.receiveReward(
+            { ...payload, immediate: true },
+            { debounceMs: 0 }
+        );
+        return applied === true || applied === undefined;
     }
 
     _authorMonsterDrop(monster, payload) {

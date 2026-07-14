@@ -288,6 +288,9 @@ export default class NetworkManager extends EventEmitter {
         this._accountSessionRef = null;
         this._accountSessionHandler = null;
         this._accountSessionHeartbeatTimer = null;
+        this._accountSessionClaimedAt = 0;
+        this._accountSessionClaimConfirmed = false;
+        this._accountSessionDisplacedTokens = new Set();
         this._queuedProfileSaves = new Map();
         this._queuedProfilePatches = new Map();
         this._blockedProfileWriteUids = new Set();
@@ -3212,7 +3215,7 @@ export default class NetworkManager extends EventEmitter {
                 this._attemptNormalRewardWrite(existingEntry);
                 return true;
             }
-            Logger.warn(`[Network] Keeping the first local writer for semantic reward ${semanticRewardId}`);
+            Logger.debug(`[Network] Keeping the first local writer for semantic reward ${semanticRewardId}`);
             return true;
         }
         if (this._pendingNormalRewardWrites.size >= NORMAL_REWARD_OUTBOX_MAX_ENTRIES) {
@@ -3391,7 +3394,7 @@ export default class NetworkManager extends EventEmitter {
                         `${entry.recipientId}:${entry.envelope.rewardId}`,
                         true
                     );
-                    Logger.warn(`[Network] Normal reward ${entry.envelope.rewardId} was superseded by an equivalent first writer`);
+                    Logger.debug(`[Network] Normal reward ${entry.envelope.rewardId} was superseded by an equivalent first writer`);
                     this._removeNormalRewardOutboxEntry(entry);
                     this._markNetworkActivity();
                     return true;
@@ -5927,7 +5930,7 @@ export default class NetworkManager extends EventEmitter {
             if (normalizedStandalone && normalizedExisting
                 && this._stableStringifyDurableRewardValue(normalizedStandalone)
                     === this._stableStringifyDurableRewardValue(normalizedExisting)) return true;
-            Logger.warn(`[Network] Keeping the first journal writer for semantic reward ${data.rewardId}`);
+            Logger.debug(`[Network] Keeping the first journal writer for semantic reward ${data.rewardId}`);
             return true;
         }
         let mergedPayload = this._mergeRewardPayload(existing?.payload || {}, data);
@@ -5979,7 +5982,7 @@ export default class NetworkManager extends EventEmitter {
             ? this._pendingNormalRewardWrites.get(`${playerId}:${semanticReceiptKey}`)
             : null;
         if (semanticOutboxEntry) {
-            Logger.warn(`[Network] Keeping the first outbox writer for semantic reward ${semanticRewardId}`);
+            Logger.debug(`[Network] Keeping the first outbox writer for semantic reward ${semanticRewardId}`);
             return options.requireLocalPersistence === true
                 ? semanticOutboxEntry.volatileOnly !== true
                 : true;
@@ -6810,6 +6813,9 @@ export default class NetworkManager extends EventEmitter {
         this._accountSessionHeartbeatTimer = null;
         this._accountSessionUid = null;
         this._accountSessionToken = null;
+        this._accountSessionClaimedAt = 0;
+        this._accountSessionClaimConfirmed = false;
+        this._accountSessionDisplacedTokens.clear();
     }
 
     _startAccountSessionGuard(user = null) {
@@ -6828,9 +6834,13 @@ export default class NetworkManager extends EventEmitter {
         this._accountSessionUid = uid;
         this._accountSessionToken = token;
         this._accountSessionRef = ref;
+        this._accountSessionClaimedAt = now;
+        this._accountSessionClaimConfirmed = false;
+        this._accountSessionDisplacedTokens.clear();
 
         const publish = () => {
             if (this._accountSessionUid !== uid || this._accountSessionToken !== token) return;
+            if (this._profileWriterSuperseded) return;
             ref.update({
                 token,
                 uid,
@@ -6842,9 +6852,33 @@ export default class NetworkManager extends EventEmitter {
 
         this._accountSessionHandler = (snapshot) => {
             const value = snapshot?.val?.();
-            if (!value || value.token === token) return;
+            if (!value) return;
+            const remoteToken = typeof value.token === 'string' ? value.token : '';
+            if (!remoteToken) {
+                publish();
+                return;
+            }
+            if (remoteToken === token) {
+                this._accountSessionClaimConfirmed = true;
+                return;
+            }
             const heartbeatAt = Number(value.heartbeatAt || value.claimedAt || 0);
             if (!Number.isFinite(heartbeatAt) || Date.now() - heartbeatAt > ACCOUNT_SESSION_STALE_MS) {
+                publish();
+                return;
+            }
+            if (!this._accountSessionClaimConfirmed) {
+                this._accountSessionDisplacedTokens.add(remoteToken);
+                publish();
+                return;
+            }
+            const remoteClaimedAt = Number(value.claimedAt || 0);
+            const localClaimedAt = Number(this._accountSessionClaimedAt || now);
+            if (
+                this._accountSessionDisplacedTokens.has(remoteToken)
+                || !Number.isFinite(remoteClaimedAt)
+                || remoteClaimedAt < localClaimedAt
+            ) {
                 publish();
                 return;
             }
@@ -6935,6 +6969,7 @@ export default class NetworkManager extends EventEmitter {
     _notifyProfileWriterSuperseded(uid, currentProfile = null) {
         if (this._profileWriterSuperseded) return;
         this._profileWriterSuperseded = true;
+        this._stopAccountSessionGuard();
         this.emit('profileWriterSuperseded', {
             uid,
             currentWriterEpoch: Number(currentProfile?._writerEpoch || 0),
@@ -10220,6 +10255,41 @@ export default class NetworkManager extends EventEmitter {
     isRewardServerCommitted(recipientId, rewardId) {
         if (!recipientId || !rewardId) return false;
         return this._serverCommittedRewardIds.has(`${recipientId}:${rewardId}`);
+    }
+
+    isRewardDeliveryPending(recipientId, rewardId) {
+        if (!recipientId || !rewardId) return false;
+        const normalizedRewardId = String(rewardId).slice(0, 256);
+        if (this.isRewardServerCommitted(recipientId, normalizedRewardId)) return true;
+
+        const semanticReceiptKey = this._buildNormalRewardSemanticReceiptKey(
+            this.playerId,
+            recipientId,
+            normalizedRewardId
+        );
+        if (semanticReceiptKey) {
+            const normalQueueKey = `${recipientId}:${semanticReceiptKey}`;
+            const normalEntry = this._pendingNormalRewardWrites.get(normalQueueKey);
+            if (normalEntry?.envelope?.rewardId === normalizedRewardId) return true;
+        }
+
+        for (const entry of this._pendingNormalRewardWrites.values()) {
+            if (entry?.recipientId === recipientId
+                && entry?.envelope?.rewardId === normalizedRewardId) return true;
+        }
+
+        for (const entry of this._pendingDurableRewardWrites.values()) {
+            if (entry?.recipientId === recipientId
+                && entry?.envelope?.rewardId === normalizedRewardId) return true;
+        }
+
+        for (const entry of this._queuedRewardBatches.values()) {
+            if (entry?.playerId === recipientId
+                && (entry?.semanticRewardId === normalizedRewardId
+                    || entry?.payload?.rewardId === normalizedRewardId)) return true;
+        }
+
+        return false;
     }
 
     _getDropPayloadEpochSeal(payload) {

@@ -1084,6 +1084,49 @@ async function validateMonsterGenerationAndContributors() {
     assert.equal(semanticRewards[2].reward.rewardId, 'monster_reward:zone_2__solo__player_a:semantic_normal_monster:player_b:intro_quest');
     net.sendReward = originalSendReward;
 
+    const localQuestPlayer = new Player(0, 0, 'Quest Tester');
+    localQuestPlayer.id = 'player_a';
+    localQuestPlayer.questData.basicTrainingCompleted = true;
+    localQuestPlayer.questData.slimeKills = 0;
+    localQuestPlayer.claimedRewardIds = [];
+    localQuestPlayer.saveProfilePatch = () => {};
+    localQuestPlayer.saveState = () => Promise.resolve({ ok: true });
+    const previousLocalPlayer = game.localPlayer;
+    const previousQuests = game.quests;
+    const previousRewardCommitted = net.isRewardServerCommitted;
+    const previousRewardPending = net.isRewardDeliveryPending;
+    let restoredQuestState = 0;
+    let queuedQuestReward = null;
+    game.localPlayer = localQuestPlayer;
+    game.quests = { restoreFromLegacy: () => { restoredQuestState += 1; } };
+    net.sendReward = (_uid, reward) => {
+        queuedQuestReward = reward;
+        return false;
+    };
+    net.isRewardServerCommitted = () => false;
+    net.isRewardDeliveryPending = (uid, rewardId) => (
+        uid === 'player_a'
+        && queuedQuestReward?.rewardId === rewardId
+    );
+    const pendingQuestMonster = {
+        id: 'pending_quest_monster',
+        typeId: 'slime',
+        name: 'Slime'
+    };
+    assert.equal(manager._grantMonsterQuestCredit(pendingQuestMonster, 'player_a'), false);
+    assert.equal(localQuestPlayer.questData.slimeKills, 1, 'locally queued quest rewards must advance the visible quest immediately');
+    assert.ok(localQuestPlayer.claimedRewardIds.includes(queuedQuestReward.rewardId), 'optimistic quest credit must reserve its rewardId against duplicate retries');
+    assert.equal(restoredQuestState, 1, 'optimistic quest credit must refresh QuestManager state');
+    assert.equal(manager._grantMonsterQuestCredit(pendingQuestMonster, 'player_a'), false);
+    assert.equal(localQuestPlayer.questData.slimeKills, 1, 'retrying the same pending quest reward must not double-count the kill');
+    net.sendReward = originalSendReward;
+    if (previousRewardCommitted) net.isRewardServerCommitted = previousRewardCommitted;
+    else delete net.isRewardServerCommitted;
+    if (previousRewardPending) net.isRewardDeliveryPending = previousRewardPending;
+    else delete net.isRewardDeliveryPending;
+    game.localPlayer = previousLocalPlayer;
+    game.quests = previousQuests;
+
     manager.monsters.set('dead_boss', {
         id: 'dead_boss',
         isLocalOnly: false,
@@ -2212,6 +2255,97 @@ async function validateProfileWriterFencingContracts() {
             ts: Date.now() + 20_000
         });
         assert.equal(guestSave.ok, true, 'anonymous guest profiles must not be blocked by account-session fencing');
+
+        const delayedHandlers = new Set();
+        let delayedActiveSession = {
+            token: 'older_existing_session',
+            uid,
+            heartbeatAt: Date.now(),
+            claimedAt: Date.now() - 5000,
+            version: 'v1'
+        };
+        const delayedUpdatePromises = [];
+        const delayedFirebaseMock = {
+            database: () => ({
+                ref(path) {
+                    if (path === `users/${uid}/profile`) return profileRef;
+                    if (path === `users/${uid}/activeSession`) {
+                        return {
+                            update(value) {
+                                const updatePromise = Promise.resolve().then(() => {
+                                    delayedActiveSession = { ...(delayedActiveSession || {}), ...clone(value) };
+                                    const snapshot = { val: () => clone(delayedActiveSession) };
+                                    delayedHandlers.forEach((handler) => handler(snapshot));
+                                });
+                                delayedUpdatePromises.push(updatePromise);
+                                return updatePromise;
+                            },
+                            on(_event, handler) {
+                                delayedHandlers.add(handler);
+                                handler({ val: () => clone(delayedActiveSession) });
+                            },
+                            off(_event, handler) {
+                                delayedHandlers.delete(handler);
+                            },
+                            once: async () => ({ val: () => clone(delayedActiveSession) })
+                        };
+                    }
+                    return {
+                        async transaction(update) {
+                            const next = update(null);
+                            return { committed: next !== undefined, snapshot: { val: () => clone(next) } };
+                        },
+                        async set() {},
+                        async update() {},
+                        async once() { return { val: () => null }; }
+                    };
+                }
+            })
+        };
+        window.firebase = delayedFirebaseMock;
+        globalThis.firebase = delayedFirebaseMock;
+
+        const newestTab = new NetworkManager();
+        newestTab.playerId = uid;
+        let newestSupersededEvents = 0;
+        newestTab.on('profileWriterSuperseded', () => { newestSupersededEvents += 1; });
+        assert.equal(newestTab._startAccountSessionGuard({ uid, isAnonymous: false }), true);
+        assert.equal(
+            newestTab.isProfileWriterSuperseded(),
+            false,
+            'a newly opened account session must not reject itself after first seeing the older activeSession snapshot'
+        );
+        await Promise.all(delayedUpdatePromises);
+        assert.equal(delayedActiveSession.token, newestTab._accountSessionToken, 'the newest account session must replace the older activeSession token');
+        assert.equal(newestSupersededEvents, 0, 'the newest account session must remain approved after taking over');
+
+        delayedActiveSession = {
+            token: 'older_existing_session',
+            uid,
+            heartbeatAt: Date.now(),
+            claimedAt: newestTab._accountSessionClaimedAt + 60_000,
+            version: 'v1'
+        };
+        delayedHandlers.forEach((handler) => handler({ val: () => clone(delayedActiveSession) }));
+        await Promise.all(delayedUpdatePromises);
+        assert.equal(
+            newestTab.isProfileWriterSuperseded(),
+            false,
+            'the newest account session must keep control if the displaced older token heartbeats again'
+        );
+        assert.equal(delayedActiveSession.token, newestTab._accountSessionToken, 'the newest account session must rewrite displaced older heartbeats');
+
+        delayedActiveSession = {
+            token: 'future_newer_session',
+            uid,
+            heartbeatAt: Date.now(),
+            claimedAt: newestTab._accountSessionClaimedAt + 1,
+            version: 'v1'
+        };
+        delayedHandlers.forEach((handler) => handler({ val: () => clone(delayedActiveSession) }));
+        assert.equal(newestTab.isProfileWriterSuperseded(), true, 'an account session must yield only to a newer activeSession');
+        assert.equal(newestSupersededEvents, 1, 'a superseded account session must emit exactly one shutdown event');
+        assert.equal(newestTab._accountSessionHeartbeatTimer, null, 'a superseded account session must stop heartbeating');
     } finally {
         window.game = previousGame;
         window.firebase = previousWindowFirebase;
