@@ -362,16 +362,10 @@ export default class SkillRenderer {
         const palette = variant === 'blue_fireball'
             ? {
                 fill: 'rgba(76, 183, 255, 0.24)',
-                edge: 'rgba(191, 229, 255, 0.72)',
-                line: 'rgba(235, 247, 255, 0.92)',
-                impactStroke: 'rgba(191, 229, 255, 0.68)',
                 impactFill: 'rgba(76, 183, 255, 0.18)'
             }
             : {
                 fill: 'rgba(255, 88, 88, 0.22)',
-                edge: 'rgba(255, 188, 188, 0.72)',
-                line: 'rgba(255, 235, 235, 0.92)',
-                impactStroke: 'rgba(255, 188, 188, 0.68)',
                 impactFill: 'rgba(255, 88, 88, 0.16)'
             };
 
@@ -385,8 +379,6 @@ export default class SkillRenderer {
 
         ctx.save();
         ctx.fillStyle = palette.fill;
-        ctx.strokeStyle = palette.edge;
-        ctx.lineWidth = this.isReducedEffectsMode() ? 1.8 : 2.2;
         ctx.beginPath();
         ctx.moveTo(originX + perpX * telegraphHalfWidth, originY + perpY * telegraphHalfWidth);
         ctx.lineTo(targetX + perpX * telegraphHalfWidth, targetY + perpY * telegraphHalfWidth);
@@ -394,31 +386,11 @@ export default class SkillRenderer {
         ctx.lineTo(originX - perpX * telegraphHalfWidth, originY - perpY * telegraphHalfWidth);
         ctx.closePath();
         ctx.fill();
-        ctx.stroke();
-
-        ctx.strokeStyle = palette.line;
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.moveTo(originX, originY);
-        ctx.lineTo(targetX, targetY);
-        ctx.stroke();
 
         ctx.fillStyle = palette.impactFill;
         ctx.beginPath();
         ctx.arc(targetX, targetY, aoeRadius, 0, Math.PI * 2);
         ctx.fill();
-
-        ctx.strokeStyle = palette.impactStroke;
-        ctx.lineWidth = 2.2;
-        ctx.beginPath();
-        ctx.arc(targetX, targetY, aoeRadius, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.strokeStyle = this.withAlpha(palette.line, 0.9);
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.arc(targetX, targetY, Math.max(12, widthRadius * 0.65), 0, Math.PI * 2);
-        ctx.stroke();
 
         ctx.restore();
     }
