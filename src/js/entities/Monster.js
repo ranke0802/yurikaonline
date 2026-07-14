@@ -1305,8 +1305,9 @@ export default class Monster extends CharacterBase {
     }
 
     applyKnockback(vx, vy) {
-        this.knockback.vx = vx;
-        this.knockback.vy = vy;
+        const scale = this.isBoss ? 0.1 : 1;
+        this.knockback.vx = vx * scale;
+        this.knockback.vy = vy * scale;
     }
 
 
