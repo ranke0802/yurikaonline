@@ -36,5 +36,35 @@
       "rollAffixFromPool": "astral_staff_affixes",
       "quantity": 1
     }
+  ],
+  "bossBonusDrops": [
+    {
+      "monsterId": "king_slime",
+      "itemId": "option_reroll_stone",
+      "chance": 0.3,
+      "min": 1,
+      "max": 3
+    },
+    {
+      "monsterId": "ruin_wobbuffet",
+      "itemId": "option_reroll_stone",
+      "chance": 0.3,
+      "min": 1,
+      "max": 3
+    },
+    {
+      "monsterId": "thunder_pikachu",
+      "itemId": "option_reroll_stone",
+      "chance": 0.3,
+      "min": 1,
+      "max": 3
+    },
+    {
+      "monsterId": "astral_sylveon",
+      "itemId": "option_reroll_stone",
+      "chance": 0.3,
+      "min": 1,
+      "max": 3
+    }
   ]
 }

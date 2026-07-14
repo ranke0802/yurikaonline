@@ -15,7 +15,7 @@
   },
   "icon": {
     "type": "image",
-    "path": "src/assets/items/magic_staff_inventory.png",
+    "path": "src/assets/items/magic_staff_inventory.webp",
     "fallbackEmoji": "🪄"
   },
   "prefixPool": "magic_staff_affixes",

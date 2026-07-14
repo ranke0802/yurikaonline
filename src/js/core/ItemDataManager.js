@@ -11,7 +11,8 @@ const LEGACY_ITEM_CATALOG = {
     items: [
         'magic_staff.json',
         'weapon_upgrade_stone.json',
-        'blessed_weapon_upgrade_stone.json'
+        'blessed_weapon_upgrade_stone.json',
+        'option_reroll_stone.json'
     ],
     affixPools: [
         'magic_staff_affixes.json'
@@ -172,6 +173,7 @@ export default class ItemDataManager {
         this.enhancementRuleSets = new Map();
         this.globalDrops = [];
         this.bossDropsByMonster = new Map();
+        this.bossBonusDropsByMonster = new Map();
         this.loadedCatalog = null;
     }
 
@@ -190,6 +192,7 @@ export default class ItemDataManager {
             this.affixesById.clear();
             this.enhancementRuleSets.clear();
             this.bossDropsByMonster.clear();
+            this.bossBonusDropsByMonster.clear();
 
             itemDefinitions.forEach((definition) => {
                 if (definition?.id) this.itemDefinitions.set(definition.id, definition);
@@ -220,6 +223,15 @@ export default class ItemDataManager {
                     const list = this.bossDropsByMonster.get(drop.monsterId) || [];
                     list.push(drop);
                     this.bossDropsByMonster.set(drop.monsterId, list);
+                });
+            });
+            dropRuleDocuments.forEach((document) => {
+                if (!Array.isArray(document?.bossBonusDrops)) return;
+                document.bossBonusDrops.forEach((drop) => {
+                    if (!drop?.monsterId) return;
+                    const list = this.bossBonusDropsByMonster.get(drop.monsterId) || [];
+                    list.push(drop);
+                    this.bossBonusDropsByMonster.set(drop.monsterId, list);
                 });
             });
 
@@ -337,6 +349,10 @@ export default class ItemDataManager {
 
     getBossDrops(monsterId) {
         return (this.bossDropsByMonster.get(monsterId) || []).slice();
+    }
+
+    getBossBonusDrops(monsterId) {
+        return (this.bossBonusDropsByMonster.get(monsterId) || []).slice();
     }
 
     createRewardItem(itemId, options = {}) {
@@ -579,6 +595,85 @@ export default class ItemDataManager {
             moteCount: enhancementVisual?.moteCount || 0,
             shellOpacity: enhancementVisual?.shellOpacity,
             floorOpacity: enhancementVisual?.floorOpacity
+        };
+    }
+
+    rerollEquipmentOptions(item, options = {}) {
+        if (!item || item.slot !== 'weapon') {
+            return { ok: false, message: '옵션을 변경할 무기를 선택해 주세요.' };
+        }
+
+        const definition = this.getEffectiveItemDefinition(item);
+        let affix = this.getEffectiveAffixDefinition(item);
+        if (!affix && definition?.prefixPool) {
+            const pool = this.getAffixPool(definition.prefixPool);
+            affix = this._pickRandom(pool?.affixes || []);
+        }
+
+        const effectRules = affix?.rolledEffects || {};
+        const entries = Object.entries(effectRules);
+        if (!affix || entries.length === 0) {
+            return { ok: false, message: '이 무기는 변경할 옵션이 없습니다.' };
+        }
+
+        const previousValues = { ...(item.rolledValues || {}) };
+        const nextValues = {};
+        let hasUpgradeableValue = false;
+        let hasImprovement = false;
+
+        entries.forEach(([key, rule]) => {
+            const min = Number.isFinite(Number(rule?.min)) ? Number(rule.min) : 0;
+            const max = Number.isFinite(Number(rule?.max)) ? Number(rule.max) : min;
+            const currentRaw = Number(previousValues[key]);
+            const current = Number.isFinite(currentRaw)
+                ? Math.max(min, Math.min(max, currentRaw))
+                : min;
+            const floor = Math.min(max, Math.max(min, current));
+            if (floor < max - 1e-9) hasUpgradeableValue = true;
+            const raw = floor + (Math.random() * Math.max(0, max - floor));
+            const rounded = Math.max(floor, Math.min(max, Math.round(raw * 100) / 100));
+            nextValues[key] = rounded;
+            if (rounded > current + 1e-9) hasImprovement = true;
+        });
+
+        if (!hasUpgradeableValue) {
+            return { ok: false, message: '이미 모든 옵션이 최대치입니다.' };
+        }
+
+        if (!hasImprovement) {
+            const upgradeEntry = entries.find(([key, rule]) => {
+                const max = Number.isFinite(Number(rule?.max)) ? Number(rule.max) : Number(rule?.min || 0);
+                const current = Number(nextValues[key]);
+                return Number.isFinite(current) && current < max - 1e-9;
+            });
+            if (upgradeEntry) {
+                const [key, rule] = upgradeEntry;
+                const max = Number.isFinite(Number(rule?.max)) ? Number(rule.max) : Number(rule?.min || 0);
+                nextValues[key] = Math.min(max, Math.round((nextValues[key] + 0.01) * 100) / 100);
+                hasImprovement = true;
+            }
+        }
+
+        const previousSnapshot = {
+            name: item.name,
+            prefixId: item.prefixId,
+            prefix: item.prefix,
+            rolledValues: previousValues
+        };
+
+        item.prefixId = affix.id || item.prefixId || null;
+        item.prefix = affix.prefix || item.prefix || null;
+        item.name = affix.displayName || item.name || definition?.name || item.type || item.id;
+        item.rolledValues = nextValues;
+
+        return {
+            ok: true,
+            item,
+            affix,
+            previousValues,
+            rolledValues: nextValues,
+            previousSnapshot,
+            improved: hasImprovement
         };
     }
 

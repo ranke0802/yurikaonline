@@ -22,11 +22,13 @@ const ITEM_DEFINITIONS = {
     king_crown: { name: '킹 크라운', icon: '👑' },
     weapon_upgrade_stone: { name: '무기 강화석', icon: '💎' },
     blessed_weapon_upgrade_stone: { name: '축복받은 무기 강화석', icon: '💎' },
+    option_reroll_stone: { name: '옵션 변경석', icon: '💠', iconPath: 'src/assets/items/option_reroll_stone.webp' },
     magic_staff: { name: '마력의 지팡이', icon: '🪄' }
 };
 const REMOVED_ITEM_IDS = new Set(['slime_gel', 'potion_hp_small', 'royal_jelly', 'king_crown']);
 
 const BLESSED_WEAPON_UPGRADE_STONE_ID = 'blessed_weapon_upgrade_stone';
+const OPTION_REROLL_STONE_ID = 'option_reroll_stone';
 const BLESSED_WEAPON_ENHANCEMENT = Object.freeze({
     successRate: 0.5,
     minGain: 1,
@@ -1101,7 +1103,6 @@ export default class Player extends CharacterBase {
             // (A) 자신인지 확인
             if (target.id === this.id) return false; // 자신은 공격할 수 없음
             // (B) 파티원인지 확인
-            if (this.party && this.party.members.includes(target.id)) return false; // 파티원은 보호됨
             // (C) 내가 상대를 적대로 등록했는가?
             const myHostileEntry = this.hostileTargets.get(target.id);
             // 내가 /e [닉네임] 명령어를 쳐서 내 적대 목록(Map)에 상대가 들어있어야 합니다.
@@ -1111,7 +1112,12 @@ export default class Player extends CharacterBase {
             const targetHostileList = target.hostility || {};
 
             // 상대방의 적대 목록에 내 ID(this.id)가 포함되어 있는지 확인합니다.
-            const isHostileToMe = targetHostileList.hasOwnProperty(this.id) || !!targetHostileList[this.id];
+            const targetHostileEntry = targetHostileList[this.id] || null;
+            const isHostileToMe = targetHostileList.hasOwnProperty(this.id) || !!targetHostileEntry;
+            const mutualDuel = this._isDuelHostilityEntry(myHostileEntry)
+                && targetHostileEntry?.duel === true
+                && (!myHostileEntry.duelId || !targetHostileEntry.duelId || myHostileEntry.duelId === targetHostileEntry.duelId);
+            if (this.party && this.party.members.includes(target.id) && !mutualDuel) return false;
             // 최종 반환: 상호 적대인 경우에만 true가 반환됩니다.
             return isHostileToMe;
         }
@@ -1128,7 +1134,8 @@ export default class Player extends CharacterBase {
             window.game.ui.showDeathModal();
         }
         // v0.29.32: Sync death state (HP 0) immediately
-        if (this.net) this.net.sendPlayerHp(0, this.maxHp);
+        if (this.net) this.net.sendPlayerHp(0, this.maxHp, { force: true });
+        this.endAllDuels('death');
         this.saveProfilePatch(['hp'], {
             debounceMs: 0,
             reason: 'death_hp_patch'
@@ -3689,6 +3696,50 @@ export default class Player extends CharacterBase {
         return result;
     }
 
+    rerollWeaponOptions(selection = null, options = {}) {
+        const itemData = this.getItemDataManager();
+        const target = this.resolveWeaponSelection(selection);
+        const deferUiRefresh = !!options?.deferUiRefresh;
+        if (!itemData || typeof itemData.rerollEquipmentOptions !== 'function' || !target?.item) {
+            return { ok: false, message: '옵션을 변경할 무기를 선택해 주세요.' };
+        }
+
+        if (this.getInventoryItemCount(OPTION_REROLL_STONE_ID) < 1) {
+            return { ok: false, message: '옵션 변경석이 부족합니다.' };
+        }
+
+        const result = itemData.rerollEquipmentOptions(target.item);
+        if (!result.ok) return result;
+
+        if (!this.consumeInventoryItem(OPTION_REROLL_STONE_ID, 1)) {
+            if (result.previousSnapshot) {
+                target.item.name = result.previousSnapshot.name;
+                target.item.prefixId = result.previousSnapshot.prefixId;
+                target.item.prefix = result.previousSnapshot.prefix;
+                target.item.rolledValues = { ...(result.previousSnapshot.rolledValues || {}) };
+            }
+            return { ok: false, message: '옵션 변경석이 부족합니다.' };
+        }
+
+        if (target.location === 'equipment') {
+            this.updateDerivedStats();
+            this.syncEquipmentVisualState('reroll_equipped_weapon_options');
+        } else {
+            this.saveState();
+        }
+
+        if (!deferUiRefresh && window.game?.ui) {
+            window.game.ui.updateStatusPopup();
+            window.game.ui.updateInventory();
+        }
+
+        return {
+            ...result,
+            stoneItemId: OPTION_REROLL_STONE_ID,
+            enhancementLevel: Math.max(0, target.item.enhancementLevel || 0)
+        };
+    }
+
     getWeaponDismantleRewardInfo(item) {
         if (!item || item.slot !== 'weapon') return null;
 
@@ -4003,63 +4054,82 @@ export default class Player extends CharacterBase {
         return null;
     }
 
+    _isDuelHostilityEntry(entry) {
+        return !!entry && typeof entry === 'object' && entry.duel === true;
+    }
+
+    hasActiveDuelWith(uid) {
+        return !!uid && this._isDuelHostilityEntry(this.hostileTargets.get(uid));
+    }
+
+    getActiveDuelTargets() {
+        return Array.from(this.hostileTargets.entries())
+            .filter(([, entry]) => this._isDuelHostilityEntry(entry))
+            .map(([uid, entry]) => ({ uid, ...(entry || {}) }));
+    }
+
+    addDuelTarget(uid, name = 'Unknown', duelId = null, ts = Date.now()) {
+        if (!uid || uid === this.id) return false;
+        const entry = {
+            name: name || 'Unknown',
+            ts: Number(ts || Date.now()),
+            duel: true,
+            duelId: duelId || `duel_${[this.id, uid].sort().join('_')}_${Date.now()}`
+        };
+        this.hostileTargets.set(uid, entry);
+        window.game?.ui?.updateHostilityUI?.();
+        this.saveProfilePatch(['hostility'], {
+            debounceMs: 0,
+            syncToWorld: true,
+            reason: 'duel_start_patch'
+        });
+        return true;
+    }
+
+    endDuelWith(uid, reason = 'ended', options = {}) {
+        if (!uid) return false;
+        const entry = this.hostileTargets.get(uid);
+        if (!this._isDuelHostilityEntry(entry)) return false;
+        this.hostileTargets.delete(uid);
+        window.game?.ui?.updateHostilityUI?.();
+        this.saveProfilePatch(['hostility'], {
+            debounceMs: 0,
+            syncToWorld: true,
+            reason: 'duel_end_patch'
+        });
+        if (options.notify !== false) {
+            this.net?.sendDuelEnd?.(uid, entry.duelId, reason);
+        }
+        return true;
+    }
+
+    endAllDuels(reason = 'ended', options = {}) {
+        const duelTargets = this.getActiveDuelTargets();
+        duelTargets.forEach((entry) => this.endDuelWith(entry.uid, reason, options));
+        return duelTargets.length;
+    }
+
     async declareHostility(targetName) {
         if (!targetName || !this.net) return 'INVALID';
 
         try {
-            const targetUid = await this.net.getUidByName(targetName);
+            const resolvedTarget = this.net.resolveDuelTarget
+                ? await this.net.resolveDuelTarget(targetName)
+                : { uid: await this.net.getUidByName(targetName), name: targetName };
+            const targetUid = resolvedTarget?.uid || null;
+            const resolvedName = resolvedTarget?.name || targetName;
             if (!targetUid) return 'NOT_FOUND';
             if (targetUid === this.id) return 'SELF';
 
-            const now = Date.now();
-
-            // v0.00.18: Use name-based check to prevent duplicates
-            const existingUid = this.getHostileUidByName(targetName);
+            const existingUid = this.getHostileUidByName(resolvedName) || this.getHostileUidByName(targetName);
             const effectiveUid = existingUid || targetUid;
             const existing = this.hostileTargets.get(effectiveUid);
-
-            // Toggle Logic: If already hostile, try to remove
             if (existing) {
-                const elapsed = (now - existing.ts) / 1000;
-                if (elapsed < 30) {
-                    return `COOLDOWN:${Math.ceil(30 - elapsed)}`;
-                }
-
-                // Remove hostility (Mutual removal logic)
-                this.hostileTargets.delete(effectiveUid);
-                // v1.99.38: Send removal event to target
-                if (window.game.net && window.game.net.dbRef) {
-                    await window.game.net.dbRef.child(`users/${effectiveUid}/hostility_inbox`).push({
-                        type: 'REMOVE',
-                        from: this.id,
-                        fromName: this.name,
-                        ts: now
-                    });
-                }
-
-                this.saveState(true);
-                if (window.game?.ui) window.game.ui.updateHostilityUI();
-                return 'REMOVED';
+                return this._isDuelHostilityEntry(existing) ? 'ALREADY_DUELING' : 'ALREADY_HOSTILE';
             }
 
-            // Declare New Hostility (Mutual Force)
-            this.hostileTargets.set(targetUid, { name: targetName, ts: now });
-
-            // v1.1: Force Mutual Hostility
-            // Send packet to target's inbox to force them to add me
-            if (window.game.net && window.game.net.dbRef) {
-                await window.game.net.dbRef.child(`users/${targetUid}/hostility_inbox`).push({
-                    type: 'ADD',
-                    from: this.id,
-                    fromName: this.name,
-                    ts: now
-                });
-            }
-
-            if (window.game?.ui) window.game.ui.updateHostilityUI();
-            this.saveState(true);
-
-            return 'DECLARED';
+            const sent = await this.net.sendDuelRequest?.(targetUid, resolvedName);
+            return sent?.ok ? 'DUEL_REQUESTED' : (sent?.reason || 'ERROR');
         } catch (e) {
             Logger.error(e);
             return 'ERROR';

@@ -8,6 +8,7 @@ import { DURABLE_BOSS_REWARD_ARCHIVED_CATALOGS } from '../src/js/core/DurableBos
 import MonsterManager from '../src/js/world/MonsterManager.js';
 import Monster from '../src/js/entities/Monster.js';
 import Player from '../src/js/entities/Player.js';
+import RemotePlayer from '../src/js/entities/RemotePlayer.js';
 import QuestManager from '../src/js/core/QuestManager.js';
 import WorldScene from '../src/js/world/scenes/WorldScene.js';
 
@@ -259,6 +260,84 @@ async function validateNetworkFieldAndBatchContracts() {
             }
         }
     };
+
+    const hpWrites = [];
+    const hpNet = new NetworkManager();
+    hpNet.connected = true;
+    hpNet.playerId = 'hp_sync_player';
+    hpNet.zoneParticipationEnabled = true;
+    hpNet._shouldSendRealtimeUserState = () => true;
+    hpNet.dbRef = {
+        child(path) {
+            return {
+                set(value) {
+                    hpWrites.push({ path, value });
+                    return Promise.resolve();
+                }
+            };
+        }
+    };
+    const throttledAt = Date.now();
+    hpNet._lastHpSync = { hp: 3, maxHp: 60, ts: throttledAt };
+    hpNet.sendPlayerHp(2, 60);
+    assert.equal(hpWrites.length, 0, 'non-terminal HP syncs may still be throttled inside the realtime window');
+    hpNet._lastHpSync = { hp: 3, maxHp: 60, ts: Date.now() };
+    hpNet.sendPlayerHp(0, 60);
+    assert.equal(hpWrites.length, 1, 'HP 0 death sync must bypass the realtime throttle');
+    assert.deepEqual(hpWrites[0].value.slice(0, 2), [0, 60]);
+
+    const firstDeadRemote = new RemotePlayer('first_dead_remote', 0, 0, null);
+    firstDeadRemote.onHpUpdate({ hp: 0, maxHp: 60, ts: Date.now() });
+    assert.equal(firstDeadRemote.isDead, true, 'a remote player whose first HP sync is 0 must enter tombstone state');
+    assert.equal(firstDeadRemote.isDying, true, 'a remote player whose first HP sync is 0 must render as dying/tombstone');
+
+    const duelWrites = [];
+    const duelEnds = [];
+    const duelPlayer = new Player(0, 0, 'Duel A');
+    duelPlayer.id = 'duel_a';
+    duelPlayer.party = { members: ['duel_a', 'duel_b'], hostId: 'duel_a', mode: 'party' };
+    duelPlayer.net = {
+        isSharedFieldActive: () => true,
+        resolveDuelTarget: async () => ({ uid: 'duel_b', name: 'Duel B' }),
+        sendDuelRequest: async (uid, name) => {
+            duelWrites.push({ uid, name });
+            return { ok: true, duelId: 'duel_a_b_1' };
+        },
+        sendDuelEnd: async (uid, duelId, reason) => {
+            duelEnds.push({ uid, duelId, reason });
+            return true;
+        },
+        savePlayerDataPatch: () => {}
+    };
+    assert.equal(await duelPlayer.declareHostility('Duel B'), 'DUEL_REQUESTED');
+    assert.deepEqual(duelWrites, [{ uid: 'duel_b', name: 'Duel B' }]);
+    assert.equal(duelPlayer.hostileTargets.size, 0, 'a duel request must not enable PvP before acceptance');
+    const duelTarget = {
+        id: 'duel_b',
+        type: 'player',
+        hostility: { duel_a: { name: 'Duel A', duel: true, duelId: 'duel_a_b_1' } }
+    };
+    duelPlayer.addDuelTarget('duel_b', 'Duel B', 'duel_a_b_1');
+    assert.equal(duelPlayer.canAttackTarget(duelTarget), true, 'accepted duels must bypass party protection');
+    duelTarget.hostility.duel_a.duelId = 'different_duel';
+    assert.equal(duelPlayer.canAttackTarget(duelTarget), false, 'party PvP must still require the same accepted duel id');
+    duelTarget.hostility.duel_a.duelId = 'duel_a_b_1';
+    assert.equal(duelPlayer.endDuelWith('duel_b', 'death'), true);
+    assert.equal(duelPlayer.canAttackTarget(duelTarget), false, 'ending a duel must immediately disable PvP');
+    assert.deepEqual(duelEnds, [{ uid: 'duel_b', duelId: 'duel_a_b_1', reason: 'death' }]);
+
+    const remoteDuelOwner = new RemotePlayer('duel_b', 0, 0, null);
+    remoteDuelOwner.party = { members: ['duel_a', 'duel_b'] };
+    remoteDuelOwner.hostility = { duel_a: { name: 'Duel A', duel: true, duelId: 'duel_remote_1' } };
+    assert.equal(
+        remoteDuelOwner.canAttackTarget({
+            id: 'duel_a',
+            type: 'player',
+            hostility: { duel_b: { name: 'Duel B', duel: true, duelId: 'duel_remote_1' } }
+        }),
+        true,
+        'remote projectile ownership must also honor accepted party duels'
+    );
 
     assert.equal(
         net._getCurrentFieldId(),
@@ -1997,6 +2076,30 @@ async function validateWorldSceneListenerLifecycle() {
         input: null
     };
     const scene = new WorldScene(game);
+    const tombstoneScene = new WorldScene({
+        net: {
+            remotePlayers: new Map(),
+            getBestKnownRemoteName: (_id, name) => name
+        },
+        camera: null,
+        monsterManager: null,
+        ui: null,
+        resources: null,
+        input: null
+    });
+    tombstoneScene.player = { id: 'local_player' };
+    tombstoneScene._spawnRemotePlayerFromData({
+        id: 'dead_buffered_peer',
+        x: 40,
+        y: 50,
+        name: 'Dead Buffered Peer',
+        h: [0, 60, Date.now()]
+    });
+    assert.equal(
+        tombstoneScene.remotePlayers.get('dead_buffered_peer')?.isDead,
+        true,
+        'a remote spawned from buffered HP 0 state must render as a tombstone'
+    );
     let clearedTarget = 0;
     scene.player = {
         autoAttackEnabled: true,
@@ -5041,6 +5144,84 @@ async function validateNormalRewardV2Contracts() {
     window.localStorage = previousLocalStorage;
 }
 
+async function validateOptionRerollStoneContracts() {
+    const previousGame = window.game;
+    const itemData = new ItemDataManager(null);
+    const player = new Player(100, 100, 'Option Reroll Tester', null);
+    player.id = 'option_reroll_tester';
+    window.game = {
+        itemData,
+        localPlayer: player,
+        ui: {
+            updateInventory: () => {},
+            updateQuestUI: () => {},
+            updateStatusPopup: () => {},
+            updateHudAttentionIndicators: () => {}
+        }
+    };
+
+    const weapon = itemData.normalizeInventoryItem({
+        id: 'tidal_staff',
+        type: 'tidal_staff',
+        instanceId: 'option_reroll_tidal_staff',
+        prefixId: 'tidal_blue_flame',
+        rolledValues: {
+            fireballChainChance: 0.24,
+            fireballChainDamageRatio: 0.45
+        },
+        enhancementLevel: 7,
+        durableEntitlementVersion: 1,
+        durableEntitlementBossTypeId: 'ruin_wobbuffet'
+    });
+    assert.ok(weapon, 'an archived boss weapon must be available for option reroll tests');
+    player.equipment.weapon = weapon;
+    player.inventory[1] = {
+        type: 'option_reroll_stone',
+        amount: 2,
+        icon: '💠',
+        name: '옵션 변경석',
+        stackable: true
+    };
+
+    const previousRandom = Math.random;
+    Math.random = () => 0;
+    try {
+        const result = player.rerollWeaponOptions({ kind: 'equipment', slot: 'weapon' }, { deferUiRefresh: true });
+        assert.equal(result.ok, true);
+        assert.equal(player.equipment.weapon.enhancementLevel, 7, 'option reroll must preserve enhancement level');
+        assert.equal(player.equipment.weapon.prefixId, 'tidal_blue_flame', 'option reroll must preserve the affix family');
+        assert.ok(player.equipment.weapon.rolledValues.fireballChainChance >= 0.24);
+        assert.ok(player.equipment.weapon.rolledValues.fireballChainDamageRatio >= 0.45);
+        assert.ok(
+            player.equipment.weapon.rolledValues.fireballChainChance > 0.24
+                || player.equipment.weapon.rolledValues.fireballChainDamageRatio > 0.45,
+            'at least one non-maxed option should improve when the raw roll ties the current value'
+        );
+        assert.equal(player.getInventoryItemCount('option_reroll_stone'), 1, 'a successful reroll consumes one stone');
+
+        player.equipment.weapon = itemData.normalizeInventoryItem({
+            id: 'tidal_staff',
+            type: 'tidal_staff',
+            instanceId: 'option_reroll_maxed_tidal_staff',
+            prefixId: 'tidal_blue_flame',
+            rolledValues: {
+                fireballChainChance: 0.38,
+                fireballChainDamageRatio: 0.65
+            },
+            enhancementLevel: 10,
+            durableEntitlementVersion: 1,
+            durableEntitlementBossTypeId: 'ruin_wobbuffet'
+        });
+        const maxedResult = player.rerollWeaponOptions({ kind: 'equipment', slot: 'weapon' }, { deferUiRefresh: true });
+        assert.equal(maxedResult.ok, false, 'maxed options should not consume a reroll stone');
+        assert.equal(player.getInventoryItemCount('option_reroll_stone'), 1);
+        assert.equal(player.equipment.weapon.enhancementLevel, 10);
+    } finally {
+        Math.random = previousRandom;
+        window.game = previousGame;
+    }
+}
+
 async function validateMonsterDeathSettlementDurabilityContracts() {
     const previousGame = window.game;
     const fieldId = 'zone_2__party__death_settlement';
@@ -5223,6 +5404,32 @@ async function validateMonsterDeathSettlementDurabilityContracts() {
         rollSlot: 'normal_drop_1_weapon_upgrade_stone'
     });
     assert.deepEqual(deterministicStoneB, deterministicStoneA, 'variant and amount rolls must survive host handoff exactly');
+
+    authoredRewards.length = 0;
+    rewardAdmission = true;
+    itemData.getBossDrops = () => [{ itemId: 'boss_staff', chance: 1, quantity: 1 }];
+    itemData.getBossBonusDrops = () => [{ itemId: 'option_reroll_stone', chance: 1, min: 1, max: 3 }];
+    const bossRewardMonster = {
+        ...pendingMonster,
+        id: 'boss_bonus_split_contract',
+        typeId: 'contract_boss',
+        isBoss: true,
+        damageContributors: new Set(['reward_owner']),
+        damageContributorLevels: new Map([['reward_owner', 8]])
+    };
+    assert.equal(managerA._grantMonsterItemDrops(bossRewardMonster, 'reward_owner'), true);
+    const guaranteedBossPayload = authoredRewards.find((entry) => entry.payload?.kind === 'boss_items')?.payload;
+    const bonusPayload = authoredRewards.find((entry) => entry.payload?.rewardKind === 'boss_bonus_items')?.payload;
+    assert.deepEqual(
+        guaranteedBossPayload?.items?.map((item) => item.type || item.id),
+        ['boss_staff'],
+        'guaranteed boss equipment must stay isolated in the durable boss_items payload'
+    );
+    assert.equal(bonusPayload?.kind, undefined, 'stackable boss bonus materials must not use the durable boss_items kind');
+    assert.equal(bonusPayload?.items?.[0]?.type, 'option_reroll_stone');
+    assert.ok(bonusPayload.items[0].amount >= 1 && bonusPayload.items[0].amount <= 3);
+    itemData.getBossDrops = () => [];
+    itemData.getBossBonusDrops = () => [];
 
     let releaseDefinition = null;
     const deferredDefinition = new Promise((resolve) => { releaseDefinition = resolve; });
@@ -6269,6 +6476,8 @@ console.log('[runtime-integration] checking durable boss rewards...');
 await validateDurableBossRewardContracts();
 console.log('[runtime-integration] checking durable normal rewards...');
 await validateNormalRewardV2Contracts();
+console.log('[runtime-integration] checking option reroll stones...');
+await validateOptionRerollStoneContracts();
 console.log('[runtime-integration] checking death-settlement durability...');
 await validateMonsterDeathSettlementDurabilityContracts();
 console.log('[runtime-integration] checking deterministic drop and quest boss settlements...');

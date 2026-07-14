@@ -4,7 +4,7 @@
     "width": 2000,
     "height": 2000,
     "background": {
-        "image": "assets/resource/maps/map_background.png",
+        "image": "assets/resource/maps/map_background.webp",
         "music": "bgm_field",
         "ambient": "sfx_wind"
     },
@@ -33,7 +33,7 @@
             "x": 500,
             "y": 500,
             "visual": {
-                "image": "assets/resource/structures/house.png",
+                "image": "assets/resource/structures/house.webp",
                 "width": 300,
                 "height": 200,
                 "scale": 1.0

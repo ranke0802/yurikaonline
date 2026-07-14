@@ -16,7 +16,7 @@
   },
   "icon": {
     "type": "image",
-    "path": "src/assets/items/astral_staff.png",
+    "path": "src/assets/items/astral_staff.webp",
     "fallbackEmoji": "🌌"
   },
   "prefixPool": "astral_staff_affixes",

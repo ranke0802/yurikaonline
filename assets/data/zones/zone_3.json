@@ -9,7 +9,7 @@
   "width": 3600,
   "height": 3600,
   "background": {
-    "image": "assets/resource/maps/zone_3_thunder_forest.png",
+    "image": "assets/resource/maps/zone_3_thunder_forest.webp",
     "music": "bgm_act2_threat",
     "ambient": null
   },

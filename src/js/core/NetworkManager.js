@@ -11750,11 +11750,12 @@ export default class NetworkManager extends EventEmitter {
         const nextMaxHp = Math.max(0, Math.round(maxHp));
         const nextHp = Math.min(nextMaxHp, Math.max(0, Math.round(hp)));
         const force = !!options.force;
+        const isDeathSync = nextHp <= 0;
 
         if (!force && this._lastHpSync.hp === nextHp && this._lastHpSync.maxHp === nextMaxHp && (now - this._lastHpSync.ts) < 500) {
             return;
         }
-        if (!force && (now - this._lastHpSync.ts) < 120) return;
+        if (!force && !isDeathSync && (now - this._lastHpSync.ts) < 120) return;
 
         this._lastHpSync = { hp: nextHp, maxHp: nextMaxHp, ts: now };
         this._recordNetworkWrite('hp', [nextHp, nextMaxHp, now]);
@@ -12060,6 +12061,13 @@ export default class NetworkManager extends EventEmitter {
                 // Validate timestamp (ignore old attacks > 5s)
                 if (Date.now() - val.ts < 5000) {
                     if (window.game && window.game.localPlayer) {
+                        const sceneRemote = window.game.sceneManager?.currentScene?.remotePlayers?.get?.(val.attackerId) || null;
+                        const knownRemote = sceneRemote || this.remotePlayers.get(val.attackerId) || null;
+                        if (knownRemote?.canAttackTarget
+                            && !knownRemote.canAttackTarget(window.game.localPlayer)) {
+                            snapshot.ref.remove();
+                            return;
+                        }
                         // Apply damage via Player.takeDamage
                         // Signature: takeDamage(amount, fromNetwork, isCrit, sourceX, sourceY, attacker, effectType, effectDuration, effectDamage)
                         // Attacker object is simulated {id, type='player'}
@@ -12114,6 +12122,80 @@ export default class NetworkManager extends EventEmitter {
         });
     }
 
+    _buildDuelId(targetUid, ts = Date.now()) {
+        const pair = [this.playerId, targetUid].filter(Boolean).sort().join('__');
+        return `duel_${pair}_${Math.max(0, Math.round(ts))}`;
+    }
+
+    async resolveDuelTarget(query) {
+        const trimmed = String(query || '').trim();
+        if (!trimmed || !window.firebase) return null;
+
+        let uid = null;
+        let profile = await this.getPlayerProfile(trimmed);
+        if (profile) {
+            uid = trimmed;
+        } else {
+            uid = await this.getUidByName(trimmed);
+            if (!uid) return null;
+            profile = await this.getPlayerProfile(uid);
+        }
+
+        if (!uid) return null;
+        const name = this._isMeaningfulPlayerName(profile?.name)
+            ? profile.name.trim()
+            : trimmed;
+        return { uid, name, profile: profile || null };
+    }
+
+    async sendDuelRequest(targetUid, targetName = '') {
+        if (!this.connected || !this.playerId || !this.dbRef || !targetUid || targetUid === this.playerId) {
+            return { ok: false, reason: 'INVALID' };
+        }
+        if (!this.zoneParticipationEnabled) return { ok: false, reason: 'ZONE_DISABLED' };
+
+        const now = Date.now();
+        const duelId = this._buildDuelId(targetUid, now);
+        await this.dbRef.child(`users/${targetUid}/hostility_inbox`).push({
+            type: 'DUEL_REQUEST',
+            from: this.playerId,
+            fromName: window.game?.localPlayer?.name || 'Unknown',
+            targetName: targetName || '',
+            duelId,
+            fieldId: this._getCurrentFieldId(),
+            ts: now
+        });
+        return { ok: true, duelId };
+    }
+
+    async sendDuelResponse(targetUid, request = {}, accepted = false, reason = '') {
+        if (!this.connected || !this.playerId || !this.dbRef || !targetUid) return false;
+        await this.dbRef.child(`users/${targetUid}/hostility_inbox`).push({
+            type: accepted ? 'DUEL_ACCEPT' : 'DUEL_DECLINE',
+            from: this.playerId,
+            fromName: window.game?.localPlayer?.name || 'Unknown',
+            duelId: request?.duelId || this._buildDuelId(targetUid),
+            fieldId: this._getCurrentFieldId(),
+            reason,
+            ts: Date.now()
+        });
+        return true;
+    }
+
+    async sendDuelEnd(targetUid, duelId = null, reason = 'ended') {
+        if (!this.connected || !this.playerId || !this.dbRef || !targetUid) return false;
+        await this.dbRef.child(`users/${targetUid}/hostility_inbox`).push({
+            type: 'DUEL_END',
+            from: this.playerId,
+            fromName: window.game?.localPlayer?.name || 'Unknown',
+            duelId: duelId || this._buildDuelId(targetUid),
+            fieldId: this._getCurrentFieldId(),
+            reason,
+            ts: Date.now()
+        });
+        return true;
+    }
+
     startHostilityListeners() {
         if (!this.playerId || !this.zoneParticipationEnabled) return;
         if (this._hostilityListenerActive) return;
@@ -12122,7 +12204,7 @@ export default class NetworkManager extends EventEmitter {
         Logger.log(`[Network] Starting hostility listeners for ${this.playerId}`);
 
         // Listen for Direct Hostility Updates (Inbox Pattern)
-        this.dbRef.child(`users/${this.playerId}/hostility_inbox`).on('child_added', (snapshot) => {
+        this.dbRef.child(`users/${this.playerId}/hostility_inbox`).on('child_added', async (snapshot) => {
             const val = snapshot.val();
             if (val) {
                 // v1.1: Force Mutual Hostility Logic
@@ -12130,11 +12212,56 @@ export default class NetworkManager extends EventEmitter {
                     const lp = window.game.localPlayer;
                     const senderId = val.from;
                     const senderName = val.fromName || "Unknown";
+                    const eventAgeMs = Date.now() - Number(val.ts || 0);
+                    const sameField = !val.fieldId || this._normalizeFieldId(val.fieldId) === this._getCurrentFieldId();
+
+                    if (val.type === 'DUEL_REQUEST') {
+                        if (!senderId || eventAgeMs > 60000 || !sameField || lp.isDead || lp.isDying) {
+                            await this.sendDuelResponse(senderId, val, false, sameField ? 'unavailable' : 'field_mismatch');
+                        } else if (lp.hasActiveDuelWith?.(senderId)) {
+                            await this.sendDuelResponse(senderId, val, true, 'already_dueling');
+                        } else {
+                            window.game.ui?.showGenericModal?.(
+                                '결투 신청',
+                                `${senderName}님이 결투를 신청했습니다.\n수락하면 둘 중 한 명이 쓰러질 때까지 서로 공격할 수 있습니다.`,
+                                async () => {
+                                    lp.addDuelTarget?.(senderId, senderName, val.duelId, val.ts || Date.now());
+                                    await this.sendDuelResponse(senderId, val, true);
+                                    window.game.ui?.logSystemMessage?.(`⚔️ ${senderName}님과의 결투를 수락했습니다.`);
+                                    window.game.sound?.playSfx?.('pvp_alert');
+                                },
+                                async () => {
+                                    await this.sendDuelResponse(senderId, val, false, 'declined');
+                                    window.game.ui?.logSystemMessage?.(`${senderName}님의 결투 신청을 거절했습니다.`);
+                                },
+                                { yesText: '수락', noText: '거절' }
+                            );
+                            window.game.sound?.playSfx?.('pvp_alert');
+                        }
+                    } else if (val.type === 'DUEL_ACCEPT') {
+                        if (sameField && senderId) {
+                            lp.addDuelTarget?.(senderId, senderName, val.duelId, val.ts || Date.now());
+                            window.game.ui?.logSystemMessage?.(`⚔️ ${senderName}님이 결투를 수락했습니다.`);
+                            window.game.sound?.playSfx?.('pvp_alert');
+                        }
+                    } else if (val.type === 'DUEL_DECLINE') {
+                        if (senderId) {
+                            window.game.ui?.logSystemMessage?.(`${senderName}님이 결투 신청을 거절했습니다.`);
+                        }
+                    } else if (val.type === 'DUEL_END') {
+                        if (senderId) {
+                            const removed = lp.endDuelWith?.(senderId, val.reason || 'ended', { notify: false });
+                            if (removed) {
+                                const reasonText = val.reason === 'death' ? '상대가 쓰러져' : '종료되어';
+                                window.game.ui?.logSystemMessage?.(`⚔️ ${senderName}님과의 결투가 ${reasonText} 끝났습니다.`);
+                            }
+                        }
+                    }
 
                     // Handle ADD (Forced Hostility)
                     // If someone declares war on me, I MUST reciprocate physically
                     // (But logically, I just add them to my list so I can attack back)
-                    if (val.type === 'ADD') {
+                    else if (val.type === 'ADD') {
                         // Avoid duplicates
                         if (!lp.hostileTargets.has(senderId)) {
                             lp.hostileTargets.set(senderId, { name: senderName, ts: val.ts || Date.now() });

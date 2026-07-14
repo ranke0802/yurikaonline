@@ -1,6 +1,8 @@
 import Logger from '../utils/Logger.js';
 import FriendsUIController, { FRIENDS_UI_METHOD_NAMES } from './friends/FriendsUIController.js';
 
+const OPTION_REROLL_STONE_ID = 'option_reroll_stone';
+
 export class UIManager {
     constructor(game) {
         this.game = game;
@@ -120,7 +122,8 @@ export class UIManager {
             'action-skill-k': { label: '스킬 K', selector: '#action-skill-k', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
             'action-skill-h': { label: '스킬 H', selector: '#action-skill-h', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
             'action-attack-j': { label: '기본 공격', selector: '#action-attack-j', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
-            'action-auto-toggle': { label: '오토 버튼', selector: '#action-auto-toggle', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 }
+            'action-auto-toggle': { label: '오토 버튼', selector: '#action-auto-toggle', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
+            'party-panel': { label: '파티 목록', selector: '#party-panel', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', zIndex: 1535, margin: 8, requiresVisibleElement: true, defaultOpacity: 0.95 }
         };
         this.uiLayoutPresetDefaults = {
             mobilePortrait: {
@@ -958,6 +961,59 @@ export class UIManager {
         return document.querySelector(definition.parentSelector);
     }
 
+    isActionUiLayoutControl(controlId) {
+        return controlId === 'action-skill-u'
+            || controlId === 'action-skill-k'
+            || controlId === 'action-skill-h'
+            || controlId === 'action-attack-j'
+            || controlId === 'action-auto-toggle';
+    }
+
+    clearActionButtonsLayoutSurfaceStyles() {
+        const actionButtons = document.querySelector('.action-buttons');
+        const skillRow = actionButtons?.querySelector?.('.skill-row');
+        const properties = [
+            'position', 'inset', 'left', 'top', 'right', 'bottom',
+            'width', 'height', 'display', 'overflow', 'pointer-events',
+            'opacity', 'visibility', 'transform', 'transform-origin', 'z-index'
+        ];
+        properties.forEach((property) => actionButtons?.style?.removeProperty(property));
+        ['position', 'inset', 'left', 'top', 'right', 'bottom', 'width', 'height', 'display'].forEach((property) => {
+            skillRow?.style?.removeProperty(property);
+        });
+    }
+
+    prepareActionButtonsLayoutSurface() {
+        const actionButtons = document.querySelector('.action-buttons');
+        if (!actionButtons || !this.uiLayoutEditMode) return;
+
+        actionButtons.style.setProperty('position', 'fixed', 'important');
+        actionButtons.style.setProperty('inset', '0', 'important');
+        actionButtons.style.setProperty('left', '0', 'important');
+        actionButtons.style.setProperty('top', '0', 'important');
+        actionButtons.style.setProperty('right', 'auto', 'important');
+        actionButtons.style.setProperty('bottom', 'auto', 'important');
+        actionButtons.style.setProperty('width', '100dvw', 'important');
+        actionButtons.style.setProperty('height', '100dvh', 'important');
+        actionButtons.style.setProperty('display', 'block', 'important');
+        actionButtons.style.setProperty('overflow', 'visible', 'important');
+        actionButtons.style.setProperty('pointer-events', 'none', 'important');
+        actionButtons.style.setProperty('opacity', '1', 'important');
+        actionButtons.style.setProperty('visibility', 'visible', 'important');
+        actionButtons.style.setProperty('transform', 'none', 'important');
+        actionButtons.style.setProperty('transform-origin', 'top left', 'important');
+        actionButtons.style.setProperty('z-index', '1480', 'important');
+
+        const skillRow = actionButtons.querySelector('.skill-row');
+        if (skillRow) {
+            skillRow.style.setProperty('position', 'static', 'important');
+            skillRow.style.setProperty('inset', 'auto', 'important');
+            skillRow.style.setProperty('width', 'auto', 'important');
+            skillRow.style.setProperty('height', 'auto', 'important');
+            skillRow.style.setProperty('display', 'contents', 'important');
+        }
+    }
+
     getElementComputedScale(element) {
         if (!element || typeof window === 'undefined' || !window.getComputedStyle) return 1;
         const transform = window.getComputedStyle(element).transform;
@@ -1030,10 +1086,12 @@ export class UIManager {
             const rawMode = rawLayouts?.[mode];
             if (!rawMode || typeof rawMode !== 'object') return;
             const nextMode = {};
-            this.getUiLayoutControlsForMode(mode).forEach(([controlId, definition]) => {
-                const entry = this.sanitizeUiLayoutEntry(rawMode[controlId], definition);
-                if (entry) nextMode[controlId] = entry;
-            });
+            Object.entries(this.uiLayoutControlDefinitions)
+                .filter(([, definition]) => definition.modes.includes(mode))
+                .forEach(([controlId, definition]) => {
+                    const entry = this.sanitizeUiLayoutEntry(rawMode[controlId], definition);
+                    if (entry) nextMode[controlId] = entry;
+                });
             if (Object.keys(nextMode).length > 0) {
                 sanitizedLayouts[mode] = nextMode;
             }
@@ -1157,6 +1215,7 @@ export class UIManager {
     }
 
     clearUiLayoutRuntimeStyles() {
+        this.clearActionButtonsLayoutSurfaceStyles();
         Object.keys(this.uiLayoutControlDefinitions).forEach((controlId) => {
             const element = this.getUiLayoutControlElement(controlId);
             if (!element) return;
@@ -1262,6 +1321,14 @@ export class UIManager {
         element.style.setProperty('opacity', String(safeEntry.opacity), 'important');
         element.style.setProperty('z-index', String(definition?.zIndex || (controlId === 'action-auto-toggle' ? 1495 : 1490)), 'important');
 
+        if (this.isActionUiLayoutControl(controlId)) {
+            element.style.setProperty('display', 'inline-flex', 'important');
+            element.style.setProperty('visibility', 'visible', 'important');
+            element.style.setProperty('pointer-events', 'auto', 'important');
+            element.style.setProperty('align-items', 'center', 'important');
+            element.style.setProperty('justify-content', 'center', 'important');
+        }
+
         if (definition?.scaleMode === 'transform') {
             const configuredBaseScale = Number(definition?.baseScale);
             const baseScale = Number.isFinite(configuredBaseScale) && configuredBaseScale > 0.0001
@@ -1296,6 +1363,9 @@ export class UIManager {
         this.clearUiLayoutRuntimeStyles();
         const mode = this.getUiLayoutMode();
         const controls = this.getUiLayoutControlsForMode(mode);
+        if (this.uiLayoutEditMode) {
+            this.prepareActionButtonsLayoutSurface();
+        }
         const supportsJoystick = controls.some(([controlId]) => controlId === 'joystick');
         const storedEntries = this.getStoredUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode);
         const presetEntries = this.getUiLayoutPresetForMode(mode);
@@ -3244,6 +3314,7 @@ export class UIManager {
 
     beginFloatingPanelDrag(e, panel) {
         if (!panel || panel.classList.contains('hidden')) return;
+        if (this.uiLayoutEditMode && panel.matches?.('#party-panel')) return;
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         if (e.target?.closest?.('button, input, textarea, select, a')) return;
 
@@ -9481,6 +9552,7 @@ export class UIManager {
         const equipBtn = document.getElementById('inventory-action-equip');
         const unequipBtn = document.getElementById('inventory-action-unequip');
         const enhanceBtn = document.getElementById('inventory-action-enhance');
+        const rerollOptionBtn = document.getElementById('inventory-action-reroll-option');
         const dismantleBtn = document.getElementById('inventory-action-dismantle');
         const itemModal = document.getElementById('inventory-item-modal');
         const itemModalCloseBtn = document.getElementById('inventory-item-modal-close');
@@ -9538,6 +9610,57 @@ export class UIManager {
         const blessedEnhanceBtn = document.getElementById('inventory-action-enhance-blessed');
         bindPress(blessedEnhanceBtn, () => {
             this.startWeaponEnhancementSelection('blessed');
+        });
+
+        bindPress(rerollOptionBtn, () => {
+            const player = this.game.localPlayer;
+            if (!player) return;
+
+            const target = player.resolveWeaponSelection(this.selectedInventoryRef);
+            if (!target?.item) {
+                this.showGenericModal('옵션 변경', '옵션을 변경할 무기를 선택해 주세요.', null, null, { hideNo: true, yesText: '확인' });
+                return;
+            }
+
+            if ((player.getInventoryItemCount?.(OPTION_REROLL_STONE_ID) || 0) < 1) {
+                this.showGenericModal('옵션 변경', '옵션 변경석이 부족합니다.', null, null, { hideNo: true, yesText: '확인' });
+                return;
+            }
+
+            const enhancementLevel = Math.max(0, target.item.enhancementLevel || 0);
+            this.showConfirm(
+                `${target.item.name}의 옵션을 변경할까요?<br><small>강화 수치 +${enhancementLevel}은 유지되고, 옵션 수치는 기존보다 낮아지지 않습니다.</small>`,
+                (confirmed) => {
+                    if (!confirmed) return;
+
+                    const result = player.rerollWeaponOptions(this.selectedInventoryRef, { deferUiRefresh: true });
+                    if (!result.ok) {
+                        this.showGenericModal('옵션 변경 실패', result.message, null, null, { hideNo: true, yesText: '확인' });
+                        this.updateInventory();
+                        return;
+                    }
+
+                    const changedLines = Object.entries(result.rolledValues || {})
+                        .map(([key, value]) => {
+                            const before = Number(result.previousValues?.[key] || 0);
+                            const after = Number(value || 0);
+                            const delta = Math.round((after - before) * 100);
+                            return `${key}: ${Math.round(before * 100)}% → ${Math.round(after * 100)}%${delta > 0 ? ` (+${delta}%)` : ''}`;
+                        })
+                        .join('<br>');
+
+                    this.showGenericModal(
+                        '옵션 변경 완료',
+                        `${result.item.name}의 옵션을 다시 조율했습니다.<br><small>${changedLines}</small>`,
+                        null,
+                        null,
+                        { hideNo: true, yesText: '확인' }
+                    );
+                    this.logSystemMessage(`💠 ${result.item.name} 옵션 변경 완료`);
+                    this.updateStatusPopup();
+                    this.updateInventory();
+                }
+            );
         });
 
         bindPress(dismantleBtn, () => {
@@ -9633,9 +9756,29 @@ export class UIManager {
         }
 
         const hasCustomPosition = !!panel.style.getPropertyValue('left') || !!panel.style.getPropertyValue('top');
-        if (hasCustomPosition) {
+        const hasManagedLayout = panel.dataset.uiLayoutEditable === 'true'
+            || !!this.getStoredUiLayoutModeEntries(this.getResolvedUiLayoutSource(), this.getUiLayoutMode())?.['party-panel'];
+        if (hasCustomPosition && !hasManagedLayout) {
             this.clampFloatingPanelToViewport(panel);
         }
+    }
+
+    applyPartyPanelUiLayout(panel = document.getElementById('party-panel')) {
+        if (!panel || panel.classList.contains('hidden')) return false;
+
+        const mode = this.getUiLayoutMode();
+        const source = this.getResolvedUiLayoutSource();
+        const storedEntries = this.getStoredUiLayoutModeEntries(source, mode);
+        const storedEntry = storedEntries?.['party-panel'];
+        if (!this.uiLayoutEditMode && !storedEntry) return false;
+
+        const entry = this.uiLayoutEditMode
+            ? this.getUiLayoutModeEntries(source, mode)?.['party-panel']
+            : storedEntry;
+        if (!entry) return false;
+
+        this.applyUiLayoutControl('party-panel', entry);
+        return true;
     }
 
     togglePartyPanelMinimized(force) {
@@ -9742,6 +9885,7 @@ export class UIManager {
         });
 
         this.syncPartyPanelMinimizedState(panel);
+        this.applyPartyPanelUiLayout(panel);
     }
 
     isInventorySelection(ref, kind, value) {
@@ -10090,6 +10234,8 @@ export class UIManager {
                 descriptionParts.push('상세 보기의 버튼으로 강화할 무기를 선택해 일반 강화를 시도할 수 있습니다.');
             } else if (item.type === 'blessed_weapon_upgrade_stone') {
                 descriptionParts.push('상세 보기의 버튼으로 축복 강화할 무기를 선택해 안전한 고급 강화를 시도할 수 있습니다.');
+            } else if (item.type === OPTION_REROLL_STONE_ID) {
+                descriptionParts.push('무기 상세 화면에서 옵션 변경을 눌러 사용할 수 있습니다. 강화 수치는 유지되고 옵션 수치만 기존보다 같거나 높게 재설정됩니다.');
             }
             return {
                 title: `${titleBase} [${amount}]`,
@@ -10407,6 +10553,7 @@ export class UIManager {
         const unequipBtn = document.getElementById('inventory-action-unequip');
         const enhanceBtn = document.getElementById('inventory-action-enhance');
         const blessedEnhanceBtn = document.getElementById('inventory-action-enhance-blessed');
+        const rerollOptionBtn = document.getElementById('inventory-action-reroll-option');
         const dismantleBtn = document.getElementById('inventory-action-dismantle');
         const actionsEl = document.querySelector('#inventory-item-modal .inventory-detail-actions');
         const headActionsEl = document.getElementById('inventory-detail-head-actions');
@@ -10416,6 +10563,9 @@ export class UIManager {
         }
         if (actionsEl && blessedEnhanceBtn && blessedEnhanceBtn.parentElement !== actionsEl) {
             actionsEl.appendChild(blessedEnhanceBtn);
+        }
+        if (actionsEl && rerollOptionBtn && rerollOptionBtn.parentElement !== actionsEl) {
+            actionsEl.appendChild(rerollOptionBtn);
         }
         if (headActionsEl) {
             headActionsEl.classList.add('hidden');
@@ -10470,6 +10620,14 @@ export class UIManager {
         if (blessedEnhanceBtn) {
             blessedEnhanceBtn.classList.toggle('hidden', true);
         }
+        if (rerollOptionBtn) {
+            rerollOptionBtn.classList.toggle('hidden', detail.item.slot !== 'weapon');
+            const rerollStoneCount = p.getInventoryItemCount?.(OPTION_REROLL_STONE_ID) || 0;
+            rerollOptionBtn.disabled = detail.item.slot === 'weapon' && rerollStoneCount < 1;
+            rerollOptionBtn.textContent = rerollStoneCount > 0
+                ? `옵션 변경 (${rerollStoneCount})`
+                : '옵션 변경';
+        }
         if (dismantleBtn) {
             dismantleBtn.classList.toggle('hidden', detail.item.slot !== 'weapon');
         }
@@ -10496,8 +10654,11 @@ export class UIManager {
         if (actionsEl) {
             const isEnhancementStone = detail.item.type === 'weapon_upgrade_stone'
                 || detail.item.type === 'blessed_weapon_upgrade_stone';
+            const isActionlessMaterial = detail.item.stackable !== false
+                && detail.item.slot !== 'weapon'
+                && !isEnhancementStone;
             actionsEl.classList.toggle('inventory-detail-actions-centered', isEnhancementStone);
-            actionsEl.classList.toggle('hidden', isEnhancementStone);
+            actionsEl.classList.toggle('hidden', isEnhancementStone || isActionlessMaterial);
         }
 
         if (headActionsEl) {
@@ -10785,14 +10946,20 @@ export class UIManager {
                     if (targets.size === 0) {
                         this.logSystemMessage('현재 적대 중인 대상이 없습니다.');
                     } else {
-                        const names = Array.from(targets.values()).join(', ');
+                        const names = Array.from(targets.values()).map((entry) => entry?.name || 'Unknown').join(', ');
                         this.logSystemMessage(`현재 적대 대상: ${names}`);
                     }
                     input.value = '';
                     return;
                 }
                 const result = await this.game.localPlayer.declareHostility(param);
-                if (result === 'DECLARED') {
+                if (result === 'DUEL_REQUESTED') {
+                    this.logSystemMessage(`⚔️ ${param}님에게 결투를 신청했습니다.`);
+                } else if (result === 'ALREADY_DUELING') {
+                    this.logSystemMessage(`${param}님과 이미 결투 중입니다.`);
+                } else if (result === 'ALREADY_HOSTILE') {
+                    this.logSystemMessage(`${param}님과 이미 전투 가능한 상태입니다.`);
+                } else if (result === 'DECLARED') {
                     this.logSystemMessage(`⚔️ ${param}님을 적대 대상으로 선포했습니다! (상호 적대 시 공격 가능)`);
                 } else if (result === 'REMOVED') {
                     this.logSystemMessage(`🕊️ ${param}님과 적대 관계를 해제했습니다.`);
@@ -10805,6 +10972,8 @@ export class UIManager {
                     this.logSystemMessage(`자기 자신을 적대할 수 없습니다.`);
                 } else if (result === 'INVALID') {
                     this.logSystemMessage(`올바른 닉네임을 입력해주세요.`);
+                } else if (result === 'ZONE_DISABLED') {
+                    this.logSystemMessage('현재 필드에서는 결투를 신청할 수 없습니다.');
                 } else {
                     this.logSystemMessage(`오류가 발생했습니다.`);
                 }

@@ -16,7 +16,7 @@
   },
   "icon": {
     "type": "image",
-    "path": "src/assets/items/storm_staff.png",
+    "path": "src/assets/items/storm_staff.webp",
     "fallbackEmoji": "⚡"
   },
   "prefixPool": "storm_staff_affixes",

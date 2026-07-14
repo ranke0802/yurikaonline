@@ -1,6 +1,6 @@
 {
     "id": "emote_id",
-    "icon": "path/to/icon.png",
+    "icon": "path/to/icon.webp",
     "animation": {
         "frames": [
             0,

@@ -6,7 +6,7 @@
             "id": "start",
             "name": "Speaker Name",
             "text": "Dialog content goes here.",
-            "image": "assets/ui/portraits/guide.png",
+            "image": "assets/ui/portraits/guide.webp",
             "duration": 3000,
             "next": "next_sequence_id",
             "action": "optional_action_trigger_id"

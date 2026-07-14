@@ -24,6 +24,10 @@
     {
       "id": "blessed_weapon_upgrade_stone",
       "file": "blessed_weapon_upgrade_stone.json"
+    },
+    {
+      "id": "option_reroll_stone",
+      "file": "option_reroll_stone.json"
     }
   ],
   "affixPools": [

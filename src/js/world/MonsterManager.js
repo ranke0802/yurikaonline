@@ -714,7 +714,8 @@ export default class MonsterManager {
             royal_jelly: { name: '로열 젤리', icon: '🍯' },
             king_crown: { name: '킹 크라운', icon: '👑' },
             weapon_upgrade_stone: { name: '무기 강화석', icon: '💎' },
-            blessed_weapon_upgrade_stone: { name: '축복받은 무기 강화석', icon: '💎' }
+            blessed_weapon_upgrade_stone: { name: '축복받은 무기 강화석', icon: '💎' },
+            option_reroll_stone: { name: '옵션 변경석', icon: '💠' }
         };
 
         const fallback = itemMeta[itemId] || { name: itemId, icon: '🎁' };
@@ -1106,6 +1107,7 @@ export default class MonsterManager {
             ...(this.game.itemData?.getGlobalDrops() || [])
         ];
         const bossDrops = this.game.itemData?.getBossDrops(monster.typeId) || [];
+        const bossBonusDrops = this.game.itemData?.getBossBonusDrops?.(monster.typeId) || [];
         const rewardedItems = [];
         let groundDropCount = 0;
         let acceptedAll = true;
@@ -1141,7 +1143,7 @@ export default class MonsterManager {
                 monsterName: monster.name,
                 items,
                 bossReward: !!options.bossReward,
-                immediate: !!options.bossReward
+                immediate: !!options.bossReward || !!options.immediate
             };
             if (options.rewardKind) {
                 rewardPayload.rewardId = this._buildDeterministicRewardId(monster, uid, options.rewardKind);
@@ -1160,7 +1162,7 @@ export default class MonsterManager {
 
         grantItems(rewardTargetId, rewardedItems, { rewardKind: 'normal_items' });
 
-        if (monster.isBoss && bossDrops.length > 0) {
+        if (monster.isBoss && (bossDrops.length > 0 || bossBonusDrops.length > 0)) {
             const bossRecipients = participantIds.length > 0 ? participantIds : [rewardTargetId];
             bossRecipients.forEach((uid) => {
                 const personalBossItems = [];
@@ -1176,6 +1178,20 @@ export default class MonsterManager {
                     if (reward) personalBossItems.push(reward);
                 });
                 grantItems(uid, personalBossItems, { bossReward: true, rewardKind: 'boss_items' });
+
+                const personalBonusItems = [];
+                bossBonusDrops.forEach((dropDef, dropIndex) => {
+                    const rollSlot = `boss_bonus_drop_${dropIndex}_${dropDef?.itemId || 'invalid'}`;
+                    if (!dropDef?.itemId
+                        || this._getDeterministicMonsterUnit(monster, `${rollSlot}:chance`, uid) > (dropDef.chance ?? 1)) return;
+                    const reward = this._buildRewardItem(dropDef.itemId, dropDef, {
+                        monster,
+                        recipientId: uid,
+                        rollSlot
+                    });
+                    if (reward) personalBonusItems.push(reward);
+                });
+                grantItems(uid, personalBonusItems, { immediate: true, rewardKind: 'boss_bonus_items' });
             });
         }
 

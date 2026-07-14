@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "option_reroll_stone",
+  "name": "옵션 변경석",
+  "type": "material",
+  "stackable": true,
+  "maxStack": 999,
+  "rarity": "epic",
+  "description": "무기의 강화 수치는 유지한 채 현재 옵션 수치만 다시 조율합니다. 변경된 옵션은 기존 수치보다 낮아지지 않습니다.",
+  "icon": {
+    "type": "image",
+    "path": "src/assets/items/option_reroll_stone.webp",
+    "fallbackEmoji": "💠"
+  },
+  "useTarget": {
+    "slot": "weapon"
+  }
+}

@@ -1414,6 +1414,17 @@ button:active,
     background: rgba(255, 230, 155, 0.18);
 }
 
+.inventory-action-btn.option-reroll {
+    color: #f8edff;
+    border-color: rgba(209, 167, 255, 0.34);
+    background: linear-gradient(135deg, rgba(196, 132, 255, 0.22), rgba(80, 207, 255, 0.14));
+}
+
+.inventory-action-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
 .inventory-popup-footer {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -11423,10 +11434,13 @@ body.low-power-pwa #ui-layer #minimap-container {
 @media screen and (max-width: 1024px) and (orientation: portrait) and (pointer: coarse) {
     body.ui-layout-edit-mode .action-buttons {
         position: fixed !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        width: 0 !important;
-        height: 0 !important;
+        inset: 0 !important;
+        left: 0 !important;
+        top: 0 !important;
+        right: auto !important;
+        bottom: auto !important;
+        width: 100dvw !important;
+        height: 100dvh !important;
         display: block !important;
         opacity: 1 !important;
         visibility: visible !important;
@@ -11439,9 +11453,9 @@ body.low-power-pwa #ui-layer #minimap-container {
     body.ui-layout-edit-mode .action-buttons .skill-row {
         position: static !important;
         inset: auto !important;
-        display: block !important;
-        width: 0 !important;
-        height: 0 !important;
+        display: contents !important;
+        width: auto !important;
+        height: auto !important;
     }
 
     body.ui-layout-edit-mode .action-buttons .skill-btn,

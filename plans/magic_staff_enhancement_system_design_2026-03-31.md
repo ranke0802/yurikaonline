@@ -123,7 +123,7 @@
   "instanceId": "uuid",
   "type": "magic_staff",
   "name": "별빛의 마력의 지팡이",
-  "icon": "src/assets/items/magic_staff_inventory.png",
+  "icon": "src/assets/items/magic_staff_inventory.webp",
   "slot": "weapon",
   "enhancementLevel": 7,
   "prefixId": "starlight",

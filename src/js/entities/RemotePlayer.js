@@ -91,13 +91,13 @@ export default class RemotePlayer extends CharacterBase {
         const suppressTransientEffects = !!window.game?.shouldSuppressTransientWorldEffects?.();
 
         // v2.1: Prevent Hit Effect on First Sync (e.g. 100 -> 30 adjustment)
-        if (!this.initialized) {
+        const firstSync = !this.initialized;
+        if (firstSync) {
             this.initialized = true;
-            return;
         }
 
         // Trigger hit effect if HP decreased
-        if (oldHp > this.hp && !suppressTransientEffects) {
+        if (!firstSync && oldHp > this.hp && !suppressTransientEffects) {
             this.state = 'hit';
             setTimeout(() => { if (this.state === 'hit') this.state = 'idle'; }, 200);
 
@@ -169,15 +169,20 @@ export default class RemotePlayer extends CharacterBase {
 
         if (target.type === 'player') {
             if (target.id === this.id) return false;
-            if (this.party && this.party.members.includes(target.id)) return false;
 
             // Enforce mutual hostility
             const hostileList = this.hostility || {};
-            const isHeHostileToMe = hostileList.hasOwnProperty(target.id) || !!hostileList[target.id];
+            const myHostileEntry = hostileList[target.id] || null;
+            const isHeHostileToMe = hostileList.hasOwnProperty(target.id) || !!myHostileEntry;
             if (!isHeHostileToMe) return false;
 
             const targetHostileList = target.hostility || {};
-            const amIHostileToHim = targetHostileList.hasOwnProperty(this.id) || !!targetHostileList[this.id];
+            const targetHostileEntry = targetHostileList[this.id] || null;
+            const amIHostileToHim = targetHostileList.hasOwnProperty(this.id) || !!targetHostileEntry;
+            const mutualDuel = myHostileEntry?.duel === true
+                && targetHostileEntry?.duel === true
+                && (!myHostileEntry.duelId || !targetHostileEntry.duelId || myHostileEntry.duelId === targetHostileEntry.duelId);
+            if (this.party && this.party.members.includes(target.id) && !mutualDuel) return false;
 
             return amIHostileToHim;
         }

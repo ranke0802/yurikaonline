@@ -361,7 +361,8 @@ if (!zoneCatalog || !itemCatalog) {
 
     const dropRules = {
         globalDrops: dropDocuments.flatMap((document) => document.globalDrops || []),
-        bossDrops: dropDocuments.flatMap((document) => document.bossDrops || [])
+        bossDrops: dropDocuments.flatMap((document) => document.bossDrops || []),
+        bossBonusDrops: dropDocuments.flatMap((document) => document.bossBonusDrops || [])
     };
 
     dropRules.globalDrops.forEach((drop) => {
@@ -487,6 +488,7 @@ if (!zoneCatalog || !itemCatalog) {
         if (zone.bossSpawn?.monsterId) referencedMonsterIds.add(zone.bossSpawn.monsterId);
     });
     dropRules.bossDrops.forEach((drop) => referencedMonsterIds.add(drop.monsterId));
+    dropRules.bossBonusDrops.forEach((drop) => referencedMonsterIds.add(drop.monsterId));
 
     const monstersById = new Map();
     referencedMonsterIds.forEach((monsterId) => {
@@ -548,6 +550,18 @@ if (!zoneCatalog || !itemCatalog) {
         bossDropsByMonster.set(drop.monsterId, list);
     });
 
+    const bossBonusDropsByMonster = new Map();
+    dropRules.bossBonusDrops.forEach((drop) => {
+        assert(monstersById.has(drop.monsterId), `Boss bonus drop references missing monster ${drop.monsterId}`);
+        assert(itemsById.has(drop.itemId), `Boss bonus drop ${drop.monsterId} references missing item ${drop.itemId}`);
+        assert(drop.chance > 0 && drop.chance <= 1, `Boss bonus drop ${drop.monsterId} has invalid chance`);
+        assert(Number.isInteger(drop.min) && drop.min > 0, `Boss bonus drop ${drop.monsterId} has invalid min`);
+        assert(Number.isInteger(drop.max) && drop.max >= drop.min, `Boss bonus drop ${drop.monsterId} has invalid max`);
+        const list = bossBonusDropsByMonster.get(drop.monsterId) || [];
+        list.push(drop);
+        bossBonusDropsByMonster.set(drop.monsterId, list);
+    });
+
     zoneCatalogEntries.forEach((catalogZone) => {
         const bossId = catalogZone.boss?.id;
         const drops = bossDropsByMonster.get(bossId) || [];
@@ -558,6 +572,12 @@ if (!zoneCatalog || !itemCatalog) {
         assert(
             matchingWeapon,
             `Catalog boss ${bossId} weaponName does not match its item drop`
+        );
+        const optionRerollDrop = (bossBonusDropsByMonster.get(bossId) || [])
+            .find((drop) => drop.itemId === 'option_reroll_stone');
+        assert(
+            optionRerollDrop && optionRerollDrop.chance === 0.3 && optionRerollDrop.min === 1 && optionRerollDrop.max === 3,
+            `Catalog boss ${bossId} must drop option_reroll_stone at 30% for 1~3`
         );
     });
 

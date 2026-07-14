@@ -196,6 +196,10 @@ export default class WorldScene extends Scene {
                     Logger.debug('[WorldScene] Restoring Hostility from Object:', profile.hostility);
                     this.player.hostileTargets = new Map(Object.entries(profile.hostility));
                 }
+                this.player.hostileTargets = new Map(
+                    Array.from(this.player.hostileTargets.entries())
+                        .filter(([, entry]) => entry?.duel !== true)
+                );
                 // v0.00.15: Force UI update
                 if (this.ui) this.ui.updateHostilityUI();
             } else {
@@ -456,6 +460,7 @@ export default class WorldScene extends Scene {
         const previousZoneMeta = this.game.zone.getZoneMeta(previousZoneId);
         const previousZoneRuntime = this.game.zone.createRuntimeSnapshot?.() || null;
         const transitionToken = ++this.zoneTransitionToken;
+        this.player.endAllDuels?.('left');
         this.isZoneTransitioning = true;
         this.player.grantSpawnProtection?.(7);
         this.ui?.hideGenericModal?.();
@@ -592,9 +597,12 @@ export default class WorldScene extends Scene {
         if (typeof data.level === 'number') {
             rp.level = data.level;
         }
-        if (data.h) {
-            rp.hp = data.h[0];
-            rp.maxHp = data.h[1];
+        if (Array.isArray(data.h)) {
+            rp.onHpUpdate({
+                hp: data.h[0],
+                maxHp: data.h[1],
+                ts: data.h[2]
+            });
         }
         if (typeof data.defense === 'number') {
             rp.defense = data.defense;
@@ -842,6 +850,10 @@ export default class WorldScene extends Scene {
                     });
                 }
                 if (target === this.player) {
+                    const attackerRemote = this.remotePlayers.get(data.aid);
+                    if (attackerRemote?.canAttackTarget && !attackerRemote.canAttackTarget(this.player)) {
+                        return;
+                    }
                     this.player.takeDamage(
                         data.dmg,
                         true,
@@ -890,6 +902,10 @@ export default class WorldScene extends Scene {
         });
 
         bindNetworkHandler('playerLeft', (id) => {
+            if (this.player?.hasActiveDuelWith?.(id)) {
+                this.player.endDuelWith(id, 'left', { notify: false });
+                this.ui?.logSystemMessage?.('⚔️ 상대가 필드를 떠나 결투가 종료되었습니다.');
+            }
             this.remotePlayers.delete(id);
         });
 
@@ -913,6 +929,10 @@ export default class WorldScene extends Scene {
             const rp = this._getOrSpawnRemotePlayer(data.id, data);
             if (rp) {
                 rp.onHpUpdate(data);
+                if (Number(data.hp || 0) <= 0 && this.player?.hasActiveDuelWith?.(data.id)) {
+                    this.player.endDuelWith(data.id, 'death');
+                    this.ui?.logSystemMessage?.(`⚔️ ${rp.name || '상대'}님이 쓰러져 결투가 종료되었습니다.`);
+                }
                 this.ui?.updatePartyUI?.();
             }
         });
