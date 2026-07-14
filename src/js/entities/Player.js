@@ -2811,7 +2811,7 @@ export default class Player extends CharacterBase {
         // 3. Lightning Effect (Wait... solo usually draws this before or after? Request specified character behind effects)
         // Correction: User said "Magic circle center at feet, Character should be in FRONT of magic circle"
         // And "Lightning effect from behind the character"
-        if (!this.isLowGlareCombatZone() && this.lightningEffect && Array.isArray(this.lightningEffect.chains)) {
+        if (this.lightningEffect && Array.isArray(this.lightningEffect.chains)) {
             this.lightningEffect.chains.forEach((c, idx) => {
                 this.drawLightningSegment(ctx, c.x1, c.y1, c.x2, c.y2, 1.0, this.lightningEffect.variant, idx);
             });
@@ -3995,7 +3995,10 @@ export default class Player extends CharacterBase {
     }
 
     drawLightningSegment(ctx, x1, y1, x2, y2, intensity, variant = null) {
-        SkillRenderer.drawLightning(ctx, x1, y1, x2, y2, intensity, { variant });
+        SkillRenderer.drawLightning(ctx, x1, y1, x2, y2, intensity, {
+            variant,
+            lowGlare: this.isLowGlareCombatZone()
+        });
     }
 
     getHostileUidByName(name) {
