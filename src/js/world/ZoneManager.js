@@ -223,7 +223,9 @@ export default class ZoneManager {
         canvas.height = this.chunkSize;
         const cctx = canvas.getContext('2d');
 
-        if (this.bgImage && this.bgImage.width > 0 && this.bgImage.height > 0) {
+        const hasImageBackground = !!(this.bgImage && this.bgImage.width > 0 && this.bgImage.height > 0);
+
+        if (hasImageBackground) {
             // Draw tile pattern to chunk
             if (!this.bgPattern) {
                 // Temporary pattern for drawing to offscreen
@@ -243,16 +245,18 @@ export default class ZoneManager {
             cctx.fillRect(0, 0, this.chunkSize, this.chunkSize);
         }
 
-        this._drawZoneTheme(cctx, cx, cy);
+        if (!hasImageBackground) {
+            this._drawZoneTheme(cctx, cx, cy);
 
-        // Optional: Draw tile grid for debugging or aesthetics
-        cctx.strokeStyle = 'rgba(0,0,0,0.05)';
-        cctx.lineWidth = 1;
-        for (let x = 0; x < this.chunkSize; x += this.tileSize) {
-            cctx.beginPath(); cctx.moveTo(x, 0); cctx.lineTo(x, this.chunkSize); cctx.stroke();
-        }
-        for (let y = 0; y < this.chunkSize; y += this.tileSize) {
-            cctx.beginPath(); cctx.moveTo(0, y); cctx.lineTo(this.chunkSize, y); cctx.stroke();
+            // Optional: Draw tile grid for fallback color maps only.
+            cctx.strokeStyle = 'rgba(0,0,0,0.05)';
+            cctx.lineWidth = 1;
+            for (let x = 0; x < this.chunkSize; x += this.tileSize) {
+                cctx.beginPath(); cctx.moveTo(x, 0); cctx.lineTo(x, this.chunkSize); cctx.stroke();
+            }
+            for (let y = 0; y < this.chunkSize; y += this.tileSize) {
+                cctx.beginPath(); cctx.moveTo(0, y); cctx.lineTo(this.chunkSize, y); cctx.stroke();
+            }
         }
 
         return canvas;
