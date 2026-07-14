@@ -971,15 +971,16 @@ export class UIManager {
 
     clearActionButtonsLayoutSurfaceStyles() {
         const actionButtons = document.querySelector('.action-buttons');
-        const skillRow = actionButtons?.querySelector?.('.skill-row');
         const properties = [
             'position', 'inset', 'left', 'top', 'right', 'bottom',
             'width', 'height', 'display', 'overflow', 'pointer-events',
             'opacity', 'visibility', 'transform', 'transform-origin', 'z-index'
         ];
         properties.forEach((property) => actionButtons?.style?.removeProperty(property));
-        ['position', 'inset', 'left', 'top', 'right', 'bottom', 'width', 'height', 'display'].forEach((property) => {
-            skillRow?.style?.removeProperty(property);
+        actionButtons?.querySelectorAll?.('.skill-row')?.forEach((skillRow) => {
+            ['position', 'inset', 'left', 'top', 'right', 'bottom', 'width', 'height', 'display'].forEach((property) => {
+                skillRow.style.removeProperty(property);
+            });
         });
     }
 
@@ -1004,14 +1005,24 @@ export class UIManager {
         actionButtons.style.setProperty('transform-origin', 'top left', 'important');
         actionButtons.style.setProperty('z-index', '1480', 'important');
 
-        const skillRow = actionButtons.querySelector('.skill-row');
-        if (skillRow) {
+        actionButtons.querySelectorAll('.skill-row').forEach((skillRow) => {
             skillRow.style.setProperty('position', 'static', 'important');
             skillRow.style.setProperty('inset', 'auto', 'important');
             skillRow.style.setProperty('width', 'auto', 'important');
             skillRow.style.setProperty('height', 'auto', 'important');
             skillRow.style.setProperty('display', 'contents', 'important');
-        }
+        });
+    }
+
+    prepareActionButtonsRuntimeSurface(entries = {}) {
+        const hasActionLayout = Object.keys(entries || {}).some((controlId) => this.isActionUiLayoutControl(controlId));
+        const actionButtons = document.querySelector('.action-buttons');
+        if (!hasActionLayout || !actionButtons) return;
+
+        actionButtons.style.setProperty('display', 'block', 'important');
+        actionButtons.style.setProperty('overflow', 'visible', 'important');
+        actionButtons.style.setProperty('visibility', 'visible', 'important');
+        actionButtons.style.setProperty('pointer-events', 'none', 'important');
     }
 
     getElementComputedScale(element) {
@@ -1222,7 +1233,13 @@ export class UIManager {
             delete element.dataset.uiLayoutEditable;
             delete element.dataset.uiLayoutSelected;
             delete element.dataset.uiLayoutAppliedScale;
-            ['position', 'left', 'top', 'right', 'bottom', 'margin', 'z-index', 'width', 'height', 'min-width', 'padding', 'font-size', 'display', 'transform', 'transform-origin', 'will-change', 'opacity'].forEach((property) => {
+            [
+                'position', 'inset', 'left', 'top', 'right', 'bottom', 'margin',
+                'z-index', 'width', 'height', 'min-width', 'max-width', 'max-height',
+                'padding', 'font-size', 'display', 'visibility', 'pointer-events',
+                'align-items', 'justify-content', 'overflow', 'transform',
+                'transform-origin', 'will-change', 'opacity'
+            ].forEach((property) => {
                 element.style.removeProperty(property);
             });
             const icon = element.querySelector('.inner-icon, .paw-icon');
@@ -1275,6 +1292,7 @@ export class UIManager {
             const approxSize = 118 * safeEntry.scale;
             const position = this.computeUiLayoutPosition(safeEntry, approxSize, approxSize, 16);
             element.style.setProperty('position', 'fixed', 'important');
+            element.style.setProperty('inset', 'auto', 'important');
             element.style.setProperty('left', `${position.left}px`, 'important');
             element.style.setProperty('top', `${position.top}px`, 'important');
             element.style.setProperty('right', 'auto', 'important');
@@ -1313,6 +1331,7 @@ export class UIManager {
         }
 
         element.style.setProperty('position', positionMode, 'important');
+        element.style.setProperty('inset', 'auto', 'important');
         element.style.setProperty('left', `${position.left}px`, 'important');
         element.style.setProperty('top', `${position.top}px`, 'important');
         element.style.setProperty('right', 'auto', 'important');
@@ -1371,11 +1390,14 @@ export class UIManager {
         const presetEntries = this.getUiLayoutPresetForMode(mode);
         const entries = this.uiLayoutEditMode
             ? this.getUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode)
-            : (storedEntries || presetEntries ? this.getUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode) : null);
+            : (storedEntries ? { ...(presetEntries || {}), ...storedEntries } : (presetEntries || null));
         Object.entries(entries || {}).forEach(([controlId, entry]) => {
             if (controlId === 'joystick' && !this.uiLayoutEditMode) return;
             this.applyUiLayoutControl(controlId, entry);
         });
+        if (!this.uiLayoutEditMode) {
+            this.prepareActionButtonsRuntimeSurface(entries || {});
+        }
         const joystickLayout = this.uiLayoutEditMode && supportsJoystick
             ? (entries?.joystick || this.buildDefaultJoystickLayoutEntry(mode))
             : null;
