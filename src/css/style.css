@@ -6,7 +6,7 @@
     --ui-friend-compact-opacity: 0.82;
     --ui-quest-opacity: 1;
     --ui-minimap-opacity: 1;
-    --ui-action-opacity: 1;
+    --ui-action-opacity: 0.82;
     --ui-menu-opacity: 1;
 }
 
@@ -1899,7 +1899,22 @@ body.ui-layout-edit-mode #joystick-area {
     pointer-events: none !important;
 }
 
+body.ui-layout-edit-mode #ui-layer .action-buttons {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: none !important;
+}
+
+body.ui-layout-edit-mode.popup-open #ui-layer .action-buttons {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: none !important;
+}
+
 body.ui-layout-edit-mode [data-ui-layout-editable="true"] {
+    pointer-events: auto !important;
     touch-action: none !important;
     filter: brightness(1.04);
 }
@@ -5959,7 +5974,7 @@ body.is-fullscreen .version-info {
         height: clamp(220px, 30vw, 280px);
         transform: none !important;
         transform-origin: center right;
-        opacity: 1;
+        opacity: var(--ui-action-opacity);
         z-index: 1320;
     }
 
@@ -7861,7 +7876,7 @@ body.is-fullscreen .version-info {
         gap: 12px !important;
         align-items: flex-end !important;
         transform: none !important;
-        opacity: 1 !important;
+        opacity: var(--ui-action-opacity) !important;
         z-index: 1360 !important;
     }
 
@@ -9528,7 +9543,7 @@ body.low-power-pwa #ui-layer #minimap-container {
         position: fixed !important;
         transform: none !important;
         transform-origin: center right !important;
-        opacity: 1 !important;
+        opacity: var(--ui-action-opacity) !important;
         z-index: 1360 !important;
         pointer-events: auto !important;
     }

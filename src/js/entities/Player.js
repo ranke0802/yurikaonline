@@ -117,7 +117,6 @@ export default class Player extends CharacterBase {
 
         // Combat & Channeling
         this.attackRange = 400; // v2.4.2: Tighten basic attack range to match combat feel and remote visuals
-        this.autoAttackPursuitRange = 1100;
         this.autoAttackEnabled = false;
         this.fireballAimActive = false;
         this.fireballAimGuide = null;
@@ -1616,7 +1615,7 @@ export default class Player extends CharacterBase {
         if (!monsters) return null;
 
         let nearest = null;
-        let minDist = this.autoAttackPursuitRange;
+        let minDist = Number.POSITIVE_INFINITY;
 
         for (const target of monsters.values()) {
             if (!this.isAutoMoveTargetStillValid(target)) continue;
@@ -1633,10 +1632,7 @@ export default class Player extends CharacterBase {
 
     getAutoMoveTarget() {
         if (this.isAutoMoveTargetStillValid(this.currentTarget)) {
-            const distance = this.getDistanceToTarget(this.currentTarget);
-            if (distance <= this.autoAttackPursuitRange) {
-                return this.currentTarget;
-            }
+            return this.currentTarget;
         }
 
         const nearest = this.findNearestAutoMoveTarget();

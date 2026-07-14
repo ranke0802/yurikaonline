@@ -1005,11 +1005,16 @@ export class UIManager {
         const left = Number(entry.left);
         const top = Number(entry.top);
         const scale = Number(entry.scale);
+        const opacity = Number(entry.opacity);
         if (!Number.isFinite(left) || !Number.isFinite(top)) return null;
+        const minOpacity = Number.isFinite(definition.minOpacity) ? definition.minOpacity : 0.35;
+        const maxOpacity = Number.isFinite(definition.maxOpacity) ? definition.maxOpacity : 1;
+        const defaultOpacity = Number.isFinite(definition.defaultOpacity) ? definition.defaultOpacity : 1;
         return {
             left: Math.min(0.97, Math.max(0.01, left)),
             top: Math.min(0.97, Math.max(0.01, top)),
-            scale: Math.min(definition.maxScale || 1.8, Math.max(definition.minScale || 0.7, Number.isFinite(scale) ? scale : 1))
+            scale: Math.min(definition.maxScale || 1.8, Math.max(definition.minScale || 0.7, Number.isFinite(scale) ? scale : 1)),
+            opacity: Math.min(maxOpacity, Math.max(minOpacity, Number.isFinite(opacity) ? opacity : defaultOpacity))
         };
     }
 
@@ -1100,8 +1105,12 @@ export class UIManager {
     }
 
     getUiLayoutModeEntries(source = this.getResolvedUiLayoutSource(), mode = this.getUiLayoutMode()) {
-        return this.getStoredUiLayoutModeEntries(source, mode)
-            || this.captureDefaultUiLayoutForMode(mode);
+        const defaults = this.captureDefaultUiLayoutForMode(mode) || {};
+        const stored = this.getStoredUiLayoutModeEntries(source, mode) || {};
+        return {
+            ...defaults,
+            ...stored
+        };
     }
 
     getStoredUiLayoutModeEntries(source = this.getResolvedUiLayoutSource(), mode = this.getUiLayoutMode()) {
@@ -1142,7 +1151,8 @@ export class UIManager {
         return {
             left: rect.left / viewportW,
             top: rect.top / viewportH,
-            scale: 1
+            scale: 1,
+            opacity: 1
         };
     }
 
@@ -1153,7 +1163,7 @@ export class UIManager {
             delete element.dataset.uiLayoutEditable;
             delete element.dataset.uiLayoutSelected;
             delete element.dataset.uiLayoutAppliedScale;
-            ['position', 'left', 'top', 'right', 'bottom', 'margin', 'z-index', 'width', 'height', 'min-width', 'padding', 'font-size', 'display', 'transform', 'transform-origin', 'will-change'].forEach((property) => {
+            ['position', 'left', 'top', 'right', 'bottom', 'margin', 'z-index', 'width', 'height', 'min-width', 'padding', 'font-size', 'display', 'transform', 'transform-origin', 'will-change', 'opacity'].forEach((property) => {
                 element.style.removeProperty(property);
             });
             const icon = element.querySelector('.inner-icon, .paw-icon');
@@ -1213,6 +1223,7 @@ export class UIManager {
             element.style.setProperty('display', 'flex', 'important');
             element.style.setProperty('transform', `scale(${safeEntry.scale})`, 'important');
             element.style.setProperty('transform-origin', 'top left', 'important');
+            element.style.setProperty('opacity', String(safeEntry.opacity), 'important');
             element.style.setProperty('z-index', '1490', 'important');
             return;
         }
@@ -1248,6 +1259,7 @@ export class UIManager {
         element.style.setProperty('right', 'auto', 'important');
         element.style.setProperty('bottom', 'auto', 'important');
         element.style.setProperty('margin', '0', 'important');
+        element.style.setProperty('opacity', String(safeEntry.opacity), 'important');
         element.style.setProperty('z-index', String(definition?.zIndex || (controlId === 'action-auto-toggle' ? 1495 : 1490)), 'important');
 
         if (definition?.scaleMode === 'transform') {
@@ -1285,13 +1297,11 @@ export class UIManager {
         const mode = this.getUiLayoutMode();
         const controls = this.getUiLayoutControlsForMode(mode);
         const supportsJoystick = controls.some(([controlId]) => controlId === 'joystick');
+        const storedEntries = this.getStoredUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode);
         const presetEntries = this.getUiLayoutPresetForMode(mode);
         const entries = this.uiLayoutEditMode
             ? this.getUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode)
-            : (
-                this.getStoredUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode)
-                || (presetEntries ? this.captureDefaultUiLayoutForMode(mode) : null)
-            );
+            : (storedEntries || presetEntries ? this.getUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode) : null);
         Object.entries(entries || {}).forEach(([controlId, entry]) => {
             if (controlId === 'joystick' && !this.uiLayoutEditMode) return;
             this.applyUiLayoutControl(controlId, entry);
@@ -1399,6 +1409,8 @@ export class UIManager {
         const select = document.getElementById('ui-layout-target-select');
         const sizeRange = document.getElementById('ui-layout-size-range');
         const sizeValue = document.getElementById('ui-layout-size-value');
+        const opacityRange = document.getElementById('ui-layout-opacity-range');
+        const opacityValue = document.getElementById('ui-layout-opacity-value');
         const modeLabel = document.getElementById('ui-layout-mode-label');
 
         if (modeLabel) {
@@ -1421,12 +1433,21 @@ export class UIManager {
         const minScale = selectedDefinition?.minScale || 0.7;
         const maxScale = selectedDefinition?.maxScale || 1.8;
         const percent = Math.round((currentEntry?.scale || 1) * 100);
+        const minOpacity = Number.isFinite(selectedDefinition?.minOpacity) ? selectedDefinition.minOpacity : 0.35;
+        const maxOpacity = Number.isFinite(selectedDefinition?.maxOpacity) ? selectedDefinition.maxOpacity : 1;
+        const opacityPercent = Math.round((Number.isFinite(currentEntry?.opacity) ? currentEntry.opacity : 1) * 100);
         if (sizeRange) {
             sizeRange.min = String(Math.round(minScale * 100));
             sizeRange.max = String(Math.round(maxScale * 100));
             sizeRange.value = String(Math.min(Math.round(maxScale * 100), Math.max(Math.round(minScale * 100), percent)));
         }
         if (sizeValue) sizeValue.textContent = `${percent}%`;
+        if (opacityRange) {
+            opacityRange.min = String(Math.round(minOpacity * 100));
+            opacityRange.max = String(Math.round(maxOpacity * 100));
+            opacityRange.value = String(Math.min(Math.round(maxOpacity * 100), Math.max(Math.round(minOpacity * 100), opacityPercent)));
+        }
+        if (opacityValue) opacityValue.textContent = `${opacityPercent}%`;
     }
 
     selectUiLayoutControl(controlId) {
@@ -1513,6 +1534,7 @@ export class UIManager {
         this.uiLayoutDragState.captureTarget = null;
         this.setUiLayoutDirty(false);
         document.body.classList.remove('ui-layout-edit-mode');
+        document.body.classList.remove('popup-open');
         document.getElementById('ui-layout-editor')?.classList.add('hidden');
         this.resetUiLayoutEditorWindowPosition();
         this.game.input?.setEnabled?.(true);
@@ -3859,7 +3881,12 @@ export class UIManager {
         return this.isTouchDevice() && (this.isStandaloneDisplayMode() || this.isFullscreenActive());
     }
 
+    isMobileFullscreenPortraitLockRequired() {
+        return this.isTouchDevice() && (this.isStandaloneDisplayMode() || this.isFullscreenActive());
+    }
+
     getCurrentMobileOrientationPreference() {
+        if (this.isMobileFullscreenPortraitLockRequired()) return 'portrait';
         return this.isMobilePortraitViewport() ? 'portrait' : 'landscape';
     }
 
@@ -3916,16 +3943,20 @@ export class UIManager {
     syncOrientationLock() {
         if (screen.orientation && screen.orientation.lock) {
             const transientLockActive = this.isTransientOrientationLockActive();
-            const shouldLock = this.isImmersiveMobileActive() && (this.getSetting('orientationLock') || transientLockActive);
+            const forcePortraitFullscreen = this.isMobileFullscreenPortraitLockRequired();
+            const shouldLock = this.isImmersiveMobileActive()
+                && (forcePortraitFullscreen || this.getSetting('orientationLock') || transientLockActive);
             if (!shouldLock) {
                 this.clearTransientOrientationPreference();
                 screen.orientation.unlock?.();
                 return;
             }
 
-            const effectivePreference = transientLockActive
-                ? this.transientOrientationPreference
-                : this.mobileOrientationPreference;
+            const effectivePreference = forcePortraitFullscreen
+                ? 'portrait'
+                : (transientLockActive
+                    ? this.transientOrientationPreference
+                    : this.mobileOrientationPreference);
             const preferPortrait = effectivePreference === 'portrait';
             const preferredMode = preferPortrait ? 'portrait-primary' : 'landscape-primary';
             const fallbackMode = preferPortrait ? 'portrait' : 'landscape';
@@ -4323,16 +4354,13 @@ export class UIManager {
         this.syncLandscapeChatLayout();
     }
 
-    enterFullscreen(options = {}) {
-        const { preferredOrientation = null } = options;
+    enterFullscreen() {
         if (this.isTouchDevice()) {
-            const nextOrientationPreference = preferredOrientation === 'portrait' || preferredOrientation === 'landscape'
-                ? preferredOrientation
-                : this.getCurrentMobileOrientationPreference();
+            const nextOrientationPreference = 'portrait';
             this.clearTransientOrientationPreference();
             this.mobileOrientationPreference = nextOrientationPreference;
             this.landscapeFullscreenDismissed = false;
-            if (preferredOrientation && !this.getSetting('orientationLock')) {
+            if (!this.getSetting('orientationLock')) {
                 this.setTransientOrientationPreference(nextOrientationPreference);
             }
         }
@@ -4781,6 +4809,12 @@ export class UIManager {
             if (!this.uiLayoutSelectedControlId) return;
             this.updateUiLayoutEntry(this.uiLayoutSelectedControlId, {
                 scale: Number(e.currentTarget.value) / 100
+            });
+        });
+        document.getElementById('ui-layout-opacity-range')?.addEventListener('input', (e) => {
+            if (!this.uiLayoutSelectedControlId) return;
+            this.updateUiLayoutEntry(this.uiLayoutSelectedControlId, {
+                opacity: Number(e.currentTarget.value) / 100
             });
         });
         document.getElementById('ui-layout-reset-selected')?.addEventListener('click', () => {
@@ -10951,10 +10985,7 @@ export class UIManager {
         if (!this.isFullscreenActive()) {
             this.landscapeFullscreenDismissed = false;
             this.pendingLandscapeFullscreen = false;
-            const preferredOrientation = this.isTouchDevice() && this.isMobilePortraitViewport()
-                ? 'landscape'
-                : null;
-            this.enterFullscreen({ preferredOrientation });
+            this.enterFullscreen();
         } else {
             this.exitFullscreenMode();
         }
