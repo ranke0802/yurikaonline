@@ -77,14 +77,6 @@
   },
   "skills": [
     {
-      "id": "missile",
-      "trigger": "cooldown",
-      "cooldown": 4300,
-      "data": {
-        "count": 7
-      }
-    },
-    {
       "id": "shield",
       "trigger": "hp_below_70",
       "chance": 0.3,
@@ -92,6 +84,44 @@
       "data": {
         "duration": 1500
       }
+    }
+  ],
+  "bossMechanics": [
+    {
+      "id": "astral_bloom",
+      "label": "Astral Bloom",
+      "pattern": "circle_cluster",
+      "count": 6,
+      "radius": 82,
+      "ringRadius": 205,
+      "angleOffset": 30,
+      "range": 760,
+      "warningMs": 1150,
+      "impactMs": 380,
+      "cooldownMs": 6600,
+      "initialCooldownMs": 2000,
+      "damageMultiplier": 1.05,
+      "color": "#d946ef",
+      "secondaryColor": "#fae8ff",
+      "effect": "astral"
+    },
+    {
+      "id": "starfall_ribbon",
+      "label": "Starfall Ribbon",
+      "pattern": "parallel_lines",
+      "lanes": 2,
+      "laneGap": 185,
+      "width": 92,
+      "length": 820,
+      "range": 780,
+      "warningMs": 1300,
+      "impactMs": 420,
+      "cooldownMs": 10200,
+      "initialCooldownMs": 5600,
+      "damageMultiplier": 1.35,
+      "color": "#c084fc",
+      "secondaryColor": "#f5d0fe",
+      "effect": "astral"
     }
   ],
   "drops": [

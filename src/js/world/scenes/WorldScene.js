@@ -980,6 +980,10 @@ export default class WorldScene extends Scene {
                         }
                     });
                 }
+            } else if (data.skill === 'boss_telegraph') {
+                if (typeof m.startBossTelegraph === 'function') {
+                    m.startBossTelegraph(data.extra || {});
+                }
             } else if (data.skill === 'shield') {
                 // Visual Effect for Shield
                 if (m) {

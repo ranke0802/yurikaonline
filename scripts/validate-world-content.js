@@ -235,6 +235,46 @@ function validateSpriteSheet(monster, checkedSheets) {
     }
 }
 
+function validateBossMechanics(monster, isCatalogBoss) {
+    if (!isCatalogBoss) return;
+
+    const label = `Boss monster ${monster.id}`;
+    const missileSkill = (monster.skills || []).find((skill) => skill?.id === 'missile');
+    assert(!missileSkill, `${label} must not use homing missile skills; use avoidable bossMechanics instead`);
+
+    const mechanics = Array.isArray(monster.bossMechanics) ? monster.bossMechanics : [];
+    assert(mechanics.length > 0, `${label} must define at least one avoidable bossMechanic`);
+
+    const supportedPatterns = new Set(['circle', 'line', 'parallel_lines', 'circle_cluster', 'donut']);
+    mechanics.forEach((mechanic, index) => {
+        const mechanicLabel = `${label} bossMechanics[${index}]`;
+        assert(typeof mechanic.id === 'string' && mechanic.id.length > 0, `${mechanicLabel} must have an id`);
+        assert(supportedPatterns.has(mechanic.pattern), `${mechanicLabel} has unsupported pattern ${mechanic.pattern}`);
+        assert(Number(mechanic.warningMs) >= 650, `${mechanicLabel} warningMs must give players time to dodge`);
+        assert(Number(mechanic.impactMs) >= 120, `${mechanicLabel} impactMs must be visible`);
+        assert(Number(mechanic.cooldownMs) >= 4000, `${mechanicLabel} cooldownMs must prevent unavoidable spam`);
+        assert(Number(mechanic.damageMultiplier) > 0, `${mechanicLabel} damageMultiplier must be positive`);
+        assert(typeof mechanic.color === 'string' && /^#[0-9a-f]{6}$/i.test(mechanic.color), `${mechanicLabel} must define a hex color`);
+
+        if (mechanic.pattern === 'circle') {
+            assert(Number(mechanic.radius) >= 40, `${mechanicLabel} circle radius must be at least 40`);
+        } else if (mechanic.pattern === 'donut') {
+            assert(Number(mechanic.outerRadius) > Number(mechanic.innerRadius), `${mechanicLabel} donut outerRadius must exceed innerRadius`);
+        } else if (mechanic.pattern === 'line' || mechanic.pattern === 'parallel_lines') {
+            assert(Number(mechanic.width) >= 24, `${mechanicLabel} line width must be at least 24`);
+            assert(Number(mechanic.length) >= 200, `${mechanicLabel} line length must be at least 200`);
+            if (mechanic.pattern === 'parallel_lines') {
+                assert(Number.isInteger(mechanic.lanes) && mechanic.lanes >= 2, `${mechanicLabel} parallel_lines lanes must be 2+`);
+                assert(Number(mechanic.laneGap) > Number(mechanic.width), `${mechanicLabel} laneGap must leave dodge space`);
+            }
+        } else if (mechanic.pattern === 'circle_cluster') {
+            assert(Number.isInteger(mechanic.count) && mechanic.count >= 2, `${mechanicLabel} circle_cluster count must be 2+`);
+            assert(Number(mechanic.radius) >= 40, `${mechanicLabel} circle_cluster radius must be at least 40`);
+            assert(Number(mechanic.ringRadius) > Number(mechanic.radius), `${mechanicLabel} circle_cluster ringRadius must exceed radius`);
+        }
+    });
+}
+
 function validateStrictProgression(entries, label) {
     entries.forEach((entry, index) => {
         if (index === 0) return;
@@ -479,9 +519,13 @@ if (!zoneCatalog || !itemCatalog) {
     });
 
     const referencedMonsterIds = new Set();
+    const catalogBossMonsterIds = new Set();
     zoneCatalogEntries.forEach((zone) => {
         (zone.normalMonsters || []).forEach((monster) => referencedMonsterIds.add(monster.id));
-        if (zone.boss?.id) referencedMonsterIds.add(zone.boss.id);
+        if (zone.boss?.id) {
+            referencedMonsterIds.add(zone.boss.id);
+            catalogBossMonsterIds.add(zone.boss.id);
+        }
     });
     zonesById.forEach((zone) => {
         (zone.monsterSpawns || []).forEach((spawn) => referencedMonsterIds.add(spawn.monsterId));
@@ -516,6 +560,7 @@ if (!zoneCatalog || !itemCatalog) {
         });
 
         validateSpriteSheet(monster, checkedSheets);
+        validateBossMechanics(monster, catalogBossMonsterIds.has(monster.id));
     });
 
     zoneCatalogEntries.slice(1).forEach((catalogZone) => {

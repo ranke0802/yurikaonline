@@ -40,6 +40,24 @@
             }
         }
     ],
+    "bossMechanics": [
+        {
+            "id": "royal_slam",
+            "label": "Royal Slam",
+            "pattern": "circle",
+            "center": "boss",
+            "radius": 185,
+            "range": 560,
+            "warningMs": 1150,
+            "impactMs": 360,
+            "cooldownMs": 7600,
+            "initialCooldownMs": 2600,
+            "damageMultiplier": 1.05,
+            "color": "#9ee96f",
+            "secondaryColor": "#f5ffd2",
+            "effect": "slime"
+        }
+    ],
     "drops": [
         {
             "itemId": "manastone",

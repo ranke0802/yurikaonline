@@ -58,6 +58,11 @@ export default class Monster extends CharacterBase {
         // Components
         this.skills = definition.skills || [];
         this.skillCooldowns = new Map();
+        this.bossMechanics = Array.isArray(definition.bossMechanics) ? definition.bossMechanics : [];
+        this.bossMechanicCooldowns = new Map();
+        this.activeBossTelegraphs = [];
+        this.seenBossTelegraphIds = new Map();
+        this.bossTelegraphSerial = 0;
         this.drops = definition.drops || [];
         this.sounds = definition.sounds || {};
         this.behavior = definition.behavior || {};
@@ -683,6 +688,405 @@ export default class Monster extends CharacterBase {
         ctx.restore();
     }
 
+    _getPointFromEntity(entity, fallbackX = this.x, fallbackY = this.y) {
+        const width = Number(entity?.width || 0);
+        const height = Number(entity?.height || 0);
+        const x = Number(entity?.x);
+        const y = Number(entity?.y);
+        return {
+            x: Number.isFinite(x) ? x + (width / 2) : fallbackX,
+            y: Number.isFinite(y) ? y + (height / 2) : fallbackY
+        };
+    }
+
+    _getBossMechanicTargets() {
+        const targets = [];
+        const seenIds = new Set();
+        const net = window.game?.net;
+        const addTarget = (player) => {
+            if (!player?.id || seenIds.has(player.id)) return;
+            if (player.isDead || player.isPaused) return;
+            if (Number.isFinite(player.protectedUntil) && player.protectedUntil > Date.now()) return;
+            if (this._isProtectedPlayer(player)) return;
+            if (player.id !== window.game?.localPlayer?.id && net?.isUserActivelyPresent && !net.isUserActivelyPresent(player.id)) return;
+            seenIds.add(player.id);
+            targets.push(player);
+        };
+
+        if (window.game?.localPlayer && !shouldFreezeForModalUi()) {
+            addTarget(window.game.localPlayer);
+        }
+        window.game?.remotePlayers?.forEach((player) => addTarget(player));
+        net?.remotePlayers?.forEach((player, id) => {
+            addTarget({
+                id: player?.id || id,
+                x: Number(player?.x ?? 0),
+                y: Number(player?.y ?? 0),
+                width: player?.width || 48,
+                height: player?.height || 48,
+                isDead: Array.isArray(player?.h) ? Number(player.h[0] || 0) <= 0 : !!player?.isDead,
+                isPaused: !!player?.isPaused,
+                protectedUntil: Number(player?.protectedUntil || 0)
+            });
+        });
+        return targets;
+    }
+
+    _buildBossMechanicZones(mechanic, target) {
+        const pattern = mechanic?.pattern || 'circle';
+        const origin = { x: Number(this.x), y: Number(this.y) };
+        const targetPoint = this._getPointFromEntity(target, origin.x, origin.y);
+        const dx = targetPoint.x - origin.x;
+        const dy = targetPoint.y - origin.y;
+        const distance = Math.max(1, Math.hypot(dx, dy));
+        const nx = dx / distance;
+        const ny = dy / distance;
+        const px = -ny;
+        const py = nx;
+        const zones = [];
+
+        if (pattern === 'line' || pattern === 'parallel_lines') {
+            const laneCount = Math.max(1, Math.floor(Number(mechanic.lanes || 1)));
+            const laneGap = Math.max(0, Number(mechanic.laneGap || mechanic.width || 80));
+            const length = Math.max(distance, Number(mechanic.length || distance));
+            const width = Math.max(24, Number(mechanic.width || 80));
+            const startOffset = -((laneCount - 1) * laneGap) / 2;
+            for (let i = 0; i < laneCount; i += 1) {
+                const offset = startOffset + (i * laneGap);
+                const x1 = origin.x + (px * offset);
+                const y1 = origin.y + (py * offset);
+                zones.push({
+                    shape: 'line',
+                    x1,
+                    y1,
+                    x2: x1 + (nx * length),
+                    y2: y1 + (ny * length),
+                    width
+                });
+            }
+            return zones;
+        }
+
+        if (pattern === 'circle_cluster') {
+            const radius = Math.max(24, Number(mechanic.radius || 90));
+            const count = Math.max(1, Math.floor(Number(mechanic.count || 5)));
+            const ringRadius = Math.max(radius * 1.4, Number(mechanic.ringRadius || radius * 2.35));
+            zones.push({ shape: 'circle', x: targetPoint.x, y: targetPoint.y, radius });
+            for (let i = 1; i < count; i += 1) {
+                const angle = ((i - 1) / Math.max(1, count - 1)) * Math.PI * 2
+                    + (Number(mechanic.angleOffset || 0) * Math.PI / 180);
+                zones.push({
+                    shape: 'circle',
+                    x: targetPoint.x + Math.cos(angle) * ringRadius,
+                    y: targetPoint.y + Math.sin(angle) * ringRadius,
+                    radius
+                });
+            }
+            return zones;
+        }
+
+        if (pattern === 'donut') {
+            zones.push({
+                shape: 'donut',
+                x: mechanic.center === 'target' ? targetPoint.x : origin.x,
+                y: mechanic.center === 'target' ? targetPoint.y : origin.y,
+                innerRadius: Math.max(0, Number(mechanic.innerRadius || 90)),
+                outerRadius: Math.max(24, Number(mechanic.outerRadius || 220))
+            });
+            return zones;
+        }
+
+        zones.push({
+            shape: 'circle',
+            x: mechanic.center === 'boss' ? origin.x : targetPoint.x,
+            y: mechanic.center === 'boss' ? origin.y : targetPoint.y,
+            radius: Math.max(24, Number(mechanic.radius || 120))
+        });
+        return zones;
+    }
+
+    _buildBossTelegraphPayload(mechanic, target) {
+        const zones = this._buildBossMechanicZones(mechanic, target)
+            .filter((zone) => zone && typeof zone.shape === 'string');
+        if (zones.length === 0) return null;
+
+        const damageMultiplier = Number(mechanic.damageMultiplier || 1);
+        const damage = Math.max(1, Math.ceil((this.atk || 10) * damageMultiplier));
+        this.bossTelegraphSerial += 1;
+        return {
+            id: `${this.id || this.typeId}:${mechanic.id || 'boss_mechanic'}:${this.bossTelegraphSerial}`,
+            mechanicId: mechanic.id || 'boss_mechanic',
+            label: mechanic.label || '',
+            warningMs: Math.max(350, Number(mechanic.warningMs || 1000)),
+            impactMs: Math.max(120, Number(mechanic.impactMs || 320)),
+            damage,
+            zones,
+            color: mechanic.color || this.bossEffects.auraColor || '#f97316',
+            secondaryColor: mechanic.secondaryColor || this.bossEffects.secondaryColor || '#fff7ed',
+            effect: mechanic.effect || 'arcane'
+        };
+    }
+
+    _tryStartBossMechanic(dt, target) {
+        if (!this.isBoss || this.isDead || this.chargeState !== 'idle') return;
+        if (!Array.isArray(this.bossMechanics) || this.bossMechanics.length === 0) return;
+        if (this.activeBossTelegraphs.length > 0) return;
+        if (window.game?.net && !window.game.net.isHost) return;
+        if (!target || target.isDead || this._isProtectedPlayer(target)) return;
+
+        for (const mechanic of this.bossMechanics) {
+            if (!mechanic?.id) continue;
+            if (!this.bossMechanicCooldowns.has(mechanic.id)) {
+                const initial = Number.isFinite(Number(mechanic.initialCooldownMs))
+                    ? Number(mechanic.initialCooldownMs)
+                    : Math.max(1200, Number(mechanic.cooldownMs || 6000) * 0.45);
+                this.bossMechanicCooldowns.set(mechanic.id, initial);
+            }
+
+            const nextCooldown = Math.max(0, Number(this.bossMechanicCooldowns.get(mechanic.id) || 0) - (dt * 1000));
+            this.bossMechanicCooldowns.set(mechanic.id, nextCooldown);
+            if (nextCooldown > 0) continue;
+
+            const targetPoint = this._getPointFromEntity(target);
+            const range = Math.max(120, Number(mechanic.range || this.aggroRange || 600));
+            if (Math.hypot(targetPoint.x - this.x, targetPoint.y - this.y) > range) continue;
+
+            const payload = this._buildBossTelegraphPayload(mechanic, target);
+            if (!payload) continue;
+
+            this.startBossTelegraph(payload);
+            if (window.game?.net?.isHost) {
+                window.game.net.sendMonsterAttack(this.id, 'boss_telegraph', payload);
+            }
+            this.bossMechanicCooldowns.set(mechanic.id, Math.max(1000, Number(mechanic.cooldownMs || 7000)));
+            break;
+        }
+    }
+
+    startBossTelegraph(payload) {
+        if (this.isDead || !payload) return;
+        const id = String(payload.id || `${this.id || this.typeId}:boss_telegraph:${Date.now()}`);
+        const now = Date.now();
+        this.seenBossTelegraphIds?.forEach((seenAt, seenId) => {
+            if (now - seenAt > 12000) this.seenBossTelegraphIds.delete(seenId);
+        });
+        if (this.seenBossTelegraphIds?.has(id)) return;
+        if (this.activeBossTelegraphs.some((telegraph) => telegraph.id === id)) return;
+        const zones = Array.isArray(payload.zones) ? payload.zones : [];
+        if (zones.length === 0) return;
+
+        this.seenBossTelegraphIds.set(id, now);
+        this.activeBossTelegraphs.push({
+            id,
+            mechanicId: String(payload.mechanicId || 'boss_telegraph'),
+            label: String(payload.label || ''),
+            warningMs: Math.max(350, Number(payload.warningMs || 1000)),
+            impactMs: Math.max(120, Number(payload.impactMs || 320)),
+            damage: Math.max(1, Number(payload.damage || this.atk || 10)),
+            zones,
+            color: String(payload.color || this.bossEffects.auraColor || '#f97316'),
+            secondaryColor: String(payload.secondaryColor || this.bossEffects.secondaryColor || '#fff7ed'),
+            effect: String(payload.effect || 'arcane'),
+            elapsedMs: 0,
+            resolved: false,
+            hitTargetIds: new Set()
+        });
+        this.lastNetworkEventAt = Date.now();
+    }
+
+    _distancePointToSegment(px, py, x1, y1, x2, y2) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const lengthSq = dx * dx + dy * dy;
+        if (lengthSq <= 0.0001) return Math.hypot(px - x1, py - y1);
+        const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lengthSq));
+        const closestX = x1 + (t * dx);
+        const closestY = y1 + (t * dy);
+        return Math.hypot(px - closestX, py - closestY);
+    }
+
+    _isPointInsideBossTelegraphZone(point, radius, zone) {
+        if (!point || !zone) return false;
+        if (zone.shape === 'circle') {
+            return Math.hypot(point.x - zone.x, point.y - zone.y) <= (Number(zone.radius || 0) + radius);
+        }
+        if (zone.shape === 'donut') {
+            const dist = Math.hypot(point.x - zone.x, point.y - zone.y);
+            return dist >= Math.max(0, Number(zone.innerRadius || 0) - radius)
+                && dist <= Number(zone.outerRadius || 0) + radius;
+        }
+        if (zone.shape === 'line') {
+            return this._distancePointToSegment(
+                point.x,
+                point.y,
+                Number(zone.x1 || 0),
+                Number(zone.y1 || 0),
+                Number(zone.x2 || 0),
+                Number(zone.y2 || 0)
+            ) <= (Math.max(1, Number(zone.width || 1)) / 2) + radius;
+        }
+        return false;
+    }
+
+    _isPlayerInsideBossTelegraph(player, telegraph) {
+        const point = this._getPointFromEntity(player);
+        const radius = Math.max(14, Math.min(Number(player?.width || 48), Number(player?.height || 48)) * 0.32);
+        return telegraph.zones.some((zone) => this._isPointInsideBossTelegraphZone(point, radius, zone));
+    }
+
+    _applyBossTelegraphDamage(telegraph) {
+        const canApplyDamage = !window.game?.net || window.game.net.isHost;
+        if (!canApplyDamage || telegraph.resolved) return;
+        const damage = Math.max(1, Math.round(Number(telegraph.damage || this.atk || 10)));
+        this._getBossMechanicTargets().forEach((player) => {
+            if (!player?.id || telegraph.hitTargetIds.has(player.id)) return;
+            if (!this._isPlayerInsideBossTelegraph(player, telegraph)) return;
+            telegraph.hitTargetIds.add(player.id);
+            const meta = {
+                source: 'boss_telegraph',
+                monsterId: this.id,
+                monsterType: this.typeId,
+                mechanicId: telegraph.mechanicId
+            };
+            if (window.game?.net?.isHost && window.game.net.connected) {
+                window.game.net.sendPlayerDamage(player.id, damage, null, 0, 0, meta);
+            } else if (typeof player.takeDamage === 'function') {
+                player.takeDamage(damage, false, false, this.x, this.y, null);
+            }
+        });
+        telegraph.resolved = true;
+    }
+
+    _updateBossTelegraphs(dt) {
+        if (!Array.isArray(this.activeBossTelegraphs) || this.activeBossTelegraphs.length === 0) return;
+        const deltaMs = Math.max(0, dt * 1000);
+        this.activeBossTelegraphs = this.activeBossTelegraphs.filter((telegraph) => {
+            telegraph.elapsedMs += deltaMs;
+            if (telegraph.elapsedMs >= telegraph.warningMs) {
+                this._applyBossTelegraphDamage(telegraph);
+            }
+            return telegraph.elapsedMs < telegraph.warningMs + telegraph.impactMs;
+        });
+    }
+
+    _drawBossTelegraphCircle(ctx, zone, telegraph, progress, impactProgress, lowGlareCombat) {
+        const radius = Math.max(1, Number(zone.radius || 1));
+        const impact = telegraph.elapsedMs >= telegraph.warningMs;
+        const alphaScale = lowGlareCombat ? 0.62 : 1;
+        ctx.save();
+        ctx.globalAlpha = alphaScale * (impact ? 0.24 * (1 - impactProgress) : 0.08 + progress * 0.1);
+        ctx.fillStyle = telegraph.color;
+        ctx.beginPath();
+        ctx.arc(zone.x, zone.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalAlpha = alphaScale * (impact ? 0.7 * (1 - impactProgress) : 0.48 + progress * 0.28);
+        ctx.strokeStyle = impact ? telegraph.secondaryColor : telegraph.color;
+        ctx.lineWidth = impact ? 5 : 3;
+        ctx.shadowColor = telegraph.color;
+        ctx.shadowBlur = lowGlareCombat ? 0 : (impact ? 14 : 7);
+        ctx.beginPath();
+        ctx.arc(zone.x, zone.y, radius * (impact ? 1 + impactProgress * 0.08 : 0.86 + progress * 0.14), 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.globalAlpha = alphaScale * (impact ? 0.42 * (1 - impactProgress) : 0.32);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(zone.x, zone.y, Math.max(4, radius * 0.68), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    _drawBossTelegraphLine(ctx, zone, telegraph, progress, impactProgress, lowGlareCombat) {
+        const x1 = Number(zone.x1 || 0);
+        const y1 = Number(zone.y1 || 0);
+        const x2 = Number(zone.x2 || x1);
+        const y2 = Number(zone.y2 || y1);
+        const width = Math.max(1, Number(zone.width || 1));
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const length = Math.max(1, Math.hypot(dx, dy));
+        const angle = Math.atan2(dy, dx);
+        const impact = telegraph.elapsedMs >= telegraph.warningMs;
+        const alphaScale = lowGlareCombat ? 0.6 : 1;
+
+        ctx.save();
+        ctx.translate(x1, y1);
+        ctx.rotate(angle);
+        ctx.globalAlpha = alphaScale * (impact ? 0.24 * (1 - impactProgress) : 0.07 + progress * 0.12);
+        ctx.fillStyle = telegraph.color;
+        ctx.fillRect(0, -width / 2, length, width);
+
+        ctx.globalAlpha = alphaScale * (impact ? 0.8 * (1 - impactProgress) : 0.52 + progress * 0.22);
+        ctx.strokeStyle = impact ? telegraph.secondaryColor : telegraph.color;
+        ctx.lineWidth = impact ? 4 : 2.5;
+        ctx.shadowColor = telegraph.color;
+        ctx.shadowBlur = lowGlareCombat ? 0 : (impact ? 18 : 8);
+        ctx.strokeRect(0, -width / 2, length, width);
+
+        if (impact && telegraph.effect === 'thunder') {
+            ctx.globalAlpha = alphaScale * 0.78 * (1 - impactProgress);
+            ctx.strokeStyle = telegraph.secondaryColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            const step = Math.max(30, length / 12);
+            ctx.moveTo(0, 0);
+            for (let x = step; x <= length; x += step) {
+                const y = ((Math.floor(x / step) % 2) === 0 ? -1 : 1) * width * 0.22;
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    _drawBossTelegraphDonut(ctx, zone, telegraph, progress, impactProgress, lowGlareCombat) {
+        const innerRadius = Math.max(0, Number(zone.innerRadius || 0));
+        const outerRadius = Math.max(innerRadius + 1, Number(zone.outerRadius || innerRadius + 1));
+        const impact = telegraph.elapsedMs >= telegraph.warningMs;
+        const alphaScale = lowGlareCombat ? 0.58 : 1;
+        ctx.save();
+        ctx.globalAlpha = alphaScale * (impact ? 0.22 * (1 - impactProgress) : 0.06 + progress * 0.09);
+        ctx.fillStyle = telegraph.color;
+        ctx.beginPath();
+        ctx.arc(zone.x, zone.y, outerRadius, 0, Math.PI * 2);
+        ctx.arc(zone.x, zone.y, innerRadius, 0, Math.PI * 2, true);
+        ctx.fill('evenodd');
+
+        ctx.globalAlpha = alphaScale * (impact ? 0.76 * (1 - impactProgress) : 0.44 + progress * 0.24);
+        ctx.strokeStyle = impact ? telegraph.secondaryColor : telegraph.color;
+        ctx.lineWidth = impact ? 5 : 3;
+        ctx.shadowColor = telegraph.color;
+        ctx.shadowBlur = lowGlareCombat ? 0 : (impact ? 16 : 8);
+        ctx.beginPath();
+        ctx.arc(zone.x, zone.y, outerRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(zone.x, zone.y, innerRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    renderBossTelegraphs(ctx) {
+        if (!Array.isArray(this.activeBossTelegraphs) || this.activeBossTelegraphs.length === 0) return;
+        const lowGlareCombat = this.isLowGlareCombatZone();
+        this.activeBossTelegraphs.forEach((telegraph) => {
+            const warningMs = Math.max(1, Number(telegraph.warningMs || 1));
+            const impactMs = Math.max(1, Number(telegraph.impactMs || 1));
+            const progress = Math.max(0, Math.min(1, telegraph.elapsedMs / warningMs));
+            const impactProgress = Math.max(0, Math.min(1, (telegraph.elapsedMs - warningMs) / impactMs));
+            telegraph.zones.forEach((zone) => {
+                if (zone.shape === 'line') {
+                    this._drawBossTelegraphLine(ctx, zone, telegraph, progress, impactProgress, lowGlareCombat);
+                } else if (zone.shape === 'donut') {
+                    this._drawBossTelegraphDonut(ctx, zone, telegraph, progress, impactProgress, lowGlareCombat);
+                } else {
+                    this._drawBossTelegraphCircle(ctx, zone, telegraph, progress, impactProgress, lowGlareCombat);
+                }
+            });
+        });
+    }
+
     update(dt) {
         // v1.99.9: Hard cap on dt to prevent physics tunneling or explosions during lag
         const safeDt = Math.min(0.1, dt);
@@ -700,6 +1104,7 @@ export default class Monster extends CharacterBase {
             this.chargeState = 'idle';
             this.chargeTimer = 0;
             this.chargeTarget = null;
+            this.activeBossTelegraphs = [];
             Logger.log(`[Monster] Local death trigger for ${this.id}`);
         }
 
@@ -774,6 +1179,7 @@ export default class Monster extends CharacterBase {
         }
 
         this.renderOffY = Math.sin(Date.now() * 0.01) * 5;
+        this._updateBossTelegraphs(safeDt);
 
         // 2. Targeting (AI Awareness) - Skip if Charging (already locked)
         if (!isCharging) {
@@ -906,6 +1312,7 @@ export default class Monster extends CharacterBase {
 
                     // v2.0: JSON Driven Skill System
                     this._updateSkills(dt, target);
+                    this._tryStartBossMechanic(safeDt, target);
 
                 } else {
                     const homeDx = this.initialX - this.x;
@@ -1611,6 +2018,8 @@ export default class Monster extends CharacterBase {
         const hudSpriteTop = this.usesV2Atlas
             ? spriteY + (contentTop / atlasFrameHeight) * renderHeight
             : screenY - renderHeight / 2;
+
+        this.renderBossTelegraphs(ctx);
 
         // Draw shadow (Grounded)
         const shadowScale = this.isBoss

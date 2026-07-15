@@ -83,14 +83,41 @@
       "data": {
         "duration": 1400
       }
+    }
+  ],
+  "bossMechanics": [
+    {
+      "id": "mirror_tide",
+      "label": "Mirror Tide",
+      "pattern": "line",
+      "width": 132,
+      "length": 620,
+      "range": 620,
+      "warningMs": 1050,
+      "impactMs": 340,
+      "cooldownMs": 7200,
+      "initialCooldownMs": 2200,
+      "damageMultiplier": 1.15,
+      "color": "#5ce1f2",
+      "secondaryColor": "#dcfbff",
+      "effect": "water"
     },
     {
-      "id": "missile",
-      "trigger": "cooldown",
-      "cooldown": 7500,
-      "data": {
-        "count": 3
-      }
+      "id": "ruin_resonance",
+      "label": "Ruin Resonance",
+      "pattern": "donut",
+      "center": "boss",
+      "innerRadius": 95,
+      "outerRadius": 245,
+      "range": 540,
+      "warningMs": 1200,
+      "impactMs": 360,
+      "cooldownMs": 10800,
+      "initialCooldownMs": 5400,
+      "damageMultiplier": 1.25,
+      "color": "#67e8f9",
+      "secondaryColor": "#ecfeff",
+      "effect": "ripple"
     }
   ],
   "drops": [

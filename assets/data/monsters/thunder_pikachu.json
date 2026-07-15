@@ -77,14 +77,6 @@
   },
   "skills": [
     {
-      "id": "missile",
-      "trigger": "cooldown",
-      "cooldown": 5200,
-      "data": {
-        "count": 5
-      }
-    },
-    {
       "id": "shield",
       "trigger": "hp_below_70",
       "chance": 0.25,
@@ -92,6 +84,43 @@
       "data": {
         "duration": 1200
       }
+    }
+  ],
+  "bossMechanics": [
+    {
+      "id": "storm_lanes",
+      "label": "Storm Lanes",
+      "pattern": "parallel_lines",
+      "lanes": 3,
+      "laneGap": 148,
+      "width": 74,
+      "length": 740,
+      "range": 700,
+      "warningMs": 950,
+      "impactMs": 300,
+      "cooldownMs": 6200,
+      "initialCooldownMs": 1800,
+      "damageMultiplier": 1.1,
+      "color": "#facc15",
+      "secondaryColor": "#fff7ad",
+      "effect": "thunder"
+    },
+    {
+      "id": "static_burst",
+      "label": "Static Burst",
+      "pattern": "circle_cluster",
+      "count": 4,
+      "radius": 72,
+      "ringRadius": 165,
+      "range": 620,
+      "warningMs": 850,
+      "impactMs": 260,
+      "cooldownMs": 9400,
+      "initialCooldownMs": 5200,
+      "damageMultiplier": 0.95,
+      "color": "#fde047",
+      "secondaryColor": "#fef9c3",
+      "effect": "thunder"
     }
   ],
   "drops": [
