@@ -11,7 +11,7 @@
     "mp": 800,
     "maxMp": 800,
     "atk": 24,
-    "def": 12,
+    "def": 0,
     "speed": 34,
     "exp": 1800,
     "hpRegen": 3

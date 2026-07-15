@@ -9,7 +9,7 @@
         "mp": 500,
         "maxMp": 500,
         "atk": 50,
-        "def": 15,
+        "def": 0,
         "speed": 40,
         "exp": 500,
         "manastone": 2000,
