@@ -4621,7 +4621,7 @@ export class UIManager {
         // Skill Tooltips
         this.tooltip = document.getElementById('skill-tooltip');
         this.skillData = {
-            laser: { name: '체인 라이트닝', desc: '특징: 기본 공격이 가까운 적에게 연쇄되는 번개로 바뀌고, 적중한 적 수만큼 마나를 회복합니다.<br>성장: 레벨이 오를수록 연쇄 대상 수와 충전당 피해 상승폭이 함께 커집니다.' },
+            laser: { name: '체인 라이트닝', desc: '특징: 기본 공격이 가까운 적에게 연쇄되는 번개로 바뀌고, 적중한 적 수만큼 마나를 회복합니다.<br>성장: 레벨이 오를수록 연쇄 대상 수, 충전당 피해 상승폭, 최대 피해, 사거리가 함께 커집니다.' },
             missile: { name: '매직 미사일', desc: '특징: 가까운 적의 현재 위치를 먼저 고정한 뒤, 그 지점을 향해 자연스럽게 휘어 들어가는 미사일을 순차 발사합니다.<br>성장: 레벨이 오를수록 한 번에 발사되는 미사일 수가 늘고 마나 소모도 함께 증가합니다.' },
             fireball: { name: '파이어볼', desc: '특징: 직선으로 날아가 폭발하며 범위 피해와 화상을 남기는 광역 스킬입니다.<br>성장: 레벨이 오를수록 직격 피해, 폭발 반경, 화상 지속시간이 함께 증가합니다.' },
             shield: { name: '앱솔루트 베리어', desc: '특징: 다음 1회의 피격을 완전히 막는 생존용 방어막입니다.<br>성장: 레벨업이 없는 고정 성능 스킬이며, 항상 같은 성능으로 유지됩니다.' }
@@ -7968,7 +7968,12 @@ export class UIManager {
             case 'laser': {
                 const baseRatio = 0.10 + (lv - 1) * 0.05;
                 const increment = 0.10 + (lv - 1) * 0.05;
-                const maxRatio = 1.0;
+                const maxRatio = typeof p.getLaserMaxDamageRatio === 'function'
+                    ? p.getLaserMaxDamageRatio(lv)
+                    : 1.0 + (lv - 1) * 0.05;
+                const laserRange = typeof p.getLaserRange === 'function'
+                    ? p.getLaserRange(lv)
+                    : (p.attackRange || 400) * (1.0 + (lv - 1) * 0.025);
                 const maxChains = 1 + lv;
                 const weaponMultiplier = 1 + (weaponCombat.laserDamageBonus || 0);
                 const minBaseDamage = Math.ceil(attackPower * baseRatio * weaponMultiplier);
@@ -7980,7 +7985,7 @@ export class UIManager {
 
                 currentStats.push(
                     `현재 공격력 ${attackPower} 기준 시작 피해는 <strong>${minBaseDamage}</strong>, 완전 충전 기준 최대 피해는 <strong>${maxBaseDamage}</strong>입니다. 둘 다 방어력 적용 전 수치입니다.`,
-                    `한 번의 틱에 최대 <strong>${maxChains}명</strong>까지 연쇄되고, 사거리는 <strong>${Math.round(p.attackRange)}</strong>입니다.`,
+                    `한 번의 틱에 최대 <strong>${maxChains}명</strong>까지 연쇄되고, 사거리는 <strong>${Math.round(laserRange)}</strong>입니다.`,
                     `현재 틱 간격은 약 <strong>${tickInterval.toFixed(2)}초</strong>이며, 치명타는 <strong>${critRateText}</strong> 확률로 <strong>x2</strong>가 적용됩니다.`,
                     `적중한 대상마다 MP <strong>+1</strong>을 회복합니다.${weaponCombat.restoreHpPerLaserHit > 0 ? ` 장착 무기 효과로 HP도 <strong>+${weaponCombat.restoreHpPerLaserHit}</strong> 회복합니다.` : ''}`
                 );
@@ -7988,7 +7993,7 @@ export class UIManager {
                 summaryMetrics.push(
                     { label: '현재 레벨', value: `Lv.${lv}` },
                     { label: '연쇄 수', value: `${maxChains}명` },
-                    { label: '사거리', value: `${Math.round(p.attackRange)}` },
+                    { label: '사거리', value: `${Math.round(laserRange)}` },
                     { label: '방어 전 피해', value: `${minBaseDamage} ~ ${maxBaseDamage}` },
                     { label: '틱 간격', value: `${tickInterval.toFixed(2)}초` },
                     { label: '치명타', value: `${critRateText} / x2` }
@@ -7997,7 +8002,9 @@ export class UIManager {
                 formulaItems.push(
                     `<code>시작 비율 = 0.10 + 0.05 × (레벨 - 1)</code> → 현재 <strong>${this.formatSkillPercent(baseRatio)}</strong>`,
                     `<code>충전 증가 = 0.10 + 0.05 × (레벨 - 1)</code>를 <strong>0.3초</strong>마다 누적합니다. 현재 증가폭은 <strong>${this.formatSkillPercent(increment)}</strong>입니다.`,
-                    `<code>최종 비율 = min(1.0, 시작 비율 + 충전 단계 × 증가 비율)</code>`,
+                    `<code>최대 비율 = 1.0 + 0.05 × (레벨 - 1)</code> → 현재 <strong>${this.formatSkillPercent(maxRatio)}</strong>`,
+                    `<code>사거리 = 기본 사거리 × (1 + 0.025 × (레벨 - 1))</code> → 현재 <strong>${Math.round(laserRange)}</strong>`,
+                    `<code>최종 비율 = min(최대 비율, 시작 비율 + 충전 단계 × 증가 비율)</code>`,
                     `<code>방어 전 피해 = ceil(공격력 × 최종 비율 × 무기 보정)</code>`,
                     `<code>최종 피해 = max(1, 방어 전 피해 - 대상 방어력)</code>`,
                     `<code>치명타 발생 시 최종 피해 × 2</code>`
@@ -8006,7 +8013,7 @@ export class UIManager {
                 settingItems.push(
                     `첫 연쇄는 현재 선택한 타겟을 우선합니다.`,
                     `한 틱 안에서는 이미 맞은 대상에게 다시 연쇄되지 않습니다.`,
-                    `실제 감전 적용은 코드 기준으로 <strong>4.0초 동안 50% 둔화</strong>입니다.`,
+                    `실제 감전 적용은 코드 기준으로 <strong>1.0초 동안 30% 둔화</strong>입니다.`,
                     `자동 공격을 켜면 현재 선택한 타겟이 살아 있고 사거리 안에 있을 때만 이 스킬을 자동으로 사용합니다.`
                 );
 
@@ -8026,7 +8033,7 @@ export class UIManager {
                     weaponItems.push(`<strong>${weaponName}</strong> 효과: 적중 대상당 HP <strong>+${weaponCombat.restoreHpPerLaserHit}</strong> 회복`);
                 }
 
-                tooltipCurrentEffectHtml = `<div class="current-effect">현재 효과 (Lv.${lv}): 연쇄 ${maxChains}명 | 사거리 ${Math.round(p.attackRange)} | 방어 전 피해 ${minBaseDamage} ~ ${maxBaseDamage} | 충전 증가 ${this.formatSkillPercent(increment)} | 감전 4초/50% 둔화</div>`;
+                tooltipCurrentEffectHtml = `<div class="current-effect">현재 효과 (Lv.${lv}): 연쇄 ${maxChains}명 | 사거리 ${Math.round(laserRange)} | 방어 전 피해 ${minBaseDamage} ~ ${maxBaseDamage} | 최대 피해 ${this.formatSkillPercent(maxRatio)} | 충전 증가 ${this.formatSkillPercent(increment)} | 감전 1초/30% 둔화</div>`;
                 break;
             }
             case 'missile': {
@@ -8824,6 +8831,19 @@ export class UIManager {
                 : `${totalText}${equipmentBonus > 0 ? ` <span class="stat-equip-bonus">+${bonusText}</span>` : ''}`;
         };
 
+        const updateDerivedTotal = (id, currentTotalVal, predTotalVal, equipmentBonus = 0, isPercentage = false, decimal = 0) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+
+            const totalText = formatDerivedValue(predTotalVal, isPercentage, decimal);
+            const bonusText = equipmentBonus > 0 ? formatDerivedValue(equipmentBonus, isPercentage, decimal) : '';
+            const totalClass = predTotalVal > currentTotalVal + 0.0001 ? 'stat-predict-inc' : '';
+
+            el.innerHTML = totalClass
+                ? `<span class="${totalClass}">${totalText}</span>${equipmentBonus > 0 ? ` <span class="stat-equip-bonus">+${bonusText}</span>` : ''}`
+                : `${totalText}${equipmentBonus > 0 ? ` <span class="stat-equip-bonus">+${bonusText}</span>` : ''}`;
+        };
+
         // HP/MP Range special handling
         // v2.1: Data-Driven UI Formulas (Synced with Player.js)
         const def = p.definition || {};
@@ -8889,11 +8909,19 @@ export class UIManager {
         const currentCritBase = 0.1 + (baseAgi * 0.01) + (baseInt * 0.01);
         const currentMoveSpdBase = 1.0 + (baseAgi * 0.05);
 
-        const equipAtkSpdBonus = getEquipmentBonus(p.attackSpeed, currentAtkSpdBase);
+        const equippedWeapon = typeof p.getEquippedWeapon === 'function' ? p.getEquippedWeapon() : null;
+        const weaponAtkSpdMultiplier = 1 + Math.max(0, Number(
+            typeof p.getWeaponAffixEffectiveValue === 'function'
+                ? p.getWeaponAffixEffectiveValue(equippedWeapon, 'attackSpeedBonus')
+                : 0
+        ) || 0);
+        const currentAtkSpdTotal = currentAtkSpdBase * weaponAtkSpdMultiplier;
+        const predAtkSpdTotal = predAtkSpd * weaponAtkSpdMultiplier;
+        const equipAtkSpdBonus = getEquipmentBonus(predAtkSpdTotal, predAtkSpd);
         const equipCritBonus = getEquipmentBonus(p.critRate, currentCritBase);
         const equipMoveSpdBonus = getEquipmentBonus(p.moveSpeedBonus, currentMoveSpdBase);
 
-        updateDerived('val-atk-spd', currentAtkSpdBase, predAtkSpd, false, 2, equipAtkSpdBonus);
+        updateDerivedTotal('val-atk-spd', currentAtkSpdTotal, predAtkSpdTotal, equipAtkSpdBonus, false, 2);
         updateDerived('val-crit', currentCritBase, predCrit, true, 0, equipCritBonus);
         updateDerived('val-move-spd', currentMoveSpdBase, predMoveSpd, true, 0, equipMoveSpdBonus);
 

@@ -1721,8 +1721,8 @@ export default class Monster extends CharacterBase {
 
 
     applyElectrocuted(duration, ratio) {
-        this.electrocutedTimer = 3.0; // Fixed 3 seconds as requested
-        this.slowRatio = Math.max(this.slowRatio, ratio);
+        this.electrocutedTimer = Math.max(this.electrocutedTimer || 0, Number(duration) || 1.0);
+        this.slowRatio = Math.max(this.slowRatio, Number(ratio) || 0.3);
     }
 
     _updateSkills(dt, target) {

@@ -458,6 +458,10 @@ export default class Player extends CharacterBase {
 
     applyEffect(type, duration, damage) {
         if (this.isDead) return;
+        if (type === 'shock') {
+            this.applyElectrocuted(duration, 0.3);
+            return;
+        }
         const existing = this.statusEffects.find(e => e.type === type);
         if (existing) {
             existing.timer = duration;
@@ -506,6 +510,14 @@ export default class Player extends CharacterBase {
 
     getFireballAoeRadius(level = this.skillLevels.fireball || 1) {
         return this.getFireballProjectileRadius(level) * 2.5;
+    }
+
+    getLaserMaxDamageRatio(level = this.skillLevels.laser || 1) {
+        return 1.0 + (Math.max(1, Number(level || 1)) - 1) * 0.05;
+    }
+
+    getLaserRange(level = this.skillLevels.laser || 1) {
+        return this.attackRange * (1.0 + (Math.max(1, Number(level || 1)) - 1) * 0.025);
     }
 
     canStartFireballAim() {
@@ -647,9 +659,8 @@ export default class Player extends CharacterBase {
     }
 
     applyElectrocuted(duration, ratio) {
-        // v0.00.47: Changed to 4s duration, 50% slow (0.5)
-        this.electrocutedTimer = 4.0;
-        this.slowRatio = Math.max(this.slowRatio, 0.5);
+        this.electrocutedTimer = Math.max(this.electrocutedTimer || 0, Number(duration) || 1.0);
+        this.slowRatio = Math.max(this.slowRatio, Number(ratio) || 0.3);
     }
 
     triggerAction(text) {
@@ -744,7 +755,7 @@ export default class Player extends CharacterBase {
                 const dx = (targetPoint?.x ?? autoMoveTarget.x) - sourceX;
                 const dy = (targetPoint?.y ?? autoMoveTarget.y) - sourceY;
                 const dist = Math.hypot(dx, dy);
-                const stopDistance = Math.max(80, this.attackRange - 20);
+                const stopDistance = Math.max(80, this.getLaserRange() - 20);
 
                 if (dist > stopDistance) {
                     vx = dx / dist;
@@ -1470,7 +1481,7 @@ export default class Player extends CharacterBase {
         if (!this.isAttackTargetStillValid(target)) return false;
         if (!this.canAttackTarget(target)) return false;
 
-        return this.getDistanceToTarget(target) <= this.attackRange;
+        return this.getDistanceToTarget(target) <= this.getLaserRange();
     }
 
     isAutoMoveTargetStillValid(target) {
@@ -1685,7 +1696,8 @@ export default class Player extends CharacterBase {
         }
 
         let nearest = null;
-        let minDist = this.attackRange;
+        const laserRange = this.getLaserRange();
+        let minDist = laserRange;
 
         for (const target of candidates) {
             if (!target || target === this || target.isDead) continue;
@@ -1693,7 +1705,7 @@ export default class Player extends CharacterBase {
             if (!this.canAttackTarget(target)) continue;
 
             const distance = this.getDistanceToTarget(target);
-            if (distance <= this.attackRange && distance < minDist) {
+            if (distance <= laserRange && distance < minDist) {
                 minDist = distance;
                 nearest = target;
             }
@@ -1811,17 +1823,17 @@ export default class Player extends CharacterBase {
         // v0.18: Overload Formula
         // 시작 값: 0.10 + (lv-1)*0.05
         // 증가 수치: 0.10 + (lv-1)*0.05
-        // 최대치: 1.0 (100%)
+        // 최대치: 1.0 + (lv-1)*0.05
         const baseRatio = 0.10 + (laserLv - 1) * 0.05;
         const increment = 0.10 + (laserLv - 1) * 0.05;
-        const maxRatio = 1.0;
+        const maxRatio = this.getLaserMaxDamageRatio(laserLv);
 
         const chargeSteps = Math.floor(this.chargeTime / 0.3);
         const finalDmgRatio = Math.min(maxRatio, baseRatio + (chargeSteps * increment));
 
         // Visual Chain Logic
         const maxChains = 1 + laserLv;
-        const chainRange = this.attackRange;
+        const chainRange = this.getLaserRange(laserLv);
         const centerX = this.x + this.width / 2;
         const centerY = this.y + this.height / 2;
         let currentSource = { x: centerX, y: centerY };
@@ -1888,13 +1900,13 @@ export default class Player extends CharacterBase {
                                 && nextTarget.takeDamage(Math.ceil(dmg), true, isCrit, null, null) !== false;
                         } else if (this.net) {
                             // PvP damage is resolved on the target client after protection checks.
-                            this.net.sendPlayerDamage(nextTarget.id, Math.ceil(dmg), 'shock', 3.0, 0);
+                            this.net.sendPlayerDamage(nextTarget.id, Math.ceil(dmg), 'shock', 1.0, 0);
                         }
                     }
 
                     // Slow effect
                     if (targetDamageAccepted && nextTarget.applyElectrocuted) {
-                        nextTarget.applyElectrocuted(3.0, 0.8);
+                        nextTarget.applyElectrocuted(1.0, 0.3);
                     }
 
                     // v0.00.28: Mana recovery per hit (+1 MP per chain target)

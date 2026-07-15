@@ -175,6 +175,24 @@ function validateAttackSpeedCapContracts() {
     assert.equal(player.getEffectiveBasicAttackSpeed(), 4.875);
 }
 
+function validateChainLightningScalingContracts() {
+    const player = new Player(0, 0, 'Chain Scaling Tester', null);
+    player.attackRange = 400;
+    player.skillLevels.laser = 5;
+
+    assert.equal(player.getLaserMaxDamageRatio(), 1.2, 'chain lightning max damage ratio must gain 5%p per level');
+    assert.ok(Math.abs(player.getLaserRange() - 440) < 1e-9, 'chain lightning range must gain 2.5% per level');
+
+    const monster = new Monster(0, 0, { id: 'chain_test_monster', type: 'monster' });
+    monster.applyElectrocuted(1.0, 0.3);
+    assert.equal(monster.electrocutedTimer, 1.0, 'chain lightning monster shock must last 1 second');
+    assert.equal(monster.slowRatio, 0.3, 'chain lightning monster shock must slow by 30%');
+
+    player.applyEffect('shock', 1.0, 0);
+    assert.equal(player.electrocutedTimer, 1.0, 'chain lightning player shock must last 1 second');
+    assert.equal(player.slowRatio, 0.3, 'chain lightning player shock must slow by 30%');
+}
+
 function createMemoryRewardDatabase(initialRecords = {}) {
     const records = new Map(Object.entries(initialRecords));
     const transactionAttempts = [];
@@ -6553,6 +6571,8 @@ console.log('[runtime-integration] checking solo quiet RTDB listeners...');
 await validateSoloQuietRtdbListenerContracts();
 console.log('[runtime-integration] checking attack speed caps...');
 validateAttackSpeedCapContracts();
+console.log('[runtime-integration] checking chain lightning scaling...');
+validateChainLightningScalingContracts();
 console.log('[runtime-integration] checking network contracts...');
 await validateNetworkFieldAndBatchContracts();
 console.log('[runtime-integration] checking monster generation...');
