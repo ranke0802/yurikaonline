@@ -798,6 +798,14 @@ export default class MonsterManager {
         if (monster._deathSettlementReady !== false) monster._deathSettlementReady = true;
     }
 
+    _hasConfiguredBossRewards(typeId) {
+        const normalizedTypeId = typeof typeId === 'string' ? typeId.trim() : '';
+        if (!normalizedTypeId) return false;
+        const bossDrops = this.game?.itemData?.getBossDrops?.(normalizedTypeId) || [];
+        const bossBonusDrops = this.game?.itemData?.getBossBonusDrops?.(normalizedTypeId) || [];
+        return bossDrops.length > 0 || bossBonusDrops.length > 0;
+    }
+
     _authorMonsterReward(monster, recipientId, payload) {
         if (!monster || !recipientId || !payload?.rewardId) return false;
         this._prepareMonsterDeathSettlement(monster);
@@ -1108,6 +1116,7 @@ export default class MonsterManager {
         ];
         const bossDrops = this.game.itemData?.getBossDrops(monster.typeId) || [];
         const bossBonusDrops = this.game.itemData?.getBossBonusDrops?.(monster.typeId) || [];
+        const hasBossRewardRules = bossDrops.length > 0 || bossBonusDrops.length > 0;
         const rewardedItems = [];
         let groundDropCount = 0;
         let acceptedAll = true;
@@ -1162,7 +1171,8 @@ export default class MonsterManager {
 
         grantItems(rewardTargetId, rewardedItems, { rewardKind: 'normal_items' });
 
-        if (monster.isBoss && (bossDrops.length > 0 || bossBonusDrops.length > 0)) {
+        if ((monster.isBoss || hasBossRewardRules) && hasBossRewardRules) {
+            if (!monster.isBoss) monster.isBoss = true;
             const bossRecipients = participantIds.length > 0 ? participantIds : [rewardTargetId];
             bossRecipients.forEach((uid) => {
                 const personalBossItems = [];
@@ -3281,7 +3291,11 @@ export default class MonsterManager {
         if (!definition) definition = {}; // Fallback if missing
 
         const forceChargeOnly = isSlimeFamilyType(type) || !!options.chargeOnly;
-        const isBoss = !!options.isBoss || definition.isBoss === true || definition.type === 'boss';
+        const isBoss = !!options.isBoss
+            || definition.isBoss === true
+            || definition.type === 'boss'
+            || type === 'king_slime'
+            || this._hasConfiguredBossRewards(type);
         const data = {
             id: id,
             x: Math.round(x),
@@ -3553,7 +3567,12 @@ export default class MonsterManager {
             m.spawnGroupId = data.spawnGroupId || null;
             m.bossCycle = ['intro', 'repeat'].includes(data.bossCycle) ? data.bossCycle : null;
 
-            if (data.isBoss || definition.isBoss === true || definition.type === 'boss' || data.type === '대왕 슬라임') {
+            if (data.isBoss
+                || definition.isBoss === true
+                || definition.type === 'boss'
+                || typeId === 'king_slime'
+                || data.type === '대왕 슬라임'
+                || this._hasConfiguredBossRewards(typeId)) {
                 m.isBoss = true;
                 if (typeId === 'king_slime') this.bossSpawned = true;
                 else if (typeId === this.zoneBossRule?.monsterId) {
@@ -3577,13 +3596,15 @@ export default class MonsterManager {
             Logger.warn(`Defaulting to fallback for monster ${data.id} (${typeId})`, e);
             const m = new Monster(data.x, data.y, {});
             m.id = data.id;
+            m.typeId = typeId;
+            m.name = typeof data.name === 'string' && data.name ? data.name : typeId;
             m.hp = data.hp;
             m.maxHp = data.maxHp;
             m.targetX = data.x;
             m.targetY = data.y;
             m.spawnGroupId = data.spawnGroupId || null;
             m.bossCycle = ['intro', 'repeat'].includes(data.bossCycle) ? data.bossCycle : null;
-            m.isBoss = !!data.isBoss;
+            m.isBoss = !!data.isBoss || typeId === 'king_slime' || this._hasConfiguredBossRewards(typeId);
             applySlimeCombatOverrides(m, typeId);
             this._applyRemoteMonsterNetworkState(m, data);
             this.monsters.set(data.id, m);

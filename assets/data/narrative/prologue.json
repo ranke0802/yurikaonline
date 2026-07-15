@@ -24,8 +24,8 @@
                 {
                     "type": "camera_pan",
                     "target": {
-                        "x": 1500,
-                        "y": 1900
+                        "x": 1600,
+                        "y": 1600
                     },
                     "duration": 3000
                 },

@@ -367,9 +367,9 @@ export default class CharacterSelectionScene extends Scene {
     }
 
     async handleStartGame() {
-        // v0.00.84: Default to cabin spawn (1500, 1900) for new players
-        let startX = 1500;
-        let startY = 1900;
+        // v0.00.84: Default to the center of the starting field for new players
+        let startX = 1600;
+        let startY = 1600;
 
         // v0.00.84: Correct coordinate path restoration (Fixed from savedData.p)
         if (this.profile) {

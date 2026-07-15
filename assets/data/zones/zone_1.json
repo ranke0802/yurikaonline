@@ -17,8 +17,8 @@
     "spawnPoints": [
         {
             "id": "default",
-            "x": 1500,
-            "y": 1900
+            "x": 1600,
+            "y": 1600
         },
         {
             "id": "field_path",

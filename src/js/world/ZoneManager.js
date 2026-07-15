@@ -176,9 +176,18 @@ export default class ZoneManager {
         }
     }
 
+    getCenterSpawnPoint() {
+        return {
+            x: Math.round((Number(this.width) || 3200) / 2),
+            y: Math.round((Number(this.height) || 3200) / 2)
+        };
+    }
+
     getSpawnPoint(id) {
-        if (!this.spawns) return null;
-        return this.spawns.find(s => s.id === id) || this.spawns[0];
+        if (!Array.isArray(this.spawns) || this.spawns.length === 0) {
+            return this.getCenterSpawnPoint();
+        }
+        return this.spawns.find(s => s.id === id) || this.spawns[0] || this.getCenterSpawnPoint();
     }
 
     getBoundaries() {

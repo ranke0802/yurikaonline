@@ -3089,16 +3089,7 @@ export class UIManager {
             'open_skill',
             'inspect_laser_detail',
             'close_laser_detail',
-            'inspect_missile_detail',
-            'close_missile_detail',
-            'upgrade_missile',
-            'reopen_skill_for_fireball',
-            'inspect_fireball_detail',
-            'close_fireball_detail',
-            'upgrade_fireball',
-            'reopen_skill_for_shield',
-            'inspect_shield_detail',
-            'close_shield_detail'
+            'upgrade_laser'
         ]).has(stepId);
     }
 
@@ -5887,7 +5878,7 @@ export class UIManager {
         const maxMp = (base.maxMp ?? 50) + (wisdom * (growth.mp ?? 10));
         const attack = (base.atk ?? 10) + (intelligence * (growth.atk ?? 1)) + Math.floor(wisdom / 2);
         const defense = Number(profile.defense ?? ((base.def ?? 1) + (vitality * (growth.def ?? 1))));
-        const attackSpeed = Math.min(2.0, 1.0 + (agility * 0.1) + (intelligence * 0.05));
+        const attackSpeed = Math.min(2.0, 1.0 + (intelligence * 0.05)) + (agility * 0.1);
         const critRate = 0.1 + (agility * 0.01) + (intelligence * 0.01);
         return {
             level: Number(profile.level || 1),
@@ -7982,8 +7973,9 @@ export class UIManager {
                 const weaponMultiplier = 1 + (weaponCombat.laserDamageBonus || 0);
                 const minBaseDamage = Math.ceil(attackPower * baseRatio * weaponMultiplier);
                 const maxBaseDamage = Math.ceil(attackPower * maxRatio * weaponMultiplier);
-                const statBonus = (p.intelligence + p.wisdom) * 0.05;
-                const effectiveAttackSpeed = Math.min(2.0, (p.attackSpeed || 1) + statBonus);
+                const effectiveAttackSpeed = typeof p.getEffectiveBasicAttackSpeed === 'function'
+                    ? p.getEffectiveBasicAttackSpeed()
+                    : Math.max(0.1, (p.attackSpeed || 1) + ((p.wisdom || 0) * 0.05));
                 const tickInterval = (0.7 / Math.max(0.1, effectiveAttackSpeed)) * 1.15;
 
                 currentStats.push(
@@ -8888,12 +8880,12 @@ export class UIManager {
 
         // v0.00.40: INT bonuses: +5% attack speed per INT, +1% crit rate per INT
         // Note: These are multiplier bonuses, not additive base stats usually.
-        // Player.js: 1.0 + (agi * 0.1) + (int * 0.05)
-        const predAtkSpd = Math.min(2.0, 1.0 + (predAgi * 0.1) + (predInt * 0.05));
+        // Player.js: min(2.0, 1.0 + int * 0.05) + agi * 0.1
+        const predAtkSpd = Math.min(2.0, 1.0 + (predInt * 0.05)) + (predAgi * 0.1);
         const predCrit = 0.1 + (predAgi * 0.01) + (predInt * 0.01);
         const predMoveSpd = 1.0 + (predAgi * 0.05); // Base 1.0
 
-        const currentAtkSpdBase = Math.min(2.0, 1.0 + (baseAgi * 0.1) + (baseInt * 0.05));
+        const currentAtkSpdBase = Math.min(2.0, 1.0 + (baseInt * 0.05)) + (baseAgi * 0.1);
         const currentCritBase = 0.1 + (baseAgi * 0.01) + (baseInt * 0.01);
         const currentMoveSpdBase = 1.0 + (baseAgi * 0.05);
 

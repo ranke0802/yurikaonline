@@ -29,20 +29,32 @@
     {
       "id": "default",
       "x": 1800,
-      "y": 3150
+      "y": 1800
     }
   ],
   "monsterSpawns": [
     {
       "monsterId": "emolga",
-      "count": 10,
+      "count": 5,
       "initialDelaySeconds": 3,
       "respawnSeconds": 10,
       "area": {
         "x": 650,
         "y": 650,
         "w": 2300,
-        "h": 1920
+        "h": 620
+      }
+    },
+    {
+      "monsterId": "emolga",
+      "count": 5,
+      "initialDelaySeconds": 3,
+      "respawnSeconds": 10,
+      "area": {
+        "x": 650,
+        "y": 2330,
+        "w": 2300,
+        "h": 700
       }
     }
   ],

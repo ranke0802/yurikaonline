@@ -3152,7 +3152,7 @@ export default class FriendsUIController {
         const defenseBase = (base.def ?? 1) + (vitality * (growth.def ?? 1));
         const hpRegenBase = (base.hpRegen ?? 1) + vitality;
         const mpRegenBase = (base.mpRegen ?? 2) + wisdom;
-        const attackSpeedBase = Math.min(2.0, 1.0 + (agility * 0.1) + (intelligence * 0.05));
+        const attackSpeedBase = Math.min(2.0, 1.0 + (intelligence * 0.05)) + (agility * 0.1);
         const critRateBase = 0.1 + (agility * 0.01) + (intelligence * 0.01);
         const moveSpeedBase = 1.0 + (agility * 0.05);
         const attack = Number(profile.attackPower ?? attackBase);

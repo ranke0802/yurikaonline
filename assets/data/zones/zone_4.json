@@ -29,20 +29,32 @@
     {
       "id": "default",
       "x": 1900,
-      "y": 3400
+      "y": 1900
     }
   ],
   "monsterSpawns": [
     {
       "monsterId": "gastly",
-      "count": 8,
+      "count": 4,
       "initialDelaySeconds": 4,
       "respawnSeconds": 12,
       "area": {
         "x": 700,
         "y": 700,
         "w": 2400,
-        "h": 2050
+        "h": 620
+      }
+    },
+    {
+      "monsterId": "gastly",
+      "count": 4,
+      "initialDelaySeconds": 4,
+      "respawnSeconds": 12,
+      "area": {
+        "x": 700,
+        "y": 2480,
+        "w": 2400,
+        "h": 780
       }
     }
   ],

@@ -29,20 +29,32 @@
     {
       "id": "default",
       "x": 1700,
-      "y": 2920
+      "y": 1700
     }
   ],
   "monsterSpawns": [
     {
       "monsterId": "squirtle",
-      "count": 12,
+      "count": 6,
       "initialDelaySeconds": 2,
       "respawnSeconds": 8,
       "area": {
         "x": 620,
         "y": 620,
         "w": 2160,
-        "h": 1760
+        "h": 620
+      }
+    },
+    {
+      "monsterId": "squirtle",
+      "count": 6,
+      "initialDelaySeconds": 2,
+      "respawnSeconds": 8,
+      "area": {
+        "x": 620,
+        "y": 2180,
+        "w": 2160,
+        "h": 600
       }
     }
   ],

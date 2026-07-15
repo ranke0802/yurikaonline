@@ -133,6 +133,48 @@ async function validateSoloQuietRtdbListenerContracts() {
     );
 }
 
+function validateAttackSpeedCapContracts() {
+    const player = new Player(0, 0, 'Attack Speed Cap Tester', {
+        baseStats: {
+            maxHp: 30,
+            maxMp: 50,
+            atk: 10,
+            def: 1,
+            speed: 180,
+            vitality: 1,
+            intelligence: 3,
+            wisdom: 2,
+            agility: 1
+        },
+        growthStats: { hp: 10, mp: 5, atk: 1, def: 0 }
+    });
+
+    player.intelligence = 100;
+    player.agility = 15;
+    player.wisdom = 10;
+    player.refreshStats();
+
+    assert.equal(player.getIntelligenceCappedAttackSpeed(), 2.0);
+    assert.equal(player.attackSpeed, 3.5, 'AGI attack speed must continue past the INT-only 2.0 cap');
+    assert.equal(player.getEffectiveBasicAttackSpeed(), 4.0, 'WIS basic attack tick speed must remain additive after the INT cap');
+
+    player.equipment.weapon = {
+        type: 'test_staff',
+        id: 'test_staff',
+        stackable: false,
+        slot: 'weapon',
+        amount: 1,
+        enhancementLevel: 0,
+        rolledValues: { attackSpeedBonus: 0.25 },
+        baseStats: {},
+        enhancementBonuses: {}
+    };
+    player.refreshStats();
+
+    assert.equal(player.attackSpeed, 4.375, 'weapon attack speed must not be clamped by the INT-only cap');
+    assert.equal(player.getEffectiveBasicAttackSpeed(), 4.875);
+}
+
 function createMemoryRewardDatabase(initialRecords = {}) {
     const records = new Map(Object.entries(initialRecords));
     const transactionAttempts = [];
@@ -5467,6 +5509,20 @@ async function validateMonsterDeathSettlementDurabilityContracts() {
     assert.equal(bonusPayload?.kind, undefined, 'stackable boss bonus materials must not use the durable boss_items kind');
     assert.equal(bonusPayload?.items?.[0]?.type, 'option_reroll_stone');
     assert.ok(bonusPayload.items[0].amount >= 1 && bonusPayload.items[0].amount <= 3);
+
+    authoredRewards.length = 0;
+    const ruleOnlyBossRewardMonster = {
+        ...bossRewardMonster,
+        id: 'boss_reward_rule_without_runtime_flag',
+        isBoss: false
+    };
+    assert.equal(managerA._grantMonsterItemDrops(ruleOnlyBossRewardMonster, 'reward_owner'), true);
+    assert.equal(ruleOnlyBossRewardMonster.isBoss, true, 'configured boss rewards must promote a missing runtime boss flag');
+    assert.ok(authoredRewards.some((entry) => (
+        entry.payload?.kind === 'boss_items'
+        && entry.payload?.items?.some((item) => item.type === 'boss_staff')
+    )), 'configured boss drop rules must still grant the unique weapon if the runtime boss flag is missing');
+
     itemData.getBossDrops = () => [];
     itemData.getBossBonusDrops = () => [];
 
@@ -6495,6 +6551,8 @@ async function validateDeterministicDropAndQuestBossContracts() {
 
 console.log('[runtime-integration] checking solo quiet RTDB listeners...');
 await validateSoloQuietRtdbListenerContracts();
+console.log('[runtime-integration] checking attack speed caps...');
+validateAttackSpeedCapContracts();
 console.log('[runtime-integration] checking network contracts...');
 await validateNetworkFieldAndBatchContracts();
 console.log('[runtime-integration] checking monster generation...');

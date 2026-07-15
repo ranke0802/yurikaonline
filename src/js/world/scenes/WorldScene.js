@@ -133,7 +133,7 @@ export default class WorldScene extends Scene {
             Logger.error('Failed to load character sprite', e);
         }
 
-        const defaultSpawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
+        const defaultSpawn = this.game.zone.getSpawnPoint('default');
         const startX = Number.isFinite(params.startX) ? params.startX : defaultSpawn.x;
         const startY = Number.isFinite(params.startY) ? params.startY : defaultSpawn.y;
 
@@ -266,7 +266,7 @@ export default class WorldScene extends Scene {
             }
 
             // Restore a position only from the same field. Legacy profiles use x/y in zone_1.
-            const fallbackSpawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
+            const fallbackSpawn = this.game.zone.getSpawnPoint('default');
             const legacyProfileZoneId = profile.currentZoneId || profile.mapId || 'zone_1';
             const storedMapPosition = profile.mapPositions?.[initialZoneId]
                 || (legacyProfileZoneId === initialZoneId ? { x: profile.x, y: profile.y } : null);
@@ -287,7 +287,7 @@ export default class WorldScene extends Scene {
                     || this.player.x + this.player.width > this.game.zone.width
                     || this.player.y + this.player.height > this.game.zone.height) {
                     Logger.warn(`[WorldScene] Restoration out of bounds (${this.player.x}, ${this.player.y}). Resetting.`);
-                    const spawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
+                    const spawn = this.game.zone.getSpawnPoint('default');
                     this.player.x = spawn.x;
                     this.player.y = spawn.y;
                     this.player.saveState();
@@ -399,7 +399,7 @@ export default class WorldScene extends Scene {
         if (!zoneData) return;
         this.zoneSpawnRules = zoneData.monsterSpawns || zoneData.spawns || [];
         this.camera.setWorldBounds(this.game.zone.width, this.game.zone.height);
-        const defaultSpawn = this.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
+        const defaultSpawn = this.game.zone.getSpawnPoint('default');
         this.safeZone = {
             x: defaultSpawn.x,
             y: defaultSpawn.y,
@@ -494,10 +494,9 @@ export default class WorldScene extends Scene {
             }
 
             this._applyZoneData(zoneData, { clearExisting: false, primeSpawn: false });
-            const spawn = this.game.zone.getSpawnPoint('default') || { x: this.game.zone.width / 2, y: this.game.zone.height / 2 };
-            const storedPosition = this.player.mapPositions?.[targetZoneId];
-            this.player.x = Number.isFinite(storedPosition?.x) ? storedPosition.x : spawn.x;
-            this.player.y = Number.isFinite(storedPosition?.y) ? storedPosition.y : spawn.y;
+            const spawn = this.game.zone.getSpawnPoint('default');
+            this.player.x = spawn.x;
+            this.player.y = spawn.y;
             if (this.checkCollision(this.player.x, this.player.y, this.player.width, this.player.height)) {
                 this.player.x = spawn.x;
                 this.player.y = spawn.y;

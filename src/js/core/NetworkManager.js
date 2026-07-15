@@ -5484,6 +5484,19 @@ export default class NetworkManager extends EventEmitter {
                 );
                 this._removeDurableRewardOutboxEntry(entry);
                 this._markNetworkActivity();
+                if (entry.recipientId === this.playerId
+                    && this._durableRewardConsumer
+                    && result?.snapshot?.val?.()) {
+                    this._queueIncomingDurableRewardSnapshot(result.snapshot, {
+                        generation: this._networkLifecycleGeneration,
+                        playerId: this.playerId,
+                        dbRef: this.dbRef,
+                        consumer: this._durableRewardConsumer,
+                        consumerGeneration: this._durableRewardConsumerGeneration
+                    }).catch((error) => {
+                        Logger.warn('[Network] Failed to immediately process a self-authored durable boss reward', error);
+                    });
+                }
                 return true;
             }
             const firstWriterValidation = this._validateDurableBossRewardEnvelope(

@@ -62,7 +62,7 @@ export default class Player extends CharacterBase {
         this.hpRegen = base.hpRegen ?? 1;
         this.mpRegen = base.mpRegen ?? 2;
         this.attackSpeed = 1.0;
-        this.maxAttackSpeed = 2.0;
+        this.maxAttackSpeed = 2.0; // Intelligence-derived attack speed cap only.
         this.critRate = 0.1;
         this.moveSpeedBonus = 1.0;
 
@@ -893,7 +893,9 @@ export default class Player extends CharacterBase {
         this.mpRegen = this.wisdom; // v1.1: Wis contributes 1:1 to MP regen
 
         // v0.00.40: INT bonuses: +5% attack speed per INT, +1% crit rate per INT
-        this.attackSpeed = Math.min(this.maxAttackSpeed, 1.0 + (this.agility * 0.1) + (this.intelligence * 0.05));
+        // Only the INT-derived base is capped at 2.0; AGI and equipment bonuses
+        // are intentionally allowed to exceed that ceiling.
+        this.attackSpeed = this.getBaseAttackSpeedFromStats();
         this.moveSpeedBonus = 1.0 + (this.agility * 0.05);
         // v0.00.40: Base 10% crit, +1% per AGI, +1% per INT
         this.critRate = 0.1 + (this.agility * 0.01) + (this.intelligence * 0.01);
@@ -903,6 +905,22 @@ export default class Player extends CharacterBase {
 
         this.speed = (base.speed || 180) * this.moveSpeedBonus;
         this.applyEquipmentStats();
+    }
+
+    getIntelligenceCappedAttackSpeed(intelligence = this.intelligence) {
+        const safeIntelligence = Math.max(0, Number(intelligence || 0));
+        return Math.min(this.maxAttackSpeed, 1.0 + (safeIntelligence * 0.05));
+    }
+
+    getBaseAttackSpeedFromStats() {
+        const safeAgility = Math.max(0, Number(this.agility || 0));
+        return this.getIntelligenceCappedAttackSpeed(this.intelligence) + (safeAgility * 0.1);
+    }
+
+    getEffectiveBasicAttackSpeed() {
+        const safeWisdom = Math.max(0, Number(this.wisdom || 0));
+        const wisdomBonus = safeWisdom * 0.05;
+        return Math.max(0.1, this.attackSpeed + wisdomBonus);
     }
 
     updateDerivedStats(options = {}) {
@@ -1770,9 +1788,9 @@ export default class Player extends CharacterBase {
         this.lightningTickTimer -= dt;
 
         const baseTickInterval = 0.7; // v0.00.78: Adjusted from 0.5 to 0.7
-        // v0.00.78: WIS/INT factor: 0.05 per point
-        const statBonus = (this.intelligence + this.wisdom) * 0.05;
-        const effectiveAttackSpeed = Math.min(this.maxAttackSpeed, this.attackSpeed + statBonus);
+        // v0.00.78: WIS factor stays additive; INT contribution is already
+        // included in attackSpeed and capped independently at 2.0.
+        const effectiveAttackSpeed = this.getEffectiveBasicAttackSpeed();
         const tickInterval = (baseTickInterval / Math.max(0.1, effectiveAttackSpeed)) * 1.15;
         const isTick = this.lightningTickTimer <= 0;
 
@@ -3341,7 +3359,7 @@ export default class Player extends CharacterBase {
 
         const attackSpeedBonus = this.getWeaponAffixEffectiveValue(weapon, 'attackSpeedBonus');
         if (attackSpeedBonus > 0) {
-            this.attackSpeed = Math.min(this.maxAttackSpeed, this.attackSpeed * (1 + attackSpeedBonus));
+            this.attackSpeed *= (1 + attackSpeedBonus);
         }
     }
 
@@ -4164,12 +4182,14 @@ export default class Player extends CharacterBase {
 
         // v2.3.6: Spawn at zone's default spawn point to avoid getting stuck in collision
         if (window.game && window.game.zone) {
-            const spawn = window.game.zone.getSpawnPoint('default') || { x: 1500, y: 1900 };
+            const spawn = window.game.zone.getSpawnPoint('default');
             this.x = spawn.x;
             this.y = spawn.y;
+            this.spawnX = spawn.x;
+            this.spawnY = spawn.y;
         } else {
-            this.x = this.spawnX || 1500;
-            this.y = this.spawnY || 1900;
+            this.x = this.spawnX || 1600;
+            this.y = this.spawnY || 1600;
         }
 
         this.state = 'idle';
