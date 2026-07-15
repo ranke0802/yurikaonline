@@ -374,6 +374,8 @@ export default class NetworkManager extends EventEmitter {
         this._monsterCellPayloadCache = new Map();
         this._monsterPendingRemovalTimers = new Map();
         this._publishedMonsterCellMap = new Map();
+        this._fieldScopedRealtimeListeners = new Map();
+        this._fieldScopedRealtimeFieldId = null;
         this.minimapMonsterSnapshotIntervalMs = 500;
         this._lastMinimapMonsterSnapshotWriteTs = 0;
         this._lastMinimapMonsterSnapshotSignature = '';
@@ -427,6 +429,7 @@ export default class NetworkManager extends EventEmitter {
         this.friendThreadPeerRead.clear();
         this._detachFriendThreadListener();
         this._detachExternalDbListeners();
+        this._detachFieldScopedRealtimeListeners();
         this._hostilityListenerActive = false;
         this._lastHpSync = { hp: null, maxHp: null, ts: 0 };
         this._lastProfileSaveTs = 0;
@@ -480,10 +483,6 @@ export default class NetworkManager extends EventEmitter {
         this.dbRef.child('presence_ts').on('child_changed', (snapshot) => this._handlePresenceTsSnapshot(snapshot));
         this.dbRef.child('presence_ts').on('child_removed', (snapshot) => this._handlePresenceTsRemoved(snapshot));
 
-        // 1. Listen for other players moving
-        this.dbRef.child('users').on('child_added', (snapshot) => this._onPlayerAdded(snapshot));
-        this.dbRef.child('users').on('child_removed', (snapshot) => this._onPlayerRemoved(snapshot));
-
         // Monster Sync
         if (this.shouldUseMonsterCellSync()) {
             this._refreshMonsterCellSubscriptions(this._resolveMonsterSubscriptionAnchorCellId());
@@ -498,85 +497,6 @@ export default class NetworkManager extends EventEmitter {
                 this._emitMonsterRemovedEvent(s.key, s.val());
             });
         }
-
-        // v0.33.0: Monster Attack Sync (Boss Skills)
-        this.dbRef.child('monster_attack').on('child_added', (snapshot) => {
-            const data = snapshot.val();
-            const matchesCurrentField = this._isPayloadForCurrentField(data);
-            if (data && matchesCurrentField) {
-                // Ignore old attacks (> 5s)
-                if (Date.now() - data.ts < 5000) {
-                    this.emit('monsterAttack', data);
-
-                    // v0.00.57: Audio Triggers
-                    if (window.game && window.game.sound) {
-                        if (data.skill === 'charge') {
-                            window.game.sound.playSfx('monster_charge');
-                        } else if (data.skill === 'roar') {
-                            window.game.sound.playSfx('boss_spawn'); // Reusing boss_spawn/roar sound
-                        }
-                    }
-                }
-            }
-            if (this.isHost && matchesCurrentField) snapshot.ref.remove();
-        });
-
-        // Monster Damage Sync (Listen for damage events - Spark / Text)
-        // v0.00.57: Support both single (legacy) and batched updates
-        const handleMonsterDamage = (data) => {
-            if (!data || !this._isPayloadForCurrentField(data)) return;
-            this.emit('monsterDamageReceived', data);
-            if (this.isHost) {
-                this.emit('monsterDamage', {
-                    monsterId: data.mid,
-                    damage: data.dmg,
-                    attackerId: data.aid,
-                    meta: data.meta || null
-                });
-            }
-        };
-
-        this.dbRef.child('monster_damage').on('child_added', (snapshot) => {
-            const data = snapshot.val();
-            const matchesCurrentField = this._isPayloadForCurrentField(data);
-            handleMonsterDamage(data);
-            if (this.isHost && matchesCurrentField) snapshot.ref.remove();
-        });
-
-        this.dbRef.child('monster_damage_batch').on('child_added', (snapshot) => {
-            const batch = snapshot.val();
-            const matchesCurrentField = this._isPayloadForCurrentField(batch);
-            if (batch && batch.items && Array.isArray(batch.items) && matchesCurrentField) {
-                // Check if batch is too old (> 5s)
-                if (Date.now() - batch.ts < 5000) {
-                    batch.items.forEach(item => handleMonsterDamage(item));
-                }
-            }
-            if (this.isHost && matchesCurrentField) snapshot.ref.remove();
-        });
-
-        // Player Damage Sync (PvP)
-        const handlePlayerDamage = (data) => {
-            if (data && this._isPayloadForCurrentField(data)) this.emit('playerDamageReceived', data);
-        };
-
-        this.dbRef.child('player_damage').on('child_added', (snapshot) => {
-            const data = snapshot.val();
-            const matchesCurrentField = this._isPayloadForCurrentField(data);
-            handlePlayerDamage(data);
-            if (this.isHost && matchesCurrentField) snapshot.ref.remove();
-        });
-
-        this.dbRef.child('player_damage_batch').on('child_added', (snapshot) => {
-            const batch = snapshot.val();
-            const matchesCurrentField = this._isPayloadForCurrentField(batch);
-            if (batch && batch.items && Array.isArray(batch.items) && matchesCurrentField) {
-                if (Date.now() - batch.ts < 5000) {
-                    batch.items.forEach(item => handlePlayerDamage(item));
-                }
-            }
-            if (this.isHost && matchesCurrentField) snapshot.ref.remove();
-        });
 
         // Reward Sync (Guest side listens for rewards targeting them)
         const normalRewardLifecycle = {
@@ -607,74 +527,12 @@ export default class NetworkManager extends EventEmitter {
         // or claimable after a field/world reset.
         this._refreshDropEpochSubscription(this._getCurrentFieldId());
 
-        // Drop Collection Listener (Host only)
-        this.dbRef.child('drop_collection').on('child_added', (snapshot) => {
-            if (!this.isHost) return;
-            const data = snapshot.val();
-            const matchesCurrentField = this._isPayloadForCurrentField(data);
-            if (data && matchesCurrentField) {
-                this.emit('dropCollectionRequested', {
-                    requestId: snapshot.key,
-                    dropId: data.did,
-                    collectorId: data.cid,
-                    fieldId: data.fieldId,
-                    dropWorldEpoch: data.dropWorldEpoch,
-                    dropFieldEpoch: data.dropFieldEpoch
-                });
-            }
-        });
-
-        this.dbRef.child('boss_spawn_requests').on('child_added', (snapshot) => {
-            if (!this.isHost) return;
-            const data = snapshot.val();
-            const matchesCurrentField = this._isPayloadForCurrentField(data);
-            if (data && matchesCurrentField) {
-                this.emit('bossSpawnRequested', {
-                    requestId: snapshot.key,
-                    requesterId: data.requesterId || null,
-                    isFirstBoss: data.isFirstBoss !== false,
-                    fieldId: data.fieldId,
-                    ts: Number(data.ts || Date.now())
-                });
-            }
-        });
-
         // 2. presence check
         const myRef = this.dbRef.child(`users/${this.playerId}`);
         const presenceRef = this.dbRef.child(`presence/${this.playerId}`);
         const presenceTsRef = this.dbRef.child(`presence_ts/${this.playerId}`);
         // Commented out to allow position persistence on refresh.
         // Stale users are cleaned up by Host after 5 minutes of inactivity.
-        // chat Sync
-        this.dbRef.child('chat').on('child_added', (snapshot) => {
-            const data = snapshot.val();
-            if (!data || typeof data.ts !== 'number' || typeof data.text !== 'string') {
-                if (this.isHost) snapshot.ref.remove();
-                return;
-            }
-            if (data && data.ts > Date.now() - 30000) { // Only recent chats
-                this.emit('chatReceived', data);
-            }
-            // Host cleans up old chats
-            if (this.isHost) {
-                const now = Date.now();
-                if (now - data.ts > 60000) snapshot.ref.remove();
-            }
-        });
-
-        // v0.00.43: System Message Listener (Center Screen Warnings)
-        this.dbRef.child('system_messages').on('child_added', (snapshot) => {
-            const data = snapshot.val();
-            if (!data || typeof data.ts !== 'number' || typeof data.message !== 'string') {
-                if (this.isHost) snapshot.ref.remove();
-                return;
-            }
-            if (data && data.ts > Date.now() - 5000 && this._isPayloadForCurrentField(data)) { // Only very recent (5s)
-                this.emit('systemMessage', data);
-            }
-            if (this.isHost) snapshot.ref.remove(); // Immediate cleanup
-        });
-
         // v0.00.03: Failsafe exit logic
         myRef.onDisconnect().remove();
         presenceRef.onDisconnect().remove();
@@ -683,6 +541,7 @@ export default class NetworkManager extends EventEmitter {
         this.connected = true;
         this.emit('connected');
         this._refreshSharedFieldState();
+        this._refreshFieldScopedRealtimeListeners(this._getCurrentFieldId());
         if (this.isSharedFieldActive()) {
             this._publishLocalRealtimeSnapshot('connect');
         } else {
@@ -703,7 +562,6 @@ export default class NetworkManager extends EventEmitter {
         this._setupSocialListeners();
         this._setupDamageListeners(); // v0.00.14: PvP Damage
         // this._setupHostilityListeners(); // Moved to WorldScene to ensure localPlayer exists
-        this._setupEmoteListeners(); // v2.1
 
         // v0.35.1: Mobile Background Reconnection Support
         document.removeEventListener('visibilitychange', this._boundVisibilityChange);
@@ -749,11 +607,13 @@ export default class NetworkManager extends EventEmitter {
             this.lastPacketData = null;
             this._clearMonsterCellSubscriptions({ emitRemovals: true });
             this._detachMinimapMonsterSnapshotListener();
+            this._detachFieldScopedRealtimeListeners();
             this._minimapMonsterSnapshotCache = null;
         } else {
             this._publishPresenceLite({ force: true, reason: 'zone_reenabled' });
             this._refreshMonsterCellSubscriptions(this._resolveMonsterSubscriptionAnchorCellId());
             this._refreshMinimapMonsterSnapshotListener(this._getCurrentFieldId());
+            this._refreshFieldScopedRealtimeListeners(this._getCurrentFieldId());
             this.sendHeartbeat();
         }
     }
@@ -923,6 +783,7 @@ export default class NetworkManager extends EventEmitter {
 
     _detachAllDbListeners() {
         this._detachExternalDbListeners();
+        this._detachFieldScopedRealtimeListeners();
         if (!this.dbRef) return;
 
         const fixedPaths = [
@@ -975,6 +836,158 @@ export default class NetworkManager extends EventEmitter {
             }
         });
         this._externalDbListeners = [];
+    }
+
+    _detachFieldScopedRealtimeListeners() {
+        this._fieldScopedRealtimeListeners.forEach(({ ref, eventType, callback }) => {
+            try {
+                ref?.off?.(eventType, callback);
+            } catch (error) {
+                Logger.warn('[Network] Failed to detach field scoped DB listener', error);
+            }
+        });
+        this._fieldScopedRealtimeListeners.clear();
+        this._fieldScopedRealtimeFieldId = null;
+    }
+
+    _attachFieldScopedChildAddedListener(key, path, fieldId, handler) {
+        if (!this.dbRef || !key || !path || !fieldId || typeof handler !== 'function') return;
+        const baseRef = this.dbRef.child(path);
+        const query = typeof baseRef.orderByChild === 'function'
+            ? baseRef.orderByChild('fieldId').equalTo(fieldId)
+            : baseRef;
+        const callback = (snapshot) => {
+            const data = snapshot.val();
+            if (!data || this._normalizeFieldId(data.fieldId) !== fieldId) return;
+            handler(snapshot, data);
+        };
+        query.on('child_added', callback);
+        this._fieldScopedRealtimeListeners.set(key, {
+            ref: query,
+            eventType: 'child_added',
+            callback
+        });
+    }
+
+    _refreshFieldScopedRealtimeListeners(fieldId = this._getCurrentFieldId()) {
+        const normalizedFieldId = this._normalizeFieldId(fieldId);
+        const shouldListen = !!(
+            this.connected
+            && this.dbRef
+            && this.zoneParticipationEnabled
+            && normalizedFieldId
+        );
+
+        if (!shouldListen) {
+            this._detachFieldScopedRealtimeListeners();
+            return;
+        }
+
+        if (this._fieldScopedRealtimeFieldId === normalizedFieldId
+            && this._fieldScopedRealtimeListeners.size > 0) {
+            return;
+        }
+
+        this._detachFieldScopedRealtimeListeners();
+        this._fieldScopedRealtimeFieldId = normalizedFieldId;
+
+        const handleMonsterDamage = (data) => {
+            this.emit('monsterDamageReceived', data);
+            if (this.isHost) {
+                this.emit('monsterDamage', {
+                    monsterId: data.mid,
+                    damage: data.dmg,
+                    attackerId: data.aid,
+                    meta: data.meta || null
+                });
+            }
+        };
+
+        this._attachFieldScopedChildAddedListener('monster_attack', 'monster_attack', normalizedFieldId, (snapshot, data) => {
+            if (Date.now() - Number(data.ts || 0) < 5000) {
+                this.emit('monsterAttack', data);
+                if (window.game?.sound) {
+                    if (data.skill === 'charge') {
+                        window.game.sound.playSfx('monster_charge');
+                    } else if (data.skill === 'roar') {
+                        window.game.sound.playSfx('boss_spawn');
+                    }
+                }
+            }
+            if (this.isHost) snapshot.ref.remove();
+        });
+
+        this._attachFieldScopedChildAddedListener('monster_damage', 'monster_damage', normalizedFieldId, (snapshot, data) => {
+            handleMonsterDamage(data);
+            if (this.isHost) snapshot.ref.remove();
+        });
+
+        this._attachFieldScopedChildAddedListener('monster_damage_batch', 'monster_damage_batch', normalizedFieldId, (snapshot, batch) => {
+            if (Array.isArray(batch.items) && Date.now() - Number(batch.ts || 0) < 5000) {
+                batch.items.forEach((item) => handleMonsterDamage(item));
+            }
+            if (this.isHost) snapshot.ref.remove();
+        });
+
+        this._attachFieldScopedChildAddedListener('player_damage', 'player_damage', normalizedFieldId, (snapshot, data) => {
+            this.emit('playerDamageReceived', data);
+            if (this.isHost) snapshot.ref.remove();
+        });
+
+        this._attachFieldScopedChildAddedListener('player_damage_batch', 'player_damage_batch', normalizedFieldId, (snapshot, batch) => {
+            if (Array.isArray(batch.items) && Date.now() - Number(batch.ts || 0) < 5000) {
+                batch.items.forEach((item) => this.emit('playerDamageReceived', item));
+            }
+            if (this.isHost) snapshot.ref.remove();
+        });
+
+        this._attachFieldScopedChildAddedListener('drop_collection', 'drop_collection', normalizedFieldId, (snapshot, data) => {
+            if (!this.isHost) return;
+            this.emit('dropCollectionRequested', {
+                requestId: snapshot.key,
+                dropId: data.did,
+                collectorId: data.cid,
+                fieldId: data.fieldId,
+                dropWorldEpoch: data.dropWorldEpoch,
+                dropFieldEpoch: data.dropFieldEpoch
+            });
+        });
+
+        this._attachFieldScopedChildAddedListener('boss_spawn_requests', 'boss_spawn_requests', normalizedFieldId, (snapshot, data) => {
+            if (!this.isHost) return;
+            this.emit('bossSpawnRequested', {
+                requestId: snapshot.key,
+                requesterId: data.requesterId || null,
+                isFirstBoss: data.isFirstBoss !== false,
+                fieldId: data.fieldId,
+                ts: Number(data.ts || Date.now())
+            });
+        });
+
+        this._attachFieldScopedChildAddedListener('chat', 'chat', normalizedFieldId, (snapshot, data) => {
+            if (typeof data.ts !== 'number' || typeof data.text !== 'string') {
+                if (this.isHost) snapshot.ref.remove();
+                return;
+            }
+            if (data.ts > Date.now() - 30000) this.emit('chatReceived', data);
+            if (this.isHost && Date.now() - data.ts > 60000) snapshot.ref.remove();
+        });
+
+        this._attachFieldScopedChildAddedListener('system_messages', 'system_messages', normalizedFieldId, (snapshot, data) => {
+            if (typeof data.ts !== 'number' || typeof data.message !== 'string') {
+                if (this.isHost) snapshot.ref.remove();
+                return;
+            }
+            if (data.ts > Date.now() - 5000) this.emit('systemMessage', data);
+            if (this.isHost) snapshot.ref.remove();
+        });
+
+        this._attachFieldScopedChildAddedListener('emotes', 'emotes', normalizedFieldId, (snapshot, data) => {
+            if (typeof data.ts === 'number' && data.ts > Date.now() - 5000) {
+                this.emit('emoteReceived', data);
+            }
+            if (this.isHost) snapshot.ref.remove();
+        });
     }
 
     _detachZoneUserListeners(uid = null) {
@@ -1905,6 +1918,7 @@ export default class NetworkManager extends EventEmitter {
         }
 
         this._refreshMinimapMonsterSnapshotListener(fieldId);
+        this._refreshFieldScopedRealtimeListeners(fieldId);
         this._publishPresenceLite({ force: false, fieldId });
     }
 
@@ -9328,9 +9342,15 @@ export default class NetworkManager extends EventEmitter {
         this._hostRequestReplayFieldId = normalizedFieldId;
         let replayPromise = null;
         replayPromise = (async () => {
+            const getFieldScopedSnapshotRef = (path) => {
+                const ref = this.dbRef.child(path);
+                return typeof ref.orderByChild === 'function'
+                    ? ref.orderByChild('fieldId').equalTo(normalizedFieldId)
+                    : ref;
+            };
             const [dropSnapshot, bossSnapshot] = await Promise.all([
-                this.dbRef.child('drop_collection').once('value'),
-                this.dbRef.child('boss_spawn_requests').once('value')
+                getFieldScopedSnapshotRef('drop_collection').once('value'),
+                getFieldScopedSnapshotRef('boss_spawn_requests').once('value')
             ]);
             if (lifecycleGeneration !== this._networkLifecycleGeneration
                 || !this.connected
@@ -11664,6 +11684,25 @@ export default class NetworkManager extends EventEmitter {
 
     sendPlayerDamage(targetId, damage, effectType = null, effectDuration = 0, effectDamage = 0, meta = null) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        if (this.shouldUseMonsterQuietMode() && targetId === this.playerId) {
+            const player = window.game?.localPlayer;
+            if (typeof player?.takeDamage === 'function') {
+                const impactX = Number.isFinite(meta?.impactX) ? meta.impactX : null;
+                const impactY = Number.isFinite(meta?.impactY) ? meta.impactY : null;
+                player.takeDamage(
+                    damage,
+                    false,
+                    !!meta?.isCrit,
+                    impactX,
+                    impactY,
+                    { id: meta?.monsterId || 'monster', type: 'monster', ...(meta || {}) },
+                    effectType,
+                    effectDuration,
+                    effectDamage
+                );
+            }
+            return;
+        }
         const fieldId = this._getCurrentFieldId();
         // Optimization: Use batch queue for player damage
         this.queueBatchUpdate('player_damage', {
@@ -11783,6 +11822,7 @@ export default class NetworkManager extends EventEmitter {
             uid: this.playerId,
             name: senderName || "Unknown",
             text: text,
+            fieldId: this._getCurrentFieldId(),
             ts: now
         };
         this._recordNetworkWrite('chat', payload);
@@ -12038,6 +12078,25 @@ export default class NetworkManager extends EventEmitter {
     // v0.00.14: Send PvP Damage with Status Effects
     sendPlayerDamage(targetId, amount, effectType = null, effectDuration = 0, effectDamage = 0, meta = null) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
+        if (this.shouldUseMonsterQuietMode() && targetId === this.playerId) {
+            const player = window.game?.localPlayer;
+            if (typeof player?.takeDamage === 'function') {
+                const impactX = Number.isFinite(meta?.impactX) ? meta.impactX : null;
+                const impactY = Number.isFinite(meta?.impactY) ? meta.impactY : null;
+                player.takeDamage(
+                    amount,
+                    false,
+                    !!meta?.isCrit,
+                    impactX,
+                    impactY,
+                    { id: meta?.monsterId || 'monster', type: 'monster', ...(meta || {}) },
+                    effectType,
+                    effectDuration,
+                    effectDamage
+                );
+            }
+            return;
+        }
 
         // Push damage event to target's inbox
         this.dbRef.child(`damage_events/${targetId}`).push({
@@ -12316,6 +12375,7 @@ export default class NetworkManager extends EventEmitter {
             uid: this.playerId,
             name: senderName || this.lastPacketData?.name || 'Unknown',
             emoteId: emoteId,
+            fieldId: this._getCurrentFieldId(),
             ts: firebase.database.ServerValue.TIMESTAMP
         });
     }
@@ -12326,16 +12386,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     _setupEmoteListeners() {
-        this.dbRef.child('emotes').on('child_added', (snapshot) => {
-            const data = snapshot.val();
-            if (data && typeof data.ts === 'number' && data.ts > Date.now() - 5000) { // Recent only
-                this.emit('emoteReceived', data);
-            }
-            // Host cleans up
-            if (this.isHost) {
-                snapshot.ref.remove();
-            }
-        });
+        this._refreshFieldScopedRealtimeListeners(this._getCurrentFieldId());
     }
 
     _handleVisibilityChange() {

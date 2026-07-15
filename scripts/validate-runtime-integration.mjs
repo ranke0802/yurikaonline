@@ -94,6 +94,45 @@ function createDurableRewardItemData() {
     return itemData;
 }
 
+async function validateSoloQuietRtdbListenerContracts() {
+    const source = await readFile(new URL('../src/js/core/NetworkManager.js', import.meta.url), 'utf8');
+    const forbiddenGlobalListeners = [
+        "child('users').on",
+        "child('monster_attack').on",
+        "child('monster_damage').on",
+        "child('monster_damage_batch').on",
+        "child('player_damage').on",
+        "child('player_damage_batch').on",
+        "child('chat').on",
+        "child('system_messages').on",
+        "child('emotes').on"
+    ];
+
+    forbiddenGlobalListeners.forEach((pattern) => {
+        assert.equal(
+            source.includes(pattern),
+            false,
+            `NetworkManager must not attach broad RTDB listener ${pattern}; use field-scoped or per-user listeners`
+        );
+    });
+
+    assert.equal(
+        source.includes('_attachFieldScopedChildAddedListener'),
+        true,
+        'NetworkManager must centralize field-scoped child_added RTDB listeners'
+    );
+    assert.equal(
+        source.includes("orderByChild('fieldId').equalTo(fieldId)"),
+        true,
+        'field-scoped RTDB listeners must query by fieldId to avoid downloading other fields'
+    );
+    assert.equal(
+        source.includes('this.shouldUseMonsterQuietMode() && targetId === this.playerId'),
+        true,
+        'solo quiet mode must apply local player damage without writing RTDB damage inbox entries'
+    );
+}
+
 function createMemoryRewardDatabase(initialRecords = {}) {
     const records = new Map(Object.entries(initialRecords));
     const transactionAttempts = [];
@@ -6454,6 +6493,8 @@ async function validateDeterministicDropAndQuestBossContracts() {
     window.game = previousGame;
 }
 
+console.log('[runtime-integration] checking solo quiet RTDB listeners...');
+await validateSoloQuietRtdbListenerContracts();
 console.log('[runtime-integration] checking network contracts...');
 await validateNetworkFieldAndBatchContracts();
 console.log('[runtime-integration] checking monster generation...');
