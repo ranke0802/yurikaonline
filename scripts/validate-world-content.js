@@ -513,6 +513,17 @@ if (!zoneCatalog || !itemCatalog) {
             );
             assert(zone.bossSpawn?.initialDelaySeconds >= 0, `Zone ${zone.id} boss initial delay is invalid`);
             assert(zone.bossSpawn?.respawnSeconds > 0, `Zone ${zone.id} boss respawn is invalid`);
+            assert(
+                typeof zone.bossSpawn?.questGate?.questId === 'string'
+                    && zone.bossSpawn.questGate.questId.length > 0,
+                `Zone ${zone.id} boss questGate.questId is required`
+            );
+            assert(
+                ['active', 'completed', 'activeOrCompleted'].includes(
+                    zone.bossSpawn?.questGate?.mode || 'activeOrCompleted'
+                ),
+                `Zone ${zone.id} boss questGate.mode is invalid`
+            );
         } else if (!zone.bossSpawn) {
             warn(`${zone.id} keeps its legacy quest-driven boss spawn`);
         }

@@ -10767,12 +10767,20 @@ export class UIManager {
             const maxCd = p.skillMaxCooldowns[key];
             const nextDisabled = cdTime > 0;
             const nextText = cdTime > 0 ? cdTime.toFixed(1) : '';
+            const numericOnlyCooldown = key === 'j';
 
             if (nextDisabled) {
-                const angle = (cdTime / maxCd) * 360;
-                if (overlay && overlay.dataset.cdAngle !== `${angle}`) {
-                    overlay.style.setProperty('--cd-angle', `${angle}deg`);
-                    overlay.dataset.cdAngle = `${angle}`;
+                if (numericOnlyCooldown) {
+                    if (overlay && overlay.dataset.cdAngle !== '0') {
+                        overlay.style.setProperty('--cd-angle', '0deg');
+                        overlay.dataset.cdAngle = '0';
+                    }
+                } else {
+                    const angle = (cdTime / maxCd) * 360;
+                    if (overlay && overlay.dataset.cdAngle !== `${angle}`) {
+                        overlay.style.setProperty('--cd-angle', `${angle}deg`);
+                        overlay.dataset.cdAngle = `${angle}`;
+                    }
                 }
                 if (timeText && timeText.textContent !== nextText) timeText.textContent = nextText;
                 if (!btn.classList.contains('disabled')) btn.classList.add('disabled');

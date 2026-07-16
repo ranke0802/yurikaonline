@@ -6734,6 +6734,7 @@ export default class NetworkManager extends EventEmitter {
         if (!bossMonsterId || !bossInstanceId) return Promise.resolve(false);
         const now = Math.max(0, Math.round(Number(data.now || this.getServerNow())));
         const leaseMs = Math.max(5000, Math.min(30000, Number(data.leaseMs || 15000)));
+        const bypassRespawnDeadline = data.forceQuestSpawn === true;
         const stateRef = this.dbRef.child(`field_boss_state/${fieldId}/${bossMonsterId}`);
         if (typeof stateRef.transaction !== 'function') return Promise.resolve(false);
 
@@ -6764,7 +6765,9 @@ export default class NetworkManager extends EventEmitter {
                 const deadline = poisonedFutureState || rawDeadline > maxPlausibleDeadline
                     ? 0
                     : rawDeadline;
-                if ((current.phase === 'defeated' || current.phase === 'waiting') && deadline > now) return;
+                if (!bypassRespawnDeadline
+                    && (current.phase === 'defeated' || current.phase === 'waiting')
+                    && deadline > now) return;
             }
 
             return {
@@ -10547,6 +10550,10 @@ export default class NetworkManager extends EventEmitter {
                 && this._isDropPayloadForEpochSeal(value, postCommitSeal)
                 && (!(Number(value.expiresAt) > 0)
                     || Math.round(this.getServerNow()) < Number(value.expiresAt))) {
+                if (this._normalizeFieldId(value.fieldId) === this._normalizeFieldId(this._getCurrentFieldId())) {
+                    this._networkDropIds.add(entry.dropId);
+                    this.emit('dropAdded', { id: entry.dropId, ...this._cloneProfileData(value) });
+                }
                 this._rememberBoundedCommit(
                     this._committedDropSpawnSources,
                     this._getCommittedDropSpawnKey(

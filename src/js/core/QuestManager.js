@@ -292,6 +292,40 @@ export default class QuestManager {
         return clone(this.state);
     }
 
+    isQuestActive(questId) {
+        const id = normalizeQuestId(questId, this.aliases);
+        return !!id && this.activeQuests.has(id);
+    }
+
+    isQuestCompleted(questId) {
+        const id = normalizeQuestId(questId, this.aliases);
+        return !!id && this.completedQuests.has(id);
+    }
+
+    isQuestActiveOrCompleted(questId) {
+        return this.isQuestActive(questId) || this.isQuestCompleted(questId);
+    }
+
+    isQuestObjectiveIncomplete(questId, predicate = null) {
+        const id = normalizeQuestId(questId, this.aliases);
+        const active = this.activeQuests.get(id);
+        if (!active) return false;
+
+        const objectives = Array.isArray(active.definition?.objectives)
+            ? active.definition.objectives
+            : [];
+        const matchedObjectives = objectives.filter((objective) => (
+            typeof predicate === 'function' ? predicate(objective) : true
+        ));
+        if (matchedObjectives.length === 0) return false;
+
+        return matchedObjectives.some((objective) => {
+            const progress = active.state?.objectives?.[objective.id] || {};
+            return progress.complete !== true
+                && Number(progress.current || 0) < Math.max(1, Number(objective.count || 1));
+        });
+    }
+
     restoreFromLegacy(questData, questState = null) {
         if (!this._loaded) return;
         this.state = this._normalizeState(questState || this.game?.localPlayer?.questState || null);

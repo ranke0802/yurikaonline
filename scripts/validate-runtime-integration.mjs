@@ -1037,6 +1037,23 @@ async function validateNetworkFieldAndBatchContracts() {
         ts: claimNow + 3
     }), false, 'defeated-to-alive must not bypass the atomic spawn claim or cooldown');
     assert.equal(sharedBossState.phase, 'defeated');
+    assert.equal(await claimA.claimFieldBossSpawn({
+        zoneId: 'zone_3',
+        bossMonsterId: 'thunder_pikachu',
+        bossInstanceId: 'cooldown_locked_claim',
+        respawnSeconds: 300,
+        now: claimNow + 1000
+    }), false, 'a normal spawn claim must still honor the defeated boss cooldown');
+    assert.equal(await claimA.claimFieldBossSpawn({
+        zoneId: 'zone_3',
+        bossMonsterId: 'thunder_pikachu',
+        bossInstanceId: 'quest_recovery_claim',
+        respawnSeconds: 300,
+        now: claimNow + 1000,
+        forceQuestSpawn: true
+    }), true, 'an active boss-kill quest may recover from a pre-quest defeat cooldown');
+    assert.equal(sharedBossState.phase, 'spawning');
+    assert.equal(sharedBossState.bossInstanceId, 'quest_recovery_claim');
 
     sharedBossState = {
         fieldId: 'zone_3__party__player_a',
@@ -1866,6 +1883,7 @@ async function validateFieldBossLifecycleContracts() {
     const sentBossRewards = [];
     const localBossRewards = [];
     const removedMonsterIds = [];
+    const bossQuestState = { active: false, completed: false };
     let claimCount = 0;
     let bossState = {
         fieldId: currentFieldId,
@@ -1961,7 +1979,23 @@ async function validateFieldBossLifecycleContracts() {
         },
         sceneManager: { currentScene: null },
         remotePlayers: new Map(),
-        sound: { loadAndPlayBgm: () => {} }
+        sound: { loadAndPlayBgm: () => {} },
+        quests: {
+            isQuestActive: (questId) => questId === 'quest_lake_ruin_wobbuffet' && bossQuestState.active,
+            isQuestCompleted: (questId) => questId === 'quest_lake_ruin_wobbuffet' && bossQuestState.completed,
+            isQuestObjectiveIncomplete: (questId, predicate) => (
+                questId === 'quest_lake_ruin_wobbuffet'
+                && bossQuestState.active
+                && typeof predicate === 'function'
+                && predicate({
+                    id: 'kill_ruin_wobbuffet',
+                    type: 'bossKill',
+                    target: 'ruin_wobbuffet',
+                    count: 1,
+                    zoneId: 'zone_2'
+                })
+            )
+        }
     };
     window.game = game;
     const manager = new MonsterManager(game);
@@ -1975,7 +2009,11 @@ async function validateFieldBossLifecycleContracts() {
             displayName: 'Ruin Boss',
             point: { x: 1700, y: 1700 },
             initialDelaySeconds: 35,
-            respawnSeconds: 300
+            respawnSeconds: 300,
+            questGate: {
+                questId: 'quest_lake_ruin_wobbuffet',
+                mode: 'activeOrCompleted'
+            }
         }
     });
     assert.equal(
@@ -2005,6 +2043,18 @@ async function validateFieldBossLifecycleContracts() {
         'boss cooldown must use the current zone rule instead of poisoned persisted duration/deadline values'
     );
 
+    manager.monsters.set('early_locked_boss', {
+        id: 'early_locked_boss',
+        typeId: 'ruin_wobbuffet',
+        isBoss: true,
+        isDead: false
+    });
+    manager._updateZoneBossSpawn();
+    assert.equal(manager.monsters.has('early_locked_boss'), false, 'a quest-locked field boss must be hidden before its boss quest is active');
+    assert.equal(claimCount, 0, 'a closed quest gate must not acquire a field boss spawn lease');
+    manager._updateZoneBossSpawn();
+    assert.equal(claimCount, 0, 'a closed quest gate must keep cooldown-expired bosses from spawning');
+    bossQuestState.active = true;
     manager._updateZoneBossSpawn();
     manager._updateZoneBossSpawn();
     for (let attempt = 0; attempt < 30 && manager.zoneBossSpawnPending; attempt += 1) {
@@ -2093,6 +2143,8 @@ async function validateFieldBossLifecycleContracts() {
     liveBoss.lastAttackerId = 'boss_host';
     liveBoss.damageContributors.add('boss_host');
     liveBoss.takeDamage(liveBoss.hp + 1, false, false);
+    bossQuestState.active = false;
+    bossQuestState.completed = true;
     assert.equal(liveBoss.isDead, true);
     const recordedDeadline = manager.zoneBossRespawnAt;
     assert.equal(liveBoss._wasProcessed, true, 'HP zero must synchronously settle the canonical host reward path');
@@ -5545,6 +5597,69 @@ async function validateMonsterDeathSettlementDurabilityContracts() {
     pendingMonster._nextDeathSettlementRetryAt = 0;
     assert.equal(managerA._retryPendingMonsterDeathSettlement(pendingMonster, 1000), true);
     assert.equal(managerA._isMonsterDeathSettlementReady(pendingMonster), true);
+
+    const committedBossLocalRewards = [];
+    gameA.localPlayer.claimedRewardIds = [];
+    gameA.localPlayer.receiveReward = (payload) => {
+        committedBossLocalRewards.push(payload);
+        gameA.localPlayer.claimedRewardIds.push(payload.rewardId);
+        return true;
+    };
+    rewardAdmission = false;
+    const durableBossMonster = {
+        ...pendingMonster,
+        id: 'durable_boss_retry_local',
+        typeId: 'contract_boss',
+        isBoss: true,
+        lastAttackerId: 'death_host',
+        damageContributors: new Set(['death_host']),
+        damageContributorLevels: new Map([['death_host', 8]])
+    };
+    const durableBossPayload = {
+        rewardId: managerA._buildDeterministicRewardId(durableBossMonster, 'death_host', 'boss_items'),
+        bossReward: true,
+        immediate: true,
+        kind: 'boss_items',
+        rewardKind: 'boss_items',
+        bossTypeId: durableBossMonster.typeId,
+        bossInstanceId: durableBossMonster.id,
+        monsterName: durableBossMonster.name,
+        items: [{ id: 'boss_staff', type: 'boss_staff', amount: 1, name: 'Boss Staff' }]
+    };
+    assert.equal(managerA._authorMonsterReward(durableBossMonster, 'death_host', durableBossPayload), false);
+    assert.equal(committedBossLocalRewards.length, 0);
+    rewardAdmission = true;
+    durableBossMonster._nextDeathSettlementRetryAt = 0;
+    assert.equal(managerA._retryPendingMonsterDeathSettlement(durableBossMonster, 2000), true);
+    assert.equal(committedBossLocalRewards.length, 1, 'self-authored committed boss equipment must apply locally on retry');
+    assert.equal(committedBossLocalRewards[0].rewardKind, 'boss_items');
+    assert.equal(committedBossLocalRewards[0].items[0].id, 'boss_staff');
+
+    const dropMemory = createMemoryRewardDatabase();
+    const selfDropNet = new NetworkManager();
+    selfDropNet.playerId = 'self_drop_author';
+    selfDropNet.connected = true;
+    selfDropNet.isHost = true;
+    selfDropNet.dbRef = dropMemory.dbRef;
+    selfDropNet._getCurrentFieldId = () => fieldId;
+    selfDropNet.shouldUseMonsterQuietMode = () => true;
+    const selfAuthoredDrops = [];
+    selfDropNet.on('dropAdded', (payload) => selfAuthoredDrops.push(payload));
+    assert.equal(selfDropNet.spawnDrop({
+        id: 'self_authored_manastone_drop',
+        sourceRewardId: 'drop_source_v1:self_authored_manastone_drop',
+        x: 640,
+        y: 720,
+        type: 'manastone',
+        amount: 21,
+        forceNetwork: true
+    }), 'self_authored_manastone_drop');
+    for (let attempt = 0; attempt < 40 && selfAuthoredDrops.length === 0; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 2));
+    }
+    assert.equal(selfAuthoredDrops.length, 1, 'self-authored forceNetwork drops must render locally after durable commit');
+    assert.equal(selfAuthoredDrops[0].type, 'manastone');
+    assert.equal(selfAuthoredDrops[0].amount, 21);
 
     const rollMonster = {
         ...pendingMonster,

@@ -388,6 +388,32 @@ button:active,
     pointer-events: none;
 }
 
+.attack-btn .cooldown-overlay,
+.action-buttons .attack-btn .cooldown-overlay {
+    display: none !important;
+    background: transparent !important;
+}
+
+.attack-btn.disabled,
+.action-buttons .attack-btn.disabled,
+body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .attack-btn.disabled {
+    background: rgba(218, 222, 228, 0.9) !important;
+    border-color: rgba(255, 255, 255, 0.86) !important;
+    filter: grayscale(0.35) brightness(0.92);
+}
+
+.attack-btn.disabled .inner-icon,
+.action-buttons .attack-btn.disabled .inner-icon {
+    opacity: 0.56;
+    filter: grayscale(0.85) !important;
+}
+
+.attack-btn.disabled .cooldown-time,
+.action-buttons .attack-btn.disabled .cooldown-time {
+    color: #f8fafc;
+    text-shadow: 0 1px 3px rgba(21, 27, 36, 0.86);
+}
+
 .key-hint {
     position: absolute;
     top: -8px;

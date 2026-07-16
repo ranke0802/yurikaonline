@@ -836,7 +836,7 @@ export default class MonsterManager {
                 || payload.rewardKind === 'boss_items'
                 || payload.kind === 'boss_progress'
             );
-        if (isDurableBossReward) return false;
+        if (isDurableBossReward && accepted !== true) return false;
 
         const hasImmediateLocalMutation = !!(payload.questKill || payload.questKills)
             || Number(payload.exp || 0) > 0
@@ -964,6 +964,7 @@ export default class MonsterManager {
                 ? this.net.isRewardServerCommitted(operation.recipientId, operation.payload?.rewardId)
                 : authored;
             if (committed) {
+                this._applyLocalRewardOptimistically(operation.recipientId, operation.payload, true);
                 monster._pendingDeathRewardOperations.delete(key);
             }
         });
@@ -1434,6 +1435,110 @@ export default class MonsterManager {
         return this.tutorialMode || !!this.game.tutorial?.pendingTutorialId;
     }
 
+    _getZoneBossQuestGate(rule = this.zoneBossRule) {
+        const gate = rule?.questGate || null;
+        if (!gate) return null;
+        const questId = typeof gate === 'string'
+            ? gate
+            : (gate.questId || gate.id || gate.quest);
+        if (typeof questId !== 'string' || !questId) return null;
+        return {
+            questId,
+            mode: typeof gate.mode === 'string' && gate.mode
+                ? gate.mode
+                : 'activeOrCompleted'
+        };
+    }
+
+    _isQuestActiveForGate(quests, questId) {
+        if (!quests || !questId) return false;
+        if (typeof quests.isQuestActive === 'function') return quests.isQuestActive(questId);
+        return !!(quests.activeQuests?.has?.(questId)
+            || quests.state?.active?.[questId]
+            || this.game?.localPlayer?.questState?.active?.[questId]);
+    }
+
+    _isQuestCompletedForGate(quests, questId) {
+        if (!quests || !questId) return false;
+        if (typeof quests.isQuestCompleted === 'function') return quests.isQuestCompleted(questId);
+        return !!(quests.completedQuests?.has?.(questId)
+            || quests.state?.completed?.[questId]
+            || this.game?.localPlayer?.questState?.completed?.[questId]);
+    }
+
+    _isZoneBossQuestGateOpen(rule = this.zoneBossRule) {
+        const gate = this._getZoneBossQuestGate(rule);
+        if (!gate) return true;
+        const quests = this.game?.quests;
+        if (!quests) return true;
+
+        const active = this._isQuestActiveForGate(quests, gate.questId);
+        const completed = this._isQuestCompletedForGate(quests, gate.questId);
+        if (gate.mode === 'active') return active;
+        if (gate.mode === 'completed') return completed;
+        return active || completed;
+    }
+
+    _isZoneBossQuestActivelyNeeded(rule = this.zoneBossRule) {
+        const gate = this._getZoneBossQuestGate(rule);
+        const quests = this.game?.quests;
+        if (!gate || !quests || !this._isQuestActiveForGate(quests, gate.questId)) return false;
+
+        const objectiveMatchesBoss = (objective) => (
+            objective?.type === 'bossKill'
+            && objective.target === rule?.monsterId
+            && (!objective.zoneId || objective.zoneId === rule?.zoneId)
+        );
+        if (typeof quests.isQuestObjectiveIncomplete === 'function') {
+            return quests.isQuestObjectiveIncomplete(gate.questId, objectiveMatchesBoss);
+        }
+
+        const active = quests.activeQuests?.get?.(gate.questId);
+        const definition = active?.definition || quests.definitions?.get?.(gate.questId);
+        const state = active?.state || quests.state?.active?.[gate.questId];
+        const objectives = Array.isArray(definition?.objectives) ? definition.objectives : [];
+        const bossObjectives = objectives.filter(objectiveMatchesBoss);
+        if (bossObjectives.length === 0) return true;
+
+        return bossObjectives.some((objective) => {
+            const progress = state?.objectives?.[objective.id] || {};
+            return progress.complete !== true
+                && Number(progress.current || 0) < Math.max(1, Number(objective.count || 1));
+        });
+    }
+
+    _despawnZoneBossBlockedByQuest(monster, rule = this.zoneBossRule) {
+        if (!monster?.id || !rule?.monsterId) return false;
+
+        const now = this._getAuthoritativeNow();
+        const respawnSeconds = Math.max(20, Number(rule.respawnSeconds ?? 180));
+        const bossRespawnAt = now + respawnSeconds * 1000;
+        const bossInstanceId = monster.id;
+
+        this.zoneBossSpawned = false;
+        this.zoneBossInstanceId = bossInstanceId;
+        this.zoneBossDefeatedAt = now;
+        this.zoneBossRespawnAt = bossRespawnAt;
+        this._staleFieldBossMarker = null;
+
+        this._removeMonsterLocalState(bossInstanceId);
+        this.net?.removeMonster?.(bossInstanceId);
+        this._publishZoneBossFieldState({
+            phase: 'defeated',
+            bossAlive: false,
+            bossInstanceId,
+            bossDefeatedAt: now,
+            bossRespawnAt,
+            respawnSeconds,
+            deathSnapshotCommitted: false,
+            deathSettlementPending: false,
+            ts: now
+        });
+
+        Logger.log(`[MonsterManager] Field boss ${rule.monsterId} is hidden until its quest gate opens.`);
+        return true;
+    }
+
     setTutorialMode(active) {
         const nextState = !!active;
         if (this.tutorialMode === nextState) return;
@@ -1804,21 +1909,31 @@ export default class MonsterManager {
         if (typeof this.net?.readFieldBossState === 'function'
             && this._fieldBossStateReadyFieldId !== fieldId) return;
 
+        const gateOpen = this._isZoneBossQuestGateOpen(rule);
         const existingBoss = Array.from(this.monsters.values()).find((monster) => (
             monster?.typeId === rule.monsterId && !monster.isDead
         ));
+        if (!gateOpen) {
+            if (existingBoss) this._despawnZoneBossBlockedByQuest(existingBoss, rule);
+            this.zoneBossSpawned = false;
+            return;
+        }
         if (existingBoss) {
             this.zoneBossSpawned = true;
             return;
         }
 
         this.zoneBossSpawned = false;
-        if (this._getAuthoritativeNow() < Number(this.zoneBossRespawnAt || 0)) return;
+        const questActivelyNeeded = this._isZoneBossQuestActivelyNeeded(rule);
+        const now = this._getAuthoritativeNow();
+        if (questActivelyNeeded && now < Number(this.zoneBossRespawnAt || 0)) {
+            this.zoneBossRespawnAt = now;
+        }
+        if (now < Number(this.zoneBossRespawnAt || 0)) return;
 
         this.zoneBossSpawnPending = true;
         const generation = this.worldGeneration;
         const zoneId = this.activeZoneId;
-        const now = this._getAuthoritativeNow();
         const bossInstanceId = `mob_${Math.round(now)}_${Math.floor(Math.random() * 1000)}`;
         const isCurrentWorld = () => generation === this.worldGeneration
             && zoneId === this.activeZoneId
@@ -1832,6 +1947,7 @@ export default class MonsterManager {
                 respawnSeconds: Math.max(20, Number(rule.respawnSeconds ?? 180)),
                 now,
                 leaseMs: 15000,
+                forceQuestSpawn: questActivelyNeeded,
                 expectedStaleAliveInstanceId: this._staleFieldBossMarker?.bossInstanceId || null,
                 expectedStaleAliveTs: Number(this._staleFieldBossMarker?.ts || 0)
             }, { fieldId })
