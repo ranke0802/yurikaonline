@@ -86,4 +86,24 @@ if (/body\.ui-layout-edit-mode\s+\.action-buttons\s+\.attack-auto-toggle[\s\S]{0
     fail('edit mode blocks pointer events on the individual auto button');
 }
 
-console.log('[ui-layout] OK: action buttons stay individually editable without detached edit surfaces');
+if (!/getUiLayoutStorageOwnerId\s*\(/.test(uiManager) || !/getUiLayoutStorageKey\s*\(/.test(uiManager)) {
+    fail('UI layout local backup storage is not scoped by player');
+}
+
+if (/localStorage\.(?:getItem|setItem)\(this\.uiLayoutStorageKey\)/.test(uiManager)) {
+    fail('UI layout storage still reads or writes the shared legacy key directly');
+}
+
+if (/loadLegacyStoredUiLayout\s*\(/.test(uiManager)) {
+    fail('UI layout must not silently hydrate another user from the legacy shared storage key');
+}
+
+if (!/controlId\.startsWith\('action-'\)[\s\S]{0,500}pointer-events', 'auto'/.test(uiManager)) {
+    fail('individual action controls are not forced interactive during layout application');
+}
+
+if (!/body\.ui-layout-edit-mode #ui-layer \.action-buttons \.skill-btn:hover[\s\S]{0,800}transform:\s*none\s*!important/.test(css)) {
+    fail('edit mode does not suppress action button hover/pressed transforms');
+}
+
+console.log('[ui-layout] OK: action buttons stay individually editable and UI layout backups are player-scoped');

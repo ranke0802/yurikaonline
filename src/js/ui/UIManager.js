@@ -101,7 +101,8 @@ export class UIManager {
         };
         this.activeSkillDetailId = null;
         this.settingsStorageKey = 'yurika_settings_v1';
-        this.uiLayoutStorageKey = 'yurika_ui_layout_v1';
+        this.uiLayoutStorageKeyBase = 'yurika_ui_layout_v1';
+        this.uiLayoutStorageKey = this.uiLayoutStorageKeyBase;
         this.devAccessStateStorageKey = 'yurika_dev_access_guard_v1';
         this.devPassword = '3k78a4';
         this.devAccessGranted = false;
@@ -1145,9 +1146,25 @@ export class UIManager {
         });
     }
 
+    getUiLayoutStorageOwnerId() {
+        const ownerId = this.game?.localPlayer?.id
+            || this.game?.net?.playerId
+            || this.game?.net?._accountSessionUid
+            || null;
+        const normalized = typeof ownerId === 'string' ? ownerId.trim() : '';
+        return normalized || null;
+    }
+
+    getUiLayoutStorageKey(ownerId = this.getUiLayoutStorageOwnerId()) {
+        const normalized = typeof ownerId === 'string' ? ownerId.trim() : '';
+        if (!normalized) return this.uiLayoutStorageKeyBase;
+        const safeOwnerId = normalized.replace(/[^A-Za-z0-9_-]/g, '_');
+        return `${this.uiLayoutStorageKeyBase}:${safeOwnerId}`;
+    }
+
     loadStoredUiLayout() {
         try {
-            const raw = localStorage.getItem(this.uiLayoutStorageKey);
+            const raw = localStorage.getItem(this.getUiLayoutStorageKey());
             if (!raw) return null;
             return this.sanitizeUiLayout(JSON.parse(raw));
         } catch (error) {
@@ -1159,11 +1176,12 @@ export class UIManager {
     persistUiLayoutToStorage(layout) {
         try {
             const sanitized = this.sanitizeUiLayout(layout);
+            const storageKey = this.getUiLayoutStorageKey();
             if (!sanitized) {
-                localStorage.removeItem(this.uiLayoutStorageKey);
+                localStorage.removeItem(storageKey);
                 return false;
             }
-            localStorage.setItem(this.uiLayoutStorageKey, JSON.stringify(sanitized));
+            localStorage.setItem(storageKey, JSON.stringify(sanitized));
             return true;
         } catch (error) {
             Logger.warn('[UIManager] Failed to save UI layout', error);
@@ -1174,7 +1192,8 @@ export class UIManager {
     clearLocalCharacterCaches() {
         try {
             localStorage.removeItem('yurika_player_name');
-            localStorage.removeItem(this.uiLayoutStorageKey);
+            localStorage.removeItem(this.getUiLayoutStorageKey());
+            localStorage.removeItem(this.uiLayoutStorageKeyBase);
         } catch (error) {
             Logger.warn('[UIManager] Failed to clear local character caches', error);
         }
@@ -1352,6 +1371,13 @@ export class UIManager {
         element.style.setProperty('margin', '0', 'important');
         element.style.setProperty('opacity', String(safeEntry.opacity), 'important');
         element.style.setProperty('z-index', String(definition?.zIndex || 1490), 'important');
+        if (controlId.startsWith('action-')) {
+            element.style.setProperty('display', controlId === 'action-auto-toggle' ? 'inline-flex' : 'flex', 'important');
+            element.style.setProperty('visibility', 'visible', 'important');
+            element.style.setProperty('pointer-events', 'auto', 'important');
+            element.style.setProperty('align-items', 'center', 'important');
+            element.style.setProperty('justify-content', 'center', 'important');
+        }
 
         if (definition?.scaleMode === 'transform') {
             const configuredBaseScale = Number(definition?.baseScale);
@@ -1726,7 +1752,9 @@ export class UIManager {
         const localLayout = this.loadStoredUiLayout();
         const remoteUpdatedAt = Number(remoteLayout?.updatedAt || 0);
         const localUpdatedAt = Number(localLayout?.updatedAt || 0);
-        const resolvedLayout = (localLayout && localUpdatedAt > remoteUpdatedAt)
+        const shouldUseLocalLayout = !!localLayout
+            && (!remoteLayout || localUpdatedAt > remoteUpdatedAt);
+        const resolvedLayout = shouldUseLocalLayout
             ? localLayout
             : (remoteLayout || localLayout);
 
@@ -1737,7 +1765,7 @@ export class UIManager {
             } else {
                 this.persistUiLayoutToStorage(null);
             }
-            if (resolvedLayout && localLayout && localUpdatedAt > remoteUpdatedAt) {
+            if (resolvedLayout && shouldUseLocalLayout) {
                 this.game.localPlayer.saveProfilePatch?.(['uiLayout'], {
                     debounceMs: 0,
                     forceImmediate: true,

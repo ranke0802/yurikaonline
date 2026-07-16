@@ -1957,6 +1957,24 @@ body.ui-layout-edit-mode .action-buttons .inner-icon {
     pointer-events: none !important;
 }
 
+body.ui-layout-edit-mode #ui-layer .action-buttons .skill-btn,
+body.ui-layout-edit-mode #ui-layer .action-buttons .attack-btn,
+body.ui-layout-edit-mode #ui-layer .action-buttons .attack-auto-toggle {
+    touch-action: none !important;
+    transition: none !important;
+}
+
+body.ui-layout-edit-mode #ui-layer .action-buttons .skill-btn:hover,
+body.ui-layout-edit-mode #ui-layer .action-buttons .skill-btn:active,
+body.ui-layout-edit-mode #ui-layer .action-buttons .skill-btn.is-pressed,
+body.ui-layout-edit-mode #ui-layer .action-buttons .attack-btn:hover,
+body.ui-layout-edit-mode #ui-layer .action-buttons .attack-btn:active,
+body.ui-layout-edit-mode #ui-layer .action-buttons .attack-btn.is-pressed,
+body.ui-layout-edit-mode #ui-layer .action-buttons .attack-auto-toggle:hover,
+body.ui-layout-edit-mode #ui-layer .action-buttons .attack-auto-toggle:active {
+    transform: none !important;
+}
+
 body.ui-layout-edit-mode #dev-overlay[data-ui-layout-editable="true"] {
     pointer-events: auto !important;
 }
