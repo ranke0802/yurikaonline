@@ -7,7 +7,7 @@
         "level": 1,
         "hp": 100,
         "maxHp": 100,
-        "atk": 10,
+        "atk": 2,
         "def": 2,
         "speed": 50,
         "exp": 25,

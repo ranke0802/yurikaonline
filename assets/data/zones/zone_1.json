@@ -29,7 +29,7 @@
     "monsterSpawns": [
         {
             "monsterId": "slime",
-            "count": 6,
+            "count": 3,
             "area": {
                 "x": 1880,
                 "y": 1660,
@@ -39,7 +39,7 @@
         },
         {
             "monsterId": "slime",
-            "count": 4,
+            "count": 2,
             "area": {
                 "x": 980,
                 "y": 2120,

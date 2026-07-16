@@ -823,23 +823,34 @@ export default class MonsterManager {
             });
             monster._deathSettlementReady = false;
         }
-        this._applyLocalQuestCreditIfDeliveryPending(recipientId, payload, accepted);
+        this._applyLocalRewardOptimistically(recipientId, payload, accepted);
         return accepted;
     }
 
-    _applyLocalQuestCreditIfDeliveryPending(recipientId, payload, accepted = false) {
-        const hasQuestCredit = !!(payload?.questKill || payload?.questKills);
-        if (!hasQuestCredit || !recipientId || !payload?.rewardId) return false;
+    _applyLocalRewardOptimistically(recipientId, payload, accepted = false) {
+        if (!recipientId || !payload?.rewardId) return false;
+
+        const isDurableBossReward = payload.bossReward === true
+            && (
+                payload.rewardKind === 'boss_exp'
+                || payload.rewardKind === 'boss_items'
+                || payload.kind === 'boss_progress'
+            );
+        if (isDurableBossReward) return false;
+
+        const hasImmediateLocalMutation = !!(payload.questKill || payload.questKills)
+            || Number(payload.exp || 0) > 0
+            || Number(payload.manastone ?? payload.gold ?? 0) > 0
+            || Number(payload.hp || 0) > 0
+            || (Array.isArray(payload.items) && payload.items.length > 0);
+        if (!hasImmediateLocalMutation) return false;
 
         const localPlayer = this.game?.localPlayer || window.game?.localPlayer || null;
         if (!localPlayer || localPlayer.id !== recipientId) return false;
         if (Array.isArray(localPlayer.claimedRewardIds)
             && localPlayer.claimedRewardIds.includes(payload.rewardId)) return false;
 
-        const deliveryPending = accepted
-            || this.net?.isRewardDeliveryPending?.(recipientId, payload.rewardId) === true
-            || this.net?.isRewardServerCommitted?.(recipientId, payload.rewardId) === true;
-        if (!deliveryPending || typeof localPlayer.receiveReward !== 'function') return false;
+        if (typeof localPlayer.receiveReward !== 'function') return false;
 
         const applied = localPlayer.receiveReward(
             { ...payload, immediate: true },
@@ -3957,9 +3968,11 @@ export default class MonsterManager {
             }
             const authored = rewards.every(({ recipientId, payload }) => {
                 const sent = this.net.sendReward(recipientId, payload, { requireSharedCommit: true }) === true;
-                return typeof this.net.isRewardServerCommitted === 'function'
+                const committed = typeof this.net.isRewardServerCommitted === 'function'
                     ? this.net.isRewardServerCommitted(recipientId, payload?.rewardId)
                     : sent;
+                this._applyLocalRewardOptimistically(recipientId, payload, committed || sent);
+                return committed;
             });
             if (!authored) {
                 retry();

@@ -1297,6 +1297,39 @@ async function validateMonsterGenerationAndContributors() {
     assert.equal(restoredQuestState, 1, 'optimistic quest credit must refresh QuestManager state');
     assert.equal(manager._grantMonsterQuestCredit(pendingQuestMonster, 'player_a'), false);
     assert.equal(localQuestPlayer.questData.slimeKills, 1, 'retrying the same pending quest reward must not double-count the kill');
+
+    let queuedExpReward = null;
+    localQuestPlayer.exp = 0;
+    localQuestPlayer.claimedRewardIds = [];
+    net.sendReward = (_uid, reward) => {
+        queuedExpReward = reward;
+        return false;
+    };
+    net.isRewardDeliveryPending = () => false;
+    const pendingExpMonster = {
+        id: 'pending_exp_monster',
+        typeId: 'slime',
+        name: 'Slime'
+    };
+    assert.equal(manager._grantMonsterExpReward(25, {
+        attackerId: 'player_a',
+        eligibleCollectorIds: ['player_a'],
+        partyMembers: ['player_a'],
+        monsterLevel: 1,
+        isBoss: false,
+        monster: pendingExpMonster
+    }), false);
+    assert.equal(localQuestPlayer.exp, 25, 'normal monster EXP must be visible immediately even before a shared receipt is observable');
+    assert.ok(localQuestPlayer.claimedRewardIds.includes(queuedExpReward.rewardId), 'optimistic EXP must reserve its rewardId against duplicate retries');
+    assert.equal(manager._grantMonsterExpReward(25, {
+        attackerId: 'player_a',
+        eligibleCollectorIds: ['player_a'],
+        partyMembers: ['player_a'],
+        monsterLevel: 1,
+        isBoss: false,
+        monster: pendingExpMonster
+    }), false);
+    assert.equal(localQuestPlayer.exp, 25, 'retrying the same pending EXP reward must not double-count');
     net.sendReward = originalSendReward;
     if (previousRewardCommitted) net.isRewardServerCommitted = previousRewardCommitted;
     else delete net.isRewardServerCommitted;
@@ -5735,8 +5768,24 @@ async function validateDeterministicDropAndQuestBossContracts() {
         return true;
     };
     dropHostB.isRewardServerCommitted = () => true;
+    const localDropPlayer = {
+        id: 'collector_a',
+        claimedRewardIds: [],
+        manastone: 0,
+        receiveReward(reward) {
+            this.manastone += Math.max(0, Number(reward?.manastone ?? reward?.gold ?? 0));
+            if (reward?.rewardId) {
+                this.claimedRewardIds = [
+                    ...this.claimedRewardIds.filter((id) => id !== reward.rewardId),
+                    reward.rewardId
+                ];
+            }
+            return true;
+        }
+    };
     const dropGame = {
         net: dropHostB,
+        localPlayer: localDropPlayer,
         zone: { width: 3200, height: 3200, currentZone: { id: 'zone_2' } },
         monsterData: { loadDefinition: async () => null },
         remotePlayers: new Map(),
@@ -5755,6 +5804,8 @@ async function validateDeterministicDropAndQuestBossContracts() {
         ['collector_a', 'collector_b']
     );
     assert.ok(authoredDropRewards.every(({ payload }) => payload.rewardId.startsWith(`drop_reward:${fieldId}:${dropId}:`)));
+    assert.equal(localDropPlayer.manastone, 75, 'local drop collectors must see manastone immediately when settlement authors the reward');
+    assert.ok(localDropPlayer.claimedRewardIds.some((id) => id.includes(':collector_a:owner_manastone')));
 
     const staleDropHost = makeDropHost('stale_drop_host');
     staleDropHost._getDurableRewardRetryDelay = () => 0;
