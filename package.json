@@ -3,9 +3,10 @@
     "start": "npx -y live-server . --host=127.0.0.1 --port=8081 --no-browser",
     "validate:quests": "node scripts/validate-quest-content.js",
     "validate:world": "node scripts/validate-world-content.js",
+    "validate:ui": "node scripts/validate-ui-layout.js",
     "validate:runtime": "node scripts/validate-runtime-integration.mjs",
     "validate:projectiles": "node scripts/validate-projectile-chain.mjs",
-    "validate": "npm run validate:quests && npm run validate:world && npm run validate:runtime && npm run validate:projectiles",
+    "validate": "npm run validate:quests && npm run validate:world && npm run validate:ui && npm run validate:runtime && npm run validate:projectiles",
     "version:sync": "node scripts/sync-version.js",
     "version:bump": "node scripts/sync-version.js --bump patch"
   },

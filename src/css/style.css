@@ -1935,17 +1935,13 @@ body.ui-layout-edit-mode #loading-overlay {
 }
 
 body.ui-layout-edit-mode #ui-layer .action-buttons {
-    display: block !important;
-    opacity: 1 !important;
     visibility: visible !important;
-    pointer-events: none !important;
+    pointer-events: auto !important;
 }
 
 body.ui-layout-edit-mode.popup-open #ui-layer .action-buttons {
-    display: block !important;
-    opacity: 1 !important;
     visibility: visible !important;
-    pointer-events: none !important;
+    pointer-events: auto !important;
 }
 
 body.ui-layout-edit-mode [data-ui-layout-editable="true"] {
@@ -1958,6 +1954,13 @@ body.ui-layout-edit-mode .action-buttons .cooldown-overlay,
 body.ui-layout-edit-mode .action-buttons .cooldown-time,
 body.ui-layout-edit-mode .action-buttons .shortcut-badge,
 body.ui-layout-edit-mode .action-buttons .inner-icon {
+    pointer-events: none !important;
+}
+
+body.ui-layout-edit-mode .action-buttons .skill-row,
+body.ui-layout-edit-mode .action-buttons .skill-btn,
+body.ui-layout-edit-mode .action-buttons .attack-btn,
+body.ui-layout-edit-mode .action-buttons .attack-auto-toggle {
     pointer-events: none !important;
 }
 
@@ -11474,104 +11477,25 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 }
 
-/* Final portrait layout editor action button visibility guard */
+/* Keep action controls editable as their original group, not as detached buttons. */
 @media screen and (max-width: 1024px) and (orientation: portrait) and (pointer: coarse) {
     body.ui-layout-edit-mode .action-buttons {
-        position: fixed !important;
-        inset: 0 !important;
-        left: 0 !important;
-        top: 0 !important;
-        right: auto !important;
-        bottom: auto !important;
-        width: 100dvw !important;
-        height: 100dvh !important;
-        display: block !important;
-        opacity: 1 !important;
         visibility: visible !important;
-        overflow: visible !important;
-        pointer-events: none !important;
-        transform: none !important;
-        z-index: 1480 !important;
+        pointer-events: auto !important;
+        z-index: 1360 !important;
     }
 
-    body.ui-layout-edit-mode .action-buttons .skill-row {
-        position: static !important;
-        inset: auto !important;
-        display: contents !important;
-        width: auto !important;
-        height: auto !important;
-    }
-
+    body.ui-layout-edit-mode .action-buttons .skill-row,
     body.ui-layout-edit-mode .action-buttons .skill-btn,
-    body.ui-layout-edit-mode .action-buttons .attack-btn {
-        position: fixed !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 0 !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        pointer-events: auto !important;
-        border-radius: 999px !important;
-        border-width: 3px !important;
-        border-color: rgba(255, 255, 255, 0.96) !important;
-        background: rgba(255, 255, 255, 0.82) !important;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18) !important;
-        backdrop-filter: blur(4px) !important;
-        z-index: 1490 !important;
-    }
-
-    body.ui-layout-edit-mode .action-buttons .skill-btn {
-        width: 50px !important;
-        height: 50px !important;
-        font-size: 20px !important;
-    }
-
-    body.ui-layout-edit-mode .action-buttons .attack-btn {
-        background: rgba(255, 244, 186, 0.9) !important;
-        width: 86px !important;
-        height: 86px !important;
-        font-size: 28px !important;
-    }
-
-    body.ui-layout-edit-mode .action-buttons .inner-icon {
-        font-size: inherit !important;
-        filter: none !important;
-    }
-
-    body.ui-layout-edit-mode .action-buttons .shortcut-badge {
-        display: none !important;
-    }
-
+    body.ui-layout-edit-mode .action-buttons .attack-btn,
     body.ui-layout-edit-mode .action-buttons .attack-auto-toggle {
-        position: fixed !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        pointer-events: auto !important;
-        min-width: 58px !important;
-        height: 26px !important;
-        padding: 0 9px !important;
-        font-size: 10px !important;
-        border-width: 1px !important;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22) !important;
-        z-index: 1495 !important;
+        pointer-events: none !important;
     }
 }
 
 @media screen and (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
-    body.ui-layout-edit-mode .action-buttons .skill-btn {
-        width: clamp(58px, 9vh, 68px) !important;
-        height: clamp(58px, 9vh, 68px) !important;
-        font-size: clamp(21px, 3.7vh, 25px) !important;
-    }
-
-    body.ui-layout-edit-mode .action-buttons .attack-btn {
-        width: clamp(98px, 15vh, 112px) !important;
-        height: clamp(98px, 15vh, 112px) !important;
-        font-size: clamp(29px, 5.1vh, 35px) !important;
+    body.ui-layout-edit-mode .action-buttons {
+        pointer-events: auto !important;
     }
 }
 
