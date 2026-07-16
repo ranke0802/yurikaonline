@@ -111,7 +111,6 @@ export class UIManager {
         this.devAccessState = this.loadDevAccessState();
         this.ensureFullscreenControlButtons();
         this.uiLayoutControlDefinitions = {
-            'version-info-badge': { label: '버전 정보', selector: '.version-info', modes: ['desktop', 'mobilePortrait'], minScale: 0.75, maxScale: 1.5, scaleMode: 'transform', baseScale: 1, zIndex: 1280, margin: 8 },
             'dev-overlay-panel': { label: '개발 오버레이', selector: '#dev-overlay', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 2.4, scaleMode: 'transform', zIndex: 2305, margin: 8, requiresVisibleElement: true },
             'hud-top-bar': { label: '프로필/HP 패널', selector: '.top-bar', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform' },
             'quest-panel': { label: '퀘스트창', selector: '.quest-list-panel', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', positioningContext: 'parent', parentSelector: '.left-ui-container' },
@@ -126,6 +125,19 @@ export class UIManager {
             'action-auto-toggle': { label: '오토 버튼', selector: '#action-auto-toggle', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 }
         };
         this.uiLayoutPresetDefaults = {
+            mobilePortrait: {
+                'action-attack-j': { left: 0.7177662054697672, top: 0.7758404864091559, scale: 1 },
+                'action-auto-toggle': { left: 0.791015625, top: 0.5501608568881885, scale: 1 },
+                'action-skill-h': { left: 0.442626953125, top: 0.7968302932761088, scale: 1 },
+                'action-skill-k': { left: 0.7810763915379842, top: 0.6258717811158798, scale: 1 },
+                'action-skill-u': { left: 0.5506184895833334, top: 0.6757644849785408, scale: 1 },
+                'chat-panel': { left: 0.03125, top: 0.29018689156942956, scale: 1 },
+                'hud-top-bar': { left: 0.026041666666666668, top: 0.01430615164520744, scale: 1 },
+                joystick: { left: 0.041666666666666664, top: 0.6800786838340487, scale: 0.96 },
+                'minimap-panel': { left: 0.7319921851158142, top: 0.017167381974248927, scale: 0.87 },
+                'quest-panel': { left: 0.026041666666666668, top: 0.10014306151645208, scale: 1 },
+                'quick-menu-panel': { left: 0.145263671875, top: 0.9334007012144862, scale: 0.86 },
+            },
             mobileLandscape: {
                 'action-attack-j': { left: 0.7816586239103362, top: 0.6424967447916666, scale: 0.85 },
                 'action-auto-toggle': { left: 0.7998622262463029, top: 0.2155175805091858, scale: 1 },
@@ -135,7 +147,7 @@ export class UIManager {
                 'chat-panel': { left: 0.3316274906600249, top: 0.721435546875, scale: 1 },
                 'hud-top-bar': { left: 0.01, top: 0.020833333333333332, scale: 1 },
                 joystick: { left: 0.034869240348692404, top: 0.6041666666666666, scale: 1 },
-                'minimap-panel': { left: 0.8844956413449564, top: 0.03125, scale: 1 },
+                'minimap-panel': { left: 0.8844956413449564, top: 0.03125, scale: 0.79 },
                 'quest-panel': { left: 0.014943960149439602, top: 0.18888346354166666, scale: 1 },
                 'quick-menu-panel': { left: 0.8058647260273972, top: 0.3046875, scale: 0.84 }
             }
@@ -1017,18 +1029,6 @@ export class UIManager {
         };
     }
 
-    normalizeUiLayoutEntryForCurrentCss(mode, controlId, entry) {
-        if (!entry) return entry;
-        if (
-            controlId === 'minimap-panel'
-            && mode === 'mobileLandscape'
-            && Math.abs(Number(entry.scale) - 0.79) <= 0.025
-        ) {
-            return { ...entry, scale: 1 };
-        }
-        return entry;
-    }
-
     sanitizeUiLayout(layout) {
         if (!layout || typeof layout !== 'object') return null;
         const rawLayouts = layout.layouts && typeof layout.layouts === 'object'
@@ -1043,7 +1043,7 @@ export class UIManager {
             const nextMode = {};
             this.getUiLayoutControlsForMode(mode).forEach(([controlId, definition]) => {
                 const entry = this.sanitizeUiLayoutEntry(rawMode[controlId], definition);
-                if (entry) nextMode[controlId] = this.normalizeUiLayoutEntryForCurrentCss(mode, controlId, entry);
+                if (entry) nextMode[controlId] = entry;
             });
             if (Object.keys(nextMode).length > 0) {
                 sanitizedLayouts[mode] = nextMode;

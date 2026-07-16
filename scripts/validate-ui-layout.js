@@ -41,8 +41,8 @@ const actionControls = [
     'action-auto-toggle'
 ];
 
-if (!definitions.includes("'version-info-badge'")) {
-    fail('version info badge must remain an editable UI layout target');
+if (definitions.includes("'version-info-badge'")) {
+    fail('version info badge must not be part of the 32e1d05 UI layout target set');
 }
 
 if (definitions.includes("'party-panel'")) {
@@ -63,12 +63,16 @@ actionControls.forEach((controlId) => {
     }
 });
 
-if (presets.includes('mobilePortrait:')) {
-    fail('mobile portrait preset must not override the tuned default portrait layout');
+if (!presets.includes('mobilePortrait:')) {
+    fail('mobile portrait preset must match the restored 32e1d05 default layout');
 }
 
-if (!presets.includes("'minimap-panel': { left: 0.8844956413449564, top: 0.03125, scale: 1 }")) {
-    fail('mobile landscape minimap default must stay at full scale for the current 150px CSS base');
+if (!presets.includes("'minimap-panel': { left: 0.7319921851158142, top: 0.017167381974248927, scale: 0.87 }")) {
+    fail('mobile portrait minimap default must match the restored 32e1d05 value');
+}
+
+if (!presets.includes("'minimap-panel': { left: 0.8844956413449564, top: 0.03125, scale: 0.79 }")) {
+    fail('mobile landscape minimap default must match the restored 32e1d05 value');
 }
 
 if (!presets.includes("'quick-menu-panel': { left: 0.8058647260273972, top: 0.3046875, scale: 0.84 }")) {
@@ -83,8 +87,8 @@ if (/uiLayoutSchemaVersion|migrateLegacyUiLayoutEntry/.test(uiManager)) {
     fail('UI layout schema migration must not rewrite the restored default layout values');
 }
 
-if (!/normalizeUiLayoutEntryForCurrentCss\s*\([\s\S]*controlId === 'minimap-panel'[\s\S]*mode === 'mobileLandscape'[\s\S]*scale:\s*1/.test(uiManager)) {
-    fail('saved legacy mobile landscape minimap scale 0.79 is not normalized to the current full-size default');
+if (/normalizeUiLayoutEntryForCurrentCss/.test(uiManager)) {
+    fail('current CSS normalization must not rewrite the restored 32e1d05 layout values');
 }
 
 if (!/uiLayoutResetModes\s*=\s*new Set\(\)/.test(uiManager)
@@ -117,8 +121,22 @@ if (!/Final portrait layout editor action button visibility guard/.test(css)) {
     fail('restored portrait action-button edit guard is missing');
 }
 
+if (!/width:\s*110px;[\s\S]*transform:\s*scale\(0\.95\);/.test(css)) {
+    fail('mobile portrait minimap CSS base must match the restored 32e1d05 size');
+}
+
+if (!/width:\s*96px\s*!important;[\s\S]*min-width:\s*96px\s*!important;[\s\S]*#minimapCanvas\s*\{[\s\S]*width:\s*96px\s*!important;[\s\S]*height:\s*96px\s*!important;[\s\S]*body #ui-layer \.minimap-menu\s*\{[\s\S]*top:\s*calc\(117px \+ env\(safe-area-inset-top\)\)\s*!important;/m.test(css)) {
+    fail('mobile landscape minimap/menu CSS base must match the restored 32e1d05 size');
+}
+
 if (!/body\.ui-layout-edit-mode \.action-buttons \.skill-btn,[\s\S]*body\.ui-layout-edit-mode \.action-buttons \.attack-btn\s*{[\s\S]*position:\s*fixed\s*!important/.test(css)) {
     fail('portrait edit guard does not keep individual action buttons positionable');
 }
 
-console.log('[ui-layout] OK: restored UI layout editor targets and keeps the current minimap full-size default');
+if (!/body\.ui-layout-edit-mode \.action-buttons \.skill-btn\s*\{[\s\S]*width:\s*50px\s*!important;[\s\S]*height:\s*50px\s*!important;[\s\S]*font-size:\s*20px\s*!important;/.test(css)
+    || !/body\.ui-layout-edit-mode \.action-buttons \.attack-btn\s*\{[\s\S]*width:\s*86px\s*!important;[\s\S]*height:\s*86px\s*!important;[\s\S]*font-size:\s*28px\s*!important;/.test(css)
+    || !/orientation:\s*landscape\)[\s\S]*body\.ui-layout-edit-mode \.action-buttons \.skill-btn\s*\{[\s\S]*width:\s*clamp\(58px,\s*9vh,\s*68px\)\s*!important;[\s\S]*body\.ui-layout-edit-mode \.action-buttons \.attack-btn\s*\{[\s\S]*width:\s*clamp\(98px,\s*15vh,\s*112px\)\s*!important;/.test(css)) {
+    fail('layout edit action button sizing must match the restored 32e1d05 guards');
+}
+
+console.log('[ui-layout] OK: restored 32e1d05 UI layout defaults and reset semantics');

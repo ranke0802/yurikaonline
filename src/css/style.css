@@ -4279,14 +4279,14 @@ body.low-power-pwa .minimap-menu {
         top: calc(10px + env(safe-area-inset-top));
         /* 상단 안전 영역 확보 */
         right: calc(10px + env(safe-area-inset-right));
-        width: 150px;
+        width: 110px;
         border-radius: 12px;
         z-index: 100;
         background: rgba(30, 39, 46, 0.3) !important;
         /* 더 투명하게 변경 */
         overflow: visible !important;
         /* 버튼 분리를 위해 */
-        transform: none;
+        transform: scale(0.95);
         transform-origin: top right;
         display: flex;
         flex-direction: column;
@@ -7777,8 +7777,8 @@ body.is-fullscreen .version-info {
         position: fixed !important;
         top: calc(8px + env(safe-area-inset-top)) !important;
         right: calc(8px + env(safe-area-inset-right)) !important;
-        width: 150px !important;
-        min-width: 150px !important;
+        width: 96px !important;
+        min-width: 96px !important;
         transform: none !important;
         background: rgba(44, 62, 80, 0.34) !important;
         border-radius: 12px !important;
@@ -7802,8 +7802,8 @@ body.is-fullscreen .version-info {
     }
 
     #minimapCanvas {
-        width: 150px !important;
-        height: 150px !important;
+        width: 96px !important;
+        height: 96px !important;
         aspect-ratio: 1 / 1 !important;
     }
 
@@ -7815,7 +7815,7 @@ body.is-fullscreen .version-info {
 
     body #ui-layer .minimap-menu {
         position: fixed !important;
-        top: calc(188px + env(safe-area-inset-top)) !important;
+        top: calc(117px + env(safe-area-inset-top)) !important;
         right: calc(8px + env(safe-area-inset-right)) !important;
         left: auto !important;
         bottom: auto !important;
@@ -7904,7 +7904,7 @@ body.is-fullscreen .version-info {
         gap: 12px !important;
         align-items: flex-end !important;
         transform: none !important;
-        opacity: var(--ui-action-opacity) !important;
+        opacity: 1 !important;
         z-index: 1360 !important;
     }
 
@@ -11491,8 +11491,17 @@ body.low-power-pwa #ui-layer #minimap-container {
         z-index: 1490 !important;
     }
 
+    body.ui-layout-edit-mode .action-buttons .skill-btn {
+        width: 50px !important;
+        height: 50px !important;
+        font-size: 20px !important;
+    }
+
     body.ui-layout-edit-mode .action-buttons .attack-btn {
         background: rgba(255, 244, 186, 0.9) !important;
+        width: 86px !important;
+        height: 86px !important;
+        font-size: 28px !important;
     }
 
     body.ui-layout-edit-mode .action-buttons .inner-icon {
@@ -11519,6 +11528,20 @@ body.low-power-pwa #ui-layer #minimap-container {
         border-width: 1px !important;
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22) !important;
         z-index: 1495 !important;
+    }
+}
+
+@media screen and (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
+    body.ui-layout-edit-mode .action-buttons .skill-btn {
+        width: clamp(58px, 9vh, 68px) !important;
+        height: clamp(58px, 9vh, 68px) !important;
+        font-size: clamp(21px, 3.7vh, 25px) !important;
+    }
+
+    body.ui-layout-edit-mode .action-buttons .attack-btn {
+        width: clamp(98px, 15vh, 112px) !important;
+        height: clamp(98px, 15vh, 112px) !important;
+        font-size: clamp(29px, 5.1vh, 35px) !important;
     }
 }
 
