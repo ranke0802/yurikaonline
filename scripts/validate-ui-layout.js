@@ -53,6 +53,10 @@ if (definitions.includes("'action-buttons-panel'") || presets.includes("'action-
     fail('action buttons must not be registered as a synthetic layout group');
 }
 
+if (!/\'minimap-panel\': \{[\s\S]*scaleMode: 'transform'[\s\S]*baseScaleByMode: \{ desktop: 1, mobilePortrait: 0\.95, mobileLandscape: 1 \}/.test(definitions)) {
+    fail('minimap layout scale must use fixed per-mode base scales to prevent transform accumulation');
+}
+
 actionControls.forEach((controlId) => {
     if (!definitions.includes(`'${controlId}'`)) {
         fail(`missing individual action control definition: ${controlId}`);
@@ -91,9 +95,21 @@ if (/normalizeUiLayoutEntryForCurrentCss/.test(uiManager)) {
     fail('current CSS normalization must not rewrite the restored 32e1d05 layout values');
 }
 
+if (!/getUiLayoutControlBaseScale\s*\(controlId,\s*definition,\s*element\)/.test(uiManager)
+    || !/definition\?\.baseScaleByMode\?\.\[mode\]/.test(uiManager)
+    || !/const baseScale = this\.getUiLayoutControlBaseScale\(controlId,\s*definition,\s*element\);/.test(uiManager)) {
+    fail('layout transform scaling must resolve through stable per-control base scales');
+}
+
 if (!/uiLayoutResetModes\s*=\s*new Set\(\)/.test(uiManager)
     || !/this\.uiLayoutResetModes\.forEach\(\(mode\) => \{[\s\S]*delete draftForSave\.layouts\[mode\]/.test(uiManager)) {
     fail('layout mode reset must delete the saved mode when the edit draft is saved');
+}
+
+if (!/const hasResetModes = !!this\.uiLayoutResetModes\?\.size;/.test(uiManager)
+    || !/if \(currentComparable === nextComparable && !hasResetModes\)/.test(uiManager)
+    || !/ui_layout_reset_force/.test(uiManager)) {
+    fail('UI layout reset must force persistence even when comparable layout data appears unchanged');
 }
 
 if (/if \(!current\.layouts\?\.\[mode\]\) return;/.test(uiManager)) {

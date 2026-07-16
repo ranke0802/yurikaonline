@@ -115,7 +115,7 @@ export class UIManager {
             'hud-top-bar': { label: '프로필/HP 패널', selector: '.top-bar', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform' },
             'quest-panel': { label: '퀘스트창', selector: '.quest-list-panel', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', positioningContext: 'parent', parentSelector: '.left-ui-container' },
             'chat-panel': { label: '채팅창', selector: '.chat-window', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', positioningContext: 'parent', parentSelector: '.left-ui-container' },
-            'minimap-panel': { label: '미니맵', selector: '#minimap-container', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform' },
+            'minimap-panel': { label: '미니맵', selector: '#minimap-container', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', baseScaleByMode: { desktop: 1, mobilePortrait: 0.95, mobileLandscape: 1 } },
             'quick-menu-panel': { label: '메뉴 묶음', selector: '.minimap-menu', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8, scaleMode: 'transform' },
             joystick: { label: '조이스틱', selector: '#joystick-container', modes: ['mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8, scaleMode: 'transform' },
             'action-skill-u': { label: '스킬 U', selector: '#action-skill-u', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
@@ -1016,6 +1016,20 @@ export class UIManager {
         return currentScale;
     }
 
+    getUiLayoutControlBaseScale(controlId, definition = {}, element = null, mode = this.getUiLayoutMode()) {
+        const modeBaseScale = Number(definition?.baseScaleByMode?.[mode]);
+        if (Number.isFinite(modeBaseScale) && modeBaseScale > 0.0001) {
+            return modeBaseScale;
+        }
+
+        const configuredBaseScale = Number(definition?.baseScale);
+        if (Number.isFinite(configuredBaseScale) && configuredBaseScale > 0.0001) {
+            return configuredBaseScale;
+        }
+
+        return this.getUiLayoutElementBaseScale(element);
+    }
+
     sanitizeUiLayoutEntry(entry, definition = {}) {
         if (!entry || typeof entry !== 'object') return null;
         const left = Number(entry.left);
@@ -1267,10 +1281,7 @@ export class UIManager {
         element.style.setProperty('z-index', String(definition?.zIndex || (controlId === 'action-auto-toggle' ? 1495 : 1490)), 'important');
 
         if (definition?.scaleMode === 'transform') {
-            const configuredBaseScale = Number(definition?.baseScale);
-            const baseScale = Number.isFinite(configuredBaseScale) && configuredBaseScale > 0.0001
-                ? configuredBaseScale
-                : this.getUiLayoutElementBaseScale(element);
+            const baseScale = this.getUiLayoutControlBaseScale(controlId, definition, element);
             const finalScale = Math.max(0.01, baseScale * safeEntry.scale);
             element.style.setProperty('transform', `scale(${finalScale})`, 'important');
             element.style.setProperty('transform-origin', 'top left', 'important');
@@ -1491,6 +1502,7 @@ export class UIManager {
         if (!player) return false;
 
         const draftForSave = this.cloneStructuredData(this.uiLayoutDraft) || { version: 1, layouts: {} };
+        const hasResetModes = !!this.uiLayoutResetModes?.size;
         if (draftForSave.layouts && this.uiLayoutResetModes?.size > 0) {
             this.uiLayoutResetModes.forEach((mode) => {
                 delete draftForSave.layouts[mode];
@@ -1508,7 +1520,7 @@ export class UIManager {
         player.uiLayout = nextPersistedLayout;
         this.persistUiLayoutToStorage(nextPersistedLayout);
 
-        if (currentComparable === nextComparable) {
+        if (currentComparable === nextComparable && !hasResetModes) {
             return false;
         }
 
@@ -1587,6 +1599,7 @@ export class UIManager {
     resetSelectedUiLayoutControl() {
         if (!this.uiLayoutEditMode || !this.uiLayoutSelectedControlId) return;
         const mode = this.getUiLayoutMode();
+        delete this.uiLayoutDefaultCache?.[mode];
         const defaults = this.captureDefaultUiLayoutForMode(mode);
         const nextDefault = defaults[this.uiLayoutSelectedControlId];
         if (!nextDefault) return;
@@ -1596,6 +1609,7 @@ export class UIManager {
     resetUiLayoutDraftForCurrentMode() {
         if (!this.uiLayoutEditMode) return;
         const mode = this.getUiLayoutMode();
+        delete this.uiLayoutDefaultCache?.[mode];
         const defaults = this.captureDefaultUiLayoutForMode(mode);
         this.uiLayoutDraft.layouts[mode] = defaults;
         this.uiLayoutResetModes.add(mode);
@@ -1624,13 +1638,11 @@ export class UIManager {
             : null;
         player.uiLayout = nextPersistedLayout;
         this.persistUiLayoutToStorage(nextPersistedLayout);
-        if (currentComparable !== nextComparable) {
-            player.saveProfilePatch?.(['uiLayout'], {
-                debounceMs: 0,
-                forceImmediate: true,
-                reason: 'ui_layout_reset'
-            });
-        }
+        player.saveProfilePatch?.(['uiLayout'], {
+            debounceMs: 0,
+            forceImmediate: true,
+            reason: currentComparable !== nextComparable ? 'ui_layout_reset' : 'ui_layout_reset_force'
+        });
         this.uiLayoutDefaultCache = {};
         this.applyActiveUiLayout();
         this.syncUiLayoutEditor();
