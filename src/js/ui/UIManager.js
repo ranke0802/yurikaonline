@@ -110,6 +110,7 @@ export class UIManager {
         this.settings = this.loadSettings();
         this.devAccessState = this.loadDevAccessState();
         this.ensureFullscreenControlButtons();
+        this.uiLayoutSchemaVersion = 2;
         this.uiLayoutControlDefinitions = {
             'dev-overlay-panel': { label: '개발 오버레이', selector: '#dev-overlay', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 2.4, scaleMode: 'transform', zIndex: 2305, margin: 8, requiresVisibleElement: true },
             'hud-top-bar': { label: '프로필/HP 패널', selector: '.top-bar', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform' },
@@ -135,7 +136,7 @@ export class UIManager {
                 'chat-panel': { left: 0.03125, top: 0.29018689156942956, scale: 1 },
                 'hud-top-bar': { left: 0.026041666666666668, top: 0.01430615164520744, scale: 1 },
                 joystick: { left: 0.041666666666666664, top: 0.6800786838340487, scale: 0.96 },
-                'minimap-panel': { left: 0.7319921851158142, top: 0.017167381974248927, scale: 0.87 },
+                'minimap-panel': { left: 0.7319921851158142, top: 0.017167381974248927, scale: 1 },
                 'quest-panel': { left: 0.026041666666666668, top: 0.10014306151645208, scale: 1 },
                 'quick-menu-panel': { left: 0.145263671875, top: 0.9334007012144862, scale: 0.86 },
             },
@@ -148,9 +149,9 @@ export class UIManager {
                 'chat-panel': { left: 0.3316274906600249, top: 0.721435546875, scale: 1 },
                 'hud-top-bar': { left: 0.01, top: 0.020833333333333332, scale: 1 },
                 joystick: { left: 0.034869240348692404, top: 0.6041666666666666, scale: 1 },
-                'minimap-panel': { left: 0.8844956413449564, top: 0.03125, scale: 0.79 },
+                'minimap-panel': { left: 0.8844956413449564, top: 0.03125, scale: 1 },
                 'quest-panel': { left: 0.014943960149439602, top: 0.18888346354166666, scale: 1 },
-                'quick-menu-panel': { left: 0.8058647260273972, top: 0.3046875, scale: 0.84 }
+                'quick-menu-panel': { left: 0.8058647260273972, top: 0.52, scale: 0.84 }
             }
         };
         this.uiLayoutEditMode = false;
@@ -1098,12 +1099,37 @@ export class UIManager {
         };
     }
 
+    migrateLegacyUiLayoutEntry(mode, controlId, entry, layoutVersion = 1) {
+        if (!entry || layoutVersion >= this.uiLayoutSchemaVersion) return entry;
+
+        const nextEntry = { ...entry };
+        if (controlId === 'minimap-panel') {
+            const legacyScale = mode === 'mobileLandscape'
+                ? 0.79
+                : (mode === 'mobilePortrait' ? 0.87 : null);
+            if (Number.isFinite(legacyScale) && Math.abs(nextEntry.scale - legacyScale) <= 0.025) {
+                nextEntry.scale = 1;
+            }
+        }
+
+        if (
+            controlId === 'quick-menu-panel'
+            && mode === 'mobileLandscape'
+            && Math.abs(nextEntry.top - 0.3046875) <= 0.025
+        ) {
+            nextEntry.top = 0.52;
+        }
+
+        return nextEntry;
+    }
+
     sanitizeUiLayout(layout) {
         if (!layout || typeof layout !== 'object') return null;
         const rawLayouts = layout.layouts && typeof layout.layouts === 'object'
             ? layout.layouts
             : layout;
         const updatedAt = Math.max(0, Number(layout.updatedAt || 0) || 0);
+        const sourceVersion = Math.max(1, Number(layout.version || 1) || 1);
         const sanitizedLayouts = {};
 
         ['desktop', 'mobilePortrait', 'mobileLandscape'].forEach((mode) => {
@@ -1114,7 +1140,7 @@ export class UIManager {
                 .filter(([, definition]) => definition.modes.includes(mode))
                 .forEach(([controlId, definition]) => {
                     const entry = this.sanitizeUiLayoutEntry(rawMode[controlId], definition);
-                    if (entry) nextMode[controlId] = entry;
+                    if (entry) nextMode[controlId] = this.migrateLegacyUiLayoutEntry(mode, controlId, entry, sourceVersion);
                 });
             if (Object.keys(nextMode).length > 0) {
                 sanitizedLayouts[mode] = nextMode;
@@ -1123,7 +1149,7 @@ export class UIManager {
 
         if (Object.keys(sanitizedLayouts).length === 0) return null;
         const sanitized = {
-            version: 1,
+            version: this.uiLayoutSchemaVersion,
             layouts: sanitizedLayouts
         };
         if (updatedAt > 0) {
