@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 2,
+  "activeSet": "zone_progression_v1",
+  "quests": [
+    {
+      "id": "quest_slime_10",
+      "path": "quest_slime_10.json",
+      "enabled": true,
+      "chapter": "zone_1",
+      "order": 110,
+      "tags": ["main", "legacy-compatible"]
+    },
+    {
+      "id": "quest_slime_30",
+      "path": "quest_slime_30.json",
+      "enabled": true,
+      "chapter": "zone_1",
+      "order": 120,
+      "tags": ["main", "legacy-compatible"]
+    },
+    {
+      "id": "quest_boss_king_slime",
+      "path": "quest_boss_king_slime.json",
+      "enabled": true,
+      "chapter": "zone_1",
+      "order": 130,
+      "tags": ["main", "legacy-compatible", "boss"]
+    },
+    {
+      "id": "quest_to_misty_lake",
+      "path": "quest_to_misty_lake.json",
+      "enabled": true,
+      "chapter": "zone_1",
+      "order": 140,
+      "tags": ["main", "travel"]
+    },
+    {
+      "id": "quest_slime_repeat",
+      "path": "quest_slime_repeat.json",
+      "enabled": true,
+      "chapter": "zone_1",
+      "order": 190,
+      "tags": ["repeat", "legacy-compatible"]
+    },
+    {
+      "id": "quest_lake_arrival",
+      "path": "quest_lake_arrival.json",
+      "enabled": true,
+      "chapter": "zone_2",
+      "order": 210,
+      "tags": ["main", "travel"]
+    },
+    {
+      "id": "quest_lake_squirtle_12",
+      "path": "quest_lake_squirtle_12.json",
+      "enabled": true,
+      "chapter": "zone_2",
+      "order": 220,
+      "tags": ["main"]
+    },
+    {
+      "id": "quest_lake_squirtle_30",
+      "path": "quest_lake_squirtle_30.json",
+      "enabled": true,
+      "chapter": "zone_2",
+      "order": 230,
+      "tags": ["main"]
+    },
+    {
+      "id": "quest_lake_ruin_wobbuffet",
+      "path": "quest_lake_ruin_wobbuffet.json",
+      "enabled": true,
+      "chapter": "zone_2",
+      "order": 240,
+      "tags": ["main", "boss"]
+    },
+    {
+      "id": "quest_to_thunder_forest",
+      "path": "quest_to_thunder_forest.json",
+      "enabled": true,
+      "chapter": "zone_2",
+      "order": 250,
+      "tags": ["main", "travel"]
+    },
+    {
+      "id": "quest_forest_arrival",
+      "path": "quest_forest_arrival.json",
+      "enabled": true,
+      "chapter": "zone_3",
+      "order": 310,
+      "tags": ["main", "travel"]
+    },
+    {
+      "id": "quest_forest_emolga_15",
+      "path": "quest_forest_emolga_15.json",
+      "enabled": true,
+      "chapter": "zone_3",
+      "order": 320,
+      "tags": ["main"]
+    },
+    {
+      "id": "quest_forest_emolga_35",
+      "path": "quest_forest_emolga_35.json",
+      "enabled": true,
+      "chapter": "zone_3",
+      "order": 330,
+      "tags": ["main"]
+    },
+    {
+      "id": "quest_forest_thunder_pikachu",
+      "path": "quest_forest_thunder_pikachu.json",
+      "enabled": true,
+      "chapter": "zone_3",
+      "order": 340,
+      "tags": ["main", "boss"]
+    },
+    {
+      "id": "quest_to_astral_ruins",
+      "path": "quest_to_astral_ruins.json",
+      "enabled": true,
+      "chapter": "zone_3",
+      "order": 350,
+      "tags": ["main", "travel"]
+    },
+    {
+      "id": "quest_ruins_arrival",
+      "path": "quest_ruins_arrival.json",
+      "enabled": true,
+      "chapter": "zone_4",
+      "order": 410,
+      "tags": ["main", "travel"]
+    },
+    {
+      "id": "quest_ruins_gastly_18",
+      "path": "quest_ruins_gastly_18.json",
+      "enabled": true,
+      "chapter": "zone_4",
+      "order": 420,
+      "tags": ["main"]
+    },
+    {
+      "id": "quest_ruins_gastly_40",
+      "path": "quest_ruins_gastly_40.json",
+      "enabled": true,
+      "chapter": "zone_4",
+      "order": 430,
+      "tags": ["main"]
+    },
+    {
+      "id": "quest_ruins_astral_sylveon",
+      "path": "quest_ruins_astral_sylveon.json",
+      "enabled": true,
+      "chapter": "zone_4",
+      "order": 440,
+      "tags": ["main", "boss"]
+    },
+    {
+      "id": "quest_epilogue_current_end",
+      "path": "quest_epilogue_current_end.json",
+      "enabled": true,
+      "chapter": "zone_4",
+      "order": 450,
+      "tags": ["main", "epilogue"]
+    }
+  ],
+  "aliases": [
+    {
+      "from": "quest_wind_slime_10",
+      "to": "quest_slime_10",
+      "reason": "기존 저장 데이터 호환"
+    },
+    {
+      "from": "quest_wind_slime_30",
+      "to": "quest_slime_30",
+      "reason": "기존 저장 데이터 호환"
+    },
+    {
+      "from": "quest_wind_king_slime",
+      "to": "quest_boss_king_slime",
+      "reason": "기존 저장 데이터 호환"
+    }
+  ]
+}

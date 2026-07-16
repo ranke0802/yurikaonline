@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_ruins_arrival",
+  "enabled": true,
+  "title": "별빛 아래의 폐허",
+  "description": "별그늘 유적에 도착했습니다. 망령의 기운을 정화하세요.",
+  "type": "main",
+  "chapter": "zone_4",
+  "order": 410,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_to_astral_ruins" }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted", "zoneEntered"]
+  },
+  "objectives": [
+    {
+      "id": "enter_ruins",
+      "type": "travel",
+      "targetZone": "zone_4",
+      "count": 1,
+      "uiText": "별그늘 유적 적응 {current}/{count}"
+    }
+  ],
+  "rewards": {
+    "grant": {
+      "exp": 160,
+      "manastone": 80
+    },
+    "display": [
+      { "type": "exp", "amount": 160 },
+      { "type": "manastone", "amount": 80 }
+    ]
+  },
+  "ui": {
+    "hudPriority": 410,
+    "recommendedZone": "zone_4",
+    "chapterLabel": "Chapter 4 · 별그늘 유적",
+    "nextHint": "그림자 고오스를 처치해 유적의 봉인을 약화시키세요."
+  },
+  "onComplete": {
+    "unlocks": ["quest_ruins_gastly_18"],
+    "logMessage": "별그늘 유적 정화를 시작합니다."
+  }
+}

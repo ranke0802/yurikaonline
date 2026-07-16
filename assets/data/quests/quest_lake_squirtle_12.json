@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_lake_squirtle_12",
+  "enabled": true,
+  "title": "물안개 정찰",
+  "description": "물방울 꼬부기를 처치해 호수의 흐름을 살펴보세요.",
+  "type": "main",
+  "chapter": "zone_2",
+  "order": 220,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_lake_arrival" },
+    { "type": "level", "level": 5 }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted", "zoneEntered"]
+  },
+  "objectives": [
+    {
+      "id": "kill_squirtle",
+      "type": "kill",
+      "target": "squirtle",
+      "count": 12,
+      "zoneId": "zone_2",
+      "scope": "player",
+      "accumulate": true,
+      "receiptRequired": true,
+      "uiText": "물방울 꼬부기 처치 {current}/{count}"
+    }
+  ],
+  "rewards": {
+    "grant": {
+      "exp": 180,
+      "manastone": 60
+    },
+    "display": [
+      { "type": "exp", "amount": 180 },
+      { "type": "manastone", "amount": 60 }
+    ]
+  },
+  "ui": {
+    "hudPriority": 220,
+    "recommendedZone": "zone_2",
+    "chapterLabel": "Chapter 2 · 안개빛 호수",
+    "nextHint": "완료 후 호수 깊은 곳의 보스 단서가 열립니다."
+  },
+  "onComplete": {
+    "unlocks": ["quest_lake_squirtle_30"],
+    "logMessage": "호수의 물결이 심상치 않습니다."
+  }
+}

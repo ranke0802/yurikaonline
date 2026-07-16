@@ -5191,10 +5191,12 @@ export class UIManager {
                 zones.forEach((zone) => {
                     const isCurrent = zone.id === currentZoneId;
                     const isLocked = player.level < Number(zone.requiredLevel || 1);
+                    const questTravelView = this.game.quests?.getMapTravelQuestView?.(zone.id) || null;
+                    const isQuestRecommended = !!questTravelView?.recommended && !isCurrent;
                     const travelState = scene.getZoneTravelState?.(zone.id) || null;
                     const isTemporarilyUnavailable = !isCurrent && !isLocked && travelState && !travelState.ok;
                     const card = document.createElement('article');
-                    card.className = `map-travel-card ${isCurrent ? 'is-current' : (isLocked ? 'is-locked' : (isTemporarilyUnavailable ? 'is-unavailable' : 'is-available'))}`;
+                    card.className = `map-travel-card ${isCurrent ? 'is-current' : (isLocked ? 'is-locked' : (isTemporarilyUnavailable ? 'is-unavailable' : 'is-available'))}${isQuestRecommended ? ' is-quest-recommended' : ''}`;
                     card.style.setProperty('--map-accent', zone.accentColor || '#6ed7c7');
 
                     const heading = document.createElement('div');
@@ -5214,8 +5216,8 @@ export class UIManager {
                     badge.textContent = isCurrent
                         ? '현재 위치'
                         : (isLocked
-                            ? `Lv.${zone.requiredLevel} 잠금`
-                            : (isTemporarilyUnavailable ? (unavailableLabels[travelState.reason] || '현재 이동 불가') : '이동 가능'));
+                            ? (questTravelView?.badge || `Lv.${zone.requiredLevel} 잠금`)
+                            : (isTemporarilyUnavailable ? (unavailableLabels[travelState.reason] || '현재 이동 불가') : (questTravelView?.badge || '이동 가능')));
                     heading.append(titleWrap, badge);
 
                     const recommended = zone.recommendedLevel || {};
@@ -5234,6 +5236,11 @@ export class UIManager {
                         ? `보스 ${zone.boss.name} · 전용 무기 ${zone.boss.weaponName}`
                         : '필드 보스 정보 없음';
 
+                    const questHint = document.createElement('p');
+                    questHint.className = 'map-travel-quest-hint';
+                    questHint.textContent = questTravelView?.hint || '';
+                    questHint.style.display = questTravelView?.hint ? 'block' : 'none';
+
                     const button = document.createElement('button');
                     button.type = 'button';
                     button.className = 'map-travel-button';
@@ -5241,8 +5248,8 @@ export class UIManager {
                     button.textContent = isCurrent
                         ? '현재 필드'
                         : (isLocked
-                            ? `레벨 ${zone.requiredLevel} 필요`
-                            : (isTemporarilyUnavailable ? (unavailableLabels[travelState.reason] || '현재 이동 불가') : '이동하기'));
+                            ? (questTravelView?.buttonText || `레벨 ${zone.requiredLevel} 필요`)
+                            : (isTemporarilyUnavailable ? (unavailableLabels[travelState.reason] || '현재 이동 불가') : (questTravelView?.buttonText || '이동하기')));
                     button.addEventListener('click', async (event) => {
                         event.preventDefault();
                         event.stopPropagation();
@@ -5256,7 +5263,7 @@ export class UIManager {
                         }
                     });
 
-                    card.append(heading, levelText, monsterText, bossText, button);
+                    card.append(heading, levelText, monsterText, bossText, questHint, button);
                     list.appendChild(card);
                 });
                 message.appendChild(list);
@@ -9268,6 +9275,33 @@ export class UIManager {
             taskDisplay.style.display = 'none';
             rewardDisplay.style.display = 'none';
             syncQuestAttention(false, false);
+            this.refreshDesktopShortcutHints();
+            return;
+        }
+
+        const legacyQuestIds = new Set([
+            'quest_slime_10',
+            'quest_slime_30',
+            'quest_boss_king_slime',
+            'quest_slime_repeat'
+        ]);
+        const hudQuest = this.game.quests?.getHudQuestView?.();
+        if (hudQuest && !legacyQuestIds.has(hudQuest.questId)) {
+            const existingBtn = taskDisplay.querySelector('.quest-claim-btn');
+            if (existingBtn) existingBtn.remove();
+
+            taskDisplay.style.display = 'flex';
+            rewardDisplay.style.display = 'flex';
+            taskTitle.textContent = hudQuest.chapterLabel
+                ? `${hudQuest.chapterLabel} · ${hudQuest.title}`
+                : hudQuest.title;
+            taskProgress.textContent = hudQuest.objectiveText || hudQuest.description || hudQuest.title;
+            rewardDisplay.classList.remove('quest-reward-claimable');
+            syncQuestAttention(false, false);
+            if (rewardIcon) rewardIcon.textContent = hudQuest.type === 'travel' ? '🗺️' : (hudQuest.bossRewardGuide ? '🏆' : '🎁');
+            if (rewardTitle) rewardTitle.textContent = hudQuest.type === 'travel' ? '이동 안내' : '퀘스트 보상';
+            rewardText.textContent = hudQuest.nextHint || hudQuest.rewardText || '퀘스트 진행 중';
+            rewardDisplay.onclick = null;
             this.refreshDesktopShortcutHints();
             return;
         }

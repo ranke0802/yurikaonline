@@ -1,25 +1,42 @@
 {
-    "id": "quest_slime_10",
-    "title": "슬라임 토벌",
-    "description": "숲 근처에 출몰하는 슬라임 10마리를 처치하세요.",
-    "type": "main",
-    "prerequisites": [],
-    "objectives": [
-        {
-            "type": "kill",
-            "target": "slime",
-            "count": 10,
-            "description": "슬라임 처치: {current}/{count}"
-        }
-    ],
-    "rewards": {
-        "exp": 200,
-        "manastone": 500
-    },
-    "onComplete": {
-        "message": "슬라임 토벌 완료! 보상을 수령하세요.",
-        "unlocks": [
-            "quest_slime_30"
-        ]
+  "schemaVersion": 2,
+  "id": "quest_slime_10",
+  "enabled": true,
+  "title": "흔들리는 초원",
+  "description": "바람 언덕에 출몰하는 슬라임 10마리를 처치하세요.",
+  "type": "main",
+  "chapter": "zone_1",
+  "order": 110,
+  "prerequisites": [],
+  "activation": {
+    "mode": "manual",
+    "events": ["tutorialCompleted"]
+  },
+  "objectives": [
+    {
+      "id": "kill_slime",
+      "type": "kill",
+      "target": "slime",
+      "count": 10,
+      "scope": "player",
+      "accumulate": true,
+      "uiText": "슬라임 처치 {current}/{count}"
     }
+  ],
+  "rewards": {
+    "display": [
+      { "type": "stat", "label": "지혜", "amount": 2 }
+    ]
+  },
+  "ui": {
+    "guideOnly": true,
+    "hudPriority": 110,
+    "recommendedZone": "zone_1",
+    "chapterLabel": "Chapter 1 · 바람 언덕",
+    "nextHint": "보상 수령 후 슬라임 30마리 정화 퀘스트가 이어집니다."
+  },
+  "onComplete": {
+    "logMessage": "슬라임 토벌 완료! 보상을 수령하세요.",
+    "unlocks": ["quest_slime_30"]
+  }
 }

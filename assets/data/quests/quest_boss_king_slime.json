@@ -1,31 +1,51 @@
 {
-    "id": "quest_boss_king_slime",
-    "title": "대왕 슬라임 토벌",
-    "description": "대왕 슬라임을 처치하세요!",
-    "type": "main",
-    "prerequisites": [
-        "quest_slime_30"
-    ],
-    "objectives": [
-        {
-            "type": "kill",
-            "target": "king_slime",
-            "count": 1,
-            "description": "대왕 슬라임 처치: {current}/{count}"
-        }
-    ],
-    "rewards": {
-        "items": [
-            {
-                "id": "blessed_weapon_upgrade_stone",
-                "amount": 3
-            }
-        ]
-    },
-    "onComplete": {
-        "message": "대왕 슬라임을 처치했습니다! 영웅이여!",
-        "unlocks": [
-            "quest_slime_repeat"
-        ]
+  "schemaVersion": 2,
+  "id": "quest_boss_king_slime",
+  "enabled": true,
+  "title": "대왕 슬라임 토벌",
+  "description": "바람 언덕의 첫 보스 대왕 슬라임을 처치하세요.",
+  "type": "main",
+  "chapter": "zone_1",
+  "order": 130,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_slime_30" }
+  ],
+  "activation": {
+    "mode": "manual",
+    "events": ["questCompleted"]
+  },
+  "objectives": [
+    {
+      "id": "kill_king_slime",
+      "type": "bossKill",
+      "target": "king_slime",
+      "count": 1,
+      "scope": "partyParticipants",
+      "receiptRequired": true,
+      "uiText": "대왕 슬라임 처치 {current}/{count}"
     }
+  ],
+  "rewards": {
+    "display": [
+      { "type": "item", "id": "blessed_weapon_upgrade_stone", "label": "축복받은 무기 강화석", "amount": 3 }
+    ]
+  },
+  "bossRewardGuide": {
+    "bossId": "king_slime",
+    "itemId": "magic_staff",
+    "title": "마력의 지팡이 획득 가능",
+    "skillSummary": "기본 마법 전투의 기반이 되는 첫 보스 무기입니다."
+  },
+  "ui": {
+    "guideOnly": true,
+    "hudPriority": 130,
+    "recommendedZone": "zone_1",
+    "chapterLabel": "Chapter 1 · 바람 언덕",
+    "nextHint": "Lv.5가 되면 미니맵에서 안개빛 호수로 이동할 수 있습니다."
+  },
+  "onComplete": {
+    "logMessage": "대왕 슬라임을 처치했습니다. 다음 목적지는 안개빛 호수입니다.",
+    "unlocks": ["quest_to_misty_lake", "quest_slime_repeat"],
+    "recommendZone": "zone_2"
+  }
 }

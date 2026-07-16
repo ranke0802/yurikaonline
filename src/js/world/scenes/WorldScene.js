@@ -213,6 +213,10 @@ export default class WorldScene extends Scene {
             }
 
             this.player.questData = { ...this.player.questData, ...(profile.questData || {}) };
+            this.player.questState = {
+                ...(this.player.questState || {}),
+                ...(profile.questState || {})
+            };
             if (!this.player.questData.introSlime30RewardClaimed
                 && (
                     !!this.player.questData.slime30QuestClaimed
@@ -247,7 +251,7 @@ export default class WorldScene extends Scene {
 
             // v2.2: Sync to QuestManager
             if (this.game.quests) {
-                this.game.quests.restoreFromLegacy(this.player.questData);
+                this.game.quests.restoreFromLegacy(this.player.questData, this.player.questState);
             }
 
             this.player.refreshStats();
@@ -522,6 +526,7 @@ export default class WorldScene extends Scene {
             this.net?.sendPlayerHp?.(this.player.hp, this.player.maxHp);
             this.net?.sendHeartbeat?.();
             this.player.saveState(true, { debounceMs: 0, reason: 'zone_arrival' });
+            this.game.quests?.notifyZoneEntered?.(targetZoneId);
             this._playZoneBgm(zoneData);
             this.ui?.updateMapContext?.(zoneData, travelState.meta);
             this.ui?.showCenterMessage?.(`${travelState.meta.name} 도착`, travelState.meta.accentColor || '#9fffc8', {

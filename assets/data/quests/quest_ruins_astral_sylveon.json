@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_ruins_astral_sylveon",
+  "enabled": true,
+  "title": "성좌의 님피아",
+  "description": "별그늘 유적의 보스 성좌의 님피아를 처치하세요.",
+  "type": "main",
+  "chapter": "zone_4",
+  "order": 440,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_ruins_gastly_40" }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted"]
+  },
+  "objectives": [
+    {
+      "id": "kill_astral_sylveon",
+      "type": "bossKill",
+      "target": "astral_sylveon",
+      "count": 1,
+      "zoneId": "zone_4",
+      "scope": "partyParticipants",
+      "receiptRequired": true,
+      "uiText": "성좌의 님피아 처치 {current}/{count}"
+    }
+  ],
+  "rewards": {
+    "display": [
+      { "type": "guide", "label": "성운의 지팡이 획득 가능" }
+    ]
+  },
+  "bossRewardGuide": {
+    "bossId": "astral_sylveon",
+    "itemId": "astral_staff",
+    "title": "성운의 지팡이 획득 가능",
+    "skillSummary": "체인 라이트닝과 기본 공격 계열을 최종 지역 테마로 강화합니다."
+  },
+  "ui": {
+    "guideOnly": true,
+    "hudPriority": 440,
+    "recommendedZone": "zone_4",
+    "chapterLabel": "Chapter 4 · 별그늘 유적",
+    "nextHint": "처치 후 현재 최종 챕터 정리와 반복 성장 안내가 열립니다."
+  },
+  "onComplete": {
+    "unlocks": ["quest_epilogue_current_end"],
+    "logMessage": "성좌의 님피아를 처치했습니다. 현재 최종 챕터를 완료했습니다.",
+    "recommendZone": "zone_4"
+  }
+}

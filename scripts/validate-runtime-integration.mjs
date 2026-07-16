@@ -2291,9 +2291,24 @@ async function validateQuestRuntimeStateSync() {
                 await readFile(new URL(`..${assetPath}`, import.meta.url), 'utf8')
             )
         },
+        zone: {
+            currentZone: { id: 'zone_1' },
+            zoneCatalog: [
+                { id: 'zone_1', name: '바람 언덕', requiredLevel: 1 },
+                { id: 'zone_2', name: '안개빛 호수', requiredLevel: 5 },
+                { id: 'zone_3', name: '뇌광 숲', requiredLevel: 10 },
+                { id: 'zone_4', name: '별그늘 유적', requiredLevel: 15 }
+            ],
+            getZoneMeta(id) {
+                return this.zoneCatalog.find((zone) => zone.id === id) || null;
+            }
+        },
         ui: {
             updateQuestUI() {},
             updateInventory() {},
+            updateStatusPopup() {},
+            showLevelUpEffect() {},
+            showExpGainHint() {},
             logSystemMessage() {}
         },
         monsterManager: { bossSpawned: false },
@@ -2332,6 +2347,32 @@ async function validateQuestRuntimeStateSync() {
         quests.getActiveQuests().find((quest) => quest.id === 'quest_slime_10')?.canComplete,
         true,
         'QuestManager must mark the first slime quest claimable from legacy questData'
+    );
+
+    player.level = 5;
+    player.questData.slimeQuestClaimed = true;
+    player.questData.slime30QuestClaimed = true;
+    player.questData.bossQuestClaimed = true;
+    player.questData.bossClearCount = 1;
+    quests.restoreFromLegacy(player.questData, player.questState);
+    assert.ok(
+        quests.getActiveQuests().some((quest) => quest.id === 'quest_to_misty_lake'),
+        'completed legacy boss data at level 5 must activate the zone_2 travel quest'
+    );
+
+    game.zone.currentZone = { id: 'zone_2' };
+    quests.notifyZoneEntered('zone_2');
+    assert.ok(
+        quests.getActiveQuests().some((quest) => quest.id === 'quest_lake_squirtle_12'),
+        'entering zone_2 must complete arrival flow and unlock the first lake kill quest'
+    );
+
+    player.currentZoneId = 'zone_2';
+    assert.equal(player.receiveReward({ questKill: 'squirtle', monsterName: 'Squirtle' }, { save: false }), true);
+    assert.equal(
+        quests.getActiveQuests().find((quest) => quest.id === 'quest_lake_squirtle_12')?.objectives[0]?.current,
+        1,
+        'non-legacy questKill receipts must advance JSON questState objectives'
     );
 
     window.game = previousGame;

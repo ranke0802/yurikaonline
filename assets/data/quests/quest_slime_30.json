@@ -1,28 +1,45 @@
 {
-    "id": "quest_slime_30",
-    "title": "슬라임 정화",
-    "description": "더 많은 슬라임을 처치하여 지역을 정화하세요. (누적 30마리)",
-    "type": "main",
-    "prerequisites": [
-        "quest_slime_10"
-    ],
-    "objectives": [
-        {
-            "type": "kill",
-            "target": "slime",
-            "count": 30,
-            "cumulative": true,
-            "description": "슬라임 처치: {current}/{count}"
-        }
-    ],
-    "rewards": {
-        "exp": 500,
-        "manastone": 1000
-    },
-    "onComplete": {
-        "message": "지역 정화 완료! 대왕 슬라임의 기운이 느껴집니다...",
-        "unlocks": [
-            "quest_boss_king_slime"
-        ]
+  "schemaVersion": 2,
+  "id": "quest_slime_30",
+  "enabled": true,
+  "title": "바람 언덕 정화",
+  "description": "슬라임을 누적 30마리 처치하여 대왕 슬라임을 불러낼 기운을 모으세요.",
+  "type": "main",
+  "chapter": "zone_1",
+  "order": 120,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_slime_10" }
+  ],
+  "activation": {
+    "mode": "manual",
+    "events": ["questCompleted"]
+  },
+  "objectives": [
+    {
+      "id": "kill_slime",
+      "type": "kill",
+      "target": "slime",
+      "count": 30,
+      "scope": "player",
+      "accumulate": true,
+      "uiText": "슬라임 누적 처치 {current}/{count}"
     }
+  ],
+  "rewards": {
+    "display": [
+      { "type": "stat", "label": "체력", "amount": 3 },
+      { "type": "guide", "label": "대왕 슬라임 소환" }
+    ]
+  },
+  "ui": {
+    "guideOnly": true,
+    "hudPriority": 120,
+    "recommendedZone": "zone_1",
+    "chapterLabel": "Chapter 1 · 바람 언덕",
+    "nextHint": "보상 수령 시 대왕 슬라임이 소환됩니다."
+  },
+  "onComplete": {
+    "logMessage": "지역 정화 완료! 대왕 슬라임의 기운이 느껴집니다.",
+    "unlocks": ["quest_boss_king_slime"]
+  }
 }

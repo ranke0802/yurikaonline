@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_forest_emolga_15",
+  "enabled": true,
+  "title": "흔들리는 나뭇가지",
+  "description": "번개날개 에몽가 15마리를 처치해 숲의 움직임을 읽으세요.",
+  "type": "main",
+  "chapter": "zone_3",
+  "order": 320,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_forest_arrival" },
+    { "type": "level", "level": 10 }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted", "zoneEntered"]
+  },
+  "objectives": [
+    {
+      "id": "kill_emolga",
+      "type": "kill",
+      "target": "emolga",
+      "count": 15,
+      "zoneId": "zone_3",
+      "scope": "player",
+      "accumulate": true,
+      "receiptRequired": true,
+      "uiText": "번개날개 에몽가 처치 {current}/{count}"
+    }
+  ],
+  "rewards": {
+    "grant": {
+      "exp": 360,
+      "manastone": 130
+    },
+    "display": [
+      { "type": "exp", "amount": 360 },
+      { "type": "manastone", "amount": 130 }
+    ]
+  },
+  "ui": {
+    "hudPriority": 320,
+    "recommendedZone": "zone_3",
+    "chapterLabel": "Chapter 3 · 뇌광 숲",
+    "nextHint": "번개길을 열려면 에몽가 무리를 더 정리해야 합니다."
+  },
+  "onComplete": {
+    "unlocks": ["quest_forest_emolga_35"],
+    "logMessage": "숲의 번개길이 조금씩 열리고 있습니다."
+  }
+}

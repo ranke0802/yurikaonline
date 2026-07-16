@@ -297,6 +297,14 @@ export default class CharacterSelectionScene extends Scene {
                     bossQuestClaimed: false,
                     bossClearCount: 0
                 },
+                questState: {
+                    schemaVersion: 2,
+                    active: {},
+                    completed: {},
+                    flags: {},
+                    recommendedZoneId: null,
+                    lastEventAt: 0
+                },
                 createdAt: Date.now()
             };
 

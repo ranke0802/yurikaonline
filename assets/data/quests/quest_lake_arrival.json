@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_lake_arrival",
+  "enabled": true,
+  "title": "안개 속 첫 발",
+  "description": "안개빛 호수에 도착했습니다. 물안개 사이의 몬스터를 정찰하세요.",
+  "type": "main",
+  "chapter": "zone_2",
+  "order": 210,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_to_misty_lake" }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted", "zoneEntered"]
+  },
+  "objectives": [
+    {
+      "id": "enter_lake",
+      "type": "travel",
+      "targetZone": "zone_2",
+      "count": 1,
+      "uiText": "안개빛 호수 적응 {current}/{count}"
+    }
+  ],
+  "rewards": {
+    "grant": {
+      "exp": 80,
+      "manastone": 40
+    },
+    "display": [
+      { "type": "exp", "amount": 80 },
+      { "type": "manastone", "amount": 40 }
+    ]
+  },
+  "ui": {
+    "hudPriority": 210,
+    "recommendedZone": "zone_2",
+    "chapterLabel": "Chapter 2 · 안개빛 호수",
+    "nextHint": "물방울 꼬부기를 처치해 호수의 흐름을 살펴보세요."
+  },
+  "onComplete": {
+    "unlocks": ["quest_lake_squirtle_12"],
+    "logMessage": "안개빛 호수 정찰을 시작합니다."
+  }
+}

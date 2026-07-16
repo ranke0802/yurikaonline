@@ -29,6 +29,8 @@ const REMOVED_ITEM_IDS = new Set(['slime_gel', 'potion_hp_small', 'royal_jelly',
 
 const BLESSED_WEAPON_UPGRADE_STONE_ID = 'blessed_weapon_upgrade_stone';
 const OPTION_REROLL_STONE_ID = 'option_reroll_stone';
+const LEGACY_QUEST_KILL_IDS = new Set(['slime', 'slime_split', 'king_slime']);
+const FIELD_BOSS_QUEST_KILL_IDS = new Set(['ruin_wobbuffet', 'thunder_pikachu', 'astral_sylveon']);
 const BLESSED_WEAPON_ENHANCEMENT = Object.freeze({
     successRate: 0.5,
     minGain: 1,
@@ -96,6 +98,14 @@ export default class Player extends CharacterBase {
             bossKilled: false,
             bossQuestClaimed: false,
             bossClearCount: 0 // v0.00.75+
+        };
+        this.questState = {
+            schemaVersion: 2,
+            active: {},
+            completed: {},
+            flags: {},
+            recommendedZoneId: null,
+            lastEventAt: 0
         };
 
         // PvP & Party (v0.00.14)
@@ -1207,6 +1217,7 @@ export default class Player extends CharacterBase {
             pendingItemRewards: this._cloneProfilePatchValue(this.pendingItemRewards),
             claimedRewardIds: this._cloneProfilePatchValue(this.claimedRewardIds.slice(-128)),
             questData: this.questData, // Added in v0.22.4
+            questState: this._cloneProfilePatchValue(this.questState),
             uiLayout: this._cloneProfilePatchValue(this.uiLayout),
             clientSettings: this._cloneProfilePatchValue(this.clientSettings),
             recoveryUid: this.recoveryUid || this.id,
@@ -1274,6 +1285,9 @@ export default class Player extends CharacterBase {
                     break;
                 case 'questData':
                     patch.questData = this._cloneProfilePatchValue(this.questData);
+                    break;
+                case 'questState':
+                    patch.questState = this._cloneProfilePatchValue(this.questState);
                     break;
                 case 'uiLayout':
                     patch.uiLayout = this._cloneProfilePatchValue(this.uiLayout);
@@ -2498,6 +2512,23 @@ export default class Player extends CharacterBase {
                 window.game?.quests?.restoreFromLegacy?.(this.questData);
             }
 
+            const questManager = window.game?.quests;
+            const currentZoneId = window.game?.zone?.currentZone?.id || this.currentZoneId || 'zone_1';
+            Object.entries(normalizedQuestKills).forEach(([questKillId, rawCount]) => {
+                if (!questManager || LEGACY_QUEST_KILL_IDS.has(questKillId)) return;
+                const killCount = Math.max(0, Number(rawCount || 0));
+                if (killCount <= 0) return;
+                questManager.handleEvent?.({
+                    type: (FIELD_BOSS_QUEST_KILL_IDS.has(questKillId) || data.bossReward === true) ? 'bossKilled' : 'monsterKilled',
+                    target: questKillId,
+                    zoneId: currentZoneId,
+                    count: killCount,
+                    source: 'rewardReceipt',
+                    receiptId: rewardId || null,
+                    rewardKind: data.rewardKind || null
+                });
+            });
+
             if (window.game?.ui) window.game.ui.updateQuestUI();
         }
 
@@ -2768,6 +2799,7 @@ export default class Player extends CharacterBase {
         this.refreshStats();
         this.hp = this.maxHp; // Heal on level up
         this.mp = this.maxMp;
+        window.game?.quests?.notifyLevelChanged?.(this.level);
 
         if (window.game?.ui) {
             window.game.ui.logSystemMessage(`✨ LEVEL UP! 현재 레벨: ${this.level}`);

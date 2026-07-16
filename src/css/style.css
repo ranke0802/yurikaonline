@@ -2160,6 +2160,11 @@ body.ui-layout-edit-mode #joystick-container[data-ui-layout-selected="true"] #jo
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--map-accent) 48%, transparent), 0 8px 24px rgba(50, 99, 89, 0.16);
 }
 
+.map-travel-card.is-quest-recommended {
+    border-color: color-mix(in srgb, var(--map-accent) 72%, #ffd76b);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--map-accent) 30%, transparent), 0 10px 26px rgba(63, 102, 96, 0.18);
+}
+
 .map-travel-card.is-locked {
     background: #f2f6f5;
     border-color: #c6d2d0;
@@ -2217,6 +2222,14 @@ body.ui-layout-edit-mode #joystick-container[data-ui-layout-selected="true"] #jo
 
 .map-travel-card .map-travel-boss {
     color: #775b35 !important;
+}
+
+.map-travel-card .map-travel-quest-hint {
+    padding: 7px 8px;
+    border-radius: 9px;
+    color: #31534f !important;
+    background: color-mix(in srgb, var(--map-accent) 14%, #fff);
+    font-weight: 700;
 }
 
 .map-travel-button {

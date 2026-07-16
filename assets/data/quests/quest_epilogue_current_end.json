@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_epilogue_current_end",
+  "enabled": true,
+  "title": "별빛의 끝",
+  "description": "현재 준비된 메인 챕터를 모두 완료했습니다. 보스 반복 사냥과 장비 강화를 이어가세요.",
+  "type": "main",
+  "chapter": "zone_4",
+  "order": 450,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_ruins_astral_sylveon" }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted"]
+  },
+  "objectives": [
+    {
+      "id": "current_end",
+      "type": "flag",
+      "key": "main.current_end.reached",
+      "value": true,
+      "count": 1,
+      "uiText": "장비 강화와 반복 보스 사냥으로 다음 업데이트를 준비하세요."
+    }
+  ],
+  "rewards": {
+    "display": [
+      { "type": "guide", "label": "현재 최종 콘텐츠 완료" }
+    ]
+  },
+  "ui": {
+    "guideOnly": true,
+    "hudPriority": 450,
+    "recommendedZone": "zone_4",
+    "chapterLabel": "Epilogue · 별빛의 끝",
+    "nextHint": "보스 무기 옵션 변경석, 강화석, 반복 보스 루프를 활용하세요."
+  },
+  "onComplete": {
+    "setFlags": {
+      "main.current_end.completed": true
+    },
+    "logMessage": "현재 메인 퀘스트 체인을 모두 완료했습니다."
+  }
+}

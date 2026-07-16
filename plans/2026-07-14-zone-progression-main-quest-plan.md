@@ -3,8 +3,8 @@
 ## 상태
 
 - 범위: 기획/아키텍처 계획
-- 구현 상태: 미구현
-- 목표 버전: 다음 콘텐츠 확장 패치
+- 구현 상태: 1차 적용 진행
+- 목표 버전: `0.02.055` 이후 콘텐츠 확장 패치
 - 기준 브랜치: `mmorpg_online`
 
 ## 1. 목표
@@ -822,3 +822,54 @@ HUD 퀘스트 카드에 다음 상태를 추가한다.
 8. 퀘스트 목표 수치/보상/문구 변경은 런타임 코드 수정 없이 가능하다.
 9. 퀘스트 삭제/교체는 `enabled`, `deprecated`, `replacementId`, `migration` 정책으로 안전하게 처리된다.
 10. `UIManager`와 `Player.receiveReward()`에 신규 퀘스트 ID별 분기가 추가되지 않는다.
+
+## 13. 2026-07-15 1차 적용 판단 및 구현 범위
+
+### 채택한 조언
+
+현재 프로젝트에는 다음 방향을 즉시 적용하는 것이 좋다.
+
+1. 퀘스트 목록은 코드 하드코딩 대신 `assets/data/quests/quest_catalog.json`에서 관리한다.
+2. 기존 `questData`는 삭제하지 않고, 신규 진행형 퀘스트는 `questState.schemaVersion = 2`에 저장한다.
+3. `UIManager`는 신규 퀘스트를 직접 해석하지 않고 `QuestManager.getHudQuestView()` / `getMapTravelQuestView()`가 만든 ViewModel을 우선 사용한다.
+4. 일반 몬스터/보스 처치 판정은 기존 보상 영수증 흐름을 유지하고, 수신 시 `QuestManager.handleEvent()`로 변환한다.
+5. 보스 전용 무기는 퀘스트 JSON이 직접 지급하지 않고 `bossRewardGuide`로만 안내한다. 실제 지급은 기존 durable boss reward/drop 경로가 맡는다.
+6. 맵 이동은 강제 워프가 아니라 미니맵 이동 모달의 추천 배지/CTA로 유도한다.
+
+### 보류한 조언
+
+다음은 좋은 방향이지만 이번 1차 적용에서는 보류한다.
+
+1. `UIManager.updateQuestUI()`의 슬라임 전용 분기 완전 제거
+   - 이유: 기존 슬라임 보상 수령/반복 대왕 슬라임 소환이 `questData`와 UI 청구 버튼에 강하게 묶여 있다.
+   - 1차에서는 신규 JSON 퀘스트가 있을 때만 ViewModel 렌더링을 사용하고, 슬라임 루프는 레거시 UI를 유지한다.
+2. 선행 보스 미토벌 시 맵 이동 하드락
+   - 이유: 기존 계정/친구 필드/재접속 흐름에서 막힘이 생길 수 있다.
+   - 1차에서는 레벨 제한만 하드락으로 유지하고, 선행 퀘스트는 추천/안내로 처리한다.
+3. 퀘스트 액션의 광범위한 상태 변경
+   - 이유: JSON이 보스 소환/인벤토리/월드 상태를 직접 바꾸면 디버깅이 어려워진다.
+   - 1차에서는 `unlocks`, `recommendZone`, `setFlags`, 보상 안내 중심으로 제한한다.
+
+### 1차 적용 파일
+
+- `assets/data/quests/quest_catalog.json`
+- `assets/data/quests/quest_*.json`
+- `src/js/core/QuestManager.js`
+- `src/js/entities/Player.js`
+- `src/js/world/MonsterManager.js`
+- `src/js/world/scenes/WorldScene.js`
+- `src/js/world/scenes/CharacterSelectionScene.js`
+- `src/js/ui/UIManager.js`
+- `src/css/style.css`
+- `scripts/validate-quest-content.js`
+- `package.json`
+
+### 1차 적용 완료 기준
+
+1. 기존 슬라임 10/30/대왕 슬라임/반복 보스 루프가 그대로 유지된다.
+2. `zone_2 → zone_4` 메인 퀘스트는 JSON + 카탈로그 기반으로 로드된다.
+3. 새 퀘스트 진행도는 `questState.active[questId].objectives[objectiveId]`에 저장된다.
+4. 보상 영수증의 `questKill`/`questKills`는 신규 퀘스트 이벤트로 들어간다.
+5. 필드 보스 퀘스트 인정은 보스 참여자 기준으로 적용된다.
+6. 미니맵 이동 모달은 현재 메인 퀘스트 추천 맵을 표시한다.
+7. `npm run validate:quests`가 퀘스트 파일/참조/순환을 검증한다.

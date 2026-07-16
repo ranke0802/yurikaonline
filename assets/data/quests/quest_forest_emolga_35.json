@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_forest_emolga_35",
+  "enabled": true,
+  "title": "번개길 개방",
+  "description": "번개날개 에몽가를 누적 35마리 처치해 뇌제의 길을 여세요.",
+  "type": "main",
+  "chapter": "zone_3",
+  "order": 330,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_forest_emolga_15" }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted"]
+  },
+  "objectives": [
+    {
+      "id": "kill_emolga",
+      "type": "kill",
+      "target": "emolga",
+      "count": 35,
+      "zoneId": "zone_3",
+      "scope": "player",
+      "accumulate": true,
+      "receiptRequired": true,
+      "uiText": "번개날개 에몽가 누적 처치 {current}/{count}"
+    }
+  ],
+  "rewards": {
+    "grant": {
+      "exp": 620,
+      "manastone": 210
+    },
+    "display": [
+      { "type": "exp", "amount": 620 },
+      { "type": "manastone", "amount": 210 }
+    ]
+  },
+  "ui": {
+    "hudPriority": 330,
+    "recommendedZone": "zone_3",
+    "chapterLabel": "Chapter 3 · 뇌광 숲",
+    "nextHint": "뇌제 피카츄가 숲 중심부에 나타납니다."
+  },
+  "onComplete": {
+    "unlocks": ["quest_forest_thunder_pikachu"],
+    "logMessage": "뇌제의 시험에 도전할 수 있습니다."
+  }
+}

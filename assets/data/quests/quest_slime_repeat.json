@@ -1,25 +1,43 @@
 {
-    "id": "quest_slime_repeat",
-    "title": "슬라임 반복 토벌",
-    "description": "슬라임 50마리를 처치하세요. (반복 퀘스트)",
-    "type": "repeat",
-    "prerequisites": [
-        "quest_boss_king_slime"
-    ],
-    "objectives": [
-        {
-            "type": "kill",
-            "target": "slime",
-            "count": 50,
-            "description": "슬라임 처치: {current}/{count}"
-        }
-    ],
-    "rewards": {
-        "exp": 100,
-        "manastone": 300
-    },
-    "onComplete": {
-        "message": "반복 토벌 완료! 보상을 수령하세요.",
-        "unlocks": []
+  "schemaVersion": 2,
+  "id": "quest_slime_repeat",
+  "enabled": true,
+  "title": "슬라임 잔당 정리",
+  "description": "대왕 슬라임이 사라진 뒤 남은 슬라임 50마리를 처치하면 다시 보스를 소환할 수 있습니다.",
+  "type": "repeat",
+  "chapter": "zone_1",
+  "order": 190,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_boss_king_slime" }
+  ],
+  "activation": {
+    "mode": "manual",
+    "events": ["questCompleted"]
+  },
+  "objectives": [
+    {
+      "id": "kill_slime",
+      "type": "kill",
+      "target": "slime",
+      "count": 50,
+      "scope": "player",
+      "uiText": "슬라임 잔당 처치 {current}/{count}"
     }
+  ],
+  "rewards": {
+    "display": [
+      { "type": "guide", "label": "대왕 슬라임 재소환" }
+    ]
+  },
+  "ui": {
+    "guideOnly": true,
+    "hudPriority": 900,
+    "recommendedZone": "zone_1",
+    "chapterLabel": "반복 의뢰 · 바람 언덕",
+    "nextHint": "메인 퀘스트가 막힐 때 성장 보정용으로 진행하세요."
+  },
+  "onComplete": {
+    "logMessage": "슬라임 잔당 정리가 끝났습니다. 대왕 슬라임을 다시 소환할 수 있습니다.",
+    "unlocks": []
+  }
 }

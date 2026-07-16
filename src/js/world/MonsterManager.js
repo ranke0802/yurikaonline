@@ -2113,7 +2113,12 @@ export default class MonsterManager {
                         // deterministic receipt. During a host handoff the old
                         // and new host can briefly observe the same death, but
                         // only one profile mutation may be committed.
-                        this._grantMonsterQuestCredit(m, attackerId);
+                        const questCreditRecipients = m.isBoss
+                            ? this._getMonsterParticipantIds(m, attackerId)
+                            : [attackerId];
+                        questCreditRecipients
+                            .filter(Boolean)
+                            .forEach((uid) => this._grantMonsterQuestCredit(m, uid));
 
                         if (m.typeId === 'slime_split') {
                             for (let i = 0; i < 2; i++) {
