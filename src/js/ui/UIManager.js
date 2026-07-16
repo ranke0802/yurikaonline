@@ -101,8 +101,7 @@ export class UIManager {
         };
         this.activeSkillDetailId = null;
         this.settingsStorageKey = 'yurika_settings_v1';
-        this.uiLayoutStorageKeyBase = 'yurika_ui_layout_v1';
-        this.uiLayoutStorageKey = this.uiLayoutStorageKeyBase;
+        this.uiLayoutStorageKey = 'yurika_ui_layout_v1';
         this.devAccessStateStorageKey = 'yurika_dev_access_guard_v1';
         this.devPassword = '3k78a4';
         this.devAccessGranted = false;
@@ -111,8 +110,8 @@ export class UIManager {
         this.settings = this.loadSettings();
         this.devAccessState = this.loadDevAccessState();
         this.ensureFullscreenControlButtons();
-        this.uiLayoutSchemaVersion = 4;
         this.uiLayoutControlDefinitions = {
+            'version-info-badge': { label: '버전 정보', selector: '.version-info', modes: ['desktop', 'mobilePortrait'], minScale: 0.75, maxScale: 1.5, scaleMode: 'transform', baseScale: 1, zIndex: 1280, margin: 8 },
             'dev-overlay-panel': { label: '개발 오버레이', selector: '#dev-overlay', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 2.4, scaleMode: 'transform', zIndex: 2305, margin: 8, requiresVisibleElement: true },
             'hud-top-bar': { label: '프로필/HP 패널', selector: '.top-bar', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform' },
             'quest-panel': { label: '퀘스트창', selector: '.quest-list-panel', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', positioningContext: 'parent', parentSelector: '.left-ui-container' },
@@ -124,23 +123,9 @@ export class UIManager {
             'action-skill-k': { label: '스킬 K', selector: '#action-skill-k', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
             'action-skill-h': { label: '스킬 H', selector: '#action-skill-h', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
             'action-attack-j': { label: '기본 공격', selector: '#action-attack-j', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
-            'action-auto-toggle': { label: '오토 버튼', selector: '#action-auto-toggle', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8, zIndex: 1495 },
-            'party-panel': { label: '파티 목록', selector: '#party-panel', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', zIndex: 1535, margin: 8, requiresVisibleElement: true, defaultOpacity: 0.95 }
+            'action-auto-toggle': { label: '오토 버튼', selector: '#action-auto-toggle', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 }
         };
         this.uiLayoutPresetDefaults = {
-            mobilePortrait: {
-                'action-attack-j': { left: 0.7177662054697672, top: 0.7758404864091559, scale: 1 },
-                'action-auto-toggle': { left: 0.791015625, top: 0.5501608568881885, scale: 1 },
-                'action-skill-h': { left: 0.442626953125, top: 0.7968302932761088, scale: 1 },
-                'action-skill-k': { left: 0.7810763915379842, top: 0.6258717811158798, scale: 1 },
-                'action-skill-u': { left: 0.5506184895833334, top: 0.6757644849785408, scale: 1 },
-                'chat-panel': { left: 0.03125, top: 0.29018689156942956, scale: 1 },
-                'hud-top-bar': { left: 0.026041666666666668, top: 0.01430615164520744, scale: 1 },
-                joystick: { left: 0.041666666666666664, top: 0.6800786838340487, scale: 0.96 },
-                'minimap-panel': { left: 0.7319921851158142, top: 0.017167381974248927, scale: 1 },
-                'quest-panel': { left: 0.026041666666666668, top: 0.10014306151645208, scale: 1 },
-                'quick-menu-panel': { left: 0.145263671875, top: 0.9334007012144862, scale: 0.86 },
-            },
             mobileLandscape: {
                 'action-attack-j': { left: 0.7816586239103362, top: 0.6424967447916666, scale: 0.85 },
                 'action-auto-toggle': { left: 0.7998622262463029, top: 0.2155175805091858, scale: 1 },
@@ -150,9 +135,9 @@ export class UIManager {
                 'chat-panel': { left: 0.3316274906600249, top: 0.721435546875, scale: 1 },
                 'hud-top-bar': { left: 0.01, top: 0.020833333333333332, scale: 1 },
                 joystick: { left: 0.034869240348692404, top: 0.6041666666666666, scale: 1 },
-                'minimap-panel': { left: 0.8844956413449564, top: 0.03125, scale: 1 },
+                'minimap-panel': { left: 0.8844956413449564, top: 0.03125, scale: 0.79 },
                 'quest-panel': { left: 0.014943960149439602, top: 0.18888346354166666, scale: 1 },
-                'quick-menu-panel': { left: 0.8058647260273972, top: 0.52, scale: 0.84 }
+                'quick-menu-panel': { left: 0.8058647260273972, top: 0.3046875, scale: 0.84 }
             }
         };
         this.uiLayoutEditMode = false;
@@ -963,44 +948,6 @@ export class UIManager {
         return document.querySelector(definition.parentSelector);
     }
 
-    clearActionButtonsLayoutSurfaceStyles() {
-        const actionButtons = document.querySelector('.action-buttons');
-        const properties = [
-            'position', 'inset', 'left', 'top', 'right', 'bottom',
-            'width', 'height', 'display', 'overflow', 'pointer-events',
-            'opacity', 'visibility', 'transform', 'transform-origin', 'z-index',
-            '--ui-action-opacity'
-        ];
-        properties.forEach((property) => actionButtons?.style?.removeProperty(property));
-        if (actionButtons?.dataset) {
-            delete actionButtons.dataset.uiLayoutEditable;
-            delete actionButtons.dataset.uiLayoutSelected;
-            delete actionButtons.dataset.uiLayoutAppliedScale;
-            delete actionButtons.dataset.uiLayoutControlId;
-        }
-        actionButtons?.querySelectorAll?.('.skill-row')?.forEach((skillRow) => {
-            ['position', 'inset', 'left', 'top', 'right', 'bottom', 'width', 'height', 'display'].forEach((property) => {
-                skillRow.style.removeProperty(property);
-            });
-        });
-        actionButtons?.querySelectorAll?.('.skill-btn, .attack-btn, .attack-auto-toggle')?.forEach((button) => {
-            delete button.dataset.uiLayoutEditable;
-            delete button.dataset.uiLayoutSelected;
-            delete button.dataset.uiLayoutAppliedScale;
-            [
-                'position', 'inset', 'left', 'top', 'right', 'bottom', 'margin',
-                'z-index', 'width', 'height', 'min-width', 'max-width', 'max-height',
-                'padding', 'font-size', 'display', 'visibility', 'pointer-events',
-                'align-items', 'justify-content', 'overflow', 'transform',
-                'transform-origin', 'will-change', 'opacity'
-            ].forEach((property) => {
-                button.style.removeProperty(property);
-            });
-            const icon = button.querySelector('.inner-icon');
-            icon?.style?.removeProperty('font-size');
-        });
-    }
-
     bindUiLayoutControlHandles() {
         Object.keys(this.uiLayoutControlDefinitions).forEach((controlId) => {
             const element = this.getUiLayoutControlElement(controlId);
@@ -1061,41 +1008,12 @@ export class UIManager {
         const left = Number(entry.left);
         const top = Number(entry.top);
         const scale = Number(entry.scale);
-        const opacity = Number(entry.opacity);
         if (!Number.isFinite(left) || !Number.isFinite(top)) return null;
-        const minOpacity = Number.isFinite(definition.minOpacity) ? definition.minOpacity : 0.35;
-        const maxOpacity = Number.isFinite(definition.maxOpacity) ? definition.maxOpacity : 1;
-        const defaultOpacity = Number.isFinite(definition.defaultOpacity) ? definition.defaultOpacity : 1;
         return {
             left: Math.min(0.97, Math.max(0.01, left)),
             top: Math.min(0.97, Math.max(0.01, top)),
-            scale: Math.min(definition.maxScale || 1.8, Math.max(definition.minScale || 0.7, Number.isFinite(scale) ? scale : 1)),
-            opacity: Math.min(maxOpacity, Math.max(minOpacity, Number.isFinite(opacity) ? opacity : defaultOpacity))
+            scale: Math.min(definition.maxScale || 1.8, Math.max(definition.minScale || 0.7, Number.isFinite(scale) ? scale : 1))
         };
-    }
-
-    migrateLegacyUiLayoutEntry(mode, controlId, entry, layoutVersion = 1) {
-        if (!entry || layoutVersion >= this.uiLayoutSchemaVersion) return entry;
-
-        const nextEntry = { ...entry };
-        if (controlId === 'minimap-panel') {
-            const legacyScale = mode === 'mobileLandscape'
-                ? 0.79
-                : (mode === 'mobilePortrait' ? 0.87 : null);
-            if (Number.isFinite(legacyScale) && Math.abs(nextEntry.scale - legacyScale) <= 0.025) {
-                nextEntry.scale = 1;
-            }
-        }
-
-        if (
-            controlId === 'quick-menu-panel'
-            && mode === 'mobileLandscape'
-            && Math.abs(nextEntry.top - 0.3046875) <= 0.025
-        ) {
-            nextEntry.top = 0.52;
-        }
-
-        return nextEntry;
     }
 
     sanitizeUiLayout(layout) {
@@ -1104,19 +1022,16 @@ export class UIManager {
             ? layout.layouts
             : layout;
         const updatedAt = Math.max(0, Number(layout.updatedAt || 0) || 0);
-        const sourceVersion = Math.max(1, Number(layout.version || 1) || 1);
         const sanitizedLayouts = {};
 
         ['desktop', 'mobilePortrait', 'mobileLandscape'].forEach((mode) => {
             const rawMode = rawLayouts?.[mode];
             if (!rawMode || typeof rawMode !== 'object') return;
             const nextMode = {};
-            Object.entries(this.uiLayoutControlDefinitions)
-                .filter(([, definition]) => definition.modes.includes(mode))
-                .forEach(([controlId, definition]) => {
-                    const entry = this.sanitizeUiLayoutEntry(rawMode[controlId], definition);
-                    if (entry) nextMode[controlId] = this.migrateLegacyUiLayoutEntry(mode, controlId, entry, sourceVersion);
-                });
+            this.getUiLayoutControlsForMode(mode).forEach(([controlId, definition]) => {
+                const entry = this.sanitizeUiLayoutEntry(rawMode[controlId], definition);
+                if (entry) nextMode[controlId] = entry;
+            });
             if (Object.keys(nextMode).length > 0) {
                 sanitizedLayouts[mode] = nextMode;
             }
@@ -1124,7 +1039,7 @@ export class UIManager {
 
         if (Object.keys(sanitizedLayouts).length === 0) return null;
         const sanitized = {
-            version: this.uiLayoutSchemaVersion,
+            version: 1,
             layouts: sanitizedLayouts
         };
         if (updatedAt > 0) {
@@ -1146,25 +1061,9 @@ export class UIManager {
         });
     }
 
-    getUiLayoutStorageOwnerId() {
-        const ownerId = this.game?.localPlayer?.id
-            || this.game?.net?.playerId
-            || this.game?.net?._accountSessionUid
-            || null;
-        const normalized = typeof ownerId === 'string' ? ownerId.trim() : '';
-        return normalized || null;
-    }
-
-    getUiLayoutStorageKey(ownerId = this.getUiLayoutStorageOwnerId()) {
-        const normalized = typeof ownerId === 'string' ? ownerId.trim() : '';
-        if (!normalized) return this.uiLayoutStorageKeyBase;
-        const safeOwnerId = normalized.replace(/[^A-Za-z0-9_-]/g, '_');
-        return `${this.uiLayoutStorageKeyBase}:${safeOwnerId}`;
-    }
-
     loadStoredUiLayout() {
         try {
-            const raw = localStorage.getItem(this.getUiLayoutStorageKey());
+            const raw = localStorage.getItem(this.uiLayoutStorageKey);
             if (!raw) return null;
             return this.sanitizeUiLayout(JSON.parse(raw));
         } catch (error) {
@@ -1176,12 +1075,11 @@ export class UIManager {
     persistUiLayoutToStorage(layout) {
         try {
             const sanitized = this.sanitizeUiLayout(layout);
-            const storageKey = this.getUiLayoutStorageKey();
             if (!sanitized) {
-                localStorage.removeItem(storageKey);
+                localStorage.removeItem(this.uiLayoutStorageKey);
                 return false;
             }
-            localStorage.setItem(storageKey, JSON.stringify(sanitized));
+            localStorage.setItem(this.uiLayoutStorageKey, JSON.stringify(sanitized));
             return true;
         } catch (error) {
             Logger.warn('[UIManager] Failed to save UI layout', error);
@@ -1192,8 +1090,7 @@ export class UIManager {
     clearLocalCharacterCaches() {
         try {
             localStorage.removeItem('yurika_player_name');
-            localStorage.removeItem(this.getUiLayoutStorageKey());
-            localStorage.removeItem(this.uiLayoutStorageKeyBase);
+            localStorage.removeItem(this.uiLayoutStorageKey);
         } catch (error) {
             Logger.warn('[UIManager] Failed to clear local character caches', error);
         }
@@ -1206,12 +1103,8 @@ export class UIManager {
     }
 
     getUiLayoutModeEntries(source = this.getResolvedUiLayoutSource(), mode = this.getUiLayoutMode()) {
-        const defaults = this.captureDefaultUiLayoutForMode(mode) || {};
-        const stored = this.getStoredUiLayoutModeEntries(source, mode) || {};
-        return {
-            ...defaults,
-            ...stored
-        };
+        return this.getStoredUiLayoutModeEntries(source, mode)
+            || this.captureDefaultUiLayoutForMode(mode);
     }
 
     getStoredUiLayoutModeEntries(source = this.getResolvedUiLayoutSource(), mode = this.getUiLayoutMode()) {
@@ -1252,26 +1145,18 @@ export class UIManager {
         return {
             left: rect.left / viewportW,
             top: rect.top / viewportH,
-            scale: 1,
-            opacity: 1
+            scale: 1
         };
     }
 
     clearUiLayoutRuntimeStyles() {
-        this.clearActionButtonsLayoutSurfaceStyles();
         Object.keys(this.uiLayoutControlDefinitions).forEach((controlId) => {
             const element = this.getUiLayoutControlElement(controlId);
             if (!element) return;
             delete element.dataset.uiLayoutEditable;
             delete element.dataset.uiLayoutSelected;
             delete element.dataset.uiLayoutAppliedScale;
-            [
-                'position', 'inset', 'left', 'top', 'right', 'bottom', 'margin',
-                'z-index', 'width', 'height', 'min-width', 'max-width', 'max-height',
-                'padding', 'font-size', 'display', 'visibility', 'pointer-events',
-                'align-items', 'justify-content', 'overflow', 'transform',
-                'transform-origin', 'will-change', 'opacity'
-            ].forEach((property) => {
+            ['position', 'left', 'top', 'right', 'bottom', 'margin', 'z-index', 'width', 'height', 'min-width', 'padding', 'font-size', 'display', 'transform', 'transform-origin', 'will-change'].forEach((property) => {
                 element.style.removeProperty(property);
             });
             const icon = element.querySelector('.inner-icon, .paw-icon');
@@ -1324,7 +1209,6 @@ export class UIManager {
             const approxSize = 118 * safeEntry.scale;
             const position = this.computeUiLayoutPosition(safeEntry, approxSize, approxSize, 16);
             element.style.setProperty('position', 'fixed', 'important');
-            element.style.setProperty('inset', 'auto', 'important');
             element.style.setProperty('left', `${position.left}px`, 'important');
             element.style.setProperty('top', `${position.top}px`, 'important');
             element.style.setProperty('right', 'auto', 'important');
@@ -1332,7 +1216,6 @@ export class UIManager {
             element.style.setProperty('display', 'flex', 'important');
             element.style.setProperty('transform', `scale(${safeEntry.scale})`, 'important');
             element.style.setProperty('transform-origin', 'top left', 'important');
-            element.style.setProperty('opacity', String(safeEntry.opacity), 'important');
             element.style.setProperty('z-index', '1490', 'important');
             return;
         }
@@ -1363,21 +1246,12 @@ export class UIManager {
         }
 
         element.style.setProperty('position', positionMode, 'important');
-        element.style.setProperty('inset', 'auto', 'important');
         element.style.setProperty('left', `${position.left}px`, 'important');
         element.style.setProperty('top', `${position.top}px`, 'important');
         element.style.setProperty('right', 'auto', 'important');
         element.style.setProperty('bottom', 'auto', 'important');
         element.style.setProperty('margin', '0', 'important');
-        element.style.setProperty('opacity', String(safeEntry.opacity), 'important');
-        element.style.setProperty('z-index', String(definition?.zIndex || 1490), 'important');
-        if (controlId.startsWith('action-')) {
-            element.style.setProperty('display', controlId === 'action-auto-toggle' ? 'inline-flex' : 'flex', 'important');
-            element.style.setProperty('visibility', 'visible', 'important');
-            element.style.setProperty('pointer-events', 'auto', 'important');
-            element.style.setProperty('align-items', 'center', 'important');
-            element.style.setProperty('justify-content', 'center', 'important');
-        }
+        element.style.setProperty('z-index', String(definition?.zIndex || (controlId === 'action-auto-toggle' ? 1495 : 1490)), 'important');
 
         if (definition?.scaleMode === 'transform') {
             const configuredBaseScale = Number(definition?.baseScale);
@@ -1414,11 +1288,13 @@ export class UIManager {
         const mode = this.getUiLayoutMode();
         const controls = this.getUiLayoutControlsForMode(mode);
         const supportsJoystick = controls.some(([controlId]) => controlId === 'joystick');
-        const storedEntries = this.getStoredUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode);
         const presetEntries = this.getUiLayoutPresetForMode(mode);
         const entries = this.uiLayoutEditMode
             ? this.getUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode)
-            : (storedEntries ? { ...(presetEntries || {}), ...storedEntries } : (presetEntries || null));
+            : (
+                this.getStoredUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode)
+                || (presetEntries ? this.captureDefaultUiLayoutForMode(mode) : null)
+            );
         Object.entries(entries || {}).forEach(([controlId, entry]) => {
             if (controlId === 'joystick' && !this.uiLayoutEditMode) return;
             this.applyUiLayoutControl(controlId, entry);
@@ -1457,7 +1333,7 @@ export class UIManager {
 
     ensureUiLayoutDraftMode(mode = this.getUiLayoutMode()) {
         if (!this.uiLayoutDraft || typeof this.uiLayoutDraft !== 'object') {
-            this.uiLayoutDraft = { version: this.uiLayoutSchemaVersion, layouts: {} };
+            this.uiLayoutDraft = { version: 1, layouts: {} };
         }
         if (!this.uiLayoutDraft.layouts || typeof this.uiLayoutDraft.layouts !== 'object') {
             this.uiLayoutDraft.layouts = {};
@@ -1526,8 +1402,6 @@ export class UIManager {
         const select = document.getElementById('ui-layout-target-select');
         const sizeRange = document.getElementById('ui-layout-size-range');
         const sizeValue = document.getElementById('ui-layout-size-value');
-        const opacityRange = document.getElementById('ui-layout-opacity-range');
-        const opacityValue = document.getElementById('ui-layout-opacity-value');
         const modeLabel = document.getElementById('ui-layout-mode-label');
 
         if (modeLabel) {
@@ -1550,21 +1424,12 @@ export class UIManager {
         const minScale = selectedDefinition?.minScale || 0.7;
         const maxScale = selectedDefinition?.maxScale || 1.8;
         const percent = Math.round((currentEntry?.scale || 1) * 100);
-        const minOpacity = Number.isFinite(selectedDefinition?.minOpacity) ? selectedDefinition.minOpacity : 0.35;
-        const maxOpacity = Number.isFinite(selectedDefinition?.maxOpacity) ? selectedDefinition.maxOpacity : 1;
-        const opacityPercent = Math.round((Number.isFinite(currentEntry?.opacity) ? currentEntry.opacity : 1) * 100);
         if (sizeRange) {
             sizeRange.min = String(Math.round(minScale * 100));
             sizeRange.max = String(Math.round(maxScale * 100));
             sizeRange.value = String(Math.min(Math.round(maxScale * 100), Math.max(Math.round(minScale * 100), percent)));
         }
         if (sizeValue) sizeValue.textContent = `${percent}%`;
-        if (opacityRange) {
-            opacityRange.min = String(Math.round(minOpacity * 100));
-            opacityRange.max = String(Math.round(maxOpacity * 100));
-            opacityRange.value = String(Math.min(Math.round(maxOpacity * 100), Math.max(Math.round(minOpacity * 100), opacityPercent)));
-        }
-        if (opacityValue) opacityValue.textContent = `${opacityPercent}%`;
     }
 
     selectUiLayoutControl(controlId) {
@@ -1579,8 +1444,8 @@ export class UIManager {
     enterUiLayoutEditMode() {
         if (!this.game.localPlayer) return;
         if (this.uiLayoutEditMode) return;
-        const baseLayout = this.sanitizeUiLayout(this.game.localPlayer?.uiLayout) || { version: this.uiLayoutSchemaVersion, layouts: {} };
-        this.uiLayoutDraft = this.cloneStructuredData(baseLayout) || { version: this.uiLayoutSchemaVersion, layouts: {} };
+        const baseLayout = this.sanitizeUiLayout(this.game.localPlayer?.uiLayout) || { version: 1, layouts: {} };
+        this.uiLayoutDraft = this.cloneStructuredData(baseLayout) || { version: 1, layouts: {} };
         this.uiLayoutEditMode = true;
         this.game.touch?.resetState?.();
         this.game.input?.setEnabled?.(false);
@@ -1721,7 +1586,7 @@ export class UIManager {
         const player = this.game.localPlayer;
         if (!player) return;
 
-        const current = this.sanitizeUiLayout(player.uiLayout) || { version: this.uiLayoutSchemaVersion, layouts: {} };
+        const current = this.sanitizeUiLayout(player.uiLayout) || { version: 1, layouts: {} };
         const mode = this.getUiLayoutMode();
         if (!current.layouts?.[mode]) return;
 
@@ -4923,12 +4788,6 @@ export class UIManager {
             if (!this.uiLayoutSelectedControlId) return;
             this.updateUiLayoutEntry(this.uiLayoutSelectedControlId, {
                 scale: Number(e.currentTarget.value) / 100
-            });
-        });
-        document.getElementById('ui-layout-opacity-range')?.addEventListener('input', (e) => {
-            if (!this.uiLayoutSelectedControlId) return;
-            this.updateUiLayoutEntry(this.uiLayoutSelectedControlId, {
-                opacity: Number(e.currentTarget.value) / 100
             });
         });
         document.getElementById('ui-layout-reset-selected')?.addEventListener('click', () => {
