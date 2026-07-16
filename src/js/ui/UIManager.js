@@ -110,7 +110,7 @@ export class UIManager {
         this.settings = this.loadSettings();
         this.devAccessState = this.loadDevAccessState();
         this.ensureFullscreenControlButtons();
-        this.uiLayoutSchemaVersion = 3;
+        this.uiLayoutSchemaVersion = 4;
         this.uiLayoutControlDefinitions = {
             'dev-overlay-panel': { label: '개발 오버레이', selector: '#dev-overlay', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 2.4, scaleMode: 'transform', zIndex: 2305, margin: 8, requiresVisibleElement: true },
             'hud-top-bar': { label: '프로필/HP 패널', selector: '.top-bar', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform' },
@@ -118,12 +118,21 @@ export class UIManager {
             'chat-panel': { label: '채팅창', selector: '.chat-window', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', positioningContext: 'parent', parentSelector: '.left-ui-container' },
             'minimap-panel': { label: '미니맵', selector: '#minimap-container', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform' },
             'quick-menu-panel': { label: '메뉴 묶음', selector: '.minimap-menu', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8, scaleMode: 'transform' },
-            'action-buttons-panel': { label: '스킬/공격 버튼', selector: '.action-buttons', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8, scaleMode: 'transform', zIndex: 1360 },
             joystick: { label: '조이스틱', selector: '#joystick-container', modes: ['mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8, scaleMode: 'transform' },
+            'action-skill-u': { label: '스킬 U', selector: '#action-skill-u', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
+            'action-skill-k': { label: '스킬 K', selector: '#action-skill-k', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
+            'action-skill-h': { label: '스킬 H', selector: '#action-skill-h', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
+            'action-attack-j': { label: '기본 공격', selector: '#action-attack-j', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8 },
+            'action-auto-toggle': { label: '오토 버튼', selector: '#action-auto-toggle', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.7, maxScale: 1.8, zIndex: 1495 },
             'party-panel': { label: '파티 목록', selector: '#party-panel', modes: ['desktop', 'mobilePortrait', 'mobileLandscape'], minScale: 0.65, maxScale: 1.8, scaleMode: 'transform', zIndex: 1535, margin: 8, requiresVisibleElement: true, defaultOpacity: 0.95 }
         };
         this.uiLayoutPresetDefaults = {
             mobilePortrait: {
+                'action-attack-j': { left: 0.7177662054697672, top: 0.7758404864091559, scale: 1 },
+                'action-auto-toggle': { left: 0.791015625, top: 0.5501608568881885, scale: 1 },
+                'action-skill-h': { left: 0.442626953125, top: 0.7968302932761088, scale: 1 },
+                'action-skill-k': { left: 0.7810763915379842, top: 0.6258717811158798, scale: 1 },
+                'action-skill-u': { left: 0.5506184895833334, top: 0.6757644849785408, scale: 1 },
                 'chat-panel': { left: 0.03125, top: 0.29018689156942956, scale: 1 },
                 'hud-top-bar': { left: 0.026041666666666668, top: 0.01430615164520744, scale: 1 },
                 joystick: { left: 0.041666666666666664, top: 0.6800786838340487, scale: 0.96 },
@@ -132,6 +141,11 @@ export class UIManager {
                 'quick-menu-panel': { left: 0.145263671875, top: 0.9334007012144862, scale: 0.86 },
             },
             mobileLandscape: {
+                'action-attack-j': { left: 0.7816586239103362, top: 0.6424967447916666, scale: 0.85 },
+                'action-auto-toggle': { left: 0.7998622262463029, top: 0.2155175805091858, scale: 1 },
+                'action-skill-h': { left: 0.6534674657534246, top: 0.7356770833333334, scale: 0.85 },
+                'action-skill-k': { left: 0.787963107098381, top: 0.441162109375, scale: 0.85 },
+                'action-skill-u': { left: 0.6885118306351183, top: 0.527587890625, scale: 0.85 },
                 'chat-panel': { left: 0.3316274906600249, top: 0.721435546875, scale: 1 },
                 'hud-top-bar': { left: 0.01, top: 0.020833333333333332, scale: 1 },
                 joystick: { left: 0.034869240348692404, top: 0.6041666666666666, scale: 1 },
@@ -957,6 +971,12 @@ export class UIManager {
             '--ui-action-opacity'
         ];
         properties.forEach((property) => actionButtons?.style?.removeProperty(property));
+        if (actionButtons?.dataset) {
+            delete actionButtons.dataset.uiLayoutEditable;
+            delete actionButtons.dataset.uiLayoutSelected;
+            delete actionButtons.dataset.uiLayoutAppliedScale;
+            delete actionButtons.dataset.uiLayoutControlId;
+        }
         actionButtons?.querySelectorAll?.('.skill-row')?.forEach((skillRow) => {
             ['position', 'inset', 'left', 'top', 'right', 'bottom', 'width', 'height', 'display'].forEach((property) => {
                 skillRow.style.removeProperty(property);
@@ -1330,11 +1350,7 @@ export class UIManager {
         element.style.setProperty('right', 'auto', 'important');
         element.style.setProperty('bottom', 'auto', 'important');
         element.style.setProperty('margin', '0', 'important');
-        if (controlId === 'action-buttons-panel') {
-            element.style.setProperty('--ui-action-opacity', String(safeEntry.opacity));
-        } else {
-            element.style.setProperty('opacity', String(safeEntry.opacity), 'important');
-        }
+        element.style.setProperty('opacity', String(safeEntry.opacity), 'important');
         element.style.setProperty('z-index', String(definition?.zIndex || 1490), 'important');
 
         if (definition?.scaleMode === 'transform') {
@@ -1353,11 +1369,17 @@ export class UIManager {
 
         element.style.setProperty('font-size', `${Math.max(10, metrics.fontSize * safeEntry.scale)}px`, 'important');
 
-        element.style.setProperty('width', `${scaledWidth}px`, 'important');
-        element.style.setProperty('height', `${scaledHeight}px`, 'important');
-        const icon = element.querySelector('.inner-icon');
-        if (icon && metrics.iconFontSize > 0) {
-            icon.style.setProperty('font-size', `${Math.max(14, metrics.iconFontSize * safeEntry.scale)}px`, 'important');
+        if (controlId === 'action-auto-toggle') {
+            element.style.setProperty('min-width', `${Math.max(48, scaledWidth)}px`, 'important');
+            element.style.setProperty('height', `${Math.max(22, scaledHeight)}px`, 'important');
+            element.style.setProperty('padding', `${Math.max(0, metrics.paddingTop * safeEntry.scale)}px ${Math.max(8, metrics.paddingRight * safeEntry.scale)}px`, 'important');
+        } else {
+            element.style.setProperty('width', `${scaledWidth}px`, 'important');
+            element.style.setProperty('height', `${scaledHeight}px`, 'important');
+            const icon = element.querySelector('.inner-icon');
+            if (icon && metrics.iconFontSize > 0) {
+                icon.style.setProperty('font-size', `${Math.max(14, metrics.iconFontSize * safeEntry.scale)}px`, 'important');
+            }
         }
     }
 

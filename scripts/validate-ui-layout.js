@@ -32,7 +32,7 @@ const presets = extractBetween(
     'UI layout presets'
 );
 
-const legacyActionControls = [
+const actionControls = [
     'action-skill-u',
     'action-skill-k',
     'action-skill-h',
@@ -40,13 +40,17 @@ const legacyActionControls = [
     'action-auto-toggle'
 ];
 
-if (!definitions.includes("'action-buttons-panel'")) {
-    fail('action button group is not registered as a layout control');
+if (definitions.includes("'action-buttons-panel'") || presets.includes("'action-buttons-panel'")) {
+    fail('action buttons must not be registered as a synthetic layout group');
 }
 
-legacyActionControls.forEach((controlId) => {
-    if (definitions.includes(`'${controlId}'`) || presets.includes(`'${controlId}'`)) {
-        fail(`legacy detached action control is still part of UI layout: ${controlId}`);
+actionControls.forEach((controlId) => {
+    if (!definitions.includes(`'${controlId}'`)) {
+        fail(`missing individual action control definition: ${controlId}`);
+    }
+
+    if (!presets.includes(`'${controlId}'`)) {
+        fail(`missing individual action control preset: ${controlId}`);
     }
 });
 
@@ -70,4 +74,16 @@ if (/body\.ui-layout-edit-mode\s+\.action-buttons\s+\.attack-auto-toggle[\s\S]{0
     fail('edit mode still detaches auto button with fixed positioning');
 }
 
-console.log('[ui-layout] OK: action buttons are edited as one existing UI group');
+if (/body\.ui-layout-edit-mode\s+\.action-buttons\s+\.skill-btn[\s\S]{0,200}pointer-events:\s*none\s*!important/.test(css)) {
+    fail('edit mode blocks pointer events on individual skill buttons');
+}
+
+if (/body\.ui-layout-edit-mode\s+\.action-buttons\s+\.attack-btn[\s\S]{0,200}pointer-events:\s*none\s*!important/.test(css)) {
+    fail('edit mode blocks pointer events on the individual attack button');
+}
+
+if (/body\.ui-layout-edit-mode\s+\.action-buttons\s+\.attack-auto-toggle[\s\S]{0,200}pointer-events:\s*none\s*!important/.test(css)) {
+    fail('edit mode blocks pointer events on the individual auto button');
+}
+
+console.log('[ui-layout] OK: action buttons stay individually editable without detached edit surfaces');

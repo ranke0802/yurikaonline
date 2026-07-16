@@ -1957,13 +1957,6 @@ body.ui-layout-edit-mode .action-buttons .inner-icon {
     pointer-events: none !important;
 }
 
-body.ui-layout-edit-mode .action-buttons .skill-row,
-body.ui-layout-edit-mode .action-buttons .skill-btn,
-body.ui-layout-edit-mode .action-buttons .attack-btn,
-body.ui-layout-edit-mode .action-buttons .attack-auto-toggle {
-    pointer-events: none !important;
-}
-
 body.ui-layout-edit-mode #dev-overlay[data-ui-layout-editable="true"] {
     pointer-events: auto !important;
 }
@@ -11477,19 +11470,12 @@ body.low-power-pwa #ui-layer #minimap-container {
     }
 }
 
-/* Keep action controls editable as their original group, not as detached buttons. */
+/* Keep action controls editable on the real buttons without detached edit surfaces. */
 @media screen and (max-width: 1024px) and (orientation: portrait) and (pointer: coarse) {
     body.ui-layout-edit-mode .action-buttons {
         visibility: visible !important;
         pointer-events: auto !important;
         z-index: 1360 !important;
-    }
-
-    body.ui-layout-edit-mode .action-buttons .skill-row,
-    body.ui-layout-edit-mode .action-buttons .skill-btn,
-    body.ui-layout-edit-mode .action-buttons .attack-btn,
-    body.ui-layout-edit-mode .action-buttons .attack-auto-toggle {
-        pointer-events: none !important;
     }
 }
 
