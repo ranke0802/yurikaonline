@@ -35,9 +35,9 @@
   "monsterSpawns": [
     {
       "monsterId": "emolga",
-      "count": 5,
+      "count": 10,
       "initialDelaySeconds": 3,
-      "respawnSeconds": 10,
+      "respawnSeconds": 5,
       "area": {
         "x": 650,
         "y": 650,
@@ -47,9 +47,9 @@
     },
     {
       "monsterId": "emolga",
-      "count": 5,
+      "count": 10,
       "initialDelaySeconds": 3,
-      "respawnSeconds": 10,
+      "respawnSeconds": 5,
       "area": {
         "x": 650,
         "y": 2330,

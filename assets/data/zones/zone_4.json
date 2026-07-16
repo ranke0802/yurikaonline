@@ -35,9 +35,9 @@
   "monsterSpawns": [
     {
       "monsterId": "gastly",
-      "count": 4,
+      "count": 8,
       "initialDelaySeconds": 4,
-      "respawnSeconds": 12,
+      "respawnSeconds": 6,
       "area": {
         "x": 700,
         "y": 700,
@@ -47,9 +47,9 @@
     },
     {
       "monsterId": "gastly",
-      "count": 4,
+      "count": 8,
       "initialDelaySeconds": 4,
-      "respawnSeconds": 12,
+      "respawnSeconds": 6,
       "area": {
         "x": 700,
         "y": 2480,

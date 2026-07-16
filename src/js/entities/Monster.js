@@ -2,6 +2,10 @@ import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
 
+const BOSS_MECHANIC_AREA_SCALE = 3;
+const BOSS_MECHANIC_DAMAGE_SCALE = 2;
+const BOSS_MECHANIC_CAST_SCALE = 1.3;
+
 function shouldFreezeForModalUi() {
     const ui = window.game?.ui;
     const net = window.game?.net;
@@ -68,10 +72,14 @@ export default class Monster extends CharacterBase {
         this.behavior = definition.behavior || {};
         this.fallbackShape = definition.visual?.fallbackShape || null;
 
+        const chargeConfig = this.behavior.charge && typeof this.behavior.charge === 'object'
+            ? this.behavior.charge
+            : {};
         const configuredAggroRange = Number(this.behavior.aggroRange);
         const configuredAttackRange = Number(this.behavior.attackRange);
         const configuredAttackCooldownMs = Number(this.behavior.attackCooldownMs);
         const configuredLeashRange = Number(this.behavior.leashRange);
+        const configuredSpawnGraceSeconds = Number(this.behavior.spawnGraceSeconds);
         // Preserve legacy global acquisition when no aggro/leash values exist.
         this.aggroRange = Number.isFinite(configuredAggroRange) && configuredAggroRange >= 0
             ? configuredAggroRange
@@ -85,6 +93,9 @@ export default class Monster extends CharacterBase {
         this.leashRange = Number.isFinite(configuredLeashRange) && configuredLeashRange > 0
             ? configuredLeashRange
             : Infinity;
+        this.spawnGraceSeconds = Number.isFinite(configuredSpawnGraceSeconds) && configuredSpawnGraceSeconds >= 0
+            ? configuredSpawnGraceSeconds
+            : 3.0;
 
         // States
         this.sprite = null;
@@ -123,7 +134,7 @@ export default class Monster extends CharacterBase {
         this.targetX = x;
         this.targetY = y;
         this.targetPlayer = null;
-        this.spawnGraceTimer = 3.0;
+        this.spawnGraceTimer = this.spawnGraceSeconds;
         this.isMonster = true;
         this.type = 'monster';
         this.lastHitAt = 0;
@@ -159,6 +170,33 @@ export default class Monster extends CharacterBase {
         this.missileCooldown = 0;
         this.missileMaxCooldown = 5000;
         this.chargeCooldown = 0;
+        this.chargeOnly = !!(definition.chargeOnly || this.behavior.chargeOnly || chargeConfig.only === true);
+        this.chargeEnabled = !!(
+            this.chargeOnly
+            || definition.chargeEnabled === true
+            || this.behavior.chargeEnabled === true
+            || chargeConfig.enabled === true
+        );
+        this.chargeRange = Number.isFinite(Number(chargeConfig.range))
+            ? Math.max(80, Number(chargeConfig.range))
+            : null;
+        this.chargeCooldownMs = Number.isFinite(Number(chargeConfig.cooldownMs))
+            ? Math.max(500, Number(chargeConfig.cooldownMs))
+            : null;
+        this.minChargeDistance = Number.isFinite(Number(chargeConfig.minDistance))
+            ? Math.max(0, Number(chargeConfig.minDistance))
+            : null;
+        this.chargeCastSeconds = Number.isFinite(Number(chargeConfig.castSeconds))
+            ? Math.max(0.2, Number(chargeConfig.castSeconds))
+            : 1.0;
+        this.chargeSpeed = Number.isFinite(Number(chargeConfig.speed))
+            ? Math.max(80, Number(chargeConfig.speed))
+            : 300;
+        this.chargeDamage = Number.isFinite(Number(chargeConfig.damage))
+            ? Math.max(1, Number(chargeConfig.damage))
+            : (Number.isFinite(Number(definition.chargeDamage))
+                ? Math.max(1, Number(definition.chargeDamage))
+                : null);
         this.chargeState = 'idle';
         this.chargeTimer = 0;
         this.chargeTarget = null;
@@ -589,7 +627,7 @@ export default class Monster extends CharacterBase {
 
         this.chargeState = 'casting';
         this.lastNetworkEventAt = Date.now();
-        this.chargeTimer = 1.0; // 1s Casting
+        this.chargeTimer = Math.max(0.2, Number(this.chargeCastSeconds) || 1.0);
         this.chargeTarget = { x: targetX, y: targetY };
         this.vx = 0;
         this.vy = 0;
@@ -622,7 +660,7 @@ export default class Monster extends CharacterBase {
                 this.lastNetworkEventAt = Date.now();
                 // Lock target vector
                 const angle = Math.atan2(this.chargeTarget.y - this.y, this.chargeTarget.x - this.x);
-                const speed = 300;
+                const speed = Math.max(80, Number(this.chargeSpeed) || 300);
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
 
@@ -647,7 +685,7 @@ export default class Monster extends CharacterBase {
             if (distToTarget < 10 || this.chargeTimer <= 0) {
                 this.chargeState = 'idle';
                 this.lastNetworkEventAt = Date.now();
-                this.chargeCooldown = 15000; // v0.00.85: Increased to 15s for balance
+                this.chargeCooldown = Math.max(500, Number(this.chargeCooldownMs) || 15000);
                 this.chargeTarget = null;
                 this.vx = 0;
                 this.vy = 0;
@@ -732,6 +770,21 @@ export default class Monster extends CharacterBase {
         return targets;
     }
 
+    _getBossMechanicAreaScale(mechanic) {
+        const configured = Number(mechanic?.areaScale);
+        return Number.isFinite(configured) && configured > 0 ? configured : BOSS_MECHANIC_AREA_SCALE;
+    }
+
+    _getBossMechanicDamageScale(mechanic) {
+        const configured = Number(mechanic?.damageScale);
+        return Number.isFinite(configured) && configured > 0 ? configured : BOSS_MECHANIC_DAMAGE_SCALE;
+    }
+
+    _getBossMechanicCastScale(mechanic) {
+        const configured = Number(mechanic?.castScale);
+        return Number.isFinite(configured) && configured > 0 ? configured : BOSS_MECHANIC_CAST_SCALE;
+    }
+
     _buildBossMechanicZones(mechanic, target) {
         const pattern = mechanic?.pattern || 'circle';
         const origin = { x: Number(this.x), y: Number(this.y) };
@@ -744,12 +797,13 @@ export default class Monster extends CharacterBase {
         const px = -ny;
         const py = nx;
         const zones = [];
+        const areaScale = this._getBossMechanicAreaScale(mechanic);
 
         if (pattern === 'line' || pattern === 'parallel_lines') {
             const laneCount = Math.max(1, Math.floor(Number(mechanic.lanes || 1)));
-            const laneGap = Math.max(0, Number(mechanic.laneGap || mechanic.width || 80));
-            const length = Math.max(distance, Number(mechanic.length || distance));
-            const width = Math.max(24, Number(mechanic.width || 80));
+            const laneGap = Math.max(0, Number(mechanic.laneGap || mechanic.width || 80) * areaScale);
+            const length = Math.max(distance, Number(mechanic.length || distance) * areaScale);
+            const width = Math.max(24, Number(mechanic.width || 80) * areaScale);
             const startOffset = -((laneCount - 1) * laneGap) / 2;
             for (let i = 0; i < laneCount; i += 1) {
                 const offset = startOffset + (i * laneGap);
@@ -768,9 +822,10 @@ export default class Monster extends CharacterBase {
         }
 
         if (pattern === 'circle_cluster') {
-            const radius = Math.max(24, Number(mechanic.radius || 90));
+            const baseRadius = Number(mechanic.radius || 90);
+            const radius = Math.max(24, baseRadius * areaScale);
             const count = Math.max(1, Math.floor(Number(mechanic.count || 5)));
-            const ringRadius = Math.max(radius * 1.4, Number(mechanic.ringRadius || radius * 2.35));
+            const ringRadius = Math.max(radius * 1.4, Number(mechanic.ringRadius || baseRadius * 2.35) * areaScale);
             zones.push({ shape: 'circle', x: targetPoint.x, y: targetPoint.y, radius });
             for (let i = 1; i < count; i += 1) {
                 const angle = ((i - 1) / Math.max(1, count - 1)) * Math.PI * 2
@@ -790,8 +845,8 @@ export default class Monster extends CharacterBase {
                 shape: 'donut',
                 x: mechanic.center === 'target' ? targetPoint.x : origin.x,
                 y: mechanic.center === 'target' ? targetPoint.y : origin.y,
-                innerRadius: Math.max(0, Number(mechanic.innerRadius || 90)),
-                outerRadius: Math.max(24, Number(mechanic.outerRadius || 220))
+                innerRadius: Math.max(0, Number(mechanic.innerRadius || 90) * areaScale),
+                outerRadius: Math.max(24, Number(mechanic.outerRadius || 220) * areaScale)
             });
             return zones;
         }
@@ -800,7 +855,7 @@ export default class Monster extends CharacterBase {
             shape: 'circle',
             x: mechanic.center === 'boss' ? origin.x : targetPoint.x,
             y: mechanic.center === 'boss' ? origin.y : targetPoint.y,
-            radius: Math.max(24, Number(mechanic.radius || 120))
+            radius: Math.max(24, Number(mechanic.radius || 120) * areaScale)
         });
         return zones;
     }
@@ -810,14 +865,14 @@ export default class Monster extends CharacterBase {
             .filter((zone) => zone && typeof zone.shape === 'string');
         if (zones.length === 0) return null;
 
-        const damageMultiplier = Number(mechanic.damageMultiplier || 1);
+        const damageMultiplier = Number(mechanic.damageMultiplier || 1) * this._getBossMechanicDamageScale(mechanic);
         const damage = Math.max(1, Math.ceil((this.atk || 10) * damageMultiplier));
         this.bossTelegraphSerial += 1;
         return {
             id: `${this.id || this.typeId}:${mechanic.id || 'boss_mechanic'}:${this.bossTelegraphSerial}`,
             mechanicId: mechanic.id || 'boss_mechanic',
             label: mechanic.label || '',
-            warningMs: Math.max(350, Number(mechanic.warningMs || 1000)),
+            warningMs: Math.max(350, Number(mechanic.warningMs || 1000) * this._getBossMechanicCastScale(mechanic)),
             impactMs: Math.max(120, Number(mechanic.impactMs || 320)),
             damage,
             zones,
@@ -848,7 +903,7 @@ export default class Monster extends CharacterBase {
             if (nextCooldown > 0) continue;
 
             const targetPoint = this._getPointFromEntity(target);
-            const range = Math.max(120, Number(mechanic.range || this.aggroRange || 600));
+            const range = Math.max(120, Number(mechanic.range || this.aggroRange || 600) * this._getBossMechanicAreaScale(mechanic));
             if (Math.hypot(targetPoint.x - this.x, targetPoint.y - this.y) > range) continue;
 
             const payload = this._buildBossTelegraphPayload(mechanic, target);
@@ -1434,7 +1489,7 @@ export default class Monster extends CharacterBase {
 
                         // Stop Charging
                         this.chargeState = 'idle';
-                        this.chargeCooldown = 15000; // v0.00.85: Increased to 15s for balance
+                        this.chargeCooldown = Math.max(500, Number(this.chargeCooldownMs) || 15000);
                         this.chargeTarget = null;
                         this.vx = 0;
                         this.vy = 0;

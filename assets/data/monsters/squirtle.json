@@ -49,10 +49,21 @@
     }
   },
   "behavior": {
+    "aggressive": true,
+    "spawnGraceSeconds": 0,
     "aggroRange": 320,
     "attackRange": 72,
     "attackCooldownMs": 1500,
-    "leashRange": 620
+    "leashRange": 620,
+    "charge": {
+      "enabled": true,
+      "damage": 18,
+      "range": 430,
+      "cooldownMs": 8500,
+      "minDistance": 95,
+      "castSeconds": 1,
+      "speed": 320
+    }
   },
   "sounds": {
     "attack": "sfx_slime_attack",

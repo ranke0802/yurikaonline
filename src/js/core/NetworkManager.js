@@ -959,6 +959,10 @@ export default class NetworkManager extends EventEmitter {
                 requestId: snapshot.key,
                 requesterId: data.requesterId || null,
                 isFirstBoss: data.isFirstBoss !== false,
+                manualSummon: data.manualSummon === true,
+                monsterId: typeof data.monsterId === 'string' ? data.monsterId : null,
+                zoneId: typeof data.zoneId === 'string' ? data.zoneId : null,
+                scrollItemId: typeof data.scrollItemId === 'string' ? data.scrollItemId : null,
                 fieldId: data.fieldId,
                 ts: Number(data.ts || Date.now())
             });
@@ -7204,6 +7208,7 @@ export default class NetworkManager extends EventEmitter {
             'claimedRewardIds',
             'questData',
             'questState',
+            'itemCooldowns',
             'createdAt',
             'recoveryUid'
         ].forEach((field) => {
@@ -9554,6 +9559,10 @@ export default class NetworkManager extends EventEmitter {
                     requestId: snapshot.key,
                     requesterId: data.requesterId || null,
                     isFirstBoss: data.isFirstBoss !== false,
+                    manualSummon: data.manualSummon === true,
+                    monsterId: typeof data.monsterId === 'string' ? data.monsterId : null,
+                    zoneId: typeof data.zoneId === 'string' ? data.zoneId : null,
+                    scrollItemId: typeof data.scrollItemId === 'string' ? data.scrollItemId : null,
                     fieldId: data.fieldId,
                     ts: Number(data.ts || Date.now())
                 });
@@ -11656,7 +11665,7 @@ export default class NetworkManager extends EventEmitter {
             .filter((entry) => entry.authorHostId === authorHostId).length;
     }
 
-    requestBossSpawn({ isFirstBoss = true } = {}) {
+    requestBossSpawn({ isFirstBoss = true, manualSummon = false, monsterId = null, zoneId = null, scrollItemId = null } = {}) {
         if (!this.connected || !this.playerId || !this.zoneParticipationEnabled) return;
 
         const payload = {
@@ -11665,6 +11674,12 @@ export default class NetworkManager extends EventEmitter {
             fieldId: this._getCurrentFieldId(),
             ts: Date.now()
         };
+        if (manualSummon === true) {
+            payload.manualSummon = true;
+            if (typeof monsterId === 'string' && monsterId) payload.monsterId = monsterId.slice(0, 128);
+            if (typeof zoneId === 'string' && zoneId) payload.zoneId = zoneId.slice(0, 64);
+            if (typeof scrollItemId === 'string' && scrollItemId) payload.scrollItemId = scrollItemId.slice(0, 128);
+        }
 
         this._recordNetworkWrite('bossSpawnRequest', payload);
         this.dbRef.child('boss_spawn_requests').push(payload);

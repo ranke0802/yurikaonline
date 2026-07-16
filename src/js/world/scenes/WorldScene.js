@@ -183,6 +183,9 @@ export default class WorldScene extends Scene {
             this.player.name = profile.name || localName || user.displayName || "유리카";
             this.player.uiLayout = profile.uiLayout || null;
             this.player.clientSettings = profile.clientSettings || null;
+            this.player.itemCooldowns = profile.itemCooldowns && typeof profile.itemCooldowns === 'object'
+                ? { ...profile.itemCooldowns }
+                : {};
             this.player.recoveryUid = profile.recoveryUid || user.uid;
 
             // v0.00.15: Restore Hostility

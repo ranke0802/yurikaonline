@@ -10,12 +10,30 @@ const ITEM_DATA_BASE_PATH = '/assets/data/items/';
 const LEGACY_ITEM_CATALOG = {
     items: [
         'magic_staff.json',
+        'tidal_staff.json',
+        'storm_staff.json',
+        'astral_staff.json',
+        'blessed_magic_staff.json',
+        'blessed_tidal_staff.json',
+        'blessed_storm_staff.json',
+        'blessed_astral_staff.json',
         'weapon_upgrade_stone.json',
         'blessed_weapon_upgrade_stone.json',
-        'option_reroll_stone.json'
+        'option_reroll_stone.json',
+        'boss_summon_scroll_king_slime.json',
+        'boss_summon_scroll_ruin_wobbuffet.json',
+        'boss_summon_scroll_thunder_pikachu.json',
+        'boss_summon_scroll_astral_sylveon.json'
     ],
     affixPools: [
-        'magic_staff_affixes.json'
+        'magic_staff_affixes.json',
+        'tidal_staff_affixes.json',
+        'storm_staff_affixes.json',
+        'astral_staff_affixes.json',
+        'blessed_magic_staff_affixes.json',
+        'blessed_tidal_staff_affixes.json',
+        'blessed_storm_staff_affixes.json',
+        'blessed_astral_staff_affixes.json'
     ],
     enhancementRules: [
         'equipment_enhancement_rules.json'
@@ -172,6 +190,7 @@ export default class ItemDataManager {
         this.affixesById = new Map();
         this.enhancementRuleSets = new Map();
         this.globalDrops = [];
+        this.normalDropsByMonster = new Map();
         this.bossDropsByMonster = new Map();
         this.bossBonusDropsByMonster = new Map();
         this.loadedCatalog = null;
@@ -191,6 +210,7 @@ export default class ItemDataManager {
             this.affixPools.clear();
             this.affixesById.clear();
             this.enhancementRuleSets.clear();
+            this.normalDropsByMonster.clear();
             this.bossDropsByMonster.clear();
             this.bossBonusDropsByMonster.clear();
 
@@ -216,6 +236,15 @@ export default class ItemDataManager {
             this.globalDrops = dropRuleDocuments.flatMap((document) => (
                 Array.isArray(document?.globalDrops) ? document.globalDrops : []
             ));
+            dropRuleDocuments.forEach((document) => {
+                if (!Array.isArray(document?.normalDrops)) return;
+                document.normalDrops.forEach((drop) => {
+                    if (!drop?.monsterId) return;
+                    const list = this.normalDropsByMonster.get(drop.monsterId) || [];
+                    list.push(drop);
+                    this.normalDropsByMonster.set(drop.monsterId, list);
+                });
+            });
             dropRuleDocuments.forEach((document) => {
                 if (!Array.isArray(document?.bossDrops)) return;
                 document.bossDrops.forEach((drop) => {
@@ -345,6 +374,10 @@ export default class ItemDataManager {
 
     getGlobalDrops() {
         return this.globalDrops.slice();
+    }
+
+    getNormalDrops(monsterId) {
+        return (this.normalDropsByMonster.get(monsterId) || []).slice();
     }
 
     getBossDrops(monsterId) {

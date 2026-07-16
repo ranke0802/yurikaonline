@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "blessed_tidal_staff",
+  "name": "축복받은 해일의 지팡이",
+  "description": "안개빛 호수의 일반 몬스터에게서 아주 낮은 확률로 발견되는 축복받은 우두머리 무기입니다. 별그늘 유적 무기와 같은 기본 성능을 지니며, 해일의 지팡이 고유 스킬 효과를 계승합니다.",
+  "slot": "weapon",
+  "rarity": "legendary",
+  "stackable": false,
+  "dropSource": [
+    "squirtle"
+  ],
+  "baseStats": {
+    "attackPower": 20,
+    "critRate": 0.09,
+    "mpRegen": 7
+  },
+  "icon": {
+    "type": "image",
+    "path": "src/assets/items/tidal_staff.webp",
+    "fallbackEmoji": "🌊"
+  },
+  "prefixPool": "blessed_tidal_staff_affixes",
+  "enhancementRuleSet": "weapon_standard_1_to_10",
+  "enhancementBonuses": {
+    "attackPowerPerLevel": 1,
+    "critRatePerLevel": 0.01
+  },
+  "inventoryTooltip": {
+    "className": "마법 지팡이",
+    "material": "축복받은 안개 수정",
+    "weight": 7,
+    "tradeable": false,
+    "dismantleable": true
+  },
+  "visuals": {
+    "equipAura": {
+      "mode": "prefix_plus_enhancement",
+      "prefixAuraProfiles": {
+        "tidal_blue": {
+          "baseColor": "#38c8f0",
+          "secondaryColor": "#c4f7ff",
+          "particleStyle": "blue_flame"
+        }
+      }
+    }
+  },
+  "instanceData": {
+    "prefixId": "random_from_pool",
+    "rolledValues": "from_affix_roll_ranges",
+    "enhancementLevel": 0
+  }
+}

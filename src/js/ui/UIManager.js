@@ -9566,6 +9566,7 @@ export class UIManager {
         const equipBtn = document.getElementById('inventory-action-equip');
         const unequipBtn = document.getElementById('inventory-action-unequip');
         const enhanceBtn = document.getElementById('inventory-action-enhance');
+        const useBtn = document.getElementById('inventory-action-use');
         const rerollOptionBtn = document.getElementById('inventory-action-reroll-option');
         const dismantleBtn = document.getElementById('inventory-action-dismantle');
         const itemModal = document.getElementById('inventory-item-modal');
@@ -9626,6 +9627,19 @@ export class UIManager {
             this.startWeaponEnhancementSelection('blessed');
         });
 
+        bindPress(useBtn, async () => {
+            const player = this.game.localPlayer;
+            if (!player || this.selectedInventoryRef?.kind !== 'inventory') return;
+            const result = await player.useBossSummonScroll?.(this.selectedInventoryRef);
+            if (!result?.ok) {
+                this.showGenericModal('보스 소환 실패', result?.message || '보스 소환주문서를 사용할 수 없습니다.', null, null, { hideNo: true, yesText: '확인' });
+                this.updateInventory();
+                return;
+            }
+            this.logSystemMessage(`📜 ${result.message}`);
+            this.updateInventory();
+        });
+
         bindPress(rerollOptionBtn, () => {
             const player = this.game.localPlayer;
             if (!player) return;
@@ -9661,11 +9675,11 @@ export class UIManager {
                             const delta = Math.round((after - before) * 100);
                             return `${key}: ${Math.round(before * 100)}% → ${Math.round(after * 100)}%${delta > 0 ? ` (+${delta}%)` : ''}`;
                         })
-                        .join('<br>');
+                        .join('\n');
 
                     this.showGenericModal(
                         '옵션 변경 완료',
-                        `${result.item.name}의 옵션을 다시 조율했습니다.<br><small>${changedLines}</small>`,
+                        `${result.item.name}의 옵션을 다시 조율했습니다.\n${changedLines}`,
                         null,
                         null,
                         { hideNo: true, yesText: '확인' }
@@ -10244,12 +10258,22 @@ export class UIManager {
 
         if (item.stackable !== false && item.slot !== 'weapon') {
             const descriptionParts = [baseDescription];
+            const bossSummonConfig = player.getBossSummonConfigForItem?.(item) || null;
             if (item.type === 'weapon_upgrade_stone') {
                 descriptionParts.push('상세 보기의 버튼으로 강화할 무기를 선택해 일반 강화를 시도할 수 있습니다.');
             } else if (item.type === 'blessed_weapon_upgrade_stone') {
                 descriptionParts.push('상세 보기의 버튼으로 축복 강화할 무기를 선택해 안전한 고급 강화를 시도할 수 있습니다.');
             } else if (item.type === OPTION_REROLL_STONE_ID) {
                 descriptionParts.push('무기 상세 화면에서 옵션 변경을 눌러 사용할 수 있습니다. 강화 수치는 유지되고 옵션 수치만 기존보다 같거나 높게 재설정됩니다.');
+            } else if (bossSummonConfig) {
+                const cooldownText = player.formatItemCooldown?.(item.type) || '';
+                const currentZoneId = this.game.zone?.currentZone?.id || player.currentZoneId || 'zone_1';
+                descriptionParts.push('해당 보스가 등장하는 맵에서 사용하면 보스를 즉시 소환합니다. 소환된 보스는 퀘스트 보상 없이 일반 보스 보상만 지급합니다.');
+                lines.push(`사용 가능 맵: ${bossSummonConfig.zoneId}`);
+                lines.push(`재사용 대기시간: ${cooldownText || '사용 가능'}`);
+                if (currentZoneId !== bossSummonConfig.zoneId) {
+                    lines.push('현재 맵에서는 사용할 수 없습니다.');
+                }
             }
             return {
                 title: `${titleBase} [${amount}]`,
@@ -10490,7 +10514,10 @@ export class UIManager {
                 if (item.stackable !== false) {
                     const amount = document.createElement('span');
                     amount.className = 'item-amount';
-                    amount.textContent = `${item.amount}`;
+                    const cooldownText = p.getBossSummonConfigForItem?.(item)
+                        ? (p.formatItemCooldown?.(item.type) || '')
+                        : '';
+                    amount.textContent = cooldownText || `${item.amount}`;
                     button.appendChild(amount);
                 }
 
@@ -10567,6 +10594,7 @@ export class UIManager {
         const unequipBtn = document.getElementById('inventory-action-unequip');
         const enhanceBtn = document.getElementById('inventory-action-enhance');
         const blessedEnhanceBtn = document.getElementById('inventory-action-enhance-blessed');
+        const useBtn = document.getElementById('inventory-action-use');
         const rerollOptionBtn = document.getElementById('inventory-action-reroll-option');
         const dismantleBtn = document.getElementById('inventory-action-dismantle');
         const actionsEl = document.querySelector('#inventory-item-modal .inventory-detail-actions');
@@ -10577,6 +10605,9 @@ export class UIManager {
         }
         if (actionsEl && blessedEnhanceBtn && blessedEnhanceBtn.parentElement !== actionsEl) {
             actionsEl.appendChild(blessedEnhanceBtn);
+        }
+        if (actionsEl && useBtn && useBtn.parentElement !== actionsEl) {
+            actionsEl.appendChild(useBtn);
         }
         if (actionsEl && rerollOptionBtn && rerollOptionBtn.parentElement !== actionsEl) {
             actionsEl.appendChild(rerollOptionBtn);
@@ -10634,6 +10665,21 @@ export class UIManager {
         if (blessedEnhanceBtn) {
             blessedEnhanceBtn.classList.toggle('hidden', true);
         }
+        const bossSummonConfig = p.getBossSummonConfigForItem?.(detail.item) || null;
+        if (useBtn) {
+            const isBossSummonScroll = !!bossSummonConfig && detail.location === 'inventory';
+            const remainingText = isBossSummonScroll ? p.formatItemCooldown?.(detail.item.type) : '';
+            const currentZoneId = this.game.zone?.currentZone?.id || p.currentZoneId || 'zone_1';
+            useBtn.classList.toggle('hidden', !isBossSummonScroll);
+            useBtn.disabled = !!remainingText || (isBossSummonScroll && bossSummonConfig.zoneId !== currentZoneId);
+            if (remainingText) {
+                useBtn.textContent = `소환 대기 ${remainingText}`;
+            } else if (isBossSummonScroll && bossSummonConfig.zoneId !== currentZoneId) {
+                useBtn.textContent = '해당 맵 전용';
+            } else {
+                useBtn.textContent = '보스 소환';
+            }
+        }
         if (rerollOptionBtn) {
             rerollOptionBtn.classList.toggle('hidden', detail.item.slot !== 'weapon');
             const rerollStoneCount = p.getInventoryItemCount?.(OPTION_REROLL_STONE_ID) || 0;
@@ -10668,9 +10714,11 @@ export class UIManager {
         if (actionsEl) {
             const isEnhancementStone = detail.item.type === 'weapon_upgrade_stone'
                 || detail.item.type === 'blessed_weapon_upgrade_stone';
+            const isBossSummonScroll = !!bossSummonConfig;
             const isActionlessMaterial = detail.item.stackable !== false
                 && detail.item.slot !== 'weapon'
-                && !isEnhancementStone;
+                && !isEnhancementStone
+                && !isBossSummonScroll;
             actionsEl.classList.toggle('inventory-detail-actions-centered', isEnhancementStone);
             actionsEl.classList.toggle('hidden', isEnhancementStone || isActionlessMaterial);
         }

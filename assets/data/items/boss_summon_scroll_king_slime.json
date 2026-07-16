@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "boss_summon_scroll_king_slime",
+  "name": "대왕슬라임 보스 소환주문서",
+  "type": "consumable",
+  "stackable": true,
+  "maxStack": 1,
+  "rarity": "boss",
+  "description": "바람 언덕에서 대왕슬라임을 소환합니다. 보유 중이면 같은 주문서는 추가로 지급되지 않으며, 사용 후 10분의 재사용 대기시간이 적용됩니다.",
+  "icon": {
+    "fallbackEmoji": "📜"
+  },
+  "bossSummon": {
+    "monsterId": "king_slime",
+    "zoneId": "zone_1",
+    "cooldownMs": 600000
+  }
+}

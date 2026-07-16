@@ -35,9 +35,9 @@
   "monsterSpawns": [
     {
       "monsterId": "squirtle",
-      "count": 6,
+      "count": 12,
       "initialDelaySeconds": 2,
-      "respawnSeconds": 8,
+      "respawnSeconds": 4,
       "area": {
         "x": 620,
         "y": 620,
@@ -47,9 +47,9 @@
     },
     {
       "monsterId": "squirtle",
-      "count": 6,
+      "count": 12,
       "initialDelaySeconds": 2,
-      "respawnSeconds": 8,
+      "respawnSeconds": 4,
       "area": {
         "x": 620,
         "y": 2180,

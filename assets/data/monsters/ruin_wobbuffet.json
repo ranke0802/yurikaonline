@@ -64,10 +64,21 @@
   },
   "behavior": {
     "isBoss": true,
+    "aggressive": true,
+    "spawnGraceSeconds": 0,
     "aggroRange": 480,
     "attackRange": 112,
     "attackCooldownMs": 1350,
-    "leashRange": 900
+    "leashRange": 900,
+    "charge": {
+      "enabled": true,
+      "damage": 50,
+      "range": 800,
+      "cooldownMs": 10000,
+      "minDistance": 140,
+      "castSeconds": 1,
+      "speed": 300
+    }
   },
   "sounds": {
     "attack": "sfx_boss_attack",

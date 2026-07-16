@@ -3,9 +3,24 @@ import Logger from '../utils/Logger.js';
 
 const REMOVED_DROP_ITEM_IDS = new Set(['slime_gel', 'potion_hp_small', 'royal_jelly', 'king_crown']);
 const SLIME_CHARGE_DAMAGE = 10;
+const DEFAULT_NORMAL_CHARGE_RANGE = 460;
+const DEFAULT_BOSS_CHARGE_RANGE = 800;
+const DEFAULT_NORMAL_CHARGE_COOLDOWN_MS = 9000;
+const DEFAULT_BOSS_CHARGE_COOLDOWN_MS = 10000;
 
 function isSlimeFamilyType(typeId) {
     return typeId === 'slime' || typeId === 'slime_split';
+}
+
+function getDefaultChargeDamage(monster, typeId) {
+    if (typeId === 'slime') return SLIME_CHARGE_DAMAGE;
+    if (typeId === 'slime_split') return 30;
+    if (typeId === 'king_slime') return 50;
+
+    const atk = Math.max(1, Number(monster?.atk || monster?.definition?.baseStats?.atk || 10));
+    return monster?.isBoss
+        ? Math.max(50, Math.ceil(atk * 1.25))
+        : Math.max(10, Math.ceil(atk * 1.25));
 }
 
 function applySlimeCombatOverrides(monster, typeId = monster?.typeId) {
@@ -13,13 +28,31 @@ function applySlimeCombatOverrides(monster, typeId = monster?.typeId) {
 
     const normalizedTypeId = typeof typeId === 'string' ? typeId : monster.typeId;
     if (isSlimeFamilyType(normalizedTypeId)) {
+        monster.chargeEnabled = true;
         monster.chargeOnly = true;
         monster.chargeDamage = SLIME_CHARGE_DAMAGE;
-        return;
+    } else if (normalizedTypeId === 'king_slime') {
+        monster.chargeEnabled = true;
+        if (!Number.isFinite(monster.chargeDamage)) {
+            monster.chargeDamage = 50;
+        }
+    } else if (monster.chargeEnabled || monster.isBoss) {
+        monster.chargeEnabled = true;
+        if (!Number.isFinite(monster.chargeDamage)) {
+            monster.chargeDamage = getDefaultChargeDamage(monster, normalizedTypeId);
+        }
     }
 
-    if (normalizedTypeId === 'king_slime' && !Number.isFinite(monster.chargeDamage)) {
-        monster.chargeDamage = 50;
+    if (monster.chargeEnabled) {
+        if (!Number.isFinite(monster.chargeRange)) {
+            monster.chargeRange = monster.isBoss ? DEFAULT_BOSS_CHARGE_RANGE : DEFAULT_NORMAL_CHARGE_RANGE;
+        }
+        if (!Number.isFinite(monster.chargeCooldownMs)) {
+            monster.chargeCooldownMs = monster.isBoss ? DEFAULT_BOSS_CHARGE_COOLDOWN_MS : DEFAULT_NORMAL_CHARGE_COOLDOWN_MS;
+        }
+        if (!Number.isFinite(monster.minChargeDistance)) {
+            monster.minChargeDistance = monster.isBoss ? 140 : 95;
+        }
     }
 }
 
@@ -677,7 +710,7 @@ export default class MonsterManager {
         if (itemData) {
             const sourceDefinition = itemData.getItemDefinition(itemId);
             const blessedVariantChance = itemId === 'weapon_upgrade_stone'
-                ? Math.max(0, Math.min(1, sourceDefinition?.dropRules?.blessedVariantChance ?? 0))
+                ? Math.max(0, Math.min(1, dropDef.blessedVariantChance ?? sourceDefinition?.dropRules?.blessedVariantChance ?? 0))
                 : 0;
             const resolvedItemId = blessedVariantChance > 0 && rollUnit('blessed_variant') < blessedVariantChance
                 ? 'blessed_weapon_upgrade_stone'
@@ -705,7 +738,9 @@ export default class MonsterManager {
                     createOptions.prefixId = affixes[affixIndex]?.id || null;
                 }
             }
-            return itemData.createRewardItem(resolvedItemId, createOptions);
+            const reward = itemData.createRewardItem(resolvedItemId, createOptions);
+            if (reward && dropDef.uniqueInventory === true) reward.uniqueInventory = true;
+            return reward;
         }
 
         const itemMeta = {
@@ -726,12 +761,40 @@ export default class MonsterManager {
             type: itemId,
             amount: Math.floor(rollUnit('amount') * (maxAmount - minAmount + 1)) + minAmount,
             name: fallback.name,
-            icon: fallback.icon
+            icon: fallback.icon,
+            uniqueInventory: dropDef.uniqueInventory === true
         };
     }
 
     _isGroundLootItem(itemId) {
         return itemId === 'weapon_upgrade_stone' || itemId === 'blessed_weapon_upgrade_stone';
+    }
+
+    _isNormalRewardMonster(monster) {
+        return !!monster
+            && !monster.isBoss
+            && monster.typeId !== 'training_dummy'
+            && !this.shouldSuppressWorldFeedback(monster);
+    }
+
+    _isDropEligibleForMonster(dropDef, monster) {
+        if (!dropDef || !monster) return false;
+        if (Array.isArray(dropDef.monsterIds) && !dropDef.monsterIds.includes(monster.typeId)) return false;
+        if (typeof dropDef.monsterId === 'string' && dropDef.monsterId && dropDef.monsterId !== monster.typeId) return false;
+
+        const source = typeof dropDef.source === 'string' ? dropDef.source : '';
+        if (!source || source === 'all_monsters') return true;
+        if (source === 'normal_monsters') return this._isNormalRewardMonster(monster);
+        if (source === 'slime_map_normal_monsters') {
+            return this._isNormalRewardMonster(monster)
+                && (isSlimeFamilyType(monster.typeId) || (this.activeZoneId || this.zone?.currentZone?.id) === 'zone_1');
+        }
+        if (source === 'non_slime_map_normal_monsters') {
+            return this._isNormalRewardMonster(monster)
+                && !isSlimeFamilyType(monster.typeId)
+                && (this.activeZoneId || this.zone?.currentZone?.id) !== 'zone_1';
+        }
+        return true;
     }
 
     _buildDeterministicRewardId(monster, recipientId, rewardKind) {
@@ -1124,7 +1187,8 @@ export default class MonsterManager {
         if (!rewardTargetId) return true;
         const normalDrops = [
             ...(Array.isArray(monster.drops) ? monster.drops : []),
-            ...(this.game.itemData?.getGlobalDrops() || [])
+            ...(this.game.itemData?.getGlobalDrops() || []),
+            ...(this.game.itemData?.getNormalDrops?.(monster.typeId) || [])
         ];
         const bossDrops = this.game.itemData?.getBossDrops(monster.typeId) || [];
         const bossBonusDrops = this.game.itemData?.getBossBonusDrops?.(monster.typeId) || [];
@@ -1135,6 +1199,7 @@ export default class MonsterManager {
 
         normalDrops.forEach((dropDef, dropIndex) => {
             if (!dropDef?.itemId || dropDef.itemId === 'gold' || dropDef.itemId === 'manastone') return;
+            if (!this._isDropEligibleForMonster(dropDef, monster)) return;
             const rollSlot = `normal_drop_${dropIndex}_${dropDef.itemId}`;
             if (this._getDeterministicMonsterUnit(monster, `${rollSlot}:chance`) > (dropDef.chance ?? 1)) return;
             const reward = this._buildRewardItem(dropDef.itemId, dropDef, { monster, rollSlot });
@@ -1871,6 +1936,7 @@ export default class MonsterManager {
         };
 
         if (monster.isBoss) payload.isBoss = true;
+        if (monster.summonedByScroll) payload.summonedByScroll = true;
         if (monster.isDead && !this._isMonsterDeathSettlementReady(monster)) {
             payload.deathSettlementPending = true;
         }
@@ -1998,6 +2064,78 @@ export default class MonsterManager {
                 this.zoneBossSpawnPending = false;
             }
         });
+    }
+
+    _getBossSummonPoint(monsterId, zoneId = this.activeZoneId) {
+        if (this.zoneBossRule?.monsterId === monsterId && this.zoneBossRule?.zoneId === zoneId) {
+            return { ...this.zoneBossRule.point };
+        }
+        return {
+            x: Math.round((this.zone?.width || 3200) / 2),
+            y: Math.round((this.zone?.height || 3200) / 2)
+        };
+    }
+
+    _hasLiveBossOfType(monsterId) {
+        return Array.from(this.monsters.values()).some((monster) => (
+            monster?.typeId === monsterId && monster.isBoss && !monster.isDead
+        ));
+    }
+
+    async _spawnSummonedBoss(config = {}, requesterId = null, options = {}) {
+        const monsterId = typeof config.monsterId === 'string' ? config.monsterId : '';
+        const zoneId = typeof config.zoneId === 'string' ? config.zoneId : this.activeZoneId;
+        const currentZoneId = this.zone?.currentZone?.id || this.activeZoneId;
+        if (!monsterId || zoneId !== currentZoneId) return { ok: false, reason: 'wrong_zone' };
+        if (this._isHostFieldStateBlocked() || !this.net?.isHost) return { ok: false, reason: 'host_unavailable' };
+        if (this._hasLiveBossOfType(monsterId)) return { ok: false, reason: 'boss_alive' };
+
+        const generation = this.worldGeneration;
+        const fieldId = this.net?._getCurrentFieldId?.() || null;
+        const now = this._getAuthoritativeNow();
+        const identity = `${fieldId || zoneId}:${monsterId}:scroll:${requesterId || this.net?.playerId || 'local'}:${now}`;
+        const hash = this.net?._hashDurableRewardCatalogValue?.(identity)?.replace('fnv1a32_', '')
+            || `${Math.round(now)}_${Math.floor(Math.random() * 1000)}`;
+        const instanceId = `scroll_boss_${monsterId}_${hash}`.slice(0, 128);
+        const point = this._getBossSummonPoint(monsterId, zoneId);
+        const bossId = await this._spawnMonster(point.x, point.y, monsterId, {
+            isBoss: true,
+            spawnGroupId: `${zoneId}:scroll_boss:${monsterId}`,
+            generation,
+            zoneId,
+            fieldId,
+            instanceId,
+            summonedByScroll: true
+        });
+        if (!bossId) return { ok: false, reason: 'spawn_failed' };
+        window.game?.ui?.showCenterMessage?.('보스 소환!', '#ffd76b', {
+            duration: 2200,
+            className: 'boss-alert'
+        });
+        window.game?.ui?.logSystemMessage?.('📜 보스 소환주문서로 보스가 나타났습니다.');
+        return { ok: true, bossId };
+    }
+
+    async summonBossFromScroll(config = {}, requesterId = null, options = {}) {
+        const monsterId = typeof config.monsterId === 'string' ? config.monsterId : '';
+        const zoneId = typeof config.zoneId === 'string' ? config.zoneId : '';
+        const currentZoneId = this.zone?.currentZone?.id || this.activeZoneId;
+        if (!monsterId || !zoneId || zoneId !== currentZoneId) return { ok: false, reason: 'wrong_zone' };
+        if (this._hasLiveBossOfType(monsterId)) return { ok: false, reason: 'boss_alive' };
+        if (this.net?.isHost) {
+            return this._spawnSummonedBoss(config, requesterId, options);
+        }
+        if (typeof this.net?.requestBossSpawn === 'function') {
+            this.net.requestBossSpawn({
+                isFirstBoss: false,
+                manualSummon: true,
+                monsterId,
+                zoneId,
+                scrollItemId: options.scrollItemId || null
+            });
+            return { ok: true, pending: true };
+        }
+        return { ok: false, reason: 'host_unavailable' };
     }
 
     _updateHostLogic(dt, localPlayer, remotePlayers) {
@@ -2163,7 +2301,7 @@ export default class MonsterManager {
                 }
 
                 // Quest & Splitting Logic (v0.00.14)
-                if (localPlayer && shouldProcessRewards) {
+                if (localPlayer && shouldProcessRewards && !m.summonedByScroll) {
                     const attackerId = m.lastAttackerId || null;
                     const sharedIntroQuestRecipients = (m.typeId === 'slime' || m.typeId === 'slime_split')
                         ? this._getSharedIntroQuestRecipients(attackerId).filter((uid) => uid && uid !== attackerId)
@@ -2300,8 +2438,8 @@ export default class MonsterManager {
                 if (m.shieldCooldown > 0) m.shieldCooldown -= dt * 1000;
             }
 
-            // v0.00.43: Charge Skill (All Slimes: slime, slime_split, king_slime)
-            if (!m.isDead && (m.typeId === 'slime' || m.typeId === 'slime_split' || m.typeId === 'king_slime')) {
+            // v0.00.43+: Charge Skill (slime lineage + authored charge-capable monsters/bosses)
+            if (!m.isDead && (m.chargeEnabled || m.chargeOnly || m.typeId === 'slime' || m.typeId === 'slime_split' || m.typeId === 'king_slime')) {
                 if (m.chargeCooldown > 0) m.chargeCooldown -= dt * 1000;
 
                 // Find Target (if not already found by previous logic)
@@ -2329,19 +2467,25 @@ export default class MonsterManager {
                     const dist = Math.sqrt((m.x - targetX) ** 2 + (m.y - targetY) ** 2);
 
                     // Variable Range & Cooldown Logic
-                    let chargeRange = 400;
-                    let cdTime = 4000;
-                    let minChargeDistance = 95;
+                    let chargeRange = Number.isFinite(m.chargeRange)
+                        ? m.chargeRange
+                        : 400;
+                    let cdTime = Number.isFinite(m.chargeCooldownMs)
+                        ? m.chargeCooldownMs
+                        : 4000;
+                    let minChargeDistance = Number.isFinite(m.minChargeDistance)
+                        ? m.minChargeDistance
+                        : 95;
 
                     if (m.typeId === 'slime_split') {
-                        chargeRange = 500;
-                        cdTime = 10000; // v1.1: 10s Cooldown
-                        minChargeDistance = 110;
+                        chargeRange = Number.isFinite(m.chargeRange) ? m.chargeRange : 500;
+                        cdTime = Number.isFinite(m.chargeCooldownMs) ? m.chargeCooldownMs : 10000;
+                        minChargeDistance = Number.isFinite(m.minChargeDistance) ? m.minChargeDistance : 110;
                     }
-                    if (m.typeId === 'king_slime') {
-                        chargeRange = 800;
-                        cdTime = 10000; // v1.1: 10s Cooldown
-                        minChargeDistance = 140;
+                    if (m.typeId === 'king_slime' || m.isBoss) {
+                        chargeRange = Number.isFinite(m.chargeRange) ? m.chargeRange : 800;
+                        cdTime = Number.isFinite(m.chargeCooldownMs) ? m.chargeCooldownMs : 10000;
+                        minChargeDistance = Number.isFinite(m.minChargeDistance) ? m.minChargeDistance : 140;
                     }
 
                     if (dist < chargeRange && dist > minChargeDistance) {
@@ -3439,6 +3583,7 @@ export default class MonsterManager {
             maxHp: definition.baseStats?.maxHp || 100,
             type: type,
             isBoss,
+            summonedByScroll: !!options.summonedByScroll,
             chargeOnly: forceChargeOnly, // Slimes are charge-only by design.
             spawnGroupId: options.spawnGroupId || null,
             deathParentId: typeof options.deathParentId === 'string' ? options.deathParentId : null,
@@ -3500,7 +3645,7 @@ export default class MonsterManager {
 
     _scheduleBossSpawnRequestRetry(request) {
         const requestKey = request?.requestId
-            || `${request?.fieldId || 'field'}:${request?.requesterId || 'requester'}:${request?.isFirstBoss !== false}`;
+            || `${request?.fieldId || 'field'}:${request?.requesterId || 'requester'}:${request?.manualSummon ? `${request?.monsterId || 'boss'}:${request?.zoneId || 'zone'}` : request?.isFirstBoss !== false}`;
         if (!requestKey || this._bossSpawnRequestRetryTimers.has(requestKey)) return;
         const generation = this.worldGeneration;
         const timer = setTimeout(() => {
@@ -3517,16 +3662,28 @@ export default class MonsterManager {
         isFirstBoss = true,
         requestId = null,
         requesterId = null,
-        fieldId = null
+        fieldId = null,
+        manualSummon = false,
+        monsterId = null,
+        zoneId = null,
+        scrollItemId = null
     } = {}) {
         if (!this.net?.isHost) return null;
         fieldId = fieldId || this.net?._getCurrentFieldId?.() || null;
-        const request = { isFirstBoss, requestId, requesterId, fieldId };
-        const requestKey = requestId || `${fieldId || 'field'}:${requesterId || 'requester'}:${isFirstBoss}`;
+        const request = { isFirstBoss, requestId, requesterId, fieldId, manualSummon, monsterId, zoneId, scrollItemId };
+        const requestKey = requestId || `${fieldId || 'field'}:${requesterId || 'requester'}:${manualSummon ? `${monsterId || 'boss'}:${zoneId || 'zone'}` : isFirstBoss}`;
         if (this._bossSpawnRequestInFlight.has(requestKey)) {
             return this._bossSpawnRequestInFlight.get(requestKey);
         }
         const operation = (async () => {
+            if (manualSummon === true) {
+                const result = await this._spawnSummonedBoss({ monsterId, zoneId }, requesterId, { scrollItemId });
+                if ((result?.ok || ['wrong_zone', 'boss_alive'].includes(result?.reason)) && requestId) {
+                    this.net.ackBossSpawnRequest?.(requestId);
+                }
+                return result?.bossId || null;
+            }
+
             if (isFirstBoss) {
                 this.firstBossPending = true;
                 this.firstBossMissingTimer = 0;
@@ -3701,6 +3858,7 @@ export default class MonsterManager {
             m.targetY = data.y;
             m.spawnGroupId = data.spawnGroupId || null;
             m.bossCycle = ['intro', 'repeat'].includes(data.bossCycle) ? data.bossCycle : null;
+            m.summonedByScroll = data.summonedByScroll === true;
 
             if (data.isBoss
                 || definition.isBoss === true
@@ -3739,6 +3897,7 @@ export default class MonsterManager {
             m.targetY = data.y;
             m.spawnGroupId = data.spawnGroupId || null;
             m.bossCycle = ['intro', 'repeat'].includes(data.bossCycle) ? data.bossCycle : null;
+            m.summonedByScroll = data.summonedByScroll === true;
             m.isBoss = !!data.isBoss || typeId === 'king_slime' || this._hasConfiguredBossRewards(typeId);
             applySlimeCombatOverrides(m, typeId);
             this._applyRemoteMonsterNetworkState(m, data);
@@ -3772,6 +3931,7 @@ export default class MonsterManager {
             monster.bossCycle = data.bossCycle;
         }
         if (data.isBoss === true) monster.isBoss = true;
+        if (data.summonedByScroll === true) monster.summonedByScroll = true;
         if (data.lastAttackerId) monster.lastAttackerId = data.lastAttackerId;
         if (Array.isArray(data.damageContributors)) {
             if (!(monster.damageContributors instanceof Set)) monster.damageContributors = new Set();
@@ -4299,6 +4459,16 @@ export default class MonsterManager {
     // v0.00.43: Kill Count & Boss Spawn Logic
     _handleMonsterDeath(m) {
         if (this.shouldSuppressWorldFeedback(m)) {
+            return;
+        }
+
+        if (m.summonedByScroll) {
+            if (m.typeId === 'king_slime') this.bossSpawned = false;
+            if (m.typeId === this.zoneBossRule?.monsterId) {
+                this.zoneBossSpawned = false;
+                this.zoneBossInstanceId = null;
+            }
+            window.game?.ui?.logSystemMessage?.(`📜 소환된 ${m.name || m.typeId} 처치!`);
             return;
         }
 

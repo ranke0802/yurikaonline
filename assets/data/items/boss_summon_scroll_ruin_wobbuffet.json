@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "boss_summon_scroll_ruin_wobbuffet",
+  "name": "파도의 수호자 보스 소환주문서",
+  "type": "consumable",
+  "stackable": true,
+  "maxStack": 1,
+  "rarity": "boss",
+  "description": "안개빛 호수에서 파도의 수호자를 소환합니다. 보유 중이면 같은 주문서는 추가로 지급되지 않으며, 사용 후 10분의 재사용 대기시간이 적용됩니다.",
+  "icon": {
+    "fallbackEmoji": "📜"
+  },
+  "bossSummon": {
+    "monsterId": "ruin_wobbuffet",
+    "zoneId": "zone_2",
+    "cooldownMs": 600000
+  }
+}

@@ -23,6 +23,10 @@ const ITEM_DEFINITIONS = {
     weapon_upgrade_stone: { name: '무기 강화석', icon: '💎' },
     blessed_weapon_upgrade_stone: { name: '축복받은 무기 강화석', icon: '💎' },
     option_reroll_stone: { name: '옵션 변경석', icon: '💠', iconPath: 'src/assets/items/option_reroll_stone.webp' },
+    boss_summon_scroll_king_slime: { name: '대왕슬라임 보스 소환주문서', icon: '📜' },
+    boss_summon_scroll_ruin_wobbuffet: { name: '파도의 수호자 보스 소환주문서', icon: '📜' },
+    boss_summon_scroll_thunder_pikachu: { name: '뇌제 피카츄 보스 소환주문서', icon: '📜' },
+    boss_summon_scroll_astral_sylveon: { name: '성작의 님피아 보스 소환주문서', icon: '📜' },
     magic_staff: { name: '마력의 지팡이', icon: '🪄' }
 };
 const REMOVED_ITEM_IDS = new Set(['slime_gel', 'potion_hp_small', 'royal_jelly', 'king_crown']);
@@ -126,6 +130,7 @@ export default class Player extends CharacterBase {
         this.skillMaxCooldowns = { j: 0, h: 0, u: 0, k: 0 };
         this.uiLayout = null;
         this.clientSettings = null;
+        this.itemCooldowns = {};
         this.recoveryUid = null;
 
         // Combat & Channeling
@@ -1221,6 +1226,7 @@ export default class Player extends CharacterBase {
             questState: this._cloneProfilePatchValue(this.questState),
             uiLayout: this._cloneProfilePatchValue(this.uiLayout),
             clientSettings: this._cloneProfilePatchValue(this.clientSettings),
+            itemCooldowns: this._cloneProfilePatchValue(this.itemCooldowns),
             recoveryUid: this.recoveryUid || this.id,
             name: this.name,
             party: this.party, // v0.00.14: Sync party state
@@ -1295,6 +1301,9 @@ export default class Player extends CharacterBase {
                     break;
                 case 'clientSettings':
                     patch.clientSettings = this._cloneProfilePatchValue(this.clientSettings);
+                    break;
+                case 'itemCooldowns':
+                    patch.itemCooldowns = this._cloneProfilePatchValue(this.itemCooldowns);
                     break;
                 case 'recoveryUid':
                     patch.recoveryUid = this.recoveryUid || this.id;
@@ -2362,6 +2371,9 @@ export default class Player extends CharacterBase {
             data.items.forEach((item) => {
                 const itemId = item.id || item.type;
                 if (REMOVED_ITEM_IDS.has(itemId)) {
+                    return;
+                }
+                if (item.uniqueInventory === true && this.hasInventoryItem(itemId)) {
                     return;
                 }
                 const amount = Math.max(1, item.amount || 1);
@@ -3585,6 +3597,86 @@ export default class Player extends CharacterBase {
         }, 0);
     }
 
+    hasInventoryItem(itemId) {
+        if (!itemId) return false;
+        if (this.equipment?.weapon?.type === itemId) return true;
+        return this.inventory.some((item, index) => index > 0 && item?.type === itemId);
+    }
+
+    getItemCooldownRemainingMs(itemId, now = Date.now()) {
+        const until = Math.max(0, Number(this.itemCooldowns?.[itemId] || 0));
+        return Math.max(0, until - now);
+    }
+
+    formatItemCooldown(itemId, now = Date.now()) {
+        const remainingMs = this.getItemCooldownRemainingMs(itemId, now);
+        if (remainingMs <= 0) return '';
+        const totalSeconds = Math.ceil(remainingMs / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    getBossSummonConfigForItem(item) {
+        if (!item) return null;
+        const definition = this.getItemDataManager()?.getItemDefinition(item.type || item.id);
+        const config = definition?.bossSummon;
+        if (!config?.monsterId || !config?.zoneId) return null;
+        return {
+            monsterId: config.monsterId,
+            zoneId: config.zoneId,
+            cooldownMs: Math.max(1000, Number(config.cooldownMs || 600000))
+        };
+    }
+
+    async useBossSummonScroll(selection = null) {
+        const item = selection?.kind === 'inventory'
+            ? this.inventory[selection.index]
+            : null;
+        const itemId = item?.type || item?.id || '';
+        const config = this.getBossSummonConfigForItem(item);
+        if (!item || !itemId || !config) {
+            return { ok: false, message: '사용할 보스 소환주문서를 선택해 주세요.' };
+        }
+
+        const currentZoneId = window.game?.zone?.currentZone?.id || this.currentZoneId || 'zone_1';
+        if (currentZoneId !== config.zoneId) {
+            return { ok: false, message: '이 주문서는 해당 보스가 등장하는 맵에서만 사용할 수 있습니다.' };
+        }
+
+        const remainingMs = this.getItemCooldownRemainingMs(itemId);
+        if (remainingMs > 0) {
+            return { ok: false, message: `아직 재사용 대기시간입니다. (${this.formatItemCooldown(itemId)})` };
+        }
+
+        const result = await window.game?.monsterManager?.summonBossFromScroll?.(config, this.id, { scrollItemId: itemId });
+        if (!result?.ok) {
+            const messages = {
+                wrong_zone: '이 주문서는 해당 보스가 등장하는 맵에서만 사용할 수 있습니다.',
+                boss_alive: '이미 같은 보스가 필드에 등장해 있습니다.',
+                host_unavailable: '현재 필드 호스트가 준비되지 않아 소환할 수 없습니다.',
+                spawn_failed: '보스 소환에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+            };
+            return { ok: false, message: messages[result?.reason] || '보스 소환에 실패했습니다.' };
+        }
+
+        this.itemCooldowns = {
+            ...(this.itemCooldowns || {}),
+            [itemId]: Date.now() + config.cooldownMs
+        };
+        this.saveProfilePatch(['itemCooldowns'], {
+            debounceMs: 0,
+            reason: 'boss_summon_scroll_cooldown'
+        });
+        return {
+            ok: true,
+            pending: !!result.pending,
+            message: result.pending
+                ? '보스 소환 요청을 보냈습니다.'
+                : '보스 소환주문서를 사용했습니다.'
+        };
+    }
+
     consumeInventoryItem(itemId, amount = 1) {
         let remaining = Math.max(1, amount);
         for (let i = 1; i < this.inventory.length; i++) {
@@ -3946,6 +4038,9 @@ export default class Player extends CharacterBase {
         this.pendingItemRewards.forEach((item) => {
             const itemId = item.id || item.type;
             const amount = Math.max(1, Number(item.amount || 1));
+            if (item.uniqueInventory === true && this.hasInventoryItem(itemId)) {
+                return;
+            }
             const added = this.addInventoryItem(itemId, amount, item);
             if (!added) {
                 remaining.push(item);
@@ -3973,6 +4068,10 @@ export default class Player extends CharacterBase {
             ...this.getItemMeta(itemId),
             ...meta
         };
+        if (definition.uniqueInventory === true && this.hasInventoryItem(itemId)) {
+            return this.inventory.find((item, index) => index > 0 && item?.type === itemId)
+                || (this.equipment?.weapon?.type === itemId ? this.equipment.weapon : null);
+        }
         const shouldMarkAsNew = definition.slot === 'weapon' && meta.markAsNew !== false;
 
         const isEquipmentInstance = definition.stackable === false || !!definition.instanceId || !!definition.slot;

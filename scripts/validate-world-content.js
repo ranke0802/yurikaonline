@@ -10,12 +10,27 @@ const ROOT = path.resolve(__dirname, '..');
 const errors = [];
 const warnings = [];
 const loadedJsonFiles = new Set();
+const monsterRuntimeSource = fs.readFileSync(repoPath('src/js/entities/Monster.js'), 'utf8');
+const monsterManagerSource = fs.readFileSync(repoPath('src/js/world/MonsterManager.js'), 'utf8');
 const supportedWeaponVariants = new Set([
     'golden_missile',
     'blue_fireball',
     'crimson_chain'
 ]);
 const currencyItemIds = new Set(['manastone', 'gold']);
+const doubledSpawnTargets = new Map([
+    ['zone_2', { count: 12, respawnSeconds: 4 }],
+    ['zone_3', { count: 10, respawnSeconds: 5 }],
+    ['zone_4', { count: 8, respawnSeconds: 6 }]
+]);
+const aggressiveChargeMonsterIds = new Set([
+    'squirtle',
+    'emolga',
+    'gastly',
+    'ruin_wobbuffet',
+    'thunder_pikachu',
+    'astral_sylveon'
+]);
 
 function fail(message) {
     errors.push(message);
@@ -275,6 +290,21 @@ function validateBossMechanics(monster, isCatalogBoss) {
     });
 }
 
+function validateAggressiveChargeBehavior(monster) {
+    if (!aggressiveChargeMonsterIds.has(monster.id)) return;
+
+    const behavior = monster.behavior || {};
+    const charge = behavior.charge || {};
+    assert(behavior.aggressive === true, `Monster ${monster.id} must be marked aggressive`);
+    assert(Number(behavior.spawnGraceSeconds) === 0, `Monster ${monster.id} must acquire targets without spawn grace`);
+    assert(charge.enabled === true, `Monster ${monster.id} must enable charge behavior`);
+    assert(Number(charge.damage) > 0, `Monster ${monster.id} charge damage must be positive`);
+    assert(Number(charge.range) >= 400, `Monster ${monster.id} charge range must be field-combat capable`);
+    assert(Number(charge.cooldownMs) >= 4000, `Monster ${monster.id} charge cooldown must prevent spam`);
+    assert(Number(charge.minDistance) >= 80, `Monster ${monster.id} charge minDistance must preserve dodge counterplay`);
+    assert(Number(charge.castSeconds) >= 0.8, `Monster ${monster.id} charge castSeconds must leave a visible warning`);
+}
+
 function validateStrictProgression(entries, label) {
     entries.forEach((entry, index) => {
         if (index === 0) return;
@@ -401,6 +431,7 @@ if (!zoneCatalog || !itemCatalog) {
 
     const dropRules = {
         globalDrops: dropDocuments.flatMap((document) => document.globalDrops || []),
+        normalDrops: dropDocuments.flatMap((document) => document.normalDrops || []),
         bossDrops: dropDocuments.flatMap((document) => document.bossDrops || []),
         bossBonusDrops: dropDocuments.flatMap((document) => document.bossBonusDrops || [])
     };
@@ -409,7 +440,6 @@ if (!zoneCatalog || !itemCatalog) {
         assert(itemsById.has(drop.itemId), `Global drop references missing item ${drop.itemId}`);
         assert(drop.chance > 0 && drop.chance <= 1, `Global drop ${drop.itemId} has invalid chance`);
     });
-
     const zonesById = new Map();
     const zoneCatalogEntries = Array.isArray(zoneCatalog.zones) ? zoneCatalog.zones : [];
     assert(zoneCatalogEntries.length > 0, 'zone_catalog.zones must not be empty');
@@ -485,6 +515,17 @@ if (!zoneCatalog || !itemCatalog) {
             if (zoneIndex > 0) {
                 assert(spawn.initialDelaySeconds >= 0, `Zone ${zone.id} ${spawn.monsterId} initial delay is invalid`);
                 assert(spawn.respawnSeconds > 0, `Zone ${zone.id} ${spawn.monsterId} respawn is invalid`);
+                const doubledTarget = doubledSpawnTargets.get(zone.id);
+                if (doubledTarget) {
+                    assert(
+                        spawn.count === doubledTarget.count,
+                        `Zone ${zone.id} ${spawn.monsterId} count must stay doubled at ${doubledTarget.count}`
+                    );
+                    assert(
+                        spawn.respawnSeconds === doubledTarget.respawnSeconds,
+                        `Zone ${zone.id} ${spawn.monsterId} respawnSeconds must stay doubled-rate at ${doubledTarget.respawnSeconds}`
+                    );
+                }
             }
             const area = spawn.area;
             assert(
@@ -542,6 +583,7 @@ if (!zoneCatalog || !itemCatalog) {
         (zone.monsterSpawns || []).forEach((spawn) => referencedMonsterIds.add(spawn.monsterId));
         if (zone.bossSpawn?.monsterId) referencedMonsterIds.add(zone.bossSpawn.monsterId);
     });
+    dropRules.normalDrops.forEach((drop) => referencedMonsterIds.add(drop.monsterId));
     dropRules.bossDrops.forEach((drop) => referencedMonsterIds.add(drop.monsterId));
     dropRules.bossBonusDrops.forEach((drop) => referencedMonsterIds.add(drop.monsterId));
 
@@ -572,7 +614,32 @@ if (!zoneCatalog || !itemCatalog) {
 
         validateSpriteSheet(monster, checkedSheets);
         validateBossMechanics(monster, catalogBossMonsterIds.has(monster.id));
+        validateAggressiveChargeBehavior(monster);
     });
+
+    dropRules.normalDrops.forEach((drop) => {
+        assert(monstersById.has(drop.monsterId), `Normal drop references missing monster ${drop.monsterId}`);
+        assert(itemsById.has(drop.itemId), `Normal drop ${drop.monsterId} references missing item ${drop.itemId}`);
+        assert(drop.chance > 0 && drop.chance <= 1, `Normal drop ${drop.monsterId}:${drop.itemId} has invalid chance`);
+        const item = itemsById.get(drop.itemId);
+        if (item?.stackable === false) {
+            assert(affixPoolsById.has(drop.rollAffixFromPool), `Normal weapon drop ${drop.itemId} references missing affix pool ${drop.rollAffixFromPool}`);
+            assert(item.prefixPool === drop.rollAffixFromPool, `Normal weapon drop ${drop.itemId} pool differs from item ${item.id}`);
+            assert((item.dropSource || []).includes(drop.monsterId), `Normal weapon item ${item.id} is missing dropSource ${drop.monsterId}`);
+        }
+    });
+
+    assert(
+        /BOSS_MECHANIC_AREA_SCALE\s*=\s*3/.test(monsterRuntimeSource)
+            && /BOSS_MECHANIC_DAMAGE_SCALE\s*=\s*2/.test(monsterRuntimeSource)
+            && /BOSS_MECHANIC_CAST_SCALE\s*=\s*1\.3/.test(monsterRuntimeSource),
+        'Boss mechanic runtime must keep area/damage/cast scaling at 3x/2x/1.3x'
+    );
+    assert(
+        /m\.chargeEnabled\s*\|\|\s*m\.chargeOnly/.test(monsterManagerSource)
+            && /m\.typeId === 'king_slime' \|\| m\.isBoss/.test(monsterManagerSource),
+        'MonsterManager must allow authored normal monsters and all bosses to use charge'
+    );
 
     zoneCatalogEntries.slice(1).forEach((catalogZone) => {
         const zone = zonesById.get(catalogZone.id);
@@ -632,8 +699,15 @@ if (!zoneCatalog || !itemCatalog) {
         const optionRerollDrop = (bossBonusDropsByMonster.get(bossId) || [])
             .find((drop) => drop.itemId === 'option_reroll_stone');
         assert(
-            optionRerollDrop && optionRerollDrop.chance === 0.3 && optionRerollDrop.min === 1 && optionRerollDrop.max === 3,
-            `Catalog boss ${bossId} must drop option_reroll_stone at 30% for 1~3`
+            optionRerollDrop && optionRerollDrop.chance === 1 && optionRerollDrop.min === 1 && optionRerollDrop.max === 3,
+            `Catalog boss ${bossId} must drop option_reroll_stone at 100% for 1~3`
+        );
+        const expectedScrollId = `boss_summon_scroll_${bossId}`;
+        const scrollDrop = (bossBonusDropsByMonster.get(bossId) || [])
+            .find((drop) => drop.itemId === expectedScrollId);
+        assert(
+            scrollDrop && scrollDrop.chance === 1 && scrollDrop.min === 1 && scrollDrop.max === 1 && scrollDrop.uniqueInventory === true,
+            `Catalog boss ${bossId} must drop a unique ${expectedScrollId}`
         );
     });
 
