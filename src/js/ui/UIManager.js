@@ -8951,6 +8951,7 @@ export class UIManager {
 
                     const saveResult = await this.game.net.savePlayerData(result.googleUid, migratedProfile, false, {
                         allowStaleWrite: true,
+                        allowDestructiveProfileWrite: true,
                         backupReason: result.mode === 'overwrite_existing_google' ? 'google_migration_overwrite' : 'google_migration',
                         sourceUid: guestUid,
                         sourceTs: guestSnapshot.ts || migratedProfile.ts

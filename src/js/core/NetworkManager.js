@@ -7072,6 +7072,148 @@ export default class NetworkManager extends EventEmitter {
         return snapshot;
     }
 
+    _getProfileInventoryScore(profile = null) {
+        const inventory = Array.isArray(profile?.inventory) ? profile.inventory : [];
+        const equipment = profile?.equipment && typeof profile.equipment === 'object' ? profile.equipment : {};
+        const scoreItem = (item) => {
+            if (!item || typeof item !== 'object') return 0;
+            const amount = Math.max(1, Number(item.amount || 1));
+            const enhancement = Math.max(0, Number(item.enhancementLevel || 0));
+            const optionCount = item.rolledValues && typeof item.rolledValues === 'object'
+                ? Object.keys(item.rolledValues).length
+                : 0;
+            const rarityScore = {
+                common: 1,
+                uncommon: 2,
+                rare: 4,
+                epic: 7,
+                legendary: 12
+            }[String(item.rarity || '').toLowerCase()] || 2;
+            return amount + rarityScore + enhancement * 3 + optionCount * 2;
+        };
+
+        const inventoryScore = inventory.reduce((total, item, index) => {
+            if (index === 0 && item?.type === 'manastone') return total;
+            return total + scoreItem(item);
+        }, 0);
+        const equipmentScore = Object.values(equipment).reduce((total, item) => total + scoreItem(item), 0);
+        return inventoryScore + equipmentScore;
+    }
+
+    _getProfileQuestScore(profile = null) {
+        const questData = profile?.questData && typeof profile.questData === 'object' ? profile.questData : {};
+        const questState = profile?.questState && typeof profile.questState === 'object' ? profile.questState : {};
+        const completedCount = questState.completed && typeof questState.completed === 'object'
+            ? Object.keys(questState.completed).length
+            : 0;
+        const flagCount = questState.flags && typeof questState.flags === 'object'
+            ? Object.keys(questState.flags).filter((key) => questState.flags[key]).length
+            : 0;
+        return (
+            Math.max(0, Number(questData.slimeKills || 0))
+            + Math.max(0, Number(questData.slimeRepeatKills || 0))
+            + Math.max(0, Number(questData.bossClearCount || 0)) * 100
+            + (questData.basicTrainingCompleted ? 50 : 0)
+            + (questData.slimeQuestClaimed ? 30 : 0)
+            + (questData.slime30QuestClaimed ? 60 : 0)
+            + (questData.bossQuestClaimed ? 120 : 0)
+            + completedCount * 80
+            + flagCount * 10
+        );
+    }
+
+    _getProfileProgressScore(profile = null) {
+        if (!profile || typeof profile !== 'object') return 0;
+        const level = Math.max(1, Math.floor(Number(profile.level || 1)));
+        const exp = Math.max(0, Number(profile.exp || 0));
+        const manastone = Math.max(0, Number(profile.manastone ?? profile.gold ?? 0));
+        const statInvestment = ['vitality', 'intelligence', 'wisdom', 'agility', 'statPoints']
+            .reduce((total, key) => total + Math.max(0, Number(profile[key] || 0)), 0);
+        const skillInvestment = Object.values(profile.skillLevels || {})
+            .reduce((total, value) => total + Math.max(1, Number(value || 1)), 0);
+        const inventoryScore = this._getProfileInventoryScore(profile);
+        const questScore = this._getProfileQuestScore(profile);
+
+        return (
+            level * 1_000_000
+            + exp
+            + Math.floor(manastone / 10)
+            + statInvestment * 5_000
+            + skillInvestment * 2_000
+            + inventoryScore * 7_500
+            + questScore * 2_000
+        );
+    }
+
+    _isProfileCandidateBetter(candidate = null, incumbent = null) {
+        if (!candidate?.profile) return false;
+        if (!incumbent?.profile) return true;
+        const candidateScore = this._getProfileProgressScore(candidate.profile);
+        const incumbentScore = this._getProfileProgressScore(incumbent.profile);
+        const candidateTs = Number(candidate.ts || candidate.profile.ts || 0);
+        const incumbentTs = Number(incumbent.ts || incumbent.profile.ts || 0);
+        if (candidateScore !== incumbentScore) {
+            if (candidateTs >= incumbentTs) return candidateScore > incumbentScore;
+            return candidateScore > incumbentScore
+                && this._isProfileRegression(candidate.profile, incumbent.profile);
+        }
+        return candidateTs > incumbentTs;
+    }
+
+    _isProfileRegression(current = null, next = null) {
+        if (!current || !next || typeof current !== 'object' || typeof next !== 'object') return false;
+        const currentScore = this._getProfileProgressScore(current);
+        const nextScore = this._getProfileProgressScore(next);
+        if (currentScore <= 0 || nextScore <= 0) return false;
+
+        const currentLevel = Math.max(1, Math.floor(Number(current.level || 1)));
+        const nextLevel = Math.max(1, Math.floor(Number(next.level || 1)));
+        const currentInventory = this._getProfileInventoryScore(current);
+        const nextInventory = this._getProfileInventoryScore(next);
+        const currentStats = ['vitality', 'intelligence', 'wisdom', 'agility', 'statPoints']
+            .reduce((total, key) => total + Math.max(0, Number(current[key] || 0)), 0);
+        const nextStats = ['vitality', 'intelligence', 'wisdom', 'agility', 'statPoints']
+            .reduce((total, key) => total + Math.max(0, Number(next[key] || 0)), 0);
+
+        return (
+            nextLevel < currentLevel
+            || (currentLevel >= 5 && currentStats > nextStats + 2)
+            || (currentLevel >= 5 && currentInventory >= 8 && nextInventory <= Math.max(1, currentInventory * 0.25))
+            || (currentScore > nextScore + 250_000 && currentLevel >= nextLevel)
+        );
+    }
+
+    _mergeProfileAgainstRegression(current = null, next = null) {
+        const merged = this._cloneProfileData(next) || {};
+        const source = this._cloneProfileData(current) || {};
+        [
+            'level',
+            'exp',
+            'maxExp',
+            'manastone',
+            'gold',
+            'vitality',
+            'intelligence',
+            'wisdom',
+            'agility',
+            'statPoints',
+            'skillLevels',
+            'inventory',
+            'equipment',
+            'pendingItemRewards',
+            'claimedRewardIds',
+            'questData',
+            'questState',
+            'createdAt',
+            'recoveryUid'
+        ].forEach((field) => {
+            if (source[field] !== undefined) merged[field] = source[field];
+        });
+        merged.ts = Math.max(Number(next?.ts || 0), Date.now());
+        merged._profileRegressionGuardedAt = Date.now();
+        return merged;
+    }
+
     _resolveRecoveryUid(profile = null, fallbackUid = null) {
         const raw = profile && typeof profile === 'object'
             ? (profile.recoveryUid || profile.stableUid || profile.recoveredFromUid || fallbackUid)
@@ -7101,6 +7243,13 @@ export default class NetworkManager extends EventEmitter {
 
         await recoveryRef.transaction((current) => {
             const currentTs = Number(current?.ts || 0);
+            const currentProfile = current?.profile || null;
+            if (
+                currentProfile
+                && this._getProfileProgressScore(currentProfile) > this._getProfileProgressScore(normalizedProfile)
+            ) {
+                return;
+            }
             if (currentTs > nextTs) return;
             return payload;
         });
@@ -7114,21 +7263,17 @@ export default class NetworkManager extends EventEmitter {
         try {
             const [profileSnapshot, backupSnapshot, recoverySnapshot] = await Promise.all([
                 this.getProfileRef(uid)?.once('value'),
-                this.getProfileBackupsRef(uid)?.orderByChild('ts').limitToLast(1).once('value'),
+                this.getProfileBackupsRef(uid)?.orderByChild('ts').limitToLast(20).once('value'),
                 this.getRecoveryProfileRef(uid)?.once('value')
             ]);
 
             const profile = profileSnapshot?.val() || null;
             const normalizedProfile = profile ? this._normalizeProfileSnapshot(profile) : null;
 
-            let latestBackup = null;
+            const backupCandidates = [];
             backupSnapshot?.forEach((child) => {
-                latestBackup = { id: child.key, ...(child.val() || {}) };
+                backupCandidates.push({ id: child.key, ...(child.val() || {}) });
             });
-
-            const backupProfile = latestBackup?.profile
-                ? this._normalizeProfileSnapshot(latestBackup.profile, latestBackup.ts || Date.now())
-                : null;
 
             const recoveryEntry = recoverySnapshot?.val() || null;
             const recoveryProfile = recoveryEntry?.profile
@@ -7141,7 +7286,7 @@ export default class NetworkManager extends EventEmitter {
             let bestSnapshot = null;
             const consider = (candidate) => {
                 if (!candidate?.profile) return;
-                if (!bestSnapshot || Number(candidate.ts || 0) > Number(bestSnapshot.ts || 0)) {
+                if (this._isProfileCandidateBetter(candidate, bestSnapshot)) {
                     bestSnapshot = candidate;
                 }
             };
@@ -7155,14 +7300,19 @@ export default class NetworkManager extends EventEmitter {
                 recoveryUid: this._resolveRecoveryUid(normalizedProfile, uid)
             } : null);
 
-            consider(backupProfile ? {
-                profile: backupProfile,
-                ts: backupProfile.ts || 0,
-                source: 'backup',
-                backupId: latestBackup?.id || null,
-                latestUid: uid,
-                recoveryUid: this._resolveRecoveryUid(backupProfile, uid)
-            } : null);
+            backupCandidates.forEach((backup) => {
+                const backupProfile = backup?.profile
+                    ? this._normalizeProfileSnapshot(backup.profile, backup.ts || Date.now())
+                    : null;
+                consider(backupProfile ? {
+                    profile: backupProfile,
+                    ts: Number(backup.ts || backupProfile.ts || 0),
+                    source: 'backup',
+                    backupId: backup?.id || null,
+                    latestUid: uid,
+                    recoveryUid: this._resolveRecoveryUid(backupProfile, uid)
+                } : null);
+            });
 
             consider(recoveryProfile ? {
                 profile: recoveryProfile,
@@ -7606,7 +7756,10 @@ export default class NetworkManager extends EventEmitter {
                 if (!allowStaleWrite && currentTs > nextTs) {
                     return;
                 }
-                return this._applyProfileWriterSession(nextProfile, writerSession);
+                const guardedProfile = !options.allowDestructiveProfileWrite && this._isProfileRegression(current, nextProfile)
+                    ? this._mergeProfileAgainstRegression(current, nextProfile)
+                    : nextProfile;
+                return this._applyProfileWriterSession(guardedProfile, writerSession);
             });
 
             if (!transactionResult.committed) {
@@ -7682,7 +7835,10 @@ export default class NetworkManager extends EventEmitter {
                 if (!this._canProfileWriterSessionCommit(current, writerSession)) return;
                 if (Number(current?.ts || 0) > Number(nextPatch.ts || 0)) return;
                 const merged = this._mergeProfileData(current || {}, nextPatch);
-                return this._applyProfileWriterSession(merged, writerSession);
+                const guarded = !options.allowDestructiveProfileWrite && this._isProfileRegression(current, merged)
+                    ? this._mergeProfileAgainstRegression(current, merged)
+                    : merged;
+                return this._applyProfileWriterSession(guarded, writerSession);
             });
             const committedProfileValue = transactionResult?.snapshot?.val?.() || null;
             if (!transactionResult?.committed) {
@@ -7735,7 +7891,11 @@ export default class NetworkManager extends EventEmitter {
 
         const sourceTs = Number(sourceSnapshot.ts || 0);
         const targetTs = Number(targetSnapshot?.ts || 0);
-        if (targetSnapshot?.profile && sourceTs < targetTs) {
+        if (
+            targetSnapshot?.profile
+            && sourceTs < targetTs
+            && !this._isProfileCandidateBetter(sourceSnapshot, targetSnapshot)
+        ) {
             return {
                 ok: false,
                 reason: 'source_older_than_target',

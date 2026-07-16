@@ -17,14 +17,33 @@ export default class CharacterSelectionScene extends Scene {
         this.game.ui?.hideAllPopups();
         this.user = params.user;
 
-        // Optimize initial entry: read the lightweight profile first and only
-        // fall back to backup inspection when the root profile is missing/stale.
+        // Read the lightweight profile first, then compare it against recent
+        // backups/recovery snapshots. Mobile rotation or an old client can leave
+        // a newer timestamp on a regressed root profile, so "has name" is not
+        // enough to trust the root snapshot.
         const profile = await this.game.net.getPlayerProfile?.(this.user.uid);
-        if (profile?.name) {
-            this.profile = profile;
-        } else {
-            const latestSnapshot = await this.game.net.getLatestProfileSnapshot?.(this.user.uid);
-            this.profile = latestSnapshot?.profile || profile || null;
+        const latestSnapshot = await this.game.net.getLatestProfileSnapshot?.(this.user.uid);
+        this.profile = latestSnapshot?.profile || profile || null;
+
+        if (
+            latestSnapshot?.profile
+            && latestSnapshot.source !== 'profile'
+            && this.game.net?._isProfileCandidateBetter?.(latestSnapshot, profile ? {
+                profile,
+                ts: Number(profile.ts || 0),
+                source: 'profile'
+            } : null)
+        ) {
+            const repairResult = await this.game.net.savePlayerData(this.user.uid, latestSnapshot.profile, false, {
+                allowStaleWrite: true,
+                backupReason: `auto_repair_from_${latestSnapshot.source}`,
+                sourceUid: latestSnapshot.latestUid || this.user.uid,
+                sourceTs: latestSnapshot.ts || latestSnapshot.profile.ts || Date.now(),
+                saveReason: 'character_select_profile_auto_repair'
+            });
+            if (repairResult?.ok && repairResult.profile) {
+                this.profile = repairResult.profile;
+            }
         }
 
         this.createUI();

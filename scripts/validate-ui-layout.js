@@ -145,6 +145,13 @@ if (!/getEffectiveCameraZoom\s*\(isMobile\s*=\s*false\)[\s\S]*return baseZoom \/
     fail('camera view range must widen monotonically by dividing base zoom by the view range scale');
 }
 
+if (!/window\.visualViewport\?\.addEventListener\?\.\('resize',\s*this\._handleViewportResize\)/.test(mainJs)
+    || !/window\.addEventListener\('orientationchange',\s*this\._handleViewportOrientationChange\)/.test(mainJs)
+    || !/_viewportResizeTimers[\s\S]*80,\s*180,\s*360,\s*720,\s*1200/.test(mainJs)
+    || !/syncCameraAfterViewportChange\(options\.reason\s*\|\|\s*'resize'\)/.test(mainJs)) {
+    fail('iOS PWA orientation changes must resync visualViewport, settled canvas size, and camera focus');
+}
+
 if (/camera\.height\s*\*\s*0\.12|landscapeFramingOffsetY\s*=\s*this\.ui\?\.isMobileLandscapeViewport/.test(worldScene)) {
     fail('mobile landscape camera framing must not offset the character away from screen center');
 }

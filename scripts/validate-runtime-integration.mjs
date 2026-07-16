@@ -2732,6 +2732,115 @@ async function validateProfileWriterFencingContracts() {
         assert.equal(newestTab.isProfileWriterSuperseded(), true, 'an account session must yield only to a newer activeSession');
         assert.equal(newestSupersededEvents, 1, 'a superseded account session must emit exactly one shutdown event');
         assert.equal(newestTab._accountSessionHeartbeatTimer, null, 'a superseded account session must stop heartbeating');
+
+        window.firebase = firebaseMock;
+        globalThis.firebase = firebaseMock;
+        const advancedProfile = {
+            name: 'Ppp',
+            level: 17,
+            exp: 340,
+            maxExp: 985,
+            manastone: 4200,
+            vitality: 8,
+            intelligence: 13,
+            wisdom: 7,
+            agility: 6,
+            statPoints: 0,
+            skillLevels: { laser: 5, missile: 3, fireball: 2, shield: 1 },
+            inventory: [
+                { type: 'manastone', amount: 4200 },
+                { id: 'storm_staff', type: 'storm_staff', instanceId: 'profile_guard_staff', rarity: 'boss', enhancementLevel: 4 }
+            ],
+            equipment: {
+                weapon: { id: 'tidal_staff', type: 'tidal_staff', instanceId: 'profile_guard_equipped', rarity: 'boss', enhancementLevel: 5 }
+            },
+            questData: { bossClearCount: 2, slime30QuestClaimed: true, bossQuestClaimed: true, basicTrainingCompleted: true },
+            questState: { completed: { quest_lake_boss: true }, flags: { 'boss.thunder_pikachu.defeated': true } },
+            currentZoneId: 'zone_3',
+            ts: Date.now()
+        };
+        profile = clone(advancedProfile);
+
+        const regressionGuardNet = new NetworkManager();
+        regressionGuardNet.playerId = uid;
+        regressionGuardNet._writeProfileBackup = async () => true;
+        regressionGuardNet._syncRecoveryProfile = async () => true;
+        const regressedSave = await regressionGuardNet._commitPlayerData(uid, {
+            name: 'Ppp',
+            level: 1,
+            exp: 0,
+            maxExp: 100,
+            manastone: 0,
+            vitality: 1,
+            intelligence: 3,
+            wisdom: 2,
+            agility: 1,
+            statPoints: 0,
+            skillLevels: { laser: 1, missile: 1, fireball: 1, shield: 1 },
+            inventory: new Array(24).fill(null),
+            equipment: { weapon: null },
+            questData: { basicTrainingCompleted: true },
+            questState: { active: { travel_to_lake: true }, completed: {}, flags: {} },
+            currentZoneId: 'zone_2',
+            ts: Date.now() + 60_000
+        });
+        assert.equal(regressedSave.ok, true, 'a regressed full save is committed only after guard merging');
+        assert.equal(profile.level, 17, 'profile regression guard must preserve the higher level');
+        assert.equal(profile.equipment.weapon.instanceId, 'profile_guard_equipped', 'profile regression guard must preserve equipped boss gear');
+        assert.equal(profile.inventory[1].instanceId, 'profile_guard_staff', 'profile regression guard must preserve inventory gear');
+        assert.equal(profile.currentZoneId, 'zone_2', 'profile regression guard may still keep safe transient travel fields from the new save');
+
+        const rootRegressedProfile = {
+            name: 'Ppp',
+            level: 1,
+            exp: 0,
+            maxExp: 100,
+            vitality: 1,
+            intelligence: 3,
+            wisdom: 2,
+            agility: 1,
+            inventory: new Array(24).fill(null),
+            equipment: { weapon: null },
+            questData: { basicTrainingCompleted: true },
+            questState: { active: { travel_to_lake: true }, completed: {}, flags: {} },
+            ts: Date.now() + 120_000
+        };
+        const backupEntry = {
+            ts: Date.now() - 120_000,
+            profile: advancedProfile
+        };
+        const profileSnapshotMock = {
+            val: () => clone(rootRegressedProfile)
+        };
+        const backupSnapshotMock = {
+            forEach(callback) {
+                callback({ key: 'good_backup', val: () => clone(backupEntry) });
+            }
+        };
+        const emptySnapshotMock = { val: () => null };
+        const snapshotFirebaseMock = {
+            database: () => ({
+                ref(path) {
+                    if (path === `users/${uid}/profile`) return { once: async () => profileSnapshotMock };
+                    if (path === `users/${uid}/profileBackups`) {
+                        return {
+                            orderByChild() { return this; },
+                            limitToLast() { return this; },
+                            once: async () => backupSnapshotMock
+                        };
+                    }
+                    if (path === `recovery_profiles/${uid}`) return { once: async () => emptySnapshotMock };
+                    return { once: async () => emptySnapshotMock };
+                }
+            })
+        };
+        window.firebase = snapshotFirebaseMock;
+        globalThis.firebase = snapshotFirebaseMock;
+        const snapshotNet = new NetworkManager();
+        const recoveredSnapshot = await snapshotNet.getLatestProfileSnapshot(uid);
+        assert.equal(recoveredSnapshot.source, 'backup', 'a stronger backup must beat a newer but regressed root profile');
+        assert.equal(recoveredSnapshot.profile.level, 17);
+        assert.equal(recoveredSnapshot.profile.equipment.weapon.instanceId, 'profile_guard_equipped');
     } finally {
         window.game = previousGame;
         window.firebase = previousWindowFirebase;

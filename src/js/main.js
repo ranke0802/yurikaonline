@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.02.066'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.068'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -56,10 +56,19 @@ class Game {
         this.zoom = 1.0;
         this.performanceTelemetry = this.createPerformanceTelemetryState();
         this._backgroundedAt = 0;
+        this._viewportResizeTimers = [];
+        this._lastViewportSyncSignature = '';
 
         // Initial resize will be called after camera creation for full sync
         this._resetTransientInputState = this._resetTransientInputState.bind(this);
-        window.addEventListener('resize', () => this.resize());
+        this._handleViewportResize = this._handleViewportResize.bind(this);
+        this._handleViewportOrientationChange = this._handleViewportOrientationChange.bind(this);
+        window.addEventListener('resize', this._handleViewportResize);
+        window.addEventListener('orientationchange', this._handleViewportOrientationChange);
+        window.visualViewport?.addEventListener?.('resize', this._handleViewportResize);
+        window.visualViewport?.addEventListener?.('scroll', this._handleViewportResize);
+        window.screen?.orientation?.addEventListener?.('change', this._handleViewportOrientationChange);
+        window.addEventListener('pageshow', this._handleViewportOrientationChange);
         document.addEventListener('visibilitychange', () => {
             if (!this.loop) return;
             const currentScene = this.sceneManager?.currentScene;
@@ -209,6 +218,28 @@ class Game {
         this.localPlayer?.cancelFireballAim?.();
     }
 
+    _handleViewportResize() {
+        this._scheduleViewportResize('viewport_resize');
+    }
+
+    _handleViewportOrientationChange() {
+        this._resetTransientInputState('orientation_change');
+        this._scheduleViewportResize('orientation_change');
+    }
+
+    _scheduleViewportResize(reason = 'viewport_resize') {
+        this.resize({ reason, phase: 'immediate' });
+
+        // iOS PWA reports an intermediate viewport during rotation. Re-sync across
+        // the next few frames so the final landscape camera/canvas size wins.
+        this._viewportResizeTimers.forEach((timerId) => window.clearTimeout(timerId));
+        this._viewportResizeTimers = [80, 180, 360, 720, 1200].map((delay) => (
+            window.setTimeout(() => {
+                this.resize({ reason, phase: `settle_${delay}` });
+            }, delay)
+        ));
+    }
+
     isTouchDevice() {
         return !!(
             window.matchMedia?.('(pointer: coarse)')?.matches
@@ -233,7 +264,8 @@ class Game {
 
     getPerformanceProfile() {
         const isTouchDevice = this.isTouchDevice();
-        const isMobile = isTouchDevice && window.innerWidth <= 1024;
+        const viewportWidth = Math.round(window.visualViewport?.width || window.innerWidth || 0);
+        const isMobile = isTouchDevice && viewportWidth <= 1024;
         const isStandalone = this.isStandaloneLike();
         const isAppleMobile = this.isAppleMobileDevice();
         const lowPowerPwaMode = isMobile;
@@ -410,14 +442,57 @@ class Game {
         Logger.log(`[Loading] ${msg} ${percent ? `(${percent}%)` : ''}`);
     }
 
-    resize() {
-        // v0.24.2: Mobile Viewport Height (vh) polyfill
-        const vh = window.innerHeight * 0.01;
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    getViewportCssSize(container = null) {
+        const visualViewport = window.visualViewport;
+        const visualWidth = Number(visualViewport?.width || 0);
+        const visualHeight = Number(visualViewport?.height || 0);
+        const fallbackWidth = Number(window.innerWidth || 0);
+        const fallbackHeight = Number(window.innerHeight || 0);
+        const rect = container?.getBoundingClientRect?.();
+        const containerWidth = Number(container?.clientWidth || 0) || Number(rect?.width || 0);
+        const containerHeight = Number(container?.clientHeight || 0) || Number(rect?.height || 0);
 
+        return {
+            displayWidth: Math.max(1, Math.round(containerWidth || visualWidth || fallbackWidth || 1)),
+            displayHeight: Math.max(1, Math.round(containerHeight || visualHeight || fallbackHeight || 1)),
+            viewportWidth: Math.max(1, Math.round(visualWidth || fallbackWidth || containerWidth || 1)),
+            viewportHeight: Math.max(1, Math.round(visualHeight || fallbackHeight || containerHeight || 1))
+        };
+    }
+
+    syncUiForViewportChange(displayWidth, displayHeight) {
+        const orientation = displayWidth >= displayHeight ? 'landscape' : 'portrait';
+        const signature = `${displayWidth}x${displayHeight}:${orientation}`;
+        if (signature === this._lastViewportSyncSignature) return;
+
+        this._lastViewportSyncSignature = signature;
+        this.ui?.syncMobileEnvironmentClasses?.();
+        this.ui?.refreshUiLayoutForViewport?.();
+    }
+
+    syncCameraAfterViewportChange(reason = 'resize') {
+        if (!this.camera) return;
+
+        const focusPlayer = this.localPlayer || this.sceneManager?.currentScene?.player || null;
+        if (!focusPlayer) {
+            this.camera.clampToBounds?.();
+            return;
+        }
+
+        this.camera.setFramingOffset?.(0, 0);
+        this.camera.follow(focusPlayer, 1 / 60);
+    }
+
+    resize(options = {}) {
+        // v0.24.2: Mobile Viewport Height (vh) polyfill
         const container = document.getElementById('game-viewport');
-        const displayWidth = container ? container.clientWidth : window.innerWidth;
-        const displayHeight = container ? container.clientHeight : window.innerHeight;
+        const viewportSize = this.getViewportCssSize(container);
+        const vh = viewportSize.viewportHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+        document.documentElement.style.setProperty('--vw', `${viewportSize.viewportWidth * 0.01}px`);
+
+        const displayWidth = viewportSize.displayWidth;
+        const displayHeight = viewportSize.displayHeight;
 
         const perfProfile = this.getPerformanceProfile();
         const { isMobile, lowPowerPwaMode, reduceCombatEffects, maxMobileDpr, maxRenderFps, maxUpdateFps } = perfProfile;
@@ -458,12 +533,10 @@ class Game {
 
         if (this.camera) {
             this.camera.resize(displayWidth / this.zoom, displayHeight / this.zoom);
-            const focusPlayer = this.localPlayer || this.sceneManager?.currentScene?.player || null;
-            if (focusPlayer) {
-                this.camera.setFramingOffset?.(0, 0);
-                this.camera.follow(focusPlayer, 1 / 60);
-            }
+            this.syncCameraAfterViewportChange(options.reason || 'resize');
         }
+
+        this.syncUiForViewportChange(displayWidth, displayHeight);
     }
 
     async init() {
