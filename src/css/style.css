@@ -111,8 +111,27 @@ html {
     overflow: hidden;
 }
 
+@media screen and (max-width: 1024px) and (orientation: landscape), screen and (pointer: coarse) and (orientation: landscape) {
+    html,
+    body,
+    #game-container,
+    #game-viewport {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+    }
+
+    #game-viewport {
+        max-width: 100vw;
+        max-height: 100vh;
+        max-height: 100dvh;
+        border-radius: 0;
+        box-shadow: none;
+    }
+}
+
 /* PC Landscape Support */
-@media screen and (min-width: 1024px) {
+@media screen and (min-width: 1025px) and (pointer: fine) {
     #game-viewport {
         max-width: 1280px;
         max-height: 720px;
