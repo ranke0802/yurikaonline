@@ -1240,7 +1240,18 @@ export default class Monster extends CharacterBase {
 
             const candidates = getAllPlayers();
             const canAcquireTarget = this._isInsideLeash(this.x, this.y);
-            if (!isPassive && canAcquireTarget && this.spawnGraceTimer <= 0 && candidates.length > 0) {
+            if (!isPassive && canAcquireTarget && this.lastAttackerId && candidates.length > 0) {
+                const attackedTarget = candidates.find((player) => player?.id === this.lastAttackerId);
+                if (
+                    attackedTarget
+                    && this._isInsideLeash(Number(attackedTarget.x), Number(attackedTarget.y))
+                ) {
+                    this.targetPlayer = attackedTarget;
+                    this.isAggro = true;
+                }
+            }
+
+            if (!this.targetPlayer && !isPassive && canAcquireTarget && this.spawnGraceTimer <= 0 && candidates.length > 0) {
                 let nearest = null;
                 let minDist = Infinity;
                 candidates.forEach(p => {

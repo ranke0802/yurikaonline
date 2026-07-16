@@ -1878,8 +1878,11 @@ export default class MonsterManager {
             payload.bossCycle = monster.bossCycle;
         }
         if (monster.spawnGroupId) payload.spawnGroupId = monster.spawnGroupId;
+        if (monster.lastAttackerId && (monster.isAggro || state === 'aggro' || monster.isBoss || monster.isDead)) {
+            payload.lastAttackerId = monster.lastAttackerId;
+        }
         if (monster.isBoss || monster.isDead) {
-            payload.lastAttackerId = monster.lastAttackerId || null;
+            if (!payload.lastAttackerId) payload.lastAttackerId = monster.lastAttackerId || null;
             payload.damageContributors = Array.from(monster.damageContributors || [])
                 .filter(Boolean)
                 .slice(0, 24);

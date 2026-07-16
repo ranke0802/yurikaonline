@@ -1,7 +1,13 @@
-const APP_VERSION = '0.02.065';
+const APP_VERSION = '0.02.066';
 const SHELL_CACHE = `yurika-online-shell-${APP_VERSION}`;
 const STATIC_CACHE = `yurika-online-static-${APP_VERSION}`;
 const ACTIVE_CACHES = [SHELL_CACHE, STATIC_CACHE];
+const CACHE_ENTRY_LIMITS = {
+    [SHELL_CACHE]: 32,
+    [STATIC_CACHE]: 320
+};
+const CACHE_TRIM_INTERVAL_MS = 60000;
+const lastCacheTrimAt = new Map();
 
 const APP_SHELL = [
     './',
@@ -87,13 +93,39 @@ function buildNoStoreRequest(request) {
     }
 }
 
+async function trimCacheEntries(cacheName, cache, options = {}) {
+    const limit = CACHE_ENTRY_LIMITS[cacheName];
+    if (!Number.isFinite(limit) || limit <= 0) return;
+
+    const now = Date.now();
+    if (!options.force && now - Number(lastCacheTrimAt.get(cacheName) || 0) < CACHE_TRIM_INTERVAL_MS) {
+        return;
+    }
+    lastCacheTrimAt.set(cacheName, now);
+
+    const keys = await cache.keys();
+    if (keys.length <= limit) return;
+
+    const overflow = keys.length - limit;
+    await Promise.all(keys.slice(0, overflow).map((request) => cache.delete(request)));
+}
+
+async function putResponseInCache(cacheName, cache, request, response) {
+    try {
+        await cache.put(request, response.clone());
+        await trimCacheEntries(cacheName, cache);
+    } catch (error) {
+        // Cache quota or opaque browser storage failures must never block play.
+    }
+}
+
 async function networkFirst(request, cacheName, options = {}) {
     const cache = await caches.open(cacheName);
     const networkRequest = options?.noStore ? buildNoStoreRequest(request) : request;
     try {
         const response = await fetch(networkRequest);
         if (response && response.status === 200 && response.type === 'basic') {
-            cache.put(request, response.clone());
+            await putResponseInCache(cacheName, cache, request, response);
         }
         return response;
     } catch (error) {
@@ -120,7 +152,7 @@ async function cacheFirst(request, cacheName) {
 
     const response = await fetch(request);
     if (response && response.status === 200 && response.type === 'basic') {
-        cache.put(request, response.clone());
+        await putResponseInCache(cacheName, cache, request, response);
     }
     return response;
 }
@@ -134,12 +166,19 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((keys) => Promise.all(
-            keys.map((key) => {
-                if (!ACTIVE_CACHES.includes(key)) return caches.delete(key);
-                return Promise.resolve(false);
-            })
-        ))
+        caches.keys()
+            .then((keys) => Promise.all(
+                keys.map((key) => {
+                    if (!ACTIVE_CACHES.includes(key)) return caches.delete(key);
+                    return Promise.resolve(false);
+                })
+            ))
+            .then(() => Promise.all(
+                ACTIVE_CACHES.map(async (cacheName) => {
+                    const cache = await caches.open(cacheName);
+                    await trimCacheEntries(cacheName, cache, { force: true });
+                })
+            ))
     );
     self.clients.claim();
 });

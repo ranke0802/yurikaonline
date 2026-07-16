@@ -2437,13 +2437,8 @@ export default class Player extends CharacterBase {
                         this.questData.slimeRepeatKills = Math.max(0, Number(this.questData.slimeRepeatKills || 0)) + killCount;
                     }
                     questStateChanged = true;
-                    if (!isIntroSharedQuest) {
-                        genericQuestLogs.push(
-                            killCount === 1
-                                ? '퀘스트 몬스터 처치!'
-                                : `퀘스트 몬스터 ${killCount}마리 처치!`
-                        );
-                    }
+                    // 일반 몬스터 처치 로그는 채팅/시스템 로그에 표시하지 않는다.
+                    // 퀘스트 카운트와 HUD 갱신은 그대로 유지한다.
                     return;
                 }
 
@@ -2501,11 +2496,13 @@ export default class Player extends CharacterBase {
                     return;
                 }
 
-                genericQuestLogs.push(
-                    killCount === 1
-                        ? `${questKillId} 처치!`
-                        : `${questKillId} ${killCount}회 처치!`
-                );
+                if (FIELD_BOSS_QUEST_KILL_IDS.has(questKillId) || data.bossReward === true) {
+                    genericQuestLogs.push(
+                        killCount === 1
+                            ? `${questKillId} 처치!`
+                            : `${questKillId} ${killCount}회 처치!`
+                    );
+                }
             });
 
             if (genericQuestLogs.length > 0) {

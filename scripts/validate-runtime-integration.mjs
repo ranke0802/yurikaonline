@@ -1111,6 +1111,7 @@ async function validateMonsterGenerationAndContributors() {
         onDropRemoved(handler) { this.on('dropRemoved', handler); },
         onDropCollectionRequested(handler) { this.on('dropCollectionRequested', handler); },
         isSharedFieldActive: () => false,
+        isUserActivelyPresent: () => true,
         shouldUseMonsterQuietMode: () => false,
         sendMonsterUpdate: () => { publishedMonsters += 1; },
         publishMinimapMonsterSnapshot: () => {},
@@ -1200,6 +1201,38 @@ async function validateMonsterGenerationAndContributors() {
     assert.equal(restoredBoss.lastAttackerId, 'player_b');
     assert.deepEqual(Array.from(restoredBoss.damageContributors).sort(), ['player_a', 'player_b']);
     assert.deepEqual(Array.from(restoredBoss.damageContributorLevels.entries()).sort(), [['player_a', 12], ['player_b', 26]]);
+
+    const localAggroPlayer = { id: 'player_a', x: 900, y: 900, width: 48, height: 48, isDead: false, type: 'player' };
+    const remoteAggroPlayer = { id: 'player_b', x: 620, y: 600, width: 48, height: 48, isDead: false, type: 'player', level: 11 };
+    game.localPlayer = localAggroPlayer;
+    game.remotePlayers.set(remoteAggroPlayer.id, remoteAggroPlayer);
+    net.remotePlayers = game.remotePlayers;
+
+    const attackedByRemote = new Monster(600, 600, {
+        id: 'aggro_slime',
+        baseStats: { hp: 100, maxHp: 100, speed: 0 },
+        behavior: { aggroRange: 80, attackRange: 10, leashRange: 1200 },
+        visual: { width: 64, height: 64 }
+    });
+    attackedByRemote.id = 'aggro_remote_target';
+    attackedByRemote.ready = true;
+    attackedByRemote.spawnGraceTimer = 3;
+    attackedByRemote.lastAttackerId = remoteAggroPlayer.id;
+    attackedByRemote.update(0.016);
+    assert.equal(attackedByRemote.targetPlayer?.id, remoteAggroPlayer.id, 'a monster hit by a remote player must aggro the remote attacker even during spawn grace');
+
+    const attackedByLocal = new Monster(600, 600, {
+        id: 'aggro_slime',
+        baseStats: { hp: 100, maxHp: 100, speed: 0 },
+        behavior: { aggroRange: 80, attackRange: 10, leashRange: 1200 },
+        visual: { width: 64, height: 64 }
+    });
+    attackedByLocal.id = 'aggro_local_target';
+    attackedByLocal.ready = true;
+    attackedByLocal.spawnGraceTimer = 3;
+    attackedByLocal.lastAttackerId = localAggroPlayer.id;
+    attackedByLocal.update(0.016);
+    assert.equal(attackedByLocal.targetPlayer?.id, localAggroPlayer.id, 'a monster hit by the local player must aggro the local attacker instead of the nearest peer');
 
     const departedHighLevelId = 'departed_high_level_player';
     const departedBoss = {
@@ -2370,6 +2403,7 @@ async function validateRewardDedupe() {
 
 async function validateQuestRuntimeStateSync() {
     const previousGame = window.game;
+    const systemLogs = [];
     const game = {
         resources: {
             loadJSON: async (assetPath) => JSON.parse(
@@ -2394,7 +2428,9 @@ async function validateQuestRuntimeStateSync() {
             updateStatusPopup() {},
             showLevelUpEffect() {},
             showExpGainHint() {},
-            logSystemMessage() {}
+            logSystemMessage(message) {
+                systemLogs.push(String(message));
+            }
         },
         monsterManager: { bossSpawned: false },
         localPlayer: null,
@@ -2419,6 +2455,7 @@ async function validateQuestRuntimeStateSync() {
     );
 
     assert.equal(player.receiveReward({ questKill: 'slime', monsterName: 'Slime' }, { save: false }), true);
+    assert.equal(systemLogs.length, 0, 'normal legacy monster kill receipts must not write system logs');
     assert.equal(player.questData.slimeKills, 1, 'legacy questData must count the rewarded slime kill');
     assert.equal(
         quests.getActiveQuests().find((quest) => quest.id === 'quest_slime_10')?.objectives[0]?.current,
@@ -2472,7 +2509,9 @@ async function validateQuestRuntimeStateSync() {
     );
 
     player.currentZoneId = 'zone_2';
+    systemLogs.length = 0;
     assert.equal(player.receiveReward({ questKill: 'squirtle', monsterName: 'Squirtle' }, { save: false }), true);
+    assert.equal(systemLogs.length, 0, 'normal JSON monster kill receipts must not write system logs');
     assert.equal(
         quests.getActiveQuests().find((quest) => quest.id === 'quest_lake_squirtle_12')?.objectives[0]?.current,
         1,
