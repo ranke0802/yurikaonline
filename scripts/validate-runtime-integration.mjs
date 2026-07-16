@@ -2445,6 +2445,25 @@ async function validateQuestRuntimeStateSync() {
         'completed legacy boss data at level 5 must activate the zone_2 travel quest'
     );
 
+    player.level = 14;
+    player.currentZoneId = 'zone_3';
+    game.zone.currentZone = { id: 'zone_3' };
+    player.questState = {
+        schemaVersion: 2,
+        active: {},
+        completed: {
+            quest_forest_thunder_pikachu: { completedAt: Date.now(), count: 1 }
+        },
+        flags: {},
+        recommendedZoneId: null,
+        lastEventAt: Date.now()
+    };
+    quests.restoreFromLegacy(player.questData, player.questState);
+    assert.ok(
+        quests.getActiveQuests().some((quest) => quest.id === 'quest_to_astral_ruins'),
+        'defeating thunder pikachu must show the zone_4 travel quest even before level 15'
+    );
+
     game.zone.currentZone = { id: 'zone_2' };
     quests.notifyZoneEntered('zone_2');
     assert.ok(

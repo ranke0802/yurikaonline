@@ -8,8 +8,7 @@
   "chapter": "zone_3",
   "order": 350,
   "prerequisites": [
-    { "type": "questCompleted", "questId": "quest_forest_thunder_pikachu" },
-    { "type": "level", "level": 15 }
+    { "type": "questCompleted", "questId": "quest_forest_thunder_pikachu" }
   ],
   "activation": {
     "mode": "auto",
