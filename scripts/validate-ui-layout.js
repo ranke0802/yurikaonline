@@ -5,6 +5,8 @@ const fs = require('fs');
 const uiManager = fs.readFileSync('src/js/ui/UIManager.js', 'utf8');
 const css = fs.readFileSync('src/css/style.css', 'utf8');
 const html = fs.readFileSync('index.html', 'utf8');
+const mainJs = fs.readFileSync('src/js/main.js', 'utf8');
+const worldScene = fs.readFileSync('src/js/world/scenes/WorldScene.js', 'utf8');
 
 function fail(message) {
     console.error(`[ui-layout] ${message}`);
@@ -131,6 +133,20 @@ if (/clearActionButtonsLayoutSurfaceStyles|prepareActionButtonsLayoutSurface|pre
 
 if (/body\.ui-layout-edit-mode\s+\.action-buttons\s*{[^}]*width:\s*100dvw/gs.test(css)) {
     fail('edit mode still turns action-buttons into a full-screen surface');
+}
+
+if (!/id="settings-camera-view-range"[^>]*min="80"[^>]*max="150"[^>]*step="1"/.test(html)
+    || !/cameraViewRange:\s*100/.test(uiManager)
+    || !/cameraViewRange:\s*this\.clampNumericSetting\(candidate\.cameraViewRange,\s*defaults\.cameraViewRange,\s*80,\s*150\)/.test(uiManager)) {
+    fail('camera view range setting must default to the current view and clamp to 80-150%');
+}
+
+if (!/getEffectiveCameraZoom\s*\(isMobile\s*=\s*false\)[\s\S]*return baseZoom \/ Math\.max\(0\.8,\s*Math\.min\(1\.5,\s*viewRangeScale\)\);/.test(mainJs)) {
+    fail('camera view range must widen monotonically by dividing base zoom by the view range scale');
+}
+
+if (/camera\.height\s*\*\s*0\.12|landscapeFramingOffsetY\s*=\s*this\.ui\?\.isMobileLandscapeViewport/.test(worldScene)) {
+    fail('mobile landscape camera framing must not offset the character away from screen center');
 }
 
 if (!/Final portrait layout editor action button visibility guard/.test(css)) {

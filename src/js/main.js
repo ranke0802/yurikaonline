@@ -254,6 +254,23 @@ class Game {
         };
     }
 
+    getBaseCameraZoom(isMobile = false) {
+        return isMobile ? 0.7 : 0.8;
+    }
+
+    getCameraViewRangePercent() {
+        const rawValue = this.ui?.getCameraViewRangePercent?.() ?? 100;
+        const numeric = Number(rawValue);
+        if (!Number.isFinite(numeric)) return 100;
+        return Math.min(150, Math.max(80, numeric));
+    }
+
+    getEffectiveCameraZoom(isMobile = false) {
+        const baseZoom = this.getBaseCameraZoom(isMobile);
+        const viewRangeScale = this.getCameraViewRangePercent() / 100;
+        return baseZoom / Math.max(0.8, Math.min(1.5, viewRangeScale));
+    }
+
     createPerformanceTelemetryState() {
         return {
             windowMs: 60000,
@@ -402,11 +419,11 @@ class Game {
         const displayWidth = container ? container.clientWidth : window.innerWidth;
         const displayHeight = container ? container.clientHeight : window.innerHeight;
 
-        // Match yurikaonline-master logic: 900px threshold, 0.7/1.0 zoom
         const perfProfile = this.getPerformanceProfile();
-        const { isTouchDevice, isMobile, lowPowerPwaMode, reduceCombatEffects, maxMobileDpr, maxRenderFps, maxUpdateFps } = perfProfile;
-        // v0.28.6: Adjust PC zoom to 0.8 for wider view (User Feedback)
-        this.zoom = isMobile ? 0.7 : 0.8;
+        const { isMobile, lowPowerPwaMode, reduceCombatEffects, maxMobileDpr, maxRenderFps, maxUpdateFps } = perfProfile;
+        this.baseCameraZoom = this.getBaseCameraZoom(isMobile);
+        this.cameraViewRangePercent = this.getCameraViewRangePercent();
+        this.zoom = this.getEffectiveCameraZoom(isMobile);
         this.isMobilePerformanceMode = isMobile;
         this.useReducedEffects = reduceCombatEffects;
         this.useAggressiveHudOptimization = lowPowerPwaMode;
@@ -441,6 +458,11 @@ class Game {
 
         if (this.camera) {
             this.camera.resize(displayWidth / this.zoom, displayHeight / this.zoom);
+            const focusPlayer = this.localPlayer || this.sceneManager?.currentScene?.player || null;
+            if (focusPlayer) {
+                this.camera.setFramingOffset?.(0, 0);
+                this.camera.follow(focusPlayer, 1 / 60);
+            }
         }
     }
 

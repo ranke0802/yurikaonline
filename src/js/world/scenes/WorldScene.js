@@ -335,7 +335,7 @@ export default class WorldScene extends Scene {
 
         this.net.setZoneParticipationEnabled(!shouldDeferZoneParticipation);
 
-        this.ui?.loadPlayerSettings?.(this.player.clientSettings || null);
+        this.ui?.loadPlayerSettings?.(this.player.clientSettings || null, { refreshGame: true });
         this.player.init(this.input, this.resources, this.net);
         this.player.claimPendingItemRewards?.();
         this.net.flushPendingFriendGiftRefunds?.();
@@ -1178,12 +1178,11 @@ export default class WorldScene extends Scene {
                 this.player.name
             );
 
-            const landscapeFramingOffsetY = this.ui?.isMobileLandscapeViewport?.()
-                ? Math.min(58, Math.max(34, this.camera.height * 0.12))
-                : 0;
-            if (Math.abs(landscapeFramingOffsetY - this._lastLandscapeFramingOffsetY) > 0.5) {
-                this.camera.setFramingOffset(0, landscapeFramingOffsetY);
-                this._lastLandscapeFramingOffsetY = landscapeFramingOffsetY;
+            if (Math.abs(Number(this.camera.framingOffsetX || 0)) > 0.5
+                || Math.abs(Number(this.camera.framingOffsetY || 0)) > 0.5
+                || Math.abs(this._lastLandscapeFramingOffsetY) > 0.5) {
+                this.camera.setFramingOffset(0, 0);
+                this._lastLandscapeFramingOffsetY = 0;
             }
             this.camera.follow(this.player, this.game.zone.width, this.game.zone.height);
 

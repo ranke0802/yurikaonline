@@ -278,6 +278,7 @@ export class UIManager {
             reducedEffects: false,
             desktopShortcutHints: true,
             developerLogLevel: 'warn',
+            cameraViewRange: 100,
             chatOpacity: 100,
             friendsOpacity: 100,
             friendCompactOpacity: 82,
@@ -348,6 +349,7 @@ export class UIManager {
             reducedEffects: !!candidate.reducedEffects,
             desktopShortcutHints: candidate.desktopShortcutHints !== false,
             developerLogLevel: this.sanitizeLogLevel(candidate.developerLogLevel, defaults.developerLogLevel),
+            cameraViewRange: this.clampNumericSetting(candidate.cameraViewRange, defaults.cameraViewRange, 80, 150),
             chatOpacity: this.clampNumericSetting(candidate.chatOpacity, defaults.chatOpacity, 35, 100),
             friendsOpacity: this.clampNumericSetting(candidate.friendsOpacity, defaults.friendsOpacity, 45, 100),
             friendCompactOpacity: this.clampNumericSetting(candidate.friendCompactOpacity, defaults.friendCompactOpacity, 45, 100),
@@ -720,6 +722,10 @@ export class UIManager {
         return this.settings[key];
     }
 
+    getCameraViewRangePercent() {
+        return this.clampNumericSetting(this.getSetting('cameraViewRange'), 100, 80, 150);
+    }
+
     updateSetting(key, value, options = {}) {
         const { refreshGame = false } = options;
         const previousSerialized = this.serializeSettings(this.settings);
@@ -784,6 +790,7 @@ export class UIManager {
 
         const bindings = [
             ['settings-master-volume', 'masterVolume', 'settings-master-volume-value', '%'],
+            ['settings-camera-view-range', 'cameraViewRange', 'settings-camera-view-range-value', '%'],
             ['settings-chat-opacity', 'chatOpacity', 'settings-chat-opacity-value', '%'],
             ['settings-friends-opacity', 'friendsOpacity', 'settings-friends-opacity-value', '%'],
             ['settings-friend-compact-opacity', 'friendCompactOpacity', 'settings-friend-compact-opacity-value', '%'],
@@ -4746,6 +4753,7 @@ export class UIManager {
 
         const rangeSettings = [
             ['settings-master-volume', 'masterVolume', { refreshGame: false }],
+            ['settings-camera-view-range', 'cameraViewRange', { refreshGame: true }],
             ['settings-chat-opacity', 'chatOpacity', { refreshGame: false }],
             ['settings-friends-opacity', 'friendsOpacity', { refreshGame: false }],
             ['settings-friend-compact-opacity', 'friendCompactOpacity', { refreshGame: false }],
