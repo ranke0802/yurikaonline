@@ -5030,12 +5030,15 @@ async function validateNormalRewardV2Contracts() {
     kingReceiverNet.getServerNow = () => authorTime + 20_000;
     await kingReceiverNet.setNormalRewardConsumer((reward) => kingPlayer.receiveNormalRewardDurably(reward));
     assert.equal(kingPlayer.questData.bossClearCount, 1);
-    assert.equal(kingPlayer.pendingItemRewards.length, 1, 'a full bag must queue the first King Slime blessed stones');
+    assert.equal(kingPlayer.pendingItemRewards.length, 2, 'a full bag must queue both first King Slime stone rewards');
+    assert.equal(kingPlayer.pendingItemRewards[0].type, 'blessed_weapon_upgrade_stone');
     assert.equal(kingPlayer.pendingItemRewards[0].amount, 3);
+    assert.equal(kingPlayer.pendingItemRewards[1].type, 'weapon_upgrade_stone');
+    assert.equal(kingPlayer.pendingItemRewards[1].amount, 3);
     assert.equal(
         kingSavedProfiles.at(-1).pendingItemRewards[0].amount,
         3,
-        'King Slime pending blessed stones must persist before the claim marker is written'
+        'King Slime pending stone rewards must persist before the claim marker is written'
     );
     assert.equal(kingMemory.records.has(kingPath), false);
     kingReceiverNet._clearNormalRewardRuntime({ clearConsumer: true });

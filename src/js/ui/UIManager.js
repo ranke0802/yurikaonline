@@ -5060,6 +5060,9 @@ export class UIManager {
         const header = document.querySelector('#minimap-container .minimap-header');
         const minimap = document.getElementById('minimap-container');
         const resolvedMeta = zoneMeta || this.game?.zone?.getZoneMeta?.(zoneData.id);
+        if (document.body) {
+            document.body.dataset.currentZoneId = zoneData.id || '';
+        }
         if (header) header.textContent = resolvedMeta?.name || zoneData.name || 'Yurika Map';
         if (minimap) {
             minimap.dataset.zoneId = zoneData.id || '';
@@ -9253,7 +9256,7 @@ export class UIManager {
                 id: 'king_slime_intro',
                 title: "3. 대왕 슬라임 처치",
                 task: `진행도: ${p.questData.bossKilled ? '1' : '0'}/1`,
-                reward: "축복받은 무기 강화석 x3",
+                reward: "축복받은 무기 강화석 x3, 무기 강화석 x3",
                 canClaim: false, // Auto-claimed on kill
                 claimFn: null
             };
@@ -9452,9 +9455,10 @@ export class UIManager {
     claimBossReward(p) {
         p.questData.bossQuestClaimed = true;
         p.addInventoryItem?.('blessed_weapon_upgrade_stone', 3, { markAsNew: false });
+        p.addInventoryItem?.('weapon_upgrade_stone', 3, { markAsNew: false });
         this.game?.quests?.restoreFromLegacy?.(p.questData);
-        this.logSystemMessage('QUEST 완료: 대왕 슬라임 토벌 보상 지급 (축복받은 무기 강화석 x3)');
-        this.showRewardModal("대왕 슬라임 처치 퀘스트 완료!", "보상: 축복받은 무기 강화석 3개를 획득했습니다!");
+        this.logSystemMessage('QUEST 완료: 대왕 슬라임 토벌 보상 지급 (축복받은 무기 강화석 x3, 무기 강화석 x3)');
+        this.showRewardModal("대왕 슬라임 처치 퀘스트 완료!", "보상: 축복받은 무기 강화석 3개와 무기 강화석 3개를 획득했습니다!");
         this.updateQuestUI();
         this.updateStatusPopup();
         this.updateInventory();

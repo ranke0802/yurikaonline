@@ -28,6 +28,7 @@ const ITEM_DEFINITIONS = {
 const REMOVED_ITEM_IDS = new Set(['slime_gel', 'potion_hp_small', 'royal_jelly', 'king_crown']);
 
 const BLESSED_WEAPON_UPGRADE_STONE_ID = 'blessed_weapon_upgrade_stone';
+const WEAPON_UPGRADE_STONE_ID = 'weapon_upgrade_stone';
 const OPTION_REROLL_STONE_ID = 'option_reroll_stone';
 const LEGACY_QUEST_KILL_IDS = new Set(['slime', 'slime_split', 'king_slime']);
 const FIELD_BOSS_QUEST_KILL_IDS = new Set(['ruin_wobbuffet', 'thunder_pikachu', 'astral_sylveon']);
@@ -2329,23 +2330,25 @@ export default class Player extends CharacterBase {
         let hasInventoryMutation = false;
         let questStateChanged = false;
 
-        const grantBlessedUpgradeStones = (rawAmount) => {
+        const grantUpgradeStones = (itemId, rawAmount) => {
             const amount = Math.max(1, Math.floor(Number(rawAmount) || 1));
-            const definition = ITEM_DEFINITIONS[BLESSED_WEAPON_UPGRADE_STONE_ID];
+            const definition = ITEM_DEFINITIONS[itemId] || { name: itemId, icon: '💎' };
             const rewardMeta = {
-                id: BLESSED_WEAPON_UPGRADE_STONE_ID,
-                type: BLESSED_WEAPON_UPGRADE_STONE_ID,
+                id: itemId,
+                type: itemId,
                 amount,
                 name: definition.name,
                 icon: definition.icon,
                 stackable: true,
                 markAsNew: false
             };
-            const added = this.addInventoryItem(BLESSED_WEAPON_UPGRADE_STONE_ID, amount, rewardMeta);
+            const added = this.addInventoryItem(itemId, amount, rewardMeta);
             if (!added) this.queuePendingItemReward(rewardMeta);
             hasInventoryMutation = true;
             return !!added;
         };
+        const grantBlessedUpgradeStones = (rawAmount) => grantUpgradeStones(BLESSED_WEAPON_UPGRADE_STONE_ID, rawAmount);
+        const grantNormalUpgradeStones = (rawAmount) => grantUpgradeStones(WEAPON_UPGRADE_STONE_ID, rawAmount);
 
         const rewardManastone = Math.max(0, Number(data.manastone ?? data.gold ?? 0));
 
@@ -2470,11 +2473,12 @@ export default class Player extends CharacterBase {
                             this.questData.slimeRepeatKills = 0;
                             this.questData.bossQuestClaimed = true;
                             grantBlessedUpgradeStones(3);
+                            grantNormalUpgradeStones(3);
                             window.game?.ui?.updateInventory?.();
 
                             modalTitle = '첫 보스 처치 완료!';
-                            modalDesc = '대왕 슬라임을 처치했습니다!<br>보상: 축복받은 무기 강화석 3개<br>이제 슬라임 50마리 처치 후 반복 보스 퀘스트가 이어집니다.';
-                            rewardMsg = '첫 대왕 슬라임 처치! (축복받은 무기 강화석 x3)';
+                            modalDesc = '대왕 슬라임을 처치했습니다!<br>보상: 축복받은 무기 강화석 3개, 무기 강화석 3개<br>이제 슬라임 50마리 처치 후 반복 보스 퀘스트가 이어집니다.';
+                            rewardMsg = '첫 대왕 슬라임 처치! (축복받은 무기 강화석 x3, 무기 강화석 x3)';
                         } else {
                             grantBlessedUpgradeStones(1);
                             window.game?.ui?.updateInventory?.();
@@ -2570,11 +2574,12 @@ export default class Player extends CharacterBase {
                     this.questData.slimeRepeatKills = 0;
                     this.questData.bossQuestClaimed = true;
                     grantBlessedUpgradeStones(3);
+                    grantNormalUpgradeStones(3);
                     window.game?.ui?.updateInventory?.();
 
                     modalTitle = "👑 퀘스트 완료!";
-                    modalDesc = "대왕 슬라임을 처치했습니다!<br>보상: 축복받은 무기 강화석 3개<br>이제 슬라임 50마리 처치 시 반복 퀘스트가 이어집니다.";
-                    rewardMsg = "첫 대왕 슬라임 처치! (축복받은 무기 강화석 x3)";
+                    modalDesc = "대왕 슬라임을 처치했습니다!<br>보상: 축복받은 무기 강화석 3개, 무기 강화석 3개<br>이제 슬라임 50마리 처치 시 반복 퀘스트가 이어집니다.";
+                    rewardMsg = "첫 대왕 슬라임 처치! (축복받은 무기 강화석 x3, 무기 강화석 x3)";
                 } else {
                     // Repeat Kill Reward
                     grantBlessedUpgradeStones(1);

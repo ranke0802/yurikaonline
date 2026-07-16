@@ -7799,6 +7799,25 @@ body.is-fullscreen .version-info {
         max-height: 84px !important;
     }
 
+    body.is-mobile-landscape[data-current-zone-id="zone_2"] .chat-messages,
+    body.is-mobile-landscape[data-current-zone-id="zone_3"] .chat-messages,
+    body.is-mobile-landscape[data-current-zone-id="zone_4"] .chat-messages {
+        color: rgba(255, 255, 255, 0.96) !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 10px rgba(0, 0, 0, 0.45) !important;
+    }
+
+    body.is-mobile-landscape[data-current-zone-id="zone_2"] .chat-messages > div,
+    body.is-mobile-landscape[data-current-zone-id="zone_3"] .chat-messages > div,
+    body.is-mobile-landscape[data-current-zone-id="zone_4"] .chat-messages > div,
+    body.is-mobile-landscape[data-current-zone-id="zone_2"] .chat-messages .chat-sender,
+    body.is-mobile-landscape[data-current-zone-id="zone_3"] .chat-messages .chat-sender,
+    body.is-mobile-landscape[data-current-zone-id="zone_4"] .chat-messages .chat-sender,
+    body.is-mobile-landscape[data-current-zone-id="zone_2"] .chat-messages .chat-text,
+    body.is-mobile-landscape[data-current-zone-id="zone_3"] .chat-messages .chat-text,
+    body.is-mobile-landscape[data-current-zone-id="zone_4"] .chat-messages .chat-text {
+        color: rgba(255, 255, 255, 0.96) !important;
+    }
+
     #minimap-container {
         position: fixed !important;
         top: calc(8px + env(safe-area-inset-top)) !important;

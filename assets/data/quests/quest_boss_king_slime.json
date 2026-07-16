@@ -27,7 +27,8 @@
   ],
   "rewards": {
     "display": [
-      { "type": "item", "id": "blessed_weapon_upgrade_stone", "label": "축복받은 무기 강화석", "amount": 3 }
+      { "type": "item", "id": "blessed_weapon_upgrade_stone", "label": "축복받은 무기 강화석", "amount": 3 },
+      { "type": "item", "id": "weapon_upgrade_stone", "label": "무기 강화석", "amount": 3 }
     ]
   },
   "bossRewardGuide": {
