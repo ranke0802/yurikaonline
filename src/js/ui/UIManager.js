@@ -135,7 +135,7 @@ export class UIManager {
                 'chat-panel': { left: 0.3316274906600249, top: 0.721435546875, scale: 1 },
                 'hud-top-bar': { left: 0.01, top: 0.020833333333333332, scale: 1 },
                 joystick: { left: 0.034869240348692404, top: 0.6041666666666666, scale: 1 },
-                'minimap-panel': { left: 0.8844956413449564, top: 0.03125, scale: 0.79 },
+                'minimap-panel': { left: 0.8844956413449564, top: 0.03125, scale: 1 },
                 'quest-panel': { left: 0.014943960149439602, top: 0.18888346354166666, scale: 1 },
                 'quick-menu-panel': { left: 0.8058647260273972, top: 0.3046875, scale: 0.84 }
             }
@@ -146,6 +146,7 @@ export class UIManager {
         this.uiLayoutDefaultCache = {};
         this.uiLayoutSelectedControlId = null;
         this.uiLayoutActiveMode = this.getUiLayoutMode();
+        this.uiLayoutResetModes = new Set();
         this.uiLayoutDragState = {
             active: false,
             pointerId: null,
@@ -1016,6 +1017,18 @@ export class UIManager {
         };
     }
 
+    normalizeUiLayoutEntryForCurrentCss(mode, controlId, entry) {
+        if (!entry) return entry;
+        if (
+            controlId === 'minimap-panel'
+            && mode === 'mobileLandscape'
+            && Math.abs(Number(entry.scale) - 0.79) <= 0.025
+        ) {
+            return { ...entry, scale: 1 };
+        }
+        return entry;
+    }
+
     sanitizeUiLayout(layout) {
         if (!layout || typeof layout !== 'object') return null;
         const rawLayouts = layout.layouts && typeof layout.layouts === 'object'
@@ -1030,7 +1043,7 @@ export class UIManager {
             const nextMode = {};
             this.getUiLayoutControlsForMode(mode).forEach(([controlId, definition]) => {
                 const entry = this.sanitizeUiLayoutEntry(rawMode[controlId], definition);
-                if (entry) nextMode[controlId] = entry;
+                if (entry) nextMode[controlId] = this.normalizeUiLayoutEntryForCurrentCss(mode, controlId, entry);
             });
             if (Object.keys(nextMode).length > 0) {
                 sanitizedLayouts[mode] = nextMode;
@@ -1477,7 +1490,13 @@ export class UIManager {
         const player = this.game.localPlayer;
         if (!player) return false;
 
-        const sanitizedDraft = this.sanitizeUiLayout(this.uiLayoutDraft);
+        const draftForSave = this.cloneStructuredData(this.uiLayoutDraft) || { version: 1, layouts: {} };
+        if (draftForSave.layouts && this.uiLayoutResetModes?.size > 0) {
+            this.uiLayoutResetModes.forEach((mode) => {
+                delete draftForSave.layouts[mode];
+            });
+        }
+        const sanitizedDraft = this.sanitizeUiLayout(draftForSave);
         const currentComparable = this.serializeUiLayoutComparable(player.uiLayout);
         const nextComparable = this.serializeUiLayoutComparable(sanitizedDraft);
         const nextPersistedLayout = sanitizedDraft
@@ -1511,6 +1530,7 @@ export class UIManager {
 
         this.uiLayoutEditMode = false;
         this.uiLayoutDraft = null;
+        this.uiLayoutResetModes.clear();
         this.uiLayoutSelectedControlId = null;
         this.uiLayoutDragState.captureTarget?.style?.removeProperty('will-change');
         this.uiLayoutDragState.active = false;
@@ -1537,6 +1557,7 @@ export class UIManager {
     updateUiLayoutEntry(controlId, nextEntry = {}, options = {}) {
         if (!this.uiLayoutEditMode) return;
         const mode = this.getUiLayoutMode();
+        this.uiLayoutResetModes.delete(mode);
         const modeEntries = this.ensureUiLayoutDraftMode(mode);
         const definition = this.uiLayoutControlDefinitions[controlId];
         modeEntries[controlId] = this.sanitizeUiLayoutEntry({
@@ -1577,6 +1598,7 @@ export class UIManager {
         const mode = this.getUiLayoutMode();
         const defaults = this.captureDefaultUiLayoutForMode(mode);
         this.uiLayoutDraft.layouts[mode] = defaults;
+        this.uiLayoutResetModes.add(mode);
         this.setUiLayoutDirty(true);
         this.applyActiveUiLayout();
         this.syncUiLayoutEditor();
@@ -1588,9 +1610,9 @@ export class UIManager {
 
         const current = this.sanitizeUiLayout(player.uiLayout) || { version: 1, layouts: {} };
         const mode = this.getUiLayoutMode();
-        if (!current.layouts?.[mode]) return;
-
-        delete current.layouts[mode];
+        if (current.layouts) {
+            delete current.layouts[mode];
+        }
         const nextLayout = this.sanitizeUiLayout(current);
         const currentComparable = this.serializeUiLayoutComparable(player.uiLayout);
         const nextComparable = this.serializeUiLayoutComparable(nextLayout);
@@ -1609,7 +1631,9 @@ export class UIManager {
                 reason: 'ui_layout_reset'
             });
         }
+        this.uiLayoutDefaultCache = {};
         this.applyActiveUiLayout();
+        this.syncUiLayoutEditor();
     }
 
     loadPlayerUiLayout(layout) {

@@ -67,8 +67,8 @@ if (presets.includes('mobilePortrait:')) {
     fail('mobile portrait preset must not override the tuned default portrait layout');
 }
 
-if (!presets.includes("'minimap-panel': { left: 0.8844956413449564, top: 0.03125, scale: 0.79 }")) {
-    fail('mobile landscape minimap default was not restored to the tuned 5eb1533 value');
+if (!presets.includes("'minimap-panel': { left: 0.8844956413449564, top: 0.03125, scale: 1 }")) {
+    fail('mobile landscape minimap default must stay at full scale for the current 150px CSS base');
 }
 
 if (!presets.includes("'quick-menu-panel': { left: 0.8058647260273972, top: 0.3046875, scale: 0.84 }")) {
@@ -81,6 +81,19 @@ if (/ui-layout-opacity-range|ui-layout-opacity-value/.test(html) || /opacityRang
 
 if (/uiLayoutSchemaVersion|migrateLegacyUiLayoutEntry/.test(uiManager)) {
     fail('UI layout schema migration must not rewrite the restored default layout values');
+}
+
+if (!/normalizeUiLayoutEntryForCurrentCss\s*\([\s\S]*controlId === 'minimap-panel'[\s\S]*mode === 'mobileLandscape'[\s\S]*scale:\s*1/.test(uiManager)) {
+    fail('saved legacy mobile landscape minimap scale 0.79 is not normalized to the current full-size default');
+}
+
+if (!/uiLayoutResetModes\s*=\s*new Set\(\)/.test(uiManager)
+    || !/this\.uiLayoutResetModes\.forEach\(\(mode\) => \{[\s\S]*delete draftForSave\.layouts\[mode\]/.test(uiManager)) {
+    fail('layout mode reset must delete the saved mode when the edit draft is saved');
+}
+
+if (/if \(!current\.layouts\?\.\[mode\]\) return;/.test(uiManager)) {
+    fail('settings reset must reapply defaults even when the current mode has no saved entry');
 }
 
 if (!/localStorage\.getItem\(this\.uiLayoutStorageKey\)/.test(uiManager)
@@ -108,4 +121,4 @@ if (!/body\.ui-layout-edit-mode \.action-buttons \.skill-btn,[\s\S]*body\.ui-lay
     fail('portrait edit guard does not keep individual action buttons positionable');
 }
 
-console.log('[ui-layout] OK: restored 5eb1533 layout editor targets, defaults, and persistence flow');
+console.log('[ui-layout] OK: restored UI layout editor targets and keeps the current minimap full-size default');
