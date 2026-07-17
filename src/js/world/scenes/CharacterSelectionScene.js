@@ -22,7 +22,7 @@ export default class CharacterSelectionScene extends Scene {
         // a newer timestamp on a regressed root profile, so "has name" is not
         // enough to trust the root snapshot.
         const profile = await this.game.net.getPlayerProfile?.(this.user.uid);
-        const latestSnapshot = await this.game.net.getLatestProfileSnapshot?.(this.user.uid);
+        const latestSnapshot = await this.game.net.getLatestProfileSnapshot?.(this.user.uid, { profile });
         this.profile = latestSnapshot?.profile || profile || null;
 
         if (
@@ -406,8 +406,15 @@ export default class CharacterSelectionScene extends Scene {
 
         const localName = localStorage.getItem('yurika_player_name') || this.user.displayName || "유리카";
 
-        // Add log to confirm profile data before Scene Change.
-        Logger.debug('[CharSelect] Starting game with profile:', this.profile, 'at', startX, startY);
+        // Add log to confirm profile data before Scene Change without dumping the full
+        // high-level profile object into DevTools/PWA consoles.
+        Logger.debug('[CharSelect] Starting game with profile:', {
+            level: this.profile?.level || 1,
+            inventorySlots: Array.isArray(this.profile?.inventory) ? this.profile.inventory.filter(Boolean).length : 0,
+            hasWeapon: !!this.profile?.equipment?.weapon,
+            currentZoneId: this.profile?.currentZoneId || this.profile?.mapId || 'zone_1',
+            ts: this.profile?.ts || 0
+        }, 'at', startX, startY);
 
         await this.game.sceneManager.changeScene('world', {
             user: this.user,

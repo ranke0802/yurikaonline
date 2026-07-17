@@ -36,6 +36,8 @@ const WEAPON_UPGRADE_STONE_ID = 'weapon_upgrade_stone';
 const OPTION_REROLL_STONE_ID = 'option_reroll_stone';
 const LEGACY_QUEST_KILL_IDS = new Set(['slime', 'slime_split', 'king_slime']);
 const FIELD_BOSS_QUEST_KILL_IDS = new Set(['ruin_wobbuffet', 'thunder_pikachu', 'astral_sylveon']);
+const PENDING_ITEM_REWARD_MAX_ENTRIES = 96;
+const PENDING_ITEM_REWARD_CLAIM_BATCH_SIZE = 48;
 const BLESSED_WEAPON_ENHANCEMENT = Object.freeze({
     successRate: 0.5,
     minGain: 1,
@@ -1241,8 +1243,22 @@ export default class Player extends CharacterBase {
             mapPositions: this._cloneProfilePatchValue(this.mapPositions),
             ts: Date.now()
         };
-        // Debug
-        Logger.debug('[Player] Saving State:', { level: data.level, exp: data.exp, maxExp: data.maxExp, quest: data.questData });
+        // Debug: keep the payload compact. Full profile objects get very large at high levels
+        // and can freeze DevTools/PWA consoles during reconnect or autosave bursts.
+        Logger.debug('[Player] Saving State:', {
+            level: data.level,
+            exp: data.exp,
+            maxExp: data.maxExp,
+            inventorySlots: Array.isArray(data.inventory) ? data.inventory.filter(Boolean).length : 0,
+            pendingRewards: Array.isArray(data.pendingItemRewards) ? data.pendingItemRewards.length : 0,
+            questFlags: data.questData && typeof data.questData === 'object' ? Object.keys(data.questData).length : 0,
+            questActive: data.questState?.active && typeof data.questState.active === 'object'
+                ? Object.keys(data.questState.active).length
+                : 0,
+            questCompleted: data.questState?.completed && typeof data.questState.completed === 'object'
+                ? Object.keys(data.questState.completed).length
+                : 0
+        });
         return this.net.savePlayerData(this.id, data, syncToWorld, {
             debounceMs: profileSaveDebounceMs,
             forceImmediate: !!syncToWorld,
@@ -1327,6 +1343,9 @@ export default class Player extends CharacterBase {
                     break;
                 case 'equipment':
                     patch.equipment = this._cloneProfilePatchValue(this.equipment);
+                    break;
+                case 'inventory':
+                    patch.inventory = this._cloneProfilePatchValue(this.inventory);
                     break;
                 case 'pendingItemRewards':
                     patch.pendingItemRewards = this._cloneProfilePatchValue(this.pendingItemRewards);
@@ -4018,24 +4037,109 @@ export default class Player extends CharacterBase {
         return true;
     }
 
-    queuePendingItemReward(item) {
-        if (!item || !(item.id || item.type)) return false;
-        this.pendingItemRewards.push(this._cloneProfilePatchValue({
+    _isPendingRewardStackable(item) {
+        return !!item
+            && item.stackable !== false
+            && !item.slot
+            && !item.instanceId
+            && !item.rolledValues;
+    }
+
+    _normalizePendingRewardItem(item, queuedAt = Date.now()) {
+        if (!item || !(item.id || item.type)) return null;
+        const itemId = item.id || item.type;
+        if (REMOVED_ITEM_IDS.has(itemId)) return null;
+        return this._cloneProfilePatchValue({
             ...item,
-            id: item.id || item.type,
+            id: itemId,
             type: item.type || item.id,
-            amount: Math.max(1, Number(item.amount || 1)),
-            queuedAt: Date.now()
-        }));
+            amount: Math.max(1, Math.floor(Number(item.amount || 1))),
+            queuedAt: Number(item.queuedAt || queuedAt)
+        });
+    }
+
+    normalizePendingItemRewards(items = this.pendingItemRewards) {
+        const source = Array.isArray(items) ? items : [];
+        const stackableByType = new Map();
+        const uniqueTypes = new Set();
+        const equipmentRewards = [];
+
+        source.forEach((rawItem) => {
+            const item = this._normalizePendingRewardItem(rawItem);
+            if (!item) return;
+            const itemId = item.id || item.type;
+            if (item.uniqueInventory === true) {
+                if (this.hasInventoryItem(itemId) || uniqueTypes.has(itemId)) return;
+                uniqueTypes.add(itemId);
+            }
+
+            if (this._isPendingRewardStackable(item)) {
+                const previous = stackableByType.get(itemId);
+                if (previous) {
+                    previous.amount = Math.max(1, Number(previous.amount || 1)) + Math.max(1, Number(item.amount || 1));
+                    previous.queuedAt = Math.max(Number(previous.queuedAt || 0), Number(item.queuedAt || 0));
+                } else {
+                    stackableByType.set(itemId, item);
+                }
+                return;
+            }
+
+            equipmentRewards.push(item);
+        });
+
+        const stackableRewards = Array.from(stackableByType.values())
+            .sort((a, b) => Number(a.queuedAt || 0) - Number(b.queuedAt || 0));
+        const maxEquipment = Math.max(0, PENDING_ITEM_REWARD_MAX_ENTRIES - stackableRewards.length);
+        const keptEquipment = equipmentRewards.slice(-maxEquipment);
+        const normalized = [...stackableRewards, ...keptEquipment].slice(-PENDING_ITEM_REWARD_MAX_ENTRIES);
+        const getSignature = (entry) => [
+            entry?.id || entry?.type || '',
+            entry?.type || entry?.id || '',
+            Math.max(1, Math.floor(Number(entry?.amount || 1))),
+            Number(entry?.queuedAt || 0),
+            entry?.instanceId || '',
+            entry?.slot || '',
+            entry?.uniqueInventory === true ? 'unique' : ''
+        ].join('|');
+        const changed = normalized.length !== source.length
+            || normalized.some((item, index) => getSignature(item) !== getSignature(source[index]));
+        this.pendingItemRewards = normalized;
+        return { changed, count: normalized.length };
+    }
+
+    queuePendingItemReward(item) {
+        const normalized = this._normalizePendingRewardItem(item);
+        if (!normalized) return false;
+        const itemId = normalized.id || normalized.type;
+        if (normalized.uniqueInventory === true && this.hasInventoryItem(itemId)) return false;
+
+        if (this._isPendingRewardStackable(normalized)) {
+            const existing = this.pendingItemRewards.find((entry) => (
+                this._isPendingRewardStackable(entry) && (entry.id || entry.type) === itemId
+            ));
+            if (existing) {
+                existing.amount = Math.max(1, Number(existing.amount || 1)) + Math.max(1, Number(normalized.amount || 1));
+                existing.queuedAt = Date.now();
+                this.normalizePendingItemRewards();
+                return true;
+            }
+        }
+
+        this.pendingItemRewards.push(normalized);
+        this.normalizePendingItemRewards();
         return true;
     }
 
     claimPendingItemRewards(options = {}) {
         if (!Array.isArray(this.pendingItemRewards) || this.pendingItemRewards.length === 0) return 0;
 
+        this.normalizePendingItemRewards();
+        const maxAttempts = Math.max(1, Math.floor(Number(options.maxAttempts || PENDING_ITEM_REWARD_CLAIM_BATCH_SIZE)));
+        const batch = this.pendingItemRewards.slice(0, maxAttempts);
+        const deferred = this.pendingItemRewards.slice(maxAttempts);
         const remaining = [];
         const claimedNames = [];
-        this.pendingItemRewards.forEach((item) => {
+        batch.forEach((item) => {
             const itemId = item.id || item.type;
             const amount = Math.max(1, Number(item.amount || 1));
             if (item.uniqueInventory === true && this.hasInventoryItem(itemId)) {
@@ -4049,13 +4153,21 @@ export default class Player extends CharacterBase {
             claimedNames.push(added.name || item.name || itemId);
         });
 
-        const claimedCount = this.pendingItemRewards.length - remaining.length;
+        remaining.push(...deferred);
+        const claimedCount = batch.length - remaining.length + deferred.length;
         if (claimedCount <= 0) return 0;
-        this.pendingItemRewards = remaining;
+        this.pendingItemRewards = remaining.slice(0, PENDING_ITEM_REWARD_MAX_ENTRIES);
         window.game?.ui?.updateInventory?.();
-        window.game?.ui?.logSystemMessage?.(`📦 보상함에서 ${claimedNames.join(', ')} 수령`);
+        if (claimedNames.length > 0) {
+            const preview = claimedNames.slice(0, 6).join(', ');
+            const suffix = claimedNames.length > 6 ? ` 외 ${claimedNames.length - 6}건` : '';
+            window.game?.ui?.logSystemMessage?.(`📦 보상함에서 ${preview}${suffix} 수령`);
+        }
         if (options.save !== false) {
-            this.saveState(false, { debounceMs: 0, reason: 'claim_pending_item_rewards' });
+            this.saveProfilePatch(['inventory', 'pendingItemRewards'], {
+                debounceMs: Number.isFinite(options.debounceMs) ? options.debounceMs : 750,
+                reason: 'claim_pending_item_rewards'
+            });
         }
         return claimedCount;
     }

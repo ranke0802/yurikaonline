@@ -7104,6 +7104,44 @@ export default class NetworkManager extends EventEmitter {
         return inventoryScore + equipmentScore;
     }
 
+    _getProfileStatTotal(profile = null) {
+        if (!profile || typeof profile !== 'object') return 0;
+        return ['vitality', 'intelligence', 'wisdom', 'agility', 'statPoints']
+            .reduce((total, key) => total + Math.max(0, Number(profile[key] || 0)), 0);
+    }
+
+    _isDeveloperProfileOverrideActive() {
+        const ui = window.game?.ui;
+        if (!ui?.devMode) return false;
+        if (typeof ui.hasDeveloperAccess === 'function') return !!ui.hasDeveloperAccess();
+        return true;
+    }
+
+    _isProfileSuspiciousHighLevelReset(profile = null) {
+        if (!profile || typeof profile !== 'object') return false;
+        const level = Math.max(1, Math.floor(Number(profile.level || 1)));
+        if (level < 5) return false;
+
+        const vitality = Math.max(0, Number(profile.vitality || 0));
+        const intelligence = Math.max(0, Number(profile.intelligence || 0));
+        const wisdom = Math.max(0, Number(profile.wisdom || 0));
+        const agility = Math.max(0, Number(profile.agility || 0));
+        const statPoints = Math.max(0, Number(profile.statPoints || 0));
+        const statTotal = this._getProfileStatTotal(profile);
+        const expectedStatTotal = 7 + Math.max(0, level - 1);
+        const baseLikeStats = vitality <= 1 && intelligence <= 3 && wisdom <= 2 && agility <= 1;
+        const missingMostLevelStats = statTotal <= Math.max(9, expectedStatTotal * 0.5);
+        const statResetLike = baseLikeStats && statPoints <= Math.max(1, Math.floor((level - 1) * 0.25));
+
+        const inventoryScore = this._getProfileInventoryScore(profile);
+        const questScore = this._getProfileQuestScore(profile);
+        const advancedField = !['', 'zone_1'].includes(String(profile.currentZoneId || profile.mapId || 'zone_1'));
+        const advancedProgress = questScore >= 100 || advancedField;
+        const emptyInventoryLike = inventoryScore <= 2;
+
+        return statResetLike || missingMostLevelStats || (advancedProgress && emptyInventoryLike);
+    }
+
     _getProfileQuestScore(profile = null) {
         const questData = profile?.questData && typeof profile.questData === 'object' ? profile.questData : {};
         const questState = profile?.questState && typeof profile.questState === 'object' ? profile.questState : {};
@@ -7152,6 +7190,14 @@ export default class NetworkManager extends EventEmitter {
     _isProfileCandidateBetter(candidate = null, incumbent = null) {
         if (!candidate?.profile) return false;
         if (!incumbent?.profile) return true;
+        const candidateSuspicious = this._isProfileSuspiciousHighLevelReset(candidate.profile);
+        const incumbentSuspicious = this._isProfileSuspiciousHighLevelReset(incumbent.profile);
+        if (candidateSuspicious !== incumbentSuspicious) {
+            if (candidateSuspicious) return false;
+            const candidateLevel = Math.max(1, Math.floor(Number(candidate.profile.level || 1)));
+            const incumbentLevel = Math.max(1, Math.floor(Number(incumbent.profile.level || 1)));
+            return candidateLevel >= Math.max(1, incumbentLevel - 1);
+        }
         const candidateScore = this._getProfileProgressScore(candidate.profile);
         const incumbentScore = this._getProfileProgressScore(incumbent.profile);
         const candidateTs = Number(candidate.ts || candidate.profile.ts || 0);
@@ -7174,6 +7220,8 @@ export default class NetworkManager extends EventEmitter {
         const nextLevel = Math.max(1, Math.floor(Number(next.level || 1)));
         const currentInventory = this._getProfileInventoryScore(current);
         const nextInventory = this._getProfileInventoryScore(next);
+        const currentSuspicious = this._isProfileSuspiciousHighLevelReset(current);
+        const nextSuspicious = this._isProfileSuspiciousHighLevelReset(next);
         const currentStats = ['vitality', 'intelligence', 'wisdom', 'agility', 'statPoints']
             .reduce((total, key) => total + Math.max(0, Number(current[key] || 0)), 0);
         const nextStats = ['vitality', 'intelligence', 'wisdom', 'agility', 'statPoints']
@@ -7181,8 +7229,9 @@ export default class NetworkManager extends EventEmitter {
 
         return (
             nextLevel < currentLevel
+            || (currentLevel >= 5 && nextSuspicious && !currentSuspicious)
             || (currentLevel >= 5 && currentStats > nextStats + 2)
-            || (currentLevel >= 5 && currentInventory >= 8 && nextInventory <= Math.max(1, currentInventory * 0.25))
+            || (currentLevel >= 5 && currentInventory >= 4 && nextInventory <= Math.max(1, currentInventory * 0.25))
             || (currentScore > nextScore + 250_000 && currentLevel >= nextLevel)
         );
     }
@@ -7262,23 +7311,22 @@ export default class NetworkManager extends EventEmitter {
         return payload;
     }
 
-    async getLatestProfileSnapshot(uid) {
+    async getLatestProfileSnapshot(uid, options = {}) {
         if (!uid || !window.firebase) return null;
 
         try {
-            const [profileSnapshot, backupSnapshot, recoverySnapshot] = await Promise.all([
-                this.getProfileRef(uid)?.once('value'),
-                this.getProfileBackupsRef(uid)?.orderByChild('ts').limitToLast(20).once('value'),
-                this.getRecoveryProfileRef(uid)?.once('value')
+            const providedProfile = options.profile && typeof options.profile === 'object'
+                ? options.profile
+                : null;
+            const includeRecovery = options.includeRecovery !== false;
+            const backupLimit = Math.max(0, Math.min(20, Math.floor(Number(options.backupLimit ?? 5))));
+            const [profileSnapshot, recoverySnapshot] = await Promise.all([
+                providedProfile ? Promise.resolve(null) : this.getProfileRef(uid)?.once('value'),
+                includeRecovery ? this.getRecoveryProfileRef(uid)?.once('value') : Promise.resolve(null)
             ]);
 
-            const profile = profileSnapshot?.val() || null;
+            const profile = providedProfile || profileSnapshot?.val() || null;
             const normalizedProfile = profile ? this._normalizeProfileSnapshot(profile) : null;
-
-            const backupCandidates = [];
-            backupSnapshot?.forEach((child) => {
-                backupCandidates.push({ id: child.key, ...(child.val() || {}) });
-            });
 
             const recoveryEntry = recoverySnapshot?.val() || null;
             const recoveryProfile = recoveryEntry?.profile
@@ -7296,37 +7344,57 @@ export default class NetworkManager extends EventEmitter {
                 }
             };
 
-            consider(normalizedProfile ? {
+            const rootCandidate = normalizedProfile ? {
                 profile: normalizedProfile,
                 ts: normalizedProfile.ts || 0,
                 source: 'profile',
                 backupId: null,
                 latestUid: uid,
                 recoveryUid: this._resolveRecoveryUid(normalizedProfile, uid)
-            } : null);
-
-            backupCandidates.forEach((backup) => {
-                const backupProfile = backup?.profile
-                    ? this._normalizeProfileSnapshot(backup.profile, backup.ts || Date.now())
-                    : null;
-                consider(backupProfile ? {
-                    profile: backupProfile,
-                    ts: Number(backup.ts || backupProfile.ts || 0),
-                    source: 'backup',
-                    backupId: backup?.id || null,
-                    latestUid: uid,
-                    recoveryUid: this._resolveRecoveryUid(backupProfile, uid)
-                } : null);
-            });
-
-            consider(recoveryProfile ? {
+            } : null;
+            const recoveryCandidate = recoveryProfile ? {
                 profile: recoveryProfile,
                 ts: Number(recoveryEntry?.ts || recoveryProfile.ts || 0),
                 source: 'recovery',
                 backupId: null,
                 latestUid: recoveryEntry?.latestUid || uid,
                 recoveryUid: this._resolveRecoveryUid(recoveryProfile, recoveryEntry?.recoveryUid || uid)
-            } : null);
+            } : null;
+
+            consider(rootCandidate);
+            consider(recoveryCandidate);
+
+            const rootLevel = Math.max(1, Math.floor(Number(normalizedProfile?.level || 1)));
+            const rootInventoryScore = normalizedProfile ? this._getProfileInventoryScore(normalizedProfile) : 0;
+            const rootLooksLikeReset = this._isProfileSuspiciousHighLevelReset(normalizedProfile);
+            const rootLooksLowProgress = !normalizedProfile || rootLevel <= 3 || rootInventoryScore <= 2 || rootLooksLikeReset;
+            const recoveryAlreadyBetter = recoveryCandidate && this._isProfileCandidateBetter(recoveryCandidate, rootCandidate);
+            const shouldReadBackups = backupLimit > 0 && (
+                options.forceBackupLookup === true
+                || !bestSnapshot?.profile
+                || (rootLooksLowProgress && !recoveryAlreadyBetter)
+            );
+
+            if (shouldReadBackups) {
+                const backupSnapshot = await this.getProfileBackupsRef(uid)
+                    ?.orderByChild('ts')
+                    .limitToLast(rootLooksLikeReset ? 20 : backupLimit)
+                    .once('value');
+                backupSnapshot?.forEach((child) => {
+                    const backup = { id: child.key, ...(child.val() || {}) };
+                    const backupProfile = backup?.profile
+                        ? this._normalizeProfileSnapshot(backup.profile, backup.ts || Date.now())
+                        : null;
+                    consider(backupProfile ? {
+                        profile: backupProfile,
+                        ts: Number(backup.ts || backupProfile.ts || 0),
+                        source: 'backup',
+                        backupId: backup?.id || null,
+                        latestUid: uid,
+                        recoveryUid: this._resolveRecoveryUid(backupProfile, uid)
+                    } : null);
+                });
+            }
 
             return bestSnapshot;
         } catch (error) {
@@ -7730,6 +7798,26 @@ export default class NetworkManager extends EventEmitter {
         })));
     }
 
+    _summarizeProfilePayloadForLog(payload = null) {
+        if (!payload || typeof payload !== 'object') return payload;
+        const questState = payload.questState && typeof payload.questState === 'object' ? payload.questState : {};
+        return {
+            keys: Object.keys(payload).slice(0, 24),
+            keyCount: Object.keys(payload).length,
+            level: payload.level,
+            exp: payload.exp,
+            maxExp: payload.maxExp,
+            currentZoneId: payload.currentZoneId || payload.mapId,
+            inventorySlots: Array.isArray(payload.inventory) ? payload.inventory.filter(Boolean).length : undefined,
+            pendingRewards: Array.isArray(payload.pendingItemRewards) ? payload.pendingItemRewards.length : undefined,
+            claimedRewardIds: Array.isArray(payload.claimedRewardIds) ? payload.claimedRewardIds.length : undefined,
+            questFlags: payload.questData && typeof payload.questData === 'object' ? Object.keys(payload.questData).length : undefined,
+            questActive: questState.active && typeof questState.active === 'object' ? Object.keys(questState.active).length : undefined,
+            questCompleted: questState.completed && typeof questState.completed === 'object' ? Object.keys(questState.completed).length : undefined,
+            ts: payload.ts
+        };
+    }
+
     async _commitPlayerData(uid, data, syncToZone = false, options = {}) {
         if (!uid || !window.firebase || !data) return { ok: false, reason: 'invalid_args' };
         if (uid === this.playerId && this._profileWriterSuperseded && !options.allowSupersededWrite) {
@@ -7750,18 +7838,30 @@ export default class NetworkManager extends EventEmitter {
             const profileRef = this.getProfileRef(uid);
             const allowStaleWrite = !!options.allowStaleWrite;
             let committedProfile = null;
+            let safetyBlocked = false;
 
             // v0.00.04: Root profile update (Persistent across logins)
-            Logger.debug(`[Network] Saving Player Data to users/${uid}/profile:`, nextProfile);
+            Logger.debug(
+                `[Network] Saving Player Data to users/${uid}/profile:`,
+                this._summarizeProfilePayloadForLog(nextProfile)
+            );
             this._recordNetworkWrite('profileSave', nextProfile);
             const transactionResult = await profileRef.transaction((current) => {
                 if (!this._canProfileWriterSessionCommit(current, writerSession)) return;
+                const forceSafetyGuard = this._isProfileSuspiciousHighLevelReset(nextProfile)
+                    && !this._isDeveloperProfileOverrideActive();
+                if (forceSafetyGuard && !current) {
+                    safetyBlocked = true;
+                    return;
+                }
                 const currentTs = Number(current?.ts || 0);
                 const nextTs = Number(nextProfile.ts || 0);
                 if (!allowStaleWrite && currentTs > nextTs) {
                     return;
                 }
-                const guardedProfile = !options.allowDestructiveProfileWrite && this._isProfileRegression(current, nextProfile)
+                const shouldApplyRegressionGuard = (!options.allowDestructiveProfileWrite || forceSafetyGuard)
+                    && this._isProfileRegression(current, nextProfile);
+                const guardedProfile = shouldApplyRegressionGuard
                     ? this._mergeProfileAgainstRegression(current, nextProfile)
                     : nextProfile;
                 return this._applyProfileWriterSession(guardedProfile, writerSession);
@@ -7774,10 +7874,12 @@ export default class NetworkManager extends EventEmitter {
                 if (superseded) this._notifyProfileWriterSuperseded(uid, currentProfile);
                 Logger.warn(superseded
                     ? `[Network] Profile writer session superseded for ${uid}`
+                    : safetyBlocked
+                        ? `[Network] Blocked suspicious high-level profile reset for ${uid}`
                     : `[Network] Skipped stale profile save for ${uid}. incoming=${nextProfile.ts} current=${currentProfile?.ts || 0}`);
                 return {
                     ok: false,
-                    reason: superseded ? 'writer_session_superseded' : 'stale_profile',
+                    reason: superseded ? 'writer_session_superseded' : (safetyBlocked ? 'profile_safety_blocked' : 'stale_profile'),
                     currentProfile
                 };
             }
@@ -7833,14 +7935,26 @@ export default class NetworkManager extends EventEmitter {
                 return { ok: false, reason: 'empty_patch' };
             }
 
-            Logger.debug(`[Network] Saving Player Data Patch to users/${uid}/profile:`, nextPatch);
+            Logger.debug(
+                `[Network] Saving Player Data Patch to users/${uid}/profile:`,
+                this._summarizeProfilePayloadForLog(nextPatch)
+            );
             this._recordNetworkWrite('profilePatchSave', nextPatch);
             const profileRef = this.getProfileRef(uid);
+            let safetyBlocked = false;
             const transactionResult = await profileRef.transaction((current) => {
                 if (!this._canProfileWriterSessionCommit(current, writerSession)) return;
                 if (Number(current?.ts || 0) > Number(nextPatch.ts || 0)) return;
                 const merged = this._mergeProfileData(current || {}, nextPatch);
-                const guarded = !options.allowDestructiveProfileWrite && this._isProfileRegression(current, merged)
+                const forceSafetyGuard = this._isProfileSuspiciousHighLevelReset(merged)
+                    && !this._isDeveloperProfileOverrideActive();
+                if (forceSafetyGuard && !current) {
+                    safetyBlocked = true;
+                    return;
+                }
+                const shouldApplyRegressionGuard = (!options.allowDestructiveProfileWrite || forceSafetyGuard)
+                    && this._isProfileRegression(current, merged);
+                const guarded = shouldApplyRegressionGuard
                     ? this._mergeProfileAgainstRegression(current, merged)
                     : merged;
                 return this._applyProfileWriterSession(guarded, writerSession);
@@ -7852,7 +7966,7 @@ export default class NetworkManager extends EventEmitter {
                 if (superseded) this._notifyProfileWriterSuperseded(uid, committedProfileValue);
                 return {
                     ok: false,
-                    reason: superseded ? 'writer_session_superseded' : 'stale_profile',
+                    reason: superseded ? 'writer_session_superseded' : (safetyBlocked ? 'profile_safety_blocked' : 'stale_profile'),
                     currentProfile: committedProfileValue
                 };
             }

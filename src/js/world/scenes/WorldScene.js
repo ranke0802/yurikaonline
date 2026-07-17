@@ -154,9 +154,8 @@ export default class WorldScene extends Scene {
         this.player.mapPositions = profile?.mapPositions && typeof profile.mapPositions === 'object'
             ? { ...profile.mapPositions }
             : {};
-        this.player.pendingItemRewards = Array.isArray(profile?.pendingItemRewards)
-            ? profile.pendingItemRewards.map((item) => ({ ...item }))
-            : [];
+        const pendingRewardNormalization = this.player.normalizePendingItemRewards?.(profile?.pendingItemRewards || [])
+            || { changed: false, count: 0 };
         this.player.claimedRewardIds = Array.isArray(profile?.claimedRewardIds)
             ? profile.claimedRewardIds.filter((id) => typeof id === 'string' && id).slice(-128)
             : [];
@@ -165,7 +164,13 @@ export default class WorldScene extends Scene {
 
 
         if (profile) {
-            Logger.debug(`[WorldScene] Loading Player Profile:`, profile);
+            Logger.debug('[WorldScene] Loading Player Profile:', {
+                level: profile.level || 1,
+                inventorySlots: Array.isArray(profile.inventory) ? profile.inventory.filter(Boolean).length : 0,
+                pendingRewards: Array.isArray(profile.pendingItemRewards) ? profile.pendingItemRewards.length : 0,
+                currentZoneId: profile.currentZoneId || profile.mapId || 'zone_1',
+                ts: profile.ts || 0
+            });
             const hasLegacyGoldField = Object.prototype.hasOwnProperty.call(profile, 'gold');
             const hasLegacyGoldInventory = Array.isArray(profile.inventory) && profile.inventory[0]?.type === 'gold';
             const needsLegacyCurrencyMigration = hasLegacyGoldField || hasLegacyGoldInventory;
@@ -340,7 +345,11 @@ export default class WorldScene extends Scene {
 
         this.ui?.loadPlayerSettings?.(this.player.clientSettings || null, { refreshGame: true });
         this.player.init(this.input, this.resources, this.net);
-        this.player.claimPendingItemRewards?.();
+        const pendingClaimCount = this.player.claimPendingItemRewards?.({
+            maxAttempts: 48,
+            debounceMs: 1200,
+            save: false
+        }) || 0;
         this.net.flushPendingFriendGiftRefunds?.();
         if (!this.player.recoveryUid) {
             this.player.recoveryUid = user.uid;
@@ -382,7 +391,16 @@ export default class WorldScene extends Scene {
 
         // v0.00.03: Ensure data is synchronized to the zone database on entry
         if (this.player) {
-            this.player.saveState();
+            this.player.saveProfilePatch?.([
+                'hp',
+                'mp',
+                'currentZoneId',
+                'mapPositions',
+                ...((pendingClaimCount > 0 || pendingRewardNormalization.changed) ? ['inventory', 'pendingItemRewards'] : [])
+            ], {
+                debounceMs: 1800,
+                reason: 'world_enter_light_profile_sync'
+            });
 
             // v0.00.15: Self-heal Name Mapping (Force update name->uid)
             // This fixes the issue where an old UID is linked to the name

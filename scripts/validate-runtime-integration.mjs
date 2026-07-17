@@ -2790,6 +2790,34 @@ async function validateProfileWriterFencingContracts() {
         assert.equal(profile.inventory[1].instanceId, 'profile_guard_staff', 'profile regression guard must preserve inventory gear');
         assert.equal(profile.currentZoneId, 'zone_2', 'profile regression guard may still keep safe transient travel fields from the new save');
 
+        profile = clone(advancedProfile);
+        const sameLevelResetSave = await regressionGuardNet._commitPlayerData(uid, {
+            name: 'Ppp',
+            level: 17,
+            exp: 340,
+            maxExp: 985,
+            manastone: 4200,
+            vitality: 1,
+            intelligence: 3,
+            wisdom: 2,
+            agility: 1,
+            statPoints: 0,
+            skillLevels: { laser: 1, missile: 1, fireball: 1, shield: 1 },
+            inventory: new Array(24).fill(null),
+            equipment: { weapon: null },
+            questData: { basicTrainingCompleted: true },
+            questState: { active: { travel_to_ruins: true }, completed: {}, flags: {} },
+            currentZoneId: 'zone_4',
+            ts: Date.now() + 90_000
+        }, false, {
+            allowDestructiveProfileWrite: true
+        });
+        assert.equal(sameLevelResetSave.ok, true, 'same-level high-level reset saves must be committed only after safety merging');
+        assert.equal(profile.level, 17, 'same-level safety guard must keep the player level');
+        assert.equal(profile.vitality, 8, 'same-level safety guard must preserve invested stats');
+        assert.equal(profile.equipment.weapon.instanceId, 'profile_guard_equipped', 'same-level safety guard must preserve equipped gear');
+        assert.equal(profile.inventory[1].instanceId, 'profile_guard_staff', 'same-level safety guard must preserve inventory gear');
+
         const rootRegressedProfile = {
             name: 'Ppp',
             level: 1,
@@ -2841,6 +2869,53 @@ async function validateProfileWriterFencingContracts() {
         assert.equal(recoveredSnapshot.source, 'backup', 'a stronger backup must beat a newer but regressed root profile');
         assert.equal(recoveredSnapshot.profile.level, 17);
         assert.equal(recoveredSnapshot.profile.equipment.weapon.instanceId, 'profile_guard_equipped');
+
+        const highLevelResetProfile = {
+            name: 'Ppp',
+            level: 17,
+            exp: 340,
+            maxExp: 985,
+            vitality: 1,
+            intelligence: 3,
+            wisdom: 2,
+            agility: 1,
+            statPoints: 0,
+            skillLevels: { laser: 1, missile: 1, fireball: 1, shield: 1 },
+            inventory: new Array(24).fill(null),
+            equipment: { weapon: null },
+            questData: { basicTrainingCompleted: true },
+            questState: { active: { travel_to_ruins: true }, completed: {}, flags: {} },
+            currentZoneId: 'zone_4',
+            ts: Date.now() + 180_000
+        };
+        let observedBackupLimit = 0;
+        const highLevelResetFirebaseMock = {
+            database: () => ({
+                ref(path) {
+                    if (path === `users/${uid}/profile`) return { once: async () => ({ val: () => clone(highLevelResetProfile) }) };
+                    if (path === `users/${uid}/profileBackups`) {
+                        return {
+                            orderByChild() { return this; },
+                            limitToLast(limit) {
+                                observedBackupLimit = limit;
+                                return this;
+                            },
+                            once: async () => backupSnapshotMock
+                        };
+                    }
+                    if (path === `recovery_profiles/${uid}`) return { once: async () => emptySnapshotMock };
+                    return { once: async () => emptySnapshotMock };
+                }
+            })
+        };
+        window.firebase = highLevelResetFirebaseMock;
+        globalThis.firebase = highLevelResetFirebaseMock;
+        const highLevelSnapshotNet = new NetworkManager();
+        const recoveredHighLevelSnapshot = await highLevelSnapshotNet.getLatestProfileSnapshot(uid);
+        assert.equal(observedBackupLimit, 20, 'a suspicious same-level reset must widen backup lookup');
+        assert.equal(recoveredHighLevelSnapshot.source, 'backup', 'a same-level high-level reset must recover from backup');
+        assert.equal(recoveredHighLevelSnapshot.profile.vitality, 8);
+        assert.equal(recoveredHighLevelSnapshot.profile.equipment.weapon.instanceId, 'profile_guard_equipped');
     } finally {
         window.game = previousGame;
         window.firebase = previousWindowFirebase;
