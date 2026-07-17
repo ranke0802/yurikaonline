@@ -11552,7 +11552,17 @@ export class UIManager {
         p.skillLevels = { laser: 1, missile: 1, fireball: 1, shield: 1 };
 
         // 4. Save and Reload
-        if (p.saveState) p.saveState(true); // Sync to world
+        if (p.saveState) {
+            const saveResult = await p.saveState(true, {
+                reason: 'developer_character_reset',
+                allowDestructiveProfileWrite: true,
+                bypassProfileRegressionGuard: true,
+                backupReason: 'developer_character_reset'
+            });
+            if (!saveResult?.ok) {
+                throw saveResult?.error || new Error(saveResult?.reason || 'developer_character_reset_failed');
+            }
+        }
 
         alert(`초기화 완료!\n반환된 스텟: ${totalRefundedStats}\n반환된 마석: ${totalRefundedManastone}\n\n게임을 다시 불러옵니다.`);
         window.location.reload();

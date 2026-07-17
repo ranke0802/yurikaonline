@@ -1262,7 +1262,11 @@ export default class Player extends CharacterBase {
         return this.net.savePlayerData(this.id, data, syncToWorld, {
             debounceMs: profileSaveDebounceMs,
             forceImmediate: !!syncToWorld,
-            saveReason: options.reason || 'player_save'
+            saveReason: options.reason || 'player_save',
+            allowStaleWrite: options.allowStaleWrite === true,
+            allowDestructiveProfileWrite: options.allowDestructiveProfileWrite === true,
+            bypassProfileRegressionGuard: options.bypassProfileRegressionGuard === true,
+            backupReason: options.backupReason || options.reason || 'player_save'
         });
     }
 
@@ -2681,7 +2685,22 @@ export default class Player extends CharacterBase {
         }
         if (shouldSave) {
             if (hasInventoryMutation) {
-                this.saveState(false, { debounceMs: saveDebounceMs, reason: 'reward_full_save' });
+                this.saveProfilePatch([
+                    'exp',
+                    'maxExp',
+                    'level',
+                    'statPoints',
+                    'manastone',
+                    'hp',
+                    'mp',
+                    'questData',
+                    'inventory',
+                    'pendingItemRewards',
+                    ...(rewardId ? ['claimedRewardIds'] : [])
+                ], {
+                    debounceMs: saveDebounceMs,
+                    reason: 'reward_inventory_patch'
+                });
             } else {
                 this.saveProfilePatch([
                     'exp',

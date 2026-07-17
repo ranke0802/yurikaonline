@@ -475,7 +475,15 @@ export default class CharacterSelectionScene extends Scene {
         p.skillLevels = { laser: 1, missile: 1, fireball: 1, shield: 1 };
 
         // 4. Save and Update UI
-        await this.game.net.savePlayerData(this.user.uid, p);
+        const saveResult = await this.game.net.savePlayerData(this.user.uid, p, false, {
+            allowDestructiveProfileWrite: true,
+            bypassProfileRegressionGuard: true,
+            backupReason: 'character_selection_reset',
+            saveReason: 'character_selection_reset'
+        });
+        if (!saveResult?.ok) {
+            throw saveResult?.error || new Error(saveResult?.reason || 'character_selection_reset_failed');
+        }
         alert(`초기화 완료!\n반환된 스텟: ${totalRefundedStats}\n반환된 마석: ${totalRefundedManastone}`);
         this.showSelectionUI(); // Refresh UI to show updated manastone/stats (though stats hidden in selection)
     }

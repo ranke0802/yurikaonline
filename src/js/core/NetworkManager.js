@@ -296,6 +296,7 @@ export default class NetworkManager extends EventEmitter {
         this._blockedProfileWriteUids = new Set();
         this._profileBackupMeta = new Map();
         this._profileBackupPruneMeta = new Map();
+        this._profileRecoverySyncMeta = new Map();
         this._zoneUserCache = new Map();
         this._zoneUserListeners = new Map();
         this._zoneUserListenerFields = new Map();
@@ -438,6 +439,7 @@ export default class NetworkManager extends EventEmitter {
         this._zoneUserListenerFields.clear();
         this._profileBackupMeta.clear();
         this._profileBackupPruneMeta.clear();
+        this._profileRecoverySyncMeta.clear();
         this._detachZoneUserListeners();
         this._presenceCache.clear();
         this._presenceTsCache.clear();
@@ -1961,17 +1963,56 @@ export default class NetworkManager extends EventEmitter {
         return {
             name: player.name || 'Unknown',
             level: Number(player.level || 1),
-            equipment: player.equipment || null,
+            equipment: this._buildRealtimeEquipmentSnapshot(player.equipment || null),
             party: player.party || null,
-            hostility: player.hostilityTargets
+            hostility: this._buildRealtimeHostilitySnapshot(player.hostilityTargets
                 ? Object.fromEntries(player.hostilityTargets.entries())
-                : (player.hostility || {}),
+                : (player.hostility || {})),
             defense: Number(player.defense || 0),
             isPaused: !!player.isPaused,
             protectedUntil: player.spawnProtectionTimer > 0
                 ? Date.now() + Math.round(player.spawnProtectionTimer * 1000)
                 : 0
         };
+    }
+
+    _buildRealtimeWeaponSnapshot(weapon = null) {
+        if (!weapon || typeof weapon !== 'object') return null;
+        const type = weapon.type || weapon.id;
+        if (!type) return null;
+        const payload = {
+            id: type,
+            type,
+            slot: 'weapon',
+            name: weapon.name || weapon.baseName || type,
+            enhancementLevel: Math.max(0, Math.floor(Number(weapon.enhancementLevel || 0)))
+        };
+        if (weapon.baseName) payload.baseName = weapon.baseName;
+        if (weapon.rarity) payload.rarity = weapon.rarity;
+        if (weapon.prefixId) payload.prefixId = weapon.prefixId;
+        if (weapon.prefix) payload.prefix = weapon.prefix;
+        if (weapon.icon) payload.icon = weapon.icon;
+        if (weapon.iconPath) payload.iconPath = weapon.iconPath;
+        return payload;
+    }
+
+    _buildRealtimeEquipmentSnapshot(equipment = null) {
+        const weapon = this._buildRealtimeWeaponSnapshot(equipment?.weapon || null);
+        return { weapon };
+    }
+
+    _buildRealtimeHostilitySnapshot(hostility = null) {
+        if (!hostility || typeof hostility !== 'object') return {};
+        return Object.fromEntries(
+            Object.entries(hostility)
+                .filter(([uid]) => typeof uid === 'string' && uid)
+                .slice(-24)
+                .map(([uid, entry]) => [uid, {
+                    name: entry?.name || 'Unknown',
+                    ts: Number(entry?.ts || Date.now()),
+                    ...(entry?.duel === true ? { duel: true, duelId: entry.duelId || null } : {})
+                }])
+        );
     }
 
     _publishLocalRealtimeSnapshot(reason = 'shared_field_sync') {
@@ -6071,9 +6112,9 @@ export default class NetworkManager extends EventEmitter {
         return {
             name: profile.name || 'Unknown',
             level: profile.level || 1,
-            equipment: profile.equipment || null,
+            equipment: this._buildRealtimeEquipmentSnapshot(profile.equipment || null),
             party: profile.party || null,
-            hostility: profile.hostility || {},
+            hostility: this._buildRealtimeHostilitySnapshot(profile.hostility || {}),
             defense: profile.defense ?? 0,
             isPaused: !!profile.isPaused,
             protectedUntil: Number(profile.protectedUntil || 0)
@@ -6086,9 +6127,9 @@ export default class NetworkManager extends EventEmitter {
 
         if (patch.name !== undefined) zonePatch.name = patch.name || 'Unknown';
         if (patch.level !== undefined) zonePatch.level = Number(patch.level || 1);
-        if (patch.equipment !== undefined) zonePatch.equipment = patch.equipment || null;
+        if (patch.equipment !== undefined) zonePatch.equipment = this._buildRealtimeEquipmentSnapshot(patch.equipment || null);
         if (patch.party !== undefined) zonePatch.party = patch.party || null;
-        if (patch.hostility !== undefined) zonePatch.hostility = patch.hostility || {};
+        if (patch.hostility !== undefined) zonePatch.hostility = this._buildRealtimeHostilitySnapshot(patch.hostility || {});
         if (patch.defense !== undefined) zonePatch.defense = Number(patch.defense || 0);
         if (patch.isPaused !== undefined) zonePatch.isPaused = !!patch.isPaused;
         if (patch.protectedUntil !== undefined) zonePatch.protectedUntil = Number(patch.protectedUntil || 0);
@@ -7069,8 +7110,36 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
+    _normalizeFirebaseObjectKey(key) {
+        if (typeof key !== 'string') return '';
+        return key.trim().replace(/[.#$/[\]]/g, '_');
+    }
+
+    _sanitizeQuestStateForFirebase(questState = null) {
+        if (!questState || typeof questState !== 'object') return questState;
+        const sanitized = this._cloneProfileData(questState) || {};
+        if (sanitized.flags && typeof sanitized.flags === 'object' && !Array.isArray(sanitized.flags)) {
+            const flags = {};
+            Object.entries(sanitized.flags).forEach(([rawKey, value]) => {
+                const key = this._normalizeFirebaseObjectKey(rawKey);
+                if (key) flags[key] = value;
+            });
+            sanitized.flags = flags;
+        }
+        return sanitized;
+    }
+
+    _sanitizeProfileDataForFirebase(data = null) {
+        if (!data || typeof data !== 'object') return data;
+        const sanitized = this._cloneProfileData(data) || {};
+        if (sanitized.questState && typeof sanitized.questState === 'object') {
+            sanitized.questState = this._sanitizeQuestStateForFirebase(sanitized.questState);
+        }
+        return sanitized;
+    }
+
     _normalizeProfileSnapshot(data, fallbackTs = Date.now()) {
-        const snapshot = this._cloneProfileData(data) || {};
+        const snapshot = this._sanitizeProfileDataForFirebase(data) || {};
         const existingTs = Number(snapshot.ts || 0);
         snapshot.ts = existingTs > 0 ? existingTs : fallbackTs;
         return snapshot;
@@ -7265,7 +7334,7 @@ export default class NetworkManager extends EventEmitter {
         });
         merged.ts = Math.max(Number(next?.ts || 0), Date.now());
         merged._profileRegressionGuardedAt = Date.now();
-        return merged;
+        return this._sanitizeProfileDataForFirebase(merged) || merged;
     }
 
     _resolveRecoveryUid(profile = null, fallbackUid = null) {
@@ -7309,6 +7378,42 @@ export default class NetworkManager extends EventEmitter {
         });
 
         return payload;
+    }
+
+    _shouldSyncRecoveryAfterPatch(uid, patch = {}, options = {}) {
+        if (!uid || !patch || typeof patch !== 'object') return false;
+        if (options.syncRecoveryProfile === false) return false;
+        if (options.syncRecoveryProfile === true) return true;
+
+        const keys = new Set(Object.keys(patch));
+        const recoveryRelevant = [
+            'inventory',
+            'equipment',
+            'pendingItemRewards',
+            'claimedRewardIds',
+            'questData',
+            'questState',
+            'level',
+            'exp',
+            'maxExp',
+            'statPoints',
+            'manastone',
+            'skillLevels',
+            'vitality',
+            'intelligence',
+            'wisdom',
+            'agility'
+        ].some((key) => keys.has(key));
+        if (!recoveryRelevant) return false;
+
+        const now = Date.now();
+        const previous = this._profileRecoverySyncMeta.get(uid) || 0;
+        const containsDurableState = ['inventory', 'equipment', 'pendingItemRewards', 'claimedRewardIds']
+            .some((key) => keys.has(key));
+        const minimumIntervalMs = containsDurableState ? 45000 : 90000;
+        if ((now - previous) < minimumIntervalMs) return false;
+        this._profileRecoverySyncMeta.set(uid, now);
+        return true;
     }
 
     async getLatestProfileSnapshot(uid, options = {}) {
@@ -7526,8 +7631,8 @@ export default class NetworkManager extends EventEmitter {
     }
 
     _mergeProfileData(baseData = {}, patchData = {}) {
-        const merged = this._cloneProfileData(baseData) || {};
-        const nextPatch = this._cloneProfileData(patchData) || {};
+        const merged = this._sanitizeProfileDataForFirebase(baseData) || {};
+        const nextPatch = this._sanitizeProfileDataForFirebase(patchData) || {};
 
         Object.entries(nextPatch).forEach(([key, value]) => {
             if (
@@ -7548,7 +7653,7 @@ export default class NetworkManager extends EventEmitter {
             merged[key] = value;
         });
 
-        return merged;
+        return this._sanitizeProfileDataForFirebase(merged) || merged;
     }
 
     async savePlayerData(uid, data, syncToZone = false, options = {}) {
@@ -7818,6 +7923,54 @@ export default class NetworkManager extends EventEmitter {
         };
     }
 
+    _canUseFastProfilePatch(patch = {}, options = {}) {
+        if (!patch || typeof patch !== 'object') return false;
+        if (options.requireTransaction === true) return false;
+        if (options.allowDestructiveProfileWrite === true) return false;
+
+        const transactionOnlyFields = new Set([
+            'inventory',
+            'equipment',
+            'pendingItemRewards',
+            'vitality',
+            'intelligence',
+            'wisdom',
+            'agility',
+            'skillLevels',
+            '_writerEpoch',
+            '_writerToken'
+        ]);
+        return Object.keys(patch).every((key) => key === 'ts' || !transactionOnlyFields.has(key));
+    }
+
+    async _commitFastPlayerDataPatch(uid, nextPatch, options = {}) {
+        const profileRef = this.getProfileRef(uid);
+        if (!profileRef || typeof profileRef.update !== 'function') {
+            return { ok: false, reason: 'fast_patch_unavailable' };
+        }
+
+        try {
+            await profileRef.update(nextPatch);
+        } catch (error) {
+            Logger.warn('[Network] Fast profile patch failed; falling back to guarded transaction', error);
+            return { ok: false, reason: 'fast_patch_failed', error };
+        }
+
+        if (options.syncToZone && this.dbRef && this.zoneParticipationEnabled && this._shouldSendRealtimeUserState()) {
+            const zonePatch = this._buildZoneProfilePatch(nextPatch);
+            if (zonePatch) {
+                const zoneUpdates = {};
+                Object.entries(zonePatch).forEach(([key, value]) => {
+                    zoneUpdates[`users/${uid}/profile/${key}`] = value;
+                });
+                this._recordNetworkWrite('zoneProfilePatchSync', zonePatch);
+                await this.dbRef.update(zoneUpdates);
+            }
+        }
+
+        return { ok: true, patch: nextPatch, profile: nextPatch, fastPatch: true };
+    }
+
     async _commitPlayerData(uid, data, syncToZone = false, options = {}) {
         if (!uid || !window.firebase || !data) return { ok: false, reason: 'invalid_args' };
         if (uid === this.playerId && this._profileWriterSuperseded && !options.allowSupersededWrite) {
@@ -7837,6 +7990,7 @@ export default class NetworkManager extends EventEmitter {
             this._lastProfileSaveTs = nextProfile.ts;
             const profileRef = this.getProfileRef(uid);
             const allowStaleWrite = !!options.allowStaleWrite;
+            const bypassRegressionGuard = options.bypassProfileRegressionGuard === true;
             let committedProfile = null;
             let safetyBlocked = false;
 
@@ -7848,7 +8002,8 @@ export default class NetworkManager extends EventEmitter {
             this._recordNetworkWrite('profileSave', nextProfile);
             const transactionResult = await profileRef.transaction((current) => {
                 if (!this._canProfileWriterSessionCommit(current, writerSession)) return;
-                const forceSafetyGuard = this._isProfileSuspiciousHighLevelReset(nextProfile)
+                const forceSafetyGuard = !bypassRegressionGuard
+                    && this._isProfileSuspiciousHighLevelReset(nextProfile)
                     && !this._isDeveloperProfileOverrideActive();
                 if (forceSafetyGuard && !current) {
                     safetyBlocked = true;
@@ -7859,7 +8014,8 @@ export default class NetworkManager extends EventEmitter {
                 if (!allowStaleWrite && currentTs > nextTs) {
                     return;
                 }
-                const shouldApplyRegressionGuard = (!options.allowDestructiveProfileWrite || forceSafetyGuard)
+                const shouldApplyRegressionGuard = !bypassRegressionGuard
+                    && (!options.allowDestructiveProfileWrite || forceSafetyGuard)
                     && this._isProfileRegression(current, nextProfile);
                 const guardedProfile = shouldApplyRegressionGuard
                     ? this._mergeProfileAgainstRegression(current, nextProfile)
@@ -7928,7 +8084,7 @@ export default class NetworkManager extends EventEmitter {
             if (requiresWriterSession && !writerSession) {
                 return { ok: false, reason: 'writer_session_unavailable' };
             }
-            const nextPatch = this._cloneProfileData(patchData) || {};
+            const nextPatch = this._sanitizeProfileDataForFirebase(patchData) || {};
             nextPatch.ts = Math.max(Number(nextPatch.ts || 0), Date.now(), this._lastProfileSaveTs + 1);
             this._lastProfileSaveTs = nextPatch.ts;
             if (Object.keys(nextPatch).length === 0) {
@@ -7940,19 +8096,27 @@ export default class NetworkManager extends EventEmitter {
                 this._summarizeProfilePayloadForLog(nextPatch)
             );
             this._recordNetworkWrite('profilePatchSave', nextPatch);
+            if (this._canUseFastProfilePatch(nextPatch, options)) {
+                const fastResult = await this._commitFastPlayerDataPatch(uid, nextPatch, options);
+                if (fastResult?.ok) return fastResult;
+            }
+
             const profileRef = this.getProfileRef(uid);
             let safetyBlocked = false;
+            const bypassRegressionGuard = options.bypassProfileRegressionGuard === true;
             const transactionResult = await profileRef.transaction((current) => {
                 if (!this._canProfileWriterSessionCommit(current, writerSession)) return;
                 if (Number(current?.ts || 0) > Number(nextPatch.ts || 0)) return;
                 const merged = this._mergeProfileData(current || {}, nextPatch);
-                const forceSafetyGuard = this._isProfileSuspiciousHighLevelReset(merged)
+                const forceSafetyGuard = !bypassRegressionGuard
+                    && this._isProfileSuspiciousHighLevelReset(merged)
                     && !this._isDeveloperProfileOverrideActive();
                 if (forceSafetyGuard && !current) {
                     safetyBlocked = true;
                     return;
                 }
-                const shouldApplyRegressionGuard = (!options.allowDestructiveProfileWrite || forceSafetyGuard)
+                const shouldApplyRegressionGuard = !bypassRegressionGuard
+                    && (!options.allowDestructiveProfileWrite || forceSafetyGuard)
                     && this._isProfileRegression(current, merged);
                 const guarded = shouldApplyRegressionGuard
                     ? this._mergeProfileAgainstRegression(current, merged)
@@ -7985,7 +8149,9 @@ export default class NetworkManager extends EventEmitter {
             }
 
             const committedProfile = this._normalizeProfileSnapshot(committedProfileValue || nextPatch, nextPatch.ts);
-            await this._syncRecoveryProfile(uid, committedProfile);
+            if (this._shouldSyncRecoveryAfterPatch(uid, nextPatch, options)) {
+                await this._syncRecoveryProfile(uid, committedProfile);
+            }
 
             return { ok: true, patch: nextPatch, profile: committedProfile };
         } catch (error) {

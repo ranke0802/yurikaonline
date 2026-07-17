@@ -42,6 +42,11 @@ function normalizeQuestId(id, aliases = new Map()) {
     return current;
 }
 
+function normalizeQuestFlagKey(key) {
+    if (typeof key !== 'string') return '';
+    return key.trim().replace(/[.#$/[\]]/g, '_');
+}
+
 export default class QuestManager {
     constructor(game) {
         this.game = game;
@@ -125,7 +130,7 @@ export default class QuestManager {
     _normalizeDefinition(raw) {
         const objectives = (raw.objectives || []).map((objective, index) => {
             const id = objective.id || `${objective.type || 'objective'}_${objective.target || objective.targetZone || objective.itemId || index}`;
-            return {
+            const normalized = {
                 ...objective,
                 id,
                 type: objective.type || 'kill',
@@ -135,6 +140,10 @@ export default class QuestManager {
                 scope: objective.scope || 'player',
                 accumulate: objective.accumulate === true || objective.cumulative === true
             };
+            if (normalized.type === 'flag' && normalized.key) {
+                normalized.key = normalizeQuestFlagKey(normalized.key);
+            }
+            return normalized;
         });
 
         return {
@@ -166,6 +175,7 @@ export default class QuestManager {
             if (!entry || typeof entry !== 'object') return null;
             const next = { ...entry };
             if (next.questId) next.questId = normalizeQuestId(next.questId, this.aliases);
+            if (next.type === 'flag' && next.key) next.key = normalizeQuestFlagKey(next.key);
             return next;
         }).filter(Boolean);
     }
@@ -179,7 +189,12 @@ export default class QuestManager {
         const source = data && typeof data === 'object' ? data : {};
 
         if (source.schemaVersion) state.schemaVersion = Math.max(2, Number(source.schemaVersion || 2));
-        if (source.flags && typeof source.flags === 'object') state.flags = { ...source.flags };
+        if (source.flags && typeof source.flags === 'object') {
+            Object.entries(source.flags).forEach(([rawKey, value]) => {
+                const key = normalizeQuestFlagKey(rawKey);
+                if (key) state.flags[key] = value;
+            });
+        }
         state.recommendedZoneId = typeof source.recommendedZoneId === 'string' ? source.recommendedZoneId : null;
         state.lastEventAt = Math.max(0, Number(source.lastEventAt || 0));
 
@@ -379,7 +394,7 @@ export default class QuestManager {
         }
 
         if (questData.basicTrainingCompleted) {
-            this.state.flags['tutorial.basic_training.completed'] = true;
+            this.state.flags[normalizeQuestFlagKey('tutorial.basic_training.completed')] = true;
         }
     }
 
@@ -460,7 +475,7 @@ export default class QuestManager {
                 return Number(player?.level || 1) >= Number(prereq.level || 1);
             }
             if (prereq.type === 'flag') {
-                return this.state.flags[prereq.key] === prereq.value;
+                return this.state.flags[normalizeQuestFlagKey(prereq.key)] === prereq.value;
             }
             if (prereq.type === 'zone') {
                 const zoneId = this.game?.zone?.currentZone?.id || player?.currentZoneId || 'zone_1';
@@ -509,7 +524,7 @@ export default class QuestManager {
         };
 
         if (normalizedEvent.type === 'tutorialCompleted' && normalizedEvent.target) {
-            this.state.flags[`tutorial.${normalizedEvent.target}.completed`] = true;
+            this.state.flags[normalizeQuestFlagKey(`tutorial.${normalizedEvent.target}.completed`)] = true;
         }
 
         const activated = this._autoActivateAvailable({ event: normalizedEvent });
@@ -572,7 +587,9 @@ export default class QuestManager {
             return event.type === 'zoneEntered' && objective.targetZone === event.targetZone;
         }
         if (objective.type === 'flag') {
-            return event.type === 'flagChanged' && event.key === objective.key && event.value === objective.value;
+            return event.type === 'flagChanged'
+                && normalizeQuestFlagKey(event.key) === objective.key
+                && event.value === objective.value;
         }
         if (objective.type === 'collect') {
             return event.type === 'itemReceived' && event.itemId === objective.itemId;
@@ -616,7 +633,8 @@ export default class QuestManager {
         });
         if (def.onComplete?.setFlags) {
             Object.entries(def.onComplete.setFlags).forEach(([key, value]) => {
-                this.state.flags[key] = value;
+                const normalizedKey = normalizeQuestFlagKey(key);
+                if (normalizedKey) this.state.flags[normalizedKey] = value;
             });
         }
         const recommendedZone = def.onComplete?.recommendZone || def.ui?.nextRecommendedZone || null;

@@ -2530,16 +2530,23 @@ async function validateProfileWriterFencingContracts() {
         ts: 1
     };
     let activeSession = null;
+    let profileTransactionCount = 0;
+    let profileUpdateCount = 0;
     const activeSessionHandlers = new Set();
     const clone = (value) => (value == null ? value : JSON.parse(JSON.stringify(value)));
     const profileRef = {
         async transaction(update) {
+            profileTransactionCount += 1;
             const next = update(clone(profile));
             if (next === undefined) {
                 return { committed: false, snapshot: { val: () => clone(profile) } };
             }
             profile = clone(next);
             return { committed: true, snapshot: { val: () => clone(profile) } };
+        },
+        async update(patch) {
+            profileUpdateCount += 1;
+            profile = { ...(profile || {}), ...clone(patch) };
         },
         async once() {
             return { val: () => clone(profile) };
@@ -2817,6 +2824,84 @@ async function validateProfileWriterFencingContracts() {
         assert.equal(profile.vitality, 8, 'same-level safety guard must preserve invested stats');
         assert.equal(profile.equipment.weapon.instanceId, 'profile_guard_equipped', 'same-level safety guard must preserve equipped gear');
         assert.equal(profile.inventory[1].instanceId, 'profile_guard_staff', 'same-level safety guard must preserve inventory gear');
+
+        profile = clone(advancedProfile);
+        const explicitResetSave = await regressionGuardNet._commitPlayerData(uid, {
+            name: 'Ppp',
+            level: 17,
+            exp: 340,
+            maxExp: 985,
+            manastone: 4200,
+            vitality: 1,
+            intelligence: 3,
+            wisdom: 2,
+            agility: 1,
+            statPoints: 16,
+            skillLevels: { laser: 1, missile: 1, fireball: 1, shield: 1 },
+            inventory: advancedProfile.inventory,
+            equipment: advancedProfile.equipment,
+            questData: advancedProfile.questData,
+            questState: { active: { travel_to_ruins: true }, completed: {}, flags: {} },
+            currentZoneId: 'zone_4',
+            ts: Date.now() + 92_000
+        }, false, {
+            allowDestructiveProfileWrite: true,
+            bypassProfileRegressionGuard: true
+        });
+        assert.equal(explicitResetSave.ok, true, 'explicit admin/profile reset saves must bypass accidental reset protection');
+        assert.equal(profile.vitality, 1, 'explicit reset must be allowed to reset invested vitality');
+        assert.equal(profile.intelligence, 3, 'explicit reset must be allowed to reset invested intelligence');
+        assert.equal(profile.skillLevels.laser, 1, 'explicit reset must be allowed to reset skill levels');
+
+        profile = clone(advancedProfile);
+        profileTransactionCount = 0;
+        profileUpdateCount = 0;
+        const fastPatchResult = await regressionGuardNet._commitPlayerDataPatch(uid, {
+            hp: 72,
+            exp: 777,
+            manastone: 4300,
+            questData: { ...advancedProfile.questData, slimeKills: 12 },
+            ts: Date.now() + 95_000
+        });
+        assert.equal(fastPatchResult.ok, true, 'hot profile patches must save successfully');
+        assert.equal(fastPatchResult.fastPatch, true, 'hot profile patches must use the lightweight child update path');
+        assert.equal(profileUpdateCount, 1, 'hot profile patches must avoid full profile transactions');
+        assert.equal(profileTransactionCount, 0, 'hot profile patches must not download the full profile');
+        assert.equal(profile.equipment.weapon.instanceId, 'profile_guard_equipped', 'hot patches must not disturb equipment');
+
+        const invalidQuestFlagPatchResult = await regressionGuardNet._commitPlayerDataPatch(uid, {
+            questState: {
+                active: {},
+                completed: {},
+                flags: {
+                    'tutorial.basic_training.completed': true,
+                    'main.current_end.completed': true
+                }
+            },
+            ts: Date.now() + 95_500
+        });
+        assert.equal(invalidQuestFlagPatchResult.ok, true, 'questState patches with dotted flags must still save');
+        assert.equal(profile.questState.flags.tutorial_basic_training_completed, true, 'dotted tutorial quest flags must be normalized before RTDB writes');
+        assert.equal(profile.questState.flags.main_current_end_completed, true, 'dotted completion quest flags must be normalized before RTDB writes');
+        assert.equal(profile.questState.flags['tutorial.basic_training.completed'], undefined, 'invalid dotted quest flags must not remain in saved profile state');
+
+        profileTransactionCount = 0;
+        profileUpdateCount = 0;
+        const guardedInventoryPatchResult = await regressionGuardNet._commitPlayerDataPatch(uid, {
+            inventory: clone(advancedProfile.inventory),
+            ts: Date.now() + 96_000
+        });
+        assert.equal(guardedInventoryPatchResult.ok, true, 'inventory patches must still save');
+        assert.equal(guardedInventoryPatchResult.fastPatch, undefined, 'inventory patches must keep the guarded transaction path');
+        assert.equal(profileUpdateCount, 0, 'inventory patches must not use the lightweight path');
+        assert.equal(profileTransactionCount, 1, 'inventory patches must keep full guard semantics');
+
+        const realtimeProfile = regressionGuardNet._buildZoneProfileSnapshot(advancedProfile);
+        assert.equal(realtimeProfile.equipment.weapon.type, 'tidal_staff', 'realtime equipment snapshot must preserve the weapon type');
+        assert.equal(realtimeProfile.equipment.weapon.instanceId, undefined, 'realtime equipment snapshot must not expose durable instance ids');
+        assert.equal(realtimeProfile.equipment.weapon.rolledValues, undefined, 'realtime equipment snapshot must not carry option payloads');
+        assert.equal(realtimeProfile.equipment.weapon.baseStats, undefined, 'realtime equipment snapshot must not carry combat stat payloads');
+        assert.ok(Object.keys(realtimeProfile.equipment.weapon).length <= 10, 'realtime equipment snapshot must stay compact');
 
         const rootRegressedProfile = {
             name: 'Ppp',
