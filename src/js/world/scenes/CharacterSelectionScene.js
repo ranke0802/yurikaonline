@@ -8,7 +8,58 @@ export default class CharacterSelectionScene extends Scene {
         this.charSelectUI = null;
         this.user = null;
         this.profile = null;
+        this.profileLoadError = null;
         this.previewAnimationFrame = null;
+    }
+
+    _getProfileRevision(profile = null) {
+        const rawRevision = profile?._profileRevision
+            ?? profile?.profileRevision
+            ?? profile?._revision
+            ?? profile?.revision
+            ?? profile?.rev
+            ?? 0;
+        const revision = Number(rawRevision);
+        return Number.isInteger(revision) && revision >= 0 ? revision : 0;
+    }
+
+    _cloneProfile(profile) {
+        if (!profile || typeof profile !== 'object') return null;
+        try {
+            return JSON.parse(JSON.stringify(profile));
+        } catch (error) {
+            Logger.error('[CharacterSelectionScene] Failed to clone profile', error);
+            return null;
+        }
+    }
+
+    showProfileLoadError(error = null) {
+        this.profileLoadError = error || new Error('profile_load_failed');
+        const existing = document.getElementById('char-select-ui');
+        if (existing) existing.remove();
+
+        this.charSelectUI = document.createElement('div');
+        this.charSelectUI.id = 'char-select-ui';
+        this.charSelectUI.className = 'scene-overlay';
+        this.charSelectUI.innerHTML = `
+            <div class="char-card glass">
+                <h2 class="scene-title">캐릭터 불러오기 실패</h2>
+                <p class="creation-desc">캐릭터 정보를 불러오지 못했습니다.<br>연결을 확인한 뒤 다시 시도해주세요.</p>
+                <div class="char-actions">
+                    <button id="retry-profile-load-btn" class="action-btn primary">다시 시도</button>
+                    <button id="load-error-logout-btn" class="action-btn secondary">로그아웃</button>
+                </div>
+            </div>
+        `;
+        document.getElementById('game-container').appendChild(this.charSelectUI);
+
+        const retryButton = document.getElementById('retry-profile-load-btn');
+        retryButton.onclick = () => {
+            retryButton.disabled = true;
+            retryButton.textContent = '불러오는 중...';
+            this.enter({ user: this.user });
+        };
+        document.getElementById('load-error-logout-btn').onclick = () => this.game.auth.logout();
     }
 
     async enter(params) {
@@ -21,8 +72,25 @@ export default class CharacterSelectionScene extends Scene {
         // backups/recovery snapshots. Mobile rotation or an old client can leave
         // a newer timestamp on a regressed root profile, so "has name" is not
         // enough to trust the root snapshot.
-        const profile = await this.game.net.getPlayerProfile?.(this.user.uid);
-        const latestSnapshot = await this.game.net.getLatestProfileSnapshot?.(this.user.uid, { profile });
+        this.profileLoadError = null;
+        let profile = null;
+        let latestSnapshot = null;
+        try {
+            if (typeof this.game.net.getPlayerProfile !== 'function') {
+                throw new Error('profile_reader_unavailable');
+            }
+            profile = await this.game.net.getPlayerProfile(this.user.uid, { throwOnError: true });
+            latestSnapshot = await this.game.net.getLatestProfileSnapshot?.(this.user.uid, {
+                profile,
+                throwOnError: true
+            });
+        } catch (error) {
+            Logger.error('[CharacterSelectionScene] Failed to load player profile', error);
+            this.profile = null;
+            this.showProfileLoadError(error);
+            return;
+        }
+
         this.profile = latestSnapshot?.profile || profile || null;
 
         if (
@@ -35,7 +103,8 @@ export default class CharacterSelectionScene extends Scene {
             } : null)
         ) {
             const repairResult = await this.game.net.savePlayerData(this.user.uid, latestSnapshot.profile, false, {
-                allowStaleWrite: true,
+                expectedRevision: this._getProfileRevision(profile),
+                forceImmediate: true,
                 backupReason: `auto_repair_from_${latestSnapshot.source}`,
                 sourceUid: latestSnapshot.latestUid || this.user.uid,
                 sourceTs: latestSnapshot.ts || latestSnapshot.profile.ts || Date.now(),
@@ -43,6 +112,15 @@ export default class CharacterSelectionScene extends Scene {
             });
             if (repairResult?.ok && repairResult.profile) {
                 this.profile = repairResult.profile;
+            } else {
+                const currentProfile = repairResult?.currentProfile || null;
+                this.profile = currentProfile || profile || null;
+                if (!this.profile) {
+                    const error = repairResult?.error || new Error(repairResult?.reason || 'profile_auto_repair_failed');
+                    Logger.error('[CharacterSelectionScene] Failed to repair player profile', error);
+                    this.showProfileLoadError(error);
+                    return;
+                }
             }
         }
 
@@ -97,6 +175,10 @@ export default class CharacterSelectionScene extends Scene {
     }
 
     createUI() {
+        if (this.profileLoadError) {
+            this.showProfileLoadError(this.profileLoadError);
+            return;
+        }
         // v0.00.03: Ensure previous UI is removed before creating a new one
         const existing = document.getElementById('char-select-ui');
         if (existing) existing.remove();
@@ -231,7 +313,18 @@ export default class CharacterSelectionScene extends Scene {
             status.textContent = "UID로 계정 데이터를 찾는 중...";
             status.style.color = "#fdcb6e";
 
-            const sourceSnapshot = await this.game.net.getLatestProfileSnapshot?.(targetUID);
+            let sourceSnapshot = null;
+            try {
+                sourceSnapshot = await this.game.net.getLatestProfileSnapshot?.(targetUID, {
+                    throwOnError: true
+                });
+            } catch (error) {
+                Logger.error('[CharacterSelectionScene] Recovery source lookup failed', error);
+                status.textContent = "복구 데이터를 조회하지 못했습니다. 연결을 확인한 뒤 다시 시도해주세요.";
+                status.style.color = "#ff7675";
+                btn.disabled = false;
+                return;
+            }
             const oldData = sourceSnapshot?.profile ? { profile: sourceSnapshot.profile } : null;
             if (sourceSnapshot?.profile) {
                 const proceed = confirm(`기존 계정(${oldData.profile.name}, Lv.${oldData.profile.level}) 데이터를 발견했습니다!\n현재 계정으로 복구하시겠습니까?`);
@@ -327,8 +420,57 @@ export default class CharacterSelectionScene extends Scene {
                 createdAt: Date.now()
             };
 
-            await this.game.net.savePlayerData(this.user.uid, initialProfile);
-            this.profile = initialProfile;
+            const saveResult = await this.game.net.savePlayerData(this.user.uid, initialProfile, false, {
+                requireMissingProfile: true,
+                expectedRevision: 0,
+                forceImmediate: true
+            });
+
+            if (!saveResult?.ok || !saveResult.profile) {
+                let existingProfile = saveResult?.currentProfile
+                    || (saveResult?.reason === 'profile_exists' ? saveResult?.profile : null)
+                    || null;
+                let profileReadSucceeded = !!existingProfile;
+                if (!profileReadSucceeded && typeof this.game.net.getPlayerProfile === 'function') {
+                    try {
+                        existingProfile = await this.game.net.getPlayerProfile(this.user.uid, { throwOnError: true });
+                        profileReadSucceeded = true;
+                    } catch (error) {
+                        Logger.warn('[CharacterSelectionScene] Could not verify profile after creation failure', error);
+                    }
+                }
+
+                if (
+                    profileReadSucceeded
+                    && existingProfile?.name !== name
+                    && typeof this.game.net.releaseNameClaim === 'function'
+                ) {
+                    try {
+                        await this.game.net.releaseNameClaim(this.user.uid, name);
+                    } catch (error) {
+                        Logger.warn('[CharacterSelectionScene] Failed to release name claim', error);
+                    }
+                }
+
+                if (existingProfile?.name) {
+                    this.profile = existingProfile;
+                    status.textContent = '기존 캐릭터 정보를 불러왔습니다.';
+                    status.style.color = '#55efc4';
+                    setTimeout(() => {
+                        if (this.game.sceneManager.currentScene === this) this.createUI();
+                    }, 500);
+                    return;
+                }
+
+                status.textContent = saveResult?.reason === 'profile_exists'
+                    ? '기존 캐릭터 정보를 다시 불러와주세요.'
+                    : '캐릭터 저장에 실패했습니다. 다시 시도해주세요.';
+                status.style.color = '#ff7675';
+                btn.disabled = false;
+                return;
+            }
+
+            this.profile = saveResult.profile;
 
             status.textContent = "캐릭터 생성 완료!";
             status.style.color = "#55efc4";
@@ -431,6 +573,9 @@ export default class CharacterSelectionScene extends Scene {
 
         const p = this.profile;
         if (!p) return;
+        const nextProfile = this._cloneProfile(p);
+        if (!nextProfile) return;
+        const expectedRevision = this._getProfileRevision(p);
 
         // 1. Calculate Refunded Stat Points
         // Base Stats: Vit 1, Int 3, Wis 2, Agi 1
@@ -454,36 +599,57 @@ export default class CharacterSelectionScene extends Scene {
         });
 
         // 3. Apply Changes
-        p.statPoints = (p.statPoints || 0) + totalRefundedStats;
-        p.manastone = Number(p.manastone ?? p.gold ?? 0) + totalRefundedManastone;
+        nextProfile.statPoints = (nextProfile.statPoints || 0) + totalRefundedStats;
+        nextProfile.manastone = Number(nextProfile.manastone ?? nextProfile.gold ?? 0) + totalRefundedManastone;
+        if (Array.isArray(nextProfile.inventory)) {
+            nextProfile.inventory[0] = {
+                ...(nextProfile.inventory[0] || {}),
+                type: 'manastone',
+                amount: nextProfile.manastone,
+                icon: '💎',
+                name: '마석',
+                stackable: true,
+                description: '상점과 강화에 사용하는 기본 화폐입니다.'
+            };
+        }
 
         // Reset Stats
-        p.vitality = 1;
-        p.intelligence = 3;
-        p.wisdom = 2;
-        p.agility = 1;
+        nextProfile.vitality = 1;
+        nextProfile.intelligence = 3;
+        nextProfile.wisdom = 2;
+        nextProfile.agility = 1;
 
         // Recalculate Derived Stats (HP/MP)
         // HP = 20 + Vit*10
         // MP = 30 + Wis*10
-        p.hp = 20 + (p.vitality * 10);
-        p.maxHp = p.hp;
-        p.mp = 30 + (p.wisdom * 10);
-        p.maxMp = p.mp;
+        nextProfile.hp = 20 + (nextProfile.vitality * 10);
+        nextProfile.maxHp = nextProfile.hp;
+        nextProfile.mp = 30 + (nextProfile.wisdom * 10);
+        nextProfile.maxMp = nextProfile.mp;
 
         // Reset Skills
-        p.skillLevels = { laser: 1, missile: 1, fireball: 1, shield: 1 };
+        nextProfile.skillLevels = { laser: 1, missile: 1, fireball: 1, shield: 1 };
 
         // 4. Save and Update UI
-        const saveResult = await this.game.net.savePlayerData(this.user.uid, p, false, {
+        const saveResult = await this.game.net.savePlayerData(this.user.uid, nextProfile, false, {
             allowDestructiveProfileWrite: true,
             bypassProfileRegressionGuard: true,
+            expectedRevision,
+            forceImmediate: true,
             backupReason: 'character_selection_reset',
             saveReason: 'character_selection_reset'
         });
         if (!saveResult?.ok) {
+            if (saveResult?.reason === 'profile_conflict') {
+                alert('다른 진행 내용이 먼저 저장되었습니다. 캐릭터를 다시 불러온 뒤 재시도해주세요.');
+                return;
+            }
             throw saveResult?.error || new Error(saveResult?.reason || 'character_selection_reset_failed');
         }
+        if (!saveResult.profile) {
+            throw new Error('character_selection_reset_missing_profile');
+        }
+        this.profile = saveResult.profile;
         alert(`초기화 완료!\n반환된 스텟: ${totalRefundedStats}\n반환된 마석: ${totalRefundedManastone}`);
         this.showSelectionUI(); // Refresh UI to show updated manastone/stats (though stats hidden in selection)
     }

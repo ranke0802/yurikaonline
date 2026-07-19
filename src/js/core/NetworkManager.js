@@ -283,6 +283,10 @@ export default class NetworkManager extends EventEmitter {
         this._lastProfileSaveTs = 0;
         this._profileWriterSession = null;
         this._profileWriterSuperseded = false;
+        this._profileCommitChains = new Map();
+        this._profileRevisions = new Map();
+        this._profileDisconnectingUids = new Set();
+        this._connectionTransition = Promise.resolve();
         this._accountSessionToken = null;
         this._accountSessionUid = null;
         this._accountSessionRef = null;
@@ -398,13 +402,25 @@ export default class NetworkManager extends EventEmitter {
     }
 
     connect(user) {
+        const transition = this._connectionTransition
+            .catch(() => { })
+            .then(() => this._connectNow(user));
+        this._connectionTransition = transition.then(() => undefined, () => undefined);
+        return transition;
+    }
+
+    async _connectNow(user) {
         if (!user || !window.firebase) return;
         if (this.connected) {
             if (this.playerId === user.uid && this.dbRef) {
+                if (!this._profileWriterSuperseded
+                    && (!this._profileWriterSession || this._profileWriterSession.uid !== user.uid)) {
+                    this._beginProfileWriterSession(user.uid);
+                }
                 this._startAccountSessionGuard(user);
                 return;
             }
-            this.disconnect();
+            await this._disconnectNow();
         }
 
         this._networkLifecycleGeneration += 1;
@@ -415,6 +431,7 @@ export default class NetworkManager extends EventEmitter {
         this.playerId = user.uid;
         this.dbRef = firebase.database().ref(`zones/${this.roomId}`);
         this._profileWriterSuperseded = false;
+        this._beginProfileWriterSession(user.uid);
         this._startAccountSessionGuard(user);
         this._restoreDurableRewardOutbox();
         this._restoreNormalRewardOutbox();
@@ -566,7 +583,7 @@ export default class NetworkManager extends EventEmitter {
         // this._setupHostilityListeners(); // Moved to WorldScene to ensure localPlayer exists
 
         // v0.35.1: Mobile Background Reconnection Support
-        document.removeEventListener('visibilitychange', this._boundVisibilityChange);
+        document.removeEventListener?.('visibilitychange', this._boundVisibilityChange);
         document.addEventListener('visibilitychange', this._boundVisibilityChange);
 
         Logger.log('Connected to Game Zone.');
@@ -689,16 +706,44 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
-    disconnect() {
+    disconnect(options = {}) {
+        const transition = this._connectionTransition
+            .catch(() => { })
+            .then(() => this._disconnectNow(options));
+        this._connectionTransition = transition.then(() => undefined, () => undefined);
+        return transition;
+    }
+
+    async _disconnectNow(options = {}) {
+        const departingUid = this.playerId;
+        if (departingUid) {
+            this._profileDisconnectingUids.add(departingUid);
+            if (options.flushProfileWrites !== false) {
+                try {
+                    const flushResult = await this.flushProfileWrites(departingUid);
+                    if (!flushResult.ok) {
+                        Logger.warn(`[Network] Profile writes did not fully flush before disconnecting ${departingUid}`, flushResult);
+                    }
+                } catch (error) {
+                    Logger.warn(`[Network] Failed to flush profile writes before disconnecting ${departingUid}`, error);
+                }
+            } else {
+                this._clearQueuedProfileWrites(departingUid, 'network_disconnected');
+                await this._drainProfileCommitChain(departingUid).catch(() => { });
+            }
+        }
+
         this._networkLifecycleGeneration += 1;
+        if (this._profileWriterSession?.uid === departingUid) {
+            this._profileWriterSession.cancelled = true;
+            this._profileWriterSession = null;
+        }
         this.flushQueuedRewardBatches();
         this._clearDurableRewardRuntime({ clearConsumer: true });
         this._clearNormalRewardRuntime({ clearConsumer: true });
         this._clearDropSpawnRuntime();
         this._pauseQuestBossDefeatOutbox();
         this._flushRewardValidationWindowSummary(Date.now());
-        this.flushQueuedProfileSaves().catch(() => { });
-        this.flushQueuedProfilePatches().catch(() => { });
         this._stopAccountSessionGuard();
         if (this._hbInterval) {
             clearInterval(this._hbInterval);
@@ -717,7 +762,7 @@ export default class NetworkManager extends EventEmitter {
         this.batchQueue.length = 0;
         this.monsterUpdateQueue.clear();
         this._clearMonsterRemovalWriteQueue();
-        document.removeEventListener('visibilitychange', this._boundVisibilityChange);
+        document.removeEventListener?.('visibilitychange', this._boundVisibilityChange);
         this._detachAllDbListeners();
 
         if (this.playerId && this.dbRef) {
@@ -781,6 +826,7 @@ export default class NetworkManager extends EventEmitter {
         this.lastHeartbeatTime = 0;
         this.playerId = null;
         this.dbRef = null;
+        if (departingUid) this._profileDisconnectingUids.delete(departingUid);
     }
 
     _detachAllDbListeners() {
@@ -6969,7 +7015,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     _shouldUseProfileWriterSession(uid) {
-        return false;
+        return !!uid && uid === this.playerId && !!window.firebase;
     }
 
     _beginProfileWriterSession(uid, attempt = 0) {
@@ -6983,6 +7029,7 @@ export default class NetworkManager extends EventEmitter {
             error: null,
             attempt: Math.max(0, Math.floor(Number(attempt || 0))),
             retryAt: 0,
+            cancelled: false,
             promise: null
         };
         this._profileWriterSession = session;
@@ -6992,24 +7039,24 @@ export default class NetworkManager extends EventEmitter {
                 throw new Error('Profile writer fencing requires transaction support.');
             }
             const result = await profileRef.transaction((current) => {
-                if (!current || typeof current !== 'object') return;
-                const currentEpoch = Math.max(0, Math.floor(Number(current._writerEpoch || 0)));
+                const currentProfile = current && typeof current === 'object' && !Array.isArray(current)
+                    ? current
+                    : {};
+                const currentEpoch = Math.max(0, Math.floor(Number(currentProfile._writerEpoch || 0)));
                 return {
-                    ...current,
+                    ...currentProfile,
+                    _profileRevision: this._getProfileRevision(currentProfile),
                     _writerEpoch: currentEpoch + 1,
                     _writerToken: session.token
                 };
             });
             const profile = result?.snapshot?.val?.() || null;
-            if (result?.committed) {
-                session.epoch = Math.max(1, Math.floor(Number(profile?._writerEpoch || 1)));
-                session.claimOnFirstWrite = false;
-            } else if (!profile) {
-                session.epoch = 1;
-                session.claimOnFirstWrite = true;
-            } else {
+            if (!result?.committed || !profile) {
                 throw new Error('Profile writer session claim was not committed.');
             }
+            session.epoch = Math.max(1, Math.floor(Number(profile._writerEpoch || 1)));
+            session.claimOnFirstWrite = false;
+            this._rememberProfileRevision(uid, profile);
             session.ready = true;
             return session;
         }).catch((error) => {
@@ -7024,7 +7071,7 @@ export default class NetworkManager extends EventEmitter {
     async _ensureProfileWriterSession(uid) {
         if (!this._shouldUseProfileWriterSession(uid)) return null;
         let session = this._profileWriterSession;
-        if (!session || session.uid !== uid) session = this._beginProfileWriterSession(uid);
+        if (!session || session.uid !== uid || session.cancelled) session = this._beginProfileWriterSession(uid);
         if (!session) return null;
         for (let retry = 0; retry < 2; retry += 1) {
             await session.promise;
@@ -7058,18 +7105,21 @@ export default class NetworkManager extends EventEmitter {
 
     _canProfileWriterSessionCommit(current, session) {
         if (!session) return true;
-        if (session.claimOnFirstWrite) {
-            return !current
-                || (current._writerToken === session.token
-                    && Number(current._writerEpoch) === Number(session.epoch));
-        }
-        return !!current
+        return !session.cancelled
+            && !!current
             && current._writerToken === session.token
             && Number(current._writerEpoch) === Number(session.epoch);
     }
 
-    _applyProfileWriterSession(profile, session) {
-        if (!session) return profile;
+    _applyProfileWriterSession(profile, session, current = null) {
+        if (!session) {
+            if (!current?._writerToken) return profile;
+            return {
+                ...profile,
+                _writerEpoch: Math.max(0, Math.floor(Number(current._writerEpoch || 0))),
+                _writerToken: current._writerToken
+            };
+        }
         return {
             ...profile,
             _writerEpoch: session.epoch,
@@ -7085,13 +7135,73 @@ export default class NetworkManager extends EventEmitter {
         return uid && window.firebase ? firebase.database().ref(`recovery_profiles/${uid}`) : null;
     }
 
-    async getPlayerProfile(uid) {
-        if (!uid || !window.firebase) return null;
+    _createProfileReadError(uid, operation, cause = null) {
+        const error = new Error(`Profile read failed during ${operation} for ${uid || 'unknown uid'}.`);
+        error.name = 'ProfileReadError';
+        error.code = cause?.code || 'profile_read_failed';
+        error.reason = 'profile_read_failed';
+        error.uid = uid || null;
+        error.operation = operation;
+        error.cause = cause;
+        return error;
+    }
+
+    _getProfileRevision(profile = null) {
+        const revision = Number(profile?._profileRevision || 0);
+        return Number.isFinite(revision) ? Math.max(0, Math.floor(revision)) : 0;
+    }
+
+    _rememberProfileRevision(uid, profileOrRevision = null) {
+        if (!uid) return 0;
+        const revision = typeof profileOrRevision === 'number'
+            ? Math.max(0, Math.floor(profileOrRevision))
+            : this._getProfileRevision(profileOrRevision);
+        const tracked = Math.max(this._profileRevisions.get(uid) || 0, revision);
+        this._profileRevisions.set(uid, tracked);
+        return tracked;
+    }
+
+    _resolveExpectedProfileRevision(uid, options = {}) {
+        const hasExplicitRevision = options.expectedRevision !== undefined;
+        const hasTrackedRevision = this._profileRevisions.has(uid);
+        if (!hasExplicitRevision && !hasTrackedRevision) {
+            return { provided: false, valid: true, value: null };
+        }
+        const rawRevision = hasExplicitRevision
+            ? options.expectedRevision
+            : this._profileRevisions.get(uid);
+        const revision = Number(rawRevision);
+        return {
+            provided: rawRevision !== undefined,
+            valid: Number.isFinite(revision) && revision >= 0 && Math.floor(revision) === revision,
+            value: Number.isFinite(revision) ? Math.floor(revision) : null
+        };
+    }
+
+    _isRealPlayerProfile(profile = null) {
+        if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return false;
+        const controlFields = new Set(['_writerEpoch', '_writerToken', '_profileRevision']);
+        return Object.keys(profile).some((key) => !controlFields.has(key));
+    }
+
+    async getPlayerProfile(uid, options = {}) {
+        const throwOnError = options.strict === true || options.throwOnError === true;
+        if (!uid || !window.firebase) {
+            if (throwOnError) throw this._createProfileReadError(uid, 'getPlayerProfile');
+            return null;
+        }
         try {
             const snapshot = await this.getProfileRef(uid)?.once('value');
-            return snapshot?.val() || null;
+            const profile = snapshot?.val() || null;
+            this._rememberProfileRevision(uid, profile);
+            return this._isRealPlayerProfile(profile) ? profile : null;
         } catch (e) {
             Logger.error('Failed to get player profile', e);
+            if (throwOnError) {
+                throw e?.code === 'profile_read_failed'
+                    ? e
+                    : this._createProfileReadError(uid, 'getPlayerProfile', e);
+            }
             return null;
         }
     }
@@ -7112,33 +7222,70 @@ export default class NetworkManager extends EventEmitter {
 
     _normalizeFirebaseObjectKey(key) {
         if (typeof key !== 'string') return '';
-        return key.trim().replace(/[.#$/[\]]/g, '_');
+        return key.trim().replace(/[.#$\/\[\]\u0000-\u001F\u007F]/g, '_');
+    }
+
+    _getFirebaseKeyCollisionSuffix(key) {
+        let hash = 2166136261;
+        for (let index = 0; index < key.length; index += 1) {
+            hash ^= key.charCodeAt(index);
+            hash = Math.imul(hash, 16777619);
+        }
+        return (hash >>> 0).toString(36);
+    }
+
+    _sanitizeFirebaseProfileValue(value) {
+        if (Array.isArray(value)) {
+            return value.map((entry) => this._sanitizeFirebaseProfileValue(entry));
+        }
+        if (!value || typeof value !== 'object') return value;
+
+        const entries = Object.entries(value)
+            .map(([rawKey, entryValue]) => ({
+                rawKey,
+                baseKey: this._normalizeFirebaseObjectKey(rawKey) || '_',
+                value: entryValue
+            }))
+            .sort((left, right) => (
+                left.baseKey.localeCompare(right.baseKey)
+                || Number(right.rawKey === right.baseKey) - Number(left.rawKey === left.baseKey)
+                || left.rawKey.localeCompare(right.rawKey)
+            ));
+        const sanitized = {};
+        const usedKeys = new Set();
+        entries.forEach(({ rawKey, baseKey, value: entryValue }) => {
+            let key = baseKey;
+            if (usedKeys.has(key)) {
+                const suffix = this._getFirebaseKeyCollisionSuffix(rawKey);
+                key = `${baseKey}__${suffix}`;
+                let collisionIndex = 2;
+                while (usedKeys.has(key)) {
+                    key = `${baseKey}__${suffix}_${collisionIndex}`;
+                    collisionIndex += 1;
+                }
+            }
+            usedKeys.add(key);
+            Object.defineProperty(sanitized, key, {
+                value: this._sanitizeFirebaseProfileValue(entryValue),
+                enumerable: true,
+                configurable: true,
+                writable: true
+            });
+        });
+        return sanitized;
     }
 
     _sanitizeQuestStateForFirebase(questState = null) {
         if (!questState || typeof questState !== 'object') return questState;
-        const sanitized = this._cloneProfileData(questState) || {};
-        if (sanitized.flags && typeof sanitized.flags === 'object' && !Array.isArray(sanitized.flags)) {
-            const flags = {};
-            Object.entries(sanitized.flags).forEach(([rawKey, value]) => {
-                const key = this._normalizeFirebaseObjectKey(rawKey);
-                if (key) flags[key] = value;
-            });
-            sanitized.flags = flags;
-        }
-        return sanitized;
+        return this._sanitizeFirebaseProfileValue(this._cloneProfileData(questState) || {});
     }
 
     _sanitizeProfileDataForFirebase(data = null) {
         if (!data || typeof data !== 'object') return data;
-        const sanitized = this._cloneProfileData(data) || {};
-        if (sanitized.questState && typeof sanitized.questState === 'object') {
-            sanitized.questState = this._sanitizeQuestStateForFirebase(sanitized.questState);
-        }
-        return sanitized;
+        return this._sanitizeFirebaseProfileValue(this._cloneProfileData(data) || {});
     }
 
-    _normalizeProfileSnapshot(data, fallbackTs = Date.now()) {
+    _normalizeProfileSnapshot(data, fallbackTs = 0) {
         const snapshot = this._sanitizeProfileDataForFirebase(data) || {};
         const existingTs = Number(snapshot.ts || 0);
         snapshot.ts = existingTs > 0 ? existingTs : fallbackTs;
@@ -7348,15 +7495,12 @@ export default class NetworkManager extends EventEmitter {
     async _syncRecoveryProfile(uid, profile = null) {
         if (!uid || !window.firebase || !profile) return null;
 
-        const normalizedProfile = this._normalizeProfileSnapshot(profile, Date.now());
+        const normalizedProfile = this._normalizeProfileSnapshot(profile, 0);
         const recoveryUid = this._resolveRecoveryUid(normalizedProfile, uid);
         if (!recoveryUid) return null;
 
         normalizedProfile.recoveryUid = recoveryUid;
         const nextTs = Number(normalizedProfile.ts || Date.now());
-        const recoveryRef = this.getRecoveryProfileRef(recoveryUid);
-        if (!recoveryRef) return null;
-
         const payload = {
             recoveryUid,
             latestUid: uid,
@@ -7364,20 +7508,29 @@ export default class NetworkManager extends EventEmitter {
             profile: normalizedProfile
         };
 
-        await recoveryRef.transaction((current) => {
+        const commitRecovery = (recoveryRef, nextPayload) => recoveryRef.transaction((current) => {
             const currentTs = Number(current?.ts || 0);
             const currentProfile = current?.profile || null;
             if (
                 currentProfile
-                && this._getProfileProgressScore(currentProfile) > this._getProfileProgressScore(normalizedProfile)
+                && this._getProfileProgressScore(currentProfile) > this._getProfileProgressScore(nextPayload.profile)
             ) {
                 return;
             }
-            if (currentTs > nextTs) return;
-            return payload;
+            if (currentTs > Number(nextPayload.ts || 0)) return;
+            return nextPayload;
         });
 
-        return payload;
+        const stableRef = this.getRecoveryProfileRef(recoveryUid);
+        if (!stableRef) return null;
+        const stableResult = await commitRecovery(stableRef, payload);
+        const canonicalPayload = stableResult?.snapshot?.val?.() || payload;
+        if (uid !== recoveryUid) {
+            const aliasRef = this.getRecoveryProfileRef(uid);
+            if (aliasRef) await commitRecovery(aliasRef, canonicalPayload);
+        }
+
+        return canonicalPayload;
     }
 
     _shouldSyncRecoveryAfterPatch(uid, patch = {}, options = {}) {
@@ -7417,7 +7570,11 @@ export default class NetworkManager extends EventEmitter {
     }
 
     async getLatestProfileSnapshot(uid, options = {}) {
-        if (!uid || !window.firebase) return null;
+        const throwOnError = options.strict === true || options.throwOnError === true;
+        if (!uid || !window.firebase) {
+            if (throwOnError) throw this._createProfileReadError(uid, 'getLatestProfileSnapshot');
+            return null;
+        }
 
         try {
             const providedProfile = options.profile && typeof options.profile === 'object'
@@ -7431,11 +7588,15 @@ export default class NetworkManager extends EventEmitter {
             ]);
 
             const profile = providedProfile || profileSnapshot?.val() || null;
-            const normalizedProfile = profile ? this._normalizeProfileSnapshot(profile) : null;
+            const rootRevision = this._getProfileRevision(profile);
+            this._rememberProfileRevision(uid, rootRevision);
+            const normalizedProfile = this._isRealPlayerProfile(profile)
+                ? this._normalizeProfileSnapshot(profile)
+                : null;
 
             const recoveryEntry = recoverySnapshot?.val() || null;
-            const recoveryProfile = recoveryEntry?.profile
-                ? this._normalizeProfileSnapshot(recoveryEntry.profile, recoveryEntry.ts || Date.now())
+            const recoveryProfile = this._isRealPlayerProfile(recoveryEntry?.profile)
+                ? this._normalizeProfileSnapshot(recoveryEntry.profile, recoveryEntry.ts || 0)
                 : null;
             if (recoveryProfile) {
                 recoveryProfile.recoveryUid = this._resolveRecoveryUid(recoveryProfile, recoveryEntry?.recoveryUid || uid);
@@ -7488,7 +7649,7 @@ export default class NetworkManager extends EventEmitter {
                 backupSnapshot?.forEach((child) => {
                     const backup = { id: child.key, ...(child.val() || {}) };
                     const backupProfile = backup?.profile
-                        ? this._normalizeProfileSnapshot(backup.profile, backup.ts || Date.now())
+                        ? this._normalizeProfileSnapshot(backup.profile, backup.ts || 0)
                         : null;
                     consider(backupProfile ? {
                         profile: backupProfile,
@@ -7501,9 +7662,22 @@ export default class NetworkManager extends EventEmitter {
                 });
             }
 
-            return bestSnapshot;
+            if (bestSnapshot) {
+                return {
+                    ...bestSnapshot,
+                    rootRevision
+                };
+            }
+            return options.includeMissingMetadata === true
+                ? { profile: null, source: null, latestUid: uid, rootRevision }
+                : null;
         } catch (error) {
             Logger.error('Failed to get latest profile snapshot', error);
+            if (throwOnError) {
+                throw error?.code === 'profile_read_failed'
+                    ? error
+                    : this._createProfileReadError(uid, 'getLatestProfileSnapshot', error);
+            }
             return null;
         }
     }
@@ -7512,7 +7686,7 @@ export default class NetworkManager extends EventEmitter {
         if (!uid || !window.firebase) return { ok: false, reason: 'invalid_args' };
 
         try {
-            const latestSnapshot = await this.getLatestProfileSnapshot(uid);
+            const latestSnapshot = await this.getLatestProfileSnapshot(uid, { throwOnError: true });
             if (!latestSnapshot?.profile) {
                 return { ok: false, reason: 'profile_missing' };
             }
@@ -7531,7 +7705,12 @@ export default class NetworkManager extends EventEmitter {
             };
         } catch (error) {
             Logger.error('Failed to archive latest profile', error);
-            return { ok: false, reason: 'archive_failed', error };
+            if (options.strict === true || options.throwOnError === true) throw error;
+            return {
+                ok: false,
+                reason: error?.code === 'profile_read_failed' ? 'profile_read_failed' : 'archive_failed',
+                error
+            };
         }
     }
 
@@ -7656,7 +7835,34 @@ export default class NetworkManager extends EventEmitter {
         return this._sanitizeProfileDataForFirebase(merged) || merged;
     }
 
+    _serializeProfileCommit(uid, operation) {
+        const previous = this._profileCommitChains.get(uid) || Promise.resolve();
+        const result = previous.catch(() => { }).then(operation);
+        const tail = result.then(() => undefined, () => undefined);
+        this._profileCommitChains.set(uid, tail);
+        tail.then(() => {
+            if (this._profileCommitChains.get(uid) === tail) {
+                this._profileCommitChains.delete(uid);
+            }
+        });
+        return result;
+    }
+
+    async _drainProfileCommitChain(uid) {
+        const chain = this._profileCommitChains.get(uid);
+        if (chain) await chain;
+    }
+
     async savePlayerData(uid, data, syncToZone = false, options = {}) {
+        if (!uid || !window.firebase || !data || typeof data !== 'object' || Array.isArray(data)) {
+            return { ok: false, reason: 'invalid_args' };
+        }
+        if (uid !== this.playerId) {
+            return { ok: false, reason: 'profile_uid_mismatch' };
+        }
+        if (uid && this._profileDisconnectingUids.has(uid)) {
+            return { ok: false, reason: 'profile_disconnect_in_progress' };
+        }
         if (uid && this._blockedProfileWriteUids.has(uid)) {
             return { ok: false, reason: 'profile_write_blocked' };
         }
@@ -7666,7 +7872,6 @@ export default class NetworkManager extends EventEmitter {
             const queuedPatch = this._queuedProfilePatches.get(uid);
             if (queuedPatch?.timer) clearTimeout(queuedPatch.timer);
             this._queuedProfilePatches.delete(uid);
-            data = this._mergeProfileData(data, queuedPatch?.patch || {});
             syncToZone = syncToZone || !!queuedPatch?.syncToZone;
             patchWaiters = queuedPatch?.waiters || null;
         }
@@ -7699,11 +7904,17 @@ export default class NetworkManager extends EventEmitter {
     }
 
     async savePlayerDataPatch(uid, patchData, options = {}) {
-        if (!uid || !window.firebase || !patchData || typeof patchData !== 'object') {
+        if (!uid || !window.firebase || !patchData || typeof patchData !== 'object' || Array.isArray(patchData)) {
             return { ok: false, reason: 'invalid_args' };
+        }
+        if (uid !== this.playerId) {
+            return { ok: false, reason: 'profile_uid_mismatch' };
         }
         if (this._blockedProfileWriteUids.has(uid)) {
             return { ok: false, reason: 'profile_write_blocked' };
+        }
+        if (this._profileDisconnectingUids.has(uid)) {
+            return { ok: false, reason: 'profile_disconnect_in_progress' };
         }
 
         if (this._queuedProfileSaves.has(uid)) {
@@ -7903,6 +8114,24 @@ export default class NetworkManager extends EventEmitter {
         })));
     }
 
+    async flushProfileWrites(uid = this.playerId) {
+        if (!uid) return { ok: true, results: [] };
+
+        const pending = [];
+        if (this._queuedProfileSaves.has(uid)) {
+            pending.push(this._flushQueuedProfileSave(uid));
+        }
+        if (this._queuedProfilePatches.has(uid)) {
+            pending.push(this._flushQueuedProfilePatch(uid));
+        }
+        const results = await Promise.all(pending);
+        await this._drainProfileCommitChain(uid);
+        const failed = results.find((result) => result?.ok === false);
+        return failed
+            ? { ok: false, reason: failed.reason || 'profile_flush_failed', results }
+            : { ok: true, results };
+    }
+
     _summarizeProfilePayloadForLog(payload = null) {
         if (!payload || typeof payload !== 'object') return payload;
         const questState = payload.questState && typeof payload.questState === 'object' ? payload.questState : {};
@@ -7923,57 +8152,29 @@ export default class NetworkManager extends EventEmitter {
         };
     }
 
-    _canUseFastProfilePatch(patch = {}, options = {}) {
-        if (!patch || typeof patch !== 'object') return false;
-        if (options.requireTransaction === true) return false;
-        if (options.allowDestructiveProfileWrite === true) return false;
-
-        const transactionOnlyFields = new Set([
-            'inventory',
-            'equipment',
-            'pendingItemRewards',
-            'vitality',
-            'intelligence',
-            'wisdom',
-            'agility',
-            'skillLevels',
-            '_writerEpoch',
-            '_writerToken'
-        ]);
-        return Object.keys(patch).every((key) => key === 'ts' || !transactionOnlyFields.has(key));
-    }
-
-    async _commitFastPlayerDataPatch(uid, nextPatch, options = {}) {
-        const profileRef = this.getProfileRef(uid);
-        if (!profileRef || typeof profileRef.update !== 'function') {
-            return { ok: false, reason: 'fast_patch_unavailable' };
-        }
-
-        try {
-            await profileRef.update(nextPatch);
-        } catch (error) {
-            Logger.warn('[Network] Fast profile patch failed; falling back to guarded transaction', error);
-            return { ok: false, reason: 'fast_patch_failed', error };
-        }
-
-        if (options.syncToZone && this.dbRef && this.zoneParticipationEnabled && this._shouldSendRealtimeUserState()) {
-            const zonePatch = this._buildZoneProfilePatch(nextPatch);
-            if (zonePatch) {
-                const zoneUpdates = {};
-                Object.entries(zonePatch).forEach(([key, value]) => {
-                    zoneUpdates[`users/${uid}/profile/${key}`] = value;
-                });
-                this._recordNetworkWrite('zoneProfilePatchSync', zonePatch);
-                await this.dbRef.update(zoneUpdates);
-            }
-        }
-
-        return { ok: true, patch: nextPatch, profile: nextPatch, fastPatch: true };
-    }
-
     async _commitPlayerData(uid, data, syncToZone = false, options = {}) {
-        if (!uid || !window.firebase || !data) return { ok: false, reason: 'invalid_args' };
-        if (uid === this.playerId && this._profileWriterSuperseded && !options.allowSupersededWrite) {
+        if (!uid || !window.firebase || !data || typeof data !== 'object' || Array.isArray(data)) {
+            return { ok: false, reason: 'invalid_args' };
+        }
+        if (this._blockedProfileWriteUids.has(uid)) {
+            return { ok: false, reason: 'profile_write_blocked' };
+        }
+        if (uid !== this.playerId) {
+            return { ok: false, reason: 'profile_uid_mismatch' };
+        }
+        return this._serializeProfileCommit(uid, () => (
+            this._commitPlayerDataTransaction(uid, data, syncToZone, options)
+        ));
+    }
+
+    async _commitPlayerDataTransaction(uid, data, syncToZone = false, options = {}) {
+        if (this._blockedProfileWriteUids.has(uid)) {
+            return { ok: false, reason: 'profile_write_blocked' };
+        }
+        if (uid !== this.playerId) {
+            return { ok: false, reason: 'profile_uid_mismatch' };
+        }
+        if (uid === this.playerId && this._profileWriterSuperseded) {
             return { ok: false, reason: 'account_session_superseded' };
         }
         try {
@@ -7984,34 +8185,53 @@ export default class NetworkManager extends EventEmitter {
             if (requiresWriterSession && !writerSession) {
                 return { ok: false, reason: 'writer_session_unavailable' };
             }
+            const expectedRevision = this._resolveExpectedProfileRevision(uid, options);
+            if (!expectedRevision.valid) {
+                return { ok: false, reason: 'invalid_expected_revision' };
+            }
             const nextProfile = this._normalizeProfileSnapshot(data, Date.now());
+            delete nextProfile._profileRevision;
+            delete nextProfile._writerEpoch;
+            delete nextProfile._writerToken;
             nextProfile.recoveryUid = this._resolveRecoveryUid(nextProfile, uid);
             nextProfile.ts = Math.max(Number(nextProfile.ts || 0), Date.now(), this._lastProfileSaveTs + 1);
             this._lastProfileSaveTs = nextProfile.ts;
             const profileRef = this.getProfileRef(uid);
-            const allowStaleWrite = !!options.allowStaleWrite;
             const bypassRegressionGuard = options.bypassProfileRegressionGuard === true;
             let committedProfile = null;
-            let safetyBlocked = false;
+            let abortReason = null;
 
-            // v0.00.04: Root profile update (Persistent across logins)
             Logger.debug(
                 `[Network] Saving Player Data to users/${uid}/profile:`,
                 this._summarizeProfilePayloadForLog(nextProfile)
             );
             this._recordNetworkWrite('profileSave', nextProfile);
             const transactionResult = await profileRef.transaction((current) => {
-                if (!this._canProfileWriterSessionCommit(current, writerSession)) return;
+                abortReason = null;
+                if (!this._canProfileWriterSessionCommit(current, writerSession)) {
+                    abortReason = 'writer_session_superseded';
+                    return;
+                }
+                const currentRevision = this._getProfileRevision(current);
+                if (options.requireMissingProfile === true && this._isRealPlayerProfile(current)) {
+                    abortReason = 'profile_exists';
+                    return;
+                }
+                if (expectedRevision.provided && currentRevision !== expectedRevision.value) {
+                    abortReason = 'profile_conflict';
+                    return;
+                }
                 const forceSafetyGuard = !bypassRegressionGuard
                     && this._isProfileSuspiciousHighLevelReset(nextProfile)
                     && !this._isDeveloperProfileOverrideActive();
-                if (forceSafetyGuard && !current) {
-                    safetyBlocked = true;
+                if (forceSafetyGuard && !this._isRealPlayerProfile(current)) {
+                    abortReason = 'profile_safety_blocked';
                     return;
                 }
                 const currentTs = Number(current?.ts || 0);
                 const nextTs = Number(nextProfile.ts || 0);
-                if (!allowStaleWrite && currentTs > nextTs) {
+                if (!expectedRevision.provided && currentTs > nextTs) {
+                    abortReason = 'stale_profile';
                     return;
                 }
                 const shouldApplyRegressionGuard = !bypassRegressionGuard
@@ -8020,48 +8240,64 @@ export default class NetworkManager extends EventEmitter {
                 const guardedProfile = shouldApplyRegressionGuard
                     ? this._mergeProfileAgainstRegression(current, nextProfile)
                     : nextProfile;
-                return this._applyProfileWriterSession(guardedProfile, writerSession);
+                return this._applyProfileWriterSession({
+                    ...guardedProfile,
+                    _profileRevision: currentRevision + 1
+                }, writerSession, current);
             });
 
+            const currentProfile = transactionResult?.snapshot?.val?.() || null;
+            this._rememberProfileRevision(uid, currentProfile);
             if (!transactionResult.committed) {
-                const currentProfile = transactionResult.snapshot?.val() || null;
                 const superseded = !!writerSession
                     && !this._canProfileWriterSessionCommit(currentProfile, writerSession);
                 if (superseded) this._notifyProfileWriterSuperseded(uid, currentProfile);
-                Logger.warn(superseded
-                    ? `[Network] Profile writer session superseded for ${uid}`
-                    : safetyBlocked
-                        ? `[Network] Blocked suspicious high-level profile reset for ${uid}`
-                    : `[Network] Skipped stale profile save for ${uid}. incoming=${nextProfile.ts} current=${currentProfile?.ts || 0}`);
                 return {
                     ok: false,
-                    reason: superseded ? 'writer_session_superseded' : (safetyBlocked ? 'profile_safety_blocked' : 'stale_profile'),
-                    currentProfile
+                    reason: superseded ? 'writer_session_superseded' : (abortReason || 'profile_transaction_aborted'),
+                    currentProfile,
+                    currentRevision: this._getProfileRevision(currentProfile)
                 };
             }
-            if (writerSession) writerSession.claimOnFirstWrite = false;
 
-            committedProfile = transactionResult.snapshot?.val()
-                ? this._normalizeProfileSnapshot(transactionResult.snapshot.val(), nextProfile.ts)
+            committedProfile = currentProfile
+                ? this._normalizeProfileSnapshot(currentProfile, nextProfile.ts)
                 : nextProfile;
+            const revision = this._rememberProfileRevision(uid, committedProfile);
+            const auxiliaryFailures = {};
 
-            await this._writeProfileBackup(uid, committedProfile, {
-                keepCount: options.keepBackupCount || 20,
-                reason: options.backupReason || 'profile_save',
-                sourceUid: options.sourceUid || uid,
-                sourceTs: options.sourceTs || committedProfile.ts
-            });
-
-            await this._syncRecoveryProfile(uid, committedProfile);
-
-            // v0.00.04: Zone-specific update ONLY IF requested and in a zone
-            // This prevents players in character selection from appearing in the map
-            if (syncToZone && this.dbRef && this.zoneParticipationEnabled && this._shouldSendRealtimeUserState()) {
-                const zoneProfile = this._buildZoneProfileSnapshot(committedProfile);
-                this._recordNetworkWrite('zoneProfileSync', zoneProfile);
-                await this.dbRef.child(`users/${uid}/profile`).set(zoneProfile);
+            try {
+                await this._writeProfileBackup(uid, committedProfile, {
+                    keepCount: options.keepBackupCount || 20,
+                    reason: options.backupReason || 'profile_save',
+                    sourceUid: options.sourceUid || uid,
+                    sourceTs: options.sourceTs || committedProfile.ts
+                });
+            } catch (error) {
+                auxiliaryFailures.backup = error;
+                Logger.warn(`[Network] Profile root committed but backup failed for ${uid}`, error);
             }
-            return { ok: true, profile: committedProfile };
+
+            try {
+                await this._syncRecoveryProfile(uid, committedProfile);
+            } catch (error) {
+                auxiliaryFailures.recovery = error;
+                Logger.warn(`[Network] Profile root committed but recovery sync failed for ${uid}`, error);
+            }
+
+            if (syncToZone && this.dbRef && this.zoneParticipationEnabled && this._shouldSendRealtimeUserState()) {
+                try {
+                    const zoneProfile = this._buildZoneProfileSnapshot(committedProfile);
+                    this._recordNetworkWrite('zoneProfileSync', zoneProfile);
+                    await this.dbRef.child(`users/${uid}/profile`).set(zoneProfile);
+                } catch (error) {
+                    auxiliaryFailures.zone = error;
+                    Logger.warn(`[Network] Profile root committed but zone sync failed for ${uid}`, error);
+                }
+            }
+            const result = { ok: true, profile: committedProfile, revision };
+            if (Object.keys(auxiliaryFailures).length > 0) result.auxiliaryFailures = auxiliaryFailures;
+            return result;
         } catch (e) {
             Logger.error('Failed to save player profile', e);
             return { ok: false, reason: 'save_failed', error: e };
@@ -8069,10 +8305,28 @@ export default class NetworkManager extends EventEmitter {
     }
 
     async _commitPlayerDataPatch(uid, patchData, options = {}) {
-        if (!uid || !window.firebase || !patchData || typeof patchData !== 'object') {
+        if (!uid || !window.firebase || !patchData || typeof patchData !== 'object' || Array.isArray(patchData)) {
             return { ok: false, reason: 'invalid_args' };
         }
-        if (uid === this.playerId && this._profileWriterSuperseded && !options.allowSupersededWrite) {
+        if (this._blockedProfileWriteUids.has(uid)) {
+            return { ok: false, reason: 'profile_write_blocked' };
+        }
+        if (uid !== this.playerId) {
+            return { ok: false, reason: 'profile_uid_mismatch' };
+        }
+        return this._serializeProfileCommit(uid, () => (
+            this._commitPlayerDataPatchTransaction(uid, patchData, options)
+        ));
+    }
+
+    async _commitPlayerDataPatchTransaction(uid, patchData, options = {}) {
+        if (this._blockedProfileWriteUids.has(uid)) {
+            return { ok: false, reason: 'profile_write_blocked' };
+        }
+        if (uid !== this.playerId) {
+            return { ok: false, reason: 'profile_uid_mismatch' };
+        }
+        if (uid === this.playerId && this._profileWriterSuperseded) {
             return { ok: false, reason: 'account_session_superseded' };
         }
 
@@ -8084,76 +8338,110 @@ export default class NetworkManager extends EventEmitter {
             if (requiresWriterSession && !writerSession) {
                 return { ok: false, reason: 'writer_session_unavailable' };
             }
+            const expectedRevision = this._resolveExpectedProfileRevision(uid, options);
+            if (!expectedRevision.valid) {
+                return { ok: false, reason: 'invalid_expected_revision' };
+            }
             const nextPatch = this._sanitizeProfileDataForFirebase(patchData) || {};
-            nextPatch.ts = Math.max(Number(nextPatch.ts || 0), Date.now(), this._lastProfileSaveTs + 1);
-            this._lastProfileSaveTs = nextPatch.ts;
+            delete nextPatch._profileRevision;
+            delete nextPatch._writerEpoch;
+            delete nextPatch._writerToken;
             if (Object.keys(nextPatch).length === 0) {
                 return { ok: false, reason: 'empty_patch' };
             }
+            nextPatch.ts = Math.max(Number(nextPatch.ts || 0), Date.now(), this._lastProfileSaveTs + 1);
+            this._lastProfileSaveTs = nextPatch.ts;
 
             Logger.debug(
                 `[Network] Saving Player Data Patch to users/${uid}/profile:`,
                 this._summarizeProfilePayloadForLog(nextPatch)
             );
             this._recordNetworkWrite('profilePatchSave', nextPatch);
-            if (this._canUseFastProfilePatch(nextPatch, options)) {
-                const fastResult = await this._commitFastPlayerDataPatch(uid, nextPatch, options);
-                if (fastResult?.ok) return fastResult;
-            }
 
             const profileRef = this.getProfileRef(uid);
-            let safetyBlocked = false;
+            let abortReason = null;
             const bypassRegressionGuard = options.bypassProfileRegressionGuard === true;
             const transactionResult = await profileRef.transaction((current) => {
-                if (!this._canProfileWriterSessionCommit(current, writerSession)) return;
-                if (Number(current?.ts || 0) > Number(nextPatch.ts || 0)) return;
-                const merged = this._mergeProfileData(current || {}, nextPatch);
+                abortReason = null;
+                if (!this._canProfileWriterSessionCommit(current, writerSession)) {
+                    abortReason = 'writer_session_superseded';
+                    return;
+                }
+                if (!this._isRealPlayerProfile(current)) {
+                    abortReason = 'profile_missing';
+                    return;
+                }
+                const currentRevision = this._getProfileRevision(current);
+                if (expectedRevision.provided && currentRevision !== expectedRevision.value) {
+                    abortReason = 'profile_conflict';
+                    return;
+                }
+                if (!expectedRevision.provided && Number(current.ts || 0) > Number(nextPatch.ts || 0)) {
+                    abortReason = 'stale_profile';
+                    return;
+                }
+                const merged = this._mergeProfileData(current, nextPatch);
                 const forceSafetyGuard = !bypassRegressionGuard
                     && this._isProfileSuspiciousHighLevelReset(merged)
                     && !this._isDeveloperProfileOverrideActive();
-                if (forceSafetyGuard && !current) {
-                    safetyBlocked = true;
-                    return;
-                }
                 const shouldApplyRegressionGuard = !bypassRegressionGuard
                     && (!options.allowDestructiveProfileWrite || forceSafetyGuard)
                     && this._isProfileRegression(current, merged);
                 const guarded = shouldApplyRegressionGuard
                     ? this._mergeProfileAgainstRegression(current, merged)
                     : merged;
-                return this._applyProfileWriterSession(guarded, writerSession);
+                return this._applyProfileWriterSession({
+                    ...guarded,
+                    _profileRevision: currentRevision + 1
+                }, writerSession, current);
             });
             const committedProfileValue = transactionResult?.snapshot?.val?.() || null;
+            this._rememberProfileRevision(uid, committedProfileValue);
             if (!transactionResult?.committed) {
                 const superseded = !!writerSession
                     && !this._canProfileWriterSessionCommit(committedProfileValue, writerSession);
                 if (superseded) this._notifyProfileWriterSuperseded(uid, committedProfileValue);
                 return {
                     ok: false,
-                    reason: superseded ? 'writer_session_superseded' : (safetyBlocked ? 'profile_safety_blocked' : 'stale_profile'),
-                    currentProfile: committedProfileValue
+                    reason: superseded ? 'writer_session_superseded' : (abortReason || 'profile_transaction_aborted'),
+                    currentProfile: committedProfileValue,
+                    currentRevision: this._getProfileRevision(committedProfileValue)
                 };
             }
-            if (writerSession) writerSession.claimOnFirstWrite = false;
+
+            const committedProfile = this._normalizeProfileSnapshot(committedProfileValue, nextPatch.ts);
+            const revision = this._rememberProfileRevision(uid, committedProfile);
+            const auxiliaryFailures = {};
 
             if (options.syncToZone && this.dbRef && this.zoneParticipationEnabled && this._shouldSendRealtimeUserState()) {
-                const zonePatch = this._buildZoneProfilePatch(nextPatch);
-                if (zonePatch) {
-                    const zoneUpdates = {};
-                    Object.entries(zonePatch).forEach(([key, value]) => {
-                        zoneUpdates[`users/${uid}/profile/${key}`] = value;
-                    });
-                    this._recordNetworkWrite('zoneProfilePatchSync', zonePatch);
-                    await this.dbRef.update(zoneUpdates);
+                try {
+                    const zonePatch = this._buildZoneProfilePatch(nextPatch);
+                    if (zonePatch) {
+                        const zoneUpdates = {};
+                        Object.entries(zonePatch).forEach(([key, value]) => {
+                            zoneUpdates[`users/${uid}/profile/${key}`] = value;
+                        });
+                        this._recordNetworkWrite('zoneProfilePatchSync', zonePatch);
+                        await this.dbRef.update(zoneUpdates);
+                    }
+                } catch (error) {
+                    auxiliaryFailures.zone = error;
+                    Logger.warn(`[Network] Profile patch committed but zone sync failed for ${uid}`, error);
                 }
             }
 
-            const committedProfile = this._normalizeProfileSnapshot(committedProfileValue || nextPatch, nextPatch.ts);
             if (this._shouldSyncRecoveryAfterPatch(uid, nextPatch, options)) {
-                await this._syncRecoveryProfile(uid, committedProfile);
+                try {
+                    await this._syncRecoveryProfile(uid, committedProfile);
+                } catch (error) {
+                    auxiliaryFailures.recovery = error;
+                    Logger.warn(`[Network] Profile patch committed but recovery sync failed for ${uid}`, error);
+                }
             }
 
-            return { ok: true, patch: nextPatch, profile: committedProfile };
+            const result = { ok: true, patch: nextPatch, profile: committedProfile, revision };
+            if (Object.keys(auxiliaryFailures).length > 0) result.auxiliaryFailures = auxiliaryFailures;
+            return result;
         } catch (error) {
             Logger.error('Failed to save player profile patch', error);
             return { ok: false, reason: 'save_patch_failed', error };
@@ -8164,11 +8452,23 @@ export default class NetworkManager extends EventEmitter {
         if (!targetUid || !sourceUid || !window.firebase) {
             return { ok: false, reason: 'invalid_args' };
         }
+        if (targetUid !== this.playerId) {
+            return { ok: false, reason: 'profile_uid_mismatch' };
+        }
 
-        const [sourceSnapshot, targetSnapshot] = await Promise.all([
-            this.getLatestProfileSnapshot(sourceUid),
-            this.getLatestProfileSnapshot(targetUid)
-        ]);
+        let sourceSnapshot;
+        let targetSnapshot;
+        try {
+            [sourceSnapshot, targetSnapshot] = await Promise.all([
+                this.getLatestProfileSnapshot(sourceUid, { throwOnError: true }),
+                this.getLatestProfileSnapshot(targetUid, {
+                    throwOnError: true,
+                    includeMissingMetadata: true
+                })
+            ]);
+        } catch (error) {
+            return { ok: false, reason: 'profile_read_failed', error };
+        }
 
         if (!sourceSnapshot?.profile) {
             return { ok: false, reason: 'source_missing', sourceSnapshot, targetSnapshot };
@@ -8196,7 +8496,7 @@ export default class NetworkManager extends EventEmitter {
         recoveredProfile.ts = Date.now();
 
         const saveResult = await this.savePlayerData(targetUid, recoveredProfile, false, {
-            allowStaleWrite: true,
+            expectedRevision: Number(targetSnapshot?.rootRevision || 0),
             backupReason: 'profile_recovery',
             sourceUid,
             sourceTs
@@ -8353,31 +8653,51 @@ export default class NetworkManager extends EventEmitter {
     }
 
     async claimName(uid, name) {
-        if (!uid || !name) return false;
+        if (!uid || !name || !window.firebase) return false;
         try {
-            // Reserve name in root list
-            await firebase.database().ref(`names/${name}`).set(uid);
-            return true;
+            const result = await firebase.database().ref(`names/${name}`).transaction((currentUid) => {
+                if (currentUid == null || currentUid === uid) return uid;
+                return;
+            });
+            return !!result?.committed && result.snapshot?.val?.() === uid;
         } catch (e) {
             Logger.error('Name claim failed', e);
             return false;
         }
     }
 
+    async releaseNameClaim(uid, name) {
+        if (!uid || !name || !window.firebase) return false;
+        try {
+            const result = await firebase.database().ref(`names/${name}`).transaction((currentUid) => {
+                if (currentUid === uid) return null;
+                return;
+            });
+            const remainingUid = result?.snapshot?.val?.();
+            return (!!result?.committed && remainingUid == null) || remainingUid == null;
+        } catch (e) {
+            Logger.error('Name claim release failed', e);
+            return false;
+        }
+    }
+
     // v0.00.14: Update Name Mapping when player renamed
     async updateNameMapping(uid, oldName, newName) {
-        if (!uid || !newName || oldName === newName) return;
+        if (!uid || !newName || oldName === newName) return false;
+        let newNameClaimed = false;
         try {
-            const updates = {};
-            if (oldName) {
-                updates[`names/${oldName}`] = null; // Release old name
+            newNameClaimed = await this.claimName(uid, newName);
+            if (!newNameClaimed) return false;
+            if (oldName && !await this.releaseNameClaim(uid, oldName)) {
+                await this.releaseNameClaim(uid, newName);
+                return false;
             }
-            updates[`names/${newName}`] = uid; // Claim new name
-
-            await firebase.database().ref().update(updates);
             Logger.log(`Name mapping updated: ${oldName} -> ${newName} (${uid})`);
+            return true;
         } catch (e) {
+            if (newNameClaimed) await this.releaseNameClaim(uid, newName);
             Logger.error('Failed to update name mapping', e);
+            return false;
         }
     }
 
@@ -9570,13 +9890,18 @@ export default class NetworkManager extends EventEmitter {
         if (!uid || !window.firebase) {
             return { ok: false, reason: 'invalid_args' };
         }
+        if (uid !== this.playerId) {
+            return { ok: false, reason: 'profile_uid_mismatch' };
+        }
         try {
-            const latestSnapshot = await this.getLatestProfileSnapshot(uid);
+            this._blockedProfileWriteUids.add(uid);
+            this._clearQueuedProfileWrites(uid, 'character_deleted');
+            await this._drainProfileCommitChain(uid);
+
+            const latestSnapshot = await this.getLatestProfileSnapshot(uid, { throwOnError: true });
             const resolvedName = String(name || latestSnapshot?.profile?.name || '').trim();
             const resolvedRecoveryUid = this._resolveRecoveryUid(latestSnapshot?.profile, uid);
 
-            this._blockedProfileWriteUids.add(uid);
-            this._clearQueuedProfileWrites(uid, 'character_deleted');
             this._profileBackupMeta.delete(uid);
             this._profileBackupPruneMeta.delete(uid);
 
@@ -9593,8 +9918,12 @@ export default class NetworkManager extends EventEmitter {
             if (resolvedRecoveryUid) {
                 updates[`recovery_profiles/${resolvedRecoveryUid}`] = null;
             }
+            if (resolvedRecoveryUid !== uid) {
+                updates[`recovery_profiles/${uid}`] = null;
+            }
 
             await firebase.database().ref().update(updates);
+            this._profileRevisions.delete(uid);
 
             if (uid === this.playerId) {
                 this.lastPacketData = null;

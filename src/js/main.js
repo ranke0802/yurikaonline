@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.02.071'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.072'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -584,11 +584,15 @@ class Game {
             }
         });
 
-        this.auth.on('authStateChanged', (user) => {
+        this.auth.on('authStateChanged', async (user) => {
             if (user) {
                 // Ensure socket is connected once user is authenticated
                 // v0.00.03: Connect BEFORE changing scene so CharacterSelectionScene can load data
-                this.net.connect(user);
+                try {
+                    await this.net.connect(user);
+                } catch (error) {
+                    Logger.error('[Game] Network connection setup failed', error);
+                }
 
                 // IMPORTANT: One-time database reset as requested by user
                 // this.net.resetAllUserData(); // UNCOMMENT AND RUN ONCE IF NEEDED, THEN COMMENT BACK
@@ -598,7 +602,11 @@ class Game {
                 this.updateLoading('완료', 100);
                 this._hideLoader();
             } else {
-                this.net.disconnect();
+                try {
+                    await this.net.disconnect();
+                } catch (error) {
+                    Logger.error('[Game] Network disconnect cleanup failed', error);
+                }
                 // Return to login on logout
                 this.sceneManager.changeScene('login');
             }

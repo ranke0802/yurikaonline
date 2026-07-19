@@ -58,6 +58,7 @@ export default class QuestManager {
         this.completedQuests = new Set();
         this.state = clone(DEFAULT_STATE);
         this._loaded = false;
+        this._completionPersistenceContext = null;
     }
 
     async loadQuests() {
@@ -553,11 +554,18 @@ export default class QuestManager {
             }
         });
 
-        completed.forEach((questId) => this._autoCompleteQuest(questId, normalizedEvent));
+        const inheritedPersistenceContext = this._completionPersistenceContext;
+        const persistenceContext = inheritedPersistenceContext || { fields: new Set() };
+        completed.forEach((questId) => this._autoCompleteQuest(questId, normalizedEvent, persistenceContext));
         if (changed || completed.length > 0) {
             this.state.lastEventAt = normalizedEvent.ts;
             this._rebuildRuntimeMaps();
-            this._writePlayerQuestState({ save: true, reason: 'quest_event' });
+            const receiptOwnerWillPersist = normalizedEvent.source === 'rewardReceipt';
+            this._writePlayerQuestState({
+                save: !inheritedPersistenceContext && !receiptOwnerWillPersist,
+                fields: Array.from(persistenceContext.fields),
+                reason: 'quest_event'
+            });
             this.game?.ui?.updateQuestUI?.();
         }
         return { changed: changed || completed.length > 0, completed };
@@ -604,11 +612,17 @@ export default class QuestManager {
         return def.objectives.every((objective) => active.objectives?.[objective.id]?.complete === true);
     }
 
-    _autoCompleteQuest(questId, event = {}) {
+    _autoCompleteQuest(questId, event = {}, persistenceContext = { fields: new Set() }) {
         const def = this.definitions.get(questId);
         if (!def || !this.state.active[questId]) return false;
 
-        this._grantJsonRewards(def);
+        const previousPersistenceContext = this._completionPersistenceContext;
+        this._completionPersistenceContext = persistenceContext;
+        try {
+            this._grantJsonRewards(def, persistenceContext.fields);
+        } finally {
+            this._completionPersistenceContext = previousPersistenceContext;
+        }
         delete this.state.active[questId];
         if (def.type === 'repeat') {
             const previous = this.state.completed[questId] || { count: 0, completedAt: 0 };
@@ -627,7 +641,7 @@ export default class QuestManager {
                 const nextQuestId = normalizeQuestId(nextId, this.aliases);
                 this._applyEventToQuest(nextQuestId, event);
                 if (this._isQuestComplete(nextQuestId)) {
-                    this._autoCompleteQuest(nextQuestId, event);
+                    this._autoCompleteQuest(nextQuestId, event, persistenceContext);
                 }
             }
         });
@@ -665,10 +679,34 @@ export default class QuestManager {
         return changed;
     }
 
-    _grantJsonRewards(def) {
+    _getJsonRewardProfileFields(def) {
+        const rewards = def.rewards?.grant || def.rewards || {};
+        const fields = new Set();
+        if (Math.max(0, Number(rewards.exp || 0)) > 0) {
+            ['exp', 'maxExp', 'level', 'statPoints', 'hp', 'mp'].forEach((field) => fields.add(field));
+        }
+        if (Math.max(0, Number(rewards.manastone ?? rewards.gold ?? 0)) > 0) {
+            fields.add('manastone');
+            fields.add('inventory');
+        }
+        const stat = rewards.stat || rewards.stats || null;
+        if (stat && typeof stat === 'object') {
+            ['vitality', 'intelligence', 'wisdom', 'agility', 'statPoints', 'hp', 'maxHp', 'mp', 'maxMp']
+                .forEach((field) => fields.add(field));
+        }
+        if (Array.isArray(rewards.items) && rewards.items.length > 0) {
+            fields.add('inventory');
+            fields.add('pendingItemRewards');
+        }
+        return fields;
+    }
+
+    _grantJsonRewards(def, profileFields = null) {
         const rewards = def.rewards?.grant || def.rewards || {};
         const player = this.game?.localPlayer;
         if (!player || def.ui?.guideOnly === true) return;
+
+        this._getJsonRewardProfileFields(def).forEach((field) => profileFields?.add(field));
 
         const exp = Math.max(0, Number(rewards.exp || 0));
         const manastone = Math.max(0, Number(rewards.manastone ?? rewards.gold ?? 0));
@@ -685,12 +723,19 @@ export default class QuestManager {
                 if (typeof player[key] !== 'number') return;
                 player[key] += Number(rawAmount || 0);
             });
-            player.updateDerivedStats?.();
+            player.updateDerivedStats?.({ save: false });
         }
         items.forEach((item) => {
             const itemId = item.id || item.type || item.itemId;
             if (!itemId) return;
-            player.addInventoryItem?.(itemId, Math.max(1, Number(item.amount || 1)), item);
+            const rewardItem = {
+                ...item,
+                id: itemId,
+                type: item.type || itemId,
+                amount: Math.max(1, Number(item.amount || 1))
+            };
+            const added = player.addInventoryItem?.(itemId, rewardItem.amount, rewardItem);
+            if (!added) player.queuePendingItemReward?.(rewardItem);
         });
         if (exp > 0 || manastone > 0 || items.length > 0 || stat) {
             this.game?.ui?.logSystemMessage?.(`🎉 ${def.title} 완료!${this._formatRewardSummary(rewards)}`);
@@ -726,10 +771,19 @@ export default class QuestManager {
     completeQuest(questId) {
         const id = normalizeQuestId(questId, this.aliases);
         if (!this._isQuestComplete(id)) return false;
-        const completed = this._autoCompleteQuest(id, { type: 'manualComplete', ts: nowMs() });
+        const persistenceContext = { fields: new Set() };
+        const completed = this._autoCompleteQuest(
+            id,
+            { type: 'manualComplete', ts: nowMs() },
+            persistenceContext
+        );
         if (completed) {
             this._rebuildRuntimeMaps();
-            this._writePlayerQuestState({ save: true, reason: 'quest_complete' });
+            this._writePlayerQuestState({
+                save: true,
+                fields: Array.from(persistenceContext.fields),
+                reason: 'quest_complete'
+            });
             this.game?.ui?.updateQuestUI?.();
         }
         return completed;
@@ -758,7 +812,7 @@ export default class QuestManager {
         if (!player) return;
         player.questState = this.serialize();
         if (options.save) {
-            player.saveProfilePatch?.(['questState'], {
+            player.saveProfilePatch?.(['questState', ...(options.fields || [])], {
                 debounceMs: options.debounceMs ?? 3000,
                 reason: options.reason || 'quest_state_patch'
             });

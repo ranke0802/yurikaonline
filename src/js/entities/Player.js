@@ -261,8 +261,6 @@ export default class Player extends CharacterBase {
             this.joystick.active = data.active;
         });
 
-        // v0.00.04: Sync profile to world ONLY after entering
-        this.saveState(true);
     }
 
     async _loadSpriteSheet(res) {
@@ -1310,6 +1308,21 @@ export default class Player extends CharacterBase {
                 case 'statPoints':
                     patch.statPoints = this.statPoints;
                     break;
+                case 'vitality':
+                    patch.vitality = this.vitality;
+                    break;
+                case 'intelligence':
+                    patch.intelligence = this.intelligence;
+                    break;
+                case 'wisdom':
+                    patch.wisdom = this.wisdom;
+                    break;
+                case 'agility':
+                    patch.agility = this.agility;
+                    break;
+                case 'maxMp':
+                    patch.maxMp = Math.max(0, Math.round(this.maxMp));
+                    break;
                 case 'questData':
                     patch.questData = this._cloneProfilePatchValue(this.questData);
                     break;
@@ -1383,7 +1396,12 @@ export default class Player extends CharacterBase {
     }
 
     saveProfilePatch(fields = [], options = {}) {
-        if (!this.net || !this.id || !Array.isArray(fields) || fields.length === 0) return;
+        if (!this.net || !this.id || typeof this.net.savePlayerDataPatch !== 'function') {
+            return Promise.resolve({ ok: false, reason: 'player_unavailable' });
+        }
+        if (!Array.isArray(fields) || fields.length === 0) {
+            return Promise.resolve({ ok: false, reason: 'invalid_patch' });
+        }
         const isSharedFieldActive = !!this.net.isSharedFieldActive?.();
         const forceImmediate = !!options.forceImmediate || !!options.syncToWorld;
         const overrideDebounceMs = Number.isFinite(options.debounceMs) ? Math.max(0, Number(options.debounceMs)) : null;
@@ -1391,14 +1409,20 @@ export default class Player extends CharacterBase {
             ? 0
             : (overrideDebounceMs ?? (isSharedFieldActive ? 2800 : 4800));
         const patch = this._buildProfilePatchFromFields(fields);
-        if (Object.keys(patch).length === 0) return;
+        if (Object.keys(patch).length === 0) {
+            return Promise.resolve({ ok: false, reason: 'empty_patch' });
+        }
         patch.ts = Date.now();
-        this.net.savePlayerDataPatch(this.id, patch, {
+        const saveOptions = {
             debounceMs: profilePatchDebounceMs,
             forceImmediate,
             syncToZone: !!options.syncToWorld,
             saveReason: options.reason || 'player_patch'
-        });
+        };
+        if (Object.prototype.hasOwnProperty.call(options, 'expectedRevision')) {
+            saveOptions.expectedRevision = options.expectedRevision;
+        }
+        return this.net.savePlayerDataPatch(this.id, patch, saveOptions);
     }
 
     syncEquipmentVisualState(reason = 'equipment_visual_sync') {
@@ -2684,38 +2708,29 @@ export default class Player extends CharacterBase {
             ].slice(-128);
         }
         if (shouldSave) {
-            if (hasInventoryMutation) {
-                this.saveProfilePatch([
-                    'exp',
-                    'maxExp',
-                    'level',
-                    'statPoints',
-                    'manastone',
-                    'hp',
-                    'mp',
-                    'questData',
-                    'inventory',
-                    'pendingItemRewards',
-                    ...(rewardId ? ['claimedRewardIds'] : [])
-                ], {
-                    debounceMs: saveDebounceMs,
-                    reason: 'reward_inventory_patch'
-                });
-            } else {
-                this.saveProfilePatch([
-                    'exp',
-                    'maxExp',
-                    'level',
-                    'statPoints',
-                    'manastone',
-                    'hp',
-                    'questData',
-                    ...(rewardId ? ['claimedRewardIds'] : [])
-                ], {
-                    debounceMs: saveDebounceMs,
-                    reason: 'reward_progress_patch'
-                });
-            }
+            this.saveProfilePatch([
+                'exp',
+                'maxExp',
+                'level',
+                'statPoints',
+                'vitality',
+                'intelligence',
+                'wisdom',
+                'agility',
+                'manastone',
+                'hp',
+                'maxHp',
+                'mp',
+                'maxMp',
+                'questData',
+                'questState',
+                'inventory',
+                'pendingItemRewards',
+                'claimedRewardIds'
+            ], {
+                debounceMs: saveDebounceMs,
+                reason: hasInventoryMutation ? 'reward_inventory_patch' : 'reward_progress_patch'
+            });
         }
         return true;
     }

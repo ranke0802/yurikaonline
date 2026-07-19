@@ -2501,12 +2501,24 @@ async function validateQuestRuntimeStateSync() {
         'defeating thunder pikachu must show the zone_4 travel quest even before level 15'
     );
 
+    const questCompletionPatches = [];
+    player.saveProfilePatch = (fields, options = {}) => {
+        questCompletionPatches.push({ fields: [...fields], options: { ...options } });
+    };
+    const expBeforeLakeArrival = player.exp;
+    const manastoneBeforeLakeArrival = player.manastone;
     game.zone.currentZone = { id: 'zone_2' };
     quests.notifyZoneEntered('zone_2');
     assert.ok(
         quests.getActiveQuests().some((quest) => quest.id === 'quest_lake_squirtle_12'),
         'entering zone_2 must complete arrival flow and unlock the first lake kill quest'
     );
+    assert.ok(player.exp > expBeforeLakeArrival, 'travel quest completion must grant EXP before persistence');
+    assert.ok(player.manastone > manastoneBeforeLakeArrival, 'travel quest completion must grant manastone before persistence');
+    assert.equal(questCompletionPatches.length, 1, 'quest state and completion rewards must persist through one profile patch');
+    assert.ok(questCompletionPatches[0].fields.includes('questState'), 'quest completion patch must include questState');
+    assert.ok(questCompletionPatches[0].fields.includes('exp'), 'quest completion patch must include reward-mutated EXP');
+    assert.ok(questCompletionPatches[0].fields.includes('manastone'), 'quest completion patch must include reward-mutated manastone');
 
     player.currentZoneId = 'zone_2';
     systemLogs.length = 0;
@@ -2772,6 +2784,17 @@ async function validateProfileWriterFencingContracts() {
         regressionGuardNet.playerId = uid;
         regressionGuardNet._writeProfileBackup = async () => true;
         regressionGuardNet._syncRecoveryProfile = async () => true;
+        const resetAdvancedProfileFixture = () => {
+            const writerFields = {
+                _writerEpoch: profile?._writerEpoch,
+                _writerToken: profile?._writerToken,
+                _profileRevision: profile?._profileRevision
+            };
+            profile = {
+                ...clone(advancedProfile),
+                ...Object.fromEntries(Object.entries(writerFields).filter(([, value]) => value !== undefined))
+            };
+        };
         const regressedSave = await regressionGuardNet._commitPlayerData(uid, {
             name: 'Ppp',
             level: 1,
@@ -2797,7 +2820,7 @@ async function validateProfileWriterFencingContracts() {
         assert.equal(profile.inventory[1].instanceId, 'profile_guard_staff', 'profile regression guard must preserve inventory gear');
         assert.equal(profile.currentZoneId, 'zone_2', 'profile regression guard may still keep safe transient travel fields from the new save');
 
-        profile = clone(advancedProfile);
+        resetAdvancedProfileFixture();
         const sameLevelResetSave = await regressionGuardNet._commitPlayerData(uid, {
             name: 'Ppp',
             level: 17,
@@ -2825,7 +2848,7 @@ async function validateProfileWriterFencingContracts() {
         assert.equal(profile.equipment.weapon.instanceId, 'profile_guard_equipped', 'same-level safety guard must preserve equipped gear');
         assert.equal(profile.inventory[1].instanceId, 'profile_guard_staff', 'same-level safety guard must preserve inventory gear');
 
-        profile = clone(advancedProfile);
+        resetAdvancedProfileFixture();
         const explicitResetSave = await regressionGuardNet._commitPlayerData(uid, {
             name: 'Ppp',
             level: 17,
@@ -2853,7 +2876,7 @@ async function validateProfileWriterFencingContracts() {
         assert.equal(profile.intelligence, 3, 'explicit reset must be allowed to reset invested intelligence');
         assert.equal(profile.skillLevels.laser, 1, 'explicit reset must be allowed to reset skill levels');
 
-        profile = clone(advancedProfile);
+        resetAdvancedProfileFixture();
         profileTransactionCount = 0;
         profileUpdateCount = 0;
         const fastPatchResult = await regressionGuardNet._commitPlayerDataPatch(uid, {
@@ -2864,9 +2887,9 @@ async function validateProfileWriterFencingContracts() {
             ts: Date.now() + 95_000
         });
         assert.equal(fastPatchResult.ok, true, 'hot profile patches must save successfully');
-        assert.equal(fastPatchResult.fastPatch, true, 'hot profile patches must use the lightweight child update path');
-        assert.equal(profileUpdateCount, 1, 'hot profile patches must avoid full profile transactions');
-        assert.equal(profileTransactionCount, 0, 'hot profile patches must not download the full profile');
+        assert.equal(fastPatchResult.fastPatch, undefined, 'hot profile patches must use the guarded transaction path');
+        assert.equal(profileUpdateCount, 0, 'profile patches must never call profileRef.update directly');
+        assert.equal(profileTransactionCount, 1, 'hot profile patches must retain revision and writer guards in one transaction');
         assert.equal(profile.equipment.weapon.instanceId, 'profile_guard_equipped', 'hot patches must not disturb equipment');
 
         const invalidQuestFlagPatchResult = await regressionGuardNet._commitPlayerDataPatch(uid, {
@@ -3001,6 +3024,705 @@ async function validateProfileWriterFencingContracts() {
         assert.equal(recoveredHighLevelSnapshot.source, 'backup', 'a same-level high-level reset must recover from backup');
         assert.equal(recoveredHighLevelSnapshot.profile.vitality, 8);
         assert.equal(recoveredHighLevelSnapshot.profile.equipment.weapon.instanceId, 'profile_guard_equipped');
+    } finally {
+        window.game = previousGame;
+        window.firebase = previousWindowFirebase;
+        if (previousGlobalFirebase === undefined) delete globalThis.firebase;
+        else globalThis.firebase = previousGlobalFirebase;
+    }
+}
+
+function createProfileContractFirebase(initialProfiles = {}) {
+    const clone = (value) => (value == null ? value : JSON.parse(JSON.stringify(value)));
+    const profileStates = new Map(
+        Object.entries(initialProfiles).map(([uid, value]) => [uid, { value: clone(value), version: 0 }])
+    );
+    const genericValues = new Map();
+    const readErrors = new Map();
+    const profileWrites = [];
+    const transactionCallbacks = [];
+    let transactionHook = null;
+    let transactionSequence = 0;
+    let pushSequence = 0;
+
+    const profileUidFromPath = (path) => {
+        const match = /^users\/([^/]+)\/profile$/.exec(String(path || ''));
+        return match?.[1] || null;
+    };
+    const getState = (uid) => {
+        if (!profileStates.has(uid)) profileStates.set(uid, { value: null, version: 0 });
+        return profileStates.get(uid);
+    };
+    const makeSnapshot = (path, value) => ({
+        key: String(path || '').split('/').at(-1),
+        val: () => clone(value),
+        exists: () => value !== null && value !== undefined,
+        forEach() {}
+    });
+    const readValue = (path) => {
+        if (readErrors.has(path)) throw readErrors.get(path);
+        const uid = profileUidFromPath(path);
+        return uid ? getState(uid).value : (genericValues.get(path) ?? null);
+    };
+    const applyMultipathValue = (path, value) => {
+        const profileMatch = /^users\/([^/]+)(?:\/profile)?$/.exec(String(path || ''));
+        if (profileMatch) {
+            const state = getState(profileMatch[1]);
+            state.value = value == null ? null : clone(value);
+            state.version += 1;
+            return;
+        }
+        if (value == null) genericValues.delete(path);
+        else genericValues.set(path, clone(value));
+    };
+
+    const makeRef = (path) => {
+        const uid = profileUidFromPath(path);
+        const ref = {
+            key: String(path || '').split('/').at(-1),
+            async transaction(update) {
+                transactionSequence += 1;
+                const transactionId = transactionSequence;
+                if (!uid) {
+                    const current = clone(genericValues.get(path) ?? null);
+                    const next = update(current);
+                    if (next === undefined) return { committed: false, snapshot: makeSnapshot(path, current) };
+                    genericValues.set(path, clone(next));
+                    return { committed: true, snapshot: makeSnapshot(path, next) };
+                }
+
+                const state = getState(uid);
+                for (let attempt = 0; attempt < 20; attempt += 1) {
+                    const readVersion = state.version;
+                    const current = clone(state.value);
+                    const next = update(current);
+                    transactionCallbacks.push({ transactionId, attempt, uid, current, next: clone(next) });
+                    if (next === undefined) {
+                        return { committed: false, snapshot: makeSnapshot(path, state.value) };
+                    }
+                    if (transactionHook) {
+                        await transactionHook({ transactionId, attempt, uid, current, next: clone(next) });
+                    }
+                    if (state.version !== readVersion) continue;
+                    state.value = clone(next);
+                    state.version += 1;
+                    profileWrites.push({ type: 'transaction', uid, value: clone(next) });
+                    return { committed: true, snapshot: makeSnapshot(path, state.value) };
+                }
+                throw new Error(`Profile transaction retry limit exceeded for ${uid}`);
+            },
+            async update(patch) {
+                if (uid) {
+                    const state = getState(uid);
+                    state.value = { ...(state.value || {}), ...clone(patch) };
+                    state.version += 1;
+                    profileWrites.push({ type: 'update', uid, value: clone(patch) });
+                } else if (!path) {
+                    Object.entries(patch || {}).forEach(([updatePath, value]) => {
+                        applyMultipathValue(updatePath, value);
+                    });
+                } else {
+                    genericValues.set(path, { ...(genericValues.get(path) || {}), ...clone(patch) });
+                }
+            },
+            async set(value) {
+                if (uid) {
+                    const state = getState(uid);
+                    state.value = clone(value);
+                    state.version += 1;
+                    profileWrites.push({ type: 'set', uid, value: clone(value) });
+                } else {
+                    genericValues.set(path, clone(value));
+                }
+            },
+            async once() {
+                return makeSnapshot(path, readValue(path));
+            },
+            async remove() {
+                if (uid) {
+                    const state = getState(uid);
+                    state.value = null;
+                    state.version += 1;
+                    profileWrites.push({ type: 'remove', uid, value: null });
+                } else {
+                    genericValues.delete(path);
+                }
+            },
+            child(key) {
+                return makeRef(`${path}/${key}`);
+            },
+            push(value) {
+                pushSequence += 1;
+                const childRef = makeRef(`${path}/entry_${pushSequence}`);
+                if (value !== undefined) genericValues.set(`${path}/entry_${pushSequence}`, clone(value));
+                return childRef;
+            },
+            orderByChild() { return this; },
+            limitToLast() { return this; },
+            on(_event, handler) {
+                handler(makeSnapshot(path, readValue(path)));
+            },
+            off() {}
+        };
+        return ref;
+    };
+
+    return {
+        firebase: {
+            database: () => ({
+                ref: (path) => makeRef(path)
+            })
+        },
+        profileWrites,
+        transactionCallbacks,
+        getProfile(uid) {
+            return clone(getState(uid).value);
+        },
+        getValue(path) {
+            return clone(readValue(path));
+        },
+        failRead(path, error) {
+            readErrors.set(path, error);
+        },
+        setTransactionHook(hook) {
+            transactionHook = typeof hook === 'function' ? hook : null;
+        },
+        resetLogs() {
+            profileWrites.length = 0;
+            transactionCallbacks.length = 0;
+        }
+    };
+}
+
+async function validateFailClosedProfileContracts() {
+    const previousWindowFirebase = window.firebase;
+    const previousGlobalFirebase = globalThis.firebase;
+    const previousGame = window.game;
+    const makeDeferred = () => {
+        let resolve;
+        let reject;
+        const promise = new Promise((resolvePromise, rejectPromise) => {
+            resolve = resolvePromise;
+            reject = rejectPromise;
+        });
+        return { promise, resolve, reject };
+    };
+    const makeProfile = (overrides = {}) => ({
+        name: 'Profile Contract Tester',
+        level: 1,
+        exp: 0,
+        maxExp: 100,
+        manastone: 0,
+        inventory: [],
+        equipment: { weapon: null },
+        questData: {},
+        questState: { active: {}, completed: {}, flags: {} },
+        currentZoneId: 'zone_1',
+        recoveryUid: 'profile_contract',
+        ts: 1,
+        _profileRevision: 7,
+        ...overrides
+    });
+    const useFirebase = (memory, uid, isAnonymous = true) => {
+        window.firebase = memory.firebase;
+        globalThis.firebase = memory.firebase;
+        window.game = { auth: { currentUser: { uid, isAnonymous } } };
+    };
+    const makeManager = (uid) => {
+        const manager = new NetworkManager();
+        manager.playerId = uid;
+        manager._writeProfileBackup = async () => true;
+        manager._syncRecoveryProfile = async () => true;
+        return manager;
+    };
+    const establishWriter = async (manager, uid, message) => {
+        const session = await manager._ensureProfileWriterSession(uid);
+        assert.ok(session?.ready, message);
+        return session;
+    };
+    const settleWithin = async (promise, message, timeoutMs = 1000) => {
+        let timer = null;
+        try {
+            return await Promise.race([
+                promise,
+                new Promise((_, reject) => {
+                    timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+                })
+            ]);
+        } finally {
+            if (timer) clearTimeout(timer);
+        }
+    };
+    const assertFirebaseKeysSafe = (value, path = 'profile') => {
+        if (!value || typeof value !== 'object') return;
+        if (Array.isArray(value)) {
+            value.forEach((entry, index) => assertFirebaseKeysSafe(entry, `${path}[${index}]`));
+            return;
+        }
+        Object.entries(value).forEach(([key, entry]) => {
+            assert.equal(/[.#$/[\]]/.test(key), false, `Firebase-invalid key remained at ${path}.${key}`);
+            assertFirebaseKeysSafe(entry, `${path}.${key}`);
+        });
+    };
+    const collectMarkers = (value, found = new Set()) => {
+        if (typeof value === 'string' && value.startsWith('collision:')) found.add(value);
+        else if (Array.isArray(value)) value.forEach((entry) => collectMarkers(entry, found));
+        else if (value && typeof value === 'object') Object.values(value).forEach((entry) => collectMarkers(entry, found));
+        return found;
+    };
+
+    try {
+        for (const mutationKind of ['full', 'patch']) {
+            const uid = `anonymous_writer_${mutationKind}`;
+            const memory = createProfileContractFirebase({ [uid]: makeProfile({ recoveryUid: uid }) });
+            useFirebase(memory, uid, true);
+            const older = makeManager(uid);
+            const newer = makeManager(uid);
+            const olderSession = await establishWriter(
+                older,
+                uid,
+                `anonymous ${mutationKind} writer must establish a fenced local session`
+            );
+            const oldTransactionEntered = makeDeferred();
+            const releaseOldTransaction = makeDeferred();
+            let delayed = false;
+            memory.setTransactionHook(async ({ next }) => {
+                if (delayed || next?.mutationOwner !== `older-${mutationKind}`) return;
+                delayed = true;
+                oldTransactionEntered.resolve();
+                await releaseOldTransaction.promise;
+            });
+
+            const olderCommit = mutationKind === 'full'
+                ? older.savePlayerData(uid, makeProfile({
+                    recoveryUid: uid,
+                    mutationOwner: `older-${mutationKind}`,
+                    exp: 100
+                }), false, {
+                    forceImmediate: true,
+                    allowDestructiveProfileWrite: true,
+                    bypassProfileRegressionGuard: true
+                })
+                : older.savePlayerDataPatch(uid, {
+                    mutationOwner: `older-${mutationKind}`,
+                    exp: 100
+                }, { forceImmediate: true, requireTransaction: true });
+            await oldTransactionEntered.promise;
+
+            const newerSession = await establishWriter(
+                newer,
+                uid,
+                `newer anonymous ${mutationKind} writer must atomically supersede the older session`
+            );
+            const claimedProfile = memory.getProfile(uid);
+            assert.equal(claimedProfile._writerToken, newerSession.token);
+            assert.ok(Number(newerSession.epoch) > Number(olderSession.epoch));
+
+            const newerResult = await newer.savePlayerData(uid, makeProfile({
+                recoveryUid: uid,
+                mutationOwner: `newer-${mutationKind}`,
+                exp: 200
+            }), false, {
+                forceImmediate: true,
+                allowDestructiveProfileWrite: true,
+                bypassProfileRegressionGuard: true
+            });
+            assert.equal(newerResult.ok, true);
+            releaseOldTransaction.resolve();
+            const olderResult = await olderCommit;
+            assert.equal(olderResult.ok, false, `delayed older ${mutationKind} commit must be fenced`);
+            assert.equal(olderResult.reason, 'writer_session_superseded');
+            assert.equal(older.isProfileWriterSuperseded(), true);
+            assert.equal(memory.getProfile(uid).mutationOwner, `newer-${mutationKind}`);
+            assert.equal(memory.getProfile(uid).exp, 200, `delayed older ${mutationKind} commit must not overwrite newer state`);
+        }
+
+        {
+            const uid = 'serialized_profile_commits';
+            const memory = createProfileContractFirebase({ [uid]: makeProfile({ recoveryUid: uid, _profileRevision: 40 }) });
+            useFirebase(memory, uid);
+            const manager = makeManager(uid);
+            await establishWriter(manager, uid, 'local profile commits must use a writer session');
+            const baselineRevision = memory.getProfile(uid)._profileRevision;
+            memory.resetLogs();
+            const firstEntered = makeDeferred();
+            const releaseFirst = makeDeferred();
+            let delayed = false;
+            memory.setTransactionHook(async ({ next }) => {
+                if (delayed || next?.mutationOrder !== 'first') return;
+                delayed = true;
+                firstEntered.resolve();
+                await releaseFirst.promise;
+            });
+
+            const settlements = [];
+            const first = manager.savePlayerDataPatch(uid, {
+                mutationOrder: 'first',
+                exp: 10
+            }, { forceImmediate: true, requireTransaction: true }).then((result) => {
+                settlements.push('first');
+                return result;
+            });
+            await firstEntered.promise;
+            const second = manager.savePlayerDataPatch(uid, {
+                mutationOrder: 'second',
+                exp: 20
+            }, { forceImmediate: true, requireTransaction: true }).then((result) => {
+                settlements.push('second');
+                return result;
+            });
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            assert.equal(
+                memory.transactionCallbacks.some(({ next }) => next?.mutationOrder === 'second'),
+                false,
+                'a second same-UID commit must not enter Firebase before the first commit finishes'
+            );
+            releaseFirst.resolve();
+            const [firstResult, secondResult] = await Promise.all([first, second]);
+            assert.equal(firstResult.ok, true);
+            assert.equal(secondResult.ok, true);
+            assert.deepEqual(settlements, ['first', 'second'], 'concurrent same-manager commits must settle in call order');
+            assert.equal(firstResult.profile._profileRevision, baselineRevision + 1);
+            assert.equal(secondResult.profile._profileRevision, baselineRevision + 2);
+            assert.equal(memory.getProfile(uid)._profileRevision, baselineRevision + 2);
+            assert.equal(memory.getProfile(uid).mutationOrder, 'second');
+            assert.equal(
+                memory.profileWrites.filter(({ type, value }) => type === 'transaction' && value?.mutationOrder).length,
+                2,
+                'each committed mutation must increment the revision through exactly one profile transaction'
+            );
+        }
+
+        {
+            const uid = 'profile_preconditions';
+            const memory = createProfileContractFirebase({ [uid]: makeProfile({ recoveryUid: uid, _profileRevision: 12 }) });
+            useFirebase(memory, uid);
+            const manager = makeManager(uid);
+            await establishWriter(manager, uid, 'profile preconditions require a local writer session');
+            const beforeConflict = memory.getProfile(uid);
+            const conflict = await manager.savePlayerDataPatch(uid, { exp: 999 }, {
+                forceImmediate: true,
+                requireTransaction: true,
+                expectedRevision: beforeConflict._profileRevision + 1
+            });
+            assert.equal(conflict.ok, false);
+            assert.equal(conflict.reason, 'profile_conflict');
+            assert.deepEqual(memory.getProfile(uid), beforeConflict, 'revision conflict must leave the profile unchanged');
+
+            const exists = await manager.savePlayerData(uid, makeProfile({ recoveryUid: uid, exp: 555 }), false, {
+                forceImmediate: true,
+                requireMissingProfile: true,
+                allowDestructiveProfileWrite: true,
+                bypassProfileRegressionGuard: true
+            });
+            assert.equal(exists.ok, false);
+            assert.equal(exists.reason, 'profile_exists');
+            assert.deepEqual(memory.getProfile(uid), beforeConflict, 'create-only save must not replace a real profile');
+        }
+
+        for (const missingKind of ['absent', 'writer-only']) {
+            const uid = `profile_${missingKind}`;
+            const initial = missingKind === 'writer-only'
+                ? { [uid]: { _writerEpoch: 4, _writerToken: 'seed-writer', _profileRevision: 0 } }
+                : {};
+            const memory = createProfileContractFirebase(initial);
+            useFirebase(memory, uid);
+            const manager = makeManager(uid);
+            await establishWriter(manager, uid, `${missingKind} profile must still establish local writer intent`);
+            const beforePatch = memory.getProfile(uid);
+            const result = await manager.savePlayerDataPatch(uid, { exp: 1 }, {
+                forceImmediate: true,
+                requireTransaction: true,
+                expectedRevision: 0
+            });
+            assert.equal(result.ok, false);
+            assert.equal(result.reason, 'profile_missing');
+            assert.deepEqual(
+                memory.getProfile(uid),
+                beforePatch,
+                `patching a ${missingKind} profile must not create a partial profile stub`
+            );
+        }
+
+        {
+            const uid = 'queued_profile_precedence';
+            const memory = createProfileContractFirebase({ [uid]: makeProfile({ recoveryUid: uid, _profileRevision: 20 }) });
+            useFirebase(memory, uid);
+            const manager = makeManager(uid);
+            await establishWriter(manager, uid, 'queued writes require a local writer session');
+            const baselineRevision = memory.getProfile(uid)._profileRevision;
+            memory.resetLogs();
+            const olderPatch = manager.savePlayerDataPatch(uid, { exp: 100 }, {
+                debounceMs: 600,
+                expectedRevision: baselineRevision
+            });
+            const newerFull = manager.savePlayerData(uid, makeProfile({
+                recoveryUid: uid,
+                exp: 200,
+                _profileRevision: baselineRevision
+            }), false, {
+                forceImmediate: true,
+                expectedRevision: baselineRevision,
+                allowDestructiveProfileWrite: true,
+                bypassProfileRegressionGuard: true
+            });
+            const [patchResult, fullResult] = await settleWithin(
+                Promise.all([olderPatch, newerFull]),
+                'queued patch and superseding full-save waiters did not both settle'
+            );
+            assert.equal(patchResult.ok, true);
+            assert.equal(fullResult.ok, true);
+            assert.equal(memory.getProfile(uid).exp, 200, 'newer full save must supersede an older queued patch value');
+            assert.equal(memory.getProfile(uid)._profileRevision, baselineRevision + 1);
+            assert.equal(patchResult.profile._profileRevision, baselineRevision + 1);
+            assert.equal(fullResult.profile._profileRevision, baselineRevision + 1);
+            assert.equal(
+                memory.profileWrites.filter(({ type }) => type === 'transaction').length,
+                1,
+                'coalesced queued patch/full writes must commit as one revision'
+            );
+        }
+
+        {
+            const uid = 'recursive_profile_sanitization';
+            const memory = createProfileContractFirebase({ [uid]: makeProfile({ recoveryUid: uid }) });
+            useFirebase(memory, uid);
+            const manager = makeManager(uid);
+            await establishWriter(manager, uid, 'sanitized writes require a local writer session');
+            memory.resetLogs();
+            const markers = [
+                'collision:quest-invalid',
+                'collision:quest-safe',
+                'collision:objective-invalid',
+                'collision:objective-safe',
+                'collision:completed-invalid',
+                'collision:completed-safe',
+                'collision:map-invalid',
+                'collision:map-safe',
+                'collision:map-nested',
+                'collision:cooldown-invalid',
+                'collision:cooldown-safe',
+                'collision:cooldown-nested',
+                'collision:item-invalid',
+                'collision:item-safe'
+            ];
+            const result = await manager.savePlayerDataPatch(uid, {
+                questState: {
+                    active: {
+                        'quest.bad': {
+                            marker: markers[0],
+                            objectives: {
+                                'kill/slime': { marker: markers[2] },
+                                kill_slime: { marker: markers[3] }
+                            }
+                        },
+                        quest_bad: { marker: markers[1] }
+                    },
+                    completed: {
+                        'quest#done': { marker: markers[4] },
+                        quest_done: { marker: markers[5] }
+                    },
+                    flags: {}
+                },
+                mapPositions: {
+                    'zone.one': { marker: markers[6], 'spawn[point]': markers[8] },
+                    zone_one: { marker: markers[7] }
+                },
+                itemCooldowns: {
+                    'potion$rare': { marker: markers[9], 'remaining.ms': markers[11] },
+                    potion_rare: { marker: markers[10] }
+                },
+                inventory: [{
+                    type: 'test_item',
+                    rolledValues: {
+                        'crit.rate': markers[12],
+                        crit_rate: markers[13]
+                    }
+                }]
+            }, { forceImmediate: true, requireTransaction: true });
+            assert.equal(result.ok, true);
+            const saved = memory.getProfile(uid);
+            assertFirebaseKeysSafe({
+                questState: saved.questState,
+                mapPositions: saved.mapPositions,
+                itemCooldowns: saved.itemCooldowns,
+                inventory: saved.inventory
+            });
+            assert.deepEqual(
+                [...collectMarkers(saved)].sort(),
+                [...markers].sort(),
+                'recursive key collision handling must preserve both colliding values'
+            );
+            assert.equal(
+                memory.profileWrites.some(({ type }) => type === 'update'),
+                false,
+                'sanitized profile writes must not bypass the guarded transaction with profileRef.update'
+            );
+        }
+
+        {
+            const absentUid = 'strict_read_absent';
+            const rejectedUid = 'strict_read_rejected';
+            const memory = createProfileContractFirebase();
+            useFirebase(memory, absentUid);
+            const manager = makeManager(absentUid);
+            assert.equal(await manager.getPlayerProfile(absentUid, { throwOnError: true }), null);
+            const denied = new Error('permission denied while reading profile');
+            denied.code = 'PERMISSION_DENIED';
+            memory.failRead(`users/${rejectedUid}/profile`, denied);
+            await assert.rejects(
+                manager.getPlayerProfile(rejectedUid, { throwOnError: true }),
+                (error) => error?.code === 'PERMISSION_DENIED',
+                'strict profile reads must reject instead of collapsing read failure into absence'
+            );
+        }
+
+        {
+            const sourceUid = 'recovery_source';
+            const targetUid = 'recovery_target_read_failure';
+            const memory = createProfileContractFirebase({
+                [sourceUid]: makeProfile({
+                    recoveryUid: sourceUid,
+                    level: 10,
+                    vitality: 5,
+                    intelligence: 7,
+                    wisdom: 4,
+                    agility: 3,
+                    inventory: [{ type: 'manastone', amount: 10 }, { type: 'test_staff', enhancementLevel: 2 }]
+                })
+            });
+            useFirebase(memory, targetUid);
+            const manager = makeManager(targetUid);
+            const denied = new Error('target profile read denied');
+            denied.code = 'PERMISSION_DENIED';
+            memory.failRead(`users/${targetUid}/profile`, denied);
+            let recoveryResult = null;
+            try {
+                recoveryResult = await manager.recoverPlayerProfile(targetUid, sourceUid);
+            } catch (error) {
+                recoveryResult = { ok: false, error };
+            }
+            assert.notEqual(recoveryResult?.ok, true, 'recovery must fail closed when the target profile cannot be read');
+            assert.equal(
+                memory.profileWrites.filter(({ uid }) => uid === targetUid).length,
+                0,
+                'target profile read failure must perform zero profile writes'
+            );
+        }
+
+        {
+            const sourceUid = 'stable_recovery_source';
+            const targetUid = 'stable_recovery_target';
+            const memory = createProfileContractFirebase();
+            useFirebase(memory, targetUid);
+            const manager = new NetworkManager();
+            const profile = makeProfile({
+                recoveryUid: sourceUid,
+                recoveredFromUid: sourceUid,
+                level: 15,
+                exp: 450,
+                ts: Date.now()
+            });
+            await manager._syncRecoveryProfile(targetUid, profile);
+
+            assert.equal(memory.getValue(`recovery_profiles/${sourceUid}`)?.latestUid, targetUid);
+            assert.equal(memory.getValue(`recovery_profiles/${targetUid}`)?.recoveryUid, sourceUid);
+            const recovered = await manager.getLatestProfileSnapshot(targetUid, { throwOnError: true });
+            assert.equal(recovered?.source, 'recovery');
+            assert.equal(recovered?.profile?.recoveryUid, sourceUid);
+            assert.equal(recovered?.latestUid, targetUid);
+        }
+
+        {
+            const uid = 'disconnect_profile_flush';
+            const memory = createProfileContractFirebase({ [uid]: makeProfile({ recoveryUid: uid }) });
+            useFirebase(memory, uid);
+            const manager = makeManager(uid);
+            await establishWriter(manager, uid, 'disconnect flush requires a local writer session');
+            const transactionEntered = makeDeferred();
+            const releaseTransaction = makeDeferred();
+            let delayed = false;
+            memory.setTransactionHook(async ({ next }) => {
+                if (delayed || next?.disconnectMarker !== 'queued-before-disconnect') return;
+                delayed = true;
+                transactionEntered.resolve();
+                await releaseTransaction.promise;
+            });
+
+            const queuedSave = manager.savePlayerDataPatch(uid, {
+                disconnectMarker: 'queued-before-disconnect',
+                exp: 321
+            }, { debounceMs: 500 });
+            const disconnectPromise = manager.disconnect();
+            await transactionEntered.promise;
+            const lateSave = await manager.savePlayerDataPatch(uid, { exp: 999 }, { forceImmediate: true });
+            assert.equal(lateSave.ok, false);
+            assert.equal(lateSave.reason, 'profile_disconnect_in_progress');
+            releaseTransaction.resolve();
+
+            const [queuedResult] = await Promise.all([queuedSave, disconnectPromise]);
+            assert.equal(queuedResult.ok, true, 'disconnect must flush writes that were already queued');
+            assert.equal(memory.getProfile(uid).exp, 321);
+            assert.equal(manager.playerId, null);
+            const staleSave = await manager.savePlayerDataPatch(uid, { exp: 999 }, { forceImmediate: true });
+            assert.equal(staleSave.ok, false);
+            assert.equal(staleSave.reason, 'profile_uid_mismatch');
+            assert.equal(memory.getProfile(uid).exp, 321, 'a disconnected player callback must not mutate its former UID');
+        }
+
+        {
+            const ownerUid = 'name_claim_owner';
+            const contenderUid = 'name_claim_contender';
+            const memory = createProfileContractFirebase();
+            useFirebase(memory, ownerUid);
+            const owner = makeManager(ownerUid);
+            const contender = makeManager(contenderUid);
+            assert.equal(await owner.claimName(ownerUid, 'Atomic Name'), true);
+            assert.equal(await contender.claimName(contenderUid, 'Atomic Name'), false);
+            assert.equal(memory.getValue('names/Atomic Name'), ownerUid);
+            assert.equal(await contender.releaseNameClaim(contenderUid, 'Atomic Name'), false);
+            assert.equal(memory.getValue('names/Atomic Name'), ownerUid);
+            assert.equal(await owner.releaseNameClaim(ownerUid, 'Atomic Name'), true);
+            assert.equal(memory.getValue('names/Atomic Name'), null);
+        }
+
+        {
+            const uid = 'delete_drain_profile';
+            const recoveryUid = 'delete_drain_recovery';
+            const memory = createProfileContractFirebase({
+                [uid]: makeProfile({ recoveryUid, name: 'Delete Drain Tester' })
+            });
+            useFirebase(memory, uid);
+            const manager = makeManager(uid);
+            await establishWriter(manager, uid, 'delete drain requires a local writer session');
+            const transactionEntered = makeDeferred();
+            const releaseTransaction = makeDeferred();
+            let delayed = false;
+            memory.setTransactionHook(async ({ next }) => {
+                if (delayed || next?.deleteMarker !== 'in-flight') return;
+                delayed = true;
+                transactionEntered.resolve();
+                await releaseTransaction.promise;
+            });
+
+            const inFlight = manager.savePlayerDataPatch(uid, {
+                deleteMarker: 'in-flight',
+                exp: 654
+            }, { forceImmediate: true });
+            await transactionEntered.promise;
+            const deletion = manager.deleteCharacter(uid, 'Delete Drain Tester');
+            const blockedSave = await manager.savePlayerDataPatch(uid, { exp: 999 }, { forceImmediate: true });
+            assert.equal(blockedSave.ok, false);
+            assert.equal(blockedSave.reason, 'profile_write_blocked');
+            releaseTransaction.resolve();
+
+            const [inFlightResult, deletionResult] = await Promise.all([inFlight, deletion]);
+            assert.equal(inFlightResult.ok, true);
+            assert.equal(deletionResult.ok, true);
+            assert.equal(memory.getProfile(uid), null, 'deletion must run after an in-flight profile commit drains');
+            assert.equal(memory.getValue(`recovery_profiles/${recoveryUid}`), null);
+            assert.equal(memory.getValue(`recovery_profiles/${uid}`), null);
+        }
     } finally {
         window.game = previousGame;
         window.firebase = previousWindowFirebase;
@@ -7128,6 +7850,8 @@ console.log('[runtime-integration] checking quest runtime state sync...');
 await validateQuestRuntimeStateSync();
 console.log('[runtime-integration] checking profile writer fencing...');
 await validateProfileWriterFencingContracts();
+console.log('[runtime-integration] checking fail-closed profile contracts...');
+await validateFailClosedProfileContracts();
 console.log('[runtime-integration] checking durable boss rewards...');
 await validateDurableBossRewardContracts();
 console.log('[runtime-integration] checking durable normal rewards...');

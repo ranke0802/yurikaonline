@@ -4865,23 +4865,51 @@ export class UIManager {
                 nameInput.focus();
             });
 
-            nameSaveBtn.addEventListener('click', () => {
-                // Save name and hide input row
+            nameSaveBtn.addEventListener('click', async () => {
+                const player = this.game.localPlayer;
+                if (!player) return;
+                const oldName = player.name;
                 const newName = nameInput.value.trim() || '유리카';
-                if (this.game.localPlayer) {
-                    const oldName = this.game.localPlayer.name;
+                if (oldName === newName) {
+                    nameInputRow.style.display = 'none';
+                    nameDisplayRow.style.display = 'block';
+                    return;
+                }
+                if (newName.length < 2 || newName.length > 8 || /[.#$\/\[\]\u0000-\u001F\u007F]/.test(newName)) {
+                    alert('이름은 2~8자이며 . # $ / [ ] 문자를 사용할 수 없습니다.');
+                    return;
+                }
 
-                    if (this.game.net && oldName !== newName) {
-                        this.game.net.updateNameMapping(this.game.localPlayer.id, oldName, newName);
+                nameSaveBtn.disabled = true;
+                let mappingUpdated = false;
+                try {
+                    mappingUpdated = await this.game.net.updateNameMapping(player.id, oldName, newName);
+                    if (!mappingUpdated) throw new Error('name_claim_failed');
+
+                    player.name = newName;
+                    const saveResult = await player.saveState(false, {
+                        debounceMs: 0,
+                        reason: 'player_name_change'
+                    });
+                    if (!saveResult?.ok) {
+                        throw saveResult?.error || new Error(saveResult?.reason || 'name_profile_save_failed');
                     }
 
-                    this.game.localPlayer.name = newName;
                     localStorage.setItem('yurika_player_name', newName);
-                    this.game.localPlayer.saveState(); // v0.00.01: Sync to DB immediately
+                    nameDisplay.textContent = newName;
+                    nameInputRow.style.display = 'none';
+                    nameDisplayRow.style.display = 'block';
+                } catch (error) {
+                    if (mappingUpdated) {
+                        await this.game.net.updateNameMapping(player.id, newName, oldName);
+                    }
+                    player.name = oldName;
+                    nameInput.value = oldName;
+                    Logger.error('[UI] Player name change failed', error);
+                    alert('이름을 변경하지 못했습니다. 이미 사용 중이거나 저장에 실패했습니다.');
+                } finally {
+                    nameSaveBtn.disabled = false;
                 }
-                nameDisplay.textContent = newName;
-                nameInputRow.style.display = 'none';
-                nameDisplayRow.style.display = 'block';
             });
 
             // Also save on Enter key
@@ -8876,12 +8904,19 @@ export class UIManager {
                     setLinkButtonState(true, loadingLabel);
 
                     const guestUid = this.game.auth.getUid();
-                    const guestSnapshot = await this.game.net.getLatestProfileSnapshot?.(guestUid);
+                    const flushResult = await this.game.net.flushProfileWrites?.(guestUid);
+                    if (flushResult && !flushResult.ok) {
+                        throw new Error('대기 중인 게스트 데이터를 저장하지 못했습니다. 다시 시도해주세요.');
+                    }
+                    const guestSnapshot = await this.game.net.getLatestProfileSnapshot?.(guestUid, {
+                        throwOnError: true
+                    });
                     if (!guestSnapshot?.profile) {
                         alert('현재 게스트 캐릭터 데이터를 찾을 수 없습니다.');
                         setLinkButtonState(false, guestLabel);
                         return;
                     }
+                    let targetExpectedRevision = null;
 
                     const result = await this.game.auth.migrateToGoogle();
                     if (!result) {
@@ -8915,9 +8950,14 @@ export class UIManager {
                             reason: 'google_migration_overwrite_archive',
                             sourceUid: googleUser.uid
                         });
-                        if (archived && !archived.ok && archived.reason !== 'profile_missing') {
-                            throw archived.error || new Error('기존 구글 데이터 백업에 실패했습니다.');
+                        if (!archived?.ok || !archived.snapshot?.profile) {
+                            throw archived?.error || new Error('기존 구글 데이터 백업에 실패했습니다.');
                         }
+                        targetExpectedRevision = Number(
+                            archived.snapshot.rootRevision
+                            ?? archived.snapshot.profile._profileRevision
+                            ?? 0
+                        );
 
                         result.success = true;
                         result.mode = 'overwrite_existing_google';
@@ -8929,6 +8969,29 @@ export class UIManager {
                     if (!result.success) {
                         setLinkButtonState(false, guestLabel);
                         return;
+                    }
+
+                    if (this.game.net.playerId !== result.googleUid) {
+                        await this.game.net.connect({
+                            uid: result.googleUid,
+                            isAnonymous: false,
+                            displayName: result.googleDisplayName || ''
+                        });
+                    }
+
+                    if (targetExpectedRevision == null) {
+                        const targetSnapshot = await this.game.net.getLatestProfileSnapshot?.(result.googleUid, {
+                            throwOnError: true,
+                            includeMissingMetadata: true
+                        });
+                        if (targetSnapshot?.profile && result.googleUid !== guestUid) {
+                            throw new Error('대상 구글 계정의 프로필 상태가 변경되었습니다. 다시 시도해주세요.');
+                        }
+                        targetExpectedRevision = Number(
+                            targetSnapshot?.rootRevision
+                            ?? targetSnapshot?.profile?._profileRevision
+                            ?? 0
+                        );
                     }
 
                     setLinkButtonState(true, transferringLabel);
@@ -8950,7 +9013,8 @@ export class UIManager {
                     };
 
                     const saveResult = await this.game.net.savePlayerData(result.googleUid, migratedProfile, false, {
-                        allowStaleWrite: true,
+                        expectedRevision: targetExpectedRevision,
+                        forceImmediate: true,
                         allowDestructiveProfileWrite: true,
                         backupReason: result.mode === 'overwrite_existing_google' ? 'google_migration_overwrite' : 'google_migration',
                         sourceUid: guestUid,
@@ -11513,6 +11577,20 @@ export class UIManager {
         const msg = "레벨을 제외한 마석/스텟/스킬이 초기화됩니다.\n사용된 마석/스텟은 반환됩니다.\n\n계속하시겠습니까?";
         if (!confirm(msg)) return;
 
+        const previousState = {
+            statPoints: p.statPoints,
+            manastone: p.manastone,
+            vitality: p.vitality,
+            intelligence: p.intelligence,
+            wisdom: p.wisdom,
+            agility: p.agility,
+            hp: p.hp,
+            maxHp: p.maxHp,
+            mp: p.mp,
+            maxMp: p.maxMp,
+            skillLevels: { ...(p.skillLevels || {}) }
+        };
+
         // 1. Calculate Refunded Stat Points
         const usedVit = Math.max(0, (p.vitality || 1) - 1);
         const usedInt = Math.max(0, (p.intelligence || 3) - 3);
@@ -11535,6 +11613,7 @@ export class UIManager {
         // 3. Apply Changes
         p.statPoints = (p.statPoints || 0) + totalRefundedStats;
         p.manastone = Number(p.manastone ?? p.gold ?? 0) + totalRefundedManastone;
+        p.updateManastoneInventory?.();
 
         // Reset Stats
         p.vitality = 1;
@@ -11560,7 +11639,16 @@ export class UIManager {
                 backupReason: 'developer_character_reset'
             });
             if (!saveResult?.ok) {
-                throw saveResult?.error || new Error(saveResult?.reason || 'developer_character_reset_failed');
+                Object.assign(p, previousState, { skillLevels: previousState.skillLevels });
+                p.refreshStats?.();
+                p.hp = previousState.hp;
+                p.mp = previousState.mp;
+                p.updateManastoneInventory?.();
+                this.updateStatusPopup?.();
+                this.updateSkillPopup?.();
+                Logger.error('[UI] Developer character reset save failed', saveResult?.error || saveResult?.reason);
+                alert('초기화 데이터를 저장하지 못해 변경을 취소했습니다.');
+                return;
             }
         }
 
