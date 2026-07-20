@@ -2891,6 +2891,28 @@ async function validateProfileWriterFencingContracts() {
         );
         assert.equal(delayedActiveSession.token, newestTab._accountSessionToken, 'the newest account session must rewrite displaced older heartbeats');
 
+        const realDateNow = Date.now;
+        try {
+            Date.now = () => Number(newestTab._accountSessionClaimedAt || realDateNow()) + 30_000;
+            delayedActiveSession = {
+                token: 'late_unknown_session_without_replacement',
+                uid,
+                heartbeatAt: Date.now(),
+                claimedAt: newestTab._accountSessionClaimedAt + 60_000,
+                version: 'v1'
+            };
+            delayedHandlers.forEach((handler) => handler({ val: () => clone(delayedActiveSession) }));
+            await Promise.all(delayedUpdatePromises);
+            assert.equal(
+                newestTab.isProfileWriterSuperseded(),
+                false,
+                'a current account session must not yield to a remote activeSession that did not explicitly replace its token'
+            );
+            assert.equal(delayedActiveSession.token, newestTab._accountSessionToken, 'the current account session must reclaim ambiguous stale activeSession values');
+        } finally {
+            Date.now = realDateNow;
+        }
+
         delayedActiveSession = {
             token: 'future_newer_session',
             uid,

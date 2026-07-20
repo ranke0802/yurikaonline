@@ -7030,20 +7030,7 @@ export default class NetworkManager extends EventEmitter {
                 publish();
                 return;
             }
-            const remoteClaimedAt = Number(value.claimedAt || 0);
-            const localClaimedAt = Number(this._accountSessionClaimedAt || now);
-            if (
-                this._accountSessionDisplacedTokens.has(remoteToken)
-                || !Number.isFinite(remoteClaimedAt)
-                || remoteClaimedAt < localClaimedAt
-            ) {
-                publish();
-                return;
-            }
-            this._notifyProfileWriterSuperseded(uid, {
-                _writerEpoch: 0,
-                activeSessionToken: value.token
-            });
+            publish();
         };
         ref.on?.('value', this._accountSessionHandler);
         publish();
