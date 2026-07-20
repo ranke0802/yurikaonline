@@ -1,0 +1,47 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": true,
+    "zones": {
+      "$zoneId": {
+        "monster_attack": {
+          ".indexOn": ["fieldId"]
+        },
+        "monster_damage": {
+          ".indexOn": ["fieldId"]
+        },
+        "monster_damage_batch": {
+          ".indexOn": ["fieldId"]
+        },
+        "player_damage": {
+          ".indexOn": ["fieldId"]
+        },
+        "player_damage_batch": {
+          ".indexOn": ["fieldId"]
+        },
+        "drop_collection": {
+          ".indexOn": ["fieldId"]
+        },
+        "boss_spawn_requests": {
+          ".indexOn": ["fieldId"]
+        },
+        "chat": {
+          ".indexOn": ["fieldId"]
+        },
+        "system_messages": {
+          ".indexOn": ["fieldId"]
+        },
+        "emotes": {
+          ".indexOn": ["fieldId"]
+        }
+      }
+    },
+    "users": {
+      "$uid": {
+        "profileBackups": {
+          ".indexOn": ["ts"]
+        }
+      }
+    }
+  }
+}

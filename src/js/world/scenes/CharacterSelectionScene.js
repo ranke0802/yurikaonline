@@ -317,6 +317,23 @@ export default class CharacterSelectionScene extends Scene {
         status.style.color = "#fdcb6e";
 
         const isRecovery = name.startsWith('##');
+        if (this.game.net?.playerId !== this.user?.uid) {
+            try {
+                await this.game.net?.connect?.(this.user);
+            } catch (error) {
+                Logger.error('[CharacterSelectionScene] Failed to prepare network identity for character creation', error);
+            }
+        }
+        if (this.game.net?.playerId !== this.user?.uid) {
+            Logger.error('[CharacterSelectionScene] Character creation blocked by network uid mismatch', {
+                authUid: this.user?.uid || null,
+                netPlayerId: this.game.net?.playerId || null
+            });
+            status.textContent = "접속 정보가 맞지 않아 캐릭터를 저장할 수 없습니다. 새로고침 후 다시 시도해주세요.";
+            status.style.color = "#ff7675";
+            btn.disabled = false;
+            return;
+        }
 
         if (isRecovery) {
             const targetUID = name.replace('##', '').trim();
@@ -401,6 +418,7 @@ export default class CharacterSelectionScene extends Scene {
                 vitality: 1,
                 intelligence: 3,
                 wisdom: 2,
+                agility: 1,
                 statPoints: 0,
                 hp: 30,
                 maxHp: 30,
@@ -441,10 +459,20 @@ export default class CharacterSelectionScene extends Scene {
             const saveResult = await this.game.net.savePlayerData(this.user.uid, initialProfile, false, {
                 requireMissingProfile: true,
                 expectedRevision: 0,
-                forceImmediate: true
+                forceImmediate: true,
+                saveReason: 'character_creation',
+                backupReason: 'character_creation'
             });
 
             if (!saveResult?.ok || !saveResult.profile) {
+                Logger.error('[CharacterSelectionScene] Character profile creation failed', {
+                    reason: saveResult?.reason || 'unknown',
+                    currentRevision: saveResult?.currentRevision ?? null,
+                    hasCurrentProfile: !!saveResult?.currentProfile,
+                    auxiliaryFailures: saveResult?.auxiliaryFailures
+                        ? Object.keys(saveResult.auxiliaryFailures)
+                        : []
+                });
                 let existingProfile = saveResult?.currentProfile
                     || (saveResult?.reason === 'profile_exists' ? saveResult?.profile : null)
                     || null;

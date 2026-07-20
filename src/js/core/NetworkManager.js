@@ -6958,17 +6958,41 @@ export default class NetworkManager extends EventEmitter {
         this._accountSessionClaimedAt = now;
         this._accountSessionClaimConfirmed = false;
         this._accountSessionDisplacedTokens.clear();
+        const takeoverGraceUntil = now + 15000;
+
+        const rememberDisplacedToken = (candidateToken) => {
+            if (typeof candidateToken !== 'string' || !candidateToken || candidateToken === token) return false;
+            this._accountSessionDisplacedTokens.add(candidateToken);
+            return true;
+        };
+
+        const getReplacedTokens = () => Array.from(this._accountSessionDisplacedTokens)
+            .filter((candidateToken) => typeof candidateToken === 'string' && candidateToken && candidateToken !== token)
+            .slice(-5);
+
+        const isReplacingThisSession = (value) => {
+            if (!value || typeof value !== 'object') return false;
+            if (value.replacesToken === token) return true;
+            const replacedTokens = Array.isArray(value.replacesTokens) ? value.replacesTokens : [];
+            return replacedTokens.includes(token);
+        };
 
         const publish = () => {
             if (this._accountSessionUid !== uid || this._accountSessionToken !== token) return;
             if (this._profileWriterSuperseded) return;
-            ref.update({
+            const replacedTokens = getReplacedTokens();
+            const payload = {
                 token,
                 uid,
                 heartbeatAt: Date.now(),
                 claimedAt: now,
-                version: 'v1'
-            }).catch((error) => Logger.warn('[Network] Account session heartbeat failed', error));
+                version: 'v2'
+            };
+            if (replacedTokens.length > 0) {
+                payload.replacesToken = replacedTokens[replacedTokens.length - 1];
+                payload.replacesTokens = replacedTokens;
+            }
+            ref.update(payload).catch((error) => Logger.warn('[Network] Account session heartbeat failed', error));
         };
 
         this._accountSessionHandler = (snapshot) => {
@@ -6977,6 +7001,14 @@ export default class NetworkManager extends EventEmitter {
             const remoteToken = typeof value.token === 'string' ? value.token : '';
             if (!remoteToken) {
                 publish();
+                return;
+            }
+            if (remoteToken !== token && isReplacingThisSession(value)) {
+                this._notifyProfileWriterSuperseded(uid, {
+                    _writerEpoch: 0,
+                    activeSessionToken: value.token,
+                    replacedByNewSession: true
+                });
                 return;
             }
             if (remoteToken === token) {
@@ -6989,7 +7021,12 @@ export default class NetworkManager extends EventEmitter {
                 return;
             }
             if (!this._accountSessionClaimConfirmed) {
-                this._accountSessionDisplacedTokens.add(remoteToken);
+                rememberDisplacedToken(remoteToken);
+                publish();
+                return;
+            }
+            if (Date.now() < takeoverGraceUntil) {
+                rememberDisplacedToken(remoteToken);
                 publish();
                 return;
             }
@@ -7008,8 +7045,23 @@ export default class NetworkManager extends EventEmitter {
                 activeSessionToken: value.token
             });
         };
-        publish();
         ref.on?.('value', this._accountSessionHandler);
+        publish();
+        if (typeof ref.once === 'function') {
+            ref.once('value')
+                .then((snapshot) => {
+                    const value = snapshot?.val?.();
+                    const remoteToken = typeof value?.token === 'string' ? value.token : '';
+                    if (rememberDisplacedToken(remoteToken)) {
+                        publish();
+                        return;
+                    }
+                    publish();
+                })
+                .catch(() => publish());
+        } else {
+            publish();
+        }
         this._accountSessionHeartbeatTimer = setInterval(publish, ACCOUNT_SESSION_HEARTBEAT_MS);
         return true;
     }

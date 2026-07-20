@@ -2746,6 +2746,7 @@ async function validateProfileWriterFencingContracts() {
         olderTab.on('profileWriterSuperseded', () => { supersededEvents += 1; });
         assert.equal(olderTab._startAccountSessionGuard({ uid, isAnonymous: false }), true);
         assert.equal(olderTab.isProfileWriterSuperseded(), false);
+        const olderAccountSessionToken = olderTab._accountSessionToken;
 
         const activeTab = new NetworkManager();
         activeTab.playerId = uid;
@@ -2755,6 +2756,9 @@ async function validateProfileWriterFencingContracts() {
         assert.equal(supersededEvents, 1, 'the previous Google tab must be told to stop gameplay exactly once');
         assert.equal(olderTab.isProfileWriterSuperseded(), true);
         assert.equal(activeTab.isProfileWriterSuperseded(), false);
+        assert.equal(activeSession.replacesToken, olderAccountSessionToken, 'the new account session must explicitly mark the previous token as replaced');
+        assert.ok(Array.isArray(activeSession.replacesTokens), 'the new account session must publish a replacement token list');
+        assert.ok(activeSession.replacesTokens.includes(olderAccountSessionToken), 'the previous token must be included in the replacement token list');
 
         const rewardItem = {
             id: 'tidal_staff',
@@ -2892,7 +2896,9 @@ async function validateProfileWriterFencingContracts() {
             uid,
             heartbeatAt: Date.now(),
             claimedAt: newestTab._accountSessionClaimedAt + 1,
-            version: 'v1'
+            replacesToken: newestTab._accountSessionToken,
+            replacesTokens: [newestTab._accountSessionToken],
+            version: 'v2'
         };
         delayedHandlers.forEach((handler) => handler({ val: () => clone(delayedActiveSession) }));
         assert.equal(newestTab.isProfileWriterSuperseded(), true, 'an account session must yield only to a newer activeSession');
