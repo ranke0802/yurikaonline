@@ -7513,9 +7513,62 @@ export default class NetworkManager extends EventEmitter {
         );
     }
 
+    _getProfileExperienceProgress(profile = null) {
+        if (!profile || typeof profile !== 'object') return 0;
+        const level = Math.max(1, Math.floor(Number(profile.level || 1)));
+        const exp = Math.max(0, Math.floor(Number(profile.exp || 0)));
+        let total = exp;
+        let requiredExp = 100;
+        for (let currentLevel = 1; currentLevel < level; currentLevel += 1) {
+            total += Math.max(1, Math.floor(requiredExp));
+            requiredExp = Math.max(1, Math.floor(requiredExp * 1.5));
+        }
+        return total;
+    }
+
+    _isProfileExperienceRegression(current = null, next = null) {
+        if (!this._isRealPlayerProfile(current) || !this._isRealPlayerProfile(next)) return false;
+        return this._getProfileExperienceProgress(next) < this._getProfileExperienceProgress(current);
+    }
+
+    _isExplicitCrossUidProfileImport(uid, profile = null, options = {}) {
+        const reason = String(options.backupReason || options.saveReason || '').trim();
+        const sourceUid = String(options.sourceUid || profile?.recoveredFromUid || profile?.migratedFromUid || '').trim();
+        if (!sourceUid || sourceUid === uid) return false;
+        return [
+            'profile_recovery',
+            'google_migration',
+            'google_migration_overwrite'
+        ].includes(reason);
+    }
+
+    _shouldBypassExperienceRegressionGuard(uid, profile = null, options = {}) {
+        if (this._isExplicitCrossUidProfileImport(uid, profile, options)) return true;
+        if (
+            options.allowDestructiveProfileWrite === true
+            && options.bypassProfileRegressionGuard === true
+            && this._isDeveloperProfileOverrideActive()
+        ) {
+            return true;
+        }
+        return false;
+    }
+
+    _preserveProfileAgainstLowerExperience(current = null) {
+        const preserved = this._sanitizeProfileDataForFirebase(current) || {};
+        preserved.ts = Math.max(Number(current?.ts || 0), Date.now());
+        preserved._profileExperienceGuardedAt = Date.now();
+        return preserved;
+    }
+
     _isProfileCandidateBetter(candidate = null, incumbent = null) {
         if (!candidate?.profile) return false;
         if (!incumbent?.profile) return true;
+        const candidateExperience = this._getProfileExperienceProgress(candidate.profile);
+        const incumbentExperience = this._getProfileExperienceProgress(incumbent.profile);
+        if (candidateExperience !== incumbentExperience) {
+            return candidateExperience > incumbentExperience;
+        }
         const candidateSuspicious = this._isProfileSuspiciousHighLevelReset(candidate.profile);
         const incumbentSuspicious = this._isProfileSuspiciousHighLevelReset(incumbent.profile);
         const candidateScore = this._getProfileProgressScore(candidate.profile);
@@ -7545,6 +7598,7 @@ export default class NetworkManager extends EventEmitter {
 
     _isProfileRegression(current = null, next = null) {
         if (!current || !next || typeof current !== 'object' || typeof next !== 'object') return false;
+        if (this._isProfileExperienceRegression(current, next)) return true;
         const currentScore = this._getProfileProgressScore(current);
         const nextScore = this._getProfileProgressScore(next);
         if (currentScore <= 0 || nextScore <= 0) return false;
@@ -8359,6 +8413,7 @@ export default class NetworkManager extends EventEmitter {
             const bypassRegressionGuard = options.bypassProfileRegressionGuard === true;
             let committedProfile = null;
             let abortReason = null;
+            let lowerExperienceGuarded = false;
 
             Logger.debug(
                 `[Network] Saving Player Data to users/${uid}/profile:`,
@@ -8397,7 +8452,18 @@ export default class NetworkManager extends EventEmitter {
                     abortReason = 'stale_profile';
                     return;
                 }
+                const bypassExperienceRegressionGuard = this._shouldBypassExperienceRegressionGuard(uid, nextProfile, options);
+                const lowerExperienceWrite = !bypassExperienceRegressionGuard
+                    && this._isProfileExperienceRegression(current, nextProfile);
+                if (lowerExperienceWrite) {
+                    lowerExperienceGuarded = true;
+                    return this._applyProfileWriterSession({
+                        ...this._preserveProfileAgainstLowerExperience(current),
+                        _profileRevision: currentRevision + 1
+                    }, writerSession, current);
+                }
                 const shouldApplyRegressionGuard = !bypassRegressionGuard
+                    && !bypassExperienceRegressionGuard
                     && (!options.allowDestructiveProfileWrite || forceSafetyGuard)
                     && this._isProfileRegression(current, nextProfile);
                 const guardedProfile = shouldApplyRegressionGuard
@@ -8461,6 +8527,7 @@ export default class NetworkManager extends EventEmitter {
                 }
             }
             const result = { ok: true, profile: committedProfile, revision };
+            if (lowerExperienceGuarded) result.lowerExperienceGuarded = true;
             if (Object.keys(auxiliaryFailures).length > 0) result.auxiliaryFailures = auxiliaryFailures;
             return result;
         } catch (e) {
@@ -8533,6 +8600,7 @@ export default class NetworkManager extends EventEmitter {
             const profileRef = this.getProfileRef(uid);
             let abortReason = null;
             const bypassRegressionGuard = options.bypassProfileRegressionGuard === true;
+            let lowerExperienceGuarded = false;
             const transactionResult = await profileRef.transaction((current) => {
                 abortReason = null;
                 if (!this._canProfileWriterSessionCommit(current, writerSession)) {
@@ -8553,10 +8621,21 @@ export default class NetworkManager extends EventEmitter {
                     return;
                 }
                 const merged = this._mergeProfileData(current, nextPatch);
+                const bypassExperienceRegressionGuard = this._shouldBypassExperienceRegressionGuard(uid, merged, options);
+                const lowerExperienceWrite = !bypassExperienceRegressionGuard
+                    && this._isProfileExperienceRegression(current, merged);
+                if (lowerExperienceWrite) {
+                    lowerExperienceGuarded = true;
+                    return this._applyProfileWriterSession({
+                        ...this._preserveProfileAgainstLowerExperience(current),
+                        _profileRevision: currentRevision + 1
+                    }, writerSession, current);
+                }
                 const forceSafetyGuard = !bypassRegressionGuard
                     && this._isProfileSuspiciousHighLevelReset(merged)
                     && !this._isDeveloperProfileOverrideActive();
                 const shouldApplyRegressionGuard = !bypassRegressionGuard
+                    && !bypassExperienceRegressionGuard
                     && (!options.allowDestructiveProfileWrite || forceSafetyGuard)
                     && this._isProfileRegression(current, merged);
                 const guarded = shouldApplyRegressionGuard
@@ -8612,6 +8691,7 @@ export default class NetworkManager extends EventEmitter {
             }
 
             const result = { ok: true, patch: nextPatch, profile: committedProfile, revision };
+            if (lowerExperienceGuarded) result.lowerExperienceGuarded = true;
             if (Object.keys(auxiliaryFailures).length > 0) result.auxiliaryFailures = auxiliaryFailures;
             return result;
         } catch (error) {

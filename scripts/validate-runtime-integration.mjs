@@ -3310,10 +3310,11 @@ async function validateProfileWriterFencingContracts() {
             ts: Date.now() + 60_000
         });
         assert.equal(regressedSave.ok, true, 'a regressed full save is committed only after guard merging');
+        assert.equal(regressedSave.lowerExperienceGuarded, true, 'lower-experience full save must be explicitly guarded');
         assert.equal(profile.level, 17, 'profile regression guard must preserve the higher level');
         assert.equal(profile.equipment.weapon.instanceId, 'profile_guard_equipped', 'profile regression guard must preserve equipped boss gear');
         assert.equal(profile.inventory[1].instanceId, 'profile_guard_staff', 'profile regression guard must preserve inventory gear');
-        assert.equal(profile.currentZoneId, 'zone_2', 'profile regression guard may still keep safe transient travel fields from the new save');
+        assert.equal(profile.currentZoneId, 'zone_3', 'lower-experience saves must not overwrite even transient profile fields');
 
         resetAdvancedProfileFixture();
         const sameLevelResetSave = await regressionGuardNet._commitPlayerData(uid, {
@@ -3949,6 +3950,112 @@ async function validateFailClosedProfileContracts() {
             assert.equal(exists.ok, false);
             assert.equal(exists.reason, 'profile_exists');
             assert.deepEqual(memory.getProfile(uid), beforeConflict, 'create-only save must not replace a real profile');
+        }
+
+        {
+            const uid = 'experience_regression_guard';
+            const baseline = makeProfile({
+                recoveryUid: uid,
+                name: 'High Progress',
+                level: 6,
+                exp: 30,
+                inventory: [{ type: 'manastone', amount: 500 }],
+                _profileRevision: 30
+            });
+            const memory = createProfileContractFirebase({ [uid]: baseline });
+            useFirebase(memory, uid);
+            const manager = makeManager(uid);
+            await establishWriter(manager, uid, 'experience guard test must establish a writer session');
+
+            const lowerFullSave = await manager.savePlayerData(uid, makeProfile({
+                recoveryUid: uid,
+                name: 'Lower Full Save',
+                level: 1,
+                exp: 0
+            }), false, {
+                forceImmediate: true
+            });
+            assert.equal(lowerFullSave.ok, true);
+            assert.equal(lowerFullSave.lowerExperienceGuarded, true);
+            assert.equal(memory.getProfile(uid).name, 'High Progress', 'lower-experience full save must not overwrite profile fields');
+            assert.equal(memory.getProfile(uid).level, 6);
+            assert.equal(memory.getProfile(uid).exp, 30);
+
+            const equalExperienceSave = await manager.savePlayerData(uid, makeProfile({
+                recoveryUid: uid,
+                name: 'Equal Progress Allowed',
+                level: 6,
+                exp: 30
+            }), false, {
+                forceImmediate: true
+            });
+            assert.equal(equalExperienceSave.ok, true);
+            assert.equal(equalExperienceSave.lowerExperienceGuarded, undefined);
+            assert.equal(memory.getProfile(uid).name, 'Equal Progress Allowed', 'equal-experience full save must be allowed');
+
+            const lowerPatch = await manager.savePlayerDataPatch(uid, {
+                name: 'Lower Patch Save',
+                level: 1,
+                exp: 0
+            }, {
+                forceImmediate: true,
+                requireTransaction: true
+            });
+            assert.equal(lowerPatch.ok, true);
+            assert.equal(lowerPatch.lowerExperienceGuarded, true);
+            assert.equal(memory.getProfile(uid).name, 'Equal Progress Allowed', 'lower-experience patch must not overwrite profile fields');
+            assert.equal(memory.getProfile(uid).level, 6);
+            assert.equal(memory.getProfile(uid).exp, 30);
+
+            assert.equal(
+                manager._isProfileCandidateBetter(
+                    { profile: makeProfile({ level: 1, exp: 0 }), ts: Date.now() + 10_000, source: 'profile' },
+                    { profile: makeProfile({ level: 6, exp: 30 }), ts: Date.now(), source: 'backup' }
+                ),
+                false,
+                'newer low-experience profile snapshots must not beat older high-experience snapshots'
+            );
+            assert.equal(
+                manager._isProfileCandidateBetter(
+                    { profile: makeProfile({ level: 6, exp: 30 }), ts: Date.now(), source: 'backup' },
+                    { profile: makeProfile({ level: 1, exp: 0 }), ts: Date.now() + 10_000, source: 'profile' }
+                ),
+                true,
+                'older high-experience snapshots must recover over newer low-experience root profiles'
+            );
+        }
+
+        {
+            const uid = 'cross_uid_recovery_can_replace';
+            const sourceUid = 'cross_uid_recovery_source';
+            const memory = createProfileContractFirebase({
+                [uid]: makeProfile({
+                    recoveryUid: uid,
+                    name: 'Target High Progress',
+                    level: 8,
+                    exp: 80,
+                    _profileRevision: 40
+                })
+            });
+            useFirebase(memory, uid);
+            const manager = makeManager(uid);
+            await establishWriter(manager, uid, 'cross-uid recovery test must establish a writer session');
+            const recoverySave = await manager.savePlayerData(uid, makeProfile({
+                recoveryUid: sourceUid,
+                recoveredFromUid: sourceUid,
+                name: 'Recovered Source Profile',
+                level: 1,
+                exp: 0
+            }), false, {
+                forceImmediate: true,
+                backupReason: 'profile_recovery',
+                sourceUid
+            });
+            assert.equal(recoverySave.ok, true);
+            assert.equal(recoverySave.lowerExperienceGuarded, undefined);
+            assert.equal(memory.getProfile(uid).name, 'Recovered Source Profile', 'explicit cross-UID recovery may replace by user intent');
+            assert.equal(memory.getProfile(uid).level, 1);
+            assert.equal(memory.getProfile(uid).exp, 0);
         }
 
         for (const missingKind of ['absent', 'writer-only']) {
