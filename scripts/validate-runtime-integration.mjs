@@ -3581,6 +3581,31 @@ async function validateFailClosedProfileContracts() {
         }
 
         for (const missingKind of ['absent', 'writer-only']) {
+            const uid = `profile_create_${missingKind}`;
+            const initial = missingKind === 'writer-only'
+                ? { [uid]: { _writerEpoch: 4, _writerToken: 'stale-writer', _profileRevision: 0 } }
+                : {};
+            const memory = createProfileContractFirebase(initial);
+            useFirebase(memory, uid);
+            const manager = makeManager(uid);
+            await establishWriter(manager, uid, `${missingKind} profile creation must establish local writer intent`);
+            const createResult = await manager.savePlayerData(uid, makeProfile({
+                recoveryUid: uid,
+                name: `Created ${missingKind}`,
+                exp: 10
+            }), false, {
+                forceImmediate: true,
+                requireMissingProfile: true,
+                expectedRevision: 0,
+                allowDestructiveProfileWrite: true,
+                bypassProfileRegressionGuard: true
+            });
+            assert.equal(createResult.ok, true, `create-only save must create a real profile from a ${missingKind} state`);
+            assert.equal(memory.getProfile(uid).name, `Created ${missingKind}`);
+            assert.equal(memory.getProfile(uid).exp, 10);
+        }
+
+        for (const missingKind of ['absent', 'writer-only']) {
             const uid = `profile_${missingKind}`;
             const initial = missingKind === 'writer-only'
                 ? { [uid]: { _writerEpoch: 4, _writerToken: 'seed-writer', _profileRevision: 0 } }

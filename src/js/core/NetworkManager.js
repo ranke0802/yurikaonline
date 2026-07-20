@@ -8267,12 +8267,14 @@ export default class NetworkManager extends EventEmitter {
             this._recordNetworkWrite('profileSave', nextProfile);
             const transactionResult = await profileRef.transaction((current) => {
                 abortReason = null;
-                if (!this._canProfileWriterSessionCommit(current, writerSession)) {
+                const currentIsRealProfile = this._isRealPlayerProfile(current);
+                const createMissingProfile = options.requireMissingProfile === true && !currentIsRealProfile;
+                if (!createMissingProfile && !this._canProfileWriterSessionCommit(current, writerSession)) {
                     abortReason = 'writer_session_superseded';
                     return;
                 }
-                const currentRevision = this._getProfileRevision(current);
-                if (options.requireMissingProfile === true && this._isRealPlayerProfile(current)) {
+                const currentRevision = createMissingProfile ? 0 : this._getProfileRevision(current);
+                if (options.requireMissingProfile === true && currentIsRealProfile) {
                     abortReason = 'profile_exists';
                     return;
                 }
