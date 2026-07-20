@@ -44,7 +44,7 @@ export default class WorldScene extends Scene {
         this.zoneTransitionToken = 0;
         this._activeZoneTransitionPromise = null;
         this._handleHostChanged = null;
-        this.profileIdleSaveDelayMs = 3500;
+        this.profileIdleSaveDelayMs = 3000;
         this.profileIdleSaveMinIntervalMs = 8000;
         this.profileIdleSaveMinDistance = 6;
         this._profileIdleLastMovingAt = 0;
@@ -1243,14 +1243,14 @@ export default class WorldScene extends Scene {
         if (now - Number(this._profileIdleLastSavedAt || 0) < this.profileIdleSaveMinIntervalMs) return;
 
         this._profileIdleSaveInFlight = true;
-        Promise.resolve(this.player.saveProfilePosition?.({
+        Promise.resolve(this.player.saveState?.(false, {
             debounceMs: 0,
-            forceImmediate: true,
-            reason: 'idle_position_snapshot'
+            reason: 'idle_profile_snapshot',
+            backupReason: 'idle_profile_snapshot'
         })).then((result) => {
             if (result?.ok === false) {
                 this._profileIdleSavePending = true;
-                Logger.warn('[WorldScene] Idle position save failed', result.reason || result);
+                Logger.warn('[WorldScene] Idle profile save failed', result.reason || result);
                 return;
             }
             this._profileIdleSavePending = false;
@@ -1258,7 +1258,7 @@ export default class WorldScene extends Scene {
             this._profileIdleLastSavedPosition = { x: currentX, y: currentY, zoneId: currentZoneId };
         }).catch((error) => {
             this._profileIdleSavePending = true;
-            Logger.warn('[WorldScene] Idle position save failed', error);
+            Logger.warn('[WorldScene] Idle profile save failed', error);
         }).finally(() => {
             this._profileIdleSaveInFlight = false;
         });

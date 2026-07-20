@@ -2429,6 +2429,7 @@ export default class Player extends CharacterBase {
         let questKillLogMessage = '';
         let hasInventoryMutation = false;
         let questStateChanged = false;
+        let leveledUpFromReward = false;
 
         const grantUpgradeStones = (itemId, rawAmount) => {
             const amount = Math.max(1, Math.floor(Number(rawAmount) || 1));
@@ -2452,7 +2453,11 @@ export default class Player extends CharacterBase {
 
         const rewardManastone = Math.max(0, Number(data.manastone ?? data.gold ?? 0));
 
-        if (data.exp) this.gainExp(data.exp, { save: false });
+        if (data.exp) {
+            const previousLevel = Math.max(1, Number(this.level || 1));
+            this.gainExp(data.exp, { save: false });
+            leveledUpFromReward = Math.max(1, Number(this.level || 1)) > previousLevel;
+        }
         if (rewardManastone) {
             this.manastone += rewardManastone;
             this.updateManastoneInventory();
@@ -2752,6 +2757,7 @@ export default class Player extends CharacterBase {
             ].slice(-128);
         }
         if (shouldSave) {
+            const forceRewardSave = leveledUpFromReward || data?.bossReward === true || saveDebounceMs === 0;
             this.saveProfilePatch([
                 'exp',
                 'maxExp',
@@ -2772,8 +2778,11 @@ export default class Player extends CharacterBase {
                 'pendingItemRewards',
                 'claimedRewardIds'
             ], {
-                debounceMs: saveDebounceMs,
-                reason: hasInventoryMutation ? 'reward_inventory_patch' : 'reward_progress_patch'
+                debounceMs: forceRewardSave ? 0 : saveDebounceMs,
+                forceImmediate: forceRewardSave,
+                reason: leveledUpFromReward
+                    ? 'levelup_reward_patch'
+                    : (hasInventoryMutation ? 'reward_inventory_patch' : 'reward_progress_patch')
             });
         }
         return true;
@@ -4299,6 +4308,21 @@ export default class Player extends CharacterBase {
         return claimedCount;
     }
 
+    shouldSaveInventoryImmediatelyOnAcquire(itemId, definition = {}, item = null) {
+        return itemId === BLESSED_WEAPON_UPGRADE_STONE_ID
+            || definition?.slot === 'weapon'
+            || item?.slot === 'weapon';
+    }
+
+    saveInventoryAcquisitionSnapshot(itemId, definition = {}, item = null) {
+        if (!this.shouldSaveInventoryImmediatelyOnAcquire(itemId, definition, item)) return;
+        this.saveProfilePatch(['inventory'], {
+            debounceMs: 0,
+            forceImmediate: true,
+            reason: 'critical_item_acquire_patch'
+        });
+    }
+
     addInventoryItem(itemId, amount = 1, meta = {}) {
         if (!itemId || amount <= 0) return null;
         if (REMOVED_ITEM_IDS.has(itemId)) return null;
@@ -4343,6 +4367,9 @@ export default class Player extends CharacterBase {
             if (firstAdded && window.game?.ui?.updateHudAttentionIndicators) {
                 window.game.ui.updateHudAttentionIndicators();
             }
+            if (firstAdded) {
+                this.saveInventoryAcquisitionSnapshot(itemId, definition, firstAdded);
+            }
             return firstAdded;
         }
 
@@ -4367,7 +4394,9 @@ export default class Player extends CharacterBase {
         if (window.game?.ui?.updateHudAttentionIndicators) {
             window.game.ui.updateHudAttentionIndicators();
         }
-        return this.inventory[slotIndex];
+        const addedItem = this.inventory[slotIndex];
+        this.saveInventoryAcquisitionSnapshot(itemId, definition, addedItem);
+        return addedItem;
     }
 
     drawHUD(ctx, centerX, y) {

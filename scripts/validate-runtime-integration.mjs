@@ -171,6 +171,9 @@ async function validatePwaVersionReloadPersistenceContracts() {
     assert.match(indexHtml, /async function saveYurikaProfileBeforeReload/, 'version reloads must expose a profile-save bridge');
     assert.match(indexHtml, /async function replaceYurikaLocationAfterSave/, 'location replacement must be guarded by profile save');
     assert.match(indexHtml, /waitForYurikaPromise\(promise, timeoutMs = 8000\)/, 'profile save before version reload must wait long enough for Firebase flushes');
+    assert.match(indexHtml, /function isYurikaActiveGameplaySession/, 'version reloads must detect active gameplay sessions');
+    assert.match(indexHtml, /function queueYurikaVersionReload/, 'version reloads must support deferred active-game updates');
+    assert.match(indexHtml, /window\.flushPendingYurikaVersionReload/, 'deferred version reloads must be flushable after gameplay ends');
 
     const clientRefreshStart = indexHtml.indexOf('async function forceYurikaClientRefresh');
     const controllerReloadStart = indexHtml.indexOf('async function forceYurikaControllerReload');
@@ -183,17 +186,32 @@ async function validatePwaVersionReloadPersistenceContracts() {
     const clientSaveIndex = clientRefreshBody.indexOf('await saveYurikaProfileBeforeReload(reloadReason)');
     const clientClearIndex = clientRefreshBody.indexOf('await clearYurikaClientCaches()');
     const clientReplaceIndex = clientRefreshBody.indexOf('window.location.replace');
+    const clientGameplayGuardIndex = clientRefreshBody.indexOf('isYurikaActiveGameplaySession() && !options.force');
+    const clientQueueIndex = clientRefreshBody.indexOf('queueYurikaVersionReload(normalizedTarget');
+    assert.ok(clientGameplayGuardIndex >= 0, 'build-mismatch refresh must guard active gameplay before saving/reloading');
+    assert.ok(clientGameplayGuardIndex < clientSaveIndex, 'active gameplay guard must run before build-mismatch profile save');
+    assert.ok(clientQueueIndex > clientGameplayGuardIndex && clientQueueIndex < clientSaveIndex, 'active gameplay build refresh must queue instead of reloading');
     assert.ok(clientSaveIndex >= 0, 'build-mismatch refresh must save the active profile first');
     assert.ok(clientSaveIndex < clientClearIndex, 'build-mismatch refresh must save before clearing caches');
     assert.ok(clientClearIndex < clientReplaceIndex, 'build-mismatch refresh must clear caches before reload');
 
     const controllerReloadBody = indexHtml.slice(controllerReloadStart, legacyResetStart);
+    const controllerGameplayGuardIndex = controllerReloadBody.indexOf('isYurikaActiveGameplaySession() && !options.force');
+    const controllerQueueIndex = controllerReloadBody.indexOf("queueYurikaVersionReload(normalizedTarget, reason, 'controller-reload')");
+    const controllerReplaceIndex = controllerReloadBody.indexOf('return replaceYurikaLocationAfterSave(normalizedTarget, reason)');
+    assert.ok(controllerGameplayGuardIndex >= 0, 'service worker controller reload must guard active gameplay');
+    assert.ok(controllerQueueIndex > controllerGameplayGuardIndex, 'active gameplay controller reload must be queued');
+    assert.ok(controllerQueueIndex < controllerReplaceIndex, 'queued controller reload must happen instead of immediate location replacement');
     assert.match(controllerReloadBody, /return replaceYurikaLocationAfterSave\(normalizedTarget, reason\)/, 'service worker controller reload must save before replacing location');
 
     const legacyResetBody = indexHtml.slice(legacyResetStart, verifyStart);
     const legacySaveIndex = legacyResetBody.indexOf("await saveYurikaProfileBeforeReload('legacy-sw-reset')");
     const legacyClearIndex = legacyResetBody.indexOf('await clearYurikaClientCaches()');
     const legacyReplaceIndex = legacyResetBody.indexOf('window.location.replace');
+    const legacyGameplayGuardIndex = legacyResetBody.indexOf('isYurikaActiveGameplaySession() && !options.force');
+    const legacyQueueIndex = legacyResetBody.indexOf("queueYurikaVersionReload('legacy-sw', 'legacy-sw-reset', 'legacy-reset')");
+    assert.ok(legacyGameplayGuardIndex >= 0, 'legacy service worker reset must guard active gameplay');
+    assert.ok(legacyQueueIndex > legacyGameplayGuardIndex && legacyQueueIndex < legacySaveIndex, 'active gameplay legacy reset must be queued before save/cache reset');
     assert.ok(legacySaveIndex >= 0, 'legacy service worker reset must save the active profile first');
     assert.ok(legacySaveIndex < legacyClearIndex, 'legacy service worker reset must save before clearing caches');
     assert.ok(legacyClearIndex < legacyReplaceIndex, 'legacy service worker reset must clear caches before reload');
@@ -2671,6 +2689,10 @@ async function validateCharacterSelectionGenerationContracts() {
 }
 
 async function validateCriticalProfilePersistenceTriggers() {
+    const worldSceneJs = await readFile(new URL('../src/js/world/scenes/WorldScene.js', import.meta.url), 'utf8');
+    assert.match(worldSceneJs, /profileIdleSaveDelayMs = 3000;/, 'idle profile save must trigger after 3 seconds of no movement');
+    assert.match(worldSceneJs, /saveState\?\.\(false, \{\s*debounceMs: 0,\s*reason: 'idle_profile_snapshot'/, 'idle save must persist the full player profile snapshot');
+
     const previousGame = window.game;
     const copy = (value) => (value == null ? value : JSON.parse(JSON.stringify(value)));
     const patchCalls = [];
@@ -2723,6 +2745,30 @@ async function validateCriticalProfilePersistenceTriggers() {
         assert.equal(patchCalls[0].patch.inventory[1], null);
         assert.equal(patchCalls[0].options.forceImmediate, true);
         assert.equal(patchCalls[0].options.syncToZone, true);
+
+        patchCalls.length = 0;
+        const acquiredWeapon = player.addInventoryItem('test_weapon', 1, {
+            name: 'Test Weapon',
+            slot: 'weapon',
+            stackable: false
+        });
+        assert.equal(acquiredWeapon.type, 'test_weapon');
+        assert.equal(patchCalls.length, 1);
+        assert.ok(patchCalls[0].patch.inventory.some((item) => item?.type === 'test_weapon'), 'weapon acquisition must persist inventory immediately');
+        assert.equal(patchCalls[0].options.forceImmediate, true);
+        assert.equal(patchCalls[0].options.saveReason, 'critical_item_acquire_patch');
+
+        patchCalls.length = 0;
+        const blessedStone = player.addInventoryItem('blessed_weapon_upgrade_stone', 1, { markAsNew: false });
+        assert.equal(blessedStone.type, 'blessed_weapon_upgrade_stone');
+        assert.equal(patchCalls.length, 1);
+        assert.ok(patchCalls[0].patch.inventory.some((item) => item?.type === 'blessed_weapon_upgrade_stone'), 'blessed weapon stone acquisition must persist inventory immediately');
+        assert.equal(patchCalls[0].options.forceImmediate, true);
+        assert.equal(patchCalls[0].options.saveReason, 'critical_item_acquire_patch');
+
+        patchCalls.length = 0;
+        player.addInventoryItem('weapon_upgrade_stone', 1, { markAsNew: false });
+        assert.equal(patchCalls.length, 0, 'normal upgrade stone acquisition must wait for idle/exit save');
 
         patchCalls.length = 0;
         player.exp = 95;

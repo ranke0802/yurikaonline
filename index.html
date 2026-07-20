@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json?v=0.02.083">
+    <link rel="manifest" href="manifest.json?v=0.02.085">
     <meta name="theme-color" content="#2d3436">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,13 +20,14 @@
     <meta name="x5-fullscreen" content="true">
     <meta name="x5-page-mode" content="app">
     <script>
-        window.BOOTSTRAP_VERSION = '0.02.083';
+        window.BOOTSTRAP_VERSION = '0.02.085';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
         const YURIKA_CACHE_RESET_ATTEMPT_KEY = 'yurika_cache_reset_attempt';
         const YURIKA_CACHE_RESET_TARGET_KEY = 'yurika_cache_reset_target';
         const YURIKA_CACHE_RESET_REASON_KEY = 'yurika_cache_reset_reason';
+        const YURIKA_PENDING_VERSION_RELOAD_KEY = 'yurika_pending_version_reload';
         const YURIKA_SW_CONTROLLER_RELOAD_VERSION_KEY = 'yurika_sw_controller_reload_version';
         const YURIKA_CACHE_RESET_MAX_ATTEMPTS = 2;
         const YURIKA_VERSION_CHECK_MIN_INTERVAL_MS = 4000;
@@ -146,6 +147,58 @@
             return true;
         }
 
+        function isYurikaActiveGameplaySession() {
+            const game = window.game;
+            const player = game?.localPlayer;
+            if (!player?.id) return false;
+
+            const sceneName = game?.sceneManager?.currentScene?.constructor?.name || '';
+            return !/CharacterSelection|Login/i.test(sceneName);
+        }
+
+        function writeYurikaPendingVersionReload(pending) {
+            window.__yurikaPendingVersionReload = pending || null;
+            try {
+                if (pending) {
+                    sessionStorage.setItem(YURIKA_PENDING_VERSION_RELOAD_KEY, JSON.stringify(pending));
+                } else {
+                    sessionStorage.removeItem(YURIKA_PENDING_VERSION_RELOAD_KEY);
+                }
+            } catch (error) {
+                console.warn('Failed to persist pending Yurika version reload state:', error);
+            }
+        }
+
+        function readYurikaPendingVersionReload() {
+            if (window.__yurikaPendingVersionReload) return window.__yurikaPendingVersionReload;
+            try {
+                const raw = sessionStorage.getItem(YURIKA_PENDING_VERSION_RELOAD_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return null;
+                return {
+                    targetVersion: normalizeGameVersion(parsed.targetVersion) || 'unknown',
+                    reason: parsed.reason || 'deferred-version-reload',
+                    mode: parsed.mode || 'client-refresh'
+                };
+            } catch (error) {
+                sessionStorage.removeItem(YURIKA_PENDING_VERSION_RELOAD_KEY);
+                return null;
+            }
+        }
+
+        function queueYurikaVersionReload(targetVersion, reason = 'version-mismatch', mode = 'client-refresh') {
+            const pending = {
+                targetVersion: normalizeGameVersion(targetVersion) || 'unknown',
+                reason,
+                mode,
+                queuedAt: Date.now()
+            };
+            writeYurikaPendingVersionReload(pending);
+            console.warn(`Yurika ${mode} deferred during active gameplay. target=${pending.targetVersion} reason=${reason}`);
+            return true;
+        }
+
         async function clearYurikaClientCaches() {
             if ('serviceWorker' in navigator) {
                 const registrations = await navigator.serviceWorker.getRegistrations();
@@ -162,13 +215,17 @@
             }
         }
 
-        async function forceYurikaClientRefresh(targetVersion, reason) {
+        async function forceYurikaClientRefresh(targetVersion, reason, options = {}) {
             const normalizedTarget = normalizeGameVersion(targetVersion) || 'unknown';
             const lastTarget = sessionStorage.getItem(YURIKA_CACHE_RESET_TARGET_KEY);
             let attempts = Number(sessionStorage.getItem(YURIKA_CACHE_RESET_ATTEMPT_KEY) || '0');
 
             if (lastTarget !== normalizedTarget) {
                 attempts = 0;
+            }
+
+            if (isYurikaActiveGameplaySession() && !options.force) {
+                return queueYurikaVersionReload(normalizedTarget, reason || 'version-mismatch', 'client-refresh');
             }
 
             if (attempts >= YURIKA_CACHE_RESET_MAX_ATTEMPTS) {
@@ -196,8 +253,12 @@
             return true;
         }
 
-        async function forceYurikaControllerReload(targetVersion, reason = 'sw-controller-change') {
+        async function forceYurikaControllerReload(targetVersion, reason = 'sw-controller-change', options = {}) {
             const normalizedTarget = normalizeGameVersion(targetVersion) || 'unknown';
+            if (isYurikaActiveGameplaySession() && !options.force) {
+                return queueYurikaVersionReload(normalizedTarget, reason, 'controller-reload');
+            }
+
             const lastReloadVersion = sessionStorage.getItem(YURIKA_SW_CONTROLLER_RELOAD_VERSION_KEY);
             if (lastReloadVersion === normalizedTarget) {
                 return false;
@@ -216,6 +277,7 @@
         }
 
         window.__yurikaPendingControllerReload = null;
+        writeYurikaPendingVersionReload(readYurikaPendingVersionReload());
         window.requestYurikaControllerReload = function requestYurikaControllerReload(targetVersion, reason = 'sw-controller-change') {
             const normalizedTarget = normalizeGameVersion(targetVersion) || 'unknown';
             if (isYurikaUiLayoutEditActive()) {
@@ -232,13 +294,28 @@
 
         window.flushPendingYurikaControllerReload = function flushPendingYurikaControllerReload() {
             const pending = window.__yurikaPendingControllerReload;
-            if (!pending || isYurikaUiLayoutEditActive()) return false;
+            if (isYurikaUiLayoutEditActive()) return false;
+            if (!pending) return window.flushPendingYurikaVersionReload?.() || false;
 
             window.__yurikaPendingControllerReload = null;
             return forceYurikaControllerReload(pending.targetVersion, pending.reason || 'deferred-sw-controller-change');
         };
 
-        async function unregisterLegacyYurikaServiceWorkers() {
+        window.flushPendingYurikaVersionReload = async function flushPendingYurikaVersionReload() {
+            const pending = readYurikaPendingVersionReload();
+            if (!pending || isYurikaActiveGameplaySession() || isYurikaUiLayoutEditActive()) return false;
+
+            writeYurikaPendingVersionReload(null);
+            if (pending.mode === 'legacy-reset') {
+                return unregisterLegacyYurikaServiceWorkers({ force: true });
+            }
+            if (pending.mode === 'controller-reload') {
+                return forceYurikaControllerReload(pending.targetVersion, pending.reason || 'deferred-sw-controller-change', { force: true });
+            }
+            return forceYurikaClientRefresh(pending.targetVersion, pending.reason || 'deferred-version-reload', { force: true });
+        };
+
+        async function unregisterLegacyYurikaServiceWorkers(options = {}) {
             if (!('serviceWorker' in navigator)) return false;
 
             const registrations = await navigator.serviceWorker.getRegistrations();
@@ -252,6 +329,10 @@
             });
 
             if (!hasLegacyRegistration) return false;
+
+            if (isYurikaActiveGameplaySession() && !options.force) {
+                return queueYurikaVersionReload('legacy-sw', 'legacy-sw-reset', 'legacy-reset');
+            }
 
             const saveResult = await saveYurikaProfileBeforeReload('legacy-sw-reset');
             if (window.game?.localPlayer?.id && saveResult?.ok === false) {
@@ -315,6 +396,7 @@
                     if (serverVersion !== 'unknown') {
                         localStorage.setItem('yurika_last_version', serverVersion);
                     }
+                    await window.flushPendingYurikaVersionReload?.();
                     sessionStorage.removeItem('yurika_just_reloaded');
                     sessionStorage.removeItem(YURIKA_CACHE_RESET_ATTEMPT_KEY);
                     sessionStorage.removeItem(YURIKA_CACHE_RESET_TARGET_KEY);
@@ -350,7 +432,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.083', { updateViaCache: 'none' });
+                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.085', { updateViaCache: 'none' });
                     await registration.update();
                     registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
                     registration.addEventListener('updatefound', () => {
@@ -374,7 +456,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
     <!-- Firebase Config -->
-    <script src="src/js/firebaseConfig.js?v=0.02.083"></script>
+    <script src="src/js/firebaseConfig.js?v=0.02.085"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Nanum+Gothic:wght@400;700&display=swap"
         rel="stylesheet">
@@ -382,10 +464,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.02.083</title>
+    <title>Yurika Online v0.02.085</title>
 
-    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.02.083">
-    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.02.083">
+    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.02.085">
+    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.02.085">
     <script>
         // v0.29.20+: Prefer the actually loaded client build for UI, and auto-reset caches on mismatch.
         (async function initCacheBusting() {
@@ -406,7 +488,7 @@
             }
         });
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.02.083">
+    <link rel="stylesheet" href="src/css/style.css?v=0.02.085">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -1457,7 +1539,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.02.083"></script>
+    <script type="module" src="./src/js/main.js?v=0.02.085"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">
