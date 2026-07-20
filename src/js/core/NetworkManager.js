@@ -13,6 +13,8 @@ const DURABLE_BOSS_REWARD_OUTBOX_STORAGE_PREFIX = 'yurika:durableBossRewardOutbo
 const DURABLE_BOSS_REWARD_OUTBOX_MAX_ENTRIES = 128;
 const DURABLE_BOSS_REWARD_VOLATILE_MAX_ENTRIES = 16;
 const QUEST_BOSS_DEFEAT_OUTBOX_MAX_ENTRIES = 128;
+const PROFILE_BACKUP_DEFAULT_KEEP_COUNT = 5;
+const PROFILE_RECOVERY_FULL_SAVE_SYNC_MS = 3 * 60 * 1000;
 const DROP_SPAWN_OUTBOX_STORAGE_PREFIX = 'yurika:dropSpawnOutbox:v3';
 const LEGACY_DROP_SPAWN_OUTBOX_STORAGE_PREFIXES = [
     'yurika:dropSpawnOutbox:v2',
@@ -295,6 +297,7 @@ export default class NetworkManager extends EventEmitter {
         this._accountSessionClaimedAt = 0;
         this._accountSessionClaimConfirmed = false;
         this._accountSessionDisplacedTokens = new Set();
+        this._lastProfileWriterFenceRecoveryLogTs = 0;
         this._queuedProfileSaves = new Map();
         this._queuedProfilePatches = new Map();
         this._blockedProfileWriteUids = new Set();
@@ -6939,6 +6942,50 @@ export default class NetworkManager extends EventEmitter {
         this._accountSessionDisplacedTokens.clear();
     }
 
+    _rememberAccountSessionDisplacedToken(candidateToken) {
+        if (typeof candidateToken !== 'string'
+            || !candidateToken
+            || candidateToken === this._accountSessionToken) {
+            return false;
+        }
+        this._accountSessionDisplacedTokens.add(candidateToken);
+        return true;
+    }
+
+    _getAccountSessionReplacedTokens() {
+        return Array.from(this._accountSessionDisplacedTokens)
+            .filter((candidateToken) => typeof candidateToken === 'string'
+                && candidateToken
+                && candidateToken !== this._accountSessionToken)
+            .slice(-5);
+    }
+
+    _publishAccountSessionHeartbeat(options = {}) {
+        const uid = this._accountSessionUid;
+        const token = this._accountSessionToken;
+        const ref = this._accountSessionRef;
+        if (!uid || !token || !ref) return false;
+        if (options.uid && options.uid !== uid) return false;
+        if (options.token && options.token !== token) return false;
+        if (this._profileWriterSuperseded && options.force !== true) return false;
+
+        const claimedAt = Number(this._accountSessionClaimedAt || 0) || Date.now();
+        const replacedTokens = this._getAccountSessionReplacedTokens();
+        const payload = {
+            token,
+            uid,
+            heartbeatAt: Date.now(),
+            claimedAt,
+            version: 'v2'
+        };
+        if (replacedTokens.length > 0) {
+            payload.replacesToken = replacedTokens[replacedTokens.length - 1];
+            payload.replacesTokens = replacedTokens;
+        }
+        ref.update(payload).catch((error) => Logger.warn('[Network] Account session heartbeat failed', error));
+        return true;
+    }
+
     _startAccountSessionGuard(user = null) {
         const uid = user?.uid || this.playerId;
         if (!uid || !window.firebase) {
@@ -6961,14 +7008,9 @@ export default class NetworkManager extends EventEmitter {
         const takeoverGraceUntil = now + 15000;
 
         const rememberDisplacedToken = (candidateToken) => {
-            if (typeof candidateToken !== 'string' || !candidateToken || candidateToken === token) return false;
-            this._accountSessionDisplacedTokens.add(candidateToken);
-            return true;
+            if (this._accountSessionUid !== uid || this._accountSessionToken !== token) return false;
+            return this._rememberAccountSessionDisplacedToken(candidateToken);
         };
-
-        const getReplacedTokens = () => Array.from(this._accountSessionDisplacedTokens)
-            .filter((candidateToken) => typeof candidateToken === 'string' && candidateToken && candidateToken !== token)
-            .slice(-5);
 
         const isReplacingThisSession = (value) => {
             if (!value || typeof value !== 'object') return false;
@@ -6979,20 +7021,7 @@ export default class NetworkManager extends EventEmitter {
 
         const publish = () => {
             if (this._accountSessionUid !== uid || this._accountSessionToken !== token) return;
-            if (this._profileWriterSuperseded) return;
-            const replacedTokens = getReplacedTokens();
-            const payload = {
-                token,
-                uid,
-                heartbeatAt: Date.now(),
-                claimedAt: now,
-                version: 'v2'
-            };
-            if (replacedTokens.length > 0) {
-                payload.replacesToken = replacedTokens[replacedTokens.length - 1];
-                payload.replacesTokens = replacedTokens;
-            }
-            ref.update(payload).catch((error) => Logger.warn('[Network] Account session heartbeat failed', error));
+            this._publishAccountSessionHeartbeat({ uid, token });
         };
 
         this._accountSessionHandler = (snapshot) => {
@@ -7030,6 +7059,7 @@ export default class NetworkManager extends EventEmitter {
                 publish();
                 return;
             }
+            rememberDisplacedToken(remoteToken);
             publish();
         };
         ref.on?.('value', this._accountSessionHandler);
@@ -7169,6 +7199,16 @@ export default class NetworkManager extends EventEmitter {
             && typeof this._accountSessionToken === 'string'
             && this._accountSessionToken.length > 0
             && this._accountSessionClaimConfirmed === true;
+    }
+
+    _recoverProfileWriterFenceForActiveSession(uid, mutationKind = 'profile') {
+        this._publishAccountSessionHeartbeat({ uid, token: this._accountSessionToken, force: true });
+        this._resetProfileWriterSessionAfterConflict(uid);
+        const now = Date.now();
+        if (now - Number(this._lastProfileWriterFenceRecoveryLogTs || 0) > 30000) {
+            this._lastProfileWriterFenceRecoveryLogTs = now;
+            Logger.debug(`[Network] Reclaimed profile writer fence for the active account session (${mutationKind}).`);
+        }
     }
 
     _applyProfileWriterSession(profile, session, current = null) {
@@ -7418,6 +7458,16 @@ export default class NetworkManager extends EventEmitter {
         return statResetLike || missingMostLevelStats || (advancedProgress && emptyInventoryLike);
     }
 
+    shouldUseProfileRecoveryLookup(profile = null, options = {}) {
+        if (options.forceBackupLookup === true || options.forceRecoveryLookup === true) return true;
+        if (!this._isRealPlayerProfile(profile)) return true;
+        if (!String(profile?.name || '').trim()) return true;
+        if (this._isProfileSuspiciousHighLevelReset(profile)) return true;
+        const level = Math.max(1, Math.floor(Number(profile.level || 1)));
+        if (level <= 3 && options.skipLowLevelRecoveryLookup !== true) return true;
+        return false;
+    }
+
     _getProfileQuestScore(profile = null) {
         const questData = profile?.questData && typeof profile.questData === 'object' ? profile.questData : {};
         const questState = profile?.questState && typeof profile.questState === 'object' ? profile.questState : {};
@@ -7636,6 +7686,36 @@ export default class NetworkManager extends EventEmitter {
         return true;
     }
 
+    _shouldSyncRecoveryAfterFullSave(uid, profile = null, options = {}) {
+        if (!uid || !profile || typeof profile !== 'object') return false;
+        if (options.syncRecoveryProfile === false) return false;
+        if (options.syncRecoveryProfile === true) {
+            this._profileRecoverySyncMeta.set(uid, Date.now());
+            return true;
+        }
+
+        const reason = String(options.backupReason || options.saveReason || 'profile_save');
+        const immediateReasons = new Set([
+            'character_creation',
+            'profile_recovery',
+            'character_selection_reset',
+            'character_select_profile_auto_repair'
+        ]);
+        if (immediateReasons.has(reason) || this._isProfileSuspiciousHighLevelReset(profile)) {
+            this._profileRecoverySyncMeta.set(uid, Date.now());
+            return true;
+        }
+
+        const now = Date.now();
+        const previous = this._profileRecoverySyncMeta.get(uid) || 0;
+        const minimumIntervalMs = this.isSharedFieldActive()
+            ? Math.max(120000, PROFILE_RECOVERY_FULL_SAVE_SYNC_MS)
+            : PROFILE_RECOVERY_FULL_SAVE_SYNC_MS;
+        if ((now - previous) < minimumIntervalMs) return false;
+        this._profileRecoverySyncMeta.set(uid, now);
+        return true;
+    }
+
     async getLatestProfileSnapshot(uid, options = {}) {
         const throwOnError = options.strict === true || options.throwOnError === true;
         if (!uid || !window.firebase) {
@@ -7647,18 +7727,23 @@ export default class NetworkManager extends EventEmitter {
             const providedProfile = options.profile && typeof options.profile === 'object'
                 ? options.profile
                 : null;
-            const includeRecovery = options.includeRecovery !== false;
-            const backupLimit = Math.max(0, Math.min(20, Math.floor(Number(options.backupLimit ?? 5))));
-            const [profileSnapshot, recoverySnapshot] = await Promise.all([
-                providedProfile ? Promise.resolve(null) : this.getProfileRef(uid)?.once('value'),
-                includeRecovery ? this.getRecoveryProfileRef(uid)?.once('value') : Promise.resolve(null)
-            ]);
-
+            const profileSnapshot = providedProfile
+                ? null
+                : await this.getProfileRef(uid)?.once('value');
             const profile = providedProfile || profileSnapshot?.val() || null;
             const rootRevision = this._getProfileRevision(profile);
             this._rememberProfileRevision(uid, rootRevision);
             const normalizedProfile = this._isRealPlayerProfile(profile)
                 ? this._normalizeProfileSnapshot(profile)
+                : null;
+
+            const shouldLookupRecovery = this.shouldUseProfileRecoveryLookup(normalizedProfile, options);
+            const includeRecovery = options.includeRecovery !== false && shouldLookupRecovery;
+            const backupLimit = shouldLookupRecovery
+                ? Math.max(0, Math.min(PROFILE_BACKUP_DEFAULT_KEEP_COUNT, Math.floor(Number(options.backupLimit ?? PROFILE_BACKUP_DEFAULT_KEEP_COUNT))))
+                : 0;
+            const recoverySnapshot = includeRecovery
+                ? await this.getRecoveryProfileRef(uid)?.once('value')
                 : null;
 
             const recoveryEntry = recoverySnapshot?.val() || null;
@@ -7711,7 +7796,7 @@ export default class NetworkManager extends EventEmitter {
             if (shouldReadBackups) {
                 const backupSnapshot = await this.getProfileBackupsRef(uid)
                     ?.orderByChild('ts')
-                    .limitToLast(rootLooksLikeReset ? 20 : backupLimit)
+                    .limitToLast(rootLooksLikeReset ? PROFILE_BACKUP_DEFAULT_KEEP_COUNT : backupLimit)
                     .once('value');
                 backupSnapshot?.forEach((child) => {
                     const backup = { id: child.key, ...(child.val() || {}) };
@@ -7759,7 +7844,7 @@ export default class NetworkManager extends EventEmitter {
             }
 
             const backupId = await this._writeProfileBackup(uid, latestSnapshot.profile, {
-                keepCount: options.keepBackupCount || 20,
+                keepCount: options.keepBackupCount || PROFILE_BACKUP_DEFAULT_KEEP_COUNT,
                 reason: options.reason || 'profile_archive',
                 sourceUid: options.sourceUid || uid,
                 sourceTs: options.sourceTs || latestSnapshot.ts || latestSnapshot.profile.ts || Date.now()
@@ -7785,7 +7870,7 @@ export default class NetworkManager extends EventEmitter {
         const backupsRef = this.getProfileBackupsRef(uid);
         if (!backupsRef || !profile) return null;
 
-        const keepCount = Math.max(5, options.keepCount || 20);
+        const keepCount = Math.max(1, Math.min(20, Number(options.keepCount || PROFILE_BACKUP_DEFAULT_KEEP_COUNT)));
         const reason = options.reason || 'profile_save';
         if (!this._shouldWriteProfileBackup(uid, reason)) {
             return null;
@@ -8232,8 +8317,7 @@ export default class NetworkManager extends EventEmitter {
         return this._serializeProfileCommit(uid, async () => {
             const result = await this._commitPlayerDataTransaction(uid, data, syncToZone, options);
             if (!this._shouldRetryProfileWriterConflict(uid, result, options)) return result;
-            this._resetProfileWriterSessionAfterConflict(uid);
-            Logger.warn('[Network] Profile writer fence changed under the active account session; reclaiming and retrying profile save once.');
+            this._recoverProfileWriterFenceForActiveSession(uid, 'save');
             return this._commitPlayerDataTransaction(uid, data, syncToZone, {
                 ...options,
                 _writerConflictRetry: true,
@@ -8347,7 +8431,7 @@ export default class NetworkManager extends EventEmitter {
 
             try {
                 await this._writeProfileBackup(uid, committedProfile, {
-                    keepCount: options.keepBackupCount || 20,
+                    keepCount: options.keepBackupCount || PROFILE_BACKUP_DEFAULT_KEEP_COUNT,
                     reason: options.backupReason || 'profile_save',
                     sourceUid: options.sourceUid || uid,
                     sourceTs: options.sourceTs || committedProfile.ts
@@ -8357,11 +8441,13 @@ export default class NetworkManager extends EventEmitter {
                 Logger.warn(`[Network] Profile root committed but backup failed for ${uid}`, error);
             }
 
-            try {
-                await this._syncRecoveryProfile(uid, committedProfile);
-            } catch (error) {
-                auxiliaryFailures.recovery = error;
-                Logger.warn(`[Network] Profile root committed but recovery sync failed for ${uid}`, error);
+            if (this._shouldSyncRecoveryAfterFullSave(uid, committedProfile, options)) {
+                try {
+                    await this._syncRecoveryProfile(uid, committedProfile);
+                } catch (error) {
+                    auxiliaryFailures.recovery = error;
+                    Logger.warn(`[Network] Profile root committed but recovery sync failed for ${uid}`, error);
+                }
             }
 
             if (syncToZone && this.dbRef && this.zoneParticipationEnabled && this._shouldSendRealtimeUserState()) {
@@ -8396,8 +8482,7 @@ export default class NetworkManager extends EventEmitter {
         return this._serializeProfileCommit(uid, async () => {
             const result = await this._commitPlayerDataPatchTransaction(uid, patchData, options);
             if (!this._shouldRetryProfileWriterConflict(uid, result, options)) return result;
-            this._resetProfileWriterSessionAfterConflict(uid);
-            Logger.warn('[Network] Profile writer fence changed under the active account session; reclaiming and retrying profile patch once.');
+            this._recoverProfileWriterFenceForActiveSession(uid, 'patch');
             return this._commitPlayerDataPatchTransaction(uid, patchData, {
                 ...options,
                 _writerConflictRetry: true,

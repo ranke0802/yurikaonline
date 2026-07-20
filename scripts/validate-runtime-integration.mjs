@@ -2552,6 +2552,42 @@ async function validateCharacterSelectionGenerationContracts() {
     assert.deepEqual(renderedProfiles, ['Account B']);
     assert.equal(scene.profile.name, 'Account B', 'a stale account read must not replace the current account profile');
 
+    let fastPathLatestReads = 0;
+    const fastPathGame = {
+        auth: { currentUser: { uid: 'healthy_account' } },
+        net: {
+            playerId: 'healthy_account',
+            async getPlayerProfile() {
+                return {
+                    name: 'Healthy Account',
+                    level: 17,
+                    vitality: 8,
+                    intelligence: 13,
+                    wisdom: 7,
+                    agility: 6,
+                    inventory: [{ id: 'staff' }],
+                    equipment: { weapon: { type: 'tidal_staff', enhancementLevel: 3 } },
+                    questState: { active: {}, completed: { lake: true }, flags: {} },
+                    ts: 100
+                };
+            },
+            shouldUseProfileRecoveryLookup() {
+                return false;
+            },
+            async getLatestProfileSnapshot() {
+                fastPathLatestReads += 1;
+                throw new Error('healthy reconnect must not perform heavy profile recovery lookup');
+            }
+        },
+        ui: { hideHUD() {}, hideAllPopups() {} },
+        sound: null
+    };
+    const fastPathScene = new CharacterSelectionScene(fastPathGame);
+    fastPathScene.createUI = () => renderedProfiles.push(fastPathScene.profile?.name || null);
+    await fastPathScene.enter({ user: { uid: 'healthy_account' } });
+    assert.equal(fastPathLatestReads, 0, 'healthy character selection reconnect must use the root profile fast path');
+    assert.equal(fastPathScene.profile.name, 'Healthy Account');
+
     const repairOptions = [];
     let repairErrorShown = false;
     const recoveredGame = {
@@ -2982,6 +3018,10 @@ async function validateProfileWriterFencingContracts() {
             'the newest account session must keep control if the displaced older token heartbeats again'
         );
         assert.equal(delayedActiveSession.token, newestTab._accountSessionToken, 'the newest account session must rewrite displaced older heartbeats');
+        assert.ok(
+            delayedActiveSession.replacesTokens?.includes('older_existing_session'),
+            'the newest account session must explicitly tell a late older heartbeat that it was replaced'
+        );
 
         const realDateNow = Date.now;
         try {
@@ -3001,6 +3041,10 @@ async function validateProfileWriterFencingContracts() {
                 'a current account session must not yield to a remote activeSession that did not explicitly replace its token'
             );
             assert.equal(delayedActiveSession.token, newestTab._accountSessionToken, 'the current account session must reclaim ambiguous stale activeSession values');
+            assert.ok(
+                delayedActiveSession.replacesTokens?.includes('late_unknown_session_without_replacement'),
+                'reclaimed ambiguous activeSession tokens must be published as replaced so they can shut down cleanly'
+            );
         } finally {
             Date.now = realDateNow;
         }
@@ -3193,6 +3237,35 @@ async function validateProfileWriterFencingContracts() {
         assert.equal(realtimeProfile.equipment.weapon.baseStats, undefined, 'realtime equipment snapshot must not carry combat stat payloads');
         assert.ok(Object.keys(realtimeProfile.equipment.weapon).length <= 10, 'realtime equipment snapshot must stay compact');
 
+        let healthyRootRecoveryReads = 0;
+        let healthyRootBackupReads = 0;
+        const healthyRootFirebaseMock = {
+            database: () => ({
+                ref(path) {
+                    if (path === `users/${uid}/profile`) return { once: async () => ({ val: () => clone(advancedProfile) }) };
+                    if (path === `recovery_profiles/${uid}`) {
+                        return { once: async () => { healthyRootRecoveryReads += 1; return { val: () => null }; } };
+                    }
+                    if (path === `users/${uid}/profileBackups`) {
+                        healthyRootBackupReads += 1;
+                        return {
+                            orderByChild() { return this; },
+                            limitToLast() { return this; },
+                            once: async () => ({ forEach() {} })
+                        };
+                    }
+                    return { once: async () => ({ val: () => null }) };
+                }
+            })
+        };
+        window.firebase = healthyRootFirebaseMock;
+        globalThis.firebase = healthyRootFirebaseMock;
+        const healthySnapshotNet = new NetworkManager();
+        const healthySnapshot = await healthySnapshotNet.getLatestProfileSnapshot(uid, { profile: clone(advancedProfile) });
+        assert.equal(healthySnapshot.source, 'profile');
+        assert.equal(healthyRootRecoveryReads, 0, 'healthy root profile reconnect must not download the full recovery profile');
+        assert.equal(healthyRootBackupReads, 0, 'healthy root profile reconnect must not download profile backups');
+
         const rootRegressedProfile = {
             name: 'Ppp',
             level: 1,
@@ -3294,7 +3367,7 @@ async function validateProfileWriterFencingContracts() {
         globalThis.firebase = highLevelResetFirebaseMock;
         const highLevelSnapshotNet = new NetworkManager();
         const recoveredHighLevelSnapshot = await highLevelSnapshotNet.getLatestProfileSnapshot(uid);
-        assert.equal(observedBackupLimit, 20, 'a suspicious same-level reset must widen backup lookup');
+        assert.equal(observedBackupLimit, 5, 'a suspicious same-level reset must keep backup lookup bounded');
         assert.equal(recoveredHighLevelSnapshot.source, 'backup', 'a same-level high-level reset must recover from backup');
         assert.equal(recoveredHighLevelSnapshot.profile.vitality, 8);
         assert.equal(recoveredHighLevelSnapshot.profile.equipment.weapon.instanceId, 'profile_guard_equipped');
@@ -3744,6 +3817,32 @@ async function validateFailClosedProfileContracts() {
             assert.equal(memory.getProfile(uid).name, `Recovered ${missingKind}`);
             assert.equal(memory.getProfile(uid).level, 17);
             assert.equal(memory.getProfile(uid).exp, 777);
+        }
+
+        {
+            const uid = 'profile_recovery_throttle';
+            const memory = createProfileContractFirebase({ [uid]: makeProfile({ recoveryUid: uid, _profileRevision: 5 }) });
+            useFirebase(memory, uid);
+            const manager = makeManager(uid);
+            let recoverySyncCount = 0;
+            manager._syncRecoveryProfile = async () => {
+                recoverySyncCount += 1;
+                return true;
+            };
+            await establishWriter(manager, uid, 'recovery throttle test must establish writer intent');
+            const firstSave = await manager.savePlayerData(uid, makeProfile({ recoveryUid: uid, exp: 1 }), false, {
+                forceImmediate: true,
+                allowDestructiveProfileWrite: true,
+                bypassProfileRegressionGuard: true
+            });
+            const secondSave = await manager.savePlayerData(uid, makeProfile({ recoveryUid: uid, exp: 2 }), false, {
+                forceImmediate: true,
+                allowDestructiveProfileWrite: true,
+                bypassProfileRegressionGuard: true
+            });
+            assert.equal(firstSave.ok, true);
+            assert.equal(secondSave.ok, true);
+            assert.equal(recoverySyncCount, 1, 'back-to-back full autosaves must not rewrite the full recovery profile every time');
         }
 
         for (const missingKind of ['absent', 'writer-only']) {
