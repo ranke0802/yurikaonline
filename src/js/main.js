@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.02.082'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.083'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -718,7 +718,7 @@ class Game {
                 return { ok: false, reason: 'lifecycle_profile_save_failed', error };
             });
         this._lifecycleProfileSavePromise = savePromise;
-        return true;
+        return savePromise;
     }
 
     _handlePageHide() {

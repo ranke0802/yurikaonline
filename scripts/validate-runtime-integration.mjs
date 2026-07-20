@@ -164,6 +164,43 @@ async function validateFirebaseDatabaseRuleIndexContracts() {
     );
 }
 
+async function validatePwaVersionReloadPersistenceContracts() {
+    const indexHtml = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+    const mainJs = await readFile(new URL('../src/js/main.js', import.meta.url), 'utf8');
+
+    assert.match(indexHtml, /async function saveYurikaProfileBeforeReload/, 'version reloads must expose a profile-save bridge');
+    assert.match(indexHtml, /async function replaceYurikaLocationAfterSave/, 'location replacement must be guarded by profile save');
+    assert.match(indexHtml, /waitForYurikaPromise\(promise, timeoutMs = 8000\)/, 'profile save before version reload must wait long enough for Firebase flushes');
+
+    const clientRefreshStart = indexHtml.indexOf('async function forceYurikaClientRefresh');
+    const controllerReloadStart = indexHtml.indexOf('async function forceYurikaControllerReload');
+    const legacyResetStart = indexHtml.indexOf('async function unregisterLegacyYurikaServiceWorkers');
+    const verifyStart = indexHtml.indexOf('async function verifyYurikaRuntimeVersion');
+    assert.ok(clientRefreshStart >= 0 && controllerReloadStart > clientRefreshStart, 'client refresh function must be present before controller reload');
+    assert.ok(legacyResetStart > controllerReloadStart && verifyStart > legacyResetStart, 'legacy reset function must be present before version verification');
+
+    const clientRefreshBody = indexHtml.slice(clientRefreshStart, controllerReloadStart);
+    const clientSaveIndex = clientRefreshBody.indexOf('await saveYurikaProfileBeforeReload(reloadReason)');
+    const clientClearIndex = clientRefreshBody.indexOf('await clearYurikaClientCaches()');
+    const clientReplaceIndex = clientRefreshBody.indexOf('window.location.replace');
+    assert.ok(clientSaveIndex >= 0, 'build-mismatch refresh must save the active profile first');
+    assert.ok(clientSaveIndex < clientClearIndex, 'build-mismatch refresh must save before clearing caches');
+    assert.ok(clientClearIndex < clientReplaceIndex, 'build-mismatch refresh must clear caches before reload');
+
+    const controllerReloadBody = indexHtml.slice(controllerReloadStart, legacyResetStart);
+    assert.match(controllerReloadBody, /return replaceYurikaLocationAfterSave\(normalizedTarget, reason\)/, 'service worker controller reload must save before replacing location');
+
+    const legacyResetBody = indexHtml.slice(legacyResetStart, verifyStart);
+    const legacySaveIndex = legacyResetBody.indexOf("await saveYurikaProfileBeforeReload('legacy-sw-reset')");
+    const legacyClearIndex = legacyResetBody.indexOf('await clearYurikaClientCaches()');
+    const legacyReplaceIndex = legacyResetBody.indexOf('window.location.replace');
+    assert.ok(legacySaveIndex >= 0, 'legacy service worker reset must save the active profile first');
+    assert.ok(legacySaveIndex < legacyClearIndex, 'legacy service worker reset must save before clearing caches');
+    assert.ok(legacyClearIndex < legacyReplaceIndex, 'legacy service worker reset must clear caches before reload');
+
+    assert.match(mainJs, /requestLifecycleProfileSave[\s\S]*return savePromise;/, 'lifecycle profile save must return the Firebase save promise so version reload can await it');
+}
+
 function validateAttackSpeedCapContracts() {
     const player = new Player(0, 0, 'Attack Speed Cap Tester', {
         baseStats: {
@@ -8356,6 +8393,8 @@ console.log('[runtime-integration] checking solo quiet RTDB listeners...');
 await validateSoloQuietRtdbListenerContracts();
 console.log('[runtime-integration] checking Firebase RTDB rule indexes...');
 await validateFirebaseDatabaseRuleIndexContracts();
+console.log('[runtime-integration] checking PWA version reload profile persistence...');
+await validatePwaVersionReloadPersistenceContracts();
 console.log('[runtime-integration] checking attack speed caps...');
 validateAttackSpeedCapContracts();
 console.log('[runtime-integration] checking chain lightning scaling...');

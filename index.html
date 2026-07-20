@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json?v=0.02.082">
+    <link rel="manifest" href="manifest.json?v=0.02.083">
     <meta name="theme-color" content="#2d3436">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,7 +20,7 @@
     <meta name="x5-fullscreen" content="true">
     <meta name="x5-page-mode" content="app">
     <script>
-        window.BOOTSTRAP_VERSION = '0.02.082';
+        window.BOOTSTRAP_VERSION = '0.02.083';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -85,6 +85,67 @@
             }
         }
 
+        function waitForYurikaPromise(promise, timeoutMs = 8000) {
+            if (!promise || typeof promise.then !== 'function') {
+                return Promise.resolve(null);
+            }
+
+            return Promise.race([
+                promise,
+                new Promise((resolve) => {
+                    setTimeout(() => resolve({ ok: false, reason: 'profile_save_timeout' }), timeoutMs);
+                })
+            ]);
+        }
+
+        async function saveYurikaProfileBeforeReload(reason = 'version_reload_profile_save') {
+            const game = window.game;
+            const player = game?.localPlayer;
+            if (!player?.id) return { ok: true, skipped: true, reason: 'no_active_player' };
+
+            try {
+                let savePromise = null;
+                if (typeof game.requestLifecycleProfileSave === 'function') {
+                    const maybePromise = game.requestLifecycleProfileSave(reason, {
+                        force: true,
+                        minIntervalMs: 0
+                    });
+                    savePromise = maybePromise && typeof maybePromise.then === 'function'
+                        ? maybePromise
+                        : game._lifecycleProfileSavePromise;
+                } else if (typeof player.saveState === 'function') {
+                    savePromise = Promise.resolve(player.saveState(false, {
+                        debounceMs: 0,
+                        reason,
+                        backupReason: reason
+                    })).then((result) => {
+                        if (result?.ok === false) return result;
+                        return game?.net?.flushProfileWrites?.(player.id) || result;
+                    });
+                }
+
+                const result = await waitForYurikaPromise(savePromise);
+                if (result?.ok === false) {
+                    console.warn(`Yurika profile save before reload did not complete cleanly (${reason}):`, result.reason || result);
+                }
+                return result || { ok: true };
+            } catch (error) {
+                console.warn(`Yurika profile save before reload failed (${reason}):`, error);
+                return { ok: false, reason: 'profile_save_failed', error };
+            }
+        }
+
+        async function replaceYurikaLocationAfterSave(targetVersion, reason) {
+            const normalizedTarget = normalizeGameVersion(targetVersion) || 'unknown';
+            const saveResult = await saveYurikaProfileBeforeReload(reason || 'version_reload_profile_save');
+            if (window.game?.localPlayer?.id && saveResult?.ok === false) {
+                console.warn(`Yurika reload deferred until profile save succeeds (${reason || 'version_reload_profile_save'}).`);
+                return false;
+            }
+            window.location.replace(buildCacheResetUrl(normalizedTarget));
+            return true;
+        }
+
         async function clearYurikaClientCaches() {
             if ('serviceWorker' in navigator) {
                 const registrations = await navigator.serviceWorker.getRegistrations();
@@ -114,8 +175,15 @@
                 return false;
             }
 
+            const reloadReason = reason || 'version-mismatch';
+            const saveResult = await saveYurikaProfileBeforeReload(reloadReason);
+            if (window.game?.localPlayer?.id && saveResult?.ok === false) {
+                console.warn(`Yurika client refresh deferred until profile save succeeds (${reloadReason}).`);
+                return false;
+            }
+
             sessionStorage.setItem(YURIKA_CACHE_RESET_TARGET_KEY, normalizedTarget);
-            sessionStorage.setItem(YURIKA_CACHE_RESET_REASON_KEY, reason || 'version-mismatch');
+            sessionStorage.setItem(YURIKA_CACHE_RESET_REASON_KEY, reloadReason);
             sessionStorage.setItem(YURIKA_CACHE_RESET_ATTEMPT_KEY, String(attempts + 1));
 
             try {
@@ -128,7 +196,7 @@
             return true;
         }
 
-        function forceYurikaControllerReload(targetVersion, reason = 'sw-controller-change') {
+        async function forceYurikaControllerReload(targetVersion, reason = 'sw-controller-change') {
             const normalizedTarget = normalizeGameVersion(targetVersion) || 'unknown';
             const lastReloadVersion = sessionStorage.getItem(YURIKA_SW_CONTROLLER_RELOAD_VERSION_KEY);
             if (lastReloadVersion === normalizedTarget) {
@@ -137,8 +205,7 @@
 
             sessionStorage.setItem(YURIKA_SW_CONTROLLER_RELOAD_VERSION_KEY, normalizedTarget);
             sessionStorage.setItem(YURIKA_CACHE_RESET_REASON_KEY, reason);
-            window.location.replace(buildCacheResetUrl(normalizedTarget));
-            return true;
+            return replaceYurikaLocationAfterSave(normalizedTarget, reason);
         }
 
         function isYurikaUiLayoutEditActive() {
@@ -185,6 +252,12 @@
             });
 
             if (!hasLegacyRegistration) return false;
+
+            const saveResult = await saveYurikaProfileBeforeReload('legacy-sw-reset');
+            if (window.game?.localPlayer?.id && saveResult?.ok === false) {
+                console.warn('Legacy service worker reset deferred until profile save succeeds.');
+                return false;
+            }
 
             await clearYurikaClientCaches();
             window.location.replace(buildCacheResetUrl('legacy-sw'));
@@ -277,7 +350,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.082', { updateViaCache: 'none' });
+                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.083', { updateViaCache: 'none' });
                     await registration.update();
                     registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
                     registration.addEventListener('updatefound', () => {
@@ -301,7 +374,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
     <!-- Firebase Config -->
-    <script src="src/js/firebaseConfig.js?v=0.02.082"></script>
+    <script src="src/js/firebaseConfig.js?v=0.02.083"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Nanum+Gothic:wght@400;700&display=swap"
         rel="stylesheet">
@@ -309,10 +382,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.02.082</title>
+    <title>Yurika Online v0.02.083</title>
 
-    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.02.082">
-    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.02.082">
+    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.02.083">
+    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.02.083">
     <script>
         // v0.29.20+: Prefer the actually loaded client build for UI, and auto-reset caches on mismatch.
         (async function initCacheBusting() {
@@ -333,7 +406,7 @@
             }
         });
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.02.082">
+    <link rel="stylesheet" href="src/css/style.css?v=0.02.083">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
@@ -1384,7 +1457,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.02.082"></script>
+    <script type="module" src="./src/js/main.js?v=0.02.083"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">
