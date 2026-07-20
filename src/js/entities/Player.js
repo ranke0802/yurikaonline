@@ -195,7 +195,7 @@ export default class Player extends CharacterBase {
         this.spawnProtectionTimer = 0;
         this.lastInsufficientManaFeedbackAt = 0;
 
-        this.updateDerivedStats();
+        this.updateDerivedStats({ save: false });
     }
 
     // v1.99.38: Compatibility getter for RemotePlayer.canAttackTarget checks
@@ -1200,6 +1200,20 @@ export default class Player extends CharacterBase {
         });
     }
 
+    getCurrentProfileZoneId() {
+        return window.game?.zone?.currentZone?.id || this.currentZoneId || 'zone_1';
+    }
+
+    updateProfilePositionSnapshot() {
+        const currentZoneId = this.getCurrentProfileZoneId();
+        this.currentZoneId = currentZoneId;
+        this.mapPositions = {
+            ...(this.mapPositions || {}),
+            [currentZoneId]: { x: Math.round(this.x), y: Math.round(this.y) }
+        };
+        return currentZoneId;
+    }
+
     saveState(syncToWorld = false, options = {}) {
         if (!this.net || !this.id) return Promise.resolve({ ok: false, reason: 'player_unavailable' });
         const isSharedFieldActive = !!this.net.isSharedFieldActive?.();
@@ -1209,12 +1223,7 @@ export default class Player extends CharacterBase {
             : (overrideDebounceMs ?? (isSharedFieldActive ? 2500 : 3200));
         const safeHp = Math.min(this.maxHp, Math.max(0, Math.round(this.hp)));
         const safeMp = Math.min(this.maxMp, Math.max(0, Math.round(this.mp)));
-        const currentZoneId = window.game?.zone?.currentZone?.id || this.currentZoneId || 'zone_1';
-        this.currentZoneId = currentZoneId;
-        this.mapPositions = {
-            ...(this.mapPositions || {}),
-            [currentZoneId]: { x: Math.round(this.x), y: Math.round(this.y) }
-        };
+        const currentZoneId = this.updateProfilePositionSnapshot();
         const data = {
             level: this.level,
             exp: this.exp,
@@ -1304,6 +1313,12 @@ export default class Player extends CharacterBase {
                 case 'maxExp':
                     patch.maxExp = this.maxExp;
                     break;
+                case 'x':
+                    patch.x = Math.round(this.x);
+                    break;
+                case 'y':
+                    patch.y = Math.round(this.y);
+                    break;
                 case 'hp':
                     patch.hp = Math.min(this.maxHp, Math.max(0, Math.round(this.hp)));
                     break;
@@ -1385,7 +1400,7 @@ export default class Player extends CharacterBase {
                     break;
                 case 'currentZoneId':
                 case 'mapId': {
-                    const currentZoneId = window.game?.zone?.currentZone?.id || this.currentZoneId || 'zone_1';
+                    const currentZoneId = this.getCurrentProfileZoneId();
                     patch.currentZoneId = currentZoneId;
                     patch.mapId = currentZoneId;
                     break;
@@ -1436,6 +1451,16 @@ export default class Player extends CharacterBase {
             saveOptions.expectedRevision = options.expectedRevision;
         }
         return this.net.savePlayerDataPatch(this.id, patch, saveOptions);
+    }
+
+    saveProfilePosition(options = {}) {
+        this.updateProfilePositionSnapshot();
+        return this.saveProfilePatch(['x', 'y', 'currentZoneId', 'mapId', 'mapPositions', 'hp', 'mp'], {
+            debounceMs: Number.isFinite(options.debounceMs) ? options.debounceMs : 0,
+            forceImmediate: options.forceImmediate !== false,
+            syncToWorld: !!options.syncToWorld,
+            reason: options.reason || 'position_snapshot_patch'
+        });
     }
 
     syncEquipmentVisualState(reason = 'equipment_visual_sync') {
@@ -2329,6 +2354,12 @@ export default class Player extends CharacterBase {
             this.skillLevels[skillId] = (this.skillLevels[skillId] || 0) + 1;
             Logger.log(`Skill ${skillId} leveled up to ${this.skillLevels[skillId]}`);
             if (window.game?.ui) window.game.ui.updateSkillPopup();
+            this.updateManastoneInventory?.();
+            this.saveProfilePatch(['manastone', 'inventory', 'skillLevels'], {
+                debounceMs: 0,
+                forceImmediate: true,
+                reason: 'skill_levelup_patch'
+            });
         } else {
             if (window.game?.ui) window.game.ui.logSystemMessage('마석이 부족합니다.');
         }
@@ -2853,6 +2884,7 @@ export default class Player extends CharacterBase {
         if (amount <= 0) return;
         const shouldSave = options.save !== false;
         const debounceMs = Number.isFinite(options.debounceMs) ? options.debounceMs : undefined;
+        const previousLevel = this.level;
         if (options.showHint !== false) {
             window.game?.ui?.showExpGainHint?.(amount);
         }
@@ -2861,9 +2893,12 @@ export default class Player extends CharacterBase {
             this.levelUp({ save: false });
         }
         if (shouldSave) {
-            this.saveProfilePatch(['exp', 'maxExp', 'level', 'statPoints', 'hp'], {
-                debounceMs,
-                reason: 'exp_patch'
+            const leveledUp = this.level > previousLevel;
+            this.saveProfilePatch(['exp', 'maxExp', 'level', 'statPoints', 'hp', 'mp'], {
+                debounceMs: leveledUp ? 0 : debounceMs,
+                forceImmediate: leveledUp,
+                syncToWorld: leveledUp,
+                reason: leveledUp ? 'levelup_progress_patch' : 'exp_patch'
             });
         }
     }
@@ -2904,7 +2939,8 @@ export default class Player extends CharacterBase {
         }
         if (shouldSave) {
             this.saveProfilePatch(['level', 'exp', 'maxExp', 'statPoints', 'hp', 'mp'], {
-                debounceMs,
+                debounceMs: Number.isFinite(debounceMs) ? debounceMs : 0,
+                forceImmediate: true,
                 syncToWorld,
                 reason: 'levelup_patch'
             });
@@ -3777,8 +3813,13 @@ export default class Player extends CharacterBase {
         const previous = this.equipment.weapon;
         this.equipment.weapon = item;
         this.inventory[slotIndex] = previous || null;
-        this.updateDerivedStats();
-        this.syncEquipmentVisualState('equip_weapon');
+        this.updateDerivedStats({ save: false });
+        this.saveProfilePatch(['equipment', 'inventory'], {
+            debounceMs: 0,
+            forceImmediate: true,
+            syncToWorld: true,
+            reason: 'equip_weapon'
+        });
         if (window.game?.ui) {
             window.game.ui.updateStatusPopup();
             window.game.ui.updateInventory();
@@ -3799,8 +3840,13 @@ export default class Player extends CharacterBase {
 
         this.inventory[emptySlot] = weapon;
         this.equipment.weapon = null;
-        this.updateDerivedStats();
-        this.syncEquipmentVisualState('unequip_weapon');
+        this.updateDerivedStats({ save: false });
+        this.saveProfilePatch(['equipment', 'inventory'], {
+            debounceMs: 0,
+            forceImmediate: true,
+            syncToWorld: true,
+            reason: 'unequip_weapon'
+        });
         if (window.game?.ui) {
             window.game.ui.updateStatusPopup();
             window.game.ui.updateInventory();
@@ -3902,12 +3948,28 @@ export default class Player extends CharacterBase {
         }
 
         if (target.location === 'equipment' || result.destroyed) {
-            this.updateDerivedStats();
+            this.updateDerivedStats({ save: false });
             if (target.location === 'equipment') {
-                this.syncEquipmentVisualState(result.destroyed ? 'enhance_destroy_equipped_weapon' : 'enhance_equipped_weapon');
+                this.saveProfilePatch(['equipment', 'inventory'], {
+                    debounceMs: 0,
+                    forceImmediate: true,
+                    syncToWorld: true,
+                    reason: result.destroyed ? 'enhance_destroy_equipped_weapon' : 'enhance_equipped_weapon'
+                });
+            } else {
+                this.saveProfilePatch(['inventory', 'equipment'], {
+                    debounceMs: 0,
+                    forceImmediate: true,
+                    syncToWorld: true,
+                    reason: 'enhance_destroy_inventory_weapon'
+                });
             }
         } else {
-            this.saveState();
+            this.saveProfilePatch(['inventory'], {
+                debounceMs: 0,
+                forceImmediate: true,
+                reason: 'enhance_inventory_weapon'
+            });
         }
 
         if (!deferUiRefresh && window.game?.ui) {
@@ -3944,10 +4006,19 @@ export default class Player extends CharacterBase {
         }
 
         if (target.location === 'equipment') {
-            this.updateDerivedStats();
-            this.syncEquipmentVisualState('reroll_equipped_weapon_options');
+            this.updateDerivedStats({ save: false });
+            this.saveProfilePatch(['equipment', 'inventory'], {
+                debounceMs: 0,
+                forceImmediate: true,
+                syncToWorld: true,
+                reason: 'reroll_equipped_weapon_options'
+            });
         } else {
-            this.saveState();
+            this.saveProfilePatch(['inventory'], {
+                debounceMs: 0,
+                forceImmediate: true,
+                reason: 'reroll_inventory_weapon_options'
+            });
         }
 
         if (!deferUiRefresh && window.game?.ui) {
@@ -4029,10 +4100,19 @@ export default class Player extends CharacterBase {
         }
 
         if (target.location === 'equipment') {
-            this.updateDerivedStats();
-            this.syncEquipmentVisualState('dismantle_equipped_weapon');
+            this.updateDerivedStats({ save: false });
+            this.saveProfilePatch(['equipment', 'inventory'], {
+                debounceMs: 0,
+                forceImmediate: true,
+                syncToWorld: true,
+                reason: 'dismantle_equipped_weapon'
+            });
         } else {
-            this.saveState();
+            this.saveProfilePatch(['inventory'], {
+                debounceMs: 0,
+                forceImmediate: true,
+                reason: 'dismantle_inventory_weapon'
+            });
         }
 
         if (window.game?.ui) {

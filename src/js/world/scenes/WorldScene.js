@@ -44,6 +44,14 @@ export default class WorldScene extends Scene {
         this.zoneTransitionToken = 0;
         this._activeZoneTransitionPromise = null;
         this._handleHostChanged = null;
+        this.profileIdleSaveDelayMs = 3500;
+        this.profileIdleSaveMinIntervalMs = 8000;
+        this.profileIdleSaveMinDistance = 6;
+        this._profileIdleLastMovingAt = 0;
+        this._profileIdleSavePending = false;
+        this._profileIdleSaveInFlight = false;
+        this._profileIdleLastSavedAt = 0;
+        this._profileIdleLastSavedPosition = null;
     }
 
     shouldFreezeWorldForModalUi() {
@@ -415,6 +423,7 @@ export default class WorldScene extends Scene {
         }
         this.ui?.updateMapContext?.(this.game.zone.currentZone, this.game.zone.getZoneMeta(initialZoneId));
         this._playZoneBgm(zoneData);
+        this._resetProfileIdleSaveTracking();
 
         if (shouldDeferZoneParticipation) {
             this.game.tutorial?.startTutorial?.('basic_training');
@@ -578,6 +587,7 @@ export default class WorldScene extends Scene {
             this.net?.sendPlayerHp?.(this.player.hp, this.player.maxHp);
             this.net?.sendHeartbeat?.();
             this.player.saveState(true, { debounceMs: 0, reason: 'zone_arrival' });
+            this._resetProfileIdleSaveTracking();
             this.game.quests?.notifyZoneEntered?.(targetZoneId);
             this._playZoneBgm(zoneData);
             this.ui?.updateMapContext?.(zoneData, travelState.meta);
@@ -714,6 +724,7 @@ export default class WorldScene extends Scene {
         this.net.sendPlayerHp(this.player.hp, this.player.maxHp);
         this.net.sendMovePacket(this.player.x, this.player.y, this.player.vx, this.player.vy, this.player.name);
         this.net.sendHeartbeat();
+        this._resetProfileIdleSaveTracking();
     }
 
     _ensureHostSpawnRulesLoaded(options = {}) {
@@ -1066,6 +1077,13 @@ export default class WorldScene extends Scene {
 
     async exit() {
         await this.waitForPendingZoneTransition();
+        if (this.player?.saveProfilePosition) {
+            await this.player.saveProfilePosition({
+                debounceMs: 0,
+                forceImmediate: true,
+                reason: 'world_exit_position_snapshot'
+            });
+        }
         const flushResult = await this.net?.flushProfileWrites?.(this.player?.id);
         if (flushResult?.ok === false) {
             throw new Error(flushResult.reason || 'world_exit_profile_flush_failed');
@@ -1183,6 +1201,69 @@ export default class WorldScene extends Scene {
         }
     }
 
+    _resetProfileIdleSaveTracking() {
+        if (!this.player) return;
+        this._profileIdleLastMovingAt = Date.now();
+        this._profileIdleSavePending = false;
+        this._profileIdleSaveInFlight = false;
+        this._profileIdleLastSavedAt = Date.now();
+        this._profileIdleLastSavedPosition = {
+            x: Math.round(this.player.x),
+            y: Math.round(this.player.y),
+            zoneId: this.player.getCurrentProfileZoneId?.() || this.game.zone?.currentZone?.id || 'zone_1'
+        };
+    }
+
+    _trackIdleProfilePositionSave(prevX, prevY) {
+        if (!this.player || this.player.isDead || this.player.isDying || this.isZoneTransitioning) return;
+
+        const now = Date.now();
+        const currentX = Math.round(this.player.x);
+        const currentY = Math.round(this.player.y);
+        const currentZoneId = this.player.getCurrentProfileZoneId?.() || this.game.zone?.currentZone?.id || 'zone_1';
+        const frameMoved = Math.hypot(Number(this.player.x || 0) - Number(prevX || 0), Number(this.player.y || 0) - Number(prevY || 0)) > 0.35;
+        const velocityMoving = Math.abs(Number(this.player.vx || 0)) > 0.1 || Math.abs(Number(this.player.vy || 0)) > 0.1;
+        const hasMoveTarget = !!this.player.moveTarget;
+        const isMoving = frameMoved || velocityMoving || hasMoveTarget;
+        const lastSaved = this._profileIdleLastSavedPosition;
+        const distanceFromLastSaved = lastSaved && lastSaved.zoneId === currentZoneId
+            ? Math.hypot(currentX - Number(lastSaved.x || 0), currentY - Number(lastSaved.y || 0))
+            : Number.POSITIVE_INFINITY;
+
+        if (isMoving) {
+            this._profileIdleLastMovingAt = now;
+            if (distanceFromLastSaved >= this.profileIdleSaveMinDistance) {
+                this._profileIdleSavePending = true;
+            }
+            return;
+        }
+
+        if (!this._profileIdleSavePending || this._profileIdleSaveInFlight) return;
+        if (now - Number(this._profileIdleLastMovingAt || 0) < this.profileIdleSaveDelayMs) return;
+        if (now - Number(this._profileIdleLastSavedAt || 0) < this.profileIdleSaveMinIntervalMs) return;
+
+        this._profileIdleSaveInFlight = true;
+        Promise.resolve(this.player.saveProfilePosition?.({
+            debounceMs: 0,
+            forceImmediate: true,
+            reason: 'idle_position_snapshot'
+        })).then((result) => {
+            if (result?.ok === false) {
+                this._profileIdleSavePending = true;
+                Logger.warn('[WorldScene] Idle position save failed', result.reason || result);
+                return;
+            }
+            this._profileIdleSavePending = false;
+            this._profileIdleLastSavedAt = Date.now();
+            this._profileIdleLastSavedPosition = { x: currentX, y: currentY, zoneId: currentZoneId };
+        }).catch((error) => {
+            this._profileIdleSavePending = true;
+            Logger.warn('[WorldScene] Idle position save failed', error);
+        }).finally(() => {
+            this._profileIdleSaveInFlight = false;
+        });
+    }
+
     update(dt) {
         if (this.isZoneTransitioning || this._profileWriterSuperseded) return;
         if (this.shouldFreezeWorldForModalUi()) {
@@ -1228,6 +1309,8 @@ export default class WorldScene extends Scene {
                     this.player.y = prevY;
                 }
             }
+
+            this._trackIdleProfilePositionSave(prevX, prevY);
 
             // Sync Position
             this.net.sendMovePacket(

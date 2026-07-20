@@ -2633,6 +2633,107 @@ async function validateCharacterSelectionGenerationContracts() {
     assert.equal(repairOptions[0]?.allowMissingProfileRepair, true, 'missing-root profile auto repair must explicitly allow safe root restoration');
 }
 
+async function validateCriticalProfilePersistenceTriggers() {
+    const previousGame = window.game;
+    const copy = (value) => (value == null ? value : JSON.parse(JSON.stringify(value)));
+    const patchCalls = [];
+    const net = {
+        isSharedFieldActive: () => false,
+        sendPlayerHp() {},
+        syncLocalZoneProfile() {},
+        async savePlayerDataPatch(uid, patch, options) {
+            patchCalls.push({ uid, patch: copy(patch), options: copy(options) });
+            return { ok: true };
+        }
+    };
+
+    try {
+        window.game = {
+            zone: { currentZone: { id: 'zone_2' } },
+            ui: {
+                updateSkillPopup() {},
+                updateStatusPopup() {},
+                updateInventory() {},
+                logSystemMessage() {},
+                showCenterMessage() {},
+                showLevelUpEffect() {}
+            },
+            tutorial: { trigger() {} },
+            itemData: null
+        };
+
+        const player = new Player(120, 180, 'Persist Tester');
+        player.id = 'persist_uid';
+        player.net = net;
+        player.currentZoneId = 'zone_2';
+        player.hp = 28;
+        player.mp = 41;
+
+        await player.saveProfilePosition({ reason: 'test_idle_position' });
+        assert.equal(patchCalls.at(-1).patch.x, 120);
+        assert.equal(patchCalls.at(-1).patch.y, 180);
+        assert.equal(patchCalls.at(-1).patch.currentZoneId, 'zone_2');
+        assert.deepEqual(patchCalls.at(-1).patch.mapPositions.zone_2, { x: 120, y: 180 });
+        assert.equal(patchCalls.at(-1).options.forceImmediate, true);
+        assert.equal(patchCalls.at(-1).options.debounceMs, 0);
+
+        patchCalls.length = 0;
+        player.inventory[1] = { id: 'magic_staff', type: 'magic_staff', slot: 'weapon', name: 'Magic Staff' };
+        const equipResult = player.equipWeaponFromInventory(1);
+        assert.equal(equipResult.ok, true);
+        assert.equal(patchCalls.length, 1);
+        assert.equal(patchCalls[0].patch.equipment.weapon.type, 'magic_staff');
+        assert.equal(patchCalls[0].patch.inventory[1], null);
+        assert.equal(patchCalls[0].options.forceImmediate, true);
+        assert.equal(patchCalls[0].options.syncToZone, true);
+
+        patchCalls.length = 0;
+        player.exp = 95;
+        player.maxExp = 100;
+        player.gainExp(20);
+        assert.equal(player.level, 2);
+        assert.equal(patchCalls.length, 1);
+        assert.equal(patchCalls[0].patch.level, 2);
+        assert.equal(patchCalls[0].patch.mp, player.mp);
+        assert.equal(patchCalls[0].options.forceImmediate, true);
+        assert.equal(patchCalls[0].options.saveReason, 'levelup_progress_patch');
+
+        patchCalls.length = 0;
+        player.manastone = 300;
+        player.skillLevels.laser = 1;
+        player.increaseSkill('laser');
+        assert.equal(player.skillLevels.laser, 2);
+        assert.equal(patchCalls.length, 1);
+        assert.equal(patchCalls[0].patch.skillLevels.laser, 2);
+        assert.equal(patchCalls[0].patch.manastone, 0);
+        assert.equal(patchCalls[0].options.forceImmediate, true);
+        assert.equal(patchCalls[0].options.saveReason, 'skill_levelup_patch');
+
+        patchCalls.length = 0;
+        player.statPoints = 0;
+        const ui = Object.create(UIManager.prototype);
+        Object.assign(ui, {
+            game: { localPlayer: player, tutorial: { trigger() {} } },
+            pendingStats: { vitality: 1, intelligence: 0, wisdom: 0, agility: 0 },
+            statInsightPreviewShown: {},
+            collectFirstStatInsightMessages: () => [],
+            queueStatInsightMessages: () => {},
+            resetStatInsightPreviewState: () => {},
+            createEmptyPendingStats: () => ({ vitality: 0, intelligence: 0, wisdom: 0, agility: 0 })
+        });
+        ui.savePendingStats();
+        assert.equal(player.vitality, 2);
+        assert.equal(player.statPoints, 0);
+        assert.equal(patchCalls.length, 1);
+        assert.equal(patchCalls[0].patch.vitality, 2);
+        assert.equal(patchCalls[0].patch.statPoints, 0);
+        assert.equal(patchCalls[0].options.forceImmediate, true);
+        assert.equal(patchCalls[0].options.saveReason, 'stat_allocation_patch');
+    } finally {
+        window.game = previousGame;
+    }
+}
+
 async function validateQuestRuntimeStateSync() {
     const previousGame = window.game;
     const systemLogs = [];
@@ -8275,6 +8376,8 @@ console.log('[runtime-integration] checking profile exit durability...');
 await validateProfileExitDurabilityContracts();
 console.log('[runtime-integration] checking character selection generations...');
 await validateCharacterSelectionGenerationContracts();
+console.log('[runtime-integration] checking critical profile persistence triggers...');
+await validateCriticalProfilePersistenceTriggers();
 console.log('[runtime-integration] checking reward dedupe...');
 await validateRewardDedupe();
 console.log('[runtime-integration] checking quest runtime state sync...');

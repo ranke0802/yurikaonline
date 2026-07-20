@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.02.080'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.082'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -58,17 +58,23 @@ class Game {
         this._backgroundedAt = 0;
         this._viewportResizeTimers = [];
         this._lastViewportSyncSignature = '';
+        this._lastLifecycleProfileSaveAt = 0;
+        this._lifecycleProfileSavePromise = null;
 
         // Initial resize will be called after camera creation for full sync
         this._resetTransientInputState = this._resetTransientInputState.bind(this);
         this._handleViewportResize = this._handleViewportResize.bind(this);
         this._handleViewportOrientationChange = this._handleViewportOrientationChange.bind(this);
+        this._handlePageHide = this._handlePageHide.bind(this);
+        this._handleBeforeUnload = this._handleBeforeUnload.bind(this);
         window.addEventListener('resize', this._handleViewportResize);
         window.addEventListener('orientationchange', this._handleViewportOrientationChange);
         window.visualViewport?.addEventListener?.('resize', this._handleViewportResize);
         window.visualViewport?.addEventListener?.('scroll', this._handleViewportResize);
         window.screen?.orientation?.addEventListener?.('change', this._handleViewportOrientationChange);
         window.addEventListener('pageshow', this._handleViewportOrientationChange);
+        window.addEventListener('pagehide', this._handlePageHide);
+        window.addEventListener('beforeunload', this._handleBeforeUnload);
         document.addEventListener('visibilitychange', () => {
             if (!this.loop) return;
             const currentScene = this.sceneManager?.currentScene;
@@ -79,6 +85,7 @@ class Game {
             if (document.visibilityState === 'hidden') {
                 this._backgroundedAt = Date.now();
                 this._resetTransientInputState('hidden');
+                this.requestLifecycleProfileSave('visibility_hidden_profile_save');
                 currentScene?.onVisibilityHidden?.({
                     hiddenAt: this._backgroundedAt,
                     keepSimulationActive
@@ -681,6 +688,53 @@ class Game {
             return !!currentScene.shouldSuppressTransientWorldEffects();
         }
         return typeof document !== 'undefined' ? !!document.hidden : false;
+    }
+
+    requestLifecycleProfileSave(reason = 'lifecycle_profile_save', options = {}) {
+        const player = this.localPlayer;
+        if (!player?.saveState || !player.id) return false;
+
+        const now = Date.now();
+        const minIntervalMs = Number.isFinite(options.minIntervalMs)
+            ? Math.max(0, Number(options.minIntervalMs))
+            : 750;
+        if (!options.force && now - Number(this._lastLifecycleProfileSaveAt || 0) < minIntervalMs) {
+            return false;
+        }
+        this._lastLifecycleProfileSaveAt = now;
+
+        const savePromise = Promise.resolve()
+            .then(() => player.saveState(false, {
+                debounceMs: 0,
+                reason,
+                backupReason: reason
+            }))
+            .then((result) => {
+                if (result?.ok === false) return result;
+                return this.net?.flushProfileWrites?.(player.id) || result;
+            })
+            .catch((error) => {
+                Logger.warn('[Game] Lifecycle profile save failed', error);
+                return { ok: false, reason: 'lifecycle_profile_save_failed', error };
+            });
+        this._lifecycleProfileSavePromise = savePromise;
+        return true;
+    }
+
+    _handlePageHide() {
+        this._resetTransientInputState('pagehide');
+        this.requestLifecycleProfileSave('pagehide_profile_save', {
+            force: true,
+            minIntervalMs: 0
+        });
+    }
+
+    _handleBeforeUnload() {
+        this._resetTransientInputState('beforeunload');
+        this.requestLifecycleProfileSave('beforeunload_profile_save', {
+            force: true,
+            minIntervalMs: 0
+        });
     }
 
     _handleCanvasInteraction(e) {

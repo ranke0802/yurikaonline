@@ -4681,7 +4681,11 @@ export class UIManager {
                     this.updateSkillPopup();
                     this.updateStatusPopup();
                     this.updateInventory(); // v0.22.9
-                    p.saveState();
+                    p.saveProfilePatch?.(['manastone', 'inventory', 'skillLevels'], {
+                        debounceMs: 0,
+                        forceImmediate: true,
+                        reason: 'skill_levelup_patch'
+                    });
                 } else {
                     this.logSystemMessage(`❌ 마석이 부족합니다! (필요: ${cost} 마석)`);
                 }
@@ -8668,7 +8672,21 @@ export class UIManager {
         p.hp = Math.min(p.hp, p.maxHp);
         p.mp = Math.min(p.mp, p.maxMp);
         this.pendingStats = this.createEmptyPendingStats();
-        p.saveState(); // v0.00.01: Persist stats to DB
+        p.saveProfilePatch?.([
+            'vitality',
+            'intelligence',
+            'wisdom',
+            'agility',
+            'statPoints',
+            'hp',
+            'maxHp',
+            'mp',
+            'maxMp'
+        ], {
+            debounceMs: 0,
+            forceImmediate: true,
+            reason: 'stat_allocation_patch'
+        });
         this.game.tutorial?.trigger?.('stats_saved');
         this.queueStatInsightMessages(queuedInsightMessages);
         this.resetStatInsightPreviewState();
