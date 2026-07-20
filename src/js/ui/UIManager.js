@@ -7613,16 +7613,24 @@ export class UIManager {
             this.disarmBrowserBackExitGuard();
             this.game?._resetTransientInputState?.(options.reason || 'exit_game_to_char_select');
 
+            const worldScene = this.game?.sceneManager?.currentScene;
+            await worldScene?.waitForPendingZoneTransition?.();
+
             const player = this.game.localPlayer;
             if (player?.saveState) {
-                player.saveState(false, {
+                const saveResult = await player.saveState(false, {
                     debounceMs: 0,
                     reason: options.reason || 'exit_game_to_char_select'
                 });
+                if (saveResult?.ok !== true) {
+                    throw new Error(saveResult?.reason || 'exit_game_profile_save_failed');
+                }
             }
 
-            await this.game?.net?.flushQueuedProfileSaves?.();
-            await this.game?.net?.flushQueuedProfilePatches?.();
+            const flushResult = await this.game?.net?.flushProfileWrites?.(player?.id);
+            if (flushResult?.ok === false) {
+                throw new Error(flushResult.reason || 'exit_game_profile_flush_failed');
+            }
             this.game?.net?.setZoneParticipationEnabled?.(false);
             this.game.localPlayer = null;
 

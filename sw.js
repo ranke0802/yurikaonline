@@ -1,4 +1,4 @@
-const APP_VERSION = '0.02.072';
+const APP_VERSION = '0.02.073';
 const SHELL_CACHE = `yurika-online-shell-${APP_VERSION}`;
 const STATIC_CACHE = `yurika-online-static-${APP_VERSION}`;
 const ACTIVE_CACHES = [SHELL_CACHE, STATIC_CACHE];
@@ -179,8 +179,8 @@ self.addEventListener('activate', (event) => {
                     await trimCacheEntries(cacheName, cache, { force: true });
                 })
             ))
+            .then(() => self.clients.claim())
     );
-    self.clients.claim();
 });
 
 self.addEventListener('message', (event) => {

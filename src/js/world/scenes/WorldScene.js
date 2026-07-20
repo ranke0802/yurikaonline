@@ -42,6 +42,7 @@ export default class WorldScene extends Scene {
         this.zoneCatalog = [];
         this.isZoneTransitioning = false;
         this.zoneTransitionToken = 0;
+        this._activeZoneTransitionPromise = null;
         this._handleHostChanged = null;
     }
 
@@ -125,6 +126,9 @@ export default class WorldScene extends Scene {
             ? requestedZoneId
             : 'zone_1';
         const zoneData = await this.game.zone.loadZone(initialZoneId);
+        if (!zoneData || zoneData.id !== initialZoneId) {
+            throw new Error(`Initial zone load mismatch: requested=${initialZoneId}, loaded=${zoneData?.id || 'none'}`);
+        }
         this._applyZoneData(zoneData, { clearExisting: true, primeSpawn: false });
 
         try {
@@ -463,7 +467,34 @@ export default class WorldScene extends Scene {
         return { ok: true, reason: 'available', meta };
     }
 
-    async changeZone(targetZoneId) {
+    changeZone(targetZoneId) {
+        if (this._activeZoneTransitionPromise) return this._activeZoneTransitionPromise;
+
+        const operation = this._changeZone(targetZoneId);
+        this._activeZoneTransitionPromise = operation;
+        operation.then(
+            () => {
+                if (this._activeZoneTransitionPromise === operation) {
+                    this._activeZoneTransitionPromise = null;
+                }
+            },
+            () => {
+                if (this._activeZoneTransitionPromise === operation) {
+                    this._activeZoneTransitionPromise = null;
+                }
+            }
+        );
+        return operation;
+    }
+
+    async waitForPendingZoneTransition() {
+        const operation = this._activeZoneTransitionPromise;
+        if (!operation) return { ok: true, pending: false };
+        const moved = await operation;
+        return { ok: true, pending: true, moved };
+    }
+
+    async _changeZone(targetZoneId) {
         const travelState = this.getZoneTravelState(targetZoneId);
         if (!travelState.ok) {
             const messages = {
@@ -1033,6 +1064,11 @@ export default class WorldScene extends Scene {
     }
 
     async exit() {
+        await this.waitForPendingZoneTransition();
+        const flushResult = await this.net?.flushProfileWrites?.(this.player?.id);
+        if (flushResult?.ok === false) {
+            throw new Error(flushResult.reason || 'world_exit_profile_flush_failed');
+        }
         await this.net?.setNormalRewardConsumer?.(null);
         await this.net?.setDurableRewardConsumer?.(null);
         this.ui?.disarmBrowserBackExitGuard?.();
@@ -1042,6 +1078,8 @@ export default class WorldScene extends Scene {
         });
         this._networkHandlerBindings = [];
         this._handleHostChanged = null;
+        this.player?.detachInput?.();
+        if (this.game?.localPlayer === this.player) this.game.localPlayer = null;
         this.remotePlayers.clear();
     }
 

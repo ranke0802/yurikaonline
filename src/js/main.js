@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.02.072'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.073'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -208,6 +208,8 @@ class Game {
         const initialPerfProfile = this.getPerformanceProfile();
         this.loop.setMaxRenderFps(initialPerfProfile.maxRenderFps);
         this.loop.setUpdateFps(initialPerfProfile.maxUpdateFps);
+        this._authStateGeneration = 0;
+        this._authStateTransition = Promise.resolve();
 
         this.init();
     }
@@ -539,6 +541,48 @@ class Game {
         this.syncUiForViewportChange(displayWidth, displayHeight);
     }
 
+    _isAuthStateCurrent(user, generation) {
+        const expectedUid = user?.uid || null;
+        const currentUid = this.auth?.currentUser?.uid || null;
+        return generation === this._authStateGeneration && expectedUid === currentUid;
+    }
+
+    _queueAuthStateTransition(user) {
+        const generation = ++this._authStateGeneration;
+        const transition = this._authStateTransition
+            .catch(() => { })
+            .then(async () => {
+                if (!this._isAuthStateCurrent(user, generation)) return;
+
+                if (user) {
+                    try {
+                        await this.net.connect(user);
+                    } catch (error) {
+                        Logger.error('[Game] Network connection setup failed', error);
+                    }
+                    if (!this._isAuthStateCurrent(user, generation) || this.net.playerId !== user.uid) return;
+
+                    await this.sceneManager.changeScene('charSelect', { user, authGeneration: generation });
+                    if (!this._isAuthStateCurrent(user, generation)) return;
+                    this.updateLoading('완료', 100);
+                    this._hideLoader();
+                    return;
+                }
+
+                try {
+                    await this.net.disconnect();
+                } catch (error) {
+                    Logger.error('[Game] Network disconnect cleanup failed', error);
+                }
+                if (!this._isAuthStateCurrent(null, generation)) return;
+                await this.sceneManager.changeScene('login');
+                this.updateLoading('완료', 100);
+                this._hideLoader();
+            });
+        this._authStateTransition = transition.then(() => undefined, () => undefined);
+        return transition;
+    }
+
     async init() {
         this.updateLoading('리소스 다운로드 중...', 0);
 
@@ -575,41 +619,8 @@ class Game {
         this.loop.start(); // Start loop for background rendering
 
         // 2. Auth Flow
-        this.auth.on('initialized', () => {
-            if (!this.auth.isAuthenticated()) {
-                // If not logged in, go to Login Scene
-                this.sceneManager.changeScene('login');
-                this.updateLoading('완료', 100);
-                this._hideLoader();
-            }
-        });
-
-        this.auth.on('authStateChanged', async (user) => {
-            if (user) {
-                // Ensure socket is connected once user is authenticated
-                // v0.00.03: Connect BEFORE changing scene so CharacterSelectionScene can load data
-                try {
-                    await this.net.connect(user);
-                } catch (error) {
-                    Logger.error('[Game] Network connection setup failed', error);
-                }
-
-                // IMPORTANT: One-time database reset as requested by user
-                // this.net.resetAllUserData(); // UNCOMMENT AND RUN ONCE IF NEEDED, THEN COMMENT BACK
-
-                // If logged in, go to Char Select
-                this.sceneManager.changeScene('charSelect', { user });
-                this.updateLoading('완료', 100);
-                this._hideLoader();
-            } else {
-                try {
-                    await this.net.disconnect();
-                } catch (error) {
-                    Logger.error('[Game] Network disconnect cleanup failed', error);
-                }
-                // Return to login on logout
-                this.sceneManager.changeScene('login');
-            }
+        this.auth.on('authStateChanged', (user) => {
+            void this._queueAuthStateTransition(user);
         });
 
         this.updateLoading('로그인 상태 확인 중...');

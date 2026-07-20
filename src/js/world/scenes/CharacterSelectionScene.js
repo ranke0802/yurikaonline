@@ -10,6 +10,15 @@ export default class CharacterSelectionScene extends Scene {
         this.profile = null;
         this.profileLoadError = null;
         this.previewAnimationFrame = null;
+        this._enterGeneration = 0;
+        this.startGameTransitioning = false;
+    }
+
+    _isEnterCurrent(generation, uid) {
+        if (generation !== this._enterGeneration || this.user?.uid !== uid) return false;
+        if (this.game?.auth && this.game.auth.currentUser?.uid !== uid) return false;
+        if (this.game?.net?.playerId && this.game.net.playerId !== uid) return false;
+        return true;
     }
 
     _getProfileRevision(profile = null) {
@@ -64,9 +73,13 @@ export default class CharacterSelectionScene extends Scene {
 
     async enter(params) {
         Logger.info("[CharacterSelectionScene] Entered");
+        const generation = ++this._enterGeneration;
+        const user = params?.user || null;
+        if (!user?.uid) return;
         this.game.ui?.hideHUD();
         this.game.ui?.hideAllPopups();
-        this.user = params.user;
+        this.user = user;
+        this.startGameTransitioning = false;
 
         // Read the lightweight profile first, then compare it against recent
         // backups/recovery snapshots. Mobile rotation or an old client can leave
@@ -79,12 +92,15 @@ export default class CharacterSelectionScene extends Scene {
             if (typeof this.game.net.getPlayerProfile !== 'function') {
                 throw new Error('profile_reader_unavailable');
             }
-            profile = await this.game.net.getPlayerProfile(this.user.uid, { throwOnError: true });
-            latestSnapshot = await this.game.net.getLatestProfileSnapshot?.(this.user.uid, {
+            profile = await this.game.net.getPlayerProfile(user.uid, { throwOnError: true });
+            if (!this._isEnterCurrent(generation, user.uid)) return;
+            latestSnapshot = await this.game.net.getLatestProfileSnapshot?.(user.uid, {
                 profile,
                 throwOnError: true
             });
+            if (!this._isEnterCurrent(generation, user.uid)) return;
         } catch (error) {
+            if (!this._isEnterCurrent(generation, user.uid)) return;
             Logger.error('[CharacterSelectionScene] Failed to load player profile', error);
             this.profile = null;
             this.showProfileLoadError(error);
@@ -102,7 +118,7 @@ export default class CharacterSelectionScene extends Scene {
                 source: 'profile'
             } : null)
         ) {
-            const repairResult = await this.game.net.savePlayerData(this.user.uid, latestSnapshot.profile, false, {
+            const repairResult = await this.game.net.savePlayerData(user.uid, latestSnapshot.profile, false, {
                 expectedRevision: this._getProfileRevision(profile),
                 forceImmediate: true,
                 backupReason: `auto_repair_from_${latestSnapshot.source}`,
@@ -110,6 +126,7 @@ export default class CharacterSelectionScene extends Scene {
                 sourceTs: latestSnapshot.ts || latestSnapshot.profile.ts || Date.now(),
                 saveReason: 'character_select_profile_auto_repair'
             });
+            if (!this._isEnterCurrent(generation, user.uid)) return;
             if (repairResult?.ok && repairResult.profile) {
                 this.profile = repairResult.profile;
             } else {
@@ -124,6 +141,7 @@ export default class CharacterSelectionScene extends Scene {
             }
         }
 
+        if (!this._isEnterCurrent(generation, user.uid)) return;
         this.createUI();
 
         // v0.00.62: Robust Audio Unlock
@@ -536,6 +554,11 @@ export default class CharacterSelectionScene extends Scene {
     }
 
     async handleStartGame() {
+        if (this.startGameTransitioning) return false;
+        this.startGameTransitioning = true;
+        const startButton = document.getElementById('start-game-btn');
+        if (startButton) startButton.disabled = true;
+
         // v0.00.84: Default to the center of the starting field for new players
         let startX = 1600;
         let startY = 1600;
@@ -558,13 +581,20 @@ export default class CharacterSelectionScene extends Scene {
             ts: this.profile?.ts || 0
         }, 'at', startX, startY);
 
-        await this.game.sceneManager.changeScene('world', {
-            user: this.user,
-            startX,
-            startY,
-            profile: this.profile,
-            localName
-        });
+        try {
+            await this.game.sceneManager.changeScene('world', {
+                user: this.user,
+                startX,
+                startY,
+                profile: this.profile,
+                localName
+            });
+            return true;
+        } catch (error) {
+            this.startGameTransitioning = false;
+            if (startButton) startButton.disabled = false;
+            throw error;
+        }
     }
 
     async handleCharacterReset() {

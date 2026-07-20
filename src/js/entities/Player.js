@@ -205,6 +205,7 @@ export default class Player extends CharacterBase {
 
     // Initialize with game dependencies
     init(inputManager, resourceManager, networkManager) {
+        this.detachInput();
         this.input = inputManager;
         this.net = networkManager;
 
@@ -215,13 +216,18 @@ export default class Player extends CharacterBase {
 
         // v0.00.66: Self is always the first member
         if (this.id) {
-            this.setPartyState(this.party, false);
+            this.setPartyState(this.party, false, { save: false });
         }
 
         this._loadSpriteSheet(resourceManager);
 
         // Bind input actions to methods
-        this.input.on('keydown', (action) => {
+        this._inputBindings = [];
+        const bindInput = (eventName, handler) => {
+            this.input.on(eventName, handler);
+            this._inputBindings.push({ eventName, handler });
+        };
+        bindInput('keydown', (action) => {
             // Cancel Click-to-Move on any action
             this.moveTarget = null;
 
@@ -233,34 +239,41 @@ export default class Player extends CharacterBase {
             if (action === 'SKILL_4') this.useSkill(4);
         });
 
-        this.input.on('keyup', (action) => {
+        bindInput('keyup', (action) => {
             if (action === 'SKILL_2') this.releaseFireballAim();
         });
 
-        this.input.on('aimStart', (data) => {
+        bindInput('aimStart', (data) => {
             if (data?.action === 'SKILL_2') this.startFireballAim(data);
         });
 
-        this.input.on('aimMove', (data) => {
+        bindInput('aimMove', (data) => {
             if (data?.action === 'SKILL_2' && this.fireballAimActive) {
                 this.updateFireballAimGuideFromScreenPoint(data.clientX, data.clientY);
             }
         });
 
-        this.input.on('aimEnd', (data) => {
+        bindInput('aimEnd', (data) => {
             if (data?.action === 'SKILL_2') this.releaseFireballAim();
         });
 
-        this.input.on('aimCancel', (data) => {
+        bindInput('aimCancel', (data) => {
             if (data?.action === 'SKILL_2') this.cancelFireballAim();
         });
 
-        this.input.on('joystickMove', (data) => {
+        bindInput('joystickMove', (data) => {
             this.joystick.x = data.x;
             this.joystick.y = data.y;
             this.joystick.active = data.active;
         });
 
+    }
+
+    detachInput() {
+        (this._inputBindings || []).forEach(({ eventName, handler }) => {
+            this.input?.off?.(eventName, handler);
+        });
+        this._inputBindings = [];
     }
 
     async _loadSpriteSheet(res) {
@@ -3327,7 +3340,7 @@ export default class Player extends CharacterBase {
         this.setPartyState({ ...(this.party || {}), members: memberIds }, syncToWorld);
     }
 
-    setPartyState(partyState = {}, syncToWorld = true) {
+    setPartyState(partyState = {}, syncToWorld = true, options = {}) {
         const normalizedMembers = Array.from(new Set((partyState?.members || []).filter(Boolean)));
         if (this.id && !normalizedMembers.includes(this.id)) {
             normalizedMembers.unshift(this.id);
@@ -3350,7 +3363,7 @@ export default class Player extends CharacterBase {
             fieldId: resolvedFieldId
         };
 
-        this.saveState(syncToWorld);
+        if (options.save !== false) this.saveState(syncToWorld);
         window.game?.net?.handleLocalPartyStateChanged?.('player_party_state_changed');
         if (window.game?.ui) window.game.ui.updatePartyUI();
     }

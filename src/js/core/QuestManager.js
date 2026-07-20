@@ -453,7 +453,10 @@ export default class QuestManager {
         def.objectives.forEach((objective) => {
             if (!Object.prototype.hasOwnProperty.call(progressById, objective.id)) return;
             const entry = active.objectives[objective.id] || { current: 0, complete: false };
-            const next = Math.max(0, Number(progressById[objective.id] || 0));
+            const next = Math.max(
+                Math.max(0, Number(entry.current || 0)),
+                Math.max(0, Number(progressById[objective.id] || 0))
+            );
             if (next !== entry.current || entry.complete !== next >= objective.count) {
                 entry.current = Math.min(objective.count, next);
                 entry.complete = entry.current >= objective.count;

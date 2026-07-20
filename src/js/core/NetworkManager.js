@@ -6941,7 +6941,7 @@ export default class NetworkManager extends EventEmitter {
 
     _startAccountSessionGuard(user = null) {
         const uid = user?.uid || this.playerId;
-        if (!uid || !window.firebase || user?.isAnonymous === true) {
+        if (!uid || !window.firebase) {
             this._stopAccountSessionGuard();
             return false;
         }
@@ -7408,22 +7408,29 @@ export default class NetworkManager extends EventEmitter {
         if (!incumbent?.profile) return true;
         const candidateSuspicious = this._isProfileSuspiciousHighLevelReset(candidate.profile);
         const incumbentSuspicious = this._isProfileSuspiciousHighLevelReset(incumbent.profile);
-        if (candidateSuspicious !== incumbentSuspicious) {
-            if (candidateSuspicious) return false;
-            const candidateLevel = Math.max(1, Math.floor(Number(candidate.profile.level || 1)));
-            const incumbentLevel = Math.max(1, Math.floor(Number(incumbent.profile.level || 1)));
-            return candidateLevel >= Math.max(1, incumbentLevel - 1);
-        }
         const candidateScore = this._getProfileProgressScore(candidate.profile);
         const incumbentScore = this._getProfileProgressScore(incumbent.profile);
         const candidateTs = Number(candidate.ts || candidate.profile.ts || 0);
         const incumbentTs = Number(incumbent.ts || incumbent.profile.ts || 0);
-        if (candidateScore !== incumbentScore) {
-            if (candidateTs >= incumbentTs) return candidateScore > incumbentScore;
-            return candidateScore > incumbentScore
-                && this._isProfileRegression(candidate.profile, incumbent.profile);
+        if (candidateTs !== incumbentTs) {
+            // Older recovery data may have a higher score after legitimate item
+            // consumption or a repeat-quest reset. Only prefer it for a clear
+            // level rollback or a newer stat-reset signature.
+            if (candidateTs < incumbentTs) {
+                const candidateLevel = Math.max(1, Math.floor(Number(candidate.profile.level || 1)));
+                const incumbentLevel = Math.max(1, Math.floor(Number(incumbent.profile.level || 1)));
+                const candidateStats = this._getProfileStatTotal(candidate.profile);
+                const incumbentStats = this._getProfileStatTotal(incumbent.profile);
+                return candidateLevel > incumbentLevel
+                    || (incumbentSuspicious && !candidateSuspicious && candidateStats > incumbentStats + 2);
+            }
+            return !candidateSuspicious || incumbentSuspicious;
         }
-        return candidateTs > incumbentTs;
+        if (candidateSuspicious !== incumbentSuspicious) return !candidateSuspicious;
+        if (candidateScore !== incumbentScore) {
+            return candidateScore > incumbentScore;
+        }
+        return false;
     }
 
     _isProfileRegression(current = null, next = null) {

@@ -11,6 +11,8 @@ import Player from '../src/js/entities/Player.js';
 import RemotePlayer from '../src/js/entities/RemotePlayer.js';
 import QuestManager from '../src/js/core/QuestManager.js';
 import WorldScene from '../src/js/world/scenes/WorldScene.js';
+import CharacterSelectionScene from '../src/js/world/scenes/CharacterSelectionScene.js';
+import { UIManager } from '../src/js/ui/UIManager.js';
 
 globalThis.window = globalThis.window || {};
 globalThis.document = globalThis.document || { hidden: false };
@@ -2401,6 +2403,125 @@ async function validateRewardDedupe() {
     assert.deepEqual(savedProfiles.at(-1).claimedRewardIds, [reward.rewardId]);
 }
 
+async function validateProfileExitDurabilityContracts() {
+    const order = [];
+    const player = {
+        id: 'exit_profile_player',
+        async saveState(_syncToWorld, options = {}) {
+            order.push(`save:${options.reason}`);
+            return { ok: true };
+        }
+    };
+    const worldScene = {
+        async waitForPendingZoneTransition() {
+            order.push('zone_transition_settled');
+        }
+    };
+    const game = {
+        auth: { currentUser: { uid: player.id } },
+        localPlayer: player,
+        _resetTransientInputState: () => order.push('input_reset'),
+        net: {
+            async flushProfileWrites(uid) {
+                order.push(`flush:${uid}`);
+                return { ok: true };
+            },
+            setZoneParticipationEnabled(enabled) {
+                order.push(`participation:${enabled}`);
+            }
+        },
+        sceneManager: {
+            currentScene: worldScene,
+            async changeScene(name) {
+                assert.equal(game.localPlayer, null, 'the old player must be detached before character selection reads profile data');
+                order.push(`scene:${name}`);
+            }
+        }
+    };
+    const ui = Object.create(UIManager.prototype);
+    ui.game = game;
+    ui.gameExitSceneTransitioning = false;
+    ui.isWorldSceneActive = () => true;
+    ui.disarmBrowserBackExitGuard = () => {};
+    ui.armBrowserBackExitGuard = () => {};
+
+    assert.equal(await ui.exitGameToCharacterSelection({ reason: 'runtime_exit' }), true);
+    assert.deepEqual(order, [
+        'input_reset',
+        'zone_transition_settled',
+        'save:runtime_exit',
+        `flush:${player.id}`,
+        'participation:false',
+        'scene:charSelect'
+    ], 'world exit must settle travel and durable profile writes before profile reload');
+
+    let sceneChanges = 0;
+    game.localPlayer = {
+        id: player.id,
+        saveState: async () => ({ ok: false, reason: 'save_failed' })
+    };
+    game.sceneManager.changeScene = async () => { sceneChanges += 1; };
+    assert.equal(await ui.exitGameToCharacterSelection({ reason: 'runtime_failed_exit' }), false);
+    assert.equal(sceneChanges, 0, 'a failed final profile save must keep the player out of character selection');
+
+    let releaseZoneTransition;
+    const trackedScene = new WorldScene({
+        camera: null,
+        monsterManager: null,
+        ui: null,
+        net: null,
+        resources: null,
+        input: null
+    });
+    trackedScene._changeZone = async () => new Promise((resolve) => {
+        releaseZoneTransition = () => resolve(true);
+    });
+    const zoneMove = trackedScene.changeZone('zone_2');
+    assert.equal(trackedScene.changeZone('zone_3'), zoneMove, 'a second zone request must share the active transition');
+    const zoneWait = trackedScene.waitForPendingZoneTransition();
+    releaseZoneTransition();
+    assert.equal(await zoneMove, true);
+    assert.deepEqual(await zoneWait, { ok: true, pending: true, moved: true });
+    assert.equal(trackedScene._activeZoneTransitionPromise, null);
+}
+
+async function validateCharacterSelectionGenerationContracts() {
+    let resolveFirstProfile;
+    const firstProfile = new Promise((resolve) => { resolveFirstProfile = resolve; });
+    const latestReads = [];
+    const renderedProfiles = [];
+    const game = {
+        auth: { currentUser: { uid: 'account_a' } },
+        net: {
+            playerId: 'account_a',
+            getPlayerProfile(uid) {
+                if (uid === 'account_a') return firstProfile;
+                return Promise.resolve({ name: 'Account B', level: 9, ts: 20 });
+            },
+            async getLatestProfileSnapshot(uid, options = {}) {
+                latestReads.push({ uid, profileName: options.profile?.name || null });
+                return { profile: options.profile, source: 'profile', ts: options.profile?.ts || 0 };
+            }
+        },
+        ui: { hideHUD() {}, hideAllPopups() {} },
+        sound: null
+    };
+    const scene = new CharacterSelectionScene(game);
+    scene.createUI = () => renderedProfiles.push(scene.profile?.name || null);
+
+    const accountAEnter = scene.enter({ user: { uid: 'account_a' } });
+    game.auth.currentUser = { uid: 'account_b' };
+    game.net.playerId = 'account_b';
+    const accountBEnter = scene.enter({ user: { uid: 'account_b' } });
+    await accountBEnter;
+    resolveFirstProfile({ name: 'Account A', level: 4, ts: 10 });
+    await accountAEnter;
+
+    assert.deepEqual(latestReads, [{ uid: 'account_b', profileName: 'Account B' }]);
+    assert.deepEqual(renderedProfiles, ['Account B']);
+    assert.equal(scene.profile.name, 'Account B', 'a stale account read must not replace the current account profile');
+}
+
 async function validateQuestRuntimeStateSync() {
     const previousGame = window.game;
     const systemLogs = [];
@@ -2453,6 +2574,19 @@ async function validateQuestRuntimeStateSync() {
         0,
         'fresh post-tutorial quest state must expose the first slime quest'
     );
+
+    const newerQuestState = quests.serialize();
+    newerQuestState.active.quest_slime_10.objectives.kill_slime.current = 7;
+    player.questData.slimeKills = 2;
+    quests.restoreFromLegacy(player.questData, newerQuestState);
+    assert.equal(
+        quests.getActiveQuests().find((quest) => quest.id === 'quest_slime_10')?.objectives[0]?.current,
+        7,
+        'older legacy questData must not lower newer questState progress during hydration'
+    );
+    player.questData.slimeKills = 0;
+    player.questState = null;
+    quests.restoreFromLegacy(player.questData, null);
 
     assert.equal(player.receiveReward({ questKill: 'slime', monsterName: 'Slime' }, { save: false }), true);
     assert.equal(systemLogs.length, 0, 'normal legacy monster kill receipts must not write system logs');
@@ -2650,7 +2784,7 @@ async function validateProfileWriterFencingContracts() {
         window.game = { auth: { currentUser: { uid, isAnonymous: true } } };
         const guestTab = new NetworkManager();
         guestTab.playerId = uid;
-        assert.equal(guestTab._startAccountSessionGuard({ uid, isAnonymous: true }), false);
+        assert.equal(guestTab._startAccountSessionGuard({ uid, isAnonymous: true }), true);
         guestTab._writeProfileBackup = async () => true;
         guestTab._syncRecoveryProfile = async () => true;
         const guestSave = await guestTab._commitPlayerData(uid, {
@@ -2659,7 +2793,20 @@ async function validateProfileWriterFencingContracts() {
             claimedRewardIds: [],
             ts: Date.now() + 20_000
         });
-        assert.equal(guestSave.ok, true, 'anonymous guest profiles must not be blocked by account-session fencing');
+        assert.equal(guestSave.ok, true, 'the newest anonymous guest session must retain profile ownership');
+
+        const newestGuestTab = new NetworkManager();
+        newestGuestTab.playerId = uid;
+        newestGuestTab._writeProfileBackup = async () => true;
+        newestGuestTab._syncRecoveryProfile = async () => true;
+        assert.equal(newestGuestTab._startAccountSessionGuard({ uid, isAnonymous: true }), true);
+        const staleGuestSave = await guestTab._commitPlayerData(uid, {
+            inventory: [],
+            pendingItemRewards: [],
+            claimedRewardIds: [],
+            ts: Date.now() + 30_000
+        });
+        assert.equal(staleGuestSave.reason, 'account_session_superseded');
 
         const delayedHandlers = new Set();
         let delayedActiveSession = {
@@ -2973,6 +3120,13 @@ async function validateProfileWriterFencingContracts() {
         window.firebase = snapshotFirebaseMock;
         globalThis.firebase = snapshotFirebaseMock;
         const snapshotNet = new NetworkManager();
+        assert.equal(snapshotNet._isProfileCandidateBetter({
+            profile: { ...advancedProfile, inventory: clone(advancedProfile.inventory) },
+            ts: Date.now() - 10_000
+        }, {
+            profile: { ...advancedProfile, inventory: new Array(24).fill(null), equipment: { weapon: null } },
+            ts: Date.now()
+        }), false, 'an older higher-score recovery must not undo a newer same-level inventory consumption state');
         const recoveredSnapshot = await snapshotNet.getLatestProfileSnapshot(uid);
         assert.equal(recoveredSnapshot.source, 'backup', 'a stronger backup must beat a newer but regressed root profile');
         assert.equal(recoveredSnapshot.profile.level, 17);
@@ -7844,6 +7998,10 @@ console.log('[runtime-integration] checking field boss lifecycle...');
 await validateFieldBossLifecycleContracts();
 console.log('[runtime-integration] checking scene listener lifecycle...');
 await validateWorldSceneListenerLifecycle();
+console.log('[runtime-integration] checking profile exit durability...');
+await validateProfileExitDurabilityContracts();
+console.log('[runtime-integration] checking character selection generations...');
+await validateCharacterSelectionGenerationContracts();
 console.log('[runtime-integration] checking reward dedupe...');
 await validateRewardDedupe();
 console.log('[runtime-integration] checking quest runtime state sync...');
