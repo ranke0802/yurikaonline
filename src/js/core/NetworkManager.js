@@ -8255,7 +8255,9 @@ export default class NetworkManager extends EventEmitter {
             const transactionResult = await profileRef.transaction((current) => {
                 abortReason = null;
                 const currentIsRealProfile = this._isRealPlayerProfile(current);
-                const createMissingProfile = options.requireMissingProfile === true && !currentIsRealProfile;
+                const allowMissingProfileWrite = options.requireMissingProfile === true
+                    || options.allowMissingProfileRepair === true;
+                const createMissingProfile = allowMissingProfileWrite && !currentIsRealProfile;
                 if (!createMissingProfile && !this._canProfileWriterSessionCommit(current, writerSession)) {
                     abortReason = 'writer_session_superseded';
                     return;

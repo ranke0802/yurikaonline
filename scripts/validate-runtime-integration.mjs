@@ -135,6 +135,35 @@ async function validateSoloQuietRtdbListenerContracts() {
     );
 }
 
+async function validateFirebaseDatabaseRuleIndexContracts() {
+    const rules = JSON.parse(await readFile(new URL('../database.rules.json', import.meta.url), 'utf8'));
+    const zoneRules = rules?.rules?.zones?.$zoneId || {};
+    const fieldScopedCollections = [
+        'monster_attack',
+        'monster_damage',
+        'monster_damage_batch',
+        'player_damage',
+        'player_damage_batch',
+        'drop_collection',
+        'boss_spawn_requests',
+        'chat',
+        'system_messages',
+        'emotes'
+    ];
+    for (const collection of fieldScopedCollections) {
+        assert.deepEqual(
+            zoneRules?.[collection]?.['.indexOn'],
+            ['fieldId'],
+            `database.rules.json must index zones/$zoneId/${collection} by fieldId`
+        );
+    }
+    assert.deepEqual(
+        rules?.rules?.users?.$uid?.profileBackups?.['.indexOn'],
+        ['ts'],
+        'database.rules.json must index users/$uid/profileBackups by ts'
+    );
+}
+
 function validateAttackSpeedCapContracts() {
     const player = new Player(0, 0, 'Attack Speed Cap Tester', {
         baseStats: {
@@ -2520,6 +2549,50 @@ async function validateCharacterSelectionGenerationContracts() {
     assert.deepEqual(latestReads, [{ uid: 'account_b', profileName: 'Account B' }]);
     assert.deepEqual(renderedProfiles, ['Account B']);
     assert.equal(scene.profile.name, 'Account B', 'a stale account read must not replace the current account profile');
+
+    const repairOptions = [];
+    let repairErrorShown = false;
+    const recoveredGame = {
+        auth: { currentUser: { uid: 'recovering_account' } },
+        net: {
+            playerId: 'recovering_account',
+            async getPlayerProfile() {
+                return null;
+            },
+            async getLatestProfileSnapshot(_uid, options = {}) {
+                assert.equal(options.profile, null, 'missing root profile must be passed through to profile recovery lookup');
+                return {
+                    profile: {
+                        name: 'Recovered Account',
+                        level: 17,
+                        ts: 99,
+                        inventory: [{ id: 'tidal_staff' }]
+                    },
+                    source: 'recovery_profiles',
+                    latestUid: 'recovering_account',
+                    ts: 99
+                };
+            },
+            async savePlayerData(_uid, _profile, _syncToZone, options = {}) {
+                repairOptions.push(options);
+                return { ok: false, reason: 'writer_session_superseded', currentProfile: null };
+            },
+            _isProfileCandidateBetter() {
+                return true;
+            }
+        },
+        ui: { hideHUD() {}, hideAllPopups() {} },
+        sound: null
+    };
+    const recoveredScene = new CharacterSelectionScene(recoveredGame);
+    recoveredScene.createUI = () => renderedProfiles.push(recoveredScene.profile?.name || null);
+    recoveredScene.showProfileLoadError = () => { repairErrorShown = true; };
+    await recoveredScene.enter({ user: { uid: 'recovering_account' } });
+
+    assert.equal(repairErrorShown, false, 'deferred profile auto repair must not block character selection when a recovery snapshot exists');
+    assert.equal(recoveredScene.profile.name, 'Recovered Account');
+    assert.equal(recoveredScene.profile.level, 17);
+    assert.equal(repairOptions[0]?.allowMissingProfileRepair, true, 'missing-root profile auto repair must explicitly allow safe root restoration');
 }
 
 async function validateQuestRuntimeStateSync() {
@@ -3625,6 +3698,33 @@ async function validateFailClosedProfileContracts() {
             assert.equal(createResult.ok, true, `create-only save must create a real profile from a ${missingKind} state`);
             assert.equal(memory.getProfile(uid).name, `Created ${missingKind}`);
             assert.equal(memory.getProfile(uid).exp, 10);
+        }
+
+        for (const missingKind of ['absent', 'writer-only']) {
+            const uid = `profile_repair_${missingKind}`;
+            const initial = missingKind === 'writer-only'
+                ? { [uid]: { _writerEpoch: 9, _writerToken: 'stale-repair-writer', _profileRevision: 0 } }
+                : {};
+            const memory = createProfileContractFirebase(initial);
+            useFirebase(memory, uid);
+            const manager = makeManager(uid);
+            await establishWriter(manager, uid, `${missingKind} profile auto repair must establish local writer intent`);
+            const repairResult = await manager.savePlayerData(uid, makeProfile({
+                recoveryUid: uid,
+                name: `Recovered ${missingKind}`,
+                level: 17,
+                exp: 777
+            }), false, {
+                forceImmediate: true,
+                allowMissingProfileRepair: true,
+                expectedRevision: 0,
+                allowDestructiveProfileWrite: true,
+                bypassProfileRegressionGuard: true
+            });
+            assert.equal(repairResult.ok, true, `profile auto repair must restore a real profile from a ${missingKind} root state`);
+            assert.equal(memory.getProfile(uid).name, `Recovered ${missingKind}`);
+            assert.equal(memory.getProfile(uid).level, 17);
+            assert.equal(memory.getProfile(uid).exp, 777);
         }
 
         for (const missingKind of ['absent', 'writer-only']) {
@@ -8035,6 +8135,8 @@ async function validateDeterministicDropAndQuestBossContracts() {
 
 console.log('[runtime-integration] checking solo quiet RTDB listeners...');
 await validateSoloQuietRtdbListenerContracts();
+console.log('[runtime-integration] checking Firebase RTDB rule indexes...');
+await validateFirebaseDatabaseRuleIndexContracts();
 console.log('[runtime-integration] checking attack speed caps...');
 validateAttackSpeedCapContracts();
 console.log('[runtime-integration] checking chain lightning scaling...');

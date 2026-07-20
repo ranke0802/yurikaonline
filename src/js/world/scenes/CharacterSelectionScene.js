@@ -121,6 +121,7 @@ export default class CharacterSelectionScene extends Scene {
             const repairResult = await this.game.net.savePlayerData(user.uid, latestSnapshot.profile, false, {
                 expectedRevision: this._getProfileRevision(profile),
                 forceImmediate: true,
+                allowMissingProfileRepair: !profile,
                 backupReason: `auto_repair_from_${latestSnapshot.source}`,
                 sourceUid: latestSnapshot.latestUid || this.user.uid,
                 sourceTs: latestSnapshot.ts || latestSnapshot.profile.ts || Date.now(),
@@ -131,13 +132,17 @@ export default class CharacterSelectionScene extends Scene {
                 this.profile = repairResult.profile;
             } else {
                 const currentProfile = repairResult?.currentProfile || null;
-                this.profile = currentProfile || profile || null;
+                this.profile = currentProfile || latestSnapshot.profile || profile || null;
                 if (!this.profile) {
                     const error = repairResult?.error || new Error(repairResult?.reason || 'profile_auto_repair_failed');
                     Logger.error('[CharacterSelectionScene] Failed to repair player profile', error);
                     this.showProfileLoadError(error);
                     return;
                 }
+                Logger.warn('[CharacterSelectionScene] Profile auto repair was deferred; continuing with the best available profile snapshot', {
+                    reason: repairResult?.reason || 'profile_auto_repair_deferred',
+                    source: latestSnapshot.source || 'unknown'
+                });
             }
         }
 
