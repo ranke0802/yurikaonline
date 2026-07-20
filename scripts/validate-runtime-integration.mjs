@@ -2359,6 +2359,8 @@ async function validateWorldSceneListenerLifecycle() {
     const secondCounts = Array.from(net.events.values()).reduce((sum, entries) => sum + entries.length, 0);
     assert.equal(secondCounts, firstCounts, 'setting up a reused scene must not duplicate listeners');
     net.emit('profileWriterSuperseded', { uid: 'duplicate_player' });
+    assert.notEqual(scene._profileWriterSuperseded, true, 'writer-only fence events must not show the duplicate-session modal');
+    net.emit('profileWriterSuperseded', { uid: 'duplicate_player', replacedByNewSession: true });
     assert.equal(scene._profileWriterSuperseded, true);
     assert.equal(scene.player.autoAttackEnabled, false);
     assert.equal(clearedTarget, 1);
@@ -2847,6 +2849,23 @@ async function validateProfileWriterFencingContracts() {
             ts: Date.now()
         });
         assert.equal(activeSave.ok, true);
+        assert.equal(activeTab._accountSessionClaimConfirmed, true, 'the approved active account session must be able to recover from writer fence drift');
+
+        profile = {
+            ...profile,
+            _writerEpoch: Number(profile._writerEpoch || 0) + 1,
+            _writerToken: 'transient_writer_without_active_session_replacement'
+        };
+        const recoveredActiveSave = await activeTab._commitPlayerData(uid, {
+            inventory: [rewardItem],
+            pendingItemRewards: [],
+            claimedRewardIds: [rewardId],
+            exp: 55,
+            ts: Date.now() + 1
+        });
+        assert.equal(recoveredActiveSave.ok, true, 'the approved active account session must reclaim and retry a transient writer fence conflict');
+        assert.equal(activeTab.isProfileWriterSuperseded(), false, 'writer fence retry must not show the duplicate-session shutdown modal');
+        assert.equal(profile.exp, 55);
 
         const staleSave = await olderTab._commitPlayerData(uid, {
             inventory: [],
@@ -3587,7 +3606,7 @@ async function validateFailClosedProfileContracts() {
             const olderResult = await olderCommit;
             assert.equal(olderResult.ok, false, `delayed older ${mutationKind} commit must be fenced`);
             assert.equal(olderResult.reason, 'writer_session_superseded');
-            assert.equal(older.isProfileWriterSuperseded(), true);
+            assert.equal(older.isProfileWriterSuperseded(), false, 'writer fence conflicts alone must not surface the duplicate-session modal');
             assert.equal(memory.getProfile(uid).mutationOwner, `newer-${mutationKind}`);
             assert.equal(memory.getProfile(uid).exp, 200, `delayed older ${mutationKind} commit must not overwrite newer state`);
         }

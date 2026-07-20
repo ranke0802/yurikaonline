@@ -837,7 +837,8 @@ export default class WorldScene extends Scene {
             if (this.player) this.player.receiveReward(data);
         });
 
-        const handleProfileWriterSuperseded = () => {
+        const handleProfileWriterSuperseded = (event = {}) => {
+            if (event?.replacedByNewSession !== true) return;
             if (this._profileWriterSuperseded) return;
             this._profileWriterSuperseded = true;
             if (this.player) {
@@ -855,7 +856,7 @@ export default class WorldScene extends Scene {
             );
         };
         bindNetworkHandler('profileWriterSuperseded', handleProfileWriterSuperseded);
-        if (this.net?.isProfileWriterSuperseded?.()) handleProfileWriterSuperseded();
+        if (this.net?.isProfileWriterSuperseded?.()) handleProfileWriterSuperseded({ replacedByNewSession: true });
 
         // v0.00.43: Center Screen System Messages
         bindNetworkHandler('systemMessage', (data) => {

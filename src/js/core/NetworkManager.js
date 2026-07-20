@@ -7134,6 +7134,9 @@ export default class NetworkManager extends EventEmitter {
         this.emit('profileWriterSuperseded', {
             uid,
             currentWriterEpoch: Number(currentProfile?._writerEpoch || 0),
+            activeSessionToken: currentProfile?.activeSessionToken || null,
+            replacedByNewSession: currentProfile?.replacedByNewSession === true,
+            reason: currentProfile?.reason || 'active_session_replaced',
             detectedAt: Date.now()
         });
     }
@@ -7148,6 +7151,24 @@ export default class NetworkManager extends EventEmitter {
             && !!current
             && current._writerToken === session.token
             && Number(current._writerEpoch) === Number(session.epoch);
+    }
+
+    _resetProfileWriterSessionAfterConflict(uid) {
+        const session = this._profileWriterSession;
+        if (session?.uid === uid) {
+            session.cancelled = true;
+            this._profileWriterSession = null;
+        }
+    }
+
+    _shouldRetryProfileWriterConflict(uid, result = null, options = {}) {
+        if (options?._writerConflictRetry === true) return false;
+        if (result?.reason !== 'writer_session_superseded') return false;
+        if (!uid || uid !== this.playerId || this._profileWriterSuperseded) return false;
+        return this._accountSessionUid === uid
+            && typeof this._accountSessionToken === 'string'
+            && this._accountSessionToken.length > 0
+            && this._accountSessionClaimConfirmed === true;
     }
 
     _applyProfileWriterSession(profile, session, current = null) {
@@ -8208,9 +8229,17 @@ export default class NetworkManager extends EventEmitter {
         if (uid !== this.playerId) {
             return { ok: false, reason: 'profile_uid_mismatch' };
         }
-        return this._serializeProfileCommit(uid, () => (
-            this._commitPlayerDataTransaction(uid, data, syncToZone, options)
-        ));
+        return this._serializeProfileCommit(uid, async () => {
+            const result = await this._commitPlayerDataTransaction(uid, data, syncToZone, options);
+            if (!this._shouldRetryProfileWriterConflict(uid, result, options)) return result;
+            this._resetProfileWriterSessionAfterConflict(uid);
+            Logger.warn('[Network] Profile writer fence changed under the active account session; reclaiming and retrying profile save once.');
+            return this._commitPlayerDataTransaction(uid, data, syncToZone, {
+                ...options,
+                _writerConflictRetry: true,
+                forceImmediate: true
+            });
+        });
     }
 
     async _commitPlayerDataTransaction(uid, data, syncToZone = false, options = {}) {
@@ -8301,7 +8330,7 @@ export default class NetworkManager extends EventEmitter {
             if (!transactionResult.committed) {
                 const superseded = !!writerSession
                     && !this._canProfileWriterSessionCommit(currentProfile, writerSession);
-                if (superseded) this._notifyProfileWriterSuperseded(uid, currentProfile);
+                if (superseded) this._resetProfileWriterSessionAfterConflict(uid);
                 return {
                     ok: false,
                     reason: superseded ? 'writer_session_superseded' : (abortReason || 'profile_transaction_aborted'),
@@ -8364,9 +8393,17 @@ export default class NetworkManager extends EventEmitter {
         if (uid !== this.playerId) {
             return { ok: false, reason: 'profile_uid_mismatch' };
         }
-        return this._serializeProfileCommit(uid, () => (
-            this._commitPlayerDataPatchTransaction(uid, patchData, options)
-        ));
+        return this._serializeProfileCommit(uid, async () => {
+            const result = await this._commitPlayerDataPatchTransaction(uid, patchData, options);
+            if (!this._shouldRetryProfileWriterConflict(uid, result, options)) return result;
+            this._resetProfileWriterSessionAfterConflict(uid);
+            Logger.warn('[Network] Profile writer fence changed under the active account session; reclaiming and retrying profile patch once.');
+            return this._commitPlayerDataPatchTransaction(uid, patchData, {
+                ...options,
+                _writerConflictRetry: true,
+                forceImmediate: true
+            });
+        });
     }
 
     async _commitPlayerDataPatchTransaction(uid, patchData, options = {}) {
@@ -8450,7 +8487,7 @@ export default class NetworkManager extends EventEmitter {
             if (!transactionResult?.committed) {
                 const superseded = !!writerSession
                     && !this._canProfileWriterSessionCommit(committedProfileValue, writerSession);
-                if (superseded) this._notifyProfileWriterSuperseded(uid, committedProfileValue);
+                if (superseded) this._resetProfileWriterSessionAfterConflict(uid);
                 return {
                     ok: false,
                     reason: superseded ? 'writer_session_superseded' : (abortReason || 'profile_transaction_aborted'),
