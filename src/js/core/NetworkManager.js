@@ -7680,15 +7680,13 @@ export default class NetworkManager extends EventEmitter {
         };
 
         const commitRecovery = (recoveryRef, nextPayload) => recoveryRef.transaction((current) => {
-            const currentTs = Number(current?.ts || 0);
             const currentProfile = current?.profile || null;
             if (
                 currentProfile
-                && this._getProfileProgressScore(currentProfile) > this._getProfileProgressScore(nextPayload.profile)
+                && this._getProfileExperienceProgress(currentProfile) > this._getProfileExperienceProgress(nextPayload.profile)
             ) {
                 return;
             }
-            if (currentTs > Number(nextPayload.ts || 0)) return;
             return nextPayload;
         });
 
@@ -8446,12 +8444,6 @@ export default class NetworkManager extends EventEmitter {
                     abortReason = 'profile_safety_blocked';
                     return;
                 }
-                const currentTs = Number(current?.ts || 0);
-                const nextTs = Number(nextProfile.ts || 0);
-                if (!expectedRevision.provided && currentTs > nextTs) {
-                    abortReason = 'stale_profile';
-                    return;
-                }
                 const bypassExperienceRegressionGuard = this._shouldBypassExperienceRegressionGuard(uid, nextProfile, options);
                 const lowerExperienceWrite = !bypassExperienceRegressionGuard
                     && this._isProfileExperienceRegression(current, nextProfile);
@@ -8614,10 +8606,6 @@ export default class NetworkManager extends EventEmitter {
                 const currentRevision = this._getProfileRevision(current);
                 if (expectedRevision.provided && currentRevision !== expectedRevision.value) {
                     abortReason = 'profile_conflict';
-                    return;
-                }
-                if (!expectedRevision.provided && Number(current.ts || 0) > Number(nextPatch.ts || 0)) {
-                    abortReason = 'stale_profile';
                     return;
                 }
                 const merged = this._mergeProfileData(current, nextPatch);

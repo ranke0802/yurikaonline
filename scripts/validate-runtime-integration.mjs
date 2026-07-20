@@ -3710,6 +3710,11 @@ function createProfileContractFirebase(initialProfiles = {}) {
         getProfile(uid) {
             return clone(getState(uid).value);
         },
+        setProfile(uid, value) {
+            const state = getState(uid);
+            state.value = clone(value);
+            state.version += 1;
+        },
         getValue(path) {
             return clone(readValue(path));
         },
@@ -4022,6 +4027,82 @@ async function validateFailClosedProfileContracts() {
                 ),
                 true,
                 'older high-experience snapshots must recover over newer low-experience root profiles'
+            );
+        }
+
+        {
+            const uid = 'experience_beats_future_timestamp';
+            const futureRoot = makeProfile({
+                recoveryUid: uid,
+                name: 'Future Low Progress',
+                level: 1,
+                exp: 0,
+                ts: Date.now() + 10 * 60 * 1000,
+                _profileRevision: 9
+            });
+            const memory = createProfileContractFirebase({ [uid]: futureRoot });
+            useFirebase(memory, uid);
+            const manager = makeManager(uid);
+            await establishWriter(manager, uid, 'future timestamp experience test must establish a writer session');
+
+            const higherExperienceSave = await manager.savePlayerData(uid, makeProfile({
+                recoveryUid: uid,
+                name: 'Higher Experience Wins',
+                level: 6,
+                exp: 30,
+                ts: 1
+            }), false, {
+                forceImmediate: true
+            });
+            assert.equal(higherExperienceSave.ok, true);
+            assert.equal(higherExperienceSave.reason, undefined);
+            assert.equal(memory.getProfile(uid).name, 'Higher Experience Wins', 'higher experience must overwrite a lower future-timestamp profile');
+            assert.equal(memory.getProfile(uid).level, 6);
+            assert.equal(memory.getProfile(uid).exp, 30);
+
+            const currentFutureTs = Date.now() + 10 * 60 * 1000;
+            memory.setProfile(uid, {
+                ...memory.getProfile(uid),
+                ts: currentFutureTs
+            });
+            const equalExperiencePatch = await manager.savePlayerDataPatch(uid, {
+                name: 'Equal Experience Patch Wins',
+                currentZoneId: 'zone_4',
+                level: 6,
+                exp: 30,
+                ts: 1
+            }, {
+                forceImmediate: true,
+                requireTransaction: true
+            });
+            assert.equal(equalExperiencePatch.ok, true);
+            assert.equal(memory.getProfile(uid).name, 'Equal Experience Patch Wins', 'equal experience patch must not be blocked by a future timestamp');
+            assert.equal(memory.getProfile(uid).currentZoneId, 'zone_4');
+
+            await memory.firebase.database().ref(`recovery_profiles/${uid}`).set({
+                recoveryUid: uid,
+                latestUid: uid,
+                ts: Date.now() + 20 * 60 * 1000,
+                profile: makeProfile({
+                    recoveryUid: uid,
+                    name: 'Future Low Recovery',
+                    level: 1,
+                    exp: 0,
+                    ts: Date.now() + 20 * 60 * 1000
+                })
+            });
+            manager._syncRecoveryProfile = NetworkManager.prototype._syncRecoveryProfile.bind(manager);
+            await manager._syncRecoveryProfile(uid, makeProfile({
+                recoveryUid: uid,
+                name: 'Higher Recovery Wins',
+                level: 7,
+                exp: 40,
+                ts: 1
+            }));
+            assert.equal(
+                memory.getValue(`recovery_profiles/${uid}`).profile.name,
+                'Higher Recovery Wins',
+                'higher experience recovery snapshots must replace lower future-timestamp recovery data'
             );
         }
 
