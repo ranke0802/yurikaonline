@@ -95,7 +95,10 @@ export default class CharacterSelectionScene extends Scene {
             profile = await this.game.net.getPlayerProfile(user.uid, { throwOnError: true });
             if (!this._isEnterCurrent(generation, user.uid)) return;
             const shouldLookupRecovery = this.game.net.shouldUseProfileRecoveryLookup
-                ? this.game.net.shouldUseProfileRecoveryLookup(profile, { operation: 'character_select' })
+                ? this.game.net.shouldUseProfileRecoveryLookup(profile, {
+                    operation: 'character_select',
+                    uid: user.uid
+                })
                 : true;
             latestSnapshot = shouldLookupRecovery
                 ? await this.game.net.getLatestProfileSnapshot?.(user.uid, {

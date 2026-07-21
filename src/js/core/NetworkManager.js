@@ -15,6 +15,9 @@ const DURABLE_BOSS_REWARD_VOLATILE_MAX_ENTRIES = 16;
 const QUEST_BOSS_DEFEAT_OUTBOX_MAX_ENTRIES = 128;
 const PROFILE_BACKUP_DEFAULT_KEEP_COUNT = 5;
 const PROFILE_RECOVERY_FULL_SAVE_SYNC_MS = 3 * 60 * 1000;
+const PROFILE_CHECKPOINT_STORAGE_PREFIX = 'yurika:profileCheckpoint:v1';
+const PROFILE_CHECKPOINT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const PROFILE_CHECKPOINT_MAX_BYTES = 512 * 1024;
 const DROP_SPAWN_OUTBOX_STORAGE_PREFIX = 'yurika:dropSpawnOutbox:v3';
 const LEGACY_DROP_SPAWN_OUTBOX_STORAGE_PREFIXES = [
     'yurika:dropSpawnOutbox:v2',
@@ -7320,6 +7323,106 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
+    _getLocalProfileCheckpointStorageKey(uid) {
+        return uid ? `${PROFILE_CHECKPOINT_STORAGE_PREFIX}:${uid}` : null;
+    }
+
+    _getLocalProfileCheckpointStorage() {
+        try {
+            return window.localStorage || null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    getLocalProfileCheckpoint(uid) {
+        const key = this._getLocalProfileCheckpointStorageKey(uid);
+        const storage = this._getLocalProfileCheckpointStorage();
+        if (!key || !storage) return null;
+        try {
+            const raw = storage.getItem(key);
+            if (!raw) return null;
+            const checkpoint = JSON.parse(raw);
+            const savedAt = Number(checkpoint?.savedAt || 0);
+            if (
+                checkpoint?.schemaVersion !== 1
+                || checkpoint?.uid !== uid
+                || !this._isRealPlayerProfile(checkpoint?.profile)
+                || !Number.isFinite(savedAt)
+                || savedAt <= 0
+                || Date.now() - savedAt > PROFILE_CHECKPOINT_TTL_MS
+            ) {
+                storage.removeItem(key);
+                return null;
+            }
+            return {
+                ...checkpoint,
+                profile: this._normalizeProfileSnapshot(checkpoint.profile, savedAt)
+            };
+        } catch (error) {
+            Logger.warn(`[Network] Failed to read local profile checkpoint for ${uid}`, error);
+            return null;
+        }
+    }
+
+    _storeLocalProfileCheckpoint(uid, profile = null, options = {}) {
+        const key = this._getLocalProfileCheckpointStorageKey(uid);
+        const storage = this._getLocalProfileCheckpointStorage();
+        const normalizedProfile = this._isRealPlayerProfile(profile)
+            ? this._normalizeProfileSnapshot(profile, Date.now())
+            : null;
+        if (!key || !storage || !normalizedProfile) return false;
+        try {
+            const payload = {
+                schemaVersion: 1,
+                uid,
+                savedAt: Date.now(),
+                pending: options.pending === true,
+                reason: String(options.reason || 'profile_checkpoint').slice(0, 96),
+                revision: Math.max(0, Number(options.revision || this._getProfileRevision(normalizedProfile) || 0)),
+                profile: normalizedProfile
+            };
+            const serialized = JSON.stringify(payload);
+            if (serialized.length > PROFILE_CHECKPOINT_MAX_BYTES) {
+                Logger.warn(`[Network] Local profile checkpoint exceeded the size limit for ${uid}`);
+                return false;
+            }
+            storage.setItem(key, serialized);
+            return true;
+        } catch (error) {
+            Logger.warn(`[Network] Failed to store local profile checkpoint for ${uid}`, error);
+            return false;
+        }
+    }
+
+    _storeLocalProfilePatchCheckpoint(uid, patch = null, options = {}) {
+        if (!patch || typeof patch !== 'object') return false;
+        const checkpoint = this.getLocalProfileCheckpoint(uid);
+        if (!checkpoint?.profile) return false;
+        return this._storeLocalProfileCheckpoint(
+            uid,
+            this._mergeProfileData(checkpoint.profile, patch),
+            {
+                pending: true,
+                revision: checkpoint.revision,
+                reason: options.saveReason || options.reason || 'profile_patch_checkpoint'
+            }
+        );
+    }
+
+    clearLocalProfileCheckpoint(uid) {
+        const key = this._getLocalProfileCheckpointStorageKey(uid);
+        const storage = this._getLocalProfileCheckpointStorage();
+        if (!key || !storage) return false;
+        try {
+            storage.removeItem(key);
+            return true;
+        } catch (error) {
+            Logger.warn(`[Network] Failed to clear local profile checkpoint for ${uid}`, error);
+            return false;
+        }
+    }
+
     _normalizeFirebaseObjectKey(key) {
         if (typeof key !== 'string') return '';
         return key.trim().replace(/[.#$\/\[\]\u0000-\u001F\u007F]/g, '_');
@@ -7458,14 +7561,73 @@ export default class NetworkManager extends EventEmitter {
         return statResetLike || missingMostLevelStats || (advancedProgress && emptyInventoryLike);
     }
 
+    _isProfileSuspiciousInitializationReset(current = null, next = null) {
+        if (!current || !next || typeof current !== 'object' || typeof next !== 'object') return false;
+        if (this._getProfileExperienceProgress(current) !== this._getProfileExperienceProgress(next)) return false;
+
+        const currentStats = this._getProfileStatTotal(current);
+        const nextStats = this._getProfileStatTotal(next);
+        const currentSkills = Object.values(current.skillLevels || {})
+            .reduce((total, value) => total + Math.max(1, Number(value || 1)), 0);
+        const nextSkills = Object.values(next.skillLevels || {})
+            .reduce((total, value) => total + Math.max(1, Number(value || 1)), 0);
+        const currentInventory = this._getProfileInventoryScore(current);
+        const nextInventory = this._getProfileInventoryScore(next);
+        const currentQuests = this._getProfileQuestScore(current);
+        const nextQuests = this._getProfileQuestScore(next);
+        const currentCurrency = Math.max(0, Number(current.manastone ?? current.gold ?? 0));
+        const nextCurrency = Math.max(0, Number(next.manastone ?? next.gold ?? 0));
+        const nextBaseStats = Math.max(0, Number(next.vitality || 0)) <= 1
+            && Math.max(0, Number(next.intelligence || 0)) <= 3
+            && Math.max(0, Number(next.wisdom || 0)) <= 2
+            && Math.max(0, Number(next.agility || 0)) <= 1;
+        const nextBaseSkills = ['laser', 'missile', 'fireball', 'shield']
+            .every((skillId) => Math.max(1, Number(next.skillLevels?.[skillId] || 1)) <= 1);
+        const nextLooksInitialized = nextBaseStats
+            && nextBaseSkills
+            && nextInventory <= 1
+            && nextQuests === 0
+            && nextCurrency === 0;
+        if (!nextLooksInitialized) return false;
+
+        const resetSignals = [
+            currentStats > nextStats,
+            currentSkills > nextSkills,
+            currentInventory >= 4 && nextInventory <= 1,
+            currentQuests > nextQuests,
+            currentCurrency >= 10 && nextCurrency === 0
+        ].filter(Boolean).length;
+        return resetSignals >= 2;
+    }
+
     shouldUseProfileRecoveryLookup(profile = null, options = {}) {
         if (options.forceBackupLookup === true || options.forceRecoveryLookup === true) return true;
+        const localCheckpoint = options.uid && options.includeLocalCheckpoint !== false
+            ? this.getLocalProfileCheckpoint(options.uid)
+            : null;
+        if (this._shouldUseLocalProfileCheckpoint(profile, localCheckpoint)) return true;
         if (!this._isRealPlayerProfile(profile)) return true;
         if (!String(profile?.name || '').trim()) return true;
         if (this._isProfileSuspiciousHighLevelReset(profile)) return true;
         const level = Math.max(1, Math.floor(Number(profile.level || 1)));
         if (level <= 3 && options.skipLowLevelRecoveryLookup !== true) return true;
         return false;
+    }
+
+    _shouldUseLocalProfileCheckpoint(profile = null, checkpoint = null) {
+        const localProfile = checkpoint?.profile || null;
+        if (!this._isRealPlayerProfile(localProfile)) return false;
+        if (!this._isRealPlayerProfile(profile)) return true;
+
+        const localExperience = this._getProfileExperienceProgress(localProfile);
+        const rootExperience = this._getProfileExperienceProgress(profile);
+        if (localExperience !== rootExperience) return localExperience > rootExperience;
+        if (this._isProfileRegression(profile, localProfile)) return false;
+        if (this._isProfileSuspiciousInitializationReset(localProfile, profile)) return true;
+
+        const localTs = Number(localProfile.ts || checkpoint.savedAt || 0);
+        const rootTs = Number(profile.ts || 0);
+        return localTs > rootTs;
     }
 
     _getProfileQuestScore(profile = null) {
@@ -7578,13 +7740,14 @@ export default class NetworkManager extends EventEmitter {
         if (candidateTs !== incumbentTs) {
             // Older recovery data may have a higher score after legitimate item
             // consumption or a repeat-quest reset. Only prefer it for a clear
-            // level rollback or a newer stat-reset signature.
+            // level rollback or an initialization-reset signature.
             if (candidateTs < incumbentTs) {
                 const candidateLevel = Math.max(1, Math.floor(Number(candidate.profile.level || 1)));
                 const incumbentLevel = Math.max(1, Math.floor(Number(incumbent.profile.level || 1)));
                 const candidateStats = this._getProfileStatTotal(candidate.profile);
                 const incumbentStats = this._getProfileStatTotal(incumbent.profile);
                 return candidateLevel > incumbentLevel
+                    || this._isProfileSuspiciousInitializationReset(candidate.profile, incumbent.profile)
                     || (incumbentSuspicious && !candidateSuspicious && candidateStats > incumbentStats + 2);
             }
             return !candidateSuspicious || incumbentSuspicious;
@@ -7616,6 +7779,7 @@ export default class NetworkManager extends EventEmitter {
 
         return (
             nextLevel < currentLevel
+            || this._isProfileSuspiciousInitializationReset(current, next)
             || (currentLevel >= 5 && nextSuspicious && !currentSuspicious)
             || (currentLevel >= 5 && currentStats > nextStats + 2)
             || (currentLevel >= 5 && currentInventory >= 4 && nextInventory <= Math.max(1, currentInventory * 0.25))
@@ -7789,7 +7953,13 @@ export default class NetworkManager extends EventEmitter {
                 ? this._normalizeProfileSnapshot(profile)
                 : null;
 
-            const shouldLookupRecovery = this.shouldUseProfileRecoveryLookup(normalizedProfile, options);
+            const localCheckpoint = options.includeLocalCheckpoint !== false
+                ? this.getLocalProfileCheckpoint(uid)
+                : null;
+            const shouldLookupRecovery = this.shouldUseProfileRecoveryLookup(normalizedProfile, {
+                ...options,
+                uid
+            });
             const includeRecovery = options.includeRecovery !== false && shouldLookupRecovery;
             const backupLimit = shouldLookupRecovery
                 ? Math.max(0, Math.min(PROFILE_BACKUP_DEFAULT_KEEP_COUNT, Math.floor(Number(options.backupLimit ?? PROFILE_BACKUP_DEFAULT_KEEP_COUNT))))
@@ -7830,9 +8000,21 @@ export default class NetworkManager extends EventEmitter {
                 latestUid: recoveryEntry?.latestUid || uid,
                 recoveryUid: this._resolveRecoveryUid(recoveryProfile, recoveryEntry?.recoveryUid || uid)
             } : null;
+            const localCheckpointCandidate = this._shouldUseLocalProfileCheckpoint(normalizedProfile, localCheckpoint)
+                ? {
+                    profile: localCheckpoint.profile,
+                    ts: Number(localCheckpoint.profile?.ts || localCheckpoint.savedAt || 0),
+                    source: 'local_checkpoint',
+                    backupId: null,
+                    latestUid: uid,
+                    recoveryUid: this._resolveRecoveryUid(localCheckpoint.profile, uid),
+                    localCheckpointPending: localCheckpoint.pending === true
+                }
+                : null;
 
             consider(rootCandidate);
             consider(recoveryCandidate);
+            consider(localCheckpointCandidate);
 
             const rootLevel = Math.max(1, Math.floor(Number(normalizedProfile?.level || 1)));
             const rootInventoryScore = normalizedProfile ? this._getProfileInventoryScore(normalizedProfile) : 0;
@@ -8070,6 +8252,10 @@ export default class NetworkManager extends EventEmitter {
         if (uid && this._blockedProfileWriteUids.has(uid)) {
             return { ok: false, reason: 'profile_write_blocked' };
         }
+        this._storeLocalProfileCheckpoint(uid, data, {
+            pending: true,
+            reason: options.saveReason || options.backupReason || 'profile_save_pending'
+        });
         const debounceMs = Number(options.debounceMs || 0);
         let patchWaiters = null;
         if (this._queuedProfilePatches.has(uid)) {
@@ -8120,6 +8306,7 @@ export default class NetworkManager extends EventEmitter {
         if (this._profileDisconnectingUids.has(uid)) {
             return { ok: false, reason: 'profile_disconnect_in_progress' };
         }
+        this._storeLocalProfilePatchCheckpoint(uid, patchData, options);
 
         if (this._queuedProfileSaves.has(uid)) {
             const queued = this._queuedProfileSaves.get(uid);
@@ -8521,6 +8708,11 @@ export default class NetworkManager extends EventEmitter {
             const result = { ok: true, profile: committedProfile, revision };
             if (lowerExperienceGuarded) result.lowerExperienceGuarded = true;
             if (Object.keys(auxiliaryFailures).length > 0) result.auxiliaryFailures = auxiliaryFailures;
+            this._storeLocalProfileCheckpoint(uid, committedProfile, {
+                pending: false,
+                revision,
+                reason: options.saveReason || options.backupReason || 'profile_save_committed'
+            });
             return result;
         } catch (e) {
             Logger.error('Failed to save player profile', e);
@@ -8681,6 +8873,11 @@ export default class NetworkManager extends EventEmitter {
             const result = { ok: true, patch: nextPatch, profile: committedProfile, revision };
             if (lowerExperienceGuarded) result.lowerExperienceGuarded = true;
             if (Object.keys(auxiliaryFailures).length > 0) result.auxiliaryFailures = auxiliaryFailures;
+            this._storeLocalProfileCheckpoint(uid, committedProfile, {
+                pending: false,
+                revision,
+                reason: options.saveReason || 'profile_patch_committed'
+            });
             return result;
         } catch (error) {
             Logger.error('Failed to save player profile patch', error);
@@ -10164,6 +10361,7 @@ export default class NetworkManager extends EventEmitter {
 
             await firebase.database().ref().update(updates);
             this._profileRevisions.delete(uid);
+            this.clearLocalProfileCheckpoint(uid);
 
             if (uid === this.playerId) {
                 this.lastPacketData = null;

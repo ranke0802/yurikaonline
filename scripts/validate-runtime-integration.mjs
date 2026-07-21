@@ -217,6 +217,7 @@ async function validatePwaVersionReloadPersistenceContracts() {
     assert.ok(legacyClearIndex < legacyReplaceIndex, 'legacy service worker reset must clear caches before reload');
 
     assert.match(mainJs, /requestLifecycleProfileSave[\s\S]*return savePromise;/, 'lifecycle profile save must return the Firebase save promise so version reload can await it');
+    assert.match(mainJs, /saveOperation = player\.saveState\(false, \{/, 'pagehide profile save must synchronously enter Player.saveState before the browser can terminate the task');
 }
 
 function validateAttackSpeedCapContracts() {
@@ -2571,6 +2572,109 @@ async function validateProfileExitDurabilityContracts() {
     assert.equal(trackedScene._activeZoneTransitionPromise, null);
 }
 
+async function validateLocalProfileCheckpointContracts() {
+    const previousStorage = window.localStorage;
+    const previousWindowFirebase = window.firebase;
+    const previousGlobalFirebase = globalThis.firebase;
+    const storageValues = new Map();
+    window.localStorage = {
+        getItem(key) { return storageValues.has(key) ? storageValues.get(key) : null; },
+        setItem(key, value) { storageValues.set(key, String(value)); },
+        removeItem(key) { storageValues.delete(key); }
+    };
+
+    const uid = 'local_checkpoint_player';
+    const richProfile = {
+        name: 'Checkpoint Player',
+        recoveryUid: uid,
+        level: 2,
+        exp: 40,
+        maxExp: 150,
+        vitality: 3,
+        intelligence: 4,
+        wisdom: 2,
+        agility: 1,
+        statPoints: 0,
+        skillLevels: { laser: 2, missile: 1, fireball: 1, shield: 1 },
+        manastone: 700,
+        inventory: [
+            { type: 'manastone', amount: 700 },
+            { type: 'checkpoint_staff', slot: 'weapon', rarity: 'rare' }
+        ],
+        equipment: { weapon: null },
+        questData: { basicTrainingCompleted: true, slimeKills: 7 },
+        questState: { active: { quest_slime_10: { objectives: { kill_slime: { current: 7 } } } }, completed: {}, flags: {} },
+        currentZoneId: 'zone_1',
+        mapId: 'zone_1',
+        mapPositions: { zone_1: { x: 440, y: 520 } },
+        x: 440,
+        y: 520,
+        ts: Date.now()
+    };
+
+    try {
+        window.firebase = {};
+        globalThis.firebase = {};
+        const manager = new NetworkManager();
+        manager.playerId = uid;
+        let finishCommit;
+        manager._commitPlayerData = () => new Promise((resolve) => { finishCommit = resolve; });
+
+        const pendingSave = manager.savePlayerData(uid, richProfile, false, { forceImmediate: true, saveReason: 'pagehide_profile_save' });
+        const pendingCheckpoint = manager.getLocalProfileCheckpoint(uid);
+        assert.equal(pendingCheckpoint?.pending, true, 'pagehide must synchronously persist a pending local profile checkpoint');
+        assert.equal(pendingCheckpoint?.profile.inventory[1].type, 'checkpoint_staff');
+        assert.equal(pendingCheckpoint?.profile.questData.slimeKills, 7);
+        finishCommit({ ok: false, reason: 'browser_terminated_before_commit' });
+        await pendingSave;
+
+        const resetRoot = {
+            ...richProfile,
+            vitality: 1,
+            intelligence: 3,
+            skillLevels: { laser: 1, missile: 1, fireball: 1, shield: 1 },
+            manastone: 0,
+            inventory: [],
+            questData: {},
+            questState: { active: {}, completed: {}, flags: {} },
+            ts: richProfile.ts + 1000
+        };
+        const firebaseMock = {
+            database: () => ({
+                ref() {
+                    return {
+                        once: async () => ({ val: () => null }),
+                        orderByChild() { return this; },
+                        limitToLast() { return this; }
+                    };
+                }
+            })
+        };
+        window.firebase = firebaseMock;
+        globalThis.firebase = firebaseMock;
+        const restored = await manager.getLatestProfileSnapshot(uid, {
+            profile: resetRoot,
+            backupLimit: 0,
+            throwOnError: true
+        });
+        assert.equal(restored.source, 'local_checkpoint', 'same-experience low-level reset must restore even an older local exit checkpoint');
+        assert.equal(restored.profile.inventory[1].type, 'checkpoint_staff');
+        assert.equal(restored.profile.questData.slimeKills, 7);
+        assert.equal(restored.profile.vitality, 3);
+
+        manager._commitPlayerDataPatch = async () => ({ ok: false, reason: 'offline' });
+        await manager.savePlayerDataPatch(uid, { manastone: 777, ts: Date.now() + 1 }, { forceImmediate: true });
+        assert.equal(manager.getLocalProfileCheckpoint(uid).profile.manastone, 777, 'profile patches must update the local checkpoint before Firebase resolves');
+
+        assert.equal(manager.clearLocalProfileCheckpoint(uid), true);
+        assert.equal(manager.getLocalProfileCheckpoint(uid), null, 'character deletion must be able to clear the UID-scoped checkpoint');
+    } finally {
+        window.localStorage = previousStorage;
+        window.firebase = previousWindowFirebase;
+        globalThis.firebase = previousGlobalFirebase;
+    }
+}
+
 async function validateCharacterSelectionGenerationContracts() {
     let resolveFirstProfile;
     const firstProfile = new Promise((resolve) => { resolveFirstProfile = resolve; });
@@ -4027,6 +4131,66 @@ async function validateFailClosedProfileContracts() {
                 ),
                 true,
                 'older high-experience snapshots must recover over newer low-experience root profiles'
+            );
+        }
+
+        {
+            const uid = 'same_experience_initialization_guard';
+            const baseline = makeProfile({
+                recoveryUid: uid,
+                name: 'Low Level Progress',
+                level: 2,
+                exp: 40,
+                maxExp: 150,
+                manastone: 700,
+                vitality: 3,
+                intelligence: 4,
+                wisdom: 2,
+                agility: 1,
+                skillLevels: { laser: 2, missile: 1, fireball: 1, shield: 1 },
+                inventory: [
+                    { type: 'manastone', amount: 700 },
+                    { type: 'guarded_staff', rarity: 'rare' }
+                ],
+                questData: { basicTrainingCompleted: true, slimeKills: 7 },
+                _profileRevision: 12
+            });
+            const reset = makeProfile({
+                recoveryUid: uid,
+                name: 'Low Level Progress',
+                level: 2,
+                exp: 40,
+                maxExp: 150,
+                manastone: 0,
+                vitality: 1,
+                intelligence: 3,
+                wisdom: 2,
+                agility: 1,
+                skillLevels: { laser: 1, missile: 1, fireball: 1, shield: 1 },
+                inventory: [],
+                questData: {},
+                questState: { active: {}, completed: {}, flags: {} },
+                ts: Date.now() + 1000
+            });
+            const memory = createProfileContractFirebase({ [uid]: baseline });
+            useFirebase(memory, uid);
+            const manager = makeManager(uid);
+            await establishWriter(manager, uid, 'same-experience initialization guard must establish a writer session');
+
+            const saveResult = await manager.savePlayerData(uid, reset, false, { forceImmediate: true });
+            assert.equal(saveResult.ok, true);
+            assert.equal(memory.getProfile(uid).manastone, 700, 'same-experience low-level reset must preserve currency');
+            assert.equal(memory.getProfile(uid).inventory[1].type, 'guarded_staff', 'same-experience low-level reset must preserve inventory');
+            assert.equal(memory.getProfile(uid).questData.slimeKills, 7, 'same-experience low-level reset must preserve quests');
+            assert.equal(memory.getProfile(uid).vitality, 3, 'same-experience low-level reset must preserve stats');
+
+            assert.equal(
+                manager._isProfileCandidateBetter(
+                    { profile: baseline, ts: 1000, source: 'backup' },
+                    { profile: reset, ts: 2000, source: 'profile' }
+                ),
+                true,
+                'an older low-level backup must beat a newer initialization reset at the same experience'
             );
         }
 
@@ -8647,6 +8811,8 @@ console.log('[runtime-integration] checking scene listener lifecycle...');
 await validateWorldSceneListenerLifecycle();
 console.log('[runtime-integration] checking profile exit durability...');
 await validateProfileExitDurabilityContracts();
+console.log('[runtime-integration] checking local profile checkpoints...');
+await validateLocalProfileCheckpointContracts();
 console.log('[runtime-integration] checking character selection generations...');
 await validateCharacterSelectionGenerationContracts();
 console.log('[runtime-integration] checking critical profile persistence triggers...');

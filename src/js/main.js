@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.02.089'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.090'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -703,12 +703,20 @@ class Game {
         }
         this._lastLifecycleProfileSaveAt = now;
 
-        const savePromise = Promise.resolve()
-            .then(() => player.saveState(false, {
+        let saveOperation;
+        try {
+            // Invoke synchronously so pagehide/beforeunload records the local
+            // checkpoint before the browser can terminate the JavaScript task.
+            saveOperation = player.saveState(false, {
                 debounceMs: 0,
                 reason,
                 backupReason: reason
-            }))
+            });
+        } catch (error) {
+            saveOperation = Promise.reject(error);
+        }
+
+        const savePromise = Promise.resolve(saveOperation)
             .then((result) => {
                 if (result?.ok === false) return result;
                 return this.net?.flushProfileWrites?.(player.id) || result;
