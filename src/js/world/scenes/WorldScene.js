@@ -54,6 +54,38 @@ export default class WorldScene extends Scene {
         this._profileIdleLastSavedPosition = null;
     }
 
+    _hasBasicTrainingCompletionFlag(questState = null) {
+        const flags = questState?.flags && typeof questState.flags === 'object' ? questState.flags : {};
+        const completed = questState?.completed && typeof questState.completed === 'object' ? questState.completed : {};
+        return !!(
+            flags.tutorial_basic_training_completed
+            || flags['tutorial.basic_training.completed']
+            || completed.quest_slime_10
+            || completed.quest_slime_30
+            || completed.quest_boss_king_slime
+            || questState?.active?.quest_slime_10
+            || questState?.active?.quest_slime_30
+            || questState?.active?.quest_boss_king_slime
+        );
+    }
+
+    _hasPostTutorialProgress(player = this.player) {
+        if (!player) return false;
+        const questData = player.questData || {};
+        return !!(
+            player.level > 1
+            || player.exp > 0
+            || player.manastone > 0
+            || questData.basicTrainingCompleted
+            || questData.slimeKills > 0
+            || questData.slimeQuestClaimed
+            || questData.slime30QuestClaimed
+            || questData.bossQuestClaimed
+            || questData.bossClearCount > 0
+            || this._hasBasicTrainingCompletionFlag(player.questState)
+        );
+    }
+
     shouldFreezeWorldForModalUi() {
         return !!this.ui?.isPaused && !this.net?.isSharedFieldActive?.();
     }
@@ -237,6 +269,19 @@ export default class WorldScene extends Scene {
                 ...(this.player.questState || {}),
                 ...(profile.questState || {})
             };
+            const shouldNormalizeBasicTrainingCompletion = !this.player.questData.basicTrainingCompleted
+                && (this._hasBasicTrainingCompletionFlag(this.player.questState) || this._hasPostTutorialProgress(this.player));
+            if (shouldNormalizeBasicTrainingCompletion) {
+                this.player.questData.basicTrainingCompleted = true;
+                this.player.questData.prologueCompleted = true;
+                this.player.questState = {
+                    ...(this.player.questState || {}),
+                    flags: {
+                        ...(this.player.questState?.flags || {}),
+                        tutorial_basic_training_completed: true
+                    }
+                };
+            }
             if (!this.player.questData.introSlime30RewardClaimed
                 && (
                     !!this.player.questData.slime30QuestClaimed
@@ -262,7 +307,7 @@ export default class WorldScene extends Scene {
 
             // v2.4: Restore tutorial completion before intro flow resumes.
             if (this.game.tutorial) {
-                if (this.player.questData.basicTrainingCompleted) {
+                if (this.player.questData.basicTrainingCompleted || this._hasBasicTrainingCompletionFlag(this.player.questState)) {
                     this.game.tutorial.completedTutorials.add('basic_training');
                 } else {
                     this.game.tutorial.completedTutorials.delete('basic_training');
@@ -346,11 +391,22 @@ export default class WorldScene extends Scene {
                     debounceMs: 0,
                     reason: needsLegacyCurrencyMigration ? 'migrate_gold_to_manastone' : 'remove_legacy_inventory_items'
                 });
+            } else if (shouldNormalizeBasicTrainingCompletion) {
+                this.player.saveProfilePatch?.(['questData', 'questState'], {
+                    debounceMs: 0,
+                    forceImmediate: true,
+                    reason: 'normalize_basic_training_completion'
+                });
             }
         }
 
-        const shouldDeferZoneParticipation = !this.player.questData.basicTrainingCompleted &&
+        const introCompleted = this.player.questData.basicTrainingCompleted
+            || this._hasBasicTrainingCompletionFlag(this.player.questState)
+            || this._hasPostTutorialProgress(this.player);
+        const shouldDeferZoneParticipation = !introCompleted &&
             !this.player.questData.slimeQuestClaimed &&
+            this.player.level <= 1 &&
+            this.player.exp <= 0 &&
             (((this.player.questData.slimeKills || 0) === 0) || !!this.player.questData.prologueCompleted);
 
         this.net.setZoneParticipationEnabled(!shouldDeferZoneParticipation);

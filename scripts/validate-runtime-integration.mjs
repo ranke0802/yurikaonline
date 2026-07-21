@@ -3877,9 +3877,8 @@ async function validateFailClosedProfileContracts() {
         return manager;
     };
     const establishWriter = async (manager, uid, message) => {
-        const session = await manager._ensureProfileWriterSession(uid);
-        assert.ok(session?.ready, message);
-        return session;
+        assert.equal(manager._shouldUseProfileWriterSession(uid), false, message);
+        return null;
     };
     const settleWithin = async (promise, message, timeoutMs = 1000) => {
         let timer = null;
@@ -3919,10 +3918,10 @@ async function validateFailClosedProfileContracts() {
             useFirebase(memory, uid, true);
             const older = makeManager(uid);
             const newer = makeManager(uid);
-            const olderSession = await establishWriter(
+            await establishWriter(
                 older,
                 uid,
-                `anonymous ${mutationKind} writer must establish a fenced local session`
+                `anonymous ${mutationKind} writer must not require a profile writer fence`
             );
             const oldTransactionEntered = makeDeferred();
             const releaseOldTransaction = makeDeferred();
@@ -3950,14 +3949,11 @@ async function validateFailClosedProfileContracts() {
                 }, { forceImmediate: true, requireTransaction: true });
             await oldTransactionEntered.promise;
 
-            const newerSession = await establishWriter(
+            await establishWriter(
                 newer,
                 uid,
-                `newer anonymous ${mutationKind} writer must atomically supersede the older session`
+                `newer anonymous ${mutationKind} writer must rely on progress guards instead of profile writer fences`
             );
-            const claimedProfile = memory.getProfile(uid);
-            assert.equal(claimedProfile._writerToken, newerSession.token);
-            assert.ok(Number(newerSession.epoch) > Number(olderSession.epoch));
 
             const newerResult = await newer.savePlayerData(uid, makeProfile({
                 recoveryUid: uid,
@@ -3971,9 +3967,9 @@ async function validateFailClosedProfileContracts() {
             assert.equal(newerResult.ok, true);
             releaseOldTransaction.resolve();
             const olderResult = await olderCommit;
-            assert.equal(olderResult.ok, false, `delayed older ${mutationKind} commit must be fenced`);
-            assert.equal(olderResult.reason, 'writer_session_superseded');
-            assert.equal(older.isProfileWriterSuperseded(), false, 'writer fence conflicts alone must not surface the duplicate-session modal');
+            assert.equal(olderResult.ok, true, `delayed older ${mutationKind} commit must settle without blocking saves`);
+            assert.equal(olderResult.lowerExperienceGuarded, true, `delayed older ${mutationKind} commit must be neutralized by experience guard`);
+            assert.equal(older.isProfileWriterSuperseded(), false, 'profile save conflicts alone must not surface the duplicate-session modal');
             assert.equal(memory.getProfile(uid).mutationOwner, `newer-${mutationKind}`);
             assert.equal(memory.getProfile(uid).exp, 200, `delayed older ${mutationKind} commit must not overwrite newer state`);
         }

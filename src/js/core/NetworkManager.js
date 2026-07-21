@@ -16,6 +16,7 @@ const QUEST_BOSS_DEFEAT_OUTBOX_MAX_ENTRIES = 128;
 const PROFILE_BACKUP_DEFAULT_KEEP_COUNT = 5;
 const PROFILE_RECOVERY_FULL_SAVE_SYNC_MS = 3 * 60 * 1000;
 const PROFILE_CHECKPOINT_STORAGE_PREFIX = 'yurika:profileCheckpoint:v1';
+const PROFILE_CHECKPOINT_LATEST_ANONYMOUS_KEY = `${PROFILE_CHECKPOINT_STORAGE_PREFIX}:latestAnonymous`;
 const PROFILE_CHECKPOINT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const PROFILE_CHECKPOINT_MAX_BYTES = 512 * 1024;
 const DROP_SPAWN_OUTBOX_STORAGE_PREFIX = 'yurika:dropSpawnOutbox:v3';
@@ -7087,7 +7088,12 @@ export default class NetworkManager extends EventEmitter {
     }
 
     _shouldUseProfileWriterSession(uid) {
-        return !!uid && uid === this.playerId && !!window.firebase;
+        // Profile writer fencing caused anonymous/PWA sessions to repeatedly
+        // reclaim `_writerEpoch` without committing real progression, which can
+        // leave guest characters stuck at their creation snapshot. Duplicate
+        // access is handled by the activeSession guard, while profile rollback is
+        // blocked by the experience/progress guards in the transaction itself.
+        return false;
     }
 
     _beginProfileWriterSession(uid, attempt = 0) {
@@ -7329,14 +7335,13 @@ export default class NetworkManager extends EventEmitter {
 
     _getLocalProfileCheckpointStorage() {
         try {
-            return window.localStorage || null;
-        } catch (error) {
+            return typeof window !== 'undefined' ? window.localStorage || null : null;
+        } catch {
             return null;
         }
     }
 
-    getLocalProfileCheckpoint(uid) {
-        const key = this._getLocalProfileCheckpointStorageKey(uid);
+    _readLocalProfileCheckpointByKey(key, expectedUid = null, source = 'local_checkpoint') {
         const storage = this._getLocalProfileCheckpointStorage();
         if (!key || !storage) return null;
         try {
@@ -7346,7 +7351,7 @@ export default class NetworkManager extends EventEmitter {
             const savedAt = Number(checkpoint?.savedAt || 0);
             if (
                 checkpoint?.schemaVersion !== 1
-                || checkpoint?.uid !== uid
+                || (expectedUid && checkpoint?.uid !== expectedUid)
                 || !this._isRealPlayerProfile(checkpoint?.profile)
                 || !Number.isFinite(savedAt)
                 || savedAt <= 0
@@ -7357,12 +7362,29 @@ export default class NetworkManager extends EventEmitter {
             }
             return {
                 ...checkpoint,
+                source,
                 profile: this._normalizeProfileSnapshot(checkpoint.profile, savedAt)
             };
         } catch (error) {
-            Logger.warn(`[Network] Failed to read local profile checkpoint for ${uid}`, error);
+            Logger.warn(`[Network] Failed to read local profile checkpoint ${key}`, error);
             return null;
         }
+    }
+
+    getLocalProfileCheckpoint(uid) {
+        return this._readLocalProfileCheckpointByKey(
+            this._getLocalProfileCheckpointStorageKey(uid),
+            uid,
+            'local_checkpoint'
+        );
+    }
+
+    getLatestAnonymousLocalProfileCheckpoint() {
+        return this._readLocalProfileCheckpointByKey(
+            PROFILE_CHECKPOINT_LATEST_ANONYMOUS_KEY,
+            null,
+            'local_anonymous_checkpoint'
+        );
     }
 
     _storeLocalProfileCheckpoint(uid, profile = null, options = {}) {
@@ -7372,10 +7394,19 @@ export default class NetworkManager extends EventEmitter {
             ? this._normalizeProfileSnapshot(profile, Date.now())
             : null;
         if (!key || !storage || !normalizedProfile) return false;
+        const existing = this.getLocalProfileCheckpoint(uid);
+        if (
+            existing?.profile
+            && options.allowLowerExperienceCheckpoint !== true
+            && this._getProfileExperienceProgress(existing.profile) > this._getProfileExperienceProgress(normalizedProfile)
+        ) {
+            return false;
+        }
         try {
             const payload = {
                 schemaVersion: 1,
                 uid,
+                recoveryUid: this._resolveRecoveryUid(normalizedProfile, uid),
                 savedAt: Date.now(),
                 pending: options.pending === true,
                 reason: String(options.reason || 'profile_checkpoint').slice(0, 96),
@@ -7388,6 +7419,10 @@ export default class NetworkManager extends EventEmitter {
                 return false;
             }
             storage.setItem(key, serialized);
+            const currentUser = window.game?.auth?.currentUser || window.firebase?.auth?.().currentUser || null;
+            if (currentUser?.isAnonymous === true && currentUser.uid === uid) {
+                storage.setItem(PROFILE_CHECKPOINT_LATEST_ANONYMOUS_KEY, serialized);
+            }
             return true;
         } catch (error) {
             Logger.warn(`[Network] Failed to store local profile checkpoint for ${uid}`, error);
@@ -7421,6 +7456,33 @@ export default class NetworkManager extends EventEmitter {
             Logger.warn(`[Network] Failed to clear local profile checkpoint for ${uid}`, error);
             return false;
         }
+    }
+
+    _getLocalProfileCheckpointCandidates(uid, rootProfile = null, options = {}) {
+        if (options.includeLocalCheckpoint === false || options.includeLocalProfileBackup === false) return [];
+        const candidates = [];
+        const exact = uid ? this.getLocalProfileCheckpoint(uid) : null;
+        if (exact) candidates.push(exact);
+
+        const currentUser = window.game?.auth?.currentUser || window.firebase?.auth?.().currentUser || null;
+        const rootExperience = this._getProfileExperienceProgress(rootProfile);
+        const rootHasMeaningfulProgress = this._isRealPlayerProfile(rootProfile)
+            && (
+                rootExperience > 0
+                || Math.max(1, Number(rootProfile?.level || 1)) > 1
+                || !!rootProfile?.questData?.basicTrainingCompleted
+                || this._getProfileInventoryScore(rootProfile) > 2
+            );
+        if (
+            currentUser?.isAnonymous === true
+            && currentUser.uid === uid
+            && !rootHasMeaningfulProgress
+        ) {
+            const anonymous = this.getLatestAnonymousLocalProfileCheckpoint();
+            if (anonymous && anonymous.uid !== exact?.uid) candidates.push(anonymous);
+        }
+
+        return candidates;
     }
 
     _normalizeFirebaseObjectKey(key) {
@@ -7602,10 +7664,10 @@ export default class NetworkManager extends EventEmitter {
 
     shouldUseProfileRecoveryLookup(profile = null, options = {}) {
         if (options.forceBackupLookup === true || options.forceRecoveryLookup === true) return true;
-        const localCheckpoint = options.uid && options.includeLocalCheckpoint !== false
-            ? this.getLocalProfileCheckpoint(options.uid)
-            : null;
-        if (this._shouldUseLocalProfileCheckpoint(profile, localCheckpoint)) return true;
+        const localCheckpoints = options.uid
+            ? this._getLocalProfileCheckpointCandidates(options.uid, profile, options)
+            : [];
+        if (localCheckpoints.some((checkpoint) => this._shouldUseLocalProfileCheckpoint(profile, checkpoint))) return true;
         if (!this._isRealPlayerProfile(profile)) return true;
         if (!String(profile?.name || '').trim()) return true;
         if (this._isProfileSuspiciousHighLevelReset(profile)) return true;
@@ -8000,21 +8062,20 @@ export default class NetworkManager extends EventEmitter {
                 latestUid: recoveryEntry?.latestUid || uid,
                 recoveryUid: this._resolveRecoveryUid(recoveryProfile, recoveryEntry?.recoveryUid || uid)
             } : null;
-            const localCheckpointCandidate = this._shouldUseLocalProfileCheckpoint(normalizedProfile, localCheckpoint)
-                ? {
-                    profile: localCheckpoint.profile,
-                    ts: Number(localCheckpoint.profile?.ts || localCheckpoint.savedAt || 0),
-                    source: 'local_checkpoint',
-                    backupId: null,
-                    latestUid: uid,
-                    recoveryUid: this._resolveRecoveryUid(localCheckpoint.profile, uid),
-                    localCheckpointPending: localCheckpoint.pending === true
-                }
-                : null;
-
             consider(rootCandidate);
             consider(recoveryCandidate);
-            consider(localCheckpointCandidate);
+            this._getLocalProfileCheckpointCandidates(uid, normalizedProfile, options)
+                .forEach((checkpoint) => {
+                    consider({
+                        profile: checkpoint.profile,
+                        ts: Number(checkpoint.profile?.ts || checkpoint.savedAt || 0),
+                        source: checkpoint.source || 'local_checkpoint',
+                        backupId: null,
+                        latestUid: checkpoint.uid || uid,
+                        recoveryUid: this._resolveRecoveryUid(checkpoint.profile, checkpoint.recoveryUid || checkpoint.uid || uid),
+                        localCheckpointPending: checkpoint.pending === true
+                    });
+                });
 
             const rootLevel = Math.max(1, Math.floor(Number(normalizedProfile?.level || 1)));
             const rootInventoryScore = normalizedProfile ? this._getProfileInventoryScore(normalizedProfile) : 0;

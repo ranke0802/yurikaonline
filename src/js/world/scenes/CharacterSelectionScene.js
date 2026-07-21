@@ -140,7 +140,20 @@ export default class CharacterSelectionScene extends Scene {
                 this.profile = repairResult.profile;
             } else {
                 const currentProfile = repairResult?.currentProfile || null;
-                this.profile = currentProfile || latestSnapshot.profile || profile || null;
+                const currentCandidate = currentProfile ? {
+                    profile: currentProfile,
+                    ts: Number(currentProfile.ts || 0),
+                    source: 'profile'
+                } : null;
+                const latestCandidate = latestSnapshot?.profile ? {
+                    profile: latestSnapshot.profile,
+                    ts: Number(latestSnapshot.ts || latestSnapshot.profile.ts || 0),
+                    source: latestSnapshot.source || 'latest'
+                } : null;
+                const shouldKeepLatest = this.game.net?._isProfileCandidateBetter?.(latestCandidate, currentCandidate);
+                this.profile = shouldKeepLatest
+                    ? latestSnapshot.profile
+                    : (currentProfile || latestSnapshot.profile || profile || null);
                 if (!this.profile) {
                     const error = repairResult?.error || new Error(repairResult?.reason || 'profile_auto_repair_failed');
                     Logger.error('[CharacterSelectionScene] Failed to repair player profile', error);
