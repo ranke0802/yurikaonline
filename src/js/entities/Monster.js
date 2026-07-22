@@ -66,10 +66,19 @@ function drawMonsterCombatVfx(ctx, effectTheme, row, x, y, width, height, option
     const sourceY = Math.floor(Math.max(0, Math.min(MONSTER_COMBAT_VFX_ATLAS.rows - 1, row)) * sourceHeight);
     const drawWidth = Math.max(1, width);
     const drawHeight = Math.max(1, height);
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const phase = (now / 1000) * Math.max(0, Number(options.pulseSpeed ?? 0));
+    const pulse = 1 + (Math.sin(phase + Number(options.phaseOffset || 0)) * Math.max(0, Number(options.pulse || 0)));
+    const drift = Math.sin(phase + Number(options.phaseOffset || 0)) * Math.max(0, Number(options.drift || 0));
     ctx.save();
-    ctx.translate(x, y);
-    if (options.rotation) ctx.rotate(options.rotation);
-    if (options.flipX) ctx.scale(-1, 1);
+    ctx.translate(x, y + drift);
+    if (options.rotation || options.spin) {
+        ctx.rotate(Number(options.rotation || 0) + ((now / 1000) * Number(options.spin || 0)));
+    }
+    ctx.scale(
+        (options.flipX ? -1 : 1) * pulse * Math.max(0.1, Number(options.scaleX || 1)),
+        pulse * Math.max(0.1, Number(options.scaleY || 1))
+    );
     ctx.globalAlpha *= Math.max(0, Math.min(1, Number(options.alpha ?? 1)));
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(
@@ -847,7 +856,12 @@ export default class Monster extends CharacterBase {
             this.y + (this.height * 0.36),
             vfxSize,
             vfxSize * 0.68,
-            { alpha: lowGlareCombat ? 0.38 : (0.62 + castProgress * 0.2) }
+            {
+                alpha: lowGlareCombat ? 0.38 : (0.62 + castProgress * 0.2),
+                pulse: lowGlareCombat ? 0.025 : 0.07,
+                pulseSpeed: 4.4,
+                spin: theme.id === 'thunder' ? 0 : 0.12
+            }
         );
         drawMonsterCombatVfx(
             ctx,
@@ -857,7 +871,7 @@ export default class Monster extends CharacterBase {
             this.chargeTarget.y,
             Math.max(this.width * 1.35, 72),
             Math.max(this.height * 0.86, 48),
-            { alpha: lowGlareCombat ? 0.16 : 0.28 }
+            { alpha: lowGlareCombat ? 0.16 : 0.28, pulse: 0.04, pulseSpeed: 2.6 }
         );
     }
 
@@ -1278,7 +1292,12 @@ export default class Monster extends CharacterBase {
             zone.y,
             radius * (impact ? 2.3 : 1.9),
             radius * (impact ? 1.48 : 1.18),
-            { alpha: alphaScale * (impact ? 0.76 * (1 - impactProgress) : 0.3 + progress * 0.2) }
+            {
+                alpha: alphaScale * (impact ? 0.76 * (1 - impactProgress) : 0.3 + progress * 0.2),
+                pulse: impact ? 0.13 : 0.055,
+                pulseSpeed: impact ? 8.5 : 3.2,
+                spin: impact ? 0 : 0.1
+            }
         );
     }
 
@@ -1322,7 +1341,9 @@ export default class Monster extends CharacterBase {
                 {
                     alpha: alphaScale * 0.7 * (1 - impactProgress),
                     rotation: angle,
-                    flipX: angle < -Math.PI / 2 || angle > Math.PI / 2
+                    flipX: angle < -Math.PI / 2 || angle > Math.PI / 2,
+                    pulse: 0.08,
+                    pulseSpeed: 9
                 }
             );
         }
@@ -2253,7 +2274,10 @@ export default class Monster extends CharacterBase {
         drawMonsterCombatVfx(ctx, theme.id, 1, x, y - (renderWidth * 0.08), size, size * 0.62, {
             alpha: lowGlareCombat ? 0.26 : (this.isBoss ? 0.7 : 0.52),
             rotation: angle,
-            flipX: angle < -Math.PI / 2 || angle > Math.PI / 2
+            flipX: angle < -Math.PI / 2 || angle > Math.PI / 2,
+            pulse: 0.05,
+            pulseSpeed: 13,
+            scaleX: 1.12
         });
     }
 
@@ -2294,7 +2318,12 @@ export default class Monster extends CharacterBase {
             groundY - (renderHeight * 0.05),
             radiusX * 2.7,
             Math.max(renderHeight * 0.9, radiusX * 0.94),
-            { alpha: inheritedAlpha * (lowGlareCombat ? 0.24 : 0.42) }
+            {
+                alpha: inheritedAlpha * (lowGlareCombat ? 0.24 : 0.42),
+                pulse: lowGlareCombat ? 0.025 : 0.06,
+                pulseSpeed,
+                spin: 0.06
+            }
         );
     }
 
@@ -2315,7 +2344,12 @@ export default class Monster extends CharacterBase {
         const alpha = lowGlareCombat
             ? (this.isBoss ? 0.34 : 0.24)
             : (this.isBoss ? 0.58 : 0.42) + progress * 0.16;
-        drawMonsterCombatVfx(ctx, theme.id, 0, x, groundY - 6, radius * 2.25, radius * 1.42, { alpha });
+        drawMonsterCombatVfx(ctx, theme.id, 0, x, groundY - 6, radius * 2.25, radius * 1.42, {
+            alpha,
+            pulse: lowGlareCombat ? 0.025 : 0.075,
+            pulseSpeed: this.isBoss ? 4.6 : 3.2,
+            spin: theme.id === 'thunder' ? 0 : 0.16
+        });
     }
 
     _renderShadowAmbush(ctx) {
@@ -2326,14 +2360,23 @@ export default class Monster extends CharacterBase {
         // Source collapse + destination portal make the delayed teleport readable
         // without adding a hit or changing the three-second confusion mechanic.
         drawMonsterCombatVfx(ctx, 'shadow', 0, this.x, this.y + (this.height * 0.42), radius * 2.15, radius * 1.32, {
-            alpha: 0.54 * (1 - progress * 0.55)
+            alpha: 0.54 * (1 - progress * 0.55),
+            pulse: 0.07,
+            pulseSpeed: 4.8,
+            spin: -0.22
         });
         drawMonsterCombatVfx(ctx, 'shadow', 0, ambush.toX, ambush.toY + (this.height * 0.42), radius * 1.76, radius * 1.08, {
-            alpha: 0.38 + progress * 0.3
+            alpha: 0.38 + progress * 0.3,
+            pulse: 0.08,
+            pulseSpeed: 5.4,
+            spin: 0.26
         });
         if (progress > 0.62) {
             drawMonsterCombatVfx(ctx, 'shadow', 1, ambush.toX, ambush.toY, radius * 2.1, radius * 1.25, {
-                alpha: (progress - 0.62) * 1.12
+                alpha: (progress - 0.62) * 1.12,
+                pulse: 0.15,
+                pulseSpeed: 12,
+                scaleX: 1.18
             });
         }
     }
