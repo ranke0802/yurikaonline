@@ -775,6 +775,14 @@ export default class Player extends CharacterBase {
             }
         }
 
+        // Gastly ambush: only invert deliberate player movement. Auto-hunt keeps
+        // its target pursuit so the status never leaves the player stranded.
+        const hasConfusion = this.statusEffects.some((effect) => effect.type === 'confusion' && effect.timer > 0);
+        if (hasConfusion && (vx !== 0 || vy !== 0)) {
+            vx = -vx;
+            vy = -vy;
+        }
+
         // 4. Auto mode pursuit - approach the nearest valid monster until basic attack range.
         if (vx === 0 && vy === 0 && !this.moveTarget && this.autoAttackEnabled && !this.fireballAimActive) {
             const autoMoveTarget = this.getAutoMoveTarget();
@@ -3280,8 +3288,9 @@ export default class Player extends CharacterBase {
         const hasBurn = burnEffect && burnEffect.timer > 0;
         const hasElec = this.electrocutedTimer > 0;
         const hasShield = this.shieldTimer > 0;
+        const hasConfusion = this.statusEffects.some(e => e.type === 'confusion' && e.timer > 0);
 
-        if (!hasBurn && !hasElec && !hasShield) return;
+        if (!hasBurn && !hasElec && !hasShield && !hasConfusion) return;
 
         ctx.save();
         // v0.00.73: Position icons BELOW bars, aligned to the LEFT of the health bar
@@ -3349,6 +3358,18 @@ export default class Player extends CharacterBase {
                 ctx.stroke();
                 ctx.fillStyle = 'rgba(100, 100, 255, 0.5)';
                 ctx.fill();
+            } else if (type === 'confusion') {
+                ctx.strokeStyle = '#d987ff';
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#d987ff';
+                ctx.beginPath();
+                ctx.arc(0, 0, 5, 0.3, Math.PI * 1.65);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(5, -3);
+                ctx.lineTo(7, -6);
+                ctx.lineTo(2, -6);
+                ctx.stroke();
             }
 
             ctx.restore();
@@ -3358,6 +3379,7 @@ export default class Player extends CharacterBase {
         if (hasShield) drawStatusBadge('shield'); // Priority to shield
         if (hasBurn) drawStatusBadge('burn');
         if (hasElec) drawStatusBadge('elec');
+        if (hasConfusion) drawStatusBadge('confusion');
 
         ctx.restore();
     }

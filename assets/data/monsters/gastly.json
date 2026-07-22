@@ -56,15 +56,7 @@
     "attackRange": 108,
     "attackCooldownMs": 1200,
     "leashRange": 800,
-    "charge": {
-      "enabled": true,
-      "damage": 40,
-      "range": 590,
-      "cooldownMs": 7800,
-      "minDistance": 120,
-      "castSeconds": 0.95,
-      "speed": 350
-    }
+    "charge": { "enabled": false }
   },
   "sounds": {
     "attack": "sfx_slime_attack",
@@ -74,11 +66,13 @@
   },
   "skills": [
     {
-      "id": "missile",
+      "id": "shadow_ambush",
       "trigger": "cooldown",
       "cooldown": 7600,
       "data": {
-        "count": 3
+        "castMs": 1100,
+        "behindDistance": 96,
+        "damageMultiplier": 1.15
       }
     }
   ],

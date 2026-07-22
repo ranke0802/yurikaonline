@@ -71,7 +71,26 @@
     "die": "sfx_slime_die",
     "move": "sfx_slime_move"
   },
-  "skills": [],
+  "skills": [
+    {
+      "id": "water_cannon",
+      "trigger": "cooldown",
+      "cooldown": 7200,
+      "data": {
+        "label": "물대포",
+        "pattern": "line",
+        "width": 76,
+        "length": 430,
+        "warningMs": 780,
+        "impactMs": 280,
+        "damageMultiplier": 1.05,
+        "color": "#38bdf8",
+        "secondaryColor": "#e0f7ff",
+        "effect": "water",
+        "castVfx": { "color": "#38bdf8", "glowColor": "#dff9ff" }
+      }
+    }
+  ],
   "drops": [
     {
       "itemId": "manastone",

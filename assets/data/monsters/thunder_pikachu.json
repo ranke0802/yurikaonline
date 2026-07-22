@@ -54,6 +54,7 @@
       "auraColor": "#f6db3f",
       "secondaryColor": "#fff7b0",
       "particleColor": "#fff06a",
+      "castVfx": { "color": "#f6db3f", "glowColor": "#fff7b0", "radiusScale": 0.64, "yScale": 0.44, "rotationSpeed": 0.0032 },
       "pulseSpeed": 1.5,
       "ringCount": 3,
       "shadowScale": 1.4,

@@ -1,6 +1,7 @@
 import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
+import SkillRenderer from '../skills/renderers/SkillRenderer.js';
 
 const BOSS_MECHANIC_AREA_SCALE = 3;
 const BOSS_MECHANIC_DAMAGE_SCALE = 2;
@@ -65,6 +66,7 @@ export default class Monster extends CharacterBase {
         this.bossMechanics = Array.isArray(definition.bossMechanics) ? definition.bossMechanics : [];
         this.bossMechanicCooldowns = new Map();
         this.activeBossTelegraphs = [];
+        this.shadowAmbush = null;
         this.seenBossTelegraphIds = new Map();
         this.bossTelegraphSerial = 0;
         this.drops = definition.drops || [];
@@ -635,6 +637,27 @@ export default class Monster extends CharacterBase {
         Logger.log(`[Monster] ${this.id} started charge casting.`);
     }
 
+    _startChargeLandingHazard(x, y) {
+        const hazard = this.behavior?.charge?.landingHazard;
+        if (!hazard || (window.game?.net && !window.game.net.isHost)) return;
+        const payload = {
+            id: `${this.id || this.typeId}:landing:${Date.now()}`,
+            mechanicId: 'lightning_landing',
+            warningMs: 0,
+            impactMs: 240,
+            persistentMs: Math.max(1000, Number(hazard.durationMs || 5000)),
+            tickMs: Math.max(180, Number(hazard.tickMs || 500)),
+            damage: Math.max(1, Number(hazard.damage || this.chargeDamage || this.atk)),
+            zones: [{ shape: 'circle', x, y, radius: Math.max(24, Number(hazard.radius || 88)) }],
+            color: hazard.color || '#facc15',
+            secondaryColor: hazard.secondaryColor || '#fff7a8',
+            effect: 'lightning_field',
+            castVfx: hazard.castVfx || null
+        };
+        this.startBossTelegraph(payload);
+        window.game?.net?.sendMonsterAttack?.(this.id, 'special_telegraph', payload);
+    }
+
     _updateCharge(dt) {
         if (this.chargeState === 'idle') {
             if (this.chargeCooldown > 0) this.chargeCooldown -= dt * 1000;
@@ -683,12 +706,15 @@ export default class Monster extends CharacterBase {
             // Check if arrived at target point
             const distToTarget = Math.sqrt((this.chargeTarget.x - this.x) ** 2 + (this.chargeTarget.y - this.y) ** 2);
             if (distToTarget < 10 || this.chargeTimer <= 0) {
+                const landingX = this.x;
+                const landingY = this.y;
                 this.chargeState = 'idle';
                 this.lastNetworkEventAt = Date.now();
                 this.chargeCooldown = Math.max(500, Number(this.chargeCooldownMs) || 15000);
                 this.chargeTarget = null;
                 this.vx = 0;
                 this.vy = 0;
+                this._startChargeLandingHazard(landingX, landingY);
             }
             return true;
         }
@@ -706,8 +732,9 @@ export default class Monster extends CharacterBase {
         // this.x is world, target.x is world.
 
         ctx.save();
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
-        ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+        const chargeVisual = this.behavior?.charge?.visual || {};
+        ctx.fillStyle = chargeVisual.fill || 'rgba(255, 0, 0, 0.3)';
+        ctx.strokeStyle = chargeVisual.stroke || 'rgba(255, 0, 0, 0.5)';
         ctx.lineWidth = 2;
 
         const dx = this.chargeTarget.x - this.x;
@@ -722,6 +749,18 @@ export default class Monster extends CharacterBase {
         // Draw Rectangle (0, -width/2, dist, width)
         ctx.fillRect(0, -width / 2, dist, width);
         ctx.strokeRect(0, -width / 2, dist, width);
+        if (chargeVisual.effect === 'thunder') {
+            ctx.strokeStyle = chargeVisual.spark || '#fff7a8';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            const step = Math.max(24, dist / 10);
+            ctx.moveTo(0, 0);
+            for (let x = step; x < dist; x += step) {
+                ctx.lineTo(x, ((Math.floor(x / step) % 2) ? -1 : 1) * width * 0.2);
+            }
+            ctx.lineTo(dist, 0);
+            ctx.stroke();
+        }
 
         ctx.restore();
     }
@@ -878,7 +917,10 @@ export default class Monster extends CharacterBase {
             zones,
             color: mechanic.color || this.bossEffects.auraColor || '#f97316',
             secondaryColor: mechanic.secondaryColor || this.bossEffects.secondaryColor || '#fff7ed',
-            effect: mechanic.effect || 'arcane'
+            effect: mechanic.effect || 'arcane',
+            castVfx: mechanic.castVfx || this.bossEffects.castVfx || null,
+            persistentMs: Math.max(0, Number(mechanic.persistentMs || 0)),
+            tickMs: Math.max(180, Number(mechanic.tickMs || 500))
         };
     }
 
@@ -942,11 +984,85 @@ export default class Monster extends CharacterBase {
             color: String(payload.color || this.bossEffects.auraColor || '#f97316'),
             secondaryColor: String(payload.secondaryColor || this.bossEffects.secondaryColor || '#fff7ed'),
             effect: String(payload.effect || 'arcane'),
+            castVfx: payload.castVfx && typeof payload.castVfx === 'object' ? payload.castVfx : null,
+            persistentMs: Math.max(0, Number(payload.persistentMs || 0)),
+            tickMs: Math.max(180, Number(payload.tickMs || 500)),
+            nextDamageMs: Math.max(0, Number(payload.warningMs || 0)),
             elapsedMs: 0,
             resolved: false,
             hitTargetIds: new Set()
         });
         this.lastNetworkEventAt = Date.now();
+    }
+
+    _startSpecialTelegraph(skill, target) {
+        const data = skill?.data || {};
+        const payload = this._buildBossTelegraphPayload({
+            id: skill.id,
+            label: data.label || '',
+            pattern: data.pattern || 'line',
+            width: data.width || 70,
+            length: data.length || 420,
+            radius: data.radius || 90,
+            warningMs: data.warningMs || 800,
+            impactMs: data.impactMs || 280,
+            damageMultiplier: data.damageMultiplier || 1,
+            areaScale: 1,
+            damageScale: 1,
+            castScale: 1,
+            color: data.color || '#59d9ff',
+            secondaryColor: data.secondaryColor || '#e6fbff',
+            effect: data.effect || 'arcane',
+            castVfx: data.castVfx || null,
+            persistentMs: data.persistentMs || 0,
+            tickMs: data.tickMs || 500
+        }, target);
+        if (!payload) return;
+        this.startBossTelegraph(payload);
+        window.game?.net?.sendMonsterAttack?.(this.id, 'special_telegraph', payload);
+    }
+
+    startShadowAmbush(payload) {
+        if (!payload || this.isDead) return;
+        const id = String(payload.id || `${this.id}:ambush:${Date.now()}`);
+        if (this.shadowAmbush?.id === id) return;
+        const castMs = Math.max(500, Number(payload.castMs || 1000));
+        this.shadowAmbush = {
+            id,
+            targetId: String(payload.targetId || ''),
+            toX: Number(payload.toX || this.x),
+            toY: Number(payload.toY || this.y),
+            damage: Math.max(1, Number(payload.damage || this.atk || 10)),
+            castMs,
+            elapsedMs: 0,
+            resolved: false
+        };
+        this.vx = 0;
+        this.vy = 0;
+        this.lastNetworkEventAt = Date.now();
+    }
+
+    _updateShadowAmbush(dt) {
+        const ambush = this.shadowAmbush;
+        if (!ambush) return false;
+        ambush.elapsedMs += Math.max(0, dt * 1000);
+        this.vx = 0;
+        this.vy = 0;
+        if (ambush.elapsedMs < ambush.castMs || ambush.resolved) return true;
+        ambush.resolved = true;
+        this.x = ambush.toX;
+        this.y = ambush.toY;
+        if (!window.game?.net || window.game.net.isHost) {
+            const target = this._getBossMechanicTargets().find((player) => player.id === ambush.targetId);
+            if (target && !this._isProtectedPlayer(target)) {
+                const meta = { source: 'shadow_ambush', monsterId: this.id, monsterType: this.typeId };
+                if (window.game?.net) window.game.net.sendPlayerDamage(target.id, ambush.damage, 'confusion', 3, 0, meta);
+                else target.takeDamage?.(ambush.damage, false, false, this.x, this.y, null, 'confusion', 3, 0);
+            }
+        }
+        this.shadowAmbush = null;
+        this.lastNetworkEventAt = Date.now();
+        return true;
     }
 
     _distancePointToSegment(px, py, x1, y1, x2, y2) {
@@ -991,10 +1107,11 @@ export default class Monster extends CharacterBase {
 
     _applyBossTelegraphDamage(telegraph) {
         const canApplyDamage = !window.game?.net || window.game.net.isHost;
-        if (!canApplyDamage || telegraph.resolved) return;
+        const isPersistent = Number(telegraph.persistentMs || 0) > 0;
+        if (!canApplyDamage || (telegraph.resolved && !isPersistent)) return;
         const damage = Math.max(1, Math.round(Number(telegraph.damage || this.atk || 10)));
         this._getBossMechanicTargets().forEach((player) => {
-            if (!player?.id || telegraph.hitTargetIds.has(player.id)) return;
+            if (!player?.id || (!isPersistent && telegraph.hitTargetIds.has(player.id))) return;
             if (!this._isPlayerInsideBossTelegraph(player, telegraph)) return;
             telegraph.hitTargetIds.add(player.id);
             const meta = {
@@ -1009,7 +1126,7 @@ export default class Monster extends CharacterBase {
                 player.takeDamage(damage, false, false, this.x, this.y, null);
             }
         });
-        telegraph.resolved = true;
+        if (!isPersistent) telegraph.resolved = true;
     }
 
     _updateBossTelegraphs(dt) {
@@ -1017,9 +1134,14 @@ export default class Monster extends CharacterBase {
         const deltaMs = Math.max(0, dt * 1000);
         this.activeBossTelegraphs = this.activeBossTelegraphs.filter((telegraph) => {
             telegraph.elapsedMs += deltaMs;
-            if (telegraph.elapsedMs >= telegraph.warningMs) {
-                this._applyBossTelegraphDamage(telegraph);
+            if (telegraph.persistentMs > 0) {
+                if (telegraph.elapsedMs >= telegraph.warningMs && telegraph.elapsedMs >= telegraph.nextDamageMs) {
+                    this._applyBossTelegraphDamage(telegraph);
+                    telegraph.nextDamageMs += Math.max(180, Number(telegraph.tickMs || 500));
+                }
+                return telegraph.elapsedMs < telegraph.warningMs + telegraph.persistentMs;
             }
+            if (telegraph.elapsedMs >= telegraph.warningMs) this._applyBossTelegraphDamage(telegraph);
             return telegraph.elapsedMs < telegraph.warningMs + telegraph.impactMs;
         });
     }
@@ -1049,6 +1171,22 @@ export default class Monster extends CharacterBase {
         ctx.beginPath();
         ctx.arc(zone.x, zone.y, Math.max(4, radius * 0.68), 0, Math.PI * 2);
         ctx.stroke();
+        if (telegraph.effect === 'lightning_field' && telegraph.elapsedMs >= telegraph.warningMs) {
+            const phase = Math.floor(telegraph.elapsedMs / 90);
+            ctx.globalAlpha = alphaScale * 0.72;
+            ctx.strokeStyle = telegraph.secondaryColor;
+            ctx.lineWidth = 2;
+            ctx.shadowBlur = lowGlareCombat ? 0 : 10;
+            ctx.beginPath();
+            for (let i = 0; i < 8; i += 1) {
+                const angle = (i / 8) * Math.PI * 2;
+                const inner = radius * 0.22;
+                const outer = radius * (0.72 + ((phase + i) % 3) * 0.07);
+                ctx.moveTo(zone.x + Math.cos(angle) * inner, zone.y + Math.sin(angle) * inner);
+                ctx.lineTo(zone.x + Math.cos(angle + 0.1) * outer, zone.y + Math.sin(angle + 0.1) * outer);
+            }
+            ctx.stroke();
+        }
         ctx.restore();
     }
 
@@ -1160,6 +1298,7 @@ export default class Monster extends CharacterBase {
             this.chargeTimer = 0;
             this.chargeTarget = null;
             this.activeBossTelegraphs = [];
+            this.shadowAmbush = null;
             Logger.log(`[Monster] Local death trigger for ${this.id}`);
         }
 
@@ -1222,7 +1361,8 @@ export default class Monster extends CharacterBase {
         this._handleRegen(dt);
 
         // v0.00.43: Charge Logic (Returns true if overriding AI)
-        const isCharging = this._updateCharge(safeDt);
+        const isAmbushing = this._updateShadowAmbush(safeDt);
+        const isCharging = !isAmbushing && this._updateCharge(safeDt);
 
         if (!this.ready && !isPassive) {
             // v1.99.13: If host, we MUST load assets even if off-screen to run AI pathing
@@ -1237,7 +1377,7 @@ export default class Monster extends CharacterBase {
         this._updateBossTelegraphs(safeDt);
 
         // 2. Targeting (AI Awareness) - Skip if Charging (already locked)
-        if (!isCharging) {
+        if (!isCharging && !isAmbushing) {
             const getAllPlayers = () => {
                 const players = [];
                 const net = window.game?.net;
@@ -1329,7 +1469,7 @@ export default class Monster extends CharacterBase {
 
         // 3. Movement Logic (Host Authority)
         if (window.game?.net?.isHost) {
-            if (!isCharging) {
+            if (!isCharging && !isAmbushing) {
                 const target = this.targetPlayer;
                 let aiVx = 0;
                 let aiVy = 0;
@@ -1488,12 +1628,15 @@ export default class Monster extends CharacterBase {
                         // Player physics: `takeDamage` handles visual.
 
                         // Stop Charging
+                        const landingX = nextX;
+                        const landingY = nextY;
                         this.chargeState = 'idle';
                         this.chargeCooldown = Math.max(500, Number(this.chargeCooldownMs) || 15000);
                         this.chargeTarget = null;
                         this.vx = 0;
                         this.vy = 0;
                         canMove = false;
+                        this._startChargeLandingHazard(landingX, landingY);
 
                         // Apply Knockback to Player?
                         // p.applyKnockback(this.vx * 2, this.vy * 2); // If local
@@ -1525,7 +1668,7 @@ export default class Monster extends CharacterBase {
             // Dissipate knockback forces
             this.knockback.vx *= 0.85; // Slightly faster dissipation
             this.knockback.vy *= 0.85;
-        } else {
+        } else if (!isAmbushing) {
             // Guest Side: Smooth Interpolation
             const targetX = isNaN(this.targetX) ? this.x : this.targetX;
             const targetY = isNaN(this.targetY) ? this.y : this.targetY;
@@ -1835,7 +1978,7 @@ export default class Monster extends CharacterBase {
         Logger.log(`[Monster] ${this.id} executing skill: ${skill.id}`);
 
         // 1. Send Network Event (Host sends 'monsterAttack' packet)
-        if (window.game?.net) {
+        if (window.game?.net && !['water_cannon', 'shadow_ambush'].includes(skill.id)) {
             window.game.net.sendMonsterAttack(this.id, skill.id, {
                 targetId: target.id,
                 ...skill.data
@@ -1848,6 +1991,24 @@ export default class Monster extends CharacterBase {
                 target.x + ((target.width || 0) / 2),
                 target.y + ((target.height || 0) / 2)
             );
+        } else if (skill.id === 'water_cannon') {
+            this._startSpecialTelegraph(skill, target);
+        } else if (skill.id === 'shadow_ambush') {
+            const targetPoint = this._getPointFromEntity(target);
+            const dx = targetPoint.x - this.x;
+            const dy = targetPoint.y - this.y;
+            const length = Math.max(1, Math.hypot(dx, dy));
+            const behindDistance = Math.max(56, Number(skill.data?.behindDistance || 92));
+            const payload = {
+                id: `${this.id || this.typeId}:ambush:${Date.now()}`,
+                targetId: target.id,
+                toX: targetPoint.x + (dx / length) * behindDistance,
+                toY: targetPoint.y + (dy / length) * behindDistance,
+                castMs: Math.max(500, Number(skill.data?.castMs || 1050)),
+                damage: Math.max(1, Math.ceil((this.atk || 10) * Number(skill.data?.damageMultiplier || 1)))
+            };
+            this.startShadowAmbush(payload);
+            window.game?.net?.sendMonsterAttack?.(this.id, 'shadow_ambush', payload);
         } else if (skill.id === 'shield') {
             this.applyEffect('shield', (skill.data?.duration || 1000) / 1000, 0);
         } else if (skill.id === 'missile') {
@@ -2032,6 +2193,49 @@ export default class Monster extends CharacterBase {
         ctx.restore();
     }
 
+    _renderBossCastCircle(ctx, x, groundY, renderWidth) {
+        if (!this.isBoss || this.isDead) return;
+        const castingTelegraph = this.activeBossTelegraphs.find((telegraph) => telegraph.elapsedMs < telegraph.warningMs);
+        const charging = this.chargeState === 'casting';
+        if (!castingTelegraph && !charging) return;
+        const vfx = castingTelegraph?.castVfx || this.bossEffects?.castVfx || {};
+        const progress = castingTelegraph
+            ? Math.max(0, Math.min(1, castingTelegraph.elapsedMs / Math.max(1, castingTelegraph.warningMs)))
+            : Math.max(0, Math.min(1, 1 - (this.chargeTimer / Math.max(0.2, this.chargeCastSeconds || 1))));
+        const radius = Math.max(62, renderWidth * Math.max(0.42, Number(vfx.radiusScale || 0.52))) * (0.86 + progress * 0.14);
+        ctx.save();
+        ctx.globalAlpha = 0.42 + progress * 0.42;
+        SkillRenderer.drawMagicCircle(ctx, x, groundY - 4, {
+            radiusInner: radius * 0.72,
+            radiusOuter: radius,
+            color: vfx.color || castingTelegraph?.color || this.bossEffects?.auraColor || '#a78bfa',
+            glowColor: vfx.glowColor || castingTelegraph?.secondaryColor || this.bossEffects?.secondaryColor || '#f5f3ff',
+            yScale: Math.max(0.28, Math.min(0.72, Number(vfx.yScale || 0.46))),
+            rotationSpeed: Number(vfx.rotationSpeed || 0.0024)
+        });
+        ctx.restore();
+    }
+
+    _renderShadowAmbush(ctx) {
+        const ambush = this.shadowAmbush;
+        if (!ambush || this.isDead) return;
+        const progress = Math.max(0, Math.min(1, ambush.elapsedMs / Math.max(1, ambush.castMs)));
+        const radius = Math.max(38, this.width * (0.72 + progress * 0.2));
+        ctx.save();
+        ctx.globalAlpha = 0.28 + progress * 0.34;
+        SkillRenderer.drawMagicCircle(ctx, this.x, this.y + this.height * 0.42, {
+            radiusInner: radius * 0.68,
+            radiusOuter: radius,
+            color: '#8b5cf6', glowColor: '#f0abfc', yScale: 0.5, rotationSpeed: -0.0034
+        });
+        ctx.globalAlpha = 0.36 * (1 - progress);
+        ctx.fillStyle = '#6d28d9';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, Math.max(8, this.width * 0.4 * (1 - progress)), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
     render(ctx, camera) {
         const useTrainingDummyRender = this.fallbackShape === 'training_dummy' || this.typeId === 'training_dummy';
 
@@ -2111,6 +2315,8 @@ export default class Monster extends CharacterBase {
 
         // Boss presentation stays independent from the authored atlas frames.
         this._renderBossAura(ctx, screenX, groundY, renderWidth, renderHeight);
+        this._renderBossCastCircle(ctx, screenX, groundY, renderWidth);
+        this._renderShadowAmbush(ctx);
 
         // Fallback or Sprite Draw
         if (useTrainingDummyRender) {

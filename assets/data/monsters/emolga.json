@@ -12,7 +12,7 @@
     "maxMp": 120,
     "atk": 22,
     "def": 8,
-    "speed": 85,
+    "speed": 112,
     "exp": 520
   },
   "visual": {
@@ -63,7 +63,16 @@
       "cooldownMs": 8200,
       "minDistance": 110,
       "castSeconds": 0.9,
-      "speed": 380
+      "speed": 500,
+      "visual": { "fill": "rgba(250, 204, 21, 0.16)", "stroke": "rgba(250, 204, 21, 0.75)", "spark": "#fff7a8", "effect": "thunder" },
+      "landingHazard": {
+        "durationMs": 5000,
+        "tickMs": 500,
+        "radius": 92,
+        "damage": 10,
+        "color": "#facc15",
+        "secondaryColor": "#fff7a8"
+      }
     }
   },
   "sounds": {

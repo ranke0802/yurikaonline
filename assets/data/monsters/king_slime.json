@@ -21,7 +21,13 @@
         "height": 160,
         "frameSpeed": 0.1,
         "frameCount": 5,
-        "scale": 4.0
+        "scale": 4.0,
+        "bossEffects": {
+            "auraColor": "#9ee96f",
+            "secondaryColor": "#f5ffd2",
+            "particleColor": "#d9ff9b",
+            "castVfx": { "color": "#9ee96f", "glowColor": "#f5ffd2", "radiusScale": 0.7, "yScale": 0.36, "rotationSpeed": 0.0018 }
+        }
     },
     "sounds": {
         "attack": "sfx_boss_attack",

@@ -297,6 +297,12 @@ function validateAggressiveChargeBehavior(monster) {
     const charge = behavior.charge || {};
     assert(behavior.aggressive === true, `Monster ${monster.id} must be marked aggressive`);
     assert(Number(behavior.spawnGraceSeconds) === 0, `Monster ${monster.id} must acquire targets without spawn grace`);
+    const hasAmbush = Array.isArray(monster.skills) && monster.skills.some((skill) => skill?.id === 'shadow_ambush');
+    if (hasAmbush) {
+        assert(Number(monster.skills.find((skill) => skill?.id === 'shadow_ambush')?.data?.castMs) >= 800,
+            `Monster ${monster.id} ambush must leave a visible warning`);
+        return;
+    }
     assert(charge.enabled === true, `Monster ${monster.id} must enable charge behavior`);
     assert(Number(charge.damage) > 0, `Monster ${monster.id} charge damage must be positive`);
     assert(Number(charge.range) >= 400, `Monster ${monster.id} charge range must be field-combat capable`);
