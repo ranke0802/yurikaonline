@@ -1294,7 +1294,7 @@ export default class Player extends CharacterBase {
         });
         return this.net.savePlayerData(this.id, data, syncToWorld, {
             debounceMs: profileSaveDebounceMs,
-            forceImmediate: !!syncToWorld,
+            forceImmediate: options.forceImmediate === true || !!syncToWorld,
             saveReason: options.reason || 'player_save',
             allowStaleWrite: options.allowStaleWrite === true,
             allowDestructiveProfileWrite: options.allowDestructiveProfileWrite === true,

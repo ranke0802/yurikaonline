@@ -2,6 +2,17 @@ import Logger from '../utils/Logger.js';
 import FriendsUIController, { FRIENDS_UI_METHOD_NAMES } from './friends/FriendsUIController.js';
 
 const OPTION_REROLL_STONE_ID = 'option_reroll_stone';
+const EXIT_PROFILE_SAVE_TIMEOUT_MS = 3500;
+
+function waitForExitOperation(operation, timeoutMs, label) {
+    let timer = null;
+    const timeout = new Promise((resolve) => {
+        timer = setTimeout(() => resolve({ ok: false, reason: `${label}_timeout`, timedOut: true }), timeoutMs);
+    });
+    return Promise.race([Promise.resolve(operation), timeout]).finally(() => {
+        if (timer) clearTimeout(timer);
+    });
+}
 
 export class UIManager {
     constructor(game) {
@@ -3673,6 +3684,12 @@ export class UIManager {
         const target = event?.target;
         if (!(target instanceof Element)) return false;
         if (target.closest('#tutorial-guide')) return false;
+        // A tutorial must never trap the player in the game. Settings provides
+        // the explicit leave action, and its confirmation is only opened by
+        // the exit flow currently in progress.
+        if (target.closest('#btn-settings, #settings-exit-game, #settings-close-btn-top, #settings-close-btn-bottom')) return false;
+        if ((this.gameExitConfirmPending || this.browserBackExitConfirmPending)
+            && target.closest('#confirm-modal, #confirm-yes, #confirm-no')) return false;
 
         if (step.trigger === 'skill_detail_open' && step.target) {
             const itemSelector = `#skill-item-${step.target}`;
@@ -7657,20 +7674,40 @@ export class UIManager {
 
             const player = this.game.localPlayer;
             if (player?.saveState) {
-                const saveResult = await player.saveState(false, {
+                const saveOperation = player.saveState(false, {
                     debounceMs: 0,
+                    forceImmediate: true,
+                    checkpointPolicy: 'durable',
+                    syncRecoveryProfile: false,
                     reason: options.reason || 'exit_game_to_char_select'
                 });
-                if (saveResult?.ok !== true) {
+                const saveResult = await waitForExitOperation(saveOperation, EXIT_PROFILE_SAVE_TIMEOUT_MS, 'exit_profile_save');
+                const hasLocalCheckpoint = !!this.game?.net?.getLocalProfileCheckpoint?.(player.id);
+                if (saveResult?.ok !== true && !(saveResult?.timedOut && hasLocalCheckpoint)) {
                     throw new Error(saveResult?.reason || 'exit_game_profile_save_failed');
+                }
+                if (saveResult?.timedOut) {
+                    Logger.warn('[UIManager] Exit profile save timed out; continuing with the durable local checkpoint.');
                 }
             }
 
-            const flushResult = await this.game?.net?.flushProfileWrites?.(player?.id);
-            if (flushResult?.ok === false) {
+            // The full exit snapshot already absorbs queued patches. Replaying
+            // the same local journal creates a second RTDB transaction and was
+            // the source of indefinite exit waits under a stale writer fence.
+            const flushResult = await waitForExitOperation(
+                this.game?.net?.flushProfileWrites?.(player?.id, { replayLocalPatchJournal: false }),
+                EXIT_PROFILE_SAVE_TIMEOUT_MS,
+                'exit_profile_flush'
+            );
+            const hasLocalCheckpoint = !!this.game?.net?.getLocalProfileCheckpoint?.(player?.id);
+            if (flushResult?.ok === false && !(flushResult?.timedOut && hasLocalCheckpoint)) {
                 throw new Error(flushResult.reason || 'exit_game_profile_flush_failed');
             }
+            if (flushResult?.timedOut) {
+                Logger.warn('[UIManager] Exit profile flush timed out; continuing with the durable local checkpoint.');
+            }
             worldScene?.markProfileSavedForSceneExit?.(player?.id);
+            this.game?.tutorial?.stopTutorial?.();
             previousZoneParticipationEnabled = this.game?.net?.zoneParticipationEnabled;
             this.game?.net?.setZoneParticipationEnabled?.(false);
             detachedPlayer = player || null;

@@ -2,6 +2,18 @@ import Scene from '../../core/Scene.js';
 import Logger from '../../utils/Logger.js';
 import { INVENTORY_TOTAL_SLOTS } from '../../constants/inventory.js';
 
+const PROFILE_READ_TIMEOUT_MS = 7000;
+
+function withProfileReadTimeout(operation, label) {
+    let timer = null;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label}_timeout`)), PROFILE_READ_TIMEOUT_MS);
+    });
+    return Promise.race([Promise.resolve(operation), timeout]).finally(() => {
+        if (timer) clearTimeout(timer);
+    });
+}
+
 export default class CharacterSelectionScene extends Scene {
     constructor(game) {
         super(game);
@@ -92,7 +104,10 @@ export default class CharacterSelectionScene extends Scene {
             if (typeof this.game.net.getPlayerProfile !== 'function') {
                 throw new Error('profile_reader_unavailable');
             }
-            profile = await this.game.net.getPlayerProfile(user.uid, { throwOnError: true });
+            profile = await withProfileReadTimeout(
+                this.game.net.getPlayerProfile(user.uid, { throwOnError: true }),
+                'character_select_profile_read'
+            );
             if (!this._isEnterCurrent(generation, user.uid)) return;
             const shouldLookupRecovery = this.game.net.shouldUseProfileRecoveryLookup
                 ? this.game.net.shouldUseProfileRecoveryLookup(profile, {
@@ -101,10 +116,10 @@ export default class CharacterSelectionScene extends Scene {
                 })
                 : true;
             latestSnapshot = shouldLookupRecovery
-                ? await this.game.net.getLatestProfileSnapshot?.(user.uid, {
+                ? await withProfileReadTimeout(this.game.net.getLatestProfileSnapshot?.(user.uid, {
                     profile,
                     throwOnError: true
-                })
+                }), 'character_select_recovery_read')
                 : { profile, source: 'profile', latestUid: user.uid, rootRevision: this._getProfileRevision(profile) };
             if (!this._isEnterCurrent(generation, user.uid)) return;
         } catch (error) {

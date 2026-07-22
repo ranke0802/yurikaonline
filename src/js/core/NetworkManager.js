@@ -9377,7 +9377,7 @@ export default class NetworkManager extends EventEmitter {
         });
     }
 
-    async flushProfileWrites(uid = this.playerId) {
+    async flushProfileWrites(uid = this.playerId, options = {}) {
         if (!uid) return { ok: true, results: [] };
 
         const pending = [];
@@ -9389,9 +9389,11 @@ export default class NetworkManager extends EventEmitter {
         }
         const results = await Promise.all(pending);
         await this._drainProfileCommitChain(uid);
-        const journalResult = await this.flushLocalProfilePatchJournal(uid);
-        if (journalResult?.ok === false && journalResult?.reason !== 'profile_uid_mismatch') {
-            results.push(journalResult);
+        if (options.replayLocalPatchJournal !== false) {
+            const journalResult = await this.flushLocalProfilePatchJournal(uid);
+            if (journalResult?.ok === false && journalResult?.reason !== 'profile_uid_mismatch') {
+                results.push(journalResult);
+            }
         }
         const failed = results.find((result) => result?.ok === false);
         return failed
