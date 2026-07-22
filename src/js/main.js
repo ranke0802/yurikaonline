@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.02.094'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.095'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -60,6 +60,7 @@ class Game {
         this._lastViewportSyncSignature = '';
         this._lastLifecycleProfileSaveAt = 0;
         this._lifecycleProfileSavePromise = null;
+        this._lifecycleProfileSaveInFlight = false;
 
         // Initial resize will be called after camera creation for full sync
         this._resetTransientInputState = this._resetTransientInputState.bind(this);
@@ -353,6 +354,7 @@ class Game {
         updateMs = 0,
         renderMs = 0,
         frameGapMs = 0,
+        rawFrameGapMs = frameGapMs,
         updateSteps = 0,
         backlogDrops = 0
     } = {}) {
@@ -362,12 +364,23 @@ class Game {
         bucket.updateSamples = (bucket.updateSamples || 0) + (updateSteps > 0 ? 1 : 0);
         bucket.renderSamples = (bucket.renderSamples || 0) + 1;
         bucket.maxFrameGapMs = Math.max(bucket.maxFrameGapMs || 0, frameGapMs || 0);
+        bucket.maxRawFrameGapMs = Math.max(bucket.maxRawFrameGapMs || 0, rawFrameGapMs || 0);
         bucket.backlogDrops = (bucket.backlogDrops || 0) + (backlogDrops || 0);
     }
 
     recordNetworkWrite(kind, payload, count = 1) {
         const bucket = this._getTelemetryBucket(this.performanceTelemetry.networkBuckets);
-        const bytes = this.estimatePayloadBytes(payload);
+        // Firebase serializes profile payloads itself. Re-serializing the
+        // same high-level inventory/quest object solely for telemetry caused
+        // another large main-thread allocation on every save.
+        const isLargeProfileWrite = kind === 'profileSave'
+            || kind === 'profilePatchSave'
+            || kind === 'profileBackup';
+        const detailedTelemetry = this.ui?.devMode === true
+            && (typeof this.ui?.hasDeveloperAccess !== 'function' || this.ui.hasDeveloperAccess());
+        const bytes = (!isLargeProfileWrite || detailedTelemetry)
+            ? this.estimatePayloadBytes(payload)
+            : 0;
         bucket.rtdbWrites = (bucket.rtdbWrites || 0) + count;
         bucket.estimatedBytes = (bucket.estimatedBytes || 0) + bytes;
         bucket.byType = bucket.byType || {};
@@ -389,6 +402,7 @@ class Game {
             avgUpdateMs: 0,
             avgRenderMs: 0,
             maxFrameGapMs: 0,
+            maxRawFrameGapMs: 0,
             droppedFrameBursts: 0,
             rtdbWritesPerMin: 0,
             estimatedBytesPerMin: 0,
@@ -411,6 +425,7 @@ class Game {
             updateSamples += bucket.updateSamples || 0;
             renderSamples += bucket.renderSamples || 0;
             snapshot.maxFrameGapMs = Math.max(snapshot.maxFrameGapMs, bucket.maxFrameGapMs || 0);
+            snapshot.maxRawFrameGapMs = Math.max(snapshot.maxRawFrameGapMs, bucket.maxRawFrameGapMs || 0);
             snapshot.droppedFrameBursts += bucket.backlogDrops || 0;
         });
 
@@ -698,8 +713,17 @@ class Game {
         const minIntervalMs = Number.isFinite(options.minIntervalMs)
             ? Math.max(0, Number(options.minIntervalMs))
             : 750;
-        if (!options.force && now - Number(this._lastLifecycleProfileSaveAt || 0) < minIntervalMs) {
-            return false;
+        // Browsers commonly emit visibilitychange → pagehide → beforeunload
+        // for the same exit. Reuse the already-started synchronous snapshot
+        // instead of serializing/flushing the full profile two or three times.
+        const dedupeWindowMs = options.force === true
+            ? Math.max(1250, minIntervalMs)
+            : minIntervalMs;
+        if (this._lifecycleProfileSaveInFlight && this._lifecycleProfileSavePromise) {
+            return this._lifecycleProfileSavePromise;
+        }
+        if (now - Number(this._lastLifecycleProfileSaveAt || 0) < dedupeWindowMs) {
+            return this._lifecycleProfileSavePromise || false;
         }
         this._lastLifecycleProfileSaveAt = now;
 
@@ -716,7 +740,9 @@ class Game {
             saveOperation = Promise.reject(error);
         }
 
-        const savePromise = Promise.resolve(saveOperation)
+        let savePromise;
+        this._lifecycleProfileSaveInFlight = true;
+        savePromise = Promise.resolve(saveOperation)
             .then((result) => {
                 if (result?.ok === false) return result;
                 return this.net?.flushProfileWrites?.(player.id) || result;
@@ -724,6 +750,11 @@ class Game {
             .catch((error) => {
                 Logger.warn('[Game] Lifecycle profile save failed', error);
                 return { ok: false, reason: 'lifecycle_profile_save_failed', error };
+            })
+            .finally(() => {
+                if (this._lifecycleProfileSavePromise === savePromise) {
+                    this._lifecycleProfileSaveInFlight = false;
+                }
             });
         this._lifecycleProfileSavePromise = savePromise;
         return savePromise;

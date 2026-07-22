@@ -33,6 +33,7 @@ export class UIManager {
         this.inventoryEnhancementAnimating = false;
         this.inventoryDragState = null;
         this.inventoryClickSuppressUntil = 0;
+        this._inventoryRefreshFrame = null;
         this.questClaimAvailable = false;
         this.centerMessageQueue = [];
         this.centerMessageActive = false;
@@ -9519,14 +9520,20 @@ export class UIManager {
         p.questData.slimeQuestClaimed = true;
         const statInsightMessages = this.collectFirstStatInsightMessages(p, { wisdom: 2 });
         p.wisdom += 2; // v0.00.75: Wisdom directly +2
-        p.updateDerivedStats();
+        p.updateDerivedStats({ save: false });
         this.game?.quests?.restoreFromLegacy?.(p.questData);
         this.logSystemMessage('QUEST 완료: 슬라임 토벌 보상 지급 (지혜 +2)');
         this.logSystemMessage('✨ 이제 마나 회복이 보다 원활해집니다');
         this.showRewardModal("슬라임 처치 퀘스트 완료!", "보상: 지혜 스탯 2개를 획득했습니다!");
         this.updateQuestUI();
         this.updateStatusPopup();
-        p.saveState();
+        p.saveProfilePatch?.(['wisdom', 'questData', 'hp', 'mp', 'maxHp', 'maxMp'], {
+            debounceMs: 0,
+            forceImmediate: true,
+            reason: 'claim_slime_reward',
+            checkpointPolicy: 'durable',
+            syncRecoveryProfile: false
+        });
         this.queueStatInsightMessages(statInsightMessages);
     }
 
@@ -9560,7 +9567,7 @@ export class UIManager {
             p.questData.introSlime30RewardClaimed = true;
             const statInsightMessages = this.collectFirstStatInsightMessages(p, { vitality: 3 });
             p.vitality += 3; // v0.00.75: Vitality directly +3
-            p.updateDerivedStats();
+            p.updateDerivedStats({ save: false });
             this.queueStatInsightMessages(statInsightMessages);
         }
 
@@ -9582,21 +9589,42 @@ export class UIManager {
 
         this.updateQuestUI();
         this.updateStatusPopup();
-        p.saveState();
+        p.saveProfilePatch?.(['vitality', 'questData', 'hp', 'mp', 'maxHp', 'maxMp'], {
+            debounceMs: 0,
+            forceImmediate: true,
+            reason: 'claim_slime30_reward',
+            checkpointPolicy: 'durable',
+            syncRecoveryProfile: false
+        });
     }
 
 
     claimBossReward(p) {
         p.questData.bossQuestClaimed = true;
-        p.addInventoryItem?.('blessed_weapon_upgrade_stone', 3, { markAsNew: false });
-        p.addInventoryItem?.('weapon_upgrade_stone', 3, { markAsNew: false });
+        // Both items and the quest flag are persisted by the one combined
+        // durable patch below. Do not trigger an extra critical-item save for
+        // the first stone and immediately serialize the same bag again.
+        p.addInventoryItem?.('blessed_weapon_upgrade_stone', 3, {
+            markAsNew: false,
+            deferCriticalProfileSave: true
+        });
+        p.addInventoryItem?.('weapon_upgrade_stone', 3, {
+            markAsNew: false,
+            deferCriticalProfileSave: true
+        });
         this.game?.quests?.restoreFromLegacy?.(p.questData);
         this.logSystemMessage('QUEST 완료: 대왕 슬라임 토벌 보상 지급 (축복받은 무기 강화석 x3, 무기 강화석 x3)');
         this.showRewardModal("대왕 슬라임 처치 퀘스트 완료!", "보상: 축복받은 무기 강화석 3개와 무기 강화석 3개를 획득했습니다!");
         this.updateQuestUI();
         this.updateStatusPopup();
         this.updateInventory();
-        p.saveState();
+        p.saveProfilePatch?.(['questData', 'inventory'], {
+            debounceMs: 0,
+            forceImmediate: true,
+            reason: 'claim_boss_reward',
+            checkpointPolicy: 'durable',
+            syncRecoveryProfile: false
+        });
     }
 
 
@@ -10186,7 +10214,14 @@ export class UIManager {
         const player = this.game.localPlayer;
         const detail = this.resolveInventoryItemRef(player, ref);
         if (detail?.item && player?.markInventoryItemAsSeen?.(detail.item)) {
-            player.saveState(false, { reason: 'inventory_item_inspected' });
+            // Opening an item must not serialize the full profile.  The flag
+            // is cosmetic and can share the next narrow inventory patch.
+            player.saveProfilePatch?.(['inventory'], {
+                debounceMs: 1200,
+                reason: 'inventory_item_inspected',
+                checkpointPolicy: 'transient',
+                syncRecoveryProfile: false
+            });
             this.updateHudAttentionIndicators({ inventoryAvailable: !!player.hasUnreadInventoryWeapon?.() });
         }
         modal.classList.remove('hidden');
@@ -10363,7 +10398,15 @@ export class UIManager {
             }
         }
 
-        player.saveState();
+        // Reordering is durable, but only the inventory changed.  A full
+        // profile rebuild here was especially noticeable on 300-slot bags.
+        player.saveProfilePatch?.(['inventory'], {
+            debounceMs: 0,
+            forceImmediate: true,
+            reason: 'inventory_reorder',
+            checkpointPolicy: 'durable',
+            syncRecoveryProfile: false
+        });
         this.updateInventory();
     }
 
@@ -10511,6 +10554,20 @@ export class UIManager {
         }
     }
 
+    requestInventoryRefresh() {
+        if (this._inventoryRefreshFrame != null) return;
+        const flush = () => {
+            this._inventoryRefreshFrame = null;
+            this.updateInventory();
+        };
+        if (typeof requestAnimationFrame === 'function'
+            && (typeof document === 'undefined' || !document.hidden)) {
+            this._inventoryRefreshFrame = requestAnimationFrame(flush);
+            return;
+        }
+        this._inventoryRefreshFrame = setTimeout(flush, 0);
+    }
+
     updateInventory() {
         const p = this.game.localPlayer;
         if (!p) return;
@@ -10523,29 +10580,23 @@ export class UIManager {
 
         const grid = document.getElementById('inventory-grid');
         if (!grid) return;
-        const selectedInventoryIdentity = this.selectedInventoryRef?.kind === 'inventory'
-            ? this.getInventoryItemIdentity(p.inventory[this.selectedInventoryRef.index])
-            : null;
-        if (this.selectedInventoryRef?.kind === 'inventory' && !selectedInventoryIdentity) {
+        const inventoryPopup = document.getElementById('inventory-popup');
+        const inventoryVisible = !!inventoryPopup && !inventoryPopup.classList.contains('hidden');
+
+        // Item drops call updateInventory while the window is normally
+        // closed. Keep HUD/quest state current, but do not normalize or build
+        // 300 buttons/listeners that the player cannot see.
+        this.updateHudAttentionIndicators({ inventoryAvailable: !!p.hasUnreadInventoryWeapon?.() });
+        this.updateQuestUI();
+        if (!inventoryVisible) {
+            this.refreshDesktopShortcutHints();
+            return;
+        }
+
+        if (this.selectedInventoryRef?.kind === 'inventory'
+            && !this.getInventoryItemIdentity(p.inventory[this.selectedInventoryRef.index])) {
             this.selectedInventoryRef = null;
         }
-
-        const normalizationResult = p.normalizeInventoryState();
-        if (selectedInventoryIdentity) {
-            const remappedIndex = this.findInventoryIndexByIdentity(p, selectedInventoryIdentity);
-            if (remappedIndex > 0) {
-                this.selectedInventoryRef = { kind: 'inventory', index: remappedIndex };
-            } else {
-                this.selectedInventoryRef = null;
-            }
-        }
-        if (normalizationResult?.changed) {
-            p.saveState();
-        }
-        this.updateHudAttentionIndicators({ inventoryAvailable: !!p.hasUnreadInventoryWeapon?.() });
-
-        // Update Quest UI alongside Inventory
-        this.updateQuestUI();
         const selected = this.resolveSelectedInventoryItem(p);
         if (this.selectedInventoryRef && !selected) {
             this.selectedInventoryRef = null;
@@ -11778,7 +11829,10 @@ export class UIManager {
         if (pSum) pSum.textContent = stats.totalLevel;
         if (loopUpdate) loopUpdate.textContent = Number(perf.avgUpdateMs || 0).toFixed(2);
         if (loopRender) loopRender.textContent = Number(perf.avgRenderMs || 0).toFixed(2);
-        if (loopGap) loopGap.textContent = Math.round(perf.maxFrameGapMs || 0);
+        // The simulation caps its delta to prevent a spiral of death, but the
+        // developer overlay must show the original gap so a multi-second main
+        // thread stall is not misleadingly reported as 250ms.
+        if (loopGap) loopGap.textContent = Math.round(perf.maxRawFrameGapMs || perf.maxFrameGapMs || 0);
         if (netWrites) netWrites.textContent = Math.round(perf.rtdbWritesPerMin || 0);
         if (netBytes) netBytes.textContent = `${((perf.estimatedBytesPerMin || 0) / 1024).toFixed(1)} KB`;
         if (netMove) netMove.textContent = Math.round(perf.movePacketsPerMin || 0);

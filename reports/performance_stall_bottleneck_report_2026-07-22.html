@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>고레벨 로그인/플레이 중 프리즈 병목 분석 리포트 - 2026-07-22</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: #121a2f;
+      --panel-2: #18233e;
+      --text: #edf2ff;
+      --muted: #aebbe0;
+      --line: #2a385f;
+      --accent: #7dd3fc;
+      --danger: #fda4af;
+      --warn: #fde68a;
+      --ok: #86efac;
+      --code: #dbeafe;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Pretendard, "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.62;
+      background: radial-gradient(circle at top left, #18233e 0, var(--bg) 42rem);
+      color: var(--text);
+    }
+    main {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 40px 0 80px;
+    }
+    h1, h2, h3 { line-height: 1.25; letter-spacing: -0.02em; }
+    h1 { font-size: clamp(2rem, 4vw, 3.2rem); margin: 0 0 10px; }
+    h2 { font-size: 1.65rem; margin: 42px 0 16px; padding-top: 10px; border-top: 1px solid var(--line); }
+    h3 { font-size: 1.18rem; margin: 26px 0 10px; }
+    p { margin: 9px 0; }
+    code, .path {
+      font-family: "Cascadia Code", Consolas, Menlo, monospace;
+      color: var(--code);
+      background: rgba(125, 211, 252, 0.08);
+      border: 1px solid rgba(125, 211, 252, 0.16);
+      border-radius: 6px;
+      padding: 0.08rem 0.32rem;
+      word-break: break-all;
+    }
+    .hero, .card, .finding, .callout {
+      background: linear-gradient(180deg, rgba(24, 35, 62, 0.96), rgba(18, 26, 47, 0.96));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.25);
+    }
+    .hero { padding: 30px; }
+    .meta {
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      margin-top: 16px;
+      font-size: 0.95rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin: 18px 0;
+    }
+    .card, .finding, .callout { padding: 18px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border: 1px solid currentColor;
+    }
+    .p0 { color: var(--danger); }
+    .p1 { color: var(--warn); }
+    .p2 { color: var(--accent); }
+    .high { color: var(--ok); }
+    .medium { color: var(--warn); }
+    .low { color: var(--muted); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 26px;
+      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(18, 26, 47, 0.72);
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: rgba(125, 211, 252, 0.08);
+      color: #e0f2fe;
+      font-size: 0.92rem;
+    }
+    tr:last-child td { border-bottom: 0; }
+    ul, ol { padding-left: 1.35rem; }
+    li { margin: 7px 0; }
+    .flow {
+      display: grid;
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .step {
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      background: rgba(11, 16, 32, 0.58);
+      border-radius: 12px;
+      position: relative;
+    }
+    .step:not(:last-child)::after {
+      content: "↓";
+      display: block;
+      color: var(--accent);
+      font-weight: 800;
+      margin: 8px 0 -6px;
+    }
+    .small { color: var(--muted); font-size: 0.92rem; }
+    .kbd {
+      padding: 1px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+    }
+    .nowrap { white-space: nowrap; }
+  </style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <h1>고레벨 로그인/플레이 중 프리즈 병목 분석 리포트</h1>
+    <p>
+      고레벨 계정 로그인 시 약 30초 화면 정지, 플레이 도중 4~5초 정지 현상을 정적 코드 추적과 병렬 관점 분석으로 확인했다.
+      결론부터 말하면, 가장 강한 원인은 렌더 루프가 아니라 <strong>보상 백로그 처리와 프로필 저장 경로가 대형 프로필을 메인 스레드에서 반복 직렬화/정규화/localStorage 저장/Firebase transaction/백업하는 구조</strong>다.
+    </p>
+    <div class="meta">
+      <span>작성일: 2026-07-22</span>
+      <span>대상 워크스페이스: <span class="path">C:\dev\yurika_online</span></span>
+      <span>분석 범위: 로그인, 월드 진입, 보상 수령, 프로필 저장, 런타임 업데이트/UI/렌더</span>
+      <span>주의: 실제 고레벨 계정 데이터로 런타임 프로파일링을 수행한 리포트가 아니라 코드 기반 병목 분석이다.</span>
+    </div>
+  </section>
+
+  <h2>1. 요약 결론</h2>
+  <div class="grid">
+    <article class="card">
+      <span class="badge p0">P0 / 로그인 프리즈</span>
+      <h3>월드 진입 중 보상 백로그를 전부 기다림</h3>
+      <p>
+        <code>WorldScene.enter()</code>가 보상 컨슈머 등록을 <code>await</code>하고, 컨슈머 등록 함수가 즉시 모든 보상 백로그를 읽고 펌프한다.
+        각 보상 receipt는 플레이어에게 적용된 뒤 전체 프로필 즉시 저장으로 이어진다. 고레벨 계정은 프로필 크기가 커서 건당 저장 비용이 크고, 백로그 개수만큼 반복된다.
+      </p>
+    </article>
+    <article class="card">
+      <span class="badge p0">P0 / 플레이 중 4~5초 정지</span>
+      <h3>idle 위치 저장이 전체 프로필 즉시 저장</h3>
+      <p>
+        플레이어가 이동 후 3초간 멈추면 위치 저장 목적으로 <code>saveState(false, { debounceMs: 0 })</code>가 호출된다.
+        그러나 실제로는 위치만 저장하지 않고 inventory, questState, pending rewards 등 전체 프로필을 저장한다.
+      </p>
+    </article>
+    <article class="card">
+      <span class="badge p0">P0 / 공통 병목</span>
+      <h3>작은 patch도 전체 체크포인트로 변환</h3>
+      <p>
+        <code>savePlayerDataPatch()</code>는 debounce 여부와 무관하게 먼저 localStorage 체크포인트를 갱신한다.
+        이 과정에서 기존 full profile을 읽고, patch와 merge하고, 전체 profile을 sanitize/stringify/setItem 한다.
+      </p>
+    </article>
+  </div>
+
+  <h2>2. 증상별 가장 그럴듯한 실행 흐름</h2>
+
+  <h3>2.1 고레벨 로그인 후 약 30초 프리즈</h3>
+  <div class="flow">
+    <div class="step"><code>C:\dev\yurika_online\src\js\main.js:557</code> 로그인 상태 전환 시작. <code>net.connect(user)</code> 후 <code>sceneManager.changeScene('charSelect')</code>를 순차 대기한다.</div>
+    <div class="step"><code>C:\dev\yurika_online\src\js\world\scenes\CharacterSelectionScene.js:638</code> 시작 버튼에서 <code>changeScene('world')</code>를 await 한다.</div>
+    <div class="step"><code>C:\dev\yurika_online\src\js\core\SceneManager.js:14</code>, <code>:28</code> SceneManager는 다음 scene의 <code>enter()</code>가 끝날 때까지 scene 전환을 완료하지 않는다.</div>
+    <div class="step"><code>C:\dev\yurika_online\src\js\world\scenes\WorldScene.js:456</code>, <code>:460</code> 월드 진입 중 보상 컨슈머 등록을 await 한다.</div>
+    <div class="step"><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:4710</code>, <code>:5229</code> 컨슈머 등록은 즉시 <code>_drainIncomingRewardBacklogs()</code>를 반환한다.</div>
+    <div class="step"><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:4797</code> normal/durable 보상 inbox 전체를 읽고, <code>:4814</code>~<code>:4823</code> 모든 child snapshot을 큐에 넣는다.</div>
+    <div class="step"><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:4837</code> 큐 펌프가 while loop로 receipt를 하나씩 처리한다. 각 receipt는 consumer를 await 한다.</div>
+    <div class="step"><code>C:\dev\yurika_online\src\js\entities\Player.js:2791</code>, <code>:2837</code> durable reward 적용 후 <code>saveState(false, { debounceMs: 0 })</code> 전체 저장을 수행한다.</div>
+    <div class="step"><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:8316</code>, <code>:8651</code>, <code>:8738</code>, <code>:8772</code> 전체 프로필 체크포인트, normalize, transaction, backup, checkpoint 재저장을 수행한다.</div>
+  </div>
+
+  <p>
+    따라서 로그인 프리즈는 “프로필을 한 번 읽는 시간이 30초”라기보다,
+    <strong>월드 첫 렌더 전에 보상 백로그와 대형 프로필 저장 작업을 모두 끝내려는 구조</strong>로 설명된다.
+    보상 백로그가 없으면 현상이 약하고, 오래 접속하지 않았거나 고레벨·보상 이력이 큰 계정에서 크게 재현될 가능성이 높다.
+  </p>
+
+  <h3>2.1.1 로그인 보조 병목: 복구 후보 조회/자동 복구 저장</h3>
+  <p>
+    병렬 로그인 분석에서 추가로 확인된 부분이다. 캐릭터 선택 화면은 root profile만 읽고 끝나지 않고,
+    local checkpoint, recovery profile, backup 후보를 비교하는 복구 안전장치를 로그인 경로에 포함한다.
+    이 안전장치 자체는 데이터 보호 목적이지만, 고레벨 대형 프로필에서는 <code>JSON.parse/stringify</code>, sanitize, 후보 점수 계산, 백업 조회가 누적된다.
+  </p>
+  <ul>
+    <li><code>C:\dev\yurika_online\src\js\world\scenes\CharacterSelectionScene.js:95</code>에서 전체 root profile을 읽는다.</li>
+    <li><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:7296</code>~<code>:7306</code>에서 <code>snapshot.val()</code>로 전체 profile을 materialize한다.</li>
+    <li><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:7665</code>~<code>:7677</code>의 recovery lookup 판단은 local checkpoint 후보를 동기 localStorage에서 읽을 수 있다.</li>
+    <li><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:7997</code>~<code>:8130</code>은 root/local/recovery/backup 후보를 정규화하고 비교한다.</li>
+    <li><code>C:\dev\yurika_online\src\js\world\scenes\CharacterSelectionScene.js:129</code>~<code>:137</code>에서 더 좋은 후보가 발견되면 캐릭터 선택 진입 중 <code>forceImmediate</code> full save로 자동 복구 저장까지 수행한다.</li>
+  </ul>
+
+  <h3>2.1.2 로그인 보조 병목: 월드 진입 최초 sprite sheet 생성</h3>
+  <p>
+    월드 진입 시 <code>C:\dev\yurika_online\src\js\world\scenes\WorldScene.js:201</code>에서 full character sprite sheet를 로드한다.
+    <code>C:\dev\yurika_online\src\js\core\ResourceManager.js:74</code>~<code>:153</code>은 여러 프레임 이미지를 로드해 canvas atlas를 만들고,
+    <code>C:\dev\yurika_online\src\js\core\ResourceManager.js:174</code>~<code>:247</code>은 각 이미지에 대해 <code>getImageData()</code> 후 픽셀 단위 chroma-key/crop 루프를 돈다.
+    이는 고레벨 전용 병목은 아니지만, 위의 프로필/보상 저장 병목 뒤에 붙으면 “로그인 후 아무것도 못 하는 시간”을 더 길게 만든다.
+  </p>
+
+  <h3>2.2 플레이 중 4~5초 멈췄다가 진행</h3>
+  <div class="flow">
+    <div class="step"><code>C:\dev\yurika_online\src\js\world\scenes\WorldScene.js:47</code> idle 저장 지연 3000ms, <code>:48</code> 최소 간격 8000ms, <code>:49</code> 최소 이동거리 6px.</div>
+    <div class="step"><code>C:\dev\yurika_online\src\js\world\scenes\WorldScene.js:1389</code> 매 update에서 <code>_trackIdleProfilePositionSave()</code> 호출.</div>
+    <div class="step"><code>C:\dev\yurika_online\src\js\world\scenes\WorldScene.js:1317</code>~<code>:1319</code> pending/in-flight/3초 idle/8초 간격 조건 확인.</div>
+    <div class="step"><code>C:\dev\yurika_online\src\js\world\scenes\WorldScene.js:1322</code> 위치 저장인데도 <code>player.saveState(false, { debounceMs: 0, reason: 'idle_profile_snapshot' })</code> 전체 즉시 저장.</div>
+    <div class="step"><code>C:\dev\yurika_online\src\js\entities\Player.js:1217</code>~<code>:1264</code> 전체 프로필 payload 구성. inventory, equipment, questState, pendingItemRewards, claimedRewardIds, mapPositions 등 포함.</div>
+    <div class="step"><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:8211</code>~<code>:8216</code> backup reason이 <code>profile_save</code>가 아니면 throttle 없이 백업을 허용한다.</div>
+  </div>
+
+  <p>
+    이 흐름은 유저 체감과 시간적으로 잘 맞다. “움직이다가 잠깐 멈춤 → 3초 뒤 전체 저장 시작 → 수 초 프리즈 → 다시 진행” 패턴이 가능하다.
+  </p>
+
+  <h2>3. 소스 라인별 병목 근거</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>분류</th>
+        <th>파일/라인</th>
+        <th>문제 코드/동작</th>
+        <th>병목 이유</th>
+        <th>확신도</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>로그인/월드 진입</td>
+        <td><code>C:\dev\yurika_online\src\js\world\scenes\WorldScene.js:456</code>, <code>:460</code></td>
+        <td><code>await this.net.setNormalRewardConsumer(...)</code>, <code>await this.net.setDurableRewardConsumer(...)</code></td>
+        <td>월드 진입 완료 전에 보상 백로그 drain 전체를 기다린다. 첫 화면 렌더와 입력 가능 시점이 늦어진다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>로그인 프로필 읽기</td>
+        <td><code>C:\dev\yurika_online\src\js\world\scenes\CharacterSelectionScene.js:95</code>, <code>C:\dev\yurika_online\src\js\core\NetworkManager.js:7296</code>~<code>:7306</code></td>
+        <td>RTDB <code>users/{uid}/profile</code> 전체 read 및 <code>snapshot.val()</code></td>
+        <td>고레벨 계정의 큰 프로필을 한 번에 materialize한다. 이후 복구 후보 비교/정규화의 입력이 된다.</td>
+        <td class="medium">중간~높음</td>
+      </tr>
+      <tr>
+        <td>로그인 복구 후보</td>
+        <td><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:7665</code>~<code>:7677</code>, <code>:7997</code>~<code>:8130</code></td>
+        <td>local checkpoint/recovery/backup 후보 조회와 normalize/compare</td>
+        <td>root profile이 정상 fast path를 타지 못하면 localStorage parse, recovery read, backup read, 후보별 sanitize/score 계산이 로그인 경로에 붙는다.</td>
+        <td class="medium">중간~높음</td>
+      </tr>
+      <tr>
+        <td>로그인 자동 복구 저장</td>
+        <td><code>C:\dev\yurika_online\src\js\world\scenes\CharacterSelectionScene.js:129</code>~<code>:137</code></td>
+        <td>더 좋은 후보 발견 시 <code>savePlayerData(... forceImmediate: true ...)</code></td>
+        <td>캐릭터 선택 화면 진입 중 full profile commit, backup, checkpoint가 실행될 수 있다.</td>
+        <td class="medium">중간</td>
+      </tr>
+      <tr>
+        <td>월드 진입 asset 처리</td>
+        <td><code>C:\dev\yurika_online\src\js\world\scenes\WorldScene.js:201</code>, <code>C:\dev\yurika_online\src\js\core\ResourceManager.js:74</code>~<code>:153</code>, <code>:174</code>~<code>:247</code></td>
+        <td>full sprite sheet load, canvas atlas 생성, <code>getImageData()</code> 기반 픽셀 루프</td>
+        <td>고레벨 전용 원인은 아니지만 월드 첫 진입 경로에서 실행되어 프로필/보상 병목 뒤에 추가 지연을 만든다.</td>
+        <td class="medium">중간</td>
+      </tr>
+      <tr>
+        <td>보상 백로그</td>
+        <td><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:4710</code>~<code>:4721</code>, <code>:5218</code>~<code>:5229</code></td>
+        <td>컨슈머 등록 즉시 <code>_drainIncomingRewardBacklogs()</code> 반환</td>
+        <td>컨슈머 등록이 가벼운 이벤트 바인딩이 아니라 DB read + queue pump 작업이 된다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>보상 백로그</td>
+        <td><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:4797</code>~<code>:4800</code>, <code>:4814</code>~<code>:4824</code></td>
+        <td>normal/durable inbox 전체 read 후 모든 child snapshot enqueue</td>
+        <td>보상 receipt가 많을수록 월드 진입 전에 처리량이 선형 증가한다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>보상 큐 정렬</td>
+        <td><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:4754</code>, <code>:4759</code>~<code>:4784</code></td>
+        <td>enqueue마다 전체 큐를 <code>Array.from(...).sort(...)</code></td>
+        <td>백로그를 여러 개 넣을 때 매번 전체 큐를 정렬한다. comparator에서 <code>snapshot.val()</code>도 반복 호출된다.</td>
+        <td class="medium">중간</td>
+      </tr>
+      <tr>
+        <td>보상 큐 펌프</td>
+        <td><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:4837</code>~<code>:4907</code></td>
+        <td>while loop로 receipt를 하나씩 await 처리</td>
+        <td>프레임 단위 yield나 time budget 없이 연속 처리된다. 각 receipt가 저장을 기다리면 전체 월드 enter가 같이 막힌다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>보상 수령</td>
+        <td><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:5058</code>, <code>:5363</code></td>
+        <td>normal/durable reward consumer await</td>
+        <td>consumer 내부의 프로필 저장이 끝나야 receipt ack로 진행한다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>보상 수령</td>
+        <td><code>C:\dev\yurika_online\src\js\entities\Player.js:2791</code>~<code>:2826</code>, <code>:2837</code>~<code>:2864</code></td>
+        <td>durable reward 적용 후 <code>saveState(false, { debounceMs: 0 })</code></td>
+        <td>보상 한 건마다 전체 프로필 즉시 저장. 백로그 N건이면 전체 저장 N회가 직렬로 실행된다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>플레이 중 idle 저장</td>
+        <td><code>C:\dev\yurika_online\src\js\world\scenes\WorldScene.js:47</code>~<code>:49</code>, <code>:1322</code>~<code>:1326</code></td>
+        <td>3초 idle 후 전체 <code>saveState</code> 즉시 실행</td>
+        <td>위치 저장 목적에 비해 저장 범위가 과도하다. 이동 후 멈추는 일반 플레이 패턴에서 쉽게 발동된다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>피격 저장</td>
+        <td><code>C:\dev\yurika_online\src\js\entities\Player.js:1114</code>~<code>:1118</code></td>
+        <td>피격 시 HP 전송 + <code>saveProfilePatch(['hp'])</code> 4.2~5.2초 debounce</td>
+        <td>작은 HP patch도 아래의 full checkpoint/merge 경로를 탄다. “전투 중 몇 초 뒤 멈춤”과 시간적으로 맞다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>보상 patch</td>
+        <td><code>C:\dev\yurika_online\src\js\entities\Player.js:2421</code>~<code>:2424</code>, <code>:2761</code>~<code>:2786</code></td>
+        <td>일반 보상은 기본 3500ms debounce, boss/levelup은 즉시 patch</td>
+        <td>patch field에 exp/level/stat/quest/inventory/pending/claimed가 넓게 포함되어 저장 비용이 커진다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>전체 저장 payload</td>
+        <td><code>C:\dev\yurika_online\src\js\entities\Player.js:1217</code>~<code>:1290</code></td>
+        <td><code>saveState()</code>가 full profile object 구성</td>
+        <td>inventory, equipment, questState, uiLayout, clientSettings, itemCooldowns, mapPositions, hostility까지 포함한다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>동기 clone</td>
+        <td><code>C:\dev\yurika_online\src\js\entities\Player.js:1293</code>~<code>:1297</code>, <code>C:\dev\yurika_online\src\js\core\NetworkManager.js:7322</code>~<code>:7326</code></td>
+        <td><code>JSON.parse(JSON.stringify(...))</code></td>
+        <td>대형 객체를 메인 스레드에서 깊은 복제한다. 고레벨 프로필일수록 비용이 증가한다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>localStorage 체크포인트</td>
+        <td><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:7390</code>~<code>:7426</code></td>
+        <td>profile normalize → 기존 checkpoint read → JSON.stringify → localStorage.setItem</td>
+        <td><code>localStorage</code>와 JSON 직렬화는 동기 메인 스레드 작업이다. 저장 전/후 반복된다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>patch 체크포인트</td>
+        <td><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:7433</code>~<code>:7445</code>, <code>:8370</code></td>
+        <td>patch 저장 전 full checkpoint를 읽고 merge해 다시 full checkpoint 저장</td>
+        <td>작은 patch가 사실상 full profile read/merge/write가 된다. debounce 전에도 실행되어 debounce가 main-thread 비용을 막지 못한다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>sanitize/merge</td>
+        <td><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:7502</code>~<code>:7540</code>, <code>:8259</code>~<code>:8282</code></td>
+        <td>객체 key normalize/sort/재귀 sanitize, merge 후 다시 sanitize</td>
+        <td>base full profile, patch, merged profile을 반복 sanitize한다. key sort 때문에 nested object가 많을수록 비용이 커진다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>full commit</td>
+        <td><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:8607</code>~<code>:8778</code></td>
+        <td>serialize commit → normalize → transaction → backup → recovery 조건 → checkpoint 재저장</td>
+        <td>저장 한 번이 단일 Firebase write가 아니라 여러 대형 작업의 묶음이다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>patch commit</td>
+        <td><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:8806</code>~<code>:8946</code></td>
+        <td>patch sanitize → transaction 내부 full merge → committed full profile normalize → recovery/checkpoint</td>
+        <td>patch도 transaction 내부에서 current full profile과 merge한다. 결과적으로 고레벨 프로필 크기의 영향을 받는다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>백업</td>
+        <td><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:8164</code>~<code>:8227</code>, <code>:8229</code>~<code>:8245</code></td>
+        <td>custom reason이면 backup/prune throttle bypass</td>
+        <td><code>idle_profile_snapshot</code>, <code>durable_normal_reward</code> 등은 <code>profile_save</code>가 아니므로 백업과 백업 목록 prune이 매번 허용될 수 있다.</td>
+        <td class="high">높음</td>
+      </tr>
+      <tr>
+        <td>복구 동기화</td>
+        <td><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:7892</code>~<code>:7928</code>, <code>:7931</code>~<code>:7965</code>, <code>:8925</code>~<code>:8928</code></td>
+        <td>durable field patch 후 recovery profile full sync 가능</td>
+        <td>inventory/equipment/pending/claimed 등 durable field가 포함되면 최소 45초 간격으로 full recovery sync가 붙는다.</td>
+        <td class="medium">중간~높음</td>
+      </tr>
+      <tr>
+        <td>통계용 직렬화</td>
+        <td><code>C:\dev\yurika_online\src\js\main.js:342</code>~<code>:370</code>, <code>C:\dev\yurika_online\src\js\core\NetworkManager.js:8668</code>, <code>:8843</code>, <code>:8185</code></td>
+        <td>network write telemetry가 payload를 다시 <code>JSON.stringify</code></td>
+        <td>실제 저장 직렬화와 별개로 byte 추정용 직렬화가 추가된다. full profile/backup에서 비용을 증폭한다.</td>
+        <td class="medium">중간</td>
+      </tr>
+      <tr>
+        <td>인벤토리 UI</td>
+        <td><code>C:\dev\yurika_online\src\js\ui\UIManager.js:10508</code>~<code>:10720</code></td>
+        <td>inventory normalize, quest UI update, grid innerHTML 초기화, 전체 slot DOM/listener 재생성</td>
+        <td>보상 수령 시 반복되면 저장 병목과 겹쳐 프리즈를 증폭한다. 단독으로 30초급 원인일 가능성은 낮다.</td>
+        <td class="medium">중간</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>4. 왜 고레벨 계정에서 더 심한가</h2>
+  <p>
+    이 프로젝트의 저장 비용은 단순히 레벨 숫자 자체보다 <strong>프로필 객체 크기</strong>에 비례한다.
+    고레벨 계정은 일반적으로 장비 옵션, 인벤토리, 퀘스트 진행 상태, 보상 수령 ID, pending reward, cooldown, map position 등이 더 크다.
+    그런데 현재 저장 경로는 작은 변경도 전체 프로필을 여러 번 순회한다.
+  </p>
+  <ul>
+    <li><code>C:\dev\yurika_online\src\js\entities\Player.js:1243</code> inventory 전체 포함</li>
+    <li><code>C:\dev\yurika_online\src\js\entities\Player.js:1244</code> equipment 전체 포함</li>
+    <li><code>C:\dev\yurika_online\src\js\entities\Player.js:1245</code> pendingItemRewards clone</li>
+    <li><code>C:\dev\yurika_online\src\js\entities\Player.js:1246</code> claimedRewardIds clone</li>
+    <li><code>C:\dev\yurika_online\src\js\entities\Player.js:1248</code> questState clone</li>
+    <li><code>C:\dev\yurika_online\src\js\entities\Player.js:1263</code> mapPositions clone</li>
+  </ul>
+  <p>
+    이후 네트워크 저장 계층에서 같은 객체가 local checkpoint, sanitize, transaction merge, backup, telemetry, checkpoint committed 단계에서 다시 처리된다.
+    그래서 고레벨 프로필 하나의 저장은 “한 번의 DB 쓰기”가 아니라 <strong>여러 번의 대형 JSON 작업 + 여러 번의 DB/스토리지 작업</strong>이다.
+  </p>
+
+  <h2>5. 오탐 또는 우선순위가 낮은 후보</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>후보</th>
+        <th>근거 라인</th>
+        <th>판단</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Fixed timestep catch-up loop</td>
+        <td><code>C:\dev\yurika_online\src\js\core\GameLoop.js:141</code>~<code>:153</code></td>
+        <td>최대 update step을 5회로 제한하고 backlog를 drop한다. 따라서 4~5초 정지는 update catch-up spiral보다는 event loop를 막는 동기 작업이 원인일 가능성이 높다.</td>
+      </tr>
+      <tr>
+        <td>몬스터 이중 렌더링</td>
+        <td><code>C:\dev\yurika_online\src\js\world\MonsterManager.js:1423</code>~<code>:1427</code></td>
+        <td>코드 주석과 구현상 MonsterManager.render는 몬스터가 아니라 drop만 렌더한다. 이중 몬스터 렌더링은 이번 30초/4~5초 프리즈의 주범으로 보기 어렵다.</td>
+      </tr>
+      <tr>
+        <td>미니맵/렌더 배열 생성</td>
+        <td><code>C:\dev\yurika_online\src\js\world\scenes\WorldScene.js:1418</code>~<code>:1424</code>, <code>:1502</code>, <code>:1617</code></td>
+        <td>몬스터 수가 많으면 프레임 드랍 후보지만, 고레벨 로그인 30초나 저장 시점 4~5초 프리즈와의 직접 연관성은 낮다. P1/P2 최적화 대상이다.</td>
+      </tr>
+      <tr>
+        <td>인벤토리 UI 단독 원인</td>
+        <td><code>C:\dev\yurika_online\src\js\ui\UIManager.js:10549</code>~<code>:10687</code></td>
+        <td>전체 DOM 재생성은 비싸지만, 단독으로 30초를 만들기보다는 보상/저장 루프와 겹쳐 체감 멈춤을 키우는 보조 병목으로 보는 것이 맞다.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>6. 우선 수정안</h2>
+
+  <h3><span class="badge p0">P0</span> 월드 진입에서 보상 백로그 drain을 await하지 않기</h3>
+  <ul>
+    <li><code>WorldScene.enter()</code>는 첫 렌더/입력 가능 상태를 먼저 완료해야 한다.</li>
+    <li><code>setNormalRewardConsumer()</code>, <code>setDurableRewardConsumer()</code>는 컨슈머만 등록하고 즉시 반환하도록 분리한다.</li>
+    <li>백로그는 첫 프레임 이후 <code>requestAnimationFrame</code> 또는 time budget 기반으로 처리한다. 예: 프레임당 1건 또는 8ms budget.</li>
+    <li>백로그 처리 중에는 “미수령 보상 동기화 중” 같은 비차단 UI를 보여준다.</li>
+  </ul>
+
+  <h3><span class="badge p0">P0</span> durable reward 저장을 full save에서 narrow patch로 축소</h3>
+  <ul>
+    <li><code>C:\dev\yurika_online\src\js\entities\Player.js:2823</code>, <code>:2861</code>의 <code>saveState(false, { debounceMs: 0 })</code> 제거 또는 축소.</li>
+    <li>실제 변경된 field만 patch한다. 예: exp/level/stat/hp/mp/manastone/questData/questState/inventory/pendingItemRewards/claimedRewardIds 중 변경된 것만.</li>
+    <li><code>addInventoryItem()</code>의 critical item immediate patch와 durable wrapper의 저장이 중복되지 않도록 suppression 옵션을 추가한다.</li>
+  </ul>
+
+  <h3><span class="badge p0">P0</span> idle 위치 저장을 position-only write로 변경</h3>
+  <ul>
+    <li><code>C:\dev\yurika_online\src\js\world\scenes\WorldScene.js:1322</code>의 full <code>saveState</code>를 제거한다.</li>
+    <li>위치 저장은 x/y/currentZoneId/mapPositions/hp/mp 정도만 patch한다.</li>
+    <li>위치 저장은 backup 대상에서 제외한다. <code>backupReason: 'idle_profile_snapshot'</code>가 throttle을 우회하는 현재 구조를 제거한다.</li>
+    <li>위치 patch는 checkpoint를 생략하거나 30~60초 단위로 coalesce한다.</li>
+  </ul>
+
+  <h3><span class="badge p0">P0</span> patch 저장 전 full local checkpoint 갱신 제거</h3>
+  <ul>
+    <li><code>C:\dev\yurika_online\src\js\core\NetworkManager.js:8370</code>의 무조건 checkpoint를 조건부로 바꾼다.</li>
+    <li>HP/position/isPaused 같은 volatile patch는 checkpoint 생략.</li>
+    <li>inventory/equipment/quest/reward/level 같은 durable patch만 throttle된 checkpoint 허용.</li>
+    <li>patch checkpoint는 full profile merge 대신 patch journal 형태로 저장하고, pagehide/beforeunload 또는 idle 때 full checkpoint로 compact한다.</li>
+  </ul>
+
+  <h3><span class="badge p1">P1</span> sanitize/merge/telemetry 비용 줄이기</h3>
+  <ul>
+    <li><code>_mergeProfileData()</code>에서 base full profile 전체 sanitize를 매번 하지 않도록, 이미 Firebase에서 읽은 current는 신뢰 가능한 normalized object로 취급하거나 변경 path만 sanitize한다.</li>
+    <li><code>recordNetworkWrite()</code>에서 profileSave/profilePatchSave/profileBackup의 byte 추정을 생략하거나 샘플링한다.</li>
+    <li><code>_summarizeProfilePayloadForLog()</code>는 debug disabled 시 계산되지 않도록 guard를 둔다.</li>
+  </ul>
+
+  <h3><span class="badge p1">P1</span> backup/recovery를 플레이 hot path에서 분리</h3>
+  <ul>
+    <li>custom reason이 항상 backup을 허용하는 <code>C:\dev\yurika_online\src\js\core\NetworkManager.js:8211</code>~<code>:8216</code> 정책을 바꾼다.</li>
+    <li>position/idle/damage HP save는 backup 금지.</li>
+    <li>durable reward backup/recovery는 foreground transaction 완료 후 background queue로 넘긴다.</li>
+  </ul>
+
+  <h3><span class="badge p1">P1</span> 인벤토리 UI를 incremental update로 변경</h3>
+  <ul>
+    <li><code>grid.innerHTML = ''</code> 전체 재생성 대신 slot별 DOM 재사용.</li>
+    <li><code>updateInventory()</code> 내부에서 <code>p.saveState()</code> 호출 금지. normalize는 상태 변경 단계에서만 수행.</li>
+    <li>보상 여러 건 처리 중 inventory UI 갱신은 마지막 1회만 수행.</li>
+  </ul>
+
+  <h2>7. 계측 포인트</h2>
+  <p>
+    아래 계측을 넣으면 실제 고레벨 계정에서 어느 단계가 몇 ms를 쓰는지 바로 검증할 수 있다.
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>계측 함수</th>
+        <th>기록할 값</th>
+        <th>목적</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>WorldScene.enter()</code></td>
+        <td>enter 전체, 보상 consumer 등록, 첫 UI sync, 첫 렌더까지 시간</td>
+        <td>로그인 30초 중 어디서 멈추는지 분해</td>
+      </tr>
+      <tr>
+        <td><code>NetworkManager._drainIncomingRewardBacklogs()</code></td>
+        <td>normalSnapshot count, durableSnapshot count, enqueue 시간, pump 시간</td>
+        <td>백로그 개수와 로그인 프리즈 상관 확인</td>
+      </tr>
+      <tr>
+        <td><code>NetworkManager._pumpIncomingRewardSnapshotQueue()</code></td>
+        <td>receipt별 처리 시간, consumer 시간, ack 시간, queue size</td>
+        <td>보상 한 건당 저장 비용 확인</td>
+      </tr>
+      <tr>
+        <td><code>Player.saveState()</code>, <code>Player.saveProfilePatch()</code></td>
+        <td>payload fields, inventory slots, quest keys, stringify byte size, 호출 reason</td>
+        <td>작은 이벤트가 full profile 저장으로 확장되는지 확인</td>
+      </tr>
+      <tr>
+        <td><code>NetworkManager._storeLocalProfileCheckpoint()</code></td>
+        <td>normalize ms, get checkpoint ms, stringify ms, setItem ms, serialized length</td>
+        <td>메인 스레드 동기 storage 비용 확인</td>
+      </tr>
+      <tr>
+        <td><code>NetworkManager._mergeProfileData()</code>, <code>_sanitizeProfileDataForFirebase()</code></td>
+        <td>object key count, nested array length, sanitize ms</td>
+        <td>고레벨 프로필에서 sanitize가 병목인지 확인</td>
+      </tr>
+      <tr>
+        <td><code>NetworkManager._commitPlayerDataTransaction()</code>, <code>_commitPlayerDataPatchTransaction()</code></td>
+        <td>transaction duration, retry count, backup duration, recovery duration, checkpoint committed duration</td>
+        <td>네트워크/DB/백업/복구 중 실제 지연 분해</td>
+      </tr>
+      <tr>
+        <td><code>UIManager.updateInventory()</code></td>
+        <td>DOM rebuild ms, slot count, 호출 reason</td>
+        <td>보상 처리 시 UI 증폭 비용 확인</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <h3>권장 long task 계측</h3>
+    <p>
+      개발 빌드에서 <code>PerformanceObserver</code>의 <code>longtask</code>를 켜고, 50ms 이상 task를 저장 reason과 함께 로깅한다.
+      특히 <span class="kbd">idle_profile_snapshot</span>, <span class="kbd">durable_normal_reward</span>, <span class="kbd">durable_boss_reward</span>, <span class="kbd">damage_hp_patch</span>, <span class="kbd">reward_inventory_patch</span> reason과 long task를 매칭해야 한다.
+    </p>
+  </div>
+
+  <h2>8. 재현 시나리오</h2>
+  <ol>
+    <li>고레벨 계정으로 로그인한다. 보상 inbox에 pending receipt가 있는 계정이면 더 좋다.</li>
+    <li>시작 버튼을 누른 직후부터 <code>WorldScene.enter()</code>, <code>_drainIncomingRewardBacklogs()</code>, <code>_pumpIncomingRewardSnapshotQueue()</code> 시간을 기록한다.</li>
+    <li>월드 진입 후 6px 이상 이동하고 멈춘다.</li>
+    <li>3초 뒤 <code>idle_profile_snapshot</code> 저장이 발생하는지 확인한다.</li>
+    <li>전투 중 피격 후 4.2~5.2초 뒤 <code>damage_hp_patch</code> flush와 long task가 겹치는지 확인한다.</li>
+    <li>보상 수령 후 3.5초 뒤 <code>reward_inventory_patch</code> 또는 durable reward full save와 long task가 겹치는지 확인한다.</li>
+  </ol>
+
+  <h2>9. 최종 판단</h2>
+  <div class="finding">
+    <p>
+      <strong>1순위 원인:</strong> 프로필 저장 시스템이 고레벨 대형 프로필에 대해 너무 무겁고, 그 무거운 작업이 로그인/보상/idle 위치 저장/피격 저장 같은 사용자 체감 hot path에서 실행된다.
+    </p>
+    <p>
+      <strong>로그인 30초 프리즈:</strong> 월드 진입 전에 보상 백로그 전체를 처리하고, 보상마다 전체 즉시 저장을 수행하는 경로가 가장 유력하다.
+    </p>
+    <p>
+      <strong>플레이 중 4~5초 프리즈:</strong> idle 위치 저장의 full save, HP/reward debounce flush, patch 저장 전 full checkpoint merge/write가 가장 유력하다.
+    </p>
+    <p>
+      <strong>해결 방향:</strong> 첫 렌더/입력 가능 시점에서 저장과 보상 백로그를 분리하고, hot path의 저장을 field-level patch + throttled async checkpoint로 축소해야 한다.
+    </p>
+  </div>
+</main>
+</body>
+</html>

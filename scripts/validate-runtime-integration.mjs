@@ -2692,7 +2692,26 @@ async function validateLocalProfileCheckpointContracts() {
 
         manager._commitPlayerDataPatch = async () => ({ ok: false, reason: 'offline' });
         await manager.savePlayerDataPatch(uid, { manastone: 777, ts: Date.now() + 1 }, { forceImmediate: true });
-        assert.equal(manager.getLocalProfileCheckpoint(uid).profile.manastone, 777, 'profile patches must update the local checkpoint before Firebase resolves');
+        assert.equal(
+            manager.getLocalProfilePatchJournal(uid)?.fields?.manastone?.value,
+            777,
+            'durable profile patches must update the compact local journal before Firebase resolves'
+        );
+
+        const rootWithLaterTransientProgress = {
+            ...richProfile,
+            exp: 99,
+            manastone: 701,
+            ts: richProfile.ts + 10_000
+        };
+        const replayedPatch = await manager.getLatestProfileSnapshot(uid, {
+            profile: rootWithLaterTransientProgress,
+            backupLimit: 0,
+            throwOnError: true
+        });
+        assert.equal(replayedPatch.source, 'local_patch_journal', 'a pending durable patch journal must be replayed over its healthy Firebase root');
+        assert.equal(replayedPatch.profile.manastone, 777, 'the pending durable field must survive equal-score candidate selection');
+        assert.equal(replayedPatch.profile.exp, 99, 'later root progress outside the durable patch must be preserved during recovery');
 
         assert.equal(manager.clearLocalProfileCheckpoint(uid), true);
         assert.equal(manager.getLocalProfileCheckpoint(uid), null, 'character deletion must be able to clear the UID-scoped checkpoint');
@@ -2823,7 +2842,16 @@ async function validateCharacterSelectionGenerationContracts() {
 async function validateCriticalProfilePersistenceTriggers() {
     const worldSceneJs = await readFile(new URL('../src/js/world/scenes/WorldScene.js', import.meta.url), 'utf8');
     assert.match(worldSceneJs, /profileIdleSaveDelayMs = 3000;/, 'idle profile save must trigger after 3 seconds of no movement');
-    assert.match(worldSceneJs, /saveState\?\.\(false, \{\s*debounceMs: 0,\s*reason: 'idle_profile_snapshot'/, 'idle save must persist the full player profile snapshot');
+    assert.match(
+        worldSceneJs,
+        /saveProfilePosition\?\.\(\{\s*debounceMs: 0,\s*reason: 'idle_position_snapshot',\s*checkpointPolicy: 'transient',\s*syncRecoveryProfile: false/,
+        'idle save must persist only the resume position through a transient profile patch'
+    );
+    assert.doesNotMatch(
+        worldSceneJs,
+        /reason: 'idle_profile_snapshot'/,
+        'idle movement persistence must not reintroduce a full profile snapshot'
+    );
 
     const previousGame = window.game;
     const copy = (value) => (value == null ? value : JSON.parse(JSON.stringify(value)));
@@ -2867,6 +2895,10 @@ async function validateCriticalProfilePersistenceTriggers() {
         assert.deepEqual(patchCalls.at(-1).patch.mapPositions.zone_2, { x: 120, y: 180 });
         assert.equal(patchCalls.at(-1).options.forceImmediate, true);
         assert.equal(patchCalls.at(-1).options.debounceMs, 0);
+        assert.equal(patchCalls.at(-1).options.checkpointPolicy, 'transient');
+        assert.equal(patchCalls.at(-1).options.syncRecoveryProfile, false);
+        assert.equal(Object.hasOwn(patchCalls.at(-1).patch, 'inventory'), false, 'idle position saves must not clone inventory');
+        assert.equal(Object.hasOwn(patchCalls.at(-1).patch, 'questState'), false, 'idle position saves must not clone quest state');
 
         patchCalls.length = 0;
         player.inventory[1] = { id: 'magic_staff', type: 'magic_staff', slot: 'weapon', name: 'Magic Staff' };
@@ -3090,6 +3122,42 @@ async function validateQuestRuntimeStateSync() {
         1,
         'non-legacy questKill receipts must advance JSON questState objectives'
     );
+
+    const lakeQuestDefinition = quests.definitions.get('quest_lake_squirtle_12');
+    const lakeQuestState = quests.state.active.quest_lake_squirtle_12;
+    lakeQuestState.objectives.kill_squirtle = { current: 11, complete: false };
+    lakeQuestDefinition.rewards = {
+        ...lakeQuestDefinition.rewards,
+        grant: {
+            ...lakeQuestDefinition.rewards.grant,
+            items: [{ id: 'weapon_upgrade_stone', amount: 1 }]
+        }
+    };
+    let receiptInventoryAutoSaveCount = 0;
+    const originalSaveInventoryAcquisitionSnapshot = player.saveInventoryAcquisitionSnapshot.bind(player);
+    player.saveInventoryAcquisitionSnapshot = () => {
+        receiptInventoryAutoSaveCount += 1;
+    };
+    const expBeforeReceiptQuestCompletion = player.exp;
+    const manastoneBeforeReceiptQuestCompletion = player.manastone;
+    assert.equal(
+        player.receiveReward({
+            rewardId: 'quest_receipt_auto_completion',
+            questKill: 'squirtle',
+            monsterName: 'Squirtle'
+        }, { save: false }),
+        true,
+        'a receipt-backed quest completion must apply successfully'
+    );
+    player.saveInventoryAcquisitionSnapshot = originalSaveInventoryAcquisitionSnapshot;
+    assert.ok(player.exp > expBeforeReceiptQuestCompletion, 'receipt-backed quest completion must grant EXP before its owner persists');
+    assert.ok(player.manastone > manastoneBeforeReceiptQuestCompletion, 'receipt-backed quest completion must grant currency before its owner persists');
+    assert.equal(receiptInventoryAutoSaveCount, 0, 'receipt-backed quest item rewards must not start a duplicate inventory save');
+    assert.ok(player._lastRewardPersistenceFields.includes('questState'), 'the receipt owner must persist completed quest state');
+    assert.ok(player._lastRewardPersistenceFields.includes('exp'), 'the receipt owner must persist quest-granted EXP');
+    assert.ok(player._lastRewardPersistenceFields.includes('manastone'), 'the receipt owner must persist quest-granted currency');
+    assert.ok(player._lastRewardPersistenceFields.includes('inventory'), 'the receipt owner must persist quest-granted inventory items');
+    assert.ok(player._lastRewardPersistenceFields.includes('pendingItemRewards'), 'the receipt owner must persist the item overflow journal when applicable');
 
     window.game = previousGame;
 }
@@ -5469,18 +5537,22 @@ async function validateDurableBossRewardContracts() {
     memory.operationLog.length = 0;
     let saveAttempt = 0;
     const savedProfiles = [];
+    const savedProfilePatches = [];
     const profileNet = {
         isSharedFieldActive: () => false,
         sendPlayerHp: () => {},
         savePlayerData: async (_uid, profile) => {
+            savedProfiles.push(JSON.parse(JSON.stringify(profile)));
+            return { ok: true, profile };
+        },
+        savePlayerDataPatch: async (_uid, patch) => {
             saveAttempt += 1;
             memory.operationLog.push(`profile:${saveAttempt}`);
-            savedProfiles.push(JSON.parse(JSON.stringify(profile)));
+            savedProfilePatches.push(JSON.parse(JSON.stringify(patch)));
             return saveAttempt === 1
                 ? { ok: false, reason: 'temporary_profile_failure' }
-                : { ok: true, profile };
-        },
-        savePlayerDataPatch: async () => ({ ok: true })
+                : { ok: true, profile: patch };
+        }
     };
     const player = new Player(100, 100, 'Durable Receiver', null);
     player.id = recipientId;
@@ -5505,6 +5577,9 @@ async function validateDurableBossRewardContracts() {
     assert.equal(memory.records.get(rewardPath).status, 'pending', 'profile failure must leave the receipt unacknowledged');
     assert.equal(player.inventory.filter((entry) => entry?.instanceId === item.instanceId).length, 1);
     assert.deepEqual(player.claimedRewardIds, [rewardId]);
+    assert.ok(savedProfilePatches[0]?.inventory?.some((entry) => entry?.instanceId === item.instanceId), 'durable boss receipt must persist the granted inventory entry before acknowledgement');
+    assert.deepEqual(savedProfilePatches[0]?.claimedRewardIds, [rewardId], 'durable boss receipt must persist the semantic id before acknowledgement');
+    assert.equal(Object.hasOwn(savedProfilePatches[0] || {}, 'skillLevels'), false, 'durable reward persistence must not serialize unrelated profile fields');
     assert.equal(memory.operationLog.some((entry) => entry.startsWith('transaction:')), false, 'ack must not run before profile persistence succeeds');
 
     await receiverNet._drainDurableBossRewards();
@@ -6124,6 +6199,7 @@ async function validateDurableBossRewardContracts() {
     const fullRewardPath = `durable_rewards_v1/${recipientId}/${fullRewardKey}`;
     const fullMemory = createMemoryRewardDatabase({ [fullRewardPath]: fullEnvelope });
     const fullSavedProfiles = [];
+    const fullSavedProfilePatches = [];
     const fullProfileNet = {
         isSharedFieldActive: () => false,
         sendPlayerHp: () => {},
@@ -6131,7 +6207,10 @@ async function validateDurableBossRewardContracts() {
             fullSavedProfiles.push(JSON.parse(JSON.stringify(profile)));
             return { ok: true, profile };
         },
-        savePlayerDataPatch: async () => ({ ok: true })
+        savePlayerDataPatch: async (_uid, patch) => {
+            fullSavedProfilePatches.push(JSON.parse(JSON.stringify(patch)));
+            return { ok: true, profile: patch };
+        }
     };
     const fullPlayer = new Player(100, 100, 'Full Inventory Receiver', null);
     fullPlayer.id = recipientId;
@@ -6165,8 +6244,9 @@ async function validateDurableBossRewardContracts() {
     fullReceiverNet.getServerNow = () => authoredAt + 25_000;
     await fullReceiverNet.setDurableRewardConsumer((reward) => fullPlayer.receiveRewardDurably(reward));
     assert.equal(fullPlayer.pendingItemRewards.length, 1, 'a full inventory must queue the boss weapon in pending rewards');
-    assert.equal(fullSavedProfiles.at(-1).pendingItemRewards.length, 1, 'pending boss items must persist before receipt acknowledgement');
-    assert.ok(fullSavedProfiles.at(-1).claimedRewardIds.includes(fullRewardId));
+    assert.equal(fullSavedProfilePatches.at(-1).pendingItemRewards.length, 1, 'pending boss items must persist before receipt acknowledgement');
+    assert.ok(fullSavedProfilePatches.at(-1).claimedRewardIds.includes(fullRewardId));
+    assert.equal(Object.hasOwn(fullSavedProfilePatches.at(-1), 'skillLevels'), false, 'pending boss item persistence must not serialize unrelated profile fields');
     assert.equal(fullMemory.records.get(fullRewardPath).status, 'claimed');
 
     const progressBossInstanceId = 'ruin_boss_progress_reconnect';
@@ -6255,14 +6335,14 @@ async function validateDurableBossRewardContracts() {
     const progressProfileNet = {
         isSharedFieldActive: () => false,
         sendPlayerHp: () => {},
-        savePlayerData: async (_uid, profile) => {
+        savePlayerData: async (_uid, profile) => ({ ok: true, profile }),
+        savePlayerDataPatch: async (_uid, patch) => {
             progressSaveAttempt += 1;
             progressOperationOrder.push('profile');
             return progressSaveAttempt === 1
                 ? { ok: false, reason: 'temporary_progress_save_failure' }
-                : { ok: true, profile };
-        },
-        savePlayerDataPatch: async () => ({ ok: true })
+                : { ok: true, profile: patch };
+        }
     };
     const progressPlayer = new Player(100, 100, 'Progress Receiver', null);
     progressPlayer.id = recipientId;
@@ -6859,18 +6939,22 @@ async function validateNormalRewardV2Contracts() {
 
     let saveAttempt = 0;
     const savedProfiles = [];
+    const savedProfilePatches = [];
     const profileNet = {
         isSharedFieldActive: () => false,
         sendPlayerHp: () => {},
         savePlayerData: async (_uid, profile) => {
+            savedProfiles.push(JSON.parse(JSON.stringify(profile)));
+            return { ok: true, profile };
+        },
+        savePlayerDataPatch: async (_uid, patch) => {
             saveAttempt += 1;
             consumerMemory.operationLog.push(`profile:${saveAttempt}`);
-            savedProfiles.push(JSON.parse(JSON.stringify(profile)));
+            savedProfilePatches.push(JSON.parse(JSON.stringify(patch)));
             return saveAttempt === 1
                 ? { ok: false, reason: 'temporary_normal_profile_failure' }
-                : { ok: true, profile };
-        },
-        savePlayerDataPatch: async () => ({ ok: true })
+                : { ok: true, profile: patch };
+        }
     };
     const player = new Player(100, 100, 'Normal Receiver', null);
     player.id = recipientId;
@@ -6907,7 +6991,8 @@ async function validateNormalRewardV2Contracts() {
     assert.equal(consumerMemory.records.has(consumerPath), false, 'claimed rewards must leave the reconnect inbox');
     assert.equal(consumerMemory.records.get(consumerClaimPath).status, 'claimed');
     assert.equal(consumerMemory.records.get(consumerClaimPath).exp, undefined, 'claim markers must discard mutable payload fields');
-    assert.ok(savedProfiles.at(-1).claimedRewardIds.includes(semanticRewardId));
+    assert.ok(savedProfilePatches.at(-1).claimedRewardIds.includes(semanticRewardId));
+    assert.equal(Object.hasOwn(savedProfilePatches.at(-1), 'inventory'), false, 'normal EXP/currency reward persistence must not clone the inventory');
     assert.ok(
         consumerMemory.operationLog.indexOf('profile:2')
             < consumerMemory.operationLog.indexOf('update:root'),
@@ -6938,7 +7023,8 @@ async function validateNormalRewardV2Contracts() {
     const fifoProfileNet = {
         isSharedFieldActive: () => false,
         sendPlayerHp: () => {},
-        savePlayerData: async (_uid, profile) => {
+        savePlayerData: async (_uid, profile) => ({ ok: true, profile }),
+        savePlayerDataPatch: async (_uid, patch) => {
             fifoSaveAttempts += 1;
             const currentAttempt = fifoSaveAttempts;
             fifoActiveSaves += 1;
@@ -6947,9 +7033,8 @@ async function validateNormalRewardV2Contracts() {
             fifoActiveSaves -= 1;
             return currentAttempt === 1
                 ? { ok: false, reason: 'fifo_front_profile_failure' }
-                : { ok: true, profile };
-        },
-        savePlayerDataPatch: async () => ({ ok: true })
+                : { ok: true, profile: patch };
+        }
     };
     const fifoPlayer = new Player(100, 100, 'FIFO Receiver', null);
     fifoPlayer.id = fifoRecipientId;
@@ -7024,6 +7109,7 @@ async function validateNormalRewardV2Contracts() {
     const kingPath = `rewards/${kingRecipientId}/${kingReceiptKey}`;
     const kingMemory = createMemoryRewardDatabase({ [kingPath]: kingEnvelope });
     const kingSavedProfiles = [];
+    const kingSavedProfilePatches = [];
     const kingProfileNet = {
         isSharedFieldActive: () => false,
         sendPlayerHp: () => {},
@@ -7031,7 +7117,10 @@ async function validateNormalRewardV2Contracts() {
             kingSavedProfiles.push(JSON.parse(JSON.stringify(profile)));
             return { ok: true, profile };
         },
-        savePlayerDataPatch: async () => ({ ok: true })
+        savePlayerDataPatch: async (_uid, patch) => {
+            kingSavedProfilePatches.push(JSON.parse(JSON.stringify(patch)));
+            return { ok: true, profile: patch };
+        }
     };
     const kingPlayer = new Player(100, 100, 'King Quest Receiver', null);
     kingPlayer.id = kingRecipientId;
@@ -7070,7 +7159,7 @@ async function validateNormalRewardV2Contracts() {
     assert.equal(kingPlayer.pendingItemRewards[1].type, 'weapon_upgrade_stone');
     assert.equal(kingPlayer.pendingItemRewards[1].amount, 3);
     assert.equal(
-        kingSavedProfiles.at(-1).pendingItemRewards[0].amount,
+        kingSavedProfilePatches.at(-1).pendingItemRewards[0].amount,
         3,
         'King Slime pending stone rewards must persist before the claim marker is written'
     );

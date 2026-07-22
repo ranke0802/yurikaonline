@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yurika Online 고레벨 로그인/플레이 멈춤 병목 분석 리포트</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f4ec;
+      --paper: #fffaf1;
+      --ink: #2a2520;
+      --muted: #776b5d;
+      --line: #eadcc5;
+      --accent: #b05a2c;
+      --danger: #b73a3a;
+      --warn: #b27600;
+      --ok: #287a52;
+      --code: #2d2118;
+    }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #f7f4ec 0%, #efe4d2 100%);
+      color: var(--ink);
+      font-family: "Nanum Gothic", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+      line-height: 1.62;
+    }
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 42px 22px 72px;
+    }
+    .hero, section {
+      background: rgba(255, 250, 241, 0.96);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: 0 12px 38px rgba(75, 55, 32, 0.09);
+      padding: 28px;
+      margin: 0 0 22px;
+    }
+    h1, h2, h3 {
+      line-height: 1.25;
+      margin: 0 0 14px;
+    }
+    h1 {
+      font-size: clamp(28px, 4vw, 42px);
+      letter-spacing: -0.04em;
+    }
+    h2 {
+      font-size: 24px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 10px;
+      margin-bottom: 18px;
+    }
+    h3 {
+      font-size: 18px;
+      color: var(--accent);
+      margin-top: 22px;
+    }
+    p {
+      margin: 8px 0 14px;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      background: #fff5e3;
+      border-radius: 999px;
+      padding: 6px 11px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .finding-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fffdf8;
+      padding: 16px;
+    }
+    .severity {
+      display: inline-flex;
+      font-weight: 800;
+      border-radius: 8px;
+      padding: 2px 8px;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .critical { background: #ffe4e1; color: var(--danger); }
+    .high { background: #fff1cc; color: var(--warn); }
+    .medium { background: #e8f3ff; color: #2b679c; }
+    .low { background: #e5f6ee; color: var(--ok); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 12px;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 11px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f2e4ce;
+      color: #3f3024;
+    }
+    tr:nth-child(even) td {
+      background: #fff8ec;
+    }
+    code, .code {
+      font-family: "Cascadia Code", "Consolas", monospace;
+      color: var(--code);
+      background: #f6ead8;
+      border: 1px solid #ead5ba;
+      border-radius: 7px;
+      padding: 1px 5px;
+      font-size: 0.92em;
+    }
+    pre {
+      overflow: auto;
+      background: #241c16;
+      color: #ffe9c4;
+      border-radius: 14px;
+      padding: 16px;
+      font-size: 13px;
+    }
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+    .timeline-item {
+      border-left: 4px solid var(--accent);
+      background: #fff9ee;
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .callout {
+      border-left: 6px solid var(--danger);
+      background: #fff2f0;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin: 14px 0;
+    }
+    .okcallout {
+      border-left: 6px solid var(--ok);
+      background: #effaf4;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin: 14px 0;
+    }
+    ul, ol {
+      padding-left: 22px;
+    }
+    li {
+      margin: 6px 0;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <article class="hero">
+    <h1>고레벨 로그인 30초 정지 / 플레이 중 4~5초 멈춤 병목 분석</h1>
+    <p>
+      결론부터 말하면, 현재 병목의 1차 원인은 렌더링 자체가 아니라
+      <strong>커진 플레이어 프로필 전체를 저장·복구·체크포인트·회귀 방어 로직이 반복적으로 deep clone / sanitize / stringify / localStorage / Firebase transaction 처리하는 구조</strong>다.
+      맵과 보상 체계가 늘면서 <code>inventory</code>, <code>pendingItemRewards</code>, <code>questState</code>, <code>claimedRewardIds</code>, 장비 옵션 데이터가 커졌고,
+      2026-07-17~2026-07-21 사이 저장 안정화 패치들이 이 큰 객체를 더 자주, 더 여러 경로로 복사하게 만들었다.
+    </p>
+    <div class="meta">
+      <span class="chip">작성일: 2026-07-22</span>
+      <span class="chip">대상 브랜치: mmorpg_online</span>
+      <span class="chip">분석 방식: 정적 코드 추적 + git blame/log + 워커 병렬 분석 요청</span>
+      <span class="chip">코드 변경: 없음, 리포트만 추가</span>
+    </div>
+  </article>
+
+  <section>
+    <h2>최종 판단 요약</h2>
+    <div class="finding-grid">
+      <div class="card">
+        <span class="severity critical">최우선 병목</span>
+        <h3>전체 프로필 직렬화가 너무 자주 발생</h3>
+        <p>
+          <code>Player.saveState()</code>가 전체 인벤토리/장비/퀘스트/보상/설정/위치를 하나의 큰 객체로 만들고,
+          <code>NetworkManager</code>가 이를 저장 전후로 여러 번 <code>JSON.parse(JSON.stringify(...))</code>,
+          재귀 sanitize, <code>JSON.stringify</code>, <code>localStorage.setItem</code>에 통과시킨다.
+        </p>
+      </div>
+      <div class="card">
+        <span class="severity critical">로그인 정지 원인</span>
+        <h3>로그인 직후 복구 후보를 모두 정규화</h3>
+        <p>
+          캐릭터 선택에서 root profile을 읽은 뒤 recovery, backup, local checkpoint까지 비교한다.
+          고레벨 프로필일수록 후보 1개당 전체 deep clone/sanitize 비용이 커지고,
+          후보가 여러 개면 이 비용이 곱해진다.
+        </p>
+      </div>
+      <div class="card">
+        <span class="severity high">플레이 중 멈춤 원인</span>
+        <h3>3초 idle 저장이 전체 저장으로 실행</h3>
+        <p>
+          이동 후 멈추면 3초 뒤 <code>idle_profile_snapshot</code>으로 전체 <code>saveState()</code>가 즉시 실행된다.
+          이 순간 메인 스레드에서 큰 프로필 직렬화와 localStorage 쓰기가 발생해 4~5초 정지가 체감될 수 있다.
+        </p>
+      </div>
+      <div class="card">
+        <span class="severity high">증폭 요인</span>
+        <h3>인벤토리 UI와 보상 outbox</h3>
+        <p>
+          인벤토리 갱신은 300칸 DOM을 매번 재생성하고, 보상/드랍 outbox는 localStorage에 최대 MB 단위 JSON을 읽고 쓴다.
+          이것들은 단독 원인이라기보다 프로필 저장 병목과 함께 프레임 정지를 키운다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>병목 1: 프로필 전체 저장 경로</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>소스</th>
+          <th>라인</th>
+          <th>문제 코드/동작</th>
+          <th>왜 느려지는가</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>src/js/entities/Player.js</code></td>
+          <td>1217, 1243~1264, 1282</td>
+          <td><code>saveState()</code>가 <code>inventory</code>, <code>equipment</code>, <code>pendingItemRewards</code>, <code>claimedRewardIds</code>, <code>questData</code>, <code>questState</code>, <code>uiLayout</code>, <code>clientSettings</code>, <code>itemCooldowns</code>, <code>mapPositions</code>를 포함한 전체 객체 생성 후 <code>savePlayerData()</code> 호출</td>
+          <td>레벨이 아니라 “플레이 기간/아이템/퀘스트/보상 데이터량”에 비례해서 payload가 커진다. 고레벨일수록 이 필드들이 누적되어 전체 저장 비용이 급증한다.</td>
+        </tr>
+        <tr>
+          <td><code>src/js/core/NetworkManager.js</code></td>
+          <td>7322~7325</td>
+          <td><code>_cloneProfileData()</code>가 <code>JSON.parse(JSON.stringify(data))</code> 사용</td>
+          <td>큰 객체를 동기적으로 문자열화 후 다시 파싱한다. 브라우저 메인 스레드를 완전히 점유한다.</td>
+        </tr>
+        <tr>
+          <td><code>src/js/core/NetworkManager.js</code></td>
+          <td>7502~7534</td>
+          <td><code>_sanitizeFirebaseProfileValue()</code>가 모든 object의 key를 <code>Object.entries → map → sort → 재귀</code>로 정규화</td>
+          <td>프로필 내 모든 중첩 객체에 대해 정렬이 들어간다. 장비 옵션/퀘스트/보상 데이터처럼 object가 많아질수록 O(n log n) 비용이 반복된다.</td>
+        </tr>
+        <tr>
+          <td><code>src/js/core/NetworkManager.js</code></td>
+          <td>7548~7555</td>
+          <td><code>_sanitizeProfileDataForFirebase()</code> → <code>_cloneProfileData()</code> → <code>_sanitizeFirebaseProfileValue()</code>, <code>_normalizeProfileSnapshot()</code>가 매번 호출</td>
+          <td>저장/복구/후보 비교/체크포인트 작성마다 전체 프로필을 다시 복제하고 sanitize한다.</td>
+        </tr>
+        <tr>
+          <td><code>src/js/core/NetworkManager.js</code></td>
+          <td>7390~7424</td>
+          <td><code>_storeLocalProfileCheckpoint()</code>가 전체 프로필 normalize 후 <code>JSON.stringify(payload)</code>, <code>localStorage.setItem()</code> 1~2회 수행</td>
+          <td>localStorage는 동기 API다. 300KB~512KB급 문자열을 쓰면 모바일/PWA에서 프레임이 그대로 멈춘다. 익명 계정은 최신 anonymous checkpoint까지 한 번 더 쓴다.</td>
+        </tr>
+        <tr>
+          <td><code>src/js/core/NetworkManager.js</code></td>
+          <td>8259~8282</td>
+          <td><code>_mergeProfileData()</code>가 base, patch, merged를 각각 sanitize</td>
+          <td>작은 patch 저장이어도 current 전체 프로필과 병합하는 순간 전체 프로필 sanitize가 반복된다.</td>
+        </tr>
+        <tr>
+          <td><code>src/js/core/NetworkManager.js</code></td>
+          <td>8849~8864, 8904, 8937~8940</td>
+          <td>patch transaction 내부에서 current 전체 프로필과 patch를 병합하고, commit 후 전체 snapshot normalize 및 local checkpoint 저장</td>
+          <td><code>hp/mp/mapPositions</code> 같은 작은 patch도 Firebase transaction이 현재 전체 프로필을 받아 병합하기 때문에 고레벨 프로필 크기만큼 느려진다.</td>
+        </tr>
+        <tr>
+          <td><code>src/js/entities/Player.js</code>, <code>src/js/core/NetworkManager.js</code></td>
+          <td><code>Player.js:1289</code>, <code>NetworkManager.js:8211~8245</code></td>
+          <td><code>backupReason: options.backupReason || options.reason || 'player_save'</code>와 <code>reason !== 'profile_save'</code> 즉시 허용 조건</td>
+          <td>
+            백업 throttle이 <code>profile_save</code>에만 걸려 있다. 그런데 실제 저장 reason은 <code>player_save</code>, <code>idle_profile_snapshot</code>,
+            <code>reward_patch</code>처럼 들어오므로, 백업 쓰기와 백업 prune이 거의 매번 허용된다. 즉 한 번의 저장이 full profile 저장 + backup 저장 + backup 목록 읽기/정리로 증폭된다.
+          </td>
+        </tr>
+        <tr>
+          <td><code>src/js/main.js</code>, <code>src/js/core/NetworkManager.js</code></td>
+          <td><code>main.js:342~370</code>, <code>NetworkManager.js:8668, 8843</code></td>
+          <td>네트워크 write telemetry가 payload byte 측정을 위해 다시 <code>JSON.stringify(payload)</code> 수행</td>
+          <td>저장 직렬화와 별개로 통계 기록에서도 대형 프로필 객체가 한 번 더 문자열화된다. 고레벨 full profile save에서는 병목을 증폭시키는 보조 원인이다.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <strong>핵심:</strong> 지금 구조에서는 “저장할 필드가 작다”가 곧 “처리가 가볍다”가 아니다.
+      patch 저장도 결국 current root profile 전체를 읽고, 전체 객체와 병합하고, 전체 checkpoint를 다시 쓴다.
+    </div>
+  </section>
+
+  <section>
+    <h2>병목 2: 로그인/재접속 30초 정지 경로</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>순서</th>
+          <th>소스/라인</th>
+          <th>동작</th>
+          <th>병목 설명</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><code>CharacterSelectionScene.js:95</code></td>
+          <td>root profile을 <code>getPlayerProfile()</code>로 읽음</td>
+          <td>여기서 이미 큰 프로필 전체를 한 번 받는다.</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><code>CharacterSelectionScene.js:97~108</code>, <code>NetworkManager.js:7997~8126</code></td>
+          <td><code>shouldUseProfileRecoveryLookup()</code>가 true이면 recovery, backup, local checkpoint 후보를 추가 조회/정규화</td>
+          <td>후보마다 전체 프로필 normalize가 들어간다. backup은 최대 5개까지 조회될 수 있다.</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><code>NetworkManager.js:7344~7366</code>, <code>7461~7485</code></td>
+          <td>local checkpoint JSON parse 후 normalize, anonymous checkpoint 후보까지 검사</td>
+          <td>PWA/게스트 복구 보호 때문에 localStorage에 있는 큰 문자열을 읽고 다시 sanitize한다.</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><code>CharacterSelectionScene.js:129~137</code></td>
+          <td>backup/recovery가 더 낫다고 판단되면 즉시 full profile auto repair 저장</td>
+          <td>로그인 직전/직후에 전체 저장 경로가 한 번 더 실행된다.</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><code>WorldScene.js:322</code>, <code>400~403</code>, <code>432~436</code>, <code>476~486</code></td>
+          <td>월드 진입 시 인벤토리 정규화, UI 전체 갱신, pending 보상 최대 48개 수령, light profile sync 예약</td>
+          <td>보상/인벤토리가 많으면 DOM 갱신과 patch 저장이 연속 실행된다. pending 보상 처리 후 inventory/pendingItemRewards patch가 커진다.</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td><code>WorldScene.js:201</code>, <code>ResourceManager.js:74~153</code>, <code>174~247</code></td>
+          <td>월드 진입 시 캐릭터 스프라이트시트를 canvas로 조립하고 각 프레임을 <code>getImageData()</code> 기반 픽셀 루프로 처리</td>
+          <td>
+            고레벨 계정 전용 병목은 아니지만, 로그인 복구/체크포인트 비용 직후에 이어지는 초기화 작업이다.
+            이미지 로드 후 chroma key/crop/scale 픽셀 처리가 한 번에 몰리면 “접속 직후 아무것도 못 하는 시간”을 더 길게 만든다.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>로그인 정지의 실제 체감 흐름</h3>
+    <pre>캐릭터 선택 진입
+  → root profile 전체 다운로드
+  → recovery/local checkpoint/profileBackups 후보 전체 다운로드/parse/sanitize
+  → 후보 비교
+  → 필요 시 full auto repair 저장
+  → 월드 진입
+  → 인벤토리/보상/퀘스트/UI 초기화
+  → light profile patch 예약
+  → patch transaction에서 current full profile 병합
+  → local checkpoint 전체 재작성</pre>
+  </section>
+
+  <section>
+    <h2>병목 3: 플레이 도중 4~5초 멈춤 경로</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>소스</th>
+          <th>라인</th>
+          <th>동작</th>
+          <th>프레임 멈춤 이유</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>WorldScene.js</code></td>
+          <td>1293~1325</td>
+          <td>이동 후 3초간 멈추고, 마지막 저장 위치에서 6px 이상 이동했으면 <code>idle_profile_snapshot</code>으로 <code>saveState(false, debounceMs:0)</code> 실행</td>
+          <td>플레이 도중 “잠깐 멈췄을 때” 전체 프로필 저장이 즉시 실행된다. 고레벨 프로필이면 이 순간 메인 스레드가 4~5초 정지할 수 있다.</td>
+        </tr>
+        <tr>
+          <td><code>Player.js</code></td>
+          <td>4319, 2358, 2906, 2950, 3826, 3853, 3962, 4019, 4113</td>
+          <td>중요 아이템 획득, 스킬/레벨/장비/강화/옵션 변경 시 즉시 patch 저장</td>
+          <td>즉시 저장은 안전하지만, 현재 patch 처리 구현상 작은 patch도 전체 프로필 병합/체크포인트를 유발한다.</td>
+        </tr>
+        <tr>
+          <td><code>UIManager.js</code></td>
+          <td>10514~10693</td>
+          <td><code>updateInventory()</code>가 인벤토리 grid를 비우고 300칸 버튼/아이콘/이벤트를 매번 재생성</td>
+          <td>장비/보상 수령/인벤토리 갱신 시 DOM 작업이 한 번에 몰린다. 저장 병목과 같은 프레임에 겹치면 긴 멈춤이 된다.</td>
+        </tr>
+        <tr>
+          <td><code>WorldScene.js</code></td>
+          <td>1420~1424</td>
+          <td>미니맵 업데이트마다 몬스터 Map을 Array로 변환하고 모든 몬스터를 signature/draw 처리</td>
+          <td>슬라임맵 외 몹 상한을 2배로 늘린 뒤 주기적 부하가 증가했다. 단독 30초 원인은 아니지만 프레임 예산을 계속 갉아먹는다.</td>
+        </tr>
+        <tr>
+          <td><code>GameLoop.js</code></td>
+          <td>111~162</td>
+          <td>fixed update와 render는 안전장치가 있으나, 동기 JSON/localStorage/DOM 작업은 막지 못함</td>
+          <td>루프 자체가 문제가 아니라, 루프 바깥/안쪽에서 실행되는 긴 동기 작업이 JS main thread를 점유한다.</td>
+        </tr>
+        <tr>
+          <td><code>GameLoop.js</code>, <code>src/js/main.js</code></td>
+          <td><code>GameLoop.js:116, 164</code>, <code>main.js:352~365</code></td>
+          <td><code>safeFrameTime = Math.min(frameTime, 0.25)</code>로 긴 frame gap을 250ms로 잘라 telemetry에 기록</td>
+          <td>
+            게임 루프 안전장치 자체는 필요하지만, 현재 telemetry는 4~5초짜리 긴 정지를 실제 길이대로 보여주지 못한다.
+            성능 리포팅은 <code>safeFrameTime</code> 적용 전 raw frame gap 또는 PerformanceObserver long task를 별도로 기록해야 한다.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>병목 4: 보상/드랍 outbox와 localStorage 누적</h2>
+    <p>
+      보스/일반 몬스터 보상, 드랍, 퀘스트 보스 처치 안정화를 위해 여러 outbox가 localStorage에 저장된다.
+      네트워크 불안정, 보상 처리 실패, 장시간 플레이가 겹치면 reconnect 시 localStorage JSON parse/sort/validate/write가 한꺼번에 실행된다.
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>소스</th>
+          <th>라인</th>
+          <th>상한</th>
+          <th>위험</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>NetworkManager.js</code></td>
+          <td>153~154, 3196~3218, 3242~3291</td>
+          <td>normal reward outbox 최대 512개 / 2MB</td>
+          <td>일반 몬스터 드랍/보상 증가 후 누적 가능성이 커졌다. reconnect 시 JSON parse와 stable stringify/clone이 메인 스레드를 막는다.</td>
+        </tr>
+        <tr>
+          <td><code>NetworkManager.js</code></td>
+          <td>13, 3809~3824, 3872~3936</td>
+          <td>durable boss reward outbox 최대 128개</td>
+          <td>보스 소환 주문서/옵션 변경석/무기 보상 등 boss reward payload가 커졌고, 복구 시 검증 비용도 함께 증가한다.</td>
+        </tr>
+        <tr>
+          <td><code>NetworkManager.js</code></td>
+          <td>27~28, 11498~11508, 11938~11951</td>
+          <td>drop spawn outbox 최대 256개 / 1MB</td>
+          <td>드랍 확률/종류 증가 후 실패 outbox가 쌓이면 로그인/재접속 직후 읽기 비용이 커진다.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>최근 커밋 상관관계</h2>
+    <div class="timeline">
+      <div class="timeline-item">
+        <strong>2026-07-17: f2718178, a42de9d</strong>
+        <p>초기화 보호/프로필 회귀 방어/compact log가 들어오며 프로필 sanitize와 regression guard가 강화됨. 안전성은 올라갔지만 저장마다 전체 객체 검사 비용이 커졌다.</p>
+      </div>
+      <div class="timeline-item">
+        <strong>2026-07-20: 8f134c3, eb47d1f, 017bc45</strong>
+        <p>성장 변경/종료/idle 저장/세션 복구가 추가됨. 특히 <code>idle_profile_snapshot</code>은 플레이 중 4~5초 멈춤과 시간 패턴이 가장 잘 맞는다.</p>
+      </div>
+      <div class="timeline-item">
+        <strong>2026-07-21: 749d197, e502b57</strong>
+        <p>local profile checkpoint와 anonymous checkpoint가 추가/보강됨. 게스트 데이터 유실 방어에는 필요했지만, 전체 프로필을 localStorage에 1~2회 동기 저장하는 비용이 로그인/저장 순간에 크게 발생한다.</p>
+      </div>
+      <div class="timeline-item">
+        <strong>맵/몬스터/드랍 확장 이후</strong>
+        <p>프로필에 쌓이는 아이템, pending reward, claimed reward, boss scroll, option reroll stone, 강화석 데이터가 늘어났다. “맵 확장” 자체보다 “확장 후 프로필 payload가 커진 상태에서 저장 안정화 로직이 전체 payload를 반복 처리”하는 조합이 문제다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>우선순위별 개선 방향</h2>
+    <ol>
+      <li>
+        <strong>전체 프로필 저장을 즉시 중단하고, hot-path는 필드 patch 전용으로 분리.</strong>
+        <br>
+        idle 위치 저장, hp/mp, currentZoneId, mapPositions는 root transaction 전체 병합이 아니라
+        <code>users/$uid/profile/x</code>, <code>.../mapPositions/$zoneId</code> 같은 얕은 multi-location update로 처리해야 한다.
+      </li>
+      <li>
+        <strong>local checkpoint를 full profile이 아니라 compact critical checkpoint로 축소.</strong>
+        <br>
+        최소 필드: level, exp, stats, skillLevels, manastone, equipment, inventory 핵심, questState 요약, currentZoneId, mapPositions.
+        pending reward/outbox 전체는 별도 journal로 분리한다.
+      </li>
+      <li>
+        <strong>sanitize는 저장마다 전체 재귀 수행하지 말고 dirty field 단위로 캐시.</strong>
+        <br>
+        이미 안전한 schema를 쓰는 내부 객체는 재정렬 sanitize를 생략하거나, 개발/마이그레이션/복구 때만 수행한다.
+      </li>
+      <li>
+        <strong>로그인 복구 후보 조회를 조건부로 축소.</strong>
+        <br>
+        root profile이 명백히 정상이고 최신이면 recovery/profileBackups/local anonymous checkpoint를 즉시 읽지 않는다.
+        “초기화 의심”일 때만 deep recovery를 수행한다.
+      </li>
+      <li>
+        <strong>백업 저장 reason 정책을 바로잡아 throttle 우회를 막는다.</strong>
+        <br>
+        <code>player_save</code>, <code>idle_profile_snapshot</code>, <code>reward_patch</code> 같은 일반 reason이 매번 backup/prune을 통과하지 않게 해야 한다.
+        실시간 플레이 hot-path에서는 백업을 쓰지 않고, 레벨업/장비 획득/중요 재화 변화/종료 저장처럼 durable event에만 제한적으로 백업한다.
+      </li>
+      <li>
+        <strong>telemetry payload byte 측정은 full stringify를 피한다.</strong>
+        <br>
+        full profile payload는 샘플링하거나 key count/대략 크기만 기록하고, 저장 직전에 대형 객체를 통계용으로 다시 문자열화하지 않는다.
+      </li>
+      <li>
+        <strong>인벤토리 DOM은 가상화 또는 diff 업데이트.</strong>
+        <br>
+        300칸 전체 재생성 대신 변경된 slot만 업데이트한다. 열린 detail modal도 선택 아이템 변경 시에만 갱신한다.
+      </li>
+      <li>
+        <strong>outbox restore를 프레임 단위로 chunk 처리.</strong>
+        <br>
+        reconnect 순간 512개를 한 번에 parse/validate/write하지 말고, 16~32개 단위로 <code>requestIdleCallback</code> 또는 frame budget queue로 나눈다.
+      </li>
+      <li>
+        <strong>측정용 performance mark를 hot path에 넣는다.</strong>
+        <br>
+        <code>profileBytes</code>, <code>checkpointStringifyMs</code>, <code>sanitizeMs</code>, <code>localStorageSetMs</code>, <code>transactionMs</code>, <code>inventoryDomMs</code>를 dev overlay에 표시한다.
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>정확한 측정 포인트</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>측정명</th>
+          <th>삽입 위치</th>
+          <th>확인할 값</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>profile.saveState.buildMs</code></td>
+          <td><code>Player.js:1217~1282</code></td>
+          <td>프로필 객체 구성 시간, payload byte size</td>
+        </tr>
+        <tr>
+          <td><code>profile.sanitizeMs</code></td>
+          <td><code>NetworkManager.js:7548~7555</code></td>
+          <td>clone + recursive sanitize 시간</td>
+        </tr>
+        <tr>
+          <td><code>profile.checkpointMs</code></td>
+          <td><code>NetworkManager.js:7390~7424</code></td>
+          <td>JSON.stringify 시간, localStorage setItem 시간, byte size</td>
+        </tr>
+        <tr>
+          <td><code>profile.patchMergeMs</code></td>
+          <td><code>NetworkManager.js:8259~8282, 8864</code></td>
+          <td>작은 patch가 full merge로 커지는 시간</td>
+        </tr>
+        <tr>
+          <td><code>profile.backupBypassMs</code></td>
+          <td><code>Player.js:1289</code>, <code>NetworkManager.js:8211~8245</code></td>
+          <td>reason별 backup/prune 실행 횟수, backup 목록 read/prune 시간</td>
+        </tr>
+        <tr>
+          <td><code>telemetry.stringifyMs</code></td>
+          <td><code>main.js:342~370</code></td>
+          <td>통계용 payload stringify 시간, profileSave/profilePatchSave에서 추가 직렬화가 발생하는지</td>
+        </tr>
+        <tr>
+          <td><code>rawFrameGapMs</code></td>
+          <td><code>GameLoop.js:111~116</code></td>
+          <td><code>safeFrameTime</code> 적용 전 실제 frame gap. 4~5초 long task가 250ms로 잘려 숨겨지는지 확인</td>
+        </tr>
+        <tr>
+          <td><code>spriteSheetBuildMs</code></td>
+          <td><code>WorldScene.js:201</code>, <code>ResourceManager.js:74~153, 174~247</code></td>
+          <td>월드 진입 중 이미지 로드, canvas 조립, <code>getImageData</code> 픽셀 처리 시간</td>
+        </tr>
+        <tr>
+          <td><code>inventory.domMs</code></td>
+          <td><code>UIManager.js:10514~10693</code></td>
+          <td>인벤토리 grid 전체 재생성 시간</td>
+        </tr>
+        <tr>
+          <td><code>outbox.restoreMs</code></td>
+          <td><code>NetworkManager.js:3242~3291, 3872~3936</code></td>
+          <td>localStorage parse/validate/sort/persist 시간과 entry 수</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>위험도 판단</h2>
+    <div class="callout">
+      <strong>현재 상태는 사용자 경험에 치명적이다.</strong>
+      고레벨일수록 로그인 정지가 길어지는 현상은 profile size와 비례하는 동기 작업이 있다는 강한 신호다.
+      특히 모바일 Safari/PWA에서 <code>JSON.stringify</code>와 <code>localStorage.setItem</code>은 프레임을 양보하지 않기 때문에,
+      30초 정지까지 갈 수 있다.
+    </div>
+    <div class="okcallout">
+      <strong>다행인 점:</strong>
+      게임 루프 자체는 backlog drop과 fixed update 제한이 있어 구조적으로 완전히 망가진 상태는 아니다.
+      병목을 profile persistence hot-path에서 걷어내면 현재 기능을 유지하면서 체감 성능을 크게 회복할 가능성이 높다.
+    </div>
+  </section>
+</main>
+</body>
+</html>

@@ -110,6 +110,7 @@ export default class GameLoop {
 
         const frameTime = (currentTime - this.lastTime) / 1000;
         this.lastTime = currentTime;
+        const rawFrameGapMs = Math.max(0, frameTime * 1000);
 
         // Prevent spiral of death if lag allows frameTime to be too large
         // Cap it at 0.25 seconds
@@ -129,6 +130,7 @@ export default class GameLoop {
                 updateMs: 0,
                 renderMs,
                 frameGapMs: safeFrameTime * 1000,
+                rawFrameGapMs,
                 updateSteps: 0,
                 backlogDrops: 0
             });
@@ -165,6 +167,7 @@ export default class GameLoop {
             updateMs: totalUpdateMs,
             renderMs,
             frameGapMs: safeFrameTime * 1000,
+            rawFrameGapMs,
             updateSteps,
             backlogDrops
         });
@@ -201,6 +204,7 @@ export default class GameLoop {
             updateMs: totalUpdateMs,
             renderMs: 0,
             frameGapMs: elapsedSec * 1000,
+            rawFrameGapMs: elapsedSec * 1000,
             updateSteps,
             backlogDrops: elapsedSec > maxSimulatedWindow ? 1 : 0
         });

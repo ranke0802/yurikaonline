@@ -432,7 +432,8 @@ export default class WorldScene extends Scene {
         const pendingClaimCount = this.player.claimPendingItemRewards?.({
             maxAttempts: 48,
             debounceMs: 1200,
-            save: false
+            save: false,
+            deferCriticalProfileSave: true
         }) || 0;
         this.net.flushPendingFriendGiftRefunds?.();
         if (!this.player.recoveryUid) {
@@ -453,14 +454,23 @@ export default class WorldScene extends Scene {
 
         // Setup Network Handlers
         this._setupNetworkHandlers();
-        await this.net.setNormalRewardConsumer?.((reward) => (
+        // Register consumers immediately, but do not block the first playable
+        // frame on a historic reward inbox. NetworkManager preserves one FIFO
+        // and starts that backlog just after the scene has painted.
+        void this.net.setNormalRewardConsumer?.((reward) => (
             this.player?.receiveNormalRewardDurably?.(reward)
                 || Promise.resolve({ ok: false, reason: 'player_unavailable' })
-        ));
-        await this.net.setDurableRewardConsumer?.((reward) => (
+        ), {
+            deferInitialDrain: true,
+            initialDrainDelayMs: 220
+        });
+        void this.net.setDurableRewardConsumer?.((reward) => (
             this.player?.receiveRewardDurably?.(reward)
                 || Promise.resolve({ ok: false, reason: 'player_unavailable' })
-        ));
+        ), {
+            deferInitialDrain: true,
+            initialDrainDelayMs: 220
+        });
 
         await this.monsterManager?.restorePendingIntroBossQuest?.(this.player, {
             reason: 'world_enter_reconnect'
@@ -482,8 +492,11 @@ export default class WorldScene extends Scene {
                 'mapPositions',
                 ...((pendingClaimCount > 0 || pendingRewardNormalization.changed) ? ['inventory', 'pendingItemRewards'] : [])
             ], {
-                debounceMs: 1800,
-                reason: 'world_enter_light_profile_sync'
+                debounceMs: pendingClaimCount > 0 ? 0 : 1800,
+                forceImmediate: pendingClaimCount > 0,
+                reason: 'world_enter_light_profile_sync',
+                checkpointPolicy: pendingClaimCount > 0 ? 'durable' : 'transient',
+                syncRecoveryProfile: false
             });
 
             // v0.00.15: Self-heal Name Mapping (Force update name->uid)
@@ -575,6 +588,26 @@ export default class WorldScene extends Scene {
         return { ok: true, pending: true, moved };
     }
 
+    _persistZoneTransitionPosition(reason = 'zone_transition') {
+        if (!this.player) return;
+        // Preserve an already-queued stat/item save without synthesizing a
+        // second complete profile. The narrow position patch is serialized
+        // after that queue by NetworkManager's guarded transaction chain.
+        void Promise.resolve(this.net?.flushProfileWrites?.(this.player.id)).catch((error) => {
+            Logger.warn(`[WorldScene] Pending profile flush failed during ${reason}`, error);
+        });
+        void Promise.resolve(this.player.saveProfilePosition?.({
+            debounceMs: 0,
+            forceImmediate: true,
+            syncToWorld: true,
+            reason,
+            checkpointPolicy: 'transient',
+            syncRecoveryProfile: false
+        })).catch((error) => {
+            Logger.warn(`[WorldScene] Position persistence failed during ${reason}`, error);
+        });
+    }
+
     async _changeZone(targetZoneId) {
         const travelState = this.getZoneTravelState(targetZoneId);
         if (!travelState.ok) {
@@ -604,7 +637,7 @@ export default class WorldScene extends Scene {
         this.ui?.showCenterMessage?.(`${travelState.meta.name}(으)로 이동 중...`, '#bfe8ff', { duration: 1200 });
 
         try {
-            this.player.saveState(true, { debounceMs: 0, reason: 'zone_departure' });
+            this._persistZoneTransitionPosition('zone_departure');
             this.player.stopBasicAttackChanneling?.();
             this.player.cancelFireballAim?.();
             this.player.clearCurrentTarget?.();
@@ -658,7 +691,7 @@ export default class WorldScene extends Scene {
             this.net?.sendMovePacket?.(this.player.x, this.player.y, 0, 0, this.player.name);
             this.net?.sendPlayerHp?.(this.player.hp, this.player.maxHp);
             this.net?.sendHeartbeat?.();
-            this.player.saveState(true, { debounceMs: 0, reason: 'zone_arrival' });
+            this._persistZoneTransitionPosition('zone_arrival');
             this._resetProfileIdleSaveTracking();
             this.game.quests?.notifyZoneEntered?.(targetZoneId);
             this._playZoneBgm(zoneData);
@@ -690,7 +723,7 @@ export default class WorldScene extends Scene {
             this._ensureHostSpawnRulesLoaded({ clearExisting: false, primeSpawn: true });
             this._playZoneBgm(restoredZone);
             this.ui?.updateMapContext?.(restoredZone, previousZoneMeta);
-            this.player.saveState(true, { debounceMs: 0, reason: 'zone_travel_rollback' });
+            this._persistZoneTransitionPosition('zone_travel_rollback');
             this.ui?.showGenericModal?.('필드 이동 실패', '필드 데이터를 불러오지 못했습니다. 기존 위치로 돌아왔습니다.', null, null, {
                 hideNo: true,
                 yesText: '확인'
@@ -792,7 +825,7 @@ export default class WorldScene extends Scene {
         this.remotePlayers.clear();
         this._syncRemotePlayersFromBuffer();
         this.net.startHostilityListeners();
-        this.player.saveState(true);
+        this._persistZoneTransitionPosition('zone_participation_enabled');
         this.net.sendPlayerHp(this.player.hp, this.player.maxHp);
         this.net.sendMovePacket(this.player.x, this.player.y, this.player.vx, this.player.vy, this.player.name);
         this.net.sendHeartbeat();
@@ -1319,14 +1352,32 @@ export default class WorldScene extends Scene {
         if (now - Number(this._profileIdleLastSavedAt || 0) < this.profileIdleSaveMinIntervalMs) return;
 
         this._profileIdleSaveInFlight = true;
-        Promise.resolve(this.player.saveState?.(false, {
-            debounceMs: 0,
-            reason: 'idle_profile_snapshot',
-            backupReason: 'idle_profile_snapshot'
-        })).then((result) => {
-            if (result?.ok === false) {
+        // First flush any compact durable-field journal accumulated while the
+        // player was moving, then persist only the resume position. This keeps
+        // the old 3-second safety point without rebuilding a complete profile.
+        let journalFlushFailed = false;
+        Promise.resolve(this.player.flushDurableProfileJournal?.())
+            .catch((error) => {
+                journalFlushFailed = true;
+                Logger.warn('[WorldScene] Idle durable journal flush failed', error);
+                return { ok: false, reason: 'journal_flush_failed' };
+            })
+            .then((journalResult) => {
+                if (journalResult?.ok === false) {
+                    journalFlushFailed = true;
+                    Logger.warn('[WorldScene] Idle durable journal flush deferred', journalResult.reason || journalResult);
+                }
+                return this.player.saveProfilePosition?.({
+                    debounceMs: 0,
+                    reason: 'idle_position_snapshot',
+                    checkpointPolicy: 'transient',
+                    syncRecoveryProfile: false
+                });
+            }).then((result) => {
+            if (result?.ok === false || journalFlushFailed) {
                 this._profileIdleSavePending = true;
-                Logger.warn('[WorldScene] Idle profile save failed', result.reason || result);
+                this._profileIdleLastSavedAt = Date.now();
+                if (result?.ok === false) Logger.warn('[WorldScene] Idle profile save failed', result.reason || result);
                 return;
             }
             this._profileIdleSavePending = false;

@@ -17,8 +17,47 @@ const PROFILE_BACKUP_DEFAULT_KEEP_COUNT = 5;
 const PROFILE_RECOVERY_FULL_SAVE_SYNC_MS = 3 * 60 * 1000;
 const PROFILE_CHECKPOINT_STORAGE_PREFIX = 'yurika:profileCheckpoint:v1';
 const PROFILE_CHECKPOINT_LATEST_ANONYMOUS_KEY = `${PROFILE_CHECKPOINT_STORAGE_PREFIX}:latestAnonymous`;
+const PROFILE_CHECKPOINT_METADATA_STORAGE_SUFFIX = ':meta';
+const PROFILE_CHECKPOINT_METADATA_SCHEMA_VERSION = 1;
 const PROFILE_CHECKPOINT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const PROFILE_CHECKPOINT_MAX_BYTES = 512 * 1024;
+// Durable field patches are crash insurance between the local mutation and
+// its guarded RTDB transaction.  Keeping this separately from the legacy
+// full-profile checkpoint avoids cloning a 300-slot inventory for every EXP
+// or quest update while still giving an interrupted session a recoverable
+// journal.
+const PROFILE_PATCH_JOURNAL_STORAGE_PREFIX = 'yurika:profilePatchJournal:v1';
+const PROFILE_PATCH_JOURNAL_METADATA_STORAGE_SUFFIX = ':meta';
+const PROFILE_PATCH_JOURNAL_SCHEMA_VERSION = 1;
+const PROFILE_PATCH_JOURNAL_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const PROFILE_PATCH_JOURNAL_MAX_BYTES = 512 * 1024;
+const PROFILE_BACKUP_MIN_INTERVAL_MS = 3 * 60 * 1000;
+const PROFILE_BACKUP_PRUNE_MIN_INTERVAL_MS = 10 * 60 * 1000;
+const TRANSIENT_PROFILE_PATCH_FIELDS = new Set([
+    'ts',
+    'hp',
+    'maxHp',
+    'mp',
+    'maxMp',
+    'x',
+    'y',
+    'currentZoneId',
+    'mapId',
+    'mapPositions',
+    'isPaused',
+    'protectedUntil',
+    'defense'
+]);
+const IMMEDIATE_PROFILE_BACKUP_REASONS = new Set([
+    'character_creation',
+    'profile_recovery',
+    'profile_archive',
+    'google_migration',
+    'google_migration_overwrite',
+    'character_selection_reset',
+    'character_select_profile_auto_repair',
+    'developer_character_reset'
+]);
 const DROP_SPAWN_OUTBOX_STORAGE_PREFIX = 'yurika:dropSpawnOutbox:v3';
 const LEGACY_DROP_SPAWN_OUTBOX_STORAGE_PREFIXES = [
     'yurika:dropSpawnOutbox:v2',
@@ -304,6 +343,8 @@ export default class NetworkManager extends EventEmitter {
         this._lastProfileWriterFenceRecoveryLogTs = 0;
         this._queuedProfileSaves = new Map();
         this._queuedProfilePatches = new Map();
+        this._localProfileCheckpointWriteSequences = new Map();
+        this._localProfilePatchJournalWriteSequences = new Map();
         this._blockedProfileWriteUids = new Set();
         this._profileBackupMeta = new Map();
         this._profileBackupPruneMeta = new Map();
@@ -323,6 +364,9 @@ export default class NetworkManager extends EventEmitter {
         this._durableRewardInFlight = new Map();
         this._incomingRewardSnapshotQueue = new Map();
         this._incomingRewardSnapshotPump = null;
+        this._incomingRewardSnapshotQueueDirty = false;
+        this._incomingRewardBacklogDrainTimer = null;
+        this._incomingRewardPumpDeferredUntil = 0;
         this._durableRewardDrainTimer = null;
         this._durableRewardDrainAttempt = 0;
         this._pendingDurableRewardWrites = new Map();
@@ -4673,6 +4717,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     _clearDurableRewardRuntime(options = {}) {
+        this._clearIncomingRewardBacklogDrain();
         if (this._durableRewardDrainTimer) {
             clearTimeout(this._durableRewardDrainTimer);
             this._durableRewardDrainTimer = null;
@@ -4700,6 +4745,7 @@ export default class NetworkManager extends EventEmitter {
         Array.from(this._incomingRewardSnapshotQueue.entries()).forEach(([queueKey, item]) => {
             if (item?.channel === 'durable') this._incomingRewardSnapshotQueue.delete(queueKey);
         });
+        this._incomingRewardSnapshotQueueDirty = true;
         this._durableRewardDrainAttempt = 0;
         if (options.clearConsumer !== false) {
             this._durableRewardConsumer = null;
@@ -4707,7 +4753,35 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
-    setNormalRewardConsumer(consumer = null) {
+    _clearIncomingRewardBacklogDrain() {
+        if (this._incomingRewardBacklogDrainTimer) {
+            clearTimeout(this._incomingRewardBacklogDrainTimer);
+            this._incomingRewardBacklogDrainTimer = null;
+        }
+        this._incomingRewardPumpDeferredUntil = 0;
+    }
+
+    _scheduleIncomingRewardBacklogDrain(delayMs = 220) {
+        if ((!this._normalRewardConsumer && !this._durableRewardConsumer)
+            || this._incomingRewardBacklogDrainTimer) return;
+
+        const delay = Math.max(0, Number(delayMs) || 0);
+        this._incomingRewardPumpDeferredUntil = Math.max(
+            Number(this._incomingRewardPumpDeferredUntil || 0),
+            Date.now() + delay
+        );
+        this._incomingRewardBacklogDrainTimer = setTimeout(() => {
+            this._incomingRewardBacklogDrainTimer = null;
+            this._incomingRewardPumpDeferredUntil = 0;
+            this._drainIncomingRewardBacklogs().catch((error) => {
+                Logger.warn('[Network] Deferred reward backlog drain failed', error);
+                if (this._normalRewardConsumer) this._scheduleNormalRewardDrain();
+                if (this._durableRewardConsumer) this._scheduleDurableRewardDrain();
+            });
+        }, delay);
+    }
+
+    setNormalRewardConsumer(consumer = null, options = {}) {
         this._normalRewardConsumer = typeof consumer === 'function' ? consumer : null;
         this._normalRewardConsumerGeneration += 1;
         if (!this._normalRewardConsumer) {
@@ -4715,9 +4789,14 @@ export default class NetworkManager extends EventEmitter {
                 clearTimeout(this._normalRewardDrainTimer);
                 this._normalRewardDrainTimer = null;
             }
+            if (!this._durableRewardConsumer) this._clearIncomingRewardBacklogDrain();
             return Promise.resolve(false);
         }
         this._normalRewardDrainAttempt = 0;
+        if (options.deferInitialDrain === true) {
+            this._scheduleIncomingRewardBacklogDrain(options.initialDrainDelayMs);
+            return Promise.resolve(true);
+        }
         return this._drainIncomingRewardBacklogs();
     }
 
@@ -4751,8 +4830,10 @@ export default class NetworkManager extends EventEmitter {
             snapshot,
             context: context || existing?.context || null
         });
-        this._sortIncomingRewardSnapshotQueue();
-        if (options.deferPump === true) return Promise.resolve(true);
+        this._incomingRewardSnapshotQueueDirty = true;
+        if (options.deferPump === true || Date.now() < Number(this._incomingRewardPumpDeferredUntil || 0)) {
+            return Promise.resolve(true);
+        }
         return this._pumpIncomingRewardSnapshotQueue();
     }
 
@@ -4838,6 +4919,10 @@ export default class NetworkManager extends EventEmitter {
         if (this._incomingRewardSnapshotPump) return this._incomingRewardSnapshotPump;
         const pumpPromise = (async () => {
             while (this._incomingRewardSnapshotQueue.size > 0) {
+                if (this._incomingRewardSnapshotQueueDirty) {
+                    this._sortIncomingRewardSnapshotQueue();
+                    this._incomingRewardSnapshotQueueDirty = false;
+                }
                 const [queueKey, item] = this._incomingRewardSnapshotQueue.entries().next().value;
                 const channel = item?.channel === 'durable' ? 'durable' : 'normal';
                 const context = item?.context || (channel === 'normal'
@@ -4869,6 +4954,10 @@ export default class NetworkManager extends EventEmitter {
                 }
                 if (consumed) {
                     this._incomingRewardSnapshotQueue.delete(queueKey);
+                    // Receipt order remains FIFO, but yielding after each
+                    // acknowledged reward prevents a historic backlog from
+                    // monopolizing the first world frame.
+                    await this._yieldIncomingRewardPumpFrame();
                     continue;
                 }
                 if (!this._isDurableRewardLifecycleCurrent(context)) {
@@ -4904,6 +4993,18 @@ export default class NetworkManager extends EventEmitter {
         };
         void pumpPromise.then(clearPump, clearPump);
         return pumpPromise;
+    }
+
+    _yieldIncomingRewardPumpFrame() {
+        return new Promise((resolve) => {
+            const useAnimationFrame = typeof requestAnimationFrame === 'function'
+                && (typeof document === 'undefined' || !document.hidden);
+            if (useAnimationFrame) {
+                requestAnimationFrame(() => resolve());
+                return;
+            }
+            setTimeout(resolve, 0);
+        });
     }
 
     async _drainNormalRewards(context = null) {
@@ -5215,7 +5316,7 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
-    setDurableRewardConsumer(consumer = null) {
+    setDurableRewardConsumer(consumer = null, options = {}) {
         this._durableRewardConsumer = typeof consumer === 'function' ? consumer : null;
         this._durableRewardConsumerGeneration += 1;
         if (!this._durableRewardConsumer) {
@@ -5223,9 +5324,14 @@ export default class NetworkManager extends EventEmitter {
                 clearTimeout(this._durableRewardDrainTimer);
                 this._durableRewardDrainTimer = null;
             }
+            if (!this._normalRewardConsumer) this._clearIncomingRewardBacklogDrain();
             return Promise.resolve(false);
         }
         this._durableRewardDrainAttempt = 0;
+        if (options.deferInitialDrain === true) {
+            this._scheduleIncomingRewardBacklogDrain(options.initialDrainDelayMs);
+            return Promise.resolve(true);
+        }
         return this._drainIncomingRewardBacklogs();
     }
 
@@ -7333,11 +7439,341 @@ export default class NetworkManager extends EventEmitter {
         return uid ? `${PROFILE_CHECKPOINT_STORAGE_PREFIX}:${uid}` : null;
     }
 
+    _getLocalProfileCheckpointMetadataStorageKey(uid) {
+        const checkpointKey = this._getLocalProfileCheckpointStorageKey(uid);
+        return checkpointKey ? `${checkpointKey}${PROFILE_CHECKPOINT_METADATA_STORAGE_SUFFIX}` : null;
+    }
+
+    _getLocalProfilePatchJournalStorageKey(uid) {
+        return uid ? `${PROFILE_PATCH_JOURNAL_STORAGE_PREFIX}:${uid}` : null;
+    }
+
+    _getLocalProfilePatchJournalMetadataStorageKey(uid) {
+        const journalKey = this._getLocalProfilePatchJournalStorageKey(uid);
+        return journalKey ? `${journalKey}${PROFILE_PATCH_JOURNAL_METADATA_STORAGE_SUFFIX}` : null;
+    }
+
     _getLocalProfileCheckpointStorage() {
         try {
             return typeof window !== 'undefined' ? window.localStorage || null : null;
         } catch {
             return null;
+        }
+    }
+
+    _nextLocalProfileCheckpointWriteId(uid) {
+        if (!uid) return 0;
+        const stored = Number(this._readLocalProfileCheckpointMetadata(uid)?.checkpointWriteId || 0);
+        const remembered = Number(this._localProfileCheckpointWriteSequences.get(uid) || 0);
+        // Date-based ids remain monotonically ordered after a PWA restart;
+        // the in-memory sequence handles multiple writes in the same tick.
+        const next = Math.max(Math.floor(Date.now() * 1000), stored + 1, remembered + 1);
+        this._localProfileCheckpointWriteSequences.set(uid, next);
+        return next;
+    }
+
+    _nextLocalProfilePatchJournalWriteId(uid) {
+        if (!uid) return 0;
+        const stored = Number(this._readLocalProfilePatchJournalMetadata(uid)?.writeId || 0);
+        const remembered = Number(this._localProfilePatchJournalWriteSequences.get(uid) || 0);
+        const next = Math.max(Math.floor(Date.now() * 1000), stored + 1, remembered + 1);
+        this._localProfilePatchJournalWriteSequences.set(uid, next);
+        return next;
+    }
+
+    _readLocalProfileCheckpointMetadata(uid) {
+        const key = this._getLocalProfileCheckpointMetadataStorageKey(uid);
+        const storage = this._getLocalProfileCheckpointStorage();
+        if (!key || !storage) return null;
+        try {
+            const raw = storage.getItem(key);
+            if (!raw) return null;
+            const metadata = JSON.parse(raw);
+            const savedAt = Number(metadata?.savedAt || 0);
+            if (
+                metadata?.schemaVersion !== PROFILE_CHECKPOINT_METADATA_SCHEMA_VERSION
+                || metadata?.uid !== uid
+                || !Number.isFinite(savedAt)
+                || savedAt <= 0
+                || Date.now() - savedAt > PROFILE_CHECKPOINT_TTL_MS
+            ) {
+                storage.removeItem(key);
+                return null;
+            }
+            return metadata;
+        } catch (error) {
+            Logger.warn(`[Network] Failed to read local profile checkpoint metadata ${key}`, error);
+            return null;
+        }
+    }
+
+    _readLocalProfilePatchJournalMetadata(uid) {
+        const key = this._getLocalProfilePatchJournalMetadataStorageKey(uid);
+        const storage = this._getLocalProfileCheckpointStorage();
+        if (!key || !storage) return null;
+        try {
+            const raw = storage.getItem(key);
+            if (!raw) return null;
+            const metadata = JSON.parse(raw);
+            const savedAt = Number(metadata?.savedAt || 0);
+            if (
+                metadata?.schemaVersion !== PROFILE_PATCH_JOURNAL_SCHEMA_VERSION
+                || metadata?.uid !== uid
+                || !Number.isFinite(savedAt)
+                || savedAt <= 0
+                || Date.now() - savedAt > PROFILE_PATCH_JOURNAL_TTL_MS
+                || !Array.isArray(metadata?.fields)
+                || metadata.fields.length === 0
+            ) {
+                storage.removeItem(key);
+                return null;
+            }
+            return metadata;
+        } catch (error) {
+            Logger.warn(`[Network] Failed to read local profile patch journal metadata ${key}`, error);
+            return null;
+        }
+    }
+
+    _storeLocalProfilePatchJournalMetadata(uid, journal = null) {
+        const key = this._getLocalProfilePatchJournalMetadataStorageKey(uid);
+        const storage = this._getLocalProfileCheckpointStorage();
+        const fields = journal?.fields && typeof journal.fields === 'object'
+            ? Object.keys(journal.fields)
+            : [];
+        if (!key || !storage || !uid || fields.length === 0) return false;
+        try {
+            storage.setItem(key, JSON.stringify({
+                schemaVersion: PROFILE_PATCH_JOURNAL_SCHEMA_VERSION,
+                uid,
+                recoveryUid: journal.recoveryUid || null,
+                savedAt: Number(journal.savedAt || Date.now()),
+                writeId: Math.max(0, Number(journal.writeId || 0)),
+                baseRevision: Math.max(0, Number(journal.baseRevision || 0)),
+                fields
+            }));
+            return true;
+        } catch (error) {
+            Logger.warn(`[Network] Failed to store local profile patch journal metadata for ${uid}`, error);
+            return false;
+        }
+    }
+
+    _readLocalProfilePatchJournal(uid) {
+        const key = this._getLocalProfilePatchJournalStorageKey(uid);
+        const storage = this._getLocalProfileCheckpointStorage();
+        if (!key || !storage || !uid) return null;
+        try {
+            const raw = storage.getItem(key);
+            if (!raw) return null;
+            const journal = JSON.parse(raw);
+            const savedAt = Number(journal?.savedAt || 0);
+            if (
+                journal?.schemaVersion !== PROFILE_PATCH_JOURNAL_SCHEMA_VERSION
+                || journal?.uid !== uid
+                || !Number.isFinite(savedAt)
+                || savedAt <= 0
+                || Date.now() - savedAt > PROFILE_PATCH_JOURNAL_TTL_MS
+                || !journal?.fields
+                || typeof journal.fields !== 'object'
+                || Array.isArray(journal.fields)
+                || Object.keys(journal.fields).length === 0
+            ) {
+                storage.removeItem(key);
+                storage.removeItem(this._getLocalProfilePatchJournalMetadataStorageKey(uid));
+                return null;
+            }
+            return journal;
+        } catch (error) {
+            Logger.warn(`[Network] Failed to read local profile patch journal ${key}`, error);
+            return null;
+        }
+    }
+
+    getLocalProfilePatchJournal(uid) {
+        return this._readLocalProfilePatchJournal(uid);
+    }
+
+    _getLocalProfilePatchJournalFieldTokens(uid) {
+        const journal = this._readLocalProfilePatchJournal(uid);
+        if (!journal?.fields) return {};
+        return Object.entries(journal.fields).reduce((tokens, [field, entry]) => {
+            const writeId = Math.max(0, Number(entry?.writeId || 0));
+            if (writeId > 0) tokens[field] = writeId;
+            return tokens;
+        }, {});
+    }
+
+    _writeLocalProfilePatchJournal(uid, journal = null) {
+        const key = this._getLocalProfilePatchJournalStorageKey(uid);
+        const metadataKey = this._getLocalProfilePatchJournalMetadataStorageKey(uid);
+        const storage = this._getLocalProfileCheckpointStorage();
+        if (!key || !storage || !uid) return false;
+        const fields = journal?.fields && typeof journal.fields === 'object'
+            ? Object.keys(journal.fields)
+            : [];
+        try {
+            if (fields.length === 0) {
+                storage.removeItem(key);
+                if (metadataKey) storage.removeItem(metadataKey);
+                return true;
+            }
+            const serialized = JSON.stringify(journal);
+            if (serialized.length > PROFILE_PATCH_JOURNAL_MAX_BYTES) {
+                Logger.warn(`[Network] Local profile patch journal exceeded the size limit for ${uid}`);
+                return false;
+            }
+            storage.setItem(key, serialized);
+            // The metadata is the fast-path discovery marker at login. Never
+            // leave a body that recovery cannot discover after a partial quota
+            // failure; the guarded RTDB write can still proceed normally.
+            if (!this._storeLocalProfilePatchJournalMetadata(uid, journal)) {
+                storage.removeItem(key);
+                return false;
+            }
+            return true;
+        } catch (error) {
+            Logger.warn(`[Network] Failed to write local profile patch journal for ${uid}`, error);
+            return false;
+        }
+    }
+
+    _storeLocalProfilePatchJournal(uid, patch = null, options = {}) {
+        if (!uid || !patch || typeof patch !== 'object' || Array.isArray(patch)) return null;
+        const safePatch = this._sanitizeProfileDataForFirebase(patch) || {};
+        delete safePatch._profileRevision;
+        delete safePatch._writerEpoch;
+        delete safePatch._writerToken;
+        const fields = Object.keys(safePatch);
+        if (fields.length === 0) return null;
+
+        const existing = this._readLocalProfilePatchJournal(uid);
+        const writeId = this._nextLocalProfilePatchJournalWriteId(uid);
+        const savedAt = Date.now();
+        const baseRevision = Number.isFinite(options.expectedRevision)
+            ? Math.max(0, Number(options.expectedRevision))
+            : Math.max(0, Number(options.baseRevision ?? this._profileRevisions.get(uid) ?? 0));
+        const journal = {
+            schemaVersion: PROFILE_PATCH_JOURNAL_SCHEMA_VERSION,
+            uid,
+            recoveryUid: options.recoveryUid || existing?.recoveryUid || null,
+            savedAt,
+            writeId: Math.max(writeId, Number(existing?.writeId || 0)),
+            baseRevision,
+            fields: { ...(existing?.fields || {}) }
+        };
+        const fieldTokens = {};
+        fields.forEach((field) => {
+            journal.fields[field] = {
+                writeId,
+                savedAt,
+                baseRevision,
+                value: safePatch[field]
+            };
+            fieldTokens[field] = writeId;
+        });
+        if (!this._writeLocalProfilePatchJournal(uid, journal)) return null;
+        return { writeId, fieldTokens };
+    }
+
+    _finalizeLocalProfilePatchJournal(uid, fieldTokens = null) {
+        if (!uid || !fieldTokens || typeof fieldTokens !== 'object') return false;
+        const journal = this._readLocalProfilePatchJournal(uid);
+        if (!journal?.fields) return false;
+        let changed = false;
+        Object.entries(fieldTokens).forEach(([field, token]) => {
+            const expectedWriteId = Math.max(0, Number(token || 0));
+            const currentWriteId = Math.max(0, Number(journal.fields?.[field]?.writeId || 0));
+            // A newer local mutation for this same field must survive an older
+            // transaction finishing afterwards.
+            if (expectedWriteId > 0 && currentWriteId === expectedWriteId) {
+                delete journal.fields[field];
+                changed = true;
+            }
+        });
+        if (!changed) return false;
+        journal.savedAt = Date.now();
+        return this._writeLocalProfilePatchJournal(uid, journal);
+    }
+
+    clearLocalProfilePatchJournal(uid) {
+        const key = this._getLocalProfilePatchJournalStorageKey(uid);
+        const metadataKey = this._getLocalProfilePatchJournalMetadataStorageKey(uid);
+        const storage = this._getLocalProfileCheckpointStorage();
+        if (!key || !storage) return false;
+        try {
+            storage.removeItem(key);
+            if (metadataKey) storage.removeItem(metadataKey);
+            return true;
+        } catch (error) {
+            Logger.warn(`[Network] Failed to clear local profile patch journal for ${uid}`, error);
+            return false;
+        }
+    }
+
+    _buildLocalProfilePatchJournalPatch(journal = null) {
+        if (!journal?.fields || typeof journal.fields !== 'object') return null;
+        const patch = {};
+        Object.entries(journal.fields).forEach(([field, entry]) => {
+            if (!entry || typeof entry !== 'object' || !Object.hasOwn(entry, 'value')) return;
+            patch[field] = entry.value;
+        });
+        const sanitized = this._sanitizeProfileDataForFirebase(patch) || {};
+        delete sanitized._profileRevision;
+        delete sanitized._writerEpoch;
+        delete sanitized._writerToken;
+        return Object.keys(sanitized).length > 0 ? sanitized : null;
+    }
+
+    _resolveLocalProfilePatchJournalForRoot(rootProfile = null, journal = null) {
+        if (!this._isRealPlayerProfile(rootProfile)) return null;
+        const patch = this._buildLocalProfilePatchJournalPatch(journal);
+        if (!patch) return null;
+        const merged = this._mergeProfileData(rootProfile, patch);
+        // A stale local client must never make a recovered profile lose EXP.
+        // The guarded server transaction applies the same rule; mirror it for
+        // the pre-login journal view so auto-repair cannot regress progress.
+        if (this._isProfileExperienceRegression(rootProfile, merged)) {
+            ['level', 'exp', 'maxExp'].forEach((field) => {
+                if (rootProfile[field] !== undefined) merged[field] = rootProfile[field];
+            });
+        }
+        merged.ts = Math.max(
+            Number(rootProfile.ts || 0),
+            Number(journal?.savedAt || 0),
+            Number(patch.ts || 0)
+        );
+        return merged;
+    }
+
+    _storeLocalProfileCheckpointMetadata(uid, profile = null, options = {}) {
+        const key = this._getLocalProfileCheckpointMetadataStorageKey(uid);
+        const storage = this._getLocalProfileCheckpointStorage();
+        if (!key || !storage || !this._isRealPlayerProfile(profile)) return false;
+        try {
+            const metadata = {
+                schemaVersion: PROFILE_CHECKPOINT_METADATA_SCHEMA_VERSION,
+                uid,
+                recoveryUid: this._resolveRecoveryUid(profile, uid),
+                savedAt: Date.now(),
+                pending: options.pending === true,
+                hasPendingPatch: options.pending === true
+                    && !!options.pendingPatch
+                    && typeof options.pendingPatch === 'object',
+                checkpointWriteId: Math.max(0, Number(options.checkpointWriteId || 0)),
+                baseRevision: Math.max(0, Number(options.baseRevision ?? options.expectedRevision ?? 0)),
+                revision: Math.max(0, Number(options.revision || this._getProfileRevision(profile) || 0)),
+                profileTs: Math.max(0, Number(profile.ts || 0)),
+                experienceProgress: this._getProfileExperienceProgress(profile),
+                progressScore: this._getProfileProgressScore(profile),
+                level: Math.max(1, Math.floor(Number(profile.level || 1))),
+                inventoryScore: this._getProfileInventoryScore(profile)
+            };
+            storage.setItem(key, JSON.stringify(metadata));
+            return true;
+        } catch (error) {
+            Logger.warn(`[Network] Failed to store local profile checkpoint metadata for ${uid}`, error);
+            return false;
         }
     }
 
@@ -7403,6 +7839,10 @@ export default class NetworkManager extends EventEmitter {
             return false;
         }
         try {
+            const checkpointWriteId = Math.max(
+                0,
+                Number(options.checkpointWriteId || this._nextLocalProfileCheckpointWriteId(uid))
+            );
             const payload = {
                 schemaVersion: 1,
                 uid,
@@ -7410,15 +7850,24 @@ export default class NetworkManager extends EventEmitter {
                 savedAt: Date.now(),
                 pending: options.pending === true,
                 reason: String(options.reason || 'profile_checkpoint').slice(0, 96),
+                checkpointWriteId,
+                baseRevision: Math.max(0, Number(options.baseRevision ?? options.expectedRevision ?? 0)),
                 revision: Math.max(0, Number(options.revision || this._getProfileRevision(normalizedProfile) || 0)),
                 profile: normalizedProfile
             };
+            if (options.pending === true && options.pendingPatch && typeof options.pendingPatch === 'object') {
+                payload.pendingPatch = this._sanitizeProfileDataForFirebase(options.pendingPatch) || null;
+            }
             const serialized = JSON.stringify(payload);
             if (serialized.length > PROFILE_CHECKPOINT_MAX_BYTES) {
                 Logger.warn(`[Network] Local profile checkpoint exceeded the size limit for ${uid}`);
                 return false;
             }
             storage.setItem(key, serialized);
+            this._storeLocalProfileCheckpointMetadata(uid, normalizedProfile, {
+                ...options,
+                checkpointWriteId
+            });
             const currentUser = window.game?.auth?.currentUser || window.firebase?.auth?.().currentUser || null;
             if (currentUser?.isAnonymous === true && currentUser.uid === uid) {
                 storage.setItem(PROFILE_CHECKPOINT_LATEST_ANONYMOUS_KEY, serialized);
@@ -7434,23 +7883,57 @@ export default class NetworkManager extends EventEmitter {
         if (!patch || typeof patch !== 'object') return false;
         const checkpoint = this.getLocalProfileCheckpoint(uid);
         if (!checkpoint?.profile) return false;
+        const pendingPatch = this._mergeProfileData(checkpoint.pendingPatch || {}, patch);
         return this._storeLocalProfileCheckpoint(
             uid,
             this._mergeProfileData(checkpoint.profile, patch),
             {
+                ...options,
                 pending: true,
+                pendingPatch,
                 revision: checkpoint.revision,
                 reason: options.saveReason || options.reason || 'profile_patch_checkpoint'
             }
         );
     }
 
+    _finalizeLocalProfileCheckpointMetadata(uid, profile = null, options = {}) {
+        const checkpointWriteId = Math.max(0, Number(options.checkpointWriteId || 0));
+        if (!uid || !checkpointWriteId || !this._isRealPlayerProfile(profile)) return false;
+        const current = this._readLocalProfileCheckpointMetadata(uid);
+        // A later queued durable change has already installed a newer pending
+        // checkpoint. Its crash journal must remain pending until *its* own
+        // transaction commits.
+        if (!current || Number(current.checkpointWriteId || 0) !== checkpointWriteId) return false;
+        return this._storeLocalProfileCheckpointMetadata(uid, profile, {
+            pending: false,
+            checkpointWriteId,
+            baseRevision: current.baseRevision,
+            revision: options.revision,
+            reason: options.reason || current.reason || 'profile_checkpoint_committed'
+        });
+    }
+
     clearLocalProfileCheckpoint(uid) {
         const key = this._getLocalProfileCheckpointStorageKey(uid);
+        const metadataKey = this._getLocalProfileCheckpointMetadataStorageKey(uid);
         const storage = this._getLocalProfileCheckpointStorage();
         if (!key || !storage) return false;
         try {
             storage.removeItem(key);
+            if (metadataKey) storage.removeItem(metadataKey);
+            this.clearLocalProfilePatchJournal(uid);
+            const anonymousRaw = storage.getItem(PROFILE_CHECKPOINT_LATEST_ANONYMOUS_KEY);
+            if (anonymousRaw) {
+                try {
+                    const anonymous = JSON.parse(anonymousRaw);
+                    if (anonymous?.uid === uid) {
+                        storage.removeItem(PROFILE_CHECKPOINT_LATEST_ANONYMOUS_KEY);
+                    }
+                } catch {
+                    storage.removeItem(PROFILE_CHECKPOINT_LATEST_ANONYMOUS_KEY);
+                }
+            }
             return true;
         } catch (error) {
             Logger.warn(`[Network] Failed to clear local profile checkpoint for ${uid}`, error);
@@ -7458,10 +7941,61 @@ export default class NetworkManager extends EventEmitter {
         }
     }
 
+    _shouldPersistLocalCheckpointForPatch(patch = null, options = {}) {
+        if (options.checkpointPolicy === 'transient' || options.skipLocalCheckpoint === true) return false;
+        if (options.checkpointPolicy === 'durable' || options.forceLocalCheckpoint === true) return true;
+        if (!patch || typeof patch !== 'object') return false;
+        const keys = Object.keys(patch);
+        if (keys.length === 0) return false;
+        // Unknown fields stay durable by default. This intentionally favors
+        // preservation for future gameplay features over an unsafe fast path.
+        return keys.some((key) => !TRANSIENT_PROFILE_PATCH_FIELDS.has(key));
+    }
+
+    _shouldPersistLocalCheckpointForFullSave(options = {}) {
+        return options.checkpointPolicy !== 'transient' && options.skipLocalCheckpoint !== true;
+    }
+
+    _shouldUseLocalCheckpointMetadata(profile = null, metadata = null) {
+        if (!metadata || !this._isRealPlayerProfile(profile)) return false;
+        // A checkpoint body is intentionally kept as crash insurance. Once
+        // its RTDB transaction succeeds the small metadata is finalized, so a
+        // stale body must never pull a healthy root into the recovery path.
+        if (metadata.pending !== true) return false;
+        // A pending patch journal can change gear/skills while a later
+        // transient EXP write makes its aggregate progress look lower. Read
+        // it once and compare the replayed patch against root; do not discard
+        // it using score alone.
+        if (metadata.hasPendingPatch === true) return true;
+        const rootExperience = this._getProfileExperienceProgress(profile);
+        const checkpointExperience = Math.max(0, Number(metadata.experienceProgress || 0));
+        if (checkpointExperience !== rootExperience) return checkpointExperience > rootExperience;
+
+        if (this._isProfileSuspiciousHighLevelReset(profile)) return true;
+        const rootScore = this._getProfileProgressScore(profile);
+        const checkpointScore = Math.max(0, Number(metadata.progressScore || 0));
+        // A timestamp-only difference is normally a position/HP resume write.
+        // It must not overwrite an authoritative Firebase profile. A pending
+        // durable write with equal aggregate score still needs one deep
+        // comparison, however: equipping/switching same-tier gear does not
+        // necessarily alter score or experience.
+        if (checkpointScore > rootScore + 1_000) return true;
+        return Number(metadata.profileTs || 0) >= Number(profile.ts || 0);
+    }
+
     _getLocalProfileCheckpointCandidates(uid, rootProfile = null, options = {}) {
         if (options.includeLocalCheckpoint === false || options.includeLocalProfileBackup === false) return [];
         const candidates = [];
         const exact = uid ? this.getLocalProfileCheckpoint(uid) : null;
+        const metadata = uid ? this._readLocalProfileCheckpointMetadata(uid) : null;
+        if (exact && metadata) {
+            // Metadata is the commit-state source of truth. The full body is
+            // deliberately not rewritten after every successful transaction.
+            exact.pending = metadata.pending === true;
+            exact.revision = Math.max(0, Number(metadata.revision || exact.revision || 0));
+            exact.baseRevision = Math.max(0, Number(metadata.baseRevision ?? exact.baseRevision ?? 0));
+            exact.checkpointWriteId = Math.max(0, Number(metadata.checkpointWriteId || exact.checkpointWriteId || 0));
+        }
         if (exact) candidates.push(exact);
 
         const currentUser = window.game?.auth?.currentUser || window.firebase?.auth?.().currentUser || null;
@@ -7479,7 +8013,10 @@ export default class NetworkManager extends EventEmitter {
             && !rootHasMeaningfulProgress
         ) {
             const anonymous = this.getLatestAnonymousLocalProfileCheckpoint();
-            if (anonymous && anonymous.uid !== exact?.uid) candidates.push(anonymous);
+            // An anonymous alias is only a same-UID crash fallback. Never
+            // migrate another guest's prior install checkpoint into a newly
+            // created guest account.
+            if (anonymous && anonymous.uid === uid && !exact) candidates.push(anonymous);
         }
 
         return candidates;
@@ -7664,15 +8201,20 @@ export default class NetworkManager extends EventEmitter {
 
     shouldUseProfileRecoveryLookup(profile = null, options = {}) {
         if (options.forceBackupLookup === true || options.forceRecoveryLookup === true) return true;
-        const localCheckpoints = options.uid
-            ? this._getLocalProfileCheckpointCandidates(options.uid, profile, options)
-            : [];
-        if (localCheckpoints.some((checkpoint) => this._shouldUseLocalProfileCheckpoint(profile, checkpoint))) return true;
         if (!this._isRealPlayerProfile(profile)) return true;
         if (!String(profile?.name || '').trim()) return true;
         if (this._isProfileSuspiciousHighLevelReset(profile)) return true;
         const level = Math.max(1, Math.floor(Number(profile.level || 1)));
         if (level <= 3 && options.skipLowLevelRecoveryLookup !== true) return true;
+        const checkpointMetadata = options.localCheckpointMetadata
+            || (options.uid ? this._readLocalProfileCheckpointMetadata(options.uid) : null);
+        if (this._shouldUseLocalCheckpointMetadata(profile, checkpointMetadata)) return true;
+        const patchJournalMetadata = options.localPatchJournalMetadata
+            || (options.uid ? this._readLocalProfilePatchJournalMetadata(options.uid) : null);
+        // The compact journal exists only while a durable field write has not
+        // been acknowledged. It is the one local artifact worth consulting on
+        // an otherwise healthy login; do not parse legacy full checkpoints.
+        if (patchJournalMetadata?.fields?.length > 0) return true;
         return false;
     }
 
@@ -7680,16 +8222,90 @@ export default class NetworkManager extends EventEmitter {
         const localProfile = checkpoint?.profile || null;
         if (!this._isRealPlayerProfile(localProfile)) return false;
         if (!this._isRealPlayerProfile(profile)) return true;
+        if (this._isProfileSuspiciousHighLevelReset(profile)) return true;
+        if (checkpoint?.pending !== true) return false;
+
+        // The resolved profile already replays pendingPatch over the newest
+        // root. Its durable fields (currency, same-tier equipment, skill
+        // choices, quest flags, etc.) can legitimately leave the aggregate
+        // score unchanged, so score-only comparison must not discard the
+        // in-flight transaction journal.
+        if (
+            checkpoint?.pendingPatch
+            && typeof checkpoint.pendingPatch === 'object'
+            && !Array.isArray(checkpoint.pendingPatch)
+            && Object.keys(checkpoint.pendingPatch).some((key) => key !== 'ts')
+        ) {
+            return !this._isProfileRegression(profile, localProfile);
+        }
 
         const localExperience = this._getProfileExperienceProgress(localProfile);
         const rootExperience = this._getProfileExperienceProgress(profile);
         if (localExperience !== rootExperience) return localExperience > rootExperience;
         if (this._isProfileRegression(profile, localProfile)) return false;
         if (this._isProfileSuspiciousInitializationReset(localProfile, profile)) return true;
+        const localScore = this._getProfileProgressScore(localProfile);
+        const rootScore = this._getProfileProgressScore(profile);
+        if (localScore > rootScore + 1_000) return true;
+        // A pending write may swap an equally-valued weapon or update quest
+        // flags without changing experience/score. Only accept that deeper
+        // state when it is not older than the root it is protecting.
+        return Number(localProfile.ts || checkpoint?.savedAt || 0) >= Number(profile.ts || 0)
+            && JSON.stringify({
+                stats: [localProfile.vitality, localProfile.intelligence, localProfile.wisdom, localProfile.agility, localProfile.statPoints],
+                skills: localProfile.skillLevels || {},
+                inventory: localProfile.inventory || [],
+                equipment: localProfile.equipment || {},
+                questData: localProfile.questData || {},
+                questState: localProfile.questState || {},
+                pendingItemRewards: localProfile.pendingItemRewards || [],
+                claimedRewardIds: localProfile.claimedRewardIds || []
+            }) !== JSON.stringify({
+                stats: [profile.vitality, profile.intelligence, profile.wisdom, profile.agility, profile.statPoints],
+                skills: profile.skillLevels || {},
+                inventory: profile.inventory || [],
+                equipment: profile.equipment || {},
+                questData: profile.questData || {},
+                questState: profile.questState || {},
+                pendingItemRewards: profile.pendingItemRewards || [],
+                claimedRewardIds: profile.claimedRewardIds || []
+            });
+    }
 
-        const localTs = Number(localProfile.ts || checkpoint.savedAt || 0);
-        const rootTs = Number(profile.ts || 0);
-        return localTs > rootTs;
+    _resolveLocalCheckpointProfileForRoot(rootProfile = null, checkpoint = null) {
+        const checkpointProfile = checkpoint?.profile || null;
+        if (!this._isRealPlayerProfile(checkpointProfile)) return null;
+        if (!this._isRealPlayerProfile(rootProfile) || checkpoint?.pending !== true) {
+            return checkpointProfile;
+        }
+
+        const pendingPatch = checkpoint?.pendingPatch;
+        if (pendingPatch && typeof pendingPatch === 'object' && !Array.isArray(pendingPatch)) {
+            // Patch checkpoints are journals, not replacement profiles. Their
+            // full body may predate successful transient writes, so replay
+            // only the tracked durable fields over the latest root.
+            const merged = this._mergeProfileData(rootProfile, pendingPatch);
+            merged.ts = Math.max(
+                Number(rootProfile.ts || 0),
+                Number(checkpointProfile.ts || checkpoint.savedAt || 0),
+                Number(pendingPatch.ts || 0)
+            );
+            return merged;
+        }
+
+        const rootRevision = this._getProfileRevision(rootProfile);
+        const hasBaseRevision = checkpoint?.baseRevision !== undefined && checkpoint?.baseRevision !== null;
+        const baseRevision = Math.max(0, Number(checkpoint?.baseRevision || 0));
+        // Old v1 checkpoint bodies did not record a base revision. Preserve
+        // their legacy recovery behavior instead of making an upgrade erase
+        // the only available offline fallback.
+        if (!hasBaseRevision || rootRevision <= baseRevision) return checkpointProfile;
+
+        // The root advanced after this checkpoint was built. Replacing it
+        // wholesale would discard successful transient progress (quest,
+        // currency, position) that occurred before a later durable patch. A
+        // pending patch journal lets us replay only that durable mutation.
+        return null;
     }
 
     _getProfileQuestScore(profile = null) {
@@ -7958,7 +8574,12 @@ export default class NetworkManager extends EventEmitter {
         const previous = this._profileRecoverySyncMeta.get(uid) || 0;
         const containsDurableState = ['inventory', 'equipment', 'pendingItemRewards', 'claimedRewardIds']
             .some((key) => keys.has(key));
-        const minimumIntervalMs = containsDurableState ? 45000 : 90000;
+        // Recovery snapshots are rollback insurance, not a per-reward event
+        // log. Critical callers opt in above; routine progression is batched
+        // to the same cadence as full profile recovery sync.
+        const minimumIntervalMs = containsDurableState
+            ? PROFILE_RECOVERY_FULL_SAVE_SYNC_MS
+            : Math.max(PROFILE_RECOVERY_FULL_SAVE_SYNC_MS, 5 * 60 * 1000);
         if ((now - previous) < minimumIntervalMs) return false;
         this._profileRecoverySyncMeta.set(uid, now);
         return true;
@@ -8011,17 +8632,39 @@ export default class NetworkManager extends EventEmitter {
             const profile = providedProfile || profileSnapshot?.val() || null;
             const rootRevision = this._getProfileRevision(profile);
             this._rememberProfileRevision(uid, rootRevision);
-            const normalizedProfile = this._isRealPlayerProfile(profile)
-                ? this._normalizeProfileSnapshot(profile)
+            const rootProfile = this._isRealPlayerProfile(profile) ? profile : null;
+            const localCheckpointMetadata = options.includeLocalCheckpoint !== false
+                ? this._readLocalProfileCheckpointMetadata(uid)
                 : null;
-
-            const localCheckpoint = options.includeLocalCheckpoint !== false
-                ? this.getLocalProfileCheckpoint(uid)
+            const localPatchJournalMetadata = options.includeLocalCheckpoint !== false
+                ? this._readLocalProfilePatchJournalMetadata(uid)
                 : null;
-            const shouldLookupRecovery = this.shouldUseProfileRecoveryLookup(normalizedProfile, {
+            const shouldLookupRecovery = this.shouldUseProfileRecoveryLookup(rootProfile, {
                 ...options,
-                uid
+                uid,
+                localCheckpointMetadata,
+                localPatchJournalMetadata
             });
+
+            // Firebase root data has already passed RTDB key validation. For a
+            // healthy established character it is the authoritative snapshot;
+            // avoid recursively cloning/sanitizing local checkpoints, recovery
+            // data, and backups merely because a position timestamp changed.
+            if (!shouldLookupRecovery && rootProfile) {
+                return {
+                    profile: rootProfile,
+                    ts: Number(rootProfile.ts || 0),
+                    source: 'profile',
+                    backupId: null,
+                    latestUid: uid,
+                    recoveryUid: this._resolveRecoveryUid(rootProfile, uid),
+                    rootRevision
+                };
+            }
+
+            const normalizedProfile = rootProfile
+                ? this._normalizeProfileSnapshot(rootProfile)
+                : null;
             const includeRecovery = options.includeRecovery !== false && shouldLookupRecovery;
             const backupLimit = shouldLookupRecovery
                 ? Math.max(0, Math.min(PROFILE_BACKUP_DEFAULT_KEEP_COUNT, Math.floor(Number(options.backupLimit ?? PROFILE_BACKUP_DEFAULT_KEEP_COUNT))))
@@ -8041,6 +8684,21 @@ export default class NetworkManager extends EventEmitter {
             let bestSnapshot = null;
             const consider = (candidate) => {
                 if (!candidate?.profile) return;
+                // A pending local patch is a journal for an in-flight guarded
+                // write, not an alternative full profile. When the Firebase
+                // root remains the best authoritative base, replay that
+                // journal even if a same-tier gear/skill change leaves EXP,
+                // aggregate score, and timestamp unchanged. A recovery or
+                // backup snapshot that genuinely outranks the root still wins
+                // and is never overwritten by this root-bound journal.
+                if (
+                    (candidate.localCheckpointPendingPatch === true || candidate.localPatchJournalPending === true)
+                    && (bestSnapshot?.source === 'profile' || bestSnapshot?.source === 'recovery')
+                    && !this._isProfileRegression(bestSnapshot.profile, candidate.profile)
+                ) {
+                    bestSnapshot = candidate;
+                    return;
+                }
                 if (this._isProfileCandidateBetter(candidate, bestSnapshot)) {
                     bestSnapshot = candidate;
                 }
@@ -8064,7 +8722,35 @@ export default class NetworkManager extends EventEmitter {
             } : null;
             consider(rootCandidate);
             consider(recoveryCandidate);
+            if (localPatchJournalMetadata?.fields?.length > 0 && normalizedProfile) {
+                const localPatchJournal = this.getLocalProfilePatchJournal(uid);
+                // If the recovery copy is clearly ahead of root, replay the
+                // unsent local fields on that safer base rather than allowing
+                // an old root snapshot to erase recovery progress.
+                const journalBaseProfile = recoveryCandidate
+                    && this._isProfileCandidateBetter(recoveryCandidate, rootCandidate)
+                    ? recoveryCandidate.profile
+                    : normalizedProfile;
+                const replayedProfile = this._resolveLocalProfilePatchJournalForRoot(journalBaseProfile, localPatchJournal);
+                if (replayedProfile) {
+                    consider({
+                        profile: replayedProfile,
+                        ts: Number(replayedProfile.ts || localPatchJournal?.savedAt || 0),
+                        source: 'local_patch_journal',
+                        backupId: null,
+                        latestUid: uid,
+                        recoveryUid: this._resolveRecoveryUid(replayedProfile, uid),
+                        localPatchJournalPending: true
+                    });
+                }
+            }
             this._getLocalProfileCheckpointCandidates(uid, normalizedProfile, options)
+                .map((checkpoint) => ({
+                    ...checkpoint,
+                    profile: this._resolveLocalCheckpointProfileForRoot(normalizedProfile, checkpoint)
+                }))
+                .filter((checkpoint) => checkpoint.profile
+                    && (!normalizedProfile || this._shouldUseLocalProfileCheckpoint(normalizedProfile, checkpoint)))
                 .forEach((checkpoint) => {
                     consider({
                         profile: checkpoint.profile,
@@ -8073,7 +8759,8 @@ export default class NetworkManager extends EventEmitter {
                         backupId: null,
                         latestUid: checkpoint.uid || uid,
                         recoveryUid: this._resolveRecoveryUid(checkpoint.profile, checkpoint.recoveryUid || checkpoint.uid || uid),
-                        localCheckpointPending: checkpoint.pending === true
+                        localCheckpointPending: checkpoint.pending === true,
+                        localCheckpointPendingPatch: !!checkpoint.pendingPatch
                     });
                 });
 
@@ -8210,32 +8897,33 @@ export default class NetworkManager extends EventEmitter {
 
     _shouldWriteProfileBackup(uid, reason = 'profile_save') {
         if (!uid) return false;
-        if (reason !== 'profile_save') {
-            this._profileBackupMeta.set(uid, { ts: Date.now(), reason });
+        const now = Date.now();
+        const normalizedReason = String(reason || 'profile_save');
+        if (
+            IMMEDIATE_PROFILE_BACKUP_REASONS.has(normalizedReason)
+            || normalizedReason.startsWith('auto_repair_from_')
+        ) {
+            this._profileBackupMeta.set(uid, { ts: now, reason: normalizedReason });
             return true;
         }
 
-        const now = Date.now();
-        const minimumIntervalMs = this.isSharedFieldActive() ? 120000 : 180000;
+        const minimumIntervalMs = this.isSharedFieldActive()
+            ? Math.max(120000, PROFILE_BACKUP_MIN_INTERVAL_MS)
+            : PROFILE_BACKUP_MIN_INTERVAL_MS;
         const previous = this._profileBackupMeta.get(uid);
         if (previous && (now - previous.ts) < minimumIntervalMs) {
             return false;
         }
 
-        this._profileBackupMeta.set(uid, { ts: now, reason });
+        this._profileBackupMeta.set(uid, { ts: now, reason: normalizedReason });
         return true;
     }
 
     _shouldPruneProfileBackups(uid, reason = 'profile_save') {
         if (!uid) return false;
-        if (reason !== 'profile_save') {
-            this._profileBackupPruneMeta.set(uid, Date.now());
-            return true;
-        }
-
         const now = Date.now();
         const previous = this._profileBackupPruneMeta.get(uid) || 0;
-        const minimumIntervalMs = 10 * 60 * 1000;
+        const minimumIntervalMs = PROFILE_BACKUP_PRUNE_MIN_INTERVAL_MS;
         if ((now - previous) < minimumIntervalMs) {
             return false;
         }
@@ -8257,7 +8945,13 @@ export default class NetworkManager extends EventEmitter {
     }
 
     _mergeProfileData(baseData = {}, patchData = {}) {
-        const merged = this._sanitizeProfileDataForFirebase(baseData) || {};
+        // `current` inside an RTDB transaction has already been validated by
+        // Firebase. Re-sanitizing the entire high-level profile for every HP /
+        // position patch used to clone and recursively sort hundreds of slots.
+        // Only the incoming client patch crosses a trust boundary here.
+        const merged = baseData && typeof baseData === 'object' && !Array.isArray(baseData)
+            ? { ...baseData }
+            : {};
         const nextPatch = this._sanitizeProfileDataForFirebase(patchData) || {};
 
         Object.entries(nextPatch).forEach(([key, value]) => {
@@ -8279,7 +8973,59 @@ export default class NetworkManager extends EventEmitter {
             merged[key] = value;
         });
 
-        return this._sanitizeProfileDataForFirebase(merged) || merged;
+        return merged;
+    }
+
+    _mergeLocalProfilePatchJournalTokens(existingTokens = null, incomingTokens = null) {
+        const merged = {};
+        [existingTokens, incomingTokens].forEach((tokens) => {
+            if (!tokens || typeof tokens !== 'object' || Array.isArray(tokens)) return;
+            Object.entries(tokens).forEach(([field, rawWriteId]) => {
+                const writeId = Math.max(0, Number(rawWriteId || 0));
+                if (writeId > Math.max(0, Number(merged[field] || 0))) merged[field] = writeId;
+            });
+        });
+        return merged;
+    }
+
+    _mergeProfileSaveOptions(existing = {}, incoming = {}) {
+        const merged = { ...existing, ...incoming };
+        const existingPolicy = existing?.checkpointPolicy;
+        const incomingPolicy = incoming?.checkpointPolicy;
+        // Once a queued change contains durable state, a later position/HP
+        // patch must not silently downgrade its crash checkpoint policy.
+        if (existingPolicy === 'durable' || incomingPolicy === 'durable') {
+            merged.checkpointPolicy = 'durable';
+        } else if (existingPolicy === 'transient' && incomingPolicy === 'transient') {
+            merged.checkpointPolicy = 'transient';
+        }
+
+        const existingWriteId = Math.max(0, Number(existing?._localCheckpointWriteId || 0));
+        const incomingWriteId = Math.max(0, Number(incoming?._localCheckpointWriteId || 0));
+        const existingCheckpointPersisted = existing?._localCheckpointPersisted === true;
+        const incomingCheckpointPersisted = incoming?._localCheckpointPersisted === true;
+        const useIncomingCheckpoint = incomingCheckpointPersisted
+            && (!existingCheckpointPersisted || incomingWriteId >= existingWriteId)
+            && incomingWriteId > 0;
+        merged._localCheckpointPersisted = existingCheckpointPersisted || incomingCheckpointPersisted;
+        merged._localCheckpointWriteId = useIncomingCheckpoint ? incomingWriteId : existingWriteId;
+        merged._localCheckpointBaseRevision = useIncomingCheckpoint
+            ? Math.max(0, Number(incoming?._localCheckpointBaseRevision || 0))
+            : Math.max(0, Number(existing?._localCheckpointBaseRevision || 0));
+        // A forced recovery/migration must not be cancelled by a later
+        // routine transient write queued in the same transaction.
+        if (existing?.syncRecoveryProfile === true || incoming?.syncRecoveryProfile === true) {
+            merged.syncRecoveryProfile = true;
+        }
+        merged._localPatchJournalFieldTokens = this._mergeLocalProfilePatchJournalTokens(
+            existing?._localPatchJournalFieldTokens,
+            incoming?._localPatchJournalFieldTokens
+        );
+        // A normal mutation must never inherit the replay path's "do not
+        // journal" flag when the two queues meet.
+        merged.skipLocalPatchJournal = existing?.skipLocalPatchJournal === true
+            && incoming?.skipLocalPatchJournal === true;
+        return merged;
     }
 
     _serializeProfileCommit(uid, operation) {
@@ -8313,11 +9059,34 @@ export default class NetworkManager extends EventEmitter {
         if (uid && this._blockedProfileWriteUids.has(uid)) {
             return { ok: false, reason: 'profile_write_blocked' };
         }
-        this._storeLocalProfileCheckpoint(uid, data, {
+        // A lifecycle/full save contains the current complete player state, so
+        // it can safely acknowledge the compact field journal captured before
+        // its guarded transaction begins. Newer field tokens survive.
+        const capturedPatchJournalTokens = this._getLocalProfilePatchJournalFieldTokens(uid);
+        const shouldPersistCheckpoint = this._shouldPersistLocalCheckpointForFullSave(options);
+        const checkpointWriteId = shouldPersistCheckpoint
+            ? this._nextLocalProfileCheckpointWriteId(uid)
+            : Math.max(0, Number(options._localCheckpointWriteId || 0));
+        const checkpointBaseRevision = Number.isFinite(options.expectedRevision)
+            ? Math.max(0, Number(options.expectedRevision))
+            : Math.max(0, Number(this._profileRevisions.get(uid) || 0));
+        const localCheckpointPersisted = shouldPersistCheckpoint && this._storeLocalProfileCheckpoint(uid, data, {
             pending: true,
-            reason: options.saveReason || options.backupReason || 'profile_save_pending'
+            reason: options.saveReason || options.backupReason || 'profile_save_pending',
+            checkpointWriteId,
+            baseRevision: checkpointBaseRevision
         });
-        const debounceMs = Number(options.debounceMs || 0);
+        const saveOptions = {
+            ...options,
+            _localCheckpointPersisted: options._localCheckpointPersisted === true || localCheckpointPersisted,
+            _localCheckpointWriteId: checkpointWriteId,
+            _localCheckpointBaseRevision: checkpointBaseRevision,
+            _localPatchJournalFieldTokens: this._mergeLocalProfilePatchJournalTokens(
+                capturedPatchJournalTokens,
+                options._localPatchJournalFieldTokens
+            )
+        };
+        const debounceMs = Number(saveOptions.debounceMs || 0);
         let patchWaiters = null;
         if (this._queuedProfilePatches.has(uid)) {
             const queuedPatch = this._queuedProfilePatches.get(uid);
@@ -8325,10 +9094,11 @@ export default class NetworkManager extends EventEmitter {
             this._queuedProfilePatches.delete(uid);
             syncToZone = syncToZone || !!queuedPatch?.syncToZone;
             patchWaiters = queuedPatch?.waiters || null;
+            Object.assign(saveOptions, this._mergeProfileSaveOptions(queuedPatch?.options, saveOptions));
         }
 
-        if (debounceMs > 0 && !options.forceImmediate) {
-            const savePromise = this._queueProfileSave(uid, data, syncToZone, options);
+        if (debounceMs > 0 && !saveOptions.forceImmediate) {
+            const savePromise = this._queueProfileSave(uid, data, syncToZone, saveOptions);
             if (patchWaiters?.length) {
                 savePromise.then((result) => {
                     patchWaiters.forEach(({ resolve }) => resolve(result));
@@ -8348,7 +9118,7 @@ export default class NetworkManager extends EventEmitter {
             syncToZone = syncToZone || !!queued?.syncToZone;
         }
 
-        const result = await this._commitPlayerData(uid, data, syncToZone, options);
+        const result = await this._commitPlayerData(uid, data, syncToZone, saveOptions);
         pendingWaiters?.forEach(({ resolve }) => resolve(result));
         patchWaiters?.forEach(({ resolve }) => resolve(result));
         return result;
@@ -8367,20 +9137,36 @@ export default class NetworkManager extends EventEmitter {
         if (this._profileDisconnectingUids.has(uid)) {
             return { ok: false, reason: 'profile_disconnect_in_progress' };
         }
-        this._storeLocalProfilePatchCheckpoint(uid, patchData, options);
+        const shouldPersistJournal = this._shouldPersistLocalCheckpointForPatch(patchData, options)
+            && options.skipLocalPatchJournal !== true;
+        const journalEntry = shouldPersistJournal
+            ? this._storeLocalProfilePatchJournal(uid, patchData, options)
+            : null;
+        // A quota/corruption edge must favor preservation over the optimized
+        // path. This rare fallback retains the previous full checkpoint
+        // behavior rather than silently dropping a durable mutation.
+        if (shouldPersistJournal && !journalEntry) {
+            this._storeLocalProfilePatchCheckpoint(uid, patchData, options);
+        }
+        const saveOptions = {
+            ...options,
+            _localPatchJournalFieldTokens: this._mergeLocalProfilePatchJournalTokens(
+                options._localPatchJournalFieldTokens,
+                journalEntry?.fieldTokens
+            )
+        };
 
         if (this._queuedProfileSaves.has(uid)) {
             const queued = this._queuedProfileSaves.get(uid);
             queued.data = this._mergeProfileData(queued.data || {}, patchData);
-            queued.syncToZone = queued.syncToZone || !!options.syncToZone;
-            const shouldFlushQueuedSaveNow = !!options.forceImmediate || Number(options.debounceMs || 0) <= 0;
+            queued.syncToZone = queued.syncToZone || !!saveOptions.syncToZone;
+            const shouldFlushQueuedSaveNow = !!saveOptions.forceImmediate || Number(saveOptions.debounceMs || 0) <= 0;
             if (shouldFlushQueuedSaveNow) {
                 if (queued?.timer) clearTimeout(queued.timer);
                 this._queuedProfileSaves.delete(uid);
                 try {
                     const result = await this._commitPlayerData(uid, queued.data, queued.syncToZone, {
-                        ...queued.options,
-                        ...options,
+                        ...this._mergeProfileSaveOptions(queued.options, saveOptions),
                         debounceMs: 0,
                         forceImmediate: true
                     });
@@ -8396,9 +9182,9 @@ export default class NetworkManager extends EventEmitter {
             });
         }
 
-        const debounceMs = Number(options.debounceMs || 0);
-        if (debounceMs > 0 && !options.forceImmediate) {
-            return this._queueProfilePatch(uid, patchData, options);
+        const debounceMs = Number(saveOptions.debounceMs || 0);
+        if (debounceMs > 0 && !saveOptions.forceImmediate) {
+            return this._queueProfilePatch(uid, patchData, saveOptions);
         }
 
         let pendingWaiters = null;
@@ -8409,9 +9195,10 @@ export default class NetworkManager extends EventEmitter {
             this._queuedProfilePatches.delete(uid);
             pendingWaiters = queued?.waiters || null;
             mergedPatch = this._mergeProfileData(queued?.patch || {}, patchData);
+            Object.assign(saveOptions, this._mergeProfileSaveOptions(queued?.options, saveOptions));
         }
 
-        const result = await this._commitPlayerDataPatch(uid, mergedPatch, options);
+        const result = await this._commitPlayerDataPatch(uid, mergedPatch, saveOptions);
         pendingWaiters?.forEach(({ resolve }) => resolve(result));
         return result;
     }
@@ -8450,7 +9237,10 @@ export default class NetworkManager extends EventEmitter {
 
         existing.data = data;
         existing.syncToZone = existing.syncToZone || syncToZone;
-        existing.options = { ...existing.options, ...options, debounceMs };
+        existing.options = {
+            ...this._mergeProfileSaveOptions(existing.options, options),
+            debounceMs
+        };
 
         if (existing.timer) clearTimeout(existing.timer);
 
@@ -8487,7 +9277,10 @@ export default class NetworkManager extends EventEmitter {
 
         existing.patch = this._mergeProfileData(existing.patch || {}, patchData);
         existing.syncToZone = existing.syncToZone || !!options.syncToZone;
-        existing.options = { ...existing.options, ...options, debounceMs };
+        existing.options = {
+            ...this._mergeProfileSaveOptions(existing.options, options),
+            debounceMs
+        };
 
         if (existing.timer) clearTimeout(existing.timer);
 
@@ -8566,6 +9359,24 @@ export default class NetworkManager extends EventEmitter {
         })));
     }
 
+    async flushLocalProfilePatchJournal(uid = this.playerId) {
+        if (!uid || uid !== this.playerId) return { ok: false, reason: 'profile_uid_mismatch' };
+        const journal = this._readLocalProfilePatchJournal(uid);
+        const patch = this._buildLocalProfilePatchJournalPatch(journal);
+        if (!patch) return { ok: true, skipped: true };
+        const fieldTokens = this._getLocalProfilePatchJournalFieldTokens(uid);
+        return this.savePlayerDataPatch(uid, patch, {
+            debounceMs: 0,
+            forceImmediate: true,
+            saveReason: 'local_patch_journal_flush',
+            // The existing field tokens are already the crash journal. Do not
+            // clone/write it again merely to retry the guarded transaction.
+            skipLocalPatchJournal: true,
+            _localPatchJournalFieldTokens: fieldTokens,
+            syncRecoveryProfile: false
+        });
+    }
+
     async flushProfileWrites(uid = this.playerId) {
         if (!uid) return { ok: true, results: [] };
 
@@ -8578,6 +9389,10 @@ export default class NetworkManager extends EventEmitter {
         }
         const results = await Promise.all(pending);
         await this._drainProfileCommitChain(uid);
+        const journalResult = await this.flushLocalProfilePatchJournal(uid);
+        if (journalResult?.ok === false && journalResult?.reason !== 'profile_uid_mismatch') {
+            results.push(journalResult);
+        }
         const failed = results.find((result) => result?.ok === false);
         return failed
             ? { ok: false, reason: failed.reason || 'profile_flush_failed', results }
@@ -8769,11 +9584,33 @@ export default class NetworkManager extends EventEmitter {
             const result = { ok: true, profile: committedProfile, revision };
             if (lowerExperienceGuarded) result.lowerExperienceGuarded = true;
             if (Object.keys(auxiliaryFailures).length > 0) result.auxiliaryFailures = auxiliaryFailures;
-            this._storeLocalProfileCheckpoint(uid, committedProfile, {
-                pending: false,
-                revision,
-                reason: options.saveReason || options.backupReason || 'profile_save_committed'
-            });
+            // The pending checkpoint is written synchronously before the
+            // transaction. Finalize only its tiny metadata on success; a
+            // second full JSON serialization here used to freeze high-level
+            // profiles without improving recovery safety.
+            if (this._shouldPersistLocalCheckpointForFullSave(options)) {
+                if (options._localCheckpointPersisted) {
+                    this._finalizeLocalProfileCheckpointMetadata(uid, committedProfile, {
+                        checkpointWriteId: options._localCheckpointWriteId,
+                        revision,
+                        reason: options.saveReason || options.backupReason || 'profile_save_committed'
+                    });
+                } else {
+                    this._storeLocalProfileCheckpoint(uid, committedProfile, {
+                        pending: false,
+                        revision,
+                        reason: options.saveReason || options.backupReason || 'profile_save_committed'
+                    });
+                }
+            }
+            const fullSaveJournalTokens = Object.entries(options._localPatchJournalFieldTokens || {})
+                .reduce((tokens, [field, writeId]) => {
+                    if (Object.hasOwn(nextProfile, field)) tokens[field] = writeId;
+                    return tokens;
+                }, {});
+            if (Object.keys(fullSaveJournalTokens).length > 0) {
+                this._finalizeLocalProfilePatchJournal(uid, fullSaveJournalTokens);
+            }
             return result;
         } catch (e) {
             Logger.error('Failed to save player profile', e);
@@ -8901,7 +9738,16 @@ export default class NetworkManager extends EventEmitter {
                 };
             }
 
-            const committedProfile = this._normalizeProfileSnapshot(committedProfileValue, nextPatch.ts);
+            const shouldSyncRecovery = this._shouldSyncRecoveryAfterPatch(uid, nextPatch, options);
+            const shouldPersistCommittedCheckpoint = this._shouldPersistLocalCheckpointForPatch(nextPatch, options)
+                && !options._localCheckpointPersisted;
+            // For volatile patches the transaction snapshot is already an RTDB
+            // safe object. Avoid a full recursive normalize of the complete
+            // profile unless a recovery copy or a missing local checkpoint
+            // actually needs one.
+            const committedProfile = (shouldSyncRecovery || shouldPersistCommittedCheckpoint)
+                ? this._normalizeProfileSnapshot(committedProfileValue, nextPatch.ts)
+                : committedProfileValue;
             const revision = this._rememberProfileRevision(uid, committedProfile);
             const auxiliaryFailures = {};
 
@@ -8922,7 +9768,7 @@ export default class NetworkManager extends EventEmitter {
                 }
             }
 
-            if (this._shouldSyncRecoveryAfterPatch(uid, nextPatch, options)) {
+            if (shouldSyncRecovery) {
                 try {
                     await this._syncRecoveryProfile(uid, committedProfile);
                 } catch (error) {
@@ -8934,11 +9780,31 @@ export default class NetworkManager extends EventEmitter {
             const result = { ok: true, patch: nextPatch, profile: committedProfile, revision };
             if (lowerExperienceGuarded) result.lowerExperienceGuarded = true;
             if (Object.keys(auxiliaryFailures).length > 0) result.auxiliaryFailures = auxiliaryFailures;
-            this._storeLocalProfileCheckpoint(uid, committedProfile, {
-                pending: false,
-                revision,
-                reason: options.saveReason || 'profile_patch_committed'
-            });
+            if (this._shouldPersistLocalCheckpointForPatch(nextPatch, options)) {
+                if (options._localCheckpointPersisted) {
+                    this._finalizeLocalProfileCheckpointMetadata(uid, committedProfile, {
+                        checkpointWriteId: options._localCheckpointWriteId,
+                        revision,
+                        reason: options.saveReason || 'profile_patch_committed'
+                    });
+                } else if (shouldPersistCommittedCheckpoint) {
+                    this._storeLocalProfileCheckpoint(uid, committedProfile, {
+                        pending: false,
+                        revision,
+                        reason: options.saveReason || 'profile_patch_committed'
+                    });
+                }
+            }
+            const journalTokens = options._localPatchJournalFieldTokens || {};
+            const acknowledgedJournalTokens = lowerExperienceGuarded
+                ? ['level', 'exp', 'maxExp'].reduce((tokens, field) => {
+                    if (journalTokens[field]) tokens[field] = journalTokens[field];
+                    return tokens;
+                }, {})
+                : journalTokens;
+            if (Object.keys(acknowledgedJournalTokens).length > 0) {
+                this._finalizeLocalProfilePatchJournal(uid, acknowledgedJournalTokens);
+            }
             return result;
         } catch (error) {
             Logger.error('Failed to save player profile patch', error);

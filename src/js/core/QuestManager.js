@@ -558,7 +558,14 @@ export default class QuestManager {
         });
 
         const inheritedPersistenceContext = this._completionPersistenceContext;
-        const persistenceContext = inheritedPersistenceContext || { fields: new Set() };
+        // A reward receipt is acknowledged only after its owner persists every
+        // mutation made while processing the event. Keep that ownership on the
+        // shared context so quest auto-completion cannot start a second save or
+        // lose fields that the receipt's narrow patch must include.
+        const persistenceContext = inheritedPersistenceContext || {
+            fields: new Set(),
+            source: normalizedEvent.source || null
+        };
         completed.forEach((questId) => this._autoCompleteQuest(questId, normalizedEvent, persistenceContext));
         if (changed || completed.length > 0) {
             this.state.lastEventAt = normalizedEvent.ts;
@@ -571,7 +578,11 @@ export default class QuestManager {
             });
             this.game?.ui?.updateQuestUI?.();
         }
-        return { changed: changed || completed.length > 0, completed };
+        return {
+            changed: changed || completed.length > 0,
+            completed,
+            profileFields: Array.from(persistenceContext.fields)
+        };
     }
 
     _orderedActiveEntries() {
@@ -737,7 +748,14 @@ export default class QuestManager {
                 type: item.type || itemId,
                 amount: Math.max(1, Number(item.amount || 1))
             };
-            const added = player.addInventoryItem?.(itemId, rewardItem.amount, rewardItem);
+            const added = player.addInventoryItem?.(itemId, rewardItem.amount, {
+                ...rewardItem,
+                // A receipt owner performs one guarded, narrow profile patch
+                // after all rewards and quest side effects have been applied.
+                // Starting an inventory snapshot here duplicates work and can
+                // race its acknowledgement path.
+                deferCriticalProfileSave: this._completionPersistenceContext?.source === 'rewardReceipt'
+            });
             if (!added) player.queuePendingItemReward?.(rewardItem);
         });
         if (exp > 0 || manastone > 0 || items.length > 0 || stat) {

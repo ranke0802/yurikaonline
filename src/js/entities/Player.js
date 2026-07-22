@@ -83,6 +83,7 @@ export default class Player extends CharacterBase {
         this.equipment = { weapon: null };
         this.pendingItemRewards = [];
         this.claimedRewardIds = [];
+        this._rewardPersistenceFieldsById = new Map();
         this.pendingRewardClaimTimer = 0;
         this.currentZoneId = 'zone_1';
         this.mapPositions = {};
@@ -1114,7 +1115,9 @@ export default class Player extends CharacterBase {
         if (this.net) this.net.sendPlayerHp(this.hp, this.maxHp);
         this.saveProfilePatch(['hp'], {
             debounceMs: fromNetwork ? 5200 : 4200,
-            reason: 'damage_hp_patch'
+            reason: 'damage_hp_patch',
+            checkpointPolicy: 'transient',
+            syncRecoveryProfile: false
         });
         window.game?.ui?.updatePartyUI?.();
 
@@ -1196,7 +1199,9 @@ export default class Player extends CharacterBase {
         this.endAllDuels('death');
         this.saveProfilePatch(['hp'], {
             debounceMs: 0,
-            reason: 'death_hp_patch'
+            reason: 'death_hp_patch',
+            checkpointPolicy: 'transient',
+            syncRecoveryProfile: false
         });
     }
 
@@ -1286,6 +1291,8 @@ export default class Player extends CharacterBase {
             allowStaleWrite: options.allowStaleWrite === true,
             allowDestructiveProfileWrite: options.allowDestructiveProfileWrite === true,
             bypassProfileRegressionGuard: options.bypassProfileRegressionGuard === true,
+            checkpointPolicy: options.checkpointPolicy,
+            syncRecoveryProfile: options.syncRecoveryProfile,
             backupReason: options.backupReason || options.reason || 'player_save'
         });
     }
@@ -1445,7 +1452,9 @@ export default class Player extends CharacterBase {
             debounceMs: profilePatchDebounceMs,
             forceImmediate,
             syncToZone: !!options.syncToWorld,
-            saveReason: options.reason || 'player_patch'
+            saveReason: options.reason || 'player_patch',
+            checkpointPolicy: options.checkpointPolicy,
+            syncRecoveryProfile: options.syncRecoveryProfile
         };
         if (Object.prototype.hasOwnProperty.call(options, 'expectedRevision')) {
             saveOptions.expectedRevision = options.expectedRevision;
@@ -1459,8 +1468,18 @@ export default class Player extends CharacterBase {
             debounceMs: Number.isFinite(options.debounceMs) ? options.debounceMs : 0,
             forceImmediate: options.forceImmediate !== false,
             syncToWorld: !!options.syncToWorld,
-            reason: options.reason || 'position_snapshot_patch'
+            reason: options.reason || 'position_snapshot_patch',
+            checkpointPolicy: options.checkpointPolicy || 'transient',
+            syncRecoveryProfile: options.syncRecoveryProfile === true
         });
+    }
+
+    flushDurableProfileJournal() {
+        if (!this.net || !this.id) return Promise.resolve({ ok: false, reason: 'player_unavailable' });
+        if (typeof this.net.flushProfileWrites === 'function') {
+            return this.net.flushProfileWrites(this.id);
+        }
+        return Promise.resolve({ ok: true, skipped: true });
     }
 
     syncEquipmentVisualState(reason = 'equipment_visual_sync') {
@@ -2358,7 +2377,9 @@ export default class Player extends CharacterBase {
             this.saveProfilePatch(['manastone', 'inventory', 'skillLevels'], {
                 debounceMs: 0,
                 forceImmediate: true,
-                reason: 'skill_levelup_patch'
+                reason: 'skill_levelup_patch',
+                checkpointPolicy: 'durable',
+                syncRecoveryProfile: false
             });
         } else {
             if (window.game?.ui) window.game.ui.logSystemMessage('마석이 부족합니다.');
@@ -2403,7 +2424,9 @@ export default class Player extends CharacterBase {
             if (options.save !== false) {
                 this.saveProfilePatch(['hp'], {
                     debounceMs: Number.isFinite(options.debounceMs) ? options.debounceMs : 4200,
-                    reason: options.reason || 'recover_hp_patch'
+                    reason: options.reason || 'recover_hp_patch',
+                    checkpointPolicy: 'transient',
+                    syncRecoveryProfile: false
                 });
             }
         }
@@ -2428,8 +2451,10 @@ export default class Player extends CharacterBase {
         let skipQuestRewardLog = false;
         let questKillLogMessage = '';
         let hasInventoryMutation = false;
+        let hasCriticalInventoryMutation = false;
         let questStateChanged = false;
         let leveledUpFromReward = false;
+        const questCompletionProfileFields = new Set();
 
         const grantUpgradeStones = (itemId, rawAmount) => {
             const amount = Math.max(1, Math.floor(Number(rawAmount) || 1));
@@ -2441,11 +2466,14 @@ export default class Player extends CharacterBase {
                 name: definition.name,
                 icon: definition.icon,
                 stackable: true,
-                markAsNew: false
+                markAsNew: false,
+                deferCriticalProfileSave: true
             };
             const added = this.addInventoryItem(itemId, amount, rewardMeta);
             if (!added) this.queuePendingItemReward(rewardMeta);
             hasInventoryMutation = true;
+            hasCriticalInventoryMutation = hasCriticalInventoryMutation
+                || this.shouldSaveInventoryImmediatelyOnAcquire(itemId, definition, added);
             return !!added;
         };
         const grantBlessedUpgradeStones = (rawAmount) => grantUpgradeStones(BLESSED_WEAPON_UPGRADE_STONE_ID, rawAmount);
@@ -2473,9 +2501,14 @@ export default class Player extends CharacterBase {
                     return;
                 }
                 const amount = Math.max(1, item.amount || 1);
-                const added = this.addInventoryItem(itemId, amount, item);
+                const added = this.addInventoryItem(itemId, amount, {
+                    ...item,
+                    deferCriticalProfileSave: true
+                });
                 if (added) {
                     hasInventoryMutation = true;
+                    hasCriticalInventoryMutation = hasCriticalInventoryMutation
+                        || this.shouldSaveInventoryImmediatelyOnAcquire(itemId, item, added);
                     itemMessages.push(`${added.name || itemId} x${amount}`);
                 } else {
                     this.queuePendingItemReward(item);
@@ -2525,6 +2558,7 @@ export default class Player extends CharacterBase {
             && !data.hp
             && !(Array.isArray(data.items) && data.items.length > 0)
         ) {
+            this._lastRewardPersistenceFields = ['claimedRewardIds'];
             return;
         }
 
@@ -2627,7 +2661,7 @@ export default class Player extends CharacterBase {
                 if (!questManager || LEGACY_QUEST_KILL_IDS.has(questKillId)) return;
                 const killCount = Math.max(0, Number(rawCount || 0));
                 if (killCount <= 0) return;
-                questManager.handleEvent?.({
+                const questResult = questManager.handleEvent?.({
                     type: (FIELD_BOSS_QUEST_KILL_IDS.has(questKillId) || data.bossReward === true) ? 'bossKilled' : 'monsterKilled',
                     target: questKillId,
                     zoneId: currentZoneId,
@@ -2636,6 +2670,9 @@ export default class Player extends CharacterBase {
                     receiptId: rewardId || null,
                     rewardKind: data.rewardKind || null
                 });
+                if (Array.isArray(questResult?.profileFields)) {
+                    questResult.profileFields.forEach((field) => questCompletionProfileFields.add(field));
+                }
             });
 
             if (window.game?.ui) window.game.ui.updateQuestUI();
@@ -2748,7 +2785,11 @@ export default class Player extends CharacterBase {
                 if (window.game.sound) window.game.sound.playSfx('item_loot');
             }
 
-            window.game.ui.updateInventory();
+            if (typeof window.game.ui.requestInventoryRefresh === 'function') {
+                window.game.ui.requestInventoryRefresh();
+            } else {
+                window.game.ui.updateInventory();
+            }
         }
         if (rewardId) {
             this.claimedRewardIds = [
@@ -2756,36 +2797,78 @@ export default class Player extends CharacterBase {
                 rewardId
             ].slice(-128);
         }
+        const rewardPersistenceFields = new Set(['claimedRewardIds']);
+        if (data.exp) {
+            rewardPersistenceFields.add('exp');
+            rewardPersistenceFields.add('maxExp');
+            rewardPersistenceFields.add('level');
+        }
+        if (leveledUpFromReward) {
+            ['statPoints', 'hp', 'maxHp', 'mp', 'maxMp'].forEach((field) => rewardPersistenceFields.add(field));
+        }
+        if (rewardManastone) rewardPersistenceFields.add('manastone');
+        if (data.hp) rewardPersistenceFields.add('hp');
+        if (hasInventoryMutation) {
+            rewardPersistenceFields.add('inventory');
+            rewardPersistenceFields.add('pendingItemRewards');
+        }
+        if (questStateChanged || Object.keys(normalizedQuestKills).length > 0) {
+            rewardPersistenceFields.add('questData');
+            rewardPersistenceFields.add('questState');
+        }
+        // Quest auto-completion can grant EXP, stats, manastone, or items as a
+        // side effect of this receipt. Its owner deliberately suppresses its
+        // own save, so merge the exact affected fields into this one durable
+        // receipt patch before the server-side receipt is acknowledged.
+        questCompletionProfileFields.forEach((field) => rewardPersistenceFields.add(field));
+        this._lastRewardPersistenceFields = Array.from(rewardPersistenceFields);
+        if (rewardId) {
+            this._rewardPersistenceFieldsById.set(rewardId, this._lastRewardPersistenceFields);
+            while (this._rewardPersistenceFieldsById.size > 128) {
+                this._rewardPersistenceFieldsById.delete(this._rewardPersistenceFieldsById.keys().next().value);
+            }
+        }
         if (shouldSave) {
-            const forceRewardSave = leveledUpFromReward || data?.bossReward === true || saveDebounceMs === 0;
-            this.saveProfilePatch([
-                'exp',
-                'maxExp',
-                'level',
-                'statPoints',
-                'vitality',
-                'intelligence',
-                'wisdom',
-                'agility',
-                'manastone',
-                'hp',
-                'maxHp',
-                'mp',
-                'maxMp',
-                'questData',
-                'questState',
-                'inventory',
-                'pendingItemRewards',
-                'claimedRewardIds'
-            ], {
+            const forceRewardSave = leveledUpFromReward
+                || hasCriticalInventoryMutation
+                || data?.bossReward === true
+                || saveDebounceMs === 0;
+            this.saveProfilePatch(this._lastRewardPersistenceFields, {
                 debounceMs: forceRewardSave ? 0 : saveDebounceMs,
                 forceImmediate: forceRewardSave,
                 reason: leveledUpFromReward
                     ? 'levelup_reward_patch'
-                    : (hasInventoryMutation ? 'reward_inventory_patch' : 'reward_progress_patch')
+                    : (hasInventoryMutation ? 'reward_inventory_patch' : 'reward_progress_patch'),
+                // Normal rewards are not backed by a server receipt. Keep the
+                // changed fields in the compact journal even when their RTDB
+                // write is debounced, so an iOS/PWA termination cannot drop
+                // recently earned EXP or inventory.
+                checkpointPolicy: 'durable',
+                syncRecoveryProfile: false
             });
         }
         return true;
+    }
+
+    saveDurableRewardSnapshot(reason = 'durable_reward', fields = null) {
+        const rewardFields = Array.isArray(fields) && fields.length > 0
+            ? Array.from(new Set([...fields, 'claimedRewardIds']))
+            : [
+                'exp', 'maxExp', 'level', 'statPoints', 'vitality', 'intelligence', 'wisdom', 'agility',
+                'manastone', 'hp', 'maxHp', 'mp', 'maxMp', 'questData', 'questState',
+                'inventory', 'pendingItemRewards', 'claimedRewardIds'
+            ];
+        return this.saveProfilePatch(rewardFields, {
+            debounceMs: 0,
+            forceImmediate: true,
+            reason,
+            // The source receipt remains in RTDB until this guarded profile
+            // transaction succeeds and is acknowledged. It is already the
+            // crash journal, so duplicating a full local profile checkpoint
+            // for every normal reward only created high-level save hitches.
+            checkpointPolicy: 'transient',
+            syncRecoveryProfile: false
+        });
     }
 
     async receiveNormalRewardDurably(data) {
@@ -2820,10 +2903,13 @@ export default class Player extends CharacterBase {
             ].slice(-128);
         }
 
-        const saveResult = await this.saveState(false, {
-            debounceMs: 0,
-            reason: 'durable_normal_reward'
-        });
+        const persistenceFields = this._rewardPersistenceFieldsById.get(rewardId)
+            || this._lastRewardPersistenceFields
+            || null;
+        const saveResult = await this.saveDurableRewardSnapshot(
+            'durable_normal_reward',
+            alreadyClaimed ? (persistenceFields || ['claimedRewardIds']) : persistenceFields
+        );
         if (saveResult?.ok !== true) {
             return {
                 ok: false,
@@ -2831,6 +2917,7 @@ export default class Player extends CharacterBase {
                 alreadyClaimed
             };
         }
+        this._rewardPersistenceFieldsById.delete(rewardId);
         return { ok: true, alreadyClaimed };
     }
 
@@ -2858,10 +2945,13 @@ export default class Player extends CharacterBase {
             }
         }
 
-        const saveResult = await this.saveState(false, {
-            debounceMs: 0,
-            reason: 'durable_boss_reward'
-        });
+        const persistenceFields = this._rewardPersistenceFieldsById.get(rewardId)
+            || this._lastRewardPersistenceFields
+            || null;
+        const saveResult = await this.saveDurableRewardSnapshot(
+            'durable_boss_reward',
+            alreadyClaimed ? (persistenceFields || ['claimedRewardIds']) : persistenceFields
+        );
         if (saveResult?.ok !== true) {
             return {
                 ok: false,
@@ -2869,6 +2959,7 @@ export default class Player extends CharacterBase {
                 alreadyClaimed
             };
         }
+        this._rewardPersistenceFieldsById.delete(rewardId);
         return { ok: true, alreadyClaimed };
     }
 
@@ -2907,7 +2998,12 @@ export default class Player extends CharacterBase {
                 debounceMs: leveledUp ? 0 : debounceMs,
                 forceImmediate: leveledUp,
                 syncToWorld: leveledUp,
-                reason: leveledUp ? 'levelup_progress_patch' : 'exp_patch'
+                reason: leveledUp ? 'levelup_progress_patch' : 'exp_patch',
+                // EXP is a durable progression field even before it crosses a
+                // level threshold. NetworkManager journals this narrow patch
+                // instead of duplicating the full profile checkpoint.
+                checkpointPolicy: 'durable',
+                syncRecoveryProfile: false
             });
         }
     }
@@ -2951,7 +3047,9 @@ export default class Player extends CharacterBase {
                 debounceMs: Number.isFinite(debounceMs) ? debounceMs : 0,
                 forceImmediate: true,
                 syncToWorld,
-                reason: 'levelup_patch'
+            reason: 'levelup_patch',
+            checkpointPolicy: 'durable',
+            syncRecoveryProfile: false
             });
         }
     }
@@ -4275,25 +4373,38 @@ export default class Player extends CharacterBase {
         const deferred = this.pendingItemRewards.slice(maxAttempts);
         const remaining = [];
         const claimedNames = [];
+        let hasCriticalInventoryMutation = false;
         batch.forEach((item) => {
             const itemId = item.id || item.type;
             const amount = Math.max(1, Number(item.amount || 1));
             if (item.uniqueInventory === true && this.hasInventoryItem(itemId)) {
                 return;
             }
-            const added = this.addInventoryItem(itemId, amount, item);
+            const added = this.addInventoryItem(itemId, amount, {
+                ...item,
+                // Claiming a backlog can contain dozens of old rewards. Save
+                // the final inventory/pending journal once, not once per
+                // blessed stone or weapon inside the batch.
+                deferCriticalProfileSave: true
+            });
             if (!added) {
                 remaining.push(item);
                 return;
             }
             claimedNames.push(added.name || item.name || itemId);
+            hasCriticalInventoryMutation = hasCriticalInventoryMutation
+                || this.shouldSaveInventoryImmediatelyOnAcquire(itemId, item, added);
         });
 
         remaining.push(...deferred);
         const claimedCount = batch.length - remaining.length + deferred.length;
         if (claimedCount <= 0) return 0;
         this.pendingItemRewards = remaining.slice(0, PENDING_ITEM_REWARD_MAX_ENTRIES);
-        window.game?.ui?.updateInventory?.();
+        if (typeof window.game?.ui?.requestInventoryRefresh === 'function') {
+            window.game.ui.requestInventoryRefresh();
+        } else {
+            window.game?.ui?.updateInventory?.();
+        }
         if (claimedNames.length > 0) {
             const preview = claimedNames.slice(0, 6).join(', ');
             const suffix = claimedNames.length > 6 ? ` 외 ${claimedNames.length - 6}건` : '';
@@ -4301,8 +4412,13 @@ export default class Player extends CharacterBase {
         }
         if (options.save !== false) {
             this.saveProfilePatch(['inventory', 'pendingItemRewards'], {
-                debounceMs: Number.isFinite(options.debounceMs) ? options.debounceMs : 750,
-                reason: 'claim_pending_item_rewards'
+                debounceMs: hasCriticalInventoryMutation
+                    ? 0
+                    : (Number.isFinite(options.debounceMs) ? options.debounceMs : 750),
+                forceImmediate: hasCriticalInventoryMutation,
+                reason: 'claim_pending_item_rewards',
+                checkpointPolicy: hasCriticalInventoryMutation ? 'durable' : undefined,
+                syncRecoveryProfile: false
             });
         }
         return claimedCount;
@@ -4319,7 +4435,9 @@ export default class Player extends CharacterBase {
         this.saveProfilePatch(['inventory'], {
             debounceMs: 0,
             forceImmediate: true,
-            reason: 'critical_item_acquire_patch'
+            reason: 'critical_item_acquire_patch',
+            checkpointPolicy: 'durable',
+            syncRecoveryProfile: false
         });
     }
 
@@ -4367,7 +4485,7 @@ export default class Player extends CharacterBase {
             if (firstAdded && window.game?.ui?.updateHudAttentionIndicators) {
                 window.game.ui.updateHudAttentionIndicators();
             }
-            if (firstAdded) {
+            if (firstAdded && meta.deferCriticalProfileSave !== true) {
                 this.saveInventoryAcquisitionSnapshot(itemId, definition, firstAdded);
             }
             return firstAdded;
@@ -4395,7 +4513,9 @@ export default class Player extends CharacterBase {
             window.game.ui.updateHudAttentionIndicators();
         }
         const addedItem = this.inventory[slotIndex];
-        this.saveInventoryAcquisitionSnapshot(itemId, definition, addedItem);
+        if (meta.deferCriticalProfileSave !== true) {
+            this.saveInventoryAcquisitionSnapshot(itemId, definition, addedItem);
+        }
         return addedItem;
     }
 
