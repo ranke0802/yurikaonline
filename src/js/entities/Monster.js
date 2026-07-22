@@ -1,7 +1,6 @@
 import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
-import SkillRenderer from '../skills/renderers/SkillRenderer.js';
 
 const BOSS_MECHANIC_AREA_SCALE = 3;
 const BOSS_MECHANIC_DAMAGE_SCALE = 2;
@@ -16,6 +15,77 @@ const COMBAT_VFX_THEMES = Object.freeze({
     wood: Object.freeze({ id: 'wood', color: '#d6a85e', highlight: '#fff0bd', fill: 'rgba(180, 125, 62, 0.1)', stroke: 'rgba(241, 204, 125, 0.66)' }),
     arcane: Object.freeze({ id: 'arcane', color: '#a78bfa', highlight: '#f5f3ff', fill: 'rgba(167, 139, 250, 0.11)', stroke: 'rgba(196, 181, 253, 0.72)' })
 });
+const MONSTER_COMBAT_VFX_ATLAS = Object.freeze({
+    src: 'assets/resource/effects/monster-combat-vfx.webp',
+    columns: 5,
+    rows: 3
+});
+const MONSTER_COMBAT_VFX_COLUMNS = Object.freeze({
+    slime: 0,
+    water: 1,
+    thunder: 2,
+    shadow: 3,
+    astral: 4,
+    wood: 0,
+    arcane: 4
+});
+const MONSTER_COMBAT_VFX_THEME_ALIASES = Object.freeze({
+    lightning_field: 'thunder',
+    shock: 'thunder',
+    slime: 'slime',
+    water: 'water',
+    shadow: 'shadow',
+    astral: 'astral'
+});
+let monsterCombatVfxAtlasImage = null;
+
+function resolveMonsterCombatVfxTheme(effectTheme) {
+    const id = String(effectTheme || 'arcane').toLowerCase();
+    return MONSTER_COMBAT_VFX_COLUMNS[id] != null
+        ? id
+        : (MONSTER_COMBAT_VFX_THEME_ALIASES[id] || 'arcane');
+}
+
+function getMonsterCombatVfxAtlasImage() {
+    if (typeof Image === 'undefined') return null;
+    if (!monsterCombatVfxAtlasImage) {
+        monsterCombatVfxAtlasImage = new Image();
+        monsterCombatVfxAtlasImage.decoding = 'async';
+        monsterCombatVfxAtlasImage.src = MONSTER_COMBAT_VFX_ATLAS.src;
+    }
+    return monsterCombatVfxAtlasImage.naturalWidth > 0 ? monsterCombatVfxAtlasImage : null;
+}
+
+function drawMonsterCombatVfx(ctx, effectTheme, row, x, y, width, height, options = {}) {
+    const image = getMonsterCombatVfxAtlasImage();
+    if (!image || !ctx) return false;
+    const column = MONSTER_COMBAT_VFX_COLUMNS[resolveMonsterCombatVfxTheme(effectTheme)] ?? 4;
+    const sourceWidth = image.naturalWidth / MONSTER_COMBAT_VFX_ATLAS.columns;
+    const sourceHeight = image.naturalHeight / MONSTER_COMBAT_VFX_ATLAS.rows;
+    const sourceX = Math.floor(column * sourceWidth);
+    const sourceY = Math.floor(Math.max(0, Math.min(MONSTER_COMBAT_VFX_ATLAS.rows - 1, row)) * sourceHeight);
+    const drawWidth = Math.max(1, width);
+    const drawHeight = Math.max(1, height);
+    ctx.save();
+    ctx.translate(x, y);
+    if (options.rotation) ctx.rotate(options.rotation);
+    if (options.flipX) ctx.scale(-1, 1);
+    ctx.globalAlpha *= Math.max(0, Math.min(1, Number(options.alpha ?? 1)));
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(
+        image,
+        sourceX,
+        sourceY,
+        Math.ceil(sourceWidth),
+        Math.ceil(sourceHeight),
+        -drawWidth / 2,
+        -drawHeight / 2,
+        drawWidth,
+        drawHeight
+    );
+    ctx.restore();
+    return true;
+}
 
 function shouldFreezeForModalUi() {
     const ui = window.game?.ui;
@@ -76,6 +146,8 @@ export default class Monster extends CharacterBase {
             || this._inferEffectTheme(definition.id || '')
         ).toLowerCase();
         this.effectVfx = visual.effectVfx || {};
+        // Start one shared decode while monsters are created, before any cast begins.
+        getMonsterCombatVfxAtlasImage();
 
         // Components
         this.skills = definition.skills || [];
@@ -744,9 +816,7 @@ export default class Monster extends CharacterBase {
 
         const screenX = Math.round(this.x);
         const screenY = Math.round(this.y);
-        const targetScreenX = Math.round(this.chargeTarget.x); // Assumes static target point in world space? 
-        // Wait, render is camera relative? No, ctx is transformed.
-        // this.x is world, target.x is world.
+        // The world canvas is already camera-transformed at this point.
 
         ctx.save();
         const chargeVisual = this.behavior?.charge?.visual || {};
@@ -754,8 +824,6 @@ export default class Monster extends CharacterBase {
         const lowGlareCombat = this.isLowGlareCombatZone();
         const castProgress = Math.max(0, Math.min(1, 1 - (this.chargeTimer / Math.max(0.2, this.chargeCastSeconds || 1))));
         ctx.fillStyle = chargeVisual.fill || theme.fill;
-        ctx.strokeStyle = chargeVisual.stroke || theme.stroke;
-        ctx.lineWidth = lowGlareCombat ? 1.5 : 2.25;
 
         const dx = this.chargeTarget.x - this.x;
         const dy = this.chargeTarget.y - this.y;
@@ -766,42 +834,31 @@ export default class Monster extends CharacterBase {
         ctx.translate(screenX, screenY);
         ctx.rotate(angle);
 
-        // A translucent lane is readable without the old harsh white guide.
+        // The lane remains a low-alpha dodge aid; authored VFX carries the spectacle.
+        ctx.globalAlpha = lowGlareCombat ? 0.34 : (0.42 + castProgress * 0.12);
         ctx.fillRect(0, -width / 2, dist, width);
-        ctx.globalAlpha = lowGlareCombat ? 0.56 : (0.62 + castProgress * 0.2);
-        ctx.setLineDash?.([Math.max(7, width * 0.11), Math.max(8, width * 0.14)]);
-        ctx.strokeRect(0, -width / 2, dist, width);
-        ctx.setLineDash?.([]);
-        if (chargeVisual.effect === 'thunder' || theme.id === 'thunder') {
-            ctx.strokeStyle = chargeVisual.spark || theme.highlight;
-            ctx.lineWidth = lowGlareCombat ? 1.2 : 2;
-            ctx.shadowColor = theme.color;
-            ctx.shadowBlur = lowGlareCombat ? 0 : 7;
-            ctx.beginPath();
-            const step = Math.max(24, dist / 10);
-            ctx.moveTo(0, 0);
-            for (let x = step; x < dist; x += step) {
-                ctx.lineTo(x, ((Math.floor(x / step) % 2) ? -1 : 1) * width * 0.2);
-            }
-            ctx.lineTo(dist, 0);
-            ctx.stroke();
-        }
-        if (theme.id === 'water') {
-            ctx.globalAlpha = lowGlareCombat ? 0.22 : 0.42;
-            ctx.strokeStyle = theme.highlight;
-            ctx.lineWidth = 1.25;
-            for (let lane = -1; lane <= 1; lane += 2) {
-                ctx.beginPath();
-                for (let px = 0; px <= dist; px += Math.max(18, dist / 14)) {
-                    const py = lane * width * (0.17 + Math.sin((px / Math.max(1, dist)) * Math.PI * 4) * 0.08);
-                    if (px === 0) ctx.moveTo(px, py);
-                    else ctx.lineTo(px, py);
-                }
-                ctx.stroke();
-            }
-        }
-
         ctx.restore();
+        const vfxSize = Math.max(this.width * 1.8, this.isBoss ? 170 : 92);
+        drawMonsterCombatVfx(
+            ctx,
+            theme.id,
+            0,
+            this.x,
+            this.y + (this.height * 0.36),
+            vfxSize,
+            vfxSize * 0.68,
+            { alpha: lowGlareCombat ? 0.38 : (0.62 + castProgress * 0.2) }
+        );
+        drawMonsterCombatVfx(
+            ctx,
+            theme.id,
+            2,
+            this.chargeTarget.x,
+            this.chargeTarget.y,
+            Math.max(this.width * 1.35, 72),
+            Math.max(this.height * 0.86, 48),
+            { alpha: lowGlareCombat ? 0.16 : 0.28 }
+        );
     }
 
     _getPointFromEntity(entity, fallbackX = this.x, fallbackY = this.y) {
@@ -1210,69 +1267,19 @@ export default class Monster extends CharacterBase {
         ctx.beginPath();
         ctx.arc(zone.x, zone.y, Math.max(4, radius * 0.68), 0, Math.PI * 2);
         ctx.stroke();
-        if (!lowGlareCombat && !impact) {
-            const runeCount = telegraph.effect === 'astral' ? 10 : 8;
-            ctx.globalAlpha = 0.28 + progress * 0.24;
-            ctx.strokeStyle = telegraph.secondaryColor;
-            ctx.lineWidth = 1.25;
-            for (let i = 0; i < runeCount; i += 1) {
-                const angle = (i / runeCount) * Math.PI * 2 + progress * 0.55;
-                const inner = radius * 0.74;
-                const outer = radius * 0.87;
-                ctx.beginPath();
-                ctx.moveTo(zone.x + Math.cos(angle) * inner, zone.y + Math.sin(angle) * inner);
-                ctx.lineTo(zone.x + Math.cos(angle) * outer, zone.y + Math.sin(angle) * outer);
-                ctx.stroke();
-            }
-        }
-        if (telegraph.effect === 'lightning_field' && telegraph.elapsedMs >= telegraph.warningMs) {
-            const phase = Math.floor(telegraph.elapsedMs / 90);
-            ctx.globalAlpha = alphaScale * 0.72;
-            ctx.strokeStyle = telegraph.secondaryColor;
-            ctx.lineWidth = 2;
-            ctx.shadowBlur = lowGlareCombat ? 0 : 10;
-            ctx.beginPath();
-            for (let i = 0; i < 8; i += 1) {
-                const angle = (i / 8) * Math.PI * 2;
-                const inner = radius * 0.22;
-                const outer = radius * (0.72 + ((phase + i) % 3) * 0.07);
-                ctx.moveTo(zone.x + Math.cos(angle) * inner, zone.y + Math.sin(angle) * inner);
-                ctx.lineTo(zone.x + Math.cos(angle + 0.1) * outer, zone.y + Math.sin(angle + 0.1) * outer);
-            }
-            ctx.stroke();
-        }
-        if (impact && telegraph.effect === 'water') {
-            ctx.globalAlpha = alphaScale * 0.58 * (1 - impactProgress);
-            ctx.strokeStyle = telegraph.secondaryColor;
-            ctx.lineWidth = 2;
-            for (let ripple = 0; ripple < 3; ripple += 1) {
-                ctx.beginPath();
-                ctx.arc(zone.x, zone.y, radius * (0.22 + ripple * 0.18 + impactProgress * 0.25), 0, Math.PI * 2);
-                ctx.stroke();
-            }
-        } else if (impact && telegraph.effect === 'slime') {
-            ctx.globalAlpha = alphaScale * 0.62 * (1 - impactProgress);
-            ctx.fillStyle = telegraph.secondaryColor;
-            for (let bubble = 0; bubble < 5; bubble += 1) {
-                const angle = (bubble / 5) * Math.PI * 2 + impactProgress;
-                const distance = radius * (0.26 + bubble * 0.08);
-                ctx.beginPath();
-                ctx.arc(zone.x + Math.cos(angle) * distance, zone.y + Math.sin(angle) * distance, Math.max(3, radius * 0.045), 0, Math.PI * 2);
-                ctx.fill();
-            }
-        } else if (impact && telegraph.effect === 'astral') {
-            ctx.globalAlpha = alphaScale * 0.7 * (1 - impactProgress);
-            ctx.strokeStyle = telegraph.secondaryColor;
-            ctx.lineWidth = 1.8;
-            ctx.beginPath();
-            for (let ray = 0; ray < 10; ray += 1) {
-                const angle = (ray / 10) * Math.PI * 2 + impactProgress;
-                ctx.moveTo(zone.x, zone.y);
-                ctx.lineTo(zone.x + Math.cos(angle) * radius * 0.78, zone.y + Math.sin(angle) * radius * 0.78);
-            }
-            ctx.stroke();
-        }
         ctx.restore();
+        // Authored sprite art replaces the previous procedural rune/ray lines.
+        const vfxRow = impact ? 2 : 0;
+        drawMonsterCombatVfx(
+            ctx,
+            telegraph.effect,
+            vfxRow,
+            zone.x,
+            zone.y,
+            radius * (impact ? 2.3 : 1.9),
+            radius * (impact ? 1.48 : 1.18),
+            { alpha: alphaScale * (impact ? 0.76 * (1 - impactProgress) : 0.3 + progress * 0.2) }
+        );
     }
 
     _drawBossTelegraphLine(ctx, zone, telegraph, progress, impactProgress, lowGlareCombat) {
@@ -1302,42 +1309,23 @@ export default class Monster extends CharacterBase {
         ctx.shadowBlur = lowGlareCombat ? 0 : (impact ? 18 : 8);
         ctx.strokeRect(0, -width / 2, length, width);
 
-        if (impact && telegraph.effect === 'thunder') {
-            ctx.globalAlpha = alphaScale * 0.78 * (1 - impactProgress);
-            ctx.strokeStyle = telegraph.secondaryColor;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            const step = Math.max(30, length / 12);
-            ctx.moveTo(0, 0);
-            for (let x = step; x <= length; x += step) {
-                const y = ((Math.floor(x / step) % 2) === 0 ? -1 : 1) * width * 0.22;
-                ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-        }
-        if (impact && telegraph.effect === 'water') {
-            ctx.globalAlpha = alphaScale * 0.54 * (1 - impactProgress);
-            ctx.strokeStyle = telegraph.secondaryColor;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            for (let x = 0; x <= length; x += Math.max(18, length / 18)) {
-                const y = Math.sin((x / Math.max(1, length)) * Math.PI * 6 + impactProgress * 8) * width * 0.24;
-                if (x === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-        } else if (impact && telegraph.effect === 'astral') {
-            ctx.globalAlpha = alphaScale * 0.62 * (1 - impactProgress);
-            ctx.strokeStyle = telegraph.secondaryColor;
-            ctx.lineWidth = 1.35;
-            for (let ribbon = -1; ribbon <= 1; ribbon += 2) {
-                ctx.beginPath();
-                ctx.moveTo(0, ribbon * width * 0.23);
-                ctx.quadraticCurveTo(length * 0.5, -ribbon * width * 0.36, length, ribbon * width * 0.23);
-                ctx.stroke();
-            }
-        }
         ctx.restore();
+        if (impact) {
+            drawMonsterCombatVfx(
+                ctx,
+                telegraph.effect,
+                1,
+                x1 + (dx * 0.5),
+                y1 + (dy * 0.5),
+                Math.max(width * 3.2, length * 0.82),
+                Math.max(width * 2.3, 64),
+                {
+                    alpha: alphaScale * 0.7 * (1 - impactProgress),
+                    rotation: angle,
+                    flipX: angle < -Math.PI / 2 || angle > Math.PI / 2
+                }
+            );
+        }
     }
 
     _drawBossTelegraphDonut(ctx, zone, telegraph, progress, impactProgress, lowGlareCombat) {
@@ -2261,27 +2249,12 @@ export default class Monster extends CharacterBase {
         const theme = this._getCombatVfxTheme(this.behavior?.charge?.visual?.effect);
         const lowGlareCombat = this.isLowGlareCombatZone();
         const angle = Math.atan2(dy, dx);
-        const trailLength = Math.max(20, Math.min(renderWidth * (this.isBoss ? 1.25 : 0.8), 120));
-        const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(angle + Math.PI);
-        ctx.globalAlpha = lowGlareCombat ? 0.28 : 0.52;
-        ctx.strokeStyle = theme.color;
-        ctx.lineCap = 'round';
-        ctx.lineWidth = this.isBoss ? 4 : 2.4;
-        ctx.shadowColor = theme.color;
-        ctx.shadowBlur = lowGlareCombat ? 0 : (this.isBoss ? 12 : 6);
-        const streakCount = lowGlareCombat ? 2 : (this.isBoss ? 5 : 3);
-        for (let streak = 0; streak < streakCount; streak += 1) {
-            const offset = (streak - (streakCount - 1) / 2) * Math.max(5, renderWidth * 0.06);
-            const wobble = Math.sin(now / 80 + streak * 1.7) * 5;
-            ctx.beginPath();
-            ctx.moveTo(-8, offset);
-            ctx.quadraticCurveTo(-trailLength * 0.46, offset + wobble, -trailLength, offset * 0.45);
-            ctx.stroke();
-        }
-        ctx.restore();
+        const size = renderWidth * (this.isBoss ? 2.15 : 1.55);
+        drawMonsterCombatVfx(ctx, theme.id, 1, x, y - (renderWidth * 0.08), size, size * 0.62, {
+            alpha: lowGlareCombat ? 0.26 : (this.isBoss ? 0.7 : 0.52),
+            rotation: angle,
+            flipX: angle < -Math.PI / 2 || angle > Math.PI / 2
+        });
     }
 
     _renderBossAura(ctx, x, groundY, renderWidth, renderHeight) {
@@ -2291,22 +2264,15 @@ export default class Monster extends CharacterBase {
         const lowGlareCombat = this.isLowGlareCombatZone();
         const auraAlphaScale = lowGlareCombat ? 0.42 : 1;
         const auraColor = effects.auraColor || '#8b5cf6';
-        const secondaryColor = effects.secondaryColor || '#fbbf24';
-        const particleColor = effects.particleColor || secondaryColor;
         const pulseSpeed = Math.max(0.1, Number(effects.pulseSpeed) || 2.4);
-        const ringCount = lowGlareCombat ? 1 : Math.max(1, Math.min(6, Math.round(Number(effects.ringCount) || 2)));
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
         const phase = (now / 1000) * pulseSpeed;
         const pulse = 1 + Math.sin(phase * Math.PI * 2) * 0.06;
         const radiusX = Math.max(this.width * 0.65, renderWidth * 0.34) * pulse;
-        const radiusY = Math.max(8, this.height * 0.1);
 
         const inheritedAlpha = Number.isFinite(ctx.globalAlpha) ? ctx.globalAlpha : 1;
         ctx.save();
-
-        // Keep the aura separate from the atlas so every authored cell remains
-        // intact and is never trimmed or destructively composited at runtime.
-        ctx.globalAlpha = inheritedAlpha * 0.09 * auraAlphaScale;
+        ctx.globalAlpha = inheritedAlpha * 0.08 * auraAlphaScale;
         ctx.fillStyle = auraColor;
         ctx.beginPath();
         ctx.ellipse(
@@ -2319,36 +2285,17 @@ export default class Monster extends CharacterBase {
             Math.PI * 2
         );
         ctx.fill();
-
-        for (let i = 0; i < ringCount; i += 1) {
-            const ringPhase = (phase + (i / ringCount)) % 1;
-            const expansion = 0.72 + ringPhase * 0.52;
-            ctx.globalAlpha = inheritedAlpha * Math.max(0.035, 0.2 * (1 - ringPhase)) * auraAlphaScale;
-            ctx.strokeStyle = i % 2 === 0 ? auraColor : secondaryColor;
-            ctx.lineWidth = Math.max(1, 3 - i * 0.35);
-            ctx.beginPath();
-            ctx.ellipse(x, groundY, radiusX * expansion, radiusY * expansion, 0, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-
-        const particleCount = lowGlareCombat ? 2 : Math.max(6, ringCount * 2);
-        for (let i = 0; i < particleCount; i += 1) {
-            const direction = i % 2 === 0 ? 1 : -1;
-            const angle = (i / particleCount) * Math.PI * 2 + phase * 0.75 * direction;
-            const orbitX = radiusX * (0.68 + (i % 3) * 0.11);
-            const lift = renderHeight * (0.18 + (i % 4) * 0.12);
-            const particleX = x + Math.cos(angle) * orbitX;
-            const particleY = groundY - lift + Math.sin(angle * 1.7) * radiusY * 0.8;
-            const particleSize = 1.8 + ((Math.sin(phase * 4 + i) + 1) * 0.8);
-
-            ctx.globalAlpha = inheritedAlpha * (0.35 + ((Math.sin(phase * 3 + i) + 1) * 0.12)) * auraAlphaScale;
-            ctx.fillStyle = i % 2 === 0 ? particleColor : secondaryColor;
-            ctx.beginPath();
-            ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
         ctx.restore();
+        drawMonsterCombatVfx(
+            ctx,
+            this.effectTheme,
+            2,
+            x,
+            groundY - (renderHeight * 0.05),
+            radiusX * 2.7,
+            Math.max(renderHeight * 0.9, radiusX * 0.94),
+            { alpha: inheritedAlpha * (lowGlareCombat ? 0.24 : 0.42) }
+        );
     }
 
     _renderCombatCastCircle(ctx, x, groundY, renderWidth) {
@@ -2365,29 +2312,10 @@ export default class Monster extends CharacterBase {
         const baseScale = this.isBoss ? 0.52 : 0.38;
         const radius = Math.max(this.isBoss ? 62 : 34, renderWidth * Math.max(baseScale, Number(vfx.radiusScale || baseScale))) * (0.86 + progress * 0.14);
         const lowGlareCombat = this.isLowGlareCombatZone();
-        ctx.save();
-        ctx.globalAlpha = (this.isBoss ? 0.42 : 0.3) + progress * (this.isBoss ? 0.42 : 0.28);
-        SkillRenderer.drawMagicCircle(ctx, x, groundY - 4, {
-            radiusInner: radius * 0.72,
-            radiusOuter: radius,
-            color: vfx.color || castingTelegraph?.color || this.bossEffects?.auraColor || theme.color,
-            glowColor: vfx.glowColor || castingTelegraph?.secondaryColor || this.bossEffects?.secondaryColor || theme.highlight,
-            yScale: Math.max(0.28, Math.min(0.72, Number(vfx.yScale || 0.46))),
-            rotationSpeed: Number(vfx.rotationSpeed || 0.0024)
-        });
-        if (!lowGlareCombat) {
-            const shardCount = this.isBoss ? 8 : 4;
-            ctx.globalAlpha = 0.3 + progress * 0.28;
-            ctx.fillStyle = vfx.glowColor || theme.highlight;
-            for (let shard = 0; shard < shardCount; shard += 1) {
-                const angle = (shard / shardCount) * Math.PI * 2 - progress * 2.4;
-                const distance = radius * (0.8 + ((shard % 2) * 0.12));
-                ctx.beginPath();
-                ctx.arc(x + Math.cos(angle) * distance, groundY - 4 + Math.sin(angle) * distance * 0.42, this.isBoss ? 2.8 : 1.8, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-        ctx.restore();
+        const alpha = lowGlareCombat
+            ? (this.isBoss ? 0.34 : 0.24)
+            : (this.isBoss ? 0.58 : 0.42) + progress * 0.16;
+        drawMonsterCombatVfx(ctx, theme.id, 0, x, groundY - 6, radius * 2.25, radius * 1.42, { alpha });
     }
 
     _renderShadowAmbush(ctx) {
@@ -2395,27 +2323,19 @@ export default class Monster extends CharacterBase {
         if (!ambush || this.isDead) return;
         const progress = Math.max(0, Math.min(1, ambush.elapsedMs / Math.max(1, ambush.castMs)));
         const radius = Math.max(38, this.width * (0.72 + progress * 0.2));
-        ctx.save();
-        ctx.globalAlpha = 0.28 + progress * 0.34;
-        SkillRenderer.drawMagicCircle(ctx, this.x, this.y + this.height * 0.42, {
-            radiusInner: radius * 0.68,
-            radiusOuter: radius,
-            color: '#8b5cf6', glowColor: '#f0abfc', yScale: 0.5, rotationSpeed: -0.0034
+        // Source collapse + destination portal make the delayed teleport readable
+        // without adding a hit or changing the three-second confusion mechanic.
+        drawMonsterCombatVfx(ctx, 'shadow', 0, this.x, this.y + (this.height * 0.42), radius * 2.15, radius * 1.32, {
+            alpha: 0.54 * (1 - progress * 0.55)
         });
-        ctx.globalAlpha = 0.36 * (1 - progress);
-        ctx.fillStyle = '#6d28d9';
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, Math.max(8, this.width * 0.4 * (1 - progress)), 0, Math.PI * 2);
-        ctx.fill();
-        // The destination portal tells the player where the ambush will land
-        // without changing the existing dodge window or damage timing.
-        ctx.globalAlpha = 0.32 + progress * 0.28;
-        SkillRenderer.drawMagicCircle(ctx, ambush.toX, ambush.toY + this.height * 0.42, {
-            radiusInner: radius * 0.5,
-            radiusOuter: radius * 0.78,
-            color: '#5b21b6', glowColor: '#f0abfc', yScale: 0.42, rotationSpeed: 0.0042
+        drawMonsterCombatVfx(ctx, 'shadow', 0, ambush.toX, ambush.toY + (this.height * 0.42), radius * 1.76, radius * 1.08, {
+            alpha: 0.38 + progress * 0.3
         });
-        ctx.restore();
+        if (progress > 0.62) {
+            drawMonsterCombatVfx(ctx, 'shadow', 1, ambush.toX, ambush.toY, radius * 2.1, radius * 1.25, {
+                alpha: (progress - 0.62) * 1.12
+            });
+        }
     }
 
     render(ctx, camera) {

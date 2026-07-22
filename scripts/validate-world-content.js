@@ -253,6 +253,27 @@ function validateSpriteSheet(monster, checkedSheets) {
     }
 }
 
+function validateMonsterCombatVfxAtlas() {
+    const assetPath = 'assets/resource/effects/monster-combat-vfx.webp';
+    const absolutePath = repoPath(assetPath);
+    assert(fs.existsSync(absolutePath), `Monster combat VFX atlas is missing: ${assetPath}`);
+    assert(
+        /monster-combat-vfx\.webp/.test(monsterRuntimeSource)
+            && /drawMonsterCombatVfx/.test(monsterRuntimeSource),
+        'Monster runtime must render the authored WebP combat VFX atlas'
+    );
+    if (!fs.existsSync(absolutePath)) return;
+    try {
+        const dimensions = imageSize(fs.readFileSync(absolutePath));
+        assert(
+            dimensions.width >= 1500 && dimensions.height >= 900,
+            'Monster combat VFX atlas must retain the authored 5x3 effect detail'
+        );
+    } catch (error) {
+        fail(`Cannot inspect ${assetPath}: ${error.message}`);
+    }
+}
+
 function validateBossMechanics(monster, isCatalogBoss) {
     if (!isCatalogBoss) return;
 
@@ -653,6 +674,7 @@ if (!zoneCatalog || !itemCatalog) {
             && /BOSS_MECHANIC_CAST_SCALE\s*=\s*1\.3/.test(monsterRuntimeSource),
         'Boss mechanic runtime must keep area/damage/cast scaling at 3x/2x/1.3x'
     );
+    validateMonsterCombatVfxAtlas();
     assert(
         /m\.chargeEnabled\s*\|\|\s*m\.chargeOnly/.test(monsterManagerSource)
             && /m\.typeId === 'king_slime' \|\| m\.isBoss/.test(monsterManagerSource),

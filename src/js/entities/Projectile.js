@@ -17,6 +17,7 @@ export class Projectile {
         this.burnDuration = options.burnDuration || 5.0;
         this.targetX = Number.isFinite(options.targetX) ? options.targetX : null;
         this.targetY = Number.isFinite(options.targetY) ? options.targetY : null;
+        this.trackTarget = options.trackTarget === true && !!target;
         this.isCrit = options.isCrit || false;
         this.critRate = Math.max(0, Math.min(1, options.critRate || 0));
         this.variant = options.variant || null;
@@ -184,6 +185,38 @@ export class Projectile {
         return monsterTarget;
     }
 
+    _getFireballTargetPoint(target = this.target) {
+        if (!target || target.isDead) return null;
+        if (target.isMonster || target.type === 'monster') {
+            return Number.isFinite(target.x) && Number.isFinite(target.y)
+                ? { x: target.x, y: target.y }
+                : null;
+        }
+        const x = Number(target.x);
+        const y = Number(target.y);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+        return {
+            x: x + (Number(target.width || 0) / 2),
+            y: y + (Number(target.height || 0) / 2)
+        };
+    }
+
+    _trackFireballTarget() {
+        if (this.type !== 'fireball' || !this.trackTarget) return null;
+        const point = this._getFireballTargetPoint();
+        if (!point) return null;
+        const dx = point.x - this.x;
+        const dy = point.y - this.y;
+        const distance = Math.hypot(dx, dy);
+        this.targetX = point.x;
+        this.targetY = point.y;
+        if (distance > 0.001) {
+            this.vx = (dx / distance) * this.speed;
+            this.vy = (dy / distance) * this.speed;
+        }
+        return point;
+    }
+
     update(dt, monsters) {
         if (this.isDead) return;
         if (!this._isAuthoredWorldContextCurrent()) {
@@ -194,6 +227,7 @@ export class Projectile {
         const lp = window.game?.localPlayer;
         const rps = window.game?.remotePlayers;
         const owner = (lp && lp.id === this.ownerId) ? lp : rps?.get(this.ownerId);
+        const trackedFireballPoint = this._trackFireballTarget();
 
         // v1.99.25: Handle impact delay (Penetration feel)
         if (this.isExploding) {
@@ -206,7 +240,11 @@ export class Projectile {
 
         this.lifeTime -= dt;
         if (this.lifeTime <= 0) {
-            if (this.visualOnly && this.type === 'fireball' && this.targetX !== null && this.targetY !== null) {
+            if (this.type === 'fireball' && this.trackTarget && this.target && !this.target.isDead && trackedFireballPoint) {
+                this.x = trackedFireballPoint.x;
+                this.y = trackedFireballPoint.y;
+                this._executeActualExplosion(this.target, monsters);
+            } else if (this.visualOnly && this.type === 'fireball' && this.targetX !== null && this.targetY !== null) {
                 this.x = this.targetX;
                 this.y = this.targetY;
                 this._executeActualExplosion();

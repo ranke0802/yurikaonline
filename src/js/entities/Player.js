@@ -2235,6 +2235,7 @@ export default class Player extends CharacterBase {
                 )
                     ? this.findNearestFireballTarget(originX, originY)
                     : null;
+                const autoTargeted = !!autoTarget;
                 const autoTargetPoint = this.getCombatTargetPoint(autoTarget);
                 const angle = Number.isFinite(castOptions?.angle)
                     ? castOptions.angle
@@ -2280,6 +2281,11 @@ export default class Player extends CharacterBase {
                         targetX,
                         targetY,
                         range,
+                        targetId: autoTargeted ? autoTarget.id : null,
+                        targetType: autoTargeted
+                            ? (autoTarget?.isMonster || autoTarget?.type === 'monster' ? 'monster' : 'player')
+                            : null,
+                        autoTargeted,
                         variant: weaponCombat.fireballVariant || null,
                         weaponEffect: {
                             prefixId: weaponCombat.prefixId,
@@ -2303,7 +2309,7 @@ export default class Player extends CharacterBase {
                     if (!isProjectileWorldContextCurrent(authoredWorldContext)) return;
                     const game = authoredWorldContext.game;
                     if (!Array.isArray(game?.projectiles)) return;
-                    game.projectiles.push(new Projectile(originX, originY, null, 'fireball', {
+                    game.projectiles.push(new Projectile(originX, originY, autoTargeted ? autoTarget : null, 'fireball', {
                         vx, vy, speed, damage: dmg, radius: baseRad, aoeRadius: aoeRad, lifeTime: travelTime,
                         ...toProjectileAuthoredOptions(authoredWorldContext),
                         ownerId: this.id,
@@ -2311,6 +2317,7 @@ export default class Player extends CharacterBase {
                         visualTint: weaponCombat.fireballTint || null,
                         targetX,
                         targetY,
+                        trackTarget: autoTargeted,
                         tutorialSkillTarget: tutorialMotionStepId ? skillId : null,
                         tutorialSkillSlot: tutorialMotionStepId ? slot : null,
                         tutorialSkillTutorialId: tutorialMotionTutorialId,

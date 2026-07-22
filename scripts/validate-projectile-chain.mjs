@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const scheduledCallbacks = [];
 const scene = {
@@ -56,6 +58,18 @@ const {
     isProjectileWorldContextCurrent,
     toProjectileAuthoredOptions
 } = await import('../src/js/entities/ProjectileWorldContext.js');
+const playerSource = fs.readFileSync(path.resolve('src/js/entities/Player.js'), 'utf8');
+
+assert.match(
+    playerSource,
+    /new Projectile\(originX, originY, autoTargeted \? autoTarget : null, 'fireball'/,
+    'automatic fireball casts must retain their resolved target reference'
+);
+assert.match(
+    playerSource,
+    /trackTarget: autoTargeted/,
+    'automatic fireball casts must opt into target tracking'
+);
 
 function resetRuntime() {
     scheduledCallbacks.length = 0;
@@ -184,6 +198,30 @@ drainScheduledCallbacks();
 assert.equal(runtime.explosions, 1, 'seed 1 at 30% should produce exactly one chain impact');
 assert.equal(localTarget.hitCount, 1, 'the authoritative projectile should apply one local damage event');
 assert.equal(runtime.monsterDamagePackets, 1, 'the authoritative projectile should send one damage packet');
+
+resetRuntime();
+const movingAutoTarget = createMonster('moving-auto-target');
+movingAutoTarget.x = 560;
+movingAutoTarget.y = 0;
+window.game.monsterManager.monsters = new Map([[movingAutoTarget.id, movingAutoTarget]]);
+const automaticFireball = new Projectile(0, 0, movingAutoTarget, 'fireball', {
+    speed: 800,
+    damage: 100,
+    radius: 20,
+    aoeRadius: 100,
+    lifeTime: 1,
+    targetX: 420,
+    targetY: 0,
+    trackTarget: true,
+    ownerId: 'local-player'
+});
+automaticFireball.update(0.05, [movingAutoTarget]);
+assert.equal(automaticFireball.targetX, 560, 'automatic fireball must refresh to a moving monster position');
+assert.ok(automaticFireball.vx > 0, 'automatic fireball must steer toward its resolved target');
+automaticFireball.lifeTime = 0.01;
+automaticFireball.update(0.02, [movingAutoTarget]);
+assert.equal(movingAutoTarget.hitCount, 1, 'automatic fireball must apply damage when its tracked target reaches the endpoint');
+assert.equal(runtime.monsterDamagePackets, 1, 'automatic fireball endpoint damage must be authored once');
 
 resetRuntime();
 const deterministicAuthor = createBlueFireball({ chainChance: 0.5, chainSeed: 1 });
