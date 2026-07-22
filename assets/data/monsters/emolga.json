@@ -16,6 +16,7 @@
     "exp": 520
   },
   "visual": {
+    "effectTheme": "thunder",
     "assetPath": "assets/resource/monsters/emolga/spritesheet.webp",
     "spriteVersionNumber": 2,
     "width": 68,

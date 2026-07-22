@@ -14,6 +14,7 @@
         "passive": true
     },
     "visual": {
+        "effectTheme": "wood",
         "width": 92,
         "height": 120,
         "frameSpeed": 0.25,

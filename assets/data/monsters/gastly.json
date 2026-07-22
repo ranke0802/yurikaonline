@@ -16,6 +16,7 @@
     "exp": 4300
   },
   "visual": {
+    "effectTheme": "shadow",
     "assetPath": "assets/resource/monsters/gastly/spritesheet.webp",
     "spriteVersionNumber": 2,
     "width": 76,

@@ -14,6 +14,7 @@
         "exp": 15
     },
     "visual": {
+        "effectTheme": "slime",
         "assetPath": "assets/resource/monster_slime",
         "width": 112,
         "height": 112,

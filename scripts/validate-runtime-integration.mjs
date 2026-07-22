@@ -3246,6 +3246,12 @@ async function validateProfileWriterFencingContracts() {
         olderTab.playerId = uid;
         olderTab._writeProfileBackup = async () => true;
         olderTab._syncRecoveryProfile = async () => true;
+        let priorSessionFlushes = 0;
+        olderTab.flushProfileWrites = async (flushUid) => {
+            assert.equal(flushUid, uid, 'the displaced tab must flush its own account journal');
+            priorSessionFlushes += 1;
+            return { ok: true, results: [] };
+        };
         let supersededEvents = 0;
         olderTab.on('profileWriterSuperseded', () => { supersededEvents += 1; });
         assert.equal(olderTab._startAccountSessionGuard({ uid, isAnonymous: false }), true);
@@ -3257,6 +3263,9 @@ async function validateProfileWriterFencingContracts() {
         activeTab._writeProfileBackup = async () => true;
         activeTab._syncRecoveryProfile = async () => true;
         assert.equal(activeTab._startAccountSessionGuard({ uid, isAnonymous: false }), true);
+        const handoffResult = await activeTab.waitForAccountSessionHandoff(uid, { timeoutMs: 300 });
+        assert.equal(handoffResult.completed, true, 'the successor must wait for the prior tab to flush before loading its profile');
+        assert.equal(priorSessionFlushes, 1, 'the prior tab journal must flush exactly once before account handoff completes');
         assert.equal(supersededEvents, 1, 'the previous Google tab must be told to stop gameplay exactly once');
         assert.equal(olderTab.isProfileWriterSuperseded(), true);
         assert.equal(activeTab.isProfileWriterSuperseded(), false);
@@ -3310,6 +3319,7 @@ async function validateProfileWriterFencingContracts() {
         const guestTab = new NetworkManager();
         guestTab.playerId = uid;
         assert.equal(guestTab._startAccountSessionGuard({ uid, isAnonymous: true }), true);
+        await guestTab.waitForAccountSessionHandoff(uid, { timeoutMs: 300 });
         guestTab._writeProfileBackup = async () => true;
         guestTab._syncRecoveryProfile = async () => true;
         const guestSave = await guestTab._commitPlayerData(uid, {
@@ -3325,6 +3335,7 @@ async function validateProfileWriterFencingContracts() {
         newestGuestTab._writeProfileBackup = async () => true;
         newestGuestTab._syncRecoveryProfile = async () => true;
         assert.equal(newestGuestTab._startAccountSessionGuard({ uid, isAnonymous: true }), true);
+        await newestGuestTab.waitForAccountSessionHandoff(uid, { timeoutMs: 300 });
         const staleGuestSave = await guestTab._commitPlayerData(uid, {
             inventory: [],
             pendingItemRewards: [],
@@ -3452,6 +3463,7 @@ async function validateProfileWriterFencingContracts() {
             version: 'v2'
         };
         delayedHandlers.forEach((handler) => handler({ val: () => clone(delayedActiveSession) }));
+        await new Promise((resolve) => setTimeout(resolve, 0));
         assert.equal(newestTab.isProfileWriterSuperseded(), true, 'an account session must yield only to a newer activeSession');
         assert.equal(newestSupersededEvents, 1, 'a superseded account session must emit exactly one shutdown event');
         assert.equal(newestTab._accountSessionHeartbeatTimer, null, 'a superseded account session must stop heartbeating');

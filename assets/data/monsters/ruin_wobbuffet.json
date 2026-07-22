@@ -17,6 +17,7 @@
     "hpRegen": 3
   },
   "visual": {
+    "effectTheme": "water",
     "assetPath": "assets/resource/monsters/ruin_wobbuffet/spritesheet.webp",
     "spriteVersionNumber": 2,
     "width": 132,

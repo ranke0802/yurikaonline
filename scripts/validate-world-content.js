@@ -31,6 +31,9 @@ const aggressiveChargeMonsterIds = new Set([
     'thunder_pikachu',
     'astral_sylveon'
 ]);
+const combatEffectThemeIds = new Set([
+    'slime', 'water', 'thunder', 'shadow', 'astral', 'wood', 'arcane'
+]);
 
 function fail(message) {
     errors.push(message);
@@ -309,6 +312,14 @@ function validateAggressiveChargeBehavior(monster) {
     assert(Number(charge.cooldownMs) >= 4000, `Monster ${monster.id} charge cooldown must prevent spam`);
     assert(Number(charge.minDistance) >= 80, `Monster ${monster.id} charge minDistance must preserve dodge counterplay`);
     assert(Number(charge.castSeconds) >= 0.8, `Monster ${monster.id} charge castSeconds must leave a visible warning`);
+}
+
+function validateCombatEffectTheme(monster) {
+    const theme = monster?.visual?.effectTheme;
+    assert(
+        typeof theme === 'string' && combatEffectThemeIds.has(theme),
+        `Monster ${monster.id} must declare a supported visual.effectTheme`
+    );
 }
 
 function validateStrictProgression(entries, label) {
@@ -621,6 +632,7 @@ if (!zoneCatalog || !itemCatalog) {
         validateSpriteSheet(monster, checkedSheets);
         validateBossMechanics(monster, catalogBossMonsterIds.has(monster.id));
         validateAggressiveChargeBehavior(monster);
+        validateCombatEffectTheme(monster);
     });
 
     dropRules.normalDrops.forEach((drop) => {

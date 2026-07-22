@@ -104,6 +104,12 @@ export default class CharacterSelectionScene extends Scene {
             if (typeof this.game.net.getPlayerProfile !== 'function') {
                 throw new Error('profile_reader_unavailable');
             }
+            // When this device replaced a live account session, allow the
+            // previous device one short, explicit handoff window to flush its
+            // compact progression journal before we read the profile.  A
+            // missing/offline predecessor only costs the bounded timeout.
+            await this.game.net.waitForAccountSessionHandoff?.(user.uid, { timeoutMs: 900 });
+            if (!this._isEnterCurrent(generation, user.uid)) return;
             profile = await withProfileReadTimeout(
                 this.game.net.getPlayerProfile(user.uid, { throwOnError: true }),
                 'character_select_profile_read'

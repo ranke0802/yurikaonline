@@ -6,6 +6,16 @@ import SkillRenderer from '../skills/renderers/SkillRenderer.js';
 const BOSS_MECHANIC_AREA_SCALE = 3;
 const BOSS_MECHANIC_DAMAGE_SCALE = 2;
 const BOSS_MECHANIC_CAST_SCALE = 1.3;
+// Shared immutable palettes avoid per-frame object allocation in combat rendering.
+const COMBAT_VFX_THEMES = Object.freeze({
+    slime: Object.freeze({ id: 'slime', color: '#8fe36a', highlight: '#efffc8', fill: 'rgba(112, 211, 83, 0.13)', stroke: 'rgba(188, 255, 149, 0.72)' }),
+    water: Object.freeze({ id: 'water', color: '#38bdf8', highlight: '#dff8ff', fill: 'rgba(56, 189, 248, 0.12)', stroke: 'rgba(125, 225, 255, 0.72)' }),
+    thunder: Object.freeze({ id: 'thunder', color: '#facc15', highlight: '#fff7a8', fill: 'rgba(250, 204, 21, 0.12)', stroke: 'rgba(255, 233, 107, 0.78)' }),
+    shadow: Object.freeze({ id: 'shadow', color: '#8b5cf6', highlight: '#f0abfc', fill: 'rgba(109, 40, 217, 0.12)', stroke: 'rgba(216, 180, 254, 0.72)' }),
+    astral: Object.freeze({ id: 'astral', color: '#d946ef', highlight: '#fae8ff', fill: 'rgba(217, 70, 239, 0.12)', stroke: 'rgba(240, 171, 252, 0.76)' }),
+    wood: Object.freeze({ id: 'wood', color: '#d6a85e', highlight: '#fff0bd', fill: 'rgba(180, 125, 62, 0.1)', stroke: 'rgba(241, 204, 125, 0.66)' }),
+    arcane: Object.freeze({ id: 'arcane', color: '#a78bfa', highlight: '#f5f3ff', fill: 'rgba(167, 139, 250, 0.11)', stroke: 'rgba(196, 181, 253, 0.72)' })
+});
 
 function shouldFreezeForModalUi() {
     const ui = window.game?.ui;
@@ -59,6 +69,13 @@ export default class Monster extends CharacterBase {
         this.spriteContentBounds = this.spriteSheetDefinition?.contentBounds || null;
         this.alignSpriteContentToGround = this.spriteSheetDefinition?.alignContentToGround === true;
         this.bossEffects = visual.bossEffects || {};
+        this.effectTheme = String(
+            visual.effectTheme
+            || definition.behavior?.effectTheme
+            || this.bossEffects.effectTheme
+            || this._inferEffectTheme(definition.id || '')
+        ).toLowerCase();
+        this.effectVfx = visual.effectVfx || {};
 
         // Components
         this.skills = definition.skills || [];
@@ -733,9 +750,12 @@ export default class Monster extends CharacterBase {
 
         ctx.save();
         const chargeVisual = this.behavior?.charge?.visual || {};
-        ctx.fillStyle = chargeVisual.fill || 'rgba(255, 0, 0, 0.3)';
-        ctx.strokeStyle = chargeVisual.stroke || 'rgba(255, 0, 0, 0.5)';
-        ctx.lineWidth = 2;
+        const theme = this._getCombatVfxTheme(chargeVisual.effect);
+        const lowGlareCombat = this.isLowGlareCombatZone();
+        const castProgress = Math.max(0, Math.min(1, 1 - (this.chargeTimer / Math.max(0.2, this.chargeCastSeconds || 1))));
+        ctx.fillStyle = chargeVisual.fill || theme.fill;
+        ctx.strokeStyle = chargeVisual.stroke || theme.stroke;
+        ctx.lineWidth = lowGlareCombat ? 1.5 : 2.25;
 
         const dx = this.chargeTarget.x - this.x;
         const dy = this.chargeTarget.y - this.y;
@@ -746,12 +766,17 @@ export default class Monster extends CharacterBase {
         ctx.translate(screenX, screenY);
         ctx.rotate(angle);
 
-        // Draw Rectangle (0, -width/2, dist, width)
+        // A translucent lane is readable without the old harsh white guide.
         ctx.fillRect(0, -width / 2, dist, width);
+        ctx.globalAlpha = lowGlareCombat ? 0.56 : (0.62 + castProgress * 0.2);
+        ctx.setLineDash?.([Math.max(7, width * 0.11), Math.max(8, width * 0.14)]);
         ctx.strokeRect(0, -width / 2, dist, width);
-        if (chargeVisual.effect === 'thunder') {
-            ctx.strokeStyle = chargeVisual.spark || '#fff7a8';
-            ctx.lineWidth = 2;
+        ctx.setLineDash?.([]);
+        if (chargeVisual.effect === 'thunder' || theme.id === 'thunder') {
+            ctx.strokeStyle = chargeVisual.spark || theme.highlight;
+            ctx.lineWidth = lowGlareCombat ? 1.2 : 2;
+            ctx.shadowColor = theme.color;
+            ctx.shadowBlur = lowGlareCombat ? 0 : 7;
             ctx.beginPath();
             const step = Math.max(24, dist / 10);
             ctx.moveTo(0, 0);
@@ -760,6 +785,20 @@ export default class Monster extends CharacterBase {
             }
             ctx.lineTo(dist, 0);
             ctx.stroke();
+        }
+        if (theme.id === 'water') {
+            ctx.globalAlpha = lowGlareCombat ? 0.22 : 0.42;
+            ctx.strokeStyle = theme.highlight;
+            ctx.lineWidth = 1.25;
+            for (let lane = -1; lane <= 1; lane += 2) {
+                ctx.beginPath();
+                for (let px = 0; px <= dist; px += Math.max(18, dist / 14)) {
+                    const py = lane * width * (0.17 + Math.sin((px / Math.max(1, dist)) * Math.PI * 4) * 0.08);
+                    if (px === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+            }
         }
 
         ctx.restore();
@@ -1171,6 +1210,21 @@ export default class Monster extends CharacterBase {
         ctx.beginPath();
         ctx.arc(zone.x, zone.y, Math.max(4, radius * 0.68), 0, Math.PI * 2);
         ctx.stroke();
+        if (!lowGlareCombat && !impact) {
+            const runeCount = telegraph.effect === 'astral' ? 10 : 8;
+            ctx.globalAlpha = 0.28 + progress * 0.24;
+            ctx.strokeStyle = telegraph.secondaryColor;
+            ctx.lineWidth = 1.25;
+            for (let i = 0; i < runeCount; i += 1) {
+                const angle = (i / runeCount) * Math.PI * 2 + progress * 0.55;
+                const inner = radius * 0.74;
+                const outer = radius * 0.87;
+                ctx.beginPath();
+                ctx.moveTo(zone.x + Math.cos(angle) * inner, zone.y + Math.sin(angle) * inner);
+                ctx.lineTo(zone.x + Math.cos(angle) * outer, zone.y + Math.sin(angle) * outer);
+                ctx.stroke();
+            }
+        }
         if (telegraph.effect === 'lightning_field' && telegraph.elapsedMs >= telegraph.warningMs) {
             const phase = Math.floor(telegraph.elapsedMs / 90);
             ctx.globalAlpha = alphaScale * 0.72;
@@ -1184,6 +1238,37 @@ export default class Monster extends CharacterBase {
                 const outer = radius * (0.72 + ((phase + i) % 3) * 0.07);
                 ctx.moveTo(zone.x + Math.cos(angle) * inner, zone.y + Math.sin(angle) * inner);
                 ctx.lineTo(zone.x + Math.cos(angle + 0.1) * outer, zone.y + Math.sin(angle + 0.1) * outer);
+            }
+            ctx.stroke();
+        }
+        if (impact && telegraph.effect === 'water') {
+            ctx.globalAlpha = alphaScale * 0.58 * (1 - impactProgress);
+            ctx.strokeStyle = telegraph.secondaryColor;
+            ctx.lineWidth = 2;
+            for (let ripple = 0; ripple < 3; ripple += 1) {
+                ctx.beginPath();
+                ctx.arc(zone.x, zone.y, radius * (0.22 + ripple * 0.18 + impactProgress * 0.25), 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        } else if (impact && telegraph.effect === 'slime') {
+            ctx.globalAlpha = alphaScale * 0.62 * (1 - impactProgress);
+            ctx.fillStyle = telegraph.secondaryColor;
+            for (let bubble = 0; bubble < 5; bubble += 1) {
+                const angle = (bubble / 5) * Math.PI * 2 + impactProgress;
+                const distance = radius * (0.26 + bubble * 0.08);
+                ctx.beginPath();
+                ctx.arc(zone.x + Math.cos(angle) * distance, zone.y + Math.sin(angle) * distance, Math.max(3, radius * 0.045), 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else if (impact && telegraph.effect === 'astral') {
+            ctx.globalAlpha = alphaScale * 0.7 * (1 - impactProgress);
+            ctx.strokeStyle = telegraph.secondaryColor;
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            for (let ray = 0; ray < 10; ray += 1) {
+                const angle = (ray / 10) * Math.PI * 2 + impactProgress;
+                ctx.moveTo(zone.x, zone.y);
+                ctx.lineTo(zone.x + Math.cos(angle) * radius * 0.78, zone.y + Math.sin(angle) * radius * 0.78);
             }
             ctx.stroke();
         }
@@ -1229,6 +1314,28 @@ export default class Monster extends CharacterBase {
                 ctx.lineTo(x, y);
             }
             ctx.stroke();
+        }
+        if (impact && telegraph.effect === 'water') {
+            ctx.globalAlpha = alphaScale * 0.54 * (1 - impactProgress);
+            ctx.strokeStyle = telegraph.secondaryColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let x = 0; x <= length; x += Math.max(18, length / 18)) {
+                const y = Math.sin((x / Math.max(1, length)) * Math.PI * 6 + impactProgress * 8) * width * 0.24;
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        } else if (impact && telegraph.effect === 'astral') {
+            ctx.globalAlpha = alphaScale * 0.62 * (1 - impactProgress);
+            ctx.strokeStyle = telegraph.secondaryColor;
+            ctx.lineWidth = 1.35;
+            for (let ribbon = -1; ribbon <= 1; ribbon += 2) {
+                ctx.beginPath();
+                ctx.moveTo(0, ribbon * width * 0.23);
+                ctx.quadraticCurveTo(length * 0.5, -ribbon * width * 0.36, length, ribbon * width * 0.23);
+                ctx.stroke();
+            }
         }
         ctx.restore();
     }
@@ -2126,6 +2233,57 @@ export default class Monster extends CharacterBase {
         ctx.restore();
     }
 
+    _inferEffectTheme(typeId = '') {
+        const id = String(typeId || '').toLowerCase();
+        if (id.includes('slime')) return 'slime';
+        if (id.includes('squirtle') || id.includes('wobbuffet')) return 'water';
+        if (id.includes('emolga') || id.includes('pikachu')) return 'thunder';
+        if (id.includes('gastly')) return 'shadow';
+        if (id.includes('sylveon')) return 'astral';
+        if (id.includes('dummy')) return 'wood';
+        return 'arcane';
+    }
+
+    _getCombatVfxTheme(preferredTheme = null) {
+        const id = String(preferredTheme || this.effectTheme || 'arcane').toLowerCase();
+        return COMBAT_VFX_THEMES[id] || COMBAT_VFX_THEMES.arcane;
+    }
+
+    _renderChargeTrail(ctx, x, y, renderWidth) {
+        if (this.isDead || this.chargeState !== 'charging') return;
+        const targetX = Number(this.chargeTarget?.x);
+        const targetY = Number(this.chargeTarget?.y);
+        if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) return;
+        const dx = targetX - this.x;
+        const dy = targetY - this.y;
+        const length = Math.hypot(dx, dy);
+        if (length < 0.1) return;
+        const theme = this._getCombatVfxTheme(this.behavior?.charge?.visual?.effect);
+        const lowGlareCombat = this.isLowGlareCombatZone();
+        const angle = Math.atan2(dy, dx);
+        const trailLength = Math.max(20, Math.min(renderWidth * (this.isBoss ? 1.25 : 0.8), 120));
+        const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle + Math.PI);
+        ctx.globalAlpha = lowGlareCombat ? 0.28 : 0.52;
+        ctx.strokeStyle = theme.color;
+        ctx.lineCap = 'round';
+        ctx.lineWidth = this.isBoss ? 4 : 2.4;
+        ctx.shadowColor = theme.color;
+        ctx.shadowBlur = lowGlareCombat ? 0 : (this.isBoss ? 12 : 6);
+        const streakCount = lowGlareCombat ? 2 : (this.isBoss ? 5 : 3);
+        for (let streak = 0; streak < streakCount; streak += 1) {
+            const offset = (streak - (streakCount - 1) / 2) * Math.max(5, renderWidth * 0.06);
+            const wobble = Math.sin(now / 80 + streak * 1.7) * 5;
+            ctx.beginPath();
+            ctx.moveTo(-8, offset);
+            ctx.quadraticCurveTo(-trailLength * 0.46, offset + wobble, -trailLength, offset * 0.45);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
     _renderBossAura(ctx, x, groundY, renderWidth, renderHeight) {
         if (!this.isBoss || this.isDead) return;
 
@@ -2193,26 +2351,42 @@ export default class Monster extends CharacterBase {
         ctx.restore();
     }
 
-    _renderBossCastCircle(ctx, x, groundY, renderWidth) {
-        if (!this.isBoss || this.isDead) return;
+    _renderCombatCastCircle(ctx, x, groundY, renderWidth) {
+        if (this.isDead) return;
         const castingTelegraph = this.activeBossTelegraphs.find((telegraph) => telegraph.elapsedMs < telegraph.warningMs);
         const charging = this.chargeState === 'casting';
         if (!castingTelegraph && !charging) return;
-        const vfx = castingTelegraph?.castVfx || this.bossEffects?.castVfx || {};
+        const chargeVisual = this.behavior?.charge?.visual || {};
+        const theme = this._getCombatVfxTheme(castingTelegraph?.effect || chargeVisual.effect);
+        const vfx = castingTelegraph?.castVfx || this.bossEffects?.castVfx || this.effectVfx || {};
         const progress = castingTelegraph
             ? Math.max(0, Math.min(1, castingTelegraph.elapsedMs / Math.max(1, castingTelegraph.warningMs)))
             : Math.max(0, Math.min(1, 1 - (this.chargeTimer / Math.max(0.2, this.chargeCastSeconds || 1))));
-        const radius = Math.max(62, renderWidth * Math.max(0.42, Number(vfx.radiusScale || 0.52))) * (0.86 + progress * 0.14);
+        const baseScale = this.isBoss ? 0.52 : 0.38;
+        const radius = Math.max(this.isBoss ? 62 : 34, renderWidth * Math.max(baseScale, Number(vfx.radiusScale || baseScale))) * (0.86 + progress * 0.14);
+        const lowGlareCombat = this.isLowGlareCombatZone();
         ctx.save();
-        ctx.globalAlpha = 0.42 + progress * 0.42;
+        ctx.globalAlpha = (this.isBoss ? 0.42 : 0.3) + progress * (this.isBoss ? 0.42 : 0.28);
         SkillRenderer.drawMagicCircle(ctx, x, groundY - 4, {
             radiusInner: radius * 0.72,
             radiusOuter: radius,
-            color: vfx.color || castingTelegraph?.color || this.bossEffects?.auraColor || '#a78bfa',
-            glowColor: vfx.glowColor || castingTelegraph?.secondaryColor || this.bossEffects?.secondaryColor || '#f5f3ff',
+            color: vfx.color || castingTelegraph?.color || this.bossEffects?.auraColor || theme.color,
+            glowColor: vfx.glowColor || castingTelegraph?.secondaryColor || this.bossEffects?.secondaryColor || theme.highlight,
             yScale: Math.max(0.28, Math.min(0.72, Number(vfx.yScale || 0.46))),
             rotationSpeed: Number(vfx.rotationSpeed || 0.0024)
         });
+        if (!lowGlareCombat) {
+            const shardCount = this.isBoss ? 8 : 4;
+            ctx.globalAlpha = 0.3 + progress * 0.28;
+            ctx.fillStyle = vfx.glowColor || theme.highlight;
+            for (let shard = 0; shard < shardCount; shard += 1) {
+                const angle = (shard / shardCount) * Math.PI * 2 - progress * 2.4;
+                const distance = radius * (0.8 + ((shard % 2) * 0.12));
+                ctx.beginPath();
+                ctx.arc(x + Math.cos(angle) * distance, groundY - 4 + Math.sin(angle) * distance * 0.42, this.isBoss ? 2.8 : 1.8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
         ctx.restore();
     }
 
@@ -2233,6 +2407,14 @@ export default class Monster extends CharacterBase {
         ctx.beginPath();
         ctx.arc(this.x, this.y, Math.max(8, this.width * 0.4 * (1 - progress)), 0, Math.PI * 2);
         ctx.fill();
+        // The destination portal tells the player where the ambush will land
+        // without changing the existing dodge window or damage timing.
+        ctx.globalAlpha = 0.32 + progress * 0.28;
+        SkillRenderer.drawMagicCircle(ctx, ambush.toX, ambush.toY + this.height * 0.42, {
+            radiusInner: radius * 0.5,
+            radiusOuter: radius * 0.78,
+            color: '#5b21b6', glowColor: '#f0abfc', yScale: 0.42, rotationSpeed: 0.0042
+        });
         ctx.restore();
     }
 
@@ -2315,7 +2497,8 @@ export default class Monster extends CharacterBase {
 
         // Boss presentation stays independent from the authored atlas frames.
         this._renderBossAura(ctx, screenX, groundY, renderWidth, renderHeight);
-        this._renderBossCastCircle(ctx, screenX, groundY, renderWidth);
+        this._renderChargeTrail(ctx, screenX, groundY, renderWidth);
+        this._renderCombatCastCircle(ctx, screenX, groundY, renderWidth);
         this._renderShadowAmbush(ctx);
 
         // Fallback or Sprite Draw

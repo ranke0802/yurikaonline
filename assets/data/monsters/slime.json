@@ -17,6 +17,7 @@
         }
     },
     "visual": {
+        "effectTheme": "slime",
         "assetPath": "assets/resource/monster_slime",
         "width": 80,
         "height": 80,

@@ -16,6 +16,7 @@
         "hpRegen": 5
     },
     "visual": {
+        "effectTheme": "slime",
         "assetPath": "assets/resource/monster_slime",
         "width": 160,
         "height": 160,

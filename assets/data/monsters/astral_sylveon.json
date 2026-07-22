@@ -17,6 +17,7 @@
     "hpRegen": 12
   },
   "visual": {
+    "effectTheme": "astral",
     "assetPath": "assets/resource/monsters/astral_sylveon/spritesheet.webp",
     "spriteVersionNumber": 2,
     "width": 148,

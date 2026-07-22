@@ -17,6 +17,7 @@
     "hpRegen": 6
   },
   "visual": {
+    "effectTheme": "thunder",
     "assetPath": "assets/resource/monsters/thunder_pikachu/spritesheet.webp",
     "spriteVersionNumber": 2,
     "width": 124,

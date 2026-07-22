@@ -339,7 +339,11 @@ export default class NetworkManager extends EventEmitter {
         this._accountSessionHeartbeatTimer = null;
         this._accountSessionClaimedAt = 0;
         this._accountSessionClaimConfirmed = false;
+        this._accountSessionClaimPromise = null;
         this._accountSessionDisplacedTokens = new Set();
+        this._accountSessionTakeoverToken = null;
+        this._accountSessionHandoffWaiter = null;
+        this._profileWriterSuperseding = false;
         this._lastProfileWriterFenceRecoveryLogTs = 0;
         this._queuedProfileSaves = new Map();
         this._queuedProfilePatches = new Map();
@@ -7049,7 +7053,14 @@ export default class NetworkManager extends EventEmitter {
         this._accountSessionToken = null;
         this._accountSessionClaimedAt = 0;
         this._accountSessionClaimConfirmed = false;
+        this._accountSessionClaimPromise = null;
         this._accountSessionDisplacedTokens.clear();
+        this._accountSessionTakeoverToken = null;
+        if (this._accountSessionHandoffWaiter) {
+            clearTimeout(this._accountSessionHandoffWaiter.timer);
+            this._accountSessionHandoffWaiter.resolve({ completed: false, reason: 'session_stopped' });
+            this._accountSessionHandoffWaiter = null;
+        }
     }
 
     _rememberAccountSessionDisplacedToken(candidateToken) {
@@ -7114,12 +7125,19 @@ export default class NetworkManager extends EventEmitter {
         this._accountSessionRef = ref;
         this._accountSessionClaimedAt = now;
         this._accountSessionClaimConfirmed = false;
+        this._accountSessionClaimPromise = null;
         this._accountSessionDisplacedTokens.clear();
+        this._accountSessionTakeoverToken = null;
+        const claimedAt = now;
         const takeoverGraceUntil = now + 15000;
 
         const rememberDisplacedToken = (candidateToken) => {
             if (this._accountSessionUid !== uid || this._accountSessionToken !== token) return false;
-            return this._rememberAccountSessionDisplacedToken(candidateToken);
+            const remembered = this._rememberAccountSessionDisplacedToken(candidateToken);
+            if (remembered && !this._accountSessionClaimConfirmed && !this._accountSessionTakeoverToken) {
+                this._accountSessionTakeoverToken = candidateToken;
+            }
+            return remembered;
         };
 
         const isReplacingThisSession = (value) => {
@@ -7152,6 +7170,7 @@ export default class NetworkManager extends EventEmitter {
             }
             if (remoteToken === token) {
                 this._accountSessionClaimConfirmed = true;
+                this._resolveAccountSessionHandoff(value);
                 return;
             }
             const heartbeatAt = Number(value.heartbeatAt || value.claimedAt || 0);
@@ -7173,24 +7192,101 @@ export default class NetworkManager extends EventEmitter {
             publish();
         };
         ref.on?.('value', this._accountSessionHandler);
-        publish();
-        if (typeof ref.once === 'function') {
-            ref.once('value')
-                .then((snapshot) => {
-                    const value = snapshot?.val?.();
-                    const remoteToken = typeof value?.token === 'string' ? value.token : '';
-                    if (rememberDisplacedToken(remoteToken)) {
-                        publish();
-                        return;
+        // Claim with a transaction when possible.  An update issued before a
+        // read can overwrite the only visible evidence of the prior token,
+        // making the new device skip the final-save handoff entirely.
+        const claim = async () => {
+            if (typeof ref.transaction === 'function') {
+                await ref.transaction((current) => {
+                    const existing = current && typeof current === 'object' ? current : {};
+                    const remoteToken = typeof existing.token === 'string' ? existing.token : '';
+                    rememberDisplacedToken(remoteToken);
+                    const replacedTokens = this._getAccountSessionReplacedTokens();
+                    const payload = {
+                        ...existing,
+                        token,
+                        uid,
+                        heartbeatAt: Date.now(),
+                        claimedAt,
+                        version: 'v2'
+                    };
+                    if (replacedTokens.length > 0) {
+                        payload.replacesToken = replacedTokens[replacedTokens.length - 1];
+                        payload.replacesTokens = replacedTokens;
                     }
-                    publish();
-                })
-                .catch(() => publish());
-        } else {
+                    return payload;
+                });
+                return;
+            }
+            if (typeof ref.once === 'function') {
+                const snapshot = await ref.once('value');
+                const value = snapshot?.val?.();
+                rememberDisplacedToken(typeof value?.token === 'string' ? value.token : '');
+            }
             publish();
-        }
+        };
+        this._accountSessionClaimPromise = Promise.resolve()
+            .then(claim)
+            .catch(() => publish())
+            .finally(() => {
+                if (this._accountSessionUid === uid && this._accountSessionToken === token) publish();
+            });
         this._accountSessionHeartbeatTimer = setInterval(publish, ACCOUNT_SESSION_HEARTBEAT_MS);
         return true;
+    }
+
+    _resolveAccountSessionHandoff(value = null) {
+        const waiter = this._accountSessionHandoffWaiter;
+        if (!waiter || !value || typeof value !== 'object') return false;
+        if (value.previousProfileFlushToken !== waiter.token) return false;
+        clearTimeout(waiter.timer);
+        this._accountSessionHandoffWaiter = null;
+        waiter.resolve({
+            completed: value.previousProfileFlushOk !== false,
+            reason: value.previousProfileFlushOk === false ? 'previous_flush_failed' : 'previous_flush_acknowledged',
+            flushedAt: Number(value.previousProfileFlushAt || 0)
+        });
+        return true;
+    }
+
+    waitForAccountSessionHandoff(uid = this.playerId, options = {}) {
+        if (!uid || uid !== this.playerId || this._accountSessionUid !== uid) {
+            return Promise.resolve({ completed: false, reason: 'session_uid_mismatch' });
+        }
+        const timeoutMs = Math.max(250, Math.min(1500, Number(options.timeoutMs || 900)));
+        const deadline = Date.now() + timeoutMs;
+        const claimWait = Promise.race([
+            Promise.resolve(this._accountSessionClaimPromise).then(() => true).catch(() => false),
+            new Promise((resolve) => setTimeout(() => resolve(false), timeoutMs))
+        ]);
+        return claimWait
+            .then((claimed) => {
+                if (!claimed) return { completed: false, reason: 'session_claim_timeout' };
+                const token = this._accountSessionTakeoverToken;
+                if (!token) return { completed: true, reason: 'no_previous_session' };
+                if (this._accountSessionHandoffWaiter?.token === token) {
+                    return this._accountSessionHandoffWaiter.promise;
+                }
+                const remainingMs = Math.max(0, deadline - Date.now());
+                if (remainingMs <= 0) return { completed: false, reason: 'previous_flush_timeout' };
+                let resolveWaiter;
+                const promise = new Promise((resolve) => { resolveWaiter = resolve; });
+                const waiter = {
+                    token,
+                    promise,
+                    resolve: resolveWaiter,
+                    timer: setTimeout(() => {
+                        if (this._accountSessionHandoffWaiter !== waiter) return;
+                        this._accountSessionHandoffWaiter = null;
+                        resolveWaiter({ completed: false, reason: 'previous_flush_timeout' });
+                    }, remainingMs)
+                };
+                this._accountSessionHandoffWaiter = waiter;
+                this._accountSessionRef?.once?.('value')
+                    ?.then((snapshot) => this._resolveAccountSessionHandoff(snapshot?.val?.()))
+                    ?.catch(() => { });
+                return promise;
+            });
     }
 
     _shouldUseProfileWriterSession(uid) {
@@ -7273,17 +7369,46 @@ export default class NetworkManager extends EventEmitter {
     }
 
     _notifyProfileWriterSuperseded(uid, currentProfile = null) {
-        if (this._profileWriterSuperseded) return;
-        this._profileWriterSuperseded = true;
-        this._stopAccountSessionGuard();
-        this.emit('profileWriterSuperseded', {
+        if (this._profileWriterSuperseded || this._profileWriterSuperseding) return;
+        const event = {
             uid,
             currentWriterEpoch: Number(currentProfile?._writerEpoch || 0),
             activeSessionToken: currentProfile?.activeSessionToken || null,
             replacedByNewSession: currentProfile?.replacedByNewSession === true,
             reason: currentProfile?.reason || 'active_session_replaced',
             detectedAt: Date.now()
-        });
+        };
+        this._profileWriterSuperseding = true;
+        const previousToken = this._accountSessionToken;
+        const activeSessionRef = this._accountSessionRef;
+        // The successor must not read before this last compact journal/queued
+        // patch has been committed.  Profile transactions remain enabled for
+        // this bounded handoff; the session is blocked immediately after it.
+        void (async () => {
+            let flushResult = { ok: false, reason: 'handoff_flush_not_started' };
+            try {
+                flushResult = await this.flushProfileWrites(uid);
+            } catch (error) {
+                Logger.warn(`[Network] Failed to flush profile writes during account handoff for ${uid}`, error);
+                flushResult = { ok: false, reason: 'handoff_flush_failed' };
+            }
+            try {
+                if (activeSessionRef && previousToken) {
+                    await activeSessionRef.update({
+                        previousProfileFlushToken: previousToken,
+                        previousProfileFlushAt: Date.now(),
+                        previousProfileFlushOk: flushResult?.ok !== false
+                    });
+                }
+            } catch (error) {
+                Logger.warn(`[Network] Failed to acknowledge profile handoff for ${uid}`, error);
+            } finally {
+                this._profileWriterSuperseding = false;
+                this._profileWriterSuperseded = true;
+                this._stopAccountSessionGuard();
+                this.emit('profileWriterSuperseded', event);
+            }
+        })();
     }
 
     isProfileWriterSuperseded() {
