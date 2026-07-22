@@ -109,18 +109,19 @@ export default class CharacterSelectionScene extends Scene {
                 'character_select_profile_read'
             );
             if (!this._isEnterCurrent(generation, user.uid)) return;
-            const shouldLookupRecovery = this.game.net.shouldUseProfileRecoveryLookup
-                ? this.game.net.shouldUseProfileRecoveryLookup(profile, {
-                    operation: 'character_select',
-                    uid: user.uid
-                })
-                : true;
-            latestSnapshot = shouldLookupRecovery
-                ? await withProfileReadTimeout(this.game.net.getLatestProfileSnapshot?.(user.uid, {
-                    profile,
-                    throwOnError: true
-                }), 'character_select_recovery_read')
-                : { profile, source: 'profile', latestUid: user.uid, rootRevision: this._getProfileRevision(profile) };
+            // A device can legitimately hold an older, otherwise healthy root
+            // profile while another device has just crossed a level threshold.
+            // Always compare the single compact recovery mirror at account
+            // entry.  getLatestProfileSnapshot still skips the expensive
+            // profile-backup query unless the root actually looks damaged.
+            // This keeps the login path bounded while preventing a valid
+            // higher-EXP snapshot from being hidden behind a healthy-looking
+            // lower-level root profile.
+            latestSnapshot = await withProfileReadTimeout(this.game.net.getLatestProfileSnapshot?.(user.uid, {
+                profile,
+                throwOnError: true,
+                forceRecoveryLookup: true
+            }), 'character_select_recovery_read');
             if (!this._isEnterCurrent(generation, user.uid)) return;
         } catch (error) {
             if (!this._isEnterCurrent(generation, user.uid)) return;

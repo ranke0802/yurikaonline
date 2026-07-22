@@ -2758,8 +2758,9 @@ async function validateCharacterSelectionGenerationContracts() {
     assert.deepEqual(renderedProfiles, ['Account B']);
     assert.equal(scene.profile.name, 'Account B', 'a stale account read must not replace the current account profile');
 
-    let fastPathLatestReads = 0;
-    const fastPathGame = {
+    let recoveryMirrorReads = 0;
+    let recoveryMirrorOptions = null;
+    const recoveryMirrorGame = {
         auth: { currentUser: { uid: 'healthy_account' } },
         net: {
             playerId: 'healthy_account',
@@ -2777,22 +2778,23 @@ async function validateCharacterSelectionGenerationContracts() {
                     ts: 100
                 };
             },
-            shouldUseProfileRecoveryLookup() {
-                return false;
-            },
-            async getLatestProfileSnapshot() {
-                fastPathLatestReads += 1;
-                throw new Error('healthy reconnect must not perform heavy profile recovery lookup');
+            async getLatestProfileSnapshot(_uid, options = {}) {
+                recoveryMirrorReads += 1;
+                recoveryMirrorOptions = options;
+                // Character selection must use the single recovery mirror,
+                // but not require the expensive profile-backup query.
+                return { profile: await this.getPlayerProfile(), source: 'profile', ts: 100 };
             }
         },
         ui: { hideHUD() {}, hideAllPopups() {} },
         sound: null
     };
-    const fastPathScene = new CharacterSelectionScene(fastPathGame);
-    fastPathScene.createUI = () => renderedProfiles.push(fastPathScene.profile?.name || null);
-    await fastPathScene.enter({ user: { uid: 'healthy_account' } });
-    assert.equal(fastPathLatestReads, 0, 'healthy character selection reconnect must use the root profile fast path');
-    assert.equal(fastPathScene.profile.name, 'Healthy Account');
+    const recoveryMirrorScene = new CharacterSelectionScene(recoveryMirrorGame);
+    recoveryMirrorScene.createUI = () => renderedProfiles.push(recoveryMirrorScene.profile?.name || null);
+    await recoveryMirrorScene.enter({ user: { uid: 'healthy_account' } });
+    assert.equal(recoveryMirrorReads, 1, 'character selection must compare the bounded recovery mirror exactly once');
+    assert.equal(recoveryMirrorOptions?.forceRecoveryLookup, true, 'a healthy-looking lower root must not hide cross-device recovery progress');
+    assert.equal(recoveryMirrorScene.profile.name, 'Healthy Account');
 
     const repairOptions = [];
     let repairErrorShown = false;
@@ -2944,6 +2946,13 @@ async function validateCriticalProfilePersistenceTriggers() {
         assert.equal(patchCalls[0].patch.mp, player.mp);
         assert.equal(patchCalls[0].options.forceImmediate, true);
         assert.equal(patchCalls[0].options.saveReason, 'levelup_progress_patch');
+        assert.equal(patchCalls[0].options.syncRecoveryProfile, true, 'level-up EXP must publish the recovery mirror immediately');
+
+        patchCalls.length = 0;
+        player.levelUp();
+        assert.equal(patchCalls.length, 1);
+        assert.equal(patchCalls[0].options.saveReason, 'levelup_patch');
+        assert.equal(patchCalls[0].options.syncRecoveryProfile, true, 'direct level-up saves must publish the recovery mirror immediately');
 
         patchCalls.length = 0;
         player.manastone = 300;
@@ -3650,6 +3659,59 @@ async function validateProfileWriterFencingContracts() {
         assert.equal(healthySnapshot.source, 'profile');
         assert.equal(healthyRootRecoveryReads, 0, 'healthy root profile reconnect must not download the full recovery profile');
         assert.equal(healthyRootBackupReads, 0, 'healthy root profile reconnect must not download profile backups');
+
+        const crossDeviceRoot = {
+            ...clone(advancedProfile),
+            level: 23,
+            exp: 83,
+            maxExp: 1_000,
+            recoveryUid: 'linked_guest_stable_uid',
+            ts: Date.now() + 10_000
+        };
+        const crossDeviceRecovery = {
+            ...clone(advancedProfile),
+            level: 24,
+            exp: 19,
+            maxExp: 1_500,
+            recoveryUid: 'linked_guest_stable_uid',
+            ts: Date.now() - 10_000
+        };
+        let crossDeviceRecoveryReads = 0;
+        let crossDeviceBackupReads = 0;
+        const crossDeviceFirebaseMock = {
+            database: () => ({
+                ref(path) {
+                    if (path === 'recovery_profiles/linked_guest_stable_uid') {
+                        return {
+                            once: async () => {
+                                crossDeviceRecoveryReads += 1;
+                                return { val: () => ({ profile: clone(crossDeviceRecovery), ts: crossDeviceRecovery.ts, latestUid: uid }) };
+                            }
+                        };
+                    }
+                    if (path === `users/${uid}/profileBackups`) {
+                        crossDeviceBackupReads += 1;
+                        return {
+                            orderByChild() { return this; },
+                            limitToLast() { return this; },
+                            once: async () => ({ forEach() {} })
+                        };
+                    }
+                    return { once: async () => ({ val: () => null }) };
+                }
+            })
+        };
+        window.firebase = crossDeviceFirebaseMock;
+        globalThis.firebase = crossDeviceFirebaseMock;
+        const crossDeviceSnapshotNet = new NetworkManager();
+        const crossDeviceSnapshot = await crossDeviceSnapshotNet.getLatestProfileSnapshot(uid, {
+            profile: crossDeviceRoot,
+            forceRecoveryLookup: true
+        });
+        assert.equal(crossDeviceSnapshot.source, 'recovery', 'a higher-EXP mobile recovery mirror must beat a healthy lower PC root');
+        assert.equal(crossDeviceSnapshot.profile.level, 24);
+        assert.equal(crossDeviceRecoveryReads, 1, 'cross-device login must read only the stable recovery mirror');
+        assert.equal(crossDeviceBackupReads, 0, 'cross-device level reconciliation must not download profile backups');
 
         const rootRegressedProfile = {
             name: 'Ppp',

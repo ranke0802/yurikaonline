@@ -2852,7 +2852,11 @@ export default class Player extends CharacterBase {
                 // write is debounced, so an iOS/PWA termination cannot drop
                 // recently earned EXP or inventory.
                 checkpointPolicy: 'durable',
-                syncRecoveryProfile: false
+                // Level thresholds are the cross-device durability boundary:
+                // once a reward levels the character, publish the committed
+                // profile to the one recovery mirror immediately.  Routine
+                // rewards remain batched and do not add a recovery write.
+                syncRecoveryProfile: leveledUpFromReward
             });
         }
         return true;
@@ -3011,7 +3015,9 @@ export default class Player extends CharacterBase {
                 // level threshold. NetworkManager journals this narrow patch
                 // instead of duplicating the full profile checkpoint.
                 checkpointPolicy: 'durable',
-                syncRecoveryProfile: false
+                // A level-up must be visible to a second device immediately;
+                // normal EXP retains the compact journal/batched path.
+                syncRecoveryProfile: leveledUp
             });
         }
     }
@@ -3057,7 +3063,7 @@ export default class Player extends CharacterBase {
                 syncToWorld,
             reason: 'levelup_patch',
             checkpointPolicy: 'durable',
-            syncRecoveryProfile: false
+            syncRecoveryProfile: true
             });
         }
     }

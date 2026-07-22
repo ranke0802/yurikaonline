@@ -8669,8 +8669,13 @@ export default class NetworkManager extends EventEmitter {
             const backupLimit = shouldLookupRecovery
                 ? Math.max(0, Math.min(PROFILE_BACKUP_DEFAULT_KEEP_COUNT, Math.floor(Number(options.backupLimit ?? PROFILE_BACKUP_DEFAULT_KEEP_COUNT))))
                 : 0;
+            // Linked guest accounts retain their original stable recovery UID.
+            // Resolve it from the root before reading so a valid guest-era
+            // recovery mirror remains discoverable after a Google migration,
+            // even if an older client did not write the UID alias.
+            const recoveryLookupUid = this._resolveRecoveryUid(rootProfile, uid);
             const recoverySnapshot = includeRecovery
-                ? await this.getRecoveryProfileRef(uid)?.once('value')
+                ? await this.getRecoveryProfileRef(recoveryLookupUid)?.once('value')
                 : null;
 
             const recoveryEntry = recoverySnapshot?.val() || null;
@@ -8678,7 +8683,7 @@ export default class NetworkManager extends EventEmitter {
                 ? this._normalizeProfileSnapshot(recoveryEntry.profile, recoveryEntry.ts || 0)
                 : null;
             if (recoveryProfile) {
-                recoveryProfile.recoveryUid = this._resolveRecoveryUid(recoveryProfile, recoveryEntry?.recoveryUid || uid);
+                recoveryProfile.recoveryUid = this._resolveRecoveryUid(recoveryProfile, recoveryEntry?.recoveryUid || recoveryLookupUid);
             }
 
             let bestSnapshot = null;
@@ -8718,7 +8723,7 @@ export default class NetworkManager extends EventEmitter {
                 source: 'recovery',
                 backupId: null,
                 latestUid: recoveryEntry?.latestUid || uid,
-                recoveryUid: this._resolveRecoveryUid(recoveryProfile, recoveryEntry?.recoveryUid || uid)
+                recoveryUid: this._resolveRecoveryUid(recoveryProfile, recoveryEntry?.recoveryUid || recoveryLookupUid)
             } : null;
             consider(rootCandidate);
             consider(recoveryCandidate);

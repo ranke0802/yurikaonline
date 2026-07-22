@@ -9016,7 +9016,11 @@ export class UIManager {
                         throw new Error('대기 중인 게스트 데이터를 저장하지 못했습니다. 다시 시도해주세요.');
                     }
                     const guestSnapshot = await this.game.net.getLatestProfileSnapshot?.(guestUid, {
-                        throwOnError: true
+                        throwOnError: true,
+                        // A guest can have just reached a level on a mobile
+                        // device.  Use the same bounded mirror comparison as
+                        // normal account entry before migrating it to Google.
+                        forceRecoveryLookup: true
                     });
                     if (!guestSnapshot?.profile) {
                         alert('현재 게스트 캐릭터 데이터를 찾을 수 없습니다.');
@@ -9089,7 +9093,8 @@ export class UIManager {
                     if (targetExpectedRevision == null) {
                         const targetSnapshot = await this.game.net.getLatestProfileSnapshot?.(result.googleUid, {
                             throwOnError: true,
-                            includeMissingMetadata: true
+                            includeMissingMetadata: true,
+                            forceRecoveryLookup: true
                         });
                         if (targetSnapshot?.profile && result.googleUid !== guestUid) {
                             throw new Error('대상 구글 계정의 프로필 상태가 변경되었습니다. 다시 시도해주세요.');
