@@ -3660,9 +3660,11 @@ async function validateProfileWriterFencingContracts() {
         assert.equal(healthyRootRecoveryReads, 0, 'healthy root profile reconnect must not download the full recovery profile');
         assert.equal(healthyRootBackupReads, 0, 'healthy root profile reconnect must not download profile backups');
 
+        const lowerProgressLevel = 23;
+        const higherProgressLevel = lowerProgressLevel + 1;
         const crossDeviceRoot = {
             ...clone(advancedProfile),
-            level: 23,
+            level: lowerProgressLevel,
             exp: 83,
             maxExp: 1_000,
             recoveryUid: 'linked_guest_stable_uid',
@@ -3670,7 +3672,7 @@ async function validateProfileWriterFencingContracts() {
         };
         const crossDeviceRecovery = {
             ...clone(advancedProfile),
-            level: 24,
+            level: higherProgressLevel,
             exp: 19,
             maxExp: 1_500,
             recoveryUid: 'linked_guest_stable_uid',
@@ -3709,7 +3711,7 @@ async function validateProfileWriterFencingContracts() {
             forceRecoveryLookup: true
         });
         assert.equal(crossDeviceSnapshot.source, 'recovery', 'a higher-EXP mobile recovery mirror must beat a healthy lower PC root');
-        assert.equal(crossDeviceSnapshot.profile.level, 24);
+        assert.equal(crossDeviceSnapshot.profile.level, higherProgressLevel);
         assert.equal(crossDeviceRecoveryReads, 1, 'cross-device login must read only the stable recovery mirror');
         assert.equal(crossDeviceBackupReads, 0, 'cross-device level reconciliation must not download profile backups');
 
