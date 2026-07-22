@@ -68,6 +68,7 @@ export class UIManager {
         this.ignoreNextBrowserBackPopstate = false;
         this.pendingBrowserBackExitAction = null;
         this.gameExitSceneTransitioning = false;
+        this.gameExitConfirmPending = false;
         this.statusDevLookupExpanded = false;
         this.handleDesktopShortcutKeydown = this.handleDesktopShortcutKeydown.bind(this);
         this.refreshDesktopShortcutHints = this.refreshDesktopShortcutHints.bind(this);
@@ -4805,6 +4806,17 @@ export class UIManager {
             this.game.sound?.playSfx?.(nextValue);
         });
 
+        const exitGameBtn = document.getElementById('settings-exit-game');
+        if (exitGameBtn) {
+            const handleExitGame = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.requestGameExitToCharacterSelection('settings_exit_game');
+            };
+            exitGameBtn.addEventListener('click', handleExitGame);
+            exitGameBtn.addEventListener('touchstart', handleExitGame, { passive: false });
+        }
+
         document.getElementById('settings-dev-exit')?.addEventListener('click', () => {
             this.setDevMode(false, { announce: true });
         });
@@ -7602,6 +7614,26 @@ export class UIManager {
         });
     }
 
+    requestGameExitToCharacterSelection(reason = 'manual_exit_game') {
+        if (this.gameExitSceneTransitioning || this.gameExitConfirmPending || !this.isWorldSceneActive()) return false;
+        this.gameExitConfirmPending = true;
+        this.showConfirm('게임을 종료하고 캐릭터 선택 화면으로 이동하시겠습니까?', async (confirmed) => {
+            this.gameExitConfirmPending = false;
+            if (!confirmed) return;
+            try {
+                this.hideAllPopups?.();
+                const ok = await this.exitGameToCharacterSelection({ reason });
+                if (!ok) {
+                    this.showCenterMessage?.('게임 종료에 실패했습니다. 잠시 후 다시 시도해 주세요.', '#ff6b6b');
+                }
+            } catch (error) {
+                Logger.error('[UIManager] Manual game exit failed unexpectedly', error);
+                this.showCenterMessage?.('게임 종료에 실패했습니다. 잠시 후 다시 시도해 주세요.', '#ff6b6b');
+            }
+        });
+        return true;
+    }
+
     async exitGameToCharacterSelection(options = {}) {
         if (this.gameExitSceneTransitioning) return false;
         if (!this.isWorldSceneActive()) return false;
@@ -7613,6 +7645,8 @@ export class UIManager {
         }
 
         this.gameExitSceneTransitioning = true;
+        let detachedPlayer = null;
+        let previousZoneParticipationEnabled = null;
         try {
             this.disarmBrowserBackExitGuard();
             this.game?._resetTransientInputState?.(options.reason || 'exit_game_to_char_select');
@@ -7635,13 +7669,22 @@ export class UIManager {
             if (flushResult?.ok === false) {
                 throw new Error(flushResult.reason || 'exit_game_profile_flush_failed');
             }
+            worldScene?.markProfileSavedForSceneExit?.(player?.id);
+            previousZoneParticipationEnabled = this.game?.net?.zoneParticipationEnabled;
             this.game?.net?.setZoneParticipationEnabled?.(false);
+            detachedPlayer = player || null;
             this.game.localPlayer = null;
 
             await this.game?.sceneManager?.changeScene('charSelect', { user: currentUser });
             return true;
         } catch (error) {
             Logger.error('[UIManager] Failed to exit game to character selection', error);
+            if (detachedPlayer && !this.game?.localPlayer && this.isWorldSceneActive()) {
+                this.game.localPlayer = detachedPlayer;
+            }
+            if (previousZoneParticipationEnabled === true && this.isWorldSceneActive()) {
+                this.game?.net?.setZoneParticipationEnabled?.(true);
+            }
             if (this.isWorldSceneActive()) {
                 this.armBrowserBackExitGuard();
             }

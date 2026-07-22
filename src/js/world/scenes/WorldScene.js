@@ -52,6 +52,22 @@ export default class WorldScene extends Scene {
         this._profileIdleSaveInFlight = false;
         this._profileIdleLastSavedAt = 0;
         this._profileIdleLastSavedPosition = null;
+        this._profileSavedForSceneExit = null;
+    }
+
+    markProfileSavedForSceneExit(uid = this.player?.id) {
+        if (!uid) return;
+        this._profileSavedForSceneExit = {
+            uid,
+            ts: Date.now()
+        };
+    }
+
+    _shouldSkipFinalProfileSaveOnExit() {
+        const marker = this._profileSavedForSceneExit;
+        if (!marker || !this.player?.id) return false;
+        return marker.uid === this.player.id
+            && Date.now() - Number(marker.ts || 0) < 15000;
     }
 
     _hasBasicTrainingCompletionFlag(questState = null) {
@@ -1133,17 +1149,21 @@ export default class WorldScene extends Scene {
 
     async exit() {
         await this.waitForPendingZoneTransition();
-        if (this.player?.saveProfilePosition) {
-            await this.player.saveProfilePosition({
-                debounceMs: 0,
-                forceImmediate: true,
-                reason: 'world_exit_position_snapshot'
-            });
+        const skipFinalProfileSave = this._shouldSkipFinalProfileSaveOnExit();
+        if (!skipFinalProfileSave) {
+            if (this.player?.saveProfilePosition) {
+                await this.player.saveProfilePosition({
+                    debounceMs: 0,
+                    forceImmediate: true,
+                    reason: 'world_exit_position_snapshot'
+                });
+            }
+            const flushResult = await this.net?.flushProfileWrites?.(this.player?.id);
+            if (flushResult?.ok === false) {
+                throw new Error(flushResult.reason || 'world_exit_profile_flush_failed');
+            }
         }
-        const flushResult = await this.net?.flushProfileWrites?.(this.player?.id);
-        if (flushResult?.ok === false) {
-            throw new Error(flushResult.reason || 'world_exit_profile_flush_failed');
-        }
+        this._profileSavedForSceneExit = null;
         await this.net?.setNormalRewardConsumer?.(null);
         await this.net?.setDurableRewardConsumer?.(null);
         this.ui?.disarmBrowserBackExitGuard?.();

@@ -2502,6 +2502,9 @@ async function validateProfileExitDurabilityContracts() {
     const worldScene = {
         async waitForPendingZoneTransition() {
             order.push('zone_transition_settled');
+        },
+        markProfileSavedForSceneExit(uid) {
+            order.push(`exit-ready:${uid}`);
         }
     };
     const game = {
@@ -2538,6 +2541,7 @@ async function validateProfileExitDurabilityContracts() {
         'zone_transition_settled',
         'save:runtime_exit',
         `flush:${player.id}`,
+        `exit-ready:${player.id}`,
         'participation:false',
         'scene:charSelect'
     ], 'world exit must settle travel and durable profile writes before profile reload');
@@ -2570,6 +2574,30 @@ async function validateProfileExitDurabilityContracts() {
     assert.equal(await zoneMove, true);
     assert.deepEqual(await zoneWait, { ok: true, pending: true, moved: true });
     assert.equal(trackedScene._activeZoneTransitionPromise, null);
+
+    const savedExitScene = new WorldScene({
+        camera: null,
+        monsterManager: null,
+        ui: {},
+        net: {
+            setNormalRewardConsumer: async () => {},
+            setDurableRewardConsumer: async () => {}
+        },
+        resources: null,
+        input: null
+    });
+    let repeatedSaveAttempts = 0;
+    savedExitScene.player = {
+        id: 'saved_exit_player',
+        saveProfilePosition: async () => {
+            repeatedSaveAttempts += 1;
+            throw new Error('final profile save should not run twice');
+        },
+        detachInput: () => {}
+    };
+    savedExitScene.markProfileSavedForSceneExit('saved_exit_player');
+    await savedExitScene.exit();
+    assert.equal(repeatedSaveAttempts, 0, 'scene exit must not repeat profile saves after UI exit already flushed them');
 }
 
 async function validateLocalProfileCheckpointContracts() {
