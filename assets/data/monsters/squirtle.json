@@ -15,6 +15,7 @@
   },
   "visual": {
     "effectTheme": "water",
+    "effectVfx": { "theme": "water", "anchor": "ground", "groundAnchor": 0.9, "chargeFrame": 0, "castFrame": 1, "impactFrame": 2, "residueFrame": 3 },
     "assetPath": "assets/resource/monsters/squirtle/spritesheet.webp",
     "spriteVersionNumber": 2,
     "width": 72,

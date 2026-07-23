@@ -15,6 +15,7 @@
     },
     "visual": {
         "effectTheme": "slime",
+        "effectVfx": { "theme": "slime", "anchor": "ground", "groundAnchor": 0.9 },
         "assetPath": "assets/resource/monster_slime",
         "width": 112,
         "height": 112,

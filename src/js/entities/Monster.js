@@ -1,10 +1,16 @@
 import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
+import {
+    drawMonsterSkillVfx,
+    preloadMonsterSkillVfxAtlas,
+    resolveMonsterSkillVfxTheme
+} from '../effects/MonsterSkillVfxRenderer.js';
 
 const BOSS_MECHANIC_AREA_SCALE = 3;
 const BOSS_MECHANIC_DAMAGE_SCALE = 2;
 const BOSS_MECHANIC_CAST_SCALE = 1.3;
+const VFX_STAGE_FRAMES = Object.freeze({ charge: 0, cast: 1, impact: 2, residue: 3 });
 // Shared immutable palettes avoid per-frame object allocation in combat rendering.
 const COMBAT_VFX_THEMES = Object.freeze({
     slime: Object.freeze({ id: 'slime', color: '#8fe36a', highlight: '#efffc8', fill: 'rgba(112, 211, 83, 0.13)', stroke: 'rgba(188, 255, 149, 0.72)' }),
@@ -15,87 +21,6 @@ const COMBAT_VFX_THEMES = Object.freeze({
     wood: Object.freeze({ id: 'wood', color: '#d6a85e', highlight: '#fff0bd', fill: 'rgba(180, 125, 62, 0.1)', stroke: 'rgba(241, 204, 125, 0.66)' }),
     arcane: Object.freeze({ id: 'arcane', color: '#a78bfa', highlight: '#f5f3ff', fill: 'rgba(167, 139, 250, 0.11)', stroke: 'rgba(196, 181, 253, 0.72)' })
 });
-const MONSTER_COMBAT_VFX_ATLAS = Object.freeze({
-    src: 'assets/resource/effects/monster-combat-vfx.webp',
-    columns: 5,
-    rows: 3
-});
-const MONSTER_COMBAT_VFX_COLUMNS = Object.freeze({
-    slime: 0,
-    water: 1,
-    thunder: 2,
-    shadow: 3,
-    astral: 4,
-    wood: 0,
-    arcane: 4
-});
-const MONSTER_COMBAT_VFX_THEME_ALIASES = Object.freeze({
-    lightning_field: 'thunder',
-    shock: 'thunder',
-    slime: 'slime',
-    water: 'water',
-    shadow: 'shadow',
-    astral: 'astral'
-});
-let monsterCombatVfxAtlasImage = null;
-
-function resolveMonsterCombatVfxTheme(effectTheme) {
-    const id = String(effectTheme || 'arcane').toLowerCase();
-    return MONSTER_COMBAT_VFX_COLUMNS[id] != null
-        ? id
-        : (MONSTER_COMBAT_VFX_THEME_ALIASES[id] || 'arcane');
-}
-
-function getMonsterCombatVfxAtlasImage() {
-    if (typeof Image === 'undefined') return null;
-    if (!monsterCombatVfxAtlasImage) {
-        monsterCombatVfxAtlasImage = new Image();
-        monsterCombatVfxAtlasImage.decoding = 'async';
-        monsterCombatVfxAtlasImage.src = MONSTER_COMBAT_VFX_ATLAS.src;
-    }
-    return monsterCombatVfxAtlasImage.naturalWidth > 0 ? monsterCombatVfxAtlasImage : null;
-}
-
-function drawMonsterCombatVfx(ctx, effectTheme, row, x, y, width, height, options = {}) {
-    const image = getMonsterCombatVfxAtlasImage();
-    if (!image || !ctx) return false;
-    const column = MONSTER_COMBAT_VFX_COLUMNS[resolveMonsterCombatVfxTheme(effectTheme)] ?? 4;
-    const sourceWidth = image.naturalWidth / MONSTER_COMBAT_VFX_ATLAS.columns;
-    const sourceHeight = image.naturalHeight / MONSTER_COMBAT_VFX_ATLAS.rows;
-    const sourceX = Math.floor(column * sourceWidth);
-    const sourceY = Math.floor(Math.max(0, Math.min(MONSTER_COMBAT_VFX_ATLAS.rows - 1, row)) * sourceHeight);
-    const drawWidth = Math.max(1, width);
-    const drawHeight = Math.max(1, height);
-    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    const phase = (now / 1000) * Math.max(0, Number(options.pulseSpeed ?? 0));
-    const pulse = 1 + (Math.sin(phase + Number(options.phaseOffset || 0)) * Math.max(0, Number(options.pulse || 0)));
-    const drift = Math.sin(phase + Number(options.phaseOffset || 0)) * Math.max(0, Number(options.drift || 0));
-    ctx.save();
-    ctx.translate(x, y + drift);
-    if (options.rotation || options.spin) {
-        ctx.rotate(Number(options.rotation || 0) + ((now / 1000) * Number(options.spin || 0)));
-    }
-    ctx.scale(
-        (options.flipX ? -1 : 1) * pulse * Math.max(0.1, Number(options.scaleX || 1)),
-        pulse * Math.max(0.1, Number(options.scaleY || 1))
-    );
-    ctx.globalAlpha *= Math.max(0, Math.min(1, Number(options.alpha ?? 1)));
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(
-        image,
-        sourceX,
-        sourceY,
-        Math.ceil(sourceWidth),
-        Math.ceil(sourceHeight),
-        -drawWidth / 2,
-        -drawHeight / 2,
-        drawWidth,
-        drawHeight
-    );
-    ctx.restore();
-    return true;
-}
-
 function shouldFreezeForModalUi() {
     const ui = window.game?.ui;
     const net = window.game?.net;
@@ -156,7 +81,7 @@ export default class Monster extends CharacterBase {
         ).toLowerCase();
         this.effectVfx = visual.effectVfx || {};
         // Start one shared decode while monsters are created, before any cast begins.
-        getMonsterCombatVfxAtlasImage();
+        preloadMonsterSkillVfxAtlas();
 
         // Components
         this.skills = definition.skills || [];
@@ -823,55 +748,48 @@ export default class Monster extends CharacterBase {
     renderTelegraph(ctx) {
         if (this.isDead || this.chargeState !== 'casting' || !this.chargeTarget) return;
 
-        const screenX = Math.round(this.x);
-        const screenY = Math.round(this.y);
-        // The world canvas is already camera-transformed at this point.
-
-        ctx.save();
         const chargeVisual = this.behavior?.charge?.visual || {};
         const theme = this._getCombatVfxTheme(chargeVisual.effect);
         const lowGlareCombat = this.isLowGlareCombatZone();
         const castProgress = Math.max(0, Math.min(1, 1 - (this.chargeTimer / Math.max(0.2, this.chargeCastSeconds || 1))));
-        ctx.fillStyle = chargeVisual.fill || theme.fill;
-
         const dx = this.chargeTarget.x - this.x;
         const dy = this.chargeTarget.y - this.y;
-        const angle = Math.atan2(dy, dx);
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const width = this.width;
+        const width = Math.max(this.width, Number(chargeVisual.telegraphWidth) || 0);
 
-        ctx.translate(screenX, screenY);
-        ctx.rotate(angle);
-
-        // The lane remains a low-alpha dodge aid; authored VFX carries the spectacle.
-        ctx.globalAlpha = lowGlareCombat ? 0.34 : (0.42 + castProgress * 0.12);
-        ctx.fillRect(0, -width / 2, dist, width);
-        ctx.restore();
-        const vfxSize = Math.max(this.width * 1.8, this.isBoss ? 170 : 92);
-        drawMonsterCombatVfx(
+        // Player fireball guidance remains hidden; this is monster-only dodge
+        // information and is intentionally a colored lane rather than a white line.
+        this._drawTelegraphLane(
             ctx,
+            this.x,
+            this.y + (this.height * 0.36),
+            this.chargeTarget.x,
+            this.chargeTarget.y + (this.height * 0.36),
+            width,
+            theme,
+            castProgress,
+            lowGlareCombat
+        );
+        const vfxSize = Math.max(this.width * 1.8, this.isBoss ? 170 : 92);
+        this._drawSkillVfx(
+            ctx,
+            'charge',
             theme.id,
-            0,
             this.x,
             this.y + (this.height * 0.36),
             vfxSize,
             vfxSize * 0.68,
-            {
-                alpha: lowGlareCombat ? 0.38 : (0.62 + castProgress * 0.2),
-                pulse: lowGlareCombat ? 0.025 : 0.07,
-                pulseSpeed: 4.4,
-                spin: theme.id === 'thunder' ? 0 : 0.12
-            }
+            lowGlareCombat ? 0.32 : (0.5 + castProgress * 0.22)
         );
-        drawMonsterCombatVfx(
+        this._drawSkillVfx(
             ctx,
+            'charge',
             theme.id,
-            2,
             this.chargeTarget.x,
-            this.chargeTarget.y,
+            this.chargeTarget.y + (this.height * 0.36),
             Math.max(this.width * 1.35, 72),
             Math.max(this.height * 0.86, 48),
-            { alpha: lowGlareCombat ? 0.16 : 0.28, pulse: 0.04, pulseSpeed: 2.6 }
+            lowGlareCombat ? 0.16 : 0.24
         );
     }
 
@@ -1282,22 +1200,17 @@ export default class Monster extends CharacterBase {
         ctx.arc(zone.x, zone.y, Math.max(4, radius * 0.68), 0, Math.PI * 2);
         ctx.stroke();
         ctx.restore();
-        // Authored sprite art replaces the previous procedural rune/ray lines.
-        const vfxRow = impact ? 2 : 0;
-        drawMonsterCombatVfx(
+        // Authored animation frames make the warning and impact distinct without
+        // adding procedural rays over the ground marker.
+        this._drawSkillVfx(
             ctx,
+            impact ? 'impact' : 'charge',
             telegraph.effect,
-            vfxRow,
             zone.x,
-            zone.y,
+            zone.y + (radius * 0.18),
             radius * (impact ? 2.3 : 1.9),
             radius * (impact ? 1.48 : 1.18),
-            {
-                alpha: alphaScale * (impact ? 0.76 * (1 - impactProgress) : 0.3 + progress * 0.2),
-                pulse: impact ? 0.13 : 0.055,
-                pulseSpeed: impact ? 8.5 : 3.2,
-                spin: impact ? 0 : 0.1
-            }
+            alphaScale * (impact ? 0.8 * (1 - impactProgress) : 0.24 + progress * 0.22)
         );
     }
 
@@ -1314,37 +1227,20 @@ export default class Monster extends CharacterBase {
         const impact = telegraph.elapsedMs >= telegraph.warningMs;
         const alphaScale = lowGlareCombat ? 0.6 : 1;
 
-        ctx.save();
-        ctx.translate(x1, y1);
-        ctx.rotate(angle);
-        ctx.globalAlpha = alphaScale * (impact ? 0.24 * (1 - impactProgress) : 0.07 + progress * 0.12);
-        ctx.fillStyle = telegraph.color;
-        ctx.fillRect(0, -width / 2, length, width);
-
-        ctx.globalAlpha = alphaScale * (impact ? 0.8 * (1 - impactProgress) : 0.52 + progress * 0.22);
-        ctx.strokeStyle = impact ? telegraph.secondaryColor : telegraph.color;
-        ctx.lineWidth = impact ? 4 : 2.5;
-        ctx.shadowColor = telegraph.color;
-        ctx.shadowBlur = lowGlareCombat ? 0 : (impact ? 18 : 8);
-        ctx.strokeRect(0, -width / 2, length, width);
-
-        ctx.restore();
+        const theme = this._getCombatVfxTheme(telegraph.effect);
+        this._drawTelegraphLane(ctx, x1, y1, x2, y2, width, theme, progress, lowGlareCombat);
         if (impact) {
-            drawMonsterCombatVfx(
+            this._drawSkillVfx(
                 ctx,
+                'impact',
                 telegraph.effect,
-                1,
                 x1 + (dx * 0.5),
-                y1 + (dy * 0.5),
+                y1 + (dy * 0.5) + (width * 0.28),
                 Math.max(width * 3.2, length * 0.82),
                 Math.max(width * 2.3, 64),
-                {
-                    alpha: alphaScale * 0.7 * (1 - impactProgress),
-                    rotation: angle,
-                    flipX: angle < -Math.PI / 2 || angle > Math.PI / 2,
-                    pulse: 0.08,
-                    pulseSpeed: 9
-                }
+                alphaScale * 0.82 * (1 - impactProgress),
+                angle,
+                angle < -Math.PI / 2 || angle > Math.PI / 2
             );
         }
     }
@@ -1374,6 +1270,16 @@ export default class Monster extends CharacterBase {
         ctx.arc(zone.x, zone.y, innerRadius, 0, Math.PI * 2);
         ctx.stroke();
         ctx.restore();
+        this._drawSkillVfx(
+            ctx,
+            impact ? 'impact' : 'charge',
+            telegraph.effect,
+            zone.x,
+            zone.y + (outerRadius * 0.14),
+            outerRadius * (impact ? 2.15 : 1.8),
+            outerRadius * (impact ? 1.35 : 1.05),
+            alphaScale * (impact ? 0.72 * (1 - impactProgress) : 0.22 + progress * 0.2)
+        );
     }
 
     renderBossTelegraphs(ctx) {
@@ -2258,6 +2164,53 @@ export default class Monster extends CharacterBase {
         return COMBAT_VFX_THEMES[id] || COMBAT_VFX_THEMES.arcane;
     }
 
+    _drawSkillVfx(ctx, stage, theme, x, groundY, width, height, alpha = 1, rotation = 0, flipX = false, anchor = null, groundAnchor = null) {
+        const configured = this.effectVfx && typeof this.effectVfx === 'object' ? this.effectVfx : {};
+        const configuredFrame = Number(configured[`${stage}Frame`]);
+        return drawMonsterSkillVfx(
+            ctx,
+            resolveMonsterSkillVfxTheme(theme || configured.theme || this.effectTheme),
+            Number.isFinite(configuredFrame) ? configuredFrame : (VFX_STAGE_FRAMES[stage] ?? 0),
+            x,
+            groundY,
+            width,
+            height,
+            alpha,
+            groundAnchor ?? configured.groundAnchor ?? 0.9,
+            rotation,
+            flipX,
+            anchor || configured.anchor || 'ground'
+        );
+    }
+
+    _drawTelegraphLane(ctx, x1, y1, x2, y2, width, theme, progress, lowGlareCombat) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const length = Math.hypot(dx, dy);
+        if (length < 1) return;
+        const angle = Math.atan2(dy, dx);
+        const opacity = (lowGlareCombat ? 0.18 : 0.26) + progress * (lowGlareCombat ? 0.06 : 0.1);
+        ctx.save();
+        ctx.translate(x1, y1);
+        ctx.rotate(angle);
+        ctx.globalAlpha = opacity;
+        ctx.fillStyle = theme.fill;
+        ctx.fillRect(0, -width / 2, length, width);
+        // Dots communicate the locked travel direction without returning to the
+        // old thin white outline that looked like an unfinished debug line.
+        ctx.globalAlpha = lowGlareCombat ? 0.34 : 0.58;
+        ctx.fillStyle = theme.color;
+        const dots = Math.max(2, Math.min(7, Math.floor(length / 115)));
+        for (let index = 1; index <= dots; index += 1) {
+            const dotX = (length * index) / (dots + 1);
+            const radius = Math.max(2.5, Math.min(width * 0.12, 6)) * (0.76 + progress * 0.24);
+            ctx.beginPath();
+            ctx.arc(dotX, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+
     _renderChargeTrail(ctx, x, y, renderWidth) {
         if (this.isDead || this.chargeState !== 'charging') return;
         const targetX = Number(this.chargeTarget?.x);
@@ -2271,14 +2224,11 @@ export default class Monster extends CharacterBase {
         const lowGlareCombat = this.isLowGlareCombatZone();
         const angle = Math.atan2(dy, dx);
         const size = renderWidth * (this.isBoss ? 2.15 : 1.55);
-        drawMonsterCombatVfx(ctx, theme.id, 1, x, y - (renderWidth * 0.08), size, size * 0.62, {
-            alpha: lowGlareCombat ? 0.26 : (this.isBoss ? 0.7 : 0.52),
-            rotation: angle,
-            flipX: angle < -Math.PI / 2 || angle > Math.PI / 2,
-            pulse: 0.05,
-            pulseSpeed: 13,
-            scaleX: 1.12
-        });
+        this._drawSkillVfx(
+            ctx, 'cast', theme.id, x, y + (renderWidth * 0.12), size, size * 0.62,
+            lowGlareCombat ? 0.22 : (this.isBoss ? 0.66 : 0.48),
+            angle, angle < -Math.PI / 2 || angle > Math.PI / 2
+        );
     }
 
     _renderBossAura(ctx, x, groundY, renderWidth, renderHeight) {
@@ -2310,20 +2260,15 @@ export default class Monster extends CharacterBase {
         );
         ctx.fill();
         ctx.restore();
-        drawMonsterCombatVfx(
+        this._drawSkillVfx(
             ctx,
+            'residue',
             this.effectTheme,
-            2,
             x,
             groundY - (renderHeight * 0.05),
             radiusX * 2.7,
             Math.max(renderHeight * 0.9, radiusX * 0.94),
-            {
-                alpha: inheritedAlpha * (lowGlareCombat ? 0.24 : 0.42),
-                pulse: lowGlareCombat ? 0.025 : 0.06,
-                pulseSpeed,
-                spin: 0.06
-            }
+            inheritedAlpha * (lowGlareCombat ? 0.18 : 0.32)
         );
     }
 
@@ -2344,12 +2289,7 @@ export default class Monster extends CharacterBase {
         const alpha = lowGlareCombat
             ? (this.isBoss ? 0.34 : 0.24)
             : (this.isBoss ? 0.58 : 0.42) + progress * 0.16;
-        drawMonsterCombatVfx(ctx, theme.id, 0, x, groundY - 6, radius * 2.25, radius * 1.42, {
-            alpha,
-            pulse: lowGlareCombat ? 0.025 : 0.075,
-            pulseSpeed: this.isBoss ? 4.6 : 3.2,
-            spin: theme.id === 'thunder' ? 0 : 0.16
-        });
+        this._drawSkillVfx(ctx, 'charge', theme.id, x, groundY - 6, radius * 2.25, radius * 1.42, alpha);
     }
 
     _renderShadowAmbush(ctx) {
@@ -2359,25 +2299,10 @@ export default class Monster extends CharacterBase {
         const radius = Math.max(38, this.width * (0.72 + progress * 0.2));
         // Source collapse + destination portal make the delayed teleport readable
         // without adding a hit or changing the three-second confusion mechanic.
-        drawMonsterCombatVfx(ctx, 'shadow', 0, this.x, this.y + (this.height * 0.42), radius * 2.15, radius * 1.32, {
-            alpha: 0.54 * (1 - progress * 0.55),
-            pulse: 0.07,
-            pulseSpeed: 4.8,
-            spin: -0.22
-        });
-        drawMonsterCombatVfx(ctx, 'shadow', 0, ambush.toX, ambush.toY + (this.height * 0.42), radius * 1.76, radius * 1.08, {
-            alpha: 0.38 + progress * 0.3,
-            pulse: 0.08,
-            pulseSpeed: 5.4,
-            spin: 0.26
-        });
+        this._drawSkillVfx(ctx, 'charge', 'shadow', this.x, this.y + (this.height * 0.42), radius * 2.15, radius * 1.32, 0.54 * (1 - progress * 0.55));
+        this._drawSkillVfx(ctx, 'charge', 'shadow', ambush.toX, ambush.toY + (this.height * 0.42), radius * 1.76, radius * 1.08, 0.38 + progress * 0.3);
         if (progress > 0.62) {
-            drawMonsterCombatVfx(ctx, 'shadow', 1, ambush.toX, ambush.toY, radius * 2.1, radius * 1.25, {
-                alpha: (progress - 0.62) * 1.12,
-                pulse: 0.15,
-                pulseSpeed: 12,
-                scaleX: 1.18
-            });
+            this._drawSkillVfx(ctx, 'impact', 'shadow', ambush.toX, ambush.toY + (this.height * 0.42), radius * 2.1, radius * 1.25, (progress - 0.62) * 1.12);
         }
     }
 

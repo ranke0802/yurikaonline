@@ -11,6 +11,7 @@ const errors = [];
 const warnings = [];
 const loadedJsonFiles = new Set();
 const monsterRuntimeSource = fs.readFileSync(repoPath('src/js/entities/Monster.js'), 'utf8');
+const monsterVfxRendererSource = fs.readFileSync(repoPath('src/js/effects/MonsterSkillVfxRenderer.js'), 'utf8');
 const monsterManagerSource = fs.readFileSync(repoPath('src/js/world/MonsterManager.js'), 'utf8');
 const supportedWeaponVariants = new Set([
     'golden_missile',
@@ -253,25 +254,48 @@ function validateSpriteSheet(monster, checkedSheets) {
     }
 }
 
-function validateMonsterCombatVfxAtlas() {
-    const assetPath = 'assets/resource/effects/monster-combat-vfx.webp';
+function validateMonsterSkillVfxAtlas() {
+    const assetPath = 'assets/resource/effects/monster-skill-vfx-atlas.webp';
     const absolutePath = repoPath(assetPath);
-    assert(fs.existsSync(absolutePath), `Monster combat VFX atlas is missing: ${assetPath}`);
+    assert(fs.existsSync(absolutePath), `Monster skill VFX atlas is missing: ${assetPath}`);
     assert(
-        /monster-combat-vfx\.webp/.test(monsterRuntimeSource)
-            && /drawMonsterCombatVfx/.test(monsterRuntimeSource),
-        'Monster runtime must render the authored WebP combat VFX atlas'
+        /MonsterSkillVfxRenderer/.test(monsterRuntimeSource)
+            && /drawMonsterSkillVfx/.test(monsterVfxRendererSource)
+            && /columns:\s*5/.test(monsterVfxRendererSource)
+            && /rows:\s*4/.test(monsterVfxRendererSource),
+        'Monster runtime must render the authored transparent 5x4 WebP skill VFX atlas'
     );
     if (!fs.existsSync(absolutePath)) return;
     try {
         const dimensions = imageSize(fs.readFileSync(absolutePath));
         assert(
-            dimensions.width >= 1500 && dimensions.height >= 900,
-            'Monster combat VFX atlas must retain the authored 5x3 effect detail'
+            dimensions.width >= 1000 && dimensions.height >= 1000,
+            'Monster skill VFX atlas must retain the authored 5x4 frame detail'
         );
     } catch (error) {
         fail(`Cannot inspect ${assetPath}: ${error.message}`);
     }
+}
+
+function validateMonsterSkillVfxRuntimeHygiene() {
+    assert(
+        !/firebase|localStorage|sessionStorage|fetch\(|window\.game|sendMonsterAttack|sendPlayerDamage/i.test(monsterVfxRendererSource),
+        'Monster skill VFX renderer must stay render-only and must not access persistence, RTDB, or combat networking'
+    );
+    assert(
+        !/new\s+(?:Map|Set)\s*\(/.test(monsterVfxRendererSource)
+            && !/Date\.now|performance\.now/.test(monsterVfxRendererSource),
+        'Monster skill VFX renderer must not create per-frame collections or time-driven allocations'
+    );
+    assert(
+        (monsterVfxRendererSource.match(/new Image\s*\(/g) || []).length === 1
+            && /if \(!atlasImage\)/.test(monsterVfxRendererSource),
+        'Monster skill VFX renderer must retain exactly one lazy shared Image instance'
+    );
+    assert(
+        !/options\./.test(monsterVfxRendererSource),
+        'Monster skill VFX renderer must use allocation-free primitive render arguments'
+    );
 }
 
 function validateBossMechanics(monster, isCatalogBoss) {
@@ -340,6 +364,23 @@ function validateCombatEffectTheme(monster) {
     assert(
         typeof theme === 'string' && combatEffectThemeIds.has(theme),
         `Monster ${monster.id} must declare a supported visual.effectTheme`
+    );
+
+    if (monster.id === 'training_dummy') return;
+    const effectVfx = monster?.visual?.effectVfx;
+    assert(effectVfx && typeof effectVfx === 'object', `Monster ${monster.id} must define data-driven visual.effectVfx`);
+    if (!effectVfx || typeof effectVfx !== 'object') return;
+    assert(
+        combatEffectThemeIds.has(effectVfx.theme),
+        `Monster ${monster.id} effectVfx.theme must be a supported combat VFX theme`
+    );
+    assert(
+        effectVfx.anchor === 'ground' || effectVfx.anchor === 'center',
+        `Monster ${monster.id} effectVfx.anchor must be ground or center`
+    );
+    assert(
+        Number(effectVfx.groundAnchor) > 0 && Number(effectVfx.groundAnchor) <= 1,
+        `Monster ${monster.id} effectVfx.groundAnchor must pin the sprite within its frame`
     );
 }
 
@@ -674,7 +715,8 @@ if (!zoneCatalog || !itemCatalog) {
             && /BOSS_MECHANIC_CAST_SCALE\s*=\s*1\.3/.test(monsterRuntimeSource),
         'Boss mechanic runtime must keep area/damage/cast scaling at 3x/2x/1.3x'
     );
-    validateMonsterCombatVfxAtlas();
+    validateMonsterSkillVfxAtlas();
+    validateMonsterSkillVfxRuntimeHygiene();
     assert(
         /m\.chargeEnabled\s*\|\|\s*m\.chargeOnly/.test(monsterManagerSource)
             && /m\.typeId === 'king_slime' \|\| m\.isBoss/.test(monsterManagerSource),
