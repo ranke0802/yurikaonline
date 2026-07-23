@@ -2323,7 +2323,7 @@ body.ui-layout-edit-mode #joystick-container[data-ui-layout-selected="true"] #jo
     }
 }
 
-@media screen and (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
+@media screen and (max-width: 1024px) and (orientation: landscape) {
     .ui-layout-editor[data-layout-mode="mobileLandscape"] {
         justify-content: center;
         align-items: flex-start;
@@ -4364,7 +4364,7 @@ body.low-power-pwa .minimap-menu {
 }
 
 /* Mobile Landscape HUD Layout */
-@media screen and (max-width: 1024px) and (orientation: landscape) {
+@media screen and (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
     .top-bar {
         position: fixed !important;
         top: calc(8px + env(safe-area-inset-top));
@@ -4391,18 +4391,6 @@ body.low-power-pwa .minimap-menu {
 
     .left-ui-container > * {
         pointer-events: auto;
-    }
-
-    #party-panel {
-        width: 100% !important;
-        max-width: none !important;
-        margin-bottom: 0;
-        padding: 8px;
-    }
-
-    #party-panel .panel-header,
-    #party-panel .party-item {
-        font-size: 11px;
     }
 
     .quest-list-panel {

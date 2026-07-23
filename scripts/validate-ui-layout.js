@@ -7,6 +7,7 @@ const css = fs.readFileSync('src/css/style.css', 'utf8');
 const html = fs.readFileSync('index.html', 'utf8');
 const mainJs = fs.readFileSync('src/js/main.js', 'utf8');
 const worldScene = fs.readFileSync('src/js/world/scenes/WorldScene.js', 'utf8');
+const friendsUi = fs.readFileSync('src/js/ui/friends/FriendsUIController.js', 'utf8');
 
 function fail(message) {
     console.error(`[ui-layout] ${message}`);
@@ -133,6 +134,34 @@ if (/clearActionButtonsLayoutSurfaceStyles|prepareActionButtonsLayoutSurface|pre
 
 if (/body\.ui-layout-edit-mode\s+\.action-buttons\s*{[^}]*width:\s*100dvw/gs.test(css)) {
     fail('edit mode still turns action-buttons into a full-screen surface');
+}
+
+const mobileLandscapeHud = extractBetween(
+    css,
+    '/* Mobile Landscape HUD Layout */',
+    '    .quest-list-panel {',
+    'mobile landscape HUD party section'
+);
+
+if (/#party-panel/.test(mobileLandscapeHud)) {
+    fail('mobile landscape HUD must not override the party panel into a wide layout');
+}
+
+const friendUnreadMethod = extractBetween(
+    friendsUi,
+    'setFriendChatUnreadWhileMinimized(active) {',
+    '    applyFriendChatWindowState() {',
+    'friend chat unread update method'
+);
+
+if (/applyFriendChatWindowState\s*\(/.test(friendUnreadMethod)
+    || !/friend-chat-unread-dot[\s\S]*classList\.toggle\('hidden'/.test(friendUnreadMethod)) {
+    fail('a minimized friend-chat unread update must not reapply or reset its floating layout');
+}
+
+if (!/const compactPosition\s*=\s*state\.compact[\s\S]*captureFriendChatCompactPosition\(card\)/.test(friendsUi)
+    || !/if \(viewportChanged\)\s*\{[\s\S]*state\.scale\s*=\s*1;[\s\S]*state\.left\s*=\s*compactPosition\.left;[\s\S]*state\.top\s*=\s*compactPosition\.top;/.test(friendsUi)) {
+    fail('friend-chat viewport changes must preserve the user-dragged compact position');
 }
 
 if (!/id="settings-camera-view-range"[^>]*min="80"[^>]*max="150"[^>]*step="1"/.test(html)

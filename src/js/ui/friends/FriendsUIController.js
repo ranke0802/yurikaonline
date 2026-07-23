@@ -788,7 +788,9 @@ export default class FriendsUIController {
     setFriendChatUnreadWhileMinimized(active) {
         const state = this.ensureFriendChatWindowState();
         state.unreadWhileMinimized = !!active;
-        this.applyFriendChatWindowState();
+        // A new message only needs to update the unread indicator. Reapplying the
+        // floating-window layout here could reset a user-dragged compact position.
+        document.getElementById('friend-chat-unread-dot')?.classList.toggle('hidden', !state.unreadWhileMinimized);
     }
 
     applyFriendChatWindowState() {
@@ -810,6 +812,13 @@ export default class FriendsUIController {
 
         if (!modal || !card) return;
 
+        // Preserve the latest dragged position when the viewport preset changes.
+        // This can happen while a desktop window is resized and must not send a
+        // minimized chat window back to its default location.
+        const compactPosition = state.compact
+            ? this.captureFriendChatCompactPosition(card)
+            : null;
+
         modal.classList.toggle('is-compact', !!state.compact);
         modal.classList.toggle('is-minimized', !!state.compact && !!state.minimized);
         card.classList.toggle('is-compact', !!state.compact);
@@ -822,8 +831,10 @@ export default class FriendsUIController {
             state.viewportPreset = viewportPreset.id;
             if (viewportChanged) {
                 state.scale = 1;
-                state.left = null;
-                state.top = null;
+                if (Number.isFinite(compactPosition?.left) && Number.isFinite(compactPosition?.top)) {
+                    state.left = compactPosition.left;
+                    state.top = compactPosition.top;
+                }
             }
             const sizeBounds = this.getFriendChatSizeBounds({ preset: viewportPreset });
             const fallbackWidth = state.minimized ? (card.offsetWidth || 232) : viewportPreset.width;
