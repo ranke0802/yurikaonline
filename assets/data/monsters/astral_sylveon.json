@@ -18,7 +18,7 @@
   },
   "visual": {
     "effectTheme": "astral",
-    "effectVfx": { "theme": "astral", "anchor": "ground", "groundAnchor": 0.9, "chargeFrame": 0, "castFrame": 1, "impactFrame": 2, "residueFrame": 3 },
+    "effectVfx": { "theme": "astral", "anchor": "ground", "groundAnchor": 0.9, "timeline": "standard" },
     "assetPath": "assets/resource/monsters/astral_sylveon/spritesheet.webp",
     "spriteVersionNumber": 2,
     "width": 148,

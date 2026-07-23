@@ -17,7 +17,7 @@
   },
   "visual": {
     "effectTheme": "thunder",
-    "effectVfx": { "theme": "thunder", "anchor": "ground", "groundAnchor": 0.88, "chargeFrame": 0, "castFrame": 1, "impactFrame": 2, "residueFrame": 3 },
+    "effectVfx": { "theme": "thunder", "anchor": "ground", "groundAnchor": 0.88, "timeline": "standard" },
     "assetPath": "assets/resource/monsters/emolga/spritesheet.webp",
     "spriteVersionNumber": 2,
     "width": 68,

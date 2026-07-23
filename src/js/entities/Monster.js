@@ -4,13 +4,13 @@ import { Sprite } from '../core/Sprite.js';
 import {
     drawMonsterSkillVfx,
     preloadMonsterSkillVfxAtlas,
+    resolveMonsterSkillVfxFrame,
     resolveMonsterSkillVfxTheme
 } from '../effects/MonsterSkillVfxRenderer.js';
 
 const BOSS_MECHANIC_AREA_SCALE = 3;
 const BOSS_MECHANIC_DAMAGE_SCALE = 2;
 const BOSS_MECHANIC_CAST_SCALE = 1.3;
-const VFX_STAGE_FRAMES = Object.freeze({ charge: 0, cast: 1, impact: 2, residue: 3 });
 // Shared immutable palettes avoid per-frame object allocation in combat rendering.
 const COMBAT_VFX_THEMES = Object.freeze({
     slime: Object.freeze({ id: 'slime', color: '#8fe36a', highlight: '#efffc8', fill: 'rgba(112, 211, 83, 0.13)', stroke: 'rgba(188, 255, 149, 0.72)' }),
@@ -762,9 +762,9 @@ export default class Monster extends CharacterBase {
         this._drawTelegraphLane(
             ctx,
             this.x,
-            this.y + (this.height * 0.36),
+            this.y + (this.height * 0.5),
             this.chargeTarget.x,
-            this.chargeTarget.y + (this.height * 0.36),
+            this.chargeTarget.y,
             width,
             theme,
             castProgress,
@@ -776,20 +776,22 @@ export default class Monster extends CharacterBase {
             'charge',
             theme.id,
             this.x,
-            this.y + (this.height * 0.36),
+            this.y + (this.height * 0.5),
             vfxSize,
             vfxSize * 0.68,
-            lowGlareCombat ? 0.32 : (0.5 + castProgress * 0.22)
+            lowGlareCombat ? 0.44 : (0.68 + castProgress * 0.22),
+            castProgress
         );
         this._drawSkillVfx(
             ctx,
             'charge',
             theme.id,
             this.chargeTarget.x,
-            this.chargeTarget.y + (this.height * 0.36),
+            this.chargeTarget.y,
             Math.max(this.width * 1.35, 72),
             Math.max(this.height * 0.86, 48),
-            lowGlareCombat ? 0.16 : 0.24
+            lowGlareCombat ? 0.24 : 0.38,
+            castProgress
         );
     }
 
@@ -1210,7 +1212,8 @@ export default class Monster extends CharacterBase {
             zone.y + (radius * 0.18),
             radius * (impact ? 2.3 : 1.9),
             radius * (impact ? 1.48 : 1.18),
-            alphaScale * (impact ? 0.8 * (1 - impactProgress) : 0.24 + progress * 0.22)
+            alphaScale * (impact ? 0.94 * (1 - impactProgress) : 0.42 + progress * 0.32),
+            impact ? impactProgress : progress
         );
     }
 
@@ -1238,7 +1241,8 @@ export default class Monster extends CharacterBase {
                 y1 + (dy * 0.5) + (width * 0.28),
                 Math.max(width * 3.2, length * 0.82),
                 Math.max(width * 2.3, 64),
-                alphaScale * 0.82 * (1 - impactProgress),
+                alphaScale * 0.94 * (1 - impactProgress),
+                impactProgress,
                 angle,
                 angle < -Math.PI / 2 || angle > Math.PI / 2
             );
@@ -1278,7 +1282,8 @@ export default class Monster extends CharacterBase {
             zone.y + (outerRadius * 0.14),
             outerRadius * (impact ? 2.15 : 1.8),
             outerRadius * (impact ? 1.35 : 1.05),
-            alphaScale * (impact ? 0.72 * (1 - impactProgress) : 0.22 + progress * 0.2)
+            alphaScale * (impact ? 0.88 * (1 - impactProgress) : 0.4 + progress * 0.26),
+            impact ? impactProgress : progress
         );
     }
 
@@ -2164,13 +2169,13 @@ export default class Monster extends CharacterBase {
         return COMBAT_VFX_THEMES[id] || COMBAT_VFX_THEMES.arcane;
     }
 
-    _drawSkillVfx(ctx, stage, theme, x, groundY, width, height, alpha = 1, rotation = 0, flipX = false, anchor = null, groundAnchor = null) {
+    _drawSkillVfx(ctx, stage, theme, x, groundY, width, height, alpha = 1, progress = 0, rotation = 0, flipX = false, anchor = null, groundAnchor = null) {
         const configured = this.effectVfx && typeof this.effectVfx === 'object' ? this.effectVfx : {};
-        const configuredFrame = Number(configured[`${stage}Frame`]);
+        const configuredFrame = Number(configured.frameOverrides?.[stage]);
         return drawMonsterSkillVfx(
             ctx,
             resolveMonsterSkillVfxTheme(theme || configured.theme || this.effectTheme),
-            Number.isFinite(configuredFrame) ? configuredFrame : (VFX_STAGE_FRAMES[stage] ?? 0),
+            Number.isFinite(configuredFrame) ? configuredFrame : resolveMonsterSkillVfxFrame(stage, progress),
             x,
             groundY,
             width,
@@ -2226,7 +2231,8 @@ export default class Monster extends CharacterBase {
         const size = renderWidth * (this.isBoss ? 2.15 : 1.55);
         this._drawSkillVfx(
             ctx, 'cast', theme.id, x, y + (renderWidth * 0.12), size, size * 0.62,
-            lowGlareCombat ? 0.22 : (this.isBoss ? 0.66 : 0.48),
+            lowGlareCombat ? 0.34 : (this.isBoss ? 0.8 : 0.62),
+            0.72,
             angle, angle < -Math.PI / 2 || angle > Math.PI / 2
         );
     }
@@ -2268,7 +2274,8 @@ export default class Monster extends CharacterBase {
             groundY - (renderHeight * 0.05),
             radiusX * 2.7,
             Math.max(renderHeight * 0.9, radiusX * 0.94),
-            inheritedAlpha * (lowGlareCombat ? 0.18 : 0.32)
+            inheritedAlpha * (lowGlareCombat ? 0.24 : 0.42),
+            1
         );
     }
 
@@ -2287,9 +2294,9 @@ export default class Monster extends CharacterBase {
         const radius = Math.max(this.isBoss ? 62 : 34, renderWidth * Math.max(baseScale, Number(vfx.radiusScale || baseScale))) * (0.86 + progress * 0.14);
         const lowGlareCombat = this.isLowGlareCombatZone();
         const alpha = lowGlareCombat
-            ? (this.isBoss ? 0.34 : 0.24)
-            : (this.isBoss ? 0.58 : 0.42) + progress * 0.16;
-        this._drawSkillVfx(ctx, 'charge', theme.id, x, groundY - 6, radius * 2.25, radius * 1.42, alpha);
+            ? (this.isBoss ? 0.42 : 0.32)
+            : (this.isBoss ? 0.72 : 0.56) + progress * 0.18;
+        this._drawSkillVfx(ctx, 'charge', theme.id, x, groundY - 6, radius * 2.25, radius * 1.42, alpha, progress);
     }
 
     _renderShadowAmbush(ctx) {
@@ -2299,10 +2306,10 @@ export default class Monster extends CharacterBase {
         const radius = Math.max(38, this.width * (0.72 + progress * 0.2));
         // Source collapse + destination portal make the delayed teleport readable
         // without adding a hit or changing the three-second confusion mechanic.
-        this._drawSkillVfx(ctx, 'charge', 'shadow', this.x, this.y + (this.height * 0.42), radius * 2.15, radius * 1.32, 0.54 * (1 - progress * 0.55));
-        this._drawSkillVfx(ctx, 'charge', 'shadow', ambush.toX, ambush.toY + (this.height * 0.42), radius * 1.76, radius * 1.08, 0.38 + progress * 0.3);
+        this._drawSkillVfx(ctx, 'charge', 'shadow', this.x, this.y + (this.height * 0.5), radius * 2.15, radius * 1.32, 0.68 * (1 - progress * 0.45), progress);
+        this._drawSkillVfx(ctx, 'charge', 'shadow', ambush.toX, ambush.toY + (this.height * 0.5), radius * 1.76, radius * 1.08, 0.5 + progress * 0.32, progress);
         if (progress > 0.62) {
-            this._drawSkillVfx(ctx, 'impact', 'shadow', ambush.toX, ambush.toY + (this.height * 0.42), radius * 2.1, radius * 1.25, (progress - 0.62) * 1.12);
+            this._drawSkillVfx(ctx, 'impact', 'shadow', ambush.toX, ambush.toY + (this.height * 0.5), radius * 2.1, radius * 1.25, (progress - 0.62) * 1.5, (progress - 0.62) / 0.38);
         }
     }
 

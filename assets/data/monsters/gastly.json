@@ -17,7 +17,7 @@
   },
   "visual": {
     "effectTheme": "shadow",
-    "effectVfx": { "theme": "shadow", "anchor": "ground", "groundAnchor": 0.88, "chargeFrame": 0, "castFrame": 1, "impactFrame": 2, "residueFrame": 3 },
+    "effectVfx": { "theme": "shadow", "anchor": "ground", "groundAnchor": 0.88, "timeline": "standard" },
     "assetPath": "assets/resource/monsters/gastly/spritesheet.webp",
     "spriteVersionNumber": 2,
     "width": 76,

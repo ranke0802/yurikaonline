@@ -39,6 +39,23 @@ export function resolveMonsterSkillVfxTheme(theme) {
         : (THEME_ALIASES[normalized] || 'arcane');
 }
 
+// The atlas rows are a single authored spell timeline, not interchangeable
+// decorations. Progress comes from the existing authoritative cast timer, so
+// animation never needs its own timers, allocations, or network state.
+export function resolveMonsterSkillVfxFrame(stage, progress = 0) {
+    const normalized = String(stage || 'charge');
+    const phase = clamp(Number(progress) || 0, 0, 1);
+    if (normalized === 'charge' || normalized === 'cast') {
+        return phase < 0.46 ? MONSTER_SKILL_VFX_ATLAS.frames.charge : MONSTER_SKILL_VFX_ATLAS.frames.cast;
+    }
+    if (normalized === 'impact') {
+        if (phase < 0.18) return MONSTER_SKILL_VFX_ATLAS.frames.cast;
+        if (phase < 0.74) return MONSTER_SKILL_VFX_ATLAS.frames.impact;
+        return MONSTER_SKILL_VFX_ATLAS.frames.residue;
+    }
+    return MONSTER_SKILL_VFX_ATLAS.frames.residue;
+}
+
 export function preloadMonsterSkillVfxAtlas() {
     if (typeof Image === 'undefined') return null;
     if (!atlasImage) {
