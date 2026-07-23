@@ -37,9 +37,12 @@ export default class SceneManager {
     render(ctx) {
         if (!this.currentScene) return;
 
-        // v0.00.02: Reset transform and clear canvas for the new scene frame
+        // Reset the full backing surface with the active field's base colour. The
+        // canvas is opaque for performance, so clearRect would reveal black for a
+        // frame whenever a mobile viewport resize resets the backing buffer.
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, this.game.canvas.width, this.game.canvas.height);
+        ctx.fillStyle = this.game.getRenderBackgroundColor?.() || '#172234';
+        ctx.fillRect(0, 0, this.game.canvas.width, this.game.canvas.height);
 
         this.currentScene.render(ctx);
     }

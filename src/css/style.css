@@ -105,7 +105,7 @@ html {
     height: 100%;
     max-width: 720px;
     max-height: 1280px;
-    background-color: #000;
+    background-color: var(--game-render-background, #172234);
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
     border-radius: 4px;
     overflow: hidden;

@@ -4037,6 +4037,7 @@ export default class MonsterManager {
         const m = this.monsters.get(data.mid);
         if (m && !m.isDead) {
             m.lastAttackerId = data.aid;
+            m.lastAttackerAt = Date.now();
             this._captureMonsterContributorLevel(m, data.aid, data.attackerLevel);
             const impactX = Number.isFinite(data.meta?.impactX) ? data.meta.impactX : null;
             const impactY = Number.isFinite(data.meta?.impactY) ? data.meta.impactY : null;

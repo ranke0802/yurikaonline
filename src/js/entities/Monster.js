@@ -153,6 +153,7 @@ export default class Monster extends CharacterBase {
         this.sparkTimer = 0;
         this.regenTimer = 0;
         this.lastAttackerId = null;
+        this.lastAttackerAt = 0;
         this.lastDamageMeta = null;
         this.damageContributors = new Set();
         this.damageContributorLevels = new Map();
@@ -1409,6 +1410,12 @@ export default class Monster extends CharacterBase {
                 const players = [];
                 const net = window.game?.net;
                 const seenIds = new Set();
+                // A freshly received hit must be allowed to establish retaliation
+                // even if a cross-client respawn-protection packet is still in
+                // flight. Limit this exception to the short network-race window so
+                // a previous life cannot cancel protection after a later respawn.
+                const hasRecentAttacker = (Date.now() - Number(this.lastAttackerAt || 0)) <= 2000;
+                const forcedAttackerId = hasRecentAttacker ? (this.lastAttackerId || null) : null;
                 const isRemotePlayerActive = (player) => {
                     if (!player || player.id === window.game?.localPlayer?.id) return true;
                     return !!net?.isUserActivelyPresent?.(player.id);
@@ -1416,16 +1423,20 @@ export default class Monster extends CharacterBase {
                 const tryAddPlayer = (player) => {
                     if (!player?.id || seenIds.has(player.id)) return;
                     if (!!player.isDead || !!player.isPaused) return;
-                    if (Number.isFinite(player.protectedUntil) && player.protectedUntil > Date.now()) return;
-                    if (!isRemotePlayerActive(player) || this._isProtectedPlayer(player)) return;
+                    const isForcedAttacker = player.id === forcedAttackerId;
+                    if (!isForcedAttacker && Number.isFinite(player.protectedUntil) && player.protectedUntil > Date.now()) return;
+                    if (!isRemotePlayerActive(player) || (!isForcedAttacker && this._isProtectedPlayer(player))) return;
                     seenIds.add(player.id);
                     players.push(player);
                 };
                 // v0.00.55: Filter candidates who are viewing modals (isPaused)
                 const isLocalPaused = shouldFreezeForModalUi();
-                if (window.game?.localPlayer && !window.game.localPlayer.isDead && !isLocalPaused && !this._isProtectedPlayer(window.game.localPlayer)) {
-                    seenIds.add(window.game.localPlayer.id);
-                    players.push(window.game.localPlayer);
+                const localPlayer = window.game?.localPlayer;
+                const localPlayerIsForcedAttacker = localPlayer?.id === forcedAttackerId;
+                if (localPlayer && !localPlayer.isDead && !isLocalPaused
+                    && (localPlayerIsForcedAttacker || !this._isProtectedPlayer(localPlayer))) {
+                    seenIds.add(localPlayer.id);
+                    players.push(localPlayer);
                 }
                 if (window.game?.remotePlayers) {
                     window.game.remotePlayers.forEach(p => {

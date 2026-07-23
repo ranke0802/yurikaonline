@@ -522,6 +522,7 @@ export default class WorldScene extends Scene {
         if (!zoneData) return;
         this.zoneSpawnRules = zoneData.monsterSpawns || zoneData.spawns || [];
         this.camera.setWorldBounds(this.game.zone.width, this.game.zone.height);
+        this.game.syncRenderSurfaceBackground?.();
         const defaultSpawn = this.game.zone.getSpawnPoint('default');
         this.safeZone = {
             x: defaultSpawn.x,
@@ -1621,7 +1622,7 @@ export default class WorldScene extends Scene {
     render(ctx) {
         if (!this.game.zone.currentZone) {
             // Loading State
-            ctx.fillStyle = '#000';
+            ctx.fillStyle = this.game.getRenderBackgroundColor?.() || '#172234';
             ctx.fillRect(0, 0, this.game.canvas.width, this.game.canvas.height);
             ctx.fillStyle = '#fff';
             ctx.font = '24px "Outfit", sans-serif';

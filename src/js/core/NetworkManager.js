@@ -13913,8 +13913,15 @@ export default class NetworkManager extends EventEmitter {
         if (this.isHost && window.game?.monsterManager?.isMonsterCombatBlocked?.()) return false;
         const fieldId = this._getCurrentFieldId();
         const localPlayer = window.game?.localPlayer || null;
-        const attackerLevel = Math.max(1, Math.min(999, Math.floor(Number(localPlayer?.level || 1))));
         const localMonster = window.game?.monsterManager?.monsters?.get?.(monsterId) || null;
+        if (Number(damage) > 0) {
+            localPlayer?.endSpawnProtectionOnOffense?.();
+            if (localMonster) {
+                localMonster.lastAttackerId = this.playerId;
+                localMonster.lastAttackerAt = Date.now();
+            }
+        }
+        const attackerLevel = Math.max(1, Math.min(999, Math.floor(Number(localPlayer?.level || 1))));
         if (damage > 0
             && localPlayer?.questData
             && localMonster?.typeId === 'king_slime'

@@ -1159,6 +1159,16 @@ export default class Player extends CharacterBase {
         this.net?.syncLocalZoneProfile?.('spawn_protection_start');
     }
 
+    endSpawnProtectionOnOffense() {
+        if (!(this.spawnProtectionTimer > 0)) return false;
+        this.spawnProtectionTimer = 0;
+        // Spawn protection is defensive only. Once the player chooses to damage a
+        // monster, make that choice visible to the host immediately so the monster
+        // can reacquire the player instead of remaining passive for the old timer.
+        this.net?.syncLocalZoneProfile?.('spawn_protection_ended_by_offense');
+        return true;
+    }
+
     // v1.99.36: Enhanced Mutual Hostility Check
     canAttackTarget(target) {
         if (!target) return false; // 타겟이 없으면 공격 불가

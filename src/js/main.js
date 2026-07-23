@@ -1,5 +1,5 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.02.106'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.107'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -477,11 +477,36 @@ class Game {
         const containerHeight = Number(container?.clientHeight || 0) || Number(rect?.height || 0);
 
         return {
-            displayWidth: Math.max(1, Math.round(containerWidth || visualWidth || fallbackWidth || 1)),
-            displayHeight: Math.max(1, Math.round(containerHeight || visualHeight || fallbackHeight || 1)),
-            viewportWidth: Math.max(1, Math.round(visualWidth || fallbackWidth || containerWidth || 1)),
-            viewportHeight: Math.max(1, Math.round(visualHeight || fallbackHeight || containerHeight || 1))
+            // Do not coerce a transient zero-sized iOS visual viewport to 1px. Resizing
+            // the backing canvas to 1px clears its frame and exposes the black surface
+            // while Safari settles an orientation/toolbar transition.
+            displayWidth: Math.round(containerWidth || visualWidth || fallbackWidth || 0),
+            displayHeight: Math.round(containerHeight || visualHeight || fallbackHeight || 0),
+            viewportWidth: Math.round(visualWidth || fallbackWidth || containerWidth || 0),
+            viewportHeight: Math.round(visualHeight || fallbackHeight || containerHeight || 0)
         };
+    }
+
+    getRenderBackgroundColor() {
+        const zone = this.zone?.currentZone;
+        return zone?.background?.color
+            || zone?.theme?.tint
+            || '#172234';
+    }
+
+    syncRenderSurfaceBackground() {
+        const color = this.getRenderBackgroundColor();
+        this.canvas?.style?.setProperty('background-color', color);
+        document.documentElement?.style?.setProperty('--game-render-background', color);
+        return color;
+    }
+
+    paintResizeFallback() {
+        if (!this.ctx || !this.canvas) return;
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        this.ctx.globalAlpha = 1;
+        this.ctx.fillStyle = this.syncRenderSurfaceBackground();
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     syncUiForViewportChange(displayWidth, displayHeight) {
@@ -518,6 +543,13 @@ class Game {
         const displayWidth = viewportSize.displayWidth;
         const displayHeight = viewportSize.displayHeight;
 
+        // Mobile browsers briefly report a zero/near-zero visual viewport while the
+        // address bar or device orientation is changing. Keep the last valid frame
+        // until a real viewport arrives instead of clearing the canvas to black.
+        if (displayWidth < 16 || displayHeight < 16) {
+            return false;
+        }
+
         const perfProfile = this.getPerformanceProfile();
         const { isMobile, lowPowerPwaMode, reduceCombatEffects, maxMobileDpr, maxRenderFps, maxUpdateFps } = perfProfile;
         this.baseCameraZoom = this.getBaseCameraZoom(isMobile);
@@ -549,6 +581,7 @@ class Game {
         this.ctx.mozImageSmoothingEnabled = false;
         this.ctx.msImageSmoothingEnabled = false;
         this.canvas.style.imageRendering = 'pixelated';
+        this.paintResizeFallback();
 
         if (this.loop) {
             this.loop.setMaxRenderFps(maxRenderFps);
@@ -561,6 +594,7 @@ class Game {
         }
 
         this.syncUiForViewportChange(displayWidth, displayHeight);
+        return true;
     }
 
     _isAuthStateCurrent(user, generation) {
