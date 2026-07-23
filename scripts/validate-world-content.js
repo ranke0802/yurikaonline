@@ -793,6 +793,26 @@ if (!zoneCatalog || !itemCatalog) {
         );
     });
 
+    const expectedWeaponDrops = [
+        { normalMonsterIds: ['slime', 'slime_split'], bossId: 'king_slime', weaponId: 'magic_staff', blessedWeaponId: 'blessed_magic_staff', attackPower: 7 },
+        { normalMonsterIds: ['squirtle'], bossId: 'ruin_wobbuffet', weaponId: 'tidal_staff', blessedWeaponId: 'blessed_tidal_staff', attackPower: 9 },
+        { normalMonsterIds: ['emolga'], bossId: 'thunder_pikachu', weaponId: 'storm_staff', blessedWeaponId: 'blessed_storm_staff', attackPower: 11 },
+        { normalMonsterIds: ['gastly'], bossId: 'astral_sylveon', weaponId: 'astral_staff', blessedWeaponId: 'blessed_astral_staff', attackPower: 13 }
+    ];
+    expectedWeaponDrops.forEach(({ normalMonsterIds, bossId, weaponId, blessedWeaponId, attackPower }) => {
+        normalMonsterIds.forEach((monsterId) => {
+            const normalWeaponDrop = dropRules.normalDrops.find((drop) => drop.monsterId === monsterId && drop.itemId === weaponId);
+            const blessedWeaponDrop = dropRules.normalDrops.find((drop) => drop.monsterId === monsterId && drop.itemId === blessedWeaponId);
+            assert(normalWeaponDrop?.chance === 0.01, `${monsterId} must drop ${weaponId} at 1%`);
+            assert(blessedWeaponDrop?.chance === 0.001, `${monsterId} must drop ${blessedWeaponId} at 0.1%`);
+        });
+        const bossBlessedDrop = (bossBonusDropsByMonster.get(bossId) || [])
+            .find((drop) => drop.itemId === blessedWeaponId);
+        assert(bossBlessedDrop?.chance === 0.1, `${bossId} must drop ${blessedWeaponId} at 10%`);
+        assert(itemsById.get(weaponId)?.baseStats?.attackPower === attackPower, `${weaponId} attackPower must be ${attackPower}`);
+        assert(itemsById.get(blessedWeaponId)?.baseStats?.attackPower === 20, `${blessedWeaponId} attackPower must remain 20`);
+    });
+
     const normalProgression = [];
     const bossProgression = [];
     const weaponProgression = [];

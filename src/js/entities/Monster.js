@@ -769,7 +769,8 @@ export default class Monster extends CharacterBase {
             width,
             theme,
             castProgress,
-            lowGlareCombat
+            lowGlareCombat,
+            chargeVisual
         );
         const vfxSize = Math.max(this.width * 1.8, this.isBoss ? 170 : 92);
         this._drawSkillVfx(
@@ -2199,31 +2200,42 @@ export default class Monster extends CharacterBase {
         );
     }
 
-    _drawTelegraphLane(ctx, x1, y1, x2, y2, width, theme, progress, lowGlareCombat) {
+    _drawTelegraphLane(ctx, x1, y1, x2, y2, width, theme, progress, lowGlareCombat, visual = null) {
         const dx = x2 - x1;
         const dy = y2 - y1;
         const length = Math.hypot(dx, dy);
         if (length < 1) return;
         const angle = Math.atan2(dy, dx);
-        const opacity = (lowGlareCombat ? 0.18 : 0.26) + progress * (lowGlareCombat ? 0.06 : 0.1);
+        const laneWidth = Math.max(12, Number(width) || 0);
+        const fillOpacity = (lowGlareCombat ? 0.16 : 0.23) + progress * (lowGlareCombat ? 0.05 : 0.08);
+        const overlayOpacity = lowGlareCombat ? 0.68 : 0.9;
+        const outlineOpacity = (lowGlareCombat ? 0.44 : 0.68) + progress * 0.1;
+        const laneFill = visual?.fill || theme.fill;
+        const laneStroke = visual?.stroke || theme.stroke;
         ctx.save();
         ctx.translate(x1, y1);
         ctx.rotate(angle);
-        ctx.globalAlpha = opacity;
-        ctx.fillStyle = theme.fill;
-        ctx.fillRect(0, -width / 2, length, width);
-        // Dots communicate the locked travel direction without returning to the
-        // old thin white outline that looked like an unfinished debug line.
-        ctx.globalAlpha = lowGlareCombat ? 0.34 : 0.58;
+        // Use a color-filled warning corridor, not the thin white aim line that
+        // is reserved for neither player nor monster UI. The first layer keeps
+        // every monster readable on dark maps; authored per-monster tints sit on top.
+        ctx.globalAlpha = fillOpacity;
         ctx.fillStyle = theme.color;
-        const dots = Math.max(2, Math.min(7, Math.floor(length / 115)));
-        for (let index = 1; index <= dots; index += 1) {
-            const dotX = (length * index) / (dots + 1);
-            const radius = Math.max(2.5, Math.min(width * 0.12, 6)) * (0.76 + progress * 0.24);
-            ctx.beginPath();
-            ctx.arc(dotX, 0, radius, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        ctx.fillRect(0, -laneWidth / 2, length, laneWidth);
+        ctx.globalAlpha = overlayOpacity;
+        ctx.fillStyle = laneFill;
+        ctx.fillRect(0, -laneWidth / 2, length, laneWidth);
+
+        // A colored boundary and destination marker make the hit width and the
+        // locked endpoint obvious without flicker or per-frame particle churn.
+        ctx.globalAlpha = outlineOpacity;
+        ctx.strokeStyle = laneStroke;
+        ctx.lineWidth = Math.max(2, Math.min(5, laneWidth * 0.075));
+        ctx.strokeRect(0, -laneWidth / 2, length, laneWidth);
+        ctx.globalAlpha = lowGlareCombat ? 0.5 : 0.74;
+        ctx.fillStyle = theme.highlight;
+        ctx.beginPath();
+        ctx.arc(length, 0, Math.max(5, Math.min(laneWidth * 0.18, 12)), 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
     }
 

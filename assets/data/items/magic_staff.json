@@ -6,10 +6,12 @@
   "rarity": "boss",
   "stackable": false,
   "dropSource": [
-    "king_slime"
+    "king_slime",
+    "slime",
+    "slime_split"
   ],
   "baseStats": {
-    "attackPower": 5,
+    "attackPower": 7,
     "critRate": 0.05,
     "mpRegen": 3
   },

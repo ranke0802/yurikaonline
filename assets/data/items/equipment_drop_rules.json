@@ -11,35 +11,35 @@
     {
       "monsterId": "slime",
       "itemId": "blessed_magic_staff",
-      "chance": 0.005,
+      "chance": 0.001,
       "rollAffixFromPool": "blessed_magic_staff_affixes",
       "quantity": 1
     },
     {
       "monsterId": "slime_split",
       "itemId": "blessed_magic_staff",
-      "chance": 0.005,
+      "chance": 0.001,
       "rollAffixFromPool": "blessed_magic_staff_affixes",
       "quantity": 1
     },
     {
       "monsterId": "squirtle",
       "itemId": "blessed_tidal_staff",
-      "chance": 0.005,
+      "chance": 0.001,
       "rollAffixFromPool": "blessed_tidal_staff_affixes",
       "quantity": 1
     },
     {
       "monsterId": "emolga",
       "itemId": "blessed_storm_staff",
-      "chance": 0.005,
+      "chance": 0.001,
       "rollAffixFromPool": "blessed_storm_staff_affixes",
       "quantity": 1
     },
     {
       "monsterId": "gastly",
       "itemId": "blessed_astral_staff",
-      "chance": 0.005,
+      "chance": 0.001,
       "rollAffixFromPool": "blessed_astral_staff_affixes",
       "quantity": 1
     },
@@ -98,6 +98,41 @@
       "chance": 0.05,
       "min": 1,
       "max": 1
+    },
+    {
+      "monsterId": "slime",
+      "itemId": "magic_staff",
+      "chance": 0.01,
+      "rollAffixFromPool": "magic_staff_affixes",
+      "quantity": 1
+    },
+    {
+      "monsterId": "slime_split",
+      "itemId": "magic_staff",
+      "chance": 0.01,
+      "rollAffixFromPool": "magic_staff_affixes",
+      "quantity": 1
+    },
+    {
+      "monsterId": "squirtle",
+      "itemId": "tidal_staff",
+      "chance": 0.01,
+      "rollAffixFromPool": "tidal_staff_affixes",
+      "quantity": 1
+    },
+    {
+      "monsterId": "emolga",
+      "itemId": "storm_staff",
+      "chance": 0.01,
+      "rollAffixFromPool": "storm_staff_affixes",
+      "quantity": 1
+    },
+    {
+      "monsterId": "gastly",
+      "itemId": "astral_staff",
+      "chance": 0.01,
+      "rollAffixFromPool": "astral_staff_affixes",
+      "quantity": 1
     }
   ],
   "bossDrops": [
@@ -131,6 +166,14 @@
     }
   ],
   "bossBonusDrops": [
+    {
+      "monsterId": "king_slime",
+      "itemId": "blessed_magic_staff",
+      "chance": 0.1,
+      "min": 1,
+      "max": 1,
+      "rollAffixFromPool": "blessed_magic_staff_affixes"
+    },
     {
       "monsterId": "king_slime",
       "itemId": "option_reroll_stone",
@@ -170,6 +213,14 @@
     },
     {
       "monsterId": "ruin_wobbuffet",
+      "itemId": "blessed_tidal_staff",
+      "chance": 0.1,
+      "min": 1,
+      "max": 1,
+      "rollAffixFromPool": "blessed_tidal_staff_affixes"
+    },
+    {
+      "monsterId": "ruin_wobbuffet",
       "itemId": "weapon_upgrade_stone",
       "chance": 1,
       "min": 1,
@@ -200,6 +251,14 @@
     },
     {
       "monsterId": "thunder_pikachu",
+      "itemId": "blessed_storm_staff",
+      "chance": 0.1,
+      "min": 1,
+      "max": 1,
+      "rollAffixFromPool": "blessed_storm_staff_affixes"
+    },
+    {
+      "monsterId": "thunder_pikachu",
       "itemId": "weapon_upgrade_stone",
       "chance": 1,
       "min": 1,
@@ -227,6 +286,14 @@
       "chance": 1,
       "min": 1,
       "max": 3
+    },
+    {
+      "monsterId": "astral_sylveon",
+      "itemId": "blessed_astral_staff",
+      "chance": 0.1,
+      "min": 1,
+      "max": 1,
+      "rollAffixFromPool": "blessed_astral_staff_affixes"
     },
     {
       "monsterId": "astral_sylveon",

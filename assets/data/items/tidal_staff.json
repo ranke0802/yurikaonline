@@ -7,10 +7,11 @@
   "rarity": "boss",
   "stackable": false,
   "dropSource": [
-    "ruin_wobbuffet"
+    "ruin_wobbuffet",
+    "squirtle"
   ],
   "baseStats": {
-    "attackPower": 8,
+    "attackPower": 9,
     "critRate": 0.06,
     "mpRegen": 4
   },

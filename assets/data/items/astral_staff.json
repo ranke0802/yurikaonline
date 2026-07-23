@@ -7,10 +7,11 @@
   "rarity": "boss",
   "stackable": false,
   "dropSource": [
-    "astral_sylveon"
+    "astral_sylveon",
+    "gastly"
   ],
   "baseStats": {
-    "attackPower": 20,
+    "attackPower": 13,
     "critRate": 0.09,
     "mpRegen": 7
   },

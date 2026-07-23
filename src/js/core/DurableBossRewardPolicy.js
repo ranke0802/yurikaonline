@@ -7,8 +7,7 @@ function deepFreeze(value) {
 // Released durable entitlement policies are append-only. A pending receipt or
 // saved boss weapon must keep the exact combat/visual/enhancement behavior it
 // had when authored, even after the live item catalog changes.
-export const DURABLE_BOSS_REWARD_ARCHIVED_CATALOGS = deepFreeze({
-    1: {
+const DURABLE_BOSS_REWARD_ARCHIVED_CATALOG_V1 = {
         bosses: {
             king_slime: ['magic_staff'],
             ruin_wobbuffet: ['tidal_staff'],
@@ -233,7 +232,36 @@ export const DURABLE_BOSS_REWARD_ARCHIVED_CATALOGS = deepFreeze({
                 }
             }
         }
+};
+
+// v2 is a new durable entitlement release: v1 remains immutable for weapons
+// already earned before the base-attack balance pass.
+const DURABLE_BOSS_REWARD_ARCHIVED_CATALOG_V2 = {
+    ...DURABLE_BOSS_REWARD_ARCHIVED_CATALOG_V1,
+    items: {
+        ...DURABLE_BOSS_REWARD_ARCHIVED_CATALOG_V1.items,
+        magic_staff: {
+            ...DURABLE_BOSS_REWARD_ARCHIVED_CATALOG_V1.items.magic_staff,
+            baseStats: { attackPower: 7, critRate: 0.05, mpRegen: 3 }
+        },
+        tidal_staff: {
+            ...DURABLE_BOSS_REWARD_ARCHIVED_CATALOG_V1.items.tidal_staff,
+            baseStats: { attackPower: 9, critRate: 0.06, mpRegen: 4 }
+        },
+        storm_staff: {
+            ...DURABLE_BOSS_REWARD_ARCHIVED_CATALOG_V1.items.storm_staff,
+            baseStats: { attackPower: 11, critRate: 0.07, mpRegen: 5 }
+        },
+        astral_staff: {
+            ...DURABLE_BOSS_REWARD_ARCHIVED_CATALOG_V1.items.astral_staff,
+            baseStats: { attackPower: 13, critRate: 0.09, mpRegen: 7 }
+        }
     }
+};
+
+export const DURABLE_BOSS_REWARD_ARCHIVED_CATALOGS = deepFreeze({
+    1: DURABLE_BOSS_REWARD_ARCHIVED_CATALOG_V1,
+    2: DURABLE_BOSS_REWARD_ARCHIVED_CATALOG_V2
 });
 
 export function resolveDurableBossEntitlementPolicy(item) {

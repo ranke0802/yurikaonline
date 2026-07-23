@@ -7,10 +7,11 @@
   "rarity": "boss",
   "stackable": false,
   "dropSource": [
-    "thunder_pikachu"
+    "thunder_pikachu",
+    "emolga"
   ],
   "baseStats": {
-    "attackPower": 13,
+    "attackPower": 11,
     "critRate": 0.07,
     "mpRegen": 5
   },

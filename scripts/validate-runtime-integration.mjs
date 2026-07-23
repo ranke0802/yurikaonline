@@ -4898,12 +4898,14 @@ async function validateDurableBossRewardContracts() {
         'utf8'
     ));
     const archivedV1 = DURABLE_BOSS_REWARD_ARCHIVED_CATALOGS[1];
+    const archivedV2 = DURABLE_BOSS_REWARD_ARCHIVED_CATALOGS[2];
     const assertDeepFrozen = (value, path = 'archive') => {
         if (!value || typeof value !== 'object') return;
         assert.equal(Object.isFrozen(value), true, `${path} must be recursively immutable`);
         Object.entries(value).forEach(([key, child]) => assertDeepFrozen(child, `${path}.${key}`));
     };
     assertDeepFrozen(archivedV1);
+    assertDeepFrozen(archivedV2);
     const archivedItemPairs = [
         ['magic_staff', 'magic_staff.json', 'magic_staff_affixes.json'],
         ['tidal_staff', 'tidal_staff.json', 'tidal_staff_affixes.json'],
@@ -4915,7 +4917,7 @@ async function validateDurableBossRewardContracts() {
             readItemPolicyJson(definitionFile),
             readItemPolicyJson(affixFile)
         ]);
-        const archivedItem = archivedV1.items[itemId];
+        const archivedItem = archivedV2.items[itemId];
         assert.deepEqual({
             name: archivedItem.name,
             description: archivedItem.description || '',
@@ -4936,13 +4938,18 @@ async function validateDurableBossRewardContracts() {
             baseStats: liveDefinition.baseStats,
             enhancementBonuses: liveDefinition.enhancementBonuses,
             visuals: liveDefinition.visuals
-        }, `${itemId} archived item policy must exactly match released v1 data`);
+        }, `${itemId} active archived item policy must exactly match released v2 data`);
         assert.deepEqual(
             archivedItem.affixes,
             Object.fromEntries(liveAffixPool.affixes.map((affix) => [affix.id, affix])),
-            `${itemId} archived affix combat and visual policy must exactly match released v1 data`
+            `${itemId} active archived affix combat and visual policy must exactly match released v2 data`
         );
     }
+    assert.deepEqual(
+        Object.fromEntries(archivedItemPairs.map(([itemId]) => [itemId, archivedV1.items[itemId].baseStats.attackPower])),
+        { magic_staff: 5, tidal_staff: 8, storm_staff: 13, astral_staff: 20 },
+        'released v1 boss weapons must retain their original archived base attack values'
+    );
     const liveEnhancementRules = await readItemPolicyJson('equipment_enhancement_rules.json');
     assert.deepEqual(
         archivedV1.enhancementRuleSets.weapon_standard_1_to_10,

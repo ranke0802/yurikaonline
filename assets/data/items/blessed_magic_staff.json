@@ -8,7 +8,8 @@
   "stackable": false,
   "dropSource": [
     "slime",
-    "slime_split"
+    "slime_split",
+    "king_slime"
   ],
   "baseStats": {
     "attackPower": 20,
