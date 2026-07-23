@@ -9249,9 +9249,15 @@ export default class NetworkManager extends EventEmitter {
         }
 
         const result = await this._commitPlayerData(uid, data, syncToZone, saveOptions);
-        pendingWaiters?.forEach(({ resolve }) => resolve(result));
-        patchWaiters?.forEach(({ resolve }) => resolve(result));
-        return result;
+        // An explicit full save writes this checkpoint synchronously before the
+        // network transaction.  Preserve that fact for callers that need a
+        // safe local-exit fallback when RTDB is temporarily unavailable.
+        const resultWithCheckpoint = localCheckpointPersisted && result && typeof result === 'object'
+            ? { ...result, localCheckpointPersisted: true }
+            : result;
+        pendingWaiters?.forEach(({ resolve }) => resolve(resultWithCheckpoint));
+        patchWaiters?.forEach(({ resolve }) => resolve(resultWithCheckpoint));
+        return resultWithCheckpoint;
     }
 
     async savePlayerDataPatch(uid, patchData, options = {}) {

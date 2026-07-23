@@ -2555,6 +2555,37 @@ async function validateProfileExitDurabilityContracts() {
     assert.equal(await ui.exitGameToCharacterSelection({ reason: 'runtime_failed_exit' }), false);
     assert.equal(sceneChanges, 0, 'a failed final profile save must keep the player out of character selection');
 
+    let localCheckpointFlushes = 0;
+    game.localPlayer = {
+        id: player.id,
+        saveState: async () => ({ ok: false, reason: 'writer_session_unavailable', localCheckpointPersisted: true })
+    };
+    game.net.getLocalProfileCheckpoint = (uid) => (uid === player.id ? { profile: { level: 24, exp: 100 } } : null);
+    game.net.flushProfileWrites = async () => {
+        localCheckpointFlushes += 1;
+        return { ok: true };
+    };
+    assert.equal(await ui.exitGameToCharacterSelection({ reason: 'runtime_local_checkpoint_exit' }), true);
+    assert.equal(sceneChanges, 1, 'a current durable local checkpoint must allow a safe exit when RTDB is temporarily unavailable');
+    assert.equal(localCheckpointFlushes, 0, 'a failed remote save must not start a redundant exit flush after the local fallback is selected');
+
+    let browserBackGuardArms = 0;
+    let browserBackPrompts = 0;
+    const browserBackUi = Object.create(UIManager.prototype);
+    browserBackUi.ignoreNextBrowserBackPopstate = false;
+    browserBackUi.browserBackExitGuardArmed = false;
+    browserBackUi.browserBackExitConfirmPending = false;
+    browserBackUi.gameExitSceneTransitioning = false;
+    browserBackUi.isWorldSceneActive = () => true;
+    browserBackUi.armBrowserBackExitGuard = () => {
+        browserBackGuardArms += 1;
+        return true;
+    };
+    browserBackUi.showConfirm = () => { browserBackPrompts += 1; };
+    browserBackUi.handleBrowserBackPopState();
+    assert.equal(browserBackGuardArms, 1, 'browser back must re-arm the exit guard even if the in-memory armed flag was lost');
+    assert.equal(browserBackPrompts, 1, 'browser back while playing must always show the exit confirmation');
+
     let releaseZoneTransition;
     const trackedScene = new WorldScene({
         camera: null,
@@ -2654,7 +2685,8 @@ async function validateLocalProfileCheckpointContracts() {
         assert.equal(pendingCheckpoint?.profile.inventory[1].type, 'checkpoint_staff');
         assert.equal(pendingCheckpoint?.profile.questData.slimeKills, 7);
         finishCommit({ ok: false, reason: 'browser_terminated_before_commit' });
-        await pendingSave;
+        const failedPendingSave = await pendingSave;
+        assert.equal(failedPendingSave.localCheckpointPersisted, true, 'a failed full save must report the checkpoint created for that exact save attempt');
 
         const resetRoot = {
             ...richProfile,

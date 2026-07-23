@@ -7599,7 +7599,7 @@ export class UIManager {
             return;
         }
 
-        if (!this.browserBackExitGuardArmed || !this.isWorldSceneActive()) {
+        if (!this.isWorldSceneActive()) {
             this.browserBackExitGuardArmed = false;
             this.browserBackExitConfirmPending = false;
             return;
@@ -7683,28 +7683,35 @@ export class UIManager {
                 });
                 const saveResult = await waitForExitOperation(saveOperation, EXIT_PROFILE_SAVE_TIMEOUT_MS, 'exit_profile_save');
                 const hasLocalCheckpoint = !!this.game?.net?.getLocalProfileCheckpoint?.(player.id);
-                if (saveResult?.ok !== true && !(saveResult?.timedOut && hasLocalCheckpoint)) {
+                const hasCurrentExitCheckpoint = hasLocalCheckpoint && saveResult?.localCheckpointPersisted === true;
+                const canContinueWithLocalCheckpoint = hasLocalCheckpoint
+                    && (saveResult?.timedOut || hasCurrentExitCheckpoint);
+                if (saveResult?.ok !== true && !canContinueWithLocalCheckpoint) {
                     throw new Error(saveResult?.reason || 'exit_game_profile_save_failed');
                 }
-                if (saveResult?.timedOut) {
-                    Logger.warn('[UIManager] Exit profile save timed out; continuing with the durable local checkpoint.');
+                if (saveResult?.ok !== true) {
+                    Logger.warn('[UIManager] Exit profile save did not reach RTDB; continuing with the current durable local checkpoint.', {
+                        reason: saveResult?.reason || 'unknown'
+                    });
                 }
-            }
 
-            // The full exit snapshot already absorbs queued patches. Replaying
-            // the same local journal creates a second RTDB transaction and was
-            // the source of indefinite exit waits under a stale writer fence.
-            const flushResult = await waitForExitOperation(
-                this.game?.net?.flushProfileWrites?.(player?.id, { replayLocalPatchJournal: false }),
-                EXIT_PROFILE_SAVE_TIMEOUT_MS,
-                'exit_profile_flush'
-            );
-            const hasLocalCheckpoint = !!this.game?.net?.getLocalProfileCheckpoint?.(player?.id);
-            if (flushResult?.ok === false && !(flushResult?.timedOut && hasLocalCheckpoint)) {
-                throw new Error(flushResult.reason || 'exit_game_profile_flush_failed');
-            }
-            if (flushResult?.timedOut) {
-                Logger.warn('[UIManager] Exit profile flush timed out; continuing with the durable local checkpoint.');
+                if (saveResult?.ok === true) {
+                    // The full exit snapshot already absorbs queued patches. Replaying
+                    // the same local journal creates a second RTDB transaction and was
+                    // the source of indefinite exit waits under a stale writer fence.
+                    const flushResult = await waitForExitOperation(
+                        this.game?.net?.flushProfileWrites?.(player?.id, { replayLocalPatchJournal: false }),
+                        EXIT_PROFILE_SAVE_TIMEOUT_MS,
+                        'exit_profile_flush'
+                    );
+                    const hasLocalCheckpointForFlush = !!this.game?.net?.getLocalProfileCheckpoint?.(player?.id);
+                    if (flushResult?.ok === false && !(flushResult?.timedOut && hasLocalCheckpointForFlush)) {
+                        throw new Error(flushResult.reason || 'exit_game_profile_flush_failed');
+                    }
+                    if (flushResult?.timedOut) {
+                        Logger.warn('[UIManager] Exit profile flush timed out; continuing with the durable local checkpoint.');
+                    }
+                }
             }
             worldScene?.markProfileSavedForSceneExit?.(player?.id);
             this.game?.tutorial?.stopTutorial?.();
