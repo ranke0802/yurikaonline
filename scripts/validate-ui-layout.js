@@ -164,6 +164,18 @@ if (!/const compactPosition\s*=\s*state\.compact[\s\S]*captureFriendChatCompactP
     fail('friend-chat viewport changes must preserve the user-dragged compact position');
 }
 
+const minimizedFriendChatState = extractBetween(
+    friendsUi,
+    '    applyFriendChatWindowState() {',
+    '    handleFriendChatBackAction() {',
+    'friend chat window-state method'
+);
+
+if (!/toggleFriendGiftItemPicker\(false,\s*\{\s*skipWindowStateApply:\s*true\s*\}\)/.test(minimizedFriendChatState)
+    || !/toggleFriendGiftItemPicker\(visible,\s*options\s*=\s*\{\}\)[\s\S]*if \(!options\.skipWindowStateApply\)\s*\{\s*this\.applyFriendChatWindowState\(\);\s*\}/.test(friendsUi)) {
+    fail('minimized friend-chat picker close must not recursively reapply window state');
+}
+
 if (!/id="settings-camera-view-range"[^>]*min="80"[^>]*max="150"[^>]*step="1"/.test(html)
     || !/cameraViewRange:\s*100/.test(uiManager)
     || !/cameraViewRange:\s*this\.clampNumericSetting\(candidate\.cameraViewRange,\s*defaults\.cameraViewRange,\s*80,\s*150\)/.test(uiManager)) {

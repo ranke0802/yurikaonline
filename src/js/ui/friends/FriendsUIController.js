@@ -938,7 +938,11 @@ export default class FriendsUIController {
         }
 
         if (state.compact && state.minimized) {
-            this.toggleFriendGiftItemPicker(false);
+            // Closing the picker is part of applying the minimized layout. Do not
+            // re-enter this method through the public picker toggle, otherwise a
+            // minimized chat with an already-mounted picker recurses until the
+            // browser exhausts its call stack.
+            this.toggleFriendGiftItemPicker(false, { skipWindowStateApply: true });
         } else {
             this.positionFriendGiftItemPicker();
         }
@@ -2430,7 +2434,7 @@ export default class FriendsUIController {
         return true;
     }
 
-    toggleFriendGiftItemPicker(visible) {
+    toggleFriendGiftItemPicker(visible, options = {}) {
         const composer = document.getElementById('friend-gift-composer');
         const modal = document.getElementById('friend-gift-picker-modal');
         const picker = document.getElementById('friend-gift-item-picker');
@@ -2444,7 +2448,9 @@ export default class FriendsUIController {
         composer.classList.toggle('is-picker-open', nextVisible);
         modal.classList.toggle('hidden', !nextVisible);
         this.syncFriendGiftComposerLayoutState();
-        this.applyFriendChatWindowState();
+        if (!options.skipWindowStateApply) {
+            this.applyFriendChatWindowState();
+        }
         if (!nextVisible) {
             this.hideFriendGiftItemTooltip();
             this.hideFriendGiftItemDetailModal();

@@ -338,6 +338,11 @@ export default class ItemDataManager {
                 : this.getItemDefinition(item.type || item.id);
         }
         const policy = durablePolicy.item;
+        // Durable boss weapons intentionally take combat data only from the
+        // immutable reward archive. Presentation-only tooltip metadata is safe
+        // to read from the live catalog, and keeps their detail panel aligned
+        // with ordinary/blessed weapons (class, material, weight, trade flags).
+        const presentationDefinition = this.getItemDefinition(durablePolicy.itemId);
         return {
             id: durablePolicy.itemId,
             name: policy.name,
@@ -352,7 +357,10 @@ export default class ItemDataManager {
                 fallbackEmoji: policy.icon,
                 path: policy.iconPath
             },
-            visuals: policy.visuals || null
+            visuals: policy.visuals || null,
+            inventoryTooltip: presentationDefinition?.inventoryTooltip
+                ? { ...presentationDefinition.inventoryTooltip }
+                : null
         };
     }
 
