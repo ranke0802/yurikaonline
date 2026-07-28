@@ -91,6 +91,17 @@
         "weaponName": "성운의 지팡이"
       },
       "accentColor": "#d79cff"
+    },
+    {
+      "id": "zone_5",
+      "name": "태초의 균열지",
+      "subtitle": "잠든 균열핵이 숨 쉬는 흑요석 고원",
+      "requiredLevel": 20,
+      "recommendedLevel": { "min": 21, "max": 25 },
+      "description": "별그늘 유적 너머, 붉은 균열과 보랏빛 마력이 맞물린 고원입니다.",
+      "normalMonsters": [{ "id": "ember_drake", "name": "불씨 드레이크" }, { "id": "spark_squirrel", "name": "균열 다람쥐" }],
+      "boss": { "id": "rift_sentinel", "name": "균열의 감시자", "weaponName": "균열핵 지팡이" },
+      "accentColor": "#a78bfa"
     }
   ]
 }

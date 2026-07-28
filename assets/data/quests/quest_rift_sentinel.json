@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 2, "id": "quest_rift_sentinel", "enabled": true, "title": "균열의 감시자", "description": "태초의 균열지 보스 균열의 감시자를 처치하세요.", "type": "main", "chapter": "zone_5", "order": 530,
+  "prerequisites": [{ "type": "questCompleted", "questId": "quest_rift_hunt" }], "activation": { "mode": "auto", "events": ["questCompleted"] },
+  "objectives": [{ "id": "kill_rift_sentinel", "type": "bossKill", "target": "rift_sentinel", "count": 1, "zoneId": "zone_5", "scope": "partyParticipants", "receiptRequired": true, "uiText": "균열의 감시자 처치 {current}/{count}" }],
+  "rewards": { "display": [{ "type": "guide", "label": "균열핵 지팡이 획득 가능" }] },
+  "bossRewardGuide": { "bossId": "rift_sentinel", "itemId": "riftcore_staff", "title": "균열핵 지팡이 획득 가능", "skillSummary": "체인 라이트닝 계열의 균열 공명 효과를 획득합니다." },
+  "ui": { "guideOnly": true, "hudPriority": 530, "recommendedZone": "zone_5", "chapterLabel": "Chapter 5 · 균열의 감시자" },
+  "onComplete": { "logMessage": "균열의 감시자를 쓰러뜨렸습니다. 다음 지역은 준비 중입니다.", "recommendZone": "zone_5" }
+}

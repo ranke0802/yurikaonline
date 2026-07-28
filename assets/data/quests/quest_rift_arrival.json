@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 2, "id": "quest_rift_arrival", "enabled": true, "title": "갈라진 대지", "description": "균열의 열기가 모험가를 시험합니다.", "type": "main", "chapter": "zone_5", "order": 510,
+  "prerequisites": [{ "type": "questCompleted", "questId": "quest_to_primal_rift" }], "activation": { "mode": "auto", "events": ["questCompleted", "zoneEntered"] },
+  "objectives": [{ "id": "arrive_zone_5", "type": "travel", "targetZone": "zone_5", "count": 1, "uiText": "태초의 균열지 조사" }],
+  "rewards": { "grant": { "exp": 900, "manastone": 500 }, "display": [{ "type": "exp", "amount": 900 }, { "type": "manastone", "amount": 500 }] },
+  "ui": { "hudPriority": 510, "recommendedZone": "zone_5", "chapterLabel": "Chapter 5 · 태초의 균열지" },
+  "onComplete": { "unlocks": ["quest_rift_hunt"], "logMessage": "균열핵을 지키는 존재들이 모습을 드러냅니다.", "recommendZone": "zone_5" }
+}

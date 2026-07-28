@@ -81,7 +81,10 @@ export default class Monster extends CharacterBase {
         ).toLowerCase();
         this.effectVfx = visual.effectVfx || {};
         // Start one shared decode while monsters are created, before any cast begins.
-        preloadMonsterSkillVfxAtlas();
+        // Each authored theme owns one lazy atlas.  Preload only this
+        // monster's theme so zone_5's rift texture never downloads in an
+        // earlier map, while its first telegraph is still fully visible.
+        preloadMonsterSkillVfxAtlas(this.effectTheme);
 
         // Components
         this.skills = definition.skills || [];

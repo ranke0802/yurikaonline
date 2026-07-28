@@ -1,0 +1,14 @@
+{
+  "id": "zone_5", "name": "태초의 균열지", "requiredLevel": 20,
+  "recommendedLevel": { "min": 21, "max": 25 }, "width": 4000, "height": 4000,
+  "background": { "image": "assets/resource/expansion/zone_5/maps/zone_5_primal_rift.webp", "music": "bgm_act4_hope", "ambient": null },
+  "theme": { "tint": "#2d1238", "tintAlpha": 0.22, "motif": "primal_rift", "motifColor": "#b794f4" },
+  "boundaries": { "minX": 0, "maxX": 4000, "minY": 0, "maxY": 4000 },
+  "spawnPoints": [{ "id": "default", "x": 2000, "y": 2000 }],
+  "monsterSpawns": [
+    { "monsterId": "ember_drake", "count": 9, "initialDelaySeconds": 4, "respawnSeconds": 6, "area": { "x": 720, "y": 720, "w": 2560, "h": 620 } },
+    { "monsterId": "spark_squirrel", "count": 9, "initialDelaySeconds": 4, "respawnSeconds": 6, "area": { "x": 720, "y": 2680, "w": 2560, "h": 620 } }
+  ],
+  "bossSpawn": { "monsterId": "rift_sentinel", "displayName": "균열의 감시자", "point": { "x": 2000, "y": 820 }, "initialDelaySeconds": 60, "respawnSeconds": 600, "questGate": { "questId": "quest_rift_sentinel", "mode": "activeOrCompleted" } },
+  "objects": []
+}

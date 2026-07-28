@@ -1,0 +1,270 @@
+{
+  "ok": true,
+  "source": "C:\\dev\\yurika_online\\assets\\resource\\expansion\\zone_5\\monsters\\spark_squirrel\\spritesheet.webp",
+  "sha256": "efb270b5fdc236649b2680902c7a3fdf4ec6098132f83e4d3055369efafa709a",
+  "dimensions": {
+    "width": 1536,
+    "height": 2288
+  },
+  "grid": {
+    "columns": 8,
+    "rows": 11,
+    "frameWidth": 192,
+    "frameHeight": 208
+  },
+  "states": [
+    {
+      "state": "idle",
+      "row": 0,
+      "count": 7,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 28,
+            "top": 34,
+            "right": 163,
+            "bottom": 180,
+            "opaquePixels": 11306
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 28,
+            "top": 36,
+            "right": 163,
+            "bottom": 180,
+            "opaquePixels": 11410
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 28,
+            "top": 36,
+            "right": 163,
+            "bottom": 180,
+            "opaquePixels": 11380
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 28,
+            "top": 35,
+            "right": 163,
+            "bottom": 180,
+            "opaquePixels": 11434
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 28,
+            "top": 32,
+            "right": 163,
+            "bottom": 180,
+            "opaquePixels": 11663
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 28,
+            "top": 33,
+            "right": 163,
+            "bottom": 180,
+            "opaquePixels": 11395
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 28,
+            "top": 34,
+            "right": 163,
+            "bottom": 180,
+            "opaquePixels": 11306
+          }
+        }
+      ]
+    },
+    {
+      "state": "moveRight",
+      "row": 1,
+      "count": 8,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 35,
+            "top": 44,
+            "right": 157,
+            "bottom": 184,
+            "opaquePixels": 9379
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 31,
+            "top": 44,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 10243
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 30,
+            "top": 44,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9665
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 30,
+            "top": 44,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 10062
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 30,
+            "top": 51,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9996
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 30,
+            "top": 53,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9385
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 30,
+            "top": 46,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9988
+          }
+        },
+        {
+          "frame": 7,
+          "bounds": {
+            "left": 30,
+            "top": 46,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 10351
+          }
+        }
+      ]
+    },
+    {
+      "state": "moveLeft",
+      "row": 2,
+      "count": 8,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 35,
+            "top": 44,
+            "right": 157,
+            "bottom": 184,
+            "opaquePixels": 9379
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 31,
+            "top": 44,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 10243
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 30,
+            "top": 44,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9661
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 30,
+            "top": 44,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 10062
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 30,
+            "top": 51,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9993
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 30,
+            "top": 53,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9387
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 30,
+            "top": 46,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9989
+          }
+        },
+        {
+          "frame": 7,
+          "bounds": {
+            "left": 30,
+            "top": 46,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 10351
+          }
+        }
+      ]
+    }
+  ],
+  "contactSheet": "reports\\asset-qa\\zone_5\\spark_squirrel\\active-animation-contact-sheet.png",
+  "errors": []
+}

@@ -33,7 +33,7 @@ const aggressiveChargeMonsterIds = new Set([
     'astral_sylveon'
 ]);
 const combatEffectThemeIds = new Set([
-    'slime', 'water', 'thunder', 'shadow', 'astral', 'wood', 'arcane'
+    'slime', 'water', 'thunder', 'shadow', 'astral', 'rift', 'wood', 'arcane'
 ]);
 
 function fail(message) {
@@ -288,9 +288,10 @@ function validateMonsterSkillVfxRuntimeHygiene() {
         'Monster skill VFX renderer must not create per-frame collections or time-driven allocations'
     );
     assert(
-        (monsterVfxRendererSource.match(/new Image\s*\(/g) || []).length === 1
-            && /if \(!atlasImage\)/.test(monsterVfxRendererSource),
-        'Monster skill VFX renderer must retain exactly one lazy shared Image instance'
+        (monsterVfxRendererSource.match(/new Image\s*\(/g) || []).length === 2
+            && /!atlasImage/.test(monsterVfxRendererSource)
+            && /if \(atlas === RIFT_SENTINEL_VFX_ATLAS && !riftAtlasImage\)/.test(monsterVfxRendererSource),
+        'Monster skill VFX renderer must retain two lazy shared Image instances (base + rift expansion)'
     );
     assert(
         !/options\./.test(monsterVfxRendererSource),
@@ -798,6 +799,7 @@ if (!zoneCatalog || !itemCatalog) {
         { normalMonsterIds: ['squirtle'], bossId: 'ruin_wobbuffet', weaponId: 'tidal_staff', blessedWeaponId: 'blessed_tidal_staff', attackPower: 9 },
         { normalMonsterIds: ['emolga'], bossId: 'thunder_pikachu', weaponId: 'storm_staff', blessedWeaponId: 'blessed_storm_staff', attackPower: 11 },
         { normalMonsterIds: ['gastly'], bossId: 'astral_sylveon', weaponId: 'astral_staff', blessedWeaponId: 'blessed_astral_staff', attackPower: 13 }
+        ,{ normalMonsterIds: ['ember_drake', 'spark_squirrel'], bossId: 'rift_sentinel', weaponId: 'riftcore_staff', blessedWeaponId: 'blessed_riftcore_staff', attackPower: 15 }
     ];
     expectedWeaponDrops.forEach(({ normalMonsterIds, bossId, weaponId, blessedWeaponId, attackPower }) => {
         normalMonsterIds.forEach((monsterId) => {

@@ -157,11 +157,15 @@
     {
       "id": "quest_epilogue_current_end",
       "path": "quest_epilogue_current_end.json",
-      "enabled": true,
+      "enabled": false,
       "chapter": "zone_4",
       "order": 450,
       "tags": ["main", "epilogue"]
-    }
+    },
+    { "id": "quest_to_primal_rift", "path": "quest_to_primal_rift.json", "enabled": true, "chapter": "zone_4", "order": 450, "tags": ["main", "travel"] },
+    { "id": "quest_rift_arrival", "path": "quest_rift_arrival.json", "enabled": true, "chapter": "zone_5", "order": 510, "tags": ["main", "travel"] },
+    { "id": "quest_rift_hunt", "path": "quest_rift_hunt.json", "enabled": true, "chapter": "zone_5", "order": 520, "tags": ["main"] },
+    { "id": "quest_rift_sentinel", "path": "quest_rift_sentinel.json", "enabled": true, "chapter": "zone_5", "order": 530, "tags": ["main", "boss"] }
   ],
   "aliases": [
     {

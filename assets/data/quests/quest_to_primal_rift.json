@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 2, "id": "quest_to_primal_rift", "enabled": true, "title": "태초의 균열지로", "description": "별그늘 유적의 성좌를 정화했습니다. Lv.20이 되면 태초의 균열지로 향하세요.", "type": "travel", "chapter": "zone_4", "order": 450,
+  "prerequisites": [{ "type": "questCompleted", "questId": "quest_ruins_astral_sylveon" }], "activation": { "mode": "auto", "events": ["questCompleted", "levelChanged"] },
+  "objectives": [{ "id": "enter_zone_5", "type": "travel", "targetZone": "zone_5", "count": 1, "uiText": "미니맵을 눌러 태초의 균열지로 이동" }],
+  "rewards": { "grant": { "exp": 180, "manastone": 100 }, "display": [{ "type": "exp", "amount": 180 }, { "type": "manastone", "amount": 100 }] },
+  "ui": { "hudPriority": 450, "recommendedZone": "zone_5", "chapterLabel": "Chapter 4 · 다음 지역", "cta": "균열지로 이동", "nextHint": "Lv.20부터 입장 가능합니다. 미니맵에서 태초의 균열지를 선택하세요." },
+  "onComplete": { "unlocks": ["quest_rift_arrival"], "logMessage": "태초의 균열지에 도착했습니다.", "recommendZone": "zone_5" }
+}

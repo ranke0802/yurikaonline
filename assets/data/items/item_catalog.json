@@ -18,6 +18,10 @@
       "file": "astral_staff.json"
     },
     {
+      "id": "riftcore_staff",
+      "file": "riftcore_staff.json"
+    },
+    {
       "id": "blessed_magic_staff",
       "file": "blessed_magic_staff.json"
     },
@@ -32,6 +36,10 @@
     {
       "id": "blessed_astral_staff",
       "file": "blessed_astral_staff.json"
+    },
+    {
+      "id": "blessed_riftcore_staff",
+      "file": "blessed_riftcore_staff.json"
     },
     {
       "id": "weapon_upgrade_stone",
@@ -60,6 +68,10 @@
     {
       "id": "boss_summon_scroll_astral_sylveon",
       "file": "boss_summon_scroll_astral_sylveon.json"
+    },
+    {
+      "id": "boss_summon_scroll_rift_sentinel",
+      "file": "boss_summon_scroll_rift_sentinel.json"
     }
   ],
   "affixPools": [
@@ -80,6 +92,10 @@
       "file": "astral_staff_affixes.json"
     },
     {
+      "id": "riftcore_staff_affixes",
+      "file": "riftcore_staff_affixes.json"
+    },
+    {
       "id": "blessed_magic_staff_affixes",
       "file": "blessed_magic_staff_affixes.json"
     },
@@ -94,6 +110,10 @@
     {
       "id": "blessed_astral_staff_affixes",
       "file": "blessed_astral_staff_affixes.json"
+    },
+    {
+      "id": "blessed_riftcore_staff_affixes",
+      "file": "blessed_riftcore_staff_affixes.json"
     }
   ],
   "enhancementRules": [

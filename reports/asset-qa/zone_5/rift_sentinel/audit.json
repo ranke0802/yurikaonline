@@ -1,0 +1,270 @@
+{
+  "ok": true,
+  "source": "C:\\dev\\yurika_online\\assets\\resource\\expansion\\zone_5\\monsters\\rift_sentinel\\spritesheet.webp",
+  "sha256": "1b2246cb5d05181866d9f51da8ea2513ccb4b39eba91bef5325e567213fc1d45",
+  "dimensions": {
+    "width": 1536,
+    "height": 2288
+  },
+  "grid": {
+    "columns": 8,
+    "rows": 11,
+    "frameWidth": 192,
+    "frameHeight": 208
+  },
+  "states": [
+    {
+      "state": "idle",
+      "row": 0,
+      "count": 7,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 56,
+            "top": 5,
+            "right": 135,
+            "bottom": 203,
+            "opaquePixels": 7496
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 56,
+            "top": 5,
+            "right": 135,
+            "bottom": 203,
+            "opaquePixels": 7494
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 56,
+            "top": 5,
+            "right": 135,
+            "bottom": 203,
+            "opaquePixels": 7481
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 56,
+            "top": 5,
+            "right": 135,
+            "bottom": 203,
+            "opaquePixels": 7537
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 57,
+            "top": 5,
+            "right": 135,
+            "bottom": 203,
+            "opaquePixels": 7412
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 56,
+            "top": 5,
+            "right": 135,
+            "bottom": 203,
+            "opaquePixels": 7424
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 56,
+            "top": 5,
+            "right": 135,
+            "bottom": 203,
+            "opaquePixels": 7442
+          }
+        }
+      ]
+    },
+    {
+      "state": "moveRight",
+      "row": 1,
+      "count": 8,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 36,
+            "top": 5,
+            "right": 155,
+            "bottom": 203,
+            "opaquePixels": 7747
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 53,
+            "top": 5,
+            "right": 139,
+            "bottom": 203,
+            "opaquePixels": 6775
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 45,
+            "top": 5,
+            "right": 147,
+            "bottom": 203,
+            "opaquePixels": 7341
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 45,
+            "top": 5,
+            "right": 146,
+            "bottom": 203,
+            "opaquePixels": 6881
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 46,
+            "top": 5,
+            "right": 146,
+            "bottom": 203,
+            "opaquePixels": 6975
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 53,
+            "top": 5,
+            "right": 139,
+            "bottom": 203,
+            "opaquePixels": 6729
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 54,
+            "top": 5,
+            "right": 137,
+            "bottom": 203,
+            "opaquePixels": 6753
+          }
+        },
+        {
+          "frame": 7,
+          "bounds": {
+            "left": 48,
+            "top": 5,
+            "right": 143,
+            "bottom": 203,
+            "opaquePixels": 6941
+          }
+        }
+      ]
+    },
+    {
+      "state": "moveLeft",
+      "row": 2,
+      "count": 8,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 36,
+            "top": 5,
+            "right": 155,
+            "bottom": 203,
+            "opaquePixels": 7747
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 53,
+            "top": 5,
+            "right": 139,
+            "bottom": 203,
+            "opaquePixels": 6775
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 45,
+            "top": 5,
+            "right": 147,
+            "bottom": 203,
+            "opaquePixels": 7341
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 45,
+            "top": 5,
+            "right": 146,
+            "bottom": 203,
+            "opaquePixels": 6881
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 46,
+            "top": 5,
+            "right": 146,
+            "bottom": 203,
+            "opaquePixels": 6975
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 53,
+            "top": 5,
+            "right": 139,
+            "bottom": 203,
+            "opaquePixels": 6729
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 54,
+            "top": 5,
+            "right": 137,
+            "bottom": 203,
+            "opaquePixels": 6753
+          }
+        },
+        {
+          "frame": 7,
+          "bounds": {
+            "left": 48,
+            "top": 5,
+            "right": 143,
+            "bottom": 203,
+            "opaquePixels": 6941
+          }
+        }
+      ]
+    }
+  ],
+  "contactSheet": "reports\\asset-qa\\zone_5\\rift_sentinel\\active-animation-contact-sheet.png",
+  "errors": []
+}

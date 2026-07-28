@@ -1,0 +1,270 @@
+{
+  "ok": true,
+  "source": "C:\\dev\\yurika_online\\assets\\resource\\expansion\\zone_5\\monsters\\ember_drake\\spritesheet.webp",
+  "sha256": "623da78f8ca196cefd204312c3fbc25f2531e1dc714df9b7adac5163b1cd8b45",
+  "dimensions": {
+    "width": 1536,
+    "height": 2288
+  },
+  "grid": {
+    "columns": 8,
+    "rows": 11,
+    "frameWidth": 192,
+    "frameHeight": 208
+  },
+  "states": [
+    {
+      "state": "idle",
+      "row": 0,
+      "count": 7,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 22,
+            "top": 5,
+            "right": 169,
+            "bottom": 203,
+            "opaquePixels": 16398
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 22,
+            "top": 5,
+            "right": 169,
+            "bottom": 203,
+            "opaquePixels": 16347
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 23,
+            "top": 5,
+            "right": 169,
+            "bottom": 203,
+            "opaquePixels": 16325
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 22,
+            "top": 5,
+            "right": 169,
+            "bottom": 203,
+            "opaquePixels": 16408
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 23,
+            "top": 5,
+            "right": 169,
+            "bottom": 203,
+            "opaquePixels": 16357
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 22,
+            "top": 5,
+            "right": 170,
+            "bottom": 203,
+            "opaquePixels": 16490
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 22,
+            "top": 5,
+            "right": 169,
+            "bottom": 203,
+            "opaquePixels": 16332
+          }
+        }
+      ]
+    },
+    {
+      "state": "moveRight",
+      "row": 1,
+      "count": 8,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 5,
+            "top": 16,
+            "right": 187,
+            "bottom": 191,
+            "opaquePixels": 15804
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 5,
+            "top": 14,
+            "right": 187,
+            "bottom": 193,
+            "opaquePixels": 15029
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 5,
+            "top": 24,
+            "right": 187,
+            "bottom": 184,
+            "opaquePixels": 14776
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 5,
+            "top": 13,
+            "right": 187,
+            "bottom": 195,
+            "opaquePixels": 14272
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 5,
+            "top": 22,
+            "right": 187,
+            "bottom": 186,
+            "opaquePixels": 14556
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 5,
+            "top": 10,
+            "right": 187,
+            "bottom": 197,
+            "opaquePixels": 15663
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 5,
+            "top": 17,
+            "right": 187,
+            "bottom": 190,
+            "opaquePixels": 14306
+          }
+        },
+        {
+          "frame": 7,
+          "bounds": {
+            "left": 7,
+            "top": 5,
+            "right": 185,
+            "bottom": 203,
+            "opaquePixels": 17327
+          }
+        }
+      ]
+    },
+    {
+      "state": "moveLeft",
+      "row": 2,
+      "count": 8,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 5,
+            "top": 18,
+            "right": 187,
+            "bottom": 189,
+            "opaquePixels": 15172
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 5,
+            "top": 10,
+            "right": 187,
+            "bottom": 198,
+            "opaquePixels": 16997
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 5,
+            "top": 19,
+            "right": 187,
+            "bottom": 188,
+            "opaquePixels": 14915
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 5,
+            "top": 7,
+            "right": 187,
+            "bottom": 200,
+            "opaquePixels": 17465
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 5,
+            "top": 26,
+            "right": 187,
+            "bottom": 182,
+            "opaquePixels": 14059
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 5,
+            "top": 19,
+            "right": 187,
+            "bottom": 188,
+            "opaquePixels": 14895
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 6,
+            "top": 5,
+            "right": 186,
+            "bottom": 203,
+            "opaquePixels": 17298
+          }
+        },
+        {
+          "frame": 7,
+          "bounds": {
+            "left": 5,
+            "top": 5,
+            "right": 187,
+            "bottom": 202,
+            "opaquePixels": 18167
+          }
+        }
+      ]
+    }
+  ],
+  "contactSheet": "reports\\asset-qa\\zone_5\\ember_drake\\active-animation-contact-sheet.png",
+  "errors": []
+}

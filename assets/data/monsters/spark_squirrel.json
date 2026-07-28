@@ -1,0 +1,26 @@
+{
+  "id": "spark_squirrel",
+  "name": "균열 다람쥐",
+  "type": "monster",
+  "isBoss": false,
+  "spriteVersionNumber": 2,
+  "baseStats": { "level": 21, "hp": 2180, "maxHp": 2180, "mp": 520, "maxMp": 520, "atk": 47, "def": 14, "speed": 82, "exp": 43000 },
+  "visual": {
+    "effectTheme": "rift",
+    "effectVfx": { "theme": "rift", "anchor": "ground", "groundAnchor": 0.88, "timeline": "standard" },
+    "assetPath": "assets/resource/expansion/zone_5/monsters/spark_squirrel/spritesheet.webp",
+    "spriteVersionNumber": 2,
+    "width": 86, "height": 92, "renderWidth": 168, "renderHeight": 182, "frameSpeed": 0.09, "frameCount": 7, "scale": 1,
+    "spriteSheet": {
+      "columns": 8, "rows": 11, "frameWidth": 192, "frameHeight": 208,
+      "contentBounds": { "left": 28, "top": 32, "right": 163, "bottom": 184 },
+      "alignContentToGround": true,
+      "rowMap": { "idle": 0, "moveRight": 1, "moveLeft": 2 },
+      "frameCounts": { "idle": 7, "moveRight": 8, "moveLeft": 8 },
+      "sha256": "efb270b5fdc236649b2680902c7a3fdf4ec6098132f83e4d3055369efafa709a"
+    }
+  },
+  "behavior": { "aggressive": true, "spawnGraceSeconds": 0, "aggroRange": 540, "attackRange": 104, "attackCooldownMs": 1040, "leashRange": 920, "charge": { "enabled": true, "damage": 78, "range": 760, "cooldownMs": 7600, "minDistance": 165, "castSeconds": 0.7, "speed": 380 } },
+  "sounds": { "attack": "sfx_slime_attack", "hit": "sfx_slime_hit", "die": "sfx_slime_die", "move": "sfx_slime_move" },
+  "drops": [{ "itemId": "manastone", "min": 1850, "max": 2350, "chance": 1 }]
+}
