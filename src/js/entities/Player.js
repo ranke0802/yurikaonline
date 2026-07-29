@@ -2328,6 +2328,10 @@ export default class Player extends CharacterBase {
                         targetX,
                         targetY,
                         trackTarget: autoTargeted,
+                        targetId: autoTargeted ? autoTarget.id : null,
+                        targetType: autoTargeted
+                            ? (autoTarget?.isMonster || autoTarget?.type === 'monster' ? 'monster' : 'player')
+                            : null,
                         tutorialSkillTarget: tutorialMotionStepId ? skillId : null,
                         tutorialSkillSlot: tutorialMotionStepId ? slot : null,
                         tutorialSkillTutorialId: tutorialMotionTutorialId,

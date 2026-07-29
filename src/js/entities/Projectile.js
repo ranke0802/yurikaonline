@@ -18,6 +18,13 @@ export class Projectile {
         this.targetX = Number.isFinite(options.targetX) ? options.targetX : null;
         this.targetY = Number.isFinite(options.targetY) ? options.targetY : null;
         this.trackTarget = options.trackTarget === true && !!target;
+        // An automatic fireball can outlive a guest snapshot / host handoff.
+        // Keep a stable identity as well as the initial object reference: the
+        // MonsterManager may legitimately replace its render instance while the
+        // same monster is still alive.
+        this.trackedTargetId = options.targetId || target?.id || null;
+        this.trackedTargetType = options.targetType
+            || (target?.isMonster || target?.type === 'monster' ? 'monster' : (target?.type || null));
         this.isCrit = options.isCrit || false;
         this.critRate = Math.max(0, Math.min(1, options.critRate || 0));
         this.variant = options.variant || null;
@@ -185,6 +192,30 @@ export class Projectile {
         return monsterTarget;
     }
 
+    _resolveTrackedFireballTarget() {
+        if (this.type !== 'fireball' || !this.trackTarget) return null;
+
+        const targetId = this.trackedTargetId || this.target?.id;
+        const targetType = this.trackedTargetType;
+        if (!targetId) return this.target && !this.target.isDead ? this.target : null;
+
+        let currentTarget = null;
+        if (targetType === 'monster' || this.target?.isMonster || this.target?.type === 'monster') {
+            currentTarget = window.game?.monsterManager?.monsters?.get(targetId) || null;
+        } else if (targetType === 'player') {
+            currentTarget = window.game?.localPlayer?.id === targetId
+                ? window.game.localPlayer
+                : (window.game?.remotePlayers?.get(targetId) || null);
+        }
+
+        if (currentTarget && !currentTarget.isDead) {
+            this.target = currentTarget;
+            return currentTarget;
+        }
+
+        return null;
+    }
+
     _getFireballTargetPoint(target = this.target) {
         if (!target || target.isDead) return null;
         if (target.isMonster || target.type === 'monster') {
@@ -203,7 +234,8 @@ export class Projectile {
 
     _trackFireballTarget() {
         if (this.type !== 'fireball' || !this.trackTarget) return null;
-        const point = this._getFireballTargetPoint();
+        const target = this._resolveTrackedFireballTarget();
+        const point = this._getFireballTargetPoint(target);
         if (!point) return null;
         const dx = point.x - this.x;
         const dy = point.y - this.y;
@@ -234,16 +266,21 @@ export class Projectile {
             this.explosionDelay -= dt;
             if (this.explosionDelay <= 0) {
                 this._executeActualExplosion();
+                // The explosion consumed this projectile.  Continuing into the
+                // movement/collision pass can author a second hit at high skill
+                // levels where the delayed impact remains active for longer.
+                if (this.isDead) return;
             }
             // v1.99.26: Removed 'return' to allow depth penetration (keep moving while exploding)
         }
 
         this.lifeTime -= dt;
         if (this.lifeTime <= 0) {
-            if (this.type === 'fireball' && this.trackTarget && this.target && !this.target.isDead && trackedFireballPoint) {
+            const currentTrackedTarget = this._resolveTrackedFireballTarget();
+            if (this.type === 'fireball' && this.trackTarget && currentTrackedTarget && trackedFireballPoint) {
                 this.x = trackedFireballPoint.x;
                 this.y = trackedFireballPoint.y;
-                this._executeActualExplosion(this.target, monsters);
+                this._executeActualExplosion(currentTrackedTarget, monsters);
             } else if (this.visualOnly && this.type === 'fireball' && this.targetX !== null && this.targetY !== null) {
                 this.x = this.targetX;
                 this.y = this.targetY;

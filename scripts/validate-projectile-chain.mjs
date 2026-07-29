@@ -224,6 +224,54 @@ assert.equal(movingAutoTarget.hitCount, 1, 'automatic fireball must apply damage
 assert.equal(runtime.monsterDamagePackets, 1, 'automatic fireball endpoint damage must be authored once');
 
 resetRuntime();
+const replacedTargetBeforeImpact = createMonster('snapshot-replaced-target');
+replacedTargetBeforeImpact.x = 560;
+const replacementTarget = createMonster('snapshot-replaced-target');
+replacementTarget.x = 760;
+window.game.monsterManager.monsters = new Map([[replacementTarget.id, replacementTarget]]);
+const snapshotSafeAutomaticFireball = new Projectile(0, 0, replacedTargetBeforeImpact, 'fireball', {
+    speed: 800,
+    damage: 100,
+    radius: 20,
+    aoeRadius: 100,
+    lifeTime: 0.02,
+    targetX: replacedTargetBeforeImpact.x,
+    targetY: replacedTargetBeforeImpact.y,
+    trackTarget: true,
+    targetId: replacedTargetBeforeImpact.id,
+    targetType: 'monster',
+    ownerId: 'local-player'
+});
+snapshotSafeAutomaticFireball.update(0.03, [replacementTarget]);
+assert.equal(snapshotSafeAutomaticFireball.target, replacementTarget, 'automatic fireball must re-resolve a snapshot-replaced target by ID');
+assert.equal(replacementTarget.hitCount, 1, 'automatic fireball must damage the current monster instance after a snapshot replacement');
+assert.equal(runtime.monsterDamagePackets, 1, 'snapshot replacement must still author exactly one damage packet');
+
+resetRuntime();
+const delayedImpactTarget = createMonster('delayed-impact-target');
+delayedImpactTarget.x = 160;
+window.game.monsterManager.monsters = new Map([[delayedImpactTarget.id, delayedImpactTarget]]);
+const delayedImpactFireball = new Projectile(0, 0, delayedImpactTarget, 'fireball', {
+    speed: 800,
+    damage: 100,
+    radius: 200,
+    aoeRadius: 500,
+    lifeTime: 2,
+    targetX: delayedImpactTarget.x,
+    targetY: delayedImpactTarget.y,
+    trackTarget: true,
+    targetId: delayedImpactTarget.id,
+    targetType: 'monster',
+    penetrationDelay: 0.45,
+    ownerId: 'local-player'
+});
+for (let frame = 0; frame < 90 && !delayedImpactFireball.isDead; frame += 1) {
+    delayedImpactFireball.update(1 / 60, [delayedImpactTarget]);
+}
+assert.equal(delayedImpactTarget.hitCount, 1, 'a delayed high-level automatic impact must resolve once');
+assert.equal(runtime.monsterDamagePackets, 1, 'a delayed high-level automatic impact must author exactly one packet');
+
+resetRuntime();
 const deterministicAuthor = createBlueFireball({ chainChance: 0.5, chainSeed: 1 });
 deterministicAuthor._tryTriggerBlueFlameChainExplosions(null, [], window.game.net, true);
 drainScheduledCallbacks();
