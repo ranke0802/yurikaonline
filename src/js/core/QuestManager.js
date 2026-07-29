@@ -346,10 +346,35 @@ export default class QuestManager {
         if (!this._loaded) return;
         this.state = this._normalizeState(questState || this.game?.localPlayer?.questState || null);
         this._applyLegacyQuestData(questData || {});
+        const replacedRetiredQuests = this._replaceRetiredActiveQuests();
         this._rebuildRuntimeMaps();
-        this._autoActivateAvailable({ reason: 'legacy_restore' });
-        this._writePlayerQuestState({ save: false });
+        const activatedFromCatalog = this._autoActivateAvailable({ reason: 'legacy_restore' });
+        // A content update can add a successor after an account completed the
+        // former final chapter. Persist that successor before the next event so
+        // a reload cannot strand the player at the previous endpoint.
+        this._writePlayerQuestState({
+            save: replacedRetiredQuests || activatedFromCatalog,
+            debounceMs: (replacedRetiredQuests || activatedFromCatalog) ? 0 : undefined,
+            reason: (replacedRetiredQuests || activatedFromCatalog)
+                ? 'quest_catalog_successor_reconcile'
+                : 'quest_legacy_restore'
+        });
         Logger.log(`[QuestManager] Restored: ${this.activeQuests.size} active, ${this.completedQuests.size} completed`);
+        return replacedRetiredQuests || activatedFromCatalog;
+    }
+
+    _replaceRetiredActiveQuests() {
+        let changed = false;
+        Object.keys(this.state.active || {}).forEach((questId) => {
+            const def = this.definitions.get(questId);
+            if (!def || (def.enabled !== false && def.deprecated !== true)) return;
+
+            delete this.state.active[questId];
+            changed = true;
+            const replacementId = normalizeQuestId(def.replacementId, this.aliases);
+            if (replacementId) this._ensureActive(replacementId, { silent: true });
+        });
+        return changed;
     }
 
     _applyLegacyQuestData(questData) {
@@ -506,7 +531,13 @@ export default class QuestManager {
             const hasZoneObjective = def.objectives.some((objective) => (
                 objective.type === 'travel' && objective.targetZone === currentZoneId
             ));
-            if (hasZoneObjective && eventType !== 'zoneEntered' && currentZoneId !== def.ui?.recommendedZone) return;
+            // A "travel to the next field" objective must be restored outside
+            // its destination for veteran accounts. Arrival quests remain
+            // destination-gated so they cannot skip their travel prerequisite.
+            if (hasZoneObjective
+                && def.type !== 'travel'
+                && eventType !== 'zoneEntered'
+                && currentZoneId !== def.ui?.recommendedZone) return;
             if (this._ensureActive(def.id, { silent: true })) changed = true;
         });
         return changed;

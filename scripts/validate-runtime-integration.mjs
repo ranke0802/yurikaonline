@@ -3121,7 +3121,12 @@ async function validateQuestRuntimeStateSync() {
     game.zone.currentZone = { id: 'zone_3' };
     player.questState = {
         schemaVersion: 2,
-        active: {},
+        active: {
+            quest_epilogue_current_end: {
+                acceptedAt: Date.now(),
+                objectives: { current_end: { current: 0, complete: false } }
+            }
+        },
         completed: {
             quest_forest_thunder_pikachu: { completedAt: Date.now(), count: 1 }
         },
@@ -3133,6 +3138,41 @@ async function validateQuestRuntimeStateSync() {
     assert.ok(
         quests.getActiveQuests().some((quest) => quest.id === 'quest_to_astral_ruins'),
         'defeating thunder pikachu must show the zone_4 travel quest even before level 15'
+    );
+
+    const successorQuestPatches = [];
+    player.level = 24;
+    player.currentZoneId = 'zone_4';
+    game.zone.currentZone = { id: 'zone_4' };
+    player.questState = {
+        schemaVersion: 2,
+        active: {},
+        completed: {
+            quest_ruins_astral_sylveon: { completedAt: Date.now(), count: 1 },
+            // Accounts that reached the former endpoint may retain this now
+            // disabled quest. It must not block the new zone_5 successor.
+            quest_epilogue_current_end: { completedAt: Date.now(), count: 1 }
+        },
+        flags: {},
+        recommendedZoneId: 'zone_4',
+        lastEventAt: Date.now()
+    };
+    player.saveProfilePatch = (fields, options = {}) => {
+        successorQuestPatches.push({ fields: [...fields], options: { ...options } });
+    };
+    quests.restoreFromLegacy(player.questData, player.questState);
+    assert.ok(
+        quests.getActiveQuests().some((quest) => quest.id === 'quest_to_primal_rift'),
+        'a veteran who completed the former final boss must receive the zone_5 travel quest on restore'
+    );
+    assert.equal(
+        quests.getActiveQuests().some((quest) => quest.id === 'quest_epilogue_current_end'),
+        false,
+        'the retired endpoint must not remain active and mask its successor in the HUD'
+    );
+    assert.ok(
+        successorQuestPatches.some((patch) => patch.fields.includes('questState') && patch.options.reason === 'quest_catalog_successor_reconcile'),
+        'the restored successor quest must persist immediately before the next gameplay event'
     );
 
     const questCompletionPatches = [];

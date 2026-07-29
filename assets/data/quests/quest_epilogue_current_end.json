@@ -2,6 +2,7 @@
   "schemaVersion": 2,
   "id": "quest_epilogue_current_end",
   "enabled": true,
+  "replacementId": "quest_to_primal_rift",
   "title": "별빛의 끝",
   "description": "현재 준비된 메인 챕터를 모두 완료했습니다. 보스 반복 사냥과 장비 강화를 이어가세요.",
   "type": "main",

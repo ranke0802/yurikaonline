@@ -101,6 +101,17 @@ function main() {
         }
     }
 
+    const astralSylveonQuest = questById.get('quest_ruins_astral_sylveon');
+    assert(
+        astralSylveonQuest?.onComplete?.unlocks?.includes('quest_to_primal_rift'),
+        'the zone_4 boss must unlock the zone_5 travel quest, not the retired epilogue'
+    );
+    assert.equal(
+        questById.get('quest_epilogue_current_end')?.replacementId,
+        'quest_to_primal_rift',
+        'the retired endpoint must declare its successor for existing active profiles'
+    );
+
     const graph = new Map();
     for (const quest of questById.values()) {
         graph.set(quest.id, (quest.onComplete?.unlocks || []).map(resolveQuestId));

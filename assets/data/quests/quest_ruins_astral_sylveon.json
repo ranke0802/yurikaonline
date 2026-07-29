@@ -45,8 +45,8 @@
     "nextHint": "처치 후 현재 최종 챕터 정리와 반복 성장 안내가 열립니다."
   },
   "onComplete": {
-    "unlocks": ["quest_epilogue_current_end"],
+    "unlocks": ["quest_to_primal_rift"],
     "logMessage": "성좌의 님피아를 처치했습니다. 현재 최종 챕터를 완료했습니다.",
-    "recommendZone": "zone_4"
+    "recommendZone": "zone_5"
   }
 }
