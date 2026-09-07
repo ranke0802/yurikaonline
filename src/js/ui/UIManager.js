@@ -1,4 +1,5 @@
 import Logger from '../utils/Logger.js';
+import { getViewportMetrics } from '../core/ViewportMetrics.js';
 import FriendsUIController, { FRIENDS_UI_METHOD_NAMES } from './friends/FriendsUIController.js';
 
 const OPTION_REROLL_STONE_ID = 'option_reroll_stone';
@@ -116,7 +117,6 @@ export class UIManager {
         this.settingsStorageKey = 'yurika_settings_v1';
         this.uiLayoutStorageKey = 'yurika_ui_layout_v1';
         this.devAccessStateStorageKey = 'yurika_dev_access_guard_v1';
-        this.devPassword = '3k78a4';
         this.devAccessGranted = false;
         this.devMaxFailures = 3;
         this.devLockoutMs = 5 * 60 * 1000;
@@ -519,10 +519,9 @@ export class UIManager {
     }
 
     hasDeveloperAccess() {
-        if (this.isDeveloperAccessLocked()) {
-            this.devAccessGranted = false;
-        }
-        return !!this.devAccessGranted;
+        // Administrative mutations require a verified server API, which is not
+        // deployed yet. Local flags and passwords cannot grant authority.
+        return false;
     }
 
     getRemainingDeveloperAttempts() {
@@ -612,120 +611,13 @@ export class UIManager {
         if (logLevelSelect) logLevelSelect.value = this.getSetting('developerLogLevel');
     }
 
-    tryUnlockDeveloperAccess(password = '') {
-        const normalizedPassword = String(password || '').trim();
-        if (this.isDeveloperAccessLocked()) {
-            return { ok: false, reason: 'locked', remainingMs: this.getDevAccessRemainingMs() };
-        }
-
-        if (normalizedPassword !== this.devPassword) {
-            const nextFailures = (this.devAccessState.failedAttempts || 0) + 1;
-            if (nextFailures >= this.devMaxFailures) {
-                this.devAccessState = {
-                    failedAttempts: 0,
-                    lockUntil: Date.now() + this.devLockoutMs
-                };
-                this.persistDevAccessState();
-                this.syncDeveloperSettingsUi();
-                return { ok: false, reason: 'locked', remainingMs: this.getDevAccessRemainingMs() };
-            }
-
-            this.devAccessState = {
-                failedAttempts: nextFailures,
-                lockUntil: 0
-            };
-            this.persistDevAccessState();
-            this.syncDeveloperSettingsUi();
-            return {
-                ok: false,
-                reason: 'invalid_password',
-                remainingAttempts: this.devMaxFailures - nextFailures
-            };
-        }
-
-        this.devAccessGranted = true;
-        this.devAccessState = this.getDefaultDevAccessState();
-        this.persistDevAccessState();
-        this.syncDeveloperSettingsUi();
-        return { ok: true };
+    tryUnlockDeveloperAccess() {
+        return { ok: false, reason: 'server_authority_unavailable' };
     }
 
     showDeveloperAccessPrompt() {
-        if (this.isDeveloperAccessLocked()) {
-            this.showGenericModal(
-                '개발자 모드 잠금',
-                `비밀번호 3회 실패로 인해 ${this.formatDurationMs(this.getDevAccessRemainingMs())} 동안 개발자모드 진입이 잠겼습니다.`,
-                null,
-                null,
-                { hideNo: true, yesText: '확인' }
-            );
-            return;
-        }
-
-        const renderPromptHtml = (feedbackText = '', isError = false) => `
-            <div class="dev-auth-dialog">
-                <p class="dev-auth-copy">개발자 모드에 들어가려면 암호를 입력하세요.</p>
-                <label class="dev-auth-label" for="dev-auth-password-input">개발자 암호</label>
-                <input id="dev-auth-password-input" class="dev-auth-input" type="password" autocomplete="off" placeholder="암호 입력">
-                <p id="dev-auth-feedback" class="dev-auth-feedback${isError ? ' is-error' : ''}">${feedbackText || `남은 시도 ${this.getRemainingDeveloperAttempts()}회`}</p>
-            </div>
-        `;
-
-        const focusPasswordInput = () => {
-            const passwordInput = document.getElementById('dev-auth-password-input');
-            if (!passwordInput) return;
-            passwordInput.addEventListener('keydown', (event) => {
-                if (event.key !== 'Enter') return;
-                event.preventDefault();
-                document.getElementById('generic-modal-yes')?.click();
-            });
-            requestAnimationFrame(() => {
-                passwordInput.focus();
-                passwordInput.select?.();
-            });
-        };
-
-        this.showGenericModal(
-            '개발자 모드',
-            renderPromptHtml(),
-            async () => {
-                const passwordInput = document.getElementById('dev-auth-password-input');
-                const feedbackEl = document.getElementById('dev-auth-feedback');
-                const yesButton = document.getElementById('generic-modal-yes');
-                const result = this.tryUnlockDeveloperAccess(passwordInput?.value || '');
-
-                if (result.ok) {
-                    this.logSystemMessage('개발자 모드 인증이 완료되었습니다.');
-                    this.setDevMode(true, { announce: true });
-                    return true;
-                }
-
-                if (feedbackEl) {
-                    feedbackEl.classList.add('is-error');
-                    feedbackEl.textContent = result.reason === 'locked'
-                        ? `비밀번호 3회 실패로 ${this.formatDurationMs(result.remainingMs)} 동안 잠겼습니다.`
-                        : `개발자 암호가 올바르지 않습니다. 남은 시도 ${result.remainingAttempts}회`;
-                }
-
-                if (result.reason === 'locked') {
-                    if (passwordInput) passwordInput.disabled = true;
-                    if (yesButton) yesButton.disabled = true;
-                } else if (passwordInput) {
-                    passwordInput.value = '';
-                    passwordInput.focus();
-                }
-
-                return false;
-            },
-            null,
-            {
-                hideNo: false,
-                yesText: '입장',
-                noText: '취소',
-                allowHtml: true,
-                onShow: focusPasswordInput
-            }
-        );
+        this.showGenericModal('개발자 모드', '현재 개발자 기능은 사용할 수 없습니다.', null, null,
+            { hideNo: true, yesText: '확인' });
     }
 
     getSetting(key) {
@@ -748,12 +640,34 @@ export class UIManager {
         });
         const nextSerialized = this.serializeSettings(nextSettings);
         if (previousSerialized === nextSerialized) {
-            this.applySettings({ refreshGame, syncUi: true });
             return;
         }
         this.settings = nextSettings;
         this.persistSettings();
         this.applySettings({ refreshGame, syncUi: true });
+    }
+
+    bindCameraViewRange(input) {
+        let frame = null;
+        let committed = this.settings.cameraViewRange;
+        const preview = () => {
+            frame = null;
+            const value = Math.min(150, Math.max(80, Number(input.value) || 100));
+            this.settings.cameraViewRange = value;
+            const label = document.getElementById('settings-camera-view-range-value');
+            if (label) label.textContent = `${value}%`;
+            this.game.previewCameraViewRange?.();
+        };
+        input.addEventListener('input', () => {
+            if (frame === null) frame = requestAnimationFrame(preview);
+        });
+        input.addEventListener('change', () => {
+            if (frame !== null) { cancelAnimationFrame(frame); preview(); }
+            else if (Number(input.value) !== this.settings.cameraViewRange) preview();
+            if (committed === this.settings.cameraViewRange) return;
+            committed = this.settings.cameraViewRange;
+            this.persistSettings();
+        });
     }
 
     applySettings(options = {}) {
@@ -858,8 +772,7 @@ export class UIManager {
         const isTouch = this.game?.isTouchDevice?.()
             || window.matchMedia?.('(pointer: coarse)')?.matches
             || navigator.maxTouchPoints > 0;
-        const isMobileWidth = window.innerWidth <= 1024;
-        if (isTouch && isMobileWidth) {
+        if (isTouch) {
             return this.isMobileLandscapeViewport() ? 'mobileLandscape' : 'mobilePortrait';
         }
         return 'desktop';
@@ -1087,6 +1000,7 @@ export class UIManager {
         if (Object.keys(sanitizedLayouts).length === 0) return null;
         const sanitized = {
             version: 1,
+            joystickMode: layout.joystickMode === 'fixed' ? 'fixed' : 'dynamic',
             layouts: sanitizedLayouts
         };
         if (updatedAt > 0) {
@@ -1104,13 +1018,25 @@ export class UIManager {
         if (!sanitized) return JSON.stringify(null);
         return JSON.stringify({
             version: sanitized.version || 1,
+            joystickMode: sanitized.joystickMode,
             layouts: sanitized.layouts || {}
         });
     }
 
     loadStoredUiLayout() {
         try {
-            const raw = localStorage.getItem(this.uiLayoutStorageKey);
+            const key = this.getUiLayoutStorageKey();
+            if (!key) return null;
+            // The legacy key has no owner. Claim it once, only after authentication.
+            if (!localStorage.getItem(key)) {
+                const legacy = localStorage.getItem(this.uiLayoutStorageKey);
+                if (legacy) {
+                    const migrated = this.sanitizeUiLayout(JSON.parse(legacy));
+                    if (migrated) localStorage.setItem(key, JSON.stringify(migrated));
+                    localStorage.removeItem(this.uiLayoutStorageKey);
+                }
+            }
+            const raw = localStorage.getItem(key);
             if (!raw) return null;
             return this.sanitizeUiLayout(JSON.parse(raw));
         } catch (error) {
@@ -1121,12 +1047,14 @@ export class UIManager {
 
     persistUiLayoutToStorage(layout) {
         try {
+            const key = this.getUiLayoutStorageKey();
+            if (!key) return false;
             const sanitized = this.sanitizeUiLayout(layout);
             if (!sanitized) {
-                localStorage.removeItem(this.uiLayoutStorageKey);
-                return false;
+                localStorage.removeItem(key);
+                return true;
             }
-            localStorage.setItem(this.uiLayoutStorageKey, JSON.stringify(sanitized));
+            localStorage.setItem(key, JSON.stringify(sanitized));
             return true;
         } catch (error) {
             Logger.warn('[UIManager] Failed to save UI layout', error);
@@ -1137,7 +1065,8 @@ export class UIManager {
     clearLocalCharacterCaches() {
         try {
             localStorage.removeItem('yurika_player_name');
-            localStorage.removeItem(this.uiLayoutStorageKey);
+            const key = this.getUiLayoutStorageKey();
+            if (key) localStorage.removeItem(key);
         } catch (error) {
             Logger.warn('[UIManager] Failed to clear local character caches', error);
         }
@@ -1147,6 +1076,81 @@ export class UIManager {
         return this.uiLayoutEditMode
             ? this.uiLayoutDraft
             : this.game.localPlayer?.uiLayout;
+    }
+
+    getUiLayoutStorageKey() {
+        const uid = this.game.auth?.currentUser?.uid;
+        return uid ? `yurika_ui_layout_v2:${uid}` : null;
+    }
+
+    readPendingUiLayout() {
+        const key = this.getUiLayoutStorageKey();
+        if (!key) return null;
+        try {
+            const pending = JSON.parse(localStorage.getItem(`${key}:pending`) || 'null');
+            return pending && typeof pending.base === 'string' && Object.hasOwn(pending, 'layout') ? pending : null;
+        } catch (error) {
+            Logger.warn('[UIManager] Failed to read pending layout', error);
+            return null;
+        }
+    }
+
+    resetUiLayoutSession() {
+        this.uiLayoutSyncGeneration = (this.uiLayoutSyncGeneration || 0) + 1;
+        if (this.uiLayoutEditMode) this.exitUiLayoutEditMode({ save: false });
+        this.uiLayoutDraft = null;
+        this.uiLayoutDefaultCache = {};
+        this.uiLayoutPendingSync = null;
+        this.uiLayoutHasConflict = false;
+        this.uiLayoutServerBase = undefined;
+        if (this.game.localPlayer) this.game.localPlayer.uiLayout = null;
+        this.game.touch?.setFixedJoystickLayout?.(null);
+        this.setUiLayoutSyncState('idle');
+    }
+
+    setUiLayoutSyncState(state) {
+        this.uiLayoutSyncState = state;
+        const labels = { idle: '', syncing: '로컬 저장됨 · 서버 동기화 중', synced: '서버 저장 완료',
+            'saved-local': '로컬 저장됨', 'sync-failed': '서버 동기화 실패 · 재시도 가능',
+            'local-failed': '이 기기 저장 실패 · 저장 공간을 확인하세요' };
+        const status = document.getElementById('ui-layout-sync-status');
+        if (status) status.textContent = labels[state] || '';
+        const retry = document.getElementById('ui-layout-sync-retry');
+        if (retry) retry.hidden = state !== 'sync-failed';
+        if (state === 'sync-failed' || state === 'local-failed') this.logSystemMessage?.(labels[state]);
+    }
+
+    retryUiLayoutSync() {
+        if (this.uiLayoutHasConflict) return Promise.resolve({ ok: false, reason: 'layout_conflict' });
+        const player = this.game.localPlayer;
+        const uid = this.game.auth?.currentUser?.uid;
+        if (!uid || player?.id !== uid) return Promise.resolve({ ok: false, reason: 'session_changed' });
+        const generation = this.uiLayoutSyncGeneration = (this.uiLayoutSyncGeneration || 0) + 1;
+        this.setUiLayoutSyncState('syncing');
+        // Serialize saves so an older in-flight layout cannot finish after the latest one.
+        const prior = this.uiLayoutSyncPromise || Promise.resolve();
+        this.uiLayoutSyncPromise = prior.catch(() => {}).then(async () => {
+            if (this.game.auth?.currentUser?.uid !== uid || this.game.localPlayer !== player) return { ok: false, reason: 'session_changed' };
+            try {
+                const result = await player.saveProfilePatch?.(['uiLayout'], {
+                    debounceMs: 0, forceImmediate: true, reason: 'ui_layout_save'
+                });
+                if (generation === this.uiLayoutSyncGeneration) {
+                    this.setUiLayoutSyncState(result?.ok === true ? 'synced' : 'sync-failed');
+                    if (result?.ok === true) {
+                        this.uiLayoutServerBase = this.serializeUiLayoutComparable(player.uiLayout);
+                        try { localStorage.removeItem(`${this.getUiLayoutStorageKey()}:pending`); }
+                        catch (error) { Logger.warn('[UIManager] Failed to clear pending layout', error); }
+                    }
+                }
+                return result;
+            } catch (error) {
+                Logger.warn('[UIManager] UI layout sync failed', error);
+                if (generation === this.uiLayoutSyncGeneration) this.setUiLayoutSyncState('sync-failed');
+                return { ok: false, reason: 'sync_failed' };
+            }
+        });
+        return this.uiLayoutSyncPromise;
     }
 
     getUiLayoutModeEntries(source = this.getResolvedUiLayoutSource(), mode = this.getUiLayoutMode()) {
@@ -1164,8 +1168,9 @@ export class UIManager {
     }
 
     buildDefaultJoystickLayoutEntry(mode = this.getUiLayoutMode()) {
-        const viewportW = Math.max(window.innerWidth || 0, 1);
-        const viewportH = Math.max(window.innerHeight || 0, 1);
+        const { gameViewportRect: viewport } = getViewportMetrics(document.getElementById('game-viewport'));
+        const viewportW = Math.max(viewport.width, 1);
+        const viewportH = Math.max(viewport.height, 1);
         const isLandscape = mode === 'mobileLandscape';
         const leftPx = isLandscape ? 28 : 24;
         const topPx = isLandscape
@@ -1179,8 +1184,9 @@ export class UIManager {
     }
 
     captureCurrentUiLayoutEntry(controlId, mode = this.getUiLayoutMode()) {
-        const viewportW = Math.max(window.innerWidth || 0, 1);
-        const viewportH = Math.max(window.innerHeight || 0, 1);
+        const { gameViewportRect: viewport } = getViewportMetrics(document.getElementById('game-viewport'));
+        const viewportW = Math.max(viewport.width, 1);
+        const viewportH = Math.max(viewport.height, 1);
         if (controlId === 'joystick') {
             return this.buildDefaultJoystickLayoutEntry(mode);
         }
@@ -1190,24 +1196,28 @@ export class UIManager {
         if (!rect || !rect.width || !rect.height) return null;
 
         return {
-            left: rect.left / viewportW,
-            top: rect.top / viewportH,
+            left: (rect.left - viewport.left) / viewportW,
+            top: (rect.top - viewport.top) / viewportH,
             scale: 1
         };
     }
 
     clearUiLayoutRuntimeStyles() {
-        Object.keys(this.uiLayoutControlDefinitions).forEach((controlId) => {
+        for (const [element, properties] of this._uiLayoutOwnedStyles || []) {
+            for (const [property, owned] of properties) {
+                if (element.style.getPropertyValue(property) !== owned.applied
+                    || element.style.getPropertyPriority(property) !== owned.appliedPriority) continue;
+                if (owned.original) element.style.setProperty(property, owned.original, owned.priority);
+                else element.style.removeProperty(property);
+            }
+        }
+        this._uiLayoutOwnedStyles = new Map();
+        Object.keys(this.uiLayoutControlDefinitions).forEach(controlId => {
             const element = this.getUiLayoutControlElement(controlId);
             if (!element) return;
             delete element.dataset.uiLayoutEditable;
             delete element.dataset.uiLayoutSelected;
             delete element.dataset.uiLayoutAppliedScale;
-            ['position', 'left', 'top', 'right', 'bottom', 'margin', 'z-index', 'width', 'height', 'min-width', 'padding', 'font-size', 'display', 'transform', 'transform-origin', 'will-change'].forEach((property) => {
-                element.style.removeProperty(property);
-            });
-            const icon = element.querySelector('.inner-icon, .paw-icon');
-            icon?.style?.removeProperty('font-size');
         });
     }
 
@@ -1232,17 +1242,41 @@ export class UIManager {
     }
 
     computeUiLayoutPosition(entry, width, height, margin = 12) {
-        const viewportW = Math.max(window.innerWidth || 0, 1);
-        const viewportH = Math.max(window.innerHeight || 0, 1);
-        const maxLeft = Math.max(margin, viewportW - width - margin);
-        const maxTop = Math.max(margin, viewportH - height - margin);
+        const metrics = getViewportMetrics(document.getElementById('game-viewport'));
+        const { left, top, width: viewportW, height: viewportH } = metrics.gameViewportRect;
+        const minLeft = Math.max(margin, metrics.safeAreaLeft);
+        const minTop = Math.max(margin, metrics.safeAreaTop);
+        const maxLeft = Math.max(minLeft, viewportW - width - Math.max(margin, metrics.safeAreaRight));
+        const maxTop = Math.max(minTop, viewportH - height - Math.max(margin, metrics.safeAreaBottom));
         return {
-            left: Math.round(Math.min(maxLeft, Math.max(margin, entry.left * viewportW))),
-            top: Math.round(Math.min(maxTop, Math.max(margin, entry.top * viewportH)))
+            left: Math.round(left + Math.min(maxLeft, Math.max(minLeft, entry.left * viewportW))),
+            top: Math.round(top + Math.min(maxTop, Math.max(minTop, entry.top * viewportH)))
         };
     }
 
     applyUiLayoutControl(controlId, entry, options = {}) {
+        const element = this.getUiLayoutControlElement(controlId);
+        if (!element) return;
+        const nodes = [element, element.querySelector('.inner-icon, .paw-icon')].filter(Boolean);
+        const before = nodes.map(node => new Map(Array.from(node.style).map(property => [property, {
+            original: node.style.getPropertyValue(property), priority: node.style.getPropertyPriority(property)
+        }])));
+        this._applyUiLayoutControl(controlId, entry, options);
+        this._uiLayoutOwnedStyles ||= new Map();
+        nodes.forEach((node, index) => {
+            const owned = this._uiLayoutOwnedStyles.get(node) || new Map();
+            for (const property of node.style) {
+                const applied = node.style.getPropertyValue(property);
+                const appliedPriority = node.style.getPropertyPriority(property);
+                const original = before[index].get(property) || { original: '', priority: '' };
+                if (applied === original.original && appliedPriority === original.priority) continue;
+                owned.set(property, { ...(owned.get(property) || original), applied, appliedPriority });
+            }
+            this._uiLayoutOwnedStyles.set(node, owned);
+        });
+    }
+
+    _applyUiLayoutControl(controlId, entry, options = {}) {
         const element = this.getUiLayoutControlElement(controlId);
         if (!element || !entry) return;
 
@@ -1340,10 +1374,11 @@ export class UIManager {
                 || (presetEntries ? this.captureDefaultUiLayoutForMode(mode) : null)
             );
         Object.entries(entries || {}).forEach(([controlId, entry]) => {
-            if (controlId === 'joystick' && !this.uiLayoutEditMode) return;
+            if (controlId === 'joystick' && !this.uiLayoutEditMode
+                && this.getResolvedUiLayoutSource()?.joystickMode !== 'fixed') return;
             this.applyUiLayoutControl(controlId, entry);
         });
-        const joystickLayout = this.uiLayoutEditMode && supportsJoystick
+        const joystickLayout = (this.uiLayoutEditMode || this.getResolvedUiLayoutSource()?.joystickMode === 'fixed') && supportsJoystick
             ? (entries?.joystick || this.buildDefaultJoystickLayoutEntry(mode))
             : null;
         this.game.touch?.setFixedJoystickLayout?.(joystickLayout);
@@ -1445,6 +1480,8 @@ export class UIManager {
         const isVisible = this.uiLayoutEditMode && editor && !editor.classList.contains('hidden');
         const select = document.getElementById('ui-layout-target-select');
         const sizeRange = document.getElementById('ui-layout-size-range');
+        const joystickModeSelect = document.getElementById('ui-layout-joystick-mode');
+        if (joystickModeSelect) joystickModeSelect.value = this.uiLayoutDraft?.joystickMode === 'fixed' ? 'fixed' : 'dynamic';
         const sizeValue = document.getElementById('ui-layout-size-value');
         const modeLabel = document.getElementById('ui-layout-mode-label');
 
@@ -1519,8 +1556,7 @@ export class UIManager {
 
     persistUiLayoutDraft() {
         const player = this.game.localPlayer;
-        if (!player) return false;
-
+        if (!player || player.id !== this.game.auth?.currentUser?.uid) return false;
         const draftForSave = this.cloneStructuredData(this.uiLayoutDraft) || { version: 1, layouts: {} };
         const hasResetModes = !!this.uiLayoutResetModes?.size;
         if (draftForSave.layouts && this.uiLayoutResetModes?.size > 0) {
@@ -1531,6 +1567,11 @@ export class UIManager {
         const sanitizedDraft = this.sanitizeUiLayout(draftForSave);
         const currentComparable = this.serializeUiLayoutComparable(player.uiLayout);
         const nextComparable = this.serializeUiLayoutComparable(sanitizedDraft);
+        if (currentComparable === nextComparable && !hasResetModes) {
+            if (this.uiLayoutSyncState === 'sync-failed') this.retryUiLayoutSync();
+            return false;
+        }
+        this.uiLayoutHasConflict = false;
         const nextPersistedLayout = sanitizedDraft
             ? {
                 ...sanitizedDraft,
@@ -1538,17 +1579,17 @@ export class UIManager {
             }
             : null;
         player.uiLayout = nextPersistedLayout;
-        this.persistUiLayoutToStorage(nextPersistedLayout);
-
-        if (currentComparable === nextComparable && !hasResetModes) {
-            return false;
+        const localSaved = this.persistUiLayoutToStorage(nextPersistedLayout);
+        if (localSaved) {
+            try {
+                localStorage.setItem(`${this.getUiLayoutStorageKey()}:pending`, JSON.stringify({
+                    base: this.uiLayoutServerBase ?? currentComparable, layout: nextPersistedLayout
+                }));
+            } catch (error) { Logger.warn('[UIManager] Failed to preserve pending layout', error); }
         }
+        this.setUiLayoutSyncState(localSaved ? 'saved-local' : 'local-failed');
 
-        player.saveProfilePatch?.(['uiLayout'], {
-            debounceMs: 0,
-            forceImmediate: true,
-            reason: 'ui_layout_save'
-        });
+        this.retryUiLayoutSync();
         return true;
     }
 
@@ -1639,44 +1680,19 @@ export class UIManager {
     }
 
     resetStoredUiLayoutForCurrentMode() {
-        const player = this.game.localPlayer;
-        if (!player) return;
-
-        const current = this.sanitizeUiLayout(player.uiLayout) || { version: 1, layouts: {} };
-        const mode = this.getUiLayoutMode();
-        if (current.layouts) {
-            delete current.layouts[mode];
-        }
-        const nextLayout = this.sanitizeUiLayout(current);
-        const currentComparable = this.serializeUiLayoutComparable(player.uiLayout);
-        const nextComparable = this.serializeUiLayoutComparable(nextLayout);
-        const nextPersistedLayout = nextLayout
-            ? {
-                ...nextLayout,
-                updatedAt: Date.now()
-            }
-            : null;
-        player.uiLayout = nextPersistedLayout;
-        this.persistUiLayoutToStorage(nextPersistedLayout);
-        player.saveProfilePatch?.(['uiLayout'], {
-            debounceMs: 0,
-            forceImmediate: true,
-            reason: currentComparable !== nextComparable ? 'ui_layout_reset' : 'ui_layout_reset_force'
-        });
-        this.uiLayoutDefaultCache = {};
-        this.applyActiveUiLayout();
-        this.syncUiLayoutEditor();
+        if (!this.game.localPlayer) return;
+        if (!this.uiLayoutEditMode) this.enterUiLayoutEditMode();
+        this.resetUiLayoutDraftForCurrentMode();
     }
 
     loadPlayerUiLayout(layout) {
         const remoteLayout = this.sanitizeUiLayout(layout);
         const localLayout = this.loadStoredUiLayout();
-        const remoteUpdatedAt = Number(remoteLayout?.updatedAt || 0);
-        const localUpdatedAt = Number(localLayout?.updatedAt || 0);
-        const shouldUseLocalLayout = !!localLayout
-            && (!remoteLayout || localUpdatedAt > remoteUpdatedAt);
+        this.uiLayoutServerBase = this.serializeUiLayoutComparable(remoteLayout);
+        const pending = this.readPendingUiLayout();
+        const shouldUseLocalLayout = !!pending && pending.base === this.uiLayoutServerBase;
         const resolvedLayout = shouldUseLocalLayout
-            ? localLayout
+            ? this.sanitizeUiLayout(pending.layout)
             : (remoteLayout || localLayout);
 
         if (this.game.localPlayer) {
@@ -1686,12 +1702,14 @@ export class UIManager {
             } else {
                 this.persistUiLayoutToStorage(null);
             }
-            if (resolvedLayout && shouldUseLocalLayout) {
-                this.game.localPlayer.saveProfilePatch?.(['uiLayout'], {
-                    debounceMs: 0,
-                    forceImmediate: true,
-                    reason: 'rehydrate_local_ui_layout'
-                });
+            if (shouldUseLocalLayout) {
+                this.retryUiLayoutSync();
+            } else if (pending) {
+                this.uiLayoutHasConflict = true;
+                try { localStorage.setItem(`${this.getUiLayoutStorageKey()}:conflict`, JSON.stringify(pending)); }
+                catch (error) { Logger.warn('[UIManager] Failed to preserve conflicting layout', error); }
+                this.setUiLayoutSyncState('sync-failed');
+                this.logSystemMessage?.('다른 기기에서 UI가 변경되었습니다. 서버 배치를 사용합니다. 이전 로컬 변경은 복구용으로 보관됩니다.');
             }
         }
         if (!this.uiLayoutEditMode) {
@@ -1768,15 +1786,16 @@ export class UIManager {
         if (this.uiLayoutDragState.pointerId !== e.pointerId) return;
         e.preventDefault();
         const controlId = this.uiLayoutDragState.controlId;
-        const viewportW = Math.max(window.innerWidth || 0, 1);
-        const viewportH = Math.max(window.innerHeight || 0, 1);
+        const { gameViewportRect: viewport } = getViewportMetrics(document.getElementById('game-viewport'));
+        const viewportW = Math.max(viewport.width, 1);
+        const viewportH = Math.max(viewport.height, 1);
         const dragWidth = Math.max(1, Number(this.uiLayoutDragState.width || 0));
         const dragHeight = Math.max(1, Number(this.uiLayoutDragState.height || 0));
         const margin = Math.max(0, Number(this.uiLayoutDragState.margin || 12));
         const maxLeft = Math.max(margin, viewportW - dragWidth - margin);
         const maxTop = Math.max(margin, viewportH - dragHeight - margin);
-        const left = Math.min(maxLeft, Math.max(margin, e.clientX - this.uiLayoutDragState.offsetX));
-        const top = Math.min(maxTop, Math.max(margin, e.clientY - this.uiLayoutDragState.offsetY));
+        const left = Math.min(maxLeft, Math.max(margin, e.clientX - viewport.left - this.uiLayoutDragState.offsetX));
+        const top = Math.min(maxTop, Math.max(margin, e.clientY - viewport.top - this.uiLayoutDragState.offsetY));
         this.updateUiLayoutEntry(controlId, {
             left: left / viewportW,
             top: top / viewportH
@@ -3839,7 +3858,7 @@ export class UIManager {
         };
         const handleOrientationChange = () => {
             this.syncOrientationLock();
-            window.setTimeout(handleViewportChange, 120);
+            handleViewportChange();
         };
         const tryPendingLandscapeFullscreen = () => {
             if (!this.pendingLandscapeFullscreen) return;
@@ -3867,8 +3886,10 @@ export class UIManager {
     }
 
     scheduleOrientationLockRefresh() {
-        [0, 120, 360, 900].forEach((delay) => {
-            window.setTimeout(() => this.syncOrientationLock(), delay);
+        if (this._orientationLockFrame != null) return;
+        this._orientationLockFrame = requestAnimationFrame(() => {
+            this._orientationLockFrame = null;
+            this.syncOrientationLock();
         });
     }
 
@@ -3914,9 +3935,8 @@ export class UIManager {
     }
 
     isMobilePortraitViewport() {
-        const isNarrow = window.innerWidth <= 1024;
         const isPortrait = window.matchMedia?.('(orientation: portrait)')?.matches ?? (window.innerHeight >= window.innerWidth);
-        return this.isTouchDevice() && isNarrow && isPortrait;
+        return this.isTouchDevice() && isPortrait;
     }
 
     isTouchLandscapeViewport() {
@@ -3987,7 +4007,17 @@ export class UIManager {
         this.setMobileOrientationPreference(nextPreference);
     }
 
-    syncOrientationLock() {
+    async syncOrientationLock() {
+        const fail = () => {
+            if (this.settings.orientationLock) {
+                this.settings.orientationLock = false;
+                this.persistSettings();
+                const checkbox = document.getElementById('settings-orientation-lock');
+                if (checkbox) checkbox.checked = false;
+                this.logSystemMessage?.('이 환경에서는 화면 방향을 잠글 수 없습니다.');
+            }
+            return false;
+        };
         if (screen.orientation && screen.orientation.lock) {
             const transientLockActive = this.isTransientOrientationLockActive();
             const forceLandscapeFullscreen = this.isMobileFullscreenLandscapeLockRequired();
@@ -3996,7 +4026,7 @@ export class UIManager {
             if (!shouldLock) {
                 this.clearTransientOrientationPreference();
                 screen.orientation.unlock?.();
-                return;
+                return true;
             }
 
             const effectivePreference = forceLandscapeFullscreen
@@ -4007,12 +4037,15 @@ export class UIManager {
             const preferPortrait = effectivePreference === 'portrait';
             const preferredMode = preferPortrait ? 'portrait-primary' : 'landscape-primary';
             const fallbackMode = preferPortrait ? 'portrait' : 'landscape';
-            screen.orientation.lock(preferredMode).catch(() => {
-                screen.orientation.lock(fallbackMode).catch(() => {
-                    screen.orientation.unlock?.();
-                });
-            });
+            try {
+                await screen.orientation.lock(preferredMode);
+                return true;
+            } catch (error) {
+                try { await screen.orientation.lock(fallbackMode); return true; }
+                catch (fallbackError) { screen.orientation.unlock?.(); return fail(); }
+            }
         }
+        return fail();
     }
 
     isFullscreenActive() {
@@ -4031,9 +4064,8 @@ export class UIManager {
 
     isMobileLandscapeViewport() {
         const isTouch = this.isTouchDevice();
-        const isNarrow = window.innerWidth <= 1024;
         const isLandscape = window.matchMedia?.('(orientation: landscape)')?.matches ?? (window.innerWidth > window.innerHeight);
-        return isTouch && isNarrow && isLandscape;
+        return isTouch && isLandscape;
     }
 
     isDesktopShortcutMode() {
@@ -4395,7 +4427,7 @@ export class UIManager {
 
         window.addEventListener('resize', () => this.syncLandscapeChatLayout());
         window.addEventListener('orientationchange', () => {
-            window.setTimeout(() => this.syncLandscapeChatLayout(), 120);
+            window.requestAnimationFrame(() => this.syncLandscapeChatLayout());
         });
 
         this.syncLandscapeChatLayout();
@@ -4788,6 +4820,10 @@ export class UIManager {
         rangeSettings.forEach(([inputId, key, options]) => {
             const input = document.getElementById(inputId);
             if (!input) return;
+            if (key === 'cameraViewRange') {
+                this.bindCameraViewRange(input);
+                return;
+            }
             const handleInput = (e) => {
                 this.updateSetting(key, Number(e.currentTarget.value), options);
             };
@@ -4879,6 +4915,13 @@ export class UIManager {
         });
         document.getElementById('ui-layout-save')?.addEventListener('click', () => {
             this.exitUiLayoutEditMode({ save: true });
+        });
+        document.getElementById('ui-layout-sync-retry')?.addEventListener('click', () => this.retryUiLayoutSync());
+        document.getElementById('ui-layout-joystick-mode')?.addEventListener('change', (e) => {
+            if (!this.uiLayoutDraft) return;
+            this.uiLayoutDraft.joystickMode = e.currentTarget.value === 'fixed' ? 'fixed' : 'dynamic';
+            this.setUiLayoutDirty(true);
+            this.applyActiveUiLayout();
         });
         this.syncSettingsUi();
 

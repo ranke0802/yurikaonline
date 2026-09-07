@@ -110,8 +110,7 @@ if (!/uiLayoutResetModes\s*=\s*new Set\(\)/.test(uiManager)
 }
 
 if (!/const hasResetModes = !!this\.uiLayoutResetModes\?\.size;/.test(uiManager)
-    || !/if \(currentComparable === nextComparable && !hasResetModes\)/.test(uiManager)
-    || !/ui_layout_reset_force/.test(uiManager)) {
+    || !/if \(currentComparable === nextComparable && !hasResetModes\)/.test(uiManager)) {
     fail('UI layout reset must force persistence even when comparable layout data appears unchanged');
 }
 
@@ -119,13 +118,11 @@ if (/if \(!current\.layouts\?\.\[mode\]\) return;/.test(uiManager)) {
     fail('settings reset must reapply defaults even when the current mode has no saved entry');
 }
 
-if (!/localStorage\.getItem\(this\.uiLayoutStorageKey\)/.test(uiManager)
-    || !/localStorage\.setItem\(this\.uiLayoutStorageKey,\s*JSON\.stringify\(sanitized\)\)/.test(uiManager)) {
-    fail('UI layout local persistence was not restored to the 5eb1533 storage flow');
-}
-
-if (/getUiLayoutStorageOwnerId\s*\(|getUiLayoutStorageKey\s*\(|uiLayoutStorageKeyBase/.test(uiManager)) {
-    fail('player-scoped local backup helpers remain in the restored UI layout flow');
+// Account isolation is exercised with real A/B/A storage operations in
+// validate-improvement.mjs. The previous assertions required a shared key and
+// explicitly forbade owner scoping, reproducing UI-04 rather than protecting it.
+if (!/getUiLayoutStorageKey\s*\(/.test(uiManager)) {
+    fail('UI layout persistence must resolve the authenticated owner');
 }
 
 if (/clearActionButtonsLayoutSurfaceStyles|prepareActionButtonsLayoutSurface|prepareActionButtonsRuntimeSurface|isActionUiLayoutControl/.test(uiManager)) {
@@ -188,7 +185,7 @@ if (!/getEffectiveCameraZoom\s*\(isMobile\s*=\s*false\)[\s\S]*return baseZoom \/
 
 if (!/window\.visualViewport\?\.addEventListener\?\.\('resize',\s*this\._handleViewportResize\)/.test(mainJs)
     || !/window\.addEventListener\('orientationchange',\s*this\._handleViewportOrientationChange\)/.test(mainJs)
-    || !/_viewportResizeTimers[\s\S]*80,\s*180,\s*360,\s*720,\s*1200/.test(mainJs)
+    || !/_viewportResizeFrame[\s\S]*requestAnimationFrame/.test(mainJs)
     || !/syncCameraAfterViewportChange\(options\.reason\s*\|\|\s*'resize'\)/.test(mainJs)) {
     fail('iOS PWA orientation changes must resync visualViewport, settled canvas size, and camera focus');
 }

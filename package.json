@@ -8,14 +8,18 @@
     "validate:runtime": "node scripts/validate-runtime-integration.mjs",
     "validate:projectiles": "node scripts/validate-projectile-chain.mjs",
     "validate:zone5-assets": "node scripts/audit-v2-monster-atlas.mjs assets/resource/expansion/zone_5/monsters/ember_drake/spritesheet.webp reports/asset-qa/zone_5/ember_drake && node scripts/audit-v2-monster-atlas.mjs assets/resource/expansion/zone_5/monsters/spark_squirrel/spritesheet.webp reports/asset-qa/zone_5/spark_squirrel && node scripts/audit-v2-monster-atlas.mjs assets/resource/expansion/zone_5/monsters/rift_sentinel/spritesheet.webp reports/asset-qa/zone_5/rift_sentinel && node scripts/validate-zone5-generated-visuals.mjs",
-    "validate": "npm run validate:quests && npm run validate:world && npm run validate:zone5-assets && npm run validate:ui && npm run validate:hygiene && npm run validate:runtime && npm run validate:projectiles",
+    "validate": "npm run validate:quests && npm run validate:world && npm run validate:zone5-assets && npm run validate:ui && npm run validate:hygiene && npm run validate:runtime && npm run validate:projectiles && npm run validate:improvement",
     "version:sync": "node scripts/sync-version.js",
-    "version:bump": "node scripts/sync-version.js --bump patch"
+    "version:bump": "node scripts/sync-version.js --bump patch",
+    "validate:improvement": "node --test scripts/validate-improvement.mjs",
+    "validate:browser": "playwright test",
+    "validate:security": "firebase emulators:exec --config firebase.emulator.json --project demo-yurika-audit --only auth,database \"node scripts/validate-security-emulator.mjs\""
   },
   "dependencies": {
     "image-size": "^2.0.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "sharp": "^0.35.3"
   }
 }

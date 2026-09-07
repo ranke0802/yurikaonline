@@ -10128,18 +10128,7 @@ export default class NetworkManager extends EventEmitter {
 
     // v0.00.03: Full Database Reset (Users & Names)
     async resetAllUserData() {
-        if (!window.firebase) return;
-        try {
-            Logger.warn('!!! FULL DATA RESET STARTING !!!');
-            await Promise.all([
-                firebase.database().ref('users').remove(),
-                firebase.database().ref('names').remove(),
-                firebase.database().ref('zones').remove()
-            ]);
-            Logger.log('All user and zone data cleared.');
-        } catch (e) {
-            Logger.error('Reset failed', e);
-        }
+        throw new Error('Administrative reset requires an authorized server endpoint');
     }
 
     // v0.00.03: Name Duplicate Management

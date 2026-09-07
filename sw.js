@@ -1,4 +1,4 @@
-const APP_VERSION = '0.02.114';
+const APP_VERSION = '0.02.115';
 const SHELL_CACHE = `yurika-online-shell-${APP_VERSION}`;
 const STATIC_CACHE = `yurika-online-static-${APP_VERSION}`;
 const ACTIVE_CACHES = [SHELL_CACHE, STATIC_CACHE];
@@ -169,7 +169,7 @@ self.addEventListener('activate', (event) => {
         caches.keys()
             .then((keys) => Promise.all(
                 keys.map((key) => {
-                    if (!ACTIVE_CACHES.includes(key)) return caches.delete(key);
+                    if (key.startsWith('yurika-online-') && !ACTIVE_CACHES.includes(key)) return caches.delete(key);
                     return Promise.resolve(false);
                 })
             ))
@@ -195,7 +195,9 @@ self.addEventListener('fetch', (event) => {
     if (isFirebaseRequest(url)) return;
 
     if (isVersionRequest(url)) {
-        event.respondWith(fetch(buildNoStoreRequest(event.request)).catch(() => new Response('error')));
+        event.respondWith(fetch(buildNoStoreRequest(event.request)).catch(() => new Response('Version unavailable', {
+            status: 503, headers: { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' }
+        })));
         return;
     }
 

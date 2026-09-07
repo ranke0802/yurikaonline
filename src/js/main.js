@@ -1,5 +1,6 @@
 import Logger from './utils/Logger.js';
-window.RUNTIME_BUILD_VERSION = '0.02.114'; // Synced with version.txt
+import { getViewportMetrics } from './core/ViewportMetrics.js';
+window.RUNTIME_BUILD_VERSION = '0.02.115'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -56,7 +57,7 @@ class Game {
         this.zoom = 1.0;
         this.performanceTelemetry = this.createPerformanceTelemetryState();
         this._backgroundedAt = 0;
-        this._viewportResizeTimers = [];
+        this._viewportResizeFrame = null;
         this._lastViewportSyncSignature = '';
         this._lastLifecycleProfileSaveAt = 0;
         this._lifecycleProfileSavePromise = null;
@@ -69,6 +70,11 @@ class Game {
         this._handlePageHide = this._handlePageHide.bind(this);
         this._handleBeforeUnload = this._handleBeforeUnload.bind(this);
         window.addEventListener('resize', this._handleViewportResize);
+        if (typeof ResizeObserver !== 'undefined') {
+            this._viewportObserver = new ResizeObserver(this._handleViewportResize);
+            const viewport = document.getElementById('game-viewport');
+            if (viewport) this._viewportObserver.observe(viewport);
+        }
         window.addEventListener('orientationchange', this._handleViewportOrientationChange);
         window.visualViewport?.addEventListener?.('resize', this._handleViewportResize);
         window.visualViewport?.addEventListener?.('scroll', this._handleViewportResize);
@@ -238,16 +244,12 @@ class Game {
     }
 
     _scheduleViewportResize(reason = 'viewport_resize') {
-        this.resize({ reason, phase: 'immediate' });
-
-        // iOS PWA reports an intermediate viewport during rotation. Re-sync across
-        // the next few frames so the final landscape camera/canvas size wins.
-        this._viewportResizeTimers.forEach((timerId) => window.clearTimeout(timerId));
-        this._viewportResizeTimers = [80, 180, 360, 720, 1200].map((delay) => (
-            window.setTimeout(() => {
-                this.resize({ reason, phase: `settle_${delay}` });
-            }, delay)
-        ));
+        this._pendingViewportReason = reason;
+        if (this._viewportResizeFrame != null) return;
+        this._viewportResizeFrame = requestAnimationFrame(() => {
+            this._viewportResizeFrame = null;
+            this.resize({ reason: this._pendingViewportReason });
+        });
     }
 
     isTouchDevice() {
@@ -467,24 +469,7 @@ class Game {
     }
 
     getViewportCssSize(container = null) {
-        const visualViewport = window.visualViewport;
-        const visualWidth = Number(visualViewport?.width || 0);
-        const visualHeight = Number(visualViewport?.height || 0);
-        const fallbackWidth = Number(window.innerWidth || 0);
-        const fallbackHeight = Number(window.innerHeight || 0);
-        const rect = container?.getBoundingClientRect?.();
-        const containerWidth = Number(container?.clientWidth || 0) || Number(rect?.width || 0);
-        const containerHeight = Number(container?.clientHeight || 0) || Number(rect?.height || 0);
-
-        return {
-            // Do not coerce a transient zero-sized iOS visual viewport to 1px. Resizing
-            // the backing canvas to 1px clears its frame and exposes the black surface
-            // while Safari settles an orientation/toolbar transition.
-            displayWidth: Math.round(containerWidth || visualWidth || fallbackWidth || 0),
-            displayHeight: Math.round(containerHeight || visualHeight || fallbackHeight || 0),
-            viewportWidth: Math.round(visualWidth || fallbackWidth || containerWidth || 0),
-            viewportHeight: Math.round(visualHeight || fallbackHeight || containerHeight || 0)
-        };
+        return getViewportMetrics(container);
     }
 
     getRenderBackgroundColor() {
@@ -532,6 +517,15 @@ class Game {
         this.camera.follow(focusPlayer, 1 / 60);
     }
 
+    previewCameraViewRange() {
+        this.cameraViewRangePercent = this.getCameraViewRangePercent();
+        this.zoom = this.getEffectiveCameraZoom(this.isMobilePerformanceMode);
+        if (this.camera && this.dpr) {
+            this.camera.resize(this.canvas.width / this.dpr / this.zoom, this.canvas.height / this.dpr / this.zoom);
+            this.syncCameraAfterViewportChange('camera-preview');
+        }
+    }
+
     resize(options = {}) {
         // v0.24.2: Mobile Viewport Height (vh) polyfill
         const container = document.getElementById('game-viewport');
@@ -567,8 +561,11 @@ class Game {
         this.dpr = ratio; // Store for render loop
 
         // Internal resolution for HiDPI
-        this.canvas.width = displayWidth * ratio;
-        this.canvas.height = displayHeight * ratio;
+        const backingWidth = Math.round(displayWidth * ratio);
+        const backingHeight = Math.round(displayHeight * ratio);
+        const backingChanged = this.canvas.width !== backingWidth || this.canvas.height !== backingHeight;
+        if (this.canvas.width !== backingWidth) this.canvas.width = backingWidth;
+        if (this.canvas.height !== backingHeight) this.canvas.height = backingHeight;
 
         // Visual Display Size
         this.canvas.style.width = displayWidth + 'px';
@@ -581,7 +578,7 @@ class Game {
         this.ctx.mozImageSmoothingEnabled = false;
         this.ctx.msImageSmoothingEnabled = false;
         this.canvas.style.imageRendering = 'pixelated';
-        this.paintResizeFallback();
+        if (backingChanged) this.paintResizeFallback();
 
         if (this.loop) {
             this.loop.setMaxRenderFps(maxRenderFps);
@@ -676,6 +673,10 @@ class Game {
 
         // 2. Auth Flow
         this.auth.on('authStateChanged', (user) => {
+            if (this._uiLayoutAuthUid !== (user?.uid || null)) {
+                this.ui?.resetUiLayoutSession?.();
+                this._uiLayoutAuthUid = user?.uid || null;
+            }
             void this._queueAuthStateTransition(user);
         });
 

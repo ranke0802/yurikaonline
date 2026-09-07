@@ -1,0 +1,1274 @@
+
+> validate
+> npm run validate:quests && npm run validate:world && npm run validate:zone5-assets && npm run validate:ui && npm run validate:hygiene && npm run validate:runtime && npm run validate:projectiles && npm run validate:improvement
+
+
+> validate:quests
+> node scripts/validate-quest-content.js
+
+[quest-content] validated 24 quests
+
+> validate:world
+> node scripts/validate-world-content.js
+
+node.exe : [world-content] warning: zone_1 keeps its legacy quest-driven boss spawn
+At C:\Program Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([world-content]...iven boss spawn:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[world-content] OK: 5 zones, 12 monsters, 18 items, 9 v2 sheets, 49 JSON files. Estimated band kills zone_2:64, zone_3:93, zone_4:91, zone_5:74.
+
+> validate:zone5-assets
+> node scripts/audit-v2-monster-atlas.mjs assets/resource/expansion/zone_5/monsters/ember_drake/spritesheet.webp reports/asset-qa/zone_5/ember_drake && node scripts/audit-v2-monster-atlas.mjs assets/resource/expansion/zone_5/monsters/spark_squirrel/spritesheet.webp reports/asset-qa/zone_5/spark_squirrel && node scripts/audit-v2-monster-atlas.mjs assets/resource/expansion/zone_5/monsters/rift_sentinel/spritesheet.webp reports/asset-qa/zone_5/rift_sentinel && node scripts/validate-zone5-generated-visuals.mjs
+
+{
+  "ok": true,
+  "source": "C:\\dev\\yurika_online\\assets\\resource\\expansion\\zone_5\\monsters\\ember_drake\\spritesheet.webp",
+  "sha256": "623da78f8ca196cefd204312c3fbc25f2531e1dc714df9b7adac5163b1cd8b45",
+  "dimensions": {
+    "width": 1536,
+    "height": 2288
+  },
+  "grid": {
+    "columns": 8,
+    "rows": 11,
+    "frameWidth": 192,
+    "frameHeight": 208
+  },
+  "states": [
+    {
+      "state": "idle",
+      "row": 0,
+      "count": 7,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 22,
+            "top": 5,
+            "right": 169,
+            "bottom": 203,
+            "opaquePixels": 16398
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 22,
+            "top": 5,
+            "right": 169,
+            "bottom": 203,
+            "opaquePixels": 16347
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 23,
+            "top": 5,
+            "right": 169,
+            "bottom": 203,
+            "opaquePixels": 16325
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 22,
+            "top": 5,
+            "right": 169,
+            "bottom": 203,
+            "opaquePixels": 16408
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 23,
+            "top": 5,
+            "right": 169,
+            "bottom": 203,
+            "opaquePixels": 16357
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 22,
+            "top": 5,
+            "right": 170,
+            "bottom": 203,
+            "opaquePixels": 16490
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 22,
+            "top": 5,
+            "right": 169,
+            "bottom": 203,
+            "opaquePixels": 16332
+          }
+        }
+      ]
+    },
+    {
+      "state": "moveRight",
+      "row": 1,
+      "count": 8,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 5,
+            "top": 16,
+            "right": 187,
+            "bottom": 191,
+            "opaquePixels": 15804
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 5,
+            "top": 14,
+            "right": 187,
+            "bottom": 193,
+            "opaquePixels": 15029
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 5,
+            "top": 24,
+            "right": 187,
+            "bottom": 184,
+            "opaquePixels": 14776
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 5,
+            "top": 13,
+            "right": 187,
+            "bottom": 195,
+            "opaquePixels": 14272
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 5,
+            "top": 22,
+            "right": 187,
+            "bottom": 186,
+            "opaquePixels": 14556
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 5,
+            "top": 10,
+            "right": 187,
+            "bottom": 197,
+            "opaquePixels": 15663
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 5,
+            "top": 17,
+            "right": 187,
+            "bottom": 190,
+            "opaquePixels": 14306
+          }
+        },
+        {
+          "frame": 7,
+          "bounds": {
+            "left": 7,
+            "top": 5,
+            "right": 185,
+            "bottom": 203,
+            "opaquePixels": 17327
+          }
+        }
+      ]
+    },
+    {
+      "state": "moveLeft",
+      "row": 2,
+      "count": 8,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 5,
+            "top": 18,
+            "right": 187,
+            "bottom": 189,
+            "opaquePixels": 15172
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 5,
+            "top": 10,
+            "right": 187,
+            "bottom": 198,
+            "opaquePixels": 16997
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 5,
+            "top": 19,
+            "right": 187,
+            "bottom": 188,
+            "opaquePixels": 14915
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 5,
+            "top": 7,
+            "right": 187,
+            "bottom": 200,
+            "opaquePixels": 17465
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 5,
+            "top": 26,
+            "right": 187,
+            "bottom": 182,
+            "opaquePixels": 14059
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 5,
+            "top": 19,
+            "right": 187,
+            "bottom": 188,
+            "opaquePixels": 14895
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 6,
+            "top": 5,
+            "right": 186,
+            "bottom": 203,
+            "opaquePixels": 17298
+          }
+        },
+        {
+          "frame": 7,
+          "bounds": {
+            "left": 5,
+            "top": 5,
+            "right": 187,
+            "bottom": 202,
+            "opaquePixels": 18167
+          }
+        }
+      ]
+    }
+  ],
+  "contactSheet": "reports\\asset-qa\\zone_5\\ember_drake\\active-animation-contact-sheet.png",
+  "errors": []
+}
+{
+  "ok": true,
+  "source": "C:\\dev\\yurika_online\\assets\\resource\\expansion\\zone_5\\monsters\\spark_squirrel\\spritesheet.webp",
+  "sha256": "efb270b5fdc236649b2680902c7a3fdf4ec6098132f83e4d3055369efafa709a",
+  "dimensions": {
+    "width": 1536,
+    "height": 2288
+  },
+  "grid": {
+    "columns": 8,
+    "rows": 11,
+    "frameWidth": 192,
+    "frameHeight": 208
+  },
+  "states": [
+    {
+      "state": "idle",
+      "row": 0,
+      "count": 7,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 28,
+            "top": 34,
+            "right": 163,
+            "bottom": 180,
+            "opaquePixels": 11306
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 28,
+            "top": 36,
+            "right": 163,
+            "bottom": 180,
+            "opaquePixels": 11410
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 28,
+            "top": 36,
+            "right": 163,
+            "bottom": 180,
+            "opaquePixels": 11380
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 28,
+            "top": 35,
+            "right": 163,
+            "bottom": 180,
+            "opaquePixels": 11434
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 28,
+            "top": 32,
+            "right": 163,
+            "bottom": 180,
+            "opaquePixels": 11663
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 28,
+            "top": 33,
+            "right": 163,
+            "bottom": 180,
+            "opaquePixels": 11395
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 28,
+            "top": 34,
+            "right": 163,
+            "bottom": 180,
+            "opaquePixels": 11306
+          }
+        }
+      ]
+    },
+    {
+      "state": "moveRight",
+      "row": 1,
+      "count": 8,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 35,
+            "top": 44,
+            "right": 157,
+            "bottom": 184,
+            "opaquePixels": 9379
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 31,
+            "top": 44,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 10243
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 30,
+            "top": 44,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9665
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 30,
+            "top": 44,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 10062
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 30,
+            "top": 51,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9996
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 30,
+            "top": 53,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9385
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 30,
+            "top": 46,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9988
+          }
+        },
+        {
+          "frame": 7,
+          "bounds": {
+            "left": 30,
+            "top": 46,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 10351
+          }
+        }
+      ]
+    },
+    {
+      "state": "moveLeft",
+      "row": 2,
+      "count": 8,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 35,
+            "top": 44,
+            "right": 157,
+            "bottom": 184,
+            "opaquePixels": 9379
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 31,
+            "top": 44,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 10243
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 30,
+            "top": 44,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9661
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 30,
+            "top": 44,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 10062
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 30,
+            "top": 51,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9993
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 30,
+            "top": 53,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9387
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 30,
+            "top": 46,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 9989
+          }
+        },
+        {
+          "frame": 7,
+          "bounds": {
+            "left": 30,
+            "top": 46,
+            "right": 161,
+            "bottom": 184,
+            "opaquePixels": 10351
+          }
+        }
+      ]
+    }
+  ],
+  "contactSheet": "reports\\asset-qa\\zone_5\\spark_squirrel\\active-animation-contact-sheet.png",
+  "errors": []
+}
+{
+  "ok": true,
+  "source": "C:\\dev\\yurika_online\\assets\\resource\\expansion\\zone_5\\monsters\\rift_sentinel\\spritesheet.webp",
+  "sha256": "1b2246cb5d05181866d9f51da8ea2513ccb4b39eba91bef5325e567213fc1d45",
+  "dimensions": {
+    "width": 1536,
+    "height": 2288
+  },
+  "grid": {
+    "columns": 8,
+    "rows": 11,
+    "frameWidth": 192,
+    "frameHeight": 208
+  },
+  "states": [
+    {
+      "state": "idle",
+      "row": 0,
+      "count": 7,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 56,
+            "top": 5,
+            "right": 135,
+            "bottom": 203,
+            "opaquePixels": 7496
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 56,
+            "top": 5,
+            "right": 135,
+            "bottom": 203,
+            "opaquePixels": 7494
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 56,
+            "top": 5,
+            "right": 135,
+            "bottom": 203,
+            "opaquePixels": 7481
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 56,
+            "top": 5,
+            "right": 135,
+            "bottom": 203,
+            "opaquePixels": 7537
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 57,
+            "top": 5,
+            "right": 135,
+            "bottom": 203,
+            "opaquePixels": 7412
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 56,
+            "top": 5,
+            "right": 135,
+            "bottom": 203,
+            "opaquePixels": 7424
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 56,
+            "top": 5,
+            "right": 135,
+            "bottom": 203,
+            "opaquePixels": 7442
+          }
+        }
+      ]
+    },
+    {
+      "state": "moveRight",
+      "row": 1,
+      "count": 8,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 36,
+            "top": 5,
+            "right": 155,
+            "bottom": 203,
+            "opaquePixels": 7747
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 53,
+            "top": 5,
+            "right": 139,
+            "bottom": 203,
+            "opaquePixels": 6775
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 45,
+            "top": 5,
+            "right": 147,
+            "bottom": 203,
+            "opaquePixels": 7341
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 45,
+            "top": 5,
+            "right": 146,
+            "bottom": 203,
+            "opaquePixels": 6881
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 46,
+            "top": 5,
+            "right": 146,
+            "bottom": 203,
+            "opaquePixels": 6975
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 53,
+            "top": 5,
+            "right": 139,
+            "bottom": 203,
+            "opaquePixels": 6729
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 54,
+            "top": 5,
+            "right": 137,
+            "bottom": 203,
+            "opaquePixels": 6753
+          }
+        },
+        {
+          "frame": 7,
+          "bounds": {
+            "left": 48,
+            "top": 5,
+            "right": 143,
+            "bottom": 203,
+            "opaquePixels": 6941
+          }
+        }
+      ]
+    },
+    {
+      "state": "moveLeft",
+      "row": 2,
+      "count": 8,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 36,
+            "top": 5,
+            "right": 155,
+            "bottom": 203,
+            "opaquePixels": 7747
+          }
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 53,
+            "top": 5,
+            "right": 139,
+            "bottom": 203,
+            "opaquePixels": 6775
+          }
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 45,
+            "top": 5,
+            "right": 147,
+            "bottom": 203,
+            "opaquePixels": 7341
+          }
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 45,
+            "top": 5,
+            "right": 146,
+            "bottom": 203,
+            "opaquePixels": 6881
+          }
+        },
+        {
+          "frame": 4,
+          "bounds": {
+            "left": 46,
+            "top": 5,
+            "right": 146,
+            "bottom": 203,
+            "opaquePixels": 6975
+          }
+        },
+        {
+          "frame": 5,
+          "bounds": {
+            "left": 53,
+            "top": 5,
+            "right": 139,
+            "bottom": 203,
+            "opaquePixels": 6729
+          }
+        },
+        {
+          "frame": 6,
+          "bounds": {
+            "left": 54,
+            "top": 5,
+            "right": 137,
+            "bottom": 203,
+            "opaquePixels": 6753
+          }
+        },
+        {
+          "frame": 7,
+          "bounds": {
+            "left": 48,
+            "top": 5,
+            "right": 143,
+            "bottom": 203,
+            "opaquePixels": 6941
+          }
+        }
+      ]
+    }
+  ],
+  "contactSheet": "reports\\asset-qa\\zone_5\\rift_sentinel\\active-animation-contact-sheet.png",
+  "errors": []
+}
+[zone5-visuals] riftcore staff: 512x512, alpha bounds 186,17..326,489
+[zone5-visuals] rift sentinel VFX: 512x512, alpha bounds 18,18..491,493
+[zone5-visuals] OK: generated transparent assets are bounded away from every canvas edge.
+
+> validate:ui
+> node scripts/validate-ui-layout.js
+
+[ui-layout] OK: restored 32e1d05 UI layout defaults and reset semantics
+
+> validate:hygiene
+> node scripts/validate-client-runtime-hygiene.mjs
+
+[client-runtime-hygiene] OK: bounded console repetition and PWA runtime cache growth
+
+> validate:runtime
+> node scripts/validate-runtime-integration.mjs
+
+(node:25020) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/dev/yurika_online/src/js/entities/Monste
+r.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\dev\yurika_online\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[runtime-integration] checking solo quiet RTDB listeners...
+[runtime-integration] checking Firebase RTDB rule indexes...
+[runtime-integration] checking PWA version reload profile persistence...
+[runtime-integration] checking attack speed caps...
+[runtime-integration] checking chain lightning scaling...
+[runtime-integration] checking network contracts...
+[ERROR] Monster batch update failed: Error: transient monster snapshot failure
+    at Object.update (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:728:51)
+    at NetworkManager.flushMonsterUpdates (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:11992:27)
+    at NetworkManager.sendMonsterUpdate (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:12102:25)
+    at validateNetworkFieldAndBatchContracts (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:731
+:48)
+    at async file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9069:1
+[ERROR] Monster batch update failed: Error: late alive flush failure
+    at validateNetworkFieldAndBatchContracts (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:798
+:22)
+    at async file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9069:1
+[ERROR] Monster batch update failed: Error: temporary full-sync movement failure
+    at Object.update (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:819:23)
+    at NetworkManager.flushMonsterUpdates (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:11992:27)
+    at NetworkManager.sendMonsterUpdate (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:12102:25)
+    at validateNetworkFieldAndBatchContracts (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:826
+:40)
+    at async file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9069:1
+[ERROR] Monster removal write failed for retry_removed_boss: Error: temporary removal failure
+    at Object.update (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:823:50)
+    at file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:11820:34
+    at NetworkManager._attemptMonsterRemovalWrite (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:11831:11)
+    at NetworkManager.removeMonster (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:12186:14)
+    at validateNetworkFieldAndBatchContracts (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:847
+:21)
+    at async file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9069:1
+[ERROR] Monster removal write failed for failed_handoff_removal: Error: temporary handoff tombstone failure
+    at Object.update (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:918:37)
+    at file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:11820:34
+    at NetworkManager._attemptMonsterRemovalWrite (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:11831:11)
+    at NetworkManager.removeMonster (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:12186:14)
+    at validateNetworkFieldAndBatchContracts (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:921
+:27)
+    at async file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9069:1
+[ERROR] Monster batch update failed: Error: older flush failed late
+    at validateNetworkFieldAndBatchContracts (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:963
+:37)
+    at async file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9069:1
+[runtime-integration] checking monster generation...
+[WARN] [MonsterManager] Failed to restore the destination field state Error: snapshot read failed
+    at net.readMonsterHostSnapshot (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:1698:15)
+    at file:///C:/dev/yurika_online/src/js/world/MonsterManager.js:3322:51
+    at async MonsterManager.restoreAuthoritativeMonstersFromHostSnapshot (file:///C:/dev/yurika_online/src/js/world/Mon
+sterManager.js:3424:20)
+    at async Promise.all (index 0)
+[runtime-integration] checking blocked handoff combat...
+[runtime-integration] checking handoff marker fallback...
+[WARN] [MonsterManager] Failed to restore the destination field state Error: handoff marker permission denied
+    at Object.waitForFieldHandoffReady (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:1887:19)
+    at file:///C:/dev/yurika_online/src/js/world/MonsterManager.js:387:46
+    at MonsterManager._startHostFieldHandoff (file:///C:/dev/yurika_online/src/js/world/MonsterManager.js:415:11)
+    at file:///C:/dev/yurika_online/src/js/world/MonsterManager.js:295:22
+    at file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:33:67
+    at Array.forEach (<anonymous>)
+    at Object.emit (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:33:46)
+    at validateHostHandoffMarkerFallback (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:1943:9)
+    at file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9075:7
+[WARN] [MonsterManager] Resident handoff marker timed out for zone_2__party__marker_permission; falling back to strict 
+snapshots.
+[WARN] [MonsterManager] Failed to restore the destination field state Error: resident disconnected
+    at validateHostHandoffMarkerFallback (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:1985:22
+)
+    at async file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9075:1
+[runtime-integration] checking field boss lifecycle...
+[WARN] [MonsterManager] Failed to publish resident field before host yield Error: Resident field publication for zone_2
+__party__boss_host did not complete.
+    at file:///C:/dev/yurika_online/src/js/world/MonsterManager.js:485:23
+    at async validateFieldBossLifecycleContracts (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs
+:2227:9)
+    at async file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9077:1
+[WARN] [MonsterManager] Failed to publish resident field before host yield Error: Resident handoff readiness for zone_2
+__party__boss_host was not persisted.
+    at file:///C:/dev/yurika_online/src/js/world/MonsterManager.js:489:23
+[WARN] [MonsterManager] Failed to restore the destination field state Error: boss lifecycle read failed
+    at net.readFieldBossState (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:2343:50)
+    at MonsterManager.restoreFieldBossStateFromSnapshot (file:///C:/dev/yurika_online/src/js/world/MonsterManager.js:27
+48:40)
+    at async Promise.all (index 2)
+[runtime-integration] checking scene listener lifecycle...
+[runtime-integration] checking profile exit durability...
+[ERROR] [UIManager] Failed to exit game to character selection Error: save_failed
+    at UIManager.exitGameToCharacterSelection (file:///C:/dev/yurika_online/src/js/ui/UIManager.js:7733:27)
+    at async validateProfileExitDurabilityContracts (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.
+mjs:2555:18)
+    at async file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9081:1
+[WARN] [UIManager] Exit profile save did not reach RTDB; continuing with the current durable local checkpoint. { reason
+: 'writer_session_unavailable' }
+[runtime-integration] checking local profile checkpoints...
+[runtime-integration] checking character selection generations...
+[WARN] [CharacterSelectionScene] Profile auto repair was deferred; continuing with the best available profile snapshot 
+{ reason: 'writer_session_superseded', source: 'recovery_profiles' }
+[runtime-integration] checking critical profile persistence triggers...
+[runtime-integration] checking reward dedupe...
+[WARN] [Player] Ignoring duplicate reward monster_reward:zone_4:boss_1:reward_tester:boss_exp
+[runtime-integration] checking quest runtime state sync...
+[runtime-integration] checking profile writer fencing...
+[runtime-integration] checking fail-closed profile contracts...
+[ERROR] Failed to get player profile Error: permission denied while reading profile
+    at validateFailClosedProfileContracts (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:4771:2
+8)
+    at async file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9095:1 {
+  code: 'PERMISSION_DENIED'
+}
+[ERROR] Failed to get latest profile snapshot Error: target profile read denied
+    at validateFailClosedProfileContracts (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:4797:2
+8)
+    at async file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9095:1 {
+  code: 'PERMISSION_DENIED'
+}
+[WARN] Character deleted: delete_drain_profile (Delete Drain Tester)
+[runtime-integration] checking durable boss rewards...
+[WARN] [Network] Durable boss reward write will retry for monster_reward:zone_2__party__departed_host:ruin_boss_instanc
+e_1:durable_recipient:boss_items Error: temporary disconnect
+    at Object.transaction (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:305:31)
+    at NetworkManager._attemptDurableBossRewardWrite (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:5681:4
+4) {
+  code: 'NETWORK_ERROR'
+}
+[WARN] [Network] Failed to persist the durable reward outbox Error: simulated durable outbox quota failure
+    at Object.setItem (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:5397:32)
+    at NetworkManager._persistDurableRewardOutbox (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:3873:26)
+    at NetworkManager._enqueueDurableBossReward (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:5596:19)
+    at NetworkManager.sendReward (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:14042:42)
+    at validateDurableBossRewardContracts (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:5417:2
+7)
+    at async file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9097:1
+[ERROR] [Network] Durable boss reward outbox persistence failed for monster_reward:zone_2__party__departed_host:ruin_bo
+ss_instance_1_quota:durable_recipient:boss_items
+[ERROR] [Network] Durable reward monster_reward:zone_2__party__departed_host:ruin_boss_instance_1_quota:durable_recipie
+nt:boss_items is in degraded volatile retry mode
+[ERROR] [Network] Durable boss reward outbox is full; refusing to discard an older receipt
+[WARN] [Network] Failed to persist the durable reward outbox Error: simulated timestamp-finalize persistence failure
+    at Object.setItem (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:5614:52)
+    at NetworkManager._persistDurableRewardOutbox (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:3873:26)
+    at NetworkManager._attemptDurableBossRewardWrite (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:5665:2
+6)
+[ERROR] [Network] Durable reward key collision for monster_reward:zone_2__party__departed_host:ruin_boss_instance_1:dur
+able_recipient:boss_items
+[WARN] [Network] Failed to acknowledge durable boss reward monster_reward:zone_2__party__departed_host:durable_fifo_bos
+s_000:durable_fifo_129_guest:boss_items Error: temporary disconnect
+    at Object.transaction (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:305:31)
+    at NetworkManager._ackDurableBossReward (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:5508:44)
+    at NetworkManager._consumeDurableBossRewardSnapshot (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:548
+3:45)
+    at async file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:4955:32 {
+  code: 'NETWORK_ERROR'
+}
+[WARN] [Network] Failed to acknowledge normal reward normal_reward_v2:zone_1:cross_normal_then_durable_guest:cross_norm
+al_fifo_head Error: temporary root update disconnect
+    at Object.update (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:384:35)
+    at NetworkManager._ackNormalReward (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:5081:25)
+    at async NetworkManager._consumeNormalRewardV2Snapshot (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:
+5171:34)
+    at async file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:4955:32 {
+  code: 'NETWORK_ERROR'
+}
+[WARN] [Network] Durable reward monster_reward:zone_2__party__departed_host:ruin_boss_instance_1:durable_recipient:boss
+_items was superseded by a valid first-writer receipt
+[WARN] [Network] Durable boss reward write will retry for monster_reward:zone_2__party__departed_host:ruin_boss_instanc
+e_outbox_reconnect:durable_recipient:boss_items Error: temporary disconnect
+    at Object.transaction (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:305:31)
+    at NetworkManager._attemptDurableBossRewardWrite (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:5681:4
+4) {
+  code: 'NETWORK_ERROR'
+} (반복 로그 2회 생략)
+[runtime-integration] checking durable normal rewards...
+[WARN] [Network] Normal reward write will retry for normal_reward_v2:zone_1:normal_self_host:nr2_eb8c32d8_b5c8c8a4 Erro
+r: temporary disconnect
+    at Object.transaction (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:305:31)
+    at file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:3511:48 {
+  code: 'NETWORK_ERROR'
+}
+[WARN] [Network] Normal reward write will retry for normal_reward_v2:zone_1:normal_direct_guest:nr2_bd001c44_ed4c2770 E
+rror: temporary disconnect
+    at Object.transaction (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:305:31)
+    at file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:3511:48 {
+  code: 'NETWORK_ERROR'
+}
+[WARN] [Network] Failed to persist the normal reward outbox Error: simulated normal finalize persistence failure
+    at Object.setItem (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:6658:58)
+    at NetworkManager._persistNormalRewardOutbox (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:3267:21)
+    at file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:3467:27
+[WARN] [Network] Normal reward write will retry for normal_reward_v2:zone_1:normal_batch_guest:nr2_1e2f864f_3a47e5ab Er
+ror: temporary disconnect
+    at Object.transaction (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:305:31)
+    at file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:3511:48 {
+  code: 'NETWORK_ERROR'
+}
+[ERROR] [Network] Normal reward outbox is full; refusing to discard an older reward.
+[runtime-integration] checking option reroll stones...
+[runtime-integration] checking death-settlement durability...
+[runtime-integration] checking deterministic drop and quest boss settlements...
+[WARN] [Network] Deterministic drop spawn will retry for drop_deadbeef_cafebabe Error: temporary disconnect
+    at Object.transaction (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:305:31)
+    at NetworkManager._attemptDropSpawnWrite (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:12797:38) {
+  code: 'NETWORK_ERROR'
+}
+[WARN] [Network] Failed to persist deterministic drop spawn outbox Error: simulated stale journal removal failure
+    at Object.removeItem (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:8067:56)
+    at NetworkManager._persistDropSpawnOutbox (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:12494:25)
+    at NetworkManager._removeDropSpawnOutboxEntry (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:12530:14)
+    at NetworkManager._attemptDropSpawnWrite (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:12836:22)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processTimers (node:internal/timers:520:9)
+[WARN] [Network] Failed to persist deterministic drop spawn outbox Error: simulated authoritative seal persistence fail
+ure
+    at Object.setItem (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:8285:50)
+    at NetworkManager._persistDropSpawnOutbox (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:12502:21)
+    at NetworkManager._attemptDropSpawnWrite (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:12752:27)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processTimers (node:internal/timers:520:9)
+[WARN] [Network] Drop collection request will retry locally for drop_collect_push_failure Error: simulated drop collect
+ion push failure
+    at Object.push (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:8785:43)
+    at NetworkManager.collectDrop (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:13424:63)
+    at validateDeterministicDropAndQuestBossContracts (file:///C:/dev/yurika_online/scripts/validate-runtime-integratio
+n.mjs:8790:43)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processTimers (node:internal/timers:520:9)
+    at async file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9105:1
+[WARN] [Network] Quest boss defeat marker will retry for king_slime_2d752c97_30dfe2fb Error: temporary disconnect
+    at Object.transaction (file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:305:31)
+    at NetworkManager._attemptQuestBossDefeatWrite (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:13662:38
+)
+    at NetworkManager.markQuestBossDefeated (file:///C:/dev/yurika_online/src/js/core/NetworkManager.js:13715:14)
+    at validateDeterministicDropAndQuestBossContracts (file:///C:/dev/yurika_online/scripts/validate-runtime-integratio
+n.mjs:8857:20)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processTimers (node:internal/timers:520:9)
+    at async file:///C:/dev/yurika_online/scripts/validate-runtime-integration.mjs:9105:1 {
+  code: 'NETWORK_ERROR'
+}
+[runtime-integration] OK: field, batch, reward, generation, host-migration, hydration, snapshot, and listener contracts.
+
+> validate:projectiles
+> node scripts/validate-projectile-chain.mjs
+
+(node:19268) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/dev/yurika_online/src/js/entities/Projec
+tile.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\dev\yurika_online\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[projectile-chain] OK: field guard, deterministic replay, and visual-only damage isolation.
+
+> validate:improvement
+> node --test scripts/validate-improvement.mjs
+
+TAP version 13
+# (node:14896) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/dev/yurika_online/src/js/core/InputManager.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to C:\\dev\\yurika_online\\package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: UI-02 slider previews once per frame and persists only final value
+ok 1 - UI-02 slider previews once per frame and persists only final value
+  ---
+  duration_ms: 0.9087
+  type: 'test'
+  ...
+# Subtest: SEC-02 local developer flag never grants authority without a server
+ok 2 - SEC-02 local developer flag never grants authority without a server
+  ---
+  duration_ms: 0.1062
+  type: 'test'
+  ...
+# Subtest: SEC-02 direct administrative database reset fails closed
+ok 3 - SEC-02 direct administrative database reset fails closed
+  ---
+  duration_ms: 0.3668
+  type: 'test'
+  ...
+# Subtest: UI-03 normalized layout uses game container and its offset
+ok 4 - UI-03 normalized layout uses game container and its offset
+  ---
+  duration_ms: 0.5907
+  type: 'test'
+  ...
+# Subtest: INPUT-02 touch cleanup removes DOM/window handlers and cancels aim
+ok 5 - INPUT-02 touch cleanup removes DOM/window handlers and cancels aim
+  ---
+  duration_ms: 0.4636
+  type: 'test'
+  ...
+# Subtest: UI-04 A/B/A storage isolation and unauthenticated writes
+ok 6 - UI-04 A/B/A storage isolation and unauthenticated writes
+  ---
+  duration_ms: 0.5238
+  type: 'test'
+  ...
+# Subtest: UI-06 a future device clock cannot overwrite a server layout
+ok 7 - UI-06 a future device clock cannot overwrite a server layout
+  ---
+  duration_ms: 0.2401
+  type: 'test'
+  ...
+# Subtest: UI-07 settings reset changes draft only
+ok 8 - UI-07 settings reset changes draft only
+  ---
+  duration_ms: 0.2014
+  type: 'test'
+  ...
+# Subtest: UI-09 unsupported orientation lock rolls back setting
+ok 9 - UI-09 unsupported orientation lock rolls back setting
+  ---
+  duration_ms: 0.3322
+  type: 'test'
+  ...
+# Subtest: PERF-01 hitstop respects the configured render budget
+ok 10 - PERF-01 hitstop respects the configured render budget
+  ---
+  duration_ms: 0.9525
+  type: 'test'
+  ...
+# Subtest: UI-10 a burst of viewport events schedules one resize
+ok 11 - UI-10 a burst of viewport events schedules one resize
+  ---
+  duration_ms: 0.7983
+  type: 'test'
+  ...
+# Subtest: UI-08 large coarse-pointer tablet resolves touch landscape
+ok 12 - UI-08 large coarse-pointer tablet resolves touch landscape
+  ---
+  duration_ms: 0.1344
+  type: 'test'
+  ...
+# Subtest: INPUT-01 Shift+S release shiftFirst=true
+ok 13 - INPUT-01 Shift+S release shiftFirst=true
+  ---
+  duration_ms: 0.4534
+  type: 'test'
+  ...
+# Subtest: INPUT-01 Shift+S release shiftFirst=false
+ok 14 - INPUT-01 Shift+S release shiftFirst=false
+  ---
+  duration_ms: 0.1151
+  type: 'test'
+  ...
+# Subtest: INPUT-01 repeat, blur and visibility release
+ok 15 - INPUT-01 repeat, blur and visibility release
+  ---
+  duration_ms: 0.1403
+  type: 'test'
+  ...
+# Subtest: UI-05 failed remote save is observable and retry succeeds
+ok 16 - UI-05 failed remote save is observable and retry succeeds
+  ---
+  duration_ms: 0.4134
+  type: 'test'
+  ...
+# Subtest: UI-01 fixed joystick survives runtime apply; legacy defaults dynamic
+ok 17 - UI-01 fixed joystick survives runtime apply; legacy defaults dynamic
+  ---
+  duration_ms: 0.2536
+  type: 'test'
+  ...
+# Subtest: PWA-01 service worker offline version is unavailable; unrelated cache survives
+ok 18 - PWA-01 service worker offline version is unavailable; unrelated cache survives
+  ---
+  duration_ms: 13.6399
+  type: 'test'
+  ...
+# Subtest: PWA-01 client handles 500/1.2.3
+ok 19 - PWA-01 client handles 500/1.2.3
+  ---
+  duration_ms: 1.3798
+  type: 'test'
+  ...
+# Subtest: PWA-01 client handles 200/error
+ok 20 - PWA-01 client handles 200/error
+  ---
+  duration_ms: 1.7751
+  type: 'test'
+  ...
+# Subtest: PWA-01 client handles 200/
+ok 21 - PWA-01 client handles 200/
+  ---
+  duration_ms: 1.0438
+  type: 'test'
+  ...
+# Subtest: PWA-01 client handles 200/<html>offline</html>
+ok 22 - PWA-01 client handles 200/<html>offline</html>
+  ---
+  duration_ms: 1.0375
+  type: 'test'
+  ...
+# Subtest: PWA-01 client handles 200/0.02.115
+ok 23 - PWA-01 client handles 200/0.02.115
+  ---
+  duration_ms: 0.9706
+  type: 'test'
+  ...
+# Subtest: WORLD-02 exhausted safe-zone search never publishes monster
+ok 24 - WORLD-02 exhausted safe-zone search never publishes monster
+  ---
+  duration_ms: 0.6335
+  type: 'test'
+  ...
+# Subtest: WORLD-01 concurrent spawns with identical time/random remain unique
+ok 25 - WORLD-01 concurrent spawns with identical time/random remain unique
+  ---
+  duration_ms: 1.7226
+  type: 'test'
+  ...
+1..25
+# tests 25
+# suites 0
+# pass 25
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 129.2651

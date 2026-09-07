@@ -1,0 +1,351 @@
+
+> validate:browser
+> playwright test
+
+node.exe : [WebServer] 127.0.0.1 - - [07/Sep/2026 13:53:59] "GET / HTTP/1.1" 200 -
+At C:\Program Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([WebServer] 127...HTTP/1.1" 200 -:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+Running 2 tests using 1 worker
+
+(node:14884) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:53:59] "GET /index.html HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:53:59] "GET /src/js/firebaseConfig.js?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:53:59] "GET /src/css/style.css?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:53:59] "GET /src/js/main.js?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /version.txt?t=1788756840065 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/utils/Logger.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/ViewportMetrics.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/GameLoop.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/InputManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/input/TouchHandler.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/input/KeyboardHandler.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/ResourceManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/world/ZoneManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/world/Camera.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/AuthManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/NetworkManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/world/MonsterManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/MonsterDataManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/CharacterDataManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/ItemDataManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/StoryManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/ui/UIManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/SoundManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/QuestManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/TutorialManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/utils/ObjectPool.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/SceneManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/world/scenes/WorldScene.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/world/scenes/LoginScene.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/world/scenes/CharacterSelectionScene.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/EventEmitter.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/DurableBossRewardPolicy.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/Monster.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/Scene.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/Player.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/RemotePlayer.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/Projectile.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/constants/inventory.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/skills/renderers/SkillRenderer.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/ui/friends/FriendsUIController.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/core/CharacterBase.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/Sprite.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/effects/MonsterSkillVfxRenderer.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/ProjectileWorldContext.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/core/Actor.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/core/Entity.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/emotes/basic_emotes.json HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_back/1.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_back/2.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_back/3.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_back/4.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_back/5.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/1.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/2.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/3.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/4.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/5.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/6.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/7.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/8.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_left/1.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_left/2.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_left/3.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_left/4.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_left/5.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_left/6.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_left/7.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_right/4.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_right/5.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_right/6.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_right/7.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_right/8.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_right/9.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_right/05.webp?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magician_attack/1.webp?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magician_attack/2.webp?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magician_attack/3.webp?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magician_attack/4.webp?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magician_attack/5.webp?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magician_attack/6.webp?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/monster_slime/1.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/monster_slime/2.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/monster_slime/4.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/monster_slime/3.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/monster_slime/5.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/ui/emotes/smile.svg HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/ui/emotes/angry.svg HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/ui/emotes/cry.svg HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/ui/emotes/love.svg HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/emotes/basic_emotes.json?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /sw.js?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/assets/icon_192_clean.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_catalog.json?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET / HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /manifest.json?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/assets/icon_512_clean.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_slime_10.json?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_slime_30.json?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /sw.js?v=0.02.114 HTTP/1.1" 304 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /index.html?__yurika_refresh=0.02.114-1788756840461 HTTP/1.1" 200
+ -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_boss_king_slime.json?v=0.02.114 HTTP/1.
+1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_to_misty_lake.json?v=0.02.114 HTTP/1.1"
+ 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/firebaseConfig.js?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/css/style.css?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/main.js?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /version.txt?t=1788756840592 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/main.js?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/utils/Logger.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/ViewportMetrics.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/GameLoop.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/InputManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/input/KeyboardHandler.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/input/TouchHandler.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/ResourceManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/world/Camera.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/world/ZoneManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/AuthManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/NetworkManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/world/MonsterManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/MonsterDataManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/CharacterDataManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/ItemDataManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/StoryManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/ui/UIManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/QuestManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/SoundManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/TutorialManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/utils/ObjectPool.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/SceneManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/world/scenes/WorldScene.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/world/scenes/LoginScene.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/world/scenes/CharacterSelectionScene.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/EventEmitter.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/DurableBossRewardPolicy.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/Scene.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/constants/inventory.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/Player.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/skills/renderers/SkillRenderer.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/RemotePlayer.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/Projectile.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/Monster.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/ui/friends/FriendsUIController.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/ProjectileWorldContext.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/core/Sprite.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/core/CharacterBase.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/effects/MonsterSkillVfxRenderer.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/core/Actor.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/js/entities/core/Entity.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/emotes/basic_emotes.json HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_back/1.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_back/2.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_back/4.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_back/3.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_back/5.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/1.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/2.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/3.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/4.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/5.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/6.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/7.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_front/8.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_left/1.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_left/2.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_left/3.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_left/4.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_left/5.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_left/6.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_left/7.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_right/4.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_right/5.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_right/6.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_right/7.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_right/8.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_right/9.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magicion_right/05.webp?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magician_attack/1.webp?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magician_attack/2.webp?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magician_attack/3.webp?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magician_attack/4.webp?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magician_attack/5.webp?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/magician_attack/6.webp?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/monster_slime/1.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/monster_slime/2.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/monster_slime/3.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/monster_slime/4.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/resource/monster_slime/5.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/ui/emotes/smile.svg HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/ui/emotes/angry.svg HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/ui/emotes/love.svg HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/ui/emotes/cry.svg HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/emotes/basic_emotes.json?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /src/assets/icon_192_clean.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_catalog.json?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /sw.js?v=0.02.114 HTTP/1.1" 304 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_slime_10.json?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_slime_30.json?v=0.02.114 HTTP/1.1" 200 
+-
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_boss_king_slime.json?v=0.02.114 HTTP/1.
+1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_to_misty_lake.json?v=0.02.114 HTTP/1.1"
+ 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_slime_repeat.json?v=0.02.114 HTTP/1.1" 
+200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_lake_arrival.json?v=0.02.114 HTTP/1.1" 
+200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_lake_squirtle_12.json?v=0.02.114 HTTP/1
+.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_lake_squirtle_30.json?v=0.02.114 HTTP/1
+.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_lake_ruin_wobbuffet.json?v=0.02.114 HTT
+P/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_to_thunder_forest.json?v=0.02.114 HTTP/
+1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_forest_arrival.json?v=0.02.114 HTTP/1.1
+" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_forest_emolga_15.json?v=0.02.114 HTTP/1
+.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_forest_emolga_35.json?v=0.02.114 HTTP/1
+.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_forest_thunder_pikachu.json?v=0.02.114 
+HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_to_astral_ruins.json?v=0.02.114 HTTP/1.
+1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_ruins_arrival.json?v=0.02.114 HTTP/1.1"
+ 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_ruins_gastly_18.json?v=0.02.114 HTTP/1.
+1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_ruins_gastly_40.json?v=0.02.114 HTTP/1.
+1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_ruins_astral_sylveon.json?v=0.02.114 HT
+TP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_epilogue_current_end.json?v=0.02.114 HT
+TP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_to_primal_rift.json?v=0.02.114 HTTP/1.1
+" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_rift_arrival.json?v=0.02.114 HTTP/1.1" 
+200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_rift_hunt.json?v=0.02.114 HTTP/1.1" 200
+ -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/quests/quest_rift_sentinel.json?v=0.02.114 HTTP/1.1"
+ 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/item_catalog.json?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/magic_staff.json?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/tidal_staff.json?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/storm_staff.json?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/astral_staff.json?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/riftcore_staff.json?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/blessed_magic_staff.json?v=0.02.114 HTTP/1.1" 
+200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/blessed_tidal_staff.json?v=0.02.114 HTTP/1.1" 
+200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/blessed_storm_staff.json?v=0.02.114 HTTP/1.1" 
+200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/blessed_astral_staff.json?v=0.02.114 HTTP/1.1"
+ 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/blessed_riftcore_staff.json?v=0.02.114 HTTP/1.
+1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/weapon_upgrade_stone.json?v=0.02.114 HTTP/1.1"
+ 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/blessed_weapon_upgrade_stone.json?v=0.02.114 H
+TTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/option_reroll_stone.json?v=0.02.114 HTTP/1.1" 
+200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/boss_summon_scroll_king_slime.json?v=0.02.114 
+HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/boss_summon_scroll_ruin_wobbuffet.json?v=0.02.
+114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/boss_summon_scroll_thunder_pikachu.json?v=0.02
+.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/boss_summon_scroll_astral_sylveon.json?v=0.02.
+114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/boss_summon_scroll_rift_sentinel.json?v=0.02.1
+14 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/magic_staff_affixes.json?v=0.02.114 HTTP/1.1" 
+200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/tidal_staff_affixes.json?v=0.02.114 HTTP/1.1" 
+200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/storm_staff_affixes.json?v=0.02.114 HTTP/1.1" 
+200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/astral_staff_affixes.json?v=0.02.114 HTTP/1.1"
+ 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/riftcore_staff_affixes.json?v=0.02.114 HTTP/1.
+1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/blessed_magic_staff_affixes.json?v=0.02.114 HT
+TP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/blessed_tidal_staff_affixes.json?v=0.02.114 HT
+TP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:00] "GET /assets/data/items/blessed_storm_staff_affixes.json?v=0.02.114 HT
+TP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /assets/data/items/blessed_astral_staff_affixes.json?v=0.02.114 H
+TTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /assets/data/items/blessed_riftcore_staff_affixes.json?v=0.02.114
+ HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /assets/data/items/equipment_enhancement_rules.json?v=0.02.114 HT
+TP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /assets/data/items/equipment_drop_rules.json?v=0.02.114 HTTP/1.1"
+ 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /assets/data/music/bgm_intro.json?v=0.02.114 HTTP/1.1" 200 -
+  ok 1 scripts\browser-tests\improvement.spec.cjs:4:1 › application bootstrap reaches login without a production database write (1.8s)
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /src/css/style.css?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /src/assets/icon_192_clean.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /src/js/ui/UIManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /src/js/utils/Logger.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /src/js/core/ViewportMetrics.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /src/js/ui/friends/FriendsUIController.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /src/css/style.css?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /src/assets/icon_192_clean.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /src/js/ui/UIManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /src/js/utils/Logger.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /src/js/core/ViewportMetrics.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:54:01] "GET /src/js/ui/friends/FriendsUIController.js HTTP/1.1" 200 -
+  ok 2 scripts\browser-tests\improvement.spec.cjs:35:1 › real DOM: scoped layout, fixed joystick rotation, reload, offline sync (472ms)
+
+  2 passed (3.4s)

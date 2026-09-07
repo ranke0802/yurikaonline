@@ -1,0 +1,17 @@
+
+> validate:security
+> firebase emulators:exec --config firebase.emulator.json --project demo-yurika-audit --only auth,database "node scripts/validate-security-emulator.mjs"
+
+i  emulators: Starting emulators: auth, database
+i  emulators: Detected demo project ID "demo-yurika-audit", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  database: Database Emulator logging to database-debug.log
+i  Running script: node scripts/validate-security-emulator.mjs
+RED confirmed: existing rules allow unauthenticated and cross-user writes (local emulator only).
+GREEN: 7 denied writes and 1 allowed own-name write. Candidate rules only; production unchanged.
++  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  database: Stopping Database Emulator
+!  Database Emulator has exited upon receiving signal: SIGINT
+i  auth: Stopping Authentication Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

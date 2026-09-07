@@ -64,22 +64,31 @@ export default class KeyboardHandler extends EventEmitter {
 
         this._onKeyDown = this._onKeyDown.bind(this);
         this._onKeyUp = this._onKeyUp.bind(this);
+        this.pressedKeys = new Map();
+        this._onBlur = () => this.resetState();
+        this._onVisibilityChange = () => { if (document.hidden) this.resetState(); };
         this.attach();
     }
 
     attach() {
         window.addEventListener('keydown', this._onKeyDown);
         window.addEventListener('keyup', this._onKeyUp);
+        window.addEventListener('blur', this._onBlur);
+        document.addEventListener('visibilitychange', this._onVisibilityChange);
     }
 
     cleanup() {
+        this.resetState();
         window.removeEventListener('keydown', this._onKeyDown);
         window.removeEventListener('keyup', this._onKeyUp);
+        window.removeEventListener('blur', this._onBlur);
+        document.removeEventListener('visibilitychange', this._onVisibilityChange);
     }
 
     resetState() {
-        // InputManager owns the pressed action set, so keyboard reset only needs
-        // to exist as a common handler hook for focus-loss cleanup.
+        const actions = new Set(this.pressedKeys.values());
+        this.pressedKeys.clear();
+        actions.forEach(action => this.emit('actionUp', action));
     }
 
     _onKeyDown(e) {
@@ -90,6 +99,8 @@ export default class KeyboardHandler extends EventEmitter {
 
         let key = e.key;
         let code = e.code;
+        const physicalKey = code || key.toLowerCase();
+        if (e.repeat || this.pressedKeys.has(physicalKey)) return;
 
         // Priority 1: Key specifically mapped
         let action = this.keyMap[code] || this.keyMap[key];
@@ -102,24 +113,16 @@ export default class KeyboardHandler extends EventEmitter {
         }
 
         if (action) {
+            this.pressedKeys.set(physicalKey, action);
             this.emit('actionDown', action);
         }
     }
 
     _onKeyUp(e) {
-        let key = e.key;
-        let code = e.code;
-
-        let action = this.keyMap[code] || this.keyMap[key];
-
-        // Special UI handling (Shift + Key)
-        if (e.shiftKey || key === 'Shift') {
-            if (code === 'KeyB' || key === 'b' || key === 'B') action = 'OPEN_INVENTORY';
-            if (code === 'KeyS' || key === 's' || key === 'S') action = 'OPEN_SKILL';
-            if (code === 'KeyI' || key === 'i' || key === 'I') action = 'OPEN_STATUS';
-        }
-
-        if (action) {
+        const physicalKey = e.code || e.key.toLowerCase();
+        const action = this.pressedKeys.get(physicalKey);
+        this.pressedKeys.delete(physicalKey);
+        if (action && !Array.from(this.pressedKeys.values()).includes(action)) {
             this.emit('actionUp', action);
         }
     }

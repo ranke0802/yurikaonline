@@ -1,0 +1,32 @@
+TAP version 13
+# (node:23544) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/dev/yurika_online/src/js/core/input/TouchHandler.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to C:\\dev\\yurika_online\\package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# [WARN] !!! FULL DATA RESET STARTING !!!
+# Subtest: SEC-02 direct administrative database reset fails closed
+not ok 1 - SEC-02 direct administrative database reset fails closed
+  ---
+  duration_ms: 1.5251
+  type: 'test'
+  location: 'C:\\dev\\yurika_online\\scripts\\validate-improvement.mjs:43:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///C:/dev/yurika_online/scripts/validate-improvement.mjs:46:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 86.6682

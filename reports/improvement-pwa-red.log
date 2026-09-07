@@ -1,0 +1,86 @@
+TAP version 13
+# (node:20680) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/dev/yurika_online/src/js/core/InputManager.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to C:\\dev\\yurika_online\\package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: PWA-01 client rejects 500/1.2.3
+not ok 1 - PWA-01 client rejects 500/1.2.3
+  ---
+  duration_ms: 15.3837
+  type: 'test'
+  location: 'C:\\dev\\yurika_online\\scripts\\validate-improvement.mjs:88:5'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/dev/yurika_online/scripts/validate-improvement.mjs:103:16)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: PWA-01 client rejects 200/error
+not ok 2 - PWA-01 client rejects 200/error
+  ---
+  duration_ms: 1.7275
+  type: 'test'
+  location: 'C:\\dev\\yurika_online\\scripts\\validate-improvement.mjs:88:5'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/dev/yurika_online/scripts/validate-improvement.mjs:103:16)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: PWA-01 client rejects 200/
+ok 3 - PWA-01 client rejects 200/
+  ---
+  duration_ms: 1.2084
+  type: 'test'
+  ...
+# Subtest: PWA-01 client rejects 200/<html>offline</html>
+not ok 4 - PWA-01 client rejects 200/<html>offline</html>
+  ---
+  duration_ms: 1.1537
+  type: 'test'
+  location: 'C:\\dev\\yurika_online\\scripts\\validate-improvement.mjs:88:5'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    1 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/dev/yurika_online/scripts/validate-improvement.mjs:103:16)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 1
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 96.0264

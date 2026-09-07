@@ -1,0 +1,36 @@
+node.exe : [WebServer] 127.0.0.1 - - [07/Sep/2026 13:38:25] "GET / HTTP/1.1" 200 -
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([WebServer] 127...HTTP/1.1" 200 -:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+Running 1 test using 1 worker
+
+(node:20412) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:38:26] "GET /src/css/style.css?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:38:26] "GET /src/assets/icon_192_clean.webp?v=0.02.114 HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:38:26] "GET /src/js/ui/UIManager.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:38:26] "GET /src/js/utils/Logger.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:38:26] "GET /src/js/core/ViewportMetrics.js HTTP/1.1" 200 -
+[WebServer] 127.0.0.1 - - [07/Sep/2026 13:38:26] "GET /src/js/ui/friends/FriendsUIController.js HTTP/1.1" 200 -
+  x  1 scripts\browser-tests\improvement.spec.cjs:17:1 › real DOM: scoped layout, fixed joystick rotation, reload, offline sync (337ms)
+
+
+  1) scripts\browser-tests\improvement.spec.cjs:17:1 › real DOM: scoped layout, fixed joystick rotation, reload, offline sync 
+
+    Error: page.evaluate: Error: UI-11 removed a style it did not own
+        at eval (eval at evaluate (:311:30), <anonymous>:5:46)
+        at UtilityScript.evaluate (<anonymous>:313:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:311:30), <anonymous>:5:46)
+        at UtilityScript.evaluate (<anonymous>:313:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at C:\dev\yurika_online\scripts\browser-tests\improvement.spec.cjs:46:16
+
+    Error Context: reports\browser-test-results\improvement-real-DOM-scope-ff59c-otation-reload-offline-sync\error-context.md
+
+  1 failed
+    scripts\browser-tests\improvement.spec.cjs:17:1 › real DOM: scoped layout, fixed joystick rotation, reload, offline sync 

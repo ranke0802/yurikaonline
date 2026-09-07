@@ -1,0 +1,17 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "profile": {
+          "name": {
+            ".write": "auth != null && auth.uid === $uid && newData.exists()",
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+TAP version 13
+# (node:24188) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/dev/yurika_online/src/js/core/input/KeyboardHandler.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to C:\\dev\\yurika_online\\package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: UI-07 settings reset changes draft only
+not ok 1 - UI-07 settings reset changes draft only
+  ---
+  duration_ms: 1.0698
+  type: 'test'
+  location: 'C:\\dev\\yurika_online\\scripts\\validate-improvement.mjs:90:1'
+  failureType: 'testCodeFailure'
+  error: 'window is not defined'
+  code: 'ERR_TEST_FAILURE'
+  name: 'ReferenceError'
+  stack: |-
+    UIManager.getUiLayoutMode (file:///C:/dev/yurika_online/src/js/ui/UIManager.js:846:16)
+    UIManager.resetStoredUiLayoutForCurrentMode (file:///C:/dev/yurika_online/src/js/ui/UIManager.js:1736:27)
+    TestContext.<anonymous> (file:///C:/dev/yurika_online/scripts/validate-improvement.mjs:94:8)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: UI-09 unsupported orientation lock rolls back setting
+not ok 2 - UI-09 unsupported orientation lock rolls back setting
+  ---
+  duration_ms: 0.6626
+  type: 'test'
+  location: 'C:\\dev\\yurika_online\\scripts\\validate-improvement.mjs:97:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + undefined
+    - false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/dev/yurika_online/scripts/validate-improvement.mjs:101:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 89.6215

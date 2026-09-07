@@ -123,9 +123,12 @@ export default class GameLoop {
         // v2.2: Hitstop — skip updates but still render
         if (this.hitstopTimer > 0) {
             this.hitstopTimer -= safeFrameTime * 1000;
-            const renderStart = performance.now();
-            this.renderFn();
-            renderMs = performance.now() - renderStart;
+            if (!this.minRenderIntervalMs || (currentTime - this.lastRenderTime) >= this.minRenderIntervalMs) {
+                this.lastRenderTime = currentTime;
+                const renderStart = performance.now();
+                this.renderFn();
+                renderMs = performance.now() - renderStart;
+            }
             window.game?.recordLoopTelemetry?.({
                 updateMs: 0,
                 renderMs,

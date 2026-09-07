@@ -24,6 +24,7 @@ export default class TouchHandler extends EventEmitter {
         this._handleActionMove = this._handleActionMove.bind(this);
         this._handleActionEnd = this._handleActionEnd.bind(this);
 
+        this._listenerDisposers = [];
         this.init();
     }
 
@@ -104,29 +105,31 @@ export default class TouchHandler extends EventEmitter {
 
         // Joystick Area Event Listeners
         if (this.area) {
-            this.area.addEventListener('touchstart', this._handleStart, { passive: false });
+            this._listen(this.area, 'touchstart', this._handleStart, { passive: false });
             if (this.useMouseJoystick) {
-                this.area.addEventListener('mousedown', this._handleStart);
+                this._listen(this.area, 'mousedown', this._handleStart);
             }
         }
-        this.container.addEventListener('touchstart', this._handleStart, { passive: false });
+        this._listen(this.container, 'touchstart', this._handleStart, { passive: false });
         if (this.useMouseJoystick) {
-            this.container.addEventListener('mousedown', this._handleStart);
+            this._listen(this.container, 'mousedown', this._handleStart);
         }
 
         // Global Move/End Listeners
-        window.addEventListener('touchmove', this._handleMove, { passive: false });
-        window.addEventListener('touchend', this._handleEnd);
-        window.addEventListener('touchcancel', this._handleEnd);
+        this._listen(window, 'touchmove', this._handleMove, { passive: false });
+        this._listen(window, 'touchend', this._handleEnd);
+        this._listen(window, 'touchcancel', () => this.resetState());
+        this._listen(window, 'pointercancel', () => this.resetState());
+        this._listen(window, 'blur', () => this.resetState());
+        this._listen(document, 'visibilitychange', () => { if (document.hidden) this.resetState(); });
         if (this.useMouseJoystick) {
-            window.addEventListener('mousemove', this._handleMove);
-            window.addEventListener('mouseup', this._handleEnd);
+            this._listen(window, 'mousemove', this._handleMove);
+            this._listen(window, 'mouseup', this._handleEnd);
         }
-        window.addEventListener('touchmove', this._handleActionMove, { passive: false });
-        window.addEventListener('touchend', this._handleActionEnd);
-        window.addEventListener('touchcancel', this._handleActionEnd);
-        window.addEventListener('mousemove', this._handleActionMove);
-        window.addEventListener('mouseup', this._handleActionEnd);
+        this._listen(window, 'touchmove', this._handleActionMove, { passive: false });
+        this._listen(window, 'touchend', this._handleActionEnd);
+        this._listen(window, 'mousemove', this._handleActionMove);
+        this._listen(window, 'mouseup', this._handleActionEnd);
 
         // UI Buttons (Skill/Attack) binding
         this._bindUiButtons();
@@ -258,10 +261,10 @@ export default class TouchHandler extends EventEmitter {
                 }
             };
 
-            btn.addEventListener('mousedown', startAction);
-            btn.addEventListener('touchstart', startAction, { passive: false });
-            btn.addEventListener('mouseup', endAction);
-            btn.addEventListener('touchend', endAction);
+            this._listen(btn, 'mousedown', startAction);
+            this._listen(btn, 'touchstart', startAction, { passive: false });
+            this._listen(btn, 'mouseup', endAction);
+            this._listen(btn, 'touchend', endAction);
         });
     }
 
@@ -411,20 +414,13 @@ export default class TouchHandler extends EventEmitter {
             || (this.joystick.active && this.joystickTouchId === null);
     }
 
+    _listen(target, event, handler, options) {
+        target.addEventListener(event, handler, options);
+        this._listenerDisposers.push(() => target.removeEventListener(event, handler, options));
+    }
+
     cleanup() {
-        // Remove listeners
-        window.removeEventListener('touchmove', this._handleMove);
-        window.removeEventListener('touchend', this._handleEnd);
-        window.removeEventListener('touchcancel', this._handleEnd);
-        if (this.useMouseJoystick) {
-            window.removeEventListener('mousemove', this._handleMove);
-            window.removeEventListener('mouseup', this._handleEnd);
-        }
-        window.removeEventListener('touchmove', this._handleActionMove);
-        window.removeEventListener('touchend', this._handleActionEnd);
-        window.removeEventListener('touchcancel', this._handleActionEnd);
-        window.removeEventListener('mousemove', this._handleActionMove);
-        window.removeEventListener('mouseup', this._handleActionEnd);
-        // ... (remove other listeners)
+        this.resetState();
+        this._listenerDisposers.splice(0).forEach(dispose => dispose());
     }
 }

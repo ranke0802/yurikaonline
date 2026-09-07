@@ -1,0 +1,48 @@
+TAP version 13
+# (node:20984) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/dev/yurika_online/src/js/core/input/KeyboardHandler.js is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to C:\\dev\\yurika_online\\package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: UI-03 normalized layout uses game container and its offset
+not ok 1 - UI-03 normalized layout uses game container and its offset
+  ---
+  duration_ms: 1.7872
+  type: 'test'
+  location: 'C:\\dev\\yurika_online\\scripts\\validate-improvement.mjs:41:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+    +   left: 700,
+    +   top: 450
+    -   left: 500,
+    -   top: 350
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    left: 500
+    top: 350
+  actual:
+    left: 700
+    top: 450
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///C:/dev/yurika_online/scripts/validate-improvement.mjs:46:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 83.2481

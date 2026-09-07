@@ -1,5 +1,9 @@
 /* CSS 스타일 대폭 리팩토링: 에셋 기반 UI 적용 (Image 1 스타일) */
 :root {
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
     --cosy-font: 'Outfit', sans-serif;
     --ui-chat-opacity: 1;
     --ui-friends-opacity: 1;

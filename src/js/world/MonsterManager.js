@@ -3534,6 +3534,13 @@ export default class MonsterManager {
         }
     }
 
+    _createMonsterInstanceId(prefix) {
+        if (globalThis.crypto?.randomUUID) return `${prefix}_${globalThis.crypto.randomUUID()}`;
+        this._spawnSequence = (this._spawnSequence || 0) + 1;
+        this._spawnSessionId ||= `${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+        return `${prefix}_${this._spawnSessionId}_${this._spawnSequence}`;
+    }
+
     async _spawnMonster(fixedX = null, fixedY = null, type = 'slime', options = {}) {
         if (this._isHostFieldStateBlocked()) return null;
         const generation = Number.isFinite(options.generation) ? options.generation : this.worldGeneration;
@@ -3546,7 +3553,7 @@ export default class MonsterManager {
             && fieldId === this.net?._getCurrentFieldId?.();
         const id = typeof options.instanceId === 'string' && options.instanceId
             ? options.instanceId.slice(0, 128)
-            : `mob_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+            : this._createMonsterInstanceId('mob');
         const worldW = this.zone.width || 6400;
         const worldH = this.zone.height || 6400;
         const currentScene = this.game.sceneManager?.currentScene;
@@ -3563,6 +3570,9 @@ export default class MonsterManager {
                 attempts++;
             }
         }
+
+        // Reject after bounded retries, including the actual rounded spawn point.
+        if (isSafePoint(Math.round(x), Math.round(y))) return null;
 
         // Load definition first
         let definition = await this.game.monsterData.loadDefinition(type);
@@ -3622,13 +3632,14 @@ export default class MonsterManager {
         if (isSafePoint(x, y) && type !== 'training_dummy') {
             x += 140;
         }
+        if (type !== 'training_dummy' && isSafePoint(Math.round(x), Math.round(y))) return null;
 
         let definition = await this.game.monsterData.loadDefinition(type);
         if (generation !== this.worldGeneration || zoneId !== this.activeZoneId) return null;
         if (!definition) definition = {};
 
         const monster = new Monster(Math.round(x), Math.round(y), definition);
-        monster.id = `local_tutorial_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        monster.id = this._createMonsterInstanceId('local_tutorial');
         monster.hp = definition.baseStats?.hp || 100;
         monster.maxHp = definition.baseStats?.maxHp || 100;
         monster.ready = true;
