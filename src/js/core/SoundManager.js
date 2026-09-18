@@ -18,6 +18,12 @@ export default class SoundManager {
         this.currentBgmId = null;
         this.bgmLoopTimer = null;
 
+        this.bgmGain = null;
+        this.sfxGain = null;
+        this.bgmVolume = 0.65;
+        this.sfxVolume = 0.85;
+        this.bgmRequest = 0;
+        this.sfxLastPlayed = new Map();
         this.isMuted = false;
         this.masterVolume = 0.4;
         this.isInitialized = false;
@@ -30,9 +36,16 @@ export default class SoundManager {
             'C6': 1046.50, 'D6': 1174.66, 'E6': 1318.51, 'G6': 1567.98
         };
 
+        // Equal temperament covers low bass notes as well as future score additions.
+        const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        for (let midi = 12; midi <= 119; midi++) {
+            this.notes[`${names[midi % 12]}${Math.floor(midi / 12) - 1}`] = 440 * 2 ** ((midi - 69) / 12);
+        }
+
         // Bind user interaction
         const unlock = () => {
             this.initOrResume();
+            this.resume();
             window.removeEventListener('click', unlock);
             window.removeEventListener('keydown', unlock);
             window.removeEventListener('touchstart', unlock);
@@ -50,6 +63,7 @@ export default class SoundManager {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (AudioContext) {
                 this.ctx = new AudioContext();
+                this.sfxLastPlayed.clear();
 
                 this.masterGain = this.ctx.createGain();
                 this.masterGain.gain.value = this.isMuted ? 0 : this.masterVolume;
@@ -62,7 +76,21 @@ export default class SoundManager {
                 const reverbWet = this.ctx.createGain();
                 reverbWet.gain.value = 0.3; // 30% Wet
 
-                this.masterGain.connect(this.ctx.destination);
+                const compressor = this.ctx.createDynamicsCompressor();
+                compressor.threshold.value = -12;
+                compressor.knee.value = 12;
+                compressor.ratio.value = 4;
+                compressor.attack.value = 0.003;
+                compressor.release.value = 0.2;
+                this.masterGain.connect(compressor);
+                compressor.connect(this.ctx.destination);
+                this.sfxGain = this.ctx.createGain();
+                this.sfxGain.gain.value = this.sfxVolume;
+                this.sfxGain.connect(this.masterGain);
+                const sfxWet = this.ctx.createGain();
+                sfxWet.gain.value = 0.12;
+                this.sfxGain.connect(sfxWet);
+                sfxWet.connect(this.reverbNode);
                 this.reverbNode.connect(reverbWet);
                 reverbWet.connect(this.masterGain); // Parallel processing handled in playInstrument
 
@@ -130,88 +158,155 @@ export default class SoundManager {
         return impulse;
     }
 
-    async loadAndPlayBgm(id) {
-        if (!this.isInitialized) return;
-        if (this.currentBgmId === id) return;
+    setBgmVolume(volume) {
+        this.bgmVolume = Math.min(1, Math.max(0, Number(volume) || 0));
+        if (this.bgmGain) this.bgmGain.gain.setTargetAtTime(this.bgmVolume, this.ctx.currentTime, 0.05);
+    }
 
+    setSfxVolume(volume) {
+        this.sfxVolume = Math.min(1, Math.max(0, Number(volume) || 0));
+        if (this.sfxGain) this.sfxGain.gain.setTargetAtTime(this.sfxVolume, this.ctx.currentTime, 0.05);
+    }
+
+    async loadAndPlayBgm(id) {
+        if (!this.isInitialized || this.currentBgmId === id) return;
+        const request = ++this.bgmRequest;
         try {
             const data = await this.resourceManager.loadJSON(`/assets/data/music/${id}.json`);
-            this.playBgm(data, id);
+            if (request === this.bgmRequest) this.playBgm(data, id);
         } catch (e) {
             Logger.warn(`[SoundManager] Fail BGM: ${id}`, e);
         }
     }
 
-    stopBgm() {
-        if (this.bgmLoopTimer) {
-            clearTimeout(this.bgmLoopTimer);
-            this.bgmLoopTimer = null;
+    stopBgm(fadeSeconds = 0) {
+        ++this.bgmRequest;
+        if (this.bgmLoopTimer) clearTimeout(this.bgmLoopTimer);
+        this.bgmLoopTimer = null;
+        const end = (this.ctx?.currentTime || 0) + fadeSeconds;
+        const oldGain = this.bgmGain;
+        if (oldGain && this.ctx) {
+            oldGain.gain.cancelScheduledValues(this.ctx.currentTime);
+            oldGain.gain.setValueAtTime(oldGain.gain.value, this.ctx.currentTime);
+            oldGain.gain.linearRampToValueAtTime(0, end);
         }
         this.activeNodes.forEach(n => {
-            try { n.stop(); n.disconnect(); } catch (e) { }
+            try { n.stop(end); } catch (e) { /* Already ended. */ }
         });
         this.activeNodes = [];
+        if (oldGain) setTimeout(() => oldGain.disconnect(), fadeSeconds * 1000 + 100);
+        this.bgmGain = null;
         this.currentBgmId = null;
     }
 
     playBgm(data, id) {
-        this.stopBgm();
-        if (this.isMuted || !this.ctx) return;
+        if (!this.ctx || !Array.isArray(data?.tracks)) return;
+        const beatDur = 60 / (data.bpm || 120);
+        const loopDuration = Math.max(0, ...data.tracks.map(t =>
+            t.notes.reduce((sum, n) => sum + n[1] * beatDur, 0)));
+        if (!(loopDuration > 0)) return;
+        this.stopBgm(0.6);
         this.currentBgmId = id;
-
-        const bpm = data.bpm || 120;
-        const beatDur = 60 / bpm;
-
-        // Calculate Loop Length
-        let maxTime = 0;
-        data.tracks.forEach(t => {
-            let tm = 0;
-            t.notes.forEach(n => tm += n[1] * beatDur);
-            if (tm > maxTime) maxTime = tm;
-        });
-
-        const play = (startTime) => {
-            data.tracks.forEach(track => {
-                let time = startTime;
-                const instr = track.instrument || 'square';
-                const vol = track.gain || 0.1;
-
-                track.notes.forEach(([note, durBeats]) => {
-                    const duration = durBeats * beatDur;
-                    if (note !== 'R') {
-                        const freq = this.notes[note] || 440;
-                        this._playInstrument(instr, freq, time, duration, vol);
-                    }
-                    time += duration;
-                });
-            });
-        };
-
-        const now = this.ctx.currentTime + 0.05;
-        play(now);
-
-        if (data.loop !== false) {
-            const loopMs = maxTime * 1000;
-            this.bgmLoopTimer = setTimeout(() => {
-                this.playBgm(data, id);
-            }, Math.max(0, loopMs - 50));
+        const bus = this.ctx.createGain();
+        this.bgmGain = bus;
+        bus.connect(this.masterGain);
+        bus.connect(this.reverbNode);
+        bus.gain.setValueAtTime(0, this.ctx.currentTime);
+        bus.gain.linearRampToValueAtTime(this.bgmVolume, this.ctx.currentTime + 0.6);
+        const generation = this.bgmRequest;
+        const events = [];
+        for (const track of data.tracks) {
+            let offset = 0;
+            for (const [note, beats] of track.notes) {
+                const duration = beats * beatDur;
+                let instrument = track.instrument || track.type || 'square';
+                if (instrument === 'noise_percussion') {
+                    instrument = { kick: 'drum_kick', snare: 'drum_snare', tick: 'drum_hat', hihat: 'drum_hat' }[note];
+                }
+                const freq = instrument?.startsWith('drum_') ? 110 : this.notes[note];
+                if (note !== 'R' && instrument && Number.isFinite(freq)) {
+                    events.push({ offset, instrument, freq, duration, gain: track.gain ?? 0.1 });
+                }
+                offset += duration;
+            }
         }
+        events.sort((a, b) => a.offset - b.offset);
+        if (!events.length) return;
+        let cycleStart = this.ctx.currentTime + 0.05;
+        let index = 0;
+        // Only allocate voices in the next 200 ms, independent of score length.
+        const schedule = () => {
+            if (generation !== this.bgmRequest) return;
+            if (this.ctx.state === 'running') {
+                if (cycleStart + loopDuration < this.ctx.currentTime) {
+                    cycleStart += Math.floor((this.ctx.currentTime - cycleStart) / loopDuration) * loopDuration;
+                    index = 0;
+                }
+                while (cycleStart + events[index].offset < this.ctx.currentTime + 0.2) {
+                    const event = events[index];
+                    const time = cycleStart + event.offset;
+                    if (time >= this.ctx.currentTime - 0.03) {
+                        this._playInstrument(event.instrument, event.freq, Math.max(time, this.ctx.currentTime), event.duration, event.gain, bus);
+                    }
+                    if (++index === events.length) {
+                        if (data.loop === false) { this.bgmLoopTimer = null; return; }
+                        index = 0;
+                        cycleStart += loopDuration;
+                    }
+                }
+            }
+            this.bgmLoopTimer = setTimeout(schedule, 50);
+        };
+        schedule();
     }
 
     // --- Flashy Instrument Synthesizer ---
-    _playInstrument(instr, freq, time, dur, vol) {
-        const dest = this.masterGain;
+    _playInstrument(instr, freq, time, dur, vol, bgmBus = null) {
+        const dest = bgmBus || this.sfxGain || this.masterGain;
         const dry = this.ctx.createGain();
         dry.gain.value = 1.0;
         dry.connect(dest);
 
-        // Send to Reverb
-        dry.connect(this.reverbNode);
-
         const nodes = [];
-        const reg = (n) => { nodes.push(n); this.activeNodes.push(n); };
+        const reg = n => {
+            nodes.push(n);
+            if (bgmBus) this.activeNodes.push(n);
+            const cleanup = n.onended;
+            n.onended = () => {
+                cleanup?.();
+                n.disconnect();
+                const index = this.activeNodes.indexOf(n);
+                if (index >= 0) this.activeNodes.splice(index, 1);
+                nodes.splice(nodes.indexOf(n), 1);
+                if (!nodes.length) { dry.disconnect(); }
+            };
+        };
 
         switch (instr) {
+            case 'square_lead': instr = 'square'; break;
+            case 'square_harmony': instr = 'triangle'; break;
+        }
+        switch (instr) {
+            case 'triangle_bass':
+            case 'triangle':
+            case 'sine':
+            case 'square': {
+                const osc = this.ctx.createOscillator();
+                const env = this.ctx.createGain();
+                osc.type = instr === 'triangle_bass' ? 'triangle' : instr;
+                osc.frequency.value = freq;
+                env.gain.setValueAtTime(0, time);
+                env.gain.linearRampToValueAtTime(vol, time + Math.min(0.015, dur / 4));
+                env.gain.setTargetAtTime(0.0001, time + dur * 0.65, Math.max(0.01, dur * 0.12));
+                osc.connect(env); env.connect(dry);
+                osc.start(time); osc.stop(time + dur + 0.05); reg(osc);
+                break;
+            }
+            case 'drum_hat': {
+                const noise = this._noise(time, 0.045, vol * 0.5, dry, 4500);
+                reg(noise);
+                break;
+            }
             case 'fm_brass': { // Heroic / Flashy
                 // Modulator: Sawtooth -> Carrier: Square
                 const car = this.ctx.createOscillator();
@@ -334,7 +429,7 @@ export default class SoundManager {
             }
             case 'drum_snare': {
                 // No Static! Use filtered noise burst + body
-                this._noise(time, 0.15, vol, dry, 2000); // Filtered snap
+                reg(this._noise(time, 0.15, vol, dry, 2000)); // Filtered snap
                 const body = this.ctx.createOscillator();
                 const bEnv = this.ctx.createGain();
                 body.frequency.setValueAtTime(200, time);
@@ -369,6 +464,8 @@ export default class SoundManager {
         g.gain.exponentialRampToValueAtTime(0.01, time + dur);
         src.connect(f); f.connect(g); g.connect(dest);
         src.start(time); src.stop(time + dur);
+        src.onended = () => { src.disconnect(); f.disconnect(); g.disconnect(); };
+        return src;
     }
 
     _tone(t, type, f, d, v, dest) {
@@ -392,14 +489,28 @@ export default class SoundManager {
     playSfx(type) {
         if (!this.ctx) this.init(); // Create if missing
         if (!this.ctx || this.ctx.state !== 'running') return; // Silent fail if disabled/suspended
+        if (this.isMuted) return;
+        const aliases = {
+            sfx_slime_attack: 'slime_jump', sfx_slime_hit: 'slime_hit', sfx_slime_die: 'slime_die', sfx_slime_move: 'slime_jump',
+            sfx_attack: 'monster_attack', sfx_hit: 'monster_damage', sfx_die: 'monster_death', sfx_move: 'footstep_grass',
+            sfx_boss_attack: 'monster_attack', sfx_boss_hit: 'monster_damage', sfx_boss_die: 'boss_roar', sfx_boss_move: 'footstep_stone',
+            equip_sound: 'ui_equip', level_up_fanfare: 'level_up'
+        };
+        type = aliases[type] || type;
         const now = this.ctx.currentTime;
+        // Suppress same-frame piles of impacts while preserving separate warning cues.
+        const interval = { fireball_explosion: 0.1, missile_hit: 0.045, monster_damage: 0.07,
+            slime_hit: 0.07, slime_jump: 0.1, footstep_grass: 0.08, footstep_stone: 0.08,
+            boss_spawn: 1, monster_charge: 0.2, crit: 0.08 }[type] ?? 0.025;
+        if (now - (this.sfxLastPlayed.get(type) ?? -Infinity) < interval) return;
+        this.sfxLastPlayed.set(type, now);
         // Direct to Reverb for SFX space too? No, keep SFX punchy, mostly dry.
         const gain = this.ctx.createGain();
-        gain.connect(this.masterGain);
+        gain.connect(this.sfxGain || this.masterGain);
 
         switch (type) {
             // UI Sounds
-            case 'ui_click': this._tone(now, 'square', 1200, 0.08, 0.12, gain); break;
+            case 'ui_click': this._tone(now, 'triangle', 900, 0.06, 0.08, gain); break;
             case 'ui_hover': this._tone(now, 'sine', 800, 0.04, 0.06, gain); break;
             case 'ui_close': this._slide(now, 'sine', 800, 400, 0.1, 0.1, gain); break;
             case 'ui_error': this._tone(now, 'sawtooth', 150, 0.3, 0.2, gain); break;
@@ -411,7 +522,7 @@ export default class SoundManager {
             // Item/Equipment Sounds
             case 'ui_equip': this._noise(now, 0.1, 0.1, gain, 2000); this._tone(now, 'square', 1200, 0.05, 0.1, gain); break;
             case 'item_loot': this._tone(now, 'sine', 1500, 0.1, 0.2, gain); this._tone(now + 0.1, 'sine', 2000, 0.2, 0.2, gain); break;
-            case 'item_pickup': this._tone(now, 'fm_bell', 2000, 0.1, 0.15, gain); break;
+            case 'item_pickup': this._playInstrument('fm_bell', 1320, now, 0.12, 0.08); break;
             case 'inventory_open': this._tone(now, 'sine', 500, 0.1, 0.08, gain); break;
             case 'enhance_charge':
                 this._noise(now, 0.06, 0.12, gain, 4200);
@@ -468,6 +579,25 @@ export default class SoundManager {
             case 'quest_complete': this._playInstrument('fm_bell', 880, now, 1.0, 0.2); break;
 
             // Combat Sounds - Player (Enhanced Impact)
+            case 'crit':
+                this._tone(now, 'triangle', 740, 0.09, 0.12, gain);
+                this._slide(now, 'sine', 180, 80, 0.12, 0.14, gain);
+                break;
+            case 'monster_charge':
+                this._slide(now, 'triangle', 180, 420, 0.28, 0.16, gain);
+                break;
+            case 'boss_spawn':
+                this._playInstrument('rich_string', 82.41, now, 1.2, 0.14);
+                this._playInstrument('fm_bell', 164.81, now + 0.12, 0.6, 0.07);
+                break;
+            case 'slime_hit':
+                this._slide(now, 'sine', 240, 110, 0.1, 0.12, gain);
+                this._noise(now, 0.045, 0.08, gain, 900);
+                break;
+            case 'slime_die':
+                this._slide(now, 'sine', 320, 70, 0.25, 0.12, gain);
+                this._noise(now, 0.12, 0.08, gain, 700);
+                break;
             case 'hit':
                 // Multi-layered impact sound
                 this._noise(now, 0.08, 0.25, gain, 2000);

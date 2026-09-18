@@ -229,6 +229,8 @@ export default class Monster extends CharacterBase {
         this.chargeState = 'idle';
         this.chargeTimer = 0;
         this.chargeTarget = null;
+        this.chargeDirection = null;
+        this.chargeMotionStarted = false;
         this.shieldCooldown = 0;
         this.shieldMaxCooldown = 8000;
         this.shieldDuration = 0;
@@ -582,6 +584,14 @@ export default class Monster extends CharacterBase {
     _updateAtlasAnimationFromMovement(previousX, previousY) {
         if (!this.usesV2Atlas) return;
 
+        if (this.chargeState !== 'idle' && this.chargeTarget) {
+            const direction = this._getChargeDirection();
+            if (Math.abs(direction.x) > 0.01) this.lastHorizontalFacing = direction.x > 0 ? 1 : -1;
+            this._setAtlasAnimationRow(this.lastHorizontalFacing < 0
+                ? this.atlasRowMap.moveLeft : this.atlasRowMap.moveRight);
+            return;
+        }
+
         const movedX = Number(this.x) - Number(previousX);
         const movedY = Number(this.y) - Number(previousY);
         const movementDistance = Math.hypot(movedX, movedY);
@@ -658,10 +668,41 @@ export default class Monster extends CharacterBase {
         this.lastNetworkEventAt = Date.now();
         this.chargeTimer = Math.max(0.2, Number(this.chargeCastSeconds) || 1.0);
         this.chargeTarget = { x: targetX, y: targetY };
+        this.chargeMotionStarted = false;
+        const distance = Math.hypot(targetX - this.x, targetY - this.y);
+        this.chargeDirection = distance > 0
+            ? { x: (targetX - this.x) / distance, y: (targetY - this.y) / distance }
+            : { x: 0, y: 0 };
         this.vx = 0;
         this.vy = 0;
         // Optionally play warning sound?
         Logger.log(`[Monster] ${this.id} started charge casting.`);
+    }
+
+    _getChargeDirection() {
+        if (this.chargeDirection) return this.chargeDirection;
+        const dx = (this.chargeTarget?.x ?? this.x) - this.x;
+        const dy = (this.chargeTarget?.y ?? this.y) - this.y;
+        const length = Math.hypot(dx, dy);
+        this.chargeDirection = length > 0 ? { x: dx / length, y: dy / length } : { x: 0, y: 0 };
+        return this.chargeDirection;
+    }
+
+    _getChargeNextPosition(dt, correctFromNetwork = false) {
+        const direction = this._getChargeDirection();
+        const remaining = Math.max(0,
+            (this.chargeTarget.x - this.x) * direction.x
+            + (this.chargeTarget.y - this.y) * direction.y);
+        let travel = Math.hypot(this.vx, this.vy) * dt;
+        if (correctFromNetwork && Number.isFinite(this.targetX) && Number.isFinite(this.targetY)) {
+            const authoritativeTravel = (this.targetX - this.x) * direction.x
+                + (this.targetY - this.y) * direction.y;
+            travel += (authoritativeTravel - travel) * 0.18;
+        }
+        // Sparse snapshots may slow a guest, but must never reverse its dash or
+        // push it sideways. A long frame must not overshoot the warned endpoint.
+        travel = Math.max(0, Math.min(remaining, travel));
+        return { x: this.x + direction.x * travel, y: this.y + direction.y * travel };
     }
 
     _startChargeLandingHazard(x, y) {
@@ -707,12 +748,13 @@ export default class Monster extends CharacterBase {
             this.vy = 0; // Freeze movement
             if (this.chargeTimer <= 0) {
                 this.chargeState = 'charging';
+                this.chargeMotionStarted = true;
                 this.lastNetworkEventAt = Date.now();
                 // Lock target vector
-                const angle = Math.atan2(this.chargeTarget.y - this.y, this.chargeTarget.x - this.x);
                 const speed = Math.max(80, Number(this.chargeSpeed) || 300);
-                this.vx = Math.cos(angle) * speed;
-                this.vy = Math.sin(angle) * speed;
+                const direction = this._getChargeDirection();
+                this.vx = direction.x * speed;
+                this.vy = direction.y * speed;
 
                 // Calculate max duration based on distance (or fixed duration?) 
                 // Requirement: "Rush to player position".
@@ -724,7 +766,20 @@ export default class Monster extends CharacterBase {
         }
 
         if (this.chargeState === 'charging') {
+            // A host snapshot may advance a guest into charging before its
+            // local cast timer expires. Start the travel timer in that case.
+            if (!this.chargeMotionStarted) {
+                this.chargeMotionStarted = true;
+                this.chargeTimer = Math.hypot(this.chargeTarget.x - this.x, this.chargeTarget.y - this.y)
+                    / Math.max(80, Number(this.chargeSpeed) || 300) + 0.2;
+            }
             this.chargeTimer -= dt;
+            // Restore the locked velocity after a modal pause or a remote state
+            // transition; neither knockback nor interpolation may turn the dash.
+            const direction = this._getChargeDirection();
+            const speed = Math.max(80, Number(this.chargeSpeed) || 300);
+            this.vx = direction.x * speed;
+            this.vy = direction.y * speed;
 
             // Move logic is handled by update() using this.vx/vy, but we must ensure AI doesn't overwrite it.
             // Collision Check (Host Authority preferred, but client prediction needed for smoothness)
@@ -732,7 +787,7 @@ export default class Monster extends CharacterBase {
 
             // Check if arrived at target point
             const distToTarget = Math.sqrt((this.chargeTarget.x - this.x) ** 2 + (this.chargeTarget.y - this.y) ** 2);
-            if (distToTarget < 10 || this.chargeTimer <= 0) {
+            if (distToTarget < 0.1 || this.chargeTimer <= 0) {
                 const landingX = this.x;
                 const landingY = this.y;
                 this.chargeState = 'idle';
@@ -756,9 +811,6 @@ export default class Monster extends CharacterBase {
         const theme = this._getCombatVfxTheme(chargeVisual.effect);
         const lowGlareCombat = this.isLowGlareCombatZone();
         const castProgress = Math.max(0, Math.min(1, 1 - (this.chargeTimer / Math.max(0.2, this.chargeCastSeconds || 1))));
-        const dx = this.chargeTarget.x - this.x;
-        const dy = this.chargeTarget.y - this.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
         const width = Math.max(this.width, Number(chargeVisual.telegraphWidth) || 0);
 
         // Player fireball guidance remains hidden; this is monster-only dodge
@@ -766,7 +818,7 @@ export default class Monster extends CharacterBase {
         this._drawTelegraphLane(
             ctx,
             this.x,
-            this.y + (this.height * 0.5),
+            this.y,
             this.chargeTarget.x,
             this.chargeTarget.y,
             width,
@@ -781,7 +833,7 @@ export default class Monster extends CharacterBase {
             'charge',
             theme.id,
             this.x,
-            this.y + (this.height * 0.5),
+            this.y,
             vfxSize,
             vfxSize * 0.68,
             lowGlareCombat ? 0.44 : (0.68 + castProgress * 0.22),
@@ -1225,32 +1277,30 @@ export default class Monster extends CharacterBase {
     _drawBossTelegraphLine(ctx, zone, telegraph, progress, impactProgress, lowGlareCombat) {
         const x1 = Number(zone.x1 || 0);
         const y1 = Number(zone.y1 || 0);
-        const x2 = Number(zone.x2 || x1);
-        const y2 = Number(zone.y2 || y1);
+        const x2 = Number(zone.x2 ?? x1);
+        const y2 = Number(zone.y2 ?? y1);
         const width = Math.max(1, Number(zone.width || 1));
         const dx = x2 - x1;
         const dy = y2 - y1;
         const length = Math.max(1, Math.hypot(dx, dy));
-        const angle = Math.atan2(dy, dx);
         const impact = telegraph.elapsedMs >= telegraph.warningMs;
         const alphaScale = lowGlareCombat ? 0.6 : 1;
 
         const theme = this._getCombatVfxTheme(telegraph.effect);
         this._drawTelegraphLane(ctx, x1, y1, x2, y2, width, theme, progress, lowGlareCombat);
         if (impact) {
-            this._drawSkillVfx(
-                ctx,
-                'impact',
-                telegraph.effect,
-                x1 + (dx * 0.5),
-                y1 + (dy * 0.5) + (width * 0.28),
-                Math.max(width * 3.2, length * 0.82),
-                Math.max(width * 2.3, 64),
-                alphaScale * 0.94 * (1 - impactProgress),
-                impactProgress,
-                angle,
-                angle < -Math.PI / 2 || angle > Math.PI / 2
-            );
+            // These atlas cells contain upright eruptions and ground circles,
+            // not horizontal projectiles. Place them along the damage corridor
+            // without rotating, mirroring, or stretching the entire picture.
+            const count = Math.max(1, Math.min(6, Math.ceil(length / Math.max(64, width * 1.4))));
+            const size = Math.max(64, Math.min(width * 1.8, 220));
+            for (let index = 0; index < count; index += 1) {
+                const t = (index + 0.5) / count;
+                this._drawSkillVfx(ctx, 'impact', telegraph.effect,
+                    x1 + dx * t, y1 + dy * t,
+                    size, size * 0.82,
+                    alphaScale * 0.94 * (1 - impactProgress), impactProgress);
+            }
         }
     }
 
@@ -1629,6 +1679,14 @@ export default class Monster extends CharacterBase {
             // Final Position Calculation (Safe move)
             let nextX = this.x + (this.vx + this.knockback.vx) * safeDt;
             let nextY = this.y + (this.vy + this.knockback.vy) * safeDt;
+            if (this.chargeState === 'casting') {
+                nextX = this.x;
+                nextY = this.y;
+            } else if (this.chargeState === 'charging') {
+                const next = this._getChargeNextPosition(safeDt);
+                nextX = next.x;
+                nextY = next.y;
+            }
 
             // Collision Detection with Target Player
             let canMove = true;
@@ -1646,7 +1704,9 @@ export default class Monster extends CharacterBase {
                 }
 
                 players.forEach(p => {
-                    const dist = Math.sqrt((nextX - p.x) ** 2 + (nextY - p.y) ** 2);
+                    if (this.chargeState !== 'charging') return;
+                    const point = this._getPointFromEntity(p);
+                    const dist = this._distancePointToSegment(point.x, point.y, this.x, this.y, nextX, nextY);
                     if (dist < (this.width / 2 + 20)) { // Collision Radius
                         // Hit Player!
                         // v0.00.43: Variable Charge Damage
@@ -1677,7 +1737,7 @@ export default class Monster extends CharacterBase {
                         this.chargeTarget = null;
                         this.vx = 0;
                         this.vy = 0;
-                        canMove = false;
+                        this.lastNetworkEventAt = Date.now();
                         this._startChargeLandingHazard(landingX, landingY);
 
                         // Apply Knockback to Player?
@@ -1723,20 +1783,13 @@ export default class Monster extends CharacterBase {
             if (hasPredictedCharge) {
                 // Charge attacks look very choppy if guests only lerp between sparse
                 // host snapshots. Predict locally, then apply a light authority correction.
-                const predictedX = this.x + this.vx * safeDt;
-                const predictedY = this.y + this.vy * safeDt;
-                const correctedX = predictedX + ((targetX - predictedX) * 0.18);
-                const correctedY = predictedY + ((targetY - predictedY) * 0.18);
-                const arrived = Math.hypot(this.chargeTarget.x - correctedX, this.chargeTarget.y - correctedY) < 14;
-
-                const clamped = this._clampToWorld(
-                    arrived ? this.chargeTarget.x : correctedX,
-                    arrived ? this.chargeTarget.y : correctedY
-                );
+                const next = this._getChargeNextPosition(safeDt, true);
+                const clamped = this._clampToWorld(next.x, next.y);
                 this.x = clamped.x;
                 this.y = clamped.y;
-            } else {
-                const lerpFactor = this.chargeState === 'casting' ? 0.45 : 0.35; // Snappy
+            } else if (this.chargeState !== 'casting') {
+                // Keep the telegraph origin fixed throughout the warning.
+                const lerpFactor = 0.35;
                 const clamped = this._clampToWorld(
                     this.x + ((targetX - this.x) * lerpFactor),
                     this.y + ((targetY - this.y) * lerpFactor)
@@ -2023,7 +2076,8 @@ export default class Monster extends CharacterBase {
         if (window.game?.net && !['water_cannon', 'shadow_ambush'].includes(skill.id)) {
             window.game.net.sendMonsterAttack(this.id, skill.id, {
                 targetId: target.id,
-                ...skill.data
+                ...skill.data,
+                ...(skill.id === 'charge' ? this._getPointFromEntity(target) : {})
             });
         }
 
@@ -2234,6 +2288,15 @@ export default class Monster extends CharacterBase {
         ctx.strokeStyle = laneStroke;
         ctx.lineWidth = Math.max(2, Math.min(5, laneWidth * 0.075));
         ctx.strokeRect(0, -laneWidth / 2, length, laneWidth);
+        // Only ground geometry rotates; upright atlas effects keep their pose.
+        const tip = Math.min(length, Math.max(12, length * 0.72));
+        const arrowSize = Math.min(18, laneWidth * 0.28, length * 0.3);
+        ctx.strokeStyle = theme.highlight;
+        ctx.beginPath();
+        ctx.moveTo(tip - arrowSize, -arrowSize);
+        ctx.lineTo(tip, 0);
+        ctx.lineTo(tip - arrowSize, arrowSize);
+        ctx.stroke();
         ctx.globalAlpha = lowGlareCombat ? 0.5 : 0.74;
         ctx.fillStyle = theme.highlight;
         ctx.beginPath();
@@ -2244,23 +2307,20 @@ export default class Monster extends CharacterBase {
 
     _renderChargeTrail(ctx, x, y, renderWidth) {
         if (this.isDead || this.chargeState !== 'charging') return;
-        const targetX = Number(this.chargeTarget?.x);
-        const targetY = Number(this.chargeTarget?.y);
-        if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) return;
-        const dx = targetX - this.x;
-        const dy = targetY - this.y;
-        const length = Math.hypot(dx, dy);
-        if (length < 0.1) return;
+        if (!this.chargeTarget) return;
+        const direction = this._getChargeDirection();
+        if (!direction.x && !direction.y) return;
         const theme = this._getCombatVfxTheme(this.behavior?.charge?.visual?.effect);
         const lowGlareCombat = this.isLowGlareCombatZone();
-        const angle = Math.atan2(dy, dx);
-        const size = renderWidth * (this.isBoss ? 2.15 : 1.55);
-        this._drawSkillVfx(
-            ctx, 'cast', theme.id, x, y + (renderWidth * 0.12), size, size * 0.62,
-            lowGlareCombat ? 0.34 : (this.isBoss ? 0.8 : 0.62),
-            0.72,
-            angle, angle < -Math.PI / 2 || angle > Math.PI / 2
-        );
+        const size = Math.max(this.width, renderWidth * 0.65);
+        for (let index = 2; index >= 0; index -= 1) {
+            const distance = size * (0.28 + index * 0.32);
+            const scale = 1 - index * 0.22;
+            this._drawSkillVfx(ctx, 'residue', theme.id,
+                x - direction.x * distance, y - direction.y * distance,
+                size * scale, size * scale * 0.64,
+                (lowGlareCombat ? 0.3 : 0.58) * scale, 1);
+        }
     }
 
     _renderBossAura(ctx, x, groundY, renderWidth, renderHeight) {
@@ -2308,14 +2368,12 @@ export default class Monster extends CharacterBase {
     _renderCombatCastCircle(ctx, x, groundY, renderWidth) {
         if (this.isDead) return;
         const castingTelegraph = this.activeBossTelegraphs.find((telegraph) => telegraph.elapsedMs < telegraph.warningMs);
-        const charging = this.chargeState === 'casting';
-        if (!castingTelegraph && !charging) return;
+        // renderTelegraph already draws the charge aura at the locked origin.
+        if (!castingTelegraph) return;
         const chargeVisual = this.behavior?.charge?.visual || {};
         const theme = this._getCombatVfxTheme(castingTelegraph?.effect || chargeVisual.effect);
         const vfx = castingTelegraph?.castVfx || this.bossEffects?.castVfx || this.effectVfx || {};
-        const progress = castingTelegraph
-            ? Math.max(0, Math.min(1, castingTelegraph.elapsedMs / Math.max(1, castingTelegraph.warningMs)))
-            : Math.max(0, Math.min(1, 1 - (this.chargeTimer / Math.max(0.2, this.chargeCastSeconds || 1))));
+        const progress = Math.max(0, Math.min(1, castingTelegraph.elapsedMs / Math.max(1, castingTelegraph.warningMs)));
         const baseScale = this.isBoss ? 0.52 : 0.38;
         const radius = Math.max(this.isBoss ? 62 : 34, renderWidth * Math.max(baseScale, Number(vfx.radiusScale || baseScale))) * (0.86 + progress * 0.14);
         const lowGlareCombat = this.isLowGlareCombatZone();
@@ -2418,7 +2476,7 @@ export default class Monster extends CharacterBase {
 
         // Boss presentation stays independent from the authored atlas frames.
         this._renderBossAura(ctx, screenX, groundY, renderWidth, renderHeight);
-        this._renderChargeTrail(ctx, screenX, groundY, renderWidth);
+        this._renderChargeTrail(ctx, screenX, screenY, renderWidth);
         this._renderCombatCastCircle(ctx, screenX, groundY, renderWidth);
         this._renderShadowAmbush(ctx);
 

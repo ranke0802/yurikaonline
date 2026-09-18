@@ -204,6 +204,11 @@ export class UIManager {
         const refreshTutorialOverlays = () => {
             this.positionInventoryItemModal();
             this.positionSkillDetailModal();
+            const step = this.game?.tutorial?.getCurrentStep?.();
+            if (step) {
+                this.showTutorialGuide(this.game.tutorial.getStepGuidePayload(step));
+                this.highlightTutorialTargets(this.game.tutorial.getStepHighlightConfig(step));
+            }
             this.refreshTutorialHighlight();
             this.refreshTutorialGuideLayout();
             this.refreshDesktopShortcutHints();
@@ -2322,13 +2327,30 @@ export class UIManager {
         const rect = element.getBoundingClientRect();
         if (!rect.width || !rect.height) return null;
 
+        // Fixed overlays must use the visible portion of a scrolled target.
+        // A child can also retain a nonzero DOMRect under a hidden ancestor.
+        let left = Math.max(0, rect.left);
+        let top = Math.max(0, rect.top);
+        let right = Math.min(window.innerWidth, rect.right);
+        let bottom = Math.min(window.innerHeight, rect.bottom);
+        for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+            const parentStyle = window.getComputedStyle(parent);
+            if (parentStyle.display === 'none' || parentStyle.visibility === 'hidden'
+                || Number.parseFloat(parentStyle.opacity || '1') < 0.05) return null;
+            const clipsX = /^(auto|scroll|hidden|clip)$/.test(parentStyle.overflowX);
+            const clipsY = /^(auto|scroll|hidden|clip)$/.test(parentStyle.overflowY);
+            if (clipsX || clipsY) {
+                const bounds = parent.getBoundingClientRect();
+                if (clipsX) { left = Math.max(left, bounds.left); right = Math.min(right, bounds.right); }
+                if (clipsY) { top = Math.max(top, bounds.top); bottom = Math.min(bottom, bounds.bottom); }
+            }
+        }
+        if (right <= left || bottom <= top) return null;
+
         return {
-            left: rect.left,
-            top: rect.top,
-            right: rect.right,
-            bottom: rect.bottom,
-            width: rect.width,
-            height: rect.height
+            left, top, right, bottom,
+            width: right - left,
+            height: bottom - top
         };
     }
 
@@ -3419,6 +3441,11 @@ export class UIManager {
     refreshTutorialGuideLayout() {
         const guide = document.getElementById('tutorial-guide');
         if (!guide || guide.classList.contains('hidden') || !this.tutorialGuideState) return;
+        const savingStats = this.game?.tutorial?.getCurrentStep?.()?.trigger === 'stats_saved';
+        const confirmVisible = savingStats && !!this.getVisibleElementRect('#confirm-modal .confirm-content');
+        const body = guide.querySelector('.tutorial-guide-body');
+        const text = confirmVisible ? '확인을 눌러 스탯을 저장하세요.' : this.tutorialGuideState.text;
+        if (body && body.textContent !== text) body.textContent = text;
         this.applyTutorialGuideLayout(guide, this.tutorialGuideState);
     }
 
@@ -3737,9 +3764,12 @@ export class UIManager {
 
         if (step.trigger === 'stats_saved') {
             const confirmVisible = !!this.confirmModal && !this.confirmModal.classList.contains('hidden');
-            return confirmVisible
-                ? ['#confirm-modal .confirm-content', '#confirm-yes', '#confirm-no']
-                : ['#status-close-btn-top', '#status-close-btn-bottom'];
+            if (confirmVisible) return ['#confirm-yes'];
+            // Both close controls perform the same action; guide one visible
+            // control instead of presenting two competing red boxes.
+            const closeTarget = ['#status-close-btn-bottom', '#status-close-btn-top']
+                .find((target) => this.getVisibleElementRect(target));
+            return closeTarget ? [closeTarget] : [];
         }
 
         if (step.trigger === 'skill_detail_open') {
@@ -8418,7 +8448,12 @@ export class UIManager {
     }
 
     ensureTutorialHighlightLayer() {
-        if (this.tutorialHighlightLayer) return this.tutorialHighlightLayer;
+        if (this.tutorialHighlightLayer?.isConnected) return this.tutorialHighlightLayer;
+        const existing = document.getElementById('tutorial-highlight-layer');
+        if (existing) {
+            this.tutorialHighlightLayer = existing;
+            return existing;
+        }
 
         const layer = document.createElement('div');
         layer.id = 'tutorial-highlight-layer';
@@ -8482,11 +8517,31 @@ export class UIManager {
         this.tutorialHighlightState = this.normalizeTutorialHighlightConfig(config);
         this.tutorialHighlightTargets = this.tutorialHighlightState.targets;
         this.refreshTutorialHighlight();
+        this.startTutorialHighlightTracking();
+    }
+
+    startTutorialHighlightTracking() {
+        if (!this.tutorialHighlightTargets?.length) {
+            if (this.tutorialHighlightFrame) window.cancelAnimationFrame(this.tutorialHighlightFrame);
+            this.tutorialHighlightFrame = 0;
+            return;
+        }
+        if (this.tutorialHighlightFrame) return;
+        // Popup animation, dragging and nested scrolling do not emit window
+        // resize events. Track only during a tutorial; stable geometry reuses DOM.
+        const tick = (now) => {
+            this.tutorialHighlightFrame = 0;
+            if (now - (this.tutorialHighlightLastRefresh || 0) >= 50) {
+                this.tutorialHighlightLastRefresh = now;
+                this.refreshTutorialHighlight();
+            }
+            this.tutorialHighlightFrame = window.requestAnimationFrame(tick);
+        };
+        this.tutorialHighlightFrame = window.requestAnimationFrame(tick);
     }
 
     refreshTutorialHighlight() {
         const layer = this.ensureTutorialHighlightLayer();
-        layer.innerHTML = '';
         const state = this.tutorialHighlightState || { targets: this.tutorialHighlightTargets, mode: 'ring', label: '' };
         const runtimeTargets = this.getTutorialRuntimeFocusTargets(
             this.game?.tutorial?.getCurrentStep?.(),
@@ -8498,6 +8553,7 @@ export class UIManager {
             && this.tutorialDimSuppressedStepId === currentStepId
             || !!state.suppressDim;
         if (!runtimeTargets?.length) {
+            this.clearTutorialHighlightLayer();
             this.refreshTutorialGuideLayout();
             return;
         }
@@ -8527,13 +8583,31 @@ export class UIManager {
             const height = Math.max(0, bottom - top);
             if (!width || !height) return;
 
-            rects.push({ left, top, right, bottom, width, height });
+            const candidate = { left, top, right, bottom, width, height };
+            // Aliased selectors and parent/child targets can describe the same
+            // visible area. Keep its outer frame once, while retaining separate
+            // targets when the step really asks for distinct actions.
+            const contains = (outer, inner) => inner.left >= outer.left - 1
+                && inner.top >= outer.top - 1 && inner.right <= outer.right + 1
+                && inner.bottom <= outer.bottom + 1;
+            if (rects.some((existing) => contains(existing, candidate))) return;
+            for (let index = rects.length - 1; index >= 0; index -= 1) {
+                if (contains(candidate, rects[index])) rects.splice(index, 1);
+            }
+            rects.push(candidate);
         });
 
         if (!rects.length) {
+            this.clearTutorialHighlightLayer();
             this.refreshTutorialGuideLayout();
             return;
         }
+
+        const layoutKey = JSON.stringify([currentStepId, state.mode, state.label, suppressDim,
+            viewportW, viewportH, rects, exclusionRects]);
+        if (layoutKey === this.tutorialHighlightLayoutKey) return;
+        this.tutorialHighlightLayoutKey = layoutKey;
+        layer.replaceChildren();
 
         if (!suppressDim) {
             const dimRects = [...rects, ...exclusionRects]
@@ -8615,12 +8689,15 @@ export class UIManager {
     }
 
     clearTutorialHighlightLayer() {
+        this.tutorialHighlightLayoutKey = null;
         if (this.tutorialHighlightLayer) {
             this.tutorialHighlightLayer.innerHTML = '';
         }
     }
 
     clearTutorialHighlight() {
+        if (this.tutorialHighlightFrame) window.cancelAnimationFrame(this.tutorialHighlightFrame);
+        this.tutorialHighlightFrame = 0;
         this.tutorialHighlightTargets = [];
         this.tutorialHighlightState = { targets: [], mode: 'ring', label: '', avoidTargets: [], suppressDim: false };
         this.tutorialDimSuppressed = false;

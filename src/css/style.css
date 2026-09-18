@@ -5295,12 +5295,10 @@ body.low-power-pwa .minimap-menu {
 @keyframes tutorial-highlight-pulse {
     0%,
     100% {
-        transform: scale(1);
         opacity: 0.92;
     }
 
     50% {
-        transform: scale(1.018);
         opacity: 1;
     }
 }

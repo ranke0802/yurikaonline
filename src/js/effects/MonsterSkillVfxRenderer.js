@@ -5,6 +5,12 @@ export const MONSTER_SKILL_VFX_ATLAS = Object.freeze({
     src: 'assets/resource/effects/monster-skill-vfx-atlas.webp',
     columns: 5,
     rows: 4,
+    // Measured gutters of the shipped 1254px atlas. Its authored cells are not
+    // equal quarters/fifths: uniform slicing includes the previous row's base
+    // as a floating strip and cuts off the current spell's ground circle.
+    referenceSize: 1254,
+    columnEdges: Object.freeze([0, 258, 507, 754, 991, 1254]),
+    rowEdges: Object.freeze([0, 328, 660, 980, 1210]),
     frames: Object.freeze({ charge: 0, cast: 1, impact: 2, residue: 3 })
 });
 
@@ -120,10 +126,21 @@ export function drawMonsterSkillVfx(
     const frameIndex = typeof frame === 'string'
         ? (atlas.frames[frame] ?? 0)
         : Number(frame ?? 0);
-    const sourceWidth = image.naturalWidth / atlas.columns;
-    const sourceHeight = image.naturalHeight / atlas.rows;
-    const sourceX = Math.floor(column * sourceWidth);
-    const sourceY = Math.floor(clamp(Math.floor(frameIndex), 0, atlas.rows - 1) * sourceHeight);
+    const row = clamp(Math.floor(frameIndex), 0, atlas.rows - 1);
+    const sourceX = Math.round(atlas.columnEdges
+        ? atlas.columnEdges[column] * image.naturalWidth / atlas.referenceSize
+        : column * image.naturalWidth / atlas.columns);
+    const sourceY = Math.round(atlas.rowEdges
+        ? atlas.rowEdges[row] * image.naturalHeight / atlas.referenceSize
+        : row * image.naturalHeight / atlas.rows);
+    const sourceRight = Math.round(atlas.columnEdges
+        ? atlas.columnEdges[column + 1] * image.naturalWidth / atlas.referenceSize
+        : (column + 1) * image.naturalWidth / atlas.columns);
+    const sourceBottom = Math.round(atlas.rowEdges
+        ? atlas.rowEdges[row + 1] * image.naturalHeight / atlas.referenceSize
+        : (row + 1) * image.naturalHeight / atlas.rows);
+    const sourceWidth = sourceRight - sourceX;
+    const sourceHeight = sourceBottom - sourceY;
     const drawWidth = Math.max(1, Number(width) || sourceWidth);
     const drawHeight = Math.max(1, Number(height) || sourceHeight);
     const resolvedAnchor = anchor === 'center' ? 'center' : 'ground';
@@ -142,8 +159,8 @@ export function drawMonsterSkillVfx(
         image,
         sourceX,
         sourceY,
-        Math.ceil(sourceWidth),
-        Math.ceil(sourceHeight),
+        sourceWidth,
+        sourceHeight,
         -drawWidth / 2,
         resolvedAnchor === 'ground' ? -drawHeight * resolvedGroundAnchor : -drawHeight / 2,
         drawWidth,
