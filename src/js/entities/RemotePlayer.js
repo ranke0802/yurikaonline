@@ -2,6 +2,7 @@ import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
 import SkillRenderer from '../skills/renderers/SkillRenderer.js';
+import { getFireballProjectileRadius, getFireballAoeRadius } from '../skills/FireballScaling.js';
 import {
     captureProjectileWorldContext,
     isProjectileWorldContextCurrent,
@@ -618,6 +619,7 @@ export default class RemotePlayer extends CharacterBase {
 
         // v0.00.45: Shield is now duration-based (1.5s)
         if (this.shieldEffect && this.shieldEffect.timer > 0) {
+            this.shieldEffect.age = (this.shieldEffect.age || 0) + dt;
             this.shieldEffect.timer -= dt;
             if (this.shieldEffect.timer <= 0) this.shieldEffect = null;
         }
@@ -1013,7 +1015,7 @@ export default class RemotePlayer extends CharacterBase {
 
         if (skillType === 'shield') {
             // Shield Visual (Permanent until hit)
-            this.shieldEffect = { timer: 9999 };
+            this.shieldEffect = { timer: 9999, age: 0 };
             // Do not return early, let the state reset timer run
         }
 
@@ -1045,8 +1047,8 @@ export default class RemotePlayer extends CharacterBase {
                         else if (this.direction === 3) vx = speed;
                     }
                     const attackerLevel = (data.extraData && typeof data.extraData.level === 'number') ? data.extraData.level : 1;
-                    const baseRad = 20 + (attackerLevel - 1) * 20;
-                    const aoeRad = baseRad * 2.5; // v1.99.35: Sync 2.5x AOE
+                    const baseRad = getFireballProjectileRadius(attackerLevel);
+                    const aoeRad = getFireballAoeRadius(attackerLevel);
                     const travelTime = (targetX !== null && targetY !== null)
                         ? Math.max(0.25, (Math.hypot(targetX - centerX, targetY - centerY) / speed) + 0.08)
                         : 1.5;
@@ -1346,7 +1348,7 @@ export default class RemotePlayer extends CharacterBase {
 
     // v0.29.23: Player.js와 동일한 고품질 쉴드 렌더링
     drawShield(ctx, centerX, centerY) {
-        SkillRenderer.drawShield(ctx, centerX, centerY);
+        SkillRenderer.drawShield(ctx, centerX, centerY, { age: this.shieldEffect?.age, remaining: this.shieldEffect?.timer });
     }
 
     // v0.29.23: Player.js와 동일한 고품질 마법진 렌더링

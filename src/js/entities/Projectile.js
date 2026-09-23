@@ -1,4 +1,5 @@
 import SkillRenderer from '../skills/renderers/SkillRenderer.js';
+import { drawSkillProjectile, hasPlayerSkillVfx } from '../effects/PlayerSkillVfxRenderer.js';
 import { isProjectileWorldContextCurrent } from './ProjectileWorldContext.js';
 
 export class Projectile {
@@ -14,6 +15,7 @@ export class Projectile {
         this.vy = options.vy || 0;
         this.isDead = false;
         this.lifeTime = options.lifeTime || 3.0;
+        this.visualAge = 0;
         this.burnDuration = options.burnDuration || 5.0;
         this.targetX = Number.isFinite(options.targetX) ? options.targetX : null;
         this.targetY = Number.isFinite(options.targetY) ? options.targetY : null;
@@ -274,6 +276,7 @@ export class Projectile {
             // v1.99.26: Removed 'return' to allow depth penetration (keep moving while exploding)
         }
 
+        this.visualAge += dt;
         this.lifeTime -= dt;
         if (this.lifeTime <= 0) {
             const currentTrackedTarget = this._resolveTrackedFireballTarget();
@@ -309,7 +312,7 @@ export class Projectile {
             // Exhaust Particles
             const particleChance = (this.reducedEffects ? 0.12 : 0.3) * effectScale;
             const maxParticles = Math.max(4, Math.round((this.reducedEffects ? 6 : 18) * effectScale));
-            if (this.particles.length < maxParticles && Math.random() < particleChance) {
+            if (!hasPlayerSkillVfx(this.type) && this.particles.length < maxParticles && Math.random() < particleChance) {
                 const angle = Math.atan2(this.vy, this.vx) + Math.PI + (Math.random() - 0.5);
                 const pSpeed = Math.random() * 150;
                 this.particles.push({
@@ -705,12 +708,13 @@ export class Projectile {
 
     _playImpactEffects() {
         if (!window.game) return;
-        const explosionVariant = this.variant === 'blue_fireball' ? 'blue_flame' : 'default';
+        const explosionVariant = this.type === 'missile' ? (this.variant || 'missile')
+            : this.variant === 'blue_fireball' ? 'blue_flame' : 'default';
         window.game.addExplosion?.(this.x, this.y, this.aoeRadius || this.radius * 3, {
             variant: explosionVariant,
             collapse: this.type === 'fireball'
         });
-        const sparkCount = Math.max(4, Math.round(15 * this._getDynamicEffectScale()));
+        const sparkCount = hasPlayerSkillVfx(this.type) ? 0 : Math.max(4, Math.round(15 * this._getDynamicEffectScale()));
         for (let i = 0; i < sparkCount; i++) window.game.addSpark(this.x, this.y);
         if (this.type === 'fireball' && window.game.sound) {
             window.game.sound.playSfx('fireball_explosion');
@@ -987,7 +991,7 @@ export class Projectile {
         const sy = this.y;
 
         // 0. Energy Particles
-        this.particles.forEach(p => {
+        if (!hasPlayerSkillVfx(this.type)) this.particles.forEach(p => {
             ctx.fillStyle = this.color;
             ctx.globalAlpha = p.life * 2;
             if (this.reducedEffects) {
@@ -1002,24 +1006,28 @@ export class Projectile {
         ctx.globalAlpha = 1.0;
 
         if (this.type === 'missile') {
-            SkillRenderer.drawLightning(ctx, this.trail[0]?.x || sx, this.trail[0]?.y || sy, sx, sy, 1, { variant: this.variant });
-            // Keep existing beam fallback for trail logic
-            ctx.save();
-            if (this.trail.length > 2) {
-                ctx.beginPath();
-                ctx.moveTo(this.trail[0].x, this.trail[0].y);
-                for (let i = 1; i < this.trail.length; i++) ctx.lineTo(this.trail[i].x, this.trail[i].y);
-                ctx.strokeStyle = this.color;
-                ctx.lineWidth = this.radius;
-                ctx.globalAlpha = 0.5;
-                ctx.stroke();
+            const drawn = drawSkillProjectile(ctx, 'missile', sx, sy, this.radius, Math.atan2(this.vy, this.vx), this.trail,
+                { variant: this.variant, age: this.visualAge, reducedEffects: this.reducedEffects });
+            if (!drawn) {
+                SkillRenderer.drawLightning(ctx, this.trail[0]?.x || sx, this.trail[0]?.y || sy, sx, sy, 1, { variant: this.variant });
+                // Keep existing beam fallback for trail logic
+                ctx.save();
+                if (this.trail.length > 2) {
+                    ctx.beginPath();
+                    ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                    for (let i = 1; i < this.trail.length; i++) ctx.lineTo(this.trail[i].x, this.trail[i].y);
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = this.radius;
+                    ctx.globalAlpha = 0.5;
+                    ctx.stroke();
+                }
+                ctx.restore();
             }
-            ctx.restore();
         } else {
             // v1.99.15: Premium Fireball Visuals
             const angle = Math.atan2(this.vy, this.vx);
             // v1.99.20: Visual radius matches hitRadius for intuitive collision
-            SkillRenderer.drawFireball(ctx, sx, sy, this.radius, angle, this.trail, { variant: this.variant });
+            SkillRenderer.drawFireball(ctx, sx, sy, this.radius, angle, this.trail, { variant: this.variant, age: this.visualAge, reducedEffects: this.reducedEffects });
         }
 
         // Fireball Landing Indicator

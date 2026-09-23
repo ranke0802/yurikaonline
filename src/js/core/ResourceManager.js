@@ -46,6 +46,7 @@ export default class ResourceManager {
                 || pathname.endsWith('.mp3')
                 || pathname.endsWith('.ogg')
                 || pathname.endsWith('.wav')
+                || pathname.endsWith('.md')
             );
 
             if (!isVersionableResource) {
@@ -121,12 +122,7 @@ export default class ResourceManager {
 
                     menu.frames.forEach((frameFile, i) => {
                         const path = `${menu.path}/${frameFile}`;
-                        // Add version/cache-busting
-                        let v = window.GAME_VERSION;
-                        if (!v || v === 'error' || v === 'unknown') v = Date.now();
-                        const url = `${path}?v=${v}`;
-
-                        const p = this.loadImage(url).then(img => {
+                        const p = this.loadImage(path).then(img => {
                             this._processAndDrawFrame(img, finalCtx, i * targetW, rowIndex * targetH, targetW, targetH);
                         }).catch(err => {
                             Logger.warn(`Failed to load frame: ${path}`, err);
@@ -153,17 +149,30 @@ export default class ResourceManager {
     }
 
     async loadJSON(url) {
+        return this._loadDocument(url, 'json');
+    }
+
+    async loadText(url) {
+        return this._loadDocument(url, 'text');
+    }
+
+    async _loadDocument(url, format) {
         const requestUrl = this.getVersionedResourceUrl(url);
         if (this.cache.has(requestUrl)) return this.cache.get(requestUrl);
         if (this.loading.has(requestUrl)) return this.loading.get(requestUrl);
 
-        const promise = fetch(requestUrl, { cache: 'no-store' }).then(res => res.json()).then(data => {
+        // Content URLs are tied to the build, so a successful download remains
+        // reusable in memory, the HTTP cache and the service worker cache.
+        const promise = fetch(requestUrl, { cache: 'force-cache' }).then(res => {
+            if (!res.ok) throw new Error(`Resource ${requestUrl}: HTTP ${res.status}`);
+            return format === 'text' ? res.text() : res.json();
+        }).then(data => {
             this.cache.set(requestUrl, data);
             this.loading.delete(requestUrl);
             return data;
         }).catch(err => {
             this.loading.delete(requestUrl);
-            Logger.error(`Failed to load JSON: ${url}`, err);
+            Logger.error(`Failed to load resource: ${url}`, err);
             throw err;
         });
 
@@ -272,8 +281,10 @@ export default class ResourceManager {
         const promise = new Promise((resolve, reject) => {
             const img = new Image();
             img.crossOrigin = "Anonymous";
-            img.src = url;
-            img.onload = () => {
+            img.decoding = 'async';
+            img.onload = async () => {
+                // Decode during loading, never on the first combat draw.
+                if (img.decode) await img.decode().catch(() => {});
                 this.cache.set(url, img);
                 this.loading.delete(url);
                 resolve(img);
@@ -282,6 +293,7 @@ export default class ResourceManager {
                 this.loading.delete(url);
                 reject(err);
             };
+            img.src = url;
         });
 
         this.loading.set(url, promise);
@@ -315,12 +327,7 @@ export default class ResourceManager {
         // Force browser to cache these files
         const promises = criticalImages.map(async (url) => {
             try {
-                // Use current version to ensure fresh cache
-                let v = window.GAME_VERSION;
-                if (!v || v === 'error' || v === 'unknown') v = Date.now();
-
-                const fullUrl = `${url}?v=${v}`;
-                await this.loadImage(fullUrl);
+                await this.loadImage(url);
             } catch (e) {
                 Logger.warn(`[Preload] Failed: ${url}`, e);
             } finally {
@@ -332,4 +339,9 @@ export default class ResourceManager {
 
         await Promise.all(promises);
     }
+}
+
+let fallbackResources = null;
+export function getSharedResourceManager() {
+    return globalThis.window?.game?.resources || (fallbackResources ||= new ResourceManager());
 }

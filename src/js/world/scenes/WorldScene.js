@@ -887,14 +887,15 @@ export default class WorldScene extends Scene {
     }
 
     addExplosion(x, y, radius, options = {}) {
+        const duration = options.duration || (options.variant?.includes('missile') ? 0.45 : 0.65);
         this.explosions.push({
             x,
             y,
             radius,
             variant: options.variant || 'default',
             collapse: !!options.collapse,
-            life: options.duration || 0.45,
-            duration: options.duration || 0.45
+            life: duration,
+            duration
         });
     }
 

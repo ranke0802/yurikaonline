@@ -2,6 +2,7 @@ import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
 import SkillRenderer from '../skills/renderers/SkillRenderer.js';
+import { getFireballProjectileRadius, getFireballAoeRadius } from '../skills/FireballScaling.js';
 import { INVENTORY_TOTAL_SLOTS } from '../constants/inventory.js';
 import {
     captureProjectileWorldContext,
@@ -157,6 +158,7 @@ export default class Player extends CharacterBase {
         this.actionFdbk = null;
         this.actionTimer = 0;
         this.shieldTimer = 0;
+        this.shieldVisualAge = 0;
         this.skillAttackTimer = 0; // v0.22.3: Briefly show attack anim on skills
 
         // Status Effects
@@ -481,6 +483,7 @@ export default class Player extends CharacterBase {
 
         // v0.00.45: Shield Timer Countdown
         if (this.shieldTimer > 0) {
+            this.shieldVisualAge += dt;
             this.shieldTimer -= dt;
             if (this.shieldTimer < 0) this.shieldTimer = 0;
         }
@@ -535,11 +538,11 @@ export default class Player extends CharacterBase {
     }
 
     getFireballProjectileRadius(level = this.skillLevels.fireball || 1) {
-        return 20 + (level - 1) * 20;
+        return getFireballProjectileRadius(level);
     }
 
     getFireballAoeRadius(level = this.skillLevels.fireball || 1) {
-        return this.getFireballProjectileRadius(level) * 2.5;
+        return getFireballAoeRadius(level);
     }
 
     getLaserMaxDamageRatio(level = this.skillLevels.laser || 1) {
@@ -2312,7 +2315,7 @@ export default class Player extends CharacterBase {
                 const vy = Math.sin(angle) * speed;
                 const dmg = Math.ceil(this.attackPower * (1.8 + (lv - 1) * 0.3)); // v1.99.31: 180% + 30% per level
                 const baseRad = this.getFireballProjectileRadius(lv);
-                const aoeRad = this.getFireballAoeRadius(lv); // v1.99.35: Increased to 2.5x for better coverage
+                const aoeRad = this.getFireballAoeRadius(lv);
                 const authoredWorldContext = captureProjectileWorldContext();
 
                 import('./Projectile.js').then(({ Projectile }) => {
@@ -2361,6 +2364,7 @@ export default class Player extends CharacterBase {
                 this.isAttacking = true;
                 this.skillAttackTimer = 0.4;
                 this.animTimer = 0;
+                this.shieldVisualAge = 0;
                 this.shieldTimer = 9999; // v0.00.46: Permanent until hit
                 this.skillCooldowns.k = 3;  // 3 second cooldown
 
@@ -4741,7 +4745,7 @@ export default class Player extends CharacterBase {
     }
 
     drawShieldEffect(ctx, x, y) {
-        SkillRenderer.drawShield(ctx, x, y);
+        SkillRenderer.drawShield(ctx, x, y, { age: this.shieldVisualAge, remaining: this.shieldTimer });
     }
 
     // v0.00.15: Consolidate Respawn Logic

@@ -2,7 +2,7 @@
 // Keep this module free of gameplay state: Monster owns timing and damage while
 // this renderer only turns an already-authoritative state into pixels.
 export const MONSTER_SKILL_VFX_ATLAS = Object.freeze({
-    src: 'assets/resource/effects/monster-skill-vfx-atlas.webp',
+    src: '/assets/resource/effects/monster-skill-vfx-atlas.webp',
     columns: 5,
     rows: 4,
     // Measured gutters of the shipped 1254px atlas. Its authored cells are not
@@ -19,7 +19,7 @@ export const MONSTER_SKILL_VFX_ATLAS = Object.freeze({
 // transparent frame; cast progress changes its scale/rotation/alpha without a
 // timer, allocations, or extra network state.
 export const RIFT_SENTINEL_VFX_ATLAS = Object.freeze({
-    src: 'assets/resource/expansion/zone_5/effects/rift_sentinel_spell.webp',
+    src: '/assets/resource/expansion/zone_5/effects/rift_sentinel_spell.webp',
     columns: 1,
     rows: 1,
     frames: Object.freeze({ charge: 0, cast: 0, impact: 0, residue: 0 })
@@ -46,6 +46,7 @@ const THEME_ALIASES = Object.freeze({
 
 let atlasImage = null;
 let riftAtlasImage = null;
+let preloadPromise = null;
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -81,23 +82,23 @@ function resolveVfxAtlas(theme) {
         : MONSTER_SKILL_VFX_ATLAS;
 }
 
-export function preloadMonsterSkillVfxAtlas(theme = 'arcane') {
-    if (typeof Image === 'undefined') return null;
-    const atlas = resolveVfxAtlas(theme);
-    if (atlas === RIFT_SENTINEL_VFX_ATLAS && !riftAtlasImage) {
-        riftAtlasImage = new Image();
-        riftAtlasImage.decoding = 'async';
-        riftAtlasImage.src = atlas.src;
-    } else if (atlas === MONSTER_SKILL_VFX_ATLAS && !atlasImage) {
-        atlasImage = new Image();
-        atlasImage.decoding = 'async';
-        atlasImage.src = atlas.src;
-    }
-    return atlas === RIFT_SENTINEL_VFX_ATLAS ? riftAtlasImage : atlasImage;
+export function preloadMonsterSkillVfxAssets(resources) {
+    if (preloadPromise) return preloadPromise;
+    preloadPromise = Promise.allSettled([
+        resources.loadImage(MONSTER_SKILL_VFX_ATLAS.src).then(image => { atlasImage = image; }),
+        resources.loadImage(RIFT_SENTINEL_VFX_ATLAS.src).then(image => { riftAtlasImage = image; })
+    ]).then(results => {
+        const failed = results.find(result => result.status === 'rejected');
+        if (failed) throw failed.reason;
+    }).catch(error => {
+        preloadPromise = null;
+        throw error;
+    });
+    return preloadPromise;
 }
 
 function getLoadedAtlasImage(theme) {
-    const image = preloadMonsterSkillVfxAtlas(theme);
+    const image = resolveVfxAtlas(theme) === RIFT_SENTINEL_VFX_ATLAS ? riftAtlasImage : atlasImage;
     return image?.naturalWidth > 0 && image?.naturalHeight > 0 ? image : null;
 }
 

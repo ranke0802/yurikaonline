@@ -288,10 +288,10 @@ function validateMonsterSkillVfxRuntimeHygiene() {
         'Monster skill VFX renderer must not create per-frame collections or time-driven allocations'
     );
     assert(
-        (monsterVfxRendererSource.match(/new Image\s*\(/g) || []).length === 2
-            && /!atlasImage/.test(monsterVfxRendererSource)
-            && /if \(atlas === RIFT_SENTINEL_VFX_ATLAS && !riftAtlasImage\)/.test(monsterVfxRendererSource),
-        'Monster skill VFX renderer must retain two lazy shared Image instances (base + rift expansion)'
+        !/new Image\s*\(/.test(monsterVfxRendererSource)
+            && /preloadMonsterSkillVfxAssets\(resources\)/.test(monsterVfxRendererSource)
+            && (monsterVfxRendererSource.match(/resources\.loadImage\(/g) || []).length === 2,
+        'Monster VFX must preload both shared images through the resource cache before combat'
     );
     assert(
         !/options\./.test(monsterVfxRendererSource),

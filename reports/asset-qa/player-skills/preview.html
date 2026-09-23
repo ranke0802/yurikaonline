@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<link rel="icon" href="data:,">
+<title>Player skill animation preview</title>
+<style>body{margin:0;background:#0b161e;color:#dbeef7;font:14px system-ui}canvas{display:block;max-width:100%;height:auto}button{margin:12px;padding:8px 16px}</style>
+<button id="pause">애니메이션 일시정지</button><span>실제 게임 렌더러 · WebP 4종 · 비행 / 폭발 / 방향 / 색상 변형</span>
+<canvas id="preview" width="1280" height="960"></canvas>
+<script type="module">
+import ResourceManager from '../../../src/js/core/ResourceManager.js';
+import { preloadPlayerSkillVfx, drawSkillProjectile } from '../../../src/js/effects/PlayerSkillVfxRenderer.js';
+import { preloadMonsterSkillVfxAssets } from '../../../src/js/effects/MonsterSkillVfxRenderer.js';
+import SkillRenderer from '../../../src/js/skills/renderers/SkillRenderer.js';
+import { Projectile } from '../../../src/js/entities/Projectile.js';
+const resources = new ResourceManager();
+window.GAME_VERSION = (await (await fetch('/version.txt')).text()).trim();
+window.game = { resources, useReducedEffects: false };
+await Promise.all([preloadPlayerSkillVfx(resources), preloadMonsterSkillVfxAssets(resources)]);
+const playerSource = await resources.loadImage('/assets/resource/magicion_front/1.webp');
+const player = document.createElement('canvas');
+player.width = 144; player.height = 176;
+resources._processAndDrawFrame(playerSource, player.getContext('2d'), 0, 0, 144, 176);
+const canvas = document.getElementById('preview'), ctx = canvas.getContext('2d');
+let paused = new URLSearchParams(location.search).has('still');
+function label(text, x, y, size = 15, color = '#a5c6d7') {
+    ctx.fillStyle = color; ctx.font = `${size}px system-ui`; ctx.fillText(text, x, y);
+}
+function panel(x, y, w, h) {
+    ctx.fillStyle = '#142a34'; ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#25414d'; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+}
+function draw(age = 0.25) {
+    ctx.fillStyle = '#0b161e'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    label('PLAYER SKILLS / GENERATED WEBP ANIMATION', 32, 42, 24, '#e5f7ff');
+    ['FIREBALL', 'MAGIC MISSILE', 'CHAIN LIGHTNING', 'ABSOLUTE BARRIER'].forEach((name, i) => {
+        const x = 24 + i * 314;
+        panel(x, 68, 300, 236); label(name, x + 18, 96, 17, '#e5f7ff');
+        if (i < 2) drawSkillProjectile(ctx, i === 0 ? 'fireball' : 'missile', x + 222, 172, i === 0 ? 17 : 7, 0, [], { age });
+        if (i === 2) SkillRenderer.drawLightning(ctx, x + 40, 170, x + 260, 225, 1, { age });
+        if (i === 3) {
+            ctx.drawImage(player, x + 114, 138, 72, 88);
+            SkillRenderer.drawShield(ctx, x + 150, 174, { age: age % 2, remaining: 2 - age % 2 });
+        }
+        label(i < 2 ? 'FLIGHT / LOOP' : i === 2 ? 'CHAIN / ENDPOINT IMPACT' : 'FORM / SUSTAIN / DISSOLVE', x + 18, 280, 12);
+    });
+    label('IMPACT TIMELINE', 32, 340, 18, '#e5f7ff');
+    for (let row = 0; row < 2; row++) for (let i = 0; i < 8; i++) {
+        const x = 24 + i * 157, y = 360 + row * 132;
+        panel(x, y, 145, 122);
+        SkillRenderer.drawExplosion(ctx, x + 72, y + 58, 36, (i + 0.35) / 8, { variant: row ? 'missile' : 'default' });
+        label(`${i + 1}`, x + 9, y + 109, 12);
+    }
+    label('DIRECTION / HEAD ANCHOR', 32, 658, 18, '#e5f7ff');
+    for (let i = 0; i < 8; i++) {
+        const x = 96 + i * 157, y = 736, angle = i * Math.PI / 4;
+        panel(x - 72, 679, 145, 122);
+        drawSkillProjectile(ctx, 'fireball', x, y, 11, angle, [], { age });
+        ctx.strokeStyle = '#ffffff44'; ctx.beginPath(); ctx.moveTo(x - 4, y); ctx.lineTo(x + 4, y); ctx.moveTo(x, y - 4); ctx.lineTo(x, y + 4); ctx.stroke();
+        label(`${i * 45}°`, x - 57, 790, 12);
+    }
+    label('CACHED COLOR VARIANTS', 32, 843, 18, '#e5f7ff');
+    drawSkillProjectile(ctx, 'fireball', 255, 900, 14, 0, [], { age, variant: 'blue_fireball' });
+    drawSkillProjectile(ctx, 'missile', 575, 900, 7, 0, [], { age, variant: 'golden_missile' });
+    SkillRenderer.drawLightning(ctx, 770, 905, 990, 905, 1, { age, variant: 'crimson_chain' });
+    SkillRenderer.drawMagicCircle(ctx, 1160, 899, { age, radiusOuter: 42 });
+}
+window.skillPreview = { draw, resources, preloadPlayerSkillVfx, preloadMonsterSkillVfxAssets, SkillRenderer, Projectile, canvas };
+draw();
+document.getElementById('pause').onclick = () => { paused = !paused; };
+function tick(time) { if (!paused) draw(time / 1000); requestAnimationFrame(tick); }
+requestAnimationFrame(tick);
+</script>
+</html>

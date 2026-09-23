@@ -2,6 +2,8 @@
  * SkillRenderer - Static utility class for drawing all skill effects.
  * This centralizes visual code that was previously duplicated in Player.js and RemotePlayer.js.
  */
+import { drawSkillProjectile, drawSkillImpact, drawSkillLightning, drawSkillShield, drawSkillCastCircle } from '../../effects/PlayerSkillVfxRenderer.js';
+
 export default class SkillRenderer {
     static isReducedEffectsMode() {
         return !!window.game?.useReducedEffects;
@@ -29,6 +31,7 @@ export default class SkillRenderer {
      * High-quality Magic Circle (Used for Channeling and Shield)
      */
     static drawMagicCircle(ctx, sx, sy, options = {}) {
+        if (drawSkillCastCircle(ctx, sx, sy, options)) return;
         const {
             radiusInner = 60,
             radiusOuter = 75,
@@ -166,6 +169,7 @@ export default class SkillRenderer {
      * Absolute Barrier (Shield) Effect
      */
     static drawShield(ctx, x, y, options = {}) {
+        if (drawSkillShield(ctx, x, y, options)) return;
         const {
             baseRadius = 55,
             color1 = 'rgba(0, 210, 255, 0.05)',
@@ -228,6 +232,7 @@ export default class SkillRenderer {
      * @param {Array} trail 
      */
     static drawFireball(ctx, x, y, radius, angle, trail = [], options = {}) {
+        if (drawSkillProjectile(ctx, 'fireball', x, y, radius, angle, trail, options)) return;
         const variant = options.variant || 'fireball';
         const palette = variant === 'blue_fireball'
             ? {
@@ -399,6 +404,7 @@ export default class SkillRenderer {
      * Fireball Explosion Effect
      */
     static drawExplosion(ctx, x, y, radius, progress, options = {}) {
+        if (drawSkillImpact(ctx, x, y, radius, progress, options)) return;
         ctx.save();
         const alpha = 1 - progress;
         const currentRad = radius * (0.5 + progress * 0.5);
@@ -498,6 +504,7 @@ export default class SkillRenderer {
      * High-quality Lightning Rendering
      */
     static drawLightning(ctx, x1, y1, x2, y2, intensity = 1, options = {}) {
+        if (drawSkillLightning(ctx, x1, y1, x2, y2, intensity, options)) return;
         ctx.save();
         const reducedEffects = this.isReducedEffectsMode();
         const variant = options.variant || 'default';

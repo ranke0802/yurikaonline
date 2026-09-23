@@ -1,4 +1,4 @@
-const APP_VERSION = '0.02.115';
+const APP_VERSION = '0.02.117';
 const SHELL_CACHE = `yurika-online-shell-${APP_VERSION}`;
 const STATIC_CACHE = `yurika-online-static-${APP_VERSION}`;
 const ACTIVE_CACHES = [SHELL_CACHE, STATIC_CACHE];
@@ -31,7 +31,6 @@ function isVersionRequest(url) {
 function isDocumentLikeRequest(request, url) {
     return request.mode === 'navigate'
         || request.destination === 'document'
-        || url.pathname.endsWith('/README.md')
         || url.pathname.endsWith('/index.html');
 }
 
@@ -65,6 +64,7 @@ function isStaticAssetRequest(request, url) {
         || url.pathname.endsWith('.ogg')
         || url.pathname.endsWith('.wav')
         || url.pathname.endsWith('.woff2')
+        || url.pathname.endsWith('.md')
     );
 }
 
@@ -203,6 +203,13 @@ self.addEventListener('fetch', (event) => {
 
     if (isDocumentLikeRequest(event.request, url)) {
         event.respondWith(networkFirst(event.request, SHELL_CACHE, { noStore: true }));
+        return;
+    }
+
+    // Build-versioned data and scripts are immutable for that build. The next
+    // release has its own URL/cache; unversioned code still checks the network.
+    if (isStaticAssetRequest(event.request, url) && url.searchParams.get('v') === APP_VERSION) {
+        event.respondWith(cacheFirst(event.request, STATIC_CACHE));
         return;
     }
 

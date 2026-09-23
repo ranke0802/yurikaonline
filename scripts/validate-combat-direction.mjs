@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import Monster from '../src/js/entities/Monster.js';
-import { drawMonsterSkillVfx } from '../src/js/effects/MonsterSkillVfxRenderer.js';
+import { drawMonsterSkillVfx, preloadMonsterSkillVfxAssets } from '../src/js/effects/MonsterSkillVfxRenderer.js';
 
 globalThis.window = {};
 function monster(host = true) {
@@ -131,8 +131,8 @@ test('zero-distance charges stay put and charge telegraphs draw only one origin 
     assert.equal(draws, 2, 'one origin effect and one destination effect');
 });
 
-test('atlas crops contain each water effect ground without a strip from the preceding frame', () => {
-    globalThis.Image = class { naturalWidth = 1254; naturalHeight = 1254; };
+test('atlas crops contain each water effect ground without a strip from the preceding frame', async () => {
+    await preloadMonsterSkillVfxAssets({ loadImage: async () => ({ naturalWidth: 1254, naturalHeight: 1254 }) });
     let source;
     const ctx = {
         globalAlpha: 1, save() {}, restore() {}, translate() {},
@@ -148,5 +148,4 @@ test('atlas crops contain each water effect ground without a strip from the prec
     }
     drawMonsterSkillVfx(ctx, 'rift', 0, 0, 0, 100, 100);
     assert.deepEqual(source, { x: 0, y: 0, width: 1254, height: 1254 }, 'the separate rift atlas keeps its full frame');
-    delete globalThis.Image;
 });

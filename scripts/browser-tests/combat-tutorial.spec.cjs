@@ -132,8 +132,9 @@ test('render combat warnings and impacts in eight directions using shipped asset
     await openIsolatedUi(page, { width: 1280, height: 960 });
     await page.evaluate(async () => {
         const { default: Monster } = await import('/src/js/entities/Monster.js');
-        const { preloadMonsterSkillVfxAtlas } = await import('/src/js/effects/MonsterSkillVfxRenderer.js');
-        await preloadMonsterSkillVfxAtlas().decode();
+        const { preloadMonsterSkillVfxAssets } = await import('/src/js/effects/MonsterSkillVfxRenderer.js');
+        const { default: ResourceManager } = await import('/src/js/core/ResourceManager.js');
+        await preloadMonsterSkillVfxAssets(new ResourceManager());
         const canvas = document.createElement('canvas');
         canvas.width = 1280; canvas.height = 960;
         canvas.style.cssText = 'position:fixed;inset:0;z-index:99999';

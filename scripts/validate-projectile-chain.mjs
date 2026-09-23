@@ -331,4 +331,50 @@ assert.equal(blockedProjectileTarget.hitCount, 0, 'blocked chain explosions must
 assert.equal(blockedProjectileTarget.effectCount, 0, 'blocked chain explosions must not apply burn');
 window.game.net.sendMonsterDamage = originalSendMonsterDamage;
 
-console.log('[projectile-chain] OK: field guard, deterministic replay, and visual-only damage isolation.');
+// Upgrades must enlarge the real damage boundary, aim guide and remote replay
+// together. Level 1 is preserved and high levels must not silently hit a cap.
+const { default: Player } = await import('../src/js/entities/Player.js');
+const { default: RemotePlayer } = await import('../src/js/entities/RemotePlayer.js');
+const { UIManager } = await import('../src/js/ui/UIManager.js');
+const scalingPlayer = Object.assign(Object.create(Player.prototype), {
+    x: 0, y: 0, width: 48, height: 48, fireballMaxRange: 1200, fireballAimAngle: 0,
+    skillLevels: { fireball: 1 }, getWeaponCombatProfile: () => ({}), getEquippedWeapon: () => null
+});
+const skillUi = Object.assign(Object.create(UIManager.prototype), {
+    game: { localPlayer: scalingPlayer }, skillData: { fireball: { name: '파이어볼', desc: '' } },
+    getSkillHotkey: () => 'U', shouldShowDesktopShortcutText: () => false,
+    getSkillDisplayName: () => '파이어볼'
+});
+const replayPlayer = Object.assign(Object.create(RemotePlayer.prototype), {
+    id: 'remote-player', name: 'Remote', width: 48, height: 48, direction: 0,
+    _resolveRemoteEventTime: () => 1, _holdRemoteAttackState() {}
+});
+RemotePlayer.projectilePromise = Promise.resolve({ Projectile });
+for (const [level, expectedRadius] of [[1, 50], [2, 75], [5, 150], [10, 275], [20, 525], [21, 550], [100, 2525]]) {
+    resetRuntime();
+    scalingPlayer.skillLevels.fireball = level;
+    scalingPlayer.updateFireballAimGuide();
+    assert.equal(scalingPlayer.fireballAimGuide.aoeRadius, expectedRadius, `Lv.${level} aim radius`);
+    assert.equal(scalingPlayer.fireballAimGuide.range, 1200, 'range remains independent of blast scaling');
+    assert.match(skillUi.getSkillDetailData('fireball').tooltipCurrentEffectHtml, new RegExp(`폭발 반경 ${expectedRadius} \\|`));
+    window.game.projectiles = [];
+    replayPlayer.triggerAttack({ x: 0, y: 0, skillType: 'fireball', extraData: { level, angle: 0 } });
+    await RemotePlayer.projectilePromise;
+    const replay = window.game.projectiles[0];
+    assert.equal(replay.aoeRadius, expectedRadius, `Lv.${level} remote replay radius`);
+    assert.equal(replay.radius, scalingPlayer.getFireballProjectileRadius(), 'local and remote collision sizes agree');
+
+    const inside = createMonster('inside'), outside = createMonster('outside');
+    inside.x = expectedRadius + inside.width / 2 - 0.01;
+    outside.x = expectedRadius + outside.width / 2 + 0.01;
+    const blast = new Projectile(0, 0, null, 'fireball', {
+        radius: scalingPlayer.getFireballProjectileRadius(), aoeRadius: scalingPlayer.getFireballAoeRadius(),
+        ownerId: 'local-player', damage: 100
+    });
+    blast._executeActualExplosion(inside, [inside, outside]);
+    assert.equal(inside.hitCount, 1, `Lv.${level} includes a target touching the blast`);
+    assert.equal(outside.hitCount, 0, `Lv.${level} excludes a target outside the new blast`);
+    assert.equal(runtime.monsterDamagePackets, 1, 'only the target inside the blast takes damage');
+}
+
+console.log('[projectile-chain] OK: field guard, deterministic replay, damage isolation, and fireball scaling/aim/UI/remote parity.');

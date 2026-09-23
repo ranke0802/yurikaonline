@@ -1,0 +1,32 @@
+{
+  "cellSize": 192,
+  "columns": 4,
+  "rows": 4,
+  "frames": 16,
+  "assets": {
+    "fireball": {
+      "file": "fireball.webp",
+      "bytes": 219008,
+      "width": 768,
+      "height": 768
+    },
+    "missile": {
+      "file": "missile.webp",
+      "bytes": 211296,
+      "width": 768,
+      "height": 768
+    },
+    "lightning": {
+      "file": "lightning.webp",
+      "bytes": 225264,
+      "width": 768,
+      "height": 768
+    },
+    "barrier": {
+      "file": "barrier.webp",
+      "bytes": 292278,
+      "width": 768,
+      "height": 768
+    }
+  }
+}

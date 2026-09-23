@@ -1,4 +1,5 @@
 import Logger from '../utils/Logger.js';
+import { getFireballAoeRadius, FIREBALL_BASE_RADIUS, FIREBALL_RADIUS_PER_LEVEL, FIREBALL_AOE_MULTIPLIER } from '../skills/FireballScaling.js';
 import { getViewportMetrics } from '../core/ViewportMetrics.js';
 import FriendsUIController, { FRIENDS_UI_METHOD_NAMES } from './friends/FriendsUIController.js';
 
@@ -8224,8 +8225,7 @@ export class UIManager {
             case 'fireball': {
                 const manaCost = 12 + (lv - 1) * 4;
                 const directDamage = Math.ceil(attackPower * (1.8 + (lv - 1) * 0.3));
-                const baseRadius = 20 + (lv - 1) * 20;
-                const aoeRadius = Math.round(baseRadius * 2.5);
+                const aoeRadius = Math.round(getFireballAoeRadius(lv));
                 const burnDuration = 2.0 + (lv - 1) * 0.5;
                 const noDefBurnTick = Math.max(1, Math.ceil(directDamage * 0.15));
 
@@ -8249,8 +8249,8 @@ export class UIManager {
                     `<code>직격 피해 = ceil(공격력 × (1.8 + 0.3 × (레벨 - 1)))</code>`,
                     `<code>최종 피해 = max(1, 직격 피해 - 대상 방어력)</code>`,
                     `<code>치명타 최종 피해 = 최종 피해 × 2</code>`,
-                    `<code>폭발 기본 반경 = 20 + 20 × (레벨 - 1)</code>`,
-                    `<code>실제 폭발 반경 = 폭발 기본 반경 × 2.5</code>`,
+                    `<code>투사체 반경 = ${FIREBALL_BASE_RADIUS} + ${FIREBALL_RADIUS_PER_LEVEL} × (레벨 - 1)</code>`,
+                    `<code>폭발 반경 = 투사체 반경 × ${FIREBALL_AOE_MULTIPLIER}</code>`,
                     `<code>화상 지속 = 2.0 + 0.5 × (레벨 - 1)초</code>`,
                     `<code>화상 틱 피해 = ceil(비치명타 최종 피해 × 0.15)</code>가 <strong>0.5초마다</strong> 들어갑니다.`
                 );
@@ -9386,7 +9386,7 @@ export class UIManager {
             btn.style.cssText = 'display:flex; align-items:center; justify-content:center; background:none; border:none; cursor:pointer; padding:5px;';
 
             const icon = document.createElement('img');
-            icon.src = emote.icon;
+            icon.src = this.game.resources.getVersionedResourceUrl(emote.icon);
             icon.alt = emote.id || 'emote';
             icon.className = 'emote-item';
             icon.style.pointerEvents = 'none';
@@ -10276,7 +10276,7 @@ export class UIManager {
             iconEl.classList.add('item-icon-blessed-stone');
         }
         if (item?.iconPath) {
-            iconEl.src = item.iconPath;
+            iconEl.src = this.game.resources.getVersionedResourceUrl(item.iconPath);
             iconEl.alt = item.name || item.type || 'item';
         } else {
             iconEl.textContent = item?.icon || '';
@@ -11475,7 +11475,7 @@ export class UIManager {
             if (emote?.icon) {
                 const img = document.createElement('img');
                 img.className = 'chat-inline-emote';
-                img.src = emote.icon;
+                img.src = this.game.resources.getVersionedResourceUrl(emote.icon);
                 img.alt = emote.id || 'emote';
                 img.title = emote.id || 'emote';
                 content.appendChild(img);
@@ -11652,12 +11652,7 @@ export class UIManager {
         listEl.innerHTML = '<div class="readme-loading">README.md 불러오는 중...</div>';
 
         try {
-            const v = window.GAME_VERSION || Date.now();
-            const response = await fetch(`./README.md?v=${v}`, { cache: 'no-store' });
-            if (!response.ok) {
-                throw new Error(`README fetch failed: ${response.status}`);
-            }
-            const text = await response.text();
+            const text = await this.game.resources.loadText('./README.md');
             if (/^\s*<!doctype html/i.test(text) || /^\s*<html/i.test(text)) {
                 throw new Error('README fetch returned HTML document instead of markdown');
             }
@@ -12192,12 +12187,9 @@ export class UIManager {
     }
 
     async loadEmotes() {
-        // Simple fetch or use ResourceManager if ready.
-        // For now, fetch direct since ResourceManager loads assets, not raw json for UI list usually.
-        // Actually ResourceManager has loadJSON.
         try {
-            const response = await fetch('assets/data/emotes/basic_emotes.json');
-            const emotes = await response.json();
+            const data = await this.game.resources.loadJSON('/assets/data/emotes/basic_emotes.json');
+            const emotes = Array.isArray(data) ? data : (data?.emotes || []);
 
             // v2.1: Store globally for Player.js rendering
             if (this.game) this.game.emotes = emotes;
@@ -12208,7 +12200,7 @@ export class UIManager {
                 picker.innerHTML = '';
                 emotes.forEach(emote => {
                     const img = document.createElement('img');
-                    img.src = emote.icon;
+                    img.src = this.game.resources.getVersionedResourceUrl(emote.icon);
                     img.className = 'emote-item';
                     img.alt = emote.id || 'emote';
                     img.title = emote.id || 'emote';

@@ -1,9 +1,9 @@
 import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
+import { getSharedResourceManager } from '../core/ResourceManager.js';
 import {
     drawMonsterSkillVfx,
-    preloadMonsterSkillVfxAtlas,
     resolveMonsterSkillVfxFrame,
     resolveMonsterSkillVfxTheme
 } from '../effects/MonsterSkillVfxRenderer.js';
@@ -80,12 +80,6 @@ export default class Monster extends CharacterBase {
             || this._inferEffectTheme(definition.id || '')
         ).toLowerCase();
         this.effectVfx = visual.effectVfx || {};
-        // Start one shared decode while monsters are created, before any cast begins.
-        // Each authored theme owns one lazy atlas.  Preload only this
-        // monster's theme so zone_5's rift texture never downloads in an
-        // earlier map, while its first telegraph is still fully visible.
-        preloadMonsterSkillVfxAtlas(this.effectTheme);
-
         // Components
         this.skills = definition.skills || [];
         this.skillCooldowns = new Map();
@@ -350,18 +344,12 @@ export default class Monster extends CharacterBase {
 
         if (isSingleFile) {
             if (!Monster.spriteLoadPromises[cacheKey]) {
-                Monster.spriteLoadPromises[cacheKey] = new Promise((resolve) => {
-                    const img = new Image();
-                    let v = window.GAME_VERSION;
-                    // Fallback if version check failed
-                    if (!v || v === 'error' || v === 'unknown') v = Date.now();
-                    img.onload = () => resolve(this._buildSingleFileSpriteEntry(img));
-                    img.onerror = () => {
+                Monster.spriteLoadPromises[cacheKey] = getSharedResourceManager().loadImage(path)
+                    .then((img) => this._buildSingleFileSpriteEntry(img))
+                    .catch(() => {
                         Logger.warn(`[Monster] Failed to load monster sprite: ${path}`);
-                        resolve(null);
-                    };
-                    img.src = `${path}?v=${v}`;
-                });
+                        return null;
+                    });
             }
 
             try {
@@ -382,42 +370,16 @@ export default class Monster extends CharacterBase {
         let loadedCount = 0;
         let loadPromises = [];
 
-        if (window.game && window.game.resources) {
-            // Use ResourceManager to ensure we hit the preloaded cache
-            loadPromises = frames.map((frameFile, i) => {
-                let v = window.GAME_VERSION;
-                if (!v || v === 'error' || v === 'unknown') v = Date.now();
-                const url = `${path}/${frameFile}?v=${v}`;
-
-                return window.game.resources.loadImage(url).then(img => {
-                    this.processAndDrawFrame(img, finalCtx, i * targetW, 0, targetW, targetH);
-                    loadedCount++;
-                }).catch(err => {
-                    Logger.warn(`Failed to load monster frame: ${url}`, err);
-                });
+        const resources = getSharedResourceManager();
+        loadPromises = frames.map((frameFile, i) => {
+            const url = `${path}/${frameFile}`;
+            return resources.loadImage(url).then(img => {
+                this.processAndDrawFrame(img, finalCtx, i * targetW, 0, targetW, targetH);
+                loadedCount++;
+            }).catch(err => {
+                Logger.warn(`Failed to load monster frame: ${url}`, err);
             });
-            await Promise.all(loadPromises);
-        } else {
-            // Fallback if no game instance (should not happen in normal flow)
-            loadPromises = frames.map((frameFile, i) => {
-                const img = new Image();
-                const v = window.GAME_VERSION || Date.now();
-                img.src = `${path}/${frameFile}?v=${v}`;
-                return new Promise((resolve) => {
-                    img.onload = () => {
-                        this.processAndDrawFrame(img, finalCtx, i * targetW, 0, targetW, targetH);
-                        loadedCount++;
-                        resolve();
-                    };
-                    img.onerror = () => {
-                        Logger.warn(`Failed to load monster frame: ${img.src}`);
-                        resolve();
-                    };
-                });
-            });
-            await Promise.all(loadPromises);
-        }
-
+        });
         await Promise.all(loadPromises);
 
         if (loadedCount > 0) {

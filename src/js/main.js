@@ -1,12 +1,14 @@
 import Logger from './utils/Logger.js';
 import { getViewportMetrics } from './core/ViewportMetrics.js';
-window.RUNTIME_BUILD_VERSION = '0.02.115'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.117'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
 import TouchHandler from './core/input/TouchHandler.js';
 import KeyboardHandler from './core/input/KeyboardHandler.js';
 import ResourceManager from './core/ResourceManager.js';
+import { preloadPlayerSkillVfx } from './effects/PlayerSkillVfxRenderer.js';
+import { preloadMonsterSkillVfxAssets } from './effects/MonsterSkillVfxRenderer.js';
 import ZoneManager from './world/ZoneManager.js';
 import Camera from './world/Camera.js';
 import AuthManager from './core/AuthManager.js';
@@ -641,9 +643,17 @@ class Game {
 
         // v0.30.0: Centralized Pre-loading
         try {
-            await this.resources.preloadCriticalAssets((pct) => {
-                this.updateLoading('리소스 다운로드 중...', pct);
+            const visualLoads = await Promise.allSettled([
+                this.resources.preloadCriticalAssets((loaded, total) => {
+                    this.updateLoading('리소스 다운로드 중...', Math.round(loaded / total * 70));
+                }),
+                preloadPlayerSkillVfx(this.resources),
+                preloadMonsterSkillVfxAssets(this.resources)
+            ]);
+            visualLoads.forEach(result => {
+                if (result.status === 'rejected') Logger.warn('Visual preload failed; using fallback', result.reason);
             });
+            this.updateLoading('게임 데이터 준비 중...', 85);
 
             // v2.1: Load Emotes
             const emoteData = await this.resources.loadJSON('/assets/data/emotes/basic_emotes.json');
@@ -652,6 +662,11 @@ class Game {
             // v2.2: Load Quest Definitions
             await this.quests.loadQuests();
             await this.itemData.loadAll();
+            const iconPaths = new Set([
+                ...this.emotes.map(emote => emote.icon),
+                ...Array.from(this.itemData.itemDefinitions.values(), item => item.icon?.path)
+            ].filter(Boolean));
+            await Promise.allSettled(Array.from(iconPaths, path => this.resources.loadImage(path)));
 
         } catch (e) {
             Logger.error('Asset Preloading Partial failure', e);
