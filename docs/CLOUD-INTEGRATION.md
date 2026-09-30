@@ -216,3 +216,36 @@ tutorial tests pass. New `npm run validate:asset-browser` verifies portrait firs
 entry -> landscape, reload reuse, new SW release reuse, changed-asset download and
 API exclusion without any external requests. Logs are in `/tmp/yurika-asset-qa/`.
 No live account login or production database writes were used for QA.
+
+## Audio recovery (0.02.121)
+
+Two reproducible gaps were found after the sound report: CampScene did not request
+the original selection theme, and SoundManager removed its unlock handlers after
+the first gesture. A later suspended context therefore stayed silent through
+subsequent field touches (which can also stop event propagation). Existing BGM
+scores, synthesized SFX and saved volume defaults were unchanged; audio score
+paths are present in the immutable manifest. A fresh uninterrupted local field
+already produced sound state in 0.02.120, so this is not a claim that every device
+had the same interruption or that the user's exact phone state was observed.
+
+Camp now requests the existing bgm_intro, including after field return, and plays
+the existing UI click cue. SoundManager retains lightweight capture-phase gesture
+handlers, resumes suspended/interrupted contexts and defers pre-initialization BGM
+requests until a gesture permits playback. Field BGM selection remains unchanged.
+Mute/volume settings are not overridden, and no new music or economic/gameplay
+content is introduced.
+
+`npm run validate:game-audio` exercises real 780x360 Chromium touch with gesture-
+required autoplay: camp/field BGM, two field/return cycles, explicit context
+suspension followed by the real attack button and nonzero SFX waveform, then saved
+17% volume + mute surviving resume and reload. Master RMS was about 0.012–0.013;
+post-resume attack SFX RMS about 0.019–0.020, while muted output was exactly zero.
+`npm run validate:audio` renders all 9 original scores with finite nonzero samples
+and no clipping, and checks effects, mute, score races and loop timing. Related
+runtime/resource/improvement, three-viewport camp and tutorial checks also pass.
+
+Evidence: `/tmp/yurika-audio-qa/`. These are synthesized PCM/analyser output and
+browser playback-state checks, not human listening through the user's Android
+speaker. Production verification additionally checks live audio runtime bytes,
+intro/field score JSON and sound event JSON via the Hosting-only CI. No live
+account login, database/security/Functions change or Sites entry patch is used.

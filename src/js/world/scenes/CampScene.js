@@ -19,13 +19,18 @@ export default class CampScene extends Scene {
         this.game.net.setZoneParticipationEnabled?.(false);
         this.game.monsterManager.clearAll?.({ preserveNetwork: true });
         this.game.story?.resetFade?.();
+        // Retain the original character-selection theme while at camp.
+        void this.game.sound?.loadAndPlayBgm?.('bgm_intro');
         this.root = document.createElement('section');
         this.root.id = 'camp-scene';
         this.root.setAttribute('aria-label', '달숲 야영지');
         document.getElementById('game-container').append(this.root);
         this.root.addEventListener('click', event => {
             const action = event.target.closest('[data-camp]')?.dataset.camp;
-            if (action) void this.action(action);
+            if (action) {
+                this.game.sound?.playSfx?.('ui_click');
+                void this.action(action);
+            }
         });
         this.onBack = () => { if (this.view !== 'camp' && !this.busy) { this.view = 'camp'; this.renderUI(); } };
         window.addEventListener('popstate', this.onBack);

@@ -42,17 +42,22 @@ export default class SoundManager {
             this.notes[`${names[midi % 12]}${Math.floor(midi / 12) - 1}`] = 440 * 2 ** ((midi - 69) / 12);
         }
 
-        // Bind user interaction
+        this.pendingBgmId = null;
+        // Keep recovery gestures for the app lifetime: mobile contexts can suspend
+        // again after tab/background interruptions. Capture runs before controls
+        // stop propagation, without swallowing their input or changing mute settings.
         const unlock = () => {
+            if (this.ctx?.state === 'running' && !this.pendingBgmId) return;
             this.initOrResume();
-            this.resume();
-            window.removeEventListener('click', unlock);
-            window.removeEventListener('keydown', unlock);
-            window.removeEventListener('touchstart', unlock);
+            void this.resume().then(() => {
+                if (this.pendingBgmId && this.ctx?.state === 'running') {
+                    void this.loadAndPlayBgm(this.pendingBgmId);
+                }
+            });
         };
-        window.addEventListener('click', unlock);
-        window.addEventListener('keydown', unlock);
-        window.addEventListener('touchstart', unlock);
+        for (const type of ['pointerdown', 'touchend', 'click', 'keydown']) {
+            window.addEventListener(type, unlock, { capture: true, passive: true });
+        }
 
         this.noiseBuffer = null;
         this.reverbBuffer = null;
@@ -104,7 +109,7 @@ export default class SoundManager {
     }
 
     resume() {
-        if (this.ctx && this.ctx.state === 'suspended') {
+        if (this.ctx && (this.ctx.state === 'suspended' || this.ctx.state === 'interrupted')) {
             return this.ctx.resume().then(() => {
                 Logger.log('[SoundManager] Audio Context Resumed');
             }).catch(e => {
@@ -169,7 +174,9 @@ export default class SoundManager {
     }
 
     async loadAndPlayBgm(id) {
-        if (!this.isInitialized || this.currentBgmId === id) return;
+        if (!this.isInitialized) { this.pendingBgmId = id; return; }
+        this.pendingBgmId = null;
+        if (this.currentBgmId === id) return;
         const request = ++this.bgmRequest;
         try {
             const data = await this.resourceManager.loadJSON(`/assets/data/music/${id}.json`);
@@ -180,6 +187,7 @@ export default class SoundManager {
     }
 
     stopBgm(fadeSeconds = 0) {
+        this.pendingBgmId = null;
         ++this.bgmRequest;
         if (this.bgmLoopTimer) clearTimeout(this.bgmLoopTimer);
         this.bgmLoopTimer = null;

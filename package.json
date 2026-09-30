@@ -22,7 +22,9 @@
     "validate:adventure-summary": "node --test scripts/validate-adventure-summary.mjs",
     "assets:build": "node scripts/build-immutable-assets.mjs",
     "validate:assets": "node --test scripts/validate-immutable-assets.mjs",
-    "validate:asset-browser": "node scripts/validate-asset-cache-browser.cjs"
+    "validate:asset-browser": "node scripts/validate-asset-cache-browser.cjs",
+    "validate:audio": "node scripts/audio-tests/validate-audio.cjs",
+    "validate:game-audio": "node scripts/audio-tests/validate-game-audio.cjs"
   },
   "dependencies": {
     "image-size": "^2.0.2"

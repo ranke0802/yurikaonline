@@ -24,7 +24,9 @@ for (let attempt = 0; attempt < 6; attempt++) {
         const sources = [
             '/party-rpg-concept/assets/camp-master-v2.webp', '/party-rpg-concept/assets/mage-key.webp',
             '/party-rpg-concept/assets/idle-mage.webp', '/src/assets/icon_192_clean.webp',
-            '/assets/resource/effects/player-skills/fireball.webp', '/assets/data/items/item_catalog.json'
+            '/assets/resource/effects/player-skills/fireball.webp', '/assets/data/items/item_catalog.json',
+            '/assets/data/music/bgm_intro.json', '/assets/data/music/bgm_cabin.json',
+            '/assets/data/sound/sound_events.json'
         ];
         for (const source of sources) {
             const target = assets[source];
@@ -36,6 +38,10 @@ for (let attempt = 0; attempt < 6; attempt++) {
             assert.match(response.headers.get('cache-control') || '', /immutable/);
             console.log(JSON.stringify({path:target,status:response.status,bytes:bytes.length,cacheControl:response.headers.get('cache-control')}));
         }
+        const audioCode = await get('/src/js/core/SoundManager.js' + suffix);
+        assert.equal(sha(audioCode.bytes), sha(readFileSync('src/js/core/SoundManager.js')), 'published audio runtime');
+        assert.match(audioCode.response.headers.get('cache-control') || '', /no-cache/);
+        console.log('VERIFIED live audio runtime matches commit; intro/field scores and sound events are available');
         console.log(`VERIFIED Hosting ${origin} version=${version} commit=${process.env.GITHUB_SHA || 'local'}; online entry and ${sources.length} immutable assets`);
         failure = null;
         break;

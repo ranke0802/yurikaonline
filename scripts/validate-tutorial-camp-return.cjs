@@ -29,9 +29,13 @@ await p.locator('#loading-overlay').waitFor({state:'hidden'});
 const cdp=await c.newCDPSession(p);
 await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:156,y:288,id:0}]});
 await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:215,y:288,id:0}]});
-await p.waitForTimeout(1200);
-await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+// Movement training counts update ticks; keep genuine touch held until the
+// training condition completes instead of assuming a fixed frame rate.
+try {
 await p.waitForFunction(()=>game.tutorial.getCurrentStep()?.id==='attack_dummy');
+} finally {
+await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+}
 await p.goBack();
 await p.locator('#confirm-no').waitFor();
 assert.equal(await p.evaluate(()=>{const r=document.querySelector('.camp-return').getBoundingClientRect();

@@ -8,7 +8,7 @@ const { chromium } = require('@playwright/test');
     .replace(/import Logger[^\n]*\n/, 'const Logger = { log(){}, warn(){} };\n');
   const scores = fs.readdirSync('assets/data/music').filter(x => x.endsWith('.json'))
     .map(name => ({ name, data: JSON.parse(fs.readFileSync(path.join('assets/data/music', name))) }));
-  const browser = await chromium.launch({ headless: true, channel: 'chrome' });
+  const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium' });
   try {
     const page = await browser.newPage();
     const result = await page.evaluate(async ({ source, scores }) => {
