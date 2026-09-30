@@ -1,0 +1,2 @@
+# Content-addressed output must keep byte identity across checkout platforms.
+assets/immutable/** -text -diff
