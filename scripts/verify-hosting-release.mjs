@@ -26,7 +26,8 @@ for (let attempt = 0; attempt < 6; attempt++) {
             '/party-rpg-concept/assets/idle-mage.webp', '/src/assets/icon_192_clean.webp',
             '/assets/resource/effects/player-skills/fireball.webp', '/assets/data/items/item_catalog.json',
             '/assets/data/music/bgm_intro.json', '/assets/data/music/bgm_cabin.json',
-            '/assets/data/sound/sound_events.json'
+            '/assets/data/sound/sound_events.json',
+            ...[1, 2, 3, 4, 5].map(frame => `/assets/resource/monster_slime/${frame}.webp`)
         ];
         for (const source of sources) {
             const target = assets[source];
@@ -41,6 +42,10 @@ for (let attempt = 0; attempt < 6; attempt++) {
         const audioCode = await get('/src/js/core/SoundManager.js' + suffix);
         assert.equal(sha(audioCode.bytes), sha(readFileSync('src/js/core/SoundManager.js')), 'published audio runtime');
         assert.match(audioCode.response.headers.get('cache-control') || '', /no-cache/);
+        const monsterCode = await get('/src/js/entities/Monster.js' + suffix);
+        assert.equal(sha(monsterCode.bytes), sha(readFileSync('src/js/entities/Monster.js')), 'published monster runtime');
+        assert.match(monsterCode.response.headers.get('cache-control') || '', /no-cache/);
+        console.log('VERIFIED live monster runtime matches commit; all five slime frames are available');
         console.log('VERIFIED live audio runtime matches commit; intro/field scores and sound events are available');
         console.log(`VERIFIED Hosting ${origin} version=${version} commit=${process.env.GITHUB_SHA || 'local'}; online entry and ${sources.length} immutable assets`);
         failure = null;

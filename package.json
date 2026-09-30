@@ -24,7 +24,8 @@
     "validate:assets": "node --test scripts/validate-immutable-assets.mjs",
     "validate:asset-browser": "node scripts/validate-asset-cache-browser.cjs",
     "validate:audio": "node scripts/audio-tests/validate-audio.cjs",
-    "validate:game-audio": "node scripts/audio-tests/validate-game-audio.cjs"
+    "validate:game-audio": "node scripts/audio-tests/validate-game-audio.cjs",
+    "validate:monster-visibility": "node scripts/validate-monster-visibility.cjs"
   },
   "dependencies": {
     "image-size": "^2.0.2"

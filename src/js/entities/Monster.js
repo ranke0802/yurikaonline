@@ -423,29 +423,52 @@ export default class Monster extends CharacterBase {
         const bgG = data[1];
         const bgB = data[2];
 
+        // Only remove background reachable from an image edge. A global colour
+        // threshold also erased the slime's pale green body, leaving different
+        // transparent holes in every animation frame (visible as combat flicker).
+        const pixelCount = img.width * img.height;
+        const background = new Uint8Array(pixelCount);
+        const queue = new Int32Array(pixelCount);
+        let head = 0;
+        let tail = 0;
+        const enqueueBackground = (pixel) => {
+            if (background[pixel]) return;
+            const offset = pixel * 4;
+            const dr = data[offset] - bgR;
+            const dg = data[offset + 1] - bgG;
+            const db = data[offset + 2] - bgB;
+            if (data[offset + 3] !== 0 && dr * dr + dg * dg + db * db >= 100 * 100) return;
+            background[pixel] = 1;
+            queue[tail++] = pixel;
+        };
+        for (let x = 0; x < img.width; x++) {
+            enqueueBackground(x);
+            enqueueBackground((img.height - 1) * img.width + x);
+        }
+        for (let y = 0; y < img.height; y++) {
+            enqueueBackground(y * img.width);
+            enqueueBackground(y * img.width + img.width - 1);
+        }
+        while (head < tail) {
+            const pixel = queue[head++];
+            const x = pixel % img.width;
+            if (x > 0) enqueueBackground(pixel - 1);
+            if (x + 1 < img.width) enqueueBackground(pixel + 1);
+            if (pixel >= img.width) enqueueBackground(pixel - img.width);
+            if (pixel + img.width < pixelCount) enqueueBackground(pixel + img.width);
+        }
+
         let minX = img.width, maxX = 0, minY = img.height, maxY = 0;
         let foundPixels = false;
-
         for (let y = 0; y < img.height; y++) {
             for (let x = 0; x < img.width; x++) {
-                const idx = (y * img.width + x) * 4;
-                const r = data[idx], g = data[idx + 1], b = data[idx + 2];
-
-                // Calculate distance to BG color
-                const diff = Math.sqrt(
-                    Math.pow(r - bgR, 2) +
-                    Math.pow(g - bgG, 2) +
-                    Math.pow(b - bgB, 2)
-                );
-
-                // Threshold for background removal - v2.3.5: Increased to 100 for better green screen removal
-                if (diff < 100) {
-                    data[idx + 3] = 0;
-                } else {
-                    if (x < minX) minX = x;
-                    if (x > maxX) maxX = x;
-                    if (y < minY) minY = y;
-                    if (y > maxY) maxY = y;
+                const pixel = y * img.width + x;
+                if (background[pixel]) data[pixel * 4 + 3] = 0;
+                else if (data[pixel * 4 + 3] > 0) {
+                    minX = Math.min(minX, x);
+                    maxX = Math.max(maxX, x);
+                    minY = Math.min(minY, y);
+                    maxY = Math.max(maxY, y);
                     foundPixels = true;
                 }
             }

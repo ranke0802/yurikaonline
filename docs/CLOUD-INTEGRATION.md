@@ -249,3 +249,14 @@ browser playback-state checks, not human listening through the user's Android
 speaker. Production verification additionally checks live audio runtime bytes,
 intro/field score JSON and sound event JSON via the Hosting-only CI. No live
 account login, database/security/Functions change or Sites entry patch is used.
+
+
+## 0.02.122 — monster visibility repair (2026-09-30)
+
+The reported disappearance was investigated separately from damage feedback. The current Monster renderer does not blink or hide its body on hit; hitTimer does not control sprite opacity. All 12 enabled monster definitions had nonempty runtime animation cells. Unused atlas cells remain excluded. However, the legacy slime background-removal algorithm deleted every pixel within RGB distance 100 of the upper-left background colour, including the pale green enclosed body. Browser-generated sheets reproduced large transparent holes varying between all five poses. This predates the audio fix; WebP conversion did not alter these existing slime WebP files.
+
+The minimal fix restricts chroma removal to matching background pixels connected to the image edges. The original raster colours, five poses, cache, damage numbers, HP, sounds, and combat rules are preserved. Existing alpha-authored assets bypass this processing as before. No new flashing hit effect was added. Before processing fix the five cells had 11493/8920/14038/13817/13802 visible pixels; after: 31630/20419/30593/33730/33195. Contact sheets visually confirm intact bodies. This establishes a concrete rendering defect, not a claim of reproducing every possible network/device-specific disappearance.
+
+`npm run validate:monster-visibility` runs isolated Chromium local-mode QA at 780x360, 852x393, and 1440x900. It checks all 12 monster definitions, an enclosed foreground/background same-colour regression, three simultaneous monsters, physical touch laser/fireball/missile controls, repeated/critical/periodic hits, and death/new-spawn visibility. Observed 2325 live draws and 391 damage calls, no hidden live sprite or opacity toggle; no page errors/external requests. Existing damage feedback remains non-blinking. Screenshots and report: `/tmp/yurika-monster-qa/{galaxy,iphone,desktop}-combat.png`, `galaxy-slime-frames.png`, `visibility-report.json`. Full existing validation, mobile combat/growth/inventory regression, audio gesture/output regression, local profile and immutable asset checks are rerun for this release. No live DB writes, real phone hardware, or live multiplayer session was used; browser touch/device emulation is not an actual Galaxy/iPhone test.
+
+Hosting verification now checks exact deployed Monster.js bytes plus all five immutable slime WebPs, in addition to existing version/HTML/audio/assets checks. Online entry stays unchanged; deployment remains Hosting-only.
