@@ -12,9 +12,9 @@ try{
  const cdp=await context.newCDPSession(page);
  const touch=(type,points)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:points.map((p,i)=>({...p,id:i,radiusX:4,radiusY:4,force:1}))});
  await page.goto('http://127.0.0.1:8100/?local=1');
- await page.locator('#camp-name').fill('파이어볼 검증');await page.locator('[data-camp="create"]').tap();await page.locator('[data-camp="character"]').waitFor();
+ await page.locator('#camp-name').fill('파이어볼 검증');await page.locator('[data-camp="create"]').tap();await page.locator('[data-camp="character"]').first().waitFor();
  await page.evaluate(async()=>{const n=game.net;const p=await n.getPlayerProfile(n.playerId);await n.savePlayerData(n.playerId,{...p,questData:{basicTrainingCompleted:true,prologueCompleted:true}});});
- await page.locator('[data-camp="character"]').tap();await page.locator('[data-camp="depart"]').tap();await page.locator('.camp-return').waitFor();await page.locator('#loading-overlay').waitFor({state:'hidden'});
+ await page.locator('[data-camp="prepare"]').tap();await page.locator('[data-camp="depart"]').tap();await page.locator('.camp-return').waitFor();await page.locator('#loading-overlay').waitFor({state:'hidden'});
  for(const level of [6,7,20])for(const mode of ['auto-tap','manual-drag']){
   const before=await page.evaluate(async({level})=>{
    const p=game.localPlayer;game.projectiles=[];game.monsterManager.monsters.clear();

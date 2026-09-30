@@ -12,7 +12,7 @@ await p.route('**/*',r=>{if(new URL(r.request().url()).hostname==='127.0.0.1')re
 await p.goto('http://127.0.0.1:8100/?local=1');
 await p.locator('#camp-name').fill('첫 모험');
 await p.locator('[data-camp=create]').tap();
-await p.locator('[data-camp=character]').tap();
+await p.locator('[data-camp=prepare]').tap();
 await p.locator('[data-camp=depart]').tap();
 await p.waitForFunction(()=>game.tutorial.getCurrentStep()?.id==='move_check');
 await p.locator('#loading-overlay').waitFor({state:'hidden'});
@@ -21,8 +21,8 @@ return {button:a.toJSON(),guide:g.toJSON(),overlap:Math.max(0,Math.min(a.right,g
 console.log(boxes);
 assert.equal(boxes.overlap,0);
 await p.locator('.camp-return').tap();
-await p.locator('[data-camp=character]').waitFor();
-await p.locator('[data-camp=character]').tap();
+await p.locator('[data-camp=character]').first().waitFor();
+await p.locator('[data-camp=prepare]').tap();
 await p.locator('[data-camp=depart]').tap();
 await p.waitForFunction(()=>game.tutorial.getCurrentStep()?.id==='move_check');
 await p.locator('#loading-overlay').waitFor({state:'hidden'});
@@ -42,7 +42,7 @@ assert.equal(await p.evaluate(()=>{const r=document.querySelector('.camp-return'
 return !!document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('.camp-return')}),false,'confirmation overlay must still block field exit');
 await p.locator('#confirm-no').tap();
 await p.locator('.camp-return').tap();
-await p.locator('[data-camp=character]').waitFor();
+await p.locator('[data-camp=character]').first().waitFor();
 assert.deepEqual(errors,[]);
 assert.deepEqual(external,[]);
 console.log('PASS fresh mobile move_check touch return, reentry, real joystick progression to attack_dummy and touch return')}finally{await b.close()}})().catch(e=>{console.error(e);

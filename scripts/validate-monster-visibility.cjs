@@ -9,9 +9,9 @@ const out='/tmp/yurika-monster-qa';fs.mkdirSync(out,{recursive:true});
  const context=await browser.newContext({viewport:{width,height},hasTouch:true,isMobile:name!=='desktop'});
  const page=await context.newPage();page.on('pageerror',e=>report.errors.push(e.message));
  await page.route('**/*',r=>{if(new URL(r.request().url()).hostname==='127.0.0.1')return r.continue();report.external.push(r.request().url());return r.abort()});
- await page.goto('http://127.0.0.1:8100/?local=1');await page.locator('#camp-name').fill('시인성 검사');await page.locator('[data-camp="create"]').tap();await page.locator('[data-camp="character"]').waitFor();
+ await page.goto('http://127.0.0.1:8100/?local=1');await page.locator('#camp-name').fill('시인성 검사');await page.locator('[data-camp="create"]').tap();await page.locator('[data-camp="character"]').first().waitFor();
  await page.evaluate(async()=>{await game.net.savePlayerData(game.net.playerId,{questData:{basicTrainingCompleted:true,prologueCompleted:true}})});
- await page.locator('[data-camp="character"]').tap();await page.locator('[data-camp="depart"]').tap();await page.locator('.camp-return').waitFor();await page.locator('#loading-overlay').waitFor({state:'hidden'});
+ await page.locator('[data-camp="prepare"]').tap();await page.locator('[data-camp="depart"]').tap();await page.locator('.camp-return').waitFor();await page.locator('#loading-overlay').waitFor({state:'hidden'});
  const frames=await page.evaluate(async()=>{
  const {default:Monster}=await import('/src/js/entities/Monster.js');
  const ids=['slime','king_slime','slime_split','squirtle','emolga','gastly','thunder_pikachu','ruin_wobbuffet','astral_sylveon','ember_drake','spark_squirrel','rift_sentinel'];

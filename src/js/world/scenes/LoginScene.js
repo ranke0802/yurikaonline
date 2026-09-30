@@ -57,26 +57,23 @@ export default class LoginScene extends Scene {
     createUI() {
         this.loginUI = document.createElement('div');
         this.loginUI.id = 'login-scene-ui';
-        this.loginUI.className = 'scene-overlay';
-        const version = window.GAME_VERSION || '0.02.127';
+        this.loginUI.className = 'scene-overlay yurika-opening';
+        const art = this.game.resources.getVersionedResourceUrl('/party-rpg-concept/assets/opening.webp');
+        const version = window.GAME_VERSION || '0.02.128';
 
         this.loginUI.innerHTML = `
-            <div class="login-card glass">
-                <h1 class="game-logo">YURIKA ONLINE</h1>
-                <p class="game-subtitle">Advanced Agentic MMORPG</p>
-
-                <div class="login-options">
-                    <button id="google-login-btn" class="login-btn google">
-                        <span class="btn-icon">G</span> Google로 로그인
-                    </button>
-                    <button id="guest-login-btn" class="login-btn guest">
-                        게스트로 시작하기
-                    </button>
+            <div class="opening-art" aria-hidden="true"><img src="${art}" alt=""></div>
+            <header class="opening-brand"><p>MOONFOREST</p><h1>YURIKA</h1><p class="opening-online">ONLINE</p><h2>달숲에서 시작하는 나의 모험</h2></header>
+            <div class="opening-footer">
+                <p class="opening-status" role="status" aria-live="polite">로그인하고 모험을 시작하세요.</p>
+                <div class="opening-actions">
+                    <button id="google-login-btn" class="opening-button">Google로 로그인</button>
+                    <button id="guest-login-btn" class="opening-button opening-guest">게스트로 시작하기</button>
                 </div>
-
-                <div class="version-tag">${version}</div>
+                <small class="opening-version">${version}</small>
             </div>
         `;
+        this.loginUI.querySelector('.opening-art').style.setProperty('--opening-art', `url("${art}")`);
 
         document.getElementById('game-container').appendChild(this.loginUI);
 
@@ -91,40 +88,36 @@ export default class LoginScene extends Scene {
         }
     }
 
-    async handleGoogleLogin() {
-        const btn = document.getElementById('google-login-btn');
+    setLoginPending(pending, message) {
+        if (!this.loginUI) return;
+        this.loginUI.querySelectorAll('.opening-button').forEach(button => { button.disabled = pending; });
+        this.loginUI.querySelector('.opening-status').textContent = message;
+    }
+
+    async authenticate(provider) {
+        if (this.loginPending) return;
+        this.loginPending = true;
+        this.setLoginPending(true, '모험 기록을 불러오고 있어요.');
         try {
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = `<span class="btn-icon">...</span> 구글 로그인 중...`;
-            }
-            await this.game.auth.loginGoogle();
+            await (provider === 'google' ? this.game.auth.loginGoogle() : this.game.auth.loginAnonymously());
         } catch (e) {
-            Logger.error("Login Error:", e);
-
-            // Special handling for domain issues
-            if (e.code === 'auth/unauthorized-domain') {
-                alert(`승인되지 않은 도메인입니다 (${window.location.hostname}).\nFirebase 콘솔에서 승인된 도메인에 추가해주세요.`);
-            } else if (e.code === 'auth/popup-closed-by-user') {
-                Logger.log("User closed the popup.");
-            } else {
-                alert("로그인 중 오류가 발생했습니다: " + (e.message || "알 수 없는 오류"));
-            }
-
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = `<span class="btn-icon">G</span> Google로 로그인`;
-            }
+            Logger.error('Login Error:', e);
+            const message = e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request'
+                ? '로그인을 취소했어요. 다시 시작할 수 있어요.'
+                : e.code === 'auth/unauthorized-domain'
+                    ? '이 주소에서는 로그인할 수 없어요. 공식 서비스에서 다시 시도해주세요.'
+                    : '로그인하지 못했어요. 연결을 확인하고 다시 시도해주세요.';
+            this.setLoginPending(false, message);
+        } finally {
+            this.loginPending = false;
+            // Auth observers own the next scene; a cancelled or incomplete attempt stays retryable.
+            if (this.loginUI) this.loginUI.querySelectorAll('.opening-button').forEach(button => { button.disabled = false; });
         }
     }
 
-    async handleGuestLogin() {
-        try {
-            await this.game.auth.loginAnonymously();
-        } catch (e) {
-            Logger.error("Guest Login Error:", e);
-        }
-    }
+    handleGoogleLogin() { return this.authenticate('google'); }
+
+    handleGuestLogin() { return this.authenticate('guest'); }
 
     update(dt) {
         // Background animation if any

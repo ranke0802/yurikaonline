@@ -1,0 +1,25 @@
+/* Original prototype opening composition; authentication and loading remain live. */
+.yurika-opening { --opening-art: url("/assets/immutable/7605a962b2b7f0c265fa8546.webp"); position: absolute; inset: 0; isolation: isolate; overflow: hidden; color: #f7ecd4; background: #304139; font-family: 'Outfit', sans-serif; }
+#loading-overlay.yurika-opening { display: block; background: #304139; width: 100%; height: 100%; }
+#login-scene-ui.yurika-opening { display: block; padding: 0; background: #304139; animation: none; }
+.yurika-opening .opening-art { position: absolute; inset: 0; z-index: -1; overflow: hidden; }
+.yurika-opening .opening-art::before { content: ''; position: absolute; inset: 0; background-image: var(--opening-art),var(--opening-art); background-size: auto 100%,cover; background-position: min(30vw,calc(100vw - 100dvh * 1.475 - 28px)) 0,center; background-repeat: no-repeat; filter: blur(3px) brightness(.95); }
+.yurika-opening .opening-art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg,#152e3bb5,transparent 57%),linear-gradient(0deg,#132d3955,transparent 30%); }
+.yurika-opening .opening-art img { position: absolute; height: 100%; width: auto; max-width: none; left: min(30vw,calc(100vw - 100dvh * 1.475 - 28px)); object-fit: contain; mask-image: linear-gradient(90deg,transparent,#000 7%,#000 95%,transparent); }
+.yurika-opening .opening-brand { position: absolute; top: calc(env(safe-area-inset-top,0px) + 16%); left: max(28px,env(safe-area-inset-left,0px)); max-width: 44%; text-shadow: 0 2px 16px #16283977; }
+.yurika-opening .opening-brand p { font-size: 11px; letter-spacing: 4px; margin: 0; }
+.yurika-opening .opening-brand h1 { font: 400 clamp(47px,6.4vw,90px) Georgia,serif; letter-spacing: 3px; line-height: 1; margin: 16px 0 8px; color: inherit; }
+.yurika-opening .opening-brand .opening-online { letter-spacing: 7px; }
+.yurika-opening .opening-brand h2 { font: 400 clamp(14px,1.7vw,25px) Georgia,serif; margin: 24px 0 0; line-height: 1.5; color: inherit; }
+.yurika-opening .opening-footer { position: absolute; bottom: max(22px,env(safe-area-inset-bottom,0px)); left: max(28px,env(safe-area-inset-left,0px)); width: clamp(250px,32vw,400px); }
+.yurika-opening .opening-status, .yurika-opening .loading-text { color: #f0e1c5; font-size: 12px; font-weight: 400; margin: 0 0 14px; line-height: 1.6; }
+.yurika-opening .opening-actions { display: grid; gap: 9px; }
+.yurika-opening .opening-button { width: 100%; min-height: 46px; padding: 10px 16px; border: 1px solid #f4dfb3; border-radius: 5px; background: linear-gradient(#e4cc9c,#c1a168); color: #302a20; font-size: 14px; cursor: pointer; box-shadow: 0 4px 18px #142a3630; }
+.yurika-opening .opening-button.opening-guest { background: #203741cc; color: #f0e1c5; border-color: #c5b78d88; }
+.yurika-opening .opening-button:disabled { opacity: .6; cursor: wait; }
+.yurika-opening .opening-button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.yurika-opening .opening-version { display: block; margin-top: 10px; font-size: 10px; color: #e6d6b7; }
+.yurika-opening .loading-progress-bar { height: 4px; width: 100%; border: 0; border-radius: 5px; background: #ffe4b330; }
+.yurika-opening #loading-progress-fill { background: linear-gradient(90deg,#cdae75,#fff1d4); }
+@media (max-height: 480px) and (orientation: landscape) { .yurika-opening .opening-brand { top: 8%; } .yurika-opening .opening-brand h1 { font-size: 47px; margin: 9px 0 6px; } .yurika-opening .opening-brand h2 { font-size: 14px; margin-top: 12px; } .yurika-opening .opening-footer { bottom: max(12px,env(safe-area-inset-bottom,0px)); width: 280px; } .yurika-opening .opening-button { min-height: 40px; padding: 8px 12px; font-size: 12px; } .yurika-opening .opening-status { margin-bottom: 8px; font-size: 11px; } }
+@media (orientation: portrait) { .yurika-opening .opening-art img { height: 60%; top: 10%; mask-image: linear-gradient(180deg,transparent,#000 6%,#000 93%,transparent); left: min(0px,calc(100vw - 60dvh * 1.475)); } .yurika-opening .opening-art::before { background-size: auto 60%,cover; background-position: min(0px,calc(100vw - 60dvh * 1.475)) 25%,center; } .yurika-opening .opening-brand { top: 7%; max-width: none; left: max(22px,env(safe-area-inset-left,0px)); } .yurika-opening .opening-brand h1 { font-size: 47px; } .yurika-opening .opening-brand h2 { display: none; } .yurika-opening .opening-footer { left: max(22px,env(safe-area-inset-left,0px)); width: calc(100% - 44px); bottom: max(6%,env(safe-area-inset-bottom,0px)); } }

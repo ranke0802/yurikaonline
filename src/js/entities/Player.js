@@ -2403,6 +2403,7 @@ export default class Player extends CharacterBase {
         const cost = this.getSkillUpgradeCost(skillId);
         if (this.manastone >= cost) {
             this.manastone -= cost;
+            window.game?.adventureSummary?.record(this.id, !!window.game?.isLocalMode, { kind: 'manastone', amount: -cost });
             this.skillLevels[skillId] = (this.skillLevels[skillId] || 0) + 1;
             Logger.log(`Skill ${skillId} leveled up to ${this.skillLevels[skillId]}`);
             if (window.game?.ui) window.game.ui.updateSkillPopup();
@@ -2433,6 +2434,7 @@ export default class Player extends CharacterBase {
         const shouldSave = options.save !== false;
         const debounceMs = Number.isFinite(options.debounceMs) ? options.debounceMs : undefined;
         this.manastone += amount;
+        window.game?.adventureSummary?.record(this.id, !!window.game?.isLocalMode, { kind: 'manastone', amount });
         this.updateManastoneInventory();
         if (shouldSave) {
             this.saveProfilePatch(['manastone'], {
@@ -2521,6 +2523,7 @@ export default class Player extends CharacterBase {
         }
         if (rewardManastone) {
             this.manastone += rewardManastone;
+            window.game?.adventureSummary?.record(this.id, !!window.game?.isLocalMode, { kind: 'manastone', amount: rewardManastone });
             this.updateManastoneInventory();
         }
         if (data.hp) this.recoverHp(data.hp, { save: false });
@@ -3029,6 +3032,7 @@ export default class Player extends CharacterBase {
         while (this.exp >= this.maxExp) {
             this.levelUp({ save: false });
         }
+        window.game?.adventureSummary?.record(this.id, !!window.game?.isLocalMode, { kind: 'exp', amount, progress: this });
         if (shouldSave) {
             const leveledUp = this.level > previousLevel;
             this.saveProfilePatch(['exp', 'maxExp', 'level', 'statPoints', 'hp', 'mp'], {

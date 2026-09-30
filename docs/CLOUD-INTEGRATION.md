@@ -305,3 +305,62 @@ Both title-row raster icons now use grayscale/soft contrast; selected and unsele
 Holding a populated slot for 420ms arms dragging. Movement before that threshold cancels the hold and scrolls the inventory; short taps open details. A completed drag inserts at the destination's position among the current category's occupied slots. Intermediate category items shift by one, while other-category slots/references remain exactly unchanged. Empty slots append within the current category. No cross-category conversion, swapping, stack merging or item duplication. Existing full-inventory callers of Player.moveInventoryItem retain their behavior; its optional category-index argument implements the scoped insertion. Reorder uses the existing durable inventory-only save. The UI cancels on pointercancel, outside drop, close, tab change, resize, render refresh or snapshot mutation. It suppresses the release click so a drag/scroll cannot use/open the item accidentally. Drag edge movement scrolls the existing viewport.
 
 Validation: existing v124 five-viewport geometry/category suite passes unchanged. New scripts/validate-inventory-interactions.cjs exercises all six item types, long-text scrolling, reroll confirmation/cancel, browser back, delayed summon duplicate guard, actual CDP touch holds and bidirectional insertion, outside/empty drops, resize/refresh/data-change/cancel/tab/close interruption, scrolling before hold, persisted order and page reload. Screenshots: /tmp/yurika-inventory-v127-qa/{galaxy,portrait,keyboard,desktop,narrow}-item-{1,2,3,4,5,6}.png. Nine inventory model tests include interleaved categories, bidirectional insertion, invalid destinations, save/reload and subsequent compaction. Existing full validation and mobile combat/last-stone consumption/save flow, fireball growth, asset cache, online monster authority and local-profile regressions pass. Chromium viewport and touch emulation is not physical-device/Safari testing; simulated keyboard height is not an actual OS keyboard. All test writes are isolated local saves; no live account/DB/security/Functions changes.
+
+## 0.02.128 — prototype composition and real camp preparation
+
+Restores the original prototype's layered camp background, decorative characters,
+foreground table and lower menus, rather than using the flattened camp art behind
+an oversized information panel. Character management reuses the original real
+inventory, status and skill popups. The account still owns one mage; decorative
+companions do not become playable members. Shop/clan remain disabled, and no
+prototype localStorage, 2500 gold or roster is imported.
+
+CampPreparation hydrates the original Player model without input bindings,
+combat/presence transport or reward consumers. Its allowlisted durable patches
+preserve saved coordinates, region, quests, experience and unknown account fields.
+Existing equip/enhance/reorder/stat/skill calculations remain authoritative. Failed
+writes (including an 8-second acknowledgement timeout) retain the changed fields and expose retry; departure/reload/account
+navigation flush before reading the latest saved profile. Clean lifecycle saves
+write nothing, preventing a stale camp snapshot from replacing externally updated
+inventory. Derived-stat HP publication is explicitly suppressed in camp. Popup
+closure refreshes the camp's displayed stats. Summon scrolls remain field-only.
+
+Preparation shows the saved region subject to the same level rule used by existing
+WorldScene entry. The original world, combat and travel code is unchanged. Return
+automatically displays the saved result; the journal records actual core currency
+receipts/spending and EXP, plus net item ownership and stat/skill growth. It never
+pays rewards. Gross totals are omitted if the final saved balance does not match
+observed events (for example an untracked external transfer). Results survive a
+reload in this tab and are account/local-identity isolated. They are presentation
+history, not a cross-device account ledger.
+
+The original opening artwork now surrounds real resource loading and the existing
+Google/guest actions. Duplicate login gestures are blocked and cancel/failure can
+retry. Authentication, new-account creation and returning-account recovery remain
+unchanged. All added runtime artwork is existing WebP through the immutable asset
+manifest (188 references). No new art, DB rules, Functions or live migrations.
+
+Verification for this release:
+- Full `npm run validate`, local-profile, immutable assets, monster authority,
+  inventory compaction, 24,600 fireball cases + 40 authority cases.
+- 8 camp-preparation model tests and 10 adventure journal tests, including the
+  actual Player reward failure/retry path with one reward application.
+- New `validate:camp-integration` on desktop/landscape/portrait: real camp equipment,
+  stat cancel/save, skill upgrade, save failure/retry, repeated departure, battle
+  state, result/reload/reentry, missing/read-failed mock account snapshots.
+- `validate:camp-regions`: unlocked zone_2 restores exact saved coordinates;
+  locked zone_5 falls back to zone_1 and its spawn under the existing rules.
+- Existing camp/tutorial/mobile combat, inventory geometry and long-press
+  interactions, fireball touch, online monster visibility, ground layers, audio
+  and asset cache browser suites. Original bag/slot geometry remains unchanged.
+- Opening browser fixtures cover Google cancellation, guest failure/retry,
+  duplicate action and scene exit at desktop/landscape/portrait sizes.
+
+Screenshots were directly compared with the original prototype, including camp,
+character and preparation in landscape and portrait. Evidence under
+`/tmp/yurika-integration-qa`, `/tmp/camp-design-qa`, `/tmp/yurika-opening-qa` and the
+existing `/tmp/yurika-*` suite folders. These are isolated browser fixtures,
+Chromium viewport/touch simulations and mocked account states, not physical
+Android/iPhone/Safari or actual Google/account/multiplayer verification. No live
+account or database was mutated. Hosting CI additionally compares all changed
+camp/opening runtime bytes and added immutable artwork to the deployed commit.

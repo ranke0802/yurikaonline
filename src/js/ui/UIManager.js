@@ -4791,6 +4791,7 @@ export class UIManager {
 
                 if (p.manastone >= cost) {
                     p.manastone -= cost;
+                    this.game.adventureSummary?.record(p.id, !!this.game.isLocalMode, { kind: 'manastone', amount: -cost });
                     p.updateManastoneInventory(); // v0.22.9
                     p.skillLevels[skillId]++;
                     this.game.tutorial?.trigger?.('skill_upgrade', { target: skillId });
@@ -7619,6 +7620,7 @@ export class UIManager {
         this.syncDevOverlayVisibility();
         this.refreshDesktopShortcutHints();
         this.refreshTutorialOverlayState();
+        if (!isCurrentlyHidden) this.game.sceneManager?.currentScene?.onPreparationPopupClosed?.();
     }
 
     refreshTutorialOverlayState() {

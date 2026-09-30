@@ -16,19 +16,19 @@ fs.mkdirSync(OUT, { recursive: true });
    await page.route('**/*', r=>{ const u=new global.URL(r.request().url()); if(u.hostname==='127.0.0.1'||u.hostname==='localhost')return r.continue(); report.external.push(r.request().url());return r.abort(); });
    await page.goto(URL); await page.locator('[data-camp="create"]').waitFor();
    assert.equal(await page.evaluate(()=>localStorage.getItem('yurika.local.profile.v1')),null,'empty state cannot invent profile');
-   await page.locator('#camp-name').fill('달숲 마법사'); await page.locator('[data-camp="create"]').click(); await page.locator('[data-camp="character"]').waitFor();
+   await page.locator('#camp-name').fill('달숲 마법사'); await page.locator('[data-camp="create"]').click(); await page.locator('[data-camp="character"]').first().waitFor();
    await page.screenshot({path:`${OUT}/${name}-camp.png`});
-   await page.locator('[data-camp="character"]').click(); await page.screenshot({path:`${OUT}/${name}-character.png`});
+   await page.locator('[data-camp="character"]').first().click(); await page.screenshot({path:`${OUT}/${name}-character.png`});
    await page.goBack(); await page.waitForFunction(()=>document.querySelector('#camp-scene')?.dataset.view==='camp');
-   await page.reload(); await page.locator('[data-camp="character"]').waitFor();
+   await page.reload(); await page.locator('[data-camp="character"]').first().waitFor();
    if(name==='desktop') {
-    await page.locator('[data-camp="character"]').click();await page.locator('[data-camp="depart"]').click();await page.locator('.camp-return').waitFor();
+    await page.locator('[data-camp="prepare"]').click();await page.locator('[data-camp="depart"]').click();await page.locator('.camp-return').waitFor();
     await page.waitForFunction(()=>!!game.tutorial.activeTutorial);
-    await page.locator('.camp-return').click();await page.locator('[data-camp="character"]').waitFor();
+    await page.locator('.camp-return').click();await page.locator('[data-camp="character"]').first().waitFor();
    }
    // Profile fixture skips already-covered tutorial and puts XP just below growth threshold.
    await page.evaluate(async()=>{const n=game.net;const p=await n.getPlayerProfile(n.playerId); const r=await n.savePlayerData(n.playerId,{...p,exp:99,questData:{...p.questData,basicTrainingCompleted:true,prologueCompleted:true}});if(!r.ok)throw Error(r.reason);});
-   await page.locator('[data-camp="character"]').click(); await page.locator('[data-camp="depart"]').click();
+   await page.locator('[data-camp="prepare"]').click(); await page.locator('[data-camp="depart"]').click();
    await page.waitForFunction(()=>window.game.localPlayer&&game.sceneManager.currentScene===game.sceneManager.scenes.get('world'));
    await page.waitForTimeout(700); await page.screenshot({path:`${OUT}/${name}-field.png`});
    if(name==='desktop') {
@@ -55,22 +55,22 @@ fs.mkdirSync(OUT, { recursive: true });
    }
    if(name==='iphone') { await page.goBack();await page.locator('#confirm-yes').waitFor();await page.locator('#confirm-yes').click(); }
    else await page.locator('.camp-return').click();
-   await page.locator('[data-camp="character"]').waitFor();
-   if(name==='desktop')assert.match(await page.locator('.camp-profile').innerText(),/Lv\.2/);
-   await page.reload();await page.locator('[data-camp="character"]').waitFor();
+   await page.locator('[data-camp="character"]').first().waitFor();
+   if(name==='desktop')assert.match(await page.locator('.camp-shortcut').innerText(),/Lv\.2/);
+   await page.reload();await page.locator('[data-camp="character"]').first().waitFor();
    if(name==='desktop') {
-    assert.match(await page.locator('.camp-profile').innerText(),/Lv\.2/);
+    assert.match(await page.locator('.camp-shortcut').innerText(),/Lv\.2/);
     await page.locator('#loading-overlay').waitFor({state:'hidden'});
     await page.screenshot({path:`${OUT}/desktop-saved-growth-camp.png`});
     const beforeFailedEntry = await page.evaluate(()=>JSON.parse(localStorage.getItem('yurika.local.profile.v1')).profile);
     await page.evaluate(()=>{window.qaLoadZone=game.zone.loadZone.bind(game.zone);game.zone.loadZone=async()=>{throw Error('qa_zone_resource_failure')};});
-    await page.locator('[data-camp="character"]').click();await page.locator('[data-camp="depart"]').click();
+    await page.locator('[data-camp="prepare"]').click();await page.locator('[data-camp="depart"]').click();
     await page.waitForFunction(()=>document.querySelector('.camp-status')?.textContent.includes('출전하지 못했어요'));
     assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('yurika.local.profile.v1')).profile),beforeFailedEntry,'failed reentry must not overwrite stored growth');
     await page.evaluate(()=>{game.zone.loadZone=qaLoadZone});
-    if(await page.locator('[data-camp="character"]').count())await page.locator('[data-camp="character"]').click();
+    if(await page.locator('[data-camp="character"]').first().count())await page.locator('[data-camp="prepare"]').click();
     await page.locator('[data-camp="depart"]').click();await page.locator('.camp-return').waitFor();
-    await page.locator('.camp-return').click();await page.locator('[data-camp="character"]').waitFor();
+    await page.locator('.camp-return').click();await page.locator('[data-camp="character"]').first().waitFor();
     await page.evaluate(()=>{window.qaRead=game.net.getLatestProfileSnapshot.bind(game.net);game.net.getLatestProfileSnapshot=()=>new Promise(resolve=>setTimeout(()=>resolve(qaRead()),1000));});
     await page.locator('[data-camp="reload"]').click();assert.match(await page.locator('.camp-status').innerText(),/불러오고/);await page.waitForTimeout(1200);
     await page.evaluate(()=>{game.net.getLatestProfileSnapshot=async()=>{throw Error('qa_read_failure')}});await page.locator('[data-camp="reload"]').click();await page.locator('[data-camp="retry"]').waitFor();assert.equal(await page.locator('[data-camp="create"]').count(),0);assert.equal(await page.locator('[data-camp="depart"]').count(),0);
