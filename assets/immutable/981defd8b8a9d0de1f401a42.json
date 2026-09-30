@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "weapon_upgrade_stone",
+  "name": "무기 강화석",
+  "type": "material",
+  "stackable": true,
+  "maxStack": 999,
+  "rarity": "rare",
+  "description": "무기를 선택해 +1부터 +10까지 일반 강화를 시도할 수 있는 강화석입니다. 성공하면 강화 단계가 1 상승합니다.",
+  "icon": {
+    "fallbackEmoji": "💎"
+  },
+  "useTarget": {
+    "slot": "weapon"
+  },
+  "dropRules": {
+    "globalMonsterDropChance": 0.001,
+    "blessedVariantChance": 0.2
+  }
+}

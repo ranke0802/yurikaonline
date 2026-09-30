@@ -12,10 +12,10 @@ body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .attack-btn {
     background-size: 400% 400%; background-repeat: no-repeat;
     pointer-events: none;
 }
-#action-attack-j .inner-icon { background-image: url('/assets/resource/effects/player-skills/lightning.webp'); background-position: 0 66.6667%; }
-#action-skill-h .inner-icon { background-image: url('/assets/resource/effects/player-skills/missile.webp'); background-position: 0 66.6667%; }
-#action-skill-u .inner-icon { background-image: url('/assets/resource/effects/player-skills/fireball.webp'); background-position: 0 66.6667%; }
-#action-skill-k .inner-icon { background-image: url('/assets/resource/effects/player-skills/barrier.webp'); background-position: 0 33.3333%; }
+#action-attack-j .inner-icon { background-image: url('/assets/immutable/2e0f39edde4bd04480dbefca.webp'); background-position: 0 66.6667%; }
+#action-skill-h .inner-icon { background-image: url('/assets/immutable/d022114e612c1f0fbf2ad43e.webp'); background-position: 0 66.6667%; }
+#action-skill-u .inner-icon { background-image: url('/assets/immutable/9e4365f4b646e7e571535793.webp'); background-position: 0 66.6667%; }
+#action-skill-k .inner-icon { background-image: url('/assets/immutable/2a6a65cac4402e35aa3f72de.webp'); background-position: 0 33.3333%; }
 .combat-skill-name {
     position: absolute; bottom: 13%; left: -12%; width: 124%;
     color: #fff2d3; font: 600 10px/1 system-ui, sans-serif;

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "blessed_storm_staff_affixes",
+  "affixes": [
+    {
+      "id": "blessed_storm_starlight",
+      "prefix": "축복받은 폭풍의",
+      "displayName": "축복받은 폭풍의 황금 지팡이",
+      "skillOverrides": {
+        "missileVisualVariant": "golden_missile"
+      },
+      "rolledEffects": {
+        "missileDamageBonus": {
+          "type": "multiplier_bonus",
+          "min": 0.42,
+          "max": 0.62,
+          "displayAsPercent": true
+        },
+        "missileManaCostReduction": {
+          "type": "multiplier_bonus",
+          "min": 0.18,
+          "max": 0.32,
+          "displayAsPercent": true
+        }
+      },
+      "visuals": {
+        "auraProfile": "storm_gold",
+        "projectileTint": "#ffe052"
+      }
+    }
+  ]
+}

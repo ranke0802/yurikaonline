@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 2,
+  "items": [
+    {
+      "id": "magic_staff",
+      "file": "magic_staff.json"
+    },
+    {
+      "id": "tidal_staff",
+      "file": "tidal_staff.json"
+    },
+    {
+      "id": "storm_staff",
+      "file": "storm_staff.json"
+    },
+    {
+      "id": "astral_staff",
+      "file": "astral_staff.json"
+    },
+    {
+      "id": "riftcore_staff",
+      "file": "riftcore_staff.json"
+    },
+    {
+      "id": "blessed_magic_staff",
+      "file": "blessed_magic_staff.json"
+    },
+    {
+      "id": "blessed_tidal_staff",
+      "file": "blessed_tidal_staff.json"
+    },
+    {
+      "id": "blessed_storm_staff",
+      "file": "blessed_storm_staff.json"
+    },
+    {
+      "id": "blessed_astral_staff",
+      "file": "blessed_astral_staff.json"
+    },
+    {
+      "id": "blessed_riftcore_staff",
+      "file": "blessed_riftcore_staff.json"
+    },
+    {
+      "id": "weapon_upgrade_stone",
+      "file": "weapon_upgrade_stone.json"
+    },
+    {
+      "id": "blessed_weapon_upgrade_stone",
+      "file": "blessed_weapon_upgrade_stone.json"
+    },
+    {
+      "id": "option_reroll_stone",
+      "file": "option_reroll_stone.json"
+    },
+    {
+      "id": "boss_summon_scroll_king_slime",
+      "file": "boss_summon_scroll_king_slime.json"
+    },
+    {
+      "id": "boss_summon_scroll_ruin_wobbuffet",
+      "file": "boss_summon_scroll_ruin_wobbuffet.json"
+    },
+    {
+      "id": "boss_summon_scroll_thunder_pikachu",
+      "file": "boss_summon_scroll_thunder_pikachu.json"
+    },
+    {
+      "id": "boss_summon_scroll_astral_sylveon",
+      "file": "boss_summon_scroll_astral_sylveon.json"
+    },
+    {
+      "id": "boss_summon_scroll_rift_sentinel",
+      "file": "boss_summon_scroll_rift_sentinel.json"
+    }
+  ],
+  "affixPools": [
+    {
+      "id": "magic_staff_affixes",
+      "file": "magic_staff_affixes.json"
+    },
+    {
+      "id": "tidal_staff_affixes",
+      "file": "tidal_staff_affixes.json"
+    },
+    {
+      "id": "storm_staff_affixes",
+      "file": "storm_staff_affixes.json"
+    },
+    {
+      "id": "astral_staff_affixes",
+      "file": "astral_staff_affixes.json"
+    },
+    {
+      "id": "riftcore_staff_affixes",
+      "file": "riftcore_staff_affixes.json"
+    },
+    {
+      "id": "blessed_magic_staff_affixes",
+      "file": "blessed_magic_staff_affixes.json"
+    },
+    {
+      "id": "blessed_tidal_staff_affixes",
+      "file": "blessed_tidal_staff_affixes.json"
+    },
+    {
+      "id": "blessed_storm_staff_affixes",
+      "file": "blessed_storm_staff_affixes.json"
+    },
+    {
+      "id": "blessed_astral_staff_affixes",
+      "file": "blessed_astral_staff_affixes.json"
+    },
+    {
+      "id": "blessed_riftcore_staff_affixes",
+      "file": "blessed_riftcore_staff_affixes.json"
+    }
+  ],
+  "enhancementRules": [
+    {
+      "file": "equipment_enhancement_rules.json"
+    }
+  ],
+  "dropRules": [
+    {
+      "file": "equipment_drop_rules.json"
+    }
+  ]
+}

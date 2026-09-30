@@ -1,0 +1,54 @@
+{
+    "id": "template_monster",
+    "name": "Monster Name",
+    "type": "monster",
+    "baseStats": {
+        "hp": 100,
+        "maxHp": 100,
+        "mp": 0,
+        "maxMp": 0,
+        "atk": 10,
+        "def": 0,
+        "speed": 50,
+        "exp": 10,
+        "hpRegen": 0,
+        "mpRegen": 0
+    },
+    "visual": {
+        "effectTheme": "arcane",
+        "assetPath": "assets/resource/monster_template",
+        "width": 80,
+        "height": 80,
+        "frameSpeed": 0.15,
+        "frameCount": 5,
+        "scale": 1.0,
+        "tint": "#ffffff"
+    },
+    "sounds": {
+        "attack": "sfx_attack",
+        "hit": "sfx_hit",
+        "die": "sfx_die",
+        "move": "sfx_move"
+    },
+    "skills": [
+        {
+            "id": "skill_id",
+            "name": "Skill Name",
+            "trigger": "random",
+            "chance": 0.1,
+            "cooldown": 5000,
+            "data": {
+                "damage": 10,
+                "range": 100
+            }
+        }
+    ],
+    "drops": [
+        {
+            "itemId": "manastone",
+            "min": 10,
+            "max": 20,
+            "chance": 1.0
+        }
+    ]
+}

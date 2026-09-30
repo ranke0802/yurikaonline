@@ -1,4 +1,5 @@
 import Logger from '../utils/Logger.js';
+import assetManifest from './AssetManifest.js';
 
 export default class ResourceManager {
     constructor() {
@@ -27,6 +28,14 @@ export default class ResourceManager {
             const resolvedUrl = new URL(url, window.location.href);
             if (resolvedUrl.origin !== window.location.origin) {
                 return url;
+            }
+
+            // Static content identity survives releases; changed bytes get a new URL.
+            const immutable = assetManifest[resolvedUrl.pathname];
+            if (immutable) return new URL(immutable, resolvedUrl.origin).toString();
+            if (/^\/assets\/immutable\/[a-f0-9]{24}\./.test(resolvedUrl.pathname)) {
+                resolvedUrl.search = '';
+                return resolvedUrl.toString();
             }
 
             if (resolvedUrl.searchParams.has('v')) {
@@ -158,6 +167,15 @@ export default class ResourceManager {
 
     async _loadDocument(url, format) {
         const requestUrl = this.getVersionedResourceUrl(url);
+        const resolved = new URL(requestUrl, window.location.href);
+        const publicContent = resolved.origin === window.location.origin && (
+            resolved.pathname.startsWith('/assets/') || resolved.pathname === '/README.md'
+        );
+        if (!publicContent) {
+            const response = await fetch(requestUrl, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`Resource ${requestUrl}: HTTP ${response.status}`);
+            return format === 'text' ? response.text() : response.json();
+        }
         if (this.cache.has(requestUrl)) return this.cache.get(requestUrl);
         if (this.loading.has(requestUrl)) return this.loading.get(requestUrl);
 

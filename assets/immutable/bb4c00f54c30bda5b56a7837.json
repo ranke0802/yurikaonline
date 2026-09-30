@@ -1,0 +1,27 @@
+{
+    "id": "training_dummy",
+    "name": "훈련용 허수아비",
+    "type": "monster",
+    "baseStats": {
+        "hp": 35,
+        "maxHp": 35,
+        "atk": 0,
+        "def": 0,
+        "speed": 0,
+        "exp": 0
+    },
+    "behavior": {
+        "passive": true
+    },
+    "visual": {
+        "effectTheme": "wood",
+        "width": 92,
+        "height": 120,
+        "frameSpeed": 0.25,
+        "frameCount": 1,
+        "fallbackShape": "training_dummy"
+    },
+    "sounds": {},
+    "skills": [],
+    "drops": []
+}

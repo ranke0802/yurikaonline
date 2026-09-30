@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_forest_thunder_pikachu",
+  "enabled": true,
+  "title": "뇌제의 시험",
+  "description": "뇌광 숲의 보스 뇌제 피카츄를 처치하세요.",
+  "type": "main",
+  "chapter": "zone_3",
+  "order": 340,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_forest_emolga_35" }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted"]
+  },
+  "objectives": [
+    {
+      "id": "kill_thunder_pikachu",
+      "type": "bossKill",
+      "target": "thunder_pikachu",
+      "count": 1,
+      "zoneId": "zone_3",
+      "scope": "partyParticipants",
+      "receiptRequired": true,
+      "uiText": "뇌제 피카츄 처치 {current}/{count}"
+    }
+  ],
+  "rewards": {
+    "display": [
+      { "type": "guide", "label": "뇌광의 지팡이 획득 가능" }
+    ]
+  },
+  "bossRewardGuide": {
+    "bossId": "thunder_pikachu",
+    "itemId": "storm_staff",
+    "title": "뇌광의 지팡이 획득 가능",
+    "skillSummary": "매직 미사일 계열을 빠르게 몰아치는 빌드로 강화합니다."
+  },
+  "ui": {
+    "guideOnly": true,
+    "hudPriority": 340,
+    "recommendedZone": "zone_3",
+    "chapterLabel": "Chapter 3 · 뇌광 숲",
+    "nextHint": "Lv.15가 되면 별그늘 유적으로 이동할 수 있습니다."
+  },
+  "onComplete": {
+    "unlocks": ["quest_to_astral_ruins"],
+    "logMessage": "뇌제의 시험을 통과했습니다. 다음 목표는 별그늘 유적입니다.",
+    "recommendZone": "zone_4"
+  }
+}

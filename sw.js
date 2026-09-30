@@ -1,10 +1,12 @@
-const APP_VERSION = '0.02.119';
+const APP_VERSION = '0.02.120';
 const SHELL_CACHE = `yurika-online-shell-${APP_VERSION}`;
 const STATIC_CACHE = `yurika-online-static-${APP_VERSION}`;
-const ACTIVE_CACHES = [SHELL_CACHE, STATIC_CACHE];
+const IMMUTABLE_CACHE = 'yurika-online-immutable-v1';
+const ACTIVE_CACHES = [SHELL_CACHE, STATIC_CACHE, IMMUTABLE_CACHE];
 const CACHE_ENTRY_LIMITS = {
     [SHELL_CACHE]: 32,
-    [STATIC_CACHE]: 320
+    [STATIC_CACHE]: 320,
+    [IMMUTABLE_CACHE]: 512
 };
 const CACHE_TRIM_INTERVAL_MS = 60000;
 const lastCacheTrimAt = new Map();
@@ -15,9 +17,6 @@ const APP_SHELL = [
     `./manifest.json?v=${APP_VERSION}`,
     `./src/css/style.css?v=${APP_VERSION}`,
     `./src/js/main.js?v=${APP_VERSION}`,
-    `./src/js/firebaseConfig.js?v=${APP_VERSION}`,
-    `./src/assets/icon_192_clean.webp?v=${APP_VERSION}`,
-    `./src/assets/icon_512_clean.webp?v=${APP_VERSION}`
 ];
 
 function isFirebaseRequest(url) {
@@ -39,33 +38,11 @@ function isStaticAssetRequest(request, url) {
     if (url.origin !== self.location.origin) return false;
     if (isVersionRequest(url) || isDocumentLikeRequest(request, url)) return false;
 
-    const staticDestinations = new Set([
-        'style',
-        'script',
-        'image',
-        'font',
-        'audio',
-        'video'
-    ]);
-
-    if (staticDestinations.has(request.destination)) return true;
-
-    return (
-        url.pathname.startsWith('/assets/')
+    // Only shipped public files. Never cache API, auth, account or arbitrary JSON.
+    return url.pathname.startsWith('/assets/')
         || url.pathname.startsWith('/src/')
-        || url.pathname.endsWith('/manifest.json')
-        || url.pathname.endsWith('.json')
-        || url.pathname.endsWith('.webp')
-        || url.pathname.endsWith('.png')
-        || url.pathname.endsWith('.jpg')
-        || url.pathname.endsWith('.jpeg')
-        || url.pathname.endsWith('.svg')
-        || url.pathname.endsWith('.mp3')
-        || url.pathname.endsWith('.ogg')
-        || url.pathname.endsWith('.wav')
-        || url.pathname.endsWith('.woff2')
-        || url.pathname.endsWith('.md')
-    );
+        || url.pathname === '/manifest.json'
+        || url.pathname === '/README.md';
 }
 
 function isMutableAppAssetRequest(request, url) {
@@ -192,7 +169,12 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    if (isFirebaseRequest(url)) return;
+    if (event.request.method !== 'GET' || url.origin !== self.location.origin || isFirebaseRequest(url)) return;
+    if (url.pathname === '/src/js/firebaseConfig.js') return;
+    if (/^\/assets\/immutable\/[a-f0-9]{24}\.(webp|svg|json)$/.test(url.pathname)) {
+        event.respondWith(cacheFirst(event.request, IMMUTABLE_CACHE));
+        return;
+    }
 
     if (isVersionRequest(url)) {
         event.respondWith(fetch(buildNoStoreRequest(event.request)).catch(() => new Response('Version unavailable', {
@@ -213,7 +195,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    if (isMutableAppAssetRequest(event.request, url)) {
+    if (isStaticAssetRequest(event.request, url) && isMutableAppAssetRequest(event.request, url)) {
         event.respondWith(networkFirst(event.request, STATIC_CACHE, { noStore: true }));
         return;
     }
@@ -223,5 +205,5 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    event.respondWith(networkFirst(event.request, SHELL_CACHE));
+    // Unknown endpoints bypass CacheStorage entirely.
 });

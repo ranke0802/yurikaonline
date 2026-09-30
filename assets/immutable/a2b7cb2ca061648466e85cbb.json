@@ -1,0 +1,41 @@
+{
+    "id": "slime_split",
+    "name": "분열 슬라임",
+    "type": "monster",
+    "chargeOnly": true,
+    "baseStats": {
+        "hp": 200,
+        "maxHp": 200,
+        "mp": 0,
+        "maxMp": 0,
+        "atk": 10,
+        "def": 5,
+        "speed": 60,
+        "exp": 15
+    },
+    "visual": {
+        "effectTheme": "slime",
+        "effectVfx": { "theme": "slime", "anchor": "ground", "groundAnchor": 0.9 },
+        "assetPath": "assets/resource/monster_slime",
+        "width": 112,
+        "height": 112,
+        "frameSpeed": 0.12,
+        "frameCount": 5,
+        "scale": 1.4
+    },
+    "sounds": {
+        "attack": "sfx_slime_attack",
+        "hit": "sfx_slime_hit",
+        "die": "sfx_slime_die",
+        "move": "sfx_slime_move"
+    },
+    "skills": [],
+    "drops": [
+        {
+            "itemId": "manastone",
+            "min": 15,
+            "max": 30,
+            "chance": 1.0
+        }
+    ]
+}

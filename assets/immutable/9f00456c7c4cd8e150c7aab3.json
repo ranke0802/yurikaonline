@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_to_misty_lake",
+  "enabled": true,
+  "title": "안개빛 호수로",
+  "description": "대왕 슬라임을 처치했다면 다음 수련지는 안개빛 호수입니다.",
+  "type": "travel",
+  "chapter": "zone_1",
+  "order": 140,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_boss_king_slime" },
+    { "type": "level", "level": 5 }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted", "levelChanged"]
+  },
+  "objectives": [
+    {
+      "id": "enter_zone_2",
+      "type": "travel",
+      "targetZone": "zone_2",
+      "count": 1,
+      "uiText": "미니맵을 눌러 안개빛 호수로 이동"
+    }
+  ],
+  "rewards": {
+    "grant": {
+      "exp": 60,
+      "manastone": 30
+    },
+    "display": [
+      { "type": "exp", "amount": 60 },
+      { "type": "manastone", "amount": 30 }
+    ]
+  },
+  "ui": {
+    "hudPriority": 140,
+    "recommendedZone": "zone_2",
+    "chapterLabel": "Chapter 1 · 다음 지역",
+    "cta": "퀘스트 진행하러 이동",
+    "nextHint": "Lv.5부터 입장 가능합니다. 미니맵에서 안개빛 호수를 선택하세요."
+  },
+  "onComplete": {
+    "unlocks": ["quest_lake_arrival"],
+    "logMessage": "안개빛 호수에 도착했습니다.",
+    "recommendZone": "zone_2"
+  }
+}

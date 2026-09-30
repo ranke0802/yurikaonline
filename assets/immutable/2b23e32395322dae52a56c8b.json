@@ -1,0 +1,26 @@
+[
+    {
+        "id": "smile",
+        "icon": "assets/ui/emotes/smile.svg",
+        "anim": "anim_smile",
+        "text": "웃음"
+    },
+    {
+        "id": "angry",
+        "icon": "assets/ui/emotes/angry.svg",
+        "anim": "anim_angry",
+        "text": "화남"
+    },
+    {
+        "id": "love",
+        "icon": "assets/ui/emotes/love.svg",
+        "anim": "anim_love",
+        "text": "사랑"
+    },
+    {
+        "id": "cry",
+        "icon": "assets/ui/emotes/cry.svg",
+        "anim": "anim_cry",
+        "text": "울음"
+    }
+]

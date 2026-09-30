@@ -19,7 +19,10 @@
     "validate:local-profile": "node --test scripts/validate-local-profile.mjs",
     "validate:camp-browser": "node scripts/validate-camp-browser.cjs",
     "validate:mobile-combat": "node scripts/validate-mobile-combat.cjs",
-    "validate:adventure-summary": "node --test scripts/validate-adventure-summary.mjs"
+    "validate:adventure-summary": "node --test scripts/validate-adventure-summary.mjs",
+    "assets:build": "node scripts/build-immutable-assets.mjs",
+    "validate:assets": "node --test scripts/validate-immutable-assets.mjs",
+    "validate:asset-browser": "node scripts/validate-asset-cache-browser.cjs"
   },
   "dependencies": {
     "image-size": "^2.0.2"

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_forest_arrival",
+  "enabled": true,
+  "title": "번개가 닿은 숲",
+  "description": "뇌광 숲에 도착했습니다. 천둥이 흐르는 숲의 몬스터를 관찰하세요.",
+  "type": "main",
+  "chapter": "zone_3",
+  "order": 310,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_to_thunder_forest" }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted", "zoneEntered"]
+  },
+  "objectives": [
+    {
+      "id": "enter_forest",
+      "type": "travel",
+      "targetZone": "zone_3",
+      "count": 1,
+      "uiText": "뇌광 숲 적응 {current}/{count}"
+    }
+  ],
+  "rewards": {
+    "grant": {
+      "exp": 120,
+      "manastone": 60
+    },
+    "display": [
+      { "type": "exp", "amount": 120 },
+      { "type": "manastone", "amount": 60 }
+    ]
+  },
+  "ui": {
+    "hudPriority": 310,
+    "recommendedZone": "zone_3",
+    "chapterLabel": "Chapter 3 · 뇌광 숲",
+    "nextHint": "번개날개 에몽가를 상대하며 숲의 흐름을 파악하세요."
+  },
+  "onComplete": {
+    "unlocks": ["quest_forest_emolga_15"],
+    "logMessage": "뇌광 숲 수색을 시작합니다."
+  }
+}

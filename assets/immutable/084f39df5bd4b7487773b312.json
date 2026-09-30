@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_to_thunder_forest",
+  "enabled": true,
+  "title": "뇌광 숲으로",
+  "description": "호수의 안개가 걷혔습니다. Lv.10이 되면 뇌광 숲으로 향하세요.",
+  "type": "travel",
+  "chapter": "zone_2",
+  "order": 250,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_lake_ruin_wobbuffet" },
+    { "type": "level", "level": 10 }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted", "levelChanged"]
+  },
+  "objectives": [
+    {
+      "id": "enter_zone_3",
+      "type": "travel",
+      "targetZone": "zone_3",
+      "count": 1,
+      "uiText": "미니맵을 눌러 뇌광 숲으로 이동"
+    }
+  ],
+  "rewards": {
+    "grant": {
+      "exp": 100,
+      "manastone": 50
+    },
+    "display": [
+      { "type": "exp", "amount": 100 },
+      { "type": "manastone", "amount": 50 }
+    ]
+  },
+  "ui": {
+    "hudPriority": 250,
+    "recommendedZone": "zone_3",
+    "chapterLabel": "Chapter 2 · 다음 지역",
+    "cta": "퀘스트 진행하러 이동",
+    "nextHint": "Lv.10부터 입장 가능합니다. 미니맵에서 뇌광 숲을 선택하세요."
+  },
+  "onComplete": {
+    "unlocks": ["quest_forest_arrival"],
+    "logMessage": "뇌광 숲에 도착했습니다.",
+    "recommendZone": "zone_3"
+  }
+}

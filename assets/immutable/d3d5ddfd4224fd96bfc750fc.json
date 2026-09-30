@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 2, "id": "quest_rift_hunt", "enabled": true, "title": "균열핵의 파편", "description": "불씨 드레이크와 균열 다람쥐의 침입을 저지하세요.", "type": "main", "chapter": "zone_5", "order": 520,
+  "prerequisites": [{ "type": "questCompleted", "questId": "quest_rift_arrival" }], "activation": { "mode": "auto", "events": ["questCompleted"] },
+  "objectives": [{ "id": "kill_ember_drake", "type": "kill", "target": "ember_drake", "count": 25, "zoneId": "zone_5", "scope": "player", "receiptRequired": true, "uiText": "불씨 드레이크 처치 {current}/{count}" }, { "id": "kill_spark_squirrel", "type": "kill", "target": "spark_squirrel", "count": 25, "zoneId": "zone_5", "scope": "player", "receiptRequired": true, "uiText": "균열 다람쥐 처치 {current}/{count}" }],
+  "rewards": { "grant": { "exp": 4200, "manastone": 2600 }, "display": [{ "type": "exp", "amount": 4200 }, { "type": "manastone", "amount": 2600 }] },
+  "ui": { "hudPriority": 520, "recommendedZone": "zone_5", "chapterLabel": "Chapter 5 · 균열핵의 파편", "nextHint": "균열의 감시자가 고원의 북쪽에서 깨어납니다." },
+  "onComplete": { "unlocks": ["quest_rift_sentinel"], "logMessage": "균열의 감시자가 균열핵을 지키러 나타납니다." }
+}

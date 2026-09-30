@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_ruins_gastly_40",
+  "enabled": true,
+  "title": "별그늘 봉인 해제",
+  "description": "그림자 고오스를 누적 40마리 처치해 성좌의 님피아를 드러내세요.",
+  "type": "main",
+  "chapter": "zone_4",
+  "order": 430,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_ruins_gastly_18" }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted"]
+  },
+  "objectives": [
+    {
+      "id": "kill_gastly",
+      "type": "kill",
+      "target": "gastly",
+      "count": 40,
+      "zoneId": "zone_4",
+      "scope": "player",
+      "accumulate": true,
+      "receiptRequired": true,
+      "uiText": "그림자 고오스 누적 처치 {current}/{count}"
+    }
+  ],
+  "rewards": {
+    "grant": {
+      "exp": 1100,
+      "manastone": 360
+    },
+    "display": [
+      { "type": "exp", "amount": 1100 },
+      { "type": "manastone", "amount": 360 }
+    ]
+  },
+  "ui": {
+    "hudPriority": 430,
+    "recommendedZone": "zone_4",
+    "chapterLabel": "Chapter 4 · 별그늘 유적",
+    "nextHint": "성좌의 님피아가 별빛 성소에 나타납니다."
+  },
+  "onComplete": {
+    "unlocks": ["quest_ruins_astral_sylveon"],
+    "logMessage": "별그늘의 봉인이 풀렸습니다. 성좌의 님피아에 도전하세요."
+  }
+}

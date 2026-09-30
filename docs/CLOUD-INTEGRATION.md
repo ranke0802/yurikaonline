@@ -2,6 +2,11 @@
 
 Branch: `codex/party-rpg-cloud-setup-20260930`. Base: `c0ae8a8`.
 
+Current delivery target: `mmorpg_online`, explicitly authorized by the user on
+2026-09-30 for the existing Firebase Hosting live channel. The development branch
+preserves the integration history. Sites deployment copies are separate and must
+never overwrite the production online entry or Firebase configuration.
+
 ## First playable slice
 
 Use the approved raster camp and mage artwork around the existing single-player
@@ -158,3 +163,56 @@ real touch exit during move_check, reentry, joystick progression to attack_dummy
 confirmation-modal interception/cancel and actual touch return. Existing UI and
 improvement checks and three-viewport camp browser regression pass. Sites rollout
 belongs to the parent task; this checkout does not register or deploy a Site.
+
+## WebP and content-addressed assets (0.02.120)
+
+26 source PNGs were converted to lossless WebP: 50,356,689 -> 35,140,858 bytes
+(30.2% reduction). The four PNGs used by the integrated game total 7,345,794 ->
+4,988,116 bytes (32.1%). Dimensions/frame counts and all alpha/visible RGB pixels
+were checked; RGB values hidden beneath fully transparent pixels may be normalized
+by the encoder. No source has animation; original animated VFX remain unchanged
+multi-frame raster atlases. Conversion details: `docs/webp-conversion.json`.
+Original PNGs remain in Git for source/reference preservation, excluded from hosting.
+
+`scripts/build-immutable-assets.mjs` publishes 177 images and static content files
+under SHA-256-derived names in `assets/immutable/` and writes `AssetManifest.js`.
+ResourceManager resolves logical paths to those identities before its existing
+in-flight Promise and decoded-image caches. Camp, CSS skills, favicon and manifest
+share the hashed files. Unchanged images/data survive release-version changes;
+changed bytes produce new URLs. Keep old immutable files for older active clients.
+To update PNG art run `node scripts/convert-png-to-webp.mjs`, then
+`npm run assets:build`; run `npm run validate:assets` before committing output.
+Do not mutate bytes at an existing immutable URL.
+
+Immutable assets have one-year HTTP caching and a release-independent, bounded
+service-worker cache (512 entries). HTML, code and manifest revalidate; version.txt
+uses no-store. Client version refresh preserves content-addressed assets. Unknown
+API/auth/account URLs bypass SW CacheStorage; non-public ResourceManager document
+requests use no-store and no memory cache. Cache clearing, eviction/quota limits,
+private browsing and a new browser/device can still cause downloads; this is not
+a promise of permanent storage or a cross-device save backup.
+
+Chromium CDP image wire measurement, 780x360, fresh local profile and a complete
+camp -> character -> field -> camp journey: 10,644,656 -> 7,340,371 bytes (31.0%).
+Cold network image transfers: 64 -> 59. Reentry and ordinary reload were already
+zero bytes before this change and remain zero afterwards. Request events that
+hit browser/SW memory/disk caches are not downloads. See `asset-transfer-results.json`.
+The integrated pre-optimization hosting candidate (including prototype reference
+files) was approximately 416 files / 68,392,798 bytes; filtered final candidate is
+238 files / 17,815,842 bytes. This is a local ignore-pattern estimate, not a claim
+about the previous live site's package size or CDN compressed transfer size.
+
+Hosting excludes prototype pages/source art, development plans/docs/reports/tests,
+DB rules, generated prompts and old modules. Runtime images/data are served from
+immutable output. Default online auth and optional ?local=1 are preserved; no Sites
+forced-local entry was imported. Both Hosting workflows run asset, resource, UI and
+local-profile checks first; deployment remains action-hosting-deploy / hosting only.
+
+Validation: all existing quest/world/UI/hygiene/runtime/projectile checks; combat
+14, resources 5, improvement 25, local-profile 20, adventure-summary 3, asset checks
+4; three atlas audits and VFX/item checks. Three-viewport camp regression passes on
+a filtered runtime-only local server. Actual mobile combat, growth, equipment and
+tutorial tests pass. New `npm run validate:asset-browser` verifies portrait first
+entry -> landscape, reload reuse, new SW release reuse, changed-asset download and
+API exclusion without any external requests. Logs are in `/tmp/yurika-asset-qa/`.
+No live account login or production database writes were used for QA.

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_ruins_gastly_18",
+  "enabled": true,
+  "title": "그림자 고오스",
+  "description": "그림자 고오스 18마리를 처치해 유적의 기운을 살피세요.",
+  "type": "main",
+  "chapter": "zone_4",
+  "order": 420,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_ruins_arrival" },
+    { "type": "level", "level": 15 }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted", "zoneEntered"]
+  },
+  "objectives": [
+    {
+      "id": "kill_gastly",
+      "type": "kill",
+      "target": "gastly",
+      "count": 18,
+      "zoneId": "zone_4",
+      "scope": "player",
+      "accumulate": true,
+      "receiptRequired": true,
+      "uiText": "그림자 고오스 처치 {current}/{count}"
+    }
+  ],
+  "rewards": {
+    "grant": {
+      "exp": 720,
+      "manastone": 260
+    },
+    "display": [
+      { "type": "exp", "amount": 720 },
+      { "type": "manastone", "amount": 260 }
+    ]
+  },
+  "ui": {
+    "hudPriority": 420,
+    "recommendedZone": "zone_4",
+    "chapterLabel": "Chapter 4 · 별그늘 유적",
+    "nextHint": "유적 봉인을 풀려면 더 많은 그림자 고오스를 정화해야 합니다."
+  },
+  "onComplete": {
+    "unlocks": ["quest_ruins_gastly_40"],
+    "logMessage": "유적의 별빛이 조금씩 돌아옵니다."
+  }
+}

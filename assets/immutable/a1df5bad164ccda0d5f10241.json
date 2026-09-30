@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "astral_staff_affixes",
+  "affixes": [
+    {
+      "id": "astral_crimson_flash",
+      "prefix": "성운을 가르는",
+      "displayName": "성운을 가르는 진홍 지팡이",
+      "skillOverrides": {
+        "laserVisualVariant": "crimson_chain"
+      },
+      "rolledEffects": {
+        "laserDamageBonus": {
+          "type": "multiplier_bonus",
+          "min": 0.5,
+          "max": 0.72,
+          "displayAsPercent": true
+        },
+        "attackSpeedBonus": {
+          "type": "multiplier_bonus",
+          "min": 0.18,
+          "max": 0.3,
+          "displayAsPercent": true
+        }
+      },
+      "combatHooks": {
+        "restoreHpPerLaserHit": 2,
+        "restoreHpPerLaserHitByEnhancement": {
+          "7": 3,
+          "10": 4
+        },
+        "keepMpRestore": true,
+        "beamStyle": "thick_red_arc"
+      },
+      "visuals": {
+        "auraProfile": "astral_crimson",
+        "projectileTint": "#ff5f91"
+      }
+    }
+  ]
+}

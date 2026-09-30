@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1, "id": "blessed_riftcore_staff_affixes", "affixes": [{
+    "id": "blessed_riftcore_resonance", "prefix": "축복받은 균열을 공명시키는", "displayName": "축복받은 균열핵 지팡이",
+    "skillOverrides": { "laserVisualVariant": "crimson_chain" },
+    "rolledEffects": { "laserDamageBonus": { "type": "multiplier_bonus", "min": 0.7, "max": 0.9, "displayAsPercent": true }, "attackSpeedBonus": { "type": "multiplier_bonus", "min": 0.24, "max": 0.36, "displayAsPercent": true } },
+    "combatHooks": { "restoreHpPerLaserHit": 4, "restoreHpPerLaserHitByEnhancement": { "7": 5, "10": 6 }, "keepMpRestore": true, "beamStyle": "thick_red_arc" },
+    "visuals": { "auraProfile": "rift_core", "projectileTint": "#a78bfa" }
+  }]
+}

@@ -67,18 +67,19 @@ export default class CampScene extends Scene {
         if (!this.root) return;
         const p = this.profile;
         const local = this.game.isLocalMode;
+        const art = file => escape(this.game.resources.getVersionedResourceUrl(ART + file));
         this.root.dataset.view = this.view;
         this.root.classList.toggle('has-journey-result', !!this.summary);
         const result = this.summary;
         const delta = result ? result.after.manastone - result.before.manastone : 0;
         this.root.innerHTML = `
-            <img class="camp-backdrop" src="${ART}${this.view === 'character' ? 'mage-key.png' : 'camp-master-v2.png'}" alt="">
+            <img class="camp-backdrop" src="${art(this.view === 'character' ? 'mage-key.webp' : 'camp-master-v2.webp')}" alt="">
             <header class="camp-header"><div><span class="camp-wordmark">YURIKA</span><p>달숲 야영지 · ${local ? '로컬 모험' : '계정 모험'}</p></div><span class="camp-save-label">${local ? '이 브라우저에 저장 · 계정과 별개' : '기존 계정 기록 사용'}</span></header>
             <main class="camp-panel">
                 <p class="camp-eyebrow">${this.view === 'character' ? '나의 캐릭터' : '다시, 모험의 시간'}</p>
                 <h1>${p ? escape(p.name || '마법사') : '첫 번째 모험'}</h1>
                 <p class="camp-status" role="status" aria-live="polite">${escape(this.message || (p ? '저장한 기록에서 여정을 이어가세요.' : '아직 보유한 캐릭터가 없어요.'))}</p>
-                ${p ? `<div class="camp-profile"><img src="${ART}idle-mage.png" alt="보유 마법사"><div><strong>마법사 · Lv.${number(p.level || 1)}</strong><p>경험치 ${number(p.exp)} / ${number(p.maxExp || 100)}</p><p>마석 ${number(p.manastone)}</p></div></div>
+                ${p ? `<div class="camp-profile"><img src="${art('idle-mage.webp')}" alt="보유 마법사"><div><strong>마법사 · Lv.${number(p.level || 1)}</strong><p>경험치 ${number(p.exp)} / ${number(p.maxExp || 100)}</p><p>마석 ${number(p.manastone)}</p></div></div>
                 <div class="camp-progress" role="progressbar" aria-label="레벨 경험치" aria-valuenow="${Number(p.exp)||0}" aria-valuemax="${Number(p.maxExp)||100}"><i style="width:${Math.min(100,Math.max(0,(Number(p.exp)||0)/(Number(p.maxExp)||100)*100))}%"></i></div>
                 ${result && this.view === 'camp' ? `<section class="camp-result" aria-label="저장된 원정 결과"><strong>최근 원정 · 저장된 기록</strong><p>Lv.${number(result.before.level)} · 경험치 ${number(result.before.exp)} → Lv.${number(result.after.level)} · 경험치 ${number(result.after.exp)}</p><p>마석 변동 ${delta > 0 ? '+' : delta < 0 ? '−' : ''}${number(Math.abs(delta))} · 가방 ${number(result.after.bagSlots)}칸 사용</p><small>보상과 사용량을 반영한 변화예요. 추가 지급은 없습니다.</small></section>` : ''}
                 <p class="camp-detail">${this.view === 'character' ? `체력 능력 ${number(p.vitality || 1)} · 지능 ${number(p.intelligence || 3)} · 남은 능력치 ${number(p.statPoints)}<br>능력치·스킬 강화와 장비 관리는 필드의 상태·스킬·가방 메뉴에서 이어집니다.` : '한 명을 직접 조작하는 원정입니다. 야영지의 동료들은 아직 전투에 참여하지 않아요.'}</p>

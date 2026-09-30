@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_lake_ruin_wobbuffet",
+  "enabled": true,
+  "title": "유적의 마자용",
+  "description": "안개빛 호수의 보스 유적의 마자용을 처치하세요.",
+  "type": "main",
+  "chapter": "zone_2",
+  "order": 240,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_lake_squirtle_30" }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted"]
+  },
+  "objectives": [
+    {
+      "id": "kill_ruin_wobbuffet",
+      "type": "bossKill",
+      "target": "ruin_wobbuffet",
+      "count": 1,
+      "zoneId": "zone_2",
+      "scope": "partyParticipants",
+      "receiptRequired": true,
+      "uiText": "유적의 마자용 처치 {current}/{count}"
+    }
+  ],
+  "rewards": {
+    "display": [
+      { "type": "guide", "label": "해일의 지팡이 획득 가능" }
+    ]
+  },
+  "bossRewardGuide": {
+    "bossId": "ruin_wobbuffet",
+    "itemId": "tidal_staff",
+    "title": "해일의 지팡이 획득 가능",
+    "skillSummary": "물결의 힘으로 파이어볼 계열 전투를 강화합니다."
+  },
+  "ui": {
+    "guideOnly": true,
+    "hudPriority": 240,
+    "recommendedZone": "zone_2",
+    "chapterLabel": "Chapter 2 · 안개빛 호수",
+    "nextHint": "Lv.10이 되면 뇌광 숲으로 이동할 수 있습니다."
+  },
+  "onComplete": {
+    "unlocks": ["quest_to_thunder_forest"],
+    "logMessage": "유적의 마자용을 처치했습니다. 다음 목표는 뇌광 숲입니다.",
+    "recommendZone": "zone_3"
+  }
+}

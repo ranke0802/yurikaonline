@@ -1,0 +1,148 @@
+{
+  "id": "thunder_pikachu",
+  "name": "뇌제 피카츄",
+  "type": "boss",
+  "isBoss": true,
+  "spriteVersionNumber": 2,
+  "baseStats": {
+    "level": 14,
+    "hp": 12000,
+    "maxHp": 12000,
+    "mp": 1600,
+    "maxMp": 1600,
+    "atk": 38,
+    "def": 0,
+    "speed": 58,
+    "exp": 8500,
+    "hpRegen": 6
+  },
+  "visual": {
+    "effectTheme": "thunder",
+    "effectVfx": { "theme": "thunder", "anchor": "ground", "groundAnchor": 0.9, "timeline": "standard" },
+    "assetPath": "assets/resource/monsters/thunder_pikachu/spritesheet.webp",
+    "spriteVersionNumber": 2,
+    "width": 124,
+    "height": 132,
+    "renderWidth": 240,
+    "renderHeight": 260,
+    "frameSpeed": 0.09,
+    "frameCount": 7,
+    "scale": 1,
+    "spriteSheet": {
+      "columns": 8,
+      "rows": 11,
+      "frameWidth": 192,
+      "frameHeight": 208,
+      "contentBounds": {
+        "left": 23,
+        "top": 52,
+        "right": 169,
+        "bottom": 190
+      },
+      "alignContentToGround": true,
+      "rowMap": {
+        "idle": 0,
+        "moveRight": 1,
+        "moveLeft": 2
+      },
+      "frameCounts": {
+        "idle": 7,
+        "moveRight": 8,
+        "moveLeft": 8
+      },
+      "sha256": "1c1ccafbeab6b55df1e4ed377f3b38690fbd821f28b4cabcbfbfd546d9116fdd"
+    },
+    "bossEffects": {
+      "auraColor": "#f6db3f",
+      "secondaryColor": "#fff7b0",
+      "particleColor": "#fff06a",
+      "castVfx": { "color": "#f6db3f", "glowColor": "#fff7b0", "radiusScale": 0.64, "yScale": 0.44, "rotationSpeed": 0.0032 },
+      "pulseSpeed": 1.5,
+      "ringCount": 3,
+      "shadowScale": 1.4,
+      "shakeIntensity": 18,
+      "shakeDuration": 0.42,
+      "hitstopMs": 100
+    }
+  },
+  "behavior": {
+    "isBoss": true,
+    "aggressive": true,
+    "spawnGraceSeconds": 0,
+    "aggroRange": 560,
+    "attackRange": 126,
+    "attackCooldownMs": 1100,
+    "leashRange": 980,
+    "charge": {
+      "enabled": true,
+      "damage": 76,
+      "range": 880,
+      "cooldownMs": 9000,
+      "minDistance": 150,
+      "castSeconds": 0.9,
+      "speed": 380
+    }
+  },
+  "sounds": {
+    "attack": "sfx_boss_attack",
+    "hit": "sfx_boss_hit",
+    "die": "sfx_boss_die",
+    "move": "sfx_boss_move"
+  },
+  "skills": [
+    {
+      "id": "shield",
+      "trigger": "hp_below_70",
+      "chance": 0.25,
+      "cooldown": 12000,
+      "data": {
+        "duration": 1200
+      }
+    }
+  ],
+  "bossMechanics": [
+    {
+      "id": "storm_lanes",
+      "label": "Storm Lanes",
+      "pattern": "parallel_lines",
+      "lanes": 3,
+      "laneGap": 148,
+      "width": 74,
+      "length": 740,
+      "range": 700,
+      "warningMs": 950,
+      "impactMs": 300,
+      "cooldownMs": 6200,
+      "initialCooldownMs": 1800,
+      "damageMultiplier": 1.1,
+      "color": "#facc15",
+      "secondaryColor": "#fff7ad",
+      "effect": "thunder"
+    },
+    {
+      "id": "static_burst",
+      "label": "Static Burst",
+      "pattern": "circle_cluster",
+      "count": 4,
+      "radius": 72,
+      "ringRadius": 165,
+      "range": 620,
+      "warningMs": 850,
+      "impactMs": 260,
+      "cooldownMs": 9400,
+      "initialCooldownMs": 5200,
+      "damageMultiplier": 0.95,
+      "color": "#fde047",
+      "secondaryColor": "#fef9c3",
+      "effect": "thunder"
+    }
+  ],
+  "drops": [
+    {
+      "itemId": "manastone",
+      "min": 9500,
+      "max": 11500,
+      "chance": 1
+    }
+  ]
+}

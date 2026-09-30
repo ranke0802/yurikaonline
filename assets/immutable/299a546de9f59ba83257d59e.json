@@ -1,0 +1,26 @@
+{
+  "id": "ember_drake",
+  "name": "불씨 드레이크",
+  "type": "monster",
+  "isBoss": false,
+  "spriteVersionNumber": 2,
+  "baseStats": { "level": 20, "hp": 2450, "maxHp": 2450, "mp": 480, "maxMp": 480, "atk": 44, "def": 16, "speed": 58, "exp": 42000 },
+  "visual": {
+    "effectTheme": "rift",
+    "effectVfx": { "theme": "rift", "anchor": "ground", "groundAnchor": 0.9, "timeline": "standard" },
+    "assetPath": "assets/resource/expansion/zone_5/monsters/ember_drake/spritesheet.webp",
+    "spriteVersionNumber": 2,
+    "width": 104, "height": 116, "renderWidth": 192, "renderHeight": 208, "frameSpeed": 0.1, "frameCount": 7, "scale": 1,
+    "spriteSheet": {
+      "columns": 8, "rows": 11, "frameWidth": 192, "frameHeight": 208,
+      "contentBounds": { "left": 5, "top": 5, "right": 187, "bottom": 203 },
+      "alignContentToGround": true,
+      "rowMap": { "idle": 0, "moveRight": 1, "moveLeft": 2 },
+      "frameCounts": { "idle": 7, "moveRight": 8, "moveLeft": 8 },
+      "sha256": "623da78f8ca196cefd204312c3fbc25f2531e1dc714df9b7adac5163b1cd8b45"
+    }
+  },
+  "behavior": { "aggressive": true, "spawnGraceSeconds": 0, "aggroRange": 520, "attackRange": 112, "attackCooldownMs": 1120, "leashRange": 900, "charge": { "enabled": true, "damage": 74, "range": 700, "cooldownMs": 8200, "minDistance": 150, "castSeconds": 0.75, "speed": 330 } },
+  "sounds": { "attack": "sfx_slime_attack", "hit": "sfx_slime_hit", "die": "sfx_slime_die", "move": "sfx_slime_move" },
+  "drops": [{ "itemId": "manastone", "min": 1700, "max": 2200, "chance": 1 }]
+}

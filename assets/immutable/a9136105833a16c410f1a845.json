@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "blessed_tidal_staff_affixes",
+  "affixes": [
+    {
+      "id": "blessed_tidal_blue_flame",
+      "prefix": "축복받은 해일의",
+      "displayName": "축복받은 해일의 푸른 지팡이",
+      "skillOverrides": {
+        "fireballVisualVariant": "blue_fireball"
+      },
+      "rolledEffects": {
+        "fireballChainChance": {
+          "type": "multiplier_bonus",
+          "min": 0.24,
+          "max": 0.38,
+          "displayAsPercent": true
+        },
+        "fireballChainDamageRatio": {
+          "type": "multiplier_bonus",
+          "min": 0.45,
+          "max": 0.65,
+          "displayAsPercent": true
+        }
+      },
+      "visuals": {
+        "auraProfile": "tidal_blue",
+        "projectileTint": "#58ddff"
+      }
+    }
+  ]
+}

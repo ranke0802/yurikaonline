@@ -1,0 +1,88 @@
+{
+  "title": "Act 3: 피의 서약 (Blood Oath)",
+  "narrative_context": "희생의 순간 - 딸을 지키기 위한 아버지의 선택",
+  "emotional_goal": "슬픔, 장엄함, 결의, 사랑",
+  "bpm": 60,
+  "key": "C_minor",
+  "loop": true,
+  "tracks": [
+    {
+      "channel": 1,
+      "instrument": "square_lead",
+      "duty": 0.5,
+      "gain": 0.2,
+      "role": "딸의 테마 장조 변주 - 희생의 아름다움",
+      "articulation": "legato",
+      "notes": [
+        ["C4", 2.0],
+        ["E4", 1.0],
+        ["G4", 1.0],
+        ["F4", 2.0],
+        ["E4", 1.0],
+        ["D4", 1.0],
+        ["C4", 3.0],
+        ["G3", 1.0],
+        ["C4", 2.0],
+        ["E4", 2.0],
+        ["D4", 2.0],
+        ["F4", 1.0],
+        ["A4", 1.0],
+        ["G4", 2.0],
+        ["F4", 1.0],
+        ["E4", 1.0],
+        ["D4", 4.0],
+        ["R", 2.0],
+        ["G3", 1.0],
+        ["C4", 1.0]
+      ]
+    },
+    {
+      "channel": 2,
+      "instrument": "square_harmony",
+      "duty": 0.5,
+      "gain": 0.15,
+      "role": "슬픈 화음 - 장엄한 배경",
+      "notes": [
+        ["C3", 4.0],
+        ["G3", 4.0],
+        ["C3", 4.0],
+        ["E3", 4.0],
+        ["F3", 4.0],
+        ["C3", 4.0],
+        ["G2", 4.0],
+        ["C3", 4.0]
+      ]
+    },
+    {
+      "channel": 3,
+      "instrument": "triangle_bass",
+      "gain": 0.12,
+      "role": "낮은 옥타브 - 무게감",
+      "notes": [
+        ["C2", 8.0],
+        ["G1", 8.0],
+        ["C2", 8.0],
+        ["C2", 8.0]
+      ]
+    },
+    {
+      "channel": 4,
+      "instrument": "noise_percussion",
+      "gain": 0.08,
+      "role": "장례식 북 - 엄숙함",
+      "pattern": "funeral_drum",
+      "notes": [
+        ["kick", 1.0],
+        ["R", 3.0],
+        ["kick", 1.0],
+        ["R", 3.0],
+        ["kick", 1.0],
+        ["R", 1.0],
+        ["kick", 1.0],
+        ["R", 1.0],
+        ["kick", 1.0],
+        ["R", 3.0]
+      ]
+    }
+  ]
+}

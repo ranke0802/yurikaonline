@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "storm_staff_affixes",
+  "affixes": [
+    {
+      "id": "storm_starlight",
+      "prefix": "뇌광을 두른",
+      "displayName": "뇌광을 두른 황금 지팡이",
+      "skillOverrides": {
+        "missileVisualVariant": "golden_missile"
+      },
+      "rolledEffects": {
+        "missileDamageBonus": {
+          "type": "multiplier_bonus",
+          "min": 0.42,
+          "max": 0.62,
+          "displayAsPercent": true
+        },
+        "missileManaCostReduction": {
+          "type": "multiplier_bonus",
+          "min": 0.18,
+          "max": 0.32,
+          "displayAsPercent": true
+        }
+      },
+      "visuals": {
+        "auraProfile": "storm_gold",
+        "projectileTint": "#ffe052"
+      }
+    }
+  ]
+}

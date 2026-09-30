@@ -1,0 +1,77 @@
+{
+    "id": "king_slime",
+    "name": "대왕 슬라임",
+    "type": "monster",
+    "baseStats": {
+        "level": 4,
+        "hp": 2000,
+        "maxHp": 2000,
+        "mp": 500,
+        "maxMp": 500,
+        "atk": 50,
+        "def": 0,
+        "speed": 40,
+        "exp": 500,
+        "manastone": 2000,
+        "hpRegen": 5
+    },
+    "visual": {
+        "effectTheme": "slime",
+        "effectVfx": { "theme": "slime", "anchor": "ground", "groundAnchor": 0.9, "timeline": "standard" },
+        "assetPath": "assets/resource/monster_slime",
+        "width": 160,
+        "height": 160,
+        "frameSpeed": 0.1,
+        "frameCount": 5,
+        "scale": 4.0,
+        "bossEffects": {
+            "auraColor": "#9ee96f",
+            "secondaryColor": "#f5ffd2",
+            "particleColor": "#d9ff9b",
+            "castVfx": { "color": "#9ee96f", "glowColor": "#f5ffd2", "radiusScale": 0.7, "yScale": 0.36, "rotationSpeed": 0.0018 }
+        }
+    },
+    "sounds": {
+        "attack": "sfx_boss_attack",
+        "hit": "sfx_boss_hit",
+        "die": "sfx_boss_die",
+        "move": "sfx_boss_move"
+    },
+    "skills": [
+        {
+            "id": "shield",
+            "trigger": "damage_received",
+            "chance": 0.3,
+            "cooldown": 20000,
+            "data": {
+                "duration": 1000
+            }
+        }
+    ],
+    "bossMechanics": [
+        {
+            "id": "royal_slam",
+            "label": "Royal Slam",
+            "pattern": "circle",
+            "center": "boss",
+            "radius": 185,
+            "range": 560,
+            "warningMs": 1150,
+            "impactMs": 360,
+            "cooldownMs": 7600,
+            "initialCooldownMs": 2600,
+            "damageMultiplier": 1.05,
+            "color": "#9ee96f",
+            "secondaryColor": "#f5ffd2",
+            "effect": "slime"
+        }
+    ],
+    "drops": [
+        {
+            "itemId": "manastone",
+            "min": 500,
+            "max": 1000,
+            "chance": 1.0
+        }
+    ]
+}

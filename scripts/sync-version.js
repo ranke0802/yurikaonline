@@ -182,18 +182,7 @@ function syncFiles(version, changedFiles) {
         `<title>Yurika Online v${version}</title>`,
         'index.html title version'
     );
-    indexHtml = replaceOrThrow(
-        indexHtml,
-        /<link rel="icon" type="image\/webp" href="src\/assets\/icon_192_clean\.webp\?v=[^"]+">/,
-        `<link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=${version}">`,
-        'index.html favicon version'
-    );
-    indexHtml = replaceOrThrow(
-        indexHtml,
-        /<link rel="apple-touch-icon" href="src\/assets\/apple_touch_icon\.png\?v=[^"]+">/,
-        `<link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=${version}">`,
-        'index.html apple touch icon version'
-    );
+    // Image URLs are content-hashed by build-immutable-assets, not release-versioned.
     indexHtml = replaceOrThrow(
         indexHtml,
         /<script type="module" src="\.\/src\/js\/main\.js\?v=[^"]+"><\/script>/,
@@ -201,21 +190,6 @@ function syncFiles(version, changedFiles) {
         'index.html main module version'
     );
     writeFile('index.html', indexHtml, changedFiles);
-
-    let manifestJson = readFile('manifest.json');
-    manifestJson = replaceOrThrow(
-        manifestJson,
-        /"src": "src\/assets\/icon_192_clean\.webp(?:\?v=[^"]+)?"/,
-        `"src": "src/assets/icon_192_clean.webp?v=${version}"`,
-        'manifest 192 icon version'
-    );
-    manifestJson = replaceOrThrow(
-        manifestJson,
-        /"src": "src\/assets\/icon_512_clean\.webp(?:\?v=[^"]+)?"/,
-        `"src": "src/assets/icon_512_clean.webp?v=${version}"`,
-        'manifest 512 icon version'
-    );
-    writeFile('manifest.json', manifestJson, changedFiles);
 
     let swJs = readFile('sw.js');
     if (/const APP_VERSION = '[^']+';/.test(swJs)) {

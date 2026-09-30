@@ -1,0 +1,52 @@
+{
+    "id": "zone_1",
+    "name": "바람 언덕 (Starting Field)",
+    "width": 3200,
+    "height": 3200,
+    "background": {
+        "image": "assets/resource/background.webp",
+        "music": "bgm_cabin",
+        "ambient": null
+    },
+    "boundaries": {
+        "minX": 0,
+        "maxX": 3200,
+        "minY": 0,
+        "maxY": 3200
+    },
+    "spawnPoints": [
+        {
+            "id": "default",
+            "x": 1600,
+            "y": 1600
+        },
+        {
+            "id": "field_path",
+            "x": 1550,
+            "y": 1550
+        }
+    ],
+    "monsterSpawns": [
+        {
+            "monsterId": "slime",
+            "count": 3,
+            "area": {
+                "x": 1880,
+                "y": 1660,
+                "w": 420,
+                "h": 520
+            }
+        },
+        {
+            "monsterId": "slime",
+            "count": 2,
+            "area": {
+                "x": 980,
+                "y": 2120,
+                "w": 360,
+                "h": 420
+            }
+        }
+    ],
+    "objects": []
+}

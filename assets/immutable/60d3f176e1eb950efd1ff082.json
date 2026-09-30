@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1, "id": "blessed_riftcore_staff", "name": "축복받은 균열핵 지팡이", "description": "태초의 균열지에서 극히 낮은 확률로 발견되는 축복받은 우두머리 무기입니다. 균열핵 지팡이의 고유 효과를 계승합니다.",
+  "slot": "weapon", "rarity": "legendary", "stackable": false, "dropSource": ["rift_sentinel", "ember_drake", "spark_squirrel"],
+  "baseStats": { "attackPower": 20, "critRate": 0.1, "mpRegen": 8 },
+  "icon": { "type": "image", "path": "assets/resource/expansion/zone_5/items/riftcore_staff.webp", "fallbackEmoji": "🌌" },
+  "prefixPool": "blessed_riftcore_staff_affixes", "enhancementRuleSet": "weapon_standard_1_to_10", "enhancementBonuses": { "attackPowerPerLevel": 1, "critRatePerLevel": 0.01 },
+  "inventoryTooltip": { "className": "마법 지팡이", "material": "축복받은 균열핵 결정", "weight": 8, "tradeable": false, "dismantleable": true },
+  "visuals": { "equipAura": { "mode": "prefix_plus_enhancement", "prefixAuraProfiles": { "rift_core": { "baseColor": "#8b5cf6", "secondaryColor": "#67e8f9", "particleStyle": "stardust" } } } },
+  "instanceData": { "prefixId": "random_from_pool", "rolledValues": "from_affix_roll_ranges", "enhancementLevel": 0 }
+}

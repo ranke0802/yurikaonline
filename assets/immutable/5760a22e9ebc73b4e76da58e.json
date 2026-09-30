@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "boss_summon_scroll_thunder_pikachu",
+  "name": "뇌제 피카츄 보스 소환주문서",
+  "type": "consumable",
+  "stackable": true,
+  "maxStack": 1,
+  "rarity": "boss",
+  "description": "뇌광의 숲에서 뇌제 피카츄를 소환합니다. 보유 중이면 같은 주문서는 추가로 지급되지 않으며, 사용 후 10분의 재사용 대기시간이 적용됩니다.",
+  "icon": {
+    "fallbackEmoji": "📜"
+  },
+  "bossSummon": {
+    "monsterId": "thunder_pikachu",
+    "zoneId": "zone_3",
+    "cooldownMs": 600000
+  }
+}

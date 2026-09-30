@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 2,
+  "id": "quest_lake_squirtle_30",
+  "enabled": true,
+  "title": "흐린 물결의 핵",
+  "description": "물방울 꼬부기를 더 처치해 호수 깊은 곳의 보스 기운을 드러내세요.",
+  "type": "main",
+  "chapter": "zone_2",
+  "order": 230,
+  "prerequisites": [
+    { "type": "questCompleted", "questId": "quest_lake_squirtle_12" }
+  ],
+  "activation": {
+    "mode": "auto",
+    "events": ["questCompleted"]
+  },
+  "objectives": [
+    {
+      "id": "kill_squirtle",
+      "type": "kill",
+      "target": "squirtle",
+      "count": 30,
+      "zoneId": "zone_2",
+      "scope": "player",
+      "accumulate": true,
+      "receiptRequired": true,
+      "uiText": "물방울 꼬부기 누적 처치 {current}/{count}"
+    }
+  ],
+  "rewards": {
+    "grant": {
+      "exp": 320,
+      "manastone": 110
+    },
+    "display": [
+      { "type": "exp", "amount": 320 },
+      { "type": "manastone", "amount": 110 }
+    ]
+  },
+  "ui": {
+    "hudPriority": 230,
+    "recommendedZone": "zone_2",
+    "chapterLabel": "Chapter 2 · 안개빛 호수",
+    "nextHint": "필드 보스 유적의 마자용을 찾아 처치하세요."
+  },
+  "onComplete": {
+    "unlocks": ["quest_lake_ruin_wobbuffet"],
+    "logMessage": "유적의 마자용이 호수 안개 너머에서 모습을 드러냅니다."
+  }
+}

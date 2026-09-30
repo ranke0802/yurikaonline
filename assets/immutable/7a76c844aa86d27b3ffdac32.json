@@ -1,0 +1,487 @@
+{
+  "version": "1.0.0",
+  "description": "서사 중심 사운드 이벤트 사전 - A Father's Promise",
+  "narrative_themes": {
+    "paternal_love": {
+      "description": "부성애와 보호본능",
+      "color": "warm",
+      "harmony": "major",
+      "register": "mid_high"
+    },
+    "identity_confusion": {
+      "description": "정체성의 혼란",
+      "color": "dissonant",
+      "harmony": "minor_with_dissonance",
+      "register": "unstable"
+    },
+    "fathers_solidarity": {
+      "description": "아버지들의 연대",
+      "color": "rich",
+      "harmony": "major_7th",
+      "register": "full"
+    },
+    "sacrifice": {
+      "description": "희생",
+      "color": "somber",
+      "harmony": "minor",
+      "register": "low"
+    },
+    "guilt": {
+      "description": "죄책감",
+      "color": "dark",
+      "harmony": "diminished",
+      "register": "low_mid"
+    }
+  },
+  "daughter_interactions": {
+    "description": "딸과의 모든 상호작용은 부성애와 보호본능을 강화",
+    "events": {
+      "daughter_hug": {
+        "trigger": "딸과 포옹",
+        "narrative_weight": "부성애의 정점",
+        "narrative_theme": "paternal_love",
+        "sfx_layers": [
+          {
+            "type": "fm_bell",
+            "notes": ["E5", "G5", "B5"],
+            "duration": 1.5,
+            "gain": 0.15,
+            "effect": "warm_reverb"
+          },
+          {
+            "type": "soft_chord",
+            "chord": "E_major",
+            "duration": 2.0,
+            "gain": 0.1,
+            "fade_in": 0.5
+          }
+        ],
+        "bgm_modulation": {
+          "type": "tempo_slow",
+          "target_bpm": 60,
+          "transition": 2.0
+        }
+      },
+      "daughter_talk": {
+        "trigger": "딸과 대화 시작",
+        "narrative_weight": "유대감 형성",
+        "narrative_theme": "paternal_love",
+        "sfx": {
+          "type": "triangle",
+          "note": "E4",
+          "duration": 0.3,
+          "gain": 0.08,
+          "articulation": "soft"
+        }
+      },
+      "daughter_gift": {
+        "trigger": "딸에게 선물",
+        "narrative_weight": "희생과 사랑",
+        "narrative_theme": "paternal_love",
+        "sfx_layers": [
+          {
+            "type": "fm_bell",
+            "notes": ["G4", "B4", "E5", "G5"],
+            "duration": 1.0,
+            "gain": 0.12,
+            "arpeggio": true
+          },
+          {
+            "type": "sparkle",
+            "frequency_range": [2000, 4000],
+            "duration": 0.8,
+            "gain": 0.05
+          }
+        ]
+      },
+      "daughter_cry": {
+        "trigger": "딸이 울음",
+        "narrative_weight": "보호본능 자극",
+        "narrative_theme": "paternal_love",
+        "sfx": {
+          "type": "noise",
+          "filter": "lowpass_500",
+          "modulation": "tremolo",
+          "duration": 2.0,
+          "gain": 0.1
+        },
+        "bgm_modulation": {
+          "type": "dissonance_intro",
+          "chord": "E_minor_add9",
+          "intensity": 0.3
+        }
+      },
+      "daughter_laugh": {
+        "trigger": "딸이 웃음",
+        "narrative_weight": "행복, 보상",
+        "narrative_theme": "paternal_love",
+        "sfx": {
+          "type": "fm_bell",
+          "notes": ["E5", "G5", "B5", "E6"],
+          "duration": 0.5,
+          "gain": 0.1,
+          "staccato": true
+        }
+      },
+      "daughter_magic_awaken": {
+        "trigger": "딸의 마왕력 각성",
+        "narrative_weight": "정체성 혼란, 위협",
+        "narrative_theme": "identity_confusion",
+        "sfx_layers": [
+          {
+            "type": "square",
+            "note": "E3",
+            "slide_to": "E2",
+            "duration": 3.0,
+            "gain": 0.2
+          },
+          {
+            "type": "noise",
+            "filter": "bandpass",
+            "sweep": "up",
+            "duration": 2.0,
+            "gain": 0.15
+          }
+        ]
+      }
+    }
+  },
+  "combat_sounds": {
+    "description": "전투는 생존이지 승리가 아님 - 죄책감과 절박함 표현",
+    "events": {
+      "monster_kill_first": {
+        "trigger": "처음 몬스터 처치",
+        "narrative_weight": "죄책감의 시작",
+        "narrative_theme": "guilt",
+        "sfx_layers": [
+          {
+            "type": "square",
+            "note": "A3",
+            "duration": 0.5,
+            "gain": 0.15
+          },
+          {
+            "type": "noise",
+            "filter": "lowpass",
+            "duration": 0.8,
+            "gain": 0.1,
+            "fade_out": 0.5
+          }
+        ],
+        "bgm_sting": {
+          "type": "dissonant_chord",
+          "chord": "E_minor_flat5",
+          "duration": 2.0
+        }
+      },
+      "monster_kill_regular": {
+        "trigger": "일반 몬스터 처치",
+        "narrative_weight": "필요악",
+        "narrative_theme": "guilt",
+        "sfx": {
+          "type": "noise",
+          "filter": "lowpass_1000",
+          "duration": 0.3,
+          "gain": 0.12
+        }
+      },
+      "boss_appear": {
+        "trigger": "보스 등장",
+        "narrative_weight": "딸의 위협, 절박함",
+        "narrative_theme": "sacrifice",
+        "sfx_layers": [
+          {
+            "type": "square",
+            "note": "E2",
+            "slide_to": "E1",
+            "duration": 3.0,
+            "gain": 0.25
+          },
+          {
+            "type": "noise",
+            "filter": "lowpass",
+            "sweep": "down",
+            "duration": 2.0,
+            "gain": 0.2
+          }
+        ],
+        "bgm_transition": {
+          "to": "bgm_act3_sacrifice",
+          "crossfade": 3.0
+        }
+      },
+      "boss_defeat": {
+        "trigger": "보스 처치",
+        "narrative_weight": "일시적 안도, 딸의 안전",
+        "narrative_theme": "paternal_love",
+        "sfx_layers": [
+          {
+            "type": "fm_brass",
+            "notes": ["E3", "G3", "B3", "E4"],
+            "duration": 2.0,
+            "gain": 0.2
+          },
+          {
+            "type": "triangle",
+            "note": "E2",
+            "duration": 3.0,
+            "gain": 0.15,
+            "fade_out": 2.0
+          }
+        ]
+      },
+      "player_damage": {
+        "trigger": "플레이어 피격",
+        "narrative_weight": "딸을 지키지 못할까봐 두려움",
+        "narrative_theme": "sacrifice",
+        "sfx": {
+          "type": "square",
+          "note": "C4",
+          "duration": 0.2,
+          "gain": 0.15
+        }
+      },
+      "player_death": {
+        "trigger": "플레이어 사망",
+        "narrative_weight": "딸을 버림, 실패감",
+        "narrative_theme": "sacrifice",
+        "sfx_layers": [
+          {
+            "type": "noise",
+            "filter": "lowpass",
+            "duration": 2.0,
+            "gain": 0.2,
+            "fade_out": 1.5
+          },
+          {
+            "type": "square",
+            "note": "E3",
+            "slide_to": "E2",
+            "duration": 2.0,
+            "gain": 0.15
+          }
+        ],
+        "bgm_sting": {
+          "type": "dissonant_chord",
+          "chord": "E_minor_diminished",
+          "duration": 3.0
+        }
+      }
+    }
+  },
+  "environment_sounds": {
+    "description": "환경은 아버지의 남성 상태를 반영",
+    "events": {
+      "enter_cabin": {
+        "trigger": "오두막 진입",
+        "narrative_weight": "안식, 딸과의 안전",
+        "narrative_theme": "paternal_love",
+        "bgm_transition": {
+          "to": "bgm_act1_peaceful",
+          "crossfade": 2.0
+        },
+        "ambient": {
+          "type": "fireplace",
+          "gain": 0.05,
+          "loop": true
+        }
+      },
+      "enter_dungeon": {
+        "trigger": "던전 진입",
+        "narrative_weight": "고독함, 위험",
+        "narrative_theme": "guilt",
+        "bgm_transition": {
+          "to": "bgm_act2_threat",
+          "crossfade": 3.0
+        },
+        "ambient": {
+          "type": "wind",
+          "filter": "lowpass",
+          "gain": 0.08,
+          "loop": true
+        }
+      },
+      "enter_boss_room": {
+        "trigger": "보스방 진입",
+        "narrative_weight": "절박함, 최후의 저항",
+        "narrative_theme": "sacrifice",
+        "bgm_transition": {
+          "to": "bgm_act3_sacrifice",
+          "crossfade": 2.0
+        }
+      },
+      "footstep_grass": {
+        "trigger": "풀밭 걷기",
+        "sfx": {
+          "type": "noise",
+          "filter": "highpass_2000",
+          "duration": 0.1,
+          "gain": 0.03
+        }
+      },
+      "footstep_stone": {
+        "trigger": "돌바닥 걷기",
+        "sfx": {
+          "type": "noise",
+          "filter": "bandpass_1000_3000",
+          "duration": 0.1,
+          "gain": 0.04
+        }
+      }
+    }
+  },
+  "multiplayer_sounds": {
+    "description": "다른 아버지들과의 연대감",
+    "events": {
+      "father_approach": {
+        "trigger": "다른 아버지(플레이어) 접근",
+        "narrative_weight": "동질감, 연대의 시작",
+        "narrative_theme": "fathers_solidarity",
+        "sfx": {
+          "type": "fm_bell",
+          "note": "E4",
+          "duration": 0.5,
+          "gain": 0.08
+        }
+      },
+      "party_form": {
+        "trigger": "파티 형성 (아버지들의 동맹)",
+        "narrative_weight": "신성한 동맹, 딸들을 위한 연대",
+        "narrative_theme": "fathers_solidarity",
+        "sfx_layers": [
+          {
+            "type": "fm_brass",
+            "notes": ["E3", "G3", "B3", "E4", "G4"],
+            "duration": 2.0,
+            "gain": 0.15
+          },
+          {
+            "type": "triangle",
+            "note": "E2",
+            "duration": 3.0,
+            "gain": 0.1
+          }
+        ],
+        "bgm_modulation": {
+          "type": "harmony_enhance",
+          "add_chord": "E_major_7"
+        }
+      },
+      "party_member_death": {
+        "trigger": "파티원 사망",
+        "narrative_weight": "동료의 딸을 지키지 못함",
+        "narrative_theme": "sacrifice",
+        "sfx_layers": [
+          {
+            "type": "square",
+            "note": "E3",
+            "slide_to": "E2",
+            "duration": 1.5,
+            "gain": 0.15
+          },
+          {
+            "type": "noise",
+            "filter": "lowpass",
+            "duration": 1.0,
+            "gain": 0.1
+          }
+        ]
+      },
+      "daughter_meet": {
+        "trigger": "딸들의 만남 이벤트",
+        "narrative_weight": "딸들의 우정, 아버지들의 기쁨",
+        "narrative_theme": "fathers_solidarity",
+        "sfx_layers": [
+          {
+            "type": "fm_bell",
+            "notes": ["E4", "G4", "B4", "E5", "G5", "B5"],
+            "duration": 3.0,
+            "gain": 0.12,
+            "arpeggio": true
+          },
+          {
+            "type": "triangle",
+            "chord": "E_major",
+            "duration": 4.0,
+            "gain": 0.1
+          }
+        ],
+        "bgm_transition": {
+          "to": "bgm_act4_hope",
+          "crossfade": 4.0
+        }
+      }
+    }
+  },
+  "ux_sounds": {
+    "description": "모든 플레이어 액션에 사운드 할당",
+    "movement": {
+      "walk": {
+        "trigger": "걷기",
+        "sfx": "footstep_grass",
+        "interval": 0.4,
+        "gain": 0.03
+      },
+      "run": {
+        "trigger": "달리기",
+        "sfx": "footstep_grass_fast",
+        "interval": 0.25,
+        "gain": 0.04
+      },
+      "stop": {
+        "trigger": "멈춤",
+        "sfx": "dust_settle",
+        "gain": 0.02
+      }
+    },
+    "combat_actions": {
+      "attack_cast": {
+        "trigger": "마법 시전",
+        "sfx": "magic_cast",
+        "gain": 0.1
+      },
+      "skill_laser": {
+        "trigger": "레이저 스킬",
+        "sfx": "laser_shot",
+        "gain": 0.12
+      },
+      "skill_missile": {
+        "trigger": "미사일 스킬",
+        "sfx": "missile_launch",
+        "gain": 0.12
+      },
+      "skill_fireball": {
+        "trigger": "파이어볼 스킬",
+        "sfx": "fireball_cast",
+        "gain": 0.15
+      },
+      "skill_shield": {
+        "trigger": "실드 스킬",
+        "sfx": "shield_activate",
+        "gain": 0.1
+      }
+    },
+    "ui_interactions": {
+      "button_click": {
+        "trigger": "버튼 클릭",
+        "sfx": "ui_click",
+        "gain": 0.05
+      },
+      "menu_open": {
+        "trigger": "메뉴 열기",
+        "sfx": "ui_open",
+        "gain": 0.04
+      },
+      "item_equip": {
+        "trigger": "아이템 장착",
+        "sfx": "equip_sound",
+        "gain": 0.08
+      },
+      "level_up": {
+        "trigger": "레벨업",
+        "sfx": "level_up_fanfare",
+        "gain": 0.15
+      }
+    }
+  }
+}

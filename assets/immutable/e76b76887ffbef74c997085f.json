@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "ruleSets": [
+    {
+      "id": "weapon_standard_1_to_10",
+      "name": "무기 기본 강화 규칙",
+      "safeUntil": 6,
+      "maxLevel": 10,
+      "failureMode": {
+        "keepLevelOnFail": true,
+        "destroyOnFailFromLevel": 7
+      },
+      "perLevelStatGain": {
+        "attackPower": 1,
+        "critRate": 0.01
+      },
+      "levels": {
+        "1": { "successRate": 1.0, "destroyChanceOnFail": 0.0 },
+        "2": { "successRate": 1.0, "destroyChanceOnFail": 0.0 },
+        "3": { "successRate": 1.0, "destroyChanceOnFail": 0.0 },
+        "4": { "successRate": 1.0, "destroyChanceOnFail": 0.0 },
+        "5": { "successRate": 1.0, "destroyChanceOnFail": 0.0 },
+        "6": { "successRate": 1.0, "destroyChanceOnFail": 0.0 },
+        "7": { "successRate": 0.5, "destroyChanceOnFail": 0.5 },
+        "8": { "successRate": 0.25, "destroyChanceOnFail": 0.5 },
+        "9": { "successRate": 0.15, "destroyChanceOnFail": 0.5 },
+        "10": { "successRate": 0.05, "destroyChanceOnFail": 0.5 }
+      }
+    }
+  ]
+}

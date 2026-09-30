@@ -1,0 +1,37 @@
+{
+  "environment": "Chromium 780x360 local profiles; cold camp-character-field-return; reload repeats journey; CDP loadingFinished encoded bytes; HTTP cache enabled",
+  "before": {
+    "cold": {
+      "requests": 70,
+      "transfers": 64,
+      "wireBytes": 10644656
+    },
+    "reentry": {
+      "requests": 0,
+      "transfers": 0,
+      "wireBytes": 0
+    },
+    "warm": {
+      "requests": 70,
+      "transfers": 0,
+      "wireBytes": 0
+    }
+  },
+  "after": {
+    "cold": {
+      "requests": 70,
+      "transfers": 59,
+      "wireBytes": 7340371
+    },
+    "reentry": {
+      "requests": 1,
+      "transfers": 0,
+      "wireBytes": 0
+    },
+    "warm": {
+      "requests": 69,
+      "transfers": 0,
+      "wireBytes": 0
+    }
+  }
+}

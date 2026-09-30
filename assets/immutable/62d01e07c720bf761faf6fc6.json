@@ -1,0 +1,31 @@
+{
+  "id": "rift_sentinel",
+  "name": "균열의 감시자",
+  "type": "boss",
+  "isBoss": true,
+  "spriteVersionNumber": 2,
+  "baseStats": { "level": 24, "hp": 46000, "maxHp": 46000, "mp": 4600, "maxMp": 4600, "atk": 76, "def": 0, "speed": 54, "exp": 180000, "hpRegen": 14 },
+  "visual": {
+    "effectTheme": "rift",
+    "effectVfx": { "theme": "rift", "anchor": "ground", "groundAnchor": 0.9, "timeline": "standard" },
+    "assetPath": "assets/resource/expansion/zone_5/monsters/rift_sentinel/spritesheet.webp",
+    "spriteVersionNumber": 2,
+    "width": 128, "height": 142, "renderWidth": 240, "renderHeight": 260, "frameSpeed": 0.09, "frameCount": 7, "scale": 1,
+    "spriteSheet": {
+      "columns": 8, "rows": 11, "frameWidth": 192, "frameHeight": 208,
+      "contentBounds": { "left": 36, "top": 5, "right": 155, "bottom": 203 },
+      "alignContentToGround": true,
+      "rowMap": { "idle": 0, "moveRight": 1, "moveLeft": 2 },
+      "frameCounts": { "idle": 7, "moveRight": 8, "moveLeft": 8 },
+      "sha256": "1b2246cb5d05181866d9f51da8ea2513ccb4b39eba91bef5325e567213fc1d45"
+    },
+    "bossEffects": { "auraColor": "#7c3aed", "secondaryColor": "#67e8f9", "particleColor": "#d8b4fe", "castVfx": { "radiusScale": 0.82, "yScale": 0.58, "rotationSpeed": -0.0038 }, "pulseSpeed": 1.25, "ringCount": 4, "shadowScale": 1.5, "shakeIntensity": 22, "shakeDuration": 0.46, "hitstopMs": 115 }
+  },
+  "behavior": { "isBoss": true, "aggressive": true, "spawnGraceSeconds": 0, "aggroRange": 640, "attackRange": 144, "attackCooldownMs": 1000, "leashRange": 1120, "charge": { "enabled": true, "damage": 150, "range": 1000, "cooldownMs": 8600, "minDistance": 175, "castSeconds": 0.95, "speed": 375 } },
+  "sounds": { "attack": "sfx_boss_attack", "hit": "sfx_boss_hit", "die": "sfx_boss_die", "move": "sfx_boss_move" },
+  "bossMechanics": [
+    { "id": "rift_lances", "label": "균열 창", "pattern": "parallel_lines", "lanes": 3, "laneGap": 170, "width": 86, "length": 820, "range": 790, "warningMs": 1300, "impactMs": 360, "cooldownMs": 7000, "initialCooldownMs": 2200, "damageMultiplier": 1.18, "color": "#7c3aed", "secondaryColor": "#67e8f9", "effect": "rift" },
+    { "id": "fracture_circle", "label": "붕괴의 원", "pattern": "donut", "outerRadius": 115, "innerRadius": 54, "range": 690, "warningMs": 1450, "impactMs": 400, "cooldownMs": 10600, "initialCooldownMs": 5700, "damageMultiplier": 1.32, "color": "#a78bfa", "secondaryColor": "#e0f2fe", "effect": "rift" }
+  ],
+  "drops": [{ "itemId": "manastone", "min": 76000, "max": 90000, "chance": 1 }]
+}
