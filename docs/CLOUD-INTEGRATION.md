@@ -399,3 +399,38 @@ inventory, combat, audio, cache and region regressions. Browser viewport/touch
 simulation is not physical-phone, Safari or actual Google/account testing.
 Screenshots: /tmp/camp-v129-qa/refined-*.png. Hosting verification compares all
 changed runtime bytes and version against the exact deployed commit.
+
+## 0.02.130 — retain the profile cache through camp journal writes
+
+The second user screenshot (parent pixel inspection) shows the v129
+profile_missing notice on expedition preparation. Root read, snapshot recovery
+and patch save all use users/{auth uid}/profile; no character-name key or new
+Firebase path was introduced. Unlike the old direct scene entry, camp gates
+departure on flushing the local patch journal, including writes from earlier
+field play even if the camp character has not changed. No-journal clean camp
+flushes do not write anything.
+
+Reproduced with actual production Firebase compat SDK 10.7.1 connected only to
+a loopback protocol fixture: once(value) returns the Lv19 profile, detaches,
+and evicts its cache; the guarded patch transaction then sees null and aborts
+profile_missing without a server write. Repeating the v129 once-read warmup
+three times produces the same failure. Previous mocks incorrectly retained
+cache after once() and missed this behavior. The protocol fixture exercises
+the real SDK cache/transaction machinery, not full server rules or authentication.
+The official emulator could not download its JAR in this environment (403).
+
+Patch transactions now retain one exact value listener from the first read
+until the transaction settles, then remove that listener on success/failure.
+The existing missing-profile, revision and progression guards are unchanged;
+missing records are not created from partial patches. Read timeout and permission
+failures preserve the journal. Removed the ineffective camp-only once warmup
+and duplicate departure error text. No UI expansion or live DB/rule changes.
+
+The identical SDK fixture now commits the pending journal exactly once, preserves
+Lv19/zone4, clears the journal, and subsequent clean flushes make no writes.
+Twelve NetworkManager fixtures additionally cover cache eviction, listener cleanup,
+timeout/retry, real missing profile, permission/disconnection, revision conflicts
+and late acknowledgements. Aggregate and camp browser/region/stall regressions
+pass. CI runs the actual SDK loopback proof before deployment and compares live
+runtime bytes to the commit. The specific user's account was not accessed; this
+is a reproduced matching failure mechanism, not confirmation of their device.

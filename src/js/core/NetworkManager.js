@@ -9784,6 +9784,34 @@ export default class NetworkManager extends EventEmitter {
         });
     }
 
+    async _runPreparedProfilePatchTransaction(profileRef, update) {
+        // A once(value) read removes its listener before resolving. RTDB can then
+        // evict that path: a following transaction first sees null and our
+        // missing-profile guard aborts without ever consulting the server.
+        // Keep the exact root subscribed until the guarded transaction settles.
+        if (typeof profileRef.on !== 'function' || typeof profileRef.off !== 'function') {
+            return profileRef.transaction(update);
+        }
+        let listener;
+        let timer;
+        try {
+            await new Promise((resolve, reject) => {
+                timer = setTimeout(() => {
+                    const error = new Error('profile_read_timeout');
+                    error.code = 'profile_read_timeout';
+                    reject(error);
+                }, this.profileTransactionReadTimeoutMs || 15000);
+                listener = () => resolve();
+                profileRef.on('value', listener, reject);
+            });
+            clearTimeout(timer);
+            return await profileRef.transaction(update);
+        } finally {
+            clearTimeout(timer);
+            if (listener) profileRef.off('value', listener);
+        }
+    }
+
     async _commitPlayerDataPatchTransaction(uid, patchData, options = {}) {
         if (this._blockedProfileWriteUids.has(uid)) {
             return { ok: false, reason: 'profile_write_blocked' };
@@ -9827,7 +9855,7 @@ export default class NetworkManager extends EventEmitter {
             let abortReason = null;
             const bypassRegressionGuard = options.bypassProfileRegressionGuard === true;
             let lowerExperienceGuarded = false;
-            const transactionResult = await profileRef.transaction((current) => {
+            const transactionResult = await this._runPreparedProfilePatchTransaction(profileRef, (current) => {
                 abortReason = null;
                 if (!this._canProfileWriterSessionCommit(current, writerSession)) {
                     abortReason = 'writer_session_superseded';

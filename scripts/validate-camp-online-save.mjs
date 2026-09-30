@@ -16,14 +16,16 @@ function validateFirebaseValue(value, path='profile') {
  }
 }
 
-function fixture({cachedNull=false,errorCode=null,revision=41}={}) {
+function fixture({cachedNull=false,errorCode=null,revision=41,evictAfterOnce=false}={}) {
  const profile={name:'fixture-mage',level:19,exp:2411,maxExp:147789,manastone:12900,vitality:7,intelligence:14,wisdom:8,agility:4,statPoints:2,hp:159,mp:85,x:722,y:611,currentZoneId:'zone_4',mapId:'zone_4',mapPositions:{zone_4:{x:722,y:611}},skillLevels:{laser:3,missile:2,fireball:4,shield:1},inventory:[{type:'manastone',amount:12900},{type:'magic_staff',slot:'weapon',instanceId:'fixture-new',baseStats:{attackPower:31}},{type:'weapon_upgrade_stone',amount:7}],equipment:{weapon:{type:'magic_staff',slot:'weapon',instanceId:'fixture-old',baseStats:{attackPower:17}}},questData:{slimeKills:44,bossClearCount:8},questState:{completed:{zone3:true}},unknownFutureField:{keep:true},_profileRevision:revision,ts:Date.now()};
- const state={profile:clone(profile),cachedNull,errorCode,transactions:0,reads:0,writes:[],transportPayloads:[]};
+ const state={profile:clone(profile),cachedNull,errorCode,transactions:0,reads:0,writes:[],transportPayloads:[],listeners:new Map(),subscriptions:0,unsubscriptions:0,evictAfterOnce};
  const values=new Map();const storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,String(v)),removeItem:k=>values.delete(k),key:i=>[...values.keys()][i],get length(){return values.size}};
  const snapshot=value=>({val:()=>clone(value),exists:()=>value!=null,forEach:()=>false});
  const firebase={database:()=>({ref:path=>({
-  once:async()=>{state.reads++;if(state.errorCode)throw Object.assign(Error(state.errorCode),{code:state.errorCode});if(path===`users/${uid}/profile`){state.cachedNull=false;return snapshot(state.profile)}return snapshot(null)},
-  transaction:async updater=>{state.transactions++;if(state.errorCode)throw Object.assign(Error(state.errorCode),{code:state.errorCode});const current=state.cachedNull?null:clone(state.profile);const next=updater(current);if(next===undefined)return{committed:false,snapshot:snapshot(current)};if(state.commitGate)await state.commitGate;validateFirebaseValue(next);state.transportPayloads.push(clone(next));state.profile=clone(next);return{committed:true,snapshot:snapshot(next)}},
+  on:(event,callback,cancel)=>{assert.equal(event,'value');state.subscriptions++;state.listeners.set(callback,path);queueMicrotask(()=>{if(!state.listeners.has(callback)||state.suppressValueEvent)return;if(state.errorCode){cancel?.(Object.assign(Error(state.errorCode),{code:state.errorCode}));return;}state.cachedNull=false;callback(snapshot(path===`users/${uid}/profile`?state.profile:null));});return callback},
+  off:(event,callback)=>{assert.equal(event,'value');if(state.listeners.delete(callback))state.unsubscriptions++;if(state.evictAfterOnce&&!state.listeners.size)state.cachedNull=true},
+  once:async()=>{state.reads++;if(state.errorCode)throw Object.assign(Error(state.errorCode),{code:state.errorCode});if(path===`users/${uid}/profile`){state.cachedNull=state.evictAfterOnce&&!state.listeners.size;return snapshot(state.profile)}return snapshot(null)},
+  transaction:async updater=>{state.transactions++;if(state.errorCode)throw Object.assign(Error(state.errorCode),{code:state.errorCode});const current=(state.cachedNull||(state.evictAfterOnce&&!state.listeners.size))?null:clone(state.profile);const next=updater(current);if(next===undefined)return{committed:false,snapshot:snapshot(current)};if(state.commitGate)await state.commitGate;validateFirebaseValue(next);state.transportPayloads.push(clone(next));state.profile=clone(next);return{committed:true,snapshot:snapshot(next)}},
   set:async value=>state.writes.push({path,value:clone(value)}),update:async value=>state.writes.push({path,value:clone(value)})
  })})};
  globalThis.firebase=firebase;globalThis.localStorage=storage;globalThis.window={firebase,localStorage:storage};
@@ -42,10 +44,10 @@ test('real online save commits Lv19 camp equipment and retains zone, quest, iden
  assert.equal(state.writes.length,0,'no recovery or world transport writes');
 });
 
-test('cached-null transaction retry warms profile cache and swaps equipment only once',async()=>{
+test('cold transaction cache is warmed before first equipment save and swaps only once',async()=>{
  const{state,prep}=fixture({cachedNull:true});prep.player.equipWeaponFromInventory(1);await prep.tail;
- assert.equal(prep.status().reason,'profile_missing');assert.equal(state.profile.equipment.weapon.instanceId,'fixture-old');
- assert.equal((await prep.flush()).ok,true);assert.equal(state.reads,1,'retry reads missing transaction cache before resubmitting');assert.equal(state.profile.equipment.weapon.instanceId,'fixture-new');
+ assert.equal(prep.status().ok,true);
+ assert.equal((await prep.flush()).ok,true);assert.equal(state.subscriptions,1,'save retains cache with temporary value listener');assert.equal(state.transactions,1);assert.equal(state.profile.equipment.weapon.instanceId,'fixture-new');
  assert.equal(state.profile.inventory[1].instanceId,'fixture-old');assert.equal(prep.status().ok,true);
 });
 
@@ -61,7 +63,7 @@ for(const code of ['PERMISSION_DENIED','DISCONNECTED'])test(`actual online ${cod
  assert.equal(prep.status().reason,'save_patch_failed');assert.equal(prep.status().code,code);assert.ok(net.getLocalProfilePatchJournal(uid));
  assert.equal(state.profile.equipment.weapon.instanceId,'fixture-old');state.errorCode=null;
  assert.equal((await prep.flush()).ok,true);assert.equal(state.profile.equipment.weapon.instanceId,'fixture-new');
- assert.equal(state.profile.inventory[1].instanceId,'fixture-old');assert.equal(net.getLocalProfilePatchJournal(uid),null);
+ assert.equal(state.profile.inventory[1].instanceId,'fixture-old');assert.equal(net.getLocalProfilePatchJournal(uid),null);assert.equal(state.listeners.size,0);assert.equal(state.subscriptions,state.unsubscriptions);
 });
 
 test('clean camp flush replays a pending online journal; stale revision errors surface without any camp mutation',async()=>{
@@ -84,8 +86,52 @@ test('late actual Firebase commit clears timeout and retry does not resubmit equ
 
 
 test('genuinely missing online profile stays blocked and retry never creates a replacement account',async()=>{
- const{state,prep}=fixture();state.profile=null;
+ const{state,prep}=fixture({evictAfterOnce:true});state.profile=null;
  prep.player.equipWeaponFromInventory(1);await prep.tail;assert.equal(prep.status().reason,'profile_missing');
  assert.equal((await prep.flush()).ok,false);assert.equal(prep.status().reason,'profile_missing');
  assert.equal(state.profile,null);assert.equal(state.transportPayloads.length,0);assert.equal(prep.player.equipment.weapon.instanceId,'fixture-new');
+});
+
+test('camp pending journal commits after successful once read whose detached cache has been evicted',async()=>{
+ const{state,prep,net}=fixture({evictAfterOnce:true});
+ assert.equal((await net.getPlayerProfile(uid,{throwOnError:true})).level,19);
+ assert.equal(state.cachedNull,true,'once listener is detached and does not retain profile cache');
+ net._storeLocalProfilePatchJournal(uid,{manastone:12600,skillLevels:{...state.profile.skillLevels,laser:4}},{checkpointPolicy:'durable'});
+ assert.equal(prep.dirty.size,0);
+ assert.equal((await prep.flush()).ok,true,'journal transaction must retain a value listener while guarded updater runs');
+ assert.equal(state.profile.manastone,12600);assert.equal(state.profile.skillLevels.laser,4);
+ assert.equal(net.getLocalProfilePatchJournal(uid),null);assert.equal(state.listeners.size,0,'temporary listener must be released');
+ assert.equal(state.subscriptions,state.unsubscriptions);
+});
+
+test('clean camp with no pending journal performs no transaction after once cache eviction',async()=>{
+ const{state,prep,net}=fixture({evictAfterOnce:true});await net.getPlayerProfile(uid,{throwOnError:true});
+ assert.equal((await prep.flush()).ok,true);assert.equal(state.transactions,0);assert.equal(state.listeners.size,0);
+});
+
+test('v129 transaction behavior reproduces permanent profile_missing despite repeated successful once reads',async()=>{
+ const{state,prep,net}=fixture({evictAfterOnce:true});
+ // Isolate the old implementation's one changed boundary; all save, journal,
+ // conflict guards and CampPreparation retry code are the actual runtime.
+ net._runPreparedProfilePatchTransaction=(profileRef,update)=>profileRef.transaction(update);
+ assert.equal((await net.getPlayerProfile(uid,{throwOnError:true})).level,19);
+ net._storeLocalProfilePatchJournal(uid,{manastone:12600},{checkpointPolicy:'durable'});
+ for(let attempt=0;attempt<3;attempt++) {
+  // v129 retried a one-shot read before the journal transaction. Its listener
+  // was already detached by the time flush ran, so the cache was cold again.
+  assert.equal((await net.getPlayerProfile(uid,{throwOnError:true})).level,19);
+  assert.equal((await prep.flush()).reason,'profile_missing');
+  assert.equal(state.profile.manastone,12900);
+ }
+ assert.ok(state.reads>=3,'successful reads cannot retain the detached cache');
+ assert.equal(state.transportPayloads.length,0);assert.ok(net.getLocalProfilePatchJournal(uid));
+});
+
+test('profile listener timeout preserves pending changes and releases the exact subscription',async()=>{
+ const{state,prep,net}=fixture({evictAfterOnce:true});state.suppressValueEvent=true;net.profileTransactionReadTimeoutMs=10;
+ prep.player.equipWeaponFromInventory(1);await prep.tail;
+ assert.equal(prep.status().code,'profile_read_timeout');assert.equal(state.transactions,0);assert.equal(state.listeners.size,0);
+ assert.equal(state.subscriptions,state.unsubscriptions);assert.ok(net.getLocalProfilePatchJournal(uid));
+ state.suppressValueEvent=false;assert.equal((await prep.flush()).ok,true);
+ assert.equal(state.profile.equipment.weapon.instanceId,'fixture-new');assert.equal(state.transactions,1);assert.equal(state.listeners.size,0);
 });

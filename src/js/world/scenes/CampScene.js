@@ -240,7 +240,7 @@ export default class CampScene extends Scene {
         try {
             this.closePreparationPopups();
             const saved = await this.preparation?.flush();
-            if (saved?.ok === false) { this.busy = false; this.message = '정비 저장을 다시 시도해 주세요.'; this.renderUI(); return; }
+            if (saved?.ok === false) { this.busy = false; this.message = ''; this.renderUI(); return; }
             // Re-read before entry: no stale camp snapshot can overwrite newer progress.
             const snapshot = await this.readSnapshot();
             if (!this.root || this.game.sceneManager.currentScene !== this) return;

@@ -118,15 +118,6 @@ export default class CampPreparation {
     async flush() {
         const settled = await this.awaitCommit(this.commitTail);
         if (settled?.reason === 'camp_save_timeout') return settled;
-        if (settled?.reason === 'profile_missing' || this.error === 'profile_missing') {
-            // RTDB transactions can initially see an empty local cache and abort
-            // before asking the server. Warm it with a read, retaining our patch.
-            // A genuinely missing account is never created from this partial state.
-            try {
-                const profile = await this.waitForWrite(this.game.net.getPlayerProfile?.(this.user.uid, { throwOnError: true }));
-                if (!profile) return this.failed(new Error('profile_missing'));
-            } catch (error) { return this.failed(error); }
-        }
         if (this.dirty.size) {
             const result = await this.save([...this.dirty], { reason: 'camp_preparation_retry' });
             if (!result.ok) return result;

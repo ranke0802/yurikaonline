@@ -18,6 +18,10 @@ jobs:
       - run: npm ci
       - name: Validate public assets and local runtime
         run: npm run validate:assets && npm run validate:resources && npm run validate:ui && npm run validate:local-profile && npm run validate:monster-authority && npm run validate:fireball-impact && npm run validate:inventory-compaction && npm run validate:camp-preparation && npm run validate:adventure-summary && npm run validate:camp-online-save && npm run validate:startup-deadlines
+      - name: Verify real Firebase SDK camp cache lifecycle on loopback
+        run: |
+          npm install --prefix "$RUNNER_TEMP/yurika-sdk-fixture" --no-package-lock firebase@10.7.1 ws@8
+          YURIKA_FIREBASE_FIXTURE_ROOT="$RUNNER_TEMP/yurika-sdk-fixture" node scripts/validate-camp-sdk-cache.mjs
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
