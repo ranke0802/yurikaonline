@@ -24,3 +24,5 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_YURIKA_ONLINE }}
           channelId: live
           projectId: yurika-online
+      - name: Verify deployed public version and immutable assets
+        run: node scripts/verify-hosting-release.mjs
