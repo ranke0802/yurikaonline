@@ -5,7 +5,6 @@ import renderCampPresentation from '../../ui/CampPresentation.js';
 
 const ART = '/party-rpg-concept/assets/';
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const number = value => Math.max(0, Number(value) || 0).toLocaleString('ko-KR');
 
 /** Presentation only: the NetworkManager profile is the sole source of progress. */
 export default class CampScene extends Scene {
@@ -18,6 +17,8 @@ export default class CampScene extends Scene {
         this.profile = null;
         this.preparation = null;
         this.failed = false;
+        this.operationTimeoutMs ||= 8000;
+        this.loadToken = (this.loadToken || 0) + 1;
         this.game.ui.hideHUD();
         this.game.ui.hideAllPopups();
         this.game.net.setZoneParticipationEnabled?.(false);
@@ -33,7 +34,7 @@ export default class CampScene extends Scene {
             const action = event.target.closest('[data-camp]')?.dataset.camp;
             if (action) {
                 this.game.sound?.playSfx?.('ui_click');
-                void this.action(action);
+                void this.action(action).catch(error => this.showOperationError(error));
             }
         });
         this.onBack = () => this.handleBack();
@@ -49,37 +50,52 @@ export default class CampScene extends Scene {
         await this.load();
     }
 
-    async readSnapshot() {
+    async waitForOperation(operation, label) {
         let timer;
         try {
-            return await Promise.race([
-                this.game.net.getLatestProfileSnapshot(this.user.uid, { throwOnError: true, forceRecoveryLookup: true }),
-                new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('profile_timeout')), 8000); })
-            ]);
+            return await Promise.race([operation, new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error(label)), this.operationTimeoutMs || 8000);
+            })]);
         } finally { clearTimeout(timer); }
+    }
+
+    async readSnapshot() {
+        return this.waitForOperation(this.game.net.getLatestProfileSnapshot(this.user.uid, {
+            throwOnError: true, forceRecoveryLookup: true
+        }), 'profile_timeout');
+    }
+
+    showOperationError(error) {
+        if (!this.root) return;
+        this.busy = false;
+        this.failed = true;
+        this.message = error?.message === 'character_timeout' ? '캐릭터 자료를 불러오는 시간이 길어지고 있어요. 연결을 확인하고 다시 불러와 주세요.'
+            : error?.message === 'region_timeout' ? '지역 자료를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
+            : '기록을 불러오지 못했어요. 다시 시도해 주세요. 기존 기록은 변경하지 않았어요.';
+        this.renderUI();
     }
 
     async load() {
         const generation = this.generation;
+        const token = ++this.loadToken;
         this.busy = true;
         this.message = '모험 기록을 불러오고 있어요…';
         this.renderUI();
         try {
             const snapshot = await this.readSnapshot();
-            if (generation !== this.generation) return;
-            await this.prepareProfile(snapshot, generation);
-            if (generation !== this.generation) return;
+            if (generation !== this.generation || token !== this.loadToken) return;
+            await this.prepareProfile(snapshot, generation, token);
+            if (generation !== this.generation || token !== this.loadToken) return;
             const returning = !!this.journey.read(this.journey.key(this.user.uid, this.game.isLocalMode)).pending;
             this.summary = this.profile ? this.journey.finish(this.user.uid, this.game.isLocalMode, this.profile) : null;
             if (returning && this.summary) this.view = 'result';
             this.message = '';
             this.failed = false;
-        } catch {
-            if (generation !== this.generation) return;
-            this.failed = true;
-            this.message = '기록을 불러오지 못했어요. 다시 시도해 주세요. 기존 기록은 변경하지 않았어요.';
+        } catch (error) {
+            if (generation !== this.generation || token !== this.loadToken) return;
+            this.showOperationError(error);
         } finally {
-            if (generation === this.generation) { this.busy = false; this.renderUI(); }
+            if (generation === this.generation && token === this.loadToken) { this.busy = false; this.renderUI(); }
         }
     }
 
@@ -109,9 +125,20 @@ export default class CampScene extends Scene {
         notice.hidden = !state || state.ok;
         notice.replaceChildren();
         if (!state || state.ok) return;
-        notice.append(document.createTextNode(state.pending ? '정비 내용을 저장하고 있어요…' : '정비 내용을 저장하지 못했어요. 다시 저장한 뒤 출정해 주세요. '));
+        const code = String(state.code || state.reason || '').toLowerCase();
+        const message = state.pending ? '저장한 내용을 확인하고 있어요…'
+            : code.includes('timeout') ? '서버의 저장 확인이 늦어지고 있어요. 변경 내용은 유지하고 있어요.'
+            : code.includes('permission') ? '저장 권한을 확인하지 못했어요. 로그인 상태를 확인한 뒤 다시 시도해 주세요.'
+            : code.includes('superseded') ? '다른 접속으로 저장이 중단됐어요. 이 기기에서 다시 접속한 뒤 확인해 주세요.'
+            : code.includes('conflict') || code.includes('another_tab') ? '다른 곳에서 기록이 갱신됐어요. 저장을 다시 확인해 주세요.'
+            : code.includes('disconnect') || code.includes('network') ? '연결이 끊겨 저장하지 못했어요. 연결 후 다시 시도해 주세요.'
+            : code.includes('profile_missing') ? '계정 기록을 아직 확인하지 못했어요. 잠시 후 다시 시도해 주세요.'
+            : state.dirty ? '정비 내용을 저장하지 못했어요. 변경 내용은 유지됩니다. 다시 저장해 주세요.'
+            : '이전 기록의 저장을 확인하지 못했어요. 다시 확인해 주세요.';
+        notice.dataset.reason = state.code || state.reason || '';
+        notice.append(document.createTextNode(message));
         if (!state.pending) {
-            const retry = document.createElement('button'); retry.dataset.camp = 'save-retry'; retry.textContent = '다시 저장'; notice.append(retry);
+            const retry = document.createElement('button'); retry.dataset.camp = 'save-retry'; retry.textContent = state.waiting || !state.dirty ? '저장 확인' : '다시 저장'; notice.append(retry);
         }
     }
 
@@ -139,11 +166,12 @@ export default class CampScene extends Scene {
         history.pushState({ camp: this.view }, '');
     }
 
-    async prepareProfile(snapshot, generation = this.generation) {
+    async prepareProfile(snapshot, generation = this.generation, token = this.loadToken) {
         const profile = snapshot?.profile || null;
-        const definition = profile ? await this.game.characterData.loadDefinition('wizard') : null;
-        if (profile) await this.game.zone.loadZoneCatalog();
-        if (generation !== this.generation || !this.root) return;
+        const definition = profile ? await this.waitForOperation(this.game.characterData.loadDefinition('wizard'), 'character_timeout') : null;
+        if (generation !== this.generation || token !== this.loadToken || !this.root) return;
+        if (profile) await this.waitForOperation(this.game.zone.loadZoneCatalog(), 'region_timeout');
+        if (generation !== this.generation || token !== this.loadToken || !this.root) return;
         this.profile = profile;
         this.preparation = profile ? new CampPreparation(this.game, this.user, profile, definition, () => this.updateSaveStatus()) : null;
         this.game.localPlayer = this.preparation?.player || null;
@@ -169,9 +197,19 @@ export default class CampScene extends Scene {
             this.closePreparationPopups(); this.view = action; this.renderUI(); return;
         }
         if (action === 'depart' && this.view === 'character') action = 'prepare';
-        if (['character', 'prepare', 'account', 'retry', 'reload'].includes(action)) {
+        if (action === 'character' || action === 'prepare') {
+            if (!this.preparation || this.failed) return;
+            this.closePreparationPopups();
+            this.view = action;
+            this.message = '';
+            history.pushState({ camp: action }, '');
+            this.renderUI();
+            return;
+        }
+        if (['account', 'retry', 'reload'].includes(action)) {
             this.closePreparationPopups();
             this.busy = true;
+            this.message = '저장한 기록을 확인하고 있어요…'; this.renderUI();
             try {
                 const saved = await this.preparation?.flush();
                 if (saved?.ok === false) return;
@@ -180,8 +218,7 @@ export default class CampScene extends Scene {
                 }
                 await this.load();
                 if (!this.root || this.failed) return;
-                this.view = ['character', 'prepare'].includes(action) ? action : 'camp';
-                if (action === 'character' || action === 'prepare') history.pushState({ camp: action }, '');
+                this.message = '';
             } finally { this.busy = false; this.renderUI(); }
             return;
         }
@@ -230,6 +267,7 @@ export default class CampScene extends Scene {
 
     async exit() {
         this.generation++;
+        this.loadToken++;
         window.removeEventListener('popstate', this.onBack);
         document.removeEventListener('click', this.onPreparationGesture, true);
         document.removeEventListener('touchstart', this.onPreparationGesture, true);

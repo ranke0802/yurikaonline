@@ -364,3 +364,38 @@ Chromium viewport/touch simulations and mocked account states, not physical
 Android/iPhone/Safari or actual Google/account/multiplayer verification. No live
 account or database was mutated. Hosting CI additionally compares all changed
 camp/opening runtime bytes and added immutable artwork to the deployed commit.
+
+## 0.02.129 — recoverable camp saves and clearer preparation
+
+The supplied screenshot was verified by the parent session as an already loaded
+Lv19 camp blocked by the preparation save warning. This execution environment
+could not materialize the original image (transfer proxy 403); it inspected all
+new local screenshots directly. The screenshot alone does not identify the
+account's underlying server error. No live account was read or changed for tests.
+
+Actual NetworkManager transactions with mocked Firebase reproduce revision
+conflicts, cached-null profile transactions, disconnected/permission failures
+and late acknowledgements. Late success now clears the timeout and dirty state;
+retry observes the same in-flight write or journal drain instead of duplicating
+it. A cached-null retry reads the profile before resubmission; a truly missing
+profile remains blocked and is never recreated from a partial patch. Errors
+retain their categories in the UI. Departure still requires successful saves.
+The realistic Lv19 equipment fixture produces valid payloads and preserves
+region, quests and unknown fields; no undefined-field serialization defect was
+found. This does not establish which failure occurred on the user's account.
+
+Character/preparation navigation uses the hydrated player immediately. External
+reads remain required at departure/reload, with deadlines and retry. Resource
+fetch/decode, auth, startup and scene handoffs expose bounded recovery states.
+Pending auth and scene transitions are not silently restarted. Original camp
+art, compact panels, explicit back controls and consistent primary actions are
+preserved; portrait preparation now uses one continuous existing background.
+No new art, DB rules, Functions, schema migrations or real-account writes.
+
+Verification uses isolated local browser profiles and mocked online transport:
+8 actual NetworkManager camp-save tests, 8 preparation tests, 7 resource/scene
+deadline tests, 10 stall-browser cases, aggregate validation and existing
+inventory, combat, audio, cache and region regressions. Browser viewport/touch
+simulation is not physical-phone, Safari or actual Google/account testing.
+Screenshots: /tmp/camp-v129-qa/refined-*.png. Hosting verification compares all
+changed runtime bytes and version against the exact deployed commit.

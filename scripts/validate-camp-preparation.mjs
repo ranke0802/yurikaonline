@@ -72,9 +72,12 @@ test('inventory-only mutation preserves external equipment and successful retry 
  assert.equal((await prep.player.saveState()).skipped,true);assert.equal(calls.length,1);
 });
 
-test('unresponsive save returns a retryable status without another consumption',async()=>{
- const {prep,saved}=fixture(async(_patch,n)=>n===1?new Promise(()=>{}):{ok:true});prep.timeoutMs=10;
+test('slow save remains one pending operation and late success clears the retryable notice',async()=>{
+ let release; const gate=new Promise(resolve=>release=resolve);
+ const {prep,saved,calls}=fixture(async()=>{await gate;return{ok:true}});prep.timeoutMs=10;
  prep.player.consumeInventoryItem('weapon_upgrade_stone',1);
- const result=await prep.player.saveState();assert.equal(result.reason,'camp_save_timeout');assert.equal(prep.pending,0);assert.equal(prep.status().ok,false);
- assert.equal(saved.inventory[1].amount,3);assert.equal((await prep.flush()).ok,true);assert.equal(saved.inventory[1].amount,2);
+ const result=await prep.player.saveState();assert.equal(result.reason,'camp_save_timeout');assert.equal(prep.pending,1);assert.equal(prep.status().ok,false);
+ assert.equal(saved.inventory[1].amount,3);assert.equal((await prep.player.saveState()).reason,'camp_save_timeout');assert.equal((await prep.flush()).reason,'camp_save_timeout');assert.equal(calls.length,1);
+ release();await prep.commitTail;assert.equal(prep.status().ok,true);assert.equal(saved.inventory[1].amount,2);
+ assert.equal((await prep.flush()).ok,true);assert.equal(calls.length,1);
 });

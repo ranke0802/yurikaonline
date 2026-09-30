@@ -78,7 +78,7 @@ export default class CharacterSelectionScene extends Scene {
         retryButton.onclick = () => {
             retryButton.disabled = true;
             retryButton.textContent = '불러오는 중...';
-            this.enter({ user: this.user });
+            void this.enter({ user: this.user }).catch(error => this.showProfileLoadError(error));
         };
         document.getElementById('load-error-logout-btn').onclick = () => this.game.auth.logout();
     }
@@ -109,7 +109,7 @@ export default class CharacterSelectionScene extends Scene {
             // previous device one short, explicit handoff window to flush its
             // compact progression journal before we read the profile.  A
             // missing/offline predecessor only costs the bounded timeout.
-            await this.game.net.waitForAccountSessionHandoff?.(user.uid, { timeoutMs: 900 });
+            await withProfileReadTimeout(this.game.net.waitForAccountSessionHandoff?.(user.uid, { timeoutMs: 900 }), 'account_handoff');
             if (!this._isEnterCurrent(generation, user.uid)) return;
             profile = await withProfileReadTimeout(
                 this.game.net.getPlayerProfile(user.uid, { throwOnError: true }),

@@ -13,6 +13,9 @@ export default class CampPreparation {
         this.pending = 0;
         this.timeoutMs = 8000;
         this.error = null;
+        this.errorCode = null;
+        this.commitTail = Promise.resolve({ ok: true });
+        this.pendingWrites = new Map();
         this.tail = Promise.resolve({ ok: true });
         const p = this.player = new Player(profile.x || 0, profile.y || 0, profile.name, definition);
         for (const key of ['level', 'exp', 'maxExp', 'manastone', 'vitality', 'intelligence', 'wisdom', 'agility', 'statPoints', 'skillLevels', 'autoAttackEnabled', 'uiLayout', 'clientSettings', 'questData', 'questState', 'itemCooldowns', 'currentZoneId', 'mapPositions', 'recoveryUid', 'pendingItemRewards', 'claimedRewardIds']) {
@@ -47,57 +50,107 @@ export default class CampPreparation {
         } finally { clearTimeout(timer); }
     }
 
-    status() { return { pending: this.pending > 0, ok: !this.error && this.dirty.size === 0, reason: this.error }; }
+    status() {
+        return { pending: this.pending > 0 && !this.error, waiting: this.pending > 0,
+            ok: !this.error && !this.pending && this.dirty.size === 0, reason: this.error,
+            code: this.errorCode, dirty: this.dirty.size > 0 };
+    }
+
+    failed(error) {
+        this.error = error?.message || 'camp_save_failed';
+        this.errorCode = error?.code || this.error;
+        this.onStatus(this.status());
+        return { ok: false, reason: this.error, code: this.errorCode };
+    }
+
+    async awaitCommit(operation) {
+        try { return await this.waitForWrite(operation); }
+        catch (error) { return this.failed(error); }
+    }
 
     save(fields, options = {}) {
         fields.filter(field => FIELDS.has(field)).forEach(field => this.dirty.add(field));
         if (!this.dirty.size) return Promise.resolve({ ok: true, skipped: true });
         const patch = copy(this.player._buildProfilePatchFromFields([...this.dirty]));
+        const signature = JSON.stringify(patch);
+        if (this.pendingWrites.has(signature)) {
+            this.tail = this.awaitCommit(this.pendingWrites.get(signature));
+            return this.tail;
+        }
         this.pending++;
         this.onStatus(this.status());
-        const operation = this.tail.then(async () => {
+        // The actual commit chain outlives the UI deadline. A slow acknowledgement
+        // must still clear dirty state; retry must not submit the same mutation again.
+        const operation = this.commitTail.then(async () => {
             try {
-                const result = await this.waitForWrite(this.game.net.savePlayerDataPatch(this.user.uid, patch, {
+                const result = await this.game.net.savePlayerDataPatch(this.user.uid, patch, {
                     debounceMs: 0, forceImmediate: true, syncToZone: false,
                     checkpointPolicy: 'durable', syncRecoveryProfile: false,
                     saveReason: options.reason || 'camp_preparation'
-                }));
-                if (result?.ok !== true) throw new Error(result?.reason || 'camp_save_failed');
+                });
+                if (result?.ok !== true) {
+                    const error = new Error(result?.reason || 'camp_save_failed');
+                    error.code = result?.error?.code || result?.code || error.message;
+                    throw error;
+                }
                 for (const key of Object.keys(patch)) {
                     this.savedValues[key] = copy(patch[key]);
                     const current = this.player._buildProfilePatchFromFields([key])[key];
                     if (JSON.stringify(current) === JSON.stringify(patch[key])) this.dirty.delete(key);
                 }
                 this.error = null;
+                this.errorCode = null;
                 return result;
             } catch (error) {
-                this.error = error.message;
-                return { ok: false, reason: this.error };
+                return this.failed(error);
             } finally {
                 this.pending--;
+                this.pendingWrites.delete(signature);
                 this.onStatus(this.status());
             }
         });
-        this.tail = operation;
-        return operation;
+        this.pendingWrites.set(signature, operation);
+        this.commitTail = operation;
+        this.tail = this.awaitCommit(operation);
+        return this.tail;
     }
 
     async flush() {
-        await this.tail;
+        const settled = await this.awaitCommit(this.commitTail);
+        if (settled?.reason === 'camp_save_timeout') return settled;
+        if (settled?.reason === 'profile_missing' || this.error === 'profile_missing') {
+            // RTDB transactions can initially see an empty local cache and abort
+            // before asking the server. Warm it with a read, retaining our patch.
+            // A genuinely missing account is never created from this partial state.
+            try {
+                const profile = await this.waitForWrite(this.game.net.getPlayerProfile?.(this.user.uid, { throwOnError: true }));
+                if (!profile) return this.failed(new Error('profile_missing'));
+            } catch (error) { return this.failed(error); }
+        }
         if (this.dirty.size) {
             const result = await this.save([...this.dirty], { reason: 'camp_preparation_retry' });
             if (!result.ok) return result;
         }
-        try {
-            const result = await this.waitForWrite(this.game.net.flushProfileWrites?.(this.user.uid));
-            if (result?.ok === false) throw new Error(result.reason || 'camp_flush_failed');
-            this.error = null;
+        // Do not replay an already-running journal drain on every retry. The real
+        // NetworkManager serializes commits; retain and observe its one operation.
+        if (!this.flushOperation) {
+            this.pending++;
             this.onStatus(this.status());
-            return { ok: true };
-        } catch (error) {
-            this.error = error.message;
-            this.onStatus(this.status());
-            return { ok: false, reason: this.error };
+            this.flushOperation = Promise.resolve().then(() => this.game.net.flushProfileWrites?.(this.user.uid)).then(result => {
+                if (result?.ok === false) {
+                    const error = new Error(result.reason || 'camp_flush_failed');
+                    error.code = result.error?.code || result.code || result.results?.find(item => item?.ok === false)?.error?.code || error.message;
+                    throw error;
+                }
+                this.error = null;
+                this.errorCode = null;
+                return { ok: true };
+            }).catch(error => this.failed(error)).finally(() => {
+                this.pending--;
+                this.flushOperation = null;
+                this.onStatus(this.status());
+            });
         }
+        return this.awaitCommit(this.flushOperation);
     }
 }

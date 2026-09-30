@@ -20,12 +20,19 @@ export default class SceneManager {
 
         Logger.info(`[SceneManager] Changing scene to: ${name}`);
 
-        if (this.currentScene) {
-            await this.currentScene.exit();
+        const transition = this.transitionGeneration = (this.transitionGeneration || 0) + 1;
+        const watchdog = setTimeout(() => {
+            if (transition !== this.transitionGeneration) return;
+            this.game.showLoadingRecovery?.('화면 이동이 지연되고 있어요. 잠시 기다리거나 다시 불러와 주세요.');
+        }, this.transitionTimeoutMs || 20000);
+        try {
+            if (this.currentScene) await this.currentScene.exit();
+            this.currentScene = nextScene;
+            await this.currentScene.enter(params);
+        } finally {
+            clearTimeout(watchdog);
+            if (transition === this.transitionGeneration) this.game._clearLoadingRecovery?.();
         }
-
-        this.currentScene = nextScene;
-        await this.currentScene.enter(params);
     }
 
     update(dt) {

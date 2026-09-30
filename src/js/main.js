@@ -3,7 +3,7 @@ import CampScene from './world/scenes/CampScene.js';
 import LocalAuthManager from './local/LocalAuthManager.js';
 import LocalNetworkManager from './local/LocalNetworkManager.js';
 import { getViewportMetrics } from './core/ViewportMetrics.js';
-window.RUNTIME_BUILD_VERSION = '0.02.128'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.129'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -463,7 +463,45 @@ class Game {
         return snapshot;
     }
 
+    _armStartupWatchdog() {
+        clearTimeout(this._startupWatchdog);
+        this._startupWatchdog = setTimeout(() => this.showLoadingRecovery(
+            '연결이 지연되고 있어요. 잠시 기다리거나 다시 불러와 주세요.'
+        ), 45000);
+    }
+
+    showLoadingRecovery(message) {
+        const loader = document.getElementById('loading-overlay');
+        if (!loader) return;
+        this._loadingRecoveryVisible = true;
+        loader.style.display = 'block';
+        const status = loader.querySelector('.loading-text');
+        if (status) status.textContent = message;
+        if (!loader.querySelector('[data-startup-retry]')) {
+            const retry = document.createElement('button');
+            retry.className = 'opening-button';
+            retry.dataset.startupRetry = '';
+            retry.textContent = '다시 불러오기';
+            // Reload abandons this document's pending operations. Never issue a second
+            // connect, login or profile write while the first may still complete.
+            retry.onclick = () => { retry.disabled = true; window.location.reload(); };
+            (loader.querySelector('.opening-footer') || loader).appendChild(retry);
+        }
+    }
+
+    _clearLoadingRecovery() {
+        clearTimeout(this._startupWatchdog);
+        document.querySelector('[data-startup-retry]')?.remove();
+        if (this._loadingRecoveryVisible) {
+            const loader = document.getElementById('loading-overlay');
+            if (loader) loader.style.display = 'none';
+            this._loadingRecoveryVisible = false;
+        }
+    }
+
     updateLoading(msg, percent = null) {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay && overlay.style.display !== 'none') this._armStartupWatchdog();
         const loader = document.querySelector('.loading-text');
         if (loader) loader.textContent = msg;
 
@@ -609,6 +647,7 @@ class Game {
 
     _queueAuthStateTransition(user) {
         const generation = ++this._authStateGeneration;
+        this._armStartupWatchdog();
         const transition = this._authStateTransition
             .catch(() => { })
             .then(async () => {
@@ -620,7 +659,11 @@ class Game {
                     } catch (error) {
                         Logger.error('[Game] Network connection setup failed', error);
                     }
-                    if (!this._isAuthStateCurrent(user, generation) || this.net.playerId !== user.uid) return;
+                    if (!this._isAuthStateCurrent(user, generation)) return;
+                    if (this.net.playerId !== user.uid) {
+                        this.showLoadingRecovery('접속을 완료하지 못했어요. 다시 불러와 주세요.');
+                        return;
+                    }
 
                     await this.sceneManager.changeScene(this.isLocalMode ? 'camp' : 'charSelect', { user, authGeneration: generation });
                     if (!this._isAuthStateCurrent(user, generation)) return;
@@ -639,7 +682,10 @@ class Game {
                 this.updateLoading('완료', 100);
                 this._hideLoader();
             });
-        this._authStateTransition = transition.then(() => undefined, () => undefined);
+        this._authStateTransition = transition.then(() => undefined, error => {
+            Logger.error('[Game] Account entry failed', error);
+            if (this._isAuthStateCurrent(user, generation)) this.showLoadingRecovery('모험 기록을 불러오지 못했어요. 다시 불러와 주세요.');
+        });
         return transition;
     }
 
@@ -697,14 +743,18 @@ class Game {
                 this.ui?.resetUiLayoutSession?.();
                 this._uiLayoutAuthUid = user?.uid || null;
             }
-            void this._queueAuthStateTransition(user);
+            void this._queueAuthStateTransition(user).catch(() => {});
         });
 
         this.updateLoading('로그인 상태 확인 중...');
-        this.auth.init();
+        try { this.auth.init(); } catch (error) {
+            Logger.error('[Game] Auth initialization failed', error);
+            this.showLoadingRecovery('로그인을 준비하지 못했어요. 다시 불러와 주세요.');
+        }
     }
 
     _hideLoader() {
+        this._clearLoadingRecovery();
         setTimeout(() => {
             const loader = document.getElementById('loading-overlay');
             if (loader) loader.style.display = 'none';

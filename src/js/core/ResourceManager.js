@@ -5,6 +5,7 @@ export default class ResourceManager {
     constructor() {
         this.cache = new Map();
         this.loading = new Map(); // Promises for in-flight requests
+        this.requestTimeoutMs = 15000;
     }
 
     getBuildVersion() {
@@ -165,35 +166,46 @@ export default class ResourceManager {
         return this._loadDocument(url, 'text');
     }
 
+    async _fetchDocument(requestUrl, format, cache) {
+        const controller = new AbortController();
+        let timer;
+        const deadline = new Promise((_, reject) => {
+            timer = setTimeout(() => {
+                const error = new Error(`Resource timed out: ${requestUrl}`);
+                error.code = 'resource_timeout';
+                reject(error);
+                controller.abort();
+            }, this.requestTimeoutMs);
+        });
+        try {
+            // Bound the body read too: receiving headers does not finish a download.
+            return await Promise.race([(async () => {
+                const response = await fetch(requestUrl, { cache, signal: controller.signal });
+                if (!response.ok) throw new Error(`Resource ${requestUrl}: HTTP ${response.status}`);
+                return format === 'text' ? response.text() : response.json();
+            })(), deadline]);
+        } finally { clearTimeout(timer); }
+    }
+
     async _loadDocument(url, format) {
         const requestUrl = this.getVersionedResourceUrl(url);
         const resolved = new URL(requestUrl, window.location.href);
         const publicContent = resolved.origin === window.location.origin && (
             resolved.pathname.startsWith('/assets/') || resolved.pathname === '/README.md'
         );
-        if (!publicContent) {
-            const response = await fetch(requestUrl, { cache: 'no-store' });
-            if (!response.ok) throw new Error(`Resource ${requestUrl}: HTTP ${response.status}`);
-            return format === 'text' ? response.text() : response.json();
-        }
+        if (!publicContent) return this._fetchDocument(requestUrl, format, 'no-store');
         if (this.cache.has(requestUrl)) return this.cache.get(requestUrl);
         if (this.loading.has(requestUrl)) return this.loading.get(requestUrl);
 
-        // Content URLs are tied to the build, so a successful download remains
-        // reusable in memory, the HTTP cache and the service worker cache.
-        const promise = fetch(requestUrl, { cache: 'force-cache' }).then(res => {
-            if (!res.ok) throw new Error(`Resource ${requestUrl}: HTTP ${res.status}`);
-            return format === 'text' ? res.text() : res.json();
-        }).then(data => {
+        const promise = this._fetchDocument(requestUrl, format, 'force-cache').then(data => {
             this.cache.set(requestUrl, data);
-            this.loading.delete(requestUrl);
             return data;
         }).catch(err => {
-            this.loading.delete(requestUrl);
             Logger.error(`Failed to load resource: ${url}`, err);
             throw err;
+        }).finally(() => {
+            if (this.loading.get(requestUrl) === promise) this.loading.delete(requestUrl);
         });
-
         this.loading.set(requestUrl, promise);
         return promise;
     }
@@ -295,25 +307,39 @@ export default class ResourceManager {
 
     _doLoad(url) {
         if (this.loading.has(url)) return this.loading.get(url);
-
         const promise = new Promise((resolve, reject) => {
             const img = new Image();
-            img.crossOrigin = "Anonymous";
+            let settled = false;
+            const finish = (error = null) => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timer);
+                img.onload = img.onerror = null;
+                if (error) {
+                    img.removeAttribute?.('src');
+                    reject(error);
+                } else {
+                    this.cache.set(url, img);
+                    resolve(img);
+                }
+            };
+            const timer = setTimeout(() => {
+                const error = new Error(`Image timed out: ${url}`);
+                error.code = 'resource_timeout';
+                finish(error);
+            }, this.requestTimeoutMs);
+            img.crossOrigin = 'Anonymous';
             img.decoding = 'async';
             img.onload = async () => {
-                // Decode during loading, never on the first combat draw.
+                // The same deadline covers download and decode; late decodes never enter cache.
                 if (img.decode) await img.decode().catch(() => {});
-                this.cache.set(url, img);
-                this.loading.delete(url);
-                resolve(img);
+                finish();
             };
-            img.onerror = (err) => {
-                this.loading.delete(url);
-                reject(err);
-            };
+            img.onerror = error => finish(error instanceof Error ? error : new Error(`Image failed: ${url}`));
             img.src = url;
+        }).finally(() => {
+            if (this.loading.get(url) === promise) this.loading.delete(url);
         });
-
         this.loading.set(url, promise);
         return promise;
     }

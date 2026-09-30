@@ -48,6 +48,7 @@ export default class LoginScene extends Scene {
     }
 
     async exit() {
+        clearTimeout(this.loginWatchdog);
         if (this.loginUI) {
             this.loginUI.remove();
             this.loginUI = null;
@@ -59,7 +60,7 @@ export default class LoginScene extends Scene {
         this.loginUI.id = 'login-scene-ui';
         this.loginUI.className = 'scene-overlay yurika-opening';
         const art = this.game.resources.getVersionedResourceUrl('/party-rpg-concept/assets/opening.webp');
-        const version = window.GAME_VERSION || '0.02.128';
+        const version = window.GAME_VERSION || '0.02.129';
 
         this.loginUI.innerHTML = `
             <div class="opening-art" aria-hidden="true"><img src="${art}" alt=""></div>
@@ -98,6 +99,17 @@ export default class LoginScene extends Scene {
         if (this.loginPending) return;
         this.loginPending = true;
         this.setLoginPending(true, '모험 기록을 불러오고 있어요.');
+        this.loginUI?.querySelector('[data-login-reload]')?.remove();
+        this.loginWatchdog = setTimeout(() => {
+            if (!this.loginUI || !this.loginPending) return;
+            this.setLoginPending(true, '로그인이 지연되고 있어요. 잠시 기다리거나 다시 불러와 주세요.');
+            const retry = document.createElement('button');
+            retry.className = 'opening-button';
+            retry.dataset.loginReload = '';
+            retry.textContent = '다시 불러오기';
+            retry.onclick = () => { retry.disabled = true; window.location.reload(); };
+            this.loginUI.querySelector('.opening-actions').appendChild(retry);
+        }, 20000);
         try {
             await (provider === 'google' ? this.game.auth.loginGoogle() : this.game.auth.loginAnonymously());
         } catch (e) {
@@ -109,6 +121,8 @@ export default class LoginScene extends Scene {
                     : '로그인하지 못했어요. 연결을 확인하고 다시 시도해주세요.';
             this.setLoginPending(false, message);
         } finally {
+            clearTimeout(this.loginWatchdog);
+            this.loginUI?.querySelector('[data-login-reload]')?.remove();
             this.loginPending = false;
             // Auth observers own the next scene; a cancelled or incomplete attempt stays retryable.
             if (this.loginUI) this.loginUI.querySelectorAll('.opening-button').forEach(button => { button.disabled = false; });
