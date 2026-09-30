@@ -1,0 +1,165 @@
+{
+  "commit": "bad2ead467ab0d2c447e7708f44a5320f4644eba",
+  "rectangles": {
+    "galaxy": {
+      "#inventory-popup": {
+        "x": 23.40625,
+        "y": 28.8046875,
+        "width": 733.1875,
+        "height": 302.390625
+      },
+      ".popup-header": {
+        "x": 42.40625,
+        "y": 45.8046875,
+        "width": 695.1875,
+        "height": 56.53125
+      },
+      ".inventory-scroll-shell": {
+        "x": 42.40625,
+        "y": 120.3359375,
+        "width": 695.1875,
+        "height": 262
+      },
+      "#inventory-grid": {
+        "x": 52.40625,
+        "y": 130.3359375,
+        "width": 675.1875,
+        "height": 1502
+      },
+      ".grid-item": {
+        "x": 52.40625,
+        "y": 130.3359375,
+        "width": 50.765625,
+        "height": 52
+      }
+    },
+    "portrait": {
+      "#inventory-popup": {
+        "x": 11.796875,
+        "y": 59.640625,
+        "width": 369.40625,
+        "height": 732.71875
+      },
+      ".popup-header": {
+        "x": 32.796875,
+        "y": 78.640625,
+        "width": 327.40625,
+        "height": 62.375
+      },
+      ".inventory-scroll-shell": {
+        "x": 32.796875,
+        "y": 151.015625,
+        "width": 327.40625,
+        "height": 561.34375
+      },
+      "#inventory-grid": {
+        "x": 44.796875,
+        "y": 163.015625,
+        "width": 303.40625,
+        "height": 289.671875
+      },
+      ".grid-item": {
+        "x": 44.796875,
+        "y": 163.015625,
+        "width": 58,
+        "height": 58
+      }
+    },
+    "keyboard": {
+      "#inventory-popup": {
+        "x": 23.40625,
+        "y": 19.203125,
+        "width": 733.1875,
+        "height": 201.59375
+      },
+      ".popup-header": {
+        "x": 42.40625,
+        "y": 36.203125,
+        "width": 695.1875,
+        "height": 56.53125
+      },
+      ".inventory-scroll-shell": {
+        "x": 42.40625,
+        "y": 110.734375,
+        "width": 695.1875,
+        "height": 262
+      },
+      "#inventory-grid": {
+        "x": 52.40625,
+        "y": 120.734375,
+        "width": 675.1875,
+        "height": 1502
+      },
+      ".grid-item": {
+        "x": 52.40625,
+        "y": 120.734375,
+        "width": 50.765625,
+        "height": 52
+      }
+    },
+    "desktop": {
+      "#inventory-popup": {
+        "x": 122,
+        "y": 92.796875,
+        "width": 1100,
+        "height": 590.390625
+      },
+      ".popup-header": {
+        "x": 152,
+        "y": 122.796875,
+        "width": 1040,
+        "height": 67.875
+      },
+      ".inventory-scroll-shell": {
+        "x": 152,
+        "y": 210.671875,
+        "width": 1040,
+        "height": 373.515625
+      },
+      "#inventory-grid": {
+        "x": 168,
+        "y": 226.671875,
+        "width": 1008,
+        "height": 3146.171875
+      },
+      ".grid-item": {
+        "x": 168,
+        "y": 226.671875,
+        "width": 91.796875,
+        "height": 91.796875
+      }
+    },
+    "narrow": {
+      "#inventory-popup": {
+        "x": 9.6015625,
+        "y": 44.8046875,
+        "width": 300.796875,
+        "height": 550.390625
+      },
+      ".popup-header": {
+        "x": 30.6015625,
+        "y": 63.8046875,
+        "width": 258.796875,
+        "height": 62.375
+      },
+      ".inventory-scroll-shell": {
+        "x": 30.6015625,
+        "y": 136.1796875,
+        "width": 258.796875,
+        "height": 379.015625
+      },
+      "#inventory-grid": {
+        "x": 42.6015625,
+        "y": 148.1796875,
+        "width": 234.796875,
+        "height": 217.59375
+      },
+      ".grid-item": {
+        "x": 42.6015625,
+        "y": 148.1796875,
+        "width": 58,
+        "height": 58
+      }
+    }
+  }
+}

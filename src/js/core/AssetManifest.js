@@ -173,6 +173,7 @@ export default {
   "/src/assets/icon_512.webp": "/assets/immutable/ec2bd997d6d328e77a489831.webp",
   "/src/assets/icon_512_clean.webp": "/assets/immutable/e1db6faa7a54f06f2cfcd161.webp",
   "/src/assets/items/astral_staff.webp": "/assets/immutable/a4fac032be70873f4219fcf4.webp",
+  "/src/assets/items/inventory_tools.webp": "/assets/immutable/d0434ebd2d33149fd16ac654.webp",
   "/src/assets/items/magic_staff_inventory.webp": "/assets/immutable/54f4bc64000bd1684d0e1dd2.webp",
   "/src/assets/items/option_reroll_stone.webp": "/assets/immutable/e971c096dc2b4db0713ab253.webp",
   "/src/assets/items/storm_staff.webp": "/assets/immutable/e97b010076ad0f01bdb39066.webp",

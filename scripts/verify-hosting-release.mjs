@@ -23,7 +23,7 @@ for (let attempt = 0; attempt < 6; attempt++) {
         assert.ok(html.bytes.toString().includes("new URLSearchParams(location.search).get('local') === '1'"), 'online entry preserved');
         const sources = [
             '/party-rpg-concept/assets/camp-master-v2.webp', '/party-rpg-concept/assets/mage-key.webp',
-            '/party-rpg-concept/assets/idle-mage.webp', '/src/assets/icon_192_clean.webp',
+            '/party-rpg-concept/assets/idle-mage.webp', '/src/assets/icon_192_clean.webp', '/src/assets/items/inventory_tools.webp',
             '/assets/resource/effects/player-skills/fireball.webp', '/assets/data/items/item_catalog.json',
             '/assets/data/music/bgm_intro.json', '/assets/data/music/bgm_cabin.json',
             '/assets/data/sound/sound_events.json',

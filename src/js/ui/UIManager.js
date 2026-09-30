@@ -10851,8 +10851,7 @@ export class UIManager {
     getInventoryCategory(item) {
         if (!item) return null;
         if (item.slot) return 'equipment';
-        if (['weapon_upgrade_stone', 'blessed_weapon_upgrade_stone', OPTION_REROLL_STONE_ID].includes(item.type || item.id)) return 'enhancement';
-        if (this.game.localPlayer?.getBossSummonConfigForItem?.(item)) return 'boss';
+        if (['weapon_upgrade_stone', 'blessed_weapon_upgrade_stone', OPTION_REROLL_STONE_ID].includes(item.type || item.id)) return 'equipment';
         return 'other';
     }
 
@@ -10864,17 +10863,21 @@ export class UIManager {
             tabs.id = 'inventory-category-tabs';
             tabs.setAttribute('role', 'tablist');
             tabs.setAttribute('aria-label', '아이템 종류');
-            grid.closest('.inventory-shell').prepend(tabs);
+            document.getElementById('inventory-close-btn-top').before(tabs);
         }
         tabs.replaceChildren();
-        for (const [category, label] of [['equipment', '장비'], ['enhancement', '강화'], ['boss', '보스 주문서'], ['other', '기타']]) {
+        for (const [category, label, iconPath] of [['equipment', '장비 및 강화 재료', 'src/assets/items/magic_staff_inventory.webp'], ['other', '기타 도구 및 소환주문서', 'src/assets/items/inventory_tools.webp']]) {
             const button = document.createElement('button');
             button.type = 'button';
             button.dataset.inventoryCategory = category;
             button.setAttribute('role', 'tab');
             button.setAttribute('aria-selected', String(category === this.inventoryCategory));
             const count = player.inventory.filter((item, index) => index > 0 && this.getInventoryCategory(item) === category).length;
-            button.textContent = `${label} ${count}`;
+            button.setAttribute('aria-label', `${label} (${count})`);
+            button.title = `${label} (${count})`;
+            const icon = this.createInventoryIconElement({iconPath, name: ''}, 'inventory-tab-icon');
+            icon.alt = '';
+            button.appendChild(icon);
             button.addEventListener('click', () => {
                 if (this.inventoryEnhancementAnimating) return;
                 this.tearDownInventoryDrag();
@@ -10994,17 +10997,20 @@ export class UIManager {
         }
         fragment.appendChild(equippedSlot);
 
-        for (let index = 1; index < p.inventory.length; index++) {
-            const item = p.inventory[index];
-            if (this.getInventoryCategory(item) !== this.inventoryCategory) continue;
+        // Keep the original 300-slot grid geometry; filtering changes contents only.
+        const visibleIndices = p.inventory.flatMap((item, index) =>
+            index > 0 && this.getInventoryCategory(item) === this.inventoryCategory ? [index] : []);
+        while (visibleIndices.length < p.inventory.length - 1) visibleIndices.push(null);
+        for (const index of visibleIndices) {
+            const item = index === null ? null : p.inventory[index];
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'grid-item';
-            button.dataset.inventoryIndex = `${index}`;
+            if (index !== null) button.dataset.inventoryIndex = `${index}`;
             this.ensureInventoryFxLayer(button);
             button.classList.toggle('enhancement-selectable', enhancementSelectionActive && item?.slot === 'weapon');
             button.classList.toggle('enhancement-stone-active', this.isActiveEnhancementStone(item));
-            button.setAttribute('aria-label', item?.name || `빈 슬롯 ${index}`);
+            button.setAttribute('aria-label', item?.name || '빈 슬롯');
             if (this.isInventorySelection(this.selectedInventoryRef, 'inventory', index)) {
                 button.classList.add('selected');
             }
@@ -11060,12 +11066,6 @@ export class UIManager {
             });
 
             fragment.appendChild(button);
-        }
-        if (!fragment.querySelector('[data-inventory-index]')) {
-            const empty = document.createElement('p');
-            empty.className = 'inventory-category-empty';
-            empty.textContent = '이 종류의 아이템이 없습니다.';
-            fragment.appendChild(empty);
         }
         grid.appendChild(fragment);
 
