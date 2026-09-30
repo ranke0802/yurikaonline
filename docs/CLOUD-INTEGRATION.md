@@ -144,3 +144,17 @@ separate hosting option. No Site was created or deployed; await the user's reply
 and coordinate the single deployment owner before doing so. Hardware Android/iOS,
 Safari, long-session behavior and production account/security remain release
 gates, not verified capabilities of this local initial version.
+
+## Tutorial field-exit hotfix
+
+The mobile first-run guide could cover the camp-return button during move_check
+and attack_dummy. Tutorial placement now reserves that button's visible rectangle,
+adds a below-button candidate and selects a non-overlapping candidate when one is
+available. World entry refreshes the guide after mounting the return control.
+No z-index, modal behavior, tutorial progress or reward logic was changed.
+
+`node scripts/validate-tutorial-camp-return.cjs` checks fresh storage at 780x360,
+real touch exit during move_check, reentry, joystick progression to attack_dummy,
+confirmation-modal interception/cancel and actual touch return. Existing UI and
+improvement checks and three-viewport camp browser regression pass. Sites rollout
+belongs to the parent task; this checkout does not register or deploy a Site.

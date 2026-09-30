@@ -539,6 +539,7 @@ export default class WorldScene extends Scene {
                 }
             };
             document.getElementById('game-container').append(this.campReturn);
+            this.ui?.refreshTutorialGuideLayout?.();
         }
     }
 

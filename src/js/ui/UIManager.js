@@ -2738,6 +2738,7 @@ export class UIManager {
 
     getTutorialForbiddenZones(focusRects = [], payload = this.tutorialGuideState) {
         const selectors = [
+            '.camp-return:not([hidden])',
             '#minimap-container',
             '.minimap-menu',
             '#btn-fullscreen',
@@ -3240,7 +3241,19 @@ export class UIManager {
                 viewportMode: mode,
                 primaryFocusRect
             });
-            const bestCandidate = candidates.reduce((best, candidate, index) => {
+            // Keep the field exit reachable without raising it above modal layers.
+            const campReturn = this.getVisibleElementRect('.camp-return:not([hidden])');
+            if (campReturn) {
+                const below = this.clampTutorialGuidePosition(
+                    campReturn.left + (campReturn.width - width) / 2,
+                    campReturn.bottom + 12, width, height
+                );
+                candidates.push({ ...below, width, height });
+            }
+            const clearExitCandidates = campReturn ? candidates.filter(candidate =>
+                this.getRectOverlapArea({ ...candidate, right: candidate.left + width, bottom: candidate.top + height }, campReturn) === 0
+            ) : candidates;
+            const bestCandidate = (clearExitCandidates.length ? clearExitCandidates : candidates).reduce((best, candidate, index) => {
                 const score = this.scoreTutorialGuideCandidate(candidate, forbiddenZones, focusRects, index);
                 if (!best || score < best.score) {
                     return { ...candidate, score };
