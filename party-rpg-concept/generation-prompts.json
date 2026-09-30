@@ -1,0 +1,81 @@
+{
+  "date": "2026-09-30",
+  "mode": "built-in image_gen",
+  "approvedSources": {
+    "mage": "../character-layout-study/mage-atmosphere-v4.png",
+    "guardian": "../character-layout-study/guardian-atmosphere-v4.png",
+    "witch": "../character-layout-study/witch-atmosphere-v2.png",
+    "archer": "../character-layout-study/archer-atmosphere-v7.png"
+  },
+  "assets": [
+    {
+      "id": "idle-mage",
+      "file": "idle-mage.png",
+      "transparent": true,
+      "references": [
+        "../character-layout-study/mage-atmosphere-v4.png"
+      ],
+      "prompt": "Use case: identity-preserve / background-extraction. Produce ONE FULL-BODY CHARACTER cutout on genuinely TRANSPARENT alpha background for a landscape fantasy RPG party lobby. The provided image is the APPROVED character identity and painterly rendering reference. Preserve its exact recognizable face, hair, original stylized body proportions, eyes, clothing colors, costume design, original emblem and refined hand-painted texture. No style shift, fashion anatomy, new ornament, jewelry or effects. Character is neutrally waiting, an ordinary nonsexual adventurer portrait. Full character, all hat/hair/weapon/boots inside frame with comfortable 7% margins, centered, a tall portrait canvas, mild three-quarter FRONT view with face readable. Natural warm diffuse light from upper left and subdued cool ambient fill, no colored aura. Two arms, two proportionate hands, two coherent legs, both knee and boot-toe directions aligned, both soles on same invisible floor. No ground, shadow oval, landscape, desk, props unrelated to the character, background wash, checkerboard or border. Match approved art quality rather than a flat thick-outline mascot. Subject: the approved friendly brown-haired wizard in cobalt pointed hat with ochre band, blue tunic and cloak, simple gold clasp, belt, modest brown boots. Calm STANDING pose; one hand rests on the spiral wooden staff beside him, other hand casually near hat brim, small welcoming smile. Keep approved face and eye rendering. No book. Staff whole and within frame.",
+      "generatedSource": "historical-generated-image/exec-7f41704a-4413-4182-aa51-979f33ec3385.png",
+      "savedPath": "assets/idle-mage.png"
+    },
+    {
+      "id": "idle-guardian",
+      "file": "idle-guardian.png",
+      "transparent": true,
+      "references": [
+        "../character-layout-study/guardian-atmosphere-v4.png"
+      ],
+      "prompt": "Use case: identity-preserve / background-extraction. Produce ONE FULL-BODY CHARACTER cutout on genuinely TRANSPARENT alpha background for a landscape fantasy RPG party lobby. The provided image is the APPROVED character identity and painterly rendering reference. Preserve its exact recognizable face, hair, original stylized body proportions, eyes, clothing colors, costume design, original emblem and refined hand-painted texture. No style shift, fashion anatomy, new ornament, jewelry or effects. Character is neutrally waiting, an ordinary nonsexual adventurer portrait. Full character, all hat/hair/weapon/boots inside frame with comfortable 7% margins, centered, a tall portrait canvas, mild three-quarter FRONT view with face readable. Natural warm diffuse light from upper left and subdued cool ambient fill, no colored aura. Two arms, two proportionate hands, two coherent legs, both knee and boot-toe directions aligned, both soles on same invisible floor. No ground, shadow oval, landscape, desk, props unrelated to the character, background wash, checkerboard or border. Match approved art quality rather than a flat thick-outline mascot. Subject: approved dark-bob blue-eyed warrior, silver articulated armor over dark padding, violet cloak, brown waist panels, original wooden rabbit shield and ordinary sword. Upright calm guard posture, shield gently held beside the left flank, right hand holds short sword pointed safely down. Feet only shoulder-width apart, both oriented consistently forward in gentle three-quarter view, no stairs, no lunging. Coherent armor joints and natural proportionate boots. Confident small smile.",
+      "generatedSource": "historical-generated-image/exec-3867bcf8-d688-469f-ae00-8e3cbc497cb3.png",
+      "savedPath": "assets/idle-guardian.png"
+    },
+    {
+      "id": "idle-witch",
+      "file": "idle-witch.png",
+      "transparent": true,
+      "references": [
+        "../character-layout-study/witch-atmosphere-v2.png"
+      ],
+      "prompt": "Use case: identity-preserve / background-extraction. Produce ONE FULL-BODY CHARACTER cutout on genuinely TRANSPARENT alpha background for a landscape fantasy RPG party lobby. The provided image is the APPROVED character identity and painterly rendering reference. Preserve its exact recognizable face, hair, original stylized body proportions, eyes, clothing colors, costume design, original emblem and refined hand-painted texture. No style shift, fashion anatomy, new ornament, jewelry or effects. Character is neutrally waiting, an ordinary nonsexual adventurer portrait. Full character, all hat/hair/weapon/boots inside frame with comfortable 7% margins, centered, a tall portrait canvas, mild three-quarter FRONT view with face readable. Natural warm diffuse light from upper left and subdued cool ambient fill, no colored aura. Two arms, two proportionate hands, two coherent legs, both knee and boot-toe directions aligned, both soles on same invisible floor. No ground, shadow oval, landscape, desk, props unrelated to the character, background wash, checkerboard or border. Match approved art quality rather than a flat thick-outline mascot. Subject: approved red-bob brown-eyed Witch with purple floppy hat and existing cream rabbit pin, plain violet cape/dress/boots, leather potion satchel and original moon book. Change only from seated-on-desk to standing gently with her weight on one leg, an open book comfortably held in both hands near chest, head looking up with the exact curious friendly face. No desk or chair, and do not invent a new skirt or decoration. Keep the original soft painted cloth folds. Both knees and feet connect coherently.",
+      "generatedSource": "historical-generated-image/exec-e12e9da7-170d-4fbc-9329-e186abf0dbf6.png",
+      "savedPath": "assets/idle-witch.png"
+    },
+    {
+      "id": "idle-archer",
+      "file": "idle-archer.png",
+      "transparent": true,
+      "references": [
+        "../character-layout-study/archer-atmosphere-v7.png"
+      ],
+      "prompt": "Use case: identity-preserve / background-extraction. Produce ONE FULL-BODY CHARACTER cutout on genuinely TRANSPARENT alpha background for a landscape fantasy RPG party lobby. The provided image is the APPROVED character identity and painterly rendering reference. Preserve its exact recognizable face, hair, original stylized body proportions, eyes, clothing colors, costume design, original emblem and refined hand-painted texture. No style shift, fashion anatomy, new ornament, jewelry or effects. Character is neutrally waiting, an ordinary nonsexual adventurer portrait. Full character, all hat/hair/weapon/boots inside frame with comfortable 7% margins, centered, a tall portrait canvas, mild three-quarter FRONT view with face readable. Natural warm diffuse light from upper left and subdued cool ambient fill, no colored aura. Two arms, two proportionate hands, two coherent legs, both knee and boot-toe directions aligned, both soles on same invisible floor. No ground, shadow oval, landscape, desk, props unrelated to the character, background wash, checkerboard or border. Match approved art quality rather than a flat thick-outline mascot. Subject: approved sky-blue-haired blue-eyed elf archer with violet scarf, brown plain leather ranger outfit and violet-edged opaque layered skirt, original bracers, cream calf boots with crossed brown straps, wood bow and rabbit quiver. Preserve exactly the approved face, compact stylized proportions, outfit coverage and existing skirt. No added visible shorts, leggings or new underlayer. Calm waiting posture, bow lowered beside her in one hand, other hand touching the grip. Three-quarter FRONT, gentle smile, stable slightly staggered feet, not the old contradictory rear heel/front kneecap anatomy. Natural small hands and a complete string attached to both bow ends. No nocked arrow.",
+      "generatedSource": "historical-generated-image/exec-df6b3186-bbed-4b23-9463-2b14ecd6e480.png",
+      "savedPath": "assets/idle-archer.png"
+    },
+    {
+      "id": "lobby",
+      "file": "lobby.png",
+      "transparent": false,
+      "references": [
+        "../character-layout-study/witch-atmosphere-v2.png"
+      ],
+      "prompt": "Use case: stylized-concept. Asset: character-free 16:9 landscape RPG waiting-lobby environment. The reference is ONLY the approved hand-painted style, natural material quality and warm gentle lighting. Do NOT depict the witch or any characters. A generous wooden terrace outside a cozy woodland adventurers' inn, opening onto a clear jade lake, quiet distant waterfall valley and blue-green wooded hills. Warm morning light from upper-left, cool green reflected light. Broad unobstructed flat wood/stone floor throughout middle and lower-left 70%, perspective horizon at y42%, suitable for four independent standing character cutouts placed x16%,32%,48%,64% with feet y80%. Camera roughly eye-level with a slight raised angle; no rails/furniture blocking the standing zone. A modest wall edge, plain traveling lantern and potted fern at very far edges only. Rightmost 25% lower-contrast darker inn entrance for a cream UI panel. Rich coherent painted background, visible floor plank texture and soft environment shadows, inviting home before an expedition. No people, text, UI, magical particles, runes, added emblems or ornate decorative clutter. 16:9 wide full-bleed scene.",
+      "generatedSource": "historical-generated-image/exec-f42798ea-6af5-4807-97fd-73da66ed21f1.png",
+      "savedPath": "assets/lobby.png"
+    },
+    {
+      "id": "opening",
+      "file": "opening.png",
+      "transparent": false,
+      "references": [
+        "../character-layout-study/mage-atmosphere-v4.png",
+        "../character-layout-study/guardian-atmosphere-v4.png",
+        "../character-layout-study/witch-atmosphere-v2.png",
+        "../character-layout-study/archer-atmosphere-v7.png"
+      ],
+      "prompt": "Use case: stylized-concept. Asset: 16:9 illustrated opening/loading screen for Yurika Online, a cozy four-person collectible fantasy RPG. These four references identify respectively the blue wizard hero, violet-cloaked silver warrior, red-haired purple-hatted witch and blue-haired elf archer, and the approved refined soft painterly style. Preserve each recognizable costume, head/body proportions and original motifs; no new ornamental costume redesign. Create a very WIDE cinematic morning vista, four small companions walking together AWAY from the viewer on an old wooden bridge winding through a lush valley, clear stream and waterfall, distant sunlit village. They are a team, not four separate portraits. The wizard in front-middle, shield-bearing warrior beside him, Witch and archer following. Characters occupy the lower middle y50-74% with full small silhouettes; beautiful environment leads. Leftmost 38% quieter shadowed foliage/rock for live logo typography, bottom y84-100% quieter dark wood/stream for a real HTML loading bar. Warm ivory daylight, jade/cobalt scenery and violet costume accents, depth and natural paint edges. No pre-rendered letters, UI, loading bar, borders, watermark, glamour pose, visible underwear, magic effects, glowing runes, particles or extra people. A different wide environmental composition from the individual character arts; unmistakably a welcoming journey for four. One cohesive opaque full-bleed painting.",
+      "generatedSource": "historical-generated-image/exec-1ee8e116-d036-46ee-906c-8c733efd30c4.png",
+      "savedPath": "assets/opening.png"
+    }
+  ]
+}

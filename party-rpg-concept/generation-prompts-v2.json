@@ -1,0 +1,79 @@
+{
+  "date": "2026-09-30",
+  "mode": "built-in image_gen",
+  "approvedSources": [
+    "assets/mage-key.png",
+    "assets/guardian-key.png",
+    "assets/witch-key.png",
+    "assets/archer-key.png"
+  ],
+  "assets": [
+    {
+      "id": "camp-master-v2",
+      "source": "historical-generated-image/exec-6fc7bb98-9a16-41ad-b80e-19da11307915.png",
+      "prompt": "Use case: stylized-concept. Asset: master composition for a landscape mobile RPG lobby, ultra-wide 19.5:9 landscape illustration. Reference images 1 wizard, 2 guardian, 3 witch, 4 archer are approved identities and exact hand-painted cute fantasy style. Preserve recognizable faces, big but restrained eyes, small adventurer proportions, clothing design/color/material quality. Paint a warm, inhabited adventurers' riverside CAMP TERRACE beneath a broad tree, canvas shelter at far right, a distant waterfall/forest valley. Camera at slightly elevated human eye level, natural perspective, warm afternoon sunlight upper left. FOUR different casual actions, connected socially in one place, not a line-up and none posing at camera: left-middle seated silver-armored guardian with violet cloak on low wooden bench carefully cleaning sword, shield resting beside bench; center-left blue-hat brown-haired wizard leaning over a modest round wooden camping table studying an unfolded map, spiral staff nearby; center-right red-bob purple-hat witch sitting on stool at table's other side, reading book with small tea cup, rabbit hat pin; right-middle blue-haired elf archer in approved opaque layered violet skirt/leather top, both anatomically coherent legs and original boots, casually seated against wooden railing checking bow string. Make their heights/gestures overlap naturally with chairs/table, correct feet on ground, clear faces, coherent contact shadows, same rendering as approved art. Table shared by wizard and witch. Keep FOUR characters and furniture inside central 78% width; no characters in bottom 17% (UI zone), and keep top 12% mostly calm canopy/sky for header. Lowest foreground is empty stone terrace; right lower corner has quiet dark tent/ground for a small departure UI later. Preserve landscape depth; party occupies ~50% of illustration height so faces visible at phone size. Refined painterly fabric folds, metal, wood, hair. No magic particles, floating emblems, glowing circles, decorative sigils, text, logos, UI, watermark or extra people. Natural everyday preparations, warm companionship, premium game concept art. Output wide panoramic illustration.",
+      "transparent": false,
+      "savedPath": "assets/camp-master-v2.png"
+    },
+    {
+      "id": "camp-background",
+      "transparent": false,
+      "prompt": "Use case: precise-object-edit. Remove ALL FOUR characters and ALL their portable furniture/props from the provided CAMP scene: remove guardian, shield, bench; wizard, staff, chair; witch, book, stool; archer, bow, their bench; central round table, map, cups, lantern, food. Preserve the EXACT 19.5:9 wide canvas, camera and environmental composition. Fill removed areas with the existing continuous stone terrace, distant wooden railing, waterfall and valley, matching perspective and afternoon warm lighting. Keep tree/canopy, far-left fixed fence, far-right canopy/tent and hanging lantern, right foreground fixed rail/posts, distant landscape intact. A completely EMPTY character-free camp setting. Foreground terrace open for compositing. Same painterly art style, no humans, no floating effects, no text/UI. Do not zoom or change layout.",
+      "source": "historical-generated-image/exec-e317d2ea-0489-4b7f-8470-992741b9bf81.png",
+      "savedPath": "assets/camp-background.png"
+    },
+    {
+      "id": "camp-guardian",
+      "transparent": true,
+      "prompt": "Use case: background-extraction / precise-object-edit. This is ONE REGISTERED LAYER of the provided approved master CAMP composition. Keep the SAME ultra-wide 19.5:9 canvas, same camera, same object scale and EXACT on-canvas placement as the master. Do not crop, recenter, enlarge, redraw, move, or restyle the requested subject. Keep original warm lighting and exquisite hand-painted rendering. Output actual TRANSPARENT alpha everywhere except requested visible subject pixels. Preserve naturally occluded edges, do not invent hidden anatomy behind furniture. No background wash, gradients, shadows unrelated to subject, text, border, particles or checkerboard. Extract ONLY the left seated silver-armored black-haired GUARDIAN, held sword/cloth, purple cape, the small wooden bench directly under them and the rabbit shield leaning beside their bench. Retain this cluster at its original left position, leaving rest of panoramic canvas transparent. Do not include wizard's staff or central table, ground, fence, other people.",
+      "source": "historical-generated-image/exec-081f4b4e-281c-4b3e-acc2-b1b1a654419d.png",
+      "savedPath": "assets/camp-guardian.png"
+    },
+    {
+      "id": "camp-mage",
+      "transparent": true,
+      "prompt": "Use case: background-extraction / precise-object-edit. This is ONE REGISTERED LAYER of the provided approved master CAMP composition. Keep the SAME ultra-wide 19.5:9 canvas, same camera, same object scale and EXACT on-canvas placement as the master. Do not crop, recenter, enlarge, redraw, move, or restyle the requested subject. Keep original warm lighting and exquisite hand-painted rendering. Output actual TRANSPARENT alpha everywhere except requested visible subject pixels. Preserve naturally occluded edges, do not invent hidden anatomy behind furniture. No background wash, gradients, shadows unrelated to subject, text, border, particles or checkerboard. Extract ONLY the middle-left BLUE-HATTED WIZARD, their cape/body/boots, their spiral wooden staff and seat. Include the wizard's visible hands resting on map but REMOVE the map/table entirely; preserve the silhouette where originally hidden by the table (transparent occlusion there). Keep cluster at original middle-left position; rest of panoramic canvas transparent. No table, map, guardian, witch, ground or background.",
+      "source": "historical-generated-image/exec-eb83137e-ce84-4875-8884-aa4c78823fa9.png",
+      "savedPath": "assets/camp-mage.png"
+    },
+    {
+      "id": "camp-witch",
+      "transparent": true,
+      "prompt": "Use case: background-extraction / precise-object-edit. This is ONE REGISTERED LAYER of the provided approved master CAMP composition. Keep the SAME ultra-wide 19.5:9 canvas, same camera, same object scale and EXACT on-canvas placement as the master. Do not crop, recenter, enlarge, redraw, move, or restyle the requested subject. Keep original warm lighting and exquisite hand-painted rendering. Output actual TRANSPARENT alpha everywhere except requested visible subject pixels. Preserve naturally occluded edges, do not invent hidden anatomy behind furniture. No background wash, gradients, shadows unrelated to subject, text, border, particles or checkerboard. Extract ONLY the middle-right RED-BOB PURPLE-HATTED WITCH with rabbit pin, held open purple book, clothing, potion satchel, boots, their small wooden stool. Preserve the witch's exact original pose and book. Keep original middle-right on-canvas position. No central table, cups, kettle, wizard, archer, ground or background.",
+      "source": "historical-generated-image/exec-7fd7b2fc-0a47-4ade-b9e4-9939d74306e9.png",
+      "savedPath": "assets/camp-witch.png"
+    },
+    {
+      "id": "camp-archer",
+      "transparent": true,
+      "prompt": "Use case: background-extraction / precise-object-edit. This is ONE REGISTERED LAYER of the provided approved master CAMP composition. Keep the SAME ultra-wide 19.5:9 canvas, same camera, same object scale and EXACT on-canvas placement as the master. Do not crop, recenter, enlarge, redraw, move, or restyle the requested subject. Keep original warm lighting and exquisite hand-painted rendering. Output actual TRANSPARENT alpha everywhere except requested visible subject pixels. Preserve naturally occluded edges, do not invent hidden anatomy behind furniture. No background wash, gradients, shadows unrelated to subject, text, border, particles or checkerboard. Extract ONLY right seated BLUE-HAIRED ELF ARCHER, held wooden bow and string, rabbit quiver, approved layered purple skirt, original anatomically coherent legs/boots, plus the small wooden bench immediately under archer. Exact original pose/face/clothing, exact original right position. No ground, landscape, railing, foreground rail post, other characters or table. Keep original opaque skirt.",
+      "source": "historical-generated-image/exec-957fb81d-a5e0-46df-8f3c-991615ad7873.png",
+      "savedPath": "assets/camp-archer.png"
+    },
+    {
+      "id": "camp-table",
+      "transparent": true,
+      "prompt": "Use case: background-extraction / precise-object-edit. This is ONE REGISTERED LAYER of the provided approved master CAMP composition. Keep the SAME ultra-wide 19.5:9 canvas, same camera, same object scale and EXACT on-canvas placement as the master. Do not crop, recenter, enlarge, redraw, move, or restyle the requested subject. Keep original warm lighting and exquisite hand-painted rendering. Output actual TRANSPARENT alpha everywhere except requested visible subject pixels. Preserve naturally occluded edges, do not invent hidden anatomy behind furniture. No background wash, gradients, shadows unrelated to subject, text, border, particles or checkerboard. Extract ONLY the central wooden round TABLE including visible table legs, unfolded map, rolled map, tabletop lantern, kettle, fruit tray and white mug. Exact original center placement and perspective. Preserve holes and areas occluded by characters as transparent. NO people, hands, boots, chairs, stools, background, ground or other props.",
+      "source": "historical-generated-image/exec-30225eed-0cd8-4d64-bda6-19ec2439b896.png",
+      "savedPath": "assets/camp-table.png"
+    },
+    {
+      "id": "item-books",
+      "prompt": "Use case: stylized-concept / product asset. One premium hand-painted fantasy RPG shop item on genuine transparent alpha background, square canvas. Match approved Yurika/MoonForest art: warm tactile materials, soft painted shading, refined edges, restrained cute fantasy proportions, readable at 80 pixels. Object centered, fully visible, generous 12% margins, mild top-front three-quarter view, warm afternoon light upper left. Only the requested item; no people, ground, shadows outside object, text, UI, border, decorative sigils, sparkles, magic glow or background wash. Subject: three small travel journals stacked together, warm brown leather binding and blue fabric strap, cream paper edges, one plain bronze clasp. Modest useful adventurer equipment, no embossed logos or runes.",
+      "source": "historical-generated-image/exec-c500a19a-35e0-48b7-b799-2d273d9a7a44.png",
+      "savedPath": "assets/item-books.png"
+    },
+    {
+      "id": "item-stones",
+      "prompt": "Use case: stylized-concept / product asset. One premium hand-painted fantasy RPG shop item on genuine transparent alpha background, square canvas. Match approved Yurika/MoonForest art: warm tactile materials, soft painted shading, refined edges, restrained cute fantasy proportions, readable at 80 pixels. Object centered, fully visible, generous 12% margins, mild top-front three-quarter view, warm afternoon light upper left. Only the requested item; no people, ground, shadows outside object, text, UI, border, decorative sigils, sparkles, magic glow or background wash. Subject: two matte pale teal whetstones and a small rolled linen cloth tied with cord. Practical weapon-maintenance bundle, faceted but not magical/gem glowing. Quiet elegant shop product.",
+      "source": "historical-generated-image/exec-5a6d2b07-3b12-41e4-8b8f-89256d021792.png",
+      "savedPath": "assets/item-stones.png"
+    },
+    {
+      "id": "item-potions",
+      "prompt": "Use case: stylized-concept / product asset. One premium hand-painted fantasy RPG shop item on genuine transparent alpha background, square canvas. Match approved Yurika/MoonForest art: warm tactile materials, soft painted shading, refined edges, restrained cute fantasy proportions, readable at 80 pixels. Object centered, fully visible, generous 12% margins, mild top-front three-quarter view, warm afternoon light upper left. Only the requested item; no people, ground, shadows outside object, text, UI, border, decorative sigils, sparkles, magic glow or background wash. Subject: two rounded small potion bottles with cork stoppers, one green tonic and one soft amber tonic, ordinary brown leather carrying tie, unmarked cream labels. No magical glow or particles.",
+      "source": "historical-generated-image/exec-7e470ac7-28f9-433e-ad64-4275f2b666e8.png",
+      "savedPath": "assets/item-potions.png"
+    }
+  ]
+}

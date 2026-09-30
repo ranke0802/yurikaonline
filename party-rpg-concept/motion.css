@@ -1,0 +1,195 @@
+@charset "UTF-8";
+/* CSS illustration layers: deliberately not represented as rigged Live2D animation. */
+
+/* Tactile controls keep a strong static highlight even when motion is reduced. */
+html[data-ym-feedback="on"] button:not(:disabled) {
+  transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease, transform 90ms ease;
+}
+html[data-ym-feedback="on"] button.ym-pressed:not(:disabled) {
+  transform: translateY(2px) scale(.96) !important;
+  box-shadow: inset 0 2px 7px #12122555, 0 0 0 2px #f7d893d9, 0 0 18px #f5d08733 !important;
+}
+html[data-ym-feedback="on"] button.ym-selected {
+  animation: ym-selection-confirm 300ms cubic-bezier(.2,.75,.28,1) both;
+}
+.ym-feedback-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none !important;
+  overflow: hidden;
+  contain: strict;
+}
+.ym-tap-ring {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  margin: -21px 0 0 -21px;
+  border: 2px solid #fff2cde6;
+  border-radius: 50%;
+  box-shadow: 0 0 13px #f8d08260, inset 0 0 10px #fff0c050;
+  background: radial-gradient(circle, #fff6d144, transparent 62%);
+  animation: ym-tap-confirm 380ms cubic-bezier(.18,.6,.25,1) both;
+}
+@keyframes ym-tap-confirm {
+  from { transform: scale(.36); opacity: .98; }
+  to { transform: scale(1.65); opacity: 0; }
+}
+@keyframes ym-selection-confirm {
+  0% { transform: scale(.96); }
+  60% { transform: scale(1.025); }
+  100% { transform: scale(1); }
+}
+
+/* Only the illustration moves. All panels, captions, navigation and hit targets stay fixed. */
+.backdrop img {
+  transform-origin: 52% 54%;
+  animation: ym-scene-breathe 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.screen-opening .backdrop img { animation-duration: 27s; transform-origin: 66% 48%; }
+.screen-lobby .backdrop img { animation-duration: 23s; transform-origin: 40% 61%; }
+.screen-shop .backdrop img { animation-duration: 25s; transform-origin: 42% 66%; }
+.screen-clan .backdrop img { animation-duration: 26s; transform-origin: 55% 54%; }
+.screen-regions .backdrop img { animation-duration: 28s; }
+.screen-loading .backdrop img { animation-duration: 29s; }
+.screen-characters .backdrop img { animation-duration: 30s; }
+.art-card img {
+  transform-origin: center 60%;
+  animation: ym-card-breathe 17s ease-in-out infinite alternate;
+}
+.art-card:nth-child(2) img { animation-delay: -6s; animation-duration: 22s; }
+.art-card:nth-child(3) img { animation-delay: -11s; animation-duration: 19s; }
+.art-card .art-caption { position: relative; z-index: 1; background: #f4ead8; }
+.art-inspect img { animation: ym-inspect-breathe 18s ease-in-out infinite alternate; }
+.character-portrait img {
+  transform-origin: 50% 88%;
+  animation: ym-character-idle 5.6s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes ym-scene-breathe {
+  from { transform: translate3d(var(--ym-pointer-x, 0px), var(--ym-pointer-y, 0px), 0) scale(1.027); }
+  to { transform: translate3d(calc(var(--ym-pointer-x, 0px) - 3px), calc(var(--ym-pointer-y, 0px) + 2px), 0) scale(1.047); }
+}
+@keyframes ym-card-breathe {
+  from { transform: scale(1.025); }
+  to { transform: scale(1.055) translate3d(0, -1px, 0); }
+}
+@keyframes ym-inspect-breathe {
+  from { transform: scale(.99) translate3d(0, 1px, 0); }
+  to { transform: scale(.998) translate3d(0, -1px, 0); }
+}
+@keyframes ym-character-idle {
+  0%, 100% { transform: translate3d(0, 1px, 0) rotate(-.22deg) scale(1); }
+  50% { transform: translate3d(0, -3px, 0) rotate(.22deg) scale(1.008); }
+}
+
+.ym-scene-effects {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none !important;
+  contain: strict;
+  --ym-particle-color: #ffe7ab;
+  --ym-particle-opacity: .42;
+  --ym-drift-x: 22px;
+  --ym-drift-y: -70px;
+}
+.ym-scene-glow, .ym-scene-mist, .ym-particle {
+  position: absolute;
+  display: block;
+  pointer-events: none !important;
+}
+.ym-scene-glow {
+  width: 70%;
+  height: 100%;
+  left: 14%;
+  top: -15%;
+  background: radial-gradient(ellipse at 50% 40%, #ffe4a421, transparent 63%);
+  opacity: .25;
+  animation: ym-light-breathe 11s ease-in-out infinite alternate;
+}
+.ym-scene-mist {
+  width: 125%;
+  height: 45%;
+  left: -12%;
+  bottom: -10%;
+  background: radial-gradient(ellipse at 25% 70%, #d5e8d733, transparent 61%), radial-gradient(ellipse at 73% 78%, #e2f0df1f, transparent 55%);
+  opacity: .2;
+  animation: ym-mist-drift 28s ease-in-out infinite alternate;
+}
+.ym-particle {
+  left: var(--ym-x);
+  top: var(--ym-y);
+  width: var(--ym-size);
+  height: var(--ym-size);
+  border-radius: 50%;
+  background: var(--ym-particle-color);
+  box-shadow: 0 0 7px var(--ym-particle-color);
+  opacity: 0;
+  animation: ym-particle-drift var(--ym-duration) ease-in-out var(--ym-delay) infinite;
+}
+@keyframes ym-light-breathe {
+  from { opacity: .16; transform: translate3d(-1%, 0, 0) scale(.97); }
+  to { opacity: .53; transform: translate3d(1%, 1%, 0) scale(1.04); }
+}
+@keyframes ym-mist-drift {
+  from { opacity: .16; transform: translate3d(-3%, 0, 0) scale(1); }
+  to { opacity: .45; transform: translate3d(3%, -4%, 0) scale(1.06); }
+}
+@keyframes ym-particle-drift {
+  0% { opacity: 0; transform: translate3d(0, 18px, 0) scale(.6) rotate(0deg); }
+  24% { opacity: var(--ym-particle-opacity); }
+  78% { opacity: calc(var(--ym-particle-opacity) * .6); }
+  100% { opacity: 0; transform: translate3d(var(--ym-drift-x), var(--ym-drift-y), 0) scale(1) rotate(80deg); }
+}
+
+/* Each biome receives sparse, different cues rather than one repeated particle treatment. */
+.ym-scene-effects[data-environment="wind"] {
+  --ym-particle-color: #e6ebae;
+  --ym-particle-opacity: .52;
+  --ym-drift-x: 130px;
+  --ym-drift-y: -26px;
+}
+.ym-scene-effects[data-environment="wind"] .ym-particle { width: calc(var(--ym-size) * 2); border-radius: 90% 10% 90% 10%; box-shadow: none; }
+.ym-scene-effects[data-environment="lake"] { --ym-particle-color: #b8e9e5; --ym-particle-opacity: .35; --ym-drift-x: 45px; --ym-drift-y: -24px; }
+.ym-scene-effects[data-environment="lake"] .ym-scene-mist { height: 70%; background: radial-gradient(ellipse at 28% 60%, #c2e4e266, transparent 63%), radial-gradient(ellipse at 72% 76%, #e6eee84d, transparent 55%); }
+.ym-scene-effects[data-environment="lake"] .ym-scene-glow { background: radial-gradient(ellipse at 55% 48%, #a5e8e634, transparent 62%); }
+.ym-scene-effects[data-environment="thunder"] { --ym-particle-color: #ffe86a; --ym-particle-opacity: .4; --ym-drift-x: -14px; --ym-drift-y: 60px; }
+.ym-scene-effects[data-environment="thunder"] .ym-scene-glow { left: 35%; background: radial-gradient(ellipse at 50% 30%, #ffe07452, transparent 62%); animation-duration: 13s; }
+.ym-scene-effects[data-environment="thunder"] .ym-particle { height: calc(var(--ym-size) * 3); width: 1px; border-radius: 50%; }
+.ym-scene-effects[data-environment="ruins"] { --ym-particle-color: #d7cbf4; --ym-particle-opacity: .53; --ym-drift-x: -12px; --ym-drift-y: -40px; }
+.ym-scene-effects[data-environment="ruins"] .ym-particle:nth-child(odd) { border-radius: 0; background: #e8e2f4; width: 2px; height: 5px; }
+.ym-scene-effects[data-environment="ruins"] .ym-scene-glow { background: radial-gradient(ellipse at 50% 24%, #c8b7eb47, transparent 58%); }
+.ym-scene-effects[data-environment="rift"] { --ym-particle-color: #f1ac92; --ym-particle-opacity: .62; --ym-drift-x: -35px; --ym-drift-y: -110px; }
+.ym-scene-effects[data-environment="rift"] .ym-scene-glow { top: 5%; left: 30%; background: radial-gradient(ellipse at 50% 65%, #ce729139, transparent 63%); animation-duration: 9s; }
+.ym-scene-effects[data-environment="rift"] .ym-scene-mist { background: radial-gradient(ellipse at 60% 60%, #b087b532, transparent 62%); }
+.ym-scene-effects[data-environment="camp"], .ym-scene-effects[data-environment="clan"] { --ym-particle-color: #ffc887; --ym-drift-x: -12px; --ym-drift-y: -90px; }
+.ym-scene-effects[data-environment="camp"] .ym-scene-glow, .ym-scene-effects[data-environment="clan"] .ym-scene-glow { top: 15%; background: radial-gradient(ellipse at 50% 65%, #ffc67e32, transparent 50%); animation-duration: 7s; }
+.ym-scene-effects[data-environment="shop"] { --ym-particle-color: #e8d8b5; --ym-particle-opacity: .32; --ym-drift-y: -38px; }
+.ym-scene-effects[data-environment="shop"] .ym-scene-mist,
+.ym-scene-effects[data-environment="characters"] .ym-scene-mist,
+.ym-scene-effects[data-environment="lobby"] .ym-scene-mist { display: none; }
+.ym-scene-effects[data-environment="characters"] { --ym-particle-opacity: .28; --ym-drift-y: -30px; }
+
+/* Pausing never spins a JavaScript loop, and mobile uses fewer atmospheric elements. */
+@media (pointer: coarse) {
+  .ym-particle:nth-child(n+9) { display: none; }
+  .backdrop img { animation-duration: 30s; }
+}
+html[data-ym-visible="hidden"] :is(.backdrop img, .art-card img, .art-inspect img, .character-portrait img, .ym-scene-glow, .ym-scene-mist, .ym-particle) {
+  animation-play-state: paused !important;
+}
+html[data-ym-motion="off"] :is(.backdrop img, .art-card img, .art-inspect img, .character-portrait img) {
+  animation: none !important;
+  transform: none !important;
+  will-change: auto;
+}
+html[data-ym-motion="off"] :is(.ym-scene-effects, .ym-feedback-layer) { display: none; }
+html[data-ym-motion="off"] button.ym-pressed,
+html[data-ym-motion="off"] button.ym-selected { transform: none !important; animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  :is(.backdrop img, .art-card img, .art-inspect img, .character-portrait img) { animation: none !important; transform: none !important; will-change: auto; }
+  :is(.ym-scene-effects, .ym-feedback-layer) { display: none !important; }
+  button.ym-pressed, button.ym-selected { transform: none !important; animation: none !important; }
+}
