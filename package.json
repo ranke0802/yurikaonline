@@ -27,7 +27,8 @@
     "validate:game-audio": "node scripts/audio-tests/validate-game-audio.cjs",
     "validate:monster-visibility": "node scripts/validate-monster-visibility.cjs",
     "validate:monster-authority": "node --test scripts/validate-monster-authority.mjs",
-    "validate:online-monster-visibility": "node scripts/validate-online-monster-visibility.cjs"
+    "validate:online-monster-visibility": "node scripts/validate-online-monster-visibility.cjs",
+    "validate:ground-guides": "node scripts/validate-ground-guide-layers.cjs"
   },
   "dependencies": {
     "image-size": "^2.0.2"

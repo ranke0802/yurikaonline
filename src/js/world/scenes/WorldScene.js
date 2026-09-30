@@ -1669,6 +1669,33 @@ export default class WorldScene extends Scene {
         // 1. World & Entities
         this.game.zone.render(ctx, this.camera);
 
+        // Ground guides share a pass below every character/monster silhouette.
+        // Drawing these inside one entity or after the Y-sort covers other bodies.
+        this.monsterManager?.monsters.forEach(monster => {
+            if (this.isOnScreen(monster)) monster.renderGroundGuides?.(ctx);
+        });
+        const fireballAimGuide = this.player?.getFireballAimGuide?.();
+        if (fireballAimGuide) {
+            SkillRenderer.drawFireballAimGuide(ctx, fireballAimGuide);
+        }
+
+        // v0.00.21: Target Lock-on Marker
+        if (this.player && this.player.currentTarget && !this.player.currentTarget.isDead) {
+            const t = this.player.currentTarget;
+            const isAutoTarget = this.player.currentTargetMode === 'auto';
+            const isMonsterTarget = !!t.isMonster || t.type === 'monster' || !!t.typeId;
+            if (isMonsterTarget && !this.monsterManager?.monsters?.has(t.id)) {
+                this.player.clearCurrentTarget?.();
+            } else {
+                const isTutorialDummyTarget = t.typeId === 'training_dummy' && !!this.game?.tutorial?.activeTutorial;
+                if (!isTutorialDummyTarget && !isAutoTarget) {
+                    const tx = isMonsterTarget ? t.x : (t.x + t.width / 2);
+                    const ty = isMonsterTarget ? (t.y + ((t.height || 48) / 2)) : (t.y + t.height);
+                    SkillRenderer.drawTargetMarker(ctx, tx, ty, t.width || 48, t.height || 48);
+                }
+            }
+        }
+
         // 2. Prepare Render List (Y-Sort)
         const renderList = [];
 
@@ -1740,28 +1767,6 @@ export default class WorldScene extends Scene {
                 }
             );
         });
-
-        const fireballAimGuide = this.player?.getFireballAimGuide?.();
-        if (fireballAimGuide) {
-            SkillRenderer.drawFireballAimGuide(ctx, fireballAimGuide);
-        }
-
-        // v0.00.21: Target Lock-on Marker
-        if (this.player && this.player.currentTarget && !this.player.currentTarget.isDead) {
-            const t = this.player.currentTarget;
-            const isAutoTarget = this.player.currentTargetMode === 'auto';
-            const isMonsterTarget = !!t.isMonster || t.type === 'monster' || !!t.typeId;
-            if (isMonsterTarget && !this.monsterManager?.monsters?.has(t.id)) {
-                this.player.clearCurrentTarget?.();
-            } else {
-                const isTutorialDummyTarget = t.typeId === 'training_dummy' && !!this.game?.tutorial?.activeTutorial;
-                if (!isTutorialDummyTarget && !isAutoTarget) {
-                    const tx = isMonsterTarget ? t.x : (t.x + t.width / 2);
-                    const ty = isMonsterTarget ? (t.y + ((t.height || 48) / 2)) : (t.y + t.height);
-                    SkillRenderer.drawTargetMarker(ctx, tx, ty, t.width || 48, t.height || 48);
-                }
-            }
-        }
 
         if (this.player) {
             // 렌더링 순서: 플레이어 위에 이펙트

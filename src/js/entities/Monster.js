@@ -2386,6 +2386,12 @@ export default class Monster extends CharacterBase {
         }
     }
 
+    renderGroundGuides(ctx) {
+        if (this.isDead) return;
+        this.renderBossTelegraphs(ctx);
+        this.renderTelegraph(ctx);
+    }
+
     render(ctx, camera) {
         const useTrainingDummyRender = this.fallbackShape === 'training_dummy' || this.typeId === 'training_dummy';
 
@@ -2439,8 +2445,6 @@ export default class Monster extends CharacterBase {
             ? spriteY + (contentTop / atlasFrameHeight) * renderHeight
             : screenY - renderHeight / 2;
 
-        this.renderBossTelegraphs(ctx);
-
         // Draw shadow (Grounded)
         const shadowScale = this.isBoss
             ? Math.max(0.25, Number(this.bossEffects.shadowScale) || 1.35)
@@ -2459,9 +2463,6 @@ export default class Monster extends CharacterBase {
         ctx.fill();
 
         const burnEffect = this.statusEffects.find(e => e.type === 'burn');
-
-        // v0.00.43: Render Charge Telegraph (Underneath monster)
-        this.renderTelegraph(ctx);
 
         // Boss presentation stays independent from the authored atlas frames.
         this._renderBossAura(ctx, screenX, groundY, renderWidth, renderHeight);
