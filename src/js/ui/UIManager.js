@@ -87,6 +87,8 @@ export class UIManager {
         this.handleDesktopShortcutKeydown = this.handleDesktopShortcutKeydown.bind(this);
         this.refreshDesktopShortcutHints = this.refreshDesktopShortcutHints.bind(this);
         this.positionInventoryItemModal = this.positionInventoryItemModal.bind(this);
+        window.visualViewport?.addEventListener('resize', this.positionInventoryItemModal);
+        window.visualViewport?.addEventListener('scroll', this.positionInventoryItemModal);
         this.positionSkillDetailModal = this.positionSkillDetailModal.bind(this);
         this.handleInventorySlotPointerMove = this.handleInventorySlotPointerMove.bind(this);
         this.handleInventorySlotPointerUp = this.handleInventorySlotPointerUp.bind(this);
@@ -2107,6 +2109,7 @@ export class UIManager {
         }
 
         this.pendingEnhancementStoneType = meta.stoneType;
+        this.inventoryCategory = 'equipment';
         this.selectedInventoryRef = null;
         this.inventoryClickSuppressUntil = 0;
         this.tearDownInventoryDrag();
@@ -2161,7 +2164,16 @@ export class UIManager {
             this.closeInventoryItemModal(true);
         };
 
+        let enhancementSubmitted = false;
         const executeEnhance = async () => {
+            if (enhancementSubmitted || this.inventoryEnhancementAnimating) return;
+            enhancementSubmitted = true;
+            // A pickup or consumption can compact the bag while confirmation is open.
+            if (selection.kind === 'inventory') {
+                const index = player.inventory.indexOf(target.item);
+                if (index < 1) return;
+                selection = { ...selection, index };
+            } else if (player.resolveWeaponSelection(selection)?.item !== target.item) return;
             const targetName = target.item.name;
             const result = player.enhanceWeapon(selection, {
                 stoneType: meta.stoneType,
@@ -2175,6 +2187,12 @@ export class UIManager {
             }
 
             finalizeSelectionState();
+            // Render the compacted bag before locating the surviving target's effect.
+            this.updateInventory();
+            const effectIndex = player.inventory.indexOf(target.item);
+            const effectSelection = selection.kind === 'inventory'
+                ? (effectIndex > 0 ? { kind: 'inventory', index: effectIndex } : null)
+                : (player.getEquippedWeapon?.() === target.item ? selection : null);
             const centerMessage = this.buildWeaponEnhancementCenterMessage(result);
             if (centerMessage) {
                 this.showCenterMessage(centerMessage.text, centerMessage.color, {
@@ -2185,7 +2203,7 @@ export class UIManager {
 
             this.inventoryEnhancementAnimating = true;
             try {
-                await this.playWeaponEnhancementSequence(selection, result);
+                await this.playWeaponEnhancementSequence(effectSelection, result);
             } finally {
                 this.inventoryEnhancementAnimating = false;
             }
@@ -2213,7 +2231,8 @@ export class UIManager {
                 `축복받은 무기 강화석으로 ${target.item.name}을(를) 강화하시겠습니까?<br><small>성공 50% / 실패 시 수치 유지 / 성공 시 +1~2 (최대 +${config.maxLevel})</small>`,
                 (confirmed) => {
                     if (confirmed) executeEnhance();
-                }
+                },
+                { centeredEnhancement: true }
             );
             return;
         }
@@ -2223,7 +2242,8 @@ export class UIManager {
                 `+${config.nextLevel} 강화는 실패 시 장비가 파괴될 수 있습니다.<br><small>성공 ${Math.round(config.successRate * 100)}% / 파괴 ${Math.round(config.destroyChanceOnFail * 100)}%</small>`,
                 (confirmed) => {
                     if (confirmed) executeEnhance();
-                }
+                },
+                { centeredEnhancement: true }
             );
             return;
         }
@@ -4624,12 +4644,14 @@ export class UIManager {
         this.confirmTutorialRefreshTimer = 0;
 
         this.confirmYes.addEventListener('click', () => {
-            if (this.confirmCallback) this.confirmCallback(true);
+            const callback = this.confirmCallback;
             this.hideConfirm();
+            callback?.(true);
         });
         this.confirmNo.addEventListener('click', () => {
-            if (this.confirmCallback) this.confirmCallback(false);
+            const callback = this.confirmCallback;
             this.hideConfirm();
+            callback?.(false);
         });
         this.confirmModal?.querySelector('.confirm-content')?.addEventListener('animationend', () => {
             this.refreshTutorialOverlayState();
@@ -7607,7 +7629,25 @@ export class UIManager {
         }, 320);
     }
 
-    showConfirm(message, callback) {
+    showConfirm(message, callback, options = {}) {
+        this.clearEnhancementConfirmLayout();
+        if (options.centeredEnhancement) {
+            // Escape transformed game/popup ancestors; align to the visible viewport.
+            this.enhancementConfirmParent = this.confirmModal.parentElement;
+            document.body.appendChild(this.confirmModal);
+            this.confirmModal.classList.add('enhancement-confirm-centered');
+            this.enhancementConfirmLayout = () => {
+                const viewport = window.visualViewport;
+                Object.assign(this.confirmModal.style, {
+                    left: `${viewport?.offsetLeft || 0}px`, top: `${viewport?.offsetTop || 0}px`,
+                    width: `${viewport?.width || window.innerWidth}px`, height: `${viewport?.height || window.innerHeight}px`
+                });
+            };
+            this.enhancementConfirmLayout();
+            window.addEventListener('resize', this.enhancementConfirmLayout);
+            window.visualViewport?.addEventListener('resize', this.enhancementConfirmLayout);
+            window.visualViewport?.addEventListener('scroll', this.enhancementConfirmLayout);
+        }
         document.getElementById('confirm-message').innerHTML = message;
         this.clearTutorialHighlightLayer();
         this.confirmModal.classList.remove('hidden');
@@ -7616,7 +7656,20 @@ export class UIManager {
         this.scheduleTutorialOverlayRefresh(true);
     }
 
+    clearEnhancementConfirmLayout() {
+        if (!this.enhancementConfirmLayout) return;
+        window.removeEventListener('resize', this.enhancementConfirmLayout);
+        window.visualViewport?.removeEventListener('resize', this.enhancementConfirmLayout);
+        window.visualViewport?.removeEventListener('scroll', this.enhancementConfirmLayout);
+        this.enhancementConfirmLayout = null;
+        this.confirmModal.classList.remove('enhancement-confirm-centered');
+        for (const key of ['left', 'top', 'width', 'height']) this.confirmModal.style.removeProperty(key);
+        this.enhancementConfirmParent?.appendChild(this.confirmModal);
+        this.enhancementConfirmParent = null;
+    }
+
     hideConfirm() {
+        this.clearEnhancementConfirmLayout();
         this.clearTutorialHighlightLayer();
         this.confirmModal.classList.add('hidden');
         this.confirmCallback = null;
@@ -7693,6 +7746,18 @@ export class UIManager {
         }
 
         this.armBrowserBackExitGuard();
+        const stoneDetail = document.querySelector('#inventory-item-modal.enhancement-item-centered:not(.hidden)');
+        if (stoneDetail && this.confirmModal?.classList.contains('hidden')) {
+            this.closeInventoryItemModal(true);
+            this.updateInventory();
+            return;
+        }
+        if (this.confirmModal?.classList.contains('enhancement-confirm-centered')) {
+            const callback = this.confirmCallback;
+            this.hideConfirm();
+            callback?.(false);
+            return;
+        }
         if (this.browserBackExitConfirmPending || this.gameExitSceneTransitioning) return;
 
         this.browserBackExitConfirmPending = true;
@@ -10004,7 +10069,9 @@ export class UIManager {
                 (confirmed) => {
                     if (!confirmed) return;
 
-                    const result = player.rerollWeaponOptions(this.selectedInventoryRef, { deferUiRefresh: true });
+                    const currentSelection = this.resolveCapturedWeaponSelection(player, target);
+                    if (!currentSelection) return;
+                    const result = player.rerollWeaponOptions(currentSelection, { deferUiRefresh: true });
                     if (!result.ok) {
                         this.showGenericModal('옵션 변경 실패', result.message, null, null, { hideNo: true, yesText: '확인' });
                         this.updateInventory();
@@ -10055,7 +10122,9 @@ export class UIManager {
                 (confirmed) => {
                     if (!confirmed) return;
 
-                    const result = player.dismantleWeapon(this.selectedInventoryRef);
+                    const currentSelection = this.resolveCapturedWeaponSelection(player, target);
+                    if (!currentSelection) return;
+                    const result = player.dismantleWeapon(currentSelection);
                     if (!result.ok) {
                         this.showGenericModal('분해 실패', result.message, null, null, { hideNo: true, yesText: '확인' });
                         return;
@@ -10312,6 +10381,17 @@ export class UIManager {
         const useBottomSheet = window.matchMedia('(max-width: 1024px) and (orientation: portrait)').matches;
 
         if (!modal || !card) return;
+
+        const selectedItem = this.resolveSelectedInventoryItem(this.game.localPlayer)?.item;
+        const centeredStone = ['weapon_upgrade_stone', 'blessed_weapon_upgrade_stone'].includes(selectedItem?.type || selectedItem?.id);
+        modal.classList.toggle('enhancement-item-centered', centeredStone);
+        if (centeredStone) {
+            const viewport = window.visualViewport;
+            modal.style.setProperty('--enhancement-center-x', `${(viewport?.offsetLeft || 0) + (viewport?.width || innerWidth) / 2}px`);
+            modal.style.setProperty('--enhancement-center-y', `${(viewport?.offsetTop || 0) + (viewport?.height || innerHeight) / 2}px`);
+            modal.style.setProperty('--enhancement-view-height', `${viewport?.height || innerHeight}px`);
+            return;
+        }
 
         if (modal.classList.contains('hidden') || useBottomSheet || !popup || !anchor) {
             modal.style.removeProperty('--inventory-modal-left');
@@ -10750,6 +10830,62 @@ export class UIManager {
         this._inventoryRefreshFrame = setTimeout(flush, 0);
     }
 
+    resolveCapturedWeaponSelection(player, target) {
+        if (!target?.item) return null;
+        if (target.location === 'equipment' || target.kind === 'equipment') {
+            return player.getEquippedWeapon?.() === target.item ? { kind: 'equipment', slot: 'weapon' } : null;
+        }
+        const index = player.inventory.indexOf(target.item);
+        return index > 0 ? { kind: 'inventory', index } : null;
+    }
+
+    remapInventoryAfterCompaction(indexMap) {
+        this.tearDownInventoryDrag();
+        if (this.selectedInventoryRef?.kind !== 'inventory') return;
+        const previous = this.selectedInventoryRef.index;
+        const index = indexMap instanceof Map ? indexMap.get(previous) : indexMap[previous];
+        if (Number.isInteger(index) && index > 0) this.selectedInventoryRef = { kind: 'inventory', index };
+        else this.closeInventoryItemModal(true);
+    }
+
+    getInventoryCategory(item) {
+        if (!item) return null;
+        if (item.slot) return 'equipment';
+        if (['weapon_upgrade_stone', 'blessed_weapon_upgrade_stone', OPTION_REROLL_STONE_ID].includes(item.type || item.id)) return 'enhancement';
+        if (this.game.localPlayer?.getBossSummonConfigForItem?.(item)) return 'boss';
+        return 'other';
+    }
+
+    updateInventoryTabs(grid, player) {
+        this.inventoryCategory ||= 'equipment';
+        let tabs = document.getElementById('inventory-category-tabs');
+        if (!tabs) {
+            tabs = document.createElement('div');
+            tabs.id = 'inventory-category-tabs';
+            tabs.setAttribute('role', 'tablist');
+            tabs.setAttribute('aria-label', '아이템 종류');
+            grid.closest('.inventory-shell').prepend(tabs);
+        }
+        tabs.replaceChildren();
+        for (const [category, label] of [['equipment', '장비'], ['enhancement', '강화'], ['boss', '보스 주문서'], ['other', '기타']]) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.dataset.inventoryCategory = category;
+            button.setAttribute('role', 'tab');
+            button.setAttribute('aria-selected', String(category === this.inventoryCategory));
+            const count = player.inventory.filter((item, index) => index > 0 && this.getInventoryCategory(item) === category).length;
+            button.textContent = `${label} ${count}`;
+            button.addEventListener('click', () => {
+                if (this.inventoryEnhancementAnimating) return;
+                this.tearDownInventoryDrag();
+                this.closeInventoryItemModal(true);
+                this.inventoryCategory = category;
+                this.updateInventory();
+            });
+            tabs.appendChild(button);
+        }
+    }
+
     updateInventory() {
         const p = this.game.localPlayer;
         if (!p) return;
@@ -10785,6 +10921,7 @@ export class UIManager {
             this.closeInventoryItemModal(true);
         }
 
+        this.updateInventoryTabs(grid, p);
         grid.innerHTML = '';
         const fragment = document.createDocumentFragment();
         const compactNumber = (value) => {
@@ -10859,6 +10996,7 @@ export class UIManager {
 
         for (let index = 1; index < p.inventory.length; index++) {
             const item = p.inventory[index];
+            if (this.getInventoryCategory(item) !== this.inventoryCategory) continue;
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'grid-item';
@@ -10922,6 +11060,12 @@ export class UIManager {
             });
 
             fragment.appendChild(button);
+        }
+        if (!fragment.querySelector('[data-inventory-index]')) {
+            const empty = document.createElement('p');
+            empty.className = 'inventory-category-empty';
+            empty.textContent = '이 종류의 아이템이 없습니다.';
+            fragment.appendChild(empty);
         }
         grid.appendChild(fragment);
 

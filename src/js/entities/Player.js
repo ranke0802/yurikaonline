@@ -3617,6 +3617,12 @@ export default class Player extends CharacterBase {
         return { changed, indexMap };
     }
 
+    compactInventoryAfterMutation() {
+        const result = this.compactInventory();
+        window.game?.ui?.remapInventoryAfterCompaction?.(result.indexMap);
+        return result;
+    }
+
     moveInventoryItem(fromIndex, toIndex) {
         if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex)) return { ok: false, newIndex: -1 };
         if (fromIndex <= 0 || fromIndex >= this.inventory.length) return { ok: false, newIndex: -1 };
@@ -3939,7 +3945,7 @@ export default class Player extends CharacterBase {
         };
     }
 
-    consumeInventoryItem(itemId, amount = 1) {
+    consumeInventoryItem(itemId, amount = 1, { deferCompaction = false } = {}) {
         let remaining = Math.max(1, amount);
         for (let i = 1; i < this.inventory.length; i++) {
             const item = this.inventory[i];
@@ -3957,6 +3963,7 @@ export default class Player extends CharacterBase {
             if (remaining <= 0) break;
         }
 
+        if (!deferCompaction) this.compactInventoryAfterMutation();
         return remaining <= 0;
     }
 
@@ -3973,6 +3980,7 @@ export default class Player extends CharacterBase {
         const previous = this.equipment.weapon;
         this.equipment.weapon = item;
         this.inventory[slotIndex] = previous || null;
+        this.compactInventoryAfterMutation();
         this.updateDerivedStats({ save: false });
         this.saveProfilePatch(['equipment', 'inventory'], {
             debounceMs: 0,
@@ -4063,7 +4071,9 @@ export default class Player extends CharacterBase {
             return { ok: false, message: '이 장비는 더 이상 강화할 수 없습니다.' };
         }
 
-        this.consumeInventoryItem(stoneItemId, 1);
+        // Keep target.index stable until the whole enhancement (including
+        // possible destruction) is complete, then compact once before saving.
+        this.consumeInventoryItem(stoneItemId, 1, { deferCompaction: true });
 
         const result = {
             ok: true,
@@ -4107,6 +4117,7 @@ export default class Player extends CharacterBase {
             }
         }
 
+        this.compactInventoryAfterMutation();
         if (target.location === 'equipment' || result.destroyed) {
             this.updateDerivedStats({ save: false });
             if (target.location === 'equipment') {
@@ -4155,7 +4166,7 @@ export default class Player extends CharacterBase {
         const result = itemData.rerollEquipmentOptions(target.item);
         if (!result.ok) return result;
 
-        if (!this.consumeInventoryItem(OPTION_REROLL_STONE_ID, 1)) {
+        if (!this.consumeInventoryItem(OPTION_REROLL_STONE_ID, 1, { deferCompaction: true })) {
             if (result.previousSnapshot) {
                 target.item.name = result.previousSnapshot.name;
                 target.item.prefixId = result.previousSnapshot.prefixId;
@@ -4165,6 +4176,7 @@ export default class Player extends CharacterBase {
             return { ok: false, message: '옵션 변경석이 부족합니다.' };
         }
 
+        this.compactInventoryAfterMutation();
         if (target.location === 'equipment') {
             this.updateDerivedStats({ save: false });
             this.saveProfilePatch(['equipment', 'inventory'], {
@@ -4242,6 +4254,8 @@ export default class Player extends CharacterBase {
             ? rewardInfo.max
             : (rewardInfo.min + Math.floor(Math.random() * ((rewardInfo.max - rewardInfo.min) + 1)));
         const dismantledItem = target.item;
+        const previousInventory = this.inventory.slice();
+        const previousWeapon = this.equipment.weapon;
 
         if (target.location === 'inventory') {
             this.inventory[target.index] = null;
@@ -4249,15 +4263,16 @@ export default class Player extends CharacterBase {
             this.equipment.weapon = null;
         }
 
-        const rewardItem = this.addInventoryItem(rewardInfo.itemId, rewardAmount);
+        // Survivors move forward in their original order; newly created reward
+        // stacks belong after them, rather than occupying the removed item's hole.
+        const compacted = this.compactInventory();
+        const rewardItem = this.addInventoryItem(rewardInfo.itemId, rewardAmount, { deferCriticalProfileSave: true });
         if (!rewardItem) {
-            if (target.location === 'inventory') {
-                this.inventory[target.index] = dismantledItem;
-            } else {
-                this.equipment.weapon = dismantledItem;
-            }
+            this.inventory = previousInventory;
+            this.equipment.weapon = previousWeapon;
             return { ok: false, message: '분해 보상을 인벤토리에 추가하지 못했습니다.' };
         }
+        window.game?.ui?.remapInventoryAfterCompaction?.(compacted.indexMap);
 
         if (target.location === 'equipment') {
             this.updateDerivedStats({ save: false });

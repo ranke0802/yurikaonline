@@ -15,7 +15,7 @@ import CharacterSelectionScene from '../src/js/world/scenes/CharacterSelectionSc
 import { UIManager } from '../src/js/ui/UIManager.js';
 
 globalThis.window = globalThis.window || {};
-globalThis.document = globalThis.document || { hidden: false };
+globalThis.document = globalThis.document || { hidden: false, querySelector: () => null };
 
 function createEventBus(extra = {}) {
     const events = new Map();

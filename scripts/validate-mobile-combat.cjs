@@ -28,7 +28,9 @@ const equip=await center('#inventory-action-equip');await page.touchscreen.tap(e
 const equipment=await page.evaluate(()=>{const p=game.localPlayer;return{weapon:p.equipment.weapon?.type,items:[...p.inventory.filter(Boolean),...Object.values(p.equipment).filter(Boolean)].filter(i=>i.type==='magic_staff').length}});assert.equal(equipment.weapon,'magic_staff');assert.equal(equipment.items,1,'repeat equip cannot duplicate fixture weapon');
 if(await page.locator('#inventory-item-modal-close').isVisible())await page.locator('#inventory-item-modal-close').tap();
 const stonesBefore=await page.evaluate(()=>game.localPlayer.getInventoryItemCount('weapon_upgrade_stone'));
-await page.locator('[data-inventory-index="2"]').tap();await page.locator('#inventory-action-enhance').tap();const weaponSlot=await center('.equipped-weapon-slot');await page.touchscreen.tap(weaponSlot.x,weaponSlot.y);await page.touchscreen.tap(weaponSlot.x,weaponSlot.y);
+await page.locator('[data-inventory-category=enhancement]').tap();
+const stoneIndex=await page.evaluate(()=>game.localPlayer.inventory.findIndex(i=>i?.type==='weapon_upgrade_stone'));
+await page.locator(`[data-inventory-index="${stoneIndex}"]`).tap();await page.locator('#inventory-action-enhance').tap();const weaponSlot=await center('.equipped-weapon-slot');await page.touchscreen.tap(weaponSlot.x,weaponSlot.y);await page.touchscreen.tap(weaponSlot.x,weaponSlot.y);
 await page.waitForFunction(()=>!game.ui.inventoryEnhancementAnimating);const consumption=await page.evaluate(()=>({stones:game.localPlayer.getInventoryItemCount('weapon_upgrade_stone'),enhancement:game.localPlayer.equipment.weapon?.enhancementLevel}));assert.equal(consumption.stones,stonesBefore-1,'repeat touch consumes exactly one enhancement stone');assert.equal(consumption.enhancement,1,'first original enhancement succeeds once');
 if(await page.locator('#inventory-item-modal-close').isVisible())await page.locator('#inventory-item-modal-close').tap();await page.locator('#inventory-close-btn-bottom').tap();
 await page.locator('.camp-return').tap();await page.locator('[data-camp="character"]').waitFor();

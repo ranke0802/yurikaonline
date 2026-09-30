@@ -280,7 +280,11 @@ export class Projectile {
         this.lifeTime -= dt;
         if (this.lifeTime <= 0) {
             const currentTrackedTarget = this._resolveTrackedFireballTarget();
-            if (this.type === 'fireball' && this.trackTarget && currentTrackedTarget && trackedFireballPoint) {
+            if (this.type === 'fireball' && this.isExploding) {
+                // A confirmed collision must not disappear when the flight budget
+                // expires before the skill-level penetration delay.
+                this._executeActualExplosion();
+            } else if (this.type === 'fireball' && this.trackTarget && currentTrackedTarget && trackedFireballPoint) {
                 this.x = trackedFireballPoint.x;
                 this.y = trackedFireballPoint.y;
                 this._executeActualExplosion(currentTrackedTarget, monsters);
@@ -393,8 +397,20 @@ export class Projectile {
             }
         }
 
-        this.x += this.vx * dt;
-        this.y += this.vy * dt;
+        let movementDt = dt;
+        if (this.type === 'fireball' && this.isExploding) {
+            // Penetrate toward the contacted body, never beyond it while waiting
+            // for a scaled delay. Otherwise high-level blasts overshoot their
+            // victim even though a collision was already confirmed.
+            const point = this._getFireballTargetPoint(this.explosionContext?.target);
+            const speedSq = this.vx * this.vx + this.vy * this.vy;
+            if (point && speedSq > 0) {
+                const timeToCenter = ((point.x - this.x) * this.vx + (point.y - this.y) * this.vy) / speedSq;
+                movementDt = Math.max(0, Math.min(dt, timeToCenter));
+            }
+        }
+        this.x += this.vx * movementDt;
+        this.y += this.vy * movementDt;
 
         if (this.visualOnly) {
             if (this.type === 'fireball') {
