@@ -158,6 +158,8 @@ export default class WorldScene extends Scene {
 
     async enter(params) {
         Logger.info("[WorldScene] Entering game world...");
+        this._campEntryIncomplete = true;
+        this.player = null;
         const user = params.user;
         const profile = params.profile || null;
         const localName = params.localName;
@@ -516,6 +518,26 @@ export default class WorldScene extends Scene {
             this.activateZoneParticipation();
         }
         this.ui?.armBrowserBackExitGuard?.();
+        this._campEntryIncomplete = false;
+        if (this.game.sceneManager.scenes.has('camp')) {
+            this.campReturn = document.createElement('button');
+            this.campReturn.className = 'camp-return';
+            this.campReturn.textContent = '저장 후 야영지';
+            this.campReturn.onclick = async () => {
+                if (this.campReturn.disabled) return;
+                this.campReturn.disabled = true;
+                const previousPause = this.ui.isPaused;
+                this.ui.isPaused = true;
+                this.game._resetTransientInputState?.('camp_return');
+                const ok = await this.ui.exitGameToCharacterSelection({ reason: 'camp_return' });
+                if (!ok) {
+                    this.ui.isPaused = previousPause;
+                    this.campReturn.disabled = false;
+                    this.ui.showCenterMessage?.('저장하지 못했어요. 공간을 확인하고 다시 시도해 주세요. 다른 탭에서 플레이했다면 이 페이지를 새로고침해 주세요.', '#ffb8a8');
+                }
+            };
+            document.getElementById('game-container').append(this.campReturn);
+        }
     }
 
     _applyZoneData(zoneData, options = {}) {
@@ -1192,7 +1214,7 @@ export default class WorldScene extends Scene {
 
     async exit() {
         await this.waitForPendingZoneTransition();
-        const skipFinalProfileSave = this._shouldSkipFinalProfileSaveOnExit();
+        const skipFinalProfileSave = this._campEntryIncomplete === true || this._shouldSkipFinalProfileSaveOnExit();
         if (!skipFinalProfileSave) {
             if (this.player?.saveProfilePosition) {
                 await this.player.saveProfilePosition({
@@ -1207,6 +1229,7 @@ export default class WorldScene extends Scene {
             }
         }
         this._profileSavedForSceneExit = null;
+        this.campReturn?.remove(); this.campReturn = null;
         await this.net?.setNormalRewardConsumer?.(null);
         await this.net?.setDurableRewardConsumer?.(null);
         this.ui?.disarmBrowserBackExitGuard?.();

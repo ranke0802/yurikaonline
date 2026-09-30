@@ -29,3 +29,23 @@ npm start
 
 ---
 *Developed with Antigravity*
+
+## 클라우드 통합 초기 버전 (개발 브랜치)
+
+저장소 루트에서 `python3 -m http.server 8100 --bind 127.0.0.1`을 실행하고
+`http://127.0.0.1:8100/?local=1`을 여세요. Firebase에 연결하지 않는 별도
+로컬 모험입니다. 명시적으로 캐릭터를 만든 뒤 야영지 → 캐릭터 선택 →
+원본 튜토리얼/필드 → 저장 후 야영지로 돌아갈 수 있습니다.
+
+`?local=1` 없는 원본 URL은 기존 온라인 인증 경로를 사용하므로 실서비스
+검증에 사용하지 마세요. 로컬 모험은 한 브라우저 탭에서 사용하고, 다른
+탭과 저장 충돌이 나면 전체 페이지를 새로고침하세요. 브라우저 데이터
+삭제 시 로컬 기록도 없어집니다. 서버·계정 백업이 아닙니다.
+
+- `npm run validate:local-profile`: 원본 보상 처리와 로컬 저장 검사
+- `npm run validate:camp-browser`: 위 8100 서버 + Chromium 브라우저 QA
+- `CHROMIUM_PATH`로 설치된 Chromium 실행 파일 경로 지정 가능
+- 상세 계획·한계·재개: [docs/CLOUD-INTEGRATION.md](docs/CLOUD-INTEGRATION.md)
+
+기존 `npm start`의 실제 포트는 **8081**입니다. 위 초기 문서의 8080과
+브라우저 자동 실행 안내보다 `package.json`의 현재 실행 설정을 따릅니다.

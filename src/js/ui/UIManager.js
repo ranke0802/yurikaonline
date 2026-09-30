@@ -3734,7 +3734,7 @@ export class UIManager {
         // A tutorial must never trap the player in the game. Settings provides
         // the explicit leave action, and its confirmation is only opened by
         // the exit flow currently in progress.
-        if (target.closest('#btn-settings, #settings-exit-game, #settings-close-btn-top, #settings-close-btn-bottom')) return false;
+        if (target.closest('.camp-return, #btn-settings, #settings-exit-game, #settings-close-btn-top, #settings-close-btn-bottom')) return false;
         if ((this.gameExitConfirmPending || this.browserBackExitConfirmPending)
             && target.closest('#confirm-modal, #confirm-yes, #confirm-no')) return false;
 
@@ -7709,7 +7709,7 @@ export class UIManager {
     requestGameExitToCharacterSelection(reason = 'manual_exit_game') {
         if (this.gameExitSceneTransitioning || this.gameExitConfirmPending || !this.isWorldSceneActive()) return false;
         this.gameExitConfirmPending = true;
-        this.showConfirm('게임을 종료하고 캐릭터 선택 화면으로 이동하시겠습니까?', async (confirmed) => {
+        this.showConfirm('모험 기록을 저장하고 야영지로 돌아갈까요?', async (confirmed) => {
             this.gameExitConfirmPending = false;
             if (!confirmed) return;
             try {
@@ -7794,7 +7794,7 @@ export class UIManager {
             detachedPlayer = player || null;
             this.game.localPlayer = null;
 
-            await this.game?.sceneManager?.changeScene('charSelect', { user: currentUser });
+            await this.game?.sceneManager?.changeScene(this.game.sceneManager.scenes?.has('camp') ? 'camp' : 'charSelect', { user: currentUser });
             return true;
         } catch (error) {
             Logger.error('[UIManager] Failed to exit game to character selection', error);

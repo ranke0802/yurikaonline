@@ -91,6 +91,7 @@ export default class CharacterSelectionScene extends Scene {
         this.game.ui?.hideHUD();
         this.game.ui?.hideAllPopups();
         this.user = user;
+        this.manageAccount = params?.manageAccount === true;
         this.startGameTransitioning = false;
 
         // Read the lightweight profile first, then compare it against recent
@@ -241,6 +242,10 @@ export default class CharacterSelectionScene extends Scene {
     }
 
     createUI() {
+        if (!this.manageAccount && this.profile?.name && this.game.sceneManager?.scenes?.has('camp')) {
+            void this.game.sceneManager.changeScene('camp', { user: this.user });
+            return;
+        }
         if (this.profileLoadError) {
             this.showProfileLoadError(this.profileLoadError);
             return;
@@ -658,7 +663,7 @@ export default class CharacterSelectionScene extends Scene {
         }, 'at', startX, startY);
 
         try {
-            await this.game.sceneManager.changeScene('world', {
+            await this.game.sceneManager.changeScene(this.game.sceneManager?.scenes?.has('camp') ? 'camp' : 'world', {
                 user: this.user,
                 startX,
                 startY,

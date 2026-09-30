@@ -172,8 +172,8 @@ function syncFiles(version, changedFiles) {
     );
     indexHtml = replaceOrThrow(
         indexHtml,
-        /<script src="src\/js\/firebaseConfig\.js(?:\?v=[^"]+)?"><\/script>/,
-        `<script src="src/js/firebaseConfig.js?v=${version}"></script>`,
+        /src="src\/js\/firebaseConfig\.js(?:\?v=[^"]+)?"/,
+        `src="src/js/firebaseConfig.js?v=${version}"`,
         'index.html firebase config version'
     );
     indexHtml = replaceOrThrow(

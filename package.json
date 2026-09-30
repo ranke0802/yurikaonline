@@ -15,7 +15,9 @@
     "version:bump": "node scripts/sync-version.js --bump patch",
     "validate:improvement": "node --test scripts/validate-improvement.mjs",
     "validate:browser": "playwright test",
-    "validate:security": "firebase emulators:exec --config firebase.emulator.json --project demo-yurika-audit --only auth,database \"node scripts/validate-security-emulator.mjs\""
+    "validate:security": "firebase emulators:exec --config firebase.emulator.json --project demo-yurika-audit --only auth,database \"node scripts/validate-security-emulator.mjs\"",
+    "validate:local-profile": "node --test scripts/validate-local-profile.mjs",
+    "validate:camp-browser": "node scripts/validate-camp-browser.cjs"
   },
   "dependencies": {
     "image-size": "^2.0.2"

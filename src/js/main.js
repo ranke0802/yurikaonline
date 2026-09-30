@@ -1,6 +1,9 @@
 import Logger from './utils/Logger.js';
+import CampScene from './world/scenes/CampScene.js';
+import LocalAuthManager from './local/LocalAuthManager.js';
+import LocalNetworkManager from './local/LocalNetworkManager.js';
 import { getViewportMetrics } from './core/ViewportMetrics.js';
-window.RUNTIME_BUILD_VERSION = '0.02.117'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.118'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -148,8 +151,9 @@ class Game {
 
         // 1. Core Systems
         this.input = new InputManager();
-        this.auth = new AuthManager();
-        this.net = new NetworkManager();
+        this.isLocalMode = window.YURIKA_LOCAL_MODE === true;
+        this.auth = this.isLocalMode ? new LocalAuthManager() : new AuthManager();
+        this.net = this.isLocalMode ? new LocalNetworkManager() : new NetworkManager();
         this.resources = new ResourceManager();
         this.monsterData = new MonsterDataManager(this.resources); // Initialize MonsterDataManager
         this.characterData = new CharacterDataManager(this.resources);
@@ -209,6 +213,7 @@ class Game {
 
         // 6. Scene Manager
         this.sceneManager = new SceneManager(this);
+        this.sceneManager.addScene('camp', new CampScene(this));
         this.sceneManager.addScene('login', new LoginScene(this));
         this.sceneManager.addScene('charSelect', new CharacterSelectionScene(this));
         this.sceneManager.addScene('world', new WorldScene(this));
@@ -617,7 +622,7 @@ class Game {
                     }
                     if (!this._isAuthStateCurrent(user, generation) || this.net.playerId !== user.uid) return;
 
-                    await this.sceneManager.changeScene('charSelect', { user, authGeneration: generation });
+                    await this.sceneManager.changeScene(this.isLocalMode ? 'camp' : 'charSelect', { user, authGeneration: generation });
                     if (!this._isAuthStateCurrent(user, generation)) return;
                     this.updateLoading('완료', 100);
                     this._hideLoader();
