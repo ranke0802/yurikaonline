@@ -47,7 +47,11 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.locator('.camp-return').click(); await page.waitForTimeout(1000);
     assert.equal(await page.locator('.camp-return').count(),1,'failed save must remain in field');
     assert.equal(await page.locator('.camp-return').isEnabled(),true,'failed save allows retry');
+    await page.locator('.local-save-notice').waitFor();
     await page.evaluate(()=>{game.net.storage=qaStorage});
+    await page.locator('.local-save-notice button').click();
+    await page.locator('.local-save-notice').waitFor({state:'hidden'});
+    const retried=await page.evaluate(()=>JSON.parse(localStorage.getItem('yurika.local.profile.v1')).profile);assert.equal(retried.level,earned.level);
    }
    if(name==='iphone') { await page.goBack();await page.locator('#confirm-yes').waitFor();await page.locator('#confirm-yes').click(); }
    else await page.locator('.camp-return').click();

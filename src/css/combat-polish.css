@@ -1,0 +1,44 @@
+/* Retain existing hit areas/layout/editor. Use the very same raster VFX as combat. */
+body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .skill-btn,
+body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .attack-btn {
+    background: radial-gradient(circle at 40% 30%, #334759ed, #182837ed) !important;
+    border-color: #e5cf97 !important;
+    box-shadow: 0 3px 9px #16233680, inset 0 0 14px #080f2050;
+    opacity: .94 !important;
+}
+.action-buttons .inner-icon {
+    position: absolute;
+    width: 72%; height: 72%; left: 14%; top: 7%;
+    background-size: 400% 400%; background-repeat: no-repeat;
+    pointer-events: none;
+}
+#action-attack-j .inner-icon { background-image: url('/assets/resource/effects/player-skills/lightning.webp'); background-position: 0 66.6667%; }
+#action-skill-h .inner-icon { background-image: url('/assets/resource/effects/player-skills/missile.webp'); background-position: 0 66.6667%; }
+#action-skill-u .inner-icon { background-image: url('/assets/resource/effects/player-skills/fireball.webp'); background-position: 0 66.6667%; }
+#action-skill-k .inner-icon { background-image: url('/assets/resource/effects/player-skills/barrier.webp'); background-position: 0 33.3333%; }
+.combat-skill-name {
+    position: absolute; bottom: 13%; left: -12%; width: 124%;
+    color: #fff2d3; font: 600 10px/1 system-ui, sans-serif;
+    text-align: center; white-space: nowrap; text-shadow: 0 1px 4px #000;
+    pointer-events: none; z-index: 2;
+}
+.action-buttons .cooldown-time { z-index: 4; color: #fff !important; text-shadow: 0 2px 4px #000; }
+.action-buttons .cooldown-overlay { z-index: 3; }
+.action-buttons [role='button']:focus-visible { outline: 3px solid #ffefb5; outline-offset: 3px; }
+#action-auto-toggle { color: #fff4df; background: #243346df; border: 1px solid #d5bd83; text-shadow: 0 1px 3px #000; }
+.camp-result { margin: 12px 0; border-top: 1px solid #bca478; border-bottom: 1px solid #bca478; padding: 12px 0; }
+.camp-result strong { font-size: 13px; color: #51452e; }
+.camp-result p { font-size: 12px; line-height: 1.5; margin: 5px 0; }
+.camp-result small { font-size: 10px; color: #716451; }
+.has-journey-result[data-view='camp'] .camp-detail { display: none; }
+@media (max-height: 500px) and (orientation: landscape) {
+    .combat-skill-name { font-size: 9px; bottom: 11%; }
+    .camp-result { padding: 5px 0; margin: 6px 0; }
+    .camp-result strong, .camp-result p { font-size: 10px; margin: 2px 0; }
+    .camp-result small { display: none; }
+    .has-journey-result[data-view='camp'] .camp-profile img { height: 30px; }
+    .has-journey-result[data-view='camp'] .camp-status { display: none; }
+}
+.local-save-notice { position: absolute; z-index: 2000; top: max(54px, calc(env(safe-area-inset-top) + 48px)); left: 50%; transform: translateX(-50%); width: min(420px, 62vw); display: flex; gap: 10px; align-items: center; padding: 10px 12px; color: #fff1da; background: #482934f5; border: 1px solid #e8bb88; border-radius: 8px; font: 12px/1.5 system-ui; }
+.local-save-notice[hidden] { display: none; }
+.local-save-notice button { flex-shrink: 0; min-height: 36px; padding: 5px 10px; border: 1px solid #dec58f; border-radius: 5px; color: #fff1da; background: #30283b; font: inherit; cursor: pointer; }

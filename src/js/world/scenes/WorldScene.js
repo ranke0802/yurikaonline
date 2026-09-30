@@ -1,4 +1,5 @@
 import Scene from '../../core/Scene.js';
+import mountLocalSaveNotice from '../../local/LocalSaveNotice.js';
 import Logger from '../../utils/Logger.js';
 import Player from '../../entities/Player.js';
 import RemotePlayer from '../../entities/RemotePlayer.js';
@@ -519,6 +520,7 @@ export default class WorldScene extends Scene {
         }
         this.ui?.armBrowserBackExitGuard?.();
         this._campEntryIncomplete = false;
+        this._removeLocalSaveNotice = mountLocalSaveNotice(this.game, document.getElementById('game-container'));
         if (this.game.sceneManager.scenes.has('camp')) {
             this.campReturn = document.createElement('button');
             this.campReturn.className = 'camp-return';
@@ -1229,6 +1231,7 @@ export default class WorldScene extends Scene {
             }
         }
         this._profileSavedForSceneExit = null;
+        this._removeLocalSaveNotice?.(); this._removeLocalSaveNotice = null;
         this.campReturn?.remove(); this.campReturn = null;
         await this.net?.setNormalRewardConsumer?.(null);
         await this.net?.setDurableRewardConsumer?.(null);

@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json?v=0.02.118">
+    <link rel="manifest" href="manifest.json?v=0.02.119">
     <meta name="theme-color" content="#2d3436">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,7 +21,7 @@
     <meta name="x5-page-mode" content="app">
     <script>
         window.YURIKA_LOCAL_MODE = new URLSearchParams(location.search).get('local') === '1';
-        window.BOOTSTRAP_VERSION = '0.02.118';
+        window.BOOTSTRAP_VERSION = '0.02.119';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -436,7 +436,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.118', { updateViaCache: 'none' });
+                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.119', { updateViaCache: 'none' });
                     await registration.update();
                     registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
                     registration.addEventListener('updatefound', () => {
@@ -463,7 +463,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"><\/script>
 
     <!-- Firebase Config -->
-    <script src="src/js/firebaseConfig.js?v=0.02.118"><\/script>
+    <script src="src/js/firebaseConfig.js?v=0.02.119"><\/script>
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Nanum+Gothic:wght@400;700&display=swap"
         rel="stylesheet">
@@ -474,10 +474,10 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.02.118</title>
+    <title>Yurika Online v0.02.119</title>
 
-    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.02.118">
-    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.02.118">
+    <link rel="icon" type="image/webp" href="src/assets/icon_192_clean.webp?v=0.02.119">
+    <link rel="apple-touch-icon" href="src/assets/apple_touch_icon.png?v=0.02.119">
     <script>
         // v0.29.20+: Prefer the actually loaded client build for UI, and auto-reset caches on mismatch.
         (async function initCacheBusting() {
@@ -498,8 +498,9 @@
             }
         });
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.02.118">
+    <link rel="stylesheet" href="src/css/style.css?v=0.02.119">
     <link rel="stylesheet" href="src/css/camp.css">
+    <link rel="stylesheet" href="src/css/combat-polish.css">
 </head>
 
 <body>
@@ -676,29 +677,29 @@
 
                 <div class="action-buttons">
                     <div class="skill-row top-skills">
-                        <div id="action-skill-u" class="skill-btn skill-u" data-key="u">
+                        <div id="action-skill-u" class="skill-btn skill-u" data-key="u" role="button" aria-label="파이어볼">
                             <div class="shortcut-badge">U</div>
-                            <div class="inner-icon">🔥</div>
+                            <div class="inner-icon"></div><span class="combat-skill-name">파이어볼</span>
                             <div class="cooldown-overlay"></div>
                             <div class="cooldown-time"></div>
                         </div>
-                        <div id="action-skill-k" class="skill-btn skill-k" data-key="k">
+                        <div id="action-skill-k" class="skill-btn skill-k" data-key="k" role="button" aria-label="보호막">
                             <div class="shortcut-badge">K</div>
-                            <div class="inner-icon">🛡️</div>
+                            <div class="inner-icon"></div><span class="combat-skill-name">보호막</span>
                             <div class="cooldown-overlay"></div>
                             <div class="cooldown-time"></div>
                         </div>
                     </div>
                     <div class="skill-row bottom-skills">
-                        <div id="action-skill-h" class="skill-btn skill-h" data-key="h">
+                        <div id="action-skill-h" class="skill-btn skill-h" data-key="h" role="button" aria-label="매직 미사일">
                             <div class="shortcut-badge">H</div>
-                            <div class="inner-icon">🪄</div>
+                            <div class="inner-icon"></div><span class="combat-skill-name">매직 미사일</span>
                             <div class="cooldown-overlay"></div>
                             <div class="cooldown-time"></div>
                         </div>
-                        <div id="action-attack-j" class="attack-btn" data-key="j">
+                        <div id="action-attack-j" class="attack-btn" data-key="j" role="button" aria-label="연쇄 번개">
                             <div class="shortcut-badge">J</div>
-                            <div class="inner-icon">⚔️</div>
+                            <div class="inner-icon"></div><span class="combat-skill-name">연쇄 번개</span>
                             <div class="cooldown-overlay"></div>
                             <div class="cooldown-time"></div>
                         </div>
@@ -1555,7 +1556,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.02.118"></script>
+    <script type="module" src="./src/js/main.js?v=0.02.119"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

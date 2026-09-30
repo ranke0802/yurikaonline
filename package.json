@@ -17,7 +17,9 @@
     "validate:browser": "playwright test",
     "validate:security": "firebase emulators:exec --config firebase.emulator.json --project demo-yurika-audit --only auth,database \"node scripts/validate-security-emulator.mjs\"",
     "validate:local-profile": "node --test scripts/validate-local-profile.mjs",
-    "validate:camp-browser": "node scripts/validate-camp-browser.cjs"
+    "validate:camp-browser": "node scripts/validate-camp-browser.cjs",
+    "validate:mobile-combat": "node scripts/validate-mobile-combat.cjs",
+    "validate:adventure-summary": "node --test scripts/validate-adventure-summary.mjs"
   },
   "dependencies": {
     "image-size": "^2.0.2"

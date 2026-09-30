@@ -1,4 +1,5 @@
 import Scene from '../../core/Scene.js';
+import AdventureSummary from '../../core/AdventureSummary.js';
 
 const ART = '/party-rpg-concept/assets/';
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -8,6 +9,7 @@ const number = value => Math.max(0, Number(value) || 0).toLocaleString('ko-KR');
 export default class CampScene extends Scene {
     async enter({ user } = {}) {
         this.user = user;
+        this.journey = this.game.adventureSummary ||= new AdventureSummary();
         this.generation = (this.generation || 0) + 1;
         this.busy = false;
         this.view = 'camp';
@@ -49,6 +51,7 @@ export default class CampScene extends Scene {
             const snapshot = await this.readSnapshot();
             if (generation !== this.generation) return;
             this.profile = snapshot?.profile || null;
+            this.summary = this.profile ? this.journey.finish(this.user.uid, this.game.isLocalMode, this.profile) : null;
             this.message = '';
             this.failed = false;
         } catch {
@@ -65,6 +68,9 @@ export default class CampScene extends Scene {
         const p = this.profile;
         const local = this.game.isLocalMode;
         this.root.dataset.view = this.view;
+        this.root.classList.toggle('has-journey-result', !!this.summary);
+        const result = this.summary;
+        const delta = result ? result.after.manastone - result.before.manastone : 0;
         this.root.innerHTML = `
             <img class="camp-backdrop" src="${ART}${this.view === 'character' ? 'mage-key.png' : 'camp-master-v2.png'}" alt="">
             <header class="camp-header"><div><span class="camp-wordmark">YURIKA</span><p>달숲 야영지 · ${local ? '로컬 모험' : '계정 모험'}</p></div><span class="camp-save-label">${local ? '이 브라우저에 저장 · 계정과 별개' : '기존 계정 기록 사용'}</span></header>
@@ -74,6 +80,7 @@ export default class CampScene extends Scene {
                 <p class="camp-status" role="status" aria-live="polite">${escape(this.message || (p ? '저장한 기록에서 여정을 이어가세요.' : '아직 보유한 캐릭터가 없어요.'))}</p>
                 ${p ? `<div class="camp-profile"><img src="${ART}idle-mage.png" alt="보유 마법사"><div><strong>마법사 · Lv.${number(p.level || 1)}</strong><p>경험치 ${number(p.exp)} / ${number(p.maxExp || 100)}</p><p>마석 ${number(p.manastone)}</p></div></div>
                 <div class="camp-progress" role="progressbar" aria-label="레벨 경험치" aria-valuenow="${Number(p.exp)||0}" aria-valuemax="${Number(p.maxExp)||100}"><i style="width:${Math.min(100,Math.max(0,(Number(p.exp)||0)/(Number(p.maxExp)||100)*100))}%"></i></div>
+                ${result && this.view === 'camp' ? `<section class="camp-result" aria-label="저장된 원정 결과"><strong>최근 원정 · 저장된 기록</strong><p>Lv.${number(result.before.level)} · 경험치 ${number(result.before.exp)} → Lv.${number(result.after.level)} · 경험치 ${number(result.after.exp)}</p><p>마석 변동 ${delta > 0 ? '+' : delta < 0 ? '−' : ''}${number(Math.abs(delta))} · 가방 ${number(result.after.bagSlots)}칸 사용</p><small>보상과 사용량을 반영한 변화예요. 추가 지급은 없습니다.</small></section>` : ''}
                 <p class="camp-detail">${this.view === 'character' ? `체력 능력 ${number(p.vitality || 1)} · 지능 ${number(p.intelligence || 3)} · 남은 능력치 ${number(p.statPoints)}<br>능력치·스킬 강화와 장비 관리는 필드의 상태·스킬·가방 메뉴에서 이어집니다.` : '한 명을 직접 조작하는 원정입니다. 야영지의 동료들은 아직 전투에 참여하지 않아요.'}</p>
                 <button class="camp-primary" data-camp="${this.view === 'character' ? 'depart' : 'character'}" ${this.busy || this.failed ? 'disabled' : ''}>${this.view === 'character' ? '선택한 마법사로 출전' : '보유 캐릭터 선택'}</button>` : (!this.busy && !this.failed ? `<label class="camp-name">모험가 이름<input id="camp-name" maxlength="16" minlength="2" placeholder="두 글자 이상" autocomplete="off"></label><button class="camp-primary" data-camp="create">${local ? '로컬 캐릭터 만들기' : '캐릭터 만들기'}</button>` : '')}
                 ${this.failed ? '<button class="camp-primary" data-camp="retry">다시 불러오기</button>' : ''}
@@ -112,8 +119,10 @@ export default class CampScene extends Scene {
             const snapshot = await this.readSnapshot();
             if (!this.root || this.game.sceneManager.currentScene !== this) return;
             if (!snapshot?.profile) throw new Error('missing_profile');
+            this.journey.begin(this.user.uid, this.game.isLocalMode, snapshot.profile);
             await this.game.sceneManager.changeScene('world', { user: this.user, profile: snapshot.profile, localName: snapshot.profile.name });
         } catch {
+            this.journey.cancel(this.user.uid, this.game.isLocalMode);
             // World entry can fail after the camp has exited. Rebuild a retryable scene.
             if (!this.root) {
                 try { await this.game.sceneManager.changeScene('camp', { user: this.user }); }

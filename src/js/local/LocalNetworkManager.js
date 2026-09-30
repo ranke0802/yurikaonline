@@ -20,6 +20,15 @@ export default class LocalNetworkManager extends NetworkManager {
         this._localBossConsumer = null;
         this._localDraining = null;
         this._localSaveError = null;
+        this._pendingLocalProfilePatch = null;
+    }
+    getLocalSaveStatus() {
+        return { ok: !this._localSaveError && !this._pendingLocalProfilePatch, pending: !!this._pendingLocalProfilePatch, reason: this._localSaveError };
+    }
+    _publishLocalSaveState(reason = null) {
+        this._localSaveError = reason;
+        // A display listener must never change the outcome of a committed save.
+        try { this.emit('localProfileSaveState', this.getLocalSaveStatus()); } catch { /* UI observes next status read. */ }
     }
     startBatchProcessor() {}
     _read() {
@@ -37,11 +46,12 @@ export default class LocalNetworkManager extends NetworkManager {
         data.revision = current.revision + 1;
         this.storage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(data));
         this._localRevision = data.revision;
-        this._localSaveError = null;
+        if (!this._pendingLocalProfilePatch) this._localSaveError = null;
     }
     async connect(user) {
         if (user?.uid !== 'local-player') throw new Error('local_identity_required');
-        this._localRevision = this._read().revision;
+        const revision = this._read().revision;
+        if (this._localRevision === null) this._localRevision = revision;
         this.connected = true; this.isHost = true; this.currentHostId = this.playerId;
         this.connectedUsers = [this.playerId];
         this.emit('connected'); this.emit('hostChanged', true);
@@ -54,26 +64,35 @@ export default class LocalNetworkManager extends NetworkManager {
             data.profile = { name: String(name).trim().slice(0, 20) || '유리카', level: 1, exp: 0, maxExp: 100, manastone: 0, vitality: 1, intelligence: 3, wisdom: 2, agility: 1, statPoints: 0,
                 skillLevels: { laser: 1, missile: 1, fireball: 1, shield: 1 }, inventory: [], equipment: {}, pendingItemRewards: [], claimedRewardIds: [], currentZoneId: 'zone_1', mapId: 'zone_1', mapPositions: {}, recoveryUid: this.playerId,
                 questData: {}, questState: {}, ts: Date.now() };
-            this._write(data); return { ok: true, profile: copy(data.profile) };
-        } catch (error) { return { ok: false, reason: error.message }; }
+            this._write(data); this._publishLocalSaveState(); return { ok: true, profile: copy(data.profile) };
+        } catch (error) { this._publishLocalSaveState(error.message); return { ok: false, reason: error.message }; }
     }
     async getPlayerData(uid) { const profile = await this.getPlayerProfile(uid); return profile ? { profile } : null; }
     async getPlayerProfile(uid) { if (uid !== this.playerId) return null; const data = this._read(); if (this._localRevision === null) this._localRevision = data.revision; return copy(data.profile); }
     async getLatestProfileSnapshot(uid) { const profile = await this.getPlayerProfile(uid); return profile ? { profile, source: 'profile', rootRevision: this._localRevision, latestUid: uid } : null; }
     async savePlayerData(uid, patch) {
         try {
-            if (uid !== this.playerId || !patch || typeof patch !== 'object') throw new Error('profile_uid_mismatch');
+            if (uid !== this.playerId || !patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('profile_uid_mismatch');
+            // One merged, cloned snapshot bounds recovery memory; position-only
+            // writes must retain earlier failed equipment/inventory mutations.
+            this._pendingLocalProfilePatch = { ...(this._pendingLocalProfilePatch || {}), ...copy(patch) };
             const data = this._read();
             if (!data.profile) throw new Error('local_profile_missing');
-            data.profile = { ...data.profile, ...copy(patch) };
+            data.profile = { ...data.profile, ...this._pendingLocalProfilePatch };
             // Receipt acknowledgements and balances are one atomic localStorage write.
             for (const id of data.profile.claimedRewardIds || []) { delete data.receipts[id]; data.settled[id] = true; }
             this._write(data);
+            this._pendingLocalProfilePatch = null;
+            this._publishLocalSaveState();
             return { ok: true, revision: data.revision, localCheckpointPersisted: true };
-        } catch (error) { this._localSaveError = error.message; return { ok: false, reason: error.message }; }
+        } catch (error) { this._publishLocalSaveState(error.message); return { ok: false, reason: error.message }; }
     }
     async savePlayerDataPatch(uid, patch) { return this.savePlayerData(uid, patch); }
-    async flushProfileWrites() { if (this._localDraining) await this._localDraining; return this._localSaveError ? { ok: false, reason: this._localSaveError } : { ok: true }; }
+    async flushProfileWrites() {
+        await this._drainLocalRewards();
+        if (this._pendingLocalProfilePatch) return this.savePlayerData(this.playerId, {});
+        return this.getLocalSaveStatus();
+    }
     setZoneParticipationEnabled(enabled) { this.zoneParticipationEnabled = !!enabled; this.isHost = !!enabled; this.emit('hostChanged', this.isHost); }
     async handleLocalZoneChanged() { this.roomId = globalThis.window?.game?.localPlayer?.currentZoneId || 'zone_1'; this._activeZoneFieldId = this.roomId; return true; }
     handleLocalPartyStateChanged() { return true; }
@@ -100,9 +119,9 @@ export default class LocalNetworkManager extends NetworkManager {
                 const consumer = receipt.bossReward ? this._localBossConsumer : this._localConsumer;
                 if (!consumer) continue;
                 const result = await consumer(copy(receipt));
-                if (!result?.ok) { this._localSaveError = result?.reason || 'local_reward_save_failed'; break; }
+                if (!result?.ok) { this._publishLocalSaveState(result?.reason || 'local_reward_save_failed'); break; }
             }
-        }).catch(error => { this._localSaveError = error.message; }).finally(() => { this._localDraining = null; });
+        }).catch(error => { this._publishLocalSaveState(error.message); }).finally(() => { this._localDraining = null; });
         return this._localDraining;
     }
     sendReward(uid, reward) {
@@ -123,7 +142,7 @@ export default class LocalNetworkManager extends NetworkManager {
                 this._write(data);
             }
             void this._drainLocalRewards(); return true;
-        } catch (error) { this._localSaveError = error.message; return false; }
+        } catch (error) { this._publishLocalSaveState(error.message); return false; }
     }
     isRewardServerCommitted(uid, id) { const data = this._read(); return uid === this.playerId && !!(data.receipts[id] || data.settled[id]); }
     spawnDrop(drop) {
@@ -132,7 +151,7 @@ export default class LocalNetworkManager extends NetworkManager {
             if (data.dropSources?.[id] && !data.drops[id]) return id;
             if (!data.drops[id]) { data.dropSources = { ...(data.dropSources || {}), [id]: true }; data.drops[id] = { ...copy(drop), id, fieldId: this._getCurrentFieldId(), dropWorldEpoch: 0, dropFieldEpoch: 0, ts: Date.now() }; this._write(data); }
             this.emit('dropAdded', copy(data.drops[id])); return id;
-        } catch (error) { this._localSaveError = error.message; return null; }
+        } catch (error) { this._publishLocalSaveState(error.message); return null; }
     }
     isDropSpawnDurablyAccepted(id) { const data = this._read(); return !!(data.drops[id] || data.dropSources?.[id]); }
     async claimDropForSettlement(id, collectorId, options = {}) {
@@ -146,10 +165,10 @@ export default class LocalNetworkManager extends NetworkManager {
                 || (drop.eligibleCollectorIds?.length && !drop.eligibleCollectorIds.includes(collectorId))) return { ok: false, terminal: true, reason: 'not_owner' };
             if (!drop.claimId) { drop.claimId = `local-claim:${id}`; drop.claimedBy = collectorId; drop.claimStatus = 'claimed'; this._write(data); }
             return { ok: true, claimId: drop.claimId, claimedBy: collectorId, drop: copy(drop), localOnly: true };
-        } catch (error) { this._localSaveError = error.message; return { ok: false, reason: error.message }; }
+        } catch (error) { this._publishLocalSaveState(error.message); return { ok: false, reason: error.message }; }
     }
     async finalizeDropSettlement(id, claimId) { const drop = this._read().drops[id]; if (!drop || !claimId || drop.claimId !== claimId) return false; return this.removeDrop(id); }
-    removeDrop(id) { try { const data = this._read(); delete data.drops[id]; this._write(data); this.emit('dropRemoved', id); return true; } catch (error) { this._localSaveError = error.message; return false; } }
+    removeDrop(id) { try { const data = this._read(); delete data.drops[id]; this._write(data); this.emit('dropRemoved', id); return true; } catch (error) { this._publishLocalSaveState(error.message); return false; } }
     async readFieldDropsSnapshot(options = {}) { const fieldId = options.fieldId || this._getCurrentFieldId(); return copy(Object.fromEntries(Object.entries(this._read().drops).filter(([, drop]) => drop.fieldId === fieldId))); }
     async claimFieldBossSpawn() { return true; }
     async claimQuestBossSpawn(options = {}) { return { ok: true, bossInstanceId: options.preferredBossInstanceId || `local-boss-${crypto.randomUUID()}`, cycle: options.isFirstBoss ? 'intro' : 'repeat' }; }

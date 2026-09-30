@@ -3734,7 +3734,7 @@ export class UIManager {
         // A tutorial must never trap the player in the game. Settings provides
         // the explicit leave action, and its confirmation is only opened by
         // the exit flow currently in progress.
-        if (target.closest('.camp-return, #btn-settings, #settings-exit-game, #settings-close-btn-top, #settings-close-btn-bottom')) return false;
+        if (target.closest('.camp-return, .local-save-notice, #btn-settings, #settings-exit-game, #settings-close-btn-top, #settings-close-btn-bottom')) return false;
         if ((this.gameExitConfirmPending || this.browserBackExitConfirmPending)
             && target.closest('#confirm-modal, #confirm-yes, #confirm-no')) return false;
 

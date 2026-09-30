@@ -96,3 +96,51 @@ screenshot was additionally saved to ChatGPT Library for user delivery.
 Not yet verified: real Android/iOS hardware, Safari, production online login/
 recovery, remote account concurrency, long-session performance or release
 readiness. No live Firebase requests, deployment, or original-branch merge.
+
+## Mobile combat polish (0.02.119)
+
+- Field skill controls use frames from the existing lightning, missile, fireball
+  and barrier raster atlases with Korean labels and stronger contrast. Existing
+  character sprites and animated combat effects are preserved. Visual review did
+  not justify new generated art for this slice; no image generation is claimed.
+- Camp shows the saved expedition before/after level and EXP, net manastone
+  change and occupied bag slots. This session journal is presentation only, never
+  grants rewards, isolates local/account identities and hides stale results.
+- Local failed profile patches are cloned and merged until a durable write
+  succeeds, including when the next write only updates position. The field shows
+  a persistent save warning and an actual retry button. Pending memory is not a
+  durable backup: do not close/reload during storage failure. Stale-tab conflicts
+  still require a full reload and do not bypass the write fence.
+- Existing inventory/equipment/enhancement flows remain playable. Inspection
+  found no implemented shop catalogue, price model or purchase API; no new shop
+  economy or fake purchase flow was introduced. Clan and party AI remain deferred.
+
+### Checks and artifacts
+
+`validate:local-profile` passes 20 tests; `validate:adventure-summary` passes 3.
+`validate:mobile-combat` passes real Chromium touch input at 780x360 and 852x393:
+movement, barrier activation, fireball hold/aim/release, basic attack and original
+slime kill, level threshold growth, receipt replay, repeated departure/return,
+inventory equip and enhancement repeated taps, and saved reload. Fixture items
+and EXP=99 are test-only. Missile activation was not separately demonstrated.
+`validate:camp-browser` passes desktop 1560x720 and both mobile sizes, including
+storage failure warning, retry-button recovery and all previous camp checks.
+No browser JS errors or external requests occurred in these isolated checks.
+
+All existing quest/world/UI/hygiene/runtime/projectile checks pass again, as do
+combat 14, resources 5, improvement 25, three zone5 atlas audits and transparent
+VFX/item checks. Logs: `/tmp/yurika-polish-regression/`. Touch report and captures:
+`/tmp/yurika-polish-qa/mobile-combat-report.json`,
+`galaxy-s23-touch-vfx.png`, `galaxy-s23-growth-return.png` (same directory).
+Browser report: `/tmp/yurika-integration-qa/browser-report.json`.
+
+Library batch upload of the two new screenshots failed during hosted-app tool
+discovery with a network error; no new Library IDs were returned. Local PNGs are
+preserved for delivery. These temporary paths are not phone-accessible links.
+
+No authenticated port-forward URL is exposed by this environment. Sites owner
+listing succeeded, so an owner-private static local-mode snapshot is an available
+separate hosting option. No Site was created or deployed; await the user's reply
+and coordinate the single deployment owner before doing so. Hardware Android/iOS,
+Safari, long-session behavior and production account/security remain release
+gates, not verified capabilities of this local initial version.
