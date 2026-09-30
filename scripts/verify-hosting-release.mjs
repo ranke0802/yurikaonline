@@ -45,7 +45,12 @@ for (let attempt = 0; attempt < 6; attempt++) {
         const monsterCode = await get('/src/js/entities/Monster.js' + suffix);
         assert.equal(sha(monsterCode.bytes), sha(readFileSync('src/js/entities/Monster.js')), 'published monster runtime');
         assert.match(monsterCode.response.headers.get('cache-control') || '', /no-cache/);
-        console.log('VERIFIED live monster runtime matches commit; all five slime frames are available');
+        for (const source of ['src/js/core/NetworkManager.js', 'src/js/world/MonsterManager.js']) {
+            const liveCode = await get('/' + source + suffix);
+            assert.equal(sha(liveCode.bytes), sha(readFileSync(source)), `published ${source}`);
+            assert.match(liveCode.response.headers.get('cache-control') || '', /no-cache/);
+        }
+        console.log('VERIFIED live monster rendering and online synchronization runtimes match commit; all five slime frames are available');
         console.log('VERIFIED live audio runtime matches commit; intro/field scores and sound events are available');
         console.log(`VERIFIED Hosting ${origin} version=${version} commit=${process.env.GITHUB_SHA || 'local'}; online entry and ${sources.length} immutable assets`);
         failure = null;

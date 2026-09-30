@@ -1907,7 +1907,11 @@ export default class Monster extends CharacterBase {
 
         // v0.00.03: Optimistic HP reduction for ALL clients for immediate feedback
         // The Host will send the authoritative HP value later to correct any desync
-        this.hp = Math.max(0, this.hp - dmg);
+        // Guests predict damage feedback, but only the host confirms death.
+        // Otherwise a delayed living snapshot arrives after update() has already
+        // started fading this monster out, making every species disappear.
+        const predictedHpFloor = window.game?.net?.isHost === false && !this.isLocalOnly ? 1 : 0;
+        this.hp = Math.max(predictedHpFloor, this.hp - dmg);
 
         if (window.game?.net?.isHost) {
             Logger.log(`[Monster] [Host] ${this.id} HP: ${this.hp}`);

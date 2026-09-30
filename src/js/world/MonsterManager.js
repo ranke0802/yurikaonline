@@ -3978,6 +3978,12 @@ export default class MonsterManager {
             monster.hp = 0;
             monster.vx = 0;
             monster.vy = 0;
+        } else if (Number.isFinite(data.hp) && data.hp > 0) {
+            // A newer authoritative living state also clears any old local fade.
+            // Updating HP alone leaves render() skipping a perfectly live entity.
+            monster.isDead = false;
+            monster.deathTimer = 0;
+            monster.alpha = 1;
         }
     }
 

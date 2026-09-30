@@ -6609,6 +6609,12 @@ export default class NetworkManager extends EventEmitter {
         const payload = snapshot?.val() || previous.payload || null;
         this._clearPendingMonsterRemoval(monsterId);
 
+        // RTDB cell listeners can deliver source removal before destination add.
+        // Keep a living instance through mobile delivery skew; a confirmed dead
+        // payload still uses the short cleanup delay. Adds/changes cancel this timer.
+        const lastState = previous.payload;
+        const confirmedDead = lastState?.state === 'dead' || Number(lastState?.hp) <= 0;
+        const removalDelayMs = confirmedDead ? 160 : 1500;
         const timer = setTimeout(() => {
             this._monsterPendingRemovalTimers.delete(monsterId);
             const latest = this._monsterCellPayloadCache.get(monsterId) || null;
@@ -6616,7 +6622,7 @@ export default class NetworkManager extends EventEmitter {
 
             this._monsterCellPayloadCache.delete(monsterId);
             this._emitMonsterRemovedEvent(monsterId, payload || latest.payload || null);
-        }, 160);
+        }, removalDelayMs);
 
         this._monsterPendingRemovalTimers.set(monsterId, timer);
     }
