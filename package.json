@@ -32,7 +32,8 @@
     "validate:fireball-impact": "node scripts/validate-fireball-impact.mjs",
     "validate:fireball-touch": "node scripts/validate-fireball-touch.cjs",
     "validate:inventory-compaction": "node --test scripts/validate-inventory-compaction.mjs",
-    "validate:inventory-categories": "node scripts/validate-inventory-categories.cjs"
+    "validate:inventory-categories": "node scripts/validate-inventory-categories.cjs",
+    "validate:inventory-interactions": "node scripts/validate-inventory-interactions.cjs"
   },
   "dependencies": {
     "image-size": "^2.0.2"

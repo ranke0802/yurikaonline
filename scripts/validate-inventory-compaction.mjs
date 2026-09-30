@@ -14,3 +14,15 @@ test('dismantle failed reward restores original holes and selections are not rem
 test('equipping moves remaining items forward in order and saves compacted inventory',async()=>{const {p,net}=await fixture();const a=item('magic_staff'),b=item('magic_staff');p.inventory[1]=a;p.inventory[3]=b;assert.ok(p.equipWeaponFromInventory(1).ok);assert.equal(p.equipment.weapon,a);assert.deepEqual(survivors(p),[b]);await net.flushProfileWrites();assert.equal((await net.getPlayerProfile(p.id)).inventory[1].instanceId,b.instanceId);});
 test('reroll consumes last stack before selected weapon without losing it on reload',async()=>{const {p,net,storage}=await fixture();const target=item('magic_staff'),next=item('magic_staff');p.inventory[1]=item('option_reroll_stone');p.inventory[2]=target;p.inventory[3]=next;const result=p.rerollWeaponOptions({kind:'inventory',index:2});assert.ok(result.ok);assert.deepEqual(survivors(p),[target,next]);await net.flushProfileWrites();assert.equal((await new LocalNetworkManager(storage).getPlayerProfile(p.id)).inventory[1].instanceId,target.instanceId);});
 test('partial stack consumption keeps stack position and surviving relative order',async()=>{const {p}=await fixture();const a=item('magic_staff'),stone=item('weapon_upgrade_stone',3),b=item('magic_staff');p.inventory[1]=a;p.inventory[2]=stone;p.inventory[3]=b;assert.ok(p.consumeInventoryItem('weapon_upgrade_stone',1));assert.deepEqual(survivors(p),[a,stone,b]);assert.equal(stone.amount,2);});
+
+test('filtered insertion preserves other-tab slots, bidirectional order, save and compaction',async()=>{
+ const {p,net,storage}=await fixture();const a=item('magic_staff'),b=item('weapon_upgrade_stone'),c=item('blessed_weapon_upgrade_stone'),other=item('boss_summon_scroll_king_slime');
+ p.inventory[1]=a;p.inventory[2]=other;p.inventory[3]=b;p.inventory[4]=c;
+ assert.ok(p.moveInventoryItem(1,4,[1,3,4]).ok);assert.deepEqual(p.inventory.slice(1,5),[b,other,c,a]);
+ assert.ok(p.moveInventoryItem(4,1,[1,3,4]).ok);assert.deepEqual(p.inventory.slice(1,5),[a,other,b,c]);
+ const before=p.inventory.slice();assert.equal(p.moveInventoryItem(1,2,[1,3,4]).ok,false);assert.deepEqual(p.inventory,before);
+ assert.equal(p.moveInventoryItem(1,3,[1,1,3]).ok,false);
+ p.moveInventoryItem(1,4,[1,3,4]);p.saveProfilePatch(['inventory'],{debounceMs:0,forceImmediate:true,reason:'inventory_reorder'});await net.flushProfileWrites();
+ const saved=await new LocalNetworkManager(storage).getPlayerProfile(p.id);assert.deepEqual(saved.inventory.slice(1,5).map(i=>i.type),[b,other,c,a].map(i=>i.type));
+ p.consumeInventoryItem('weapon_upgrade_stone',1);assert.deepEqual(survivors(p),[other,c,a]);
+});

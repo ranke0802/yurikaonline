@@ -3623,7 +3623,18 @@ export default class Player extends CharacterBase {
         return result;
     }
 
-    moveInventoryItem(fromIndex, toIndex) {
+    moveInventoryItem(fromIndex, toIndex, visibleIndices = null) {
+        if (visibleIndices) {
+            const indices = [...visibleIndices];
+            if (new Set(indices).size !== indices.length || indices.some((i, n) => !Number.isInteger(i) || i <= 0 || !this.inventory[i] || (n && i <= indices[n - 1]))) return {ok:false, newIndex:-1};
+            const from = indices.indexOf(fromIndex), to = indices.indexOf(toIndex);
+            if (from < 0 || to < 0) return {ok:false, newIndex:-1};
+            const items = indices.map(i => this.inventory[i]);
+            const [moved] = items.splice(from, 1);
+            items.splice(to, 0, moved);
+            indices.forEach((i, n) => { this.inventory[i] = items[n]; });
+            return {ok:true, newIndex:toIndex};
+        }
         if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex)) return { ok: false, newIndex: -1 };
         if (fromIndex <= 0 || fromIndex >= this.inventory.length) return { ok: false, newIndex: -1 };
 

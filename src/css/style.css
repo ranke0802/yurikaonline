@@ -15160,11 +15160,15 @@ body.is-touch-landscape #ui-layer #btn-fullscreen-exit {
 
 /* Title-row tabs leave the v124 bag, header, padding and slot geometry intact. */
 #inventory-category-tabs { display:flex; gap:4px; flex:0 0 auto; margin-left:auto; margin-right:8px; align-items:center; }
-#inventory-category-tabs button { display:flex; align-items:center; justify-content:center; width:32px; height:30px; padding:3px; border:1px solid #baab8f; border-radius:7px; background:#eee6d7; cursor:pointer; }
-#inventory-category-tabs button[aria-selected="true"] { background:#584631; border-color:#a28045; box-shadow:inset 0 0 0 1px #dcc390; }
-#inventory-category-tabs button:focus-visible { outline:2px solid #a28045; outline-offset:2px; }
-#inventory-category-tabs .inventory-tab-icon { width:24px; height:24px; object-fit:contain; pointer-events:none; }
+#inventory-category-tabs button { display:flex; align-items:center; justify-content:center; width:32px; height:30px; padding:3px; border:1px solid #aaa; border-radius:7px; background:#e9e9e9; cursor:pointer; }
+#inventory-category-tabs button[aria-selected="true"] { background:#c9c9c9; border-color:#555; box-shadow:inset 0 0 0 1px #777; }
+#inventory-category-tabs button:focus-visible { outline:2px solid #666; outline-offset:2px; }
+#inventory-category-tabs .inventory-tab-icon { width:24px; height:24px; object-fit:contain; pointer-events:none; filter:grayscale(1) contrast(.75); }
 #confirm-modal.enhancement-confirm-centered { position:fixed !important; right:auto !important; bottom:auto !important; transform:none !important; margin:0 !important; padding:12px; box-sizing:border-box; display:flex; align-items:center !important; justify-content:center !important; z-index:10020; }
 #confirm-modal.enhancement-confirm-centered .confirm-content { position:relative !important; inset:auto !important; transform:none !important; margin:0 !important; box-sizing:border-box; width:360px !important; min-width:0 !important; max-width:100% !important; max-height:100% !important; overflow-y:auto; padding:16px; animation:none; }
 
 #inventory-item-modal.enhancement-item-centered .inventory-item-modal-card { position:fixed !important; left:var(--enhancement-center-x, 50vw) !important; top:var(--enhancement-center-y, 50vh) !important; right:auto !important; bottom:auto !important; transform:translate(-50%, -50%) !important; margin:0 !important; max-height:calc(var(--enhancement-view-height, 100dvh) - 24px) !important; max-width:calc(100vw - 24px) !important; border-radius:16px; }
+
+#inventory-item-modal.enhancement-item-centered .inventory-item-modal-card { overflow-y:auto !important; box-sizing:border-box; }
+#generic-modal.inventory-message-centered { position:fixed !important; inset:auto; transform:none !important; margin:0 !important; padding:12px; box-sizing:border-box; align-items:center !important; justify-content:center !important; z-index:10030; }
+#generic-modal.inventory-message-centered .confirm-modal-content { position:relative !important; inset:auto !important; transform:none !important; margin:0 !important; width:360px !important; min-width:0 !important; max-width:100% !important; max-height:100% !important; box-sizing:border-box; animation:none; }

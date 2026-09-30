@@ -2096,7 +2096,7 @@ export class UIManager {
 
         const stoneCount = player.getInventoryItemCount?.(meta.stoneItemId) || 0;
         if (stoneCount < 1) {
-            this.showGenericModal(meta.modalTitle, meta.shortageMessage, null, null, { hideNo: true, yesText: '확인' });
+            this.showGenericModal(meta.modalTitle, meta.shortageMessage, null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
             return false;
         }
 
@@ -2104,7 +2104,7 @@ export class UIManager {
             || player.inventory.some((item, index) => index > 0 && item?.slot === 'weapon');
 
         if (!hasTargetWeapon) {
-            this.showGenericModal(meta.modalTitle, '강화할 무기가 없습니다.', null, null, { hideNo: true, yesText: '확인' });
+            this.showGenericModal(meta.modalTitle, '강화할 무기가 없습니다.', null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
             return false;
         }
 
@@ -2127,7 +2127,7 @@ export class UIManager {
 
         const target = player.resolveWeaponSelection(selection);
         if (!target?.item) {
-            this.showGenericModal(meta.modalTitle, '강화할 무기를 선택해 주세요.', null, null, { hideNo: true, yesText: '확인' });
+            this.showGenericModal(meta.modalTitle, '강화할 무기를 선택해 주세요.', null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
             return;
         }
 
@@ -2141,19 +2141,19 @@ export class UIManager {
         const currentLevel = Math.max(0, target.item.enhancementLevel || 0);
         const maxLevel = Math.max(0, ruleSet?.maxLevel || 10);
         if (currentLevel >= maxLevel) {
-            this.showGenericModal(meta.modalTitle, '해당 무기는 이미 최종 강화된 상태입니다.', null, null, { hideNo: true, yesText: '확인' });
+            this.showGenericModal(meta.modalTitle, '해당 무기는 이미 최종 강화된 상태입니다.', null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
             return;
         }
 
         const config = itemData.getEnhancementConfig(target.item);
         if (!config) {
-            this.showGenericModal(meta.modalTitle, '이 장비는 더 이상 강화할 수 없습니다.', null, null, { hideNo: true, yesText: '확인' });
+            this.showGenericModal(meta.modalTitle, '이 장비는 더 이상 강화할 수 없습니다.', null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
             return;
         }
 
         if ((player.getInventoryItemCount?.(meta.stoneItemId) || 0) < 1) {
             this.pendingEnhancementStoneType = null;
-            this.showGenericModal(meta.modalTitle, meta.shortageMessage, null, null, { hideNo: true, yesText: '확인' });
+            this.showGenericModal(meta.modalTitle, meta.shortageMessage, null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
             this.updateInventory();
             return;
         }
@@ -2181,7 +2181,7 @@ export class UIManager {
             });
             if (!result.ok) {
                 this.pendingEnhancementStoneType = null;
-                this.showGenericModal(`${meta.modalTitle} 실패`, result.message, null, null, { hideNo: true, yesText: '확인' });
+                this.showGenericModal(`${meta.modalTitle} 실패`, result.message, null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
                 this.updateInventory();
                 return;
             }
@@ -5371,6 +5371,26 @@ export class UIManager {
         const modal = document.getElementById('generic-modal');
         if (!modal) return;
 
+        this.clearInventoryMessageLayout?.();
+        if (options.centeredInventory) {
+            modal.classList.add('inventory-message-centered');
+            const layout = () => {
+                const v = window.visualViewport;
+                Object.assign(modal.style, {left:`${v?.offsetLeft || 0}px`,top:`${v?.offsetTop || 0}px`,width:`${v?.width || innerWidth}px`,height:`${v?.height || innerHeight}px`});
+            };
+            layout();
+            window.addEventListener('resize', layout);
+            window.visualViewport?.addEventListener('resize', layout);
+            window.visualViewport?.addEventListener('scroll', layout);
+            this.clearInventoryMessageLayout = () => {
+                window.removeEventListener('resize', layout);
+                window.visualViewport?.removeEventListener('resize', layout);
+                window.visualViewport?.removeEventListener('scroll', layout);
+                modal.classList.remove('inventory-message-centered');
+                for (const key of ['left','top','width','height']) modal.style.removeProperty(key);
+                this.clearInventoryMessageLayout = null;
+            };
+        }
         const titleEl = document.getElementById('generic-modal-title');
         const msgEl = document.getElementById('generic-modal-message');
         const yesBtn = document.getElementById('generic-modal-yes');
@@ -5558,6 +5578,7 @@ export class UIManager {
     }
 
     hideGenericModal() {
+        this.clearInventoryMessageLayout?.();
         const modal = document.getElementById('generic-modal');
         if (modal) {
             if (this._genericModalKeydownHandler) {
@@ -7455,6 +7476,7 @@ export class UIManager {
     }
 
     togglePopup(id) {
+        this.tearDownInventoryDrag();
         const popup = document.getElementById(id);
         if (!popup) return;
 
@@ -7631,7 +7653,7 @@ export class UIManager {
 
     showConfirm(message, callback, options = {}) {
         this.clearEnhancementConfirmLayout();
-        if (options.centeredEnhancement) {
+        if (options.centeredEnhancement || options.centeredInventory) {
             // Escape transformed game/popup ancestors; align to the visible viewport.
             this.enhancementConfirmParent = this.confirmModal.parentElement;
             document.body.appendChild(this.confirmModal);
@@ -7746,6 +7768,7 @@ export class UIManager {
         }
 
         this.armBrowserBackExitGuard();
+        if (document.querySelector('#generic-modal.inventory-message-centered:not(.hidden)')) { this.hideGenericModal(); return; }
         const stoneDetail = document.querySelector('#inventory-item-modal.enhancement-item-centered:not(.hidden)');
         if (stoneDetail && this.confirmModal?.classList.contains('hidden')) {
             this.closeInventoryItemModal(true);
@@ -10005,7 +10028,7 @@ export class UIManager {
             if (!player || this.selectedInventoryRef?.kind !== 'inventory') return;
             const result = player.equipWeaponFromInventory(this.selectedInventoryRef.index);
             if (!result.ok) {
-                this.showGenericModal('장착 실패', result.message, null, null, { hideNo: true, yesText: '확인' });
+                this.showGenericModal('장착 실패', result.message, null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
                 return;
             }
             this.selectedInventoryRef = { kind: 'equipment', slot: 'weapon' };
@@ -10018,7 +10041,7 @@ export class UIManager {
             if (!player) return;
             const result = player.unequipWeapon();
             if (!result.ok) {
-                this.showGenericModal('해제 실패', result.message, null, null, { hideNo: true, yesText: '확인' });
+                this.showGenericModal('해제 실패', result.message, null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
                 return;
             }
             this.selectedInventoryRef = result.slotIndex != null ? { kind: 'inventory', index: result.slotIndex } : null;
@@ -10038,9 +10061,14 @@ export class UIManager {
         bindPress(useBtn, async () => {
             const player = this.game.localPlayer;
             if (!player || this.selectedInventoryRef?.kind !== 'inventory') return;
-            const result = await player.useBossSummonScroll?.(this.selectedInventoryRef);
+            if (this.inventoryUsePending) return;
+            this.inventoryUsePending = true;
+            let result;
+            try { result = await player.useBossSummonScroll?.({...this.selectedInventoryRef}); }
+            catch (_error) { result = {ok:false,message:'소환 요청을 완료하지 못했습니다. 다시 시도해 주세요.'}; }
+            finally { this.inventoryUsePending = false; }
             if (!result?.ok) {
-                this.showGenericModal('보스 소환 실패', result?.message || '보스 소환주문서를 사용할 수 없습니다.', null, null, { hideNo: true, yesText: '확인' });
+                this.showGenericModal('보스 소환 실패', result?.message || '보스 소환주문서를 사용할 수 없습니다.', null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
                 this.updateInventory();
                 return;
             }
@@ -10054,12 +10082,12 @@ export class UIManager {
 
             const target = player.resolveWeaponSelection(this.selectedInventoryRef);
             if (!target?.item) {
-                this.showGenericModal('옵션 변경', '옵션을 변경할 무기를 선택해 주세요.', null, null, { hideNo: true, yesText: '확인' });
+                this.showGenericModal('옵션 변경', '옵션을 변경할 무기를 선택해 주세요.', null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
                 return;
             }
 
             if ((player.getInventoryItemCount?.(OPTION_REROLL_STONE_ID) || 0) < 1) {
-                this.showGenericModal('옵션 변경', '옵션 변경석이 부족합니다.', null, null, { hideNo: true, yesText: '확인' });
+                this.showGenericModal('옵션 변경', '옵션 변경석이 부족합니다.', null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
                 return;
             }
 
@@ -10073,7 +10101,7 @@ export class UIManager {
                     if (!currentSelection) return;
                     const result = player.rerollWeaponOptions(currentSelection, { deferUiRefresh: true });
                     if (!result.ok) {
-                        this.showGenericModal('옵션 변경 실패', result.message, null, null, { hideNo: true, yesText: '확인' });
+                        this.showGenericModal('옵션 변경 실패', result.message, null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
                         this.updateInventory();
                         return;
                     }
@@ -10092,12 +10120,12 @@ export class UIManager {
                         `${result.item.name}의 옵션을 다시 조율했습니다.\n${changedLines}`,
                         null,
                         null,
-                        { hideNo: true, yesText: '확인' }
+                        { centeredInventory: true, hideNo: true, yesText: '확인' }
                     );
                     this.logSystemMessage(`💠 ${result.item.name} 옵션 변경 완료`);
                     this.updateStatusPopup();
                     this.updateInventory();
-                }
+                }, { centeredInventory: true }
             );
         });
 
@@ -10107,13 +10135,13 @@ export class UIManager {
 
             const target = player.resolveWeaponSelection(this.selectedInventoryRef);
             if (!target?.item) {
-                this.showGenericModal('분해', '분해할 무기를 선택해 주세요.', null, null, { hideNo: true, yesText: '확인' });
+                this.showGenericModal('분해', '분해할 무기를 선택해 주세요.', null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
                 return;
             }
 
             const rewardInfo = player.getWeaponDismantleRewardInfo?.(target.item);
             if (!rewardInfo) {
-                this.showGenericModal('분해', '이 무기는 분해할 수 없습니다.', null, null, { hideNo: true, yesText: '확인' });
+                this.showGenericModal('분해', '이 무기는 분해할 수 없습니다.', null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
                 return;
             }
 
@@ -10126,7 +10154,7 @@ export class UIManager {
                     if (!currentSelection) return;
                     const result = player.dismantleWeapon(currentSelection);
                     if (!result.ok) {
-                        this.showGenericModal('분해 실패', result.message, null, null, { hideNo: true, yesText: '확인' });
+                        this.showGenericModal('분해 실패', result.message, null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
                         return;
                     }
 
@@ -10137,11 +10165,11 @@ export class UIManager {
                         `${result.itemName}을(를) 분해해 무기 강화석 ${result.rewardAmount}개를 획득했습니다.`,
                         null,
                         null,
-                        { hideNo: true, yesText: '확인' }
+                        { centeredInventory: true, hideNo: true, yesText: '확인' }
                     );
                     this.logSystemMessage(`🛠️ ${result.itemName} 분해: 무기 강화석 ${result.rewardAmount}개 획득`);
                     this.updateInventory();
-                }
+                }, { centeredInventory: true }
             );
         });
     }
@@ -10375,53 +10403,12 @@ export class UIManager {
 
     positionInventoryItemModal() {
         const modal = document.getElementById('inventory-item-modal');
-        const card = modal?.querySelector('.inventory-item-modal-card');
-        const popup = document.getElementById('inventory-popup');
-        const anchor = this.getInventoryEnhancementTargetElement(this.selectedInventoryRef);
-        const useBottomSheet = window.matchMedia('(max-width: 1024px) and (orientation: portrait)').matches;
-
-        if (!modal || !card) return;
-
-        const selectedItem = this.resolveSelectedInventoryItem(this.game.localPlayer)?.item;
-        const centeredStone = ['weapon_upgrade_stone', 'blessed_weapon_upgrade_stone'].includes(selectedItem?.type || selectedItem?.id);
-        modal.classList.toggle('enhancement-item-centered', centeredStone);
-        if (centeredStone) {
-            const viewport = window.visualViewport;
-            modal.style.setProperty('--enhancement-center-x', `${(viewport?.offsetLeft || 0) + (viewport?.width || innerWidth) / 2}px`);
-            modal.style.setProperty('--enhancement-center-y', `${(viewport?.offsetTop || 0) + (viewport?.height || innerHeight) / 2}px`);
-            modal.style.setProperty('--enhancement-view-height', `${viewport?.height || innerHeight}px`);
-            return;
-        }
-
-        if (modal.classList.contains('hidden') || useBottomSheet || !popup || !anchor) {
-            modal.style.removeProperty('--inventory-modal-left');
-            modal.style.removeProperty('--inventory-modal-top');
-            return;
-        }
-
-        const popupRect = popup.getBoundingClientRect();
-        const anchorRect = anchor.getBoundingClientRect();
-        const cardRect = card.getBoundingClientRect();
-        const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
-        const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
-        const margin = 8;
-        const gap = 12;
-        const availableRight = popupRect.right - anchorRect.right;
-        const availableLeft = anchorRect.left - popupRect.left;
-        const maxLeft = Math.max(margin, viewportW - cardRect.width - margin);
-        const maxTop = Math.max(margin, viewportH - cardRect.height - margin);
-
-        let left = anchorRect.right + gap;
-        if (availableRight < (cardRect.width + gap) && availableLeft >= (cardRect.width + gap)) {
-            left = anchorRect.left - cardRect.width - gap;
-        }
-
-        let top = anchorRect.top + ((anchorRect.height - cardRect.height) / 2);
-        left = Math.min(maxLeft, Math.max(margin, left));
-        top = Math.min(maxTop, Math.max(margin, top));
-
-        modal.style.setProperty('--inventory-modal-left', `${Math.round(left)}px`);
-        modal.style.setProperty('--inventory-modal-top', `${Math.round(top)}px`);
+        if (!modal) return;
+        modal.classList.add('enhancement-item-centered');
+        const viewport = window.visualViewport;
+        modal.style.setProperty('--enhancement-center-x', `${(viewport?.offsetLeft || 0) + (viewport?.width || innerWidth) / 2}px`);
+        modal.style.setProperty('--enhancement-center-y', `${(viewport?.offsetTop || 0) + (viewport?.height || innerHeight) / 2}px`);
+        modal.style.setProperty('--enhancement-view-height', `${viewport?.height || innerHeight}px`);
     }
 
     getSkillDetailAnchorElement(skillId = this.activeSkillDetailId) {
@@ -10554,6 +10541,10 @@ export class UIManager {
     }
 
     tearDownInventoryDrag() {
+        if (this.inventoryDragState?.dragActive) this.inventoryClickSuppressUntil = performance.now() + 400;
+        clearTimeout(this.inventoryDragState?.holdTimer);
+        if (this.inventoryDragResize) window.removeEventListener('resize', this.inventoryDragResize);
+        this.inventoryDragResize = null;
         document.removeEventListener('pointermove', this.handleInventorySlotPointerMove);
         document.removeEventListener('pointerup', this.handleInventorySlotPointerUp);
         document.removeEventListener('pointercancel', this.handleInventorySlotPointerUp);
@@ -10573,29 +10564,31 @@ export class UIManager {
     }
 
     getInventoryDropIndexFromPoint(clientX, clientY) {
-        const target = document.elementFromPoint(clientX, clientY)?.closest?.('#inventory-grid .grid-item[data-inventory-index]');
-        const dropIndex = Number.parseInt(target?.dataset?.inventoryIndex || '', 10);
+        const target = document.elementFromPoint(clientX, clientY)?.closest?.('#inventory-grid .grid-item[data-inventory-drop-index]');
+        const dropIndex = Number.parseInt(target?.dataset?.inventoryDropIndex || '', 10);
         return Number.isInteger(dropIndex) ? dropIndex : null;
     }
 
     startInventorySlotDrag(event, index, button) {
-        if (this.inventoryEnhancementAnimating) return;
-        if (!button || !Number.isInteger(index) || index <= 0) return;
-        if (event.button != null && event.button !== 0) return;
-
+        if (this.inventoryEnhancementAnimating || !button || index <= 0 || event.button > 0) return;
         this.tearDownInventoryDrag();
-        this.inventoryDragState = {
-            pointerId: event.pointerId,
-            sourceIndex: index,
-            sourceElement: button,
-            startX: event.clientX,
-            startY: event.clientY,
-            pointerType: event.pointerType || 'mouse',
-            dragThreshold: (event.pointerType || 'mouse') === 'touch' ? 18 : 10,
-            dragActive: false,
-            hoverIndex: index
+        const player = this.game.localPlayer;
+        const state = this.inventoryDragState = {
+            pointerId:event.pointerId, sourceIndex:index, sourceElement:button,
+            startX:event.clientX, startY:event.clientY, lastY:event.clientY,
+            pointerType:event.pointerType, dragActive:false, scrollMode:false,
+            category:this.inventoryCategory, snapshot:player.inventory.slice(), snapshotKey:JSON.stringify(player.inventory),
+            visibleIndices:player.inventory.flatMap((item,i)=>i>0 && this.getInventoryCategory(item)===this.inventoryCategory ? [i] : [])
         };
-
+        state.holdTimer = setTimeout(() => {
+            if (this.inventoryDragState !== state || state.scrollMode) return;
+            state.dragActive = true;
+            state.sourceElement.classList.add('dragging');
+            this.inventoryClickSuppressUntil = performance.now() + 600;
+            this.closeInventoryItemModal(true);
+        }, 420);
+        this.inventoryDragResize = () => this.tearDownInventoryDrag();
+        window.addEventListener('resize', this.inventoryDragResize);
         button.setPointerCapture?.(event.pointerId);
         document.addEventListener('pointermove', this.handleInventorySlotPointerMove);
         document.addEventListener('pointerup', this.handleInventorySlotPointerUp);
@@ -10605,26 +10598,27 @@ export class UIManager {
     handleInventorySlotPointerMove(event) {
         const state = this.inventoryDragState;
         if (!state || event.pointerId !== state.pointerId) return;
-
-        const movedX = event.clientX - state.startX;
-        const movedY = event.clientY - state.startY;
-        if (!state.dragActive && Math.hypot(movedX, movedY) < (state.dragThreshold || 10)) return;
-
         if (!state.dragActive) {
-            state.dragActive = true;
-            this.inventoryClickSuppressUntil = performance.now() + 180;
+            if (Math.hypot(event.clientX-state.startX,event.clientY-state.startY)>8) {
+                clearTimeout(state.holdTimer);
+                state.scrollMode = true;
+                this.inventoryClickSuppressUntil = performance.now()+400;
+            }
+            if (state.scrollMode && state.pointerType==='touch') {
+                document.querySelector('.inventory-scroll-shell').scrollTop += state.lastY-event.clientY;
+                event.preventDefault();
+            }
+            state.lastY=event.clientY;
+            return;
         }
-
-        const hoverIndex = this.getInventoryDropIndexFromPoint(event.clientX, event.clientY);
-        state.hoverIndex = Number.isInteger(hoverIndex) ? hoverIndex : state.sourceIndex;
-
+        const hoverIndex = this.getInventoryDropIndexFromPoint(event.clientX,event.clientY);
         this.clearInventoryDragVisualState();
         state.sourceElement?.classList.add('dragging');
-
-        if (Number.isInteger(hoverIndex) && hoverIndex !== state.sourceIndex) {
-            document.querySelector(`#inventory-grid .grid-item[data-inventory-index="${hoverIndex}"]`)?.classList.add('drop-target');
-        }
-
+        if (hoverIndex !== null) document.querySelector(`#inventory-grid [data-inventory-index="${hoverIndex}"]`)?.classList.add('drop-target');
+        const scroll = document.querySelector('.inventory-scroll-shell');
+        const rect = scroll.getBoundingClientRect();
+        if (event.clientY < rect.top+24) scroll.scrollTop -= 20;
+        else if (event.clientY > rect.bottom-24) scroll.scrollTop += 20;
         event.preventDefault();
     }
 
@@ -10634,11 +10628,12 @@ export class UIManager {
 
         const wasDragging = state.dragActive;
         const dropIndex = wasDragging
-            ? (this.getInventoryDropIndexFromPoint(event.clientX, event.clientY) ?? state.hoverIndex)
+            ? this.getInventoryDropIndexFromPoint(event.clientX, event.clientY)
             : null;
 
         this.tearDownInventoryDrag();
-        if (!wasDragging) return;
+        if (state.scrollMode) this.inventoryClickSuppressUntil = performance.now() + 400;
+        if (!wasDragging || event.type === 'pointercancel') return;
 
         this.inventoryClickSuppressUntil = performance.now() + 220;
 
@@ -10648,7 +10643,8 @@ export class UIManager {
         const selectedIdentity = this.selectedInventoryRef?.kind === 'inventory'
             ? this.getInventoryItemIdentity(player.inventory[this.selectedInventoryRef.index])
             : null;
-        const moveResult = player.moveInventoryItem(state.sourceIndex, dropIndex);
+        if (state.category !== this.inventoryCategory || state.snapshot.some((item,i)=>item!==player.inventory[i]) || state.snapshotKey !== JSON.stringify(player.inventory)) return;
+        const moveResult = player.moveInventoryItem(state.sourceIndex, dropIndex, state.visibleIndices);
         if (!moveResult.ok) return;
 
         if (selectedIdentity) {
@@ -10890,6 +10886,7 @@ export class UIManager {
     }
 
     updateInventory() {
+        this.tearDownInventoryDrag();
         const p = this.game.localPlayer;
         if (!p) return;
 
@@ -10956,7 +10953,7 @@ export class UIManager {
         manastoneAmount.textContent = compactNumber(p.manastone || 0);
         manastoneSlot.appendChild(manastoneAmount);
         manastoneSlot.addEventListener('click', () => {
-            this.showGenericModal('마석', `보유 마석: ${Math.max(0, p.manastone || 0).toLocaleString('ko-KR')}`, null, null, { hideNo: true, yesText: '확인' });
+            this.showGenericModal('마석', `보유 마석: ${Math.max(0, p.manastone || 0).toLocaleString('ko-KR')}`, null, null, { centeredInventory: true, hideNo: true, yesText: '확인' });
         });
         fragment.appendChild(manastoneSlot);
 
@@ -11000,6 +10997,7 @@ export class UIManager {
         // Keep the original 300-slot grid geometry; filtering changes contents only.
         const visibleIndices = p.inventory.flatMap((item, index) =>
             index > 0 && this.getInventoryCategory(item) === this.inventoryCategory ? [index] : []);
+        const lastVisibleIndex = visibleIndices.at(-1);
         while (visibleIndices.length < p.inventory.length - 1) visibleIndices.push(null);
         for (const index of visibleIndices) {
             const item = index === null ? null : p.inventory[index];
@@ -11007,6 +11005,8 @@ export class UIManager {
             button.type = 'button';
             button.className = 'grid-item';
             if (index !== null) button.dataset.inventoryIndex = `${index}`;
+            if (lastVisibleIndex) button.dataset.inventoryDropIndex = `${index ?? lastVisibleIndex}`;
+            if (item) button.style.touchAction = 'none';
             this.ensureInventoryFxLayer(button);
             button.classList.toggle('enhancement-selectable', enhancementSelectionActive && item?.slot === 'weapon');
             button.classList.toggle('enhancement-stone-active', this.isActiveEnhancementStone(item));
