@@ -340,7 +340,7 @@ export default class Player extends CharacterBase {
     }
 
     getEffectiveClassAttackPower() { return this.attackPower * (this.classCombat?.multipliers().attack || 1); }
-    getEffectiveClassAttackSpeed() { return this.attackSpeed * (this.classCombat?.multipliers().attackSpeed || 1); }
+    getEffectiveClassAttackSpeed() { return this.getEffectiveBasicAttackSpeed(); }
 
     detachInput() {
         this.classAim = null;
@@ -379,7 +379,7 @@ export default class Player extends CharacterBase {
         if (this.classCombat) {
             if (this.isDead || this.isDying) { this.classAim=null; this.classCombat.dispose(); }
             else if (!this.classCombat.paused()) {
-                if (this.classAim) this.classAim.elapsed += Math.max(0,dt);
+                if (this.classAim) this.classAim.elapsed += Math.min(.25,Math.max(0,dt));
                 this.classCombat.update(dt);
             }
         }
@@ -3270,7 +3270,7 @@ export default class Player extends CharacterBase {
 
         // 4. Draw Sprite
         if (this.sprite) {
-            let row = this.isAttacking ? 4 : this.direction;
+            let row = normalizeClassId(this.classId) === 'wizard' && this.isAttacking ? 4 : this.direction;
             let col = this.animFrame;
 
             // Legacy visual size: 120x120
@@ -3283,7 +3283,8 @@ export default class Player extends CharacterBase {
             const burnEffect = this.statusEffects.find(e => e.type === 'burn');
             const isElec = this.electrocutedTimer > 0;
 
-            this.sprite.draw(ctx, row, col, drawX, drawY, drawW, drawH);
+            if (!this.classCombat?.drawBody?.(ctx, drawX, drawY, drawW, drawH))
+                this.sprite.draw(ctx, row, col, drawX, drawY, drawW, drawH);
 
             // v0.21.5: Absolute Barrier (Shield) Effect - Centered on body
             if (this.shieldTimer > 0) {

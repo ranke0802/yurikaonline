@@ -1,3 +1,4 @@
+import { actionRow, createActionMotion, drawActionBody } from './ClassActionMotion.js';
 import ClassCombatController, { SUMMON_TYPES } from './ClassCombatController.js';
 import Monster from '../entities/Monster.js';
 import { getSharedResourceManager } from '../core/ResourceManager.js';
@@ -9,10 +10,11 @@ const alive = e => e && !e.isDead && e.hp > 0;
 export default class ClassCombatBridge {
     constructor(owner, classId = owner.classId) {
         this.owner = owner; this.game = globalThis.window?.game; this.context = captureProjectileWorldContext(this.game);
-        this.visualEpoch=ClassCombatBridge.lastEpoch=Math.max(Date.now(),(ClassCombatBridge.lastEpoch||0)+1); this.visualSequence=0; this.hitSerial=0;
+        this.visualEpoch=ClassCombatBridge.lastEpoch=Math.max(Date.now(),(ClassCombatBridge.lastEpoch||0)+1); this.visualSequence=0; this.hitSerial=0; this.motionSerial=0;
         this.effects = []; this.actors = []; this.definitions = new Map(); this.images = {};
         this.controller = new ClassCombatController(owner, classId, {
             managesPoisonStatuses: true,
+            action: (kind,data)=>this.startActionMotion(kind,data),
             failure: text=>this.game?.ui?.logSystemMessage?.(text),
             cancelEffect: id=>{this.effects=this.effects.filter(f=>f.id!==id);},
             enemies: () => [...(this.game?.monsterManager?.monsters?.values?.() || [])],
@@ -21,13 +23,13 @@ export default class ClassCombatBridge {
             damage: (e,n,m) => this.damage(e,n,m), status: (e,t,d,data) => this.status(e,t,d,data),
             clearStatus: (e,t) => this.clearStatus(e,t), move: (e,x,y) => this.move(e,x,y),
             summon: (id,level) => this.summon(id,level), dismiss: e => { e.isDead = true; this.actors = this.actors.filter(a => a !== e); },
-            effect: (name,data) => this.effects.push({name,...data,age:0,duration:data.duration || .65}),
+            effect: (name,data) => { this.effects.push({name,...data,age:0,duration:data.duration || .65}); if(name==='blood_finale')this.startActionMotion('finale',{}); },
             decoy: (point,duration) => this.createDecoy(point,duration)
         });
         if (classId === 'witch') for (const id of SUMMON_TYPES) this.game?.monsterData?.loadDefinition(id).then(d => { if(d) this.definitions.set(id,d); }).catch(() => {});
         const resources = getSharedResourceManager();
         if(classId === 'witch') resources?.loadImage('assets/resource/classes/life-circle.webp').then(img=>{this.images.lifeCircle=img;}).catch(()=>{});
-        for (const name of (classId === 'wizard' ? ['status'] : ['effects','status'])) resources?.loadImage(`assets/resource/classes/${name === 'effects' ? classId + '-effects' : name}.webp`).then(img => {this.images[name] = img;}).catch(() => {});
+        for (const name of (classId === 'wizard' ? ['status'] : ['effects','status','actions'])) resources?.loadImage(`assets/resource/classes/${name === 'effects' ? classId + '-effects' : name === 'actions' ? classId + '-actions' : name}.webp`).then(img => {this.images[name] = img;}).catch(() => {});
     }
     allies() {
         const ids = this.owner.party?.members || [];
@@ -43,6 +45,18 @@ export default class ClassCombatBridge {
         if(support?.type === 'heal') this.owner.hp = Math.min(this.owner.maxHp,this.owner.hp+Math.max(0,Number(support.amount)||0));
     }
     paused() { return !!this.game?.story?.isStoryActive || !!this.game?.ui?.isPaused && !this.game?.net?.isSharedFieldActive?.(); }
+    startActionMotion(kind,data) {
+        this.motion=createActionMotion(this.controller.classId,kind,data,this.controller.time,++this.motionSerial);
+        this.syncVisuals(true);
+    }
+    currentMotion() {
+        if(this.controller.disposed||!alive(this.owner))return null;
+        if(this.motion) {const age=this.controller.time-this.motion.started;if(age<this.motion.duration)return {...this.motion,age};}
+        const aim=this.owner.classAim;if(!aim)return null;
+        const data=aim.action==='ATTACK'?{aimed:aim.elapsed>=(this.controller.classId==='archer'&&this.controller.empowered?.2:.5)}:{slot:Number(aim.action.slice(-1))};
+        return {id:0,row:actionRow(this.controller.classId,aim.action==='ATTACK'?'basic':'skill',data),held:true,age:0,duration:.4};
+    }
+    drawBody(ctx,x,y,w,h) {return drawActionBody(this.images.actions,this.currentMotion(),ctx,x,y,w,h);}
     basic(options) { return !this.paused() && this.controller.basic(options); }
     skill(slot,options) { return !this.paused() && this.controller.skill(slot,options); }
     modifyIncomingDamage(n) { return this.controller.evadeUntil > this.controller.time ? 0 : this.controller.modifyIncomingDamage(n); }
@@ -138,6 +152,7 @@ export default class ClassCombatBridge {
         if(c.bloodUntil>c.time)badges.push({type:'bloodPact',count:0});
         if(c.empowered)badges.push({type:'empowered',count:0});
         return {epoch:this.visualEpoch,sequence:++this.visualSequence,ts:Date.now(),fieldId:this.context.fieldId,classId:c.classId,
+            motion:this.currentMotion(),
             effects:this.effects.slice(-64).map(f=>({id:f.id,name:f.name,...point(f),target:f.target?point(f.target):null,radius:f.radius||0,duration:f.duration,age:f.age})),
             projectiles:c.projectiles.slice(-32).map(p=>{const d=p.kind==='return'?c.direction.call({owner:p},this.owner):p.direction;return{kind:p.kind,...point(p),direction:d,speed:p.speed,age:c.time};}),
             decoy:this.decoy?{...point(this.decoy),remaining:this.decoy.remaining,direction:this.decoy.direction||0,frame:this.decoy.frame||0}:null,badges};
@@ -145,7 +160,7 @@ export default class ClassCombatBridge {
     syncVisuals(force=false) {
         const now=Date.now(),c=this.controller;
         if(c.classId==='wizard')return;
-        const active=this.effects.length||c.projectiles.length||this.decoy||c.rage||c.empowered||c.bloodUntil>c.time||Object.keys(this.owner.classStatuses||{}).length;
+        const active=this.currentMotion()||this.effects.length||c.projectiles.length||this.decoy||c.rage||c.empowered||c.bloodUntil>c.time||Object.keys(this.owner.classStatuses||{}).length;
         if(!active&&!this.visualPublished)return;
         if(!force&&now-(this.lastVisualSync||0)<100)return;
         this.lastVisualSync=now;this.visualPublished=!!active;
@@ -165,6 +180,6 @@ export default class ClassCombatBridge {
             if(count>0){ctx.save();ctx.font='bold 12px sans-serif';ctx.textAlign='right';ctx.lineWidth=3;ctx.strokeStyle='#17212c';ctx.fillStyle='#ffffff';ctx.strokeText(String(count),x+24,y+23);ctx.fillText(String(count),x+24,y+23);ctx.restore();}
         });
     }
-    dispose(){this.controller.dispose();this.controller.empowered=false;this.effects=[];this.actors=[];this.decoy=null;this.syncVisuals(true);this.game?.net?.syncClassSummons?.({force:true});}
+    dispose(){this.motion=null;this.controller.dispose();this.controller.empowered=false;this.effects=[];this.actors=[];this.decoy=null;this.syncVisuals(true);this.game?.net?.syncClassSummons?.({force:true});}
 }
 ClassCombatBridge.serial=0;

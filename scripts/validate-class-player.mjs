@@ -46,7 +46,7 @@ test('Mage keeps original touch behavior; new classes aim all four action button
 test('derived combat buffs restore without accumulation or base stat writes',()=>{
     const {p}=fixture('wizard'),atk=p.attackPower,speed=p.attackSpeed;p.classCombat.multipliers=()=>({attack:1.2,attackSpeed:1.7,move:1.25});
     assert.equal(p.getEffectiveClassAttackPower(),atk*1.2);assert.equal(p.getEffectiveClassAttackPower(),atk*1.2);
-    assert.equal(p.getEffectiveClassAttackSpeed(),speed*1.7);assert.equal(p.attackPower,atk);
+    assert.equal(p.getEffectiveClassAttackSpeed(),(speed+p.wisdom*.05)*1.7);assert.equal(p.attackPower,atk);
     p.classCombat.multipliers=()=>({attack:1,attackSpeed:1,move:1});assert.equal(p.getEffectiveClassAttackPower(),atk);
 });
 test('defensive skill dispatch still handles a zero-HP result from a custom skill hook',()=>{

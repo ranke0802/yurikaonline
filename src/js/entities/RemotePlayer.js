@@ -843,7 +843,7 @@ export default class RemotePlayer extends CharacterBase {
             if (this.isDying && this.hp > 0) this.isDying = false;
 
             let row = Math.max(0, Math.min(4, this.direction));
-            if (this.state === 'attack') row = 4;
+            if (this.state === 'attack' && !['witch','warrior','archer'].includes(this.activeClassId)) row = 4;
 
             // Safety check for animFrame
             const maxFrames = this.frameCounts[row] || 8;
@@ -854,7 +854,8 @@ export default class RemotePlayer extends CharacterBase {
             const drawH = 120;
             const drawX = centerX - drawW / 2;
             const drawY = this.y + this.height - drawH + 10;
-            this.sprite.draw(ctx, row, col, drawX, drawY, drawW, drawH);
+            if (!this.classVisuals?.drawBody?.(ctx, drawX, drawY, drawW, drawH))
+                this.sprite.draw(ctx, row, col, drawX, drawY, drawW, drawH);
         } else {
             // v0.28.7: Restore Fallback (Red Circle) for missing sprite or loading state
             const time = Date.now() / 200;

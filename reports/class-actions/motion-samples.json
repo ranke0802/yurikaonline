@@ -1,0 +1,1550 @@
+{
+  "witch": [
+    {
+      "action": 0,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 0,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 0,
+      "frame": 1,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.32,
+        "duration": 0.42,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 2,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.32,
+        "duration": 0.42,
+        "age": 0.05499999999999999,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 3,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.32,
+        "duration": 0.42,
+        "age": 0.10999999999999999,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 4,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.32,
+        "duration": 0.42,
+        "age": 0.16499999999999998,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 5,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.32,
+        "duration": 0.42,
+        "age": 0.22000000000000003,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 6,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.32,
+        "duration": 0.42,
+        "age": 0.2750000000000001,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 7,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.32,
+        "duration": 0.42,
+        "age": 0.3300000000000001,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 8,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.32,
+        "duration": 0.42,
+        "age": 0.3850000000000002,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 1,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 1,
+      "frame": 1,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9550000000000002,
+        "duration": 0.42,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 2,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9550000000000002,
+        "duration": 0.42,
+        "age": 0.05500000000000005,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 3,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9550000000000002,
+        "duration": 0.42,
+        "age": 0.10999999999999999,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 4,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9550000000000002,
+        "duration": 0.42,
+        "age": 0.16499999999999992,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 5,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9550000000000002,
+        "duration": 0.42,
+        "age": 0.21999999999999986,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 6,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9550000000000002,
+        "duration": 0.42,
+        "age": 0.2749999999999998,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 7,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9550000000000002,
+        "duration": 0.42,
+        "age": 0.32999999999999974,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 8,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9550000000000002,
+        "duration": 0.42,
+        "age": 0.3849999999999997,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 2,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 2,
+      "frame": 1,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.5899999999999999,
+        "duration": 0.36,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 2,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.5899999999999999,
+        "duration": 0.36,
+        "age": 0.05499999999999994,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 3,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.5899999999999999,
+        "duration": 0.36,
+        "age": 0.10999999999999988,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 4,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.5899999999999999,
+        "duration": 0.36,
+        "age": 0.1649999999999998,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 5,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.5899999999999999,
+        "duration": 0.36,
+        "age": 0.21999999999999975,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 6,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.5899999999999999,
+        "duration": 0.36,
+        "age": 0.2749999999999997,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 7,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.5899999999999999,
+        "duration": 0.36,
+        "age": 0.3299999999999996,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 8,
+      "motion": null
+    },
+    {
+      "action": 3,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 3,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 3,
+      "frame": 1,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.2249999999999996,
+        "duration": 0.36,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 2,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.2249999999999996,
+        "duration": 0.36,
+        "age": 0.05500000000000016,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 3,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.2249999999999996,
+        "duration": 0.36,
+        "age": 0.11000000000000032,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 4,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.2249999999999996,
+        "duration": 0.36,
+        "age": 0.16500000000000048,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 5,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.2249999999999996,
+        "duration": 0.36,
+        "age": 0.22000000000000064,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 6,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.2249999999999996,
+        "duration": 0.36,
+        "age": 0.2750000000000008,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 7,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.2249999999999996,
+        "duration": 0.36,
+        "age": 0.33000000000000096,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 8,
+      "motion": null
+    },
+    {
+      "action": 4,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 2,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 4,
+      "frame": 1,
+      "motion": {
+        "id": 5,
+        "row": 2,
+        "started": 2.8600000000000008,
+        "duration": 0.36,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 2,
+      "motion": {
+        "id": 5,
+        "row": 2,
+        "started": 2.8600000000000008,
+        "duration": 0.36,
+        "age": 0.05500000000000016,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 3,
+      "motion": {
+        "id": 5,
+        "row": 2,
+        "started": 2.8600000000000008,
+        "duration": 0.36,
+        "age": 0.11000000000000032,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 4,
+      "motion": {
+        "id": 5,
+        "row": 2,
+        "started": 2.8600000000000008,
+        "duration": 0.36,
+        "age": 0.16500000000000048,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 5,
+      "motion": {
+        "id": 5,
+        "row": 2,
+        "started": 2.8600000000000008,
+        "duration": 0.36,
+        "age": 0.22000000000000064,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 6,
+      "motion": {
+        "id": 5,
+        "row": 2,
+        "started": 2.8600000000000008,
+        "duration": 0.36,
+        "age": 0.2750000000000008,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 7,
+      "motion": {
+        "id": 5,
+        "row": 2,
+        "started": 2.8600000000000008,
+        "duration": 0.36,
+        "age": 0.33000000000000096,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 8,
+      "motion": null
+    }
+  ],
+  "warrior": [
+    {
+      "action": 0,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 0,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 0,
+      "frame": 1,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.23999999999999996,
+        "duration": 0.42,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 2,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.23999999999999996,
+        "duration": 0.42,
+        "age": 0.05500000000000002,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 3,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.23999999999999996,
+        "duration": 0.42,
+        "age": 0.11000000000000001,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 4,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.23999999999999996,
+        "duration": 0.42,
+        "age": 0.165,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 5,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.23999999999999996,
+        "duration": 0.42,
+        "age": 0.22,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 6,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.23999999999999996,
+        "duration": 0.42,
+        "age": 0.275,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 7,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.23999999999999996,
+        "duration": 0.42,
+        "age": 0.33000000000000007,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 8,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.23999999999999996,
+        "duration": 0.42,
+        "age": 0.3850000000000001,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 1,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 1,
+      "frame": 1,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.8750000000000001,
+        "duration": 0.42,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 2,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.8750000000000001,
+        "duration": 0.42,
+        "age": 0.05500000000000005,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 3,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.8750000000000001,
+        "duration": 0.42,
+        "age": 0.1100000000000001,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 4,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.8750000000000001,
+        "duration": 0.42,
+        "age": 0.16500000000000015,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 5,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.8750000000000001,
+        "duration": 0.42,
+        "age": 0.22000000000000008,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 6,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.8750000000000001,
+        "duration": 0.42,
+        "age": 0.275,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 7,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.8750000000000001,
+        "duration": 0.42,
+        "age": 0.32999999999999996,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 8,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.8750000000000001,
+        "duration": 0.42,
+        "age": 0.3849999999999999,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 2,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 2,
+      "frame": 1,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.51,
+        "duration": 0.36,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 2,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.51,
+        "duration": 0.36,
+        "age": 0.05499999999999994,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 3,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.51,
+        "duration": 0.36,
+        "age": 0.10999999999999988,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 4,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.51,
+        "duration": 0.36,
+        "age": 0.1649999999999998,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 5,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.51,
+        "duration": 0.36,
+        "age": 0.21999999999999975,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 6,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.51,
+        "duration": 0.36,
+        "age": 0.2749999999999997,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 7,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.51,
+        "duration": 0.36,
+        "age": 0.3299999999999996,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 8,
+      "motion": null
+    },
+    {
+      "action": 3,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 3,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 3,
+      "frame": 1,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.1449999999999996,
+        "duration": 0.36,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 2,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.1449999999999996,
+        "duration": 0.36,
+        "age": 0.05500000000000016,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 3,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.1449999999999996,
+        "duration": 0.36,
+        "age": 0.11000000000000032,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 4,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.1449999999999996,
+        "duration": 0.36,
+        "age": 0.16500000000000048,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 5,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.1449999999999996,
+        "duration": 0.36,
+        "age": 0.22000000000000064,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 6,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.1449999999999996,
+        "duration": 0.36,
+        "age": 0.2750000000000008,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 7,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.1449999999999996,
+        "duration": 0.36,
+        "age": 0.33000000000000096,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 8,
+      "motion": null
+    },
+    {
+      "action": 4,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 2,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 4,
+      "frame": 1,
+      "motion": {
+        "id": 5,
+        "row": 2,
+        "started": 2.7800000000000007,
+        "duration": 0.36,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 2,
+      "motion": {
+        "id": 5,
+        "row": 2,
+        "started": 2.7800000000000007,
+        "duration": 0.36,
+        "age": 0.05500000000000016,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 3,
+      "motion": {
+        "id": 5,
+        "row": 2,
+        "started": 2.7800000000000007,
+        "duration": 0.36,
+        "age": 0.11000000000000032,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 4,
+      "motion": {
+        "id": 5,
+        "row": 2,
+        "started": 2.7800000000000007,
+        "duration": 0.36,
+        "age": 0.16500000000000048,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 5,
+      "motion": {
+        "id": 5,
+        "row": 2,
+        "started": 2.7800000000000007,
+        "duration": 0.36,
+        "age": 0.22000000000000064,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 6,
+      "motion": {
+        "id": 5,
+        "row": 2,
+        "started": 2.7800000000000007,
+        "duration": 0.36,
+        "age": 0.2750000000000008,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 7,
+      "motion": {
+        "id": 5,
+        "row": 2,
+        "started": 2.7800000000000007,
+        "duration": 0.36,
+        "age": 0.33000000000000096,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 8,
+      "motion": null
+    }
+  ],
+  "archer": [
+    {
+      "action": 0,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 0,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 0,
+      "frame": 1,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.3,
+        "duration": 0.42,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 2,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.3,
+        "duration": 0.42,
+        "age": 0.05499999999999999,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 3,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.3,
+        "duration": 0.42,
+        "age": 0.10999999999999999,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 4,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.3,
+        "duration": 0.42,
+        "age": 0.16499999999999998,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 5,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.3,
+        "duration": 0.42,
+        "age": 0.22000000000000003,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 6,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.3,
+        "duration": 0.42,
+        "age": 0.2750000000000001,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 7,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.3,
+        "duration": 0.42,
+        "age": 0.3300000000000001,
+        "held": false
+      }
+    },
+    {
+      "action": 0,
+      "frame": 8,
+      "motion": {
+        "id": 1,
+        "row": 0,
+        "started": 0.3,
+        "duration": 0.42,
+        "age": 0.3850000000000002,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 1,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 1,
+      "frame": 1,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9350000000000002,
+        "duration": 0.42,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 2,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9350000000000002,
+        "duration": 0.42,
+        "age": 0.05500000000000005,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 3,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9350000000000002,
+        "duration": 0.42,
+        "age": 0.10999999999999999,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 4,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9350000000000002,
+        "duration": 0.42,
+        "age": 0.16499999999999992,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 5,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9350000000000002,
+        "duration": 0.42,
+        "age": 0.21999999999999986,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 6,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9350000000000002,
+        "duration": 0.42,
+        "age": 0.2749999999999998,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 7,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9350000000000002,
+        "duration": 0.42,
+        "age": 0.32999999999999974,
+        "held": false
+      }
+    },
+    {
+      "action": 1,
+      "frame": 8,
+      "motion": {
+        "id": 2,
+        "row": 1,
+        "started": 0.9350000000000002,
+        "duration": 0.42,
+        "age": 0.3849999999999997,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 2,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 2,
+      "frame": 1,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.5699999999999998,
+        "duration": 0.36,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 2,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.5699999999999998,
+        "duration": 0.36,
+        "age": 0.05499999999999994,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 3,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.5699999999999998,
+        "duration": 0.36,
+        "age": 0.10999999999999988,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 4,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.5699999999999998,
+        "duration": 0.36,
+        "age": 0.1649999999999998,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 5,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.5699999999999998,
+        "duration": 0.36,
+        "age": 0.21999999999999975,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 6,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.5699999999999998,
+        "duration": 0.36,
+        "age": 0.2749999999999997,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 7,
+      "motion": {
+        "id": 3,
+        "row": 2,
+        "started": 1.5699999999999998,
+        "duration": 0.36,
+        "age": 0.3299999999999996,
+        "held": false
+      }
+    },
+    {
+      "action": 2,
+      "frame": 8,
+      "motion": null
+    },
+    {
+      "action": 3,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 3,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 3,
+      "frame": 1,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.204999999999999,
+        "duration": 0.36,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 2,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.204999999999999,
+        "duration": 0.36,
+        "age": 0.05500000000000016,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 3,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.204999999999999,
+        "duration": 0.36,
+        "age": 0.11000000000000032,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 4,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.204999999999999,
+        "duration": 0.36,
+        "age": 0.16500000000000048,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 5,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.204999999999999,
+        "duration": 0.36,
+        "age": 0.22000000000000064,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 6,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.204999999999999,
+        "duration": 0.36,
+        "age": 0.2750000000000008,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 7,
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "started": 2.204999999999999,
+        "duration": 0.36,
+        "age": 0.33000000000000096,
+        "held": false
+      }
+    },
+    {
+      "action": 3,
+      "frame": 8,
+      "motion": null
+    },
+    {
+      "action": 4,
+      "frame": 0,
+      "motion": {
+        "id": 0,
+        "row": 1,
+        "held": true,
+        "age": 0,
+        "duration": 0.4
+      }
+    },
+    {
+      "action": 4,
+      "frame": 1,
+      "motion": {
+        "id": 5,
+        "row": 1,
+        "started": 2.8400000000000003,
+        "duration": 0.36,
+        "age": 0,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 2,
+      "motion": {
+        "id": 5,
+        "row": 1,
+        "started": 2.8400000000000003,
+        "duration": 0.36,
+        "age": 0.05500000000000016,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 3,
+      "motion": {
+        "id": 5,
+        "row": 1,
+        "started": 2.8400000000000003,
+        "duration": 0.36,
+        "age": 0.11000000000000032,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 4,
+      "motion": {
+        "id": 5,
+        "row": 1,
+        "started": 2.8400000000000003,
+        "duration": 0.36,
+        "age": 0.16500000000000048,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 5,
+      "motion": {
+        "id": 5,
+        "row": 1,
+        "started": 2.8400000000000003,
+        "duration": 0.36,
+        "age": 0.22000000000000064,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 6,
+      "motion": {
+        "id": 5,
+        "row": 1,
+        "started": 2.8400000000000003,
+        "duration": 0.36,
+        "age": 0.2750000000000008,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 7,
+      "motion": {
+        "id": 5,
+        "row": 1,
+        "started": 2.8400000000000003,
+        "duration": 0.36,
+        "age": 0.33000000000000096,
+        "held": false
+      }
+    },
+    {
+      "action": 4,
+      "frame": 8,
+      "motion": null
+    }
+  ]
+}

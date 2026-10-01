@@ -1,0 +1,647 @@
+{
+  "scope": "Pixel/crop completeness only; visual anatomy/weapon review is separate.",
+  "cells": [
+    {
+      "id": "witch",
+      "row": 0,
+      "frame": 0,
+      "count": 13345,
+      "bounds": [
+        66,
+        80,
+        198,
+        242
+      ],
+      "hash": "d6758f119e1ebd4d744bcbba12f87db4845125e0dc5216ee5f476fbd9be1b84c"
+    },
+    {
+      "id": "witch",
+      "row": 0,
+      "frame": 1,
+      "count": 14006,
+      "bounds": [
+        61,
+        80,
+        197,
+        242
+      ],
+      "hash": "31472a09c5ec8654b2b5b6a8393e7405240b0c32afad88ab6d8621eafa5e0d27"
+    },
+    {
+      "id": "witch",
+      "row": 0,
+      "frame": 2,
+      "count": 13726,
+      "bounds": [
+        61,
+        83,
+        196,
+        242
+      ],
+      "hash": "3091fe1b3eda5793c000f807e0d1cee7e505aa4a622d418c0a393d1573ef817c"
+    },
+    {
+      "id": "witch",
+      "row": 0,
+      "frame": 3,
+      "count": 12935,
+      "bounds": [
+        61,
+        81,
+        192,
+        242
+      ],
+      "hash": "285fe96b55cfff4c75893b82d01412a38394f19d60ac43818f13e95e99e4c641"
+    },
+    {
+      "id": "witch",
+      "row": 1,
+      "frame": 0,
+      "count": 13455,
+      "bounds": [
+        63,
+        80,
+        198,
+        242
+      ],
+      "hash": "3ce5e1d3c5b02ead8a38a129820b3f0f51809d1083eee5a960a88ff0a3181178"
+    },
+    {
+      "id": "witch",
+      "row": 1,
+      "frame": 1,
+      "count": 14200,
+      "bounds": [
+        65,
+        79,
+        200,
+        242
+      ],
+      "hash": "9ad36e12d0365fd7f53cf1ce3b92b416958155fbaed5d517127f67a13e3b202b"
+    },
+    {
+      "id": "witch",
+      "row": 1,
+      "frame": 2,
+      "count": 14278,
+      "bounds": [
+        64,
+        79,
+        208,
+        242
+      ],
+      "hash": "72c7b0bbf43e7cd8b6dabe22e34f85a1d42c2d03d758dddd695d0626cbb166c3"
+    },
+    {
+      "id": "witch",
+      "row": 1,
+      "frame": 3,
+      "count": 13120,
+      "bounds": [
+        61,
+        80,
+        194,
+        242
+      ],
+      "hash": "2c771c3e853eeefedf1e0db76feb0c78affe9ce12d0e5c78ba4b7e134aec498b"
+    },
+    {
+      "id": "witch",
+      "row": 2,
+      "frame": 0,
+      "count": 14053,
+      "bounds": [
+        65,
+        82,
+        202,
+        242
+      ],
+      "hash": "46cbc4069d5f88f3a5d64611091cdebd82e5af0b6d3a3694aa23870150a8438a"
+    },
+    {
+      "id": "witch",
+      "row": 2,
+      "frame": 1,
+      "count": 13843,
+      "bounds": [
+        71,
+        83,
+        207,
+        242
+      ],
+      "hash": "6aafa114bddcf23a5106fbc3658ef9e5281cc884a556837a0e35802c247e23ab"
+    },
+    {
+      "id": "witch",
+      "row": 2,
+      "frame": 2,
+      "count": 13081,
+      "bounds": [
+        69,
+        84,
+        202,
+        242
+      ],
+      "hash": "95ab878357eacf772bb8b7a232cec3806f0aa57ff3046739a98a400bece0a16e"
+    },
+    {
+      "id": "witch",
+      "row": 2,
+      "frame": 3,
+      "count": 13727,
+      "bounds": [
+        62,
+        79,
+        199,
+        242
+      ],
+      "hash": "3ee88b9cf5791aeb2b3be0b9058b2457cc3723c291897c1da7d132e7bbf76f9e"
+    },
+    {
+      "id": "witch",
+      "row": 3,
+      "frame": 0,
+      "count": 13502,
+      "bounds": [
+        63,
+        90,
+        202,
+        242
+      ],
+      "hash": "9139894472e5cedc738bfcb64cf16560cc565ca0d1a71b3d5e4b2bde28fa8ad2"
+    },
+    {
+      "id": "witch",
+      "row": 3,
+      "frame": 1,
+      "count": 14118,
+      "bounds": [
+        63,
+        82,
+        208,
+        242
+      ],
+      "hash": "9aae9e3d31d13ed62eb06211712c610bfa9c4ee13e4dac24e4cb1476e77a5dea"
+    },
+    {
+      "id": "witch",
+      "row": 3,
+      "frame": 2,
+      "count": 14450,
+      "bounds": [
+        72,
+        80,
+        202,
+        242
+      ],
+      "hash": "b2f47dc3b11d8f34d07b775d5f8a2e12f6c53f60baface756875a27598b0f6a1"
+    },
+    {
+      "id": "witch",
+      "row": 3,
+      "frame": 3,
+      "count": 12855,
+      "bounds": [
+        69,
+        83,
+        197,
+        242
+      ],
+      "hash": "7e2b68f5e371f7cbb0c6be43c420fb96f4adf215560595e7f3ce6682a8f77278"
+    },
+    {
+      "id": "warrior",
+      "row": 0,
+      "frame": 0,
+      "count": 14938,
+      "bounds": [
+        56,
+        94,
+        198,
+        242
+      ],
+      "hash": "ff263f7d7a9d9c3b736034743246a89bdec47156b85c5d3a7f6e93eae10db08f"
+    },
+    {
+      "id": "warrior",
+      "row": 0,
+      "frame": 1,
+      "count": 15175,
+      "bounds": [
+        51,
+        95,
+        240,
+        242
+      ],
+      "hash": "49a8f67e7de07e3def2c3d5e1daa9add5ace858b62f021704a7fd775519c406e"
+    },
+    {
+      "id": "warrior",
+      "row": 0,
+      "frame": 2,
+      "count": 14352,
+      "bounds": [
+        59,
+        91,
+        224,
+        242
+      ],
+      "hash": "1c3d20d115763344998e5ea4f57d5f4652f3e2a7969b83e9826b028c9ec944a8"
+    },
+    {
+      "id": "warrior",
+      "row": 0,
+      "frame": 3,
+      "count": 12989,
+      "bounds": [
+        67,
+        92,
+        192,
+        242
+      ],
+      "hash": "71decb678cafab44a4fca6151e282dc7d73c6edd3f16e423dcddc749253a0c70"
+    },
+    {
+      "id": "warrior",
+      "row": 1,
+      "frame": 0,
+      "count": 15210,
+      "bounds": [
+        57,
+        74,
+        207,
+        242
+      ],
+      "hash": "038997cc5ae52ad5a7cbdcc36353e287e6223bf5d50c1f33c3e640d267eabbf6"
+    },
+    {
+      "id": "warrior",
+      "row": 1,
+      "frame": 1,
+      "count": 13904,
+      "bounds": [
+        56,
+        98,
+        195,
+        242
+      ],
+      "hash": "921e8ac08f859fea64e5461b7df33b9a90662f37899bb1674d2496a510551a78"
+    },
+    {
+      "id": "warrior",
+      "row": 1,
+      "frame": 2,
+      "count": 12338,
+      "bounds": [
+        59,
+        118,
+        200,
+        242
+      ],
+      "hash": "d5e9738d2c03a5e18e28eabd481199b49024bc43a12de08f5d407fd967220da6"
+    },
+    {
+      "id": "warrior",
+      "row": 1,
+      "frame": 3,
+      "count": 14666,
+      "bounds": [
+        58,
+        78,
+        197,
+        242
+      ],
+      "hash": "2e802440546132609a22799656f5e142b788e3fc189ed783ae71cf37e896fa8b"
+    },
+    {
+      "id": "warrior",
+      "row": 2,
+      "frame": 0,
+      "count": 14717,
+      "bounds": [
+        62,
+        92,
+        206,
+        242
+      ],
+      "hash": "a48ed20083d7ca146b5cda5c30be99ec7385d5fef12f343d4ff42a71bfceaabc"
+    },
+    {
+      "id": "warrior",
+      "row": 2,
+      "frame": 1,
+      "count": 15314,
+      "bounds": [
+        57,
+        63,
+        203,
+        242
+      ],
+      "hash": "8ffbc49a15611544e5c6281c9a6bb0a140451e7701e1d411b0cc19f448bc0540"
+    },
+    {
+      "id": "warrior",
+      "row": 2,
+      "frame": 2,
+      "count": 13686,
+      "bounds": [
+        59,
+        99,
+        201,
+        242
+      ],
+      "hash": "c7af8e1793bd30885b608e08dca097c015bc4e41a334d8c8fb2ddae8a26cfba6"
+    },
+    {
+      "id": "warrior",
+      "row": 2,
+      "frame": 3,
+      "count": 13169,
+      "bounds": [
+        63,
+        93,
+        194,
+        242
+      ],
+      "hash": "de63f31c0590c1b09a3ff25745a5319364af21b0eae372a949bbb44742b7d334"
+    },
+    {
+      "id": "warrior",
+      "row": 3,
+      "frame": 0,
+      "count": 14297,
+      "bounds": [
+        58,
+        105,
+        211,
+        242
+      ],
+      "hash": "1b62a2a181c5223de3c3f936110f0436dda5a606b41f383be820c9e4decc2b39"
+    },
+    {
+      "id": "warrior",
+      "row": 3,
+      "frame": 1,
+      "count": 14370,
+      "bounds": [
+        57,
+        97,
+        222,
+        242
+      ],
+      "hash": "d16b3efd3ba59035d3f0a2b75211902f332468096aba00d17653c61d072b0ab5"
+    },
+    {
+      "id": "warrior",
+      "row": 3,
+      "frame": 2,
+      "count": 13430,
+      "bounds": [
+        62,
+        97,
+        210,
+        242
+      ],
+      "hash": "3e21e9d0321714a991da05314bf3202fd155b55b1f15096efc5fa056c1e95bb9"
+    },
+    {
+      "id": "warrior",
+      "row": 3,
+      "frame": 3,
+      "count": 12671,
+      "bounds": [
+        62,
+        107,
+        198,
+        242
+      ],
+      "hash": "ddfdee89fdb95858c0c5403c00d7448897e26cf82caf8316101f33be5c0a42c9"
+    },
+    {
+      "id": "archer",
+      "row": 0,
+      "frame": 0,
+      "count": 15384,
+      "bounds": [
+        55,
+        88,
+        220,
+        242
+      ],
+      "hash": "e2a0a03efadc4a957d3bc6463eeace6f67667594f0b3d69bf6e710d0f7635d9d"
+    },
+    {
+      "id": "archer",
+      "row": 0,
+      "frame": 1,
+      "count": 15373,
+      "bounds": [
+        57,
+        88,
+        212,
+        242
+      ],
+      "hash": "bd35f1968305a3ccefb7a82abd01c809ed41bb03f3a31dd8cf5bb01ec0e7e123"
+    },
+    {
+      "id": "archer",
+      "row": 0,
+      "frame": 2,
+      "count": 15373,
+      "bounds": [
+        57,
+        88,
+        212,
+        242
+      ],
+      "hash": "868f405b5bcebac97f1c1c282438e33e534602081dbc641d05149e6209de6a90"
+    },
+    {
+      "id": "archer",
+      "row": 0,
+      "frame": 3,
+      "count": 13698,
+      "bounds": [
+        62,
+        88,
+        197,
+        242
+      ],
+      "hash": "e91339a7b2cabe2515e5d5837e32df9ce23501a48f2278cdf6f09fdd1215b812"
+    },
+    {
+      "id": "archer",
+      "row": 1,
+      "frame": 0,
+      "count": 15728,
+      "bounds": [
+        57,
+        76,
+        205,
+        242
+      ],
+      "hash": "910e2bf3e9c8ad9368fb1c38da621888682020d51e7099cda6ee8c7b908a3344"
+    },
+    {
+      "id": "archer",
+      "row": 1,
+      "frame": 1,
+      "count": 15064,
+      "bounds": [
+        63,
+        81,
+        207,
+        242
+      ],
+      "hash": "eaaf8a49aa08631eb168fcf4ee26caff91d693b7ed9fe72c318b0b72b6f2808d"
+    },
+    {
+      "id": "archer",
+      "row": 1,
+      "frame": 2,
+      "count": 15064,
+      "bounds": [
+        63,
+        81,
+        207,
+        242
+      ],
+      "hash": "ae46bac093a494f8a22bc9976055d79517fea781b03007b5b35e6dd6f823648e"
+    },
+    {
+      "id": "archer",
+      "row": 1,
+      "frame": 3,
+      "count": 14022,
+      "bounds": [
+        62,
+        81,
+        200,
+        242
+      ],
+      "hash": "b915d46d3426e18e53102335fc4e28ddabe1c8f66b931a381d533cbc36635e9d"
+    },
+    {
+      "id": "archer",
+      "row": 2,
+      "frame": 0,
+      "count": 13919,
+      "bounds": [
+        58,
+        83,
+        192,
+        242
+      ],
+      "hash": "750b6006aa52efca833f77ee7192e3b16e607beef5202ffc2e2e638c9fce2064"
+    },
+    {
+      "id": "archer",
+      "row": 2,
+      "frame": 1,
+      "count": 14695,
+      "bounds": [
+        57,
+        103,
+        208,
+        242
+      ],
+      "hash": "6c218608cad7ba67de2c32923ea4c98b0e39264326d8dde05d43bdca8ce5e0cd"
+    },
+    {
+      "id": "archer",
+      "row": 2,
+      "frame": 2,
+      "count": 13608,
+      "bounds": [
+        60,
+        90,
+        203,
+        242
+      ],
+      "hash": "a744ee02915a0977cc6ad3416a2c7a3c2e44d3575904b980fe9a557dc73f7359"
+    },
+    {
+      "id": "archer",
+      "row": 2,
+      "frame": 3,
+      "count": 14306,
+      "bounds": [
+        63,
+        82,
+        199,
+        242
+      ],
+      "hash": "d0d070ece53b625f5e0ad2a8ea8667eff7b75ee38dec8e8c82f5b48a4f5b04ac"
+    },
+    {
+      "id": "archer",
+      "row": 3,
+      "frame": 0,
+      "count": 14987,
+      "bounds": [
+        58,
+        92,
+        211,
+        242
+      ],
+      "hash": "31481af71843f696f1866357793f0063f486e054f84de0a12d1d0068ee9e112e"
+    },
+    {
+      "id": "archer",
+      "row": 3,
+      "frame": 1,
+      "count": 12047,
+      "bounds": [
+        60,
+        84,
+        206,
+        212
+      ],
+      "hash": "c8164ae86c477ebd6ec7f6b4c9965cee1d0669742e544dd6074c922b32f8b320"
+    },
+    {
+      "id": "archer",
+      "row": 3,
+      "frame": 2,
+      "count": 15060,
+      "bounds": [
+        56,
+        98,
+        212,
+        242
+      ],
+      "hash": "6ce4701ae9cf7489d438e661a2a3a542ba7dba2da24713434757cfc63e4460c2"
+    },
+    {
+      "id": "archer",
+      "row": 3,
+      "frame": 3,
+      "count": 13849,
+      "bounds": [
+        62,
+        87,
+        197,
+        242
+      ],
+      "hash": "f26aadd08d9fdc8a4c9363895191f778c8e3cb0301c0acc16616efcff25bdaa9"
+    }
+  ],
+  "atlases": [
+    {
+      "id": "witch",
+      "sha256": "a4fd7d2be1b46b0d5ef6ca240a5e844bf098fd2ebd25c86dbd585e2e4c8d9bc6",
+      "bytes": 488102
+    },
+    {
+      "id": "warrior",
+      "sha256": "855738f33512fb378de9ad5e0ac2fac72f15a8399e26a4c7def810f90aa91748",
+      "bytes": 475450
+    },
+    {
+      "id": "archer",
+      "sha256": "9a295026291a22894ac7c5520625294791d1c418b01fe244290797f7c8483c5f",
+      "bytes": 505412
+    }
+  ],
+  "passed": true
+}

@@ -1,3 +1,4 @@
+import { basicAttackInterval } from './AttackCadence.js';
 import { acceptPoisonPulse } from './WitchPoison.js';
 import { WARRIOR_GEOMETRY as WG } from './ClassGeometry.js';
 /** Owner-only, simulation-time class mechanics. Never instantiate for remote players.
@@ -59,14 +60,22 @@ export default class ClassCombatController {
         return this.enemies().filter(e => { const x = e.x - this.owner.x, y = e.y - this.owner.y; const along = x * d.x + y * d.y; return along >= 0 && along <= range && Math.abs(x * d.y - y * d.x) <= width + (e.radius || 16); }).sort((a,b) => distance(a,this.owner)-distance(b,this.owner));
     }
     basic({ aimed = false, x, y } = {}) {
-        if (this.disposed || !alive(this.owner) || this.time < this.basicReady) return false;
+        if (this.disposed || !alive(this.owner) || this.hooks.paused?.() || this.time < this.basicReady) return false;
+        if (this.classId === 'warrior' && aimed && this.rage < 25) return false;
+        const interval = basicAttackInterval(this.classId, {
+            aimed, empowered: this.classId === 'archer' && this.empowered,
+            speed: this.owner.getEffectiveClassAttackSpeed?.() ?? this.owner.attackSpeed ?? 1
+        });
+        if (interval === null) return false;
+        // Reserve before damage/effect hooks: reentrant input cannot spend twice.
+        // Schedule from now, never from a stale deadline; low FPS cannot bank bursts.
+        this.basicReady = this.time + interval;
         const point = { x: x ?? this.owner.x + 100, y: y ?? this.owner.y };
         if (this.classId === 'witch') {
             if (aimed) this.orb(point);
             else { this.area(this.owner, 95).forEach(e => this.hit(e, this.attack() * 2)); this.effect('life_circle', { radius: 95 }); }
         } else if (this.classId === 'warrior') {
             if (aimed) {
-                if (this.rage < 25) return false;
                 this.rage -= 25;
                 this.line(point, WG.heavy.range, WG.heavy.halfWidth).forEach(e => this.hit(e, this.attack() * 3, { armorPierce: 1 }));
                 this.effect('rage_smash', { target: point });
@@ -80,7 +89,7 @@ export default class ClassCombatController {
             if (aimed) this.snipe(point);
             else this.arrow(point);
         } else return false;
-        this.basicReady = this.time + (aimed ? (this.classId === 'archer' && this.lastEmpowered ? .35 : .85) : .45) / Math.max(.1, this.owner.getEffectiveClassAttackSpeed?.() || this.owner.attackSpeed || 1);
+        this.hooks.action?.('basic', { aimed, target: point, interval, combo: this.classId === 'warrior' ? this.combo : undefined, empowered: this.classId === 'archer' && aimed && this.lastEmpowered });
         return true;
     }
     arrow(point) {
@@ -114,8 +123,13 @@ export default class ClassCombatController {
         }
         this.effect('piercing_snipe', { target: point, empowered: this.lastEmpowered });
     }
-    skill(slot, { x = this.owner.x, y = this.owner.y, level = 1 } = {}) {
-        if (this.disposed || !alive(this.owner) || (this.cooldowns[slot] || 0) > this.time) return false;
+    skill(slot, options = {}) {
+        if(this.castingSkill)return false;
+        this.castingSkill=true;
+        try { return this.castSkill(slot,options); } finally { this.castingSkill=false; }
+    }
+    castSkill(slot, { x = this.owner.x, y = this.owner.y, level = 1 } = {}) {
+        if (this.disposed || !alive(this.owner) || this.hooks.paused?.() || (this.cooldowns[slot] || 0) > this.time) return false;
         const point = { x, y }; const d = this.direction(point); const reach = distance(point, this.owner);
         if (reach > 450) { point.x = this.owner.x + d.x * 450; point.y = this.owner.y + d.y * 450; }
         const skillLevel = clamp(Math.floor(Number(level) || 1), 1, 8);
@@ -189,7 +203,9 @@ export default class ClassCombatController {
         if (!cooldown) return false;
         // Skill growth reduces cooldown by 3% per level (cap 21%). Witch
         // explicitly requested damage/heal/HP-cost/buff values remain unchanged.
-        this.cooldowns[slot] = this.time + cooldown * (1 - .03 * (skillLevel - 1)); return true;
+        this.cooldowns[slot] = this.time + cooldown * (1 - .03 * (skillLevel - 1));
+        this.hooks.action?.('skill', { slot, level: skillLevel, target: point, cooldown: this.cooldowns[slot] - this.time });
+        return true;
     }
     update(dt) {
         if (this.disposed || !Number.isFinite(dt) || dt <= 0 || this.hooks.paused?.()) return;

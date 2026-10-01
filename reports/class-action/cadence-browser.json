@@ -1,0 +1,1553 @@
+{
+  "scope": "Actual Chromium DOM KeyboardEvent/TouchEvent handlers -> Player -> Bridge -> Controller; controlled Player.update dt at10/30/60/120Hz, not a physical display FPS benchmark. Local account only.",
+  "cases": [
+    {
+      "classId": "witch",
+      "fps": 10,
+      "buff": false,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.1,
+          "aimed": false,
+          "interval": 0.805
+        },
+        {
+          "at": 0.9999999999999999,
+          "aimed": false,
+          "interval": 0.805
+        },
+        {
+          "at": 1.9000000000000006,
+          "aimed": false,
+          "interval": 0.805
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.600000000000002,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999994,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "effective": 1
+    },
+    {
+      "classId": "witch",
+      "fps": 10,
+      "buff": true,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.1,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        },
+        {
+          "at": 0.6,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        },
+        {
+          "at": 1.0999999999999999,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        },
+        {
+          "at": 1.6000000000000003,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.600000000000002,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999994,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "effective": 1.7
+    },
+    {
+      "classId": "witch",
+      "fps": 30,
+      "buff": false,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.03333333333333333,
+          "aimed": false,
+          "interval": 0.805
+        },
+        {
+          "at": 0.8666666666666666,
+          "aimed": false,
+          "interval": 0.805
+        },
+        {
+          "at": 1.700000000000002,
+          "aimed": false,
+          "interval": 0.805
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.599999999999997,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999988,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "effective": 1
+    },
+    {
+      "classId": "witch",
+      "fps": 30,
+      "buff": true,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.03333333333333333,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        },
+        {
+          "at": 0.5333333333333333,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        },
+        {
+          "at": 1.0333333333333332,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        },
+        {
+          "at": 1.5333333333333348,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.599999999999997,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999988,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "effective": 1.7
+    },
+    {
+      "classId": "witch",
+      "fps": 60,
+      "buff": false,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.016666666666666666,
+          "aimed": false,
+          "interval": 0.805
+        },
+        {
+          "at": 0.8333333333333343,
+          "aimed": false,
+          "interval": 0.805
+        },
+        {
+          "at": 1.649999999999999,
+          "aimed": false,
+          "interval": 0.805
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.599999999999992,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999983,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "effective": 1
+    },
+    {
+      "classId": "witch",
+      "fps": 60,
+      "buff": true,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.016666666666666666,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        },
+        {
+          "at": 0.49999999999999994,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        },
+        {
+          "at": 0.9833333333333347,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        },
+        {
+          "at": 1.4666666666666663,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        },
+        {
+          "at": 1.949999999999998,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.599999999999992,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999983,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "effective": 1.7
+    },
+    {
+      "classId": "witch",
+      "fps": 120,
+      "buff": false,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.008333333333333333,
+          "aimed": false,
+          "interval": 0.805
+        },
+        {
+          "at": 0.8166666666666662,
+          "aimed": false,
+          "interval": 0.805
+        },
+        {
+          "at": 1.6249999999999967,
+          "aimed": false,
+          "interval": 0.805
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.59999999999999,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.200000000000098,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "effective": 1
+    },
+    {
+      "classId": "witch",
+      "fps": 120,
+      "buff": true,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.008333333333333333,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        },
+        {
+          "at": 0.483333333333334,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        },
+        {
+          "at": 0.9583333333333324,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        },
+        {
+          "at": 1.4333333333333307,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        },
+        {
+          "at": 1.908333333333329,
+          "aimed": false,
+          "interval": 0.4735294117647059
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.59999999999999,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.200000000000098,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "effective": 1.7
+    },
+    {
+      "classId": "warrior",
+      "fps": 10,
+      "buff": false,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.1,
+          "aimed": false,
+          "interval": 0.7
+        },
+        {
+          "at": 0.7999999999999999,
+          "aimed": false,
+          "interval": 0.7
+        },
+        {
+          "at": 1.5000000000000002,
+          "aimed": false,
+          "interval": 0.7
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.600000000000002,
+        "aimed": true,
+        "interval": 1.1
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999994,
+        "aimed": true,
+        "interval": 1.1
+      },
+      "effective": 1
+    },
+    {
+      "classId": "warrior",
+      "fps": 10,
+      "buff": true,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.1,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 0.6,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 1.0999999999999999,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 1.6000000000000003,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.600000000000002,
+        "aimed": true,
+        "interval": 0.6470588235294118
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999994,
+        "aimed": true,
+        "interval": 0.6470588235294118
+      },
+      "effective": 1.7
+    },
+    {
+      "classId": "warrior",
+      "fps": 30,
+      "buff": false,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.03333333333333333,
+          "aimed": false,
+          "interval": 0.7
+        },
+        {
+          "at": 0.7333333333333333,
+          "aimed": false,
+          "interval": 0.7
+        },
+        {
+          "at": 1.4333333333333345,
+          "aimed": false,
+          "interval": 0.7
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.599999999999997,
+        "aimed": true,
+        "interval": 1.1
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999988,
+        "aimed": true,
+        "interval": 1.1
+      },
+      "effective": 1
+    },
+    {
+      "classId": "warrior",
+      "fps": 30,
+      "buff": true,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.03333333333333333,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 0.4666666666666666,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 0.8999999999999999,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 1.3333333333333341,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 1.7666666666666688,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.599999999999997,
+        "aimed": true,
+        "interval": 0.6470588235294118
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999988,
+        "aimed": true,
+        "interval": 0.6470588235294118
+      },
+      "effective": 1.7
+    },
+    {
+      "classId": "warrior",
+      "fps": 60,
+      "buff": false,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.016666666666666666,
+          "aimed": false,
+          "interval": 0.7
+        },
+        {
+          "at": 0.7166666666666672,
+          "aimed": false,
+          "interval": 0.7
+        },
+        {
+          "at": 1.4333333333333331,
+          "aimed": false,
+          "interval": 0.7
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.599999999999992,
+        "aimed": true,
+        "interval": 1.1
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999983,
+        "aimed": true,
+        "interval": 1.1
+      },
+      "effective": 1
+    },
+    {
+      "classId": "warrior",
+      "fps": 60,
+      "buff": true,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.016666666666666666,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 0.4333333333333333,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 0.850000000000001,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 1.266666666666667,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 1.6833333333333322,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.599999999999992,
+        "aimed": true,
+        "interval": 0.6470588235294118
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999983,
+        "aimed": true,
+        "interval": 0.6470588235294118
+      },
+      "effective": 1.7
+    },
+    {
+      "classId": "warrior",
+      "fps": 120,
+      "buff": false,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.008333333333333333,
+          "aimed": false,
+          "interval": 0.7
+        },
+        {
+          "at": 0.7083333333333333,
+          "aimed": false,
+          "interval": 0.7
+        },
+        {
+          "at": 1.416666666666664,
+          "aimed": false,
+          "interval": 0.7
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.59999999999999,
+        "aimed": true,
+        "interval": 1.1
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.200000000000098,
+        "aimed": true,
+        "interval": 1.1
+      },
+      "effective": 1
+    },
+    {
+      "classId": "warrior",
+      "fps": 120,
+      "buff": true,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.008333333333333333,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 0.4250000000000005,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 0.8416666666666661,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 1.2583333333333313,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        },
+        {
+          "at": 1.6749999999999965,
+          "aimed": false,
+          "interval": 0.4117647058823529
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.59999999999999,
+        "aimed": true,
+        "interval": 0.6470588235294118
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.200000000000098,
+        "aimed": true,
+        "interval": 0.6470588235294118
+      },
+      "effective": 1.7
+    },
+    {
+      "classId": "archer",
+      "fps": 10,
+      "buff": false,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.1,
+          "aimed": false,
+          "interval": 0.65
+        },
+        {
+          "at": 0.7999999999999999,
+          "aimed": false,
+          "interval": 0.65
+        },
+        {
+          "at": 1.5000000000000002,
+          "aimed": false,
+          "interval": 0.65
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.600000000000002,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999994,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "effective": 1
+    },
+    {
+      "classId": "archer",
+      "fps": 10,
+      "buff": true,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.1,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 0.5,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 0.8999999999999999,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 1.3,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 1.7000000000000004,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.600000000000002,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999994,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "effective": 1.7
+    },
+    {
+      "classId": "archer",
+      "fps": 30,
+      "buff": false,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.03333333333333333,
+          "aimed": false,
+          "interval": 0.65
+        },
+        {
+          "at": 0.7,
+          "aimed": false,
+          "interval": 0.65
+        },
+        {
+          "at": 1.3666666666666676,
+          "aimed": false,
+          "interval": 0.65
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.599999999999997,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999988,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "effective": 1
+    },
+    {
+      "classId": "archer",
+      "fps": 30,
+      "buff": true,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.03333333333333333,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 0.4333333333333333,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 0.8333333333333333,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 1.2333333333333338,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 1.633333333333335,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.599999999999997,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999988,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "effective": 1.7
+    },
+    {
+      "classId": "archer",
+      "fps": 60,
+      "buff": false,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.016666666666666666,
+          "aimed": false,
+          "interval": 0.65
+        },
+        {
+          "at": 0.6666666666666671,
+          "aimed": false,
+          "interval": 0.65
+        },
+        {
+          "at": 1.3333333333333335,
+          "aimed": false,
+          "interval": 0.65
+        },
+        {
+          "at": 1.9999999999999978,
+          "aimed": false,
+          "interval": 0.65
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.599999999999992,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999983,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "effective": 1
+    },
+    {
+      "classId": "archer",
+      "fps": 60,
+      "buff": true,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.016666666666666666,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 0.39999999999999997,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 0.7833333333333341,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 1.1666666666666674,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 1.5499999999999994,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 1.9333333333333313,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.599999999999992,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.199999999999983,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "effective": 1.7
+    },
+    {
+      "classId": "archer",
+      "fps": 120,
+      "buff": false,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.008333333333333333,
+          "aimed": false,
+          "interval": 0.65
+        },
+        {
+          "at": 0.6583333333333334,
+          "aimed": false,
+          "interval": 0.65
+        },
+        {
+          "at": 1.3166666666666644,
+          "aimed": false,
+          "interval": 0.65
+        },
+        {
+          "at": 1.9749999999999954,
+          "aimed": false,
+          "interval": 0.65
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.59999999999999,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.200000000000098,
+        "aimed": true,
+        "interval": 1.05
+      },
+      "effective": 1
+    },
+    {
+      "classId": "archer",
+      "fps": 120,
+      "buff": true,
+      "start": 0,
+      "rapid": [
+        {
+          "at": 0.008333333333333333,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 0.39166666666666705,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 0.7749999999999997,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 1.1583333333333317,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 1.5416666666666636,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        },
+        {
+          "at": 1.9249999999999956,
+          "aimed": false,
+          "interval": 0.3823529411764706
+        }
+      ],
+      "pauseStable": true,
+      "heldFrame": 0,
+      "heldDebug": {
+        "motion": {
+          "id": 0,
+          "row": 1,
+          "held": true,
+          "age": 0,
+          "duration": 0.4
+        },
+        "aim": null,
+        "input": false,
+        "paused": false
+      },
+      "heldRelease": {
+        "at": 3.59999999999999,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "touchHeldFrame": 0,
+      "touchRelease": {
+        "at": 6.200000000000098,
+        "aimed": true,
+        "interval": 0.6176470588235294
+      },
+      "effective": 1.7
+    }
+  ],
+  "remoteContexts": [
+    {
+      "accepted": true,
+      "duplicate": false,
+      "reordered": false,
+      "drawn": true,
+      "pose": [
+        0,
+        192,
+        192,
+        192
+      ],
+      "expired": true,
+      "fieldCleared": true,
+      "deathCleared": true,
+      "damage": 0,
+      "hp": 100
+    },
+    {
+      "accepted": true,
+      "duplicate": false,
+      "reordered": false,
+      "drawn": true,
+      "pose": [
+        0,
+        192,
+        192,
+        192
+      ],
+      "expired": true,
+      "fieldCleared": true,
+      "deathCleared": true,
+      "damage": 0,
+      "hp": 100
+    }
+  ],
+  "lifecycle": [
+    {
+      "classId": "witch",
+      "initial": {
+        "id": 1,
+        "row": 0,
+        "started": 0,
+        "duration": 0.42,
+        "age": 0,
+        "held": false
+      },
+      "segments": [
+        {
+          "row": 3,
+          "expectedRow": 3,
+          "moved": 9.1875,
+          "sign": 1,
+          "id": 1,
+          "started": 0
+        },
+        {
+          "row": 2,
+          "expectedRow": 2,
+          "moved": -9.1875,
+          "sign": -1,
+          "id": 1,
+          "started": 0
+        },
+        {
+          "row": 0,
+          "expectedRow": 0,
+          "moved": -9.1875,
+          "sign": -1,
+          "id": 1,
+          "started": 0
+        },
+        {
+          "row": 1,
+          "expectedRow": 1,
+          "moved": 9.1875,
+          "sign": 1,
+          "id": 1,
+          "started": 0
+        }
+      ],
+      "walking": {
+        "state": "move",
+        "isAttacking": false,
+        "motion": null
+      },
+      "idle": {
+        "state": "idle",
+        "isAttacking": false,
+        "motion": null
+      },
+      "distinct": {
+        "motion": null,
+        "isAttacking": true
+      },
+      "death": {
+        "disposed": true,
+        "motion": null,
+        "aim": null
+      },
+      "exit": {
+        "disposed": true,
+        "motion": null,
+        "effects": 0
+      }
+    },
+    {
+      "classId": "warrior",
+      "initial": {
+        "id": 1,
+        "row": 0,
+        "started": 0,
+        "duration": 0.42,
+        "age": 0,
+        "held": false
+      },
+      "segments": [
+        {
+          "row": 3,
+          "expectedRow": 3,
+          "moved": 9.1875,
+          "sign": 1,
+          "id": 1,
+          "started": 0
+        },
+        {
+          "row": 2,
+          "expectedRow": 2,
+          "moved": -9.1875,
+          "sign": -1,
+          "id": 1,
+          "started": 0
+        },
+        {
+          "row": 0,
+          "expectedRow": 0,
+          "moved": -9.1875,
+          "sign": -1,
+          "id": 1,
+          "started": 0
+        },
+        {
+          "row": 1,
+          "expectedRow": 1,
+          "moved": 9.1875,
+          "sign": 1,
+          "id": 1,
+          "started": 0
+        }
+      ],
+      "walking": {
+        "state": "move",
+        "isAttacking": false,
+        "motion": null
+      },
+      "idle": {
+        "state": "idle",
+        "isAttacking": false,
+        "motion": null
+      },
+      "distinct": {
+        "motion": null,
+        "isAttacking": true
+      },
+      "death": {
+        "disposed": true,
+        "motion": null,
+        "aim": null
+      },
+      "exit": {
+        "disposed": true,
+        "motion": null,
+        "effects": 0
+      }
+    },
+    {
+      "classId": "archer",
+      "initial": {
+        "id": 1,
+        "row": 0,
+        "started": 0,
+        "duration": 0.42,
+        "age": 0,
+        "held": false
+      },
+      "segments": [
+        {
+          "row": 3,
+          "expectedRow": 3,
+          "moved": 9.1875,
+          "sign": 1,
+          "id": 1,
+          "started": 0
+        },
+        {
+          "row": 2,
+          "expectedRow": 2,
+          "moved": -9.1875,
+          "sign": -1,
+          "id": 1,
+          "started": 0
+        },
+        {
+          "row": 0,
+          "expectedRow": 0,
+          "moved": -9.1875,
+          "sign": -1,
+          "id": 1,
+          "started": 0
+        },
+        {
+          "row": 1,
+          "expectedRow": 1,
+          "moved": 9.1875,
+          "sign": 1,
+          "id": 1,
+          "started": 0
+        }
+      ],
+      "walking": {
+        "state": "move",
+        "isAttacking": false,
+        "motion": null
+      },
+      "idle": {
+        "state": "idle",
+        "isAttacking": false,
+        "motion": null
+      },
+      "distinct": {
+        "motion": null,
+        "isAttacking": true
+      },
+      "death": {
+        "disposed": true,
+        "motion": null,
+        "aim": null
+      },
+      "exit": {
+        "disposed": true,
+        "motion": null,
+        "effects": 0
+      }
+    }
+  ],
+  "errors": [],
+  "external": []
+}

@@ -48,7 +48,7 @@ test('berserk excludes caster, includes summons, expires without changing base s
     f.advance(10.1); assert.equal(f.c.multipliers(summon).attack,1); assert.equal(f.owner.attackPower,90);
 });
 test('warrior 3-hit combo grants rage only on hits; aimed smash spends bounded rage', () => {
-    const f=fixture('warrior'),e=f.add(); for(let i=0;i<3;i++) { f.c.basic({x:100,y:0}); f.advance(.5); }
+    const f=fixture('warrior'),e=f.add(); for(let i=0;i<3;i++) { assert.equal(f.c.basic({x:100,y:0}),true); f.advance(.701); }
     assert.equal(f.c.rage,18); assert.equal(f.c.basic({aimed:true,x:100,y:0}),false); f.c.rage=50;
     assert.equal(f.c.basic({aimed:true,x:100,y:0}),true); assert.equal(f.c.rage,25); assert.equal(f.packets.at(-1).meta.armorPierce,1);
 });

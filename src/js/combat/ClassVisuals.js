@@ -1,3 +1,4 @@
+import { drawActionBody } from './ClassActionMotion.js';
 import { getSharedResourceManager } from '../core/ResourceManager.js';
 import { captureProjectileWorldContext, isProjectileWorldContextCurrent } from '../entities/ProjectileWorldContext.js';
 
@@ -11,7 +12,7 @@ const DIRECTIONAL = new Set(['warrior_slash','rage_smash','punishing_charge','ar
 export const STATUS_ICONS = ['poison','berserk','rage','mark','root','taunt','bloodPact','empowered'];
 export function loadClassVisualImages(classId, images) {
     const resources=getSharedResourceManager();
-    for(const [key,path] of [['status','status'],...(classId==='wizard'?[]:[['effects',`${classId}-effects`]]),...(classId==='witch'?[['lifeCircle','life-circle']]:[])])
+    for(const [key,path] of [['status','status'],...(classId==='wizard'?[]:[['effects',`${classId}-effects`],['actions',`${classId}-actions`]]),...(classId==='witch'?[['lifeCircle','life-circle']]:[])])
         resources?.loadImage(`assets/resource/classes/${path}.webp`).then(image=>{images[key]=image;}).catch(()=>{});
 }
 export function drawClassEffect(renderer,ctx,name,x,y,size,age=0,options={}) {
@@ -60,9 +61,13 @@ export default class RemoteClassVisuals {
         this.epoch=packet.epoch;this.sequence=packet.sequence;
         this.context=captureProjectileWorldContext(game);
         if(this.classId!==packet.classId){this.classId=packet.classId;this.images={};loadClassVisualImages(this.classId,this.images);}
-        this.effects=[];this.projectiles=[];this.badges=[];this.decoy=null;
+        this.effects=[];this.projectiles=[];this.badges=[];this.decoy=null;this.motion=null;
         if(this.owner.isDead||this.owner.hp<=0)return true;
         const lag=Math.max(0,(now-packet.ts)/1000),names=(EFFECT_ROWS[this.classId]||[]).flat();
+        const m=packet.motion;
+        if(m&&Number.isSafeInteger(m.id)&&Number.isInteger(m.row)&&m.row>=0&&m.row<4&&Number.isFinite(m.age)&&m.age>=0&&Number.isFinite(m.duration)&&m.duration>=.2&&m.duration<=.42) {
+            const age=m.age+lag;if(m.held&&lag<.3||!m.held&&age<m.duration)this.motion={id:m.id,row:m.row,held:!!m.held,age,duration:m.duration,receivedAt:now,expiresAt:m.held?packet.ts+300:now+(m.duration-age)*1000};
+        }
         for(const f of (Array.isArray(packet.effects)?packet.effects:[]).slice(0,64)){
             if(!finitePoint(f)||typeof f.id!=='string'||!names.includes(f.name)||!Number.isFinite(f.duration)||!Number.isFinite(f.age))continue;
             const duration=Math.max(0,Math.min(10,f.duration)),age=Math.max(0,f.age)+lag;
@@ -81,13 +86,15 @@ export default class RemoteClassVisuals {
         return true;
     }
     advance(){
-        if(!isProjectileWorldContextCurrent(this.context)||this.owner.isDead||this.owner.hp<=0){this.effects=[];this.projectiles=[];this.decoy=null;this.badges=[];return;}
+        if(!isProjectileWorldContextCurrent(this.context)||this.owner.isDead||this.owner.hp<=0){this.effects=[];this.projectiles=[];this.decoy=null;this.badges=[];this.motion=null;return;}
         const now=Date.now();
+        if(this.motion){this.motion.age+=Math.max(0,(now-this.motion.receivedAt)/1000);this.motion.receivedAt=now;if(now>=this.motion.expiresAt)this.motion=null;}
         this.effects=this.effects.filter(f=>{f.age+=(now-f.receivedAt)/1000;f.receivedAt=now;return f.age<f.duration;});
         this.projectiles=this.projectiles.filter(p=>{const dt=Math.max(0,(now-p.receivedAt)/1000);p.x+=p.direction.x*p.speed*dt;p.y+=p.direction.y*p.speed*dt;p.age+=dt;p.receivedAt=now;return now<p.expiresAt;});
         if(this.decoy){this.decoy.remaining-=(now-this.decoy.receivedAt)/1000;this.decoy.receivedAt=now;if(this.decoy.remaining<=0)this.decoy=null;}
         if(now>this.badgesUntil)this.badges=[];
     }
+    drawBody(ctx,x,y,w,h){this.advance();return drawActionBody(this.images.actions,this.motion,ctx,x,y,w,h);}
     drawEffect(...args){drawClassEffect(this,...args);}
     renderGround(ctx){this.advance();renderGroundEffects(this,ctx);}
     render(ctx){

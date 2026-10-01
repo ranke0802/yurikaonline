@@ -26,7 +26,7 @@ for (let attempt = 0; attempt < 6; attempt++) {
             ...['opening', 'camp-background', 'camp-table', 'camp-guardian', 'camp-archer', 'camp-mage', 'camp-witch', 'wind', 'lake', 'thunder'].map(name => `/party-rpg-concept/assets/${name}.webp`),
             '/party-rpg-concept/assets/idle-mage.webp', '/src/assets/icon_192_clean.webp', '/src/assets/items/inventory_tools.webp',
             '/assets/resource/effects/player-skills/fireball.webp', '/assets/data/items/item_catalog.json',
-            ...['witch','warrior','archer'].flatMap(id => [`/assets/resource/classes/${id}-runtime.webp`, `/assets/resource/classes/${id}-effects.webp`, `/assets/data/characters/${id}.json`]),
+            ...['witch','warrior','archer'].flatMap(id => [`/assets/resource/classes/${id}-runtime.webp`, `/assets/resource/classes/${id}-effects.webp`, `/assets/resource/classes/${id}-actions.webp`, `/assets/data/characters/${id}.json`]),
             '/assets/resource/classes/status.webp', '/assets/resource/classes/life-circle.webp',
             '/assets/data/music/bgm_intro.json', '/assets/data/music/bgm_cabin.json',
             '/assets/data/sound/sound_events.json',
@@ -48,7 +48,7 @@ for (let attempt = 0; attempt < 6; attempt++) {
         const monsterCode = await get('/src/js/entities/Monster.js' + suffix);
         assert.equal(sha(monsterCode.bytes), sha(readFileSync('src/js/entities/Monster.js')), 'published monster runtime');
         assert.match(monsterCode.response.headers.get('cache-control') || '', /no-cache/);
-        for (const source of ['src/js/main.js', 'src/js/core/SceneManager.js', 'src/js/core/ResourceManager.js', 'src/js/world/scenes/CharacterSelectionScene.js', 'src/js/core/NetworkManager.js', 'src/js/world/MonsterManager.js', 'src/js/world/scenes/WorldScene.js', 'src/js/entities/Player.js', 'src/js/entities/Projectile.js', 'src/js/ui/UIManager.js', 'src/css/style.css', 'src/js/world/scenes/CampScene.js', 'src/js/core/CampPreparation.js', 'src/js/core/AdventureSummary.js', 'src/js/ui/CampPresentation.js', 'src/js/world/scenes/LoginScene.js', 'src/css/camp.css', 'src/css/opening.css', 'src/js/core/AssetManifest.js', 'src/js/core/ClassProfiles.js', 'src/js/combat/ClassCombatController.js', 'src/js/combat/ClassCombatBridge.js', 'src/js/ui/ClassSkillUI.js']) {
+        for (const source of ['src/js/main.js', 'src/js/core/SceneManager.js', 'src/js/core/ResourceManager.js', 'src/js/world/scenes/CharacterSelectionScene.js', 'src/js/core/NetworkManager.js', 'src/js/world/MonsterManager.js', 'src/js/world/scenes/WorldScene.js', 'src/js/entities/Player.js', 'src/js/entities/Projectile.js', 'src/js/ui/UIManager.js', 'src/css/style.css', 'src/js/world/scenes/CampScene.js', 'src/js/core/CampPreparation.js', 'src/js/core/AdventureSummary.js', 'src/js/ui/CampPresentation.js', 'src/js/world/scenes/LoginScene.js', 'src/css/camp.css', 'src/css/opening.css', 'src/js/core/AssetManifest.js', 'src/js/core/ClassProfiles.js', 'src/js/combat/ClassCombatController.js', 'src/js/combat/ClassCombatBridge.js', 'src/js/ui/ClassSkillUI.js', 'src/js/combat/ClassActionMotion.js', 'src/js/combat/AttackCadence.js', 'src/js/combat/ClassVisuals.js', 'src/js/combat/WitchPoison.js']) {
             const liveCode = await get('/' + source + suffix);
             assert.equal(sha(liveCode.bytes), sha(readFileSync(source)), `published ${source}`);
             assert.match(liveCode.response.headers.get('cache-control') || '', /no-cache/);

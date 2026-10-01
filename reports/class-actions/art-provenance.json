@@ -1,0 +1,924 @@
+{
+  "layout": "4x4,256px cell; anticipation/contact/followthrough/recovery",
+  "scale": 0.55,
+  "drawSize": 160,
+  "sources": {
+    "witch": "exec-0a885db9-6bec-419d-97b1-0eda892a0836",
+    "warrior": "exec-a6a7abc5-9628-4aff-9641-2a97040c1067",
+    "archer": "exec-39ec243c-ad0c-4819-8720-07c874a41350"
+  },
+  "frames": [
+    {
+      "id": "witch",
+      "row": 0,
+      "col": 0,
+      "sourceCol": 0,
+      "sourceBounds": [
+        43,
+        15,
+        245,
+        300
+      ],
+      "bounds": [
+        65,
+        79,
+        135,
+        165
+      ],
+      "area": 43659
+    },
+    {
+      "id": "witch",
+      "row": 0,
+      "col": 1,
+      "sourceCol": 1,
+      "sourceBounds": [
+        347,
+        15,
+        252,
+        300
+      ],
+      "bounds": [
+        60,
+        79,
+        139,
+        165
+      ],
+      "area": 45764
+    },
+    {
+      "id": "witch",
+      "row": 0,
+      "col": 3,
+      "sourceCol": 3,
+      "sourceBounds": [
+        974,
+        16,
+        244,
+        299
+      ],
+      "bounds": [
+        60,
+        80,
+        134,
+        164
+      ],
+      "area": 42590
+    },
+    {
+      "id": "witch",
+      "row": 0,
+      "col": 2,
+      "sourceCol": 2,
+      "sourceBounds": [
+        661,
+        20,
+        251,
+        295
+      ],
+      "bounds": [
+        60,
+        82,
+        138,
+        162
+      ],
+      "area": 45123
+    },
+    {
+      "id": "witch",
+      "row": 1,
+      "col": 2,
+      "sourceCol": 2,
+      "sourceBounds": [
+        665,
+        324,
+        268,
+        302
+      ],
+      "bounds": [
+        63,
+        78,
+        147,
+        166
+      ],
+      "area": 46901
+    },
+    {
+      "id": "witch",
+      "row": 1,
+      "col": 0,
+      "sourceCol": 0,
+      "sourceBounds": [
+        36,
+        326,
+        251,
+        300
+      ],
+      "bounds": [
+        62,
+        79,
+        138,
+        165
+      ],
+      "area": 44208
+    },
+    {
+      "id": "witch",
+      "row": 1,
+      "col": 1,
+      "sourceCol": 1,
+      "sourceBounds": [
+        353,
+        326,
+        250,
+        300
+      ],
+      "bounds": [
+        64,
+        79,
+        138,
+        165
+      ],
+      "area": 46290
+    },
+    {
+      "id": "witch",
+      "row": 1,
+      "col": 3,
+      "sourceCol": 3,
+      "sourceBounds": [
+        974,
+        326,
+        248,
+        300
+      ],
+      "bounds": [
+        60,
+        79,
+        136,
+        165
+      ],
+      "area": 43104
+    },
+    {
+      "id": "witch",
+      "row": 2,
+      "col": 3,
+      "sourceCol": 3,
+      "sourceBounds": [
+        977,
+        632,
+        253,
+        301
+      ],
+      "bounds": [
+        62,
+        78,
+        139,
+        166
+      ],
+      "area": 44857
+    },
+    {
+      "id": "witch",
+      "row": 2,
+      "col": 0,
+      "sourceCol": 0,
+      "sourceBounds": [
+        40,
+        634,
+        254,
+        296
+      ],
+      "bounds": [
+        64,
+        81,
+        140,
+        163
+      ],
+      "area": 45917
+    },
+    {
+      "id": "witch",
+      "row": 2,
+      "col": 1,
+      "sourceCol": 1,
+      "sourceBounds": [
+        365,
+        635,
+        253,
+        295
+      ],
+      "bounds": [
+        70,
+        82,
+        139,
+        162
+      ],
+      "area": 45557
+    },
+    {
+      "id": "witch",
+      "row": 2,
+      "col": 2,
+      "sourceCol": 2,
+      "sourceBounds": [
+        677,
+        637,
+        246,
+        292
+      ],
+      "bounds": [
+        69,
+        83,
+        135,
+        161
+      ],
+      "area": 42722
+    },
+    {
+      "id": "witch",
+      "row": 3,
+      "col": 2,
+      "sourceCol": 2,
+      "sourceBounds": [
+        680,
+        932,
+        242,
+        300
+      ],
+      "bounds": [
+        71,
+        79,
+        133,
+        165
+      ],
+      "area": 47497
+    },
+    {
+      "id": "witch",
+      "row": 3,
+      "col": 1,
+      "sourceCol": 1,
+      "sourceBounds": [
+        352,
+        935,
+        268,
+        296
+      ],
+      "bounds": [
+        63,
+        81,
+        147,
+        163
+      ],
+      "area": 46231
+    },
+    {
+      "id": "witch",
+      "row": 3,
+      "col": 3,
+      "sourceCol": 3,
+      "sourceBounds": [
+        988,
+        939,
+        238,
+        294
+      ],
+      "bounds": [
+        68,
+        82,
+        131,
+        162
+      ],
+      "area": 42078
+    },
+    {
+      "id": "witch",
+      "row": 3,
+      "col": 0,
+      "sourceCol": 0,
+      "sourceBounds": [
+        37,
+        956,
+        258,
+        282
+      ],
+      "bounds": [
+        62,
+        89,
+        142,
+        155
+      ],
+      "area": 44283
+    },
+    {
+      "id": "warrior",
+      "row": 0,
+      "col": 2,
+      "sourceCol": 2,
+      "sourceBounds": [
+        656,
+        30,
+        305,
+        280
+      ],
+      "bounds": [
+        58,
+        90,
+        168,
+        154
+      ],
+      "area": 47044
+    },
+    {
+      "id": "warrior",
+      "row": 0,
+      "col": 0,
+      "sourceCol": 0,
+      "sourceBounds": [
+        24,
+        31,
+        263,
+        274
+      ],
+      "bounds": [
+        55,
+        93,
+        145,
+        151
+      ],
+      "area": 48891
+    },
+    {
+      "id": "warrior",
+      "row": 0,
+      "col": 1,
+      "sourceCol": 1,
+      "sourceBounds": [
+        329,
+        32,
+        349,
+        273
+      ],
+      "bounds": [
+        50,
+        94,
+        192,
+        150
+      ],
+      "area": 49774
+    },
+    {
+      "id": "warrior",
+      "row": 0,
+      "col": 3,
+      "sourceCol": 3,
+      "sourceBounds": [
+        985,
+        32,
+        232,
+        278
+      ],
+      "bounds": [
+        66,
+        91,
+        128,
+        153
+      ],
+      "area": 42416
+    },
+    {
+      "id": "warrior",
+      "row": 1,
+      "col": 0,
+      "sourceCol": 0,
+      "sourceBounds": [
+        27,
+        317,
+        277,
+        310
+      ],
+      "bounds": [
+        57,
+        73,
+        152,
+        171
+      ],
+      "area": 49706
+    },
+    {
+      "id": "warrior",
+      "row": 1,
+      "col": 3,
+      "sourceCol": 3,
+      "sourceBounds": [
+        968,
+        324,
+        258,
+        304
+      ],
+      "bounds": [
+        57,
+        77,
+        142,
+        167
+      ],
+      "area": 48125
+    },
+    {
+      "id": "warrior",
+      "row": 1,
+      "col": 1,
+      "sourceCol": 1,
+      "sourceBounds": [
+        337,
+        360,
+        258,
+        267
+      ],
+      "bounds": [
+        55,
+        97,
+        142,
+        147
+      ],
+      "area": 45556
+    },
+    {
+      "id": "warrior",
+      "row": 1,
+      "col": 2,
+      "sourceCol": 2,
+      "sourceBounds": [
+        656,
+        397,
+        261,
+        230
+      ],
+      "bounds": [
+        58,
+        117,
+        144,
+        127
+      ],
+      "area": 40190
+    },
+    {
+      "id": "warrior",
+      "row": 2,
+      "col": 1,
+      "sourceCol": 1,
+      "sourceBounds": [
+        340,
+        618,
+        271,
+        331
+      ],
+      "bounds": [
+        56,
+        62,
+        149,
+        182
+      ],
+      "area": 50373
+    },
+    {
+      "id": "warrior",
+      "row": 2,
+      "col": 0,
+      "sourceCol": 0,
+      "sourceBounds": [
+        35,
+        669,
+        267,
+        278
+      ],
+      "bounds": [
+        61,
+        91,
+        147,
+        153
+      ],
+      "area": 48337
+    },
+    {
+      "id": "warrior",
+      "row": 2,
+      "col": 3,
+      "sourceCol": 3,
+      "sourceBounds": [
+        978,
+        673,
+        243,
+        275
+      ],
+      "bounds": [
+        62,
+        93,
+        134,
+        151
+      ],
+      "area": 43021
+    },
+    {
+      "id": "warrior",
+      "row": 2,
+      "col": 2,
+      "sourceCol": 2,
+      "sourceBounds": [
+        656,
+        683,
+        264,
+        266
+      ],
+      "bounds": [
+        58,
+        98,
+        145,
+        146
+      ],
+      "area": 45155
+    },
+    {
+      "id": "warrior",
+      "row": 3,
+      "col": 1,
+      "sourceCol": 1,
+      "sourceBounds": [
+        339,
+        963,
+        306,
+        269
+      ],
+      "bounds": [
+        56,
+        96,
+        168,
+        148
+      ],
+      "area": 47178
+    },
+    {
+      "id": "warrior",
+      "row": 3,
+      "col": 2,
+      "sourceCol": 2,
+      "sourceBounds": [
+        662,
+        963,
+        274,
+        269
+      ],
+      "bounds": [
+        61,
+        96,
+        151,
+        148
+      ],
+      "area": 44005
+    },
+    {
+      "id": "warrior",
+      "row": 3,
+      "col": 0,
+      "sourceCol": 0,
+      "sourceBounds": [
+        27,
+        973,
+        284,
+        255
+      ],
+      "bounds": [
+        57,
+        104,
+        156,
+        140
+      ],
+      "area": 47122
+    },
+    {
+      "id": "warrior",
+      "row": 3,
+      "col": 3,
+      "sourceCol": 3,
+      "sourceBounds": [
+        975,
+        977,
+        252,
+        250
+      ],
+      "bounds": [
+        61,
+        106,
+        139,
+        138
+      ],
+      "area": 41335
+    },
+    {
+      "id": "archer",
+      "row": 0,
+      "col": 0,
+      "sourceCol": 0,
+      "sourceBounds": [
+        23,
+        29,
+        305,
+        285
+      ],
+      "bounds": [
+        54,
+        87,
+        168,
+        157
+      ],
+      "area": 50362
+    },
+    {
+      "id": "archer",
+      "row": 0,
+      "col": 1,
+      "sourceCol": 1,
+      "sourceBounds": [
+        342,
+        30,
+        286,
+        285
+      ],
+      "bounds": [
+        57,
+        87,
+        157,
+        157
+      ],
+      "area": 50311
+    },
+    {
+      "id": "archer",
+      "row": 0,
+      "col": 2,
+      "sourceCol": 1,
+      "sourceBounds": [
+        342,
+        30,
+        286,
+        285
+      ],
+      "bounds": [
+        57,
+        87,
+        157,
+        157
+      ],
+      "area": 50311
+    },
+    {
+      "id": "archer",
+      "row": 0,
+      "col": 3,
+      "sourceCol": 3,
+      "sourceBounds": [
+        975,
+        30,
+        251,
+        286
+      ],
+      "bounds": [
+        61,
+        87,
+        138,
+        157
+      ],
+      "area": 45056
+    },
+    {
+      "id": "archer",
+      "row": 1,
+      "col": 2,
+      "sourceCol": 1,
+      "sourceBounds": [
+        351,
+        330,
+        267,
+        298
+      ],
+      "bounds": [
+        62,
+        80,
+        147,
+        164
+      ],
+      "area": 49394
+    },
+    {
+      "id": "archer",
+      "row": 1,
+      "col": 0,
+      "sourceCol": 0,
+      "sourceBounds": [
+        26,
+        321,
+        275,
+        307
+      ],
+      "bounds": [
+        56,
+        75,
+        151,
+        169
+      ],
+      "area": 51566
+    },
+    {
+      "id": "archer",
+      "row": 1,
+      "col": 3,
+      "sourceCol": 3,
+      "sourceBounds": [
+        975,
+        329,
+        257,
+        299
+      ],
+      "bounds": [
+        61,
+        80,
+        141,
+        164
+      ],
+      "area": 46276
+    },
+    {
+      "id": "archer",
+      "row": 1,
+      "col": 1,
+      "sourceCol": 1,
+      "sourceBounds": [
+        351,
+        330,
+        267,
+        298
+      ],
+      "bounds": [
+        62,
+        80,
+        147,
+        164
+      ],
+      "area": 49394
+    },
+    {
+      "id": "archer",
+      "row": 2,
+      "col": 3,
+      "sourceCol": 3,
+      "sourceBounds": [
+        977,
+        642,
+        252,
+        295
+      ],
+      "bounds": [
+        62,
+        82,
+        139,
+        162
+      ],
+      "area": 46734
+    },
+    {
+      "id": "archer",
+      "row": 2,
+      "col": 0,
+      "sourceCol": 0,
+      "sourceBounds": [
+        27,
+        643,
+        249,
+        294
+      ],
+      "bounds": [
+        57,
+        82,
+        137,
+        162
+      ],
+      "area": 45543
+    },
+    {
+      "id": "archer",
+      "row": 2,
+      "col": 2,
+      "sourceCol": 2,
+      "sourceBounds": [
+        659,
+        656,
+        266,
+        282
+      ],
+      "bounds": [
+        59,
+        89,
+        146,
+        155
+      ],
+      "area": 44807
+    },
+    {
+      "id": "archer",
+      "row": 2,
+      "col": 1,
+      "sourceCol": 1,
+      "sourceBounds": [
+        339,
+        678,
+        280,
+        258
+      ],
+      "bounds": [
+        56,
+        102,
+        154,
+        142
+      ],
+      "area": 48219
+    },
+    {
+      "id": "archer",
+      "row": 3,
+      "col": 1,
+      "sourceCol": 1,
+      "sourceBounds": [
+        345,
+        940,
+        271,
+        239
+      ],
+      "bounds": [
+        59,
+        83,
+        149,
+        131
+      ],
+      "area": 39584
+    },
+    {
+      "id": "archer",
+      "row": 3,
+      "col": 3,
+      "sourceCol": 3,
+      "sourceBounds": [
+        975,
+        951,
+        251,
+        288
+      ],
+      "bounds": [
+        61,
+        86,
+        138,
+        158
+      ],
+      "area": 45529
+    },
+    {
+      "id": "archer",
+      "row": 3,
+      "col": 0,
+      "sourceCol": 0,
+      "sourceBounds": [
+        27,
+        958,
+        283,
+        277
+      ],
+      "bounds": [
+        57,
+        92,
+        156,
+        152
+      ],
+      "area": 48976
+    },
+    {
+      "id": "archer",
+      "row": 3,
+      "col": 2,
+      "sourceCol": 2,
+      "sourceBounds": [
+        652,
+        970,
+        288,
+        267
+      ],
+      "bounds": [
+        56,
+        97,
+        158,
+        147
+      ],
+      "area": 49361
+    }
+  ]
+}

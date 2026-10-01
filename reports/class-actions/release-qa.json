@@ -1,0 +1,18 @@
+{
+  "version": "0.02.133",
+  "base": "37e84e33981a95c32a12a70755e1db151061c3f7",
+  "classTests": 87,
+  "mobileClassCases": 14,
+  "errors": [],
+  "liveAccountsTouched": false,
+  "libraryPreview": "libfile_8db8ab1aaf048191adb00136e3596822",
+  "visualReview": "All 12 action rows inspected; equipment hands stay authored, no mirrors. Archer release pose held to avoid redrawing an arrow after release. Frontal three-quarter attack view, not four directional sheets.",
+  "remainingLimits": [
+    "Physical-phone input/display not tested",
+    "Remote peer test uses two isolated Chromium contexts and mock transport, not live user accounts",
+    "Existing art is provisionally accepted; further polish deferred"
+  ],
+  "cadenceBrowserCases": 24,
+  "remoteBrowserContexts": 2,
+  "movingAttackLifecycleCases": 3
+}
