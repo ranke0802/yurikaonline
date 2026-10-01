@@ -1,0 +1,4158 @@
+{
+  "coverage": "Chromium desktop, isolated local storage. Save timings are not RTDB latency. Decode calls overlap; do not sum them.",
+  "cases": [
+    {
+      "trial": 0,
+      "id": "wizard",
+      "cache": "first-return",
+      "uiReadyMs": 6.2999999999883585,
+      "campImagesMs": 106,
+      "paintedMs": 144.29999999998836,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8999999999650754,
+          "ms": 0.8000000000465661
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 2.099999999976717,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 3.2000000000116415,
+          "ms": 0.3999999999650754
+        },
+        {
+          "label": "profile",
+          "start": 3.599999999976717,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "definition",
+          "start": 4.2000000000116415,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 5,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 5.399999999965075,
+          "ms": 0.9000000000232831
+        },
+        {
+          "label": "decode",
+          "start": 6.399999999965075,
+          "ms": 11.700000000011642
+        },
+        {
+          "label": "decode",
+          "start": 6.399999999965075,
+          "ms": 44.20000000001164
+        },
+        {
+          "label": "decode",
+          "start": 6.399999999965075,
+          "ms": 58.800000000046566
+        },
+        {
+          "label": "decode",
+          "start": 6.399999999965075,
+          "ms": 73.70000000001164
+        },
+        {
+          "label": "decode",
+          "start": 6.399999999965075,
+          "ms": 91.30000000004657
+        },
+        {
+          "label": "decode",
+          "start": 6.399999999965075,
+          "ms": 106
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 0,
+      "id": "wizard",
+      "cache": "warm",
+      "uiReadyMs": 4,
+      "campImagesMs": 2.900000000023283,
+      "paintedMs": 26.70000000001164,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.7999999999883585,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.2000000000116415,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.2999999999883585,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "ui-build",
+          "start": 2.099999999976717,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "profile",
+          "start": 2.5,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "definition",
+          "start": 2.7999999999883585,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 3.2999999999883585,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 3.5,
+          "ms": 0.5
+        },
+        {
+          "label": "decode",
+          "start": 4,
+          "ms": 2.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 4,
+          "ms": 2.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 4,
+          "ms": 2.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 4,
+          "ms": 2.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 4,
+          "ms": 2.900000000023283
+        },
+        {
+          "label": "decode",
+          "start": 4,
+          "ms": 2.900000000023283
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 0,
+      "id": "wizard",
+      "cache": "evicted",
+      "uiReadyMs": 19.29999999998836,
+      "campImagesMs": 0.29999999998835847,
+      "paintedMs": 172.5,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.6999999999534339,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.099999999976717,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.1999999999534339,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "ui-build",
+          "start": 2.599999999976717,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 3.099999999976717,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "definition",
+          "start": 3.199999999953434,
+          "ms": 12.700000000011642
+        },
+        {
+          "label": "ui-build",
+          "start": 18.399999999965075,
+          "ms": 0.9000000000232831
+        },
+        {
+          "label": "decode",
+          "start": 19.29999999998836,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 19.29999999998836,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 19.29999999998836,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 19.29999999998836,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 19.29999999998836,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 19.29999999998836,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 19.599999999976717,
+          "ms": 2
+        },
+        {
+          "label": "mage-compose",
+          "start": 21.599999999976717,
+          "ms": 11.700000000011642
+        },
+        {
+          "label": "decode",
+          "start": 19.599999999976717,
+          "ms": 13.900000000023283
+        },
+        {
+          "label": "mage-compose",
+          "start": 33.5,
+          "ms": 3.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 19.599999999976717,
+          "ms": 17.900000000023283
+        },
+        {
+          "label": "mage-compose",
+          "start": 37.5,
+          "ms": 3.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 19.599999999976717,
+          "ms": 21.79999999998836
+        },
+        {
+          "label": "mage-compose",
+          "start": 41.399999999965075,
+          "ms": 3.900000000023283
+        },
+        {
+          "label": "decode",
+          "start": 19.699999999953434,
+          "ms": 25.70000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 45.399999999965075,
+          "ms": 4.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 19.699999999953434,
+          "ms": 30
+        },
+        {
+          "label": "mage-compose",
+          "start": 49.699999999953434,
+          "ms": 3.900000000023283
+        },
+        {
+          "label": "decode",
+          "start": 19.699999999953434,
+          "ms": 33.90000000002328
+        },
+        {
+          "label": "mage-compose",
+          "start": 53.59999999997672,
+          "ms": 4.2999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 19.699999999953434,
+          "ms": 38.70000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 58.399999999965075,
+          "ms": 3.900000000023283
+        },
+        {
+          "label": "decode",
+          "start": 19.699999999953434,
+          "ms": 42.800000000046566
+        },
+        {
+          "label": "mage-compose",
+          "start": 62.5,
+          "ms": 4.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 19.699999999953434,
+          "ms": 47
+        },
+        {
+          "label": "mage-compose",
+          "start": 66.69999999995343,
+          "ms": 4.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 19.699999999953434,
+          "ms": 51.40000000002328
+        },
+        {
+          "label": "mage-compose",
+          "start": 71.09999999997672,
+          "ms": 4.400000000023283
+        },
+        {
+          "label": "decode",
+          "start": 19.699999999953434,
+          "ms": 55.90000000002328
+        },
+        {
+          "label": "mage-compose",
+          "start": 75.59999999997672,
+          "ms": 4.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 19.699999999953434,
+          "ms": 60.20000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 79.89999999996508,
+          "ms": 4.100000000034925
+        },
+        {
+          "label": "decode",
+          "start": 19.699999999953434,
+          "ms": 64.5
+        },
+        {
+          "label": "mage-compose",
+          "start": 84.19999999995343,
+          "ms": 4.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 19.79999999998836,
+          "ms": 68.70000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 88.5,
+          "ms": 4.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 19.79999999998836,
+          "ms": 72.89999999996508
+        },
+        {
+          "label": "mage-compose",
+          "start": 92.69999999995343,
+          "ms": 4.400000000023283
+        },
+        {
+          "label": "decode",
+          "start": 19.79999999998836,
+          "ms": 77.5
+        },
+        {
+          "label": "mage-compose",
+          "start": 97.29999999998836,
+          "ms": 4
+        },
+        {
+          "label": "decode",
+          "start": 19.79999999998836,
+          "ms": 81.59999999997672
+        },
+        {
+          "label": "mage-compose",
+          "start": 101.39999999996508,
+          "ms": 4.2999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 19.79999999998836,
+          "ms": 86
+        },
+        {
+          "label": "mage-compose",
+          "start": 105.79999999998836,
+          "ms": 4
+        },
+        {
+          "label": "decode",
+          "start": 19.79999999998836,
+          "ms": 90.09999999997672
+        },
+        {
+          "label": "mage-compose",
+          "start": 110,
+          "ms": 4.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 19.79999999998836,
+          "ms": 94.39999999996508
+        },
+        {
+          "label": "mage-compose",
+          "start": 114.19999999995343,
+          "ms": 4.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 19.79999999998836,
+          "ms": 98.70000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 118.59999999997672,
+          "ms": 4
+        },
+        {
+          "label": "decode",
+          "start": 19.899999999965075,
+          "ms": 102.90000000002328
+        },
+        {
+          "label": "mage-compose",
+          "start": 122.79999999998836,
+          "ms": 4.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 19.899999999965075,
+          "ms": 107.10000000003492
+        },
+        {
+          "label": "mage-compose",
+          "start": 127.09999999997672,
+          "ms": 4.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 19.899999999965075,
+          "ms": 111.5
+        },
+        {
+          "label": "mage-compose",
+          "start": 131.39999999996508,
+          "ms": 4.2999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 19.899999999965075,
+          "ms": 115.79999999998836
+        },
+        {
+          "label": "mage-compose",
+          "start": 135.69999999995343,
+          "ms": 4.100000000034925
+        },
+        {
+          "label": "decode",
+          "start": 19.899999999965075,
+          "ms": 120
+        },
+        {
+          "label": "mage-compose",
+          "start": 139.89999999996508,
+          "ms": 4.100000000034925
+        },
+        {
+          "label": "decode",
+          "start": 19.899999999965075,
+          "ms": 124.20000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 144.09999999997672,
+          "ms": 4.7000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 19.899999999965075,
+          "ms": 129
+        },
+        {
+          "label": "mage-compose",
+          "start": 148.89999999996508,
+          "ms": 4
+        },
+        {
+          "label": "decode",
+          "start": 19.899999999965075,
+          "ms": 133.10000000003492
+        },
+        {
+          "label": "mage-compose",
+          "start": 153,
+          "ms": 4.599999999976717
+        },
+        {
+          "label": "decode",
+          "start": 20,
+          "ms": 137.69999999995343
+        },
+        {
+          "label": "mage-compose",
+          "start": 157.69999999995343,
+          "ms": 4.100000000034925
+        },
+        {
+          "label": "decode",
+          "start": 20,
+          "ms": 141.89999999996508
+        },
+        {
+          "label": "mage-compose",
+          "start": 162,
+          "ms": 4.599999999976717
+        },
+        {
+          "label": "decode",
+          "start": 20,
+          "ms": 146.69999999995343
+        },
+        {
+          "label": "mage-compose",
+          "start": 166.69999999995343,
+          "ms": 3.800000000046566
+        },
+        {
+          "label": "field-assets",
+          "start": 16.5,
+          "ms": 154.09999999997672
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 0,
+      "id": "witch",
+      "cache": "first-return",
+      "uiReadyMs": 5.900000000023283,
+      "campImagesMs": 89.09999999997672,
+      "paintedMs": 127.10000000003492,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.9000000000232831,
+          "ms": 0.8999999999650754
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.7999999999883585,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "world-exit",
+          "start": 2,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "ui-build",
+          "start": 3.1000000000349246,
+          "ms": 0.3999999999650754
+        },
+        {
+          "label": "profile",
+          "start": 3.5,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "definition",
+          "start": 4.100000000034925,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 4.7000000000116415,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 5.100000000034925,
+          "ms": 0.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 6,
+          "ms": 5.600000000034925
+        },
+        {
+          "label": "decode",
+          "start": 6,
+          "ms": 29.400000000023283
+        },
+        {
+          "label": "decode",
+          "start": 6,
+          "ms": 42.600000000034925
+        },
+        {
+          "label": "decode",
+          "start": 6,
+          "ms": 54
+        },
+        {
+          "label": "decode",
+          "start": 6,
+          "ms": 76.20000000001164
+        },
+        {
+          "label": "decode",
+          "start": 6,
+          "ms": 89
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 0,
+      "id": "witch",
+      "cache": "warm",
+      "uiReadyMs": 5,
+      "campImagesMs": 1.900000000023283,
+      "paintedMs": 28,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.7999999999883585,
+          "ms": 0.5
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.2999999999883585,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.400000000023283,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "ui-build",
+          "start": 2.5,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 3,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "definition",
+          "start": 3.400000000023283,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 4,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 4.2000000000116415,
+          "ms": 0.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 1.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 5.100000000034925,
+          "ms": 1.6999999999534339
+        },
+        {
+          "label": "decode",
+          "start": 5.100000000034925,
+          "ms": 1.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 5.100000000034925,
+          "ms": 1.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 5.100000000034925,
+          "ms": 1.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 5.100000000034925,
+          "ms": 1.7999999999883585
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 0,
+      "id": "witch",
+      "cache": "evicted",
+      "uiReadyMs": 17.79999999998836,
+      "campImagesMs": 0.20000000001164153,
+      "paintedMs": 41.59999999997672,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.7999999999883585,
+          "ms": 0.5
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.2999999999883585,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.2999999999883585,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 3.5,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "profile",
+          "start": 3.900000000023283,
+          "ms": 0.19999999995343387
+        },
+        {
+          "label": "definition",
+          "start": 4.099999999976717,
+          "ms": 10.700000000011642
+        },
+        {
+          "label": "ui-build",
+          "start": 16.599999999976717,
+          "ms": 1.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 17.79999999998836,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "decode",
+          "start": 17.79999999998836,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "decode",
+          "start": 17.79999999998836,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 17.79999999998836,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 17.79999999998836,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 17.79999999998836,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 18,
+          "ms": 0
+        },
+        {
+          "label": "decode",
+          "start": 18,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "decode",
+          "start": 18.099999999976717,
+          "ms": 0
+        },
+        {
+          "label": "decode",
+          "start": 18.099999999976717,
+          "ms": 0
+        },
+        {
+          "label": "decode",
+          "start": 18.099999999976717,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "decode",
+          "start": 22.400000000023283,
+          "ms": 15.599999999976717
+        },
+        {
+          "label": "field-assets",
+          "start": 15.5,
+          "ms": 22.599999999976717
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 0,
+      "id": "warrior",
+      "cache": "first-return",
+      "uiReadyMs": 5.699999999953434,
+      "campImagesMs": 88.20000000001164,
+      "paintedMs": 124.89999999996508,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1,
+          "ms": 0.7999999999883585
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.8999999999650754,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.8999999999650754,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 3.199999999953434,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "profile",
+          "start": 3.599999999976717,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "definition",
+          "start": 4.199999999953434,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 4.7999999999883585,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 4.899999999965075,
+          "ms": 0.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 5.699999999953434,
+          "ms": 7.5
+        },
+        {
+          "label": "decode",
+          "start": 5.7999999999883585,
+          "ms": 38.20000000001164
+        },
+        {
+          "label": "decode",
+          "start": 5.7999999999883585,
+          "ms": 46.79999999998836
+        },
+        {
+          "label": "decode",
+          "start": 5.7999999999883585,
+          "ms": 61.5
+        },
+        {
+          "label": "decode",
+          "start": 5.7999999999883585,
+          "ms": 72.89999999996508
+        },
+        {
+          "label": "decode",
+          "start": 5.7999999999883585,
+          "ms": 88.09999999997672
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 0,
+      "id": "warrior",
+      "cache": "warm",
+      "uiReadyMs": 4.899999999965075,
+      "campImagesMs": 2.2000000000116415,
+      "paintedMs": 27.599999999976717,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8999999999650754,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.2999999999883585,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "world-exit",
+          "start": 1.5,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "ui-build",
+          "start": 2.599999999976717,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 3.099999999976717,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "definition",
+          "start": 3.3999999999650754,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 3.8999999999650754,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "ui-build",
+          "start": 4.099999999976717,
+          "ms": 0.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.099999999976717
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 0,
+      "id": "warrior",
+      "cache": "evicted",
+      "uiReadyMs": 18.79999999998836,
+      "campImagesMs": 0.3999999999650754,
+      "paintedMs": 45.09999999997672,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.6999999999534339,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.099999999976717,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.2999999999883585,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "ui-build",
+          "start": 2.7999999999883585,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "profile",
+          "start": 3.099999999976717,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "definition",
+          "start": 3.199999999953434,
+          "ms": 12.800000000046566
+        },
+        {
+          "label": "ui-build",
+          "start": 17.899999999965075,
+          "ms": 0.9000000000232831
+        },
+        {
+          "label": "decode",
+          "start": 18.79999999998836,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 18.79999999998836,
+          "ms": 0.3999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 18.79999999998836,
+          "ms": 0.3999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 18.79999999998836,
+          "ms": 0.3999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 18.79999999998836,
+          "ms": 0.3999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 18.79999999998836,
+          "ms": 0.3999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 19.199999999953434,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "decode",
+          "start": 19.199999999953434,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "decode",
+          "start": 19.29999999998836,
+          "ms": 0
+        },
+        {
+          "label": "decode",
+          "start": 23.899999999965075,
+          "ms": 17.600000000034925
+        },
+        {
+          "label": "field-assets",
+          "start": 16.79999999998836,
+          "ms": 24.70000000001164
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 0,
+      "id": "archer",
+      "cache": "first-return",
+      "uiReadyMs": 7.099999999976717,
+      "campImagesMs": 106.29999999998836,
+      "paintedMs": 125.70000000001164,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1.099999999976717,
+          "ms": 0.9000000000232831
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2.099999999976717,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 2.2000000000116415,
+          "ms": 0.5999999999767169
+        },
+        {
+          "label": "ui-build",
+          "start": 3.900000000023283,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "profile",
+          "start": 4.2999999999883585,
+          "ms": 0.5
+        },
+        {
+          "label": "definition",
+          "start": 5.099999999976717,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 5.7999999999883585,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 6,
+          "ms": 1.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 7
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 50.5
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 76.59999999997672
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 79.89999999996508
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 106.29999999998836
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 106.29999999998836
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 0,
+      "id": "archer",
+      "cache": "warm",
+      "uiReadyMs": 4.400000000023283,
+      "campImagesMs": 1.7999999999883585,
+      "paintedMs": 27.5,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.7000000000116415,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.400000000023283,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.400000000023283,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "ui-build",
+          "start": 2.300000000046566,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 2.800000000046566,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "definition",
+          "start": 3.1000000000349246,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 3.5,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 3.800000000046566,
+          "ms": 0.5999999999767169
+        },
+        {
+          "label": "decode",
+          "start": 4.400000000023283,
+          "ms": 1.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 4.5,
+          "ms": 1.7000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 4.5,
+          "ms": 1.7000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 4.5,
+          "ms": 1.7000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 4.5,
+          "ms": 1.7000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 4.5,
+          "ms": 1.7000000000116415
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 0,
+      "id": "archer",
+      "cache": "evicted",
+      "uiReadyMs": 18.20000000001164,
+      "campImagesMs": 2.5,
+      "paintedMs": 45.20000000001164,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.5,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.6000000000349246,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "ui-build",
+          "start": 3.300000000046566,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 3.800000000046566,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "definition",
+          "start": 3.900000000023283,
+          "ms": 11
+        },
+        {
+          "label": "ui-build",
+          "start": 17.20000000001164,
+          "ms": 1
+        },
+        {
+          "label": "decode",
+          "start": 18.20000000001164,
+          "ms": 2.400000000023283
+        },
+        {
+          "label": "decode",
+          "start": 18.20000000001164,
+          "ms": 2.5
+        },
+        {
+          "label": "decode",
+          "start": 18.20000000001164,
+          "ms": 2.5
+        },
+        {
+          "label": "decode",
+          "start": 18.20000000001164,
+          "ms": 2.5
+        },
+        {
+          "label": "decode",
+          "start": 18.20000000001164,
+          "ms": 2.5
+        },
+        {
+          "label": "decode",
+          "start": 18.20000000001164,
+          "ms": 2.5
+        },
+        {
+          "label": "decode",
+          "start": 18.400000000023283,
+          "ms": 2.2999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 18.5,
+          "ms": 2.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 18.5,
+          "ms": 2.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 23.70000000001164,
+          "ms": 18.70000000001164
+        },
+        {
+          "label": "field-assets",
+          "start": 15.700000000011642,
+          "ms": 26.79999999998836
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 1,
+      "id": "witch",
+      "cache": "first-return",
+      "uiReadyMs": 7.2999999999883585,
+      "campImagesMs": 83.10000000003492,
+      "paintedMs": 110.29999999998836,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1.099999999976717,
+          "ms": 0.9000000000232831
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "world-exit",
+          "start": 2.2000000000116415,
+          "ms": 0.5999999999767169
+        },
+        {
+          "label": "ui-build",
+          "start": 3.7000000000116415,
+          "ms": 0.3999999999650754
+        },
+        {
+          "label": "profile",
+          "start": 4.099999999976717,
+          "ms": 0.5
+        },
+        {
+          "label": "definition",
+          "start": 4.900000000023283,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 5.7999999999883585,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 6.2000000000116415,
+          "ms": 1.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 7.400000000023283,
+          "ms": 5.2999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 7.400000000023283,
+          "ms": 46.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 7.400000000023283,
+          "ms": 56.09999999997672
+        },
+        {
+          "label": "decode",
+          "start": 7.400000000023283,
+          "ms": 82.89999999996508
+        },
+        {
+          "label": "decode",
+          "start": 7.400000000023283,
+          "ms": 83
+        },
+        {
+          "label": "decode",
+          "start": 7.400000000023283,
+          "ms": 83
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 1,
+      "id": "witch",
+      "cache": "warm",
+      "uiReadyMs": 4.399999999965075,
+      "campImagesMs": 3.400000000023283,
+      "paintedMs": 28.5,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.7999999999883585,
+          "ms": 0.3999999999650754
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.1999999999534339,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "world-exit",
+          "start": 1.2999999999883585,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 2.5,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 3,
+          "ms": 0
+        },
+        {
+          "label": "definition",
+          "start": 3.2999999999883585,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 3.699999999953434,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 3.8999999999650754,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "decode",
+          "start": 4.399999999965075,
+          "ms": 2.900000000023283
+        },
+        {
+          "label": "decode",
+          "start": 4.399999999965075,
+          "ms": 2.900000000023283
+        },
+        {
+          "label": "decode",
+          "start": 4.399999999965075,
+          "ms": 2.900000000023283
+        },
+        {
+          "label": "decode",
+          "start": 4.399999999965075,
+          "ms": 2.900000000023283
+        },
+        {
+          "label": "decode",
+          "start": 4.399999999965075,
+          "ms": 3.400000000023283
+        },
+        {
+          "label": "decode",
+          "start": 4.399999999965075,
+          "ms": 3.400000000023283
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 1,
+      "id": "witch",
+      "cache": "evicted",
+      "uiReadyMs": 17,
+      "campImagesMs": 0.6000000000349246,
+      "paintedMs": 43.29999999998836,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.7000000000116415,
+          "ms": 0.5999999999767169
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.2999999999883585,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "world-exit",
+          "start": 1.5,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "ui-build",
+          "start": 3.2000000000116415,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "profile",
+          "start": 3.5,
+          "ms": 0
+        },
+        {
+          "label": "definition",
+          "start": 3.5,
+          "ms": 10.799999999988358
+        },
+        {
+          "label": "ui-build",
+          "start": 16,
+          "ms": 1
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 0.6000000000349246
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 0.6000000000349246
+        },
+        {
+          "label": "decode",
+          "start": 17.29999999998836,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "decode",
+          "start": 17.400000000023283,
+          "ms": 0.5999999999767169
+        },
+        {
+          "label": "decode",
+          "start": 18,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 18.100000000034925,
+          "ms": 0.19999999995343387
+        },
+        {
+          "label": "decode",
+          "start": 18.29999999998836,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "decode",
+          "start": 22.29999999998836,
+          "ms": 17.20000000001164
+        },
+        {
+          "label": "field-assets",
+          "start": 15,
+          "ms": 24.70000000001164
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 1,
+      "id": "warrior",
+      "cache": "first-return",
+      "uiReadyMs": 7.5,
+      "campImagesMs": 77.70000000001164,
+      "paintedMs": 110.40000000002328,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.7999999999883585,
+          "ms": 1.1000000000349246
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "world-exit",
+          "start": 2.2000000000116415,
+          "ms": 0.7000000000116415
+        },
+        {
+          "label": "ui-build",
+          "start": 3.7999999999883585,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "profile",
+          "start": 4.2000000000116415,
+          "ms": 0.3999999999650754
+        },
+        {
+          "label": "definition",
+          "start": 4.7999999999883585,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 5.5,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 5.7000000000116415,
+          "ms": 1.7000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 7.5,
+          "ms": 5.599999999976717
+        },
+        {
+          "label": "decode",
+          "start": 7.599999999976717,
+          "ms": 34.90000000002328
+        },
+        {
+          "label": "decode",
+          "start": 7.599999999976717,
+          "ms": 63.5
+        },
+        {
+          "label": "decode",
+          "start": 7.599999999976717,
+          "ms": 77.60000000003492
+        },
+        {
+          "label": "decode",
+          "start": 7.599999999976717,
+          "ms": 77.60000000003492
+        },
+        {
+          "label": "decode",
+          "start": 7.599999999976717,
+          "ms": 77.60000000003492
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 1,
+      "id": "warrior",
+      "cache": "warm",
+      "uiReadyMs": 4.2999999999883585,
+      "campImagesMs": 2,
+      "paintedMs": 28.70000000001164,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.7000000000116415,
+          "ms": 0.6999999999534339
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.3999999999650754,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.5,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "ui-build",
+          "start": 2.5,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 3,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "definition",
+          "start": 3.2000000000116415,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "field-assets",
+          "start": 3.599999999976717,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 3.7999999999883585,
+          "ms": 0.5
+        },
+        {
+          "label": "decode",
+          "start": 4.2999999999883585,
+          "ms": 1.900000000023283
+        },
+        {
+          "label": "decode",
+          "start": 4.2999999999883585,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 4.2999999999883585,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 4.2999999999883585,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 4.2999999999883585,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 4.2999999999883585,
+          "ms": 2
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 1,
+      "id": "warrior",
+      "cache": "evicted",
+      "uiReadyMs": 18.29999999998836,
+      "campImagesMs": 0.40000000002328306,
+      "paintedMs": 44.5,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.9000000000232831,
+          "ms": 0.6999999999534339
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.599999999976717,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "world-exit",
+          "start": 1.7999999999883585,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "ui-build",
+          "start": 3.599999999976717,
+          "ms": 0.6000000000349246
+        },
+        {
+          "label": "profile",
+          "start": 4.2000000000116415,
+          "ms": 0
+        },
+        {
+          "label": "definition",
+          "start": 4.2000000000116415,
+          "ms": 11.099999999976717
+        },
+        {
+          "label": "ui-build",
+          "start": 17.099999999976717,
+          "ms": 1.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 18.29999999998836,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 18.29999999998836,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 18.29999999998836,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 18.29999999998836,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "decode",
+          "start": 18.29999999998836,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "decode",
+          "start": 18.29999999998836,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "decode",
+          "start": 18.5,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 18.70000000001164,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 18.70000000001164,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 23.79999999998836,
+          "ms": 18.79999999998836
+        },
+        {
+          "label": "field-assets",
+          "start": 15.900000000023283,
+          "ms": 26.79999999998836
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 1,
+      "id": "archer",
+      "cache": "first-return",
+      "uiReadyMs": 7.5,
+      "campImagesMs": 116.59999999997672,
+      "paintedMs": 141.70000000001164,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1.099999999976717,
+          "ms": 0.7999999999883585
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.8999999999650754,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "world-exit",
+          "start": 2.099999999976717,
+          "ms": 0.7999999999883585
+        },
+        {
+          "label": "ui-build",
+          "start": 3.7999999999883585,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 4.2999999999883585,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "definition",
+          "start": 5.099999999976717,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 5.899999999965075,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "ui-build",
+          "start": 6.2999999999883585,
+          "ms": 1.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 7.5,
+          "ms": 7
+        },
+        {
+          "label": "decode",
+          "start": 7.5,
+          "ms": 41.59999999997672
+        },
+        {
+          "label": "decode",
+          "start": 7.5,
+          "ms": 46.70000000001164
+        },
+        {
+          "label": "decode",
+          "start": 7.5,
+          "ms": 83.29999999998836
+        },
+        {
+          "label": "decode",
+          "start": 7.5,
+          "ms": 85.20000000001164
+        },
+        {
+          "label": "decode",
+          "start": 7.5,
+          "ms": 116.59999999997672
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 1,
+      "id": "archer",
+      "cache": "warm",
+      "uiReadyMs": 6.7999999999883585,
+      "campImagesMs": 1.8999999999650754,
+      "paintedMs": 28.199999999953434,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 2.099999999976717,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2.3999999999650754,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "world-exit",
+          "start": 2.599999999976717,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 3.8999999999650754,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "profile",
+          "start": 4.2999999999883585,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "definition",
+          "start": 4.899999999965075,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 5.699999999953434,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 6.099999999976717,
+          "ms": 0.7000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 6.7999999999883585,
+          "ms": 1.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 6.7999999999883585,
+          "ms": 1.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 6.7999999999883585,
+          "ms": 1.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 6.7999999999883585,
+          "ms": 1.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 6.7999999999883585,
+          "ms": 1.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 6.7999999999883585,
+          "ms": 1.8999999999650754
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 1,
+      "id": "archer",
+      "cache": "evicted",
+      "uiReadyMs": 27.79999999998836,
+      "campImagesMs": 3.2000000000116415,
+      "paintedMs": 60,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.6999999999534339,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.099999999976717,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "world-exit",
+          "start": 1.1999999999534339,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "ui-build",
+          "start": 2.699999999953434,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "profile",
+          "start": 3.099999999976717,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "definition",
+          "start": 3.199999999953434,
+          "ms": 21.70000000001164
+        },
+        {
+          "label": "ui-build",
+          "start": 26.899999999965075,
+          "ms": 0.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 27.79999999998836,
+          "ms": 3.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 27.79999999998836,
+          "ms": 3.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 27.79999999998836,
+          "ms": 3.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 27.79999999998836,
+          "ms": 3.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 27.79999999998836,
+          "ms": 3.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 27.79999999998836,
+          "ms": 3.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 31.699999999953434,
+          "ms": 2.900000000023283
+        },
+        {
+          "label": "decode",
+          "start": 31.699999999953434,
+          "ms": 3.800000000046566
+        },
+        {
+          "label": "decode",
+          "start": 31.79999999998836,
+          "ms": 3.7000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 35.59999999997672,
+          "ms": 18
+        },
+        {
+          "label": "field-assets",
+          "start": 25.79999999998836,
+          "ms": 27.899999999965075
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 1,
+      "id": "wizard",
+      "cache": "first-return",
+      "uiReadyMs": 5.7999999999883585,
+      "campImagesMs": 82.90000000002328,
+      "paintedMs": 110,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1,
+          "ms": 0.7000000000116415
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.7999999999883585,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "world-exit",
+          "start": 1.8999999999650754,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 3.099999999976717,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "profile",
+          "start": 3.3999999999650754,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "definition",
+          "start": 4.099999999976717,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 4.5,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 4.7000000000116415,
+          "ms": 1.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 5.899999999965075,
+          "ms": 5.600000000034925
+        },
+        {
+          "label": "decode",
+          "start": 5.899999999965075,
+          "ms": 31.100000000034925
+        },
+        {
+          "label": "decode",
+          "start": 5.899999999965075,
+          "ms": 51.100000000034925
+        },
+        {
+          "label": "decode",
+          "start": 5.899999999965075,
+          "ms": 62.5
+        },
+        {
+          "label": "decode",
+          "start": 5.899999999965075,
+          "ms": 82.90000000002328
+        },
+        {
+          "label": "decode",
+          "start": 5.899999999965075,
+          "ms": 82.90000000002328
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 1,
+      "id": "wizard",
+      "cache": "warm",
+      "uiReadyMs": 5,
+      "campImagesMs": 1.8999999999650754,
+      "paintedMs": 28.399999999965075,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8999999999650754,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.2999999999883585,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.3999999999650754,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "ui-build",
+          "start": 2.3999999999650754,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "profile",
+          "start": 2.8999999999650754,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "definition",
+          "start": 3.2999999999883585,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 4.099999999976717,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 4.2000000000116415,
+          "ms": 0.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 1.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 5.099999999976717,
+          "ms": 1.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 5.099999999976717,
+          "ms": 1.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 5.099999999976717,
+          "ms": 1.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 5.099999999976717,
+          "ms": 1.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 5.099999999976717,
+          "ms": 1.7999999999883585
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 1,
+      "id": "wizard",
+      "cache": "evicted",
+      "uiReadyMs": 16.600000000034925,
+      "campImagesMs": 0.5,
+      "paintedMs": 87.5,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.7000000000116415,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.1000000000349246,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.1000000000349246,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "ui-build",
+          "start": 2.6000000000349246,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "profile",
+          "start": 2.900000000023283,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "definition",
+          "start": 3,
+          "ms": 10.200000000011642
+        },
+        {
+          "label": "ui-build",
+          "start": 15.700000000011642,
+          "ms": 0.9000000000232831
+        },
+        {
+          "label": "decode",
+          "start": 16.70000000001164,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 16.70000000001164,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 16.70000000001164,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 16.70000000001164,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 16.70000000001164,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "decode",
+          "start": 16.70000000001164,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "decode",
+          "start": 16.900000000023283,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "mage-compose",
+          "start": 17.100000000034925,
+          "ms": 9.5
+        },
+        {
+          "label": "decode",
+          "start": 16.900000000023283,
+          "ms": 9.900000000023283
+        },
+        {
+          "label": "mage-compose",
+          "start": 26.800000000046566,
+          "ms": 3.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 16.900000000023283,
+          "ms": 13.900000000023283
+        },
+        {
+          "label": "mage-compose",
+          "start": 30.800000000046566,
+          "ms": 3.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 16.900000000023283,
+          "ms": 17.79999999998836
+        },
+        {
+          "label": "mage-compose",
+          "start": 34.70000000001164,
+          "ms": 4.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 22
+        },
+        {
+          "label": "mage-compose",
+          "start": 39,
+          "ms": 3.800000000046566
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 25.900000000023283
+        },
+        {
+          "label": "mage-compose",
+          "start": 42.90000000002328,
+          "ms": 4
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 30
+        },
+        {
+          "label": "mage-compose",
+          "start": 47,
+          "ms": 4.7000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 34.70000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 51.800000000046566,
+          "ms": 3.699999999953434
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 38.70000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 55.70000000001164,
+          "ms": 3.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 42.600000000034925
+        },
+        {
+          "label": "mage-compose",
+          "start": 59.600000000034925,
+          "ms": 3.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 17.100000000034925,
+          "ms": 46.29999999998836
+        },
+        {
+          "label": "mage-compose",
+          "start": 63.5,
+          "ms": 3.800000000046566
+        },
+        {
+          "label": "decode",
+          "start": 17.100000000034925,
+          "ms": 50.399999999965075
+        },
+        {
+          "label": "mage-compose",
+          "start": 67.5,
+          "ms": 3.800000000046566
+        },
+        {
+          "label": "decode",
+          "start": 17.100000000034925,
+          "ms": 54.399999999965075
+        },
+        {
+          "label": "mage-compose",
+          "start": 71.5,
+          "ms": 3.900000000023283
+        },
+        {
+          "label": "decode",
+          "start": 17.100000000034925,
+          "ms": 58.29999999998836
+        },
+        {
+          "label": "mage-compose",
+          "start": 75.40000000002328,
+          "ms": 4.599999999976717
+        },
+        {
+          "label": "decode",
+          "start": 17.100000000034925,
+          "ms": 63.20000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 80.40000000002328,
+          "ms": 4.2999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 87.80000000004657,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "mage-compose",
+          "start": 88.10000000003492,
+          "ms": 5.5
+        },
+        {
+          "label": "decode",
+          "start": 87.90000000002328,
+          "ms": 5.7999999999883585
+        },
+        {
+          "label": "mage-compose",
+          "start": 93.90000000002328,
+          "ms": 4.5
+        },
+        {
+          "label": "decode",
+          "start": 87.90000000002328,
+          "ms": 10.900000000023283
+        },
+        {
+          "label": "mage-compose",
+          "start": 98.80000000004657,
+          "ms": 4.599999999976717
+        },
+        {
+          "label": "decode",
+          "start": 103.5,
+          "ms": 2.2000000000116415
+        },
+        {
+          "label": "mage-compose",
+          "start": 105.70000000001164,
+          "ms": 4.100000000034925
+        },
+        {
+          "label": "decode",
+          "start": 103.80000000004657,
+          "ms": 6.099999999976717
+        },
+        {
+          "label": "mage-compose",
+          "start": 109.90000000002328,
+          "ms": 4.2999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 103.80000000004657,
+          "ms": 10.5
+        },
+        {
+          "label": "mage-compose",
+          "start": 114.30000000004657,
+          "ms": 4.399999999965075
+        },
+        {
+          "label": "decode",
+          "start": 103.80000000004657,
+          "ms": 15
+        },
+        {
+          "label": "mage-compose",
+          "start": 118.80000000004657,
+          "ms": 4.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 103.80000000004657,
+          "ms": 19.199999999953434
+        },
+        {
+          "label": "mage-compose",
+          "start": 123.10000000003492,
+          "ms": 4.399999999965075
+        },
+        {
+          "label": "decode",
+          "start": 103.80000000004657,
+          "ms": 23.79999999998836
+        },
+        {
+          "label": "mage-compose",
+          "start": 127.70000000001164,
+          "ms": 4.600000000034925
+        },
+        {
+          "label": "decode",
+          "start": 103.80000000004657,
+          "ms": 28.699999999953434
+        },
+        {
+          "label": "mage-compose",
+          "start": 132.5,
+          "ms": 4.600000000034925
+        },
+        {
+          "label": "decode",
+          "start": 103.80000000004657,
+          "ms": 33.399999999965075
+        },
+        {
+          "label": "mage-compose",
+          "start": 137.20000000001164,
+          "ms": 7.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 103.90000000002328,
+          "ms": 40.79999999998836
+        },
+        {
+          "label": "mage-compose",
+          "start": 144.70000000001164,
+          "ms": 4.400000000023283
+        },
+        {
+          "label": "decode",
+          "start": 103.90000000002328,
+          "ms": 45.40000000002328
+        },
+        {
+          "label": "mage-compose",
+          "start": 149.30000000004657,
+          "ms": 4.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 104,
+          "ms": 50.20000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 154.20000000001164,
+          "ms": 4.400000000023283
+        },
+        {
+          "label": "decode",
+          "start": 104.30000000004657,
+          "ms": 55.09999999997672
+        },
+        {
+          "label": "mage-compose",
+          "start": 159.40000000002328,
+          "ms": 4.599999999976717
+        },
+        {
+          "label": "decode",
+          "start": 104.30000000004657,
+          "ms": 59.79999999998836
+        },
+        {
+          "label": "mage-compose",
+          "start": 164.10000000003492,
+          "ms": 4.5
+        },
+        {
+          "label": "decode",
+          "start": 104.30000000004657,
+          "ms": 64.39999999996508
+        },
+        {
+          "label": "mage-compose",
+          "start": 168.70000000001164,
+          "ms": 4.400000000023283
+        },
+        {
+          "label": "decode",
+          "start": 104.30000000004657,
+          "ms": 69
+        },
+        {
+          "label": "mage-compose",
+          "start": 173.30000000004657,
+          "ms": 3.8999999999650754
+        },
+        {
+          "label": "field-assets",
+          "start": 13.800000000046566,
+          "ms": 163.39999999996508
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 2,
+      "id": "warrior",
+      "cache": "first-return",
+      "uiReadyMs": 7,
+      "campImagesMs": 88.69999999995343,
+      "paintedMs": 128.20000000001164,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1,
+          "ms": 0.9000000000232831
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.900000000023283,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "world-exit",
+          "start": 2.2000000000116415,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 3.5,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 4,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "definition",
+          "start": 4.7000000000116415,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 5.600000000034925,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "ui-build",
+          "start": 6.2000000000116415,
+          "ms": 0.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 7.100000000034925,
+          "ms": 8.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 49.09999999997672
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 62.40000000002328
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 72.20000000001164
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 72.20000000001164
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 88.59999999997672
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 2,
+      "id": "warrior",
+      "cache": "warm",
+      "uiReadyMs": 3.8999999999650754,
+      "campImagesMs": 1.7999999999883585,
+      "paintedMs": 28.199999999953434,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.7999999999883585,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.099999999976717,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.099999999976717,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "ui-build",
+          "start": 2.099999999976717,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "profile",
+          "start": 2.3999999999650754,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "definition",
+          "start": 2.7999999999883585,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 3.099999999976717,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 3.2999999999883585,
+          "ms": 0.5999999999767169
+        },
+        {
+          "label": "decode",
+          "start": 3.8999999999650754,
+          "ms": 1.7000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 3.8999999999650754,
+          "ms": 1.7000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 3.8999999999650754,
+          "ms": 1.7000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 3.8999999999650754,
+          "ms": 1.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 3.8999999999650754,
+          "ms": 1.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 3.8999999999650754,
+          "ms": 1.7999999999883585
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 2,
+      "id": "warrior",
+      "cache": "evicted",
+      "uiReadyMs": 18.79999999998836,
+      "campImagesMs": 0.5,
+      "paintedMs": 42.70000000001164,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.7000000000116415,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.1000000000349246,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "world-exit",
+          "start": 1.2000000000116415,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "ui-build",
+          "start": 2.5,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 3,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "definition",
+          "start": 3.1000000000349246,
+          "ms": 13.199999999953434
+        },
+        {
+          "label": "ui-build",
+          "start": 17.70000000001164,
+          "ms": 1.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 18.79999999998836,
+          "ms": 0.5
+        },
+        {
+          "label": "decode",
+          "start": 18.79999999998836,
+          "ms": 0.5
+        },
+        {
+          "label": "decode",
+          "start": 18.79999999998836,
+          "ms": 0.5
+        },
+        {
+          "label": "decode",
+          "start": 18.79999999998836,
+          "ms": 0.5
+        },
+        {
+          "label": "decode",
+          "start": 18.79999999998836,
+          "ms": 0.5
+        },
+        {
+          "label": "decode",
+          "start": 18.79999999998836,
+          "ms": 0.5
+        },
+        {
+          "label": "decode",
+          "start": 19.29999999998836,
+          "ms": 0
+        },
+        {
+          "label": "decode",
+          "start": 19.29999999998836,
+          "ms": 0
+        },
+        {
+          "label": "decode",
+          "start": 19.29999999998836,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "decode",
+          "start": 24.5,
+          "ms": 19.900000000023283
+        },
+        {
+          "label": "field-assets",
+          "start": 16.79999999998836,
+          "ms": 27.70000000001164
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 2,
+      "id": "archer",
+      "cache": "first-return",
+      "uiReadyMs": 6,
+      "campImagesMs": 79.10000000003492,
+      "paintedMs": 111.40000000002328,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.9000000000232831,
+          "ms": 0.7999999999883585
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.900000000023283,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 2,
+          "ms": 0.7000000000116415
+        },
+        {
+          "label": "ui-build",
+          "start": 3.400000000023283,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "profile",
+          "start": 3.7000000000116415,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "definition",
+          "start": 4.2999999999883585,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 4.900000000023283,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 5.100000000034925,
+          "ms": 0.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 6,
+          "ms": 5.2999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 6,
+          "ms": 40
+        },
+        {
+          "label": "decode",
+          "start": 6,
+          "ms": 51.20000000001164
+        },
+        {
+          "label": "decode",
+          "start": 6,
+          "ms": 67.10000000003492
+        },
+        {
+          "label": "decode",
+          "start": 6,
+          "ms": 67.20000000001164
+        },
+        {
+          "label": "decode",
+          "start": 6,
+          "ms": 79.10000000003492
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 2,
+      "id": "archer",
+      "cache": "warm",
+      "uiReadyMs": 4.699999999953434,
+      "campImagesMs": 1.900000000023283,
+      "paintedMs": 28.599999999976717,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8999999999650754,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.2999999999883585,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "world-exit",
+          "start": 1.5,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "ui-build",
+          "start": 2.599999999976717,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 3.099999999976717,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "definition",
+          "start": 3.5,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 3.7999999999883585,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "ui-build",
+          "start": 3.8999999999650754,
+          "ms": 0.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 4.699999999953434,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 4.699999999953434,
+          "ms": 1.900000000023283
+        },
+        {
+          "label": "decode",
+          "start": 4.699999999953434,
+          "ms": 1.900000000023283
+        },
+        {
+          "label": "decode",
+          "start": 4.7999999999883585,
+          "ms": 1.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 4.7999999999883585,
+          "ms": 1.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 4.7999999999883585,
+          "ms": 1.7999999999883585
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 2,
+      "id": "archer",
+      "cache": "evicted",
+      "uiReadyMs": 18.20000000001164,
+      "campImagesMs": 2.5,
+      "paintedMs": 45,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.9000000000232831,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.3000000000465661,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.400000000023283,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "ui-build",
+          "start": 3.400000000023283,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 4,
+          "ms": 0
+        },
+        {
+          "label": "definition",
+          "start": 4.100000000034925,
+          "ms": 11.799999999988358
+        },
+        {
+          "label": "ui-build",
+          "start": 17.300000000046566,
+          "ms": 0.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 18.300000000046566,
+          "ms": 0.19999999995343387
+        },
+        {
+          "label": "decode",
+          "start": 18.300000000046566,
+          "ms": 2.2999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 18.300000000046566,
+          "ms": 2.2999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 18.300000000046566,
+          "ms": 2.3999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 18.300000000046566,
+          "ms": 2.5
+        },
+        {
+          "label": "decode",
+          "start": 18.300000000046566,
+          "ms": 2.5
+        },
+        {
+          "label": "decode",
+          "start": 18.5,
+          "ms": 2.400000000023283
+        },
+        {
+          "label": "decode",
+          "start": 18.5,
+          "ms": 2.400000000023283
+        },
+        {
+          "label": "decode",
+          "start": 18.5,
+          "ms": 2.6000000000349246
+        },
+        {
+          "label": "decode",
+          "start": 24,
+          "ms": 16.5
+        },
+        {
+          "label": "field-assets",
+          "start": 16.5,
+          "ms": 24.20000000001164
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 2,
+      "id": "wizard",
+      "cache": "first-return",
+      "uiReadyMs": 6.400000000023283,
+      "campImagesMs": 4.7000000000116415,
+      "paintedMs": 25.79999999998836,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1.1000000000349246,
+          "ms": 1.099999999976717
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2.400000000023283,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "world-exit",
+          "start": 2.6000000000349246,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 3.900000000023283,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "profile",
+          "start": 4.2000000000116415,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "definition",
+          "start": 4.600000000034925,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 5.2000000000116415,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 5.2999999999883585,
+          "ms": 1
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 4.5
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 4.600000000034925
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 4.600000000034925
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 4.600000000034925
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 4.600000000034925
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 4.600000000034925
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 2,
+      "id": "wizard",
+      "cache": "warm",
+      "uiReadyMs": 3.8999999999650754,
+      "campImagesMs": 1.7000000000116415,
+      "paintedMs": 28.70000000001164,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.7000000000116415,
+          "ms": 0.3999999999650754
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.099999999976717,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.099999999976717,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "ui-build",
+          "start": 2.099999999976717,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "profile",
+          "start": 2.3999999999650754,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "definition",
+          "start": 2.7000000000116415,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 3.2000000000116415,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 3.2999999999883585,
+          "ms": 0.5999999999767169
+        },
+        {
+          "label": "decode",
+          "start": 3.8999999999650754,
+          "ms": 1.7000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 4,
+          "ms": 1.599999999976717
+        },
+        {
+          "label": "decode",
+          "start": 4,
+          "ms": 1.599999999976717
+        },
+        {
+          "label": "decode",
+          "start": 4,
+          "ms": 1.599999999976717
+        },
+        {
+          "label": "decode",
+          "start": 4,
+          "ms": 1.599999999976717
+        },
+        {
+          "label": "decode",
+          "start": 4,
+          "ms": 1.599999999976717
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 2,
+      "id": "wizard",
+      "cache": "evicted",
+      "uiReadyMs": 16.399999999965075,
+      "campImagesMs": 0.30000000004656613,
+      "paintedMs": 57.29999999998836,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.7999999999883585,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.099999999976717,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.2999999999883585,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "ui-build",
+          "start": 2.599999999976717,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "profile",
+          "start": 3,
+          "ms": 0
+        },
+        {
+          "label": "definition",
+          "start": 3,
+          "ms": 10.599999999976717
+        },
+        {
+          "label": "ui-build",
+          "start": 15.599999999976717,
+          "ms": 0.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 16.399999999965075,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 16.399999999965075,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 16.399999999965075,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "decode",
+          "start": 16.399999999965075,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "decode",
+          "start": 16.399999999965075,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "decode",
+          "start": 16.399999999965075,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "decode",
+          "start": 16.599999999976717,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "mage-compose",
+          "start": 16.70000000001164,
+          "ms": 9.299999999988358
+        },
+        {
+          "label": "decode",
+          "start": 16.599999999976717,
+          "ms": 9.600000000034925
+        },
+        {
+          "label": "mage-compose",
+          "start": 26.20000000001164,
+          "ms": 3.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 16.599999999976717,
+          "ms": 13.400000000023283
+        },
+        {
+          "label": "mage-compose",
+          "start": 30,
+          "ms": 4
+        },
+        {
+          "label": "decode",
+          "start": 16.599999999976717,
+          "ms": 17.5
+        },
+        {
+          "label": "mage-compose",
+          "start": 34.20000000001164,
+          "ms": 3.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 16.599999999976717,
+          "ms": 21.400000000023283
+        },
+        {
+          "label": "mage-compose",
+          "start": 38,
+          "ms": 4.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 16.70000000001164,
+          "ms": 25.5
+        },
+        {
+          "label": "mage-compose",
+          "start": 42.20000000001164,
+          "ms": 4
+        },
+        {
+          "label": "decode",
+          "start": 16.70000000001164,
+          "ms": 29.599999999976717
+        },
+        {
+          "label": "mage-compose",
+          "start": 46.399999999965075,
+          "ms": 3.7000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 16.70000000001164,
+          "ms": 33.5
+        },
+        {
+          "label": "mage-compose",
+          "start": 50.29999999998836,
+          "ms": 4.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 57.59999999997672,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "mage-compose",
+          "start": 57.79999999998836,
+          "ms": 4.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 57.70000000001164,
+          "ms": 4.399999999965075
+        },
+        {
+          "label": "mage-compose",
+          "start": 62.09999999997672,
+          "ms": 4.100000000034925
+        },
+        {
+          "label": "decode",
+          "start": 57.70000000001164,
+          "ms": 8.599999999976717
+        },
+        {
+          "label": "mage-compose",
+          "start": 66.29999999998836,
+          "ms": 4.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 57.70000000001164,
+          "ms": 12.899999999965075
+        },
+        {
+          "label": "mage-compose",
+          "start": 70.59999999997672,
+          "ms": 4
+        },
+        {
+          "label": "decode",
+          "start": 57.70000000001164,
+          "ms": 16.899999999965075
+        },
+        {
+          "label": "mage-compose",
+          "start": 74.59999999997672,
+          "ms": 4.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 57.70000000001164,
+          "ms": 21.199999999953434
+        },
+        {
+          "label": "mage-compose",
+          "start": 79,
+          "ms": 4.2999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 57.70000000001164,
+          "ms": 25.699999999953434
+        },
+        {
+          "label": "mage-compose",
+          "start": 83.39999999996508,
+          "ms": 4
+        },
+        {
+          "label": "decode",
+          "start": 57.70000000001164,
+          "ms": 29.79999999998836
+        },
+        {
+          "label": "mage-compose",
+          "start": 87.5,
+          "ms": 4.2999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 95.29999999998836,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "mage-compose",
+          "start": 95.39999999996508,
+          "ms": 4.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 95.29999999998836,
+          "ms": 4.5
+        },
+        {
+          "label": "mage-compose",
+          "start": 99.79999999998836,
+          "ms": 4.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 95.29999999998836,
+          "ms": 9.5
+        },
+        {
+          "label": "mage-compose",
+          "start": 104.79999999998836,
+          "ms": 4.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 95.29999999998836,
+          "ms": 13.900000000023283
+        },
+        {
+          "label": "mage-compose",
+          "start": 109.20000000001164,
+          "ms": 4.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 95.29999999998836,
+          "ms": 18.20000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 113.59999999997672,
+          "ms": 3.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 95.29999999998836,
+          "ms": 22.20000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 117.5,
+          "ms": 4
+        },
+        {
+          "label": "decode",
+          "start": 95.39999999996508,
+          "ms": 26.20000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 121.59999999997672,
+          "ms": 4
+        },
+        {
+          "label": "decode",
+          "start": 95.39999999996508,
+          "ms": 30.400000000023283
+        },
+        {
+          "label": "mage-compose",
+          "start": 125.79999999998836,
+          "ms": 4
+        },
+        {
+          "label": "decode",
+          "start": 95.39999999996508,
+          "ms": 34.600000000034925
+        },
+        {
+          "label": "mage-compose",
+          "start": 130,
+          "ms": 4.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 104.29999999998836,
+          "ms": 30
+        },
+        {
+          "label": "mage-compose",
+          "start": 134.29999999998836,
+          "ms": 4.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 104.29999999998836,
+          "ms": 34.29999999998836
+        },
+        {
+          "label": "mage-compose",
+          "start": 138.59999999997672,
+          "ms": 4
+        },
+        {
+          "label": "decode",
+          "start": 104.39999999996508,
+          "ms": 38.20000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 142.59999999997672,
+          "ms": 5.400000000023283
+        },
+        {
+          "label": "decode",
+          "start": 104.39999999996508,
+          "ms": 43.70000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 148.09999999997672,
+          "ms": 4.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 104.39999999996508,
+          "ms": 48.20000000001164
+        },
+        {
+          "label": "mage-compose",
+          "start": 152.59999999997672,
+          "ms": 4.5
+        },
+        {
+          "label": "decode",
+          "start": 104.39999999996508,
+          "ms": 52.90000000002328
+        },
+        {
+          "label": "mage-compose",
+          "start": 157.39999999996508,
+          "ms": 4
+        },
+        {
+          "label": "decode",
+          "start": 104.39999999996508,
+          "ms": 57.100000000034925
+        },
+        {
+          "label": "mage-compose",
+          "start": 161.5,
+          "ms": 4.5
+        },
+        {
+          "label": "decode",
+          "start": 104.39999999996508,
+          "ms": 61.600000000034925
+        },
+        {
+          "label": "mage-compose",
+          "start": 166,
+          "ms": 4
+        },
+        {
+          "label": "field-assets",
+          "start": 14.299999999988358,
+          "ms": 155.79999999998836
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 2,
+      "id": "witch",
+      "cache": "first-return",
+      "uiReadyMs": 7.100000000034925,
+      "campImagesMs": 78.70000000001164,
+      "paintedMs": 111.20000000001164,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1.7000000000116415,
+          "ms": 0.7000000000116415
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2.5,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 2.6000000000349246,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 3.800000000046566,
+          "ms": 0.5999999999767169
+        },
+        {
+          "label": "profile",
+          "start": 4.400000000023283,
+          "ms": 0.5
+        },
+        {
+          "label": "definition",
+          "start": 5.100000000034925,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 5.7000000000116415,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 5.900000000023283,
+          "ms": 1.2000000000116415
+        },
+        {
+          "label": "decode",
+          "start": 7.100000000034925,
+          "ms": 6.7999999999883585
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 41.79999999998836
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 60.29999999998836
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 78.60000000003492
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 78.60000000003492
+        },
+        {
+          "label": "decode",
+          "start": 7.2000000000116415,
+          "ms": 78.60000000003492
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 2,
+      "id": "witch",
+      "cache": "warm",
+      "uiReadyMs": 4.899999999965075,
+      "campImagesMs": 2.8999999999650754,
+      "paintedMs": 28.599999999976717,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1,
+          "ms": 0.29999999998835847
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.2999999999883585,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "world-exit",
+          "start": 1.3999999999650754,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "ui-build",
+          "start": 2.2999999999883585,
+          "ms": 0.40000000002328306
+        },
+        {
+          "label": "profile",
+          "start": 2.7000000000116415,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "definition",
+          "start": 3.099999999976717,
+          "ms": 0
+        },
+        {
+          "label": "field-assets",
+          "start": 3.599999999976717,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 4,
+          "ms": 0.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.8999999999650754
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.8999999999650754
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 2,
+      "id": "witch",
+      "cache": "evicted",
+      "uiReadyMs": 16.70000000001164,
+      "campImagesMs": 2.2000000000116415,
+      "paintedMs": 43.79999999998836,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.9000000000232831,
+          "ms": 0.8999999999650754
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.7999999999883585,
+          "ms": 0.1000000000349246
+        },
+        {
+          "label": "world-exit",
+          "start": 1.900000000023283,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "ui-build",
+          "start": 3.2999999999883585,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "profile",
+          "start": 3.6000000000349246,
+          "ms": 0.09999999997671694
+        },
+        {
+          "label": "definition",
+          "start": 3.7000000000116415,
+          "ms": 10.799999999988358
+        },
+        {
+          "label": "ui-build",
+          "start": 15.700000000011642,
+          "ms": 1
+        },
+        {
+          "label": "decode",
+          "start": 16.70000000001164,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 16.79999999998836,
+          "ms": 0.20000000001164153
+        },
+        {
+          "label": "decode",
+          "start": 16.79999999998836,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 16.79999999998836,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 16.79999999998836,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 16.79999999998836,
+          "ms": 2.1000000000349246
+        },
+        {
+          "label": "decode",
+          "start": 16.900000000023283,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 16.900000000023283,
+          "ms": 2.099999999976717
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 17,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 22,
+          "ms": 20.20000000001164
+        },
+        {
+          "label": "field-assets",
+          "start": 14.799999999988358,
+          "ms": 27.5
+        }
+      ],
+      "selected": "witch"
+    }
+  ],
+  "errors": []
+}

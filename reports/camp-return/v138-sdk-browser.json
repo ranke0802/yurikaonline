@@ -1,0 +1,158 @@
+{
+  "coverage": "Actual Firebase 10.7.1 browser SDK, Player.saveState, exit UI and CampScene; loopback protocol fixture, no live accounts",
+  "cases": [
+    {
+      "id": "wizard",
+      "cache": "cold",
+      "scene": "CampScene",
+      "classId": "wizard",
+      "exp": 2418,
+      "expected": 2418,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 163.5,
+      "totalMs": 207.69999999995343,
+      "failed": false,
+      "journal": null,
+      "writes": 1,
+      "failureRetryReentry": true
+    },
+    {
+      "id": "wizard",
+      "cache": "warm",
+      "scene": "CampScene",
+      "classId": "wizard",
+      "exp": 2418,
+      "expected": 2418,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 157.89999999990687,
+      "totalMs": 173.5999999998603,
+      "failed": false,
+      "journal": null,
+      "writes": 1,
+      "failureRetryReentry": true
+    },
+    {
+      "id": "witch",
+      "cache": "cold",
+      "scene": "CampScene",
+      "classId": "witch",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 159,
+      "totalMs": 185.10000000009313,
+      "failed": false,
+      "journal": null,
+      "writes": 1,
+      "failureRetryReentry": true
+    },
+    {
+      "id": "witch",
+      "cache": "warm",
+      "scene": "CampScene",
+      "classId": "witch",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 158.60000000009313,
+      "totalMs": 179.69999999995343,
+      "failed": false,
+      "journal": null,
+      "writes": 1,
+      "failureRetryReentry": true
+    },
+    {
+      "id": "warrior",
+      "cache": "cold",
+      "scene": "CampScene",
+      "classId": "warrior",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 159.70000000018626,
+      "totalMs": 189.60000000009313,
+      "failed": false,
+      "journal": null,
+      "writes": 1,
+      "failureRetryReentry": true
+    },
+    {
+      "id": "warrior",
+      "cache": "warm",
+      "scene": "CampScene",
+      "classId": "warrior",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 157.10000000009313,
+      "totalMs": 185,
+      "failed": false,
+      "journal": null,
+      "writes": 1,
+      "failureRetryReentry": true
+    },
+    {
+      "id": "archer",
+      "cache": "cold",
+      "scene": "CampScene",
+      "classId": "archer",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 158.10000000009313,
+      "totalMs": 177.39999999990687,
+      "failed": false,
+      "journal": null,
+      "writes": 1,
+      "failureRetryReentry": true
+    },
+    {
+      "id": "archer",
+      "cache": "warm",
+      "scene": "CampScene",
+      "classId": "archer",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 159.70000000018626,
+      "totalMs": 181.19999999995343,
+      "failed": false,
+      "journal": null,
+      "writes": 1,
+      "failureRetryReentry": true
+    }
+  ],
+  "errors": []
+}

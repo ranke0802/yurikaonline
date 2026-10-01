@@ -1,0 +1,2778 @@
+{
+  "coverage": "Chromium desktop, isolated local storage. Save timings are not RTDB latency. Decode calls overlap; do not sum them.",
+  "cases": [
+    {
+      "trial": 0,
+      "id": "wizard",
+      "cache": "first-return",
+      "uiReadyMs": 11.399999999906868,
+      "campImagesMs": 125.70000000018626,
+      "paintedMs": 158.5,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1.1000000000931323,
+          "ms": 1.5999999998603016
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2.8999999999068677,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 3.1000000000931323,
+          "ms": 1
+        },
+        {
+          "label": "ui-build",
+          "start": 5.800000000046566,
+          "ms": 1.6999999999534339
+        },
+        {
+          "label": "profile",
+          "start": 7.5,
+          "ms": 0.8999999999068677
+        },
+        {
+          "label": "definition",
+          "start": 8.899999999906868,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 10.300000000046566,
+          "ms": 1.0999999998603016
+        },
+        {
+          "label": "decode",
+          "start": 11.5,
+          "ms": 15.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 11.600000000093132,
+          "ms": 46.5
+        },
+        {
+          "label": "decode",
+          "start": 11.699999999953434,
+          "ms": 94.9000000001397
+        },
+        {
+          "label": "decode",
+          "start": 11.600000000093132,
+          "ms": 95
+        },
+        {
+          "label": "decode",
+          "start": 11.699999999953434,
+          "ms": 95
+        },
+        {
+          "label": "decode",
+          "start": 11.600000000093132,
+          "ms": 125.5
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 0,
+      "id": "wizard",
+      "cache": "warm",
+      "uiReadyMs": 4.7999999998137355,
+      "campImagesMs": 2.300000000046566,
+      "paintedMs": 28.299999999813735,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8999999999068677,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.2999999998137355,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.3999999999068677,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "ui-build",
+          "start": 2.5,
+          "ms": 0.5999999998603016
+        },
+        {
+          "label": "profile",
+          "start": 3.0999999998603016,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "definition",
+          "start": 3.3999999999068677,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 4.099999999860302,
+          "ms": 0.6999999999534339
+        },
+        {
+          "label": "decode",
+          "start": 4.7999999998137355,
+          "ms": 2.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 4.7999999998137355,
+          "ms": 2.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 4.7999999998137355,
+          "ms": 2.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 4.7999999998137355,
+          "ms": 2.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 4.7999999998137355,
+          "ms": 2.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 4.7999999998137355,
+          "ms": 2.300000000046566
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 0,
+      "id": "wizard",
+      "cache": "evicted",
+      "uiReadyMs": 20.199999999953434,
+      "campImagesMs": 2.2000000001862645,
+      "paintedMs": 43.9000000001397,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8000000000465661,
+          "ms": 0.5
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.3000000000465661,
+          "ms": 0.5
+        },
+        {
+          "label": "world-exit",
+          "start": 1.9000000001396984,
+          "ms": 0.2999999998137355
+        },
+        {
+          "label": "ui-build",
+          "start": 3.4000000001396984,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "profile",
+          "start": 3.800000000046566,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "definition",
+          "start": 3.9000000001396984,
+          "ms": 14.899999999906868
+        },
+        {
+          "label": "ui-build",
+          "start": 19.300000000046566,
+          "ms": 0.8999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 20.199999999953434,
+          "ms": 2.1000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 20.199999999953434,
+          "ms": 2.1000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 20.199999999953434,
+          "ms": 2.1000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 20.199999999953434,
+          "ms": 2.1000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 20.199999999953434,
+          "ms": 2.1000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 20.199999999953434,
+          "ms": 2.1000000000931323
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 0,
+      "id": "witch",
+      "cache": "first-return",
+      "uiReadyMs": 6.600000000093132,
+      "campImagesMs": 94.5,
+      "paintedMs": 126.60000000009313,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1.1000000000931323,
+          "ms": 0.5999999998603016
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.8000000000465661,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 2.1000000000931323,
+          "ms": 0.5999999998603016
+        },
+        {
+          "label": "ui-build",
+          "start": 3.3999999999068677,
+          "ms": 0.4000000001396984
+        },
+        {
+          "label": "profile",
+          "start": 3.800000000046566,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "definition",
+          "start": 4.800000000046566,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 5.5,
+          "ms": 1.1000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 6.600000000093132,
+          "ms": 5.599999999860302
+        },
+        {
+          "label": "decode",
+          "start": 6.699999999953434,
+          "ms": 43
+        },
+        {
+          "label": "decode",
+          "start": 6.699999999953434,
+          "ms": 61.5
+        },
+        {
+          "label": "decode",
+          "start": 6.699999999953434,
+          "ms": 79.4000000001397
+        },
+        {
+          "label": "decode",
+          "start": 6.699999999953434,
+          "ms": 94.4000000001397
+        },
+        {
+          "label": "decode",
+          "start": 6.699999999953434,
+          "ms": 94.4000000001397
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 0,
+      "id": "witch",
+      "cache": "warm",
+      "uiReadyMs": 5.100000000093132,
+      "campImagesMs": 2.1000000000931323,
+      "paintedMs": 24.9000000001397,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.9000000001396984,
+          "ms": 0.5999999998603016
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.5,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.6000000000931323,
+          "ms": 0.19999999995343387
+        },
+        {
+          "label": "ui-build",
+          "start": 2.800000000046566,
+          "ms": 0.6000000000931323
+        },
+        {
+          "label": "profile",
+          "start": 3.4000000001396984,
+          "ms": 0.09999999986030161
+        },
+        {
+          "label": "definition",
+          "start": 3.6000000000931323,
+          "ms": 0.09999999986030161
+        },
+        {
+          "label": "ui-build",
+          "start": 4.5,
+          "ms": 0.6000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 5.300000000046566,
+          "ms": 1.8999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 5.300000000046566,
+          "ms": 1.8999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 5.300000000046566,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 5.300000000046566,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 5.300000000046566,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 5.300000000046566,
+          "ms": 2
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 0,
+      "id": "witch",
+      "cache": "evicted",
+      "uiReadyMs": 29.5,
+      "campImagesMs": 46.700000000186265,
+      "paintedMs": 94.80000000004657,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8000000000465661,
+          "ms": 0.5
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.3000000000465661,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.4000000001396984,
+          "ms": 0.19999999995343387
+        },
+        {
+          "label": "ui-build",
+          "start": 2.7000000001862645,
+          "ms": 0.2999999998137355
+        },
+        {
+          "label": "profile",
+          "start": 3,
+          "ms": 0.20000000018626451
+        },
+        {
+          "label": "definition",
+          "start": 3.2000000001862645,
+          "ms": 24.5999999998603
+        },
+        {
+          "label": "ui-build",
+          "start": 28.600000000093132,
+          "ms": 0.8999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 29.5,
+          "ms": 2.9000000001396984
+        },
+        {
+          "label": "decode",
+          "start": 29.5,
+          "ms": 13.800000000046566
+        },
+        {
+          "label": "decode",
+          "start": 29.5,
+          "ms": 30
+        },
+        {
+          "label": "decode",
+          "start": 29.5,
+          "ms": 30
+        },
+        {
+          "label": "decode",
+          "start": 29.5,
+          "ms": 30.100000000093132
+        },
+        {
+          "label": "decode",
+          "start": 29.5,
+          "ms": 46.700000000186265
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 0,
+      "id": "warrior",
+      "cache": "first-return",
+      "uiReadyMs": 6.400000000139698,
+      "campImagesMs": 87.5,
+      "paintedMs": 122.10000000009313,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1,
+          "ms": 0.9000000001396984
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 2.2000000001862645,
+          "ms": 0.5999999998603016
+        },
+        {
+          "label": "ui-build",
+          "start": 3.6000000000931323,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "profile",
+          "start": 4,
+          "ms": 0.5
+        },
+        {
+          "label": "definition",
+          "start": 4.800000000046566,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 5.5,
+          "ms": 0.9000000001396984
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 5.600000000093132
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 29.4000000001397
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 45.200000000186265
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 63.4000000001397
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 63.4000000001397
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 87.4000000001397
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 0,
+      "id": "warrior",
+      "cache": "warm",
+      "uiReadyMs": 4,
+      "campImagesMs": 3.199999999953434,
+      "paintedMs": 27.399999999906868,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.6000000000931323,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "ui-build",
+          "start": 1.8999999999068677,
+          "ms": 0.4000000001396984
+        },
+        {
+          "label": "profile",
+          "start": 2.300000000046566,
+          "ms": 0
+        },
+        {
+          "label": "definition",
+          "start": 2.6000000000931323,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 3.300000000046566,
+          "ms": 0.6999999999534339
+        },
+        {
+          "label": "decode",
+          "start": 4,
+          "ms": 3.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 4,
+          "ms": 3.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 4.100000000093132,
+          "ms": 3.0999999998603016
+        },
+        {
+          "label": "decode",
+          "start": 4.100000000093132,
+          "ms": 3.0999999998603016
+        },
+        {
+          "label": "decode",
+          "start": 4.100000000093132,
+          "ms": 3.0999999998603016
+        },
+        {
+          "label": "decode",
+          "start": 4.100000000093132,
+          "ms": 3.0999999998603016
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 0,
+      "id": "warrior",
+      "cache": "evicted",
+      "uiReadyMs": 16.199999999953434,
+      "campImagesMs": 0.20000000018626451,
+      "paintedMs": 44.4000000001397,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 2,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2.300000000046566,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "world-exit",
+          "start": 2.4000000001396984,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "ui-build",
+          "start": 4.100000000093132,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 4.600000000093132,
+          "ms": 0
+        },
+        {
+          "label": "definition",
+          "start": 4.699999999953434,
+          "ms": 9.300000000046566
+        },
+        {
+          "label": "ui-build",
+          "start": 15.100000000093132,
+          "ms": 1.0999999998603016
+        },
+        {
+          "label": "decode",
+          "start": 16.199999999953434,
+          "ms": 0.20000000018626451
+        },
+        {
+          "label": "decode",
+          "start": 16.300000000046566,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "decode",
+          "start": 16.300000000046566,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "decode",
+          "start": 16.300000000046566,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "decode",
+          "start": 16.300000000046566,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "decode",
+          "start": 16.300000000046566,
+          "ms": 0.10000000009313226
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 0,
+      "id": "archer",
+      "cache": "first-return",
+      "uiReadyMs": 6.199999999953434,
+      "campImagesMs": 79.20000000018626,
+      "paintedMs": 110.5,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1.1999999999534339,
+          "ms": 0.7000000001862645
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2.1000000000931323,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 2.1000000000931323,
+          "ms": 0.5999999998603016
+        },
+        {
+          "label": "ui-build",
+          "start": 3.4000000001396984,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "profile",
+          "start": 3.800000000046566,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "definition",
+          "start": 4.5,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 5.300000000046566,
+          "ms": 0.8999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 6.199999999953434,
+          "ms": 8
+        },
+        {
+          "label": "decode",
+          "start": 7,
+          "ms": 41.4000000001397
+        },
+        {
+          "label": "decode",
+          "start": 7,
+          "ms": 57.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 7,
+          "ms": 57.4000000001397
+        },
+        {
+          "label": "decode",
+          "start": 7,
+          "ms": 57.4000000001397
+        },
+        {
+          "label": "decode",
+          "start": 7,
+          "ms": 78.4000000001397
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 0,
+      "id": "archer",
+      "cache": "warm",
+      "uiReadyMs": 5.800000000046566,
+      "campImagesMs": 2,
+      "paintedMs": 30.699999999953434,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.3999999999068677,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "world-exit",
+          "start": 1.5,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "ui-build",
+          "start": 2.3999999999068677,
+          "ms": 0.7000000001862645
+        },
+        {
+          "label": "profile",
+          "start": 3.1000000000931323,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "definition",
+          "start": 3.8999999999068677,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "ui-build",
+          "start": 4.600000000093132,
+          "ms": 1.1999999999534339
+        },
+        {
+          "label": "decode",
+          "start": 5.800000000046566,
+          "ms": 1.8999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 5.800000000046566,
+          "ms": 1.8999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 5.800000000046566,
+          "ms": 1.8999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 5.800000000046566,
+          "ms": 1.8999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 5.800000000046566,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 5.800000000046566,
+          "ms": 2
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 0,
+      "id": "archer",
+      "cache": "evicted",
+      "uiReadyMs": 18.800000000046566,
+      "campImagesMs": 1.8000000000465661,
+      "paintedMs": 44.800000000046566,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1,
+          "ms": 0.5
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.5,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "world-exit",
+          "start": 1.6000000000931323,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "ui-build",
+          "start": 3.2000000001862645,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 3.7000000001862645,
+          "ms": 0.09999999986030161
+        },
+        {
+          "label": "definition",
+          "start": 3.800000000046566,
+          "ms": 13
+        },
+        {
+          "label": "ui-build",
+          "start": 17.800000000046566,
+          "ms": 1
+        },
+        {
+          "label": "decode",
+          "start": 18.9000000001397,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 18.9000000001397,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 18.9000000001397,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 18.9000000001397,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 18.9000000001397,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 18.9000000001397,
+          "ms": 1.8000000000465661
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 1,
+      "id": "witch",
+      "cache": "first-return",
+      "uiReadyMs": 7.7000000001862645,
+      "campImagesMs": 82.5999999998603,
+      "paintedMs": 109.70000000018626,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1.1000000000931323,
+          "ms": 0.8999999999068677
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2.1000000000931323,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 2.2000000001862645,
+          "ms": 0.6999999999534339
+        },
+        {
+          "label": "ui-build",
+          "start": 3.9000000001396984,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 4.400000000139698,
+          "ms": 0.5999999998603016
+        },
+        {
+          "label": "definition",
+          "start": 5.5,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 6.400000000139698,
+          "ms": 1.3000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 7.7000000001862645,
+          "ms": 6.2999999998137355
+        },
+        {
+          "label": "decode",
+          "start": 7.800000000046566,
+          "ms": 45
+        },
+        {
+          "label": "decode",
+          "start": 7.800000000046566,
+          "ms": 56
+        },
+        {
+          "label": "decode",
+          "start": 7.800000000046566,
+          "ms": 62.5
+        },
+        {
+          "label": "decode",
+          "start": 7.800000000046566,
+          "ms": 82.5
+        },
+        {
+          "label": "decode",
+          "start": 7.800000000046566,
+          "ms": 82.5
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 1,
+      "id": "witch",
+      "cache": "warm",
+      "uiReadyMs": 4.300000000046566,
+      "campImagesMs": 2,
+      "paintedMs": 29.100000000093132,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8999999999068677,
+          "ms": 0.5
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.3999999999068677,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.3999999999068677,
+          "ms": 0.20000000018626451
+        },
+        {
+          "label": "ui-build",
+          "start": 2.3999999999068677,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "profile",
+          "start": 2.699999999953434,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "definition",
+          "start": 3.199999999953434,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 3.6000000000931323,
+          "ms": 0.6999999999534339
+        },
+        {
+          "label": "decode",
+          "start": 4.300000000046566,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 4.300000000046566,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 4.300000000046566,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 4.300000000046566,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 4.300000000046566,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 4.300000000046566,
+          "ms": 2
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 1,
+      "id": "witch",
+      "cache": "evicted",
+      "uiReadyMs": 15.699999999953434,
+      "campImagesMs": 2.8999999999068677,
+      "paintedMs": 42.800000000046566,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8999999999068677,
+          "ms": 0.4000000001396984
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.3000000000465661,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.3000000000465661,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "ui-build",
+          "start": 2.8999999999068677,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 3.3999999999068677,
+          "ms": 0
+        },
+        {
+          "label": "definition",
+          "start": 3.3999999999068677,
+          "ms": 10.600000000093132
+        },
+        {
+          "label": "ui-build",
+          "start": 14.699999999953434,
+          "ms": 1
+        },
+        {
+          "label": "decode",
+          "start": 15.800000000046566,
+          "ms": 2.0999999998603016
+        },
+        {
+          "label": "decode",
+          "start": 15.800000000046566,
+          "ms": 2.0999999998603016
+        },
+        {
+          "label": "decode",
+          "start": 15.800000000046566,
+          "ms": 2.0999999998603016
+        },
+        {
+          "label": "decode",
+          "start": 15.800000000046566,
+          "ms": 2.0999999998603016
+        },
+        {
+          "label": "decode",
+          "start": 15.800000000046566,
+          "ms": 2.8999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 15.800000000046566,
+          "ms": 2.8999999999068677
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 1,
+      "id": "warrior",
+      "cache": "first-return",
+      "uiReadyMs": 6.399999999906868,
+      "campImagesMs": 78.5,
+      "paintedMs": 110.69999999995343,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8999999999068677,
+          "ms": 0.9000000001396984
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.8000000000465661,
+          "ms": 0.09999999986030161
+        },
+        {
+          "label": "world-exit",
+          "start": 1.8999999999068677,
+          "ms": 0.6000000000931323
+        },
+        {
+          "label": "ui-build",
+          "start": 3.300000000046566,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "profile",
+          "start": 3.699999999953434,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "definition",
+          "start": 4.5,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 5.300000000046566,
+          "ms": 1.0999999998603016
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 5.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 28.800000000046566
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 44.39999999990687
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 69
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 69
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 78.5
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 1,
+      "id": "warrior",
+      "cache": "warm",
+      "uiReadyMs": 7.800000000046566,
+      "campImagesMs": 1.6000000000931323,
+      "paintedMs": 27.600000000093132,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 4.2000000001862645,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 4.600000000093132,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "world-exit",
+          "start": 4.7000000001862645,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "ui-build",
+          "start": 5.800000000046566,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 6.300000000046566,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "definition",
+          "start": 6.600000000093132,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 7.100000000093132,
+          "ms": 0.6999999999534339
+        },
+        {
+          "label": "decode",
+          "start": 7.800000000046566,
+          "ms": 1.6000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 7.800000000046566,
+          "ms": 1.6000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 7.800000000046566,
+          "ms": 1.6000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 7.800000000046566,
+          "ms": 1.6000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 7.800000000046566,
+          "ms": 1.6000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 7.800000000046566,
+          "ms": 1.6000000000931323
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 1,
+      "id": "warrior",
+      "cache": "evicted",
+      "uiReadyMs": 15.100000000093132,
+      "campImagesMs": 5.5,
+      "paintedMs": 42.9000000001397,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.9000000001396984,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.3000000000465661,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.3000000000465661,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "ui-build",
+          "start": 2.699999999953434,
+          "ms": 0.4000000001396984
+        },
+        {
+          "label": "profile",
+          "start": 3.1000000000931323,
+          "ms": 0
+        },
+        {
+          "label": "definition",
+          "start": 3.1000000000931323,
+          "ms": 10.300000000046566
+        },
+        {
+          "label": "ui-build",
+          "start": 14.199999999953434,
+          "ms": 0.9000000001396984
+        },
+        {
+          "label": "decode",
+          "start": 15.199999999953434,
+          "ms": 5.400000000139698
+        },
+        {
+          "label": "decode",
+          "start": 15.199999999953434,
+          "ms": 5.5
+        },
+        {
+          "label": "decode",
+          "start": 15.199999999953434,
+          "ms": 5.5
+        },
+        {
+          "label": "decode",
+          "start": 15.199999999953434,
+          "ms": 5.5
+        },
+        {
+          "label": "decode",
+          "start": 15.199999999953434,
+          "ms": 5.5
+        },
+        {
+          "label": "decode",
+          "start": 15.199999999953434,
+          "ms": 5.5
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 1,
+      "id": "archer",
+      "cache": "first-return",
+      "uiReadyMs": 6.399999999906868,
+      "campImagesMs": 76.4000000001397,
+      "paintedMs": 110.19999999995343,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8999999999068677,
+          "ms": 1.2000000001862645
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2.1000000000931323,
+          "ms": 0.09999999986030161
+        },
+        {
+          "label": "world-exit",
+          "start": 2.300000000046566,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 3.6000000000931323,
+          "ms": 0.2999999998137355
+        },
+        {
+          "label": "profile",
+          "start": 3.8999999999068677,
+          "ms": 0.5
+        },
+        {
+          "label": "definition",
+          "start": 4.800000000046566,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 5.600000000093132,
+          "ms": 0.7999999998137355
+        },
+        {
+          "label": "decode",
+          "start": 6.399999999906868,
+          "ms": 4.900000000139698
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 43.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 54.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 67.10000000009313
+        },
+        {
+          "label": "decode",
+          "start": 6.399999999906868,
+          "ms": 76.4000000001397
+        },
+        {
+          "label": "decode",
+          "start": 6.5,
+          "ms": 76.30000000004657
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 1,
+      "id": "archer",
+      "cache": "warm",
+      "uiReadyMs": 5,
+      "campImagesMs": 2.3999999999068677,
+      "paintedMs": 29.600000000093132,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.6999999999534339,
+          "ms": 0.4000000001396984
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.1000000000931323,
+          "ms": 0.09999999986030161
+        },
+        {
+          "label": "world-exit",
+          "start": 1.6000000000931323,
+          "ms": 0.2999999998137355
+        },
+        {
+          "label": "ui-build",
+          "start": 2.800000000046566,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "profile",
+          "start": 3.199999999953434,
+          "ms": 0
+        },
+        {
+          "label": "definition",
+          "start": 3.3999999999068677,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 4.300000000046566,
+          "ms": 0.6999999999534339
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 5.100000000093132,
+          "ms": 2.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 5.100000000093132,
+          "ms": 2.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 5.100000000093132,
+          "ms": 2.199999999953434
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 1,
+      "id": "archer",
+      "cache": "evicted",
+      "uiReadyMs": 27,
+      "campImagesMs": 45.5,
+      "paintedMs": 94.69999999995343,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.5999999998603016,
+          "ms": 0.5
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.0999999998603016,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "world-exit",
+          "start": 1.1999999999534339,
+          "ms": 0.19999999995343387
+        },
+        {
+          "label": "ui-build",
+          "start": 2.5999999998603016,
+          "ms": 0.20000000018626451
+        },
+        {
+          "label": "profile",
+          "start": 2.800000000046566,
+          "ms": 0.2999999998137355
+        },
+        {
+          "label": "definition",
+          "start": 3.199999999953434,
+          "ms": 22
+        },
+        {
+          "label": "ui-build",
+          "start": 25.800000000046566,
+          "ms": 1.1999999999534339
+        },
+        {
+          "label": "decode",
+          "start": 27.199999999953434,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 27.199999999953434,
+          "ms": 10.5
+        },
+        {
+          "label": "decode",
+          "start": 27.199999999953434,
+          "ms": 21.100000000093132
+        },
+        {
+          "label": "decode",
+          "start": 27.199999999953434,
+          "ms": 21.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 27.199999999953434,
+          "ms": 21.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 27.199999999953434,
+          "ms": 45.5
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 1,
+      "id": "wizard",
+      "cache": "first-return",
+      "uiReadyMs": 5.800000000046566,
+      "campImagesMs": 84.10000000009313,
+      "paintedMs": 111.5,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1,
+          "ms": 0.8000000000465661
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.9000000001396984,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 2.1000000000931323,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 3.2000000001862645,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "profile",
+          "start": 3.6000000000931323,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "definition",
+          "start": 4.100000000093132,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "ui-build",
+          "start": 4.900000000139698,
+          "ms": 0.8999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 5.800000000046566,
+          "ms": 4.699999999953434
+        },
+        {
+          "label": "decode",
+          "start": 5.900000000139698,
+          "ms": 44.39999999990687
+        },
+        {
+          "label": "decode",
+          "start": 5.900000000139698,
+          "ms": 62.699999999953434
+        },
+        {
+          "label": "decode",
+          "start": 5.900000000139698,
+          "ms": 62.699999999953434
+        },
+        {
+          "label": "decode",
+          "start": 5.900000000139698,
+          "ms": 70.19999999995343
+        },
+        {
+          "label": "decode",
+          "start": 5.900000000139698,
+          "ms": 83.89999999990687
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 1,
+      "id": "wizard",
+      "cache": "warm",
+      "uiReadyMs": 4.900000000139698,
+      "campImagesMs": 2.3999999999068677,
+      "paintedMs": 28.5,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8000000000465661,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.1000000000931323,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.2000000001862645,
+          "ms": 0.2999999998137355
+        },
+        {
+          "label": "ui-build",
+          "start": 2,
+          "ms": 0.6000000000931323
+        },
+        {
+          "label": "profile",
+          "start": 2.6000000000931323,
+          "ms": 0
+        },
+        {
+          "label": "definition",
+          "start": 3,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "ui-build",
+          "start": 4,
+          "ms": 0.9000000001396984
+        },
+        {
+          "label": "decode",
+          "start": 4.900000000139698,
+          "ms": 2.3999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 4.900000000139698,
+          "ms": 2.3999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 4.900000000139698,
+          "ms": 2.3999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 4.900000000139698,
+          "ms": 2.3999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 4.900000000139698,
+          "ms": 2.3999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 5,
+          "ms": 2.300000000046566
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 1,
+      "id": "wizard",
+      "cache": "evicted",
+      "uiReadyMs": 21.100000000093132,
+      "campImagesMs": 2,
+      "paintedMs": 43.300000000046566,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8000000000465661,
+          "ms": 0.5
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.3000000000465661,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "world-exit",
+          "start": 1.5,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "ui-build",
+          "start": 3.300000000046566,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 3.800000000046566,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "definition",
+          "start": 3.9000000001396984,
+          "ms": 14.799999999813735
+        },
+        {
+          "label": "ui-build",
+          "start": 20.199999999953434,
+          "ms": 0.9000000001396984
+        },
+        {
+          "label": "decode",
+          "start": 21.100000000093132,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 21.100000000093132,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 21.100000000093132,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 21.100000000093132,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 21.199999999953434,
+          "ms": 1.9000000001396984
+        },
+        {
+          "label": "decode",
+          "start": 21.199999999953434,
+          "ms": 1.9000000001396984
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 2,
+      "id": "warrior",
+      "cache": "first-return",
+      "uiReadyMs": 6.800000000046566,
+      "campImagesMs": 84,
+      "paintedMs": 113.30000000004657,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1,
+          "ms": 0.8000000000465661
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.9000000001396984,
+          "ms": 0.09999999986030161
+        },
+        {
+          "label": "world-exit",
+          "start": 2.1000000000931323,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 3.6000000000931323,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "profile",
+          "start": 3.9000000001396984,
+          "ms": 0.5
+        },
+        {
+          "label": "definition",
+          "start": 4.800000000046566,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 6,
+          "ms": 0.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 6.900000000139698,
+          "ms": 5.399999999906868
+        },
+        {
+          "label": "decode",
+          "start": 6.900000000139698,
+          "ms": 40.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 6.900000000139698,
+          "ms": 49.300000000046566
+        },
+        {
+          "label": "decode",
+          "start": 6.900000000139698,
+          "ms": 64.5
+        },
+        {
+          "label": "decode",
+          "start": 6.900000000139698,
+          "ms": 64.5
+        },
+        {
+          "label": "decode",
+          "start": 6.900000000139698,
+          "ms": 83.89999999990687
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 2,
+      "id": "warrior",
+      "cache": "warm",
+      "uiReadyMs": 4.5,
+      "campImagesMs": 1.8000000000465661,
+      "paintedMs": 27.5999999998603,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8000000000465661,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.1999999999534339,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "world-exit",
+          "start": 1.3999999999068677,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "ui-build",
+          "start": 2.5,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "profile",
+          "start": 2.8999999999068677,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "definition",
+          "start": 3.199999999953434,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 3.800000000046566,
+          "ms": 0.5999999998603016
+        },
+        {
+          "label": "decode",
+          "start": 4.5,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 4.5,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 4.5,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 4.5,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 4.5,
+          "ms": 1.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 4.5,
+          "ms": 1.8000000000465661
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 2,
+      "id": "warrior",
+      "cache": "evicted",
+      "uiReadyMs": 23.0999999998603,
+      "campImagesMs": 49.700000000186265,
+      "paintedMs": 92.89999999990687,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8999999999068677,
+          "ms": 0.4000000001396984
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.3000000000465661,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.3000000000465661,
+          "ms": 0.2999999998137355
+        },
+        {
+          "label": "ui-build",
+          "start": 2.699999999953434,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "profile",
+          "start": 3.0999999998603016,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "definition",
+          "start": 3.3999999999068677,
+          "ms": 17.800000000046566
+        },
+        {
+          "label": "ui-build",
+          "start": 22,
+          "ms": 1.0999999998603016
+        },
+        {
+          "label": "decode",
+          "start": 23.0999999998603,
+          "ms": 0.4000000001396984
+        },
+        {
+          "label": "decode",
+          "start": 23.0999999998603,
+          "ms": 13.5
+        },
+        {
+          "label": "decode",
+          "start": 23.0999999998603,
+          "ms": 25
+        },
+        {
+          "label": "decode",
+          "start": 23.0999999998603,
+          "ms": 25.100000000093132
+        },
+        {
+          "label": "decode",
+          "start": 23.0999999998603,
+          "ms": 49.60000000009313
+        },
+        {
+          "label": "decode",
+          "start": 23.0999999998603,
+          "ms": 49.60000000009313
+        }
+      ],
+      "selected": "warrior"
+    },
+    {
+      "trial": 2,
+      "id": "archer",
+      "cache": "first-return",
+      "uiReadyMs": 6.2000000001862645,
+      "campImagesMs": 89.39999999990687,
+      "paintedMs": 124.20000000018626,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1.1000000000931323,
+          "ms": 1.1000000000931323
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2.300000000046566,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 2.4000000001396984,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 3.6000000000931323,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "profile",
+          "start": 4,
+          "ms": 0.4000000001396984
+        },
+        {
+          "label": "definition",
+          "start": 4.600000000093132,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "ui-build",
+          "start": 5.300000000046566,
+          "ms": 0.9000000001396984
+        },
+        {
+          "label": "decode",
+          "start": 6.2000000001862645,
+          "ms": 7.099999999860302
+        },
+        {
+          "label": "decode",
+          "start": 6.2000000001862645,
+          "ms": 46.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 6.2000000001862645,
+          "ms": 56.799999999813735
+        },
+        {
+          "label": "decode",
+          "start": 6.2000000001862645,
+          "ms": 76.69999999995343
+        },
+        {
+          "label": "decode",
+          "start": 6.2000000001862645,
+          "ms": 76.69999999995343
+        },
+        {
+          "label": "decode",
+          "start": 6.2000000001862645,
+          "ms": 89.39999999990687
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 2,
+      "id": "archer",
+      "cache": "warm",
+      "uiReadyMs": 4.699999999953434,
+      "campImagesMs": 2,
+      "paintedMs": 27.199999999953434,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8000000000465661,
+          "ms": 0.5
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.3000000000465661,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.3999999999068677,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "ui-build",
+          "start": 2.300000000046566,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 2.800000000046566,
+          "ms": 0.09999999986030161
+        },
+        {
+          "label": "definition",
+          "start": 3.1000000000931323,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 4,
+          "ms": 0.6999999999534339
+        },
+        {
+          "label": "decode",
+          "start": 4.699999999953434,
+          "ms": 1.9000000001396984
+        },
+        {
+          "label": "decode",
+          "start": 4.699999999953434,
+          "ms": 1.9000000001396984
+        },
+        {
+          "label": "decode",
+          "start": 4.699999999953434,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 4.699999999953434,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 4.699999999953434,
+          "ms": 2
+        },
+        {
+          "label": "decode",
+          "start": 4.699999999953434,
+          "ms": 2
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 2,
+      "id": "archer",
+      "cache": "evicted",
+      "uiReadyMs": 36.10000000009313,
+      "campImagesMs": 39.5,
+      "paintedMs": 106.89999999990687,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8000000000465661,
+          "ms": 0.5
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.3000000000465661,
+          "ms": 0.09999999986030161
+        },
+        {
+          "label": "world-exit",
+          "start": 1.5,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "ui-build",
+          "start": 6.5,
+          "ms": 0.5
+        },
+        {
+          "label": "profile",
+          "start": 7,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "definition",
+          "start": 7.300000000046566,
+          "ms": 26.0999999998603
+        },
+        {
+          "label": "ui-build",
+          "start": 34.5,
+          "ms": 1.6000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 36.10000000009313,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "decode",
+          "start": 36.10000000009313,
+          "ms": 15.099999999860302
+        },
+        {
+          "label": "decode",
+          "start": 36.10000000009313,
+          "ms": 26.299999999813735
+        },
+        {
+          "label": "decode",
+          "start": 36.10000000009313,
+          "ms": 39.39999999990687
+        },
+        {
+          "label": "decode",
+          "start": 36.10000000009313,
+          "ms": 39.39999999990687
+        },
+        {
+          "label": "decode",
+          "start": 36.10000000009313,
+          "ms": 39.39999999990687
+        }
+      ],
+      "selected": "archer"
+    },
+    {
+      "trial": 2,
+      "id": "wizard",
+      "cache": "first-return",
+      "uiReadyMs": 7.5,
+      "campImagesMs": 83.80000000004657,
+      "paintedMs": 110.69999999995343,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1.0999999998603016,
+          "ms": 0.8000000000465661
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 2.199999999953434,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 4,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "profile",
+          "start": 4.399999999906868,
+          "ms": 0.5
+        },
+        {
+          "label": "definition",
+          "start": 5.300000000046566,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 6.199999999953434,
+          "ms": 1.3000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 7.5,
+          "ms": 6.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 7.5,
+          "ms": 34.699999999953434
+        },
+        {
+          "label": "decode",
+          "start": 7.5,
+          "ms": 48.800000000046566
+        },
+        {
+          "label": "decode",
+          "start": 7.5,
+          "ms": 63.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 7.5,
+          "ms": 70.19999999995343
+        },
+        {
+          "label": "decode",
+          "start": 7.5,
+          "ms": 83.80000000004657
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 2,
+      "id": "wizard",
+      "cache": "warm",
+      "uiReadyMs": 4.199999999953434,
+      "campImagesMs": 1.7000000001862645,
+      "paintedMs": 28.5,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.6000000000931323,
+          "ms": 0.5
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.1000000000931323,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.1000000000931323,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "ui-build",
+          "start": 2.300000000046566,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "profile",
+          "start": 2.699999999953434,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "definition",
+          "start": 3,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 3.6000000000931323,
+          "ms": 0.5999999998603016
+        },
+        {
+          "label": "decode",
+          "start": 4.199999999953434,
+          "ms": 1.7000000001862645
+        },
+        {
+          "label": "decode",
+          "start": 4.199999999953434,
+          "ms": 1.7000000001862645
+        },
+        {
+          "label": "decode",
+          "start": 4.300000000046566,
+          "ms": 1.6000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 4.300000000046566,
+          "ms": 1.6000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 4.300000000046566,
+          "ms": 1.6000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 4.300000000046566,
+          "ms": 1.6000000000931323
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 2,
+      "id": "wizard",
+      "cache": "evicted",
+      "uiReadyMs": 15.800000000046566,
+      "campImagesMs": 2,
+      "paintedMs": 44.199999999953434,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8000000000465661,
+          "ms": 0.39999999990686774
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.3000000000465661,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 1.4000000001396984,
+          "ms": 0.2999999998137355
+        },
+        {
+          "label": "ui-build",
+          "start": 3.300000000046566,
+          "ms": 0.6000000000931323
+        },
+        {
+          "label": "profile",
+          "start": 3.9000000001396984,
+          "ms": 0.09999999986030161
+        },
+        {
+          "label": "definition",
+          "start": 4,
+          "ms": 9.699999999953434
+        },
+        {
+          "label": "ui-build",
+          "start": 14.600000000093132,
+          "ms": 1
+        },
+        {
+          "label": "decode",
+          "start": 15.800000000046566,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "decode",
+          "start": 15.900000000139698,
+          "ms": 0.19999999995343387
+        },
+        {
+          "label": "decode",
+          "start": 15.900000000139698,
+          "ms": 0.19999999995343387
+        },
+        {
+          "label": "decode",
+          "start": 15.900000000139698,
+          "ms": 0.19999999995343387
+        },
+        {
+          "label": "decode",
+          "start": 15.900000000139698,
+          "ms": 0.19999999995343387
+        },
+        {
+          "label": "decode",
+          "start": 15.900000000139698,
+          "ms": 1.8999999999068677
+        }
+      ],
+      "selected": "wizard"
+    },
+    {
+      "trial": 2,
+      "id": "witch",
+      "cache": "first-return",
+      "uiReadyMs": 7,
+      "campImagesMs": 89.60000000009313,
+      "paintedMs": 127.10000000009313,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 1.1000000000931323,
+          "ms": 0.8999999999068677
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2.1000000000931323,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "world-exit",
+          "start": 2.300000000046566,
+          "ms": 0.5
+        },
+        {
+          "label": "ui-build",
+          "start": 3.800000000046566,
+          "ms": 0.4000000001396984
+        },
+        {
+          "label": "profile",
+          "start": 4.2000000001862645,
+          "ms": 0.5999999998603016
+        },
+        {
+          "label": "definition",
+          "start": 5.2000000001862645,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 5.900000000139698,
+          "ms": 1.0999999998603016
+        },
+        {
+          "label": "decode",
+          "start": 7.100000000093132,
+          "ms": 5.699999999953434
+        },
+        {
+          "label": "decode",
+          "start": 7.100000000093132,
+          "ms": 46
+        },
+        {
+          "label": "decode",
+          "start": 7.100000000093132,
+          "ms": 61.699999999953434
+        },
+        {
+          "label": "decode",
+          "start": 7.100000000093132,
+          "ms": 66.30000000004657
+        },
+        {
+          "label": "decode",
+          "start": 7.100000000093132,
+          "ms": 74
+        },
+        {
+          "label": "decode",
+          "start": 7.100000000093132,
+          "ms": 89.60000000009313
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 2,
+      "id": "witch",
+      "cache": "warm",
+      "uiReadyMs": 7.900000000139698,
+      "campImagesMs": 89,
+      "paintedMs": 126.60000000009313,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.6999999999534339,
+          "ms": 1.4000000001396984
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 2.199999999953434,
+          "ms": 0
+        },
+        {
+          "label": "world-exit",
+          "start": 2.199999999953434,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "ui-build",
+          "start": 3.199999999953434,
+          "ms": 0.7000000001862645
+        },
+        {
+          "label": "profile",
+          "start": 3.9000000001396984,
+          "ms": 0.7999999998137355
+        },
+        {
+          "label": "definition",
+          "start": 5.400000000139698,
+          "ms": 0
+        },
+        {
+          "label": "ui-build",
+          "start": 7,
+          "ms": 0.9000000001396984
+        },
+        {
+          "label": "decode",
+          "start": 7.900000000139698,
+          "ms": 2.2999999998137355
+        },
+        {
+          "label": "decode",
+          "start": 7.900000000139698,
+          "ms": 26.299999999813735
+        },
+        {
+          "label": "decode",
+          "start": 7.900000000139698,
+          "ms": 40
+        },
+        {
+          "label": "decode",
+          "start": 7.900000000139698,
+          "ms": 51.299999999813735
+        },
+        {
+          "label": "decode",
+          "start": 7.900000000139698,
+          "ms": 66.5999999998603
+        },
+        {
+          "label": "decode",
+          "start": 7.900000000139698,
+          "ms": 89
+        }
+      ],
+      "selected": "witch"
+    },
+    {
+      "trial": 2,
+      "id": "witch",
+      "cache": "evicted",
+      "uiReadyMs": 15.5,
+      "campImagesMs": 3.199999999953434,
+      "paintedMs": 42.5,
+      "failed": false,
+      "times": [
+        {
+          "label": "save-confirmation",
+          "start": 0.8999999999068677,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "flush-confirmation",
+          "start": 1.1999999999534339,
+          "ms": 0.19999999995343387
+        },
+        {
+          "label": "world-exit",
+          "start": 1.3999999999068677,
+          "ms": 0.20000000018626451
+        },
+        {
+          "label": "ui-build",
+          "start": 2.699999999953434,
+          "ms": 0.30000000004656613
+        },
+        {
+          "label": "profile",
+          "start": 3,
+          "ms": 0.10000000009313226
+        },
+        {
+          "label": "definition",
+          "start": 3.1000000000931323,
+          "ms": 10.799999999813735
+        },
+        {
+          "label": "ui-build",
+          "start": 14.399999999906868,
+          "ms": 1.1000000000931323
+        },
+        {
+          "label": "decode",
+          "start": 15.5,
+          "ms": 0.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 15.5,
+          "ms": 0.8000000000465661
+        },
+        {
+          "label": "decode",
+          "start": 15.5,
+          "ms": 3.199999999953434
+        },
+        {
+          "label": "decode",
+          "start": 15.800000000046566,
+          "ms": 2.8999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 15.800000000046566,
+          "ms": 2.8999999999068677
+        },
+        {
+          "label": "decode",
+          "start": 15.800000000046566,
+          "ms": 2.8999999999068677
+        }
+      ],
+      "selected": "witch"
+    }
+  ],
+  "errors": []
+}

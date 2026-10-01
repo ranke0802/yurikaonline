@@ -1404,7 +1404,12 @@ export default class Player extends CharacterBase {
                 ? Object.keys(data.questState.completed).length
                 : 0
         });
-        return this.net.savePlayerData(this.id, buildClassProfilePatch(this, data), syncToWorld, {
+        // This is a complete snapshot of the controlled Player, not of the
+        // account: Mage fields live at root, other classes in classProfiles.
+        // Merge it through the durable patch writer so inactive progression and
+        // account metadata survive, and retain the SDK listener through commit.
+        return this.net.savePlayerDataPatch(this.id, buildClassProfilePatch(this, data), {
+            syncToZone: syncToWorld,
             debounceMs: profileSaveDebounceMs,
             forceImmediate: options.forceImmediate === true || !!syncToWorld,
             saveReason: options.reason || 'player_save',

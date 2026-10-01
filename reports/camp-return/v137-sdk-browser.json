@@ -1,0 +1,154 @@
+{
+  "coverage": "Actual Firebase 10.7.1 browser SDK, Player.saveState, exit UI and CampScene; loopback protocol fixture, no live accounts",
+  "cases": [
+    {
+      "id": "wizard",
+      "cache": "cold",
+      "scene": "CampScene",
+      "classId": "wizard",
+      "exp": 2418,
+      "expected": 2418,
+      "calls": 1,
+      "result": {
+        "ok": false,
+        "reason": "profile_conflict",
+        "localCheckpointPersisted": true
+      },
+      "saveMs": 3.699999999953434,
+      "totalMs": 162.80000000004657,
+      "failed": false,
+      "journal": null,
+      "writes": 0
+    },
+    {
+      "id": "wizard",
+      "cache": "warm",
+      "scene": "CampScene",
+      "classId": "wizard",
+      "exp": 2418,
+      "expected": 2418,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": true
+      },
+      "saveMs": 22.800000000046566,
+      "totalMs": 163.39999999990687,
+      "failed": false,
+      "journal": null,
+      "writes": 1
+    },
+    {
+      "id": "witch",
+      "cache": "cold",
+      "message": "저장하지 못했어요. 공간을 확인하고 다시 시도해 주세요. 다른 탭에서 플레이했다면 이 페이지를 새로고침해 주세요.",
+      "scene": "WorldScene",
+      "classId": "witch",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": false,
+        "reason": "profile_conflict",
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 3.199999999953434,
+      "totalMs": 166.39999999990687,
+      "journal": null,
+      "writes": 0
+    },
+    {
+      "id": "witch",
+      "cache": "warm",
+      "scene": "CampScene",
+      "classId": "witch",
+      "exp": 13,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 15.800000000046566,
+      "totalMs": 157.10000000009313,
+      "failed": false,
+      "journal": null,
+      "writes": 1
+    },
+    {
+      "id": "warrior",
+      "cache": "cold",
+      "message": "저장하지 못했어요. 공간을 확인하고 다시 시도해 주세요. 다른 탭에서 플레이했다면 이 페이지를 새로고침해 주세요.",
+      "scene": "WorldScene",
+      "classId": "warrior",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": false,
+        "reason": "profile_conflict",
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 2.699999999953434,
+      "totalMs": 159.10000000009313,
+      "journal": null,
+      "writes": 0
+    },
+    {
+      "id": "warrior",
+      "cache": "warm",
+      "scene": "CampScene",
+      "classId": "warrior",
+      "exp": 13,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 15.5,
+      "totalMs": 159.19999999995343,
+      "failed": false,
+      "journal": null,
+      "writes": 1
+    },
+    {
+      "id": "archer",
+      "cache": "cold",
+      "message": "저장하지 못했어요. 공간을 확인하고 다시 시도해 주세요. 다른 탭에서 플레이했다면 이 페이지를 새로고침해 주세요.",
+      "scene": "WorldScene",
+      "classId": "archer",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": false,
+        "reason": "profile_conflict",
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 3.3999999999068677,
+      "totalMs": 158.80000000004657,
+      "journal": null,
+      "writes": 0
+    },
+    {
+      "id": "archer",
+      "cache": "warm",
+      "scene": "CampScene",
+      "classId": "archer",
+      "exp": 13,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 18.700000000186265,
+      "totalMs": 158.80000000004657,
+      "failed": false,
+      "journal": null,
+      "writes": 1
+    }
+  ],
+  "errors": []
+}

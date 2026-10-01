@@ -1,0 +1,35 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const report={coverage:'Isolated local browser profiles; injected save failure/delay; no live account writes',cases:[],errors:[]};
+(async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
+try{for(const id of ['wizard','witch','warrior','archer']){
+ const context=await browser.newContext({viewport:{width:780,height:360},hasTouch:true,isMobile:true,serviceWorkers:'block'});
+ const page=await context.newPage();page.setDefaultTimeout(30000);page.on('pageerror',e=>report.errors.push(e.message));
+ await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
+ await page.goto('http://127.0.0.1:8100/?local=1');await page.locator('#camp-name').fill('복귀 회귀');await page.locator('[data-camp=create]').tap();await page.locator('[data-camp=character]').first().waitFor();
+ await page.evaluate(async id=>{const n=game.net,p=await n.getPlayerProfile(n.playerId);await n.savePlayerData(n.playerId,{...p,activeClassId:id,questData:{...p.questData,basicTrainingCompleted:true,prologueCompleted:true}})},id);
+ await page.reload();await page.locator('[data-camp=character]').first().waitFor();
+ const depart=async()=>{await page.locator('[data-camp=prepare]').tap();await page.locator('[data-camp=depart]').tap();await page.locator('.camp-return').waitFor();await page.locator('#loading-overlay').waitFor({state:'hidden'});};
+ await depart();
+ await page.evaluate(()=>{const p=game.localPlayer;window.qaSave=p.saveState.bind(p);window.qaCalls=0;p.saveState=async()=>{qaCalls++;return{ok:false,reason:'qa_rejected'}}});
+ await page.locator('.camp-return').tap();await page.waitForFunction(()=>!game.ui.gameExitSceneTransitioning);
+ assert.deepEqual(await page.evaluate(()=>({calls:qaCalls,field:game.ui.isWorldSceneActive(),enabled:!document.querySelector('.camp-return').disabled})),{calls:1,field:true,enabled:true});
+ report.cases.push({id,test:'failed-save-stays-in-field',passed:true});
+ await page.evaluate(()=>{qaCalls=0;const p=game.localPlayer;p.exp+=7;window.qaExpectedExp=p.exp;window.qaRelease=null;p.saveState=(...args)=>{qaCalls++;return new Promise(resolve=>qaRelease=()=>resolve(qaSave(...args)))};window.qaButton=document.querySelector('.camp-return');qaButton.click();qaButton.click();qaButton.click()});
+ await page.waitForFunction(()=>!!window.qaRelease);assert.deepEqual(await page.evaluate(()=>({calls:qaCalls,field:game.ui.isWorldSceneActive(),disabled:qaButton.disabled})),{calls:1,field:true,disabled:true});
+ await page.waitForTimeout(400);assert.equal(await page.evaluate(()=>game.ui.isWorldSceneActive()),true);
+ await page.evaluate(()=>qaRelease());await page.waitForFunction(()=>document.querySelector('#camp-scene')&&!game.sceneManager.currentScene.busy&&!game.ui.gameExitSceneTransitioning);
+ assert.equal(await page.evaluate(()=>game.localPlayer.exp===qaExpectedExp),true);assert.equal(await page.evaluate(()=>qaCalls),1);
+ report.cases.push({id,test:'delayed-save-repeat-click-one-write-and-retained-progress',passed:true});
+ await depart();assert.equal(await page.evaluate(()=>game.localPlayer.exp===qaExpectedExp),true);
+ await page.evaluate(async()=>{await Promise.allSettled([...game.resources.loading.values()]);game.resources.cache.clear();window.qaFieldLoads=0;const original=game.resources.preparePlayableClassAssets;game.resources.preparePlayableClassAssets=function(...args){qaFieldLoads++;return original.apply(this,args)}});
+ await page.locator('.camp-return').tap();await page.waitForFunction(()=>document.querySelector('#camp-scene')&&!game.sceneManager.currentScene.busy);
+ assert.equal(await page.evaluate(()=>qaFieldLoads),0,'camp return must not start field image download/decode/composition');
+ report.cases.push({id,test:'cold-return-no-field-assets',passed:true});
+ await depart();assert.ok(await page.evaluate(()=>qaFieldLoads)>0,'departure still requires field assets');assert.equal(await page.evaluate(()=>game.localPlayer.exp===qaExpectedExp),true);
+ await page.locator('.camp-return').tap();await page.waitForFunction(()=>document.querySelector('#camp-scene')&&!game.sceneManager.currentScene.busy);
+ report.cases.push({id,test:'reentry-after-cold-return-keeps-progress',passed:true});
+ await context.close();
+}assert.deepEqual(report.errors,[])}finally{fs.writeFileSync(process.env.QA_OUTPUT||'/tmp/camp-return-regression.json',JSON.stringify(report,null,2));await browser.close()}
+console.log(JSON.stringify(report,null,2))})().catch(e=>{console.error(e);process.exitCode=1});

@@ -201,9 +201,9 @@ export default class CampScene extends Scene {
         this.preparation = profile ? new CampPreparation(this.game, this.user, profile, definition, () => this.updateSaveStatus()) : null;
         this.game.localPlayer = this.preparation?.player || null;
         if (!profile) return;
-        // Warm only the selected class; this is shared with field entry and never
-        // delays management or authorizes gameplay before decoding completes.
-        this.game.resources.preparePlayableClassAssets?.(normalizeClassId(profile.activeClassId)).catch(() => {});
+        // Camp uses its own artwork, not field sprites. In a cold resource cache
+        // the Mage's frame composition competes with the first camp paint even
+        // without awaiting it. Warm field assets only when preparing departure.
         const selected = this.profile;
         const requested = this.game.zone.getZoneMeta(selected.currentZoneId || selected.mapId || 'zone_1');
         const region = requested && (selected.level || 1) >= (requested.requiredLevel || 1) ? requested : this.game.zone.getZoneMeta('zone_1');
@@ -301,6 +301,11 @@ export default class CampScene extends Scene {
             this.message = '';
             history.pushState({ camp: action }, '');
             this.renderUI();
+            if (action === 'prepare') {
+                // Optional warming; departure below still awaits and reports a
+                // failed load before allowing entry. Failed bundles can retry.
+                this.game.resources.preparePlayableClassAssets?.(normalizeClassId(this.profile.activeClassId)).catch(() => {});
+            }
             return;
         }
         if (['account', 'retry', 'reload'].includes(action)) {

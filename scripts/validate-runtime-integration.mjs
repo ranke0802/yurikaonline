@@ -2460,7 +2460,7 @@ async function validateRewardDedupe() {
     const savedProfiles = [];
     const net = {
         isSharedFieldActive: () => false,
-        savePlayerData: (_id, data) => { savedProfiles.push(data); },
+        savePlayerDataPatch: (_id, data) => { savedProfiles.push(data); },
         savePlayerProfilePatch: () => {},
         sendPlayerHp: () => {}
     };
@@ -5747,7 +5747,7 @@ async function validateDurableBossRewardContracts() {
     assert.ok(receivedDurableWeapon);
     receivedDurableWeapon.enhancementLevel = 7;
     assert.equal((await player.saveState(true)).ok, true);
-    const durableSavedProfile = savedProfiles.at(-1);
+    const durableSavedProfile = savedProfilePatches.at(-1);
     assert.equal(
         durableSavedProfile.inventory.find((entry) => entry?.instanceId === item.instanceId)?.durableEntitlementVersion,
         1,

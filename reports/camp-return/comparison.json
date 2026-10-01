@@ -1,0 +1,326 @@
+{
+  "baseline": "be4ec1f0329da6c4d36dffdab0990f1fd55d07a3",
+  "version": "0.02.138",
+  "trials": 3,
+  "notes": [
+    "First-return is first actual field-to-camp return in a fresh browser context; field sprite cache is necessarily warm after departure.",
+    "Evicted explicitly clears ResourceManager/definition caches before return and is not natural first-return.",
+    "UI readiness, image decode calls and frame composition overlap; durations must not be summed.",
+    "Local timings do not measure Firebase/network latency.",
+    "Painted is camp image decode plus two animation frames, not a compositor tracing timestamp."
+  ],
+  "medians": [
+    {
+      "id": "wizard",
+      "cache": "first-return",
+      "before": {
+        "saveMs": 0.8000000000465661,
+        "flushMs": 0.09999999997671694,
+        "profileMs": 0.40000000002328306,
+        "definitionMs": 0,
+        "uiBuildMs": 1.2999999999883585,
+        "uiReadyMs": 6.2999999999883585,
+        "campImagesMs": 82.90000000002328,
+        "paintedMs": 110,
+        "mageComposeMs": 0
+      },
+      "after": {
+        "saveMs": 0.8000000000465661,
+        "flushMs": 0,
+        "profileMs": 0.5,
+        "definitionMs": 0,
+        "uiBuildMs": 1.6999999999534339,
+        "uiReadyMs": 7.5,
+        "campImagesMs": 84.10000000009313,
+        "paintedMs": 111.5,
+        "mageComposeMs": 0
+      }
+    },
+    {
+      "id": "wizard",
+      "cache": "warm",
+      "before": {
+        "saveMs": 0.40000000002328306,
+        "flushMs": 0,
+        "profileMs": 0.1000000000349246,
+        "definitionMs": 0,
+        "uiBuildMs": 0.9000000000232831,
+        "uiReadyMs": 4,
+        "campImagesMs": 1.8999999999650754,
+        "paintedMs": 28.399999999965075,
+        "mageComposeMs": 0
+      },
+      "after": {
+        "saveMs": 0.39999999990686774,
+        "flushMs": 0,
+        "profileMs": 0.10000000009313226,
+        "definitionMs": 0,
+        "uiBuildMs": 1.2999999998137355,
+        "uiReadyMs": 4.7999999998137355,
+        "campImagesMs": 2.300000000046566,
+        "paintedMs": 28.5,
+        "mageComposeMs": 0
+      }
+    },
+    {
+      "id": "wizard",
+      "cache": "evicted",
+      "before": {
+        "saveMs": 0.30000000004656613,
+        "flushMs": 0,
+        "profileMs": 0.09999999997671694,
+        "definitionMs": 10.599999999976717,
+        "uiBuildMs": 1.2000000000116415,
+        "uiReadyMs": 16.600000000034925,
+        "campImagesMs": 0.30000000004656613,
+        "paintedMs": 87.5,
+        "mageComposeMs": 144.60000000020955
+      },
+      "after": {
+        "saveMs": 0.5,
+        "flushMs": 0.10000000009313226,
+        "profileMs": 0.10000000009313226,
+        "definitionMs": 14.799999999813735,
+        "uiBuildMs": 1.4000000001396984,
+        "uiReadyMs": 20.199999999953434,
+        "campImagesMs": 2,
+        "paintedMs": 43.9000000001397,
+        "mageComposeMs": 0
+      }
+    },
+    {
+      "id": "witch",
+      "cache": "first-return",
+      "before": {
+        "saveMs": 0.8999999999650754,
+        "flushMs": 0.09999999997671694,
+        "profileMs": 0.5,
+        "definitionMs": 0,
+        "uiBuildMs": 1.4999999999417923,
+        "uiReadyMs": 7.100000000034925,
+        "campImagesMs": 83.10000000003492,
+        "paintedMs": 111.20000000001164,
+        "mageComposeMs": 0
+      },
+      "after": {
+        "saveMs": 0.8999999999068677,
+        "flushMs": 0,
+        "profileMs": 0.5999999998603016,
+        "definitionMs": 0,
+        "uiBuildMs": 1.5000000002328306,
+        "uiReadyMs": 7,
+        "campImagesMs": 89.60000000009313,
+        "paintedMs": 126.60000000009313,
+        "mageComposeMs": 0
+      }
+    },
+    {
+      "id": "witch",
+      "cache": "warm",
+      "before": {
+        "saveMs": 0.3999999999650754,
+        "flushMs": 0.09999999997671694,
+        "profileMs": 0.09999999997671694,
+        "definitionMs": 0,
+        "uiBuildMs": 1.2999999999883585,
+        "uiReadyMs": 4.899999999965075,
+        "campImagesMs": 2.8999999999650754,
+        "paintedMs": 28.5,
+        "mageComposeMs": 0
+      },
+      "after": {
+        "saveMs": 0.5999999998603016,
+        "flushMs": 0,
+        "profileMs": 0.10000000009313226,
+        "definitionMs": 0,
+        "uiBuildMs": 1.2000000001862645,
+        "uiReadyMs": 5.100000000093132,
+        "campImagesMs": 2.1000000000931323,
+        "paintedMs": 29.100000000093132,
+        "mageComposeMs": 0
+      }
+    },
+    {
+      "id": "witch",
+      "cache": "evicted",
+      "before": {
+        "saveMs": 0.5999999999767169,
+        "flushMs": 0.1000000000349246,
+        "profileMs": 0.09999999997671694,
+        "definitionMs": 10.799999999988358,
+        "uiBuildMs": 1.3000000000465661,
+        "uiReadyMs": 17,
+        "campImagesMs": 0.6000000000349246,
+        "paintedMs": 43.29999999998836,
+        "mageComposeMs": 0
+      },
+      "after": {
+        "saveMs": 0.4000000001396984,
+        "flushMs": 0,
+        "profileMs": 0.10000000009313226,
+        "definitionMs": 10.799999999813735,
+        "uiBuildMs": 1.4000000001396984,
+        "uiReadyMs": 15.699999999953434,
+        "campImagesMs": 3.199999999953434,
+        "paintedMs": 42.800000000046566,
+        "mageComposeMs": 0
+      }
+    },
+    {
+      "id": "warrior",
+      "cache": "first-return",
+      "before": {
+        "saveMs": 0.9000000000232831,
+        "flushMs": 0.09999999997671694,
+        "profileMs": 0.40000000002328306,
+        "definitionMs": 0,
+        "uiBuildMs": 1.2999999999883585,
+        "uiReadyMs": 7,
+        "campImagesMs": 88.20000000001164,
+        "paintedMs": 124.89999999996508,
+        "mageComposeMs": 0
+      },
+      "after": {
+        "saveMs": 0.9000000001396984,
+        "flushMs": 0.09999999986030161,
+        "profileMs": 0.5,
+        "definitionMs": 0,
+        "uiBuildMs": 1.3000000000465661,
+        "uiReadyMs": 6.400000000139698,
+        "campImagesMs": 84,
+        "paintedMs": 113.30000000004657,
+        "mageComposeMs": 0
+      }
+    },
+    {
+      "id": "warrior",
+      "cache": "warm",
+      "before": {
+        "saveMs": 0.40000000002328306,
+        "flushMs": 0,
+        "profileMs": 0.09999999997671694,
+        "definitionMs": 0,
+        "uiBuildMs": 1,
+        "uiReadyMs": 4.2999999999883585,
+        "campImagesMs": 2,
+        "paintedMs": 28.199999999953434,
+        "mageComposeMs": 0
+      },
+      "after": {
+        "saveMs": 0.39999999990686774,
+        "flushMs": 0.10000000009313226,
+        "profileMs": 0.10000000009313226,
+        "definitionMs": 0,
+        "uiBuildMs": 1.1000000000931323,
+        "uiReadyMs": 4.5,
+        "campImagesMs": 1.8000000000465661,
+        "paintedMs": 27.5999999998603,
+        "mageComposeMs": 0
+      }
+    },
+    {
+      "id": "warrior",
+      "cache": "evicted",
+      "before": {
+        "saveMs": 0.40000000002328306,
+        "flushMs": 0.09999999997671694,
+        "profileMs": 0.09999999997671694,
+        "definitionMs": 12.800000000046566,
+        "uiBuildMs": 1.599999999976717,
+        "uiReadyMs": 18.79999999998836,
+        "campImagesMs": 0.40000000002328306,
+        "paintedMs": 44.5,
+        "mageComposeMs": 0
+      },
+      "after": {
+        "saveMs": 0.39999999990686774,
+        "flushMs": 0,
+        "profileMs": 0,
+        "definitionMs": 10.300000000046566,
+        "uiBuildMs": 1.4999999997671694,
+        "uiReadyMs": 16.199999999953434,
+        "campImagesMs": 5.5,
+        "paintedMs": 44.4000000001397,
+        "mageComposeMs": 0
+      }
+    },
+    {
+      "id": "archer",
+      "cache": "first-return",
+      "before": {
+        "saveMs": 0.7999999999883585,
+        "flushMs": 0,
+        "profileMs": 0.40000000002328306,
+        "definitionMs": 0,
+        "uiBuildMs": 1.3999999999650754,
+        "uiReadyMs": 7.099999999976717,
+        "campImagesMs": 106.29999999998836,
+        "paintedMs": 125.70000000001164,
+        "mageComposeMs": 0
+      },
+      "after": {
+        "saveMs": 1.1000000000931323,
+        "flushMs": 0,
+        "profileMs": 0.4000000001396984,
+        "definitionMs": 0,
+        "uiBuildMs": 1.2999999998137355,
+        "uiReadyMs": 6.2000000001862645,
+        "campImagesMs": 79.20000000018626,
+        "paintedMs": 110.5,
+        "mageComposeMs": 0
+      }
+    },
+    {
+      "id": "archer",
+      "cache": "warm",
+      "before": {
+        "saveMs": 0.40000000002328306,
+        "flushMs": 0.09999999997671694,
+        "profileMs": 0.09999999997671694,
+        "definitionMs": 0,
+        "uiBuildMs": 1.1000000000349246,
+        "uiReadyMs": 4.699999999953434,
+        "campImagesMs": 1.8999999999650754,
+        "paintedMs": 28.199999999953434,
+        "mageComposeMs": 0
+      },
+      "after": {
+        "saveMs": 0.4000000001396984,
+        "flushMs": 0.09999999986030161,
+        "profileMs": 0.09999999986030161,
+        "definitionMs": 0,
+        "uiBuildMs": 1.1999999999534339,
+        "uiReadyMs": 5,
+        "campImagesMs": 2,
+        "paintedMs": 29.600000000093132,
+        "mageComposeMs": 0
+      }
+    },
+    {
+      "id": "archer",
+      "cache": "evicted",
+      "before": {
+        "saveMs": 0.40000000002328306,
+        "flushMs": 0,
+        "profileMs": 0.09999999997671694,
+        "definitionMs": 11.799999999988358,
+        "uiBuildMs": 1.3999999999650754,
+        "uiReadyMs": 18.20000000001164,
+        "campImagesMs": 2.5,
+        "paintedMs": 45.20000000001164,
+        "mageComposeMs": 0
+      },
+      "after": {
+        "saveMs": 0.5,
+        "flushMs": 0.10000000009313226,
+        "profileMs": 0.2999999998137355,
+        "definitionMs": 22,
+        "uiBuildMs": 1.5,
+        "uiReadyMs": 27,
+        "campImagesMs": 39.5,
+        "paintedMs": 94.69999999995343,
+        "mageComposeMs": 0
+      }
+    }
+  ]
+}

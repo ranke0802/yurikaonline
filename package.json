@@ -49,7 +49,8 @@
     "validate:class-action-art": "node scripts/validate-class-action-art.cjs",
     "validate:class-audio": "node scripts/audio-tests/validate-class-audio.cjs",
     "validate:class-game-audio": "node scripts/audio-tests/validate-class-game-audio.cjs",
-    "validate:audio-all": "npm run validate:audio && npm run validate:class-audio"
+    "validate:audio-all": "npm run validate:audio && npm run validate:class-audio",
+    "validate:camp-return": "node scripts/validate-camp-return-browser.cjs"
   },
   "dependencies": {
     "image-size": "^2.0.2"

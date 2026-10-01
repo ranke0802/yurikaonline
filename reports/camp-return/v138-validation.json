@@ -1,0 +1,27 @@
+{
+  "version": "0.02.138",
+  "baseline": "be4ec1f0329da6c4d36dffdab0990f1fd55d07a3",
+  "scope": "All-class durable save/return and avoid camp field-sprite warming; no art changes",
+  "validation": {
+    "aggregate": "npm run validate passed",
+    "additional": [
+      "validate:assets",
+      "validate:local-profile",
+      "validate:monster-authority",
+      "unchanged actual Firebase SDK cache lifecycle",
+      "class exit SDK: 8 conditions",
+      "local browser return: 16 cases",
+      "SDK browser: 8 class/cache conditions with acknowledgement gate, repeated clicks, rejection, retry and reentry",
+      "camp stall browser",
+      "startup recovery browser"
+    ],
+    "baselineReproduction": "Existing complete Mage checkpoint + cold actual SDK: all three new classes stay in WorldScene and show exact reported save-failure toast; Mage enters camp through local-checkpoint fallback",
+    "comparison": "reports/camp-return/comparison.json"
+  },
+  "limitations": [
+    "Isolated Firebase protocol fixture; no live account writes",
+    "Chromium touch/mobile emulation; no physical Android",
+    "Runtime visual fixes are a separate follow-up"
+  ],
+  "deployment": "Pending exact-commit CI/live verification at commit creation"
+}
