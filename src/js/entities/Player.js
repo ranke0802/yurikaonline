@@ -281,14 +281,14 @@ export default class Player extends CharacterBase {
     }
 
     isClassAction(action) {
-        return this.classId !== 'wizard' && ['ATTACK', 'SKILL_1', 'SKILL_2', 'SKILL_3'].includes(action);
+        return normalizeClassId(this.classId) !== 'wizard' && ['ATTACK', 'SKILL_1', 'SKILL_2', 'SKILL_3'].includes(action);
     }
 
     initializeClassCombat() {
         this.classCombat?.dispose();
         this.classCombat = new ClassCombatBridge(this, this.classId);
         this.classAim = null;
-        if (this.classId !== 'wizard') this.autoAttackEnabled = false;
+        if (normalizeClassId(this.classId) !== 'wizard') this.autoAttackEnabled = false;
     }
 
     startClassAction(action, pointer = null) {
@@ -351,13 +351,13 @@ export default class Player extends CharacterBase {
         if (!res) return;
 
         try {
-            const sheetCanvas = this.classId !== 'wizard'
+            const sheetCanvas = normalizeClassId(this.classId) !== 'wizard'
                 ? await res.loadImage(`assets/resource/classes/${this.classId}-runtime.webp`)
                 : await res.loadCharacterSpriteSheet();
             // Max Frames 8, Rows 5 (Back, Front, Left, Right, Attack)
             this.sprite = new Sprite(sheetCanvas, 8, 5);
             // Frame counts per row (0:Back, 1:Front, 2:Left, 3:Right, 4:Attack)
-            this.frameCounts = this.classId !== 'wizard' ? {0:4,1:4,2:4,3:4,4:4} : { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 };
+            this.frameCounts = normalizeClassId(this.classId) !== 'wizard' ? {0:4,1:4,2:4,3:4,4:4} : { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 };
 
             // Update UI portraits with the new transparent sheet
             if (window.game && window.game.ui) {
@@ -417,7 +417,7 @@ export default class Player extends CharacterBase {
             }
         }
         this._updateCooldowns(dt);
-        if (this.classCombat && this.classId !== 'wizard') {
+        if (this.classCombat && normalizeClassId(this.classId) !== 'wizard') {
             const c=this.classCombat.controller;
             this.skillCooldowns.j=Math.max(0,c.basicReady-c.time);
             for (const [slot,key] of [[1,'h'],[2,'u'],[3,'k']]) this.skillCooldowns[key]=Math.max(0,(c.cooldowns[slot]||0)-c.time);
@@ -435,7 +435,7 @@ export default class Player extends CharacterBase {
             && !isFireballAimBlockingAutoAttack
             && this.autoAttackEnabled
             && !!autoTarget;
-        if (this.classId === 'wizard' && this.skillAttackTimer <= 0) {
+        if (normalizeClassId(this.classId) === 'wizard' && this.skillAttackTimer <= 0) {
             if (isManualAttackPressed || shouldAutoAttack) {
                 this.performLaserAttack(dt);
             } else {
@@ -1684,7 +1684,7 @@ export default class Player extends CharacterBase {
     }
 
     attack() {
-        if (this.classId !== 'wizard') { this.startClassAction('ATTACK'); return this.releaseClassAction('ATTACK'); }
+        if (normalizeClassId(this.classId) !== 'wizard') { this.startClassAction('ATTACK'); return this.releaseClassAction('ATTACK'); }
         if (!window.game?.tutorial?.isActionAllowed?.('ATTACK')) return;
         window.game?.tutorial?.trigger?.('attack', { target: 'normal' });
         // Handled by update loop for channeling
@@ -1977,7 +1977,7 @@ export default class Player extends CharacterBase {
     }
 
     toggleAutoAttack(force = null, options = {}) {
-        if (this.classId !== 'wizard') { this.autoAttackEnabled=false; return false; }
+        if (normalizeClassId(this.classId) !== 'wizard') { this.autoAttackEnabled=false; return false; }
         const nextState = typeof force === 'boolean' ? force : !this.autoAttackEnabled;
         const shouldPersist = options.persist !== false;
         const shouldNotify = options.notify !== false;
@@ -2203,7 +2203,7 @@ export default class Player extends CharacterBase {
     }
 
     useSkill(slot, castOptions = null) {
-        if (this.classId !== 'wizard') {
+        if (normalizeClassId(this.classId) !== 'wizard') {
             if (![1,2,3].includes(slot) || this.isDead || !this.classCombat) return false;
             if (window.game?.tutorial?.isActionAllowed?.(`SKILL_${slot}`) === false) return false;
             const key={1:'h',2:'u',3:'k'}[slot], id=classSkillIds(this)[slot];
@@ -3241,7 +3241,7 @@ export default class Player extends CharacterBase {
         }
 
         // 2. Magic Circle & Run Particles (Drawn BEFORE character)
-        if (this.isAttacking && this.classId === 'wizard') {
+        if (this.isAttacking && normalizeClassId(this.classId) === 'wizard') {
             this.drawMagicCircle(ctx, centerX, y + this.height + 5);
         }
 

@@ -33,5 +33,11 @@
     "fireball": "passed, high-level touch hit",
     "groundGuides": "passed, guide-under-body ordering",
     "onlineMonsters": "passed, presence/snapshot/death/lifecycle"
+  },
+  "ciCompatibilityCorrection": {
+    "failedRun": 36802750663,
+    "cause": "Legacy prototype-based Mage fixture had no classId and was routed to new-class skills. Normalized class dispatch now preserves the Mage default.",
+    "verification": "Existing fireball test reproduced red locally, then passed 24600 level/range/FPS/input cases and 40 online snapshot cases; exact CI validation command group passed.",
+    "prevention": "npm run validate now also includes validate:fireball-impact"
   }
 }
