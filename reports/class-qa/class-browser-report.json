@@ -7,8 +7,8 @@
       "classId": "witch",
       "pixels": {
         "sprite": {
-          "visible": 2778,
-          "hash": 1394158317
+          "visible": 2741,
+          "hash": 89745039
         },
         "frames": [
           {
@@ -143,10 +143,10 @@
           }
         ],
         "resourceUrls": [
-          "http://127.0.0.1:8100/assets/immutable/def1ee07f94d322fe5f053db.webp",
-          "http://127.0.0.1:8100/assets/immutable/00bc0aa91e59be7a639bd34c.webp",
+          "http://127.0.0.1:8100/assets/immutable/297077115f4d91dbc989c841.webp",
+          "http://127.0.0.1:8100/assets/immutable/3c4c486d6a985804d259cda3.webp",
           "http://127.0.0.1:8100/assets/immutable/048ce76d57ea69a8bb2e6cd7.webp",
-          "http://127.0.0.1:8100/assets/immutable/3c4c486d6a985804d259cda3.webp"
+          "http://127.0.0.1:8100/assets/immutable/00bc0aa91e59be7a639bd34c.webp"
         ]
       }
     },
@@ -154,7 +154,7 @@
       "name": "portrait",
       "classId": "witch",
       "combat": {
-        "hp": 949893,
+        "hp": 949901,
         "casts": [
           {
             "method": "basic",
@@ -222,8 +222,8 @@
       "classId": "warrior",
       "pixels": {
         "sprite": {
-          "visible": 3077,
-          "hash": 3559974913
+          "visible": 3117,
+          "hash": 2815241897
         },
         "frames": [
           {
@@ -358,9 +358,9 @@
           }
         ],
         "resourceUrls": [
-          "http://127.0.0.1:8100/assets/immutable/7f4e418fd86fa25cca1481cf.webp",
-          "http://127.0.0.1:8100/assets/immutable/ddab6f9e3ea74571c36e8d39.webp",
-          "http://127.0.0.1:8100/assets/immutable/048ce76d57ea69a8bb2e6cd7.webp"
+          "http://127.0.0.1:8100/assets/immutable/ccbaac807198113916a5d2b5.webp",
+          "http://127.0.0.1:8100/assets/immutable/048ce76d57ea69a8bb2e6cd7.webp",
+          "http://127.0.0.1:8100/assets/immutable/ddab6f9e3ea74571c36e8d39.webp"
         ]
       }
     },
@@ -715,8 +715,8 @@
       "classId": "witch",
       "pixels": {
         "sprite": {
-          "visible": 2778,
-          "hash": 1394158317
+          "visible": 2741,
+          "hash": 89745039
         },
         "frames": [
           {
@@ -851,10 +851,10 @@
           }
         ],
         "resourceUrls": [
-          "http://127.0.0.1:8100/assets/immutable/def1ee07f94d322fe5f053db.webp",
+          "http://127.0.0.1:8100/assets/immutable/297077115f4d91dbc989c841.webp",
+          "http://127.0.0.1:8100/assets/immutable/048ce76d57ea69a8bb2e6cd7.webp",
           "http://127.0.0.1:8100/assets/immutable/3c4c486d6a985804d259cda3.webp",
-          "http://127.0.0.1:8100/assets/immutable/00bc0aa91e59be7a639bd34c.webp",
-          "http://127.0.0.1:8100/assets/immutable/048ce76d57ea69a8bb2e6cd7.webp"
+          "http://127.0.0.1:8100/assets/immutable/00bc0aa91e59be7a639bd34c.webp"
         ]
       }
     },
@@ -930,8 +930,8 @@
       "classId": "warrior",
       "pixels": {
         "sprite": {
-          "visible": 3077,
-          "hash": 3559974913
+          "visible": 3117,
+          "hash": 2815241897
         },
         "frames": [
           {
@@ -1066,9 +1066,9 @@
           }
         ],
         "resourceUrls": [
-          "http://127.0.0.1:8100/assets/immutable/7f4e418fd86fa25cca1481cf.webp",
-          "http://127.0.0.1:8100/assets/immutable/ddab6f9e3ea74571c36e8d39.webp",
-          "http://127.0.0.1:8100/assets/immutable/048ce76d57ea69a8bb2e6cd7.webp"
+          "http://127.0.0.1:8100/assets/immutable/ccbaac807198113916a5d2b5.webp",
+          "http://127.0.0.1:8100/assets/immutable/048ce76d57ea69a8bb2e6cd7.webp",
+          "http://127.0.0.1:8100/assets/immutable/ddab6f9e3ea74571c36e8d39.webp"
         ]
       }
     },

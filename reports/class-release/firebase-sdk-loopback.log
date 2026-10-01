@@ -1,0 +1,6 @@
+(node:38509) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/core/NetworkManager.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+RED v129: actual SDK once reads succeed; three guarded flushes abort profile_missing with no server write.
+GREEN retained listener: one journal commit, clean reentry zero writes, saved Lv19/zone4 retained.

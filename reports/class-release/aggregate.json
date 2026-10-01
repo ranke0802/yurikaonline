@@ -1,0 +1,37 @@
+{
+  "version": "0.02.131",
+  "testedFeatureCommit": "3633801a98afb29b8d334b3e94ad02ac3f5d5816",
+  "aggregate": "npm run validate passed",
+  "nodeTestCounts": [
+    14,
+    5,
+    25,
+    8,
+    10,
+    12,
+    7,
+    49
+  ],
+  "classFixtures": 49,
+  "mobileCases": 14,
+  "browserErrors": [],
+  "liveAccountWrites": false,
+  "sdk": "10.7.1 real SDK / loopback wire, proxy variables unset; RED legacy + GREEN retained listener passed",
+  "artAcceptance": "User temporarily accepts appearance while dissatisfied; further art polish deferred; deployment hold lifted",
+  "screenshots": {
+    "witch": "libfile_14a3c17277388191898a8dc10e572ac6",
+    "archer": "libfile_49729bd3089c81918cde7d9d0f73fbc5"
+  },
+  "limitations": [
+    "No physical phone verification",
+    "No real remote multi-user latency verification",
+    "Four authored walk frames per direction; art polish remains",
+    "One directly controlled character, future party control excluded"
+  ],
+  "legacyBrowserRegressions": {
+    "inventory": "passed, 5 viewports; longpress/insertion/cancel/compaction/persistence",
+    "fireball": "passed, high-level touch hit",
+    "groundGuides": "passed, guide-under-body ordering",
+    "onlineMonsters": "passed, presence/snapshot/death/lifecycle"
+  }
+}
