@@ -1,0 +1,37 @@
+{
+  "reviewStatus": "reviewed_replacement",
+  "anatomicalReference": "In the rear view, the potion-pouch side is anatomical right (viewer right). Identify each boot from its thigh/calf connection, not from its horizontal pixel position alone.",
+  "phases": [
+    {
+      "phase": 1,
+      "requirement": "Contact/support A: one identifiable planted leg and the opposite visibly trailing or lifted boot/heel. Both boots are readable."
+    },
+    {
+      "phase": 2,
+      "requirement": "Passing A: the swing leg passes the planted support leg. The two ankles/boots remain distinguishable; this is not the same central boot merely shifted vertically."
+    },
+    {
+      "phase": 3,
+      "requirement": "Opposite contact/support B: planted and trailing/lifted anatomical legs exchange roles relative to phase 1. The opposite heel is visibly presented."
+    },
+    {
+      "phase": 4,
+      "requirement": "Opposite passing B: the other anatomical leg passes the new support leg. Roles differ from phase 2, with contralateral arm motion."
+    }
+  ],
+  "checks": [
+    "Inspect all four stills at 64px and 120px, then a 3fps slow loop and the runtime movement loop.",
+    "Two boots must remain separable by contour or shading at gameplay scale; robe coverage must not hide all evidence of alternation.",
+    "Phase 1 versus 3 and phase 2 versus 4 must exchange anatomical support/swing roles, rather than repeat one-leg hopping.",
+    "The planted-foot baseline and body center must remain stable; apparent sliding is assessed against the moving ground in the runtime recording.",
+    "The pouch stays on anatomical right. No frame mirroring is permitted.",
+    "UP-only historical proof preserves all other visible RGB and alpha. Subsequent RIGHT-only proof preserves new UP, DOWN, LEFT and ATTACK; transparent RGB normalization is reported separately.",
+    "Alpha bounds, unique frame hashes, and cycling frame indexes alone are not evidence of anatomical leg alternation."
+  ],
+  "findings": [
+    "At 64px and 120px the rear boots remain distinguishable. Pouch-side right sole is exposed in phase 2; left sole is exposed in phase 4.",
+    "Rear phase 1 trails the right boot and phase 3 trails the left boot; the old single central boot pattern is replaced.",
+    "Right-facing hat brooch is absent in all four frames. Front and left-facing hat brooches remain.",
+    "Automated frame progression is runtime evidence, not independent proof of anatomical gait."
+  ]
+}

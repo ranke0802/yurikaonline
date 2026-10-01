@@ -1,0 +1,89 @@
+{
+  "result": "passed",
+  "proof": [
+    {
+      "source": "assets/resource/classes/witch-runtime.webp",
+      "sourceSha256": "492208c92b0ad99e534bbc7f81aadd06b5192df6c7f448e8a380c6bd209dc92e",
+      "rows": [
+        {
+          "row": 0,
+          "direction": "up",
+          "rawRgbaUnchanged": true,
+          "changedVisiblePixels": 0,
+          "changedInvisibleRgbChannels": 0,
+          "decodedRgbaSha256": "219ed8f5cb5021f11b0e9537314be1c09d97f2c47f45825ea407952a0ec6a29a"
+        },
+        {
+          "row": 1,
+          "direction": "down",
+          "rawRgbaUnchanged": true,
+          "changedVisiblePixels": 0,
+          "changedInvisibleRgbChannels": 0,
+          "decodedRgbaSha256": "c525356b2bcc1e44852277f01f60c77a66a749a863021cdbb7a6af0b5368d372"
+        },
+        {
+          "row": 2,
+          "direction": "left",
+          "rawRgbaUnchanged": true,
+          "changedVisiblePixels": 0,
+          "changedInvisibleRgbChannels": 0,
+          "decodedRgbaSha256": "614753b314345a24601c0076eac0bac81249c20f47d8a25285fb61c2e525bae5"
+        },
+        {
+          "row": 3,
+          "direction": "right",
+          "rawRgbaUnchanged": false,
+          "changedVisiblePixels": 47108,
+          "changedInvisibleRgbChannels": 403895,
+          "decodedRgbaSha256": "5b100dce1a44b67e77a21a7956eae8fe3e85f9cf8a8441274662b1aac14fcee8"
+        },
+        {
+          "row": 4,
+          "direction": "attack",
+          "rawRgbaUnchanged": false,
+          "changedVisiblePixels": 0,
+          "changedInvisibleRgbChannels": 120518,
+          "decodedRgbaSha256": "42309bbbfc8bb21d04040bacc230c8d968f53776486156220672af2231da71ce"
+        }
+      ]
+    },
+    {
+      "source": "assets/resource/classes/witch-walk.webp",
+      "sourceSha256": "7a52fb2c109779e1668355f654e0baf8f46c669a8228e68c2cc8cdcd6464a233",
+      "rows": [
+        {
+          "row": 0,
+          "direction": "down",
+          "rawRgbaUnchanged": true,
+          "changedVisiblePixels": 0,
+          "changedInvisibleRgbChannels": 0,
+          "decodedRgbaSha256": "e4d1c23876975c26f957ab82c8387e30435d82e53409a026f5e4a763cf5dba37"
+        },
+        {
+          "row": 1,
+          "direction": "up",
+          "rawRgbaUnchanged": true,
+          "changedVisiblePixels": 0,
+          "changedInvisibleRgbChannels": 0,
+          "decodedRgbaSha256": "ce4b28c3806cd4b010a641e3a5dca95dab9044386e10924598370225151d66a8"
+        },
+        {
+          "row": 2,
+          "direction": "right",
+          "rawRgbaUnchanged": false,
+          "changedVisiblePixels": 47106,
+          "changedInvisibleRgbChannels": 129301,
+          "decodedRgbaSha256": "097617c849de0eeb48f748fa8efda21be5c6f9f4f08a8647706d1d68052f11d3"
+        },
+        {
+          "row": 3,
+          "direction": "left",
+          "rawRgbaUnchanged": false,
+          "changedVisiblePixels": 0,
+          "changedInvisibleRgbChannels": 116,
+          "decodedRgbaSha256": "901fe980c2ea6018d0652d34a27f18fe50e629e7bb9c5cf0a92e1c1a6ceca40e"
+        }
+      ]
+    }
+  ]
+}

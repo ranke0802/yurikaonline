@@ -1,0 +1,63 @@
+[
+  {
+    "source": "assets/resource/classes/witch-runtime.webp",
+    "snapshot": "/tmp/witch-up-accepted-runtime.webp",
+    "width": 1536,
+    "height": 960,
+    "rows": [
+      {
+        "row": 0,
+        "direction": "up",
+        "decodedRgbaSha256": "219ed8f5cb5021f11b0e9537314be1c09d97f2c47f45825ea407952a0ec6a29a"
+      },
+      {
+        "row": 1,
+        "direction": "down",
+        "decodedRgbaSha256": "c525356b2bcc1e44852277f01f60c77a66a749a863021cdbb7a6af0b5368d372"
+      },
+      {
+        "row": 2,
+        "direction": "left",
+        "decodedRgbaSha256": "614753b314345a24601c0076eac0bac81249c20f47d8a25285fb61c2e525bae5"
+      },
+      {
+        "row": 3,
+        "direction": "right",
+        "decodedRgbaSha256": "2156561b5053a1f4c2722e72aa327851878e4a6618543edf6fb9078a9ea3df27"
+      },
+      {
+        "row": 4,
+        "direction": "attack",
+        "decodedRgbaSha256": "9f57ca5d41f849e4aea6dcc6313d67548500da6493c1deeda55461c715b3377b"
+      }
+    ]
+  },
+  {
+    "source": "assets/resource/classes/witch-walk.webp",
+    "snapshot": "/tmp/witch-up-accepted-walk.webp",
+    "width": 768,
+    "height": 768,
+    "rows": [
+      {
+        "row": 0,
+        "direction": "down",
+        "decodedRgbaSha256": "e4d1c23876975c26f957ab82c8387e30435d82e53409a026f5e4a763cf5dba37"
+      },
+      {
+        "row": 1,
+        "direction": "up",
+        "decodedRgbaSha256": "ce4b28c3806cd4b010a641e3a5dca95dab9044386e10924598370225151d66a8"
+      },
+      {
+        "row": 2,
+        "direction": "right",
+        "decodedRgbaSha256": "0af86e09a0ff69c8c46a691338f0c568b0ee4f219dd53074308a0bb937887c21"
+      },
+      {
+        "row": 3,
+        "direction": "left",
+        "decodedRgbaSha256": "6986fcb9cc291685975459eee889240ee4fa2f8439eb45e83a867d8d79a32686"
+      }
+    ]
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "source": "/workspace/generated_images/exec-42aacc01-d5d7-4c1e-a89e-739f0668d566.png",
+  "proof": [
+    {
+      "file": "assets/resource/classes/witch-runtime.webp",
+      "replacedRow": 3,
+      "changedVisiblePixelsOutsideCorrectedRow": 0,
+      "encoding": "lossless WebP"
+    },
+    {
+      "file": "assets/resource/classes/witch-walk.webp",
+      "replacedRow": 2,
+      "changedVisiblePixelsOutsideCorrectedRow": 0,
+      "encoding": "lossless WebP"
+    }
+  ]
+}

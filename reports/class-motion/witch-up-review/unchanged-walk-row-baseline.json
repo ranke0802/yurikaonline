@@ -1,0 +1,28 @@
+{
+  "source": "assets/resource/classes/witch-walk.webp",
+  "sourceSha256": "657aa5e8d71512efe7438f1772961193d8b1b5464b91f4f1338a7ce7972a8ca4",
+  "width": 768,
+  "height": 768,
+  "rows": [
+    {
+      "row": 0,
+      "direction": "down",
+      "decodedRgbaSha256": "82864cf2a86e191a208576be33671cf1654332c1967ae8e05ea034933b7ec97e"
+    },
+    {
+      "row": 1,
+      "direction": "up",
+      "decodedRgbaSha256": "2fff81cd9ce044df8811891873c780fc3b96bcbe689ec6b96a6c414911816849"
+    },
+    {
+      "row": 2,
+      "direction": "right",
+      "decodedRgbaSha256": "e848d6dd362ad21e868ff9ae352699cc2325f7deaed38ec8d514c3c38bc59990"
+    },
+    {
+      "row": 3,
+      "direction": "left",
+      "decodedRgbaSha256": "877217980bf8ed165992bf0e05efcf93c2ae9ed9358293ded2888a7191e7dcc3"
+    }
+  ]
+}

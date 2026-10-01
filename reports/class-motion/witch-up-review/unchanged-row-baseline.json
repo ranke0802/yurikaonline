@@ -1,0 +1,33 @@
+{
+  "source": "assets/resource/classes/witch-runtime.webp",
+  "sourceSha256": "016a05b3e53f10cfe93c78059ec97e448cfe8c0fa17b1f4eed53bcaeab9ce997",
+  "width": 1536,
+  "height": 960,
+  "rows": [
+    {
+      "row": 0,
+      "direction": "up",
+      "decodedRgbaSha256": "378c69314e5601e68341c64eac7b38cc9b52d87529f3bd7aabf229882d60828a"
+    },
+    {
+      "row": 1,
+      "direction": "down",
+      "decodedRgbaSha256": "069ddd9bd481d58c199b754dbc262841128523e292ec609a3f610348971871a6"
+    },
+    {
+      "row": 2,
+      "direction": "left",
+      "decodedRgbaSha256": "96800423eedb9610af2348cc699c2f2ef7ee5227ad7d42e870b000e2d9f4cceb"
+    },
+    {
+      "row": 3,
+      "direction": "right",
+      "decodedRgbaSha256": "0f9152a6761bdec015a843be9ff646dcddad1f0337a4308e2afe61ae99e34017"
+    },
+    {
+      "row": 4,
+      "direction": "attack",
+      "decodedRgbaSha256": "653197bc3f0ed91562df5c96a1e1dc91448865edfd838bfccce99f7a2fb63505"
+    }
+  ]
+}
