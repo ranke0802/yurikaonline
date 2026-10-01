@@ -1,0 +1,25 @@
+{
+  "result": "passed",
+  "baselineCommit": "55ed273",
+  "scope": "Contact band at y64..94 in LEFT/RIGHT only. Crown, other directions, attack and body unchanged. Interior alpha holes may fill; original nonzero alpha and external contour alpha remain unchanged. Face color subset supplements visual identity checks.",
+  "proof": [
+    {
+      "file": "assets/resource/classes/witch-runtime.webp",
+      "sha256": "297077115f4d91dbc989c841dbf6075f0cd296a2e1d40c634b577c39629eaed5",
+      "changedContactPixels": 3008,
+      "changedOutsideContact": 0,
+      "changedLightFacePixels": 0,
+      "changedOuterAlpha": 0,
+      "filledInternalGap": 226
+    },
+    {
+      "file": "assets/resource/classes/witch-walk.webp",
+      "sha256": "8fcd29c6d4c8fc2068b7ef1e09100d69023c7e427ccee4b120f5968a211ae734",
+      "changedContactPixels": 3012,
+      "changedOutsideContact": 0,
+      "changedLightFacePixels": 0,
+      "changedOuterAlpha": 0,
+      "filledInternalGap": 223
+    }
+  ]
+}

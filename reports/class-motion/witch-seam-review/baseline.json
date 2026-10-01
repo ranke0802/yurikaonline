@@ -1,0 +1,15 @@
+{
+  "commit": "55ed273",
+  "snapshots": [
+    {
+      "file": "/tmp/witch-seam-runtime-before.webp",
+      "sha256": "50b4edb6ebe32d33236032732c89d0a9d4623d313d61d5e8e91e56cd43aa7496"
+    },
+    {
+      "file": "/tmp/witch-seam-walk-before.webp",
+      "sha256": "2009724d977fb5ac3f595c2243c3d238a1d0eb4c959d1097505c328c79ee5028"
+    }
+  ],
+  "generatedSource": "exec-2c1b40d3-57e9-48da-8544-15840c0a4959.png",
+  "reuse": "same hat crop and scale as approved cone, contact band only"
+}

@@ -36,7 +36,7 @@
     "front_back": "4x4 source: use rows 0 and 1, columns 0..3",
     "right_left": "4x2 source: use rows 0 and 1, columns 0..3",
     "archer_right_left": "Two 2x2 sources: rows 0/1 map right/left; first source columns 0/1 map output phases 0/1, second source columns 0/1 map output phases 2/3",
-    "witch": "Front: original 4x4 row0. Rear and right: separate 4x1 replacement sources. Left: original side 4x2 row1. Row-only lossless replacements preserve visible RGB and alpha in all other directions. Final LEFT/RIGHT hat-only raster overlay uses one stable template per direction from the 4x2 side-hat source (RIGHT top, LEFT bottom), with recorded crop/placement in reports/class-motion/witch-hat-review/patch-config.json. Original body and other-direction pixels are retained."
+    "witch": "Front: original 4x4 row0. Rear and right: separate 4x1 replacement sources. Left: original side 4x2 row1. Row-only lossless replacements preserve visible RGB and alpha in all other directions. Final LEFT/RIGHT hat-only raster overlay uses one stable template per direction from the 4x2 side-hat source (RIGHT top, LEFT bottom), with recorded crop/placement in reports/class-motion/witch-hat-review/patch-config.json. Original body and other-direction pixels are retained. A subsequent contact-only patch reuses the same generated raster to place hair roots beneath the brim, allowing the requested local red-hair overlap changes while preserving the approved cone and exterior alpha."
   },
   "processing": [
     "Round fractional cell boundaries independently.",

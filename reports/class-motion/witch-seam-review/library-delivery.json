@@ -1,0 +1,14 @@
+{
+  "sides": {
+    "library_file_id": "libfile_11ee0ff14c84819190e4fca18db999ba",
+    "file": "reports/class-motion/witch-sides-seam-revised.gif",
+    "fps": 4
+  },
+  "allClasses": {
+    "library_file_id": "libfile_b436f3dfea8c81918bda7e0e9db4b33b",
+    "file": "reports/class-motion/all-classes-walk-seam-revised.gif",
+    "fps": 6
+  },
+  "runtimeSha256": "297077115f4d91dbc989c841dbf6075f0cd296a2e1d40c634b577c39629eaed5",
+  "status": "preview; awaiting parent/user feedback; no push or deploy"
+}
