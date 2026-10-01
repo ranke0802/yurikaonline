@@ -1,0 +1,19 @@
+{
+  "commit": "e044c1b",
+  "files": [
+    {
+      "file": "assets/resource/classes/witch-runtime.webp",
+      "snapshot": "/tmp/witch-hat-runtime-before.webp",
+      "sha256": "492208c92b0ad99e534bbc7f81aadd06b5192df6c7f448e8a380c6bd209dc92e",
+      "width": 1536,
+      "height": 960
+    },
+    {
+      "file": "assets/resource/classes/witch-walk.webp",
+      "snapshot": "/tmp/witch-hat-walk-before.webp",
+      "sha256": "7a52fb2c109779e1668355f654e0baf8f46c669a8228e68c2cc8cdcd6464a233",
+      "width": 768,
+      "height": 768
+    }
+  ]
+}

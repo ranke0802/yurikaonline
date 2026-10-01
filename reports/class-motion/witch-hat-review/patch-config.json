@@ -1,0 +1,30 @@
+{
+  "source": "/workspace/generated_images/exec-2c1b40d3-57e9-48da-8544-15840c0a4959.png",
+  "dryRun": false,
+  "orientations": {
+    "right": {
+      "crop": {
+        "left": 89,
+        "top": 43,
+        "width": 245,
+        "height": 180
+      },
+      "width": 118,
+      "height": 86,
+      "x": 38,
+      "y": 18
+    },
+    "left": {
+      "crop": {
+        "left": 82,
+        "top": 459,
+        "width": 246,
+        "height": 181
+      },
+      "width": 118,
+      "height": 84,
+      "x": 31,
+      "y": 20
+    }
+  }
+}

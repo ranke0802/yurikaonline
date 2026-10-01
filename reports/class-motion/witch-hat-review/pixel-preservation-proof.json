@@ -1,0 +1,20 @@
+{
+  "result": "passed",
+  "scope": "Visible RGB and alpha; hat ROI is a conservative bound, not permission to replace hair inside it. The protected red-hair subset is supplemented by visual seam inspection.",
+  "proof": [
+    {
+      "file": "assets/resource/classes/witch-runtime.webp",
+      "sha256": "50b4edb6ebe32d33236032732c89d0a9d4623d313d61d5e8e91e56cd43aa7496",
+      "changedHatRoi": 40842,
+      "changedOutsideHatRoi": 0,
+      "changedProtectedHairFace": 0
+    },
+    {
+      "file": "assets/resource/classes/witch-walk.webp",
+      "sha256": "2009724d977fb5ac3f595c2243c3d238a1d0eb4c959d1097505c328c79ee5028",
+      "changedHatRoi": 40829,
+      "changedOutsideHatRoi": 0,
+      "changedProtectedHairFace": 0
+    }
+  ]
+}
