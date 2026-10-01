@@ -1,3 +1,4 @@
+import AndroidDisplayController from './AndroidDisplayController.js';
 import { CLASS_NAMES } from '../core/ClassProfiles.js';
 import { CLASS_SKILL_UI, MAGE_SKILL_IDS, classSkillIds, classSkillMaxLevel } from './ClassSkillUI.js';
 import Logger from '../utils/Logger.js';
@@ -3903,6 +3904,10 @@ export class UIManager {
     }
 
     setupFullscreenListeners() {
+        if (AndroidDisplayController.supported(navigator)) {
+            this.androidDisplay = new AndroidDisplayController(this);
+            this.androidDisplay.init();
+        }
         const updateClass = () => {
             const isFull = this.isFullscreenActive();
             const isStandalone = this.isStandaloneDisplayMode();
@@ -3910,7 +3915,7 @@ export class UIManager {
             document.body.classList.toggle('is-standalone', isStandalone);
 
             if (isFull || isStandalone) {
-                this.scheduleOrientationLockRefresh();
+                if (!this.androidDisplay) this.scheduleOrientationLockRefresh();
                 this.pendingLandscapeFullscreen = false;
                 this.landscapeFullscreenDismissed = this.mobileOrientationPreference === 'portrait';
             } else if (this._wasFullscreenActive && this.isMobileLandscapeViewport()) {
@@ -4080,6 +4085,7 @@ export class UIManager {
     }
 
     async syncOrientationLock() {
+        if (this.androidDisplay) return this.androidDisplay.locked;
         const fail = () => {
             if (this.settings.orientationLock) {
                 this.settings.orientationLock = false;
@@ -4524,6 +4530,7 @@ export class UIManager {
     }
 
     enterFullscreen() {
+        if (this.androidDisplay) return this.androidDisplay.request();
         if (this.isTouchDevice()) {
             const nextOrientationPreference = 'landscape';
             this.clearTransientOrientationPreference();
@@ -4563,6 +4570,7 @@ export class UIManager {
     }
 
     requestLandscapeAutoFullscreenIfPending() {
+        if (this.androidDisplay) return;
         if (!this.pendingLandscapeFullscreen || this.landscapeFullscreenDismissed) return;
         this.enterFullscreen().then((entered) => {
             if (entered) {
@@ -4572,6 +4580,7 @@ export class UIManager {
     }
 
     updateLandscapeAutoFullscreen() {
+        if (this.androidDisplay) { this.pendingLandscapeFullscreen = false; return; }
         if (!this.getSetting('autoFullscreen')) {
             this.pendingLandscapeFullscreen = false;
             return;

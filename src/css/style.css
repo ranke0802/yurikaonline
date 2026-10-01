@@ -15172,3 +15172,23 @@ body.is-touch-landscape #ui-layer #btn-fullscreen-exit {
 #inventory-item-modal.enhancement-item-centered .inventory-item-modal-card { overflow-y:auto !important; box-sizing:border-box; }
 #generic-modal.inventory-message-centered { position:fixed !important; inset:auto; transform:none !important; margin:0 !important; padding:12px; box-sizing:border-box; align-items:center !important; justify-content:center !important; z-index:10030; }
 #generic-modal.inventory-message-centered .confirm-modal-content { position:relative !important; inset:auto !important; transform:none !important; margin:0 !important; width:360px !important; min-width:0 !important; max-width:100% !important; max-height:100% !important; box-sizing:border-box; animation:none; }
+
+/* Android policy fallback is non-modal and remains inside notch safe areas. */
+#android-display-notice {
+    position: fixed; z-index: 200000;
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    margin-inline: auto; max-width: 620px;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+    padding: 12px; border: 1px solid #8da7bd; border-radius: 12px;
+    background: #17283bef; color: #fff; font: 13px/1.45 sans-serif;
+    max-height: 40dvh; overflow: auto;
+}
+#android-display-notice span { flex: 1 1 220px; }
+#android-display-notice button {
+    min-height: 44px; padding: 8px 12px; border: 1px solid #bdd9ee;
+    border-radius: 8px; background: #e1f2ff; color: #152e43;
+}
+#android-display-notice { pointer-events: none; }
+#android-display-notice button { pointer-events: auto; }
