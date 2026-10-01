@@ -3,19 +3,18 @@ import Monster from '../entities/Monster.js';
 import { getSharedResourceManager } from '../core/ResourceManager.js';
 import { captureProjectileWorldContext, isProjectileWorldContextCurrent } from '../entities/ProjectileWorldContext.js';
 
-// Atlas rows are authored raster animations; no generated geometry substitutes.
-export const EFFECT_ROWS = {
-    witch: [['life_circle','drain_orb','drain_link','orb','return'], ['poison_cloud'], ['summon'], ['berserk_potion']],
-    warrior: [['warrior_slash','rage_smash'], ['challenge'], ['punishing_charge'], ['blood_pact','blood_finale']],
-    archer: [['archer_shot','piercing_snipe','arrow'], ['hunter_trap','trap_burst','trap_trigger'], ['shadow_leap'], ['tracking_rain']]
-};
-const ICONS = ['poison','berserk','rage','mark','root','taunt','bloodPact','empowered'];
+import { EFFECT_ROWS, STATUS_ICONS as ICONS, drawClassEffect, renderGroundEffects, renderForegroundEffects } from './ClassVisuals.js';
+export { EFFECT_ROWS };
 const alive = e => e && !e.isDead && e.hp > 0;
 export default class ClassCombatBridge {
     constructor(owner, classId = owner.classId) {
         this.owner = owner; this.game = globalThis.window?.game; this.context = captureProjectileWorldContext(this.game);
+        this.visualEpoch=ClassCombatBridge.lastEpoch=Math.max(Date.now(),(ClassCombatBridge.lastEpoch||0)+1); this.visualSequence=0; this.hitSerial=0;
         this.effects = []; this.actors = []; this.definitions = new Map(); this.images = {};
         this.controller = new ClassCombatController(owner, classId, {
+            managesPoisonStatuses: true,
+            failure: text=>this.game?.ui?.logSystemMessage?.(text),
+            cancelEffect: id=>{this.effects=this.effects.filter(f=>f.id!==id);},
             enemies: () => [...(this.game?.monsterManager?.monsters?.values?.() || [])],
             allies: () => [...this.actors, ...this.allies()], paused: () => this.paused(),
             heal: (e,n) => this.heal(e,n),
@@ -59,7 +58,7 @@ export default class ClassCombatBridge {
         const damage = Math.max(1, Math.ceil(meta.poison ? amount : amount - defense));
         if (e.hasEffect?.('shield')) return 0;
         const net = this.game?.net, before = e.hp;
-        const packet = {...meta, impactX:this.owner.x,impactY:this.owner.y,attackerLevel:this.owner.level};
+        const packet = {...meta, classHitId:`${this.owner.id}:${this.visualEpoch}:${++this.hitSerial}`, impactX:this.owner.x,impactY:this.owner.y,attackerLevel:this.owner.level};
         if (net && !e.isLocalOnly && net.sendMonsterDamage(e.id,damage,packet) === false) return 0;
         e.lastAttackerId = net?.playerId || this.owner.id;
         if (e.takeDamage(damage,false,false,this.owner.x,this.owner.y,packet) === false) return 0;
@@ -98,7 +97,7 @@ export default class ClassCombatBridge {
         visual.isBoss=false;visual.init(visual.assetPath);this.actors.push(actor);return actor;
     }
     createDecoy(point,duration) {
-        this.decoy={...point,remaining:duration,id:`decoy:${this.owner.id}`,hp:1,isDead:false};
+        this.decoy={...point,direction:this.owner.direction,frame:this.owner.animFrame,remaining:duration,id:`decoy:${this.owner.id}`,hp:1,isDead:false};
         for(const e of this.controller.area(point,220)) this.status(e,'taunt',Math.min(duration,e.isBoss?.6:duration),{target:this.decoy});
     }
     update(dt) {
@@ -118,36 +117,39 @@ export default class ClassCombatBridge {
             if(enemy&&dist<=65&&this.controller.time>=actor.attackReady){this.damage(enemy,this.owner.attackPower*.6*mult.attack,{summon:true});actor.attackReady=this.controller.time+1.2/mult.attackSpeed;}
             actor.visual.x=actor.x;actor.visual.y=actor.y;actor.visual._advanceAnimation(delta);
         }
+        this.syncVisuals();
     }
-    drawEffect(ctx,name,x,y,size,age=0,options={}) {
-        const circle=name==='life_circle';
-        const img=circle?this.images.lifeCircle:this.images.effects;if(!img)return;
-        const row=circle?0:(EFFECT_ROWS[this.controller.classId] || []).findIndex(names => names.includes(name));if(row<0)return;
-        const w=img.width/4,h=img.height/(circle?1:4),tick=Math.floor(age/.16);
-        const phase=tick%6,frame=options.sustained ? (phase<=3?phase:6-phase) : Math.min(3,tick);
-        const angle=options.angle || 0,width=options.width || size,height=options.height || size;
-        if(options.opacity<1){ctx.save();ctx.globalAlpha*=options.opacity;}
-        if(angle){ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.drawImage(img,frame*w,row*h,w,h,-width/2,-height/2,width,height);ctx.restore();}
-        else ctx.drawImage(img,frame*w,row*h,w,h,x-width/2,y-height/2,width,height);
-        if(options.opacity<1)ctx.restore();
-    }
-    renderGround(ctx) {
-        for(const f of this.effects) if(['life_circle','poison_cloud','summon','hunter_trap','tracking_rain','blood_pact','berserk_potion'].includes(f.name))this.drawEffect(ctx,f.name,f.name==='blood_pact'?this.owner.x:f.x,f.name==='blood_pact'?this.owner.y:f.y,f.name==='blood_pact'?110:f.name==='berserk_potion'?140:(f.radius||70)*2,f.age,{sustained:f.duration>1,opacity:['poison_cloud','tracking_rain'].includes(f.name)?.7:1});
-    }
+    drawEffect(...args) { drawClassEffect(this,...args); }
+    renderGround(ctx) { renderGroundEffects(this,ctx); }
     render(ctx) {
         for(const a of this.actors) if(alive(a)&&a.visual.sprite) {const v=a.visual; v.sprite.draw(ctx,v.usesV2Atlas?v.animationRow:0,v.frame,a.x-(v.renderWidth||v.width)/2,a.y-(v.renderHeight||v.height)/2,v.renderWidth||v.width,v.renderHeight||v.height);}
-        for(const f of this.effects) if(!['life_circle','poison_cloud','summon','hunter_trap','tracking_rain','blood_pact','berserk_potion'].includes(f.name)) {
-            const directional=['warrior_slash','rage_smash','punishing_charge','archer_shot','piercing_snipe','shadow_leap'].includes(f.name);
-            const angle=directional&&f.target ? Math.atan2(f.target.y-f.y,f.target.x-f.x):0;
-            this.drawEffect(ctx,f.name,f.x,f.y,f.name==='challenge'?160:(f.radius||70)*2,f.age,{angle,sustained:f.duration>1});
-        }
-        for(const p of this.controller.projectiles)this.drawEffect(ctx,p.kind,p.x,p.y,p.kind==='arrow'?48:58,this.controller.time,{angle:p.kind==='arrow'?Math.atan2(p.direction.y,p.direction.x):0,sustained:true});
+        renderForegroundEffects(this,ctx);
         for(const a of this.actors) if(alive(a)) {
             const width=40,y=a.y-(a.visual.renderHeight||a.visual.height)/2-8;
             ctx.fillStyle='#1c2430';ctx.fillRect(a.x-width/2,y,width,4);
             ctx.fillStyle='#85dc8d';ctx.fillRect(a.x-width/2,y,width*Math.max(0,a.hp/a.maxHp),4);
         }
         for(const e of [this.owner,...this.controller.enemies(),...this.actors,...this.allies()])this.renderStatus(ctx,e);
+    }
+    visualSnapshot() {
+        const c=this.controller,point=p=>({x:p.x,y:p.y});
+        const badges=Object.entries(this.owner.classStatuses||{}).filter(([type])=>ICONS.includes(type)).map(([type,s])=>({type,count:s.stacks||0}));
+        if(c.rage>0)badges.push({type:'rage',count:Math.floor(c.rage)});
+        if(c.bloodUntil>c.time)badges.push({type:'bloodPact',count:0});
+        if(c.empowered)badges.push({type:'empowered',count:0});
+        return {epoch:this.visualEpoch,sequence:++this.visualSequence,ts:Date.now(),fieldId:this.context.fieldId,classId:c.classId,
+            effects:this.effects.slice(-64).map(f=>({id:f.id,name:f.name,...point(f),target:f.target?point(f.target):null,radius:f.radius||0,duration:f.duration,age:f.age})),
+            projectiles:c.projectiles.slice(-32).map(p=>{const d=p.kind==='return'?c.direction.call({owner:p},this.owner):p.direction;return{kind:p.kind,...point(p),direction:d,speed:p.speed,age:c.time};}),
+            decoy:this.decoy?{...point(this.decoy),remaining:this.decoy.remaining,direction:this.decoy.direction||0,frame:this.decoy.frame||0}:null,badges};
+    }
+    syncVisuals(force=false) {
+        const now=Date.now(),c=this.controller;
+        if(c.classId==='wizard')return;
+        const active=this.effects.length||c.projectiles.length||this.decoy||c.rage||c.empowered||c.bloodUntil>c.time||Object.keys(this.owner.classStatuses||{}).length;
+        if(!active&&!this.visualPublished)return;
+        if(!force&&now-(this.lastVisualSync||0)<100)return;
+        this.lastVisualSync=now;this.visualPublished=!!active;
+        this.game?.net?.sendPlayerAttack?.(this.owner.x,this.owner.y,this.owner.direction,'class_vfx',this.visualSnapshot());
     }
     renderStatus(ctx,e) {
         const img=this.images.status;if(!img||!alive(e))return;
@@ -163,6 +165,6 @@ export default class ClassCombatBridge {
             if(count>0){ctx.save();ctx.font='bold 12px sans-serif';ctx.textAlign='right';ctx.lineWidth=3;ctx.strokeStyle='#17212c';ctx.fillStyle='#ffffff';ctx.strokeText(String(count),x+24,y+23);ctx.fillText(String(count),x+24,y+23);ctx.restore();}
         });
     }
-    dispose(){this.controller.dispose();this.effects=[];this.actors=[];this.decoy=null;this.game?.net?.syncClassSummons?.({force:true});}
+    dispose(){this.controller.dispose();this.controller.empowered=false;this.effects=[];this.actors=[];this.decoy=null;this.syncVisuals(true);this.game?.net?.syncClassSummons?.({force:true});}
 }
 ClassCombatBridge.serial=0;

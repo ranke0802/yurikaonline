@@ -49,7 +49,7 @@ test('derived combat buffs restore without accumulation or base stat writes',()=
     assert.equal(p.getEffectiveClassAttackSpeed(),speed*1.7);assert.equal(p.attackPower,atk);
     p.classCombat.multipliers=()=>({attack:1,attackSpeed:1,move:1});assert.equal(p.getEffectiveClassAttackPower(),atk);
 });
-test('exact summon cost can reach zero HP and invokes normal death rather than silent regeneration',()=>{
+test('defensive skill dispatch still handles a zero-HP result from a custom skill hook',()=>{
     const {p}=fixture();p.hp=p.maxHp*.8;let deaths=0;
     p.classCombat.skill=()=>{p.hp-=p.maxHp*.8;return true;};p.die=()=>{deaths++;p.isDead=true;};
     assert.equal(p.useSkill(2),true);assert.equal(p.hp,0);assert.equal(deaths,1);

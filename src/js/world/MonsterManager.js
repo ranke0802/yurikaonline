@@ -1,3 +1,4 @@
+import { poisonSnapshot, restorePoisonSnapshot } from '../combat/WitchPoison.js';
 import Monster from '../entities/Monster.js';
 import Logger from '../utils/Logger.js';
 
@@ -1927,6 +1928,7 @@ export default class MonsterManager {
             y: Math.round(monster.y),
             hp: monster.hp,
             maxHp: monster.maxHp,
+            classPoison: poisonSnapshot(monster),
             type: monster.typeId || monster.name,
             chargeOnly: !!monster.chargeOnly,
             rev,
@@ -3937,6 +3939,7 @@ export default class MonsterManager {
     _applyRemoteMonsterNetworkState(monster, data) {
         if (!monster || !data) return;
 
+        if(data.classPoison)restorePoisonSnapshot(monster,data.classPoison,Math.max(0,(Date.now()-Number(data.ts||Date.now()))/1000));
         if (data.spawnGroupId) monster.spawnGroupId = data.spawnGroupId;
         if (data.bossCycle === 'intro' || data.bossCycle === 'repeat') {
             monster.bossCycle = data.bossCycle;

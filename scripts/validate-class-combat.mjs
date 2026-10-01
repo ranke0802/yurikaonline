@@ -33,7 +33,7 @@ test('poison uses enemy MAX HP including bosses, once per second, fifth pulse st
     const f=fixture('witch'),e=f.add({isBoss:true}); f.c.skill(1,{x:50,y:0}); f.advance(.95); assert.equal(e.hp,10000);
     f.advance(4.2); assert.equal(f.packets.length,5); assert.equal(e.hp,10000-5*(90+500));
     const slows=f.events.filter(e=>e.type==='poison'); assert.deepEqual(slows.map(e=>Math.round(e.data.slow*100)),[20,40,60,80]);
-    assert.equal(f.events.find(e=>e.type==='stun').duration,3); f.c.poison(e); assert.equal(f.c.state(e).poisonStacks,0);
+    assert.equal(f.events.find(e=>e.type==='stun').duration,3); f.c.poison(e); assert.equal(e.witchPoison.stacks,0);
 });
 test('summon insufficient HP is atomic; oldest replacement, level mapping, disposal', () => {
     const f=fixture('witch'); f.owner.hp=799; assert.equal(f.c.skill(2,{level:8}),false); assert.equal(f.owner.hp,799); assert.equal(f.c.summons.length,0);

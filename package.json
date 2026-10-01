@@ -42,7 +42,7 @@
     "validate:startup-deadlines": "node --test scripts/validate-startup-deadlines.mjs",
     "validate:camp-stall": "node scripts/validate-camp-stall-regression.cjs",
     "validate:startup-recovery": "node scripts/validate-startup-recovery-browser.cjs",
-    "validate:classes": "node --test scripts/validate-class-combat.mjs scripts/validate-class-player.mjs scripts/validate-class-bridge.mjs scripts/validate-class-profiles.mjs scripts/validate-class-online-routing.mjs",
+    "validate:classes": "node --test scripts/validate-class-combat.mjs scripts/validate-class-player.mjs scripts/validate-class-bridge.mjs scripts/validate-class-profiles.mjs scripts/validate-class-online-routing.mjs scripts/validate-class-audit-fixes.mjs",
     "validate:class-browser": "node scripts/validate-class-browser.cjs",
     "validate:class-motion": "node scripts/validate-class-motion.cjs"
   },

@@ -6385,6 +6385,7 @@ export default class NetworkManager extends EventEmitter {
             s: encodeState(payload.state)
         };
 
+        if (payload.classPoison) nextPayload.cp = payload.classPoison;
         if (payload.chargeOnly) nextPayload.c = 1;
         if (payload.fullSync) nextPayload.f = 1;
         if (payload.isBoss) nextPayload.b = 1;
@@ -6475,6 +6476,7 @@ export default class NetworkManager extends EventEmitter {
             hp: payload.hp ?? payload.h ?? 0,
             maxHp: payload.maxHp ?? payload.m ?? 100,
             type: decodeType(payload.type ?? payload.tp),
+            classPoison: payload.classPoison ?? payload.cp ?? null,
             chargeOnly: payload.chargeOnly !== undefined ? !!payload.chargeOnly : !!payload.c,
             rev: payload.rev ?? payload.r ?? 0,
             ts: payload.ts ?? payload.t ?? 0,

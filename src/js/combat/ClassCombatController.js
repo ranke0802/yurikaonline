@@ -1,3 +1,5 @@
+import { acceptPoisonPulse } from './WitchPoison.js';
+import { WARRIOR_GEOMETRY as WG } from './ClassGeometry.js';
 /** Owner-only, simulation-time class mechanics. Never instantiate for remote players.
  * hooks.damage MUST return actual accepted HP loss (0 for rejected/blocked packets).
  * Hooks perform network authority, collision, rendering and summon construction.
@@ -11,13 +13,14 @@ export default class ClassCombatController {
     constructor(owner, classId, hooks = {}) {
         this.owner = owner; this.classId = classId; this.hooks = hooks;
         this.time = 0; this.cooldowns = {}; this.tasks = []; this.projectiles = [];
-        this.summons = []; this.statuses = new Map(); this.rage = 0; this.combo = 0;
+        this.summons = []; this.statuses = new Map(); this.rage = 0; this.combo = 0; this.effectSerial = 0;
         this.basicReady = 0; this.empowered = false; this.disposed = false;
     }
     enemies() { return (this.hooks.enemies?.() || []).filter(alive); }
     allies() { return [...new Set([...(this.hooks.allies?.() || []), ...this.summons])].filter(e => e !== this.owner && alive(e)); }
     state(e) { if (!this.statuses.has(e)) this.statuses.set(e, {}); return this.statuses.get(e); }
-    effect(name, data = {}) { this.hooks.effect?.(name, { x: this.owner.x, y: this.owner.y, ...data }); }
+    effect(name, data = {}) { const id=data.id || `effect-${++this.effectSerial}`; this.hooks.effect?.(name, { id, x: this.owner.x, y: this.owner.y, ...data }); return id; }
+    cancelEffect(id) { if(id)this.hooks.cancelEffect?.(id); }
     schedule(delay, fn) { this.tasks.push({ at: this.time + delay, fn }); }
     area(point, radius) { return this.enemies().filter(e => distance(e, point) <= radius + (e.radius || 16)); }
     attack() { return Math.max(1, this.owner.getEffectiveClassAttackPower?.() || this.owner.attackPower || 1); }
@@ -65,11 +68,11 @@ export default class ClassCombatController {
             if (aimed) {
                 if (this.rage < 25) return false;
                 this.rage -= 25;
-                this.line(point, 150, 48).forEach(e => this.hit(e, this.attack() * 3, { armorPierce: 1 }));
+                this.line(point, WG.heavy.range, WG.heavy.halfWidth).forEach(e => this.hit(e, this.attack() * 3, { armorPierce: 1 }));
                 this.effect('rage_smash', { target: point });
             } else {
                 this.combo = this.time - (this.lastCombo || 0) > 1.6 ? 1 : this.combo % 3 + 1; this.lastCombo = this.time;
-                let hits = 0; this.line(point, 100, 52).forEach(e => { if(this.hit(e, this.attack() * (this.combo === 3 ? 1.5 : 1))) hits++; });
+                let hits = 0; this.line(point, WG.tap.range, WG.tap.halfWidth).forEach(e => { if(this.hit(e, this.attack() * (this.combo === 3 ? 1.5 : 1))) hits++; });
                 if (hits && this.combo === 3) this.rage = Math.min(100, this.rage + 18);
                 this.effect('warrior_slash', { target: point, combo: this.combo });
             }
@@ -89,14 +92,12 @@ export default class ClassCombatController {
         this.effect('drain_orb', { target: point });
     }
     poison(e) {
-        const s = this.state(e);
-        // Exactly one application per cloud pulse. Stacks share a refreshed 5s expiry.
-        // Fifth application consumes stacks; no stacking until its 3s stun finishes.
-        const accepted = this.hit(e, this.attack() + e.maxHp * .05, { poison: true });
-        if (!accepted || !alive(e) || s.poisonLock > this.time) return;
-        s.poisonStacks = (s.poisonUntil > this.time ? s.poisonStacks : 0) + 1; s.poisonUntil = this.time + 5;
-        if (s.poisonStacks >= 5) { s.poisonStacks = 0; s.poisonUntil = 0; s.poisonLock = this.time + 3; this.control(e, 'stun', 3, {}, false); }
-        else this.control(e, 'poison', 5, { stacks: s.poisonStacks, slow: s.poisonStacks * .2 }, false);
+        const accepted = this.hit(e, this.attack() + e.maxHp * .05, { poison: true, classPoisonPulse: true });
+        // Production Monster applies target-wide state only on the current host.
+        if (!accepted || !alive(e) || this.hooks.managesPoisonStatuses) return;
+        const s=acceptPoisonPulse(e,this.time); if(!s)return;
+        if(s.stunUntil>this.time)this.control(e,'stun',3,{},false);
+        else this.control(e,'poison',5,{stacks:s.stacks,slow:s.stacks*.2},false);
     }
     snipe(point) {
         this.lastEmpowered = this.empowered; this.empowered = false;
@@ -127,7 +128,7 @@ export default class ClassCombatController {
                 this.effect('poison_cloud', { ...point, duration: 5, radius: 140 }); cooldown = 9;
             } else if (slot === 2) {
                 const cost = this.owner.maxHp * .8;
-                if (this.owner.hp < cost) return false;
+                if (this.owner.hp <= cost) { this.hooks.failure?.('소환하려면 최대 HP의 80%보다 많은 현재 HP가 필요합니다.'); return false; }
                 const summon = this.hooks.summon?.(SUMMON_TYPES[clamp(Math.floor(level), 1, 8) - 1], level);
                 if (!summon) return false;
                 this.owner.hp -= cost; this.summons.push(summon);
@@ -140,14 +141,14 @@ export default class ClassCombatController {
         } else if (this.classId === 'warrior') {
             if (slot === 1) {
                 this.guardUntil = this.time + 4;
-                this.area(this.owner, 230).forEach(e => { this.state(e).tauntUntil = this.time + (e.isBoss ? .6 : 4); this.control(e, 'taunt', 4, { target: this.owner }); });
+                this.area(this.owner, WG.challenge.radius).forEach(e => { this.state(e).tauntUntil = this.time + (e.isBoss ? .6 : 4); this.control(e, 'taunt', 4, { target: this.owner }); });
                 this.effect('challenge', { radius: 230 }); cooldown = 10;
             } else if (slot === 2) {
                 // Swept 20px collision steps: no teleport through walls or missed targets.
                 const hit = new Set(); let refund = false;
                 for (let i = 0; i < 12; i++) {
                     if (this.hooks.move?.(this.owner, this.owner.x + d.x * 20, this.owner.y + d.y * 20) === false) break;
-                    for (const e of this.area(this.owner, 48)) {
+                    for (const e of this.area(this.owner, WG.charge.halfWidth)) {
                         if (hit.has(e)) continue; hit.add(e);
                         if (!this.hit(e, power * 1.6)) continue;
                         if (this.state(e).tauntUntil > this.time) refund = true;
@@ -158,12 +159,13 @@ export default class ClassCombatController {
                 this.effect('punishing_charge', { target: point }); cooldown = 7;
             } else if (slot === 3) {
                 this.bloodUntil = this.time + 8;
-                this.schedule(8, () => { const spent = this.rage; this.rage = 0; this.area(this.owner, 170).forEach(e => this.hit(e, power * (1 + spent * .04))); this.effect('blood_finale', { radius: 170, rage: spent }); });
+                this.schedule(8, () => { const spent = this.rage; this.rage = 0; this.area(this.owner, WG.finale.radius).forEach(e => this.hit(e, power * (1 + spent * .04))); this.effect('blood_finale', { radius: 170, rage: spent }); });
                 this.effect('blood_pact', { duration: 8 }); cooldown = 20;
             }
         } else if (this.classId === 'archer') {
             if (slot === 1) {
-                this.trap = { ...point, until: this.time + 10 }; this.effect('hunter_trap', { ...point, duration: 10 }); cooldown = 7;
+                this.cancelEffect(this.trap?.id);
+                const id=this.effect('hunter_trap', { ...point, duration: 10 }); this.trap = { ...point, id, until: this.time + 10 }; cooldown = 7;
             } else if (slot === 2) {
                 const origin = { x: this.owner.x, y: this.owner.y };
                 for (let i = 0; i < 8; i++) if (this.hooks.move?.(this.owner, this.owner.x + d.x * 20, this.owner.y + d.y * 20) === false) break;
@@ -200,8 +202,8 @@ export default class ClassCombatController {
         this.summons = this.summons.filter(e => { if (alive(e)) return true; this.hooks.dismiss?.(e); return false; });
         if (this.trap && this.trap.until > this.time) {
             const e = this.area(this.trap, 36)[0];
-            if (e) { this.mark(e, 3); this.state(e).trappedUntil = this.time + 4; this.control(e, 'root', 2); this.effect('trap_trigger', { ...this.trap }); this.trap = null; }
-        } else this.trap = null;
+            if (e) { this.mark(e, 3); this.state(e).trappedUntil = this.time + 4; this.control(e, 'root', 2); this.cancelEffect(this.trap.id); this.effect('trap_trigger', { x:this.trap.x,y:this.trap.y }); this.trap = null; }
+        } else { this.cancelEffect(this.trap?.id); this.trap = null; }
         for (const p of [...this.projectiles]) this.advanceProjectile(p, Math.min(dt, .25));
         for (const [e, s] of this.statuses) if (!alive(e)) this.statuses.delete(e);
     }
@@ -241,7 +243,7 @@ export default class ClassCombatController {
         if (this.disposed) return;
         this.disposed = true; this.tasks = []; this.projectiles = []; this.trap = null;
         this.summons.forEach(e => this.hooks.dismiss?.(e)); this.summons = [];
-        for (const [e] of this.statuses) for (const type of ['berserk', 'poison', 'mark', 'root', 'taunt']) this.hooks.clearStatus?.(e, type);
+        for (const [e] of this.statuses) for (const type of ['berserk', 'mark', 'root', 'taunt']) this.hooks.clearStatus?.(e, type);
         this.statuses.clear(); this.rage = 0; this.bloodUntil = this.guardUntil = this.evadeUntil = 0;
     }
 }

@@ -1682,25 +1682,19 @@ export default class WorldScene extends Scene {
         this.game.zone.render(ctx, this.camera);
 
         this.player?.classCombat?.renderGround(ctx, this.camera);
+        for(const remote of this.remotePlayers.values())remote.classVisuals?.renderGround(ctx);
         // Ground guides share a pass below every character/monster silhouette.
         // Drawing these inside one entity or after the Y-sort covers other bodies.
         this.monsterManager?.monsters.forEach(monster => {
             if (this.isOnScreen(monster)) monster.renderGroundGuides?.(ctx);
         });
         // Input feedback stays in the ground pass; authored spell art is rendered separately.
-        const classAim = this.player?.classAim;
-        if (classAim) {
-            const player = this.player, basic = classAim.action === 'ATTACK';
-            const dx = classAim.x-player.x, dy = classAim.y-player.y, length = Math.hypot(dx,dy)||1;
-            const maxRange = basic ? (player.classId === 'warrior' ? 150 : player.classId === 'witch' ? 560 : 650) : 450;
-            const range = Math.min(maxRange,length);
-            SkillRenderer.drawFireballAimGuide(ctx, {
-                originX:player.x, originY:player.y,
-                targetX:player.x+dx/length*range, targetY:player.y+dy/length*range,
-                widthRadius:basic ? 14 : 10,
-                aoeRadius:basic ? 12 : player.classId === 'witch' && classAim.action === 'SKILL_1' ? 140 : player.classId === 'archer' && classAim.action === 'SKILL_3' ? 165 : 28,
-                variant:'blue_fireball'
-            });
+        const classGuide = this.player?.getClassAimGuide?.();
+        if(classGuide){
+            if(classGuide.circle){
+                ctx.save();ctx.fillStyle='rgba(76,183,255,.18)';ctx.strokeStyle='rgba(76,183,255,.7)';ctx.lineWidth=2;
+                ctx.beginPath();ctx.arc(classGuide.originX,classGuide.originY,classGuide.aoeRadius,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
+            }else SkillRenderer.drawFireballAimGuide(ctx,classGuide);
         }
         const fireballAimGuide = this.player?.getFireballAimGuide?.();
         if (fireballAimGuide) {

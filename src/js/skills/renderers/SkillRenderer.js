@@ -380,7 +380,7 @@ export default class SkillRenderer {
         const dirY = dy / distance;
         const perpX = -dirY;
         const perpY = dx / distance;
-        const telegraphHalfWidth = Math.max(14, widthRadius * 0.9);
+        const telegraphHalfWidth = guide.exactWidth ? Math.max(0,widthRadius) : Math.max(14, widthRadius * 0.9);
 
         ctx.save();
         ctx.fillStyle = palette.fill;

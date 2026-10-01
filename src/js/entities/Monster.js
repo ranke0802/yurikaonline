@@ -1,3 +1,4 @@
+import { acceptPoisonPulse, paintPoisonStatus } from '../combat/WitchPoison.js';
 import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
@@ -1416,10 +1417,12 @@ export default class Monster extends CharacterBase {
             return;
         }
 
+        this.classCombatTime=(this.classCombatTime||0)+safeDt;
         for (const [type, status] of Object.entries(this.classStatuses || {})) {
             status.remaining -= safeDt;
             if (status.remaining <= 0) delete this.classStatuses[type];
         }
+        paintPoisonStatus(this);
         if (!this.isDead && (this.classStatuses?.stun || this.classStatuses?.stagger)) {
             this.vx = this.vy = 0;
             this._advanceAnimation(safeDt);
@@ -1919,6 +1922,15 @@ export default class Monster extends CharacterBase {
 
     takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null, damageMeta = null) {
         if (this.isDead || window.game?.monsterManager?.isMonsterCombatBlocked?.()) return false;
+        if (typeof damageMeta?.classHitId === 'string') {
+            if(damageMeta.classHitId.length>180)return false;
+            this.classHitIds ||= new Map();
+            const now=Date.now();
+            for(const [id,at] of this.classHitIds)if(now-at>30000)this.classHitIds.delete(id);
+            if(this.classHitIds.has(damageMeta.classHitId))return false;
+            this.classHitIds.set(damageMeta.classHitId,now);
+            if(this.classHitIds.size>1024)this.classHitIds.delete(this.classHitIds.keys().next().value);
+        }
         if (damageMeta?.classMove && Number(amount) === 0) {
             const {x,y}=damageMeta.classMove;
             if(this.isBoss || !Number.isFinite(x) || !Number.isFinite(y) || Math.hypot(x-this.x,y-this.y)>100)return false;
@@ -1992,6 +2004,12 @@ export default class Monster extends CharacterBase {
             Logger.log(`[Monster] [Host] ${this.id} HP: ${this.hp}`);
         }
 
+        if(dmg>0 && this.hp>0 && damageMeta?.classPoisonPulse && (window.game?.net?.isHost !== false || this.isLocalOnly)) {
+            if(acceptPoisonPulse(this,this.classCombatTime||0)) {
+                paintPoisonStatus(this);
+                window.game?.monsterManager?.forceSync?.(this.id);
+            }
+        }
         // Visual feedback for ALL clients
         if (triggerFlash && !suppressTransientEffects && !lowGlareCombat) this.hitTimer = 0.2;
 

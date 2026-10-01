@@ -1,3 +1,4 @@
+import RemoteClassVisuals from '../combat/ClassVisuals.js';
 import CharacterBase from './core/CharacterBase.js';
 import Monster from './Monster.js';
 import Logger from '../utils/Logger.js';
@@ -71,6 +72,7 @@ export default class RemotePlayer extends CharacterBase {
 
         this.resourceManager = resourceManager;
         this.activeClassId = 'wizard';
+        this.classVisuals = new RemoteClassVisuals(this);
         this._loadSpriteSheet(resourceManager);
 
         // Cache Projectile import
@@ -779,6 +781,7 @@ export default class RemotePlayer extends CharacterBase {
 
     render(ctx, camera) {
         this.renderClassSummons(ctx);
+        this.classVisuals?.render(ctx);
         // v0.28.8: Ultimate Safety Check - Prevent disappearing due to NaN
         if (isNaN(this.x) || isNaN(this.y)) {
             // Try to recover from targetX/Y or packet buffer, otherwise 0
@@ -1020,6 +1023,7 @@ export default class RemotePlayer extends CharacterBase {
     }
 
     triggerAttack(data) {
+        if(data?.skillType==='class_vfx'){this.classVisuals ||= new RemoteClassVisuals(this);this.classVisuals.receive(data.extraData);return;}
         const eventTime = this._resolveRemoteEventTime('attack', data?.ts);
         if (eventTime === null) return;
 

@@ -1,3 +1,4 @@
+import { WARRIOR_GEOMETRY as WG } from '../combat/ClassGeometry.js';
 import ClassCombatBridge from '../combat/ClassCombatBridge.js';
 import { buildClassProfilePatch, normalizeClassId } from '../core/ClassProfiles.js';
 import { classSkillIds, classSkillMaxLevel } from '../ui/ClassSkillUI.js';
@@ -325,13 +326,17 @@ export default class Player extends CharacterBase {
     }
 
     getClassAimGuide() {
-        const a=this.classAim;
-        if (!a) return null;
-        const angle=Math.atan2(a.y-this.y,a.x-this.x);
-        const aoeRadius=this.classId === 'witch' ? (a.action === 'SKILL_1' ? 140 : 95)
-            : this.classId === 'archer' ? (a.action === 'SKILL_3' ? 165 : a.action === 'SKILL_1' ? 36 : 18) : 48;
-        return {originX:this.x,originY:this.y,targetX:a.x,targetY:a.y,angle,
-            range:Math.hypot(a.x-this.x,a.y-this.y),widthRadius:this.classId === 'warrior' ? 48 : 16,aoeRadius};
+        const a=this.classAim;if(!a)return null;
+        const angle=Math.atan2(a.y-this.y,a.x-this.x),basic=a.action==='ATTACK';
+        let range=Math.min(Math.hypot(a.x-this.x,a.y-this.y),basic?(this.classId==='witch'?560:650):450),width=basic?14:10;
+        let radius=basic?12:this.classId==='witch'&&a.action==='SKILL_1'?140:this.classId==='archer'&&a.action==='SKILL_3'?165:28,circle=false;
+        if(this.classId==='warrior'){
+            const g=basic?(a.elapsed>=.5?WG.heavy:WG.tap):a.action==='SKILL_2'?WG.charge:null;
+            if(g){range=g.range;width=g.halfWidth;radius=0;}
+            else {circle=true;radius=a.action==='SKILL_1'?WG.challenge.radius:WG.finale.radius;}
+        }
+        return {originX:this.x,originY:this.y,targetX:this.x+Math.cos(angle)*range,targetY:this.y+Math.sin(angle)*range,
+            widthRadius:width,aoeRadius:radius,circle,exactWidth:this.classId==='warrior',variant:'blue_fireball'};
     }
 
     getEffectiveClassAttackPower() { return this.attackPower * (this.classCombat?.multipliers().attack || 1); }
