@@ -734,8 +734,8 @@ export default class RemotePlayer extends CharacterBase {
             const previous=this._classAnimationPosition;
             const distance=previous ? Math.hypot(this.x-previous.x,this.y-previous.y) : 0;
             this._classAnimationPosition={x:this.x,y:this.y};
-            if(this.state === 'attack') this.animTimer=(this.animTimer+dt*10)%4;
-            else if(this.state === 'move') this.animTimer=(this.animTimer+Math.min(distance,24)/24)%4;
+            // Match local distance-based gait even while attack packets arrive.
+            if(this.state === 'move'||distance>0) this.animTimer=(this.animTimer+Math.min(distance,24)/24)%4;
             else this.animTimer=0;
             this.animFrame=Math.floor(this.animTimer)%4;
             return;

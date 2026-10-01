@@ -1,0 +1,12 @@
+{
+  "version": "0.02.138",
+  "commit": "e1948a6bf3ac6cd7c3ba096423be8125afe6c8e9",
+  "remoteBranch": "mmorpg_online",
+  "remoteSHAConfirmed": true,
+  "ci": "https://github.com/ranke0802/yurikaonline/actions/runs/36904993482",
+  "jobId": 110513178588,
+  "conclusion": "success",
+  "liveVerification": "2026-10-01T18:14:13Z: VERIFIED Hosting https://yurika-online.web.app version=0.02.138 commit=e1948a6bf3ac6cd7c3ba096423be8125afe6c8e9; online entry and 40 immutable assets",
+  "verificationSource": "Exact-commit deployment CI log; new executor's independent direct live request is blocked with HTTP 403",
+  "liveAccountWrites": false
+}

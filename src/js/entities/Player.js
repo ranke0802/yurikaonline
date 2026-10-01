@@ -325,7 +325,7 @@ export default class Player extends CharacterBase {
         const result=action === 'ATTACK'
             ? this.classCombat.basic({x:aim.x,y:aim.y,aimed:aim.elapsed>=threshold})
             : this.useSkill(Number(action.slice(-1)),{x:aim.x,y:aim.y});
-        if (result) { this.skillAttackTimer=.4; this.isAttacking=true; this.animTimer=0; this.state='attack'; window.game?.tutorial?.trigger?.(action === 'ATTACK' ? 'attack' : 'skill_use',{target:action === 'ATTACK' ? 'normal' : classSkillIds(this)[Number(action.slice(-1))]}); }
+        if (result) { this.skillAttackTimer=.4; this.isAttacking=true; this.state='attack'; window.game?.tutorial?.trigger?.(action === 'ATTACK' ? 'attack' : 'skill_use',{target:action === 'ATTACK' ? 'normal' : classSkillIds(this)[Number(action.slice(-1))]}); }
         return result;
     }
 
@@ -370,7 +370,7 @@ export default class Player extends CharacterBase {
         this._spriteClassId = classId;
         this.frameCounts = classId !== 'wizard' ? {0:4,1:4,2:4,3:4,4:4} : {0:5,1:8,2:7,3:7,4:6};
         if (this.classCombat && classId !== 'wizard') Object.assign(this.classCombat.images, bundle);
-        globalThis.window?.game?.ui?.updatePlayerPortraits?.(bundle.sheet);
+        globalThis.window?.game?.ui?.updatePlayerPortraits?.(bundle.sheet, this.sprite);
         return true;
     }
 
@@ -991,8 +991,9 @@ export default class Player extends CharacterBase {
             this._classAnimationPosition={x:this.x,y:this.y};
             // Four authored contact/passing poses. Advance by travelled ground distance,
             // not run-state multipliers, so slow/buff movement does not skate in place.
-            if (this.isAttacking) this.animTimer=(this.animTimer+dt*10)%4;
-            else if (this.state === 'move') this.animTimer=(this.animTimer+Math.min(distance,24)/24)%4;
+            // Action poses have their own clock. Never restart or accelerate the
+            // walking phase when an attack overlaps movement.
+            if (this.state === 'move' || distance > 0) this.animTimer=(this.animTimer+Math.min(distance,24)/24)%4;
             else this.animTimer=0;
             this.animFrame=Math.floor(this.animTimer)%4;
             return;

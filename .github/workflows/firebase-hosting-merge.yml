@@ -38,6 +38,7 @@ jobs:
           trap 'kill "$CAMP_HTTP_PID"' EXIT
           node scripts/validate-camp-return-browser.cjs
           node scripts/validate-camp-return-sdk-browser.cjs
+          node scripts/validate-class-portrait-gait-browser.cjs
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

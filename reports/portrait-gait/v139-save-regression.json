@@ -1,0 +1,190 @@
+{
+  "coverage": "Actual Firebase 10.7.1 browser SDK, Player.saveState, exit UI and CampScene; loopback protocol fixture, no live accounts",
+  "cases": [
+    {
+      "id": "wizard",
+      "cache": "cold",
+      "profileReadMs": 14.299999999813735,
+      "uiBuildMs": 1.6000000000931323,
+      "uiReadyMs": 180.89999999990687,
+      "scene": "CampScene",
+      "classId": "wizard",
+      "exp": 2418,
+      "expected": 2418,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 160.39999999990687,
+      "totalMs": 261.1999999997206,
+      "failed": false,
+      "journal": null,
+      "campDecodeWaitMs": 58.8000000002794,
+      "writes": 1,
+      "failureRetryReentry": true
+    },
+    {
+      "id": "wizard",
+      "cache": "warm",
+      "profileReadMs": 6.5,
+      "uiBuildMs": 1.2000000001862645,
+      "uiReadyMs": 171.8000000002794,
+      "scene": "CampScene",
+      "classId": "wizard",
+      "exp": 2418,
+      "expected": 2418,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 159.5,
+      "totalMs": 235.40000000037253,
+      "failed": false,
+      "journal": null,
+      "campDecodeWaitMs": 51.700000000186265,
+      "writes": 1,
+      "failureRetryReentry": true
+    },
+    {
+      "id": "witch",
+      "cache": "cold",
+      "profileReadMs": 14.199999999720603,
+      "uiBuildMs": 1.8999999999068677,
+      "uiReadyMs": 183.20000000018626,
+      "scene": "CampScene",
+      "classId": "witch",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 162.60000000009313,
+      "totalMs": 243.39999999990687,
+      "failed": false,
+      "journal": null,
+      "campDecodeWaitMs": 47.700000000186265,
+      "writes": 1,
+      "failureRetryReentry": true
+    },
+    {
+      "id": "witch",
+      "cache": "warm",
+      "profileReadMs": 8.899999999906868,
+      "uiBuildMs": 1.1999999997206032,
+      "uiReadyMs": 173.60000000009313,
+      "scene": "CampScene",
+      "classId": "witch",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 157.8000000002794,
+      "totalMs": 234.10000000009313,
+      "failed": false,
+      "journal": null,
+      "campDecodeWaitMs": 43.40000000037253,
+      "writes": 1,
+      "failureRetryReentry": true
+    },
+    {
+      "id": "warrior",
+      "cache": "cold",
+      "profileReadMs": 15.599999999627471,
+      "uiBuildMs": 1.3000000002793968,
+      "uiReadyMs": 179.39999999990687,
+      "scene": "CampScene",
+      "classId": "warrior",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 158.59999999962747,
+      "totalMs": 227.60000000009313,
+      "failed": false,
+      "journal": null,
+      "campDecodeWaitMs": 40.6999999997206,
+      "writes": 1,
+      "failureRetryReentry": true
+    },
+    {
+      "id": "warrior",
+      "cache": "warm",
+      "profileReadMs": 8.399999999906868,
+      "uiBuildMs": 1.2000000001862645,
+      "uiReadyMs": 173.20000000018626,
+      "scene": "CampScene",
+      "classId": "warrior",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 158.10000000009313,
+      "totalMs": 238.60000000009313,
+      "failed": false,
+      "journal": null,
+      "campDecodeWaitMs": 49.89999999990687,
+      "writes": 1,
+      "failureRetryReentry": true
+    },
+    {
+      "id": "archer",
+      "cache": "cold",
+      "profileReadMs": 13.800000000279397,
+      "uiBuildMs": 1.5,
+      "uiReadyMs": 178.5,
+      "scene": "CampScene",
+      "classId": "archer",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 159.39999999990687,
+      "totalMs": 246,
+      "failed": false,
+      "journal": null,
+      "campDecodeWaitMs": 53.89999999990687,
+      "writes": 1,
+      "failureRetryReentry": true
+    },
+    {
+      "id": "archer",
+      "cache": "warm",
+      "profileReadMs": 11.800000000279397,
+      "uiBuildMs": 1.2000000006519258,
+      "uiReadyMs": 178,
+      "scene": "CampScene",
+      "classId": "archer",
+      "exp": 20,
+      "expected": 20,
+      "calls": 1,
+      "result": {
+        "ok": true,
+        "localCheckpointPersisted": false
+      },
+      "saveMs": 160.70000000018626,
+      "totalMs": 251.79999999981374,
+      "failed": false,
+      "journal": null,
+      "campDecodeWaitMs": 60,
+      "writes": 1,
+      "failureRetryReentry": true
+    }
+  ],
+  "errors": []
+}

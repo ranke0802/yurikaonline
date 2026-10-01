@@ -10061,13 +10061,14 @@ export class UIManager {
     }
 
 
-    updatePlayerPortraits(spriteSheetCanvas) {
+    updatePlayerPortraits(spriteSheetCanvas, layout = { cols: 8, rows: 5 }) {
         if (!spriteSheetCanvas) return;
 
         // Target: Front facing frame (Row 1, Col 0 in the generated sheet)
-        // From ResourceManager: targetW = 256, targetH = 256
-        const targetW = 256;
-        const targetH = 256;
+        // Mage cells are 256px; the other playable classes use 192px cells.
+        // Use the loaded Sprite's grid so adjacent frames never enter the crop.
+        const targetW = spriteSheetCanvas.width / layout.cols;
+        const targetH = spriteSheetCanvas.height / layout.rows;
         const rowIndex = 1; // Front
         const colIndex = 0; // First frame
 

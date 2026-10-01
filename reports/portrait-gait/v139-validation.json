@@ -1,0 +1,91 @@
+{
+  "version": "0.02.139",
+  "baseline": "e1948a6bf3ac6cd7c3ba096423be8125afe6c8e9",
+  "portrait": [
+    {
+      "id": "wizard",
+      "before": {
+        "width": 256,
+        "height": 256,
+        "expectedWidth": 256,
+        "expectedHeight": 256,
+        "exactCell": true
+      },
+      "after": {
+        "width": 256,
+        "height": 256,
+        "expectedWidth": 256,
+        "expectedHeight": 256,
+        "exactCell": true
+      }
+    },
+    {
+      "id": "witch",
+      "before": {
+        "width": 256,
+        "height": 256,
+        "expectedWidth": 192,
+        "expectedHeight": 192,
+        "exactCell": false
+      },
+      "after": {
+        "width": 192,
+        "height": 192,
+        "expectedWidth": 192,
+        "expectedHeight": 192,
+        "exactCell": true
+      }
+    },
+    {
+      "id": "warrior",
+      "before": {
+        "width": 256,
+        "height": 256,
+        "expectedWidth": 192,
+        "expectedHeight": 192,
+        "exactCell": false
+      },
+      "after": {
+        "width": 192,
+        "height": 192,
+        "expectedWidth": 192,
+        "expectedHeight": 192,
+        "exactCell": true
+      }
+    },
+    {
+      "id": "archer",
+      "before": {
+        "width": 256,
+        "height": 256,
+        "expectedWidth": 192,
+        "expectedHeight": 192,
+        "exactCell": false
+      },
+      "after": {
+        "width": 192,
+        "height": 192,
+        "expectedWidth": 192,
+        "expectedHeight": 192,
+        "exactCell": true
+      }
+    }
+  ],
+  "movingAttack": {
+    "beforePhaseResets": 12,
+    "afterPhaseResets": 0,
+    "directionsTested": 12
+  },
+  "validation": {
+    "aggregate": "npm run validate passed",
+    "classes": 160,
+    "portraitGaitUnit": 17,
+    "portraitGaitBrowser": "4 portrait pixel matches, 12 accepted moving attacks",
+    "saveRegression": "four classes cold/warm actual Firebase SDK with existing checkpoint, acknowledgement gate, repeat clicks, failure/retry/reentry passed"
+  },
+  "limitations": [
+    "No character art changes: authored full-body attack leg anatomy remains unchanged",
+    "Chromium touch/mobile emulation, not physical Android",
+    "Exact-commit CI/deployment pending at commit creation"
+  ]
+}
