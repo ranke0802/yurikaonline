@@ -28,9 +28,9 @@ export default class ClassCombatBridge {
             summon: (id,level) => this.summon(id,level), dismiss: e => { e.isDead = true; this.actors = this.actors.filter(a => a !== e); },
             effect: (name,data) => {
                 this.game?.sound?.playClassEvent?.(name,{...data,audioId:`${this.visualEpoch}:${data.id}`},{remote:false});
-                const origin=['warrior_slash','rage_smash','piercing_snipe'].includes(name)?attackAnchor(this.owner,data.target,name):{};
+                const origin=['warrior_slash','rage_smash'].includes(name)?attackAnchor(this.owner,data.target,name):{};
                 const d=origin.x!==undefined?this.controller.direction(data.target):null;
-                const reach=name==='piercing_snipe'?650:name==='rage_smash'?150:100;
+                const reach=name==='rage_smash'?150:100;
                 const target=d?{x:origin.x+d.x*reach,y:origin.y+d.y*reach}:data.target;
                 this.effects.push({name,...data,...origin,target,age:0,duration:data.duration || .65});
                 if(name==='blood_finale')this.startActionMotion('finale',{});
@@ -176,7 +176,7 @@ export default class ClassCombatBridge {
         return {epoch:this.visualEpoch,sequence:++this.visualSequence,ts:Date.now(),fieldId:this.context.fieldId,classId:c.classId,
             motion:this.currentMotion(),
             effects:this.effects.slice(-64).map(f=>({id:f.id,name:f.name,...point(f),target:f.target?point(f.target):null,radius:f.radius||0,duration:f.duration,age:f.age})),
-            projectiles:c.projectiles.slice(-32).map(p=>{const target=c.attackOrigin(p,'return'),dx=target.x-p.x,dy=target.y-p.y,len=Math.hypot(dx,dy)||1;const d=p.kind==='return'?{x:dx/len,y:dy/len}:p.direction;return{kind:p.kind,...point(p),direction:d,speed:p.speed,age:c.time};}),
+            projectiles:c.projectiles.slice(-32).map(p=>{const target=c.attackOrigin(p,'return'),dx=target.x-p.x,dy=target.y-p.y,len=Math.hypot(dx,dy)||1;const d=p.kind==='return'?{x:dx/len,y:dy/len}:p.direction;return{kind:p.kind,...point(p),direction:d,speed:p.speed,remaining:Number.isFinite(p.remaining)?p.remaining:null,age:p.age??c.time};}),
             decoy:this.decoy?{...point(this.decoy),remaining:this.decoy.remaining,direction:this.decoy.direction||0,frame:this.decoy.frame||0}:null,badges};
     }
     syncVisuals(force=false) {

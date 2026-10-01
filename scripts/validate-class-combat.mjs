@@ -63,7 +63,7 @@ test('blood pact heals actual damage and final attack consumes remaining rage on
 });
 test('archer trap marks/root then sniper consumes and spreads marks, leap empowers once', () => {
     const f=fixture('archer'),a=f.add(),b=f.add({x:50,y:80});f.c.skill(1,{x:50,y:0});f.advance(.1);assert.equal(f.c.state(a).marks,3);
-    f.c.skill(2,{x:-100,y:0});assert.equal(f.c.modifyIncomingDamage(100),0);f.c.basic({aimed:true,x:50,y:0});assert.equal(f.c.state(a).marks,0);assert.equal(f.c.state(b).marks,2);assert.equal(f.c.empowered,false);
+    f.c.skill(2,{x:-100,y:0});assert.equal(f.c.modifyIncomingDamage(100),0);f.c.basic({aimed:true,x:50,y:0});assert.equal(f.c.state(a).marks,3,'marks remain until arrow arrives');f.advance(.4);assert.equal(f.c.state(a).marks,0);assert.equal(f.c.state(b).marks,2);assert.equal(f.c.empowered,false);
 });
 test('rain kill transfers capped marks without recursive damage loop', () => {
     const f=fixture('archer'),a=f.add({hp:10}),b=f.add({x:80,y:0});f.c.mark(a,5);f.c.skill(3,{x:50,y:0});f.advance(3.2);

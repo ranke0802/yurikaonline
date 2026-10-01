@@ -39,7 +39,7 @@ test('failed rage action has no cooldown/action; accepted reentrant action spend
 });
 test('archer rejection preserves empowered state and marks; success consumes each once',()=>{
     const f=fixture('archer');f.c.empowered=true;f.c.state(f.enemy).marks=3;f.c.state(f.enemy).markUntil=10;
-    assert.equal(f.c.basic({aimed:true,x:100,y:0}),true);assert.equal(f.c.empowered,false);assert.equal(f.c.state(f.enemy).marks,0);assert.equal(f.c.basicReady,.55);
+    assert.equal(f.c.basic({aimed:true,x:100,y:0}),true);assert.equal(f.c.empowered,false);assert.equal(f.c.state(f.enemy).marks,3,'launch reserves empowerment but impact consumes marks');assert.equal(f.c.basicReady,.55);f.advance(.1);assert.equal(f.c.state(f.enemy).marks,0);
     f.c.empowered=true;f.c.state(f.enemy).marks=2;
     assert.equal(f.c.basic({aimed:true}),false);assert.equal(f.c.empowered,true);assert.equal(f.c.state(f.enemy).marks,2);assert.equal(f.actions.length,1);
 });

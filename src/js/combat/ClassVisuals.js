@@ -6,7 +6,7 @@ import { captureProjectileWorldContext, isProjectileWorldContextCurrent } from '
 export const EFFECT_ROWS = {
     witch: [['life_circle','drain_orb','drain_link','drain_heal','orb','return'], ['poison_cloud','poison_potion'], ['summon'], ['berserk_potion']],
     warrior: [['warrior_slash','rage_smash'], ['challenge'], ['punishing_charge'], ['blood_pact','blood_finale']],
-    archer: [['archer_shot','piercing_snipe','arrow'], ['hunter_trap','trap_burst','trap_trigger'], ['shadow_leap'], ['tracking_rain']]
+    archer: [['archer_shot','piercing_snipe','arrow','snipe'], ['hunter_trap','trap_burst','trap_trigger'], ['shadow_leap'], ['tracking_rain']]
 };
 const GROUND = new Set(['life_circle','poison_cloud','summon','hunter_trap','tracking_rain','blood_pact','berserk_potion']);
 const DIRECTIONAL = new Set(['warrior_slash','rage_smash','punishing_charge','archer_shot','piercing_snipe','shadow_leap']);
@@ -34,8 +34,8 @@ function renderProjectiles(renderer,ctx,behind) {
     for(const p of renderer.controller?.projectiles||renderer.projectiles||[]) {
         const isBehind=p.kind==='return'?p.y<center.y:(p.direction?.y||0)<0;
         if(isBehind!==behind)continue;
-        renderer.drawEffect(ctx,p.kind,p.x,p.y,p.kind==='arrow'?48:58,p.age??renderer.controller?.time??0,
-            {angle:p.kind==='arrow'?Math.atan2(p.direction.y,p.direction.x):0,sustained:true});
+        renderer.drawEffect(ctx,p.kind,p.x,p.y,p.kind==='snipe'?72:p.kind==='arrow'?48:58,p.age??renderer.controller?.time??0,
+            {angle:['arrow','snipe'].includes(p.kind)?Math.atan2(p.direction.y,p.direction.x):0,sustained:true});
     }
 }
 function renderPotion(renderer,ctx,f,behind) {
@@ -59,14 +59,14 @@ export function renderGroundEffects(renderer,ctx) {
 export function renderForegroundEffects(renderer,ctx) {
     for(const f of renderer.effects)if(!GROUND.has(f.name)){
         // Launch packets remain useful for audio; moving projectiles own their image.
-        if(['archer_shot','drain_orb'].includes(f.name))continue;
+        if(['archer_shot','drain_orb','piercing_snipe'].includes(f.name))continue;
         if(f.name==='poison_potion'){renderPotion(renderer,ctx,f,false);continue;}
         const directional=DIRECTIONAL.has(f.name)&&f.target;
         const angle=directional?Math.atan2(f.target.y-f.y,f.target.x-f.x):0;
         const options={angle,sustained:f.duration>1};
         let size=f.name==='challenge'?160:f.name==='drain_heal'?44:(f.radius||70)*2;
         if(['warrior_slash','rage_smash'].includes(f.name)){options.pivotX=.15;options.width=f.name==='rage_smash'?150:100;options.height=f.name==='rage_smash'?96:104;}
-        if(['punishing_charge','piercing_snipe','shadow_leap'].includes(f.name)&&f.target){options.pivotX=0;options.width=Math.max(1,Math.hypot(f.target.x-f.x,f.target.y-f.y));options.height=f.name==='piercing_snipe'?36:80;}
+        if(['punishing_charge','shadow_leap'].includes(f.name)&&f.target){options.pivotX=0;options.width=Math.max(1,Math.hypot(f.target.x-f.x,f.target.y-f.y));options.height=80;}
         renderer.drawEffect(ctx,f.name,f.x,f.y,size,f.age,options);
     }
     renderProjectiles(renderer,ctx,false);
@@ -105,8 +105,10 @@ export default class RemoteClassVisuals {
                 radius:Math.max(0,Math.min(700,Number(f.radius)||0)),duration,age,receivedAt:now});
         }
         for(const p of (Array.isArray(packet.projectiles)?packet.projectiles:[]).slice(0,32)){
-            if(!finitePoint(p)||!['orb','return','arrow'].includes(p.kind)||!finitePoint(p.direction)||!Number.isFinite(p.speed)||lag>.4)continue;
-            this.projectiles.push({...p,speed:Math.max(0,Math.min(650,p.speed)),age:Number(p.age)||0,receivedAt:now,expiresAt:packet.ts+400});
+            if(!finitePoint(p)||!['orb','return','arrow','snipe'].includes(p.kind)||!finitePoint(p.direction)||!Number.isFinite(p.speed)||lag>.4)continue;
+            const speed=Math.max(0,Math.min(p.kind==='snipe'?780:650,p.speed));
+            const remaining=Number.isFinite(p.remaining)?Math.max(0,Math.min(650,p.remaining)):speed*.4;
+            this.projectiles.push({...p,speed,remaining,age:Number(p.age)||0,receivedAt:now,expiresAt:packet.ts+400});
         }
         const d=packet.decoy;
         if(finitePoint(d)&&Number.isFinite(d.remaining)&&d.remaining>lag)this.decoy={x:d.x,y:d.y,direction:Math.max(0,Math.min(3,d.direction||0)),frame:Math.max(0,Math.min(3,d.frame||0)),remaining:Math.min(2,d.remaining)-lag,receivedAt:now};
@@ -119,7 +121,7 @@ export default class RemoteClassVisuals {
         const now=Date.now();
         if(this.motion){this.motion.age+=Math.max(0,(now-this.motion.receivedAt)/1000);this.motion.receivedAt=now;if(now>=this.motion.expiresAt)this.motion=null;}
         this.effects=this.effects.filter(f=>{f.age+=(now-f.receivedAt)/1000;f.receivedAt=now;return f.age<f.duration;});
-        this.projectiles=this.projectiles.filter(p=>{const dt=Math.max(0,(now-p.receivedAt)/1000);p.x+=p.direction.x*p.speed*dt;p.y+=p.direction.y*p.speed*dt;p.age+=dt;p.receivedAt=now;return now<p.expiresAt;});
+        this.projectiles=this.projectiles.filter(p=>{const dt=Math.max(0,(now-p.receivedAt)/1000);const step=Math.min(p.remaining,p.speed*dt);p.x+=p.direction.x*step;p.y+=p.direction.y*step;p.remaining-=step;p.age+=dt;p.receivedAt=now;return now<p.expiresAt&&p.remaining>0;});
         if(this.decoy){this.decoy.remaining-=(now-this.decoy.receivedAt)/1000;this.decoy.receivedAt=now;if(this.decoy.remaining<=0)this.decoy=null;}
         if(now>this.badgesUntil)this.badges=[];
     }

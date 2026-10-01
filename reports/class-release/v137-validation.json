@@ -1,0 +1,32 @@
+{
+  "version": "0.02.137",
+  "baseline": "78181959965f697194b3fe793ff3f90560d15fa9",
+  "scope": "Archer held aimed snipe physical flight; unchanged tap speed/range and character art",
+  "validation": {
+    "aggregate": "npm run validate passed",
+    "classes": 143,
+    "actualGameLoop": {
+      "before": 80,
+      "after": 80,
+      "report": "reports/archer-trajectory/archer-real-loop-comparison.json"
+    },
+    "cadenceBrowser": {
+      "cases": 24,
+      "remoteContexts": 2,
+      "lifecycle": 3
+    },
+    "runtimeAudio": {
+      "cases": 21,
+      "passed": true,
+      "note": "Initial concurrent-browser run reported accepted Witch summon cue with zero sampled RMS; serial rerun passed all cases. No audio implementation change."
+    },
+    "audioSynthesis": "npm run validate:audio-all passed",
+    "firebaseSDK": "10.7.1 local wire: retained listener green; legacy baseline red"
+  },
+  "limitations": [
+    "Local fixtures, not live accounts or live-user multiplayer",
+    "Chromium touch emulation, not physical phone",
+    "Video timestamps reflect actual running loop; screenshot delays retained in position log"
+  ],
+  "deployment": "Pending CI at commit creation; verify workflow/live release before completion"
+}

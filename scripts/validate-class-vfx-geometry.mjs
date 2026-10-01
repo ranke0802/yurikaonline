@@ -9,9 +9,9 @@ test('radial effects do not rotate and Blood Pact follows current combat center'
  const r=renderer('warrior');r.effects=[{name:'blood_pact',x:0,y:0,duration:8,age:2,target:{x:999,y:999}},{name:'challenge',x:34,y:52,duration:.5,age:0,target:{x:-5,y:-5}}];renderGroundEffects(r,{});assert.deepEqual(r.calls[0].slice(2,5),[34,52,110]);assert.equal(r.calls[0][6].angle,0);
  r.owner.x=110;r.calls=[];renderGroundEffects(r,{});assert.equal(r.calls[0][2],134);renderForegroundEffects(r,{});assert.equal(r.calls.at(-1)[6].angle,0);
 });
-test('slash pivots in front; charge spans exact start-stop distance; snipe remains its own ray',()=>{
+test('slash pivots in front; charge spans exact start-stop distance; snipe launch event has no stationary image',()=>{
  const r=renderer('warrior');r.effects=[{name:'warrior_slash',x:34,y:52,target:{x:134,y:52},age:0},{name:'punishing_charge',x:34,y:52,target:{x:34,y:-48},age:0},{name:'piercing_snipe',x:34,y:52,target:{x:234,y:52},age:0}];renderForegroundEffects(r,{});
- assert.equal(r.calls[0][6].pivotX,.15);assert.equal(r.calls[0][6].width,100);assert.equal(r.calls[1][6].pivotX,0);assert.equal(r.calls[1][6].width,100);assert.equal(r.calls[1][6].angle,-Math.PI/2);assert.equal(r.calls[2][6].width,200);
+ assert.equal(r.calls[0][6].pivotX,.15);assert.equal(r.calls[0][6].width,100);assert.equal(r.calls[1][6].pivotX,0);assert.equal(r.calls[1][6].width,100);assert.equal(r.calls[1][6].angle,-Math.PI/2);assert.equal(r.calls.length,2);
  const draws=[],ctx={drawImage:(...a)=>draws.push(a)};drawClassEffect(r,ctx,'warrior_slash',34,52,100,0,{pivotX:.15,width:100,height:104});assert.deepEqual(draws[0].slice(5),[19,0,100,104]);
 });
 test('potion follows hand-target arc and reaches target at landing; crops all four cells',()=>{

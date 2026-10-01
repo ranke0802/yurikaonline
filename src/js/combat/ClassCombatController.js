@@ -120,7 +120,7 @@ export default class ClassCombatController {
     }
     arrow(point) {
         const origin = this.attackOrigin(point, 'arrow');
-        this.projectiles.push({ kind: 'arrow', ...origin, direction: this.projectileDirection(origin, point), spawnSweep: this.launchSweep(origin, point), launchPlane: { origin: this.combatOrigin(), forward: this.direction(point) }, speed: 540, remaining: 600 });
+        this.projectiles.push({ kind: 'arrow', ...origin, direction: this.projectileDirection(origin, point), spawnSweep: this.launchSweep(origin, point), launchPlane: { origin: this.combatOrigin(), forward: this.direction(point) }, speed: 540, remaining: 600, age:0 });
         this.effect('archer_shot', { ...origin, target: point });
     }
     orb(point) {
@@ -138,18 +138,28 @@ export default class ClassCombatController {
     }
     snipe(point) {
         this.lastEmpowered = this.empowered; this.empowered = false;
-        for (const e of this.line(point, 650, 18)) {
-            const s = this.state(e), marks = s.markUntil > this.time ? s.marks || 0 : 0;
-            const actual = this.hit(e, this.attack() * (1.8 + marks * (this.lastEmpowered ? .85 : .5)), { armorPierce: .5 });
-            if (!actual) continue;
-            s.marks = 0; s.markUntil = 0; this.hooks.clearStatus?.(e, 'mark');
-            if (s.trappedUntil > this.time) {
-                s.trappedUntil = 0;
-                this.area(e, 130).filter(other => other !== e).forEach(other => { this.hit(other, this.attack()); this.mark(other, 2); });
-                this.effect('trap_burst', { x: e.x, y: e.y });
-            }
+        const origin = this.attackOrigin(point, 'snipe');
+        this.projectiles.push({kind:'snipe', ...origin, age:0,
+            direction:this.projectileDirection(origin,point), spawnSweep:this.launchSweep(origin,point),
+            launchPlane:{origin:this.combatOrigin(),forward:this.direction(point)},
+            speed:780, remaining:650, hitTargets:new Set(), power:this.attack(), empowered:this.lastEmpowered});
+        // This committed event drives the firing sound; the moving projectile owns
+        // the visible arrow. Damage and mark consumption happen only on contact.
+        this.effect('piercing_snipe', { ...origin, target:point, empowered:this.lastEmpowered });
+    }
+    hitSnipe(p,e) {
+        const key=e.id??e;
+        if(p.hitTargets.has(key))return;
+        p.hitTargets.add(key);
+        const s=this.state(e),marks=s.markUntil>this.time?s.marks||0:0;
+        const actual=this.hit(e,p.power*(1.8+marks*(p.empowered?.85:.5)),{armorPierce:.5});
+        if(!actual)return;
+        s.marks=0;s.markUntil=0;this.hooks.clearStatus?.(e,'mark');
+        if(s.trappedUntil>this.time){
+            s.trappedUntil=0;
+            this.area(e,130).filter(other=>other!==e).forEach(other=>{this.hit(other,p.power);this.mark(other,2);});
+            this.effect('trap_burst',{x:e.x,y:e.y});
         }
-        this.effect('piercing_snipe', { target: point, empowered: this.lastEmpowered });
     }
     skill(slot, options = {}) {
         if(this.castingSkill)return false;
@@ -259,6 +269,7 @@ export default class ClassCombatController {
         for (const [e, s] of this.statuses) if (!alive(e)) this.statuses.delete(e);
     }
     resolveProjectileHit(p, e) {
+        if(p.kind==='snipe'){this.hitSnipe(p,e);return;}
         if (p.kind === 'arrow') { if (this.hit(e, this.attack() * .85)) this.mark(e); }
         else {
             this.control(e, 'stagger', .35); let drained = 0;
@@ -275,6 +286,7 @@ export default class ClassCombatController {
         if (index >= 0) this.projectiles.splice(index, 1);
     }
     advanceProjectile(p, dt) {
+        if(p.kind==='arrow'||p.kind==='snipe')p.age=(p.age||0)+dt;
         const amount = Math.min(p.remaining, p.speed * dt), steps = Math.max(1, Math.ceil(amount / 12));
         if (p.kind === 'return') {
             const origin = this.attackOrigin(p, 'return');
@@ -295,16 +307,20 @@ export default class ClassCombatController {
                 const contacts = this.enemies().map(e => {
                     const ex=e.x-from.x, ey=e.y-from.y;
                     const t=clamp((ex*sx+ey*sy)/length2,0,1), x=from.x+sx*t, y=from.y+sy*t;
-                    return {e,t,x,y,front:ex*forward.x+ey*forward.y>=0,within:Math.hypot(e.x-x,e.y-y)<=(e.radius||16)+(p.kind==='orb'?14:8)};
+                    return {e,t,x,y,front:ex*forward.x+ey*forward.y>=0,within:Math.hypot(e.x-x,e.y-y)<=(e.radius||16)+(p.kind==='orb'?14:p.kind==='snipe'?18:8)};
                 }).filter(c=>c.front&&c.within).sort((a,b)=>a.t-b.t);
-                if (contacts.length) { const c=contacts[0];p.x=c.x;p.y=c.y;this.resolveProjectileHit(p,c.e);return; }
+                if(contacts.length){
+                    if(p.kind==='snipe')contacts.forEach(c=>this.resolveProjectileHit(p,c.e));
+                    else {const c=contacts[0];p.x=c.x;p.y=c.y;this.resolveProjectileHit(p,c.e);return;}
+                }
             }
         }
         for (let i = 0; i < steps; i++) {
             p.x += p.direction.x * amount / steps; p.y += p.direction.y * amount / steps;
-            const e = this.area(p, p.kind === 'orb' ? 14 : 8).find(e => !p.launchPlane || (e.x-p.launchPlane.origin.x)*p.launchPlane.forward.x+(e.y-p.launchPlane.origin.y)*p.launchPlane.forward.y>=0);
-            if (!e) continue;
-            this.resolveProjectileHit(p, e); return;
+            const contacts=this.area(p,p.kind==='orb'?14:p.kind==='snipe'?18:8).filter(e=>!p.launchPlane||(e.x-p.launchPlane.origin.x)*p.launchPlane.forward.x+(e.y-p.launchPlane.origin.y)*p.launchPlane.forward.y>=0);
+            if(p.kind==='snipe'){contacts.forEach(e=>this.resolveProjectileHit(p,e));continue;}
+            if(!contacts.length)continue;
+            this.resolveProjectileHit(p,contacts[0]);return;
         }
         p.remaining -= amount;
         if (p.remaining <= 0) this.projectiles.splice(this.projectiles.indexOf(p), 1);
