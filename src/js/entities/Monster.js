@@ -1,4 +1,4 @@
-import { acceptPoisonPulse, paintPoisonStatus } from '../combat/WitchPoison.js';
+import { acceptPoisonPulse, claimPoisonPulse, paintPoisonStatus } from '../combat/WitchPoison.js';
 import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
@@ -1922,6 +1922,7 @@ export default class Monster extends CharacterBase {
 
     takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null, damageMeta = null) {
         if (this.isDead || window.game?.monsterManager?.isMonsterCombatBlocked?.()) return false;
+        if (damageMeta?.classPoisonPulse && damageMeta.poisonPulse && !claimPoisonPulse(this,this.classCombatTime||0,damageMeta.poisonPulse,window.game?.net?.isHost !== false || this.isLocalOnly)) return false;
         if (typeof damageMeta?.classHitId === 'string') {
             if(damageMeta.classHitId.length>180)return false;
             this.classHitIds ||= new Map();
@@ -2005,7 +2006,7 @@ export default class Monster extends CharacterBase {
         }
 
         if(dmg>0 && this.hp>0 && damageMeta?.classPoisonPulse && (window.game?.net?.isHost !== false || this.isLocalOnly)) {
-            if(acceptPoisonPulse(this,this.classCombatTime||0)) {
+            if(acceptPoisonPulse(this,this.classCombatTime||0,damageMeta.poisonPulse)) {
                 paintPoisonStatus(this);
                 window.game?.monsterManager?.forceSync?.(this.id);
             }

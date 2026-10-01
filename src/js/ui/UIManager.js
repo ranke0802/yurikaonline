@@ -1,3 +1,4 @@
+import { CLASS_NAMES } from '../core/ClassProfiles.js';
 import { CLASS_SKILL_UI, MAGE_SKILL_IDS, classSkillIds, classSkillMaxLevel } from './ClassSkillUI.js';
 import Logger from '../utils/Logger.js';
 import { getFireballAoeRadius, FIREBALL_BASE_RADIUS, FIREBALL_RADIUS_PER_LEVEL, FIREBALL_AOE_MULTIPLIER } from '../skills/FireballScaling.js';
@@ -1841,6 +1842,11 @@ export class UIManager {
     updateAutoAttackToggle(forceState = null) {
         const button = this.getHudRef('autoAttackToggle', 'action-auto-toggle', 'id');
         if (!button) return;
+
+        const supported = !this.game.localPlayer?.classId || this.game.localPlayer.classId === 'wizard';
+        button.hidden = !supported;
+        button.classList.toggle('hidden', !supported);
+        button.disabled = !supported;
 
         const enabled = typeof forceState === 'boolean'
             ? forceState
@@ -4359,6 +4365,24 @@ export class UIManager {
     }
 
     handleDesktopShortcutKeydown(e) {
+        const popup = document.querySelector('.game-popup:not(.hidden)');
+        const nestedModal = document.querySelector('#generic-modal:not(.hidden), #confirm-modal:not(.hidden), #inventory-item-modal:not(.hidden), #skill-detail-modal:not(.hidden)');
+        if (popup && !nestedModal && e.key === 'Tab') {
+            const controls = this.getPopupFocusTargets(popup);
+            const first = controls[0], last = controls[controls.length - 1];
+            if (!first) { e.preventDefault(); popup.focus(); }
+            else if (!popup.contains(document.activeElement) || (e.shiftKey && document.activeElement === first) || (!e.shiftKey && document.activeElement === last)) {
+                e.preventDefault();
+                (e.shiftKey ? last : first).focus();
+            }
+            return;
+        }
+        if (popup && !nestedModal && e.key === 'Escape') {
+            e.preventDefault();
+            this.togglePopup(popup.id);
+            return;
+        }
+
         if (this.uiLayoutEditMode) {
             if (e.code === 'Escape') {
                 e.preventDefault();
@@ -4568,7 +4592,25 @@ export class UIManager {
         this.requestLandscapeAutoFullscreenIfPending();
     }
 
+    getPopupFocusTargets(popup) {
+        return [...popup.querySelectorAll('button, input, select, textarea, [tabindex="0"]')]
+            .filter(el => !el.disabled && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
+    }
+
     setupEventListeners() {
+        document.querySelectorAll('.menu-btn').forEach(button => {
+            button.setAttribute('role', 'button');
+            button.tabIndex = 0;
+            button.setAttribute('aria-label', button.title || button.textContent.trim());
+            const popupId = `${button.id.replace('btn-', '')}-popup`;
+            if (document.getElementById(popupId)) button.setAttribute('aria-controls', popupId);
+            button.addEventListener('keydown', event => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                if (!event.repeat) button.click();
+            });
+        });
+
         document.addEventListener('keydown', this.handleDesktopShortcutKeydown);
         window.addEventListener('popstate', this.handleBrowserBackPopState);
         document.addEventListener('pointermove', this.handleTutorialGuideDragMove, { passive: false });
@@ -4679,6 +4721,7 @@ export class UIManager {
         };
         if (autoAttackToggle && !autoAttackToggle.dataset.bound) {
             autoAttackToggle.addEventListener('pointerdown', handleAutoAttackToggle);
+            autoAttackToggle.addEventListener('click', (e) => { if (e.detail === 0) handleAutoAttackToggle(e); });
             autoAttackToggle.dataset.bound = 'true';
         }
         if (autoAttackToggle) {
@@ -7565,6 +7608,9 @@ export class UIManager {
         }
 
         if (isCurrentlyHidden) {
+            const previousFocus = document.activeElement;
+            this._popupReturnFocus = previousFocus !== document.body && previousFocus?.getClientRects().length
+                ? previousFocus : document.querySelector(`[aria-controls="${id}"]`);
             if (this.game.sound) this.game.sound.playSfx('ui_open');
             this.overlay.classList.remove('hidden');
             popup.classList.remove('hidden');
@@ -7602,6 +7648,11 @@ export class UIManager {
             }
             this.isPaused = true;
             this.game.tutorial?.trigger?.('popup_open', { target: id });
+            popup.setAttribute('role', 'dialog');
+            popup.setAttribute('aria-modal', 'true');
+            popup.setAttribute('aria-label', popup.querySelector('.popup-header')?.textContent?.trim() || '게임 메뉴');
+            popup.tabIndex = -1;
+            (this.getPopupFocusTargets(popup)[0] || popup).focus({ preventScroll: true });
         } else {
             if (this.game.sound) this.game.sound.playSfx('ui_close');
             this.overlay.classList.add('hidden');
@@ -7618,6 +7669,8 @@ export class UIManager {
             this.closeInventoryItemModal(true);
             this.isPaused = false;
             this.game.tutorial?.trigger?.('popup_close', { target: id });
+            if (this._popupReturnFocus?.isConnected) this._popupReturnFocus.focus({ preventScroll: true });
+            this._popupReturnFocus = null;
         }
 
         this.syncDevOverlayVisibility();
@@ -9062,6 +9115,8 @@ export class UIManager {
         }
 
         // Basic Info
+        const classLabel = document.getElementById('stat-class-name');
+        if (classLabel) classLabel.textContent = CLASS_NAMES[p.classId || p.activeClassId] || CLASS_NAMES.wizard;
         const levelEl = document.getElementById('stat-level');
         if (levelEl) levelEl.textContent = p.level;
 
@@ -9236,7 +9291,13 @@ export class UIManager {
 
         // v1.92: Bind & Update Link Google Button
         const linkBtn = document.getElementById('btn-link-google');
-        if (linkBtn) {
+        if (linkBtn && (this.game.isLocalMode || this.game.auth?.currentUser?.isLocal)) {
+            linkBtn.disabled = true;
+            linkBtn.textContent = '기기 내 저장 · 로컬 모드는 구글 연동을 지원하지 않습니다';
+            linkBtn.title = '이 브라우저에 저장됩니다. 온라인 계정으로 자동 이전되지 않습니다.';
+            linkBtn.onclick = null;
+            linkBtn.classList.remove('linked');
+        } else if (linkBtn) {
             const guestLabel = '게스트 데이터를 구글 계정에 연동하기';
             const loadingLabel = '구글 계정 연동 중...';
             const transferringLabel = '데이터 이전 중...';
@@ -9257,7 +9318,8 @@ export class UIManager {
                 try {
                     setLinkButtonState(true, loadingLabel);
 
-                    const guestUid = this.game.auth.getUid();
+                    const guestUid = this.game.auth.currentUser?.uid;
+                    if (!guestUid) throw new Error('로그인 정보를 확인할 수 없습니다. 다시 로그인해주세요.');
                     const flushResult = await this.game.net.flushProfileWrites?.(guestUid);
                     if (flushResult && !flushResult.ok) {
                         throw new Error('대기 중인 게스트 데이터를 저장하지 못했습니다. 다시 시도해주세요.');
@@ -11391,7 +11453,7 @@ export class UIManager {
             if (!this.lastHudSnapshot || this.lastHudSnapshot.mpMax !== nextMpMax) {
                 if (mpm) mpm.textContent = nextMpMax;
             }
-            const nextAutoAttack = p.autoAttackEnabled ? '1' : '0';
+            const nextAutoAttack = `${p.classId || 'wizard'}:${p.autoAttackEnabled ? '1' : '0'}`;
             if (!this.lastHudSnapshot || this.lastHudSnapshot.autoAttack !== nextAutoAttack) {
                 this.updateAutoAttackToggle(p.autoAttackEnabled);
             }

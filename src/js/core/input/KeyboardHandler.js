@@ -92,8 +92,16 @@ export default class KeyboardHandler extends EventEmitter {
     }
 
     _onKeyDown(e) {
-        // Prevent default for game keys to avoid scrolling
-        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Tab'].includes(e.key)) {
+        // Native controls and modal navigation own their keyboard events.
+        // Release held game actions when focus moves into UI, so they cannot stick.
+        if (e.defaultPrevented || e.key === 'Tab' || e.ctrlKey || e.metaKey || e.altKey ||
+            e.target?.closest?.('input, textarea, select, [contenteditable="true"]') ||
+            ([' ', 'Enter'].includes(e.key) && e.target?.closest?.('button, [role="button"]')) ||
+            document.querySelector?.('.game-popup:not(.hidden), [role="dialog"]:not(.hidden)')) {
+            this.resetState();
+            return;
+        }
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
             e.preventDefault();
         }
 

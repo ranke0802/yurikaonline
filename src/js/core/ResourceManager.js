@@ -80,6 +80,29 @@ export default class ResourceManager {
         return this.cache.get(normalizedUrl) || this.cache.get(url);
     }
 
+    // One decoded bundle per selected class. Concurrent camp/field consumers
+    // share the same promise; failures are evicted so the next attempt can retry.
+    preparePlayableClassAssets(requestedId = 'wizard') {
+        const id = ['witch', 'warrior', 'archer'].includes(requestedId) ? requestedId : 'wizard';
+        const key = `playable-class:${id}`;
+        if (this.cache.has(key)) return Promise.resolve(this.cache.get(key));
+        if (this.loading.has(key)) return this.loading.get(key);
+        const paths = id === 'wizard' ? [] : [
+            ['actions', `${id}-actions`], ['effects', `${id}-effects`], ['status', 'status'],
+            ...(id === 'witch' ? [['lifeCircle', 'life-circle']] : [])
+        ];
+        const promise = Promise.all([
+            id === 'wizard' ? this.loadCharacterSpriteSheet() : this.loadImage(`assets/resource/classes/${id}-runtime.webp`),
+            ...paths.map(([, path]) => this.loadImage(`assets/resource/classes/${path}.webp`))
+        ]).then(([sheet, ...images]) => {
+            const bundle = { sheet, ...Object.fromEntries(paths.map(([name], i) => [name, images[i]])) };
+            this.cache.set(key, bundle);
+            return bundle;
+        }).finally(() => { if (this.loading.get(key) === promise) this.loading.delete(key); });
+        this.loading.set(key, promise);
+        return promise;
+    }
+
     // Specialized loader for the Complex Character Sprite Sheet
     // Integrates Chroma Key, Auto-Crop, and Scaling from legacy code
     async loadCharacterSpriteSheet(previewOnly = false) {
@@ -136,6 +159,7 @@ export default class ResourceManager {
                             this._processAndDrawFrame(img, finalCtx, i * targetW, rowIndex * targetH, targetW, targetH);
                         }).catch(err => {
                             Logger.warn(`Failed to load frame: ${path}`, err);
+                            throw err;
                         });
                         loadPromises.push(p);
                     });

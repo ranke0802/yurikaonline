@@ -70,6 +70,19 @@ export default class LocalNetworkManager extends NetworkManager {
     async getPlayerData(uid) { const profile = await this.getPlayerProfile(uid); return profile ? { profile } : null; }
     async getPlayerProfile(uid) { if (uid !== this.playerId) return null; const data = this._read(); if (this._localRevision === null) this._localRevision = data.revision; return copy(data.profile); }
     async getLatestProfileSnapshot(uid) { const profile = await this.getPlayerProfile(uid); return profile ? { profile, source: 'profile', rootRevision: this._localRevision, latestUid: uid } : null; }
+    // Only called after the conflict UI explicitly confirms discarding this
+    // tab's unsaved patch. Never rewrites or clears the durable storage record.
+    async reloadLocalProfileAfterConflict() {
+        if (this._localSaveError !== 'local_profile_changed_in_another_tab' || this._localDraining) return {ok:false,reason:'local_conflict_not_ready'};
+        try {
+            const data=this._read();
+            if(!data.profile)return {ok:false,reason:'local_profile_missing'};
+            this._localRevision=data.revision;
+            this._pendingLocalProfilePatch=null;
+            this._publishLocalSaveState();
+            return {ok:true,profile:copy(data.profile),revision:data.revision};
+        } catch(error){return {ok:false,reason:error.message};}
+    }
     async savePlayerData(uid, patch) {
         try {
             if (uid !== this.playerId || !patch || typeof patch !== 'object' || Array.isArray(patch)) throw new Error('profile_uid_mismatch');
@@ -84,7 +97,7 @@ export default class LocalNetworkManager extends NetworkManager {
             this._write(data);
             this._pendingLocalProfilePatch = null;
             this._publishLocalSaveState();
-            return { ok: true, revision: data.revision, localCheckpointPersisted: true };
+            return { ok: true, profile: copy(data.profile), revision: data.revision, localCheckpointPersisted: true };
         } catch (error) { this._publishLocalSaveState(error.message); return { ok: false, reason: error.message }; }
     }
     async savePlayerDataPatch(uid, patch) { return this.savePlayerData(uid, patch); }

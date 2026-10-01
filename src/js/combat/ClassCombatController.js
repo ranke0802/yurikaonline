@@ -14,7 +14,7 @@ export default class ClassCombatController {
     constructor(owner, classId, hooks = {}) {
         this.owner = owner; this.classId = classId; this.hooks = hooks;
         this.time = 0; this.cooldowns = {}; this.tasks = []; this.projectiles = [];
-        this.summons = []; this.statuses = new Map(); this.rage = 0; this.combo = 0; this.effectSerial = 0;
+        this.summons = []; this.statuses = new Map(); this.rage = 0; this.combo = 0; this.effectSerial = 0; this.poisonCastSerial = 0;
         this.basicReady = 0; this.empowered = false; this.disposed = false;
     }
     enemies() { return (this.hooks.enemies?.() || []).filter(alive); }
@@ -100,11 +100,11 @@ export default class ClassCombatController {
         this.projectiles.push({ kind: 'orb', x: this.owner.x, y: this.owner.y, direction: this.direction(point), speed: 210, remaining: 560 });
         this.effect('drain_orb', { target: point });
     }
-    poison(e) {
-        const accepted = this.hit(e, this.attack() + e.maxHp * .05, { poison: true, classPoisonPulse: true });
+    poison(e, pulse = null) {
+        const accepted = this.hit(e, this.attack() + e.maxHp * .05, { poison: true, classPoisonPulse: true, ...(pulse ? {poisonPulse:pulse} : {}) });
         // Production Monster applies target-wide state only on the current host.
         if (!accepted || !alive(e) || this.hooks.managesPoisonStatuses) return;
-        const s=acceptPoisonPulse(e,this.time); if(!s)return;
+        const s=acceptPoisonPulse(e,this.time,pulse); if(!s)return;
         if(s.stunUntil>this.time)this.control(e,'stun',3,{},false);
         else this.control(e,'poison',5,{stacks:s.stacks,slow:s.stacks*.2},false);
     }
@@ -138,7 +138,8 @@ export default class ClassCombatController {
         if (this.classId === 'witch') {
             if (slot === 1) {
                 // Five pulses at t=1..5; a target entering late only gets remaining pulses.
-                for (let i = 1; i <= 5; i++) this.schedule(i, () => this.area(point, 140).forEach(e => this.poison(e)));
+                const castId = `poison-${++this.poisonCastSerial}`;
+                for (let i = 1; i <= 5; i++) this.schedule(i, () => this.area(point, 140).forEach(e => this.poison(e,{castId,index:i})));
                 this.effect('poison_cloud', { ...point, duration: 5, radius: 140 }); cooldown = 9;
             } else if (slot === 2) {
                 const cost = this.owner.maxHp * .8;

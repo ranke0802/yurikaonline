@@ -192,18 +192,12 @@ export default class WorldScene extends Scene {
         }
         this._applyZoneData(zoneData, { clearExisting: true, primeSpawn: false });
 
-        try {
-            await this.resources.loadImage('/src/assets/character.webp');
-        } catch (e) {
-            Logger.error('Failed to load character sprite', e);
-        }
-
         const defaultSpawn = this.game.zone.getSpawnPoint('default');
         const startX = Number.isFinite(params.startX) ? params.startX : defaultSpawn.x;
         const startY = Number.isFinite(params.startY) ? params.startY : defaultSpawn.y;
 
-        // v1.99.12: Load FULL sprite sheet (preview loaded only partial)
-        await this.resources.loadCharacterSpriteSheet();
+        this.game.updateLoading?.('선택한 캐릭터 이미지를 준비하고 있어요…', 70);
+        await this.resources.preparePlayableClassAssets(profile?.activeClassId || 'wizard');
 
         // 5. Load Character Definition (Warrior Default)
         // TODO: Select class based on user profile or selection
@@ -435,6 +429,7 @@ export default class WorldScene extends Scene {
 
         this.ui?.loadPlayerSettings?.(this.player.clientSettings || null, { refreshGame: true });
         this.player.init(this.input, this.resources, this.net);
+        await this.player.spriteReady;
         const pendingClaimCount = this.player.claimPendingItemRewards?.({
             maxAttempts: 48,
             debounceMs: 1200,
@@ -1441,6 +1436,7 @@ export default class WorldScene extends Scene {
     }
 
     update(dt) {
+        if (this._campEntryIncomplete) return;
         if (this.isZoneTransitioning || this._profileWriterSuperseded) return;
         if (this.shouldFreezeWorldForModalUi()) {
             return;
@@ -1660,14 +1656,14 @@ export default class WorldScene extends Scene {
     }
 
     render(ctx) {
-        if (!this.game.zone.currentZone) {
-            // Loading State
+        if (this._campEntryIncomplete || !this.game.zone.currentZone) {
+            // Keep gameplay hidden until the selected character is decoded and initialized.
             ctx.fillStyle = this.game.getRenderBackgroundColor?.() || '#172234';
             ctx.fillRect(0, 0, this.game.canvas.width, this.game.canvas.height);
             ctx.fillStyle = '#fff';
             ctx.font = '24px "Outfit", sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('Loading Zone...', this.game.canvas.width / 2, this.game.canvas.height / 2);
+            ctx.fillText('캐릭터와 필드를 준비하고 있어요…', this.game.canvas.width / 2, this.game.canvas.height / 2);
             return;
         }
 

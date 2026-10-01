@@ -225,7 +225,8 @@ export default class Player extends CharacterBase {
 
         this.classId = normalizeClassId(this.activeClassId || this.classId);
         this.initializeClassCombat();
-        this._loadSpriteSheet(resourceManager);
+        this.spriteReady = this._loadSpriteSheet(resourceManager);
+        this.spriteReady.catch(error => Logger.error('Failed to prepare character sprites', error));
 
         // Bind input actions to methods
         this._inputBindings = [];
@@ -353,25 +354,20 @@ export default class Player extends CharacterBase {
     }
 
     async _loadSpriteSheet(res) {
-        if (!res) return;
-
-        try {
-            const sheetCanvas = normalizeClassId(this.classId) !== 'wizard'
-                ? await res.loadImage(`assets/resource/classes/${this.classId}-runtime.webp`)
-                : await res.loadCharacterSpriteSheet();
-            // Max Frames 8, Rows 5 (Back, Front, Left, Right, Attack)
-            this.sprite = new Sprite(sheetCanvas, 8, 5);
-            // Frame counts per row (0:Back, 1:Front, 2:Left, 3:Right, 4:Attack)
-            this.frameCounts = normalizeClassId(this.classId) !== 'wizard' ? {0:4,1:4,2:4,3:4,4:4} : { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 };
-
-            // Update UI portraits with the new transparent sheet
-            if (window.game && window.game.ui) {
-                window.game.ui.updatePlayerPortraits(sheetCanvas);
-            }
-
-        } catch (e) {
-            Logger.error('Failed to load character sprite sheet', e);
-        }
+        if (!res) return false;
+        const classId = normalizeClassId(this.classId);
+        if (this.sprite && this._spriteClassId === classId) return true;
+        const bundle = res.preparePlayableClassAssets
+            ? await res.preparePlayableClassAssets(classId)
+            : { sheet: classId !== 'wizard' ? await res.loadImage(`assets/resource/classes/${classId}-runtime.webp`) : await res.loadCharacterSpriteSheet() };
+        // A slower previous selection must not paint over the current class.
+        if (normalizeClassId(this.classId) !== classId) return false;
+        this.sprite = new Sprite(bundle.sheet, 8, 5);
+        this._spriteClassId = classId;
+        this.frameCounts = classId !== 'wizard' ? {0:4,1:4,2:4,3:4,4:4} : {0:5,1:8,2:7,3:7,4:6};
+        if (this.classCombat && classId !== 'wizard') Object.assign(this.classCombat.images, bundle);
+        globalThis.window?.game?.ui?.updatePlayerPortraits?.(bundle.sheet);
+        return true;
     }
 
     update(dt) {

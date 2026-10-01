@@ -72,7 +72,8 @@ export default class ClassCombatBridge {
         const damage = Math.max(1, Math.ceil(meta.poison ? amount : amount - defense));
         if (e.hasEffect?.('shield')) return 0;
         const net = this.game?.net, before = e.hp;
-        const packet = {...meta, classHitId:`${this.owner.id}:${this.visualEpoch}:${++this.hitSerial}`, impactX:this.owner.x,impactY:this.owner.y,attackerLevel:this.owner.level};
+        const pulse = meta.poisonPulse ? { ...meta.poisonPulse, castId:`${this.owner.id}:${this.visualEpoch}:${meta.poisonPulse.castId}` } : null;
+        const packet = {...meta, ...(pulse ? {poisonPulse:pulse} : {}), classHitId:`${this.owner.id}:${this.visualEpoch}:${++this.hitSerial}`, impactX:this.owner.x,impactY:this.owner.y,attackerLevel:this.owner.level};
         if (net && !e.isLocalOnly && net.sendMonsterDamage(e.id,damage,packet) === false) return 0;
         e.lastAttackerId = net?.playerId || this.owner.id;
         if (e.takeDamage(damage,false,false,this.owner.x,this.owner.y,packet) === false) return 0;

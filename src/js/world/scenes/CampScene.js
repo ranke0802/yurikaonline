@@ -14,6 +14,9 @@ export default class CampScene extends Scene {
         this.journey = this.game.adventureSummary ||= new AdventureSummary();
         this.generation = (this.generation || 0) + 1;
         this.busy = false;
+        this.requestedClassId = null;
+        this.confirmingLocalReload = false;
+        this.classSelectionOperation = null;
         this.view = 'camp';
         this.profile = null;
         this.preparation = null;
@@ -41,6 +44,7 @@ export default class CampScene extends Scene {
         this.onBack = () => this.handleBack();
         // Reject repeat mutation gestures while the first durable save is pending.
         this.onPreparationGesture = event => {
+            if (this.confirmingLocalReload && event.target.closest('#confirm-yes')) return;
             if ((this.preparation?.pending || this.preparation?.error) && event.target.closest('.skill-up-btn, .stat-up-btn, .stat-down-btn, #confirm-yes, [id^=inventory-action-], .inventory-category-tab')) {
                 event.preventDefault(); event.stopImmediatePropagation();
             }
@@ -60,9 +64,9 @@ export default class CampScene extends Scene {
         } finally { clearTimeout(timer); }
     }
 
-    async readSnapshot() {
+    async readSnapshot(options = {}) {
         return this.waitForOperation(this.game.net.getLatestProfileSnapshot(this.user.uid, {
-            throwOnError: true, forceRecoveryLookup: true
+            throwOnError: true, forceRecoveryLookup: true, ...options
         }), 'profile_timeout');
     }
 
@@ -116,16 +120,20 @@ export default class CampScene extends Scene {
             for (const id of CLASS_IDS) {
                 const button = document.createElement('button'); button.className = 'camp-secondary';
                 button.dataset.camp = 'select-class:' + id; button.textContent = CLASS_NAMES[id];
-                button.setAttribute('aria-pressed', String(normalizeClassId(p.activeClassId) === id));
-                button.disabled = this.busy || this.failed || normalizeClassId(p.activeClassId) === id;
+                button.setAttribute('aria-pressed', String((this.requestedClassId || normalizeClassId(p.activeClassId)) === id));
+                button.disabled = (this.busy && !this.classSelectionOperation) || this.failed || (this.requestedClassId || normalizeClassId(p.activeClassId)) === id;
                 choices.append(button);
+            }
+            if (this.classSelectionOperation) {
+                const cancel = document.createElement('button'); cancel.className = 'camp-secondary';
+                cancel.dataset.camp = 'cancel-class'; cancel.textContent = '선택 취소'; choices.append(cancel);
             }
             this.root.querySelector('.camp-character-sheet')?.prepend(choices);
         }
         if (!this.saveNotice) {
             this.saveNotice = document.createElement('aside');
             this.saveNotice.className = 'camp-save-state'; this.saveNotice.setAttribute('role', 'status');
-            this.saveNotice.addEventListener('click', event => { if (event.target.closest('button')) void this.action('save-retry'); });
+            this.saveNotice.addEventListener('click', event => { const action=event.target.closest('button')?.dataset.camp; if(action)void this.action(action); });
             document.getElementById('game-container').append(this.saveNotice);
         }
         this.updateSaveStatus();
@@ -143,7 +151,7 @@ export default class CampScene extends Scene {
             : code.includes('timeout') ? '서버의 저장 확인이 늦어지고 있어요. 변경 내용은 유지하고 있어요.'
             : code.includes('permission') ? '저장 권한을 확인하지 못했어요. 로그인 상태를 확인한 뒤 다시 시도해 주세요.'
             : code.includes('superseded') ? '다른 접속으로 저장이 중단됐어요. 이 기기에서 다시 접속한 뒤 확인해 주세요.'
-            : code.includes('conflict') || code.includes('another_tab') ? '다른 곳에서 기록이 갱신됐어요. 저장을 다시 확인해 주세요.'
+            : code.includes('conflict') || code.includes('another_tab') ? '다른 곳에서 최신 기록을 저장했어요. 현재 미저장 변경을 확인한 뒤 최신 기록을 불러와 주세요.'
             : code.includes('disconnect') || code.includes('network') ? '연결이 끊겨 저장하지 못했어요. 연결 후 다시 시도해 주세요.'
             : code.includes('profile_missing') ? '계정 기록을 아직 확인하지 못했어요. 잠시 후 다시 시도해 주세요.'
             : state.dirty ? '정비 내용을 저장하지 못했어요. 변경 내용은 유지됩니다. 다시 저장해 주세요.'
@@ -152,6 +160,9 @@ export default class CampScene extends Scene {
         notice.append(document.createTextNode(message));
         if (!state.pending) {
             const retry = document.createElement('button'); retry.dataset.camp = 'save-retry'; retry.textContent = state.waiting || !state.dirty ? '저장 확인' : '다시 저장'; notice.append(retry);
+            if (this.game.isLocalMode && code.includes('another_tab') && !state.waiting) {
+                retry.dataset.camp='load-latest-local'; retry.textContent='최신 기록 불러오기';
+            }
         }
     }
 
@@ -179,16 +190,20 @@ export default class CampScene extends Scene {
         history.pushState({ camp: this.view }, '');
     }
 
-    async prepareProfile(snapshot, generation = this.generation, token = this.loadToken) {
+    async prepareProfile(snapshot, generation = this.generation, token = this.loadToken, selectedId = null) {
         const profile = snapshot?.profile || null;
         const definition = profile ? await this.waitForOperation(this.game.characterData.loadDefinition(normalizeClassId(profile.activeClassId)), 'character_timeout') : null;
         if (generation !== this.generation || token !== this.loadToken || !this.root) return;
         if (profile) await this.waitForOperation(this.game.zone.loadZoneCatalog(), 'region_timeout');
         if (generation !== this.generation || token !== this.loadToken || !this.root) return;
+        if (selectedId && selectedId !== this.requestedClassId) return;
         this.profile = projectClassProfile(profile);
         this.preparation = profile ? new CampPreparation(this.game, this.user, profile, definition, () => this.updateSaveStatus()) : null;
         this.game.localPlayer = this.preparation?.player || null;
         if (!profile) return;
+        // Warm only the selected class; this is shared with field entry and never
+        // delays management or authorizes gameplay before decoding completes.
+        this.game.resources.preparePlayableClassAssets?.(normalizeClassId(profile.activeClassId)).catch(() => {});
         const selected = this.profile;
         const requested = this.game.zone.getZoneMeta(selected.currentZoneId || selected.mapId || 'zone_1');
         const region = requested && (selected.level || 1) >= (requested.requiredLevel || 1) ? requested : this.game.zone.getZoneMeta('zone_1');
@@ -196,23 +211,76 @@ export default class CampScene extends Scene {
         this.regionArt = ({ zone_1: 'wind.webp', zone_2: 'lake.webp', zone_3: 'thunder.webp' })[region?.id] || 'wind.webp';
     }
 
-    async action(action) {
-        if (this.busy) return;
-        if (action.startsWith('select-class:')) {
-            const id = action.slice('select-class:'.length);
-            if (!CLASS_IDS.includes(id) || !this.preparation || this.failed) return;
-            this.busy = true; this.closePreparationPopups(); this.renderUI();
-            try {
-                const flushed = await this.preparation.flush();
-                if (flushed?.ok === false) return;
-                const saved = await this.game.net.savePlayerDataPatch(this.user.uid, { activeClassId: id }, {
-                    debounceMs: 0, forceImmediate: true, syncToZone: false, checkpointPolicy: 'durable', saveReason: 'class_selection'
-                });
-                if (saved?.ok !== true) throw new Error(saved?.reason || 'class_selection_failed');
-                await this.load();
-            } finally { this.busy = false; this.renderUI(); }
-            return;
+    selectClass(id) {
+        if (!CLASS_IDS.includes(id) || !this.preparation || this.failed || this.busy && !this.classSelectionOperation) return;
+        if (!this.classSelectionOperation && normalizeClassId(this.preparation.player.activeClassId) === id) return;
+        this.requestedClassId=id;
+        this.message=`${CLASS_NAMES[id]} 선택을 저장하고 있어요…`;
+        if (!this.classSelectionOperation) {
+            const generation=this.generation, token=++this.loadToken;
+            this.busy=true; this.closePreparationPopups();
+            // Serialize durable writes but coalesce superseded UI selections.
+            // A late response never installs a class that is no longer selected.
+            this.classSelectionOperation=Promise.resolve().then(async()=>{
+                let committed=null;
+                try {
+                    const flushed=await this.preparation.flush();
+                    if(flushed?.ok===false){this.message='현재 변경을 저장하지 못해 캐릭터를 바꾸지 않았어요. 저장 안내를 확인해 주세요.';return;}
+                    while(this.root && generation===this.generation && token===this.loadToken && this.requestedClassId) {
+                        const selected=this.requestedClassId;
+                        const saved=await this.game.net.savePlayerDataPatch(this.user.uid,{activeClassId:selected},{
+                            debounceMs:0,forceImmediate:true,syncToZone:false,checkpointPolicy:'durable',saveReason:'class_selection'
+                        });
+                        if(saved?.ok!==true)throw new Error(saved?.reason||'class_selection_failed');
+                        // The acknowledged transaction already contains the authoritative
+                        // full profile. Do not reread recovery/backups after every click.
+                        committed=saved.profile?{profile:saved.profile,rootRevision:saved.revision}:await this.readSnapshot({forceRecoveryLookup:false});
+                        if(selected!==this.requestedClassId)continue;
+                        await this.prepareProfile(committed,generation,token,selected);
+                        if(selected===this.requestedClassId) { this.message=''; break; }
+                    }
+                } catch(error) {
+                    if(generation!==this.generation||token!==this.loadToken)return;
+                    if(committed)await this.prepareProfile(committed,generation,token);
+                    this.message='캐릭터 선택을 저장하지 못했어요. 저장된 선택을 유지하고 있어요. 다시 선택해 주세요.';
+                } finally {
+                    if(generation===this.generation&&token===this.loadToken){
+                        this.requestedClassId=null;this.classSelectionOperation=null;this.busy=false;this.renderUI();
+                    }
+                }
+            });
         }
+        this.renderUI();
+        return this.classSelectionOperation;
+    }
+
+    isLocalConflict() {
+        const state=this.preparation?.status();
+        return this.game.isLocalMode && !state?.waiting && String(state?.code||state?.reason||'').includes('another_tab');
+    }
+
+    confirmLatestLocal() {
+        if(!this.isLocalConflict())return;
+        this.confirmingLocalReload=true;
+        this.game.ui.showConfirm('다른 탭에서 저장한 최신 기록을 불러올까요?<br>이 화면의 미저장 변경은 버려집니다. 최신 저장 기록은 변경하지 않습니다.',async confirmed=>{
+            this.confirmingLocalReload=false;
+            if(!confirmed||!this.root||this.busy)return;
+            this.busy=true;this.renderUI();
+            try {
+                const result=await this.game.net.reloadLocalProfileAfterConflict();
+                if(result?.ok!==true)throw new Error(result?.reason||'local_reload_failed');
+                await this.prepareProfile({profile:result.profile});
+                this.message='최신 저장 기록을 불러왔어요.';
+            } catch {this.message='최신 기록을 불러오지 못했어요. 저장 기록은 안전하게 유지됩니다. 다시 시도해 주세요.';}
+            finally{this.busy=false;this.renderUI();}
+        });
+    }
+
+    async action(action) {
+        if (action.startsWith('select-class:')) return this.selectClass(action.slice('select-class:'.length));
+        if (action === 'cancel-class' && this.classSelectionOperation) return this.selectClass(normalizeClassId(this.preparation.player.activeClassId));
+        if (this.busy) return;
+        if (action === 'load-latest-local' || action === 'reload' && this.isLocalConflict()) return this.confirmLatestLocal();
         if (action === 'save-retry') {
             this.busy = true;
             try { await this.preparation?.flush(); } finally { this.busy = false; this.updateSaveStatus(); }
@@ -274,6 +342,9 @@ export default class CampScene extends Scene {
             const snapshot = await this.readSnapshot();
             if (!this.root || this.game.sceneManager.currentScene !== this) return;
             if (!snapshot?.profile) throw new Error('missing_profile');
+            this.message='선택한 캐릭터 이미지를 준비하고 있어요…'; this.renderUI();
+            await this.waitForOperation(this.game.resources.preparePlayableClassAssets?.(normalizeClassId(snapshot.profile.activeClassId)), 'character_timeout');
+            if (!this.root || this.game.sceneManager.currentScene !== this) return;
             this.journey.begin(this.user.uid, this.game.isLocalMode, projectClassProfile(snapshot.profile));
             await this.game.sceneManager.changeScene('world', { user: this.user, profile: snapshot.profile, localName: snapshot.profile.name });
         } catch {
@@ -297,6 +368,7 @@ export default class CampScene extends Scene {
     async exit() {
         this.generation++;
         this.loadToken++;
+        this.requestedClassId = null;
         window.removeEventListener('popstate', this.onBack);
         document.removeEventListener('click', this.onPreparationGesture, true);
         document.removeEventListener('touchstart', this.onPreparationGesture, true);
