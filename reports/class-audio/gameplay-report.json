@@ -1,0 +1,299 @@
+{
+  "cases": [
+    {
+      "classId": "witch",
+      "mode": "tap",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "life_circle",
+          "accepted": true
+        }
+      ],
+      "rms": 0.03117383655287421,
+      "peak": 0.10964246094226837,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "witch",
+      "mode": "aim",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "drain_orb",
+          "accepted": true
+        }
+      ],
+      "rms": 0.024255468243757114,
+      "peak": 0.10870532691478729,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "witch",
+      "mode": "skill1",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "poison_potion",
+          "accepted": true
+        }
+      ],
+      "rms": 0.015826434417591323,
+      "peak": 0.08338560909032822,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "witch",
+      "mode": "skill2",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "summon",
+          "accepted": true
+        }
+      ],
+      "rms": 0.023526524309934745,
+      "peak": 0.08926256746053696,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "witch",
+      "mode": "skill3",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "berserk_potion",
+          "accepted": true
+        }
+      ],
+      "rms": 0.025366518502128996,
+      "peak": 0.1085776686668396,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "warrior",
+      "mode": "tap",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "warrior_slash",
+          "accepted": true
+        }
+      ],
+      "rms": 0.011882563134556177,
+      "peak": 0.08618663251399994,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "warrior",
+      "mode": "aim",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "rage_smash",
+          "accepted": true
+        }
+      ],
+      "rms": 0.0477472717124998,
+      "peak": 0.19427190721035004,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "warrior",
+      "mode": "skill1",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "challenge",
+          "accepted": true
+        }
+      ],
+      "rms": 0.04013565972595081,
+      "peak": 0.12751269340515137,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "warrior",
+      "mode": "skill2",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "punishing_charge",
+          "accepted": true
+        }
+      ],
+      "rms": 0.018063240548888766,
+      "peak": 0.07985477894544601,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "warrior",
+      "mode": "skill3",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "blood_pact",
+          "accepted": true
+        }
+      ],
+      "rms": 0.04721150256847068,
+      "peak": 0.11770834028720856,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "archer",
+      "mode": "tap",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "archer_shot",
+          "accepted": true
+        }
+      ],
+      "rms": 0.013734515241015115,
+      "peak": 0.09896206855773926,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "archer",
+      "mode": "aim",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "piercing_snipe",
+          "accepted": true
+        }
+      ],
+      "rms": 0.020992409581051703,
+      "peak": 0.13776488602161407,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "archer",
+      "mode": "skill1",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "hunter_trap",
+          "accepted": true
+        }
+      ],
+      "rms": 0.00864577967843325,
+      "peak": 0.051685500890016556,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "archer",
+      "mode": "skill2",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "shadow_leap",
+          "accepted": true
+        }
+      ],
+      "rms": 0.012962699589306284,
+      "peak": 0.0656939297914505,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "archer",
+      "mode": "skill3",
+      "accepted": true,
+      "rejected": false,
+      "events": [
+        {
+          "name": "tracking_rain",
+          "accepted": true
+        }
+      ],
+      "rms": 0.018097705333981147,
+      "peak": 0.11095606535673141,
+      "bgm": "bgm_cabin",
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "wizard",
+      "mode": "skill1",
+      "mageEvents": [
+        "missile_launch"
+      ],
+      "duplicateSilent": true,
+      "rms": 0.028232261885941728,
+      "peak": 0.16790461540222168,
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "wizard",
+      "mode": "skill2",
+      "mageEvents": [
+        "fireball_cast"
+      ],
+      "duplicateSilent": true,
+      "rms": 0.06490801868587023,
+      "peak": 0.2900227904319763,
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "wizard",
+      "mode": "skill3",
+      "mageEvents": [
+        "shield_activate",
+        "magic_cast"
+      ],
+      "duplicateSilent": true,
+      "rms": 0.16509246316510542,
+      "peak": 0.5603766441345215,
+      "bgmUnchanged": true
+    },
+    {
+      "classId": "witch",
+      "mode": "insufficient-summon",
+      "rejected": false,
+      "eventCount": 0
+    },
+    {
+      "classId": "witch",
+      "mode": "pause",
+      "rejected": false,
+      "eventCount": 0,
+      "bgm": "bgm_cabin"
+    },
+    {
+      "mode": "synthetic-visibility",
+      "hiddenGain": 0,
+      "hiddenSound": false,
+      "restoredGain": 0.17000000178813934
+    }
+  ],
+  "errors": [],
+  "external": []
+}

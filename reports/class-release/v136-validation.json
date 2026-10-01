@@ -1,0 +1,35 @@
+{
+  "version": "0.02.136",
+  "baseCommit": "1267ffc0e8a650f35823e39c32c9288b047daf52",
+  "scope": "Directional combat bodies, attack/VFX geometry and four-class audio. Existing walking sheets unchanged.",
+  "validation": {
+    "aggregateTests": 215,
+    "aggregateCommand": "npm run validate",
+    "finalClassTests": 122,
+    "storedActionCells": 192,
+    "browserNearFarCases": 48,
+    "movementSkillFacingCases": 8,
+    "cadenceCases": 24,
+    "remoteContexts": 2,
+    "classLifecycles": 3,
+    "newClassAudioActions": 15,
+    "synthesizedCues": 22,
+    "firebaseSDK": "10.7.1 local wire server; retained listener one commit, clean reentry zero writes"
+  },
+  "assets": {
+    "assets/resource/classes/witch-actions.webp": "5dbfc51ce1da9ecc567422f9a32e1b9aa6da75ce6e097e9ca12b19870d26053f",
+    "assets/resource/classes/warrior-actions.webp": "27a1b5bddbcde286d87bfc4343eaf52a640426754eefd31cb6131a9c487650de",
+    "assets/resource/classes/archer-actions.webp": "73434a7ed54a7cb10619ec5dd8ca6f18efceca0a8c9515ccb11752659d45b82c",
+    "assets/resource/classes/poison-potion.webp": "495ecba86b4d2ebed2923446ec3c65f5805c6d2ea3effa1f0e335049b9a4b2f3"
+  },
+  "library": {
+    "runtimeBeforeAfter": "libfile_7ec13498309c8191bbba1f1d5e3d43ed",
+    "runtimeFileVersion": 1,
+    "audioSampler": "libfile_65ea3d3d5fc481919c0f32e4d7f335b6"
+  },
+  "limitations": [
+    "Four authored body directions; diagonals select nearest cardinal while effects/projectiles retain continuous aim.",
+    "Physical phone, subjective audio listening and live-user multiplayer latency not verified."
+  ],
+  "deployment": "pending CI after commit"
+}

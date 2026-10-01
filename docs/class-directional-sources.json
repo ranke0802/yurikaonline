@@ -1,0 +1,1167 @@
+{
+  "sources": {
+    "witch-cast": {
+      "file": "/workspace/generated_images/exec-9f91bbf6-4411-4c6c-8de5-85c5c3c7cbf9.png",
+      "rows": 4,
+      "columns": 4,
+      "scale": 0.55
+    },
+    "warrior-slash": {
+      "file": "/workspace/generated_images/exec-ad11fd54-ae0e-440d-b5b9-caea513cf2fb.png",
+      "rows": 4,
+      "columns": 4,
+      "scale": 0.55
+    },
+    "archer-shot": {
+      "file": "/workspace/generated_images/exec-b719b882-30c2-43bb-a300-480ce7711410.png",
+      "rows": 4,
+      "columns": 4,
+      "scale": 0.55
+    },
+    "witch-potion": {
+      "file": "/workspace/generated_images/exec-2ea45a8b-ff5e-495e-bdb5-086468ac3cf0.png",
+      "rows": 4,
+      "columns": 4,
+      "scale": 0.51
+    },
+    "witch-summon": {
+      "file": "/workspace/generated_images/exec-b978f9e0-8772-4b90-b2b4-e417d9a0aaba.png",
+      "rows": 4,
+      "columns": 4,
+      "scale": 0.63
+    },
+    "warrior-heavy": {
+      "file": "/workspace/generated_images/exec-fe22a337-53eb-4b51-ba9c-9d82ae6f2e78.png",
+      "rows": 4,
+      "columns": 4,
+      "scale": 0.55
+    },
+    "warrior-brace": {
+      "file": "/workspace/generated_images/exec-8fca8706-4276-4fa2-b4be-7ea2562b80db.png",
+      "rows": 4,
+      "columns": 4,
+      "scale": 0.55
+    },
+    "warrior-charge": {
+      "file": "/workspace/generated_images/exec-b6d6a7c0-28ad-4009-a02d-b52710385043.png",
+      "rows": 4,
+      "columns": 4,
+      "scale": 0.55
+    },
+    "archer-trap": {
+      "file": "/workspace/generated_images/exec-a5242623-92e2-4cc8-888e-4cbd6413a11b.png",
+      "rows": 4,
+      "columns": 4,
+      "scale": 0.62
+    },
+    "archer-leap-fixed": {
+      "file": "/workspace/generated_images/exec-558aa536-8cca-4186-9d14-a974e7cfbef6.png",
+      "rows": 4,
+      "columns": 4,
+      "scale": 0.62
+    },
+    "warrior-slash-left": {
+      "file": "/workspace/generated_images/exec-1c2ad8ba-7502-4017-afb4-a15b3912c2db.png",
+      "rows": 1,
+      "columns": 4,
+      "scale": 0.37
+    },
+    "witch-potion-up": {
+      "file": "/workspace/generated_images/exec-9be462bb-cca3-4c50-94b0-a06b37c71333.png",
+      "rows": 1,
+      "columns": 4,
+      "scale": 0.275
+    }
+  },
+  "classes": {
+    "witch": {
+      "rows": [
+        [
+          {
+            "source": "witch-cast",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "source": "witch-cast",
+            "row": 0,
+            "col": 1
+          },
+          {
+            "source": "witch-cast",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "source": "witch-cast",
+            "row": 0,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-cast",
+            "row": 1,
+            "col": 0
+          },
+          {
+            "source": "witch-cast",
+            "row": 1,
+            "col": 1
+          },
+          {
+            "source": "witch-cast",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "source": "witch-cast",
+            "row": 1,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-cast",
+            "row": 2,
+            "col": 0
+          },
+          {
+            "source": "witch-cast",
+            "row": 2,
+            "col": 1
+          },
+          {
+            "source": "witch-cast",
+            "row": 2,
+            "col": 2
+          },
+          {
+            "source": "witch-cast",
+            "row": 2,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-cast",
+            "row": 3,
+            "col": 0
+          },
+          {
+            "source": "witch-cast",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "source": "witch-cast",
+            "row": 3,
+            "col": 2
+          },
+          {
+            "source": "witch-cast",
+            "row": 3,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-cast",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "source": "witch-cast",
+            "row": 0,
+            "col": 1
+          },
+          {
+            "source": "witch-cast",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "source": "witch-cast",
+            "row": 0,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-cast",
+            "row": 1,
+            "col": 0
+          },
+          {
+            "source": "witch-cast",
+            "row": 1,
+            "col": 1
+          },
+          {
+            "source": "witch-cast",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "source": "witch-cast",
+            "row": 1,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-cast",
+            "row": 2,
+            "col": 0
+          },
+          {
+            "source": "witch-cast",
+            "row": 2,
+            "col": 1
+          },
+          {
+            "source": "witch-cast",
+            "row": 2,
+            "col": 2
+          },
+          {
+            "source": "witch-cast",
+            "row": 2,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-cast",
+            "row": 3,
+            "col": 0
+          },
+          {
+            "source": "witch-cast",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "source": "witch-cast",
+            "row": 3,
+            "col": 2
+          },
+          {
+            "source": "witch-cast",
+            "row": 3,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-potion-up",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "source": "witch-potion-up",
+            "row": 0,
+            "col": 1
+          },
+          {
+            "source": "witch-potion-up",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "source": "witch-potion-up",
+            "row": 0,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-potion",
+            "row": 1,
+            "col": 0
+          },
+          {
+            "source": "witch-potion",
+            "row": 1,
+            "col": 1
+          },
+          {
+            "source": "witch-potion",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "source": "witch-potion",
+            "row": 1,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-potion",
+            "row": 2,
+            "col": 0
+          },
+          {
+            "source": "witch-potion",
+            "row": 2,
+            "col": 1
+          },
+          {
+            "source": "witch-potion",
+            "row": 2,
+            "col": 2
+          },
+          {
+            "source": "witch-potion",
+            "row": 2,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-potion",
+            "row": 3,
+            "col": 0
+          },
+          {
+            "source": "witch-potion",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "source": "witch-potion",
+            "row": 3,
+            "col": 2
+          },
+          {
+            "source": "witch-potion",
+            "row": 3,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-summon",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "source": "witch-summon",
+            "row": 0,
+            "col": 1
+          },
+          {
+            "source": "witch-summon",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "source": "witch-summon",
+            "row": 0,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-summon",
+            "row": 1,
+            "col": 0
+          },
+          {
+            "source": "witch-summon",
+            "row": 1,
+            "col": 1
+          },
+          {
+            "source": "witch-summon",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "source": "witch-summon",
+            "row": 1,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-summon",
+            "row": 2,
+            "col": 0
+          },
+          {
+            "source": "witch-summon",
+            "row": 2,
+            "col": 1
+          },
+          {
+            "source": "witch-summon",
+            "row": 2,
+            "col": 2
+          },
+          {
+            "source": "witch-summon",
+            "row": 2,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "witch-summon",
+            "row": 3,
+            "col": 0
+          },
+          {
+            "source": "witch-summon",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "source": "witch-summon",
+            "row": 3,
+            "col": 2
+          },
+          {
+            "source": "witch-summon",
+            "row": 3,
+            "col": 3
+          }
+        ]
+      ]
+    },
+    "warrior": {
+      "rows": [
+        [
+          {
+            "source": "warrior-slash",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "source": "warrior-slash",
+            "row": 0,
+            "col": 1
+          },
+          {
+            "source": "warrior-slash",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "source": "warrior-slash",
+            "row": 0,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-slash",
+            "row": 1,
+            "col": 0
+          },
+          {
+            "source": "warrior-slash",
+            "row": 1,
+            "col": 1
+          },
+          {
+            "source": "warrior-slash",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "source": "warrior-slash",
+            "row": 1,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-slash-left",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "source": "warrior-slash-left",
+            "row": 0,
+            "col": 1,
+            "offsetX": 4
+          },
+          {
+            "source": "warrior-slash-left",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "source": "warrior-slash-left",
+            "row": 0,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-slash",
+            "row": 3,
+            "col": 0
+          },
+          {
+            "source": "warrior-slash",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "source": "warrior-slash",
+            "row": 3,
+            "col": 2
+          },
+          {
+            "source": "warrior-slash",
+            "row": 3,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-heavy",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "source": "warrior-heavy",
+            "row": 0,
+            "col": 1
+          },
+          {
+            "source": "warrior-heavy",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "source": "warrior-heavy",
+            "row": 0,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-heavy",
+            "row": 1,
+            "col": 0
+          },
+          {
+            "source": "warrior-heavy",
+            "row": 1,
+            "col": 1
+          },
+          {
+            "source": "warrior-heavy",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "source": "warrior-heavy",
+            "row": 1,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-heavy",
+            "row": 2,
+            "col": 0
+          },
+          {
+            "source": "warrior-heavy",
+            "row": 2,
+            "col": 1
+          },
+          {
+            "source": "warrior-heavy",
+            "row": 2,
+            "col": 2
+          },
+          {
+            "source": "warrior-brace",
+            "row": 2,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-heavy",
+            "row": 3,
+            "col": 0
+          },
+          {
+            "source": "warrior-heavy",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "source": "warrior-heavy",
+            "row": 3,
+            "col": 2
+          },
+          {
+            "source": "warrior-heavy",
+            "row": 3,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-brace",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "source": "warrior-brace",
+            "row": 0,
+            "col": 1
+          },
+          {
+            "source": "warrior-brace",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "source": "warrior-brace",
+            "row": 0,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-brace",
+            "row": 1,
+            "col": 0
+          },
+          {
+            "source": "warrior-brace",
+            "row": 1,
+            "col": 1
+          },
+          {
+            "source": "warrior-brace",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "source": "warrior-brace",
+            "row": 1,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-brace",
+            "row": 2,
+            "col": 0
+          },
+          {
+            "source": "warrior-brace",
+            "row": 2,
+            "col": 1
+          },
+          {
+            "source": "warrior-brace",
+            "row": 2,
+            "col": 2
+          },
+          {
+            "source": "warrior-brace",
+            "row": 2,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-brace",
+            "row": 3,
+            "col": 0
+          },
+          {
+            "source": "warrior-brace",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "source": "warrior-brace",
+            "row": 3,
+            "col": 2
+          },
+          {
+            "source": "warrior-brace",
+            "row": 3,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-charge",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "source": "warrior-charge",
+            "row": 0,
+            "col": 1
+          },
+          {
+            "source": "warrior-charge",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "source": "warrior-charge",
+            "row": 0,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-charge",
+            "row": 1,
+            "col": 0
+          },
+          {
+            "source": "warrior-charge",
+            "row": 1,
+            "col": 1
+          },
+          {
+            "source": "warrior-charge",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "source": "warrior-charge",
+            "row": 1,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-charge",
+            "row": 2,
+            "col": 0
+          },
+          {
+            "source": "warrior-charge",
+            "row": 2,
+            "col": 1
+          },
+          {
+            "source": "warrior-charge",
+            "row": 2,
+            "col": 2
+          },
+          {
+            "source": "warrior-charge",
+            "row": 2,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "warrior-charge",
+            "row": 3,
+            "col": 0
+          },
+          {
+            "source": "warrior-charge",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "source": "warrior-charge",
+            "row": 3,
+            "col": 2
+          },
+          {
+            "source": "warrior-charge",
+            "row": 3,
+            "col": 3
+          }
+        ]
+      ]
+    },
+    "archer": {
+      "rows": [
+        [
+          {
+            "source": "archer-shot",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "source": "archer-shot",
+            "row": 0,
+            "col": 1
+          },
+          {
+            "source": "archer-shot",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "source": "archer-shot",
+            "row": 0,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "archer-shot",
+            "row": 1,
+            "col": 0
+          },
+          {
+            "source": "archer-shot",
+            "row": 1,
+            "col": 1
+          },
+          {
+            "source": "archer-shot",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "source": "archer-shot",
+            "row": 1,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "archer-shot",
+            "row": 2,
+            "col": 0
+          },
+          {
+            "source": "archer-shot",
+            "row": 2,
+            "col": 1
+          },
+          {
+            "source": "archer-shot",
+            "row": 2,
+            "col": 2
+          },
+          {
+            "source": "archer-shot",
+            "row": 2,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "archer-shot",
+            "row": 3,
+            "col": 0
+          },
+          {
+            "source": "archer-shot",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "source": "archer-shot",
+            "row": 3,
+            "col": 2
+          },
+          {
+            "source": "archer-shot",
+            "row": 3,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "archer-shot",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "source": "archer-shot",
+            "row": 0,
+            "col": 1
+          },
+          {
+            "source": "archer-shot",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "source": "archer-shot",
+            "row": 0,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "archer-shot",
+            "row": 1,
+            "col": 0
+          },
+          {
+            "source": "archer-shot",
+            "row": 1,
+            "col": 1
+          },
+          {
+            "source": "archer-shot",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "source": "archer-shot",
+            "row": 1,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "archer-shot",
+            "row": 2,
+            "col": 0
+          },
+          {
+            "source": "archer-shot",
+            "row": 2,
+            "col": 1
+          },
+          {
+            "source": "archer-shot",
+            "row": 2,
+            "col": 2
+          },
+          {
+            "source": "archer-shot",
+            "row": 2,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "archer-shot",
+            "row": 3,
+            "col": 0
+          },
+          {
+            "source": "archer-shot",
+            "row": 3,
+            "col": 1
+          },
+          {
+            "source": "archer-shot",
+            "row": 3,
+            "col": 2
+          },
+          {
+            "source": "archer-shot",
+            "row": 3,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "archer-trap",
+            "row": 0,
+            "col": 0,
+            "discardDetached": true
+          },
+          {
+            "source": "archer-trap",
+            "row": 0,
+            "col": 1,
+            "discardDetached": true
+          },
+          {
+            "source": "archer-trap",
+            "row": 0,
+            "col": 2,
+            "discardDetached": true
+          },
+          {
+            "source": "archer-trap",
+            "row": 0,
+            "col": 3,
+            "discardDetached": true
+          }
+        ],
+        [
+          {
+            "source": "archer-trap",
+            "row": 1,
+            "col": 0,
+            "discardDetached": true
+          },
+          {
+            "source": "archer-trap",
+            "row": 1,
+            "col": 1,
+            "discardDetached": true
+          },
+          {
+            "source": "archer-trap",
+            "row": 1,
+            "col": 2,
+            "discardDetached": true
+          },
+          {
+            "source": "archer-trap",
+            "row": 1,
+            "col": 3,
+            "discardDetached": true
+          }
+        ],
+        [
+          {
+            "source": "archer-trap",
+            "row": 2,
+            "col": 0,
+            "discardDetached": true
+          },
+          {
+            "source": "archer-trap",
+            "row": 2,
+            "col": 1,
+            "discardDetached": true
+          },
+          {
+            "source": "archer-trap",
+            "row": 2,
+            "col": 2,
+            "discardDetached": true
+          },
+          {
+            "source": "archer-trap",
+            "row": 2,
+            "col": 3,
+            "discardDetached": true
+          }
+        ],
+        [
+          {
+            "source": "archer-trap",
+            "row": 3,
+            "col": 0,
+            "discardDetached": true
+          },
+          {
+            "source": "archer-trap",
+            "row": 3,
+            "col": 1,
+            "discardDetached": true
+          },
+          {
+            "source": "archer-trap",
+            "row": 3,
+            "col": 2,
+            "discardDetached": true
+          },
+          {
+            "source": "archer-trap",
+            "row": 3,
+            "col": 3,
+            "discardDetached": true
+          }
+        ],
+        [
+          {
+            "source": "archer-leap-fixed",
+            "row": 0,
+            "col": 0
+          },
+          {
+            "source": "archer-leap-fixed",
+            "row": 0,
+            "col": 1,
+            "offsetY": -16
+          },
+          {
+            "source": "archer-leap-fixed",
+            "row": 0,
+            "col": 2
+          },
+          {
+            "source": "archer-leap-fixed",
+            "row": 0,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "archer-leap-fixed",
+            "row": 1,
+            "col": 0
+          },
+          {
+            "source": "archer-leap-fixed",
+            "row": 1,
+            "col": 1,
+            "offsetY": -16
+          },
+          {
+            "source": "archer-leap-fixed",
+            "row": 1,
+            "col": 2
+          },
+          {
+            "source": "archer-leap-fixed",
+            "row": 1,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "archer-leap-fixed",
+            "row": 2,
+            "col": 0
+          },
+          {
+            "source": "archer-leap-fixed",
+            "row": 2,
+            "col": 1,
+            "offsetY": -16
+          },
+          {
+            "source": "archer-leap-fixed",
+            "row": 2,
+            "col": 2
+          },
+          {
+            "source": "archer-leap-fixed",
+            "row": 2,
+            "col": 3
+          }
+        ],
+        [
+          {
+            "source": "archer-leap-fixed",
+            "row": 3,
+            "col": 0
+          },
+          {
+            "source": "archer-leap-fixed",
+            "row": 3,
+            "col": 1,
+            "offsetY": -16
+          },
+          {
+            "source": "archer-leap-fixed",
+            "row": 3,
+            "col": 2
+          },
+          {
+            "source": "archer-leap-fixed",
+            "row": 3,
+            "col": 3
+          }
+        ]
+      ]
+    }
+  }
+}

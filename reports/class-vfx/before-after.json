@@ -1,0 +1,3741 @@
+{
+  "scope": "Local real Player/Bridge/Controller and raster rendering; controlled fixtures, diagnostic target marker; not physical-phone verification.",
+  "versions": [
+    {
+      "version": "before",
+      "cases": [
+        {
+          "classId": "witch",
+          "direction": "R",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1542,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.8682431421244593,
+              "y": 0.49613893835683387
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "DR",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1536.726,
+            "y": 1536.726
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.7071067811865475,
+              "y": 0.7071067811865475
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "D",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1542
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.49613893835683387,
+              "y": 0.8682431421244593
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "DL",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1511.274,
+            "y": 1536.726
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.2934602258827551,
+              "y": 0.955971283995938
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "L",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1506,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.242535625036333,
+              "y": 0.970142500145332
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "UL",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1511.274,
+            "y": 1511.274
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.7071067811865475,
+              "y": 0.7071067811865475
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "U",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1506
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.970142500145332,
+              "y": 0.242535625036333
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "UR",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1536.726,
+            "y": 1511.274
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.955971283995938,
+              "y": 0.2934602258827551
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "R",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1684,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.9916004111862218,
+              "y": 0.12933918406776806
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "DR",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1637.12,
+            "y": 1637.12
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.7071067811865475,
+              "y": 0.7071067811865475
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "D",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1684
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.12933918406776806,
+              "y": 0.9916004111862218
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "DL",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1410.88,
+            "y": 1637.12
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": -0.5449539609152494,
+              "y": 0.8384659685895313
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "L",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1364,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": -0.9847835588179369,
+              "y": 0.17378533390904768
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "UL",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1410.88,
+            "y": 1410.88
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": -0.7071067811865475,
+              "y": -0.7071067811865475
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "U",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1364
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.17378533390904768,
+              "y": -0.9847835588179369
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "UR",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1637.12,
+            "y": 1410.88
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.8384659685895313,
+              "y": -0.5449539609152494
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "R",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1542,
+            "y": 1524
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "DR",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1536.726,
+            "y": 1536.726
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "D",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1542
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "DL",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1511.274,
+            "y": 1536.726
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "L",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1506,
+            "y": 1524
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "UL",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1511.274,
+            "y": 1511.274
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "U",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1506
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "UR",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1536.726,
+            "y": 1511.274
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "R",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1684,
+            "y": 1524
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "DR",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1637.12,
+            "y": 1637.12
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "D",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1684
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "DL",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1410.88,
+            "y": 1637.12
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "L",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1364,
+            "y": 1524
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "UL",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1410.88,
+            "y": 1410.88
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "U",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1364
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "UR",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1637.12,
+            "y": 1410.88
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "R",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1542,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.8682431421244593,
+              "y": 0.49613893835683387
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "DR",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1536.726,
+            "y": 1536.726
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.7071067811865475,
+              "y": 0.7071067811865475
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "D",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1542
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.49613893835683387,
+              "y": 0.8682431421244593
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "DL",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1511.274,
+            "y": 1536.726
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.2934602258827551,
+              "y": 0.955971283995938
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "L",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1506,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.242535625036333,
+              "y": 0.970142500145332
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "UL",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1511.274,
+            "y": 1511.274
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.7071067811865475,
+              "y": 0.7071067811865475
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "U",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1506
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.970142500145332,
+              "y": 0.242535625036333
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "UR",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1536.726,
+            "y": 1511.274
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.955971283995938,
+              "y": 0.2934602258827551
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "R",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1684,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.9916004111862218,
+              "y": 0.12933918406776806
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "DR",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1637.12,
+            "y": 1637.12
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.7071067811865475,
+              "y": 0.7071067811865475
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "D",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1684
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.12933918406776806,
+              "y": 0.9916004111862218
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "DL",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1410.88,
+            "y": 1637.12
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": -0.5449539609152494,
+              "y": 0.8384659685895313
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "L",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1364,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": -0.9847835588179369,
+              "y": 0.17378533390904768
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "UL",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1410.88,
+            "y": 1410.88
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": -0.7071067811865475,
+              "y": -0.7071067811865475
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "U",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1364
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.17378533390904768,
+              "y": -0.9847835588179369
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "UR",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1637.12,
+            "y": 1410.88
+          },
+          "launch": {
+            "x": 1500,
+            "y": 1500,
+            "direction": {
+              "x": 0.8384659685895313,
+              "y": -0.5449539609152494
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 1024
+          },
+          "remoteMotion": {
+            "row": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1520,
+              "y": 1510
+            }
+          }
+        }
+      ],
+      "errors": [],
+      "external": []
+    },
+    {
+      "version": "after",
+      "cases": [
+        {
+          "classId": "witch",
+          "direction": "R",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1542,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1556,
+            "y": 1500,
+            "direction": {
+              "x": 1,
+              "y": 0
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 3,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "DR",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1536.726,
+            "y": 1536.726
+          },
+          "launch": {
+            "x": 1536,
+            "y": 1515,
+            "direction": {
+              "x": 0.03339754203966339,
+              "y": 0.9994421464925866
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "D",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1542
+          },
+          "launch": {
+            "x": 1536,
+            "y": 1515,
+            "direction": {
+              "x": -0.4061384660534476,
+              "y": 0.9138115486202572
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "DL",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1511.274,
+            "y": 1536.726
+          },
+          "launch": {
+            "x": 1536,
+            "y": 1515,
+            "direction": {
+              "x": -0.7512087214668828,
+              "y": 0.6600647368191177
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "L",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1506,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1492,
+            "y": 1500,
+            "direction": {
+              "x": -1,
+              "y": 0
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 2,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "UL",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1511.274,
+            "y": 1511.274
+          },
+          "launch": {
+            "x": 1514,
+            "y": 1493,
+            "direction": {
+              "x": -0.7071067811865475,
+              "y": -0.7071067811865475
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "U",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1506
+          },
+          "launch": {
+            "x": 1514,
+            "y": 1493,
+            "direction": {
+              "x": 0,
+              "y": -1
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "UR",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1536.726,
+            "y": 1511.274
+          },
+          "launch": {
+            "x": 1514,
+            "y": 1493,
+            "direction": {
+              "x": 0.7071067811865475,
+              "y": -0.7071067811865475
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "R",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1684,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1556,
+            "y": 1500,
+            "direction": {
+              "x": 0.9828721869343219,
+              "y": 0.18428853505018536
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 3,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "DR",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1637.12,
+            "y": 1637.12
+          },
+          "launch": {
+            "x": 1536,
+            "y": 1515,
+            "direction": {
+              "x": 0.6377742186911193,
+              "y": 0.7702233740759444
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "D",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1684
+          },
+          "launch": {
+            "x": 1536,
+            "y": 1515,
+            "direction": {
+              "x": -0.07082759095002461,
+              "y": 0.99748857254618
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "DL",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1410.88,
+            "y": 1637.12
+          },
+          "launch": {
+            "x": 1536,
+            "y": 1515,
+            "direction": {
+              "x": -0.715634105287507,
+              "y": 0.6984753591568922
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "L",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1364,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1492,
+            "y": 1500,
+            "direction": {
+              "x": -0.9828721869343219,
+              "y": 0.18428853505018536
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 2,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "UL",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1410.88,
+            "y": 1410.88
+          },
+          "launch": {
+            "x": 1514,
+            "y": 1493,
+            "direction": {
+              "x": -0.7822582380800939,
+              "y": -0.6229542912251483
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "U",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1364
+          },
+          "launch": {
+            "x": 1514,
+            "y": 1493,
+            "direction": {
+              "x": 0.07728750752653561,
+              "y": -0.9970088470923093
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "witch",
+          "direction": "UR",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1637.12,
+            "y": 1410.88
+          },
+          "launch": {
+            "x": 1514,
+            "y": 1493,
+            "direction": {
+              "x": 0.8319255281292065,
+              "y": -0.5548872999510267
+            }
+          },
+          "hits": 3,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 1,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "R",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1542,
+            "y": 1524
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 3,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "DR",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1536.726,
+            "y": 1536.726
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "D",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1542
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "DL",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1511.274,
+            "y": 1536.726
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "L",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1506,
+            "y": 1524
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 2,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "UL",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1511.274,
+            "y": 1511.274
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "U",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1506
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "UR",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1536.726,
+            "y": 1511.274
+          },
+          "launch": null,
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "R",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1684,
+            "y": 1524
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 3,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "DR",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1637.12,
+            "y": 1637.12
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "D",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1684
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "DL",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1410.88,
+            "y": 1637.12
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "L",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1364,
+            "y": 1524
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 2,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "UL",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1410.88,
+            "y": 1410.88
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "U",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1364
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "warrior",
+          "direction": "UR",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1637.12,
+            "y": 1410.88
+          },
+          "launch": null,
+          "hits": 0,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "R",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1542,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1559,
+            "y": 1502,
+            "direction": {
+              "x": 1,
+              "y": 0
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 3,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "DR",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1536.726,
+            "y": 1536.726
+          },
+          "launch": {
+            "x": 1539,
+            "y": 1516,
+            "direction": {
+              "x": -0.10906278483935347,
+              "y": 0.9940348630521392
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "D",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1542
+          },
+          "launch": {
+            "x": 1539,
+            "y": 1516,
+            "direction": {
+              "x": -0.4997224534895772,
+              "y": 0.8661855860486005
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "DL",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1511.274,
+            "y": 1536.726
+          },
+          "launch": {
+            "x": 1539,
+            "y": 1516,
+            "direction": {
+              "x": -0.8009488351789162,
+              "y": 0.598732798020567
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "L",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1506,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1489,
+            "y": 1502,
+            "direction": {
+              "x": -1,
+              "y": 0
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 2,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "UL",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1511.274,
+            "y": 1511.274
+          },
+          "launch": {
+            "x": 1509,
+            "y": 1492,
+            "direction": {
+              "x": -0.7071067811865475,
+              "y": -0.7071067811865475
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "U",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1506
+          },
+          "launch": {
+            "x": 1509,
+            "y": 1492,
+            "direction": {
+              "x": 0,
+              "y": -1
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "UR",
+          "distance": 18,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1536.726,
+            "y": 1511.274
+          },
+          "launch": {
+            "x": 1509,
+            "y": 1492,
+            "direction": {
+              "x": 0.7071067811865475,
+              "y": -0.7071067811865475
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "R",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1684,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1559,
+            "y": 1502,
+            "direction": {
+              "x": 0.984862774053917,
+              "y": 0.17333584823348938
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 3,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "DR",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1637.12,
+            "y": 1637.12
+          },
+          "launch": {
+            "x": 1539,
+            "y": 1516,
+            "direction": {
+              "x": 0.6294713243182821,
+              "y": 0.7770237138343901
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "D",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1684
+          },
+          "launch": {
+            "x": 1539,
+            "y": 1516,
+            "direction": {
+              "x": -0.08893193797450552,
+              "y": 0.9960377053144619
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "DL",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1410.88,
+            "y": 1637.12
+          },
+          "launch": {
+            "x": 1539,
+            "y": 1516,
+            "direction": {
+              "x": -0.7266796017425934,
+              "y": 0.68697653264957
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 1,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "L",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1364,
+            "y": 1524
+          },
+          "launch": {
+            "x": 1489,
+            "y": 1502,
+            "direction": {
+              "x": -0.984862774053917,
+              "y": 0.17333584823348938
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 2,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "UL",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1410.88,
+            "y": 1410.88
+          },
+          "launch": {
+            "x": 1509,
+            "y": 1492,
+            "direction": {
+              "x": -0.7707135165416443,
+              "y": -0.6371818228888929
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "U",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1524,
+            "y": 1364
+          },
+          "launch": {
+            "x": 1509,
+            "y": 1492,
+            "direction": {
+              "x": 0.11639103134578267,
+              "y": -0.9932034674840121
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        },
+        {
+          "classId": "archer",
+          "direction": "UR",
+          "distance": 160,
+          "center": {
+            "x": 1524,
+            "y": 1524
+          },
+          "target": {
+            "x": 1637.12,
+            "y": 1410.88
+          },
+          "launch": {
+            "x": 1509,
+            "y": 1492,
+            "direction": {
+              "x": 0.8448866349315909,
+              "y": -0.5349453935814129
+            }
+          },
+          "hits": 1,
+          "actionAtlas": {
+            "width": 1024,
+            "height": 4096
+          },
+          "remoteMotion": {
+            "row": 0,
+            "direction": 0,
+            "draws": 1
+          },
+          "movement": {
+            "before": {
+              "x": 1500,
+              "y": 1500
+            },
+            "after": {
+              "x": 1506.4965435521515,
+              "y": 1506.4965435521515
+            }
+          }
+        }
+      ],
+      "skillDirections": [
+        {
+          "classId": "warrior",
+          "name": "R",
+          "expected": 3,
+          "actual": 3,
+          "accepted": true
+        },
+        {
+          "classId": "warrior",
+          "name": "D",
+          "expected": 1,
+          "actual": 1,
+          "accepted": true
+        },
+        {
+          "classId": "warrior",
+          "name": "L",
+          "expected": 2,
+          "actual": 2,
+          "accepted": true
+        },
+        {
+          "classId": "warrior",
+          "name": "U",
+          "expected": 0,
+          "actual": 0,
+          "accepted": true
+        },
+        {
+          "classId": "archer",
+          "name": "R",
+          "expected": 3,
+          "actual": 3,
+          "accepted": true
+        },
+        {
+          "classId": "archer",
+          "name": "D",
+          "expected": 1,
+          "actual": 1,
+          "accepted": true
+        },
+        {
+          "classId": "archer",
+          "name": "L",
+          "expected": 2,
+          "actual": 2,
+          "accepted": true
+        },
+        {
+          "classId": "archer",
+          "name": "U",
+          "expected": 0,
+          "actual": 0,
+          "accepted": true
+        }
+      ],
+      "errors": [],
+      "external": []
+    }
+  ]
+}

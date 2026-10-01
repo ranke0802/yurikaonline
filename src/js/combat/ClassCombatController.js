@@ -20,7 +20,7 @@ export default class ClassCombatController {
     enemies() { return (this.hooks.enemies?.() || []).filter(alive); }
     allies() { return [...new Set([...(this.hooks.allies?.() || []), ...this.summons])].filter(e => e !== this.owner && alive(e)); }
     state(e) { if (!this.statuses.has(e)) this.statuses.set(e, {}); return this.statuses.get(e); }
-    effect(name, data = {}) { const id=data.id || `effect-${++this.effectSerial}`; this.hooks.effect?.(name, { id, x: this.owner.x, y: this.owner.y, ...data }); return id; }
+    effect(name, data = {}) { const id=data.id || `effect-${++this.effectSerial}`; this.hooks.effect?.(name, { id, ...this.combatOrigin(), ...data }); return id; }
     cancelEffect(id) { if(id)this.hooks.cancelEffect?.(id); }
     schedule(delay, fn) { this.tasks.push({ at: this.time + delay, fn }); }
     area(point, radius) { return this.enemies().filter(e => distance(e, point) <= radius + (e.radius || 16)); }
@@ -54,10 +54,15 @@ export default class ClassCombatController {
         if (guard) this.rage = Math.min(100, this.rage + Math.min(15, reduced / Math.max(1, this.owner.maxHp) * 100));
         return reduced;
     }
-    direction(point) { const dx = (point.x ?? this.owner.x + 1) - this.owner.x, dy = (point.y ?? this.owner.y) - this.owner.y; const len = Math.hypot(dx, dy) || 1; return { x: dx / len, y: dy / len }; }
+    combatOrigin() {
+        const origin = this.hooks.combatOrigin?.();
+        return origin && Number.isFinite(origin.x) && Number.isFinite(origin.y)
+            ? { x: origin.x, y: origin.y } : { x: this.owner.x, y: this.owner.y };
+    }
+    direction(point) { const origin = this.combatOrigin(); const dx = (point.x ?? origin.x + 1) - origin.x, dy = (point.y ?? origin.y) - origin.y; const len = Math.hypot(dx, dy) || 1; return { x: dx / len, y: dy / len }; }
     line(point, range, width) {
-        const d = this.direction(point);
-        return this.enemies().filter(e => { const x = e.x - this.owner.x, y = e.y - this.owner.y; const along = x * d.x + y * d.y; return along >= 0 && along <= range && Math.abs(x * d.y - y * d.x) <= width + (e.radius || 16); }).sort((a,b) => distance(a,this.owner)-distance(b,this.owner));
+        const origin = this.combatOrigin(), d = this.direction(point);
+        return this.enemies().filter(e => { const x = e.x - origin.x, y = e.y - origin.y; const along = x * d.x + y * d.y; return along >= 0 && along <= range && Math.abs(x * d.y - y * d.x) <= width + (e.radius || 16); }).sort((a,b) => distance(a,origin)-distance(b,origin));
     }
     basic({ aimed = false, x, y } = {}) {
         if (this.disposed || !alive(this.owner) || this.hooks.paused?.() || this.time < this.basicReady) return false;
@@ -70,10 +75,11 @@ export default class ClassCombatController {
         // Reserve before damage/effect hooks: reentrant input cannot spend twice.
         // Schedule from now, never from a stale deadline; low FPS cannot bank bursts.
         this.basicReady = this.time + interval;
-        const point = { x: x ?? this.owner.x + 100, y: y ?? this.owner.y };
+        const center = this.combatOrigin();
+        const point = { x: x ?? center.x + 100, y: y ?? center.y };
         if (this.classId === 'witch') {
             if (aimed) this.orb(point);
-            else { this.area(this.owner, 95).forEach(e => this.hit(e, this.attack() * 2)); this.effect('life_circle', { radius: 95 }); }
+            else { this.area(this.combatOrigin(), 95).forEach(e => this.hit(e, this.attack() * 2)); this.effect('life_circle', { radius: 95 }); }
         } else if (this.classId === 'warrior') {
             if (aimed) {
                 this.rage -= 25;
@@ -92,13 +98,35 @@ export default class ClassCombatController {
         this.hooks.action?.('basic', { aimed, target: point, interval, combo: this.classId === 'warrior' ? this.combo : undefined, empowered: this.classId === 'archer' && aimed && this.lastEmpowered });
         return true;
     }
+    attackOrigin(point, kind) {
+        const origin = this.hooks.attackOrigin?.(point, kind);
+        return origin && Number.isFinite(origin.x) && Number.isFinite(origin.y)
+            ? { x: origin.x, y: origin.y } : { x: this.owner.x, y: this.owner.y };
+    }
+    projectileDirection(origin, point) {
+        const forward = this.direction(point), dx = point.x - origin.x, dy = point.y - origin.y;
+        // A close target can lie behind an authored bow/palm. Extend the aim ray
+        // forward at least100px from that hand instead of drawing backwards.
+        // Normalizing origin + forward *100 gives this same unit forward vector.
+        if (dx * forward.x + dy * forward.y < 10) return forward;
+        const length = Math.hypot(dx, dy);
+        return length > 0 ? { x: dx / length, y: dy / length } : forward;
+    }
+    launchSweep(origin, point) {
+        const from = this.combatOrigin(), forward = this.direction(point), reach = distance(from, origin);
+        // Physical near-target compensation follows the aim ray, not the lateral
+        // artwork hand offset. The normal projectile remains drawn at that hand.
+        return { from, to: { x: from.x + forward.x * reach, y: from.y + forward.y * reach }, forward };
+    }
     arrow(point) {
-        this.projectiles.push({ kind: 'arrow', x: this.owner.x, y: this.owner.y, direction: this.direction(point), speed: 540, remaining: 600 });
-        this.effect('archer_shot', { target: point });
+        const origin = this.attackOrigin(point, 'arrow');
+        this.projectiles.push({ kind: 'arrow', ...origin, direction: this.projectileDirection(origin, point), spawnSweep: this.launchSweep(origin, point), launchPlane: { origin: this.combatOrigin(), forward: this.direction(point) }, speed: 540, remaining: 600 });
+        this.effect('archer_shot', { ...origin, target: point });
     }
     orb(point) {
-        this.projectiles.push({ kind: 'orb', x: this.owner.x, y: this.owner.y, direction: this.direction(point), speed: 210, remaining: 560 });
-        this.effect('drain_orb', { target: point });
+        const origin = this.attackOrigin(point, 'orb');
+        this.projectiles.push({ kind: 'orb', ...origin, direction: this.projectileDirection(origin, point), spawnSweep: this.launchSweep(origin, point), launchPlane: { origin: this.combatOrigin(), forward: this.direction(point) }, speed: 210, remaining: 560 });
+        this.effect('drain_orb', { ...origin, target: point });
     }
     poison(e, pulse = null) {
         const accepted = this.hit(e, this.attack() + e.maxHp * .05, { poison: true, classPoisonPulse: true, ...(pulse ? {poisonPulse:pulse} : {}) });
@@ -128,10 +156,11 @@ export default class ClassCombatController {
         this.castingSkill=true;
         try { return this.castSkill(slot,options); } finally { this.castingSkill=false; }
     }
-    castSkill(slot, { x = this.owner.x, y = this.owner.y, level = 1 } = {}) {
+    castSkill(slot, { x, y, level = 1 } = {}) {
         if (this.disposed || !alive(this.owner) || this.hooks.paused?.() || (this.cooldowns[slot] || 0) > this.time) return false;
-        const point = { x, y }; const d = this.direction(point); const reach = distance(point, this.owner);
-        if (reach > 450) { point.x = this.owner.x + d.x * 450; point.y = this.owner.y + d.y * 450; }
+        const center = this.combatOrigin();
+        const point = { x: x ?? center.x, y: y ?? center.y }; const d = this.direction(point); const reach = distance(point, center);
+        if (reach > 450) { point.x = center.x + d.x * 450; point.y = center.y + d.y * 450; }
         const skillLevel = clamp(Math.floor(Number(level) || 1), 1, 8);
         const power = this.attack() * (1 + .08 * (skillLevel - 1));
         let cooldown;
@@ -140,7 +169,10 @@ export default class ClassCombatController {
                 // Five pulses at t=1..5; a target entering late only gets remaining pulses.
                 const castId = `poison-${++this.poisonCastSerial}`;
                 for (let i = 1; i <= 5; i++) this.schedule(i, () => this.area(point, 140).forEach(e => this.poison(e,{castId,index:i})));
-                this.effect('poison_cloud', { ...point, duration: 5, radius: 140 }); cooldown = 9;
+                // Throw lands before the unchanged first damage pulse at t=1.
+                const flight = .45;
+                this.effect('poison_potion', { ...this.attackOrigin(point, 'poison_potion'), target: point, duration: flight });
+                this.schedule(flight, () => this.effect('poison_cloud', { ...point, duration: 5 - flight, radius: 140 })); cooldown = 9;
             } else if (slot === 2) {
                 const cost = this.owner.maxHp * .8;
                 if (this.owner.hp <= cost) { this.hooks.failure?.('소환하려면 최대 HP의 80%보다 많은 현재 HP가 필요합니다.'); return false; }
@@ -156,14 +188,15 @@ export default class ClassCombatController {
         } else if (this.classId === 'warrior') {
             if (slot === 1) {
                 this.guardUntil = this.time + 4;
-                this.area(this.owner, WG.challenge.radius).forEach(e => { this.state(e).tauntUntil = this.time + (e.isBoss ? .6 : 4); this.control(e, 'taunt', 4, { target: this.owner }); });
+                this.area(this.combatOrigin(), WG.challenge.radius).forEach(e => { this.state(e).tauntUntil = this.time + (e.isBoss ? .6 : 4); this.control(e, 'taunt', 4, { target: this.owner }); });
                 this.effect('challenge', { radius: 230 }); cooldown = 10;
             } else if (slot === 2) {
                 // Swept 20px collision steps: no teleport through walls or missed targets.
+                const origin = this.combatOrigin();
                 const hit = new Set(); let refund = false;
                 for (let i = 0; i < 12; i++) {
                     if (this.hooks.move?.(this.owner, this.owner.x + d.x * 20, this.owner.y + d.y * 20) === false) break;
-                    for (const e of this.area(this.owner, WG.charge.halfWidth)) {
+                    for (const e of this.area(this.combatOrigin(), WG.charge.halfWidth)) {
                         if (hit.has(e)) continue; hit.add(e);
                         if (!this.hit(e, power * 1.6)) continue;
                         if (this.state(e).tauntUntil > this.time) refund = true;
@@ -171,10 +204,10 @@ export default class ClassCombatController {
                     }
                 }
                 if (refund) this.rage = Math.min(100, this.rage + 25);
-                this.effect('punishing_charge', { target: point }); cooldown = 7;
+                this.effect('punishing_charge', { ...origin, target: this.combatOrigin(), aimTarget: point }); cooldown = 7;
             } else if (slot === 3) {
                 this.bloodUntil = this.time + 8;
-                this.schedule(8, () => { const spent = this.rage; this.rage = 0; this.area(this.owner, WG.finale.radius).forEach(e => this.hit(e, power * (1 + spent * .04))); this.effect('blood_finale', { radius: 170, rage: spent }); });
+                this.schedule(8, () => { const spent = this.rage; this.rage = 0; this.area(this.combatOrigin(), WG.finale.radius).forEach(e => this.hit(e, power * (1 + spent * .04))); this.effect('blood_finale', { radius: 170, rage: spent }); });
                 this.effect('blood_pact', { duration: 8 }); cooldown = 20;
             }
         } else if (this.classId === 'archer') {
@@ -183,9 +216,10 @@ export default class ClassCombatController {
                 const id=this.effect('hunter_trap', { ...point, duration: 10 }); this.trap = { ...point, id, until: this.time + 10 }; cooldown = 7;
             } else if (slot === 2) {
                 const origin = { x: this.owner.x, y: this.owner.y };
+                const visualOrigin = this.combatOrigin();
                 for (let i = 0; i < 8; i++) if (this.hooks.move?.(this.owner, this.owner.x + d.x * 20, this.owner.y + d.y * 20) === false) break;
                 this.evadeUntil = this.time + .35; this.empowered = true;
-                this.hooks.decoy?.(origin, 2); this.effect('shadow_leap', { ...origin, target: { x: this.owner.x, y: this.owner.y } }); cooldown = 8;
+                this.hooks.decoy?.(origin, 2); this.effect('shadow_leap', { ...visualOrigin, target: this.combatOrigin() }); cooldown = 8;
             } else if (slot === 3) {
                 const transferred = new Set();
                 for (let i = 1; i <= 5; i++) this.schedule(i * .6, () => {
@@ -224,34 +258,53 @@ export default class ClassCombatController {
         for (const p of [...this.projectiles]) this.advanceProjectile(p, Math.min(dt, .25));
         for (const [e, s] of this.statuses) if (!alive(e)) this.statuses.delete(e);
     }
+    resolveProjectileHit(p, e) {
+        if (p.kind === 'arrow') { if (this.hit(e, this.attack() * .85)) this.mark(e); }
+        else {
+            this.control(e, 'stagger', .35); let drained = 0;
+            // Contact starts a 3-second channel, total 100% ATK, three 1-second ticks.
+            const atk = Math.ceil(this.attack()); const start = { x: p.x, y: p.y };
+            for (let tick = 1; tick <= 3; tick++) this.schedule(tick, () => {
+                const portion = tick < 3 ? Math.floor(atk / 3) : atk - 2 * Math.floor(atk / 3);
+                if (portion > 0) drained += this.hit(e, portion, { drain: true });
+                if (tick === 3) this.projectiles.push({ ...start, kind: 'return', speed: 300, remaining: Infinity, healing: drained * .5 });
+            });
+            this.effect('drain_link', { ...start, target: e, duration: 3 });
+        }
+        const index = this.projectiles.indexOf(p);
+        if (index >= 0) this.projectiles.splice(index, 1);
+    }
     advanceProjectile(p, dt) {
         const amount = Math.min(p.remaining, p.speed * dt), steps = Math.max(1, Math.ceil(amount / 12));
         if (p.kind === 'return') {
-            const dist = distance(p, this.owner), step = p.speed * dt;
+            const origin = this.attackOrigin(p, 'return');
+            const dist = distance(p, origin), step = p.speed * dt;
             if (dist <= step + 12) {
                 let excess = this.heal(this.owner, p.healing);
                 for (const ally of this.allies()) { excess = this.heal(ally, excess); if (excess <= 0) break; }
+                const healed = Math.max(0, p.healing - excess);
+                if (healed > 0) this.effect('drain_heal', { ...origin, amount: healed });
                 this.projectiles.splice(this.projectiles.indexOf(p), 1); return;
             }
-            p.x += (this.owner.x - p.x) / dist * step; p.y += (this.owner.y - p.y) / dist * step; return;
+            p.x += (origin.x - p.x) / dist * step; p.y += (origin.y - p.y) / dist * step; return;
+        }
+        if (p.spawnSweep) {
+            const { from, to, forward } = p.spawnSweep; delete p.spawnSweep;
+            const sx = to.x - from.x, sy = to.y - from.y, length2 = sx * sx + sy * sy;
+            if (length2 > 0) {
+                const contacts = this.enemies().map(e => {
+                    const ex=e.x-from.x, ey=e.y-from.y;
+                    const t=clamp((ex*sx+ey*sy)/length2,0,1), x=from.x+sx*t, y=from.y+sy*t;
+                    return {e,t,x,y,front:ex*forward.x+ey*forward.y>=0,within:Math.hypot(e.x-x,e.y-y)<=(e.radius||16)+(p.kind==='orb'?14:8)};
+                }).filter(c=>c.front&&c.within).sort((a,b)=>a.t-b.t);
+                if (contacts.length) { const c=contacts[0];p.x=c.x;p.y=c.y;this.resolveProjectileHit(p,c.e);return; }
+            }
         }
         for (let i = 0; i < steps; i++) {
             p.x += p.direction.x * amount / steps; p.y += p.direction.y * amount / steps;
-            const e = this.area(p, p.kind === 'orb' ? 14 : 8)[0];
+            const e = this.area(p, p.kind === 'orb' ? 14 : 8).find(e => !p.launchPlane || (e.x-p.launchPlane.origin.x)*p.launchPlane.forward.x+(e.y-p.launchPlane.origin.y)*p.launchPlane.forward.y>=0);
             if (!e) continue;
-            if (p.kind === 'arrow') { if (this.hit(e, this.attack() * .85)) this.mark(e); }
-            else {
-                this.control(e, 'stagger', .35); let drained = 0;
-                // Contact starts a 3-second channel, total 100% ATK, three 1-second ticks.
-                const atk = Math.ceil(this.attack()); const start = { x: p.x, y: p.y };
-                for (let tick = 1; tick <= 3; tick++) this.schedule(tick, () => {
-                    const portion = tick < 3 ? Math.floor(atk / 3) : atk - 2 * Math.floor(atk / 3);
-                    if (portion > 0) drained += this.hit(e, portion, { drain: true });
-                    if (tick === 3) this.projectiles.push({ ...start, kind: 'return', speed: 300, remaining: Infinity, healing: drained * .5 });
-                });
-                this.effect('drain_link', { ...start, target: e, duration: 3 });
-            }
-            this.projectiles.splice(this.projectiles.indexOf(p), 1); return;
+            this.resolveProjectileHit(p, e); return;
         }
         p.remaining -= amount;
         if (p.remaining <= 0) this.projectiles.splice(this.projectiles.indexOf(p), 1);

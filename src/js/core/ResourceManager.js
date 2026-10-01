@@ -89,7 +89,7 @@ export default class ResourceManager {
         if (this.loading.has(key)) return this.loading.get(key);
         const paths = id === 'wizard' ? [] : [
             ['actions', `${id}-actions`], ['effects', `${id}-effects`], ['status', 'status'],
-            ...(id === 'witch' ? [['lifeCircle', 'life-circle']] : [])
+            ...(id === 'witch' ? [['lifeCircle', 'life-circle'],['potion','poison-potion']] : [])
         ];
         const promise = Promise.all([
             id === 'wizard' ? this.loadCharacterSpriteSheet() : this.loadImage(`assets/resource/classes/${id}-runtime.webp`),

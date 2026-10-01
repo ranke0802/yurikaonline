@@ -1,0 +1,596 @@
+[
+  {
+    "classId": "witch",
+    "phase": 0,
+    "direction": "UP",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 0,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "witch",
+    "phase": 0,
+    "direction": "DOWN",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 0,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "witch",
+    "phase": 0,
+    "direction": "LEFT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 0,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "witch",
+    "phase": 0,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 0,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "witch",
+    "phase": 1,
+    "direction": "UP",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 1,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "witch",
+    "phase": 1,
+    "direction": "DOWN",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 1,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "witch",
+    "phase": 1,
+    "direction": "LEFT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 1,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "witch",
+    "phase": 1,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 1,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "witch",
+    "phase": 2,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 2,
+      "started": 0,
+      "duration": 0.36,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "witch",
+    "phase": 3,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 3,
+      "started": 0,
+      "duration": 0.36,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "witch",
+    "phase": 4,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 2,
+      "started": 0,
+      "duration": 0.36,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "warrior",
+    "phase": 0,
+    "direction": "UP",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 0,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "warrior",
+    "phase": 0,
+    "direction": "DOWN",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 0,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "warrior",
+    "phase": 0,
+    "direction": "LEFT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 0,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "warrior",
+    "phase": 0,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 0,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "warrior",
+    "phase": 1,
+    "direction": "UP",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 1,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "warrior",
+    "phase": 1,
+    "direction": "DOWN",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 1,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "warrior",
+    "phase": 1,
+    "direction": "LEFT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 1,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "warrior",
+    "phase": 1,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 1,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "warrior",
+    "phase": 2,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 2,
+      "started": 0,
+      "duration": 0.36,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "warrior",
+    "phase": 3,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 3,
+      "started": 0,
+      "duration": 0.36,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "warrior",
+    "phase": 4,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 2,
+      "started": 0,
+      "duration": 0.36,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "archer",
+    "phase": 0,
+    "direction": "UP",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 0,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "archer",
+    "phase": 0,
+    "direction": "DOWN",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 0,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "archer",
+    "phase": 0,
+    "direction": "LEFT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 0,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "archer",
+    "phase": 0,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 0,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "archer",
+    "phase": 1,
+    "direction": "UP",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 1,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "archer",
+    "phase": 1,
+    "direction": "DOWN",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 1,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "archer",
+    "phase": 1,
+    "direction": "LEFT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 1,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "archer",
+    "phase": 1,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 1,
+      "started": 0,
+      "duration": 0.42,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "archer",
+    "phase": 2,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 2,
+      "started": 0,
+      "duration": 0.36,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "archer",
+    "phase": 3,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 3,
+      "started": 0,
+      "duration": 0.36,
+      "age": 0,
+      "held": false
+    }
+  },
+  {
+    "classId": "archer",
+    "phase": 4,
+    "direction": "RIGHT",
+    "accepted": true,
+    "atlas": {
+      "width": 1024,
+      "height": 1024
+    },
+    "motion": {
+      "id": 1,
+      "row": 1,
+      "started": 0,
+      "duration": 0.36,
+      "age": 0,
+      "held": false
+    }
+  }
+]

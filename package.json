@@ -42,11 +42,14 @@
     "validate:startup-deadlines": "node --test scripts/validate-startup-deadlines.mjs",
     "validate:camp-stall": "node scripts/validate-camp-stall-regression.cjs",
     "validate:startup-recovery": "node scripts/validate-startup-recovery-browser.cjs",
-    "validate:classes": "node --test scripts/validate-class-combat.mjs scripts/validate-class-player.mjs scripts/validate-class-bridge.mjs scripts/validate-class-profiles.mjs scripts/validate-class-online-routing.mjs scripts/validate-class-audit-fixes.mjs scripts/validate-poison-logical-pulses.mjs scripts/validate-attack-cadence.mjs scripts/validate-class-action-motion.mjs && npm run validate:class-action-art",
+    "validate:classes": "node --test scripts/validate-class-combat.mjs scripts/validate-class-player.mjs scripts/validate-class-bridge.mjs scripts/validate-class-profiles.mjs scripts/validate-class-online-routing.mjs scripts/validate-class-audit-fixes.mjs scripts/validate-poison-logical-pulses.mjs scripts/validate-attack-cadence.mjs scripts/validate-class-action-motion.mjs scripts/validate-class-attack-origins.mjs scripts/validate-class-vfx-geometry.mjs && npm run validate:class-action-art",
     "validate:class-browser": "node scripts/validate-class-browser.cjs",
     "validate:class-motion": "node scripts/validate-class-motion.cjs",
     "validate:class-cadence-browser": "node scripts/validate-class-cadence-browser.cjs",
-    "validate:class-action-art": "node scripts/validate-class-action-art.cjs"
+    "validate:class-action-art": "node scripts/validate-class-action-art.cjs",
+    "validate:class-audio": "node scripts/audio-tests/validate-class-audio.cjs",
+    "validate:class-game-audio": "node scripts/audio-tests/validate-class-game-audio.cjs",
+    "validate:audio-all": "npm run validate:audio && npm run validate:class-audio"
   },
   "dependencies": {
     "image-size": "^2.0.2"

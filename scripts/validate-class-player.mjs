@@ -18,7 +18,7 @@ test('tap releases exactly once, held attack uses aimed path, cancel clears pend
 test('archer leap has .2-second aimed threshold; touch drag controls direction',()=>{
     const {p,calls}=fixture('archer');p.classCombat.controller.empowered=true;p.startClassAction('ATTACK',{clientX:10,clientY:10});
     p.moveClassAim({clientX:10,clientY:-90});p.classAim.elapsed=.2;p.releaseClassAction('ATTACK');
-    assert.equal(calls[0].aimed,true);assert.equal(calls[0].x,0);assert.equal(calls[0].y,-600);
+    assert.equal(calls[0].aimed,true);assert.equal(calls[0].x,p.x+p.width/2);assert.equal(calls[0].y,p.y+p.height/2-600);
 });
 test('new class skill upgrades reject unknown/basic/maxed keys without spending shared currency',()=>{
     const {p}=fixture();p.manastone=999999;p.skillLevels.summon=8;

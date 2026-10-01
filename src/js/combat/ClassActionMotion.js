@@ -7,7 +7,7 @@ export function actionRow(classId, kind, data = {}) {
     return rows[classId]?.[data.slot] ?? 0;
 }
 export function createActionMotion(classId, kind, data, time, id) {
-    return { id, row:actionRow(classId,kind,data), started:time,
+    return { id, row:actionRow(classId,kind,data), direction:data.direction??1, started:time,
         duration:Math.max(.20,Math.min(.42,Number(data.interval)||.36)), age:0, held:false };
 }
 export function sampleActionMotion(motion) {
@@ -18,9 +18,11 @@ export function sampleActionMotion(motion) {
 }
 export function drawActionBody(image,motion,ctx,x,y,width,height) {
     const pose=sampleActionMotion(motion);if(!image||!pose)return false;
-    const w=image.width/4,h=image.height/4;
+    const directional=image.height===image.width*4;
+    const direction=Number.isInteger(motion.direction)&&motion.direction>=0&&motion.direction<=3?motion.direction:1;
+    const w=image.width/4,h=image.height/(directional?16:4);
     // No flipping: sword, shield, bow, satchel and brooch stay in authored hands.
     // 256px action cells use the same on-screen pixel scale as 192px walk cells.
     const drawW=width*4/3,drawH=height*4/3;
-    ctx.drawImage(image,pose.frame*w,pose.row*h,w,h,x-(drawW-width)/2,y-(drawH-height),drawW,drawH);return true;
+    ctx.drawImage(image,pose.frame*w,(directional?pose.row*4+direction:pose.row)*h,w,h,x-(drawW-width)/2,y-(drawH-height),drawW,drawH);return true;
 }

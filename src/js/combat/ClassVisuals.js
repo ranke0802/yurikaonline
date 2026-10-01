@@ -1,9 +1,10 @@
+import { combatCenter } from './ClassAnchors.js';
 import { drawActionBody } from './ClassActionMotion.js';
 import { getSharedResourceManager } from '../core/ResourceManager.js';
 import { captureProjectileWorldContext, isProjectileWorldContextCurrent } from '../entities/ProjectileWorldContext.js';
 
 export const EFFECT_ROWS = {
-    witch: [['life_circle','drain_orb','drain_link','orb','return'], ['poison_cloud'], ['summon'], ['berserk_potion']],
+    witch: [['life_circle','drain_orb','drain_link','drain_heal','orb','return'], ['poison_cloud','poison_potion'], ['summon'], ['berserk_potion']],
     warrior: [['warrior_slash','rage_smash'], ['challenge'], ['punishing_charge'], ['blood_pact','blood_finale']],
     archer: [['archer_shot','piercing_snipe','arrow'], ['hunter_trap','trap_burst','trap_trigger'], ['shadow_leap'], ['tracking_rain']]
 };
@@ -12,35 +13,63 @@ const DIRECTIONAL = new Set(['warrior_slash','rage_smash','punishing_charge','ar
 export const STATUS_ICONS = ['poison','berserk','rage','mark','root','taunt','bloodPact','empowered'];
 export function loadClassVisualImages(classId, images) {
     const resources=getSharedResourceManager();
-    for(const [key,path] of [['status','status'],...(classId==='wizard'?[]:[['effects',`${classId}-effects`],['actions',`${classId}-actions`]]),...(classId==='witch'?[['lifeCircle','life-circle']]:[])])
+    for(const [key,path] of [['status','status'],...(classId==='wizard'?[]:[['effects',`${classId}-effects`],['actions',`${classId}-actions`]]),...(classId==='witch'?[['lifeCircle','life-circle'],['potion','poison-potion']]:[])])
         resources?.loadImage(`assets/resource/classes/${path}.webp`).then(image=>{images[key]=image;}).catch(()=>{});
 }
 export function drawClassEffect(renderer,ctx,name,x,y,size,age=0,options={}) {
-    const circle=name==='life_circle',img=circle?renderer.images.lifeCircle:renderer.images.effects;if(!img)return;
+    const circle=name==='life_circle',potion=name==='poison_potion',img=potion?renderer.images.potion:circle?renderer.images.lifeCircle:renderer.images.effects;if(!img)return;
     const classId=renderer.classId||renderer.controller?.classId;
-    const row=circle?0:(EFFECT_ROWS[classId]||[]).findIndex(names=>names.includes(name));if(row<0)return;
-    const w=img.width/4,h=img.height/(circle?1:4),tick=Math.max(0,Math.floor(age/.16));
+    const row=circle||potion?0:(EFFECT_ROWS[classId]||[]).findIndex(names=>names.includes(name));if(row<0)return;
+    const w=img.width/4,h=img.height/(circle||potion?1:4),tick=Math.max(0,Math.floor(age/(potion?.45/4:.16)));
     const phase=tick%6,frame=options.sustained?(phase<=3?phase:6-phase):Math.min(3,tick);
     const angle=options.angle||0,width=options.width||size,height=options.height||size;
+    const pivotX=Number.isFinite(options.pivotX)?options.pivotX:.5;
     const transformed=!!angle||options.opacity<1; if(transformed)ctx.save();if(options.opacity<1)ctx.globalAlpha*=options.opacity;
-    if(angle){ctx.translate(x,y);ctx.rotate(angle);ctx.drawImage(img,frame*w,row*h,w,h,-width/2,-height/2,width,height);}
-    else ctx.drawImage(img,frame*w,row*h,w,h,x-width/2,y-height/2,width,height);
+    if(angle){ctx.translate(x,y);ctx.rotate(angle);ctx.drawImage(img,frame*w,row*h,w,h,-width*pivotX,-height/2,width,height);}
+    else ctx.drawImage(img,frame*w,row*h,w,h,x-width*pivotX,y-height/2,width,height);
     if(transformed)ctx.restore();
 }
+function renderProjectiles(renderer,ctx,behind) {
+    const center=combatCenter(renderer.owner);
+    for(const p of renderer.controller?.projectiles||renderer.projectiles||[]) {
+        const isBehind=p.kind==='return'?p.y<center.y:(p.direction?.y||0)<0;
+        if(isBehind!==behind)continue;
+        renderer.drawEffect(ctx,p.kind,p.x,p.y,p.kind==='arrow'?48:58,p.age??renderer.controller?.time??0,
+            {angle:p.kind==='arrow'?Math.atan2(p.direction.y,p.direction.x):0,sustained:true});
+    }
+}
+function renderPotion(renderer,ctx,f,behind) {
+    if(!f.target)return;
+    const t=Math.max(0,Math.min(1,f.age/(f.duration||.45)));
+    const x=f.x+(f.target.x-f.x)*t,y=f.y+(f.target.y-f.y)*t-(t===0||t===1?0:Math.sin(Math.PI*t)*24);
+    if((y<combatCenter(renderer.owner).y)!==behind)return;
+    renderer.drawEffect(ctx,'poison_potion',x,y,34,f.age,{angle:0});
+}
 export function renderGroundEffects(renderer,ctx) {
-    for(const f of renderer.effects)if(GROUND.has(f.name))renderer.drawEffect(ctx,f.name,
-        f.name==='blood_pact'?renderer.owner.x:f.x,f.name==='blood_pact'?renderer.owner.y:f.y,
-        f.name==='blood_pact'?110:f.name==='berserk_potion'?140:(f.radius||70)*2,f.age,
-        {sustained:f.duration>1,opacity:['poison_cloud','tracking_rain'].includes(f.name)?.7:1});
+    const center=combatCenter(renderer.owner);
+    for(const f of renderer.effects) {
+        if(f.name==='poison_potion'){renderPotion(renderer,ctx,f,true);continue;}
+        if(GROUND.has(f.name))renderer.drawEffect(ctx,f.name,
+            f.name==='blood_pact'?center.x:f.x,f.name==='blood_pact'?center.y:f.y,
+            f.name==='blood_pact'?110:f.name==='berserk_potion'?140:(f.radius||70)*2,f.age,
+            {angle:0,sustained:f.duration>1,opacity:['poison_cloud','tracking_rain'].includes(f.name)?.7:1});
+    }
+    renderProjectiles(renderer,ctx,true);
 }
 export function renderForegroundEffects(renderer,ctx) {
     for(const f of renderer.effects)if(!GROUND.has(f.name)){
-        const angle=DIRECTIONAL.has(f.name)&&f.target?Math.atan2(f.target.y-f.y,f.target.x-f.x):0;
-        renderer.drawEffect(ctx,f.name,f.x,f.y,f.name==='challenge'?160:(f.radius||70)*2,f.age,{angle,sustained:f.duration>1});
+        // Launch packets remain useful for audio; moving projectiles own their image.
+        if(['archer_shot','drain_orb'].includes(f.name))continue;
+        if(f.name==='poison_potion'){renderPotion(renderer,ctx,f,false);continue;}
+        const directional=DIRECTIONAL.has(f.name)&&f.target;
+        const angle=directional?Math.atan2(f.target.y-f.y,f.target.x-f.x):0;
+        const options={angle,sustained:f.duration>1};
+        let size=f.name==='challenge'?160:f.name==='drain_heal'?44:(f.radius||70)*2;
+        if(['warrior_slash','rage_smash'].includes(f.name)){options.pivotX=.15;options.width=f.name==='rage_smash'?150:100;options.height=f.name==='rage_smash'?96:104;}
+        if(['punishing_charge','piercing_snipe','shadow_leap'].includes(f.name)&&f.target){options.pivotX=0;options.width=Math.max(1,Math.hypot(f.target.x-f.x,f.target.y-f.y));options.height=f.name==='piercing_snipe'?36:80;}
+        renderer.drawEffect(ctx,f.name,f.x,f.y,size,f.age,options);
     }
-    for(const p of renderer.controller?.projectiles||renderer.projectiles||[])
-        renderer.drawEffect(ctx,p.kind,p.x,p.y,p.kind==='arrow'?48:58,p.age??renderer.controller?.time??0,
-            {angle:p.kind==='arrow'?Math.atan2(p.direction.y,p.direction.x):0,sustained:true});
+    renderProjectiles(renderer,ctx,false);
     const d=renderer.decoy,owner=renderer.owner;
     if(d?.remaining>0&&owner.sprite){
         ctx.save();ctx.globalAlpha*=.5;
@@ -65,8 +94,8 @@ export default class RemoteClassVisuals {
         if(this.owner.isDead||this.owner.hp<=0)return true;
         const lag=Math.max(0,(now-packet.ts)/1000),names=(EFFECT_ROWS[this.classId]||[]).flat();
         const m=packet.motion;
-        if(m&&Number.isSafeInteger(m.id)&&Number.isInteger(m.row)&&m.row>=0&&m.row<4&&Number.isFinite(m.age)&&m.age>=0&&Number.isFinite(m.duration)&&m.duration>=.2&&m.duration<=.42) {
-            const age=m.age+lag;if(m.held&&lag<.3||!m.held&&age<m.duration)this.motion={id:m.id,row:m.row,held:!!m.held,age,duration:m.duration,receivedAt:now,expiresAt:m.held?packet.ts+300:now+(m.duration-age)*1000};
+        if(m&&Number.isSafeInteger(m.id)&&Number.isInteger(m.row)&&m.row>=0&&m.row<4&&Number.isFinite(m.age)&&m.age>=0&&Number.isFinite(m.duration)&&m.duration>=.2&&m.duration<=.42&&(m.direction===undefined||(Number.isInteger(m.direction)&&m.direction>=0&&m.direction<=3))) {
+            const age=m.age+lag;if(m.held&&lag<.3||!m.held&&age<m.duration)this.motion={id:m.id,row:m.row,direction:m.direction??(Number.isInteger(this.owner.direction)&&this.owner.direction>=0&&this.owner.direction<=3?this.owner.direction:1),held:!!m.held,age,duration:m.duration,receivedAt:now,expiresAt:m.held?packet.ts+300:now+(m.duration-age)*1000};
         }
         for(const f of (Array.isArray(packet.effects)?packet.effects:[]).slice(0,64)){
             if(!finitePoint(f)||typeof f.id!=='string'||!names.includes(f.name)||!Number.isFinite(f.duration)||!Number.isFinite(f.age))continue;

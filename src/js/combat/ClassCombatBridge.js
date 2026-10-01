@@ -1,4 +1,5 @@
 import { actionRow, createActionMotion, drawActionBody } from './ClassActionMotion.js';
+import { combatCenter, attackAnchor, facingDirection } from './ClassAnchors.js';
 import ClassCombatController, { SUMMON_TYPES } from './ClassCombatController.js';
 import Monster from '../entities/Monster.js';
 import { getSharedResourceManager } from '../core/ResourceManager.js';
@@ -14,6 +15,8 @@ export default class ClassCombatBridge {
         this.effects = []; this.actors = []; this.definitions = new Map(); this.images = {};
         this.controller = new ClassCombatController(owner, classId, {
             managesPoisonStatuses: true,
+            combatOrigin:()=>combatCenter(this.owner),
+            attackOrigin:(target,kind)=>attackAnchor(this.owner,target,kind),
             action: (kind,data)=>this.startActionMotion(kind,data),
             failure: text=>this.game?.ui?.logSystemMessage?.(text),
             cancelEffect: id=>{this.effects=this.effects.filter(f=>f.id!==id);},
@@ -23,12 +26,20 @@ export default class ClassCombatBridge {
             damage: (e,n,m) => this.damage(e,n,m), status: (e,t,d,data) => this.status(e,t,d,data),
             clearStatus: (e,t) => this.clearStatus(e,t), move: (e,x,y) => this.move(e,x,y),
             summon: (id,level) => this.summon(id,level), dismiss: e => { e.isDead = true; this.actors = this.actors.filter(a => a !== e); },
-            effect: (name,data) => { this.effects.push({name,...data,age:0,duration:data.duration || .65}); if(name==='blood_finale')this.startActionMotion('finale',{}); },
+            effect: (name,data) => {
+                this.game?.sound?.playClassEvent?.(name,{...data,audioId:`${this.visualEpoch}:${data.id}`},{remote:false});
+                const origin=['warrior_slash','rage_smash','piercing_snipe'].includes(name)?attackAnchor(this.owner,data.target,name):{};
+                const d=origin.x!==undefined?this.controller.direction(data.target):null;
+                const reach=name==='piercing_snipe'?650:name==='rage_smash'?150:100;
+                const target=d?{x:origin.x+d.x*reach,y:origin.y+d.y*reach}:data.target;
+                this.effects.push({name,...data,...origin,target,age:0,duration:data.duration || .65});
+                if(name==='blood_finale')this.startActionMotion('finale',{});
+            },
             decoy: (point,duration) => this.createDecoy(point,duration)
         });
         if (classId === 'witch') for (const id of SUMMON_TYPES) this.game?.monsterData?.loadDefinition(id).then(d => { if(d) this.definitions.set(id,d); }).catch(() => {});
         const resources = getSharedResourceManager();
-        if(classId === 'witch') resources?.loadImage('assets/resource/classes/life-circle.webp').then(img=>{this.images.lifeCircle=img;}).catch(()=>{});
+        if(classId === 'witch') for(const [key,name] of [['lifeCircle','life-circle'],['potion','poison-potion']])resources?.loadImage(`assets/resource/classes/${name}.webp`).then(img=>{this.images[key]=img;}).catch(()=>{});
         for (const name of (classId === 'wizard' ? ['status'] : ['effects','status','actions'])) resources?.loadImage(`assets/resource/classes/${name === 'effects' ? classId + '-effects' : name === 'actions' ? classId + '-actions' : name}.webp`).then(img => {this.images[name] = img;}).catch(() => {});
     }
     allies() {
@@ -46,7 +57,9 @@ export default class ClassCombatBridge {
     }
     paused() { return !!this.game?.story?.isStoryActive || !!this.game?.ui?.isPaused && !this.game?.net?.isSharedFieldActive?.(); }
     startActionMotion(kind,data) {
-        this.motion=createActionMotion(this.controller.classId,kind,data,this.controller.time,++this.motionSerial);
+        const direction=this.requestDirection??facingDirection(this.owner,data.target);
+        this.motion=createActionMotion(this.controller.classId,kind,{...data,direction},this.controller.time,++this.motionSerial);
+        this.owner.direction=direction;
         this.syncVisuals(true);
     }
     currentMotion() {
@@ -54,11 +67,17 @@ export default class ClassCombatBridge {
         if(this.motion) {const age=this.controller.time-this.motion.started;if(age<this.motion.duration)return {...this.motion,age};}
         const aim=this.owner.classAim;if(!aim)return null;
         const data=aim.action==='ATTACK'?{aimed:aim.elapsed>=(this.controller.classId==='archer'&&this.controller.empowered?.2:.5)}:{slot:Number(aim.action.slice(-1))};
-        return {id:0,row:actionRow(this.controller.classId,aim.action==='ATTACK'?'basic':'skill',data),held:true,age:0,duration:.4};
+        return {id:0,row:actionRow(this.controller.classId,aim.action==='ATTACK'?'basic':'skill',data),direction:facingDirection(this.owner,aim),held:true,age:0,duration:.4};
     }
     drawBody(ctx,x,y,w,h) {return drawActionBody(this.images.actions,this.currentMotion(),ctx,x,y,w,h);}
     basic(options) { return !this.paused() && this.controller.basic(options); }
-    skill(slot,options) { return !this.paused() && this.controller.skill(slot,options); }
+    skill(slot,options={}) {
+        if(this.paused())return false;
+        // Charge may finish beyond the selected point. Capture its facing before
+        // movement; recomputing from the destination would turn the body backwards.
+        this.requestDirection=facingDirection(this.owner,options);
+        try{return this.controller.skill(slot,options);}finally{this.requestDirection=null;}
+    }
     modifyIncomingDamage(n) { return this.controller.evadeUntil > this.controller.time ? 0 : this.controller.modifyIncomingDamage(n); }
     multipliers(e = this.owner) { return this.controller.multipliers(e); }
     heal(e,amount) {
@@ -77,7 +96,9 @@ export default class ClassCombatBridge {
         if (net && !e.isLocalOnly && net.sendMonsterDamage(e.id,damage,packet) === false) return 0;
         e.lastAttackerId = net?.playerId || this.owner.id;
         if (e.takeDamage(damage,false,false,this.owner.x,this.owner.y,packet) === false) return 0;
-        return Math.max(0,before-e.hp);
+        const actual=Math.max(0,before-e.hp);
+        if(actual>0&&meta.poison)this.game?.sound?.playClassEvent?.('poison_tick',{targetId:e.id,audioId:`${this.visualEpoch}:poison:${this.hitSerial}`},{remote:false});
+        return actual;
     }
     status(e,type,duration,data = {}) {
         if(type === 'stun' && e.classStatuses) delete e.classStatuses.poison;
@@ -155,7 +176,7 @@ export default class ClassCombatBridge {
         return {epoch:this.visualEpoch,sequence:++this.visualSequence,ts:Date.now(),fieldId:this.context.fieldId,classId:c.classId,
             motion:this.currentMotion(),
             effects:this.effects.slice(-64).map(f=>({id:f.id,name:f.name,...point(f),target:f.target?point(f.target):null,radius:f.radius||0,duration:f.duration,age:f.age})),
-            projectiles:c.projectiles.slice(-32).map(p=>{const d=p.kind==='return'?c.direction.call({owner:p},this.owner):p.direction;return{kind:p.kind,...point(p),direction:d,speed:p.speed,age:c.time};}),
+            projectiles:c.projectiles.slice(-32).map(p=>{const target=c.attackOrigin(p,'return'),dx=target.x-p.x,dy=target.y-p.y,len=Math.hypot(dx,dy)||1;const d=p.kind==='return'?{x:dx/len,y:dy/len}:p.direction;return{kind:p.kind,...point(p),direction:d,speed:p.speed,age:c.time};}),
             decoy:this.decoy?{...point(this.decoy),remaining:this.decoy.remaining,direction:this.decoy.direction||0,frame:this.decoy.frame||0}:null,badges};
     }
     syncVisuals(force=false) {

@@ -1,5 +1,33 @@
 import Logger from '../utils/Logger.js';
 
+// Short, bounded layered synthesis: no downloaded audio or class-dependent BGM.
+// tuple: primitive, offset, wave/frequency, start/duration, end/volume, duration, volume
+export const CLASS_AUDIO = {
+    life_circle: [['slide',0,'sine',420,145,.28,.13],['noise',0,950,.10,.10]],
+    drain_orb: [['slide',0,'triangle',230,520,.22,.13],['tone',.03,'sine',660,.12,.05]],
+    drain_link: [['slide',0,'sine',460,210,.24,.07]],
+    drain_heal: [['tone',0,'sine',660,.16,.08],['tone',.08,'sine',880,.20,.06]],
+    poison_tick: [['tone',0,'sine',180,.07,.035]],
+    poison_potion: [['slide',0,'triangle',480,210,.16,.10]],
+    poison_cloud: [['noise',0,1400,.17,.10],['slide',0,'sine',300,100,.20,.08]],
+    summon: [['slide',0,'triangle',120,420,.30,.12],['tone',.15,'sine',630,.26,.07]],
+    berserk_potion: [['noise',0,1600,.10,.09],['slide',0,'triangle',180,620,.28,.12]],
+    warrior_slash: [['noise',0,2800,.12,.15],['slide',0,'triangle',330,150,.11,.08]],
+    rage_smash: [['noise',0,1300,.16,.15],['slide',0,'sine',170,48,.26,.22]],
+    challenge: [['slide',0,'sawtooth',110,200,.23,.07],['tone',.02,'sine',146,.28,.12]],
+    punishing_charge: [['noise',0,1700,.18,.12],['slide',0,'triangle',140,340,.20,.10]],
+    blood_pact: [['tone',0,'sine',92,.25,.14],['tone',.13,'triangle',184,.23,.07]],
+    blood_finale: [['noise',0,900,.20,.15],['slide',0,'sine',180,45,.32,.22]],
+    archer_shot: [['slide',0,'triangle',850,270,.07,.12],['noise',.015,4200,.08,.09]],
+    piercing_snipe: [['slide',0,'triangle',1100,220,.13,.16],['noise',.01,5200,.14,.13]],
+    hunter_trap: [['noise',0,2400,.06,.10],['tone',.02,'triangle',340,.08,.06]],
+    trap_trigger: [['noise',0,3000,.09,.12],['tone',.015,'triangle',680,.10,.07]],
+    trap_burst: [['noise',0,1700,.15,.13],['slide',0,'sine',300,120,.17,.10]],
+    shadow_leap: [['noise',0,2100,.13,.09],['slide',0,'triangle',580,220,.15,.08]],
+    tracking_rain: [['noise',0,4200,.16,.10],['noise',.10,3000,.14,.08],['slide',0,'triangle',700,340,.22,.09]]
+};
+
+
 /**
  * SoundManager (v0.00.62: Flashy & Polish)
  * Features:
@@ -24,6 +52,8 @@ export default class SoundManager {
         this.sfxVolume = 0.85;
         this.bgmRequest = 0;
         this.sfxLastPlayed = new Map();
+        this.classAudioEvents = new Map();
+        this.isBackgrounded = !!globalThis.document?.hidden;
         this.isMuted = false;
         this.masterVolume = 0.4;
         this.isInitialized = false;
@@ -59,6 +89,12 @@ export default class SoundManager {
             window.addEventListener(type, unlock, { capture: true, passive: true });
         }
 
+        globalThis.document?.addEventListener?.('visibilitychange', () => {
+            this.isBackgrounded = !!document.hidden;
+            this._applyMasterGain();
+            // Never force resume without activation. The existing capture gesture
+            // listener recovers interrupted mobile contexts on the next control.
+        });
         this.noiseBuffer = null;
         this.reverbBuffer = null;
     }
@@ -71,7 +107,7 @@ export default class SoundManager {
                 this.sfxLastPlayed.clear();
 
                 this.masterGain = this.ctx.createGain();
-                this.masterGain.gain.value = this.isMuted ? 0 : this.masterVolume;
+                this.masterGain.gain.value = this.isMuted || this.isBackgrounded ? 0 : this.masterVolume;
 
                 // Global Reverb (Convolver)
                 this.reverbNode = this.ctx.createConvolver();
@@ -119,18 +155,45 @@ export default class SoundManager {
         return Promise.resolve();
     }
 
+    _applyMasterGain() {
+        if (this.masterGain) this.masterGain.gain.value = this.isMuted || this.isBackgrounded ? 0 : this.masterVolume;
+    }
+
+    // Call only for the owner's committed gameplay events, never received VFX.
+    playClassEvent(name, data = {}, { remote = false } = {}) {
+        if (remote || !CLASS_AUDIO[name] || this.isBackgrounded) return false;
+        if (!this.ctx) this.init();
+        if (!this.ctx || this.ctx.state !== 'running' || this.isMuted || this.sfxVolume <= 0) return false;
+        const now = this.ctx.currentTime;
+        const key = data.audioId;
+        if (key && this.classAudioEvents.has(key)) return false;
+        if (now - (this.sfxLastPlayed.get(`class:${name}`) ?? -Infinity) < (name === 'poison_tick' ? .35 : .075)) return false;
+        if (key) this.classAudioEvents.set(key, now);
+        for (const [id, time] of this.classAudioEvents) if (now - time > 15) this.classAudioEvents.delete(id);
+        this.sfxLastPlayed.set(`class:${name}`, now);
+        const gain = this.ctx.createGain(); gain.connect(this.sfxGain || this.masterGain);
+        for (const [op, offset, a, b, c, d, e] of CLASS_AUDIO[name]) {
+            if (op === 'noise') this._noise(now + offset, b, c, gain, a);
+            else if (op === 'tone') this._tone(now + offset, a, b, c, d, gain);
+            else this._slide(now + offset, a, b, c, d, e, gain);
+        }
+        // The longest class envelope is < .5 s; disconnect the bus after its tail.
+        setTimeout(() => gain.disconnect(), 1000);
+        return true;
+    }
+
     setMasterVolume(volume = 0.4) {
         const safeVolume = Math.min(1, Math.max(0, Number(volume) || 0));
         this.masterVolume = safeVolume;
         if (this.masterGain) {
-            this.masterGain.gain.value = this.isMuted ? 0 : safeVolume;
+            this.masterGain.gain.value = this.isMuted || this.isBackgrounded ? 0 : safeVolume;
         }
     }
 
     setMuted(muted = false) {
         this.isMuted = !!muted;
         if (this.masterGain) {
-            this.masterGain.gain.value = this.isMuted ? 0 : this.masterVolume;
+            this.masterGain.gain.value = this.isMuted || this.isBackgrounded ? 0 : this.masterVolume;
         }
     }
 
@@ -482,6 +545,7 @@ export default class SoundManager {
         osc.type = type; osc.frequency.value = f;
         g.gain.setValueAtTime(v, t); g.gain.linearRampToValueAtTime(0, t + d);
         osc.connect(g); g.connect(dest);
+        osc.onended = () => { osc.disconnect(); g.disconnect(); };
         osc.start(t); osc.stop(t + d);
     }
     _slide(t, type, fs, fe, d, v, dest) {
@@ -491,13 +555,14 @@ export default class SoundManager {
         osc.frequency.linearRampToValueAtTime(fe, t + d);
         g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.01, t + d);
         osc.connect(g); g.connect(dest);
+        osc.onended = () => { osc.disconnect(); g.disconnect(); };
         osc.start(t); osc.stop(t + d);
     }
 
     playSfx(type) {
         if (!this.ctx) this.init(); // Create if missing
         if (!this.ctx || this.ctx.state !== 'running') return; // Silent fail if disabled/suspended
-        if (this.isMuted) return;
+        if (this.isMuted || this.isBackgrounded) return;
         const aliases = {
             sfx_slime_attack: 'slime_jump', sfx_slime_hit: 'slime_hit', sfx_slime_die: 'slime_die', sfx_slime_move: 'slime_jump',
             sfx_attack: 'monster_attack', sfx_hit: 'monster_damage', sfx_die: 'monster_death', sfx_move: 'footstep_grass',

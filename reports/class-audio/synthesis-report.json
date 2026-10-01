@@ -1,0 +1,145 @@
+{
+  "cues": [
+    {
+      "name": "life_circle",
+      "peak": 0.04710835963487625,
+      "rms": 0.007312170888132225,
+      "sampleStartSeconds": 0
+    },
+    {
+      "name": "drain_orb",
+      "peak": 0.04458538815379143,
+      "rms": 0.005794909684034378,
+      "sampleStartSeconds": 1.25
+    },
+    {
+      "name": "drain_link",
+      "peak": 0.023695258423686028,
+      "rms": 0.004136535990733834,
+      "sampleStartSeconds": 2.5
+    },
+    {
+      "name": "drain_heal",
+      "peak": 0.03291947394609451,
+      "rms": 0.005777859249943027,
+      "sampleStartSeconds": 3.75
+    },
+    {
+      "name": "poison_tick",
+      "peak": 0.011664802208542824,
+      "rms": 0.001285192959769912,
+      "sampleStartSeconds": 5
+    },
+    {
+      "name": "poison_potion",
+      "peak": 0.032566655427217484,
+      "rms": 0.0036417736968938196,
+      "sampleStartSeconds": 6.25
+    },
+    {
+      "name": "poison_cloud",
+      "peak": 0.03834422677755356,
+      "rms": 0.004295095201714564,
+      "sampleStartSeconds": 7.5
+    },
+    {
+      "name": "summon",
+      "peak": 0.039796795696020126,
+      "rms": 0.00761220217332905,
+      "sampleStartSeconds": 8.75
+    },
+    {
+      "name": "berserk_potion",
+      "peak": 0.04375998303294182,
+      "rms": 0.005647973797036766,
+      "sampleStartSeconds": 10
+    },
+    {
+      "name": "warrior_slash",
+      "peak": 0.041723381727933884,
+      "rms": 0.0029514390769743233,
+      "sampleStartSeconds": 11.25
+    },
+    {
+      "name": "rage_smash",
+      "peak": 0.07733863592147827,
+      "rms": 0.010838298913931703,
+      "sampleStartSeconds": 12.5
+    },
+    {
+      "name": "challenge",
+      "peak": 0.05941477417945862,
+      "rms": 0.009004310784465255,
+      "sampleStartSeconds": 13.75
+    },
+    {
+      "name": "punishing_charge",
+      "peak": 0.035033103078603745,
+      "rms": 0.004056346664904084,
+      "sampleStartSeconds": 15
+    },
+    {
+      "name": "blood_pact",
+      "peak": 0.04708368703722954,
+      "rms": 0.010423528984889296,
+      "sampleStartSeconds": 16.25
+    },
+    {
+      "name": "blood_finale",
+      "peak": 0.07571876794099808,
+      "rms": 0.01206626249459569,
+      "sampleStartSeconds": 17.5
+    },
+    {
+      "name": "archer_shot",
+      "peak": 0.03887109458446503,
+      "rms": 0.002912950350524056,
+      "sampleStartSeconds": 18.75
+    },
+    {
+      "name": "piercing_snipe",
+      "peak": 0.061863142997026443,
+      "rms": 0.005092655274057104,
+      "sampleStartSeconds": 20
+    },
+    {
+      "name": "hunter_trap",
+      "peak": 0.021026529371738434,
+      "rms": 0.002057350077330287,
+      "sampleStartSeconds": 21.25
+    },
+    {
+      "name": "trap_trigger",
+      "peak": 0.030408069491386414,
+      "rms": 0.0026878028004727788,
+      "sampleStartSeconds": 22.5
+    },
+    {
+      "name": "trap_burst",
+      "peak": 0.03845817968249321,
+      "rms": 0.004620182226615729,
+      "sampleStartSeconds": 23.75
+    },
+    {
+      "name": "shadow_leap",
+      "peak": 0.030956286936998367,
+      "rms": 0.0031173693237966493,
+      "sampleStartSeconds": 25
+    },
+    {
+      "name": "tracking_rain",
+      "peak": 0.03745001181960106,
+      "rms": 0.004271451081635488,
+      "sampleStartSeconds": 26.25
+    }
+  ],
+  "guards": [
+    "duplicate id",
+    "same frame",
+    "remote",
+    "mute",
+    "background",
+    "resume volume",
+    "sfx zero"
+  ]
+}

@@ -42,3 +42,7 @@ test('two real remote visual instances reject duplicates/reordering and expire w
   assert.equal(damagePackets,0);assert.equal(hpWrites,0);assert.deepEqual(owners.map(o=>o.hp),[100,100]);
  }finally{Date.now=originalNow;globalThis.window=originalWindow;}
 });
+
+for(const classId of ['witch','warrior','archer'])test(classId+' directional atlas maps each action to four independent authored rows',()=>{
+ for(let row=0;row<4;row++)for(let direction=0;direction<4;direction++){const calls=[];drawActionBody({width:1024,height:4096},{row,direction,age:0,duration:.36},{drawImage:(...v)=>calls.push(v)},0,0,120,120);assert.equal(calls[0][1],256);assert.equal(calls[0][2],(row*4+direction)*256);assert.equal(calls[0][4],256);}
+});

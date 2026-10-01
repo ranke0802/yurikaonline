@@ -1,3 +1,4 @@
+import {combatCenter} from '../src/js/combat/ClassAnchors.js';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
@@ -70,7 +71,7 @@ test('Blood Pact follows Warrior only on ground pass, at110px without body overl
  const {bridge,owner}=fixture();bridge.controller.classId='warrior';bridge.controller.enemies=()=>[];
  bridge.effects=[{name:'blood_pact',x:0,y:0,age:2,duration:8}];bridge.controller.projectiles=[];
  const draws=[];bridge.drawEffect=(...args)=>draws.push(args);bridge.renderGround({});
- assert.equal(draws.length,1);assert.equal(draws[0][1],'blood_pact');assert.equal(draws[0][2],owner.x);assert.equal(draws[0][4],110);
+ assert.equal(draws.length,1);assert.equal(draws[0][1],'blood_pact');assert.equal(draws[0][2],combatCenter(owner).x);assert.equal(draws[0][4],110);
  bridge.render({});assert.equal(draws.length,1,'foreground pass cannot obscure Warrior');
 });
 test('boss summon retains exactly60percent raster dimensions after cached async init',async()=>{
@@ -83,4 +84,18 @@ test('boss summon retains exactly60percent raster dimensions after cached async 
   assert.equal(actor.visual.width,definition.visual.width*.6);assert.equal(actor.visual.renderWidth,definition.visual.renderWidth*.6);assert.equal(actor.visual.renderHeight,definition.visual.renderHeight*.6);
   bridge.render({fillRect(){}});assert.equal(draws.length,1);assert.deepEqual(draws[0].slice(-2),[144,156]);
  } finally {if(prior)Monster.spriteCache[key]=prior;else delete Monster.spriteCache[key];}
+});
+
+test('charge body keeps input facing when destination passes its selected target',()=>{
+ const {bridge,owner}=fixture();owner.width=owner.height=48;bridge.controller.classId='warrior';bridge.motionSerial=0;bridge.syncVisuals=()=>{};
+ bridge.controller.skill=()=>{owner.x+=240;bridge.startActionMotion('skill',{slot:2,target:{x:100,y:34}});return true;};
+ assert.equal(bridge.skill(2,{x:100,y:34}),true);assert.equal(bridge.motion.direction,3);assert.equal(bridge.requestDirection,null);
+});
+
+test('near forward slash keeps center aim after moving visual origin to sword hand',()=>{
+ const owner={id:'anchor-fixture',x:100,y:100,width:48,height:48,classId:'warrior',hp:100,maxHp:100,attackPower:10,attackSpeed:1,direction:3};
+ globalThis.window={game:{ui:{},monsterManager:{monsters:new Map()},sceneManager:{currentScene:{remotePlayers:new Map()}}}};
+ const bridge=new ClassCombatBridge(owner,'warrior');bridge.syncVisuals=()=>{};
+ assert.equal(bridge.basic({x:142,y:124}),true);const effect=bridge.effects.find(e=>e.name==='warrior_slash');
+ assert.equal(effect.y,effect.target.y);assert.ok(effect.target.x>effect.x);assert.ok(effect.y<124);
 });

@@ -1,0 +1,61 @@
+{
+  "phases": [
+    {
+      "name": "camp",
+      "peak": 0.04105322062969208,
+      "rms": 0.011868097862515352,
+      "state": "running",
+      "bgm": "bgm_intro",
+      "muted": false,
+      "volume": 0.4
+    },
+    {
+      "name": "field-0",
+      "peak": 0.02674274519085884,
+      "rms": 0.009824002449832303,
+      "state": "running",
+      "bgm": "bgm_cabin",
+      "muted": false,
+      "volume": 0.4
+    },
+    {
+      "name": "touch-sfx-after-suspend-0",
+      "peak": 0.18350271880626678,
+      "rms": 0.018436393160218344,
+      "state": "running",
+      "bgm": "bgm_cabin",
+      "muted": false,
+      "volume": 0.4
+    },
+    {
+      "name": "field-1",
+      "peak": 0.03981805592775345,
+      "rms": 0.01250796636172152,
+      "state": "running",
+      "bgm": "bgm_cabin",
+      "muted": false,
+      "volume": 0.4
+    },
+    {
+      "name": "touch-sfx-after-suspend-1",
+      "peak": 0.18223664164543152,
+      "rms": 0.018435345444122432,
+      "state": "running",
+      "bgm": "bgm_cabin",
+      "muted": false,
+      "volume": 0.4
+    },
+    {
+      "name": "saved-mute-after-resume",
+      "peak": 0,
+      "rms": 0,
+      "state": "running",
+      "bgm": "bgm_intro",
+      "muted": true,
+      "volume": 0.17
+    }
+  ],
+  "errors": [],
+  "external": [],
+  "failed": []
+}

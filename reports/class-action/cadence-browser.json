@@ -29,6 +29,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -83,6 +84,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -132,6 +134,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -186,6 +189,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -235,6 +239,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -294,6 +299,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -343,6 +349,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -402,6 +409,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -451,6 +459,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -505,6 +514,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -554,6 +564,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -613,6 +624,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -662,6 +674,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -721,6 +734,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -770,6 +784,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -829,6 +844,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -878,6 +894,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -937,6 +954,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -986,6 +1004,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -1045,6 +1064,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -1099,6 +1119,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -1163,6 +1184,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -1217,6 +1239,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -1281,6 +1304,7 @@
         "motion": {
           "id": 0,
           "row": 1,
+          "direction": 1,
           "held": true,
           "age": 0,
           "duration": 0.4
@@ -1345,6 +1369,7 @@
       "initial": {
         "id": 1,
         "row": 0,
+        "direction": 1,
         "started": 0,
         "duration": 0.42,
         "age": 0,
@@ -1414,6 +1439,7 @@
       "initial": {
         "id": 1,
         "row": 0,
+        "direction": 3,
         "started": 0,
         "duration": 0.42,
         "age": 0,
@@ -1483,6 +1509,7 @@
       "initial": {
         "id": 1,
         "row": 0,
+        "direction": 3,
         "started": 0,
         "duration": 0.42,
         "age": 0,

@@ -1,3 +1,4 @@
+import { combatCenter } from '../combat/ClassAnchors.js';
 import { WARRIOR_GEOMETRY as WG } from '../combat/ClassGeometry.js';
 import ClassCombatBridge from '../combat/ClassCombatBridge.js';
 import { buildClassProfilePatch, normalizeClassId } from '../core/ClassProfiles.js';
@@ -296,11 +297,12 @@ export default class Player extends CharacterBase {
     startClassAction(action, pointer = null) {
         if (!this.classCombat || this.isDead || this.classCombat.paused() || this.classAim) return;
         if (window.game?.tutorial?.isActionAllowed?.(action) === false) return;
-        const nearest = this.classCombat.controller.enemies().filter(e => Math.hypot(e.x-this.x,e.y-this.y) <= 650)
-            .sort((a,b) => Math.hypot(a.x-this.x,a.y-this.y)-Math.hypot(b.x-this.x,b.y-this.y))[0];
-        const angle = nearest ? Math.atan2(nearest.y-this.y,nearest.x-this.x) : this.getCurrentFacingAngle();
+        const center=combatCenter(this);
+        const nearest = this.classCombat.controller.enemies().filter(e => Math.hypot(e.x-center.x,e.y-center.y) <= 650)
+            .sort((a,b) => Math.hypot(a.x-center.x,a.y-center.y)-Math.hypot(b.x-center.x,b.y-center.y))[0];
+        const angle = nearest ? Math.atan2(nearest.y-center.y,nearest.x-center.x) : this.getCurrentFacingAngle();
         this.classAim = { action, elapsed: 0, origin: pointer ? {x:pointer.clientX,y:pointer.clientY} : null,
-            x: nearest?.x ?? this.x+Math.cos(angle)*300, y: nearest?.y ?? this.y+Math.sin(angle)*300 };
+            x: nearest?.x ?? center.x+Math.cos(angle)*300, y: nearest?.y ?? center.y+Math.sin(angle)*300 };
     }
 
     moveClassAim(pointer) {
@@ -309,7 +311,8 @@ export default class Player extends CharacterBase {
         const dx=pointer.clientX-aim.origin.x,dy=pointer.clientY-aim.origin.y,len=Math.hypot(dx,dy);
         if (len < 10) return;
         const range=aim.action === 'ATTACK' ? 600 : Math.min(450,Math.max(60,len*4));
-        aim.x=this.x+dx/len*range;aim.y=this.y+dy/len*range;
+        const center=combatCenter(this);
+        aim.x=center.x+dx/len*range;aim.y=center.y+dy/len*range;
         this.facingAngle=Math.atan2(dy,dx);
     }
 
@@ -328,15 +331,16 @@ export default class Player extends CharacterBase {
 
     getClassAimGuide() {
         const a=this.classAim;if(!a)return null;
-        const angle=Math.atan2(a.y-this.y,a.x-this.x),basic=a.action==='ATTACK';
-        let range=Math.min(Math.hypot(a.x-this.x,a.y-this.y),basic?(this.classId==='witch'?560:650):450),width=basic?14:10;
+        const center=combatCenter(this);
+        const angle=Math.atan2(a.y-center.y,a.x-center.x),basic=a.action==='ATTACK';
+        let range=Math.min(Math.hypot(a.x-center.x,a.y-center.y),basic?(this.classId==='witch'?560:650):450),width=basic?14:10;
         let radius=basic?12:this.classId==='witch'&&a.action==='SKILL_1'?140:this.classId==='archer'&&a.action==='SKILL_3'?165:28,circle=false;
         if(this.classId==='warrior'){
             const g=basic?(a.elapsed>=.5?WG.heavy:WG.tap):a.action==='SKILL_2'?WG.charge:null;
             if(g){range=g.range;width=g.halfWidth;radius=0;}
             else {circle=true;radius=a.action==='SKILL_1'?WG.challenge.radius:WG.finale.radius;}
         }
-        return {originX:this.x,originY:this.y,targetX:this.x+Math.cos(angle)*range,targetY:this.y+Math.sin(angle)*range,
+        return {originX:center.x,originY:center.y,targetX:center.x+Math.cos(angle)*range,targetY:center.y+Math.sin(angle)*range,
             widthRadius:width,aoeRadius:radius,circle,exactWidth:this.classId==='warrior',variant:'blue_fireball'};
     }
 
