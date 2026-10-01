@@ -1,0 +1,50 @@
+{
+  "id": "witch",
+  "name": "위치",
+  "baseStats": {
+    "vitality": 1,
+    "intelligence": 3,
+    "wisdom": 2,
+    "agility": 1,
+    "hp": 35,
+    "maxHp": 35,
+    "mp": 30,
+    "maxMp": 30,
+    "atk": 7,
+    "def": 0,
+    "speed": 175,
+    "hpRegen": 0,
+    "mpRegen": 0
+  },
+  "growthStats": {
+    "hp": 10,
+    "mp": 10,
+    "atk": 1,
+    "def": 1
+  },
+  "visual": {
+    "assetPath": "assets/resource/classes/witch-runtime.webp",
+    "width": 64,
+    "height": 64,
+    "frameSpeed": 0.1,
+    "frameCount": 4
+  },
+  "skills": [
+    {
+      "id": "lifeDrain",
+      "levelReq": 1
+    },
+    {
+      "id": "poison",
+      "levelReq": 1
+    },
+    {
+      "id": "summon",
+      "levelReq": 1
+    },
+    {
+      "id": "berserk",
+      "levelReq": 1
+    }
+  ]
+}

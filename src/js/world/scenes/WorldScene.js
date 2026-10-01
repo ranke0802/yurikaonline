@@ -1,3 +1,4 @@
+import { projectClassProfile, attachClassProfile } from '../../core/ClassProfiles.js';
 import Scene from '../../core/Scene.js';
 import mountLocalSaveNotice from '../../local/LocalSaveNotice.js';
 import Logger from '../../utils/Logger.js';
@@ -162,7 +163,8 @@ export default class WorldScene extends Scene {
         this._campEntryIncomplete = true;
         this.player = null;
         const user = params.user;
-        const profile = params.profile || null;
+        const accountProfile = params.profile || null;
+        const profile = projectClassProfile(accountProfile);
         const localName = params.localName;
         this.ui?.showHUD();
         this.remotePlayers.clear();
@@ -207,11 +209,12 @@ export default class WorldScene extends Scene {
         // TODO: Select class based on user profile or selection
         let charDef = null;
         if (this.game.characterData) {
-            charDef = await this.game.characterData.loadDefinition('wizard');
+            charDef = await this.game.characterData.loadDefinition(profile?.activeClassId || 'wizard');
         }
 
         // Spawn Player
         this.player = new Player(startX, startY, localName, charDef);
+        attachClassProfile(this.player, accountProfile);
         this.player.id = user.uid;
         this.player.currentZoneId = initialZoneId;
         this.player.mapPositions = profile?.mapPositions && typeof profile.mapPositions === 'object'
@@ -1035,6 +1038,15 @@ export default class WorldScene extends Scene {
         });
 
         bindNetworkHandler('playerDamageReceived', (data) => {
+            if (data.meta?.summonId) {
+                if (data.tid === this.player?.id && data.aid === this.net.currentHostId && data.meta.monsterId) this.player.classCombat?.receiveSummonDamage(data.meta.summonId, data.dmg);
+                return;
+            }
+            if (data.meta?.classSupport) {
+                const sender = this.remotePlayers.get(data.aid);
+                if (data.tid === this.player?.id && data.dmg === 0 && sender && this.player.party?.members?.includes(sender.id) && this.player.party?.hostId && this.player.party.hostId === sender.party?.hostId) this.player.classCombat?.receiveSupport(data.meta.classSupport);
+                return;
+            }
             let target = (this.player && this.player.id === data.tid) ? this.player : this.remotePlayers.get(data.tid);
             if (target) {
                 this.game.addSpark(target.x + target.width / 2, target.y + target.height / 2);
@@ -1669,11 +1681,27 @@ export default class WorldScene extends Scene {
         // 1. World & Entities
         this.game.zone.render(ctx, this.camera);
 
+        this.player?.classCombat?.renderGround(ctx, this.camera);
         // Ground guides share a pass below every character/monster silhouette.
         // Drawing these inside one entity or after the Y-sort covers other bodies.
         this.monsterManager?.monsters.forEach(monster => {
             if (this.isOnScreen(monster)) monster.renderGroundGuides?.(ctx);
         });
+        // Input feedback stays in the ground pass; authored spell art is rendered separately.
+        const classAim = this.player?.classAim;
+        if (classAim) {
+            const player = this.player, basic = classAim.action === 'ATTACK';
+            const dx = classAim.x-player.x, dy = classAim.y-player.y, length = Math.hypot(dx,dy)||1;
+            const maxRange = basic ? (player.classId === 'warrior' ? 150 : player.classId === 'witch' ? 560 : 650) : 450;
+            const range = Math.min(maxRange,length);
+            SkillRenderer.drawFireballAimGuide(ctx, {
+                originX:player.x, originY:player.y,
+                targetX:player.x+dx/length*range, targetY:player.y+dy/length*range,
+                widthRadius:basic ? 14 : 10,
+                aoeRadius:basic ? 12 : player.classId === 'witch' && classAim.action === 'SKILL_1' ? 140 : player.classId === 'archer' && classAim.action === 'SKILL_3' ? 165 : 28,
+                variant:'blue_fireball'
+            });
+        }
         const fireballAimGuide = this.player?.getFireballAimGuide?.();
         if (fireballAimGuide) {
             SkillRenderer.drawFireballAimGuide(ctx, fireballAimGuide);
@@ -1748,6 +1776,7 @@ export default class WorldScene extends Scene {
         if (this.monsterManager) this.monsterManager.render(ctx, this.camera);
 
         // Effect Layers
+        this.player?.classCombat?.render(ctx, this.camera);
         this.projectiles.forEach(p => {
             if (this.isOnScreen(p)) {
                 p.render(ctx, this.camera);

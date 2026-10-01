@@ -1,0 +1,50 @@
+{
+  "id": "archer",
+  "name": "궁수",
+  "baseStats": {
+    "vitality": 1,
+    "intelligence": 3,
+    "wisdom": 2,
+    "agility": 1,
+    "hp": 28,
+    "maxHp": 28,
+    "mp": 30,
+    "maxMp": 30,
+    "atk": 8,
+    "def": 1,
+    "speed": 205,
+    "hpRegen": 0,
+    "mpRegen": 0
+  },
+  "growthStats": {
+    "hp": 10,
+    "mp": 10,
+    "atk": 1,
+    "def": 1
+  },
+  "visual": {
+    "assetPath": "assets/resource/classes/archer-runtime.webp",
+    "width": 64,
+    "height": 64,
+    "frameSpeed": 0.1,
+    "frameCount": 4
+  },
+  "skills": [
+    {
+      "id": "shot",
+      "levelReq": 1
+    },
+    {
+      "id": "trap",
+      "levelReq": 1
+    },
+    {
+      "id": "shadowLeap",
+      "levelReq": 1
+    },
+    {
+      "id": "rain",
+      "levelReq": 1
+    }
+  ]
+}

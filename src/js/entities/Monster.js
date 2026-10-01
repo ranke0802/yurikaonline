@@ -848,6 +848,35 @@ export default class Monster extends CharacterBase {
         };
     }
 
+    _getClassSummonTargets() {
+        const game = window.game;
+        const local = game?.localPlayer;
+        const targets = [...(local?.classCombat?.actors || [])];
+        const seen = new Set(targets.map(e => e.id));
+        const remotes = game?.sceneManager?.currentScene?.remotePlayers || game?.remotePlayers;
+        remotes?.forEach(owner => {
+            if (owner.isDead || game?.net?.isUserActivelyPresent?.(owner.id) === false) return;
+            for (const summon of owner.classSummons || []) {
+                if (!seen.has(summon.id)) { targets.push({...summon, ownerId:owner.id, isSummon:true}); seen.add(summon.id); }
+            }
+        });
+        return targets.filter(e => e.hp > 0 && !e.isDead);
+    }
+
+    _damageClassTarget(target, amount, effectType = null, effectDuration = 0, effectDamage = 0, meta = {}) {
+        const net = window.game?.net;
+        if (net && !net.isHost) return;
+        const packet = {...meta, monsterId:this.id, monsterType:this.typeId};
+        if (target.isSummon) {
+            if (target.ownerId === window.game?.localPlayer?.id) window.game.localPlayer.classCombat?.receiveSummonDamage(target.id,amount);
+            else net?.sendPlayerDamage(target.ownerId,amount,null,0,0,{...packet,summonId:target.id});
+        } else if (target.id?.startsWith('decoy:')) {
+            // Decoys spend the normal attack cooldown without creating damage packets.
+            return;
+        } else if (net) net.sendPlayerDamage(target.id,amount,effectType,effectDuration,effectDamage,packet);
+        else target.takeDamage?.(amount,false,false,this.x,this.y,null,effectType,effectDuration,effectDamage);
+    }
+
     _getBossMechanicTargets() {
         const targets = [];
         const seenIds = new Set();
@@ -878,6 +907,7 @@ export default class Monster extends CharacterBase {
                 protectedUntil: Number(player?.protectedUntil || 0)
             });
         });
+        targets.push(...this._getClassSummonTargets());
         return targets;
     }
 
@@ -1128,8 +1158,7 @@ export default class Monster extends CharacterBase {
             const target = this._getBossMechanicTargets().find((player) => player.id === ambush.targetId);
             if (target && !this._isProtectedPlayer(target)) {
                 const meta = { source: 'shadow_ambush', monsterId: this.id, monsterType: this.typeId };
-                if (window.game?.net) window.game.net.sendPlayerDamage(target.id, ambush.damage, 'confusion', 3, 0, meta);
-                else target.takeDamage?.(ambush.damage, false, false, this.x, this.y, null, 'confusion', 3, 0);
+                this._damageClassTarget(target, ambush.damage, 'confusion', 3, 0, meta);
             }
         }
         this.shadowAmbush = null;
@@ -1192,11 +1221,7 @@ export default class Monster extends CharacterBase {
                 monsterType: this.typeId,
                 mechanicId: telegraph.mechanicId
             };
-            if (window.game?.net?.isHost && window.game.net.connected) {
-                window.game.net.sendPlayerDamage(player.id, damage, null, 0, 0, meta);
-            } else if (typeof player.takeDamage === 'function') {
-                player.takeDamage(damage, false, false, this.x, this.y, null);
-            }
+            this._damageClassTarget(player, damage, null, 0, 0, meta);
         });
         if (!isPersistent) telegraph.resolved = true;
     }
@@ -1347,6 +1372,20 @@ export default class Monster extends CharacterBase {
         });
     }
 
+    applyClassStatus(status) {
+        const allowed = ['poison', 'root', 'stun', 'stagger', 'taunt', 'mark', 'berserk'];
+        if (!status || !allowed.includes(status.type)) return;
+        this.classStatuses ||= {};
+        const duration = Math.max(0, Math.min(15, Number(status.duration) || 0));
+        if (!duration) { if(!status.sourceId || !this.classStatuses[status.type]?.sourceId || this.classStatuses[status.type].sourceId === status.sourceId) delete this.classStatuses[status.type]; return; }
+        if(status.type === 'stun') delete this.classStatuses.poison;
+        this.classStatuses[status.type] = { remaining: duration, sourceId: typeof status.sourceId === 'string' ? status.sourceId : null,
+            slow: Math.max(0, Math.min(.8, Number(status.slow) || 0)),
+            stacks: Math.max(0, Math.min(5, Number(status.stacks) || 0)),
+            targetId: typeof status.targetId === 'string' ? status.targetId : null,
+            targetX: Number.isFinite(status.targetX) ? status.targetX : this.x, targetY: Number.isFinite(status.targetY) ? status.targetY : this.y };
+    }
+
     update(dt) {
         // v1.99.9: Hard cap on dt to prevent physics tunneling or explosions during lag
         const safeDt = Math.min(0.1, dt);
@@ -1374,6 +1413,16 @@ export default class Monster extends CharacterBase {
         if (isPaused) {
             this.vx = 0;
             this.vy = 0;
+            return;
+        }
+
+        for (const [type, status] of Object.entries(this.classStatuses || {})) {
+            status.remaining -= safeDt;
+            if (status.remaining <= 0) delete this.classStatuses[type];
+        }
+        if (!this.isDead && (this.classStatuses?.stun || this.classStatuses?.stagger)) {
+            this.vx = this.vy = 0;
+            this._advanceAnimation(safeDt);
             return;
         }
 
@@ -1498,6 +1547,7 @@ export default class Monster extends CharacterBase {
                         });
                     });
                 }
+                players.push(...this._getClassSummonTargets());
                 return players;
             };
 
@@ -1544,6 +1594,22 @@ export default class Monster extends CharacterBase {
             }
         }
 
+        const nearbySummon = this._getClassSummonTargets().filter(e => Math.hypot(e.x-this.x,e.y-this.y) <= this.aggroRange)
+            .sort((a,b) => Math.hypot(a.x-this.x,a.y-this.y)-Math.hypot(b.x-this.x,b.y-this.y))[0];
+        if (nearbySummon && (!this.targetPlayer || Math.hypot(nearbySummon.x-this.x,nearbySummon.y-this.y) < Math.hypot(this.targetPlayer.x-this.x,this.targetPlayer.y-this.y))) {
+            this.targetPlayer = nearbySummon; this.isAggro = true;
+        }
+        const tauntId = this.classStatuses?.taunt?.targetId;
+        if (tauntId) {
+            const local = window.game?.localPlayer;
+            const bridge = local?.classCombat;
+            const tauntTarget = local?.id === tauntId ? local
+                : bridge?.decoy?.id === tauntId ? bridge.decoy
+                : tauntId.startsWith('decoy:') ? {id:tauntId,x:this.classStatuses.taunt.targetX,y:this.classStatuses.taunt.targetY,hp:1}
+                : window.game?.sceneManager?.currentScene?.remotePlayers?.get?.(tauntId);
+            if (tauntTarget && !tauntTarget.isDead) { this.targetPlayer = tauntTarget; this.isAggro = true; }
+        }
+
         // 3. Movement Logic (Host Authority)
         if (window.game?.net?.isHost) {
             if (!isCharging && !isAmbushing) {
@@ -1576,11 +1642,7 @@ export default class Monster extends CharacterBase {
                             if (this.attackCooldown <= 0) {
                                 // Basic Attack
                                 const dmg = Math.ceil(this.atk * (0.8 + Math.random() * 0.4)); // 80% ~ 120% of ATK
-                                if (window.game?.net) {
-                                    window.game.net.sendPlayerDamage(target.id, dmg);
-                                } else {
-                                    target.takeDamage(dmg);
-                                }
+                                this._damageClassTarget(target, dmg);
 
                                 // Play Attack Sound
                                 if (this.sounds.attack && window.game?.sound) {
@@ -1688,6 +1750,7 @@ export default class Monster extends CharacterBase {
                     });
                 }
 
+                players.push(...this._getClassSummonTargets());
                 players.forEach(p => {
                     if (this.chargeState !== 'charging') return;
                     const point = this._getPointFromEntity(p);
@@ -1701,11 +1764,7 @@ export default class Monster extends CharacterBase {
                         if (!Number.isFinite(this.chargeDamage) && this.typeId === 'slime_split') dmg = 30;
                         if (!Number.isFinite(this.chargeDamage) && this.typeId === 'king_slime') dmg = 50;
 
-                        if (window.game?.net) {
-                            window.game.net.sendPlayerDamage(p.id, dmg);
-                        } else {
-                            p.takeDamage(dmg);
-                        }
+                        this._damageClassTarget(p, dmg);
 
                         // Knockback Player
                         // Since Player knockback is typically client-side or handled by 'force' in damage packet?
@@ -1784,6 +1843,8 @@ export default class Monster extends CharacterBase {
             }
         }
 
+        if (this.classStatuses?.poison) { const factor = 1 - this.classStatuses.poison.slow; this.x = previousX + (this.x-previousX)*factor; this.y = previousY + (this.y-previousY)*factor; }
+        if (this.classStatuses?.root) { this.x = previousX; this.y = previousY; this.vx = this.vy = 0; }
         this._updateAtlasAnimationFromMovement(previousX, previousY);
         this._advanceAnimation(dt);
 
@@ -1858,6 +1919,20 @@ export default class Monster extends CharacterBase {
 
     takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null, damageMeta = null) {
         if (this.isDead || window.game?.monsterManager?.isMonsterCombatBlocked?.()) return false;
+        if (damageMeta?.classMove && Number(amount) === 0) {
+            const {x,y}=damageMeta.classMove;
+            if(this.isBoss || !Number.isFinite(x) || !Number.isFinite(y) || Math.hypot(x-this.x,y-this.y)>100)return false;
+            const scene=window.game?.sceneManager?.currentScene;
+            const dx=x-this.x,dy=y-this.y,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/10));
+            for(let i=1;i<=steps;i++) if(scene?.checkCollision?.(this.x+dx*i/steps,this.y+dy*i/steps,this.width,this.height)) {
+                this.applyClassStatus({type:'stun',duration:1.5});return false;
+            }
+            this.x=x;this.y=y;return true;
+        }
+        if (damageMeta?.classStatus && Number(amount) === 0) {
+            this.applyClassStatus(damageMeta.classStatus);
+            return true;
+        }
         this.lastHitAt = Date.now();
         this.lastNetworkEventAt = this.lastHitAt;
         const suppressTransientEffects = !!window.game?.shouldSuppressTransientWorldEffects?.();

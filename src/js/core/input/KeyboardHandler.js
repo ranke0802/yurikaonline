@@ -88,7 +88,7 @@ export default class KeyboardHandler extends EventEmitter {
     resetState() {
         const actions = new Set(this.pressedKeys.values());
         this.pressedKeys.clear();
-        actions.forEach(action => this.emit('actionUp', action));
+        actions.forEach(action => { this.emit('aimCancel', {action}); this.emit('actionUp', action); });
     }
 
     _onKeyDown(e) {

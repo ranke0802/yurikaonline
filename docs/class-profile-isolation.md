@@ -1,0 +1,19 @@
+# Single controlled class profile storage
+
+The original root progression and root equipment remain the Mage (`wizard`) record. Missing or unknown `activeClassId` reads as Mage. Opening a legacy account never migrates or rewrites its existing progression.
+
+`classProfiles.witch`, `.warrior`, and `.archer` contain independent level, experience, allocated stats, skill levels, equipment, HP/MP, and saved field position. New classes begin at level 1 without equipment. Inventory, currency, reward receipts, account identity, quest flags, and UI preferences remain shared. Summons and temporary combat buffs must never enter either persistent record.
+
+`projectClassProfile` supplies the active view. `attachClassProfile` attaches persistence metadata to each live/preparation Player. Every live Player durable write must pass through `buildClassProfilePatch` before reaching the existing NetworkManager writer. Do not apply the adapter inside `_buildProfilePatchFromFields`: CampPreparation compares its plain field snapshots to acknowledge dirty mutations.
+
+Switching occurs in camp, after pending preparation mutations and journals have flushed. The active ID uses the existing durable patch writer, then camp rereads the committed profile and reconstructs its Player. Failure leaves progression intact and shows the existing save status. A successful non-Mage patch supplies a complete active-class snapshot so the existing shallow RTDB object merge cannot erase its omitted personal fields. Existing Mage root writes retain their format.
+
+Equipment still moves between the shared inventory and the selected character's equipment slot; it is never cloned into another character's possession. Recovery inventory scoring includes all class equipment, preventing a legitimate equip operation from appearing to destroy account assets. Regression rollback preserves class profile metadata. The Firebase transaction listener lifecycle is unchanged.
+
+Verification: `node --test scripts/validate-class-profiles.mjs` covers legacy fallback, invalid IDs, new-class initialization, switch/reentry, HP-only patch preservation, Mage progression preservation, and item ownership scoring. Existing `scripts/validate-camp-online-save.mjs` also passes including cache-eviction listener regressions.
+
+Remote presence projects selected-class progression/equipment without mutating canonical account data and carries `activeClassId`. New class default skill keys and camp result names come from `ClassSkillUI`. Live summons use a separate session-only presence array (at most three); `syncClassSummons` throttles changed snapshots to 250 ms. Support inbox events require same-party evidence and zero damage; summon damage requires current monster-host identity plus monster ID. Neither event falls through to owner damage.
+
+Additional verification: inactive equipment ownership, selected remote presence, and party/host support routing bring the class fixture to 7 passing tests. The actual Firebase 10.7.1 loopback SDK regression also passes after clearing HTTP proxy variables for that command: v129 cache-eviction failure reproduced, retained listener commits exactly once and clean reentry writes nothing. Dependencies are isolated under `/tmp/yurika-sdk-fixture`; repository dependencies are unchanged.
+
+Two-client routing regression: `node --test scripts/validate-class-online-routing.mjs` passes 4 cases using actual NetworkManager inbox send/receive methods, Monster target routing, Bridge summon reception, and MonsterManager echo handling with an isolated in-memory transport. It verifies remote host authority, local host direct damage, no owner damage or duplicate sender echo, cross-party/self-support rejection, no empty-Mage summon writes, and immediate forced exit clearing even within the 250 ms throttle. Compact presence packets are not projected as account profiles a second time.

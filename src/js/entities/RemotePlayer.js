@@ -1,4 +1,5 @@
 import CharacterBase from './core/CharacterBase.js';
+import Monster from './Monster.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
 import SkillRenderer from '../skills/renderers/SkillRenderer.js';
@@ -68,6 +69,8 @@ export default class RemotePlayer extends CharacterBase {
         // v2.1: Initialization Flag
         this.initialized = false;
 
+        this.resourceManager = resourceManager;
+        this.activeClassId = 'wizard';
         this._loadSpriteSheet(resourceManager);
 
         // Cache Projectile import
@@ -193,9 +196,12 @@ export default class RemotePlayer extends CharacterBase {
     async _loadSpriteSheet(res) {
         if (!res) return;
         try {
-            const sheetCanvas = await res.loadCharacterSpriteSheet();
+            const classId = this.activeClassId || 'wizard';
+            const sheetCanvas = classId === 'wizard' ? await res.loadCharacterSpriteSheet()
+                : await res.loadImage(`assets/resource/classes/${classId}-runtime.webp`);
+            if ((this.activeClassId || 'wizard') !== classId) return;
             this.sprite = new Sprite(sheetCanvas, 8, 5);
-            this.frameCounts = { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 };
+            this.frameCounts = classId === 'wizard' ? { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 } : {0:4,1:4,2:4,3:4,4:4};
         } catch (e) {
             Logger.error("Failed to load character sprite sheet for RemotePlayer:", e);
         }
@@ -203,6 +209,11 @@ export default class RemotePlayer extends CharacterBase {
 
     // Phase 1: Enhanced server update with adaptive delay calculation
     onServerUpdate(packet) {
+        if (['wizard','witch','warrior','archer'].includes(packet.activeClassId) && packet.activeClassId !== this.activeClassId) {
+            this.activeClassId = packet.activeClassId;
+            this._loadSpriteSheet(this.resourceManager);
+        }
+        if (Array.isArray(packet.classSummons)) this.classSummons = packet.classSummons.slice(0,3).filter(e => e && typeof e.id === 'string' && e.id.startsWith(`summon:${this.id}:`) && Number.isFinite(e.x) && Number.isFinite(e.y) && e.hp > 0).map(e => ({...e,ownerId:this.id,isSummon:true}));
         const now = Date.now();
 
         // Update profile fields (v0.00.70: 조기 반환 이전에 처리)
@@ -717,6 +728,16 @@ export default class RemotePlayer extends CharacterBase {
     }
 
     _updateAnimation(dt) {
+        if (['witch','warrior','archer'].includes(this.activeClassId)) {
+            const previous=this._classAnimationPosition;
+            const distance=previous ? Math.hypot(this.x-previous.x,this.y-previous.y) : 0;
+            this._classAnimationPosition={x:this.x,y:this.y};
+            if(this.state === 'attack') this.animTimer=(this.animTimer+dt*10)%4;
+            else if(this.state === 'move') this.animTimer=(this.animTimer+Math.min(distance,24)/24)%4;
+            else this.animTimer=0;
+            this.animFrame=Math.floor(this.animTimer)%4;
+            return;
+        }
         let row = this.direction;
         if (this.state === 'attack') {
             row = 4; // Attack Row
@@ -736,7 +757,28 @@ export default class RemotePlayer extends CharacterBase {
         }
     }
 
+    renderClassSummons(ctx) {
+        this.summonVisuals ||= new Map();
+        const liveIds = new Set((this.classSummons || []).map(e => e.id));
+        for (const id of this.summonVisuals.keys()) if(!liveIds.has(id))this.summonVisuals.delete(id);
+        for (const actor of this.classSummons || []) {
+            if(!this.summonVisuals.has(actor.id)) {
+                this.summonVisuals.set(actor.id,null);
+                window.game?.monsterData?.loadDefinition(actor.typeId).then(def => {
+                    if(!def || !this.summonVisuals.has(actor.id))return;
+                    const visual=new Monster(actor.x,actor.y,def),scale=visual.isBoss?.6:1;
+                    visual.width*=scale;visual.height*=scale;if(visual.renderWidth)visual.renderWidth*=scale;if(visual.renderHeight)visual.renderHeight*=scale;
+                    visual.isBoss=false;visual.init(visual.assetPath);this.summonVisuals.set(actor.id,visual);
+                }).catch(()=>{});
+            }
+            const v=this.summonVisuals.get(actor.id);if(!v?.sprite)continue;
+            const width=v.renderWidth||v.width,height=v.renderHeight||v.height;
+            v.sprite.draw(ctx,v.usesV2Atlas?v.animationRow:0,Math.floor(Date.now()/180)%Math.max(1,v.frameCount),actor.x-width/2,actor.y-height/2,width,height);
+        }
+    }
+
     render(ctx, camera) {
+        this.renderClassSummons(ctx);
         // v0.28.8: Ultimate Safety Check - Prevent disappearing due to NaN
         if (isNaN(this.x) || isNaN(this.y)) {
             // Try to recover from targetX/Y or packet buffer, otherwise 0

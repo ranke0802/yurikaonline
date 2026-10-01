@@ -155,8 +155,14 @@ export default class TouchHandler extends EventEmitter {
         return e;
     }
 
+    isAimAction(action) {
+        const player=window.game?.localPlayer || window.game?.player || window.game?.sceneManager?.currentScene?.player;
+        return player?.classId && player.classId !== 'wizard'
+            ? ['ATTACK','SKILL_1','SKILL_2','SKILL_3'].includes(action) : action === 'SKILL_2';
+    }
+
     _startAimActionTracking(e, action) {
-        if (action !== 'SKILL_2') return;
+        if (!this.isAimAction(action)) return;
         const pointer = this._getPointerFromEvent(e, null, true);
         if (!pointer) return;
 
@@ -237,7 +243,7 @@ export default class TouchHandler extends EventEmitter {
                 if (!pointer) return;
                 const pointerId = pointer?.identifier ?? 'mouse';
 
-                if (action === 'SKILL_2') {
+                if (this.isAimAction(action)) {
                     this._startAimActionTracking(e, action);
                     this.emit('aimStart', {
                         action,
@@ -403,8 +409,9 @@ export default class TouchHandler extends EventEmitter {
         });
 
         if (this.activeAimAction) {
+            const action=this.activeAimAction.action;
             this._clearAimActionTracking();
-            this.emit('aimCancel', { action: 'SKILL_2' });
+            this.emit('aimCancel', { action });
         }
     }
 

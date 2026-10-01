@@ -1,3 +1,4 @@
+import { projectClassProfile, attachClassProfile, buildClassProfilePatch } from './ClassProfiles.js';
 import Player from '../entities/Player.js';
 
 const copy = value => value == null ? value : JSON.parse(JSON.stringify(value));
@@ -6,6 +7,8 @@ const FIELDS = new Set(['inventory', 'equipment', 'manastone', 'skillLevels', 'v
 /** A real Player for preparation, without input, simulation, party or world writes. */
 export default class CampPreparation {
     constructor(game, user, profile, definition, onStatus = () => {}) {
+        const accountProfile = profile;
+        profile = projectClassProfile(accountProfile);
         this.game = game;
         this.user = user;
         this.onStatus = onStatus;
@@ -21,6 +24,7 @@ export default class CampPreparation {
         for (const key of ['level', 'exp', 'maxExp', 'manastone', 'vitality', 'intelligence', 'wisdom', 'agility', 'statPoints', 'skillLevels', 'autoAttackEnabled', 'uiLayout', 'clientSettings', 'questData', 'questState', 'itemCooldowns', 'currentZoneId', 'mapPositions', 'recoveryUid', 'pendingItemRewards', 'claimedRewardIds']) {
             if (profile[key] !== undefined) p[key] = copy(profile[key]);
         }
+        attachClassProfile(p, accountProfile);
         p.id = user.uid;
         // Never call Player.init: camp must not bind attacks, publish presence or drain rewards.
         p.normalizeInventoryState(copy(profile.inventory), copy(profile.equipment));
@@ -83,7 +87,7 @@ export default class CampPreparation {
         // must still clear dirty state; retry must not submit the same mutation again.
         const operation = this.commitTail.then(async () => {
             try {
-                const result = await this.game.net.savePlayerDataPatch(this.user.uid, patch, {
+                const result = await this.game.net.savePlayerDataPatch(this.user.uid, buildClassProfilePatch(this.player, patch), {
                     debounceMs: 0, forceImmediate: true, syncToZone: false,
                     checkpointPolicy: 'durable', syncRecoveryProfile: false,
                     saveReason: options.reason || 'camp_preparation'

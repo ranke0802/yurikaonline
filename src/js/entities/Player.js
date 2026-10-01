@@ -1,3 +1,6 @@
+import ClassCombatBridge from '../combat/ClassCombatBridge.js';
+import { buildClassProfilePatch, normalizeClassId } from '../core/ClassProfiles.js';
+import { classSkillIds, classSkillMaxLevel } from '../ui/ClassSkillUI.js';
 import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
 import { Sprite } from '../core/Sprite.js';
@@ -52,6 +55,8 @@ export default class Player extends CharacterBase {
         this.spawnX = x;
         this.spawnY = y;
         this.type = 'player'; // v1.99.38: Explicit type
+        this.classId = normalizeClassId(definition?.id);
+        this.activeClassId = this.classId;
         this.definition = definition; // Save for growth ref
 
         // Stats (Base) - Loaded from JSON or Default
@@ -124,12 +129,7 @@ export default class Player extends CharacterBase {
         this.party = { members: [], hostId: null, mode: 'solo', fieldId: null };
         this.partyInvite = null; // { senderId, senderName, ts }
 
-        this.skillLevels = {
-            laser: 1,
-            missile: 1,
-            fireball: 1,
-            shield: 1
-        };
+        this.skillLevels = Object.fromEntries(classSkillIds(this).map(id => [id, 1]));
         this.skillCooldowns = { j: 0, h: 0, u: 0, k: 0 };
         this.skillMaxCooldowns = { j: 0, h: 0, u: 0, k: 0 };
         this.uiLayout = null;
@@ -222,6 +222,8 @@ export default class Player extends CharacterBase {
             this.setPartyState(this.party, false, { save: false });
         }
 
+        this.classId = normalizeClassId(this.activeClassId || this.classId);
+        this.initializeClassCombat();
         this._loadSpriteSheet(resourceManager);
 
         // Bind input actions to methods
@@ -234,6 +236,7 @@ export default class Player extends CharacterBase {
             // Cancel Click-to-Move on any action
             this.moveTarget = null;
 
+            if (this.isClassAction(action)) { this.startClassAction(action); return; }
             if (action === 'ATTACK') this.attack();
             if (action === 'TOGGLE_AUTO_ATTACK') this.toggleAutoAttack();
             if (action === 'SKILL_1') this.useSkill(1);
@@ -243,24 +246,29 @@ export default class Player extends CharacterBase {
         });
 
         bindInput('keyup', (action) => {
+            if (this.isClassAction(action)) { this.releaseClassAction(action); return; }
             if (action === 'SKILL_2') this.releaseFireballAim();
         });
 
         bindInput('aimStart', (data) => {
+            if (this.isClassAction(data?.action)) { this.startClassAction(data.action, data); return; }
             if (data?.action === 'SKILL_2') this.startFireballAim(data);
         });
 
         bindInput('aimMove', (data) => {
+            if (this.isClassAction(data?.action)) { this.moveClassAim(data); return; }
             if (data?.action === 'SKILL_2' && this.fireballAimActive) {
                 this.updateFireballAimGuideFromScreenPoint(data.clientX, data.clientY);
             }
         });
 
         bindInput('aimEnd', (data) => {
+            if (this.isClassAction(data?.action)) { this.releaseClassAction(data.action); return; }
             if (data?.action === 'SKILL_2') this.releaseFireballAim();
         });
 
         bindInput('aimCancel', (data) => {
+            if (this.isClassAction(data?.action)) { this.classAim = null; return; }
             if (data?.action === 'SKILL_2') this.cancelFireballAim();
         });
 
@@ -272,7 +280,67 @@ export default class Player extends CharacterBase {
 
     }
 
+    isClassAction(action) {
+        return this.classId !== 'wizard' && ['ATTACK', 'SKILL_1', 'SKILL_2', 'SKILL_3'].includes(action);
+    }
+
+    initializeClassCombat() {
+        this.classCombat?.dispose();
+        this.classCombat = new ClassCombatBridge(this, this.classId);
+        this.classAim = null;
+        if (this.classId !== 'wizard') this.autoAttackEnabled = false;
+    }
+
+    startClassAction(action, pointer = null) {
+        if (!this.classCombat || this.isDead || this.classCombat.paused() || this.classAim) return;
+        if (window.game?.tutorial?.isActionAllowed?.(action) === false) return;
+        const nearest = this.classCombat.controller.enemies().filter(e => Math.hypot(e.x-this.x,e.y-this.y) <= 650)
+            .sort((a,b) => Math.hypot(a.x-this.x,a.y-this.y)-Math.hypot(b.x-this.x,b.y-this.y))[0];
+        const angle = nearest ? Math.atan2(nearest.y-this.y,nearest.x-this.x) : this.getCurrentFacingAngle();
+        this.classAim = { action, elapsed: 0, origin: pointer ? {x:pointer.clientX,y:pointer.clientY} : null,
+            x: nearest?.x ?? this.x+Math.cos(angle)*300, y: nearest?.y ?? this.y+Math.sin(angle)*300 };
+    }
+
+    moveClassAim(pointer) {
+        const aim=this.classAim;
+        if (!aim?.origin) return;
+        const dx=pointer.clientX-aim.origin.x,dy=pointer.clientY-aim.origin.y,len=Math.hypot(dx,dy);
+        if (len < 10) return;
+        const range=aim.action === 'ATTACK' ? 600 : Math.min(450,Math.max(60,len*4));
+        aim.x=this.x+dx/len*range;aim.y=this.y+dy/len*range;
+        this.facingAngle=Math.atan2(dy,dx);
+    }
+
+    releaseClassAction(action) {
+        const aim=this.classAim;
+        if (!aim || aim.action !== action) return false;
+        this.classAim=null;
+        if (this.isDead || this.classCombat?.paused()) return false;
+        const threshold=this.classId === 'archer' && this.classCombat.controller.empowered ? .2 : .5;
+        const result=action === 'ATTACK'
+            ? this.classCombat.basic({x:aim.x,y:aim.y,aimed:aim.elapsed>=threshold})
+            : this.useSkill(Number(action.slice(-1)),{x:aim.x,y:aim.y});
+        if (result) { this.skillAttackTimer=.4; this.isAttacking=true; this.animTimer=0; this.state='attack'; window.game?.tutorial?.trigger?.(action === 'ATTACK' ? 'attack' : 'skill_use',{target:action === 'ATTACK' ? 'normal' : classSkillIds(this)[Number(action.slice(-1))]}); }
+        return result;
+    }
+
+    getClassAimGuide() {
+        const a=this.classAim;
+        if (!a) return null;
+        const angle=Math.atan2(a.y-this.y,a.x-this.x);
+        const aoeRadius=this.classId === 'witch' ? (a.action === 'SKILL_1' ? 140 : 95)
+            : this.classId === 'archer' ? (a.action === 'SKILL_3' ? 165 : a.action === 'SKILL_1' ? 36 : 18) : 48;
+        return {originX:this.x,originY:this.y,targetX:a.x,targetY:a.y,angle,
+            range:Math.hypot(a.x-this.x,a.y-this.y),widthRadius:this.classId === 'warrior' ? 48 : 16,aoeRadius};
+    }
+
+    getEffectiveClassAttackPower() { return this.attackPower * (this.classCombat?.multipliers().attack || 1); }
+    getEffectiveClassAttackSpeed() { return this.attackSpeed * (this.classCombat?.multipliers().attackSpeed || 1); }
+
     detachInput() {
+        this.classAim = null;
+        this.classCombat?.dispose();
+        this.classCombat = null;
         (this._inputBindings || []).forEach(({ eventName, handler }) => {
             this.input?.off?.(eventName, handler);
         });
@@ -283,11 +351,13 @@ export default class Player extends CharacterBase {
         if (!res) return;
 
         try {
-            const sheetCanvas = await res.loadCharacterSpriteSheet();
+            const sheetCanvas = this.classId !== 'wizard'
+                ? await res.loadImage(`assets/resource/classes/${this.classId}-runtime.webp`)
+                : await res.loadCharacterSpriteSheet();
             // Max Frames 8, Rows 5 (Back, Front, Left, Right, Attack)
             this.sprite = new Sprite(sheetCanvas, 8, 5);
             // Frame counts per row (0:Back, 1:Front, 2:Left, 3:Right, 4:Attack)
-            this.frameCounts = { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 };
+            this.frameCounts = this.classId !== 'wizard' ? {0:4,1:4,2:4,3:4,4:4} : { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 };
 
             // Update UI portraits with the new transparent sheet
             if (window.game && window.game.ui) {
@@ -300,6 +370,14 @@ export default class Player extends CharacterBase {
     }
 
     update(dt) {
+        if (this.classCombat?.controller.disposed && !this.isDead && !this.isDying && !window.game?.sceneManager?.currentScene?.isZoneTransitioning) this.initializeClassCombat();
+        if (this.classCombat) {
+            if (this.isDead || this.isDying) { this.classAim=null; this.classCombat.dispose(); }
+            else if (!this.classCombat.paused()) {
+                if (this.classAim) this.classAim.elapsed += Math.max(0,dt);
+                this.classCombat.update(dt);
+            }
+        }
         // v0.28.0: Handle Death Timer even if isDead is true
         if (this.isDying) {
             this.cancelFireballAim();
@@ -339,6 +417,11 @@ export default class Player extends CharacterBase {
             }
         }
         this._updateCooldowns(dt);
+        if (this.classCombat && this.classId !== 'wizard') {
+            const c=this.classCombat.controller;
+            this.skillCooldowns.j=Math.max(0,c.basicReady-c.time);
+            for (const [slot,key] of [[1,'h'],[2,'u'],[3,'k']]) this.skillCooldowns[key]=Math.max(0,(c.cooldowns[slot]||0)-c.time);
+        }
         this._updateAnimation(dt);
         this._handleRegen(dt);
 
@@ -352,7 +435,7 @@ export default class Player extends CharacterBase {
             && !isFireballAimBlockingAutoAttack
             && this.autoAttackEnabled
             && !!autoTarget;
-        if (this.skillAttackTimer <= 0) {
+        if (this.classId === 'wizard' && this.skillAttackTimer <= 0) {
             if (isManualAttackPressed || shouldAutoAttack) {
                 this.performLaserAttack(dt);
             } else {
@@ -834,7 +917,7 @@ export default class Player extends CharacterBase {
 
             const runMult = (this.isRunning || this.turnGraceTimer > 0) ? 1.3 : 1.0;
             const channelMoveMultiplier = allowLaserChannelMove ? 0.4 : 1.0;
-            const finalSpeed = this.speed * runMult * channelMoveMultiplier;
+            const finalSpeed = this.speed * runMult * channelMoveMultiplier * (this.classCombat?.multipliers().move || 1);
 
             this.vx = vx * finalSpeed;
             this.vy = vy * finalSpeed;
@@ -897,6 +980,18 @@ export default class Player extends CharacterBase {
     }
 
     _updateAnimation(dt) {
+        if (['witch','warrior','archer'].includes(this.classId)) {
+            const previous=this._classAnimationPosition;
+            const distance=previous ? Math.hypot(this.x-previous.x,this.y-previous.y) : 0;
+            this._classAnimationPosition={x:this.x,y:this.y};
+            // Four authored contact/passing poses. Advance by travelled ground distance,
+            // not run-state multipliers, so slow/buff movement does not skate in place.
+            if (this.isAttacking) this.animTimer=(this.animTimer+dt*10)%4;
+            else if (this.state === 'move') this.animTimer=(this.animTimer+Math.min(distance,24)/24)%4;
+            else this.animTimer=0;
+            this.animFrame=Math.floor(this.animTimer)%4;
+            return;
+        }
         // Determine Row
         let row = this.direction;
         if (this.isAttacking) {
@@ -972,7 +1067,7 @@ export default class Player extends CharacterBase {
     getEffectiveBasicAttackSpeed() {
         const safeWisdom = Math.max(0, Number(this.wisdom || 0));
         const wisdomBonus = safeWisdom * 0.05;
-        return Math.max(0.1, this.attackSpeed + wisdomBonus);
+        return Math.max(0.1, (this.attackSpeed + wisdomBonus) * (this.classCombat?.multipliers().attackSpeed || 1));
     }
 
     updateDerivedStats(options = {}) {
@@ -1028,12 +1123,7 @@ export default class Player extends CharacterBase {
             bossQuestClaimed: false,
             bossClearCount: 0
         };
-        this.skillLevels = {
-            laser: 1,
-            missile: 1,
-            fireball: 1,
-            shield: 1
-        };
+        this.skillLevels = Object.fromEntries(classSkillIds(this).map(id => [id, 1]));
 
         this.refreshStats();
         this.hp = this.maxHp;
@@ -1096,7 +1186,9 @@ export default class Player extends CharacterBase {
         // v0.00.40: Apply defense reduction (Monsters send raw damage, so we subtract it here)
         // For PvP, damage might be pre-reduced, but currently monster damage is raw.
         const def = this.defense || 0;
-        let finalDmg = Math.max(1, Math.ceil(validAmount - def)); // Minimum 1 damage
+        let finalDmg = Math.max(1, Math.ceil(validAmount - def));
+        if (this.classCombat) finalDmg = Math.ceil(this.classCombat.modifyIncomingDamage(finalDmg));
+        if (finalDmg <= 0) return 0; // Minimum 1 damage
 
         this.hp = Math.max(0, this.hp - finalDmg);
         if (window.game && !suppressTransientEffects) {
@@ -1207,6 +1299,8 @@ export default class Player extends CharacterBase {
     }
 
     die() {
+        this.classAim = null;
+        this.classCombat?.dispose();
         this.isDead = true;
         this.state = 'die';
         this.hp = 0;
@@ -1305,7 +1399,7 @@ export default class Player extends CharacterBase {
                 ? Object.keys(data.questState.completed).length
                 : 0
         });
-        return this.net.savePlayerData(this.id, data, syncToWorld, {
+        return this.net.savePlayerData(this.id, buildClassProfilePatch(this, data), syncToWorld, {
             debounceMs: profileSaveDebounceMs,
             forceImmediate: options.forceImmediate === true || !!syncToWorld,
             saveReason: options.reason || 'player_save',
@@ -1480,7 +1574,7 @@ export default class Player extends CharacterBase {
         if (Object.prototype.hasOwnProperty.call(options, 'expectedRevision')) {
             saveOptions.expectedRevision = options.expectedRevision;
         }
-        return this.net.savePlayerDataPatch(this.id, patch, saveOptions);
+        return this.net.savePlayerDataPatch(this.id, buildClassProfilePatch(this, patch), saveOptions);
     }
 
     saveProfilePosition(options = {}) {
@@ -1525,7 +1619,7 @@ export default class Player extends CharacterBase {
         this.wisdom = base.wisdom || 2;
         this.agility = base.agility || 1;
 
-        this.skillLevels = { laser: 1, missile: 1, fireball: 1, shield: 1 };
+        this.skillLevels = Object.fromEntries(classSkillIds(this).map(id => [id, 1]));
 
         // Recalculate derived stats
         this.refreshStats();
@@ -1590,6 +1684,7 @@ export default class Player extends CharacterBase {
     }
 
     attack() {
+        if (this.classId !== 'wizard') { this.startClassAction('ATTACK'); return this.releaseClassAction('ATTACK'); }
         if (!window.game?.tutorial?.isActionAllowed?.('ATTACK')) return;
         window.game?.tutorial?.trigger?.('attack', { target: 'normal' });
         // Handled by update loop for channeling
@@ -1882,6 +1977,7 @@ export default class Player extends CharacterBase {
     }
 
     toggleAutoAttack(force = null, options = {}) {
+        if (this.classId !== 'wizard') { this.autoAttackEnabled=false; return false; }
         const nextState = typeof force === 'boolean' ? force : !this.autoAttackEnabled;
         const shouldPersist = options.persist !== false;
         const shouldNotify = options.notify !== false;
@@ -2031,7 +2127,7 @@ export default class Player extends CharacterBase {
                     let targetDamageAccepted = true;
                     // v0.00.40: Damage formula: (Skill Damage - Defense), min 1
                     // Then apply crit multiplier to reduced damage
-                    const baseDmg = Math.ceil(this.attackPower * finalDmgRatio * (1 + (weaponCombat.laserDamageBonus || 0)));
+                    const baseDmg = Math.ceil(this.getEffectiveClassAttackPower() * finalDmgRatio * (1 + (weaponCombat.laserDamageBonus || 0)));
                     const targetDef = nextTarget.defense || 0;
                     let dmg = Math.max(1, baseDmg - targetDef);
                     let isCrit = Math.random() < this.critRate;
@@ -2107,6 +2203,18 @@ export default class Player extends CharacterBase {
     }
 
     useSkill(slot, castOptions = null) {
+        if (this.classId !== 'wizard') {
+            if (![1,2,3].includes(slot) || this.isDead || !this.classCombat) return false;
+            if (window.game?.tutorial?.isActionAllowed?.(`SKILL_${slot}`) === false) return false;
+            const key={1:'h',2:'u',3:'k'}[slot], id=classSkillIds(this)[slot];
+            const target=castOptions || {x:this.x+Math.cos(this.getCurrentFacingAngle())*240,y:this.y+Math.sin(this.getCurrentFacingAngle())*240};
+            const result=this.classCombat.skill(slot,{...target,level:this.skillLevels[id]||1});
+            if (result) {
+                this.skillMaxCooldowns[key]=this.classCombat.controller.cooldowns[slot]-this.classCombat.controller.time; this.skillCooldowns[key]=this.skillMaxCooldowns[key];
+                if (this.hp <= 0 && !this.isDead) this.die();
+            }
+            return result;
+        }
         if (this.isDead || !window.game) return;
         const tutorialAction = { 1: 'SKILL_1', 2: 'SKILL_2', 3: 'SKILL_3', 4: 'SKILL_4' }[slot];
         if (tutorialAction && !window.game?.tutorial?.isActionAllowed?.(tutorialAction)) return;
@@ -2194,7 +2302,7 @@ export default class Player extends CharacterBase {
                         const vy = Math.sin(angle) * burstSpeed;
 
                         // v0.00.32: Balance Update (Damage 45%)
-                        let dmg = this.attackPower * 0.45 * (1 + (weaponCombat.missileDamageBonus || 0));
+                        let dmg = this.getEffectiveClassAttackPower() * 0.45 * (1 + (weaponCombat.missileDamageBonus || 0));
                         Logger.debug(`[MissileDMG] AP:${this.attackPower} x0.45 = ${dmg}`);
                         let isCrit = Math.random() < this.critRate;
                         if (isCrit) dmg *= 2;
@@ -2313,7 +2421,7 @@ export default class Player extends CharacterBase {
                 const speed = 800;
                 const vx = Math.cos(angle) * speed;
                 const vy = Math.sin(angle) * speed;
-                const dmg = Math.ceil(this.attackPower * (1.8 + (lv - 1) * 0.3)); // v1.99.31: 180% + 30% per level
+                const dmg = Math.ceil(this.getEffectiveClassAttackPower() * (1.8 + (lv - 1) * 0.3)); // v1.99.31: 180% + 30% per level
                 const baseRad = this.getFireballProjectileRadius(lv);
                 const aoeRad = this.getFireballAoeRadius(lv);
                 const authoredWorldContext = captureProjectileWorldContext();
@@ -2400,6 +2508,7 @@ export default class Player extends CharacterBase {
 
 
     increaseSkill(skillId) {
+        if (!classSkillIds(this).includes(skillId) || (this.skillLevels[skillId] || 1) >= classSkillMaxLevel(this,skillId)) return false;
         const cost = this.getSkillUpgradeCost(skillId);
         if (this.manastone >= cost) {
             this.manastone -= cost;
@@ -2425,6 +2534,7 @@ export default class Player extends CharacterBase {
     // which is required for other clients to see the player as alive
 
     getSkillUpgradeCost(skillId) {
+        if (!classSkillIds(this).includes(skillId) || (this.skillLevels[skillId] || 1) >= classSkillMaxLevel(this,skillId)) return Infinity;
         // v1.1: Exponential Cost (300 -> 600 -> 1200 -> 2400)
         const lv = this.skillLevels[skillId] || 1;
         return 300 * Math.pow(2, lv - 1);
@@ -3131,7 +3241,7 @@ export default class Player extends CharacterBase {
         }
 
         // 2. Magic Circle & Run Particles (Drawn BEFORE character)
-        if (this.isAttacking) {
+        if (this.isAttacking && this.classId === 'wizard') {
             this.drawMagicCircle(ctx, centerX, y + this.height + 5);
         }
 
@@ -3982,6 +4092,12 @@ export default class Player extends CharacterBase {
         return remaining <= 0;
     }
 
+    canEquipWeapon(item) {
+        if (!item || item.slot !== 'weapon') return false;
+        const restricted=item.allowedClasses || item.classes || (item.classId ? [item.classId] : null);
+        return Array.isArray(restricted) ? restricted.includes(this.classId) : ['wizard','witch'].includes(this.classId);
+    }
+
     equipWeaponFromInventory(slotIndex) {
         if (slotIndex <= 0 || slotIndex >= this.inventory.length) {
             return { ok: false, message: '장착할 아이템을 찾지 못했습니다.' };
@@ -3992,6 +4108,7 @@ export default class Player extends CharacterBase {
             return { ok: false, message: '무기만 장착할 수 있습니다.' };
         }
 
+        if (!this.canEquipWeapon(item)) return {ok:false,message:'이 캐릭터는 해당 무기를 장착할 수 없습니다.'};
         const previous = this.equipment.weapon;
         this.equipment.weapon = item;
         this.inventory[slotIndex] = previous || null;
@@ -4780,6 +4897,7 @@ export default class Player extends CharacterBase {
 
     // v0.00.15: Consolidate Respawn Logic
     async respawn() {
+        this.initializeClassCombat();
         this.isDead = false;
         this.isDying = false;
         this.deathTimer = 0;

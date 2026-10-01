@@ -1,3 +1,4 @@
+import { CLASS_SKILL_UI, MAGE_SKILL_IDS, classSkillIds, classSkillMaxLevel } from './ClassSkillUI.js';
 import Logger from '../utils/Logger.js';
 import { getFireballAoeRadius, FIREBALL_BASE_RADIUS, FIREBALL_RADIUS_PER_LEVEL, FIREBALL_AOE_MULTIPLIER } from '../skills/FireballScaling.js';
 import { getViewportMetrics } from '../core/ViewportMetrics.js';
@@ -1858,7 +1859,8 @@ export class UIManager {
     hasAnySkillUpgradeAvailable(player = this.game.localPlayer) {
         if (!player) return false;
 
-        return ['laser', 'missile', 'fireball'].some((skillId) => {
+        return classSkillIds(player).some((skillId) => {
+            if ((player.skillLevels?.[skillId] || 1) >= classSkillMaxLevel(player, skillId)) return false;
             const cost = player.getSkillUpgradeCost
                 ? player.getSkillUpgradeCost(skillId)
                 : (300 * Math.pow(2, (player.skillLevels?.[skillId] || 1) - 1));
@@ -4770,9 +4772,10 @@ export class UIManager {
                 if (btn.disabled || btn.classList.contains('disabled')) return;
                 const skillId = btn.getAttribute('data-skill');
                 const p = this.game.localPlayer;
-                if (!p || !skillId) return;
+                if (!p || !skillId || !classSkillIds(p).includes(skillId)) return;
+                if ((p.skillLevels?.[skillId] || 1) >= classSkillMaxLevel(p, skillId)) return;
 
-                if (!this.game.tutorial?.isSkillUpgradeAllowed?.(skillId)) {
+                if ((!p.classId || p.classId === 'wizard') && this.game.tutorial?.isSkillUpgradeAllowed?.(skillId) === false) {
                     const tutorialStep = this.game.tutorial?.getCurrentStep?.();
                     if (tutorialStep?.trigger === 'skill_upgrade') {
                         const requiredSkill = tutorialStep.target;
@@ -4787,13 +4790,13 @@ export class UIManager {
 
                 // Exponential Cost: 300 * 2^(lv-1)
                 const lv = p.skillLevels[skillId] || 1;
-                const cost = 300 * Math.pow(2, lv - 1);
+                const cost = p.getSkillUpgradeCost?.(skillId) ?? (300 * Math.pow(2, lv - 1));
 
                 if (p.manastone >= cost) {
                     p.manastone -= cost;
                     this.game.adventureSummary?.record(p.id, !!this.game.isLocalMode, { kind: 'manastone', amount: -cost });
                     p.updateManastoneInventory(); // v0.22.9
-                    p.skillLevels[skillId]++;
+                    p.skillLevels[skillId] = lv + 1;
                     this.game.tutorial?.trigger?.('skill_upgrade', { target: skillId });
                     this.logSystemMessage(`✨ [SKILL] ${this.getSkillDisplayName(skillId)} 레벨이 상승했습니다! (현재: ${p.skillLevels[skillId]})`);
                     this.updateSkillPopup();
@@ -8120,6 +8123,8 @@ export class UIManager {
     }
 
     getSkillHotkey(skillId) {
+        const classIndex = CLASS_SKILL_UI[this.game.localPlayer?.classId]?.findIndex(skill => skill.id === skillId) ?? -1;
+        if (classIndex >= 0) return ['J', 'H', 'U', 'K'][classIndex];
         return {
             laser: 'J',
             missile: 'H',
@@ -8177,6 +8182,18 @@ export class UIManager {
         const p = this.game.localPlayer;
         const data = this.skillData[skillId];
         if (!p || !data) return null;
+        if (CLASS_SKILL_UI[p.classId]?.some(skill => skill.id === skillId)) {
+            const level = p.skillLevels?.[skillId] || 1;
+            const maxed = level >= classSkillMaxLevel(p, skillId);
+            const cost = p.getSkillUpgradeCost?.(skillId) ?? (300 * Math.pow(2, level - 1));
+            const hotkey = this.getSkillHotkey(skillId);
+            const show = this.shouldShowDesktopShortcutText();
+            return { name: this.getSkillDisplayName(skillId), level, hotkey: show ? hotkey : '', showHotkeyBadge: show,
+                subtitle: `Lv.${level}${show ? ` · 단축키 ${hotkey}` : ''}`,
+                tooltipCurrentEffectHtml: `<div class="current-effect">Lv.${level}${maxed ? ' · MAX' : ` · 다음 강화 ${cost} G`}</div>`,
+                modalHtml: this.buildSkillDetailSection('핵심 설명', [data.desc, data.detail].filter(Boolean))
+                    + this.buildSkillDetailSection('다음 강화 비용', [maxed ? '최대 레벨입니다.' : `${cost.toLocaleString('ko-KR')} G`]) };
+        }
 
         const lv = p.skillLevels[skillId] || 1;
         const attackPower = Math.round(p.attackPower || 0);
@@ -9507,6 +9524,76 @@ export class UIManager {
         panel.classList.remove('hidden');
     }
 
+    applyClassSkillIcon(element, classId, row, action = false) {
+        const path = `/assets/resource/classes/${classId}-effects.webp`;
+        const url = this.game.resources?.getVersionedResourceUrl?.(path) || path;
+        element.style.backgroundImage = `url("${url}")`;
+        element.style.backgroundSize = '400% 400%';
+        element.style.backgroundPosition = `${100 / 3}% ${row * 100 / 3}%`;
+        element.style.backgroundRepeat = 'no-repeat';
+        if (action) {
+            element.style.width = '32px';
+            element.style.height = '32px';
+            element.style.flexShrink = '0';
+        }
+    }
+
+    // Reuse the four existing rows: their event handlers and compact geometry stay intact.
+    syncClassSkillUI() {
+        const classId = this.game.localPlayer?.classId || 'wizard';
+        if (!this.skillData || this._displayedSkillClass === classId) return;
+        const rows = [...document.querySelectorAll('#skill-popup .skill-item')];
+        if (rows.length !== 4) return;
+        if (!this._mageSkillUI) {
+            this._mageSkillUI = rows.map((row, index) => ({
+                id: MAGE_SKILL_IDS[index], ...this.skillData[MAGE_SKILL_IDS[index]],
+                shortHtml: row.querySelector('.skill-desc')?.innerHTML || '',
+                iconHtml: row.querySelector('.skill-icon')?.innerHTML || '',
+                iconStyle: row.querySelector('.skill-icon')?.getAttribute('style') || ''
+            }));
+        }
+        this.hideSkillDetailModal();
+        this.hideTooltip();
+        const entries = CLASS_SKILL_UI[classId] || this._mageSkillUI;
+        entries.forEach((entry, index) => {
+            this.skillData[entry.id] = entry;
+            const row = rows[index];
+            row.id = `skill-item-${entry.id}`;
+            row.dataset.skillItem = entry.id;
+            row.querySelector('.skill-name').textContent = entry.name;
+            const level = row.querySelector('.skill-level span');
+            if (level) level.id = `lvl-${entry.id}`;
+            const desc = row.querySelector('.skill-desc');
+            desc.innerHTML = entry.shortHtml || `${entry.summary || entry.desc}<br><small>필요: <span class="skill-cost" data-skill="${entry.id}">300</span>G</small>`;
+            const upgrade = row.querySelector('.skill-up-btn');
+            upgrade.dataset.skill = entry.id;
+            upgrade.id = `skill-up-${entry.id}`;
+            const icon = row.querySelector('.skill-icon');
+            if (icon) {
+                icon.innerHTML = entry.iconHtml || '';
+                icon.dataset.classSkill = entry.id;
+                icon.setAttribute('style', entry.iconStyle || '');
+                if (CLASS_SKILL_UI[classId]) this.applyClassSkillIcon(icon, classId, index);
+            }
+            const key = ['j', 'h', 'u', 'k'][index];
+            const action = document.getElementById(index === 0 ? 'action-attack-j' : `action-skill-${key}`);
+            if (action) {
+                action.setAttribute('aria-label', entry.name);
+                action.setAttribute('title', entry.name);
+                action.dataset.classSkill = entry.id;
+                const actionIcon = action.querySelector('.inner-icon');
+                if (actionIcon) {
+                    if (actionIcon.dataset.mageStyle === undefined) actionIcon.dataset.mageStyle = actionIcon.getAttribute('style') || '';
+                    actionIcon.setAttribute('style', actionIcon.dataset.mageStyle);
+                    if (CLASS_SKILL_UI[classId]) this.applyClassSkillIcon(actionIcon, classId, index, true);
+                }
+                const label = action.querySelector('.combat-skill-name');
+                if (label) label.textContent = entry.name;
+            }
+        });
+        this._displayedSkillClass = classId;
+    }
+
     updateSkillPopup() {
         const p = this.game.localPlayer;
         if (!p) return;
@@ -9514,7 +9601,8 @@ export class UIManager {
         const manastoneEl = document.getElementById('ui-skill-manastone');
         if (manastoneEl) manastoneEl.textContent = p.manastone;
 
-        const skillIds = ['laser', 'missile', 'fireball', 'shield'];
+        this.syncClassSkillUI();
+        const skillIds = classSkillIds(p);
         skillIds.forEach(skillId => {
             const lv = p.skillLevels[skillId] || 1;
             const levelEl = document.getElementById(`lvl-${skillId}`);
@@ -9524,16 +9612,18 @@ export class UIManager {
             // v1.1: Use Player method or same formula
             const cost = p.getSkillUpgradeCost ? p.getSkillUpgradeCost(skillId) : (300 * Math.pow(2, lv - 1));
             const costEl = document.querySelector(`.skill-cost[data-skill="${skillId}"]`);
-            if (costEl) costEl.textContent = skillId === 'shield' ? '-' : cost;
+            const maxed = lv >= classSkillMaxLevel(p, skillId);
+            if (costEl) costEl.textContent = maxed ? '-' : cost;
 
             const btn = document.querySelector(`.skill-up-btn[data-skill="${skillId}"]`);
             if (btn) {
-                if (skillId === 'shield') {
+                if (maxed) {
                     btn.textContent = 'MAX';
                     btn.classList.add('disabled');
                     btn.disabled = true;
                 } else {
-                    const tutorialLocked = !this.game.tutorial?.isSkillUpgradeAllowed?.(skillId);
+                    btn.textContent = '+';
+                    const tutorialLocked = (!p.classId || p.classId === 'wizard') && this.game.tutorial?.isSkillUpgradeAllowed?.(skillId) === false;
                     btn.disabled = tutorialLocked || p.manastone < cost;
                     btn.classList.toggle('disabled', tutorialLocked || p.manastone < cost);
                 }
@@ -11167,6 +11257,9 @@ export class UIManager {
 
         if (equipBtn) {
             equipBtn.classList.toggle('hidden', !(detail.location === 'inventory' && detail.item.slot === 'weapon'));
+            const allowed = p.canEquipWeapon?.(detail.item) !== false;
+            equipBtn.disabled = !allowed;
+            equipBtn.title = allowed ? '' : '현재 캐릭터가 사용할 수 없는 무기입니다.';
         }
         if (unequipBtn) {
             unequipBtn.classList.toggle('hidden', !(detail.location === 'equipment' && detail.item.slot === 'weapon'));
@@ -11330,6 +11423,7 @@ export class UIManager {
         const p = this.game.localPlayer;
         if (!p) return;
 
+        this.syncClassSkillUI();
         // Cooldown keys: u, k, h, j
         const skillKeys = ['u', 'k', 'h', 'j'];
         skillKeys.forEach(key => {
@@ -12046,7 +12140,7 @@ export class UIManager {
         let totalRefundedManastone = 0;
         const skills = p.skillLevels || { laser: 1, missile: 1, fireball: 1, shield: 1 };
 
-        ['laser', 'missile', 'fireball'].forEach(skill => {
+        classSkillIds(p).filter(skill => classSkillMaxLevel(p, skill) > 1).forEach(skill => {
             const lv = skills[skill] || 1;
             if (lv > 1) {
                 totalRefundedManastone += 300 * (Math.pow(2, lv - 1) - 1);
@@ -12071,7 +12165,7 @@ export class UIManager {
         p.maxMp = p.mp;
 
         // Reset Skills
-        p.skillLevels = { laser: 1, missile: 1, fireball: 1, shield: 1 };
+        p.skillLevels = Object.fromEntries(classSkillIds(p).map(id => [id, 1]));
 
         // 4. Save and Reload
         if (p.saveState) {

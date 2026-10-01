@@ -1,0 +1,10 @@
+# Full recordings remain available locally/Library; keep review-sized artifacts in git.
+*-runtime-movement.gif
+*.webm
+*-up.png
+*-down.png
+*-left.png
+*-right.png
+# Superseded review drafts are retained locally and in Library history.
+warrior-approved-four-directions.gif
+all-classes-four-directions.gif

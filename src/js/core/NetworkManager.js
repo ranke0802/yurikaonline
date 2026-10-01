@@ -1,3 +1,4 @@
+import { normalizeClassId, projectClassProfile } from './ClassProfiles.js';
 import Logger from '../utils/Logger.js';
 import EventEmitter from './EventEmitter.js';
 import { DURABLE_BOSS_REWARD_ARCHIVED_CATALOGS } from './DurableBossRewardPolicy.js';
@@ -2059,9 +2060,41 @@ export default class NetworkManager extends EventEmitter {
         };
     }
 
+    _buildClassSummonSnapshot(player) {
+        return (Array.isArray(player?.classCombat?.actors) ? player.classCombat.actors : [])
+            .filter(actor => !actor.isDead && actor.hp > 0).slice(0, 3).map(actor => ({
+                id: String(actor.id), typeId: String(actor.typeId), ownerId: this.playerId,
+                x: Number(actor.x) || 0, y: Number(actor.y) || 0,
+                hp: Math.max(0, Number(actor.hp) || 0), maxHp: Math.max(1, Number(actor.maxHp) || 1),
+                width: Math.max(1, Number(actor.width) || 32), height: Math.max(1, Number(actor.height) || 32)
+            }));
+    }
+
+    syncClassSummons({ force = false } = {}) {
+        if (!this.connected || !this.playerId || !this.dbRef) return;
+        const summons = this._buildClassSummonSnapshot(window.game?.localPlayer);
+        const hadSummons = !!this._classSummonsPublished;
+        // Mage and other empty classes produce no standalone summon writes.
+        if (!summons.length && !hadSummons) return;
+        if (!this._shouldSendRealtimeUserState() && !(force && hadSummons && !summons.length)) return;
+        const now = Date.now();
+        if (!force && now - (this._lastClassSummonSync || 0) < 250) return;
+        const signature = JSON.stringify(summons);
+        if (!force && signature === this._lastClassSummonSignature) return;
+        this._lastClassSummonSync = now; this._lastClassSummonSignature = signature;
+        this._classSummonsPublished = summons.length > 0;
+        return this.dbRef.child(`users/${this.playerId}/profile/classSummons`).set(summons).catch(() => {
+            this._lastClassSummonSignature = null;
+            this._classSummonsPublished = hadSummons;
+        });
+    }
+
     _buildLocalZoneProfileSnapshot(player) {
         if (!player) return null;
+        if (player.classCombat?.actors?.some(actor => !actor.isDead && actor.hp > 0)) this._classSummonsPublished = true;
         return {
+            classSummons: this._buildClassSummonSnapshot(player),
+            activeClassId: normalizeClassId(player.activeClassId || player.classId),
             name: player.name || 'Unknown',
             level: Number(player.level || 1),
             equipment: this._buildRealtimeEquipmentSnapshot(player.equipment || null),
@@ -2335,6 +2368,8 @@ export default class NetworkManager extends EventEmitter {
             name: this._getBestKnownRemoteName(uid, profile.name, fallbackName),
             h: state.h,
             a: state.a,
+            classSummons: Array.isArray(profile.classSummons) ? profile.classSummons.slice(0, 3) : [],
+            activeClassId: normalizeClassId(profile.activeClassId),
             level: profile.level || 1,
             defense: profile.defense ?? 0,
             isPaused: !!profile.isPaused,
@@ -2424,6 +2459,8 @@ export default class NetworkManager extends EventEmitter {
             vy: newPlayer.vy || 0,
             ts: newPlayer.ts,
             name: newPlayer.name,
+            classSummons: newPlayer.classSummons || [],
+            activeClassId: normalizeClassId(newPlayer.activeClassId),
             level: newPlayer.level,
             defense: newPlayer.defense,
             isPaused: newPlayer.isPaused,
@@ -2451,6 +2488,8 @@ export default class NetworkManager extends EventEmitter {
 
         const hostility = hostilityOverride !== undefined ? hostilityOverride : (profile.hostility !== undefined ? profile.hostility : existing.hostility);
         existing.name = this._getBestKnownRemoteName(uid, profile.name, existing.name);
+        if (profile.classSummons !== undefined) existing.classSummons = Array.isArray(profile.classSummons) ? profile.classSummons.slice(0, 3) : [];
+        if (profile.activeClassId !== undefined) existing.activeClassId = normalizeClassId(profile.activeClassId);
         if (profile.level !== undefined) existing.level = profile.level;
         if (profile.defense !== undefined) existing.defense = profile.defense;
         if (profile.isPaused !== undefined) existing.isPaused = !!profile.isPaused;
@@ -2462,6 +2501,8 @@ export default class NetworkManager extends EventEmitter {
         this.emit('playerUpdate', {
             id: uid,
             name: existing.name,
+            classSummons: existing.classSummons || [],
+            activeClassId: normalizeClassId(existing.activeClassId),
             level: existing.level,
             defense: existing.defense,
             isPaused: existing.isPaused,
@@ -6272,8 +6313,10 @@ export default class NetworkManager extends EventEmitter {
 
     _buildZoneProfileSnapshot(profile) {
         if (!profile) return null;
+        profile = projectClassProfile(profile);
         return {
             name: profile.name || 'Unknown',
+            activeClassId: normalizeClassId(profile.activeClassId),
             level: profile.level || 1,
             equipment: this._buildRealtimeEquipmentSnapshot(profile.equipment || null),
             party: profile.party || null,
@@ -6287,6 +6330,11 @@ export default class NetworkManager extends EventEmitter {
     _buildZoneProfilePatch(patch) {
         if (!patch || typeof patch !== 'object') return null;
         const zonePatch = {};
+        const classId = normalizeClassId(patch.activeClassId ?? globalThis.window?.game?.localPlayer?.activeClassId);
+        if (patch.activeClassId !== undefined) zonePatch.activeClassId = classId;
+        if (classId !== 'wizard' && patch.classProfiles?.[classId]) {
+            patch = { ...patch, ...patch.classProfiles[classId] };
+        }
 
         if (patch.name !== undefined) zonePatch.name = patch.name || 'Unknown';
         if (patch.level !== undefined) zonePatch.level = Number(patch.level || 1);
@@ -8250,7 +8298,9 @@ export default class NetworkManager extends EventEmitter {
             return total + scoreItem(item);
         }, 0);
         const equipmentScore = Object.values(equipment).reduce((total, item) => total + scoreItem(item), 0);
-        return inventoryScore + equipmentScore;
+        const classEquipmentScore = Object.values(profile?.classProfiles || {}).reduce((total, entry) =>
+            total + Object.values(entry?.equipment || {}).reduce((sum, item) => sum + scoreItem(item), 0), 0);
+        return inventoryScore + equipmentScore + classEquipmentScore;
     }
 
     _getProfileStatTotal(profile = null) {
@@ -8611,6 +8661,8 @@ export default class NetworkManager extends EventEmitter {
             'agility',
             'statPoints',
             'skillLevels',
+            'classProfiles',
+            'activeClassId',
             'inventory',
             'equipment',
             'pendingItemRewards',
@@ -14200,7 +14252,7 @@ export default class NetworkManager extends EventEmitter {
         if (!val) return;
 
         // v1.99.38: Gather profile data for real-time sync early to avoid ReferenceError
-        const profile = val.profile || {};
+        const profile = val.profile?.classProfiles ? projectClassProfile(val.profile) : (val.profile || {});
         const hostility = profile.hostility || val.hostility || null;
         const level = profile.level || null;
         const party = profile.party || null;
@@ -14210,11 +14262,12 @@ export default class NetworkManager extends EventEmitter {
         if (val.profile) {
             const existing = this.remotePlayers.get(uid);
             if (existing) {
-                if (val.profile.level) existing.level = val.profile.level;
-                if (val.profile.defense !== undefined) existing.defense = val.profile.defense; // v0.00.53: Sync defense to RemotePlayer
+                existing.activeClassId = normalizeClassId(profile.activeClassId);
+                if (profile.level) existing.level = profile.level;
+                if (profile.defense !== undefined) existing.defense = profile.defense; // v0.00.53: Sync defense to RemotePlayer
                 if (val.profile.isPaused !== undefined) existing.isPaused = val.profile.isPaused; // v0.00.55: Sync safety state
                 if (val.profile.protectedUntil !== undefined) existing.protectedUntil = Number(val.profile.protectedUntil) || 0;
-                if (val.profile.equipment !== undefined) existing.equipment = val.profile.equipment;
+                if (profile.equipment !== undefined) existing.equipment = profile.equipment;
                 if (val.profile.party !== undefined) existing.party = val.profile.party;
                 if (val.profile.hostility !== undefined) existing.hostility = val.profile.hostility;
             }
@@ -14282,6 +14335,7 @@ export default class NetworkManager extends EventEmitter {
                         }
 
                         // v1.99.38: Sync profile fields in the same update
+                        update.activeClassId = normalizeClassId(profile.activeClassId);
                         if (level) update.level = level;
                         if (equipment !== undefined) update.equipment = equipment;
                         if (party !== undefined) update.party = party;
@@ -14459,6 +14513,28 @@ export default class NetworkManager extends EventEmitter {
                     if (window.game && window.game.localPlayer) {
                         const sceneRemote = window.game.sceneManager?.currentScene?.remotePlayers?.get?.(val.attackerId) || null;
                         const knownRemote = sceneRemote || this.remotePlayers.get(val.attackerId) || null;
+                        if (val.meta?.summonId) {
+                            if (val.attackerId === this.currentHostId && typeof val.meta.monsterId === 'string'
+                                && Number.isFinite(val.damage) && val.damage >= 0 && val.ts <= Date.now() + 1000) {
+                                window.game.localPlayer.classCombat?.receiveSummonDamage?.(val.meta.summonId, val.damage);
+                            }
+                            snapshot.ref.remove(); return;
+                        }
+                        if (val.meta?.classSupport) {
+                            const player = window.game.localPlayer;
+                            const support = val.meta.classSupport;
+                            const sameParty = val.attackerId !== this.playerId && knownRemote
+                                && player.party?.members?.includes(val.attackerId)
+                                && player.party?.hostId && player.party.hostId === knownRemote.party?.hostId;
+                            if (sameParty && val.damage === 0 && val.ts <= Date.now() + 1000) {
+                                if (support.type === 'berserk') player.classCombat?.receiveSupport?.({ type: 'berserk', duration: 10 });
+                                else if (support.type === 'heal' && Number.isFinite(support.amount) && support.amount > 0) {
+                                    player.classCombat?.receiveSupport?.({ type: 'heal', amount: Math.min(player.maxHp, support.amount) });
+                                }
+                            }
+                            snapshot.ref.remove();
+                            return;
+                        }
                         if (knownRemote?.canAttackTarget
                             && !knownRemote.canAttackTarget(window.game.localPlayer)) {
                             snapshot.ref.remove();

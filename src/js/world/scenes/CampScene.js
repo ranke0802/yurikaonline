@@ -1,3 +1,4 @@
+import { normalizeClassId, projectClassProfile, CLASS_IDS, CLASS_NAMES } from '../../core/ClassProfiles.js';
 import Scene from '../../core/Scene.js';
 import AdventureSummary from '../../core/AdventureSummary.js';
 import CampPreparation from '../../core/CampPreparation.js';
@@ -109,6 +110,18 @@ export default class CampScene extends Scene {
             busy: this.busy, failed: this.failed, local: this.game.isLocalMode, art,
             regionName: this.regionName, regionArt: this.regionArt, stats: p ? { hp: p.hp, maxHp: p.maxHp, damage: p.attackPower, defense: p.defense } : null
         });
+        if (this.view === 'character' && p) {
+            const choices = document.createElement('div');
+            choices.className = 'camp-management'; choices.setAttribute('aria-label', '조작 캐릭터 선택');
+            for (const id of CLASS_IDS) {
+                const button = document.createElement('button'); button.className = 'camp-secondary';
+                button.dataset.camp = 'select-class:' + id; button.textContent = CLASS_NAMES[id];
+                button.setAttribute('aria-pressed', String(normalizeClassId(p.activeClassId) === id));
+                button.disabled = this.busy || this.failed || normalizeClassId(p.activeClassId) === id;
+                choices.append(button);
+            }
+            this.root.querySelector('.camp-character-sheet')?.prepend(choices);
+        }
         if (!this.saveNotice) {
             this.saveNotice = document.createElement('aside');
             this.saveNotice.className = 'camp-save-state'; this.saveNotice.setAttribute('role', 'status');
@@ -168,22 +181,38 @@ export default class CampScene extends Scene {
 
     async prepareProfile(snapshot, generation = this.generation, token = this.loadToken) {
         const profile = snapshot?.profile || null;
-        const definition = profile ? await this.waitForOperation(this.game.characterData.loadDefinition('wizard'), 'character_timeout') : null;
+        const definition = profile ? await this.waitForOperation(this.game.characterData.loadDefinition(normalizeClassId(profile.activeClassId)), 'character_timeout') : null;
         if (generation !== this.generation || token !== this.loadToken || !this.root) return;
         if (profile) await this.waitForOperation(this.game.zone.loadZoneCatalog(), 'region_timeout');
         if (generation !== this.generation || token !== this.loadToken || !this.root) return;
-        this.profile = profile;
+        this.profile = projectClassProfile(profile);
         this.preparation = profile ? new CampPreparation(this.game, this.user, profile, definition, () => this.updateSaveStatus()) : null;
         this.game.localPlayer = this.preparation?.player || null;
         if (!profile) return;
-        const requested = this.game.zone.getZoneMeta(profile.currentZoneId || profile.mapId || 'zone_1');
-        const region = requested && (profile.level || 1) >= (requested.requiredLevel || 1) ? requested : this.game.zone.getZoneMeta('zone_1');
+        const selected = this.profile;
+        const requested = this.game.zone.getZoneMeta(selected.currentZoneId || selected.mapId || 'zone_1');
+        const region = requested && (selected.level || 1) >= (requested.requiredLevel || 1) ? requested : this.game.zone.getZoneMeta('zone_1');
         this.regionName = region?.name || '시작의 숲';
         this.regionArt = ({ zone_1: 'wind.webp', zone_2: 'lake.webp', zone_3: 'thunder.webp' })[region?.id] || 'wind.webp';
     }
 
     async action(action) {
         if (this.busy) return;
+        if (action.startsWith('select-class:')) {
+            const id = action.slice('select-class:'.length);
+            if (!CLASS_IDS.includes(id) || !this.preparation || this.failed) return;
+            this.busy = true; this.closePreparationPopups(); this.renderUI();
+            try {
+                const flushed = await this.preparation.flush();
+                if (flushed?.ok === false) return;
+                const saved = await this.game.net.savePlayerDataPatch(this.user.uid, { activeClassId: id }, {
+                    debounceMs: 0, forceImmediate: true, syncToZone: false, checkpointPolicy: 'durable', saveReason: 'class_selection'
+                });
+                if (saved?.ok !== true) throw new Error(saved?.reason || 'class_selection_failed');
+                await this.load();
+            } finally { this.busy = false; this.renderUI(); }
+            return;
+        }
         if (action === 'save-retry') {
             this.busy = true;
             try { await this.preparation?.flush(); } finally { this.busy = false; this.updateSaveStatus(); }
@@ -245,7 +274,7 @@ export default class CampScene extends Scene {
             const snapshot = await this.readSnapshot();
             if (!this.root || this.game.sceneManager.currentScene !== this) return;
             if (!snapshot?.profile) throw new Error('missing_profile');
-            this.journey.begin(this.user.uid, this.game.isLocalMode, snapshot.profile);
+            this.journey.begin(this.user.uid, this.game.isLocalMode, projectClassProfile(snapshot.profile));
             await this.game.sceneManager.changeScene('world', { user: this.user, profile: snapshot.profile, localName: snapshot.profile.name });
         } catch {
             this.journey.cancel(this.user.uid, this.game.isLocalMode);

@@ -1,0 +1,742 @@
+{
+  "generator": "image_gen",
+  "sprites": {
+    "witch": {
+      "file": "witch.webp",
+      "columns": 4,
+      "rows": 4,
+      "cell": 192,
+      "bytes": 169526
+    },
+    "warrior": {
+      "file": "warrior.webp",
+      "columns": 4,
+      "rows": 4,
+      "cell": 192,
+      "bytes": 192314
+    },
+    "archer": {
+      "file": "archer.webp",
+      "columns": 4,
+      "rows": 4,
+      "cell": 192,
+      "bytes": 226542
+    },
+    "warrior-walk": {
+      "file": "warrior-walk.webp",
+      "columns": 4,
+      "rows": 4,
+      "cell": 192,
+      "authoredLeft": true,
+      "source": "/tmp/warrior-walk-approved.png",
+      "alignment": "fixed scale; head centroid/foot baseline translation only"
+    },
+    "archer-walk": {
+      "file": "archer-walk.webp",
+      "columns": 4,
+      "rows": 4,
+      "cell": 192,
+      "authoredLeft": true,
+      "source": "/tmp/archer-final-walk.png",
+      "alignment": "fixed scale; head centroid/foot baseline translation only"
+    },
+    "witch-walk": {
+      "file": "witch-walk.webp",
+      "columns": 4,
+      "rows": 4,
+      "cell": 192,
+      "authoredLeft": true,
+      "source": "/tmp/witch-final-walk.png",
+      "alignment": "fixed scale; head centroid/foot baseline translation only"
+    }
+  },
+  "effects": {
+    "witch-effects": {
+      "file": "witch-effects.webp",
+      "columns": 4,
+      "rows": 4,
+      "cell": 192,
+      "bytes": 293188
+    },
+    "warrior-effects": {
+      "file": "warrior-effects.webp",
+      "columns": 4,
+      "rows": 4,
+      "cell": 192,
+      "bytes": 293262
+    },
+    "archer-effects": {
+      "file": "archer-effects.webp",
+      "columns": 4,
+      "rows": 4,
+      "cell": 192,
+      "bytes": 324510
+    },
+    "life-circle": {
+      "file": "life-circle.webp",
+      "columns": 4,
+      "rows": 1,
+      "cell": 192,
+      "bytes": 45994
+    }
+  },
+  "statuses": {
+    "status": {
+      "file": "status.webp",
+      "columns": 4,
+      "rows": 2,
+      "cell": 96,
+      "bytes": 22502
+    }
+  },
+  "qa": [
+    {
+      "name": "witch",
+      "row": 0,
+      "col": 0,
+      "visiblePixels": 12803
+    },
+    {
+      "name": "witch",
+      "row": 0,
+      "col": 1,
+      "visiblePixels": 12872
+    },
+    {
+      "name": "witch",
+      "row": 0,
+      "col": 2,
+      "visiblePixels": 13016
+    },
+    {
+      "name": "witch",
+      "row": 0,
+      "col": 3,
+      "visiblePixels": 12975
+    },
+    {
+      "name": "witch",
+      "row": 1,
+      "col": 0,
+      "visiblePixels": 11874
+    },
+    {
+      "name": "witch",
+      "row": 1,
+      "col": 1,
+      "visiblePixels": 12490
+    },
+    {
+      "name": "witch",
+      "row": 1,
+      "col": 2,
+      "visiblePixels": 12236
+    },
+    {
+      "name": "witch",
+      "row": 1,
+      "col": 3,
+      "visiblePixels": 12469
+    },
+    {
+      "name": "witch",
+      "row": 2,
+      "col": 0,
+      "visiblePixels": 12756
+    },
+    {
+      "name": "witch",
+      "row": 2,
+      "col": 1,
+      "visiblePixels": 12127
+    },
+    {
+      "name": "witch",
+      "row": 2,
+      "col": 2,
+      "visiblePixels": 12874
+    },
+    {
+      "name": "witch",
+      "row": 2,
+      "col": 3,
+      "visiblePixels": 12875
+    },
+    {
+      "name": "witch",
+      "row": 3,
+      "col": 0,
+      "visiblePixels": 13995
+    },
+    {
+      "name": "witch",
+      "row": 3,
+      "col": 1,
+      "visiblePixels": 14676
+    },
+    {
+      "name": "witch",
+      "row": 3,
+      "col": 2,
+      "visiblePixels": 14968
+    },
+    {
+      "name": "witch",
+      "row": 3,
+      "col": 3,
+      "visiblePixels": 15069
+    },
+    {
+      "name": "warrior",
+      "row": 0,
+      "col": 0,
+      "visiblePixels": 14321
+    },
+    {
+      "name": "warrior",
+      "row": 0,
+      "col": 1,
+      "visiblePixels": 14477
+    },
+    {
+      "name": "warrior",
+      "row": 0,
+      "col": 2,
+      "visiblePixels": 14400
+    },
+    {
+      "name": "warrior",
+      "row": 0,
+      "col": 3,
+      "visiblePixels": 14633
+    },
+    {
+      "name": "warrior",
+      "row": 1,
+      "col": 0,
+      "visiblePixels": 13719
+    },
+    {
+      "name": "warrior",
+      "row": 1,
+      "col": 1,
+      "visiblePixels": 13801
+    },
+    {
+      "name": "warrior",
+      "row": 1,
+      "col": 2,
+      "visiblePixels": 13663
+    },
+    {
+      "name": "warrior",
+      "row": 1,
+      "col": 3,
+      "visiblePixels": 13564
+    },
+    {
+      "name": "warrior",
+      "row": 2,
+      "col": 0,
+      "visiblePixels": 14714
+    },
+    {
+      "name": "warrior",
+      "row": 2,
+      "col": 1,
+      "visiblePixels": 14332
+    },
+    {
+      "name": "warrior",
+      "row": 2,
+      "col": 2,
+      "visiblePixels": 13778
+    },
+    {
+      "name": "warrior",
+      "row": 2,
+      "col": 3,
+      "visiblePixels": 14349
+    },
+    {
+      "name": "warrior",
+      "row": 3,
+      "col": 0,
+      "visiblePixels": 16757
+    },
+    {
+      "name": "warrior",
+      "row": 3,
+      "col": 1,
+      "visiblePixels": 15070
+    },
+    {
+      "name": "warrior",
+      "row": 3,
+      "col": 2,
+      "visiblePixels": 15802
+    },
+    {
+      "name": "warrior",
+      "row": 3,
+      "col": 3,
+      "visiblePixels": 14272
+    },
+    {
+      "name": "archer",
+      "row": 0,
+      "col": 0,
+      "visiblePixels": 14312
+    },
+    {
+      "name": "archer",
+      "row": 0,
+      "col": 1,
+      "visiblePixels": 14056
+    },
+    {
+      "name": "archer",
+      "row": 0,
+      "col": 2,
+      "visiblePixels": 14435
+    },
+    {
+      "name": "archer",
+      "row": 0,
+      "col": 3,
+      "visiblePixels": 13997
+    },
+    {
+      "name": "archer",
+      "row": 1,
+      "col": 0,
+      "visiblePixels": 13514
+    },
+    {
+      "name": "archer",
+      "row": 1,
+      "col": 1,
+      "visiblePixels": 13081
+    },
+    {
+      "name": "archer",
+      "row": 1,
+      "col": 2,
+      "visiblePixels": 13224
+    },
+    {
+      "name": "archer",
+      "row": 1,
+      "col": 3,
+      "visiblePixels": 13382
+    },
+    {
+      "name": "archer",
+      "row": 2,
+      "col": 0,
+      "visiblePixels": 12448
+    },
+    {
+      "name": "archer",
+      "row": 2,
+      "col": 1,
+      "visiblePixels": 12572
+    },
+    {
+      "name": "archer",
+      "row": 2,
+      "col": 2,
+      "visiblePixels": 12941
+    },
+    {
+      "name": "archer",
+      "row": 2,
+      "col": 3,
+      "visiblePixels": 12985
+    },
+    {
+      "name": "archer",
+      "row": 3,
+      "col": 0,
+      "visiblePixels": 14401
+    },
+    {
+      "name": "archer",
+      "row": 3,
+      "col": 1,
+      "visiblePixels": 14881
+    },
+    {
+      "name": "archer",
+      "row": 3,
+      "col": 2,
+      "visiblePixels": 15354
+    },
+    {
+      "name": "archer",
+      "row": 3,
+      "col": 3,
+      "visiblePixels": 13559
+    },
+    {
+      "name": "witch-effects",
+      "row": 0,
+      "col": 0,
+      "visiblePixels": 6126
+    },
+    {
+      "name": "witch-effects",
+      "row": 0,
+      "col": 1,
+      "visiblePixels": 12791
+    },
+    {
+      "name": "witch-effects",
+      "row": 0,
+      "col": 2,
+      "visiblePixels": 17014
+    },
+    {
+      "name": "witch-effects",
+      "row": 0,
+      "col": 3,
+      "visiblePixels": 5202
+    },
+    {
+      "name": "witch-effects",
+      "row": 1,
+      "col": 0,
+      "visiblePixels": 8705
+    },
+    {
+      "name": "witch-effects",
+      "row": 1,
+      "col": 1,
+      "visiblePixels": 14563
+    },
+    {
+      "name": "witch-effects",
+      "row": 1,
+      "col": 2,
+      "visiblePixels": 20439
+    },
+    {
+      "name": "witch-effects",
+      "row": 1,
+      "col": 3,
+      "visiblePixels": 9437
+    },
+    {
+      "name": "witch-effects",
+      "row": 2,
+      "col": 0,
+      "visiblePixels": 8712
+    },
+    {
+      "name": "witch-effects",
+      "row": 2,
+      "col": 1,
+      "visiblePixels": 16884
+    },
+    {
+      "name": "witch-effects",
+      "row": 2,
+      "col": 2,
+      "visiblePixels": 20319
+    },
+    {
+      "name": "witch-effects",
+      "row": 2,
+      "col": 3,
+      "visiblePixels": 9770
+    },
+    {
+      "name": "witch-effects",
+      "row": 3,
+      "col": 0,
+      "visiblePixels": 9671
+    },
+    {
+      "name": "witch-effects",
+      "row": 3,
+      "col": 1,
+      "visiblePixels": 15270
+    },
+    {
+      "name": "witch-effects",
+      "row": 3,
+      "col": 2,
+      "visiblePixels": 19242
+    },
+    {
+      "name": "witch-effects",
+      "row": 3,
+      "col": 3,
+      "visiblePixels": 9633
+    },
+    {
+      "name": "warrior-effects",
+      "row": 0,
+      "col": 0,
+      "visiblePixels": 2498
+    },
+    {
+      "name": "warrior-effects",
+      "row": 0,
+      "col": 1,
+      "visiblePixels": 7169
+    },
+    {
+      "name": "warrior-effects",
+      "row": 0,
+      "col": 2,
+      "visiblePixels": 9974
+    },
+    {
+      "name": "warrior-effects",
+      "row": 0,
+      "col": 3,
+      "visiblePixels": 13977
+    },
+    {
+      "name": "warrior-effects",
+      "row": 1,
+      "col": 0,
+      "visiblePixels": 5567
+    },
+    {
+      "name": "warrior-effects",
+      "row": 1,
+      "col": 1,
+      "visiblePixels": 11791
+    },
+    {
+      "name": "warrior-effects",
+      "row": 1,
+      "col": 2,
+      "visiblePixels": 14845
+    },
+    {
+      "name": "warrior-effects",
+      "row": 1,
+      "col": 3,
+      "visiblePixels": 19771
+    },
+    {
+      "name": "warrior-effects",
+      "row": 2,
+      "col": 0,
+      "visiblePixels": 4304
+    },
+    {
+      "name": "warrior-effects",
+      "row": 2,
+      "col": 1,
+      "visiblePixels": 8569
+    },
+    {
+      "name": "warrior-effects",
+      "row": 2,
+      "col": 2,
+      "visiblePixels": 10744
+    },
+    {
+      "name": "warrior-effects",
+      "row": 2,
+      "col": 3,
+      "visiblePixels": 13448
+    },
+    {
+      "name": "warrior-effects",
+      "row": 3,
+      "col": 0,
+      "visiblePixels": 7676
+    },
+    {
+      "name": "warrior-effects",
+      "row": 3,
+      "col": 1,
+      "visiblePixels": 11337
+    },
+    {
+      "name": "warrior-effects",
+      "row": 3,
+      "col": 2,
+      "visiblePixels": 13955
+    },
+    {
+      "name": "warrior-effects",
+      "row": 3,
+      "col": 3,
+      "visiblePixels": 17382
+    },
+    {
+      "name": "archer-effects",
+      "row": 0,
+      "col": 0,
+      "visiblePixels": 4001
+    },
+    {
+      "name": "archer-effects",
+      "row": 0,
+      "col": 1,
+      "visiblePixels": 6836
+    },
+    {
+      "name": "archer-effects",
+      "row": 0,
+      "col": 2,
+      "visiblePixels": 7519
+    },
+    {
+      "name": "archer-effects",
+      "row": 0,
+      "col": 3,
+      "visiblePixels": 8679
+    },
+    {
+      "name": "archer-effects",
+      "row": 1,
+      "col": 0,
+      "visiblePixels": 10160
+    },
+    {
+      "name": "archer-effects",
+      "row": 1,
+      "col": 1,
+      "visiblePixels": 13244
+    },
+    {
+      "name": "archer-effects",
+      "row": 1,
+      "col": 2,
+      "visiblePixels": 14483
+    },
+    {
+      "name": "archer-effects",
+      "row": 1,
+      "col": 3,
+      "visiblePixels": 16290
+    },
+    {
+      "name": "archer-effects",
+      "row": 2,
+      "col": 0,
+      "visiblePixels": 11985
+    },
+    {
+      "name": "archer-effects",
+      "row": 2,
+      "col": 1,
+      "visiblePixels": 13141
+    },
+    {
+      "name": "archer-effects",
+      "row": 2,
+      "col": 2,
+      "visiblePixels": 11541
+    },
+    {
+      "name": "archer-effects",
+      "row": 2,
+      "col": 3,
+      "visiblePixels": 8077
+    },
+    {
+      "name": "archer-effects",
+      "row": 3,
+      "col": 0,
+      "visiblePixels": 6075
+    },
+    {
+      "name": "archer-effects",
+      "row": 3,
+      "col": 1,
+      "visiblePixels": 12576
+    },
+    {
+      "name": "archer-effects",
+      "row": 3,
+      "col": 2,
+      "visiblePixels": 14690
+    },
+    {
+      "name": "archer-effects",
+      "row": 3,
+      "col": 3,
+      "visiblePixels": 13419
+    },
+    {
+      "name": "status",
+      "row": 0,
+      "col": 0,
+      "visiblePixels": 3577
+    },
+    {
+      "name": "status",
+      "row": 0,
+      "col": 1,
+      "visiblePixels": 3580
+    },
+    {
+      "name": "status",
+      "row": 0,
+      "col": 2,
+      "visiblePixels": 3581
+    },
+    {
+      "name": "status",
+      "row": 0,
+      "col": 3,
+      "visiblePixels": 3578
+    },
+    {
+      "name": "status",
+      "row": 1,
+      "col": 0,
+      "visiblePixels": 3557
+    },
+    {
+      "name": "status",
+      "row": 1,
+      "col": 1,
+      "visiblePixels": 3559
+    },
+    {
+      "name": "status",
+      "row": 1,
+      "col": 2,
+      "visiblePixels": 3564
+    },
+    {
+      "name": "status",
+      "row": 1,
+      "col": 3,
+      "visiblePixels": 3587
+    },
+    {
+      "name": "life-circle",
+      "row": 0,
+      "col": 0,
+      "visiblePixels": 8492
+    },
+    {
+      "name": "life-circle",
+      "row": 0,
+      "col": 1,
+      "visiblePixels": 8879
+    },
+    {
+      "name": "life-circle",
+      "row": 0,
+      "col": 2,
+      "visiblePixels": 8937
+    },
+    {
+      "name": "life-circle",
+      "row": 0,
+      "col": 3,
+      "visiblePixels": 8668
+    }
+  ]
+}

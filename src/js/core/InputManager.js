@@ -14,6 +14,7 @@ export default class InputManager extends EventEmitter {
     setEnabled(enabled) {
         this.enabled = enabled;
         if (!enabled) {
+            this.emit('aimCancel', { action: 'ATTACK' });
             this.actions.clear();
         }
     }
@@ -25,6 +26,7 @@ export default class InputManager extends EventEmitter {
 
         Array.from(this.actions).forEach((action) => {
             if (!this._allowedActions.has(action)) {
+                this.emit('aimCancel', { action });
                 this.actions.delete(action);
                 this.emit('keyup', action);
             }
@@ -68,6 +70,7 @@ export default class InputManager extends EventEmitter {
     }
 
     releaseAllActions() {
+        this.emit('aimCancel', { action: 'ATTACK' });
         Array.from(this.actions).forEach((action) => {
             this.actions.delete(action);
             this.emit('keyup', action);

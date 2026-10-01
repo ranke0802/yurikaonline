@@ -1,0 +1,1424 @@
+{
+  "pixelValidation": true,
+  "coverage": "Isolated local account fixtures, Chromium simulated mobile input; no live accounts or physical phones",
+  "cases": [
+    {
+      "name": "portrait",
+      "classId": "witch",
+      "pixels": {
+        "sprite": {
+          "visible": 2778,
+          "hash": 1394158317
+        },
+        "frames": [
+          {
+            "effect": "life_circle",
+            "frame": 0,
+            "visible": 2185,
+            "hash": 1481441588
+          },
+          {
+            "effect": "life_circle",
+            "frame": 1,
+            "visible": 2285,
+            "hash": 212104657
+          },
+          {
+            "effect": "life_circle",
+            "frame": 2,
+            "visible": 2296,
+            "hash": 1346759942
+          },
+          {
+            "effect": "life_circle",
+            "frame": 3,
+            "visible": 2234,
+            "hash": 2142268674
+          },
+          {
+            "effect": "poison_cloud",
+            "frame": 0,
+            "visible": 2250,
+            "hash": 330330126
+          },
+          {
+            "effect": "poison_cloud",
+            "frame": 1,
+            "visible": 3752,
+            "hash": 2331706147
+          },
+          {
+            "effect": "poison_cloud",
+            "frame": 2,
+            "visible": 5226,
+            "hash": 4027534408
+          },
+          {
+            "effect": "poison_cloud",
+            "frame": 3,
+            "visible": 2457,
+            "hash": 3073335527
+          },
+          {
+            "effect": "summon",
+            "frame": 0,
+            "visible": 2253,
+            "hash": 2949371165
+          },
+          {
+            "effect": "summon",
+            "frame": 1,
+            "visible": 4390,
+            "hash": 626351077
+          },
+          {
+            "effect": "summon",
+            "frame": 2,
+            "visible": 5223,
+            "hash": 637784808
+          },
+          {
+            "effect": "summon",
+            "frame": 3,
+            "visible": 2539,
+            "hash": 250721682
+          },
+          {
+            "effect": "berserk_potion",
+            "frame": 0,
+            "visible": 2513,
+            "hash": 993390830
+          },
+          {
+            "effect": "berserk_potion",
+            "frame": 1,
+            "visible": 3941,
+            "hash": 3724212816
+          },
+          {
+            "effect": "berserk_potion",
+            "frame": 2,
+            "visible": 4942,
+            "hash": 3051520810
+          },
+          {
+            "effect": "berserk_potion",
+            "frame": 3,
+            "visible": 2511,
+            "hash": 2818403675
+          }
+        ],
+        "status": [
+          {
+            "visible": 230,
+            "hash": 2902955241
+          },
+          {
+            "visible": 220,
+            "hash": 4038368414
+          },
+          {
+            "visible": 220,
+            "hash": 1618931907
+          },
+          {
+            "visible": 229,
+            "hash": 3997931627
+          },
+          {
+            "visible": 228,
+            "hash": 2192361797
+          },
+          {
+            "visible": 221,
+            "hash": 1095128136
+          },
+          {
+            "visible": 220,
+            "hash": 2940249478
+          },
+          {
+            "visible": 228,
+            "hash": 2410158508
+          }
+        ],
+        "resourceUrls": [
+          "http://127.0.0.1:8100/assets/immutable/def1ee07f94d322fe5f053db.webp",
+          "http://127.0.0.1:8100/assets/immutable/00bc0aa91e59be7a639bd34c.webp",
+          "http://127.0.0.1:8100/assets/immutable/048ce76d57ea69a8bb2e6cd7.webp",
+          "http://127.0.0.1:8100/assets/immutable/3c4c486d6a985804d259cda3.webp"
+        ]
+      }
+    },
+    {
+      "name": "portrait",
+      "classId": "witch",
+      "combat": {
+        "hp": 949893,
+        "casts": [
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1940,
+                "y": 1200,
+                "aimed": true
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              1,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 2
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              2,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 1
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              3,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 1
+              }
+            ],
+            "result": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "portrait",
+      "classId": "warrior",
+      "pixels": {
+        "sprite": {
+          "visible": 3077,
+          "hash": 3559974913
+        },
+        "frames": [
+          {
+            "effect": "warrior_slash",
+            "frame": 0,
+            "visible": 675,
+            "hash": 2218353914
+          },
+          {
+            "effect": "warrior_slash",
+            "frame": 1,
+            "visible": 1871,
+            "hash": 2508440844
+          },
+          {
+            "effect": "warrior_slash",
+            "frame": 2,
+            "visible": 2591,
+            "hash": 1067006268
+          },
+          {
+            "effect": "warrior_slash",
+            "frame": 3,
+            "visible": 3591,
+            "hash": 1946820555
+          },
+          {
+            "effect": "challenge",
+            "frame": 0,
+            "visible": 1455,
+            "hash": 2631190412
+          },
+          {
+            "effect": "challenge",
+            "frame": 1,
+            "visible": 3037,
+            "hash": 2299353838
+          },
+          {
+            "effect": "challenge",
+            "frame": 2,
+            "visible": 3815,
+            "hash": 109351055
+          },
+          {
+            "effect": "challenge",
+            "frame": 3,
+            "visible": 4984,
+            "hash": 4102397611
+          },
+          {
+            "effect": "punishing_charge",
+            "frame": 0,
+            "visible": 1123,
+            "hash": 544578144
+          },
+          {
+            "effect": "punishing_charge",
+            "frame": 1,
+            "visible": 2227,
+            "hash": 1876623167
+          },
+          {
+            "effect": "punishing_charge",
+            "frame": 2,
+            "visible": 2778,
+            "hash": 3295854398
+          },
+          {
+            "effect": "punishing_charge",
+            "frame": 3,
+            "visible": 3454,
+            "hash": 1974758087
+          },
+          {
+            "effect": "blood_pact",
+            "frame": 0,
+            "visible": 2007,
+            "hash": 2996939364
+          },
+          {
+            "effect": "blood_pact",
+            "frame": 1,
+            "visible": 2981,
+            "hash": 1983509138
+          },
+          {
+            "effect": "blood_pact",
+            "frame": 2,
+            "visible": 3634,
+            "hash": 3135471007
+          },
+          {
+            "effect": "blood_pact",
+            "frame": 3,
+            "visible": 4492,
+            "hash": 3613927564
+          }
+        ],
+        "status": [
+          {
+            "visible": 230,
+            "hash": 2902955241
+          },
+          {
+            "visible": 220,
+            "hash": 4038368414
+          },
+          {
+            "visible": 220,
+            "hash": 1618931907
+          },
+          {
+            "visible": 229,
+            "hash": 3997931627
+          },
+          {
+            "visible": 228,
+            "hash": 2192361797
+          },
+          {
+            "visible": 221,
+            "hash": 1095128136
+          },
+          {
+            "visible": 220,
+            "hash": 2940249478
+          },
+          {
+            "visible": 228,
+            "hash": 2410158508
+          }
+        ],
+        "resourceUrls": [
+          "http://127.0.0.1:8100/assets/immutable/7f4e418fd86fa25cca1481cf.webp",
+          "http://127.0.0.1:8100/assets/immutable/ddab6f9e3ea74571c36e8d39.webp",
+          "http://127.0.0.1:8100/assets/immutable/048ce76d57ea69a8bb2e6cd7.webp"
+        ]
+      }
+    },
+    {
+      "name": "portrait",
+      "classId": "warrior",
+      "combat": {
+        "hp": 999768,
+        "casts": [
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1940,
+                "y": 1200,
+                "aimed": true
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              1,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 2
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              2,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 1
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              3,
+              {
+                "x": 1480,
+                "y": 1200,
+                "level": 1
+              }
+            ],
+            "result": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "portrait",
+      "classId": "archer",
+      "pixels": {
+        "sprite": {
+          "visible": 2963,
+          "hash": 1311627550
+        },
+        "frames": [
+          {
+            "effect": "archer_shot",
+            "frame": 0,
+            "visible": 1076,
+            "hash": 1154635159
+          },
+          {
+            "effect": "archer_shot",
+            "frame": 1,
+            "visible": 1801,
+            "hash": 533450096
+          },
+          {
+            "effect": "archer_shot",
+            "frame": 2,
+            "visible": 1994,
+            "hash": 150887749
+          },
+          {
+            "effect": "archer_shot",
+            "frame": 3,
+            "visible": 2313,
+            "hash": 2541805385
+          },
+          {
+            "effect": "hunter_trap",
+            "frame": 0,
+            "visible": 2645,
+            "hash": 105555345
+          },
+          {
+            "effect": "hunter_trap",
+            "frame": 1,
+            "visible": 3466,
+            "hash": 3775495237
+          },
+          {
+            "effect": "hunter_trap",
+            "frame": 2,
+            "visible": 3806,
+            "hash": 1870220044
+          },
+          {
+            "effect": "hunter_trap",
+            "frame": 3,
+            "visible": 4298,
+            "hash": 524316320
+          },
+          {
+            "effect": "shadow_leap",
+            "frame": 0,
+            "visible": 3096,
+            "hash": 4098881566
+          },
+          {
+            "effect": "shadow_leap",
+            "frame": 1,
+            "visible": 3391,
+            "hash": 497062186
+          },
+          {
+            "effect": "shadow_leap",
+            "frame": 2,
+            "visible": 3004,
+            "hash": 876459471
+          },
+          {
+            "effect": "shadow_leap",
+            "frame": 3,
+            "visible": 2174,
+            "hash": 2107597667
+          },
+          {
+            "effect": "tracking_rain",
+            "frame": 0,
+            "visible": 1660,
+            "hash": 351703980
+          },
+          {
+            "effect": "tracking_rain",
+            "frame": 1,
+            "visible": 3347,
+            "hash": 3162749493
+          },
+          {
+            "effect": "tracking_rain",
+            "frame": 2,
+            "visible": 3858,
+            "hash": 729165554
+          },
+          {
+            "effect": "tracking_rain",
+            "frame": 3,
+            "visible": 3494,
+            "hash": 4075976963
+          }
+        ],
+        "status": [
+          {
+            "visible": 230,
+            "hash": 2902955241
+          },
+          {
+            "visible": 220,
+            "hash": 4038368414
+          },
+          {
+            "visible": 220,
+            "hash": 1618931907
+          },
+          {
+            "visible": 229,
+            "hash": 3997931627
+          },
+          {
+            "visible": 228,
+            "hash": 2192361797
+          },
+          {
+            "visible": 221,
+            "hash": 1095128136
+          },
+          {
+            "visible": 220,
+            "hash": 2940249478
+          },
+          {
+            "visible": 228,
+            "hash": 2410158508
+          }
+        ],
+        "resourceUrls": [
+          "http://127.0.0.1:8100/assets/immutable/a6adf05d76de9d726af7e98f.webp",
+          "http://127.0.0.1:8100/assets/immutable/ca36a3176cb0f5f2860db61a.webp",
+          "http://127.0.0.1:8100/assets/immutable/048ce76d57ea69a8bb2e6cd7.webp"
+        ]
+      }
+    },
+    {
+      "name": "portrait",
+      "classId": "archer",
+      "combat": {
+        "hp": 999937,
+        "casts": [
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1940,
+                "y": 1200,
+                "aimed": true
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              1,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 2
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              2,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 1
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              3,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 1
+              }
+            ],
+            "result": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "portrait",
+      "classId": "wizard",
+      "mage": {
+        "level": 7,
+        "exp": 37,
+        "skill": 4,
+        "weapon": "qa-preserved-mage-weapon"
+      }
+    },
+    {
+      "name": "landscape",
+      "classId": "witch",
+      "pixels": {
+        "sprite": {
+          "visible": 2778,
+          "hash": 1394158317
+        },
+        "frames": [
+          {
+            "effect": "life_circle",
+            "frame": 0,
+            "visible": 2185,
+            "hash": 1481441588
+          },
+          {
+            "effect": "life_circle",
+            "frame": 1,
+            "visible": 2285,
+            "hash": 212104657
+          },
+          {
+            "effect": "life_circle",
+            "frame": 2,
+            "visible": 2296,
+            "hash": 1346759942
+          },
+          {
+            "effect": "life_circle",
+            "frame": 3,
+            "visible": 2234,
+            "hash": 2142268674
+          },
+          {
+            "effect": "poison_cloud",
+            "frame": 0,
+            "visible": 2250,
+            "hash": 330330126
+          },
+          {
+            "effect": "poison_cloud",
+            "frame": 1,
+            "visible": 3752,
+            "hash": 2331706147
+          },
+          {
+            "effect": "poison_cloud",
+            "frame": 2,
+            "visible": 5226,
+            "hash": 4027534408
+          },
+          {
+            "effect": "poison_cloud",
+            "frame": 3,
+            "visible": 2457,
+            "hash": 3073335527
+          },
+          {
+            "effect": "summon",
+            "frame": 0,
+            "visible": 2253,
+            "hash": 2949371165
+          },
+          {
+            "effect": "summon",
+            "frame": 1,
+            "visible": 4390,
+            "hash": 626351077
+          },
+          {
+            "effect": "summon",
+            "frame": 2,
+            "visible": 5223,
+            "hash": 637784808
+          },
+          {
+            "effect": "summon",
+            "frame": 3,
+            "visible": 2539,
+            "hash": 250721682
+          },
+          {
+            "effect": "berserk_potion",
+            "frame": 0,
+            "visible": 2513,
+            "hash": 993390830
+          },
+          {
+            "effect": "berserk_potion",
+            "frame": 1,
+            "visible": 3941,
+            "hash": 3724212816
+          },
+          {
+            "effect": "berserk_potion",
+            "frame": 2,
+            "visible": 4942,
+            "hash": 3051520810
+          },
+          {
+            "effect": "berserk_potion",
+            "frame": 3,
+            "visible": 2511,
+            "hash": 2818403675
+          }
+        ],
+        "status": [
+          {
+            "visible": 230,
+            "hash": 2902955241
+          },
+          {
+            "visible": 220,
+            "hash": 4038368414
+          },
+          {
+            "visible": 220,
+            "hash": 1618931907
+          },
+          {
+            "visible": 229,
+            "hash": 3997931627
+          },
+          {
+            "visible": 228,
+            "hash": 2192361797
+          },
+          {
+            "visible": 221,
+            "hash": 1095128136
+          },
+          {
+            "visible": 220,
+            "hash": 2940249478
+          },
+          {
+            "visible": 228,
+            "hash": 2410158508
+          }
+        ],
+        "resourceUrls": [
+          "http://127.0.0.1:8100/assets/immutable/def1ee07f94d322fe5f053db.webp",
+          "http://127.0.0.1:8100/assets/immutable/3c4c486d6a985804d259cda3.webp",
+          "http://127.0.0.1:8100/assets/immutable/00bc0aa91e59be7a639bd34c.webp",
+          "http://127.0.0.1:8100/assets/immutable/048ce76d57ea69a8bb2e6cd7.webp"
+        ]
+      }
+    },
+    {
+      "name": "landscape",
+      "classId": "witch",
+      "combat": {
+        "hp": 949893,
+        "casts": [
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1940,
+                "y": 1200,
+                "aimed": true
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              1,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 2
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              2,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 1
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              3,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 1
+              }
+            ],
+            "result": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "landscape",
+      "classId": "warrior",
+      "pixels": {
+        "sprite": {
+          "visible": 3077,
+          "hash": 3559974913
+        },
+        "frames": [
+          {
+            "effect": "warrior_slash",
+            "frame": 0,
+            "visible": 675,
+            "hash": 2218353914
+          },
+          {
+            "effect": "warrior_slash",
+            "frame": 1,
+            "visible": 1871,
+            "hash": 2508440844
+          },
+          {
+            "effect": "warrior_slash",
+            "frame": 2,
+            "visible": 2591,
+            "hash": 1067006268
+          },
+          {
+            "effect": "warrior_slash",
+            "frame": 3,
+            "visible": 3591,
+            "hash": 1946820555
+          },
+          {
+            "effect": "challenge",
+            "frame": 0,
+            "visible": 1455,
+            "hash": 2631190412
+          },
+          {
+            "effect": "challenge",
+            "frame": 1,
+            "visible": 3037,
+            "hash": 2299353838
+          },
+          {
+            "effect": "challenge",
+            "frame": 2,
+            "visible": 3815,
+            "hash": 109351055
+          },
+          {
+            "effect": "challenge",
+            "frame": 3,
+            "visible": 4984,
+            "hash": 4102397611
+          },
+          {
+            "effect": "punishing_charge",
+            "frame": 0,
+            "visible": 1123,
+            "hash": 544578144
+          },
+          {
+            "effect": "punishing_charge",
+            "frame": 1,
+            "visible": 2227,
+            "hash": 1876623167
+          },
+          {
+            "effect": "punishing_charge",
+            "frame": 2,
+            "visible": 2778,
+            "hash": 3295854398
+          },
+          {
+            "effect": "punishing_charge",
+            "frame": 3,
+            "visible": 3454,
+            "hash": 1974758087
+          },
+          {
+            "effect": "blood_pact",
+            "frame": 0,
+            "visible": 2007,
+            "hash": 2996939364
+          },
+          {
+            "effect": "blood_pact",
+            "frame": 1,
+            "visible": 2981,
+            "hash": 1983509138
+          },
+          {
+            "effect": "blood_pact",
+            "frame": 2,
+            "visible": 3634,
+            "hash": 3135471007
+          },
+          {
+            "effect": "blood_pact",
+            "frame": 3,
+            "visible": 4492,
+            "hash": 3613927564
+          }
+        ],
+        "status": [
+          {
+            "visible": 230,
+            "hash": 2902955241
+          },
+          {
+            "visible": 220,
+            "hash": 4038368414
+          },
+          {
+            "visible": 220,
+            "hash": 1618931907
+          },
+          {
+            "visible": 229,
+            "hash": 3997931627
+          },
+          {
+            "visible": 228,
+            "hash": 2192361797
+          },
+          {
+            "visible": 221,
+            "hash": 1095128136
+          },
+          {
+            "visible": 220,
+            "hash": 2940249478
+          },
+          {
+            "visible": 228,
+            "hash": 2410158508
+          }
+        ],
+        "resourceUrls": [
+          "http://127.0.0.1:8100/assets/immutable/7f4e418fd86fa25cca1481cf.webp",
+          "http://127.0.0.1:8100/assets/immutable/ddab6f9e3ea74571c36e8d39.webp",
+          "http://127.0.0.1:8100/assets/immutable/048ce76d57ea69a8bb2e6cd7.webp"
+        ]
+      }
+    },
+    {
+      "name": "landscape",
+      "classId": "warrior",
+      "combat": {
+        "hp": 999768,
+        "casts": [
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1940,
+                "y": 1200,
+                "aimed": true
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              1,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 2
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              2,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 1
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              3,
+              {
+                "x": 1480,
+                "y": 1200,
+                "level": 1
+              }
+            ],
+            "result": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "landscape",
+      "classId": "archer",
+      "pixels": {
+        "sprite": {
+          "visible": 2963,
+          "hash": 1311627550
+        },
+        "frames": [
+          {
+            "effect": "archer_shot",
+            "frame": 0,
+            "visible": 1076,
+            "hash": 1154635159
+          },
+          {
+            "effect": "archer_shot",
+            "frame": 1,
+            "visible": 1801,
+            "hash": 533450096
+          },
+          {
+            "effect": "archer_shot",
+            "frame": 2,
+            "visible": 1994,
+            "hash": 150887749
+          },
+          {
+            "effect": "archer_shot",
+            "frame": 3,
+            "visible": 2313,
+            "hash": 2541805385
+          },
+          {
+            "effect": "hunter_trap",
+            "frame": 0,
+            "visible": 2645,
+            "hash": 105555345
+          },
+          {
+            "effect": "hunter_trap",
+            "frame": 1,
+            "visible": 3466,
+            "hash": 3775495237
+          },
+          {
+            "effect": "hunter_trap",
+            "frame": 2,
+            "visible": 3806,
+            "hash": 1870220044
+          },
+          {
+            "effect": "hunter_trap",
+            "frame": 3,
+            "visible": 4298,
+            "hash": 524316320
+          },
+          {
+            "effect": "shadow_leap",
+            "frame": 0,
+            "visible": 3096,
+            "hash": 4098881566
+          },
+          {
+            "effect": "shadow_leap",
+            "frame": 1,
+            "visible": 3391,
+            "hash": 497062186
+          },
+          {
+            "effect": "shadow_leap",
+            "frame": 2,
+            "visible": 3004,
+            "hash": 876459471
+          },
+          {
+            "effect": "shadow_leap",
+            "frame": 3,
+            "visible": 2174,
+            "hash": 2107597667
+          },
+          {
+            "effect": "tracking_rain",
+            "frame": 0,
+            "visible": 1660,
+            "hash": 351703980
+          },
+          {
+            "effect": "tracking_rain",
+            "frame": 1,
+            "visible": 3347,
+            "hash": 3162749493
+          },
+          {
+            "effect": "tracking_rain",
+            "frame": 2,
+            "visible": 3858,
+            "hash": 729165554
+          },
+          {
+            "effect": "tracking_rain",
+            "frame": 3,
+            "visible": 3494,
+            "hash": 4075976963
+          }
+        ],
+        "status": [
+          {
+            "visible": 230,
+            "hash": 2902955241
+          },
+          {
+            "visible": 220,
+            "hash": 4038368414
+          },
+          {
+            "visible": 220,
+            "hash": 1618931907
+          },
+          {
+            "visible": 229,
+            "hash": 3997931627
+          },
+          {
+            "visible": 228,
+            "hash": 2192361797
+          },
+          {
+            "visible": 221,
+            "hash": 1095128136
+          },
+          {
+            "visible": 220,
+            "hash": 2940249478
+          },
+          {
+            "visible": 228,
+            "hash": 2410158508
+          }
+        ],
+        "resourceUrls": [
+          "http://127.0.0.1:8100/assets/immutable/a6adf05d76de9d726af7e98f.webp",
+          "http://127.0.0.1:8100/assets/immutable/ca36a3176cb0f5f2860db61a.webp",
+          "http://127.0.0.1:8100/assets/immutable/048ce76d57ea69a8bb2e6cd7.webp"
+        ]
+      }
+    },
+    {
+      "name": "landscape",
+      "classId": "archer",
+      "combat": {
+        "hp": 999937,
+        "casts": [
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1400,
+                "y": 1200,
+                "aimed": false
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "basic",
+            "args": [
+              {
+                "x": 1940,
+                "y": 1200,
+                "aimed": true
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              1,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 2
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              2,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 1
+              }
+            ],
+            "result": true
+          },
+          {
+            "method": "skill",
+            "args": [
+              3,
+              {
+                "x": 1400,
+                "y": 1200,
+                "level": 1
+              }
+            ],
+            "result": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "landscape",
+      "classId": "wizard",
+      "mage": {
+        "level": 7,
+        "exp": 37,
+        "skill": 4,
+        "weapon": "qa-preserved-mage-weapon"
+      }
+    }
+  ],
+  "errors": [],
+  "blockedExternal": []
+}

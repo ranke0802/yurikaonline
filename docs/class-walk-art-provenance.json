@@ -1,0 +1,45 @@
+{
+  "generated_png_workspace": "/workspace/generated_images",
+  "walk_output_rows": [
+    "front",
+    "back",
+    "right",
+    "left"
+  ],
+  "runtime_output_rows": [
+    "back",
+    "front",
+    "left",
+    "right",
+    "existing_attack"
+  ],
+  "mirroring": false,
+  "sources": {
+    "warrior": {
+      "front_back": "exec-1b01a56e-9408-4476-ade1-e0b403e5f253.png",
+      "right_left": "exec-3424cf9a-7ad4-4738-8228-6691bb873cae.png"
+    },
+    "witch": {
+      "front_back": "exec-98374b76-dfd5-47fd-96e3-63847a2d8b30.png",
+      "right_left": "exec-73e4c351-fa35-4e21-859d-88628b8884e5.png"
+    },
+    "archer": {
+      "front_back": "exec-6497b6f3-32dc-429e-ab44-a344a73fedae.png",
+      "right_left_contact1_passing1": "exec-2597526d-fb3e-443b-9805-d526c9c90338.png",
+      "right_left_contact2_passing2": "exec-da84782b-0a3f-4db6-8bd4-47de1baf6cd3.png"
+    }
+  },
+  "cell_mapping": {
+    "front_back": "4x4 source: use rows 0 and 1, columns 0..3",
+    "right_left": "4x2 source: use rows 0 and 1, columns 0..3",
+    "archer_right_left": "Two 2x2 sources: rows 0/1 map right/left; first source columns 0/1 map output phases 0/1, second source columns 0/1 map output phases 2/3"
+  },
+  "processing": [
+    "Round fractional cell boundaries independently.",
+    "Crop to the connected character bounds to exclude detached neighboring-cell hat/outline fragments.",
+    "Preserve authored pixels and equipment handedness; no frame mirroring or limb painting.",
+    "Align the head center and planted-foot baseline within padded transparent cells.",
+    "Keep original attack-row art unchanged."
+  ],
+  "validation": "reports/class-motion/{class}-final/motion-report.json records the final runtime SHA256, browser immutable URL, actual movement samples and manual review."
+}
