@@ -1,0 +1,1597 @@
+{
+  "baseline": "de81adbf15e123af3a8555ef9e8b58e73cca8d8f",
+  "zones": [
+    {
+      "id": "zone_1",
+      "name": "바람 언덕 (Starting Field)",
+      "theme": null
+    },
+    {
+      "id": "zone_2",
+      "name": "안개빛 호수",
+      "theme": {
+        "tint": "#2f778c",
+        "tintAlpha": 0.34,
+        "motif": "mist_ripples",
+        "motifColor": "#9af3ff"
+      }
+    },
+    {
+      "id": "zone_3",
+      "name": "뇌광 숲",
+      "theme": {
+        "tint": "#465d27",
+        "tintAlpha": 0.4,
+        "motif": "lightning_canopy",
+        "motifColor": "#ffe86a"
+      }
+    },
+    {
+      "id": "zone_4",
+      "name": "별그늘 유적",
+      "theme": {
+        "tint": "#35245f",
+        "tintAlpha": 0.48,
+        "motif": "astral_ruins",
+        "motifColor": "#e7bdff"
+      }
+    },
+    {
+      "id": "zone_5",
+      "name": "태초의 균열지",
+      "theme": {
+        "tint": "#2d1238",
+        "tintAlpha": 0.22,
+        "motif": "primal_rift",
+        "motifColor": "#b794f4"
+      }
+    }
+  ],
+  "weapons": [
+    {
+      "schemaVersion": 1,
+      "id": "astral_staff",
+      "name": "성운의 지팡이",
+      "description": "별그늘 유적의 성좌 마력이 체인 라이트닝을 진홍빛 생명 흡수 번개로 바꿉니다.",
+      "slot": "weapon",
+      "rarity": "boss",
+      "stackable": false,
+      "dropSource": [
+        "astral_sylveon",
+        "gastly"
+      ],
+      "baseStats": {
+        "attackPower": 13,
+        "critRate": 0.09,
+        "mpRegen": 7
+      },
+      "icon": {
+        "type": "image",
+        "path": "src/assets/items/astral_staff.webp",
+        "fallbackEmoji": "🌌"
+      },
+      "prefixPool": "astral_staff_affixes",
+      "enhancementRuleSet": "weapon_standard_1_to_10",
+      "enhancementBonuses": {
+        "attackPowerPerLevel": 1,
+        "critRatePerLevel": 0.01
+      },
+      "inventoryTooltip": {
+        "className": "마법 지팡이",
+        "material": "성운 결정",
+        "weight": 7,
+        "tradeable": false,
+        "dismantleable": true
+      },
+      "visuals": {
+        "equipAura": {
+          "mode": "prefix_plus_enhancement",
+          "prefixAuraProfiles": {
+            "astral_crimson": {
+              "baseColor": "#e3538b",
+              "secondaryColor": "#ffd4f0",
+              "particleStyle": "red_spark"
+            }
+          }
+        }
+      },
+      "instanceData": {
+        "prefixId": "random_from_pool",
+        "rolledValues": "from_affix_roll_ranges",
+        "enhancementLevel": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "blessed_astral_staff",
+      "name": "축복받은 성운의 지팡이",
+      "description": "별그늘 유적 일반 몬스터에게서 아주 낮은 확률로 발견되는 축복받은 우두머리 무기입니다. 별그늘 유적 무기와 같은 기본 성능을 지니며, 성운의 지팡이 고유 스킬 효과를 계승합니다.",
+      "slot": "weapon",
+      "rarity": "legendary",
+      "stackable": false,
+      "dropSource": [
+        "gastly",
+        "astral_sylveon"
+      ],
+      "baseStats": {
+        "attackPower": 20,
+        "critRate": 0.09,
+        "mpRegen": 7
+      },
+      "icon": {
+        "type": "image",
+        "path": "src/assets/items/astral_staff.webp",
+        "fallbackEmoji": "🌌"
+      },
+      "prefixPool": "blessed_astral_staff_affixes",
+      "enhancementRuleSet": "weapon_standard_1_to_10",
+      "enhancementBonuses": {
+        "attackPowerPerLevel": 1,
+        "critRatePerLevel": 0.01
+      },
+      "inventoryTooltip": {
+        "className": "마법 지팡이",
+        "material": "축복받은 성운 결정",
+        "weight": 7,
+        "tradeable": false,
+        "dismantleable": true
+      },
+      "visuals": {
+        "equipAura": {
+          "mode": "prefix_plus_enhancement",
+          "prefixAuraProfiles": {
+            "astral_crimson": {
+              "baseColor": "#e3538b",
+              "secondaryColor": "#ffd4f0",
+              "particleStyle": "red_spark"
+            }
+          }
+        }
+      },
+      "instanceData": {
+        "prefixId": "random_from_pool",
+        "rolledValues": "from_affix_roll_ranges",
+        "enhancementLevel": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "blessed_magic_staff",
+      "name": "축복받은 마력의 지팡이",
+      "description": "일반 몬스터에게서 아주 낮은 확률로 발견되는 축복받은 대왕슬라임 전용 무기입니다. 별그늘 유적 무기와 같은 기본 성능을 지니며, 마력의 지팡이 고유 스킬 효과를 계승합니다.",
+      "slot": "weapon",
+      "rarity": "legendary",
+      "stackable": false,
+      "dropSource": [
+        "slime",
+        "slime_split",
+        "king_slime"
+      ],
+      "baseStats": {
+        "attackPower": 20,
+        "critRate": 0.09,
+        "mpRegen": 7
+      },
+      "icon": {
+        "type": "image",
+        "path": "src/assets/items/magic_staff_inventory.webp",
+        "fallbackEmoji": "🪄"
+      },
+      "prefixPool": "blessed_magic_staff_affixes",
+      "enhancementRuleSet": "weapon_standard_1_to_10",
+      "enhancementBonuses": {
+        "attackPowerPerLevel": 1,
+        "critRatePerLevel": 0.01
+      },
+      "inventoryTooltip": {
+        "className": "마법 지팡이",
+        "material": "축복받은 마석",
+        "weight": 7,
+        "tradeable": false,
+        "dismantleable": true
+      },
+      "visuals": {
+        "equipAura": {
+          "mode": "prefix_plus_enhancement",
+          "prefixAuraProfiles": {
+            "starlight": {
+              "baseColor": "#f7d774",
+              "secondaryColor": "#fff7c2",
+              "particleStyle": "stardust"
+            },
+            "blue_flame": {
+              "baseColor": "#4cb7ff",
+              "secondaryColor": "#9ee6ff",
+              "particleStyle": "blue_flame"
+            },
+            "crimson_flash": {
+              "baseColor": "#ff5b5b",
+              "secondaryColor": "#ffc0c0",
+              "particleStyle": "red_spark"
+            }
+          }
+        }
+      },
+      "instanceData": {
+        "prefixId": "random_from_pool",
+        "rolledValues": "from_affix_roll_ranges",
+        "enhancementLevel": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "blessed_riftcore_staff",
+      "name": "축복받은 균열핵 지팡이",
+      "description": "태초의 균열지에서 극히 낮은 확률로 발견되는 축복받은 우두머리 무기입니다. 균열핵 지팡이의 고유 효과를 계승합니다.",
+      "slot": "weapon",
+      "rarity": "legendary",
+      "stackable": false,
+      "dropSource": [
+        "rift_sentinel",
+        "ember_drake",
+        "spark_squirrel"
+      ],
+      "baseStats": {
+        "attackPower": 20,
+        "critRate": 0.1,
+        "mpRegen": 8
+      },
+      "icon": {
+        "type": "image",
+        "path": "assets/resource/expansion/zone_5/items/riftcore_staff.webp",
+        "fallbackEmoji": "🌌"
+      },
+      "prefixPool": "blessed_riftcore_staff_affixes",
+      "enhancementRuleSet": "weapon_standard_1_to_10",
+      "enhancementBonuses": {
+        "attackPowerPerLevel": 1,
+        "critRatePerLevel": 0.01
+      },
+      "inventoryTooltip": {
+        "className": "마법 지팡이",
+        "material": "축복받은 균열핵 결정",
+        "weight": 8,
+        "tradeable": false,
+        "dismantleable": true
+      },
+      "visuals": {
+        "equipAura": {
+          "mode": "prefix_plus_enhancement",
+          "prefixAuraProfiles": {
+            "rift_core": {
+              "baseColor": "#8b5cf6",
+              "secondaryColor": "#67e8f9",
+              "particleStyle": "stardust"
+            }
+          }
+        }
+      },
+      "instanceData": {
+        "prefixId": "random_from_pool",
+        "rolledValues": "from_affix_roll_ranges",
+        "enhancementLevel": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "blessed_storm_staff",
+      "name": "축복받은 폭풍의 지팡이",
+      "description": "뇌광의 숲 일반 몬스터에게서 아주 낮은 확률로 발견되는 축복받은 우두머리 무기입니다. 별그늘 유적 무기와 같은 기본 성능을 지니며, 폭풍의 지팡이 고유 스킬 효과를 계승합니다.",
+      "slot": "weapon",
+      "rarity": "legendary",
+      "stackable": false,
+      "dropSource": [
+        "emolga",
+        "thunder_pikachu"
+      ],
+      "baseStats": {
+        "attackPower": 20,
+        "critRate": 0.09,
+        "mpRegen": 7
+      },
+      "icon": {
+        "type": "image",
+        "path": "src/assets/items/storm_staff.webp",
+        "fallbackEmoji": "⚡"
+      },
+      "prefixPool": "blessed_storm_staff_affixes",
+      "enhancementRuleSet": "weapon_standard_1_to_10",
+      "enhancementBonuses": {
+        "attackPowerPerLevel": 1,
+        "critRatePerLevel": 0.01
+      },
+      "inventoryTooltip": {
+        "className": "마법 지팡이",
+        "material": "축복받은 뇌전 파편",
+        "weight": 7,
+        "tradeable": false,
+        "dismantleable": true
+      },
+      "visuals": {
+        "equipAura": {
+          "mode": "prefix_plus_enhancement",
+          "prefixAuraProfiles": {
+            "storm_gold": {
+              "baseColor": "#f2ca3c",
+              "secondaryColor": "#fff5ad",
+              "particleStyle": "stardust"
+            }
+          }
+        }
+      },
+      "instanceData": {
+        "prefixId": "random_from_pool",
+        "rolledValues": "from_affix_roll_ranges",
+        "enhancementLevel": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "blessed_tidal_staff",
+      "name": "축복받은 해일의 지팡이",
+      "description": "안개빛 호수의 일반 몬스터에게서 아주 낮은 확률로 발견되는 축복받은 우두머리 무기입니다. 별그늘 유적 무기와 같은 기본 성능을 지니며, 해일의 지팡이 고유 스킬 효과를 계승합니다.",
+      "slot": "weapon",
+      "rarity": "legendary",
+      "stackable": false,
+      "dropSource": [
+        "squirtle",
+        "ruin_wobbuffet"
+      ],
+      "baseStats": {
+        "attackPower": 20,
+        "critRate": 0.09,
+        "mpRegen": 7
+      },
+      "icon": {
+        "type": "image",
+        "path": "src/assets/items/tidal_staff.webp",
+        "fallbackEmoji": "🌊"
+      },
+      "prefixPool": "blessed_tidal_staff_affixes",
+      "enhancementRuleSet": "weapon_standard_1_to_10",
+      "enhancementBonuses": {
+        "attackPowerPerLevel": 1,
+        "critRatePerLevel": 0.01
+      },
+      "inventoryTooltip": {
+        "className": "마법 지팡이",
+        "material": "축복받은 안개 수정",
+        "weight": 7,
+        "tradeable": false,
+        "dismantleable": true
+      },
+      "visuals": {
+        "equipAura": {
+          "mode": "prefix_plus_enhancement",
+          "prefixAuraProfiles": {
+            "tidal_blue": {
+              "baseColor": "#38c8f0",
+              "secondaryColor": "#c4f7ff",
+              "particleStyle": "blue_flame"
+            }
+          }
+        }
+      },
+      "instanceData": {
+        "prefixId": "random_from_pool",
+        "rolledValues": "from_affix_roll_ranges",
+        "enhancementLevel": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "magic_staff",
+      "name": "마력의 지팡이",
+      "slot": "weapon",
+      "rarity": "boss",
+      "stackable": false,
+      "dropSource": [
+        "king_slime",
+        "slime",
+        "slime_split"
+      ],
+      "baseStats": {
+        "attackPower": 7,
+        "critRate": 0.05,
+        "mpRegen": 3
+      },
+      "icon": {
+        "type": "image",
+        "path": "src/assets/items/magic_staff_inventory.webp",
+        "fallbackEmoji": "🪄"
+      },
+      "prefixPool": "magic_staff_affixes",
+      "enhancementRuleSet": "weapon_standard_1_to_10",
+      "enhancementBonuses": {
+        "attackPowerPerLevel": 1,
+        "critRatePerLevel": 0.01
+      },
+      "inventoryTooltip": {
+        "className": "마법사",
+        "material": "마석",
+        "weight": 10,
+        "tradeable": false,
+        "dismantleable": true
+      },
+      "visuals": {
+        "equipAura": {
+          "mode": "prefix_plus_enhancement",
+          "prefixAuraProfiles": {
+            "starlight": {
+              "baseColor": "#f7d774",
+              "secondaryColor": "#fff7c2",
+              "particleStyle": "stardust"
+            },
+            "blue_flame": {
+              "baseColor": "#4cb7ff",
+              "secondaryColor": "#9ee6ff",
+              "particleStyle": "blue_flame"
+            },
+            "crimson_flash": {
+              "baseColor": "#ff5b5b",
+              "secondaryColor": "#ffc0c0",
+              "particleStyle": "red_spark"
+            }
+          },
+          "enhancementStages": [
+            {
+              "minLevel": 0,
+              "maxLevel": 6,
+              "intensity": "soft",
+              "spark": false,
+              "glitter": false,
+              "whiteCore": false
+            },
+            {
+              "minLevel": 7,
+              "maxLevel": 7,
+              "intensity": "strong",
+              "spark": false,
+              "glitter": false,
+              "whiteCore": false
+            },
+            {
+              "minLevel": 8,
+              "maxLevel": 8,
+              "intensity": "stronger",
+              "spark": true,
+              "glitter": false,
+              "whiteCore": false
+            },
+            {
+              "minLevel": 9,
+              "maxLevel": 9,
+              "intensity": "epic",
+              "spark": true,
+              "glitter": true,
+              "whiteCore": false
+            },
+            {
+              "minLevel": 10,
+              "maxLevel": 10,
+              "intensity": "ascended",
+              "spark": true,
+              "glitter": true,
+              "whiteCore": true
+            }
+          ]
+        }
+      },
+      "instanceData": {
+        "prefixId": "random_from_pool",
+        "rolledValues": "from_affix_roll_ranges",
+        "enhancementLevel": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "riftcore_staff",
+      "name": "균열핵 지팡이",
+      "description": "태초의 균열지 중심에서 응결된 보랏빛 결정으로 만든 지팡이입니다. 체인 라이트닝이 균열의 섬광으로 변화합니다.",
+      "slot": "weapon",
+      "rarity": "boss",
+      "stackable": false,
+      "dropSource": [
+        "rift_sentinel",
+        "ember_drake",
+        "spark_squirrel"
+      ],
+      "baseStats": {
+        "attackPower": 15,
+        "critRate": 0.1,
+        "mpRegen": 8
+      },
+      "icon": {
+        "type": "image",
+        "path": "assets/resource/expansion/zone_5/items/riftcore_staff.webp",
+        "fallbackEmoji": "🪄"
+      },
+      "prefixPool": "riftcore_staff_affixes",
+      "enhancementRuleSet": "weapon_standard_1_to_10",
+      "enhancementBonuses": {
+        "attackPowerPerLevel": 1,
+        "critRatePerLevel": 0.01
+      },
+      "inventoryTooltip": {
+        "className": "마법 지팡이",
+        "material": "균열핵 결정",
+        "weight": 8,
+        "tradeable": false,
+        "dismantleable": true
+      },
+      "visuals": {
+        "equipAura": {
+          "mode": "prefix_plus_enhancement",
+          "prefixAuraProfiles": {
+            "rift_core": {
+              "baseColor": "#8b5cf6",
+              "secondaryColor": "#67e8f9",
+              "particleStyle": "stardust"
+            }
+          }
+        }
+      },
+      "instanceData": {
+        "prefixId": "random_from_pool",
+        "rolledValues": "from_affix_roll_ranges",
+        "enhancementLevel": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "storm_staff",
+      "name": "뇌광의 지팡이",
+      "description": "뇌광 숲의 응축된 전류로 매직 미사일을 황금 낙뢰탄으로 변화시킵니다.",
+      "slot": "weapon",
+      "rarity": "boss",
+      "stackable": false,
+      "dropSource": [
+        "thunder_pikachu",
+        "emolga"
+      ],
+      "baseStats": {
+        "attackPower": 11,
+        "critRate": 0.07,
+        "mpRegen": 5
+      },
+      "icon": {
+        "type": "image",
+        "path": "src/assets/items/storm_staff.webp",
+        "fallbackEmoji": "⚡"
+      },
+      "prefixPool": "storm_staff_affixes",
+      "enhancementRuleSet": "weapon_standard_1_to_10",
+      "enhancementBonuses": {
+        "attackPowerPerLevel": 1,
+        "critRatePerLevel": 0.01
+      },
+      "inventoryTooltip": {
+        "className": "마법 지팡이",
+        "material": "뇌전 호박",
+        "weight": 8,
+        "tradeable": false,
+        "dismantleable": true
+      },
+      "visuals": {
+        "equipAura": {
+          "mode": "prefix_plus_enhancement",
+          "prefixAuraProfiles": {
+            "storm_gold": {
+              "baseColor": "#f2ca3c",
+              "secondaryColor": "#fff5ad",
+              "particleStyle": "stardust"
+            }
+          }
+        }
+      },
+      "instanceData": {
+        "prefixId": "random_from_pool",
+        "rolledValues": "from_affix_roll_ranges",
+        "enhancementLevel": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "tidal_staff",
+      "name": "해일의 지팡이",
+      "description": "안개빛 호수의 마력을 머금어 파이어볼을 푸른 연쇄 폭발로 바꿉니다.",
+      "slot": "weapon",
+      "rarity": "boss",
+      "stackable": false,
+      "dropSource": [
+        "ruin_wobbuffet",
+        "squirtle"
+      ],
+      "baseStats": {
+        "attackPower": 9,
+        "critRate": 0.06,
+        "mpRegen": 4
+      },
+      "icon": {
+        "type": "image",
+        "path": "src/assets/items/tidal_staff.webp",
+        "fallbackEmoji": "🔱"
+      },
+      "prefixPool": "tidal_staff_affixes",
+      "enhancementRuleSet": "weapon_standard_1_to_10",
+      "enhancementBonuses": {
+        "attackPowerPerLevel": 1,
+        "critRatePerLevel": 0.01
+      },
+      "inventoryTooltip": {
+        "className": "마법 지팡이",
+        "material": "안개 수정",
+        "weight": 9,
+        "tradeable": false,
+        "dismantleable": true
+      },
+      "visuals": {
+        "equipAura": {
+          "mode": "prefix_plus_enhancement",
+          "prefixAuraProfiles": {
+            "tidal_blue": {
+              "baseColor": "#38c8f0",
+              "secondaryColor": "#c4f7ff",
+              "particleStyle": "blue_flame"
+            }
+          }
+        }
+      },
+      "instanceData": {
+        "prefixId": "random_from_pool",
+        "rolledValues": "from_affix_roll_ranges",
+        "enhancementLevel": 0
+      }
+    }
+  ],
+  "affixPools": [
+    {
+      "schemaVersion": 1,
+      "id": "astral_staff_affixes",
+      "affixes": [
+        {
+          "id": "astral_crimson_flash",
+          "prefix": "성운을 가르는",
+          "displayName": "성운을 가르는 진홍 지팡이",
+          "skillOverrides": {
+            "laserVisualVariant": "crimson_chain"
+          },
+          "rolledEffects": {
+            "laserDamageBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.5,
+              "max": 0.72,
+              "displayAsPercent": true
+            },
+            "attackSpeedBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.18,
+              "max": 0.3,
+              "displayAsPercent": true
+            }
+          },
+          "combatHooks": {
+            "restoreHpPerLaserHit": 2,
+            "restoreHpPerLaserHitByEnhancement": {
+              "7": 3,
+              "10": 4
+            },
+            "keepMpRestore": true,
+            "beamStyle": "thick_red_arc"
+          },
+          "visuals": {
+            "auraProfile": "astral_crimson",
+            "projectileTint": "#ff5f91"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "blessed_astral_staff_affixes",
+      "affixes": [
+        {
+          "id": "blessed_astral_crimson_flash",
+          "prefix": "축복받은 성운을 가르는",
+          "displayName": "축복받은 성운을 가르는 진홍 지팡이",
+          "skillOverrides": {
+            "laserVisualVariant": "crimson_chain"
+          },
+          "rolledEffects": {
+            "laserDamageBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.5,
+              "max": 0.72,
+              "displayAsPercent": true
+            },
+            "attackSpeedBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.18,
+              "max": 0.3,
+              "displayAsPercent": true
+            }
+          },
+          "combatHooks": {
+            "restoreHpPerLaserHit": 2,
+            "restoreHpPerLaserHitByEnhancement": {
+              "7": 3,
+              "10": 4
+            },
+            "keepMpRestore": true,
+            "beamStyle": "thick_red_arc"
+          },
+          "visuals": {
+            "auraProfile": "astral_crimson",
+            "projectileTint": "#ff5f91"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "blessed_magic_staff_affixes",
+      "affixes": [
+        {
+          "id": "blessed_starlight",
+          "prefix": "축복받은 별빛의",
+          "displayName": "축복받은 별빛의 마력의 지팡이",
+          "skillOverrides": {
+            "missileVisualVariant": "golden_missile"
+          },
+          "rolledEffects": {
+            "missileDamageBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.2,
+              "max": 0.5,
+              "displayAsPercent": true
+            },
+            "missileManaCostReduction": {
+              "type": "multiplier_bonus",
+              "min": 0.1,
+              "max": 0.3,
+              "displayAsPercent": true
+            }
+          },
+          "visuals": {
+            "auraProfile": "starlight",
+            "projectileTint": "#f5cf5b"
+          }
+        },
+        {
+          "id": "blessed_blue_flame",
+          "prefix": "축복받은 푸른 불꽃의",
+          "displayName": "축복받은 푸른 불꽃의 마력의 지팡이",
+          "skillOverrides": {
+            "fireballVisualVariant": "blue_fireball"
+          },
+          "rolledEffects": {
+            "fireballChainChance": {
+              "type": "multiplier_bonus",
+              "min": 0.1,
+              "max": 0.5,
+              "displayAsPercent": true
+            },
+            "fireballChainDamageRatio": {
+              "type": "multiplier_bonus",
+              "min": 0.3,
+              "max": 0.8,
+              "displayAsPercent": true
+            }
+          },
+          "visuals": {
+            "auraProfile": "blue_flame",
+            "projectileTint": "#59c7ff"
+          }
+        },
+        {
+          "id": "blessed_crimson_flash",
+          "prefix": "축복받은 붉은 섬광의",
+          "displayName": "축복받은 붉은 섬광의 마력의 지팡이",
+          "skillOverrides": {
+            "laserVisualVariant": "crimson_chain"
+          },
+          "rolledEffects": {
+            "laserDamageBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.2,
+              "max": 0.5,
+              "displayAsPercent": true
+            },
+            "attackSpeedBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.1,
+              "max": 0.3,
+              "displayAsPercent": true
+            }
+          },
+          "combatHooks": {
+            "restoreHpPerLaserHit": 1,
+            "restoreHpPerLaserHitByEnhancement": {
+              "7": 2,
+              "10": 3
+            },
+            "keepMpRestore": true,
+            "beamStyle": "thick_red_arc"
+          },
+          "visuals": {
+            "auraProfile": "crimson_flash",
+            "projectileTint": "#ff5d66"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "blessed_riftcore_staff_affixes",
+      "affixes": [
+        {
+          "id": "blessed_riftcore_resonance",
+          "prefix": "축복받은 균열을 공명시키는",
+          "displayName": "축복받은 균열핵 지팡이",
+          "skillOverrides": {
+            "laserVisualVariant": "crimson_chain"
+          },
+          "rolledEffects": {
+            "laserDamageBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.7,
+              "max": 0.9,
+              "displayAsPercent": true
+            },
+            "attackSpeedBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.24,
+              "max": 0.36,
+              "displayAsPercent": true
+            }
+          },
+          "combatHooks": {
+            "restoreHpPerLaserHit": 4,
+            "restoreHpPerLaserHitByEnhancement": {
+              "7": 5,
+              "10": 6
+            },
+            "keepMpRestore": true,
+            "beamStyle": "thick_red_arc"
+          },
+          "visuals": {
+            "auraProfile": "rift_core",
+            "projectileTint": "#a78bfa"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "blessed_storm_staff_affixes",
+      "affixes": [
+        {
+          "id": "blessed_storm_starlight",
+          "prefix": "축복받은 폭풍의",
+          "displayName": "축복받은 폭풍의 황금 지팡이",
+          "skillOverrides": {
+            "missileVisualVariant": "golden_missile"
+          },
+          "rolledEffects": {
+            "missileDamageBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.42,
+              "max": 0.62,
+              "displayAsPercent": true
+            },
+            "missileManaCostReduction": {
+              "type": "multiplier_bonus",
+              "min": 0.18,
+              "max": 0.32,
+              "displayAsPercent": true
+            }
+          },
+          "visuals": {
+            "auraProfile": "storm_gold",
+            "projectileTint": "#ffe052"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "blessed_tidal_staff_affixes",
+      "affixes": [
+        {
+          "id": "blessed_tidal_blue_flame",
+          "prefix": "축복받은 해일의",
+          "displayName": "축복받은 해일의 푸른 지팡이",
+          "skillOverrides": {
+            "fireballVisualVariant": "blue_fireball"
+          },
+          "rolledEffects": {
+            "fireballChainChance": {
+              "type": "multiplier_bonus",
+              "min": 0.24,
+              "max": 0.38,
+              "displayAsPercent": true
+            },
+            "fireballChainDamageRatio": {
+              "type": "multiplier_bonus",
+              "min": 0.45,
+              "max": 0.65,
+              "displayAsPercent": true
+            }
+          },
+          "visuals": {
+            "auraProfile": "tidal_blue",
+            "projectileTint": "#58ddff"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "magic_staff_affixes",
+      "affixes": [
+        {
+          "id": "starlight",
+          "prefix": "별빛의",
+          "displayName": "별빛의 마력의 지팡이",
+          "skillOverrides": {
+            "missileVisualVariant": "golden_missile"
+          },
+          "rolledEffects": {
+            "missileDamageBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.2,
+              "max": 0.5,
+              "displayAsPercent": true
+            },
+            "missileManaCostReduction": {
+              "type": "multiplier_bonus",
+              "min": 0.1,
+              "max": 0.3,
+              "displayAsPercent": true
+            }
+          },
+          "visuals": {
+            "auraProfile": "starlight",
+            "projectileTint": "#f5cf5b"
+          }
+        },
+        {
+          "id": "blue_flame",
+          "prefix": "푸른 불꽃의",
+          "displayName": "푸른 불꽃의 마력의 지팡이",
+          "skillOverrides": {
+            "fireballVisualVariant": "blue_fireball"
+          },
+          "rolledEffects": {
+            "fireballChainChance": {
+              "type": "multiplier_bonus",
+              "min": 0.1,
+              "max": 0.5,
+              "displayAsPercent": true
+            },
+            "fireballChainDamageRatio": {
+              "type": "multiplier_bonus",
+              "min": 0.3,
+              "max": 0.8,
+              "displayAsPercent": true
+            }
+          },
+          "visuals": {
+            "auraProfile": "blue_flame",
+            "projectileTint": "#59c7ff"
+          }
+        },
+        {
+          "id": "crimson_flash",
+          "prefix": "붉은 섬광의",
+          "displayName": "붉은 섬광의 마력의 지팡이",
+          "skillOverrides": {
+            "laserVisualVariant": "crimson_chain"
+          },
+          "rolledEffects": {
+            "laserDamageBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.2,
+              "max": 0.5,
+              "displayAsPercent": true
+            },
+            "attackSpeedBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.1,
+              "max": 0.3,
+              "displayAsPercent": true
+            }
+          },
+          "combatHooks": {
+            "restoreHpPerLaserHit": 1,
+            "restoreHpPerLaserHitByEnhancement": {
+              "7": 2,
+              "10": 3
+            },
+            "keepMpRestore": true,
+            "beamStyle": "thick_red_arc"
+          },
+          "visuals": {
+            "auraProfile": "crimson_flash",
+            "projectileTint": "#ff5d66"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "riftcore_staff_affixes",
+      "affixes": [
+        {
+          "id": "riftcore_resonance",
+          "prefix": "균열을 공명시키는",
+          "displayName": "균열을 공명시키는 균열핵 지팡이",
+          "skillOverrides": {
+            "laserVisualVariant": "crimson_chain"
+          },
+          "rolledEffects": {
+            "laserDamageBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.6,
+              "max": 0.8,
+              "displayAsPercent": true
+            },
+            "attackSpeedBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.2,
+              "max": 0.32,
+              "displayAsPercent": true
+            }
+          },
+          "combatHooks": {
+            "restoreHpPerLaserHit": 3,
+            "restoreHpPerLaserHitByEnhancement": {
+              "7": 4,
+              "10": 5
+            },
+            "keepMpRestore": true,
+            "beamStyle": "thick_red_arc"
+          },
+          "visuals": {
+            "auraProfile": "rift_core",
+            "projectileTint": "#a78bfa"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "storm_staff_affixes",
+      "affixes": [
+        {
+          "id": "storm_starlight",
+          "prefix": "뇌광을 두른",
+          "displayName": "뇌광을 두른 황금 지팡이",
+          "skillOverrides": {
+            "missileVisualVariant": "golden_missile"
+          },
+          "rolledEffects": {
+            "missileDamageBonus": {
+              "type": "multiplier_bonus",
+              "min": 0.42,
+              "max": 0.62,
+              "displayAsPercent": true
+            },
+            "missileManaCostReduction": {
+              "type": "multiplier_bonus",
+              "min": 0.18,
+              "max": 0.32,
+              "displayAsPercent": true
+            }
+          },
+          "visuals": {
+            "auraProfile": "storm_gold",
+            "projectileTint": "#ffe052"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "tidal_staff_affixes",
+      "affixes": [
+        {
+          "id": "tidal_blue_flame",
+          "prefix": "해일을 품은",
+          "displayName": "해일을 품은 푸른 지팡이",
+          "skillOverrides": {
+            "fireballVisualVariant": "blue_fireball"
+          },
+          "rolledEffects": {
+            "fireballChainChance": {
+              "type": "multiplier_bonus",
+              "min": 0.24,
+              "max": 0.38,
+              "displayAsPercent": true
+            },
+            "fireballChainDamageRatio": {
+              "type": "multiplier_bonus",
+              "min": 0.45,
+              "max": 0.65,
+              "displayAsPercent": true
+            }
+          },
+          "visuals": {
+            "auraProfile": "tidal_blue",
+            "projectileTint": "#58ddff"
+          }
+        }
+      ]
+    }
+  ],
+  "enhancement": {
+    "schemaVersion": 1,
+    "ruleSets": [
+      {
+        "id": "weapon_standard_1_to_10",
+        "name": "무기 기본 강화 규칙",
+        "safeUntil": 6,
+        "maxLevel": 10,
+        "failureMode": {
+          "keepLevelOnFail": true,
+          "destroyOnFailFromLevel": 7
+        },
+        "perLevelStatGain": {
+          "attackPower": 1,
+          "critRate": 0.01
+        },
+        "levels": {
+          "1": {
+            "successRate": 1.0,
+            "destroyChanceOnFail": 0.0
+          },
+          "2": {
+            "successRate": 1.0,
+            "destroyChanceOnFail": 0.0
+          },
+          "3": {
+            "successRate": 1.0,
+            "destroyChanceOnFail": 0.0
+          },
+          "4": {
+            "successRate": 1.0,
+            "destroyChanceOnFail": 0.0
+          },
+          "5": {
+            "successRate": 1.0,
+            "destroyChanceOnFail": 0.0
+          },
+          "6": {
+            "successRate": 1.0,
+            "destroyChanceOnFail": 0.0
+          },
+          "7": {
+            "successRate": 0.5,
+            "destroyChanceOnFail": 0.5
+          },
+          "8": {
+            "successRate": 0.25,
+            "destroyChanceOnFail": 0.5
+          },
+          "9": {
+            "successRate": 0.15,
+            "destroyChanceOnFail": 0.5
+          },
+          "10": {
+            "successRate": 0.05,
+            "destroyChanceOnFail": 0.5
+          }
+        }
+      }
+    ]
+  },
+  "dropRules": {
+    "schemaVersion": 1,
+    "globalDrops": [
+      {
+        "itemId": "weapon_upgrade_stone",
+        "source": "slime_map_normal_monsters",
+        "chance": 0.1
+      }
+    ],
+    "normalDrops": [
+      {
+        "monsterId": "slime",
+        "itemId": "blessed_magic_staff",
+        "chance": 0.001,
+        "rollAffixFromPool": "blessed_magic_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "slime_split",
+        "itemId": "blessed_magic_staff",
+        "chance": 0.001,
+        "rollAffixFromPool": "blessed_magic_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "squirtle",
+        "itemId": "blessed_tidal_staff",
+        "chance": 0.001,
+        "rollAffixFromPool": "blessed_tidal_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "emolga",
+        "itemId": "blessed_storm_staff",
+        "chance": 0.001,
+        "rollAffixFromPool": "blessed_storm_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "gastly",
+        "itemId": "blessed_astral_staff",
+        "chance": 0.001,
+        "rollAffixFromPool": "blessed_astral_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "slime",
+        "itemId": "option_reroll_stone",
+        "chance": 0.005,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "monsterId": "slime_split",
+        "itemId": "option_reroll_stone",
+        "chance": 0.005,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "monsterId": "squirtle",
+        "itemId": "option_reroll_stone",
+        "chance": 0.005,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "monsterId": "emolga",
+        "itemId": "option_reroll_stone",
+        "chance": 0.005,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "monsterId": "gastly",
+        "itemId": "option_reroll_stone",
+        "chance": 0.005,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "monsterId": "squirtle",
+        "itemId": "weapon_upgrade_stone",
+        "chance": 0.05,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "monsterId": "emolga",
+        "itemId": "weapon_upgrade_stone",
+        "chance": 0.05,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "monsterId": "gastly",
+        "itemId": "weapon_upgrade_stone",
+        "chance": 0.05,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "monsterId": "slime",
+        "itemId": "magic_staff",
+        "chance": 0.01,
+        "rollAffixFromPool": "magic_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "slime_split",
+        "itemId": "magic_staff",
+        "chance": 0.01,
+        "rollAffixFromPool": "magic_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "squirtle",
+        "itemId": "tidal_staff",
+        "chance": 0.01,
+        "rollAffixFromPool": "tidal_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "emolga",
+        "itemId": "storm_staff",
+        "chance": 0.01,
+        "rollAffixFromPool": "storm_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "gastly",
+        "itemId": "astral_staff",
+        "chance": 0.01,
+        "rollAffixFromPool": "astral_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "ember_drake",
+        "itemId": "riftcore_staff",
+        "chance": 0.01,
+        "rollAffixFromPool": "riftcore_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "spark_squirrel",
+        "itemId": "riftcore_staff",
+        "chance": 0.01,
+        "rollAffixFromPool": "riftcore_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "ember_drake",
+        "itemId": "blessed_riftcore_staff",
+        "chance": 0.001,
+        "rollAffixFromPool": "blessed_riftcore_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "spark_squirrel",
+        "itemId": "blessed_riftcore_staff",
+        "chance": 0.001,
+        "rollAffixFromPool": "blessed_riftcore_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "ember_drake",
+        "itemId": "option_reroll_stone",
+        "chance": 0.005,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "monsterId": "spark_squirrel",
+        "itemId": "option_reroll_stone",
+        "chance": 0.005,
+        "min": 1,
+        "max": 1
+      }
+    ],
+    "bossDrops": [
+      {
+        "monsterId": "king_slime",
+        "itemId": "magic_staff",
+        "chance": 1,
+        "rollAffixFromPool": "magic_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "ruin_wobbuffet",
+        "itemId": "tidal_staff",
+        "chance": 1,
+        "rollAffixFromPool": "tidal_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "thunder_pikachu",
+        "itemId": "storm_staff",
+        "chance": 1,
+        "rollAffixFromPool": "storm_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "astral_sylveon",
+        "itemId": "astral_staff",
+        "chance": 1,
+        "rollAffixFromPool": "astral_staff_affixes",
+        "quantity": 1
+      },
+      {
+        "monsterId": "rift_sentinel",
+        "itemId": "riftcore_staff",
+        "chance": 1,
+        "rollAffixFromPool": "riftcore_staff_affixes",
+        "quantity": 1
+      }
+    ],
+    "bossBonusDrops": [
+      {
+        "monsterId": "king_slime",
+        "itemId": "blessed_magic_staff",
+        "chance": 0.1,
+        "min": 1,
+        "max": 1,
+        "rollAffixFromPool": "blessed_magic_staff_affixes"
+      },
+      {
+        "monsterId": "king_slime",
+        "itemId": "option_reroll_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 3
+      },
+      {
+        "monsterId": "king_slime",
+        "itemId": "weapon_upgrade_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 3,
+        "blessedVariantChance": 0
+      },
+      {
+        "monsterId": "king_slime",
+        "itemId": "blessed_weapon_upgrade_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "monsterId": "king_slime",
+        "itemId": "boss_summon_scroll_king_slime",
+        "chance": 1,
+        "min": 1,
+        "max": 1,
+        "uniqueInventory": true
+      },
+      {
+        "monsterId": "ruin_wobbuffet",
+        "itemId": "option_reroll_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 3
+      },
+      {
+        "monsterId": "ruin_wobbuffet",
+        "itemId": "blessed_tidal_staff",
+        "chance": 0.1,
+        "min": 1,
+        "max": 1,
+        "rollAffixFromPool": "blessed_tidal_staff_affixes"
+      },
+      {
+        "monsterId": "ruin_wobbuffet",
+        "itemId": "weapon_upgrade_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 3,
+        "blessedVariantChance": 0
+      },
+      {
+        "monsterId": "ruin_wobbuffet",
+        "itemId": "blessed_weapon_upgrade_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "monsterId": "ruin_wobbuffet",
+        "itemId": "boss_summon_scroll_ruin_wobbuffet",
+        "chance": 1,
+        "min": 1,
+        "max": 1,
+        "uniqueInventory": true
+      },
+      {
+        "monsterId": "thunder_pikachu",
+        "itemId": "option_reroll_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 3
+      },
+      {
+        "monsterId": "thunder_pikachu",
+        "itemId": "blessed_storm_staff",
+        "chance": 0.1,
+        "min": 1,
+        "max": 1,
+        "rollAffixFromPool": "blessed_storm_staff_affixes"
+      },
+      {
+        "monsterId": "thunder_pikachu",
+        "itemId": "weapon_upgrade_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 3,
+        "blessedVariantChance": 0
+      },
+      {
+        "monsterId": "thunder_pikachu",
+        "itemId": "blessed_weapon_upgrade_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "monsterId": "thunder_pikachu",
+        "itemId": "boss_summon_scroll_thunder_pikachu",
+        "chance": 1,
+        "min": 1,
+        "max": 1,
+        "uniqueInventory": true
+      },
+      {
+        "monsterId": "astral_sylveon",
+        "itemId": "option_reroll_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 3
+      },
+      {
+        "monsterId": "astral_sylveon",
+        "itemId": "blessed_astral_staff",
+        "chance": 0.1,
+        "min": 1,
+        "max": 1,
+        "rollAffixFromPool": "blessed_astral_staff_affixes"
+      },
+      {
+        "monsterId": "astral_sylveon",
+        "itemId": "weapon_upgrade_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 3,
+        "blessedVariantChance": 0
+      },
+      {
+        "monsterId": "astral_sylveon",
+        "itemId": "blessed_weapon_upgrade_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "monsterId": "astral_sylveon",
+        "itemId": "boss_summon_scroll_astral_sylveon",
+        "chance": 1,
+        "min": 1,
+        "max": 1,
+        "uniqueInventory": true
+      },
+      {
+        "monsterId": "rift_sentinel",
+        "itemId": "blessed_riftcore_staff",
+        "chance": 0.1,
+        "min": 1,
+        "max": 1,
+        "rollAffixFromPool": "blessed_riftcore_staff_affixes"
+      },
+      {
+        "monsterId": "rift_sentinel",
+        "itemId": "option_reroll_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 3
+      },
+      {
+        "monsterId": "rift_sentinel",
+        "itemId": "weapon_upgrade_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 3,
+        "blessedVariantChance": 0
+      },
+      {
+        "monsterId": "rift_sentinel",
+        "itemId": "blessed_weapon_upgrade_stone",
+        "chance": 1,
+        "min": 1,
+        "max": 1
+      },
+      {
+        "monsterId": "rift_sentinel",
+        "itemId": "boss_summon_scroll_rift_sentinel",
+        "chance": 1,
+        "min": 1,
+        "max": 1,
+        "uniqueInventory": true
+      }
+    ]
+  }
+}

@@ -2,6 +2,7 @@ import { combatCenter } from '../combat/ClassAnchors.js';
 import { WARRIOR_GEOMETRY as WG } from '../combat/ClassGeometry.js';
 import ClassCombatBridge from '../combat/ClassCombatBridge.js';
 import { buildClassProfilePatch, normalizeClassId } from '../core/ClassProfiles.js';
+import { basicAttackProfile, basicChargeSeconds } from '../combat/BasicAttackProgression.js';
 import { classSkillIds, classSkillMaxLevel } from '../ui/ClassSkillUI.js';
 import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
@@ -321,7 +322,7 @@ export default class Player extends CharacterBase {
         if (!aim || aim.action !== action) return false;
         this.classAim=null;
         if (this.isDead || this.classCombat?.paused()) return false;
-        const threshold=this.classId === 'archer' && this.classCombat.controller.empowered ? .2 : .5;
+        const threshold=basicChargeSeconds(this, this.classCombat.controller.empowered);
         const result=action === 'ATTACK'
             ? this.classCombat.basic({x:aim.x,y:aim.y,aimed:aim.elapsed>=threshold})
             : this.useSkill(Number(action.slice(-1)),{x:aim.x,y:aim.y});
@@ -336,9 +337,15 @@ export default class Player extends CharacterBase {
         let range=Math.min(Math.hypot(a.x-center.x,a.y-center.y),basic?(this.classId==='witch'?560:650):450),width=basic?14:10;
         let radius=basic?12:this.classId==='witch'&&a.action==='SKILL_1'?140:this.classId==='archer'&&a.action==='SKILL_3'?165:28,circle=false;
         if(this.classId==='warrior'){
-            const g=basic?(a.elapsed>=.5?WG.heavy:WG.tap):a.action==='SKILL_2'?WG.charge:null;
+            const growth=basicAttackProfile(this.classId,this.skillLevels);
+            const g=basic?(a.elapsed>=basicChargeSeconds(this)?growth.heavy:growth.tap):a.action==='SKILL_2'?WG.charge:null;
             if(g){range=g.range;width=g.halfWidth;radius=0;}
             else {circle=true;radius=a.action==='SKILL_1'?WG.challenge.radius:WG.finale.radius;}
+        }
+        if (this.classId==='witch' && basic) {
+            const growth=basicAttackProfile(this.classId,this.skillLevels);
+            if (a.elapsed<basicChargeSeconds(this)) { circle=true;range=0;radius=growth.tapRadius; }
+            else { width=growth.orbRadius;radius=growth.orbRadius; }
         }
         return {originX:center.x,originY:center.y,targetX:center.x+Math.cos(angle)*range,targetY:center.y+Math.sin(angle)*range,
             widthRadius:width,aoeRadius:radius,circle,exactWidth:this.classId==='warrior',variant:'blue_fireball'};

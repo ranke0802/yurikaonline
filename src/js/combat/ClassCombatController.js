@@ -1,3 +1,4 @@
+import { basicAttackProfile } from './BasicAttackProgression.js';
 import { basicAttackInterval } from './AttackCadence.js';
 import { acceptPoisonPulse } from './WitchPoison.js';
 import { WARRIOR_GEOMETRY as WG } from './ClassGeometry.js';
@@ -75,28 +76,39 @@ export default class ClassCombatController {
         // Reserve before damage/effect hooks: reentrant input cannot spend twice.
         // Schedule from now, never from a stale deadline; low FPS cannot bank bursts.
         this.basicReady = this.time + interval;
+        const growth = basicAttackProfile(this.classId, this.owner.skillLevels);
+        const power = this.attack() * growth.damageMultiplier;
         const center = this.combatOrigin();
         const point = { x: x ?? center.x + 100, y: y ?? center.y };
         if (this.classId === 'witch') {
-            if (aimed) this.orb(point);
-            else { this.area(this.combatOrigin(), 95).forEach(e => this.hit(e, this.attack() * 2)); this.effect('life_circle', { radius: 95 }); }
+            if (aimed) this.orb(point, growth);
+            else { this.area(this.combatOrigin(), growth.tapRadius).forEach(e => this.hit(e, power * 2)); this.effect('life_circle', { radius: growth.tapRadius }); }
         } else if (this.classId === 'warrior') {
             if (aimed) {
                 this.rage -= 25;
-                this.line(point, WG.heavy.range, WG.heavy.halfWidth).forEach(e => this.hit(e, this.attack() * 3, { armorPierce: 1 }));
-                this.effect('rage_smash', { target: point });
+                this.line(point, growth.heavy.range, growth.heavy.halfWidth).forEach(e => {
+                    if (this.hit(e, power * 3, { armorPierce: 1 })) this.pushBasicTarget(e, point, growth.heavy.knockback);
+                });
+                this.effect('rage_smash', { target: point, range: growth.heavy.range, halfWidth: growth.heavy.halfWidth });
             } else {
                 this.combo = this.time - (this.lastCombo || 0) > 1.6 ? 1 : this.combo % 3 + 1; this.lastCombo = this.time;
-                let hits = 0; this.line(point, WG.tap.range, WG.tap.halfWidth).forEach(e => { if(this.hit(e, this.attack() * (this.combo === 3 ? 1.5 : 1))) hits++; });
+                let hits = 0; this.line(point, growth.tap.range, growth.tap.halfWidth).forEach(e => {
+                    if (this.hit(e, power * (this.combo === 3 ? 1.5 : 1))) { hits++; this.pushBasicTarget(e, point, growth.tap.knockback); }
+                });
                 if (hits && this.combo === 3) this.rage = Math.min(100, this.rage + 18);
-                this.effect('warrior_slash', { target: point, combo: this.combo });
+                this.effect('warrior_slash', { target: point, combo: this.combo, range: growth.tap.range, halfWidth: growth.tap.halfWidth });
             }
         } else if (this.classId === 'archer') {
-            if (aimed) this.snipe(point);
-            else this.arrow(point);
+            if (aimed) this.snipe(point, growth);
+            else this.arrow(point, growth);
         } else return false;
         this.hooks.action?.('basic', { aimed, target: point, interval, combo: this.classId === 'warrior' ? this.combo : undefined, empowered: this.classId === 'archer' && aimed && this.lastEmpowered });
         return true;
+    }
+    pushBasicTarget(enemy, point, amount) {
+        if (!amount || enemy.isBoss || !alive(enemy)) return;
+        const d = this.direction(point);
+        this.hooks.move?.(enemy, enemy.x + d.x * amount, enemy.y + d.y * amount);
     }
     attackOrigin(point, kind) {
         const origin = this.hooks.attackOrigin?.(point, kind);
@@ -118,14 +130,14 @@ export default class ClassCombatController {
         // artwork hand offset. The normal projectile remains drawn at that hand.
         return { from, to: { x: from.x + forward.x * reach, y: from.y + forward.y * reach }, forward };
     }
-    arrow(point) {
+    arrow(point, growth = basicAttackProfile(this.classId, this.owner.skillLevels)) {
         const origin = this.attackOrigin(point, 'arrow');
-        this.projectiles.push({ kind: 'arrow', ...origin, direction: this.projectileDirection(origin, point), spawnSweep: this.launchSweep(origin, point), launchPlane: { origin: this.combatOrigin(), forward: this.direction(point) }, speed: 540, remaining: 600, age:0 });
+        this.projectiles.push({ kind: 'arrow', ...origin, direction: this.projectileDirection(origin, point), spawnSweep: this.launchSweep(origin, point), launchPlane: { origin: this.combatOrigin(), forward: this.direction(point) }, speed: 540, remaining: 600, age:0, power: this.attack() * growth.damageMultiplier });
         this.effect('archer_shot', { ...origin, target: point });
     }
-    orb(point) {
+    orb(point, growth = basicAttackProfile(this.classId, this.owner.skillLevels)) {
         const origin = this.attackOrigin(point, 'orb');
-        this.projectiles.push({ kind: 'orb', ...origin, direction: this.projectileDirection(origin, point), spawnSweep: this.launchSweep(origin, point), launchPlane: { origin: this.combatOrigin(), forward: this.direction(point) }, speed: 210, remaining: 560 });
+        this.projectiles.push({ kind: 'orb', ...origin, direction: this.projectileDirection(origin, point), spawnSweep: this.launchSweep(origin, point), launchPlane: { origin: this.combatOrigin(), forward: this.direction(point) }, speed: 210, remaining: 560, radius: growth.orbRadius, power: this.attack() * growth.damageMultiplier });
         this.effect('drain_orb', { ...origin, target: point });
     }
     poison(e, pulse = null) {
@@ -136,13 +148,13 @@ export default class ClassCombatController {
         if(s.stunUntil>this.time)this.control(e,'stun',3,{},false);
         else this.control(e,'poison',5,{stacks:s.stacks,slow:s.stacks*.2},false);
     }
-    snipe(point) {
+    snipe(point, growth = basicAttackProfile(this.classId, this.owner.skillLevels)) {
         this.lastEmpowered = this.empowered; this.empowered = false;
         const origin = this.attackOrigin(point, 'snipe');
         this.projectiles.push({kind:'snipe', ...origin, age:0,
             direction:this.projectileDirection(origin,point), spawnSweep:this.launchSweep(origin,point),
             launchPlane:{origin:this.combatOrigin(),forward:this.direction(point)},
-            speed:780, remaining:650, hitTargets:new Set(), power:this.attack(), empowered:this.lastEmpowered});
+            speed:780, remaining:650, hitTargets:new Set(), power:this.attack() * growth.damageMultiplier, empowered:this.lastEmpowered});
         // This committed event drives the firing sound; the moving projectile owns
         // the visible arrow. Damage and mark consumption happen only on contact.
         this.effect('piercing_snipe', { ...origin, target:point, empowered:this.lastEmpowered });
@@ -270,11 +282,11 @@ export default class ClassCombatController {
     }
     resolveProjectileHit(p, e) {
         if(p.kind==='snipe'){this.hitSnipe(p,e);return;}
-        if (p.kind === 'arrow') { if (this.hit(e, this.attack() * .85)) this.mark(e); }
+        if (p.kind === 'arrow') { if (this.hit(e, (p.power ?? this.attack()) * .85)) this.mark(e); }
         else {
             this.control(e, 'stagger', .35); let drained = 0;
             // Contact starts a 3-second channel, total 100% ATK, three 1-second ticks.
-            const atk = Math.ceil(this.attack()); const start = { x: p.x, y: p.y };
+            const atk = Math.ceil(p.power ?? this.attack()); const start = { x: p.x, y: p.y };
             for (let tick = 1; tick <= 3; tick++) this.schedule(tick, () => {
                 const portion = tick < 3 ? Math.floor(atk / 3) : atk - 2 * Math.floor(atk / 3);
                 if (portion > 0) drained += this.hit(e, portion, { drain: true });
@@ -307,7 +319,7 @@ export default class ClassCombatController {
                 const contacts = this.enemies().map(e => {
                     const ex=e.x-from.x, ey=e.y-from.y;
                     const t=clamp((ex*sx+ey*sy)/length2,0,1), x=from.x+sx*t, y=from.y+sy*t;
-                    return {e,t,x,y,front:ex*forward.x+ey*forward.y>=0,within:Math.hypot(e.x-x,e.y-y)<=(e.radius||16)+(p.kind==='orb'?14:p.kind==='snipe'?18:8)};
+                    return {e,t,x,y,front:ex*forward.x+ey*forward.y>=0,within:Math.hypot(e.x-x,e.y-y)<=(e.radius||16)+(p.kind==='orb'?(p.radius ?? 14):p.kind==='snipe'?18:8)};
                 }).filter(c=>c.front&&c.within).sort((a,b)=>a.t-b.t);
                 if(contacts.length){
                     if(p.kind==='snipe')contacts.forEach(c=>this.resolveProjectileHit(p,c.e));
@@ -317,7 +329,7 @@ export default class ClassCombatController {
         }
         for (let i = 0; i < steps; i++) {
             p.x += p.direction.x * amount / steps; p.y += p.direction.y * amount / steps;
-            const contacts=this.area(p,p.kind==='orb'?14:p.kind==='snipe'?18:8).filter(e=>!p.launchPlane||(e.x-p.launchPlane.origin.x)*p.launchPlane.forward.x+(e.y-p.launchPlane.origin.y)*p.launchPlane.forward.y>=0);
+            const contacts=this.area(p,p.kind==='orb'?(p.radius ?? 14):p.kind==='snipe'?18:8).filter(e=>!p.launchPlane||(e.x-p.launchPlane.origin.x)*p.launchPlane.forward.x+(e.y-p.launchPlane.origin.y)*p.launchPlane.forward.y>=0);
             if(p.kind==='snipe'){contacts.forEach(e=>this.resolveProjectileHit(p,e));continue;}
             if(!contacts.length)continue;
             this.resolveProjectileHit(p,contacts[0]);return;

@@ -20,8 +20,8 @@ test('archer leap has .2-second aimed threshold; touch drag controls direction',
     p.moveClassAim({clientX:10,clientY:-90});p.classAim.elapsed=.2;p.releaseClassAction('ATTACK');
     assert.equal(calls[0].aimed,true);assert.equal(calls[0].x,p.x+p.width/2);assert.equal(calls[0].y,p.y+p.height/2-600);
 });
-test('new class skill upgrades reject unknown/basic/maxed keys without spending shared currency',()=>{
-    const {p}=fixture();p.manastone=999999;p.skillLevels.summon=8;
+test('new class skill upgrades reject unknown/maxed keys without spending shared currency',()=>{
+    const {p}=fixture();p.manastone=999999;p.skillLevels.summon=8;p.skillLevels.lifeDrain=8;
     assert.equal(p.increaseSkill('laser'),false);assert.equal(p.increaseSkill('lifeDrain'),false);assert.equal(p.increaseSkill('summon'),false);
     assert.equal(p.manastone,999999);assert.equal(p.skillLevels.laser,undefined);
 });

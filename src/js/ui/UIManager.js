@@ -1,6 +1,6 @@
 import AndroidDisplayController from './AndroidDisplayController.js';
 import { CLASS_NAMES } from '../core/ClassProfiles.js';
-import { CLASS_SKILL_UI, MAGE_SKILL_IDS, classSkillIds, classSkillMaxLevel } from './ClassSkillUI.js';
+import { CLASS_SKILL_UI, MAGE_SKILL_IDS, basicAttackUpgradeDetails, classSkillIds, classSkillMaxLevel } from './ClassSkillUI.js';
 import Logger from '../utils/Logger.js';
 import { getFireballAoeRadius, FIREBALL_BASE_RADIUS, FIREBALL_RADIUS_PER_LEVEL, FIREBALL_AOE_MULTIPLIER } from '../skills/FireballScaling.js';
 import { getViewportMetrics } from '../core/ViewportMetrics.js';
@@ -8254,6 +8254,7 @@ export class UIManager {
                 subtitle: `Lv.${level}${show ? ` · 단축키 ${hotkey}` : ''}`,
                 tooltipCurrentEffectHtml: `<div class="current-effect">Lv.${level}${maxed ? ' · MAX' : ` · 다음 강화 ${cost} G`}</div>`,
                 modalHtml: this.buildSkillDetailSection('핵심 설명', [data.desc, data.detail].filter(Boolean))
+                    + (classSkillIds(p)[0] === skillId ? this.buildSkillDetailSection('기본 공격 성장', basicAttackUpgradeDetails(p)) : '')
                     + this.buildSkillDetailSection('다음 강화 비용', [maxed ? '최대 레벨입니다.' : `${cost.toLocaleString('ko-KR')} G`]) };
         }
 

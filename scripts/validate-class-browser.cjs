@@ -49,7 +49,7 @@ const report = { pixelValidation: process.env.QA_COMBAT_ONLY !== '1', coverage: 
      const id=expected[1]; const before=await page.evaluate(id=>game.localPlayer.skillLevels[id],id);
      await page.locator(`.skill-up-btn[data-skill="${id}"]`).tap();
      assert.equal(await page.evaluate(id=>game.localPlayer.skillLevels[id],id),before+1);
-     assert.equal(await page.locator(`.skill-up-btn[data-skill="${expected[0]}"]`).isDisabled(),true);
+     assert.equal(await page.locator(`.skill-up-btn[data-skill="${expected[0]}"]`).isDisabled(),false);
     }
     if(classId!=='wizard'){const icons=await page.locator('#skill-popup .skill-icon').evaluateAll(nodes=>nodes.map(node=>getComputedStyle(node).backgroundImage));assert.ok(icons.every(url=>/\/assets\/immutable\/[a-f0-9]{24}\.webp/.test(url)),'popup icons use immutable generated raster URLs');}
     await page.screenshot({path:`${OUT}/${name}-${classId}-skills.png`});

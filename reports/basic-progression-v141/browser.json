@@ -1,0 +1,684 @@
+{
+  "cases": [
+    {
+      "id": "witch",
+      "level": 1,
+      "g": {
+        "level": 1,
+        "damageMultiplier": 1,
+        "chargeSeconds": 0.5,
+        "tapRadius": 95,
+        "orbRadius": 14,
+        "tap": {
+          "range": 100,
+          "halfWidth": 52,
+          "knockback": 0
+        },
+        "heavy": {
+          "range": 150,
+          "halfWidth": 48,
+          "knockback": 0
+        }
+      },
+      "tap": true,
+      "charged": true,
+      "duplicate": false,
+      "spam": false,
+      "auto": {
+        "x": 1664,
+        "y": 1624
+      },
+      "enemyCenter": {
+        "x": 1664,
+        "y": 1624
+      },
+      "guide": {
+        "originX": 1624,
+        "originY": 1624,
+        "targetX": 2184,
+        "targetY": 1624,
+        "widthRadius": 14,
+        "aoeRadius": 14,
+        "circle": false,
+        "exactWidth": false,
+        "variant": "blue_fireball"
+      },
+      "hits": [
+        22,
+        3,
+        3,
+        5
+      ],
+      "actions": [
+        {
+          "aimed": false,
+          "target": {
+            "x": 1664,
+            "y": 1624
+          },
+          "interval": 0.5962962962962963,
+          "empowered": false
+        },
+        {
+          "aimed": true,
+          "target": {
+            "x": 2224,
+            "y": 1624
+          },
+          "interval": 0.7777777777777778,
+          "empowered": false
+        }
+      ],
+      "mage": {
+        "laser": 3,
+        "missile": 2,
+        "fireball": 4,
+        "shield": 1
+      }
+    },
+    {
+      "id": "witch",
+      "level": 4,
+      "g": {
+        "level": 4,
+        "damageMultiplier": 1.24,
+        "chargeSeconds": 0.5,
+        "tapRadius": 109.24999999999999,
+        "orbRadius": 16.099999999999998,
+        "tap": {
+          "range": 114.99999999999999,
+          "halfWidth": 59.8,
+          "knockback": 12
+        },
+        "heavy": {
+          "range": 172.5,
+          "halfWidth": 55.199999999999996,
+          "knockback": 18
+        }
+      },
+      "tap": true,
+      "charged": true,
+      "duplicate": false,
+      "spam": false,
+      "auto": {
+        "x": 1664,
+        "y": 1624
+      },
+      "enemyCenter": {
+        "x": 1664,
+        "y": 1624
+      },
+      "guide": {
+        "originX": 1624,
+        "originY": 1624,
+        "targetX": 2184,
+        "targetY": 1624,
+        "widthRadius": 16.099999999999998,
+        "aoeRadius": 16.099999999999998,
+        "circle": false,
+        "exactWidth": false,
+        "variant": "blue_fireball"
+      },
+      "hits": [
+        28,
+        4,
+        4,
+        6
+      ],
+      "actions": [
+        {
+          "aimed": false,
+          "target": {
+            "x": 1664,
+            "y": 1624
+          },
+          "interval": 0.5962962962962963,
+          "empowered": false
+        },
+        {
+          "aimed": true,
+          "target": {
+            "x": 2224,
+            "y": 1624
+          },
+          "interval": 0.7777777777777778,
+          "empowered": false
+        }
+      ],
+      "mage": {
+        "laser": 3,
+        "missile": 2,
+        "fireball": 4,
+        "shield": 1
+      }
+    },
+    {
+      "id": "witch",
+      "level": 8,
+      "g": {
+        "level": 8,
+        "damageMultiplier": 1.56,
+        "chargeSeconds": 0.5,
+        "tapRadius": 128.25,
+        "orbRadius": 18.900000000000002,
+        "tap": {
+          "range": 135,
+          "halfWidth": 70.2,
+          "knockback": 28
+        },
+        "heavy": {
+          "range": 202.5,
+          "halfWidth": 64.80000000000001,
+          "knockback": 42
+        }
+      },
+      "tap": true,
+      "charged": true,
+      "duplicate": false,
+      "spam": false,
+      "auto": {
+        "x": 1664,
+        "y": 1624
+      },
+      "enemyCenter": {
+        "x": 1664,
+        "y": 1624
+      },
+      "guide": {
+        "originX": 1624,
+        "originY": 1624,
+        "targetX": 2184,
+        "targetY": 1624,
+        "widthRadius": 18.900000000000002,
+        "aoeRadius": 18.900000000000002,
+        "circle": false,
+        "exactWidth": false,
+        "variant": "blue_fireball"
+      },
+      "hits": [
+        35,
+        6,
+        6,
+        6
+      ],
+      "actions": [
+        {
+          "aimed": false,
+          "target": {
+            "x": 1664,
+            "y": 1624
+          },
+          "interval": 0.5962962962962963,
+          "empowered": false
+        },
+        {
+          "aimed": true,
+          "target": {
+            "x": 2224,
+            "y": 1624
+          },
+          "interval": 0.7777777777777778,
+          "empowered": false
+        }
+      ],
+      "mage": {
+        "laser": 3,
+        "missile": 2,
+        "fireball": 4,
+        "shield": 1
+      }
+    },
+    {
+      "id": "warrior",
+      "level": 1,
+      "g": {
+        "level": 1,
+        "damageMultiplier": 1,
+        "chargeSeconds": 0.5,
+        "tapRadius": 95,
+        "orbRadius": 14,
+        "tap": {
+          "range": 100,
+          "halfWidth": 52,
+          "knockback": 0
+        },
+        "heavy": {
+          "range": 150,
+          "halfWidth": 48,
+          "knockback": 0
+        }
+      },
+      "tap": true,
+      "charged": true,
+      "duplicate": false,
+      "spam": false,
+      "auto": {
+        "x": 1664,
+        "y": 1624
+      },
+      "enemyCenter": {
+        "x": 1664,
+        "y": 1624
+      },
+      "guide": {
+        "originX": 1624,
+        "originY": 1624,
+        "targetX": 1774,
+        "targetY": 1624,
+        "widthRadius": 48,
+        "aoeRadius": 0,
+        "circle": false,
+        "exactWidth": true,
+        "variant": "blue_fireball"
+      },
+      "hits": [
+        14,
+        42
+      ],
+      "actions": [
+        {
+          "aimed": false,
+          "target": {
+            "x": 1664,
+            "y": 1624
+          },
+          "interval": 0.5185185185185185,
+          "combo": 1,
+          "empowered": false
+        },
+        {
+          "aimed": true,
+          "target": {
+            "x": 2224,
+            "y": 1624
+          },
+          "interval": 0.8148148148148149,
+          "combo": 1,
+          "empowered": false
+        }
+      ],
+      "mage": {
+        "laser": 3,
+        "missile": 2,
+        "fireball": 4,
+        "shield": 1
+      }
+    },
+    {
+      "id": "warrior",
+      "level": 4,
+      "g": {
+        "level": 4,
+        "damageMultiplier": 1.24,
+        "chargeSeconds": 0.5,
+        "tapRadius": 109.24999999999999,
+        "orbRadius": 16.099999999999998,
+        "tap": {
+          "range": 114.99999999999999,
+          "halfWidth": 59.8,
+          "knockback": 12
+        },
+        "heavy": {
+          "range": 172.5,
+          "halfWidth": 55.199999999999996,
+          "knockback": 18
+        }
+      },
+      "tap": true,
+      "charged": true,
+      "duplicate": false,
+      "spam": false,
+      "auto": {
+        "x": 1664,
+        "y": 1624
+      },
+      "enemyCenter": {
+        "x": 1664,
+        "y": 1624
+      },
+      "guide": {
+        "originX": 1624,
+        "originY": 1624,
+        "targetX": 1796.5,
+        "targetY": 1624,
+        "widthRadius": 55.199999999999996,
+        "aoeRadius": 0,
+        "circle": false,
+        "exactWidth": true,
+        "variant": "blue_fireball"
+      },
+      "hits": [
+        18,
+        53
+      ],
+      "actions": [
+        {
+          "aimed": false,
+          "target": {
+            "x": 1664,
+            "y": 1624
+          },
+          "interval": 0.5185185185185185,
+          "combo": 1,
+          "empowered": false
+        },
+        {
+          "aimed": true,
+          "target": {
+            "x": 2224,
+            "y": 1624
+          },
+          "interval": 0.8148148148148149,
+          "combo": 1,
+          "empowered": false
+        }
+      ],
+      "mage": {
+        "laser": 3,
+        "missile": 2,
+        "fireball": 4,
+        "shield": 1
+      }
+    },
+    {
+      "id": "warrior",
+      "level": 8,
+      "g": {
+        "level": 8,
+        "damageMultiplier": 1.56,
+        "chargeSeconds": 0.5,
+        "tapRadius": 128.25,
+        "orbRadius": 18.900000000000002,
+        "tap": {
+          "range": 135,
+          "halfWidth": 70.2,
+          "knockback": 28
+        },
+        "heavy": {
+          "range": 202.5,
+          "halfWidth": 64.80000000000001,
+          "knockback": 42
+        }
+      },
+      "tap": true,
+      "charged": true,
+      "duplicate": false,
+      "spam": false,
+      "auto": {
+        "x": 1664,
+        "y": 1624
+      },
+      "enemyCenter": {
+        "x": 1664,
+        "y": 1624
+      },
+      "guide": {
+        "originX": 1624,
+        "originY": 1624,
+        "targetX": 1826.5,
+        "targetY": 1624,
+        "widthRadius": 64.80000000000001,
+        "aoeRadius": 0,
+        "circle": false,
+        "exactWidth": true,
+        "variant": "blue_fireball"
+      },
+      "hits": [
+        22,
+        66
+      ],
+      "actions": [
+        {
+          "aimed": false,
+          "target": {
+            "x": 1664,
+            "y": 1624
+          },
+          "interval": 0.5185185185185185,
+          "combo": 1,
+          "empowered": false
+        },
+        {
+          "aimed": true,
+          "target": {
+            "x": 2224,
+            "y": 1624
+          },
+          "interval": 0.8148148148148149,
+          "combo": 1,
+          "empowered": false
+        }
+      ],
+      "mage": {
+        "laser": 3,
+        "missile": 2,
+        "fireball": 4,
+        "shield": 1
+      }
+    },
+    {
+      "id": "archer",
+      "level": 1,
+      "g": {
+        "level": 1,
+        "damageMultiplier": 1,
+        "chargeSeconds": 0.5,
+        "tapRadius": 95,
+        "orbRadius": 14,
+        "tap": {
+          "range": 100,
+          "halfWidth": 52,
+          "knockback": 0
+        },
+        "heavy": {
+          "range": 150,
+          "halfWidth": 48,
+          "knockback": 0
+        }
+      },
+      "tap": true,
+      "charged": true,
+      "duplicate": false,
+      "spam": false,
+      "auto": {
+        "x": 1664,
+        "y": 1624
+      },
+      "enemyCenter": {
+        "x": 1664,
+        "y": 1624
+      },
+      "guide": {
+        "originX": 1624,
+        "originY": 1624,
+        "targetX": 2224,
+        "targetY": 1624,
+        "widthRadius": 14,
+        "aoeRadius": 12,
+        "circle": false,
+        "exactWidth": false,
+        "variant": "blue_fireball"
+      },
+      "hits": [
+        11,
+        28
+      ],
+      "actions": [
+        {
+          "aimed": false,
+          "target": {
+            "x": 1664,
+            "y": 1624
+          },
+          "interval": 0.48148148148148145,
+          "empowered": false
+        },
+        {
+          "aimed": true,
+          "target": {
+            "x": 2224,
+            "y": 1624
+          },
+          "interval": 0.7777777777777778,
+          "empowered": false
+        }
+      ],
+      "mage": {
+        "laser": 3,
+        "missile": 2,
+        "fireball": 4,
+        "shield": 1
+      }
+    },
+    {
+      "id": "archer",
+      "level": 4,
+      "g": {
+        "level": 4,
+        "damageMultiplier": 1.24,
+        "chargeSeconds": 0.41,
+        "tapRadius": 109.24999999999999,
+        "orbRadius": 16.099999999999998,
+        "tap": {
+          "range": 114.99999999999999,
+          "halfWidth": 59.8,
+          "knockback": 12
+        },
+        "heavy": {
+          "range": 172.5,
+          "halfWidth": 55.199999999999996,
+          "knockback": 18
+        }
+      },
+      "tap": true,
+      "charged": true,
+      "duplicate": false,
+      "spam": false,
+      "auto": {
+        "x": 1664,
+        "y": 1624
+      },
+      "enemyCenter": {
+        "x": 1664,
+        "y": 1624
+      },
+      "guide": {
+        "originX": 1624,
+        "originY": 1624,
+        "targetX": 2224,
+        "targetY": 1624,
+        "widthRadius": 14,
+        "aoeRadius": 12,
+        "circle": false,
+        "exactWidth": false,
+        "variant": "blue_fireball"
+      },
+      "hits": [
+        13,
+        35
+      ],
+      "actions": [
+        {
+          "aimed": false,
+          "target": {
+            "x": 1664,
+            "y": 1624
+          },
+          "interval": 0.48148148148148145,
+          "empowered": false
+        },
+        {
+          "aimed": true,
+          "target": {
+            "x": 2224,
+            "y": 1624
+          },
+          "interval": 0.7777777777777778,
+          "empowered": false
+        }
+      ],
+      "mage": {
+        "laser": 3,
+        "missile": 2,
+        "fireball": 4,
+        "shield": 1
+      }
+    },
+    {
+      "id": "archer",
+      "level": 8,
+      "g": {
+        "level": 8,
+        "damageMultiplier": 1.56,
+        "chargeSeconds": 0.3,
+        "tapRadius": 128.25,
+        "orbRadius": 18.900000000000002,
+        "tap": {
+          "range": 135,
+          "halfWidth": 70.2,
+          "knockback": 28
+        },
+        "heavy": {
+          "range": 202.5,
+          "halfWidth": 64.80000000000001,
+          "knockback": 42
+        }
+      },
+      "tap": true,
+      "charged": true,
+      "duplicate": false,
+      "spam": false,
+      "auto": {
+        "x": 1664,
+        "y": 1624
+      },
+      "enemyCenter": {
+        "x": 1664,
+        "y": 1624
+      },
+      "guide": {
+        "originX": 1624,
+        "originY": 1624,
+        "targetX": 2224,
+        "targetY": 1624,
+        "widthRadius": 14,
+        "aoeRadius": 12,
+        "circle": false,
+        "exactWidth": false,
+        "variant": "blue_fireball"
+      },
+      "hits": [
+        16,
+        44
+      ],
+      "actions": [
+        {
+          "aimed": false,
+          "target": {
+            "x": 1664,
+            "y": 1624
+          },
+          "interval": 0.48148148148148145,
+          "empowered": false
+        },
+        {
+          "aimed": true,
+          "target": {
+            "x": 2224,
+            "y": 1624
+          },
+          "interval": 0.7777777777777778,
+          "empowered": false
+        }
+      ],
+      "mage": {
+        "laser": 3,
+        "missile": 2,
+        "fireball": 4,
+        "shield": 1
+      }
+    }
+  ],
+  "errors": [],
+  "scope": "Local synthetic accounts; real upgrade buttons, save/reload, camp/field transitions, existing raster effects."
+}
