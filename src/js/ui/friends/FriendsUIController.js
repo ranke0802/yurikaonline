@@ -1,4 +1,5 @@
 import Logger from '../../utils/Logger.js';
+import { normalizeClassId, projectClassProfile } from '../../core/ClassProfiles.js';
 
 export const FRIENDS_UI_METHOD_NAMES = [
     'setupFriendsUI',
@@ -39,6 +40,8 @@ export const FRIENDS_UI_METHOD_NAMES = [
 export default class FriendsUIController {
     constructor(ui) {
         this.ui = ui;
+        this.friendPortraits = new Map();
+        this.friendPortraitRequests = new Map();
 
         return new Proxy(this, {
             get(target, prop, receiver) {
@@ -1451,13 +1454,19 @@ export default class FriendsUIController {
         }, 1000);
     }
 
-    async ensureFriendPortraitAsset() {
-        if (this.friendPortraitDataUrl) return this.friendPortraitDataUrl;
-        if (this.friendPortraitPromise) return this.friendPortraitPromise;
+    async ensureFriendPortraitAsset(requestedId = 'wizard') {
+        const classId = normalizeClassId(requestedId);
+        if (this.friendPortraits.get(classId)) return this.friendPortraits.get(classId);
+        if (this.friendPortraitRequests.has(classId)) return this.friendPortraitRequests.get(classId);
 
-        this.friendPortraitPromise = (async () => {
+        const request = (async () => {
             try {
-                const sheetCanvas = await this.game.resources?.loadCharacterSpriteSheet?.();
+                const [sheetCanvas] = await Promise.all([
+                    classId === 'wizard'
+                        ? this.game.resources?.loadCharacterSpriteSheet?.()
+                        : this.game.resources?.loadImage?.(`assets/resource/classes/${classId}-runtime.webp`),
+                    this.game.characterData?.loadDefinition?.(classId)
+                ]);
                 if (!sheetCanvas) return '';
 
                 const targetW = 96;
@@ -1490,13 +1499,25 @@ export default class FriendsUIController {
             }
         })();
 
-        this.friendPortraitDataUrl = await this.friendPortraitPromise;
-        this.friendPortraitPromise = null;
-        return this.friendPortraitDataUrl;
+        this.friendPortraitRequests.set(classId, request);
+        const portrait = await request;
+        this.friendPortraits.set(classId, portrait);
+        this.friendPortraitRequests.delete(classId);
+        return portrait;
     }
 
     getFriendPortraitUrl(profile = null) {
-        return String(profile?.portraitDataUrl || this.friendPortraitDataUrl || '').trim();
+        if (profile?.portraitDataUrl) return String(profile.portraitDataUrl).trim();
+        const classId = normalizeClassId(profile?.activeClassId);
+        if (!this.friendPortraits.has(classId) && !this.friendPortraitRequests.has(classId)) {
+            this.ensureFriendPortraitAsset(classId).then(() => {
+                this.refreshFriendsPopup();
+                this.renderFriendSearchResult();
+                this.renderFriendChatMessages();
+                if (this.friendChatProfileUid) this.renderFriendChatProfileModal(this.friendChatProfileUid);
+            });
+        }
+        return this.friendPortraits.get(classId) || '';
     }
 
     buildFriendAvatarInnerHtml(name, options = {}) {
@@ -1674,12 +1695,7 @@ export default class FriendsUIController {
 
         this.refreshFriendsPopup();
 
-        if (!this.friendProfileCache.has(uid)) {
-            const profile = await this.game.net.getPlayerProfile(uid);
-            if (profile) {
-                this.friendProfileCache.set(uid, profile);
-            }
-        }
+        await this.ensureFriendProfileLoaded(uid);
 
         this.refreshFriendsPopup();
     }
@@ -3153,8 +3169,11 @@ export default class FriendsUIController {
         this.showFriendGiftItemTooltip(tooltipData, element);
     }
 
-    buildFriendDerivedStats(profile = {}) {
-        const definition = this.game.localPlayer?.definition || {};
+    buildFriendDerivedStats(account = {}) {
+        const profile = projectClassProfile(account);
+        const classId = normalizeClassId(profile.activeClassId);
+        const savedStats = classId === 'wizard' ? account : (account.classProfiles?.[classId] || {});
+        const definition = this.game.characterData?.getDefinition?.(classId) || {};
         const base = definition.baseStats || {};
         const growth = definition.growthStats || { hp: 10, mp: 10, atk: 1, def: 1 };
         const vitality = Number(profile.vitality || 1);
@@ -3163,8 +3182,8 @@ export default class FriendsUIController {
         const agility = Number(profile.agility || 1);
         const hp = Number(profile.hp || 0);
         const mp = Number(profile.mp || 0);
-        const maxHp = (base.maxHp ?? 30) + (vitality * (growth.hp ?? 10));
-        const maxMp = (base.maxMp ?? 50) + (wisdom * (growth.mp ?? 10));
+        const maxHp = Number(profile.maxHp ?? ((base.maxHp ?? 30) + (vitality * (growth.hp ?? 10))));
+        const maxMp = Number(profile.maxMp ?? ((base.maxMp ?? 50) + (wisdom * (growth.mp ?? 10))));
         const attackBase = (base.atk ?? 10) + (intelligence * (growth.atk ?? 1)) + Math.floor(wisdom / 2);
         const defenseBase = (base.def ?? 1) + (vitality * (growth.def ?? 1));
         const hpRegenBase = (base.hpRegen ?? 1) + vitality;
@@ -3172,13 +3191,13 @@ export default class FriendsUIController {
         const attackSpeedBase = Math.min(2.0, 1.0 + (intelligence * 0.05)) + (agility * 0.1);
         const critRateBase = 0.1 + (agility * 0.01) + (intelligence * 0.01);
         const moveSpeedBase = 1.0 + (agility * 0.05);
-        const attack = Number(profile.attackPower ?? attackBase);
-        const defense = Number(profile.defense ?? defenseBase);
-        const hpRegen = Number(profile.hpRegen ?? hpRegenBase);
-        const mpRegen = Number(profile.mpRegen ?? mpRegenBase);
-        const attackSpeed = Number(profile.attackSpeed ?? attackSpeedBase);
-        const critRate = Number(profile.critRate ?? critRateBase);
-        const moveSpeed = Number(profile.moveSpeedBonus ?? moveSpeedBase);
+        const attack = Number(savedStats.attackPower ?? attackBase);
+        const defense = Number(savedStats.defense ?? defenseBase);
+        const hpRegen = Number(savedStats.hpRegen ?? hpRegenBase);
+        const mpRegen = Number(savedStats.mpRegen ?? mpRegenBase);
+        const attackSpeed = Number(savedStats.attackSpeed ?? attackSpeedBase);
+        const critRate = Number(savedStats.critRate ?? critRateBase);
+        const moveSpeed = Number(savedStats.moveSpeedBonus ?? moveSpeedBase);
 
         return {
             level: Number(profile.level || 1),
@@ -3412,7 +3431,9 @@ export default class FriendsUIController {
                 Logger.warn('[UI] Failed to load friend profile', error);
             }
         }
-        return this.friendProfileCache.get(uid) || null;
+        const profile = this.friendProfileCache.get(uid) || null;
+        if (profile) await this.ensureFriendPortraitAsset(profile.activeClassId);
+        return profile;
     }
 
     populateFriendProfileElements(selected, elements = {}) {
@@ -3466,7 +3487,7 @@ export default class FriendsUIController {
             statsEl.innerHTML = this.buildFriendProfileStatsMarkup(derived);
         }
 
-        this.renderFriendProfileWeapon(weaponEl, profile);
+        this.renderFriendProfileWeapon(weaponEl, projectClassProfile(profile));
     }
 
     toggleFriendChatProfileModal(visible, options = {}) {
