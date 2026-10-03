@@ -1,0 +1,93 @@
+{
+  "orphanEffects": [
+    {
+      "id": "effect-3",
+      "age": 0,
+      "duration": 0.3,
+      "target": false
+    },
+    {
+      "id": "effect-4",
+      "age": 0,
+      "duration": 0.3,
+      "target": false
+    },
+    {
+      "id": "effect-5",
+      "age": 0,
+      "duration": 0.3,
+      "target": false
+    },
+    {
+      "id": "effect-6",
+      "age": 0,
+      "duration": 0.3,
+      "target": false
+    },
+    {
+      "id": "effect-7",
+      "age": 0,
+      "duration": 0.3,
+      "target": false
+    },
+    {
+      "id": "effect-8",
+      "age": 0,
+      "duration": 0.3,
+      "target": false
+    },
+    {
+      "id": "effect-9",
+      "age": 0,
+      "duration": 0.3,
+      "target": false
+    },
+    {
+      "id": "effect-10",
+      "age": 0,
+      "duration": 0.3,
+      "target": false
+    },
+    {
+      "id": "effect-11",
+      "age": 0,
+      "duration": 0.3,
+      "target": false
+    },
+    {
+      "id": "effect-12",
+      "age": 0,
+      "duration": 0.3,
+      "target": false
+    },
+    {
+      "id": "effect-13",
+      "age": 0,
+      "duration": 0.3,
+      "target": false
+    },
+    {
+      "id": "effect-14",
+      "age": 0,
+      "duration": 0.3,
+      "target": false
+    }
+  ],
+  "spawned": [
+    {
+      "owner": "review-target",
+      "locked": true
+    }
+  ],
+  "queueAtImpact": [
+    "review-target",
+    "unrelated"
+  ],
+  "firedDuringLock": 0,
+  "projectileCount": 0,
+  "queueAfter": [
+    "unrelated"
+  ],
+  "locked": true,
+  "targetLocks": 2
+}

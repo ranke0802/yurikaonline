@@ -1378,6 +1378,11 @@ export default class Monster extends CharacterBase {
         });
     }
 
+    cancelPendingBarrageAttacks() {
+        const scene=globalThis.window?.game?.sceneManager?.currentScene;
+        if(Array.isArray(scene?.monsterMissileQueue))scene.monsterMissileQueue=scene.monsterMissileQueue.filter(shot=>shot.options?.ownerId!==this.id);
+    }
+
     applyClassStatus(status) {
         const allowed = ['poison', 'root', 'stun', 'stagger', 'taunt', 'mark', 'berserk'];
         if (!status || !allowed.includes(status.type)) return;

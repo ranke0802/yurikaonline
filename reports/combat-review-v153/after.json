@@ -1,0 +1,20 @@
+{
+  "orphanEffects": [],
+  "spawned": [
+    {
+      "owner": "unrelated",
+      "locked": true
+    }
+  ],
+  "queueAtImpact": [
+    "unrelated"
+  ],
+  "queueAfterIncoming": [
+    "unrelated"
+  ],
+  "firedDuringLock": 0,
+  "projectileCount": 0,
+  "queueAfter": [],
+  "locked": true,
+  "targetLocks": 2
+}

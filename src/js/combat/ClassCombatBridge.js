@@ -185,7 +185,7 @@ export default class ClassCombatBridge {
         }
         const delta=Math.min(.25,Math.max(0,dt));
         for(const [key,status] of Object.entries(this.owner.classStatuses || {})){status.remaining-=delta;if(status.remaining<=0)delete this.owner.classStatuses[key];}
-        this.effects=this.effects.filter(f=>{if(f.name!=='gwangcheon')f.age+=delta;return f.age<f.duration;});
+        this.effects=this.effects.filter(f=>{if(f.id!==this.controller.barrage?.effectId)f.age+=delta;return f.age<f.duration;});
         if(this.decoy){this.decoy.remaining-=delta;if(this.decoy.remaining<=0)this.decoy=null;}
         for(const actor of this.actors) {
             for(const [k,s] of Object.entries(actor.classStatuses)){s.remaining-=delta;if(s.remaining<=0)delete actor.classStatuses[k];}

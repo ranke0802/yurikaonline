@@ -14,6 +14,7 @@ export function acquireBarrageLock(entity,key,{active,expiresAt,blockAttacks=fal
     if(blockAttacks){
         entity.chargeState='idle';entity.chargeTimer=0;entity.chargeTarget=null;
         entity.activeBossTelegraphs=[];entity.shadowAmbush=null;
+        entity.cancelPendingBarrageAttacks?.();
     }
     enforceBarrageLock(entity);
 }

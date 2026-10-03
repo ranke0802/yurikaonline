@@ -1,0 +1,63 @@
+{
+  "version": "0.02.153",
+  "reviewBase": "457b0c413ec4413d1a8ad64a3a885a5dcf06a71e",
+  "findings": [
+    {
+      "severity": "high",
+      "issue": "Barrage-held monsters still launched previously queued missiles",
+      "reproduction": "Real WorldScene.update consumed the held target shot and pushed a Projectile while the barrage was active.",
+      "fix": "Cancel only this target’s pending missile queue on accepted lock; reject later missile-start events while locked. Existing airborne projectiles and other targets remain.",
+      "evidence": "before.json / after.json; actual scene browser regression and normal/boss overlap unit cases"
+    },
+    {
+      "severity": "medium",
+      "issue": "Storm weapon chain effects named gwangcheon never aged and were not rendered",
+      "reproduction": "12 effects remained at age=0, duration=.3 after6 simulated seconds in real ClassCombatBridge.",
+      "fix": "Only active barrage effect ID uses controller age; chain effects draw the existing row locally/remotely and expire normally.",
+      "evidence": "before.json / after.json plus draw/expiry unit case"
+    },
+    {
+      "severity": "medium",
+      "issue": "Cancellation during accepted-hit callback could leave the just-sent remote lease until timeout",
+      "reproduction": "Unit damage callback cancels barrage before target is added to locked set.",
+      "fix": "Explicitly release that hit’s remote lease before stopping iteration.",
+      "evidence": "validate-combat-review-v153.mjs reentrant test"
+    }
+  ],
+  "reviewed": [
+    "Barrage 4×Lv, 2 seconds, first/last pulse, total budget, DEF and integer split at5–120FPS",
+    "Caster/target displacement and attack locks; bosses, overlap, cancellation, death, world context and remote lease expiry",
+    "Sword range/width/direction/collision and existing raster art; shield multihit/knockback/stun/wall/block cleanup",
+    "Three-class world MP-adjacent charge gauges and readiness/cancel input",
+    "Archer leap, empowered hold, moving snipe and arrow rain",
+    "Healing rounding, actual HP cap and excess distribution",
+    "Map weapon routes, canonical saved keys, actual bonus isolation",
+    "Eight summon source stats, frequency, HP cost, replacement and temporary buff restoration",
+    "Local/remote visual dimensions and tutorial close-button geometry"
+  ],
+  "validation": {
+    "classTests": 196,
+    "relatedTests": 300,
+    "newBrowser": "Real keyboard rapid tap, mouse hold and accepted damage, touch cancellation, U→K→hold cross-skill flows for Warrior desktop/mobile and Witch/Archer mobile emulation; local synthetic targets/accounts",
+    "regressionBrowsers": [
+      "class-feedback-v148",
+      "combat-v149",
+      "world-charge-v150",
+      "warrior-v151",
+      "shield-rush",
+      "class-tutorial"
+    ],
+    "uiAssets": "passed",
+    "ci": "pending"
+  },
+  "limitations": [
+    "No real user account or production multiplayer session exercised",
+    "Mobile is Chromium touch emulation, not a physical device",
+    "Network events/remote payloads are simulated locally; real latency/clock skew/device audio remain unverified"
+  ],
+  "preserved": [
+    "Balance and existing raster art",
+    "Already fired projectiles and unrelated monsters",
+    "Unrelated dirty reports/class-audio/gameplay-report.json"
+  ]
+}

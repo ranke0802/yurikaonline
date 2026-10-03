@@ -86,8 +86,8 @@ export function renderGroundEffects(renderer,ctx) {
 }
 export function renderForegroundEffects(renderer,ctx) {
     for(const f of renderer.effects){
-        if(f.name==='gwangcheon'){
-            if(!f.target||f.range<1)continue;
+        if(f.name==='gwangcheon'&&f.target){
+            if(f.range<1)continue;
             const angle=Math.atan2(f.target.y-f.y,f.target.x-f.x),width=f.halfWidth*2;
             // A continuous raster corridor with gently moving streaks. No blank
             // pulse frames, global flash or camera shake at the damage frequency.

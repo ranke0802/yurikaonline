@@ -1,0 +1,208 @@
+[
+  {
+    "id": "warrior",
+    "mobile": false,
+    "events": [
+      {
+        "kind": "basic",
+        "aimed": false,
+        "time": 0.2833333333333333
+      },
+      {
+        "kind": "basic",
+        "aimed": true,
+        "time": 1.7999999999999985
+      },
+      {
+        "kind": "skill",
+        "slot": 2,
+        "time": 2.8999999999999946
+      },
+      {
+        "kind": "skill",
+        "slot": 3,
+        "time": 3.0666666666666607
+      },
+      {
+        "kind": "basic",
+        "aimed": true,
+        "time": 3.7499999999999916
+      }
+    ],
+    "hits": [
+      {
+        "damage": 14,
+        "time": 0.2833333333333333
+      },
+      {
+        "damage": 49,
+        "time": 1.8833333333333315
+      },
+      {
+        "damage": 17,
+        "time": 2.8999999999999946
+      },
+      {
+        "damage": 49,
+        "time": 3.849999999999991
+      }
+    ],
+    "remainingEffects": [
+      "blood_pact"
+    ]
+  },
+  {
+    "id": "warrior",
+    "mobile": true,
+    "events": [
+      {
+        "kind": "basic",
+        "aimed": false,
+        "time": 0.19999999999999998
+      },
+      {
+        "kind": "basic",
+        "aimed": true,
+        "time": 1.700000000000001
+      },
+      {
+        "kind": "skill",
+        "slot": 2,
+        "time": 2.820000000000002
+      },
+      {
+        "kind": "skill",
+        "slot": 3,
+        "time": 2.980000000000002
+      },
+      {
+        "kind": "basic",
+        "aimed": true,
+        "time": 3.680000000000003
+      }
+    ],
+    "hits": [
+      {
+        "damage": 14,
+        "time": 0.19999999999999998
+      },
+      {
+        "damage": 49,
+        "time": 1.8000000000000012
+      },
+      {
+        "damage": 17,
+        "time": 2.820000000000002
+      },
+      {
+        "damage": 49,
+        "time": 3.800000000000003
+      }
+    ],
+    "remainingEffects": [
+      "blood_pact"
+    ]
+  },
+  {
+    "id": "witch",
+    "mobile": true,
+    "events": [
+      {
+        "kind": "basic",
+        "aimed": false,
+        "time": 0.19999999999999998
+      },
+      {
+        "kind": "basic",
+        "aimed": true,
+        "time": 1.700000000000001
+      },
+      {
+        "kind": "skill",
+        "slot": 2,
+        "time": 3.2400000000000024
+      },
+      {
+        "kind": "skill",
+        "slot": 3,
+        "time": 3.4000000000000026
+      },
+      {
+        "kind": "basic",
+        "aimed": true,
+        "time": 4.080000000000001
+      }
+    ],
+    "hits": [
+      {
+        "damage": 22,
+        "time": 0.3
+      },
+      {
+        "damage": 3,
+        "time": 2.9600000000000013
+      },
+      {
+        "damage": 3,
+        "time": 3.9600000000000013
+      }
+    ],
+    "remainingEffects": [
+      "drain_link",
+      "drain_orb"
+    ]
+  },
+  {
+    "id": "archer",
+    "mobile": true,
+    "events": [
+      {
+        "kind": "basic",
+        "aimed": false,
+        "time": 0.23999999999999996
+      },
+      {
+        "kind": "basic",
+        "aimed": true,
+        "time": 1.7800000000000011
+      },
+      {
+        "kind": "skill",
+        "slot": 2,
+        "time": 2.860000000000002
+      },
+      {
+        "kind": "skill",
+        "slot": 3,
+        "time": 3.0200000000000022
+      },
+      {
+        "kind": "basic",
+        "aimed": true,
+        "time": 3.4200000000000026
+      }
+    ],
+    "hits": [
+      {
+        "damage": 11,
+        "time": 0.32
+      },
+      {
+        "damage": 28,
+        "time": 1.8400000000000012
+      },
+      {
+        "damage": 7,
+        "time": 3.6200000000000023
+      },
+      {
+        "damage": 22,
+        "time": 3.740000000000003
+      }
+    ],
+    "remainingEffects": [
+      "tracking_rain",
+      "piercing_snipe"
+    ]
+  }
+]

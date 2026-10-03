@@ -446,7 +446,7 @@ export default class ClassCombatController {
                 const budget=b.targets.get(key),damage=Math.ceil(budget*(index+1)/b.profile.hits)-Math.ceil(budget*index/b.profile.hits);
                 if(damage<=0)continue;
                 const accepted=this.skillHit(e,damage,{barrage:true,pulse:index,armorPierce:1,barrageCastId:b.castId,barrageRemaining:Math.max(0,b.profile.duration-(this.time-b.started))},b.weapon?{...b.weapon,damageBonus:0,missileDamageBonus:0}:null,b.chainState);
-                if(this.barrage!==b)break;
+                if(this.barrage!==b){this.hooks.barrageRelease?.(e,b.castId);break;}
                 if(accepted&&alive(e)){b.locked.add(e);acquireBarrageLock(e,b,{active:()=>this.barrage===b,blockAttacks:true});}
                 if(accepted&&!b.refunded&&this.state(e).shieldHitUntil>this.time){b.refunded=true;this.rage=Math.min(100,this.rage+25);}
             }

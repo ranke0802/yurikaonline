@@ -1,3 +1,4 @@
+import { enforceBarrageLock } from '../../combat/BarrageLock.js';
 import { projectClassProfile, attachClassProfile } from '../../core/ClassProfiles.js';
 import Scene from '../../core/Scene.js';
 import mountLocalSaveNotice from '../../local/LocalSaveNotice.js';
@@ -1151,6 +1152,7 @@ export default class WorldScene extends Scene {
             if (!m) return;
 
             if (data.skill === 'missile') {
+                if(enforceBarrageLock(m))return;
                 const count = data.extra?.count || 4;
                 let target = null;
                 if (data.extra?.targetId) {
