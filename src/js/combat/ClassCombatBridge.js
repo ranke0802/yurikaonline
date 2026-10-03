@@ -1,3 +1,4 @@
+import { drawShieldRushBody, SHIELD_RUSH } from './ShieldRush.js';
 import { drawAuthoredClassBody } from './AuthoredCharacterFrames.js';
 import { basicChargeSeconds } from './BasicAttackProgression.js';
 import { actionRow, createActionMotion, drawActionBody } from './ClassActionMotion.js';
@@ -17,6 +18,9 @@ export default class ClassCombatBridge {
         this.controller = new ClassCombatController(owner, classId, {
             managesPoisonStatuses: true,
             combatOrigin:()=>combatCenter(this.owner),
+            canStartShieldRush:()=>!(this.owner.classStatuses?.stun?.remaining>0 || this.owner.classStatuses?.root?.remaining>0 || Math.hypot(this.owner.knockback?.vx||0,this.owner.knockback?.vy||0)>1),
+            canMoveShieldRush:(x,y)=>!this.game?.sceneManager?.currentScene?.checkCollision?.(x,y,this.owner.width||32,this.owner.height||32),
+            shieldRushEnded:()=>{this.motion=null;},
             projectileBlocked:(x,y,r)=>!!this.game?.sceneManager?.currentScene?.checkCollision?.(x-r,y-r,r*2,r*2),
             attackOrigin:(target,kind)=>attackAnchor(this.owner,target,kind),
             action: (kind,data)=>this.startActionMotion(kind,data),
@@ -73,6 +77,7 @@ export default class ClassCombatBridge {
     }
     currentMotion() {
         if(this.controller.disposed||!alive(this.owner))return null;
+        if(this.controller.shieldRush){const r=this.controller.shieldRush;return {id:this.motion?.id||0,row:1,shieldRush:true,direction:this.motion?.direction??this.owner.direction,age:this.controller.time-r.started,duration:SHIELD_RUSH.duration};}
         if(this.motion) {const age=this.controller.time-this.motion.started;if(age<this.motion.duration)return {...this.motion,age};}
         const aim=this.owner.classAim;if(!aim)return null;
         if(this.controller.classId==='warrior' && aim.action==='ATTACK'
@@ -80,7 +85,7 @@ export default class ClassCombatBridge {
         const data=aim.action==='ATTACK'?{aimed:aim.elapsed>=basicChargeSeconds(this.owner,this.controller.empowered)}:{slot:Number(aim.action.slice(-1))};
         return {id:0,row:actionRow(this.controller.classId,aim.action==='ATTACK'?'basic':'skill',data),direction:facingDirection(this.owner,aim),held:true,age:0,duration:.4};
     }
-    drawBody(ctx,x,y,w,h) {return drawAuthoredClassBody(this.images.authored,this.owner,this.currentMotion(),ctx,x,y) || drawActionBody(this.images.actions,this.currentMotion(),ctx,x,y,w,h);}
+    drawBody(ctx,x,y,w,h) {return drawShieldRushBody(this.images.shieldBody,this.currentMotion(),ctx,x,y) || drawAuthoredClassBody(this.images.authored,this.owner,this.currentMotion(),ctx,x,y) || drawActionBody(this.images.actions,this.currentMotion(),ctx,x,y,w,h);}
     basic(options) { return !this.paused() && this.controller.basic(options); }
     skill(slot,options={}) {
         if(this.paused())return false;

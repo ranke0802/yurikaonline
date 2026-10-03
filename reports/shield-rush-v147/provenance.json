@@ -1,0 +1,61 @@
+{
+  "artifactCommit": "cf6692e0f98cebf49070d3e73209705627bdff6e",
+  "assets": [
+    {
+      "file": "assets/resource/classes/approved/warrior-shield-rush-body.webp",
+      "bytes": 189554,
+      "sha256": "3f37193745a5ad108f1e025766706eb1f041c2ddbfe07425698664104890cfcf"
+    },
+    {
+      "file": "assets/resource/classes/approved/warrior-shield-rush-effects.webp",
+      "bytes": 556790,
+      "sha256": "4e5b987f140c6bb6e0ed2fa2f8cfc8a6455a0351f2a7cb994c6d423964bc3dcc"
+    }
+  ],
+  "body": {
+    "dimensions": [
+      720,
+      576
+    ],
+    "cell": [
+      180,
+      144
+    ],
+    "pivot": [
+      90,
+      132
+    ],
+    "frameMs": 180,
+    "rows": [
+      "down",
+      "up",
+      "left",
+      "right"
+    ]
+  },
+  "effects": {
+    "dimensions": [
+      768,
+      960
+    ],
+    "cell": [
+      192,
+      192
+    ],
+    "pivot": [
+      96,
+      96
+    ],
+    "rows": [
+      "down",
+      "up",
+      "left",
+      "right",
+      "block-flash"
+    ]
+  },
+  "savedSkillId": "challenge",
+  "manaCost": 0,
+  "weaponCanonicalKey": "missileManaCostReduction",
+  "weaponRuntimeMeaning": "cooldown reduction; canonical numeric values unchanged"
+}

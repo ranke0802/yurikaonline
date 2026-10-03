@@ -1,3 +1,4 @@
+import { drawShieldRushBody } from './ShieldRush.js';
 import { renderArrowRain } from './ArrowRain.js';
 import { drawAuthoredClassBody, classArtPath } from './AuthoredCharacterFrames.js';
 import { combatCenter } from './ClassAnchors.js';
@@ -7,7 +8,7 @@ import { captureProjectileWorldContext, isProjectileWorldContextCurrent } from '
 
 export const EFFECT_ROWS = {
     witch: [['life_circle','drain_orb','drain_link','drain_heal','orb','return'], ['poison_cloud','poison_potion'], ['summon'], ['berserk_potion']],
-    warrior: [['warrior_slash','rage_smash'], ['challenge'], ['punishing_charge'], ['blood_pact','blood_finale']],
+    warrior: [['warrior_slash','rage_smash'], ['challenge','shield_rush','shield_impact','shield_block'], ['punishing_charge'], ['blood_pact','blood_finale']],
     archer: [['archer_shot','piercing_snipe','arrow','snipe'], ['hunter_trap','trap_burst','trap_trigger'], ['shadow_leap'], ['tracking_rain']]
 };
 const GROUND = new Set(['life_circle','poison_cloud','summon','hunter_trap','tracking_rain','blood_pact','berserk_potion']);
@@ -15,10 +16,16 @@ const DIRECTIONAL = new Set(['warrior_slash','rage_smash','punishing_charge','ar
 export const STATUS_ICONS = ['poison','berserk','rage','mark','root','taunt','bloodPact','empowered'];
 export function loadClassVisualImages(classId, images) {
     const resources=getSharedResourceManager();
-    for(const [key,path] of [['status','status'],...(classId==='wizard'?[]:[['effects',`${classId}-effects`],['authored',`${classId}-body`]]),...(classId==='witch'?[['lifeCircle','life-circle'],['potion','poison-potion']]:[])])
+    for(const [key,path] of [['status','status'],...(classId==='wizard'?[]:[['effects',`${classId}-effects`],['authored',`${classId}-body`]]),...(classId==='warrior'?[['shieldBody','warrior-shield-rush-body'],['shieldEffects','warrior-shield-rush-effects']]:[]),...(classId==='witch'?[['lifeCircle','life-circle'],['potion','poison-potion']]:[])])
         resources?.loadImage(path==='status'?'assets/resource/classes/status.webp':classArtPath(path)).then(image=>{images[key]=image;}).catch(()=>{});
 }
 export function drawClassEffect(renderer,ctx,name,x,y,size,age=0,options={}) {
+    if(['shield_rush','shield_impact','shield_block'].includes(name)){
+        const image=renderer.images.shieldEffects;if(!image)return;
+        const barrier=name==='shield_rush',row=barrier?[1,0,2,3][options.direction??1]:4;
+        const frame=barrier?Math.floor((age+1e-9)/.18)%4:Math.min(3,Math.floor(age/.07));
+        const span=barrier?144:96;ctx.drawImage(image,frame*192,row*192,192,192,x-span/2,y-span/2,span,span);return;
+    }
     const circle=name==='life_circle',potion=name==='poison_potion',img=potion?renderer.images.potion:circle?renderer.images.lifeCircle:renderer.images.effects;if(!img)return;
     const classId=renderer.classId||renderer.controller?.classId;
     const row=circle||potion?0:(EFFECT_ROWS[classId]||[]).findIndex(names=>names.includes(name));if(row<0)return;
@@ -61,6 +68,12 @@ export function renderGroundEffects(renderer,ctx) {
 }
 export function renderForegroundEffects(renderer,ctx) {
     for(const f of renderer.effects){
+        if(f.name==='shield_rush'){
+            const center=combatCenter(renderer.owner),motion=renderer.currentMotion?.()||renderer.motion;
+            if(!motion?.shieldRush)continue;
+            const d=motion.direction,dx=[0,0,-1,1][d],dy=[-1,1,0,0][d];
+            renderer.drawEffect(ctx,f.name,center.x+dx*30,center.y-28+dy*12,144,f.age,{direction:d});continue;
+        }
         if(f.name==='tracking_rain'){renderArrowRain(renderer,ctx,f,false);continue;}
         if(GROUND.has(f.name))continue;
         // Launch packets remain useful for audio; moving projectiles own their image.
@@ -99,8 +112,8 @@ export default class RemoteClassVisuals {
         if(this.owner.isDead||this.owner.hp<=0)return true;
         const lag=Math.max(0,(now-packet.ts)/1000),names=(EFFECT_ROWS[this.classId]||[]).flat();
         const m=packet.motion;
-        if(m&&Number.isSafeInteger(m.id)&&Number.isInteger(m.row)&&m.row>=0&&m.row<4&&Number.isFinite(m.age)&&m.age>=0&&Number.isFinite(m.duration)&&m.duration>=.2&&m.duration<=.60&&(m.direction===undefined||(Number.isInteger(m.direction)&&m.direction>=0&&m.direction<=3))) {
-            const age=m.age+lag;if(m.held&&lag<.3||!m.held&&age<m.duration)this.motion={id:m.id,row:m.row,direction:m.direction??(Number.isInteger(this.owner.direction)&&this.owner.direction>=0&&this.owner.direction<=3?this.owner.direction:1),held:!!m.held,age,duration:m.duration,receivedAt:now,expiresAt:m.held?packet.ts+300:now+(m.duration-age)*1000};
+        if(m&&Number.isSafeInteger(m.id)&&Number.isInteger(m.row)&&m.row>=0&&m.row<4&&Number.isFinite(m.age)&&m.age>=0&&Number.isFinite(m.duration)&&m.duration>=.2&&m.duration<=(m.shieldRush===true&&this.classId==='warrior'&&m.row===1?1.6:.60)&&(m.direction===undefined||(Number.isInteger(m.direction)&&m.direction>=0&&m.direction<=3))) {
+            const age=m.age+lag;if(m.held&&lag<.3||!m.held&&age<m.duration)this.motion={id:m.id,row:m.row,shieldRush:m.shieldRush===true&&this.classId==='warrior'&&m.row===1,direction:m.direction??(Number.isInteger(this.owner.direction)&&this.owner.direction>=0&&this.owner.direction<=3?this.owner.direction:1),held:!!m.held,age,duration:m.duration,receivedAt:now,expiresAt:m.held?packet.ts+300:now+(m.duration-age)*1000};
         }
         for(const f of (Array.isArray(packet.effects)?packet.effects:[]).slice(0,64)){
             if(!finitePoint(f)||typeof f.id!=='string'||!names.includes(f.name)||!Number.isFinite(f.duration)||!Number.isFinite(f.age))continue;
@@ -130,7 +143,7 @@ export default class RemoteClassVisuals {
         if(this.decoy){this.decoy.remaining-=(now-this.decoy.receivedAt)/1000;this.decoy.receivedAt=now;if(this.decoy.remaining<=0)this.decoy=null;}
         if(now>this.badgesUntil)this.badges=[];
     }
-    drawBody(ctx,x,y,w,h){this.advance();return drawAuthoredClassBody(this.images.authored,this.owner,this.motion,ctx,x,y) || drawActionBody(this.images.actions,this.motion,ctx,x,y,w,h);}
+    drawBody(ctx,x,y,w,h){this.advance();return drawShieldRushBody(this.images.shieldBody,this.motion,ctx,x,y) || drawAuthoredClassBody(this.images.authored,this.owner,this.motion,ctx,x,y) || drawActionBody(this.images.actions,this.motion,ctx,x,y,w,h);}
     drawEffect(...args){drawClassEffect(this,...args);}
     renderGround(ctx){this.advance();renderGroundEffects(this,ctx);}
     render(ctx){

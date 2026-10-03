@@ -107,6 +107,8 @@ export default {
   "/assets/resource/classes/approved/warrior-body.webp": "/assets/immutable/a84c8b9936f061e26864f4d1.webp",
   "/assets/resource/classes/approved/warrior-effects.webp": "/assets/immutable/3ff62cbb59cdbd74d9503df7.webp",
   "/assets/resource/classes/approved/warrior-runtime.webp": "/assets/immutable/c3bbcad6e32c429e7873809a.webp",
+  "/assets/resource/classes/approved/warrior-shield-rush-body.webp": "/assets/immutable/3f37193745a5ad108f1e0257.webp",
+  "/assets/resource/classes/approved/warrior-shield-rush-effects.webp": "/assets/immutable/4e5b987f140c6bb6e0ed2fa2.webp",
   "/assets/resource/classes/approved/witch-body.webp": "/assets/immutable/7d4666abde05b7e83003082c.webp",
   "/assets/resource/classes/approved/witch-effects.webp": "/assets/immutable/4d14f758c5b4d32dd2a9b94a.webp",
   "/assets/resource/classes/approved/witch-runtime.webp": "/assets/immutable/ed60b9273fd1a78d30c19544.webp",

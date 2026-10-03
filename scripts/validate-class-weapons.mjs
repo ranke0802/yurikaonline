@@ -38,6 +38,7 @@ for(const theme of WEAPON_THEMES)for(const tier of ['', 'blessed_'])for(const cl
    assert.deepEqual(live.getEnhancementConfig(item),live.getEnhancementConfig(mage));
    assert.deepEqual(live.normalizeInventoryItem(JSON.parse(JSON.stringify(item))),item);
    for(const id2 of ['wizard',...WEAPON_CLASSES])assert.equal(player(id2,item).canEquipWeapon({...item,allowedClasses:[id2]}),id2===classId);
+   if(classId==='warrior'){const text=classWeaponDetailLines(pc,item).join(' ');assert.doesNotMatch(text,/응징|도발|마나 소모/);if(rolls.missileDamageBonus||rolls.fireballChainChance)assert.match(text,/방패 돌진/);if(rolls.missileManaCostReduction)assert.match(text,/재사용 대기시간/);}
    assert.ok(classWeaponDetailLines(pc,item).length>0);assert.doesNotMatch(classWeaponDetailLines(pc,item).join(' '),/매직 미사일|파이어볼|체인 라이트닝|지팡이/);
    parityCases++;
   }
@@ -133,10 +134,10 @@ for(const c of WEAPON_CLASSES){
  });
  test(`${c} damage skill receives exact multiplier and cooldown reduction; utility slot is unchanged`,()=>{
   const f=combat(c,'storm'),e=f.enemy(),w=classWeaponBonuses(f.p);assert.equal(f.controller.skill(w.slot,{x:40,y:0}),true);
-  const cooldown={witch:9,warrior:7,archer:12}[c];near(f.controller.cooldowns[w.slot],cooldown*(1-w.missileManaCostReduction));
-  if(c==='witch')f.tick(1.01);if(c==='archer')f.tick(.61);
-  const base={witch:100+e.maxHp*.05,warrior:160,archer:55}[c];assert.equal(f.hits[0].n,Math.ceil(base*(1+w.missileDamageBonus)));
-  const other=c==='witch'?3:1;assert.equal(f.controller.skill(other,{x:40,y:0}),true);near(f.controller.cooldowns[other]-f.controller.time,{witch:16,warrior:10,archer:7}[c]);
+  const cooldown={witch:9,warrior:10,archer:12}[c];near(f.controller.cooldowns[w.slot],cooldown*(1-w.missileManaCostReduction));
+  if(c==='witch')f.tick(1.01);if(c==='archer')f.tick(.61);if(c==='warrior')f.tick(1.6);
+  const base={witch:100+e.maxHp*.05,warrior:100,archer:55}[c];assert.equal(f.hits[0].n,Math.ceil(base*(1+w.missileDamageBonus)));
+  const other=c==='archer'?1:3;assert.equal(f.controller.skill(other,{x:40,y:0}),true);near(f.controller.cooldowns[other]-f.controller.time,{witch:16,warrior:20,archer:7}[c]);
  });
  test(`${c} chain is 0.3s, at most 12, single cast trigger, no additional status stacks, stops on dispose`,()=>{
   const f=combat(c,'tidal'),e=f.enemy();e.hp=e.maxHp=1e9;const w=classWeaponBonuses(f.p);
@@ -175,12 +176,12 @@ test('normal and blessed enhancement outcomes and rerolls use identical Mage pat
  }finally{Math.random=originalRandom;}
 });
 test('skill chains respect probability and first 0.3s deadline; pause does not bank time',()=>{
- const f=combat('warrior','tidal'),e=f.enemy();e.isBoss=true;f.controller.skill(2,{x:40,y:0});
+ const f=combat('warrior','tidal'),e=f.enemy();e.isBoss=true;f.controller.skill(1,{x:40,y:0});f.tick(.1);
  f.tick(.29);assert.equal(f.hits.filter(h=>h.meta.weaponChain).length,0);
  f.tick(.02);assert.equal(f.hits.filter(h=>h.meta.weaponChain).length,1);
  f.controller.hooks.paused=()=>true;f.tick(20);assert.equal(f.hits.filter(h=>h.meta.weaponChain).length,1);
  const blocked=combat('warrior','tidal');blocked.enemy().isBoss=true;blocked.controller.hooks.random=()=>1;
- blocked.controller.skill(2,{x:40,y:0});blocked.tick(10);assert.equal(blocked.hits.filter(h=>h.meta.weaponChain).length,0);
+ blocked.controller.skill(1,{x:40,y:0});blocked.tick(10);assert.equal(blocked.hits.filter(h=>h.meta.weaponChain).length,0);
 });
 test('prepared Witch renderer keeps 120px cells, (60,112) foot pivot and 140ms timing without silhouette fitting',async()=>{
  const {drawAuthoredWitchRow:draw,WITCH_AUTHORED_FRAME:m}=await import('../src/js/combat/AuthoredCharacterFrames.js');

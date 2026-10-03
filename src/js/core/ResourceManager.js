@@ -90,6 +90,7 @@ export default class ResourceManager {
         if (this.loading.has(key)) return this.loading.get(key);
         const paths = id === 'wizard' ? [] : [
             ['authored', `${id}-body`], ['effects', `${id}-effects`], ['status', 'status'],
+            ...(id === 'warrior' ? [['shieldBody','warrior-shield-rush-body'],['shieldEffects','warrior-shield-rush-effects']] : []),
             ...(id === 'witch' ? [['lifeCircle', 'life-circle'],['potion','poison-potion']] : [])
         ];
         const promise = Promise.all([

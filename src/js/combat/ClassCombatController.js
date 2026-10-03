@@ -1,3 +1,4 @@
+import { SHIELD_RUSH, shieldRushDirection } from './ShieldRush.js';
 import { ARROW_RAIN } from './ArrowRain.js';
 import { classWeaponBonuses } from '../core/ClassWeapons.js';
 import { basicAttackProfile } from './BasicAttackProgression.js';
@@ -84,6 +85,7 @@ export default class ClassCombatController {
         return s?.berserkUntil > this.time ? { move: 1.25, attackSpeed: 1.7, attack: 1.2 } : { move: 1, attackSpeed: 1, attack: 1 };
     }
     modifyIncomingDamage(amount) {
+        if(this.isShieldRushBlocking())return 0;
         if (this.evadeUntil > this.time) return 0;
         const guard = this.guardUntil > this.time, blood = this.bloodUntil > this.time;
         const reduced = Math.max(0, amount * (guard ? .6 : blood ? .8 : 1));
@@ -101,7 +103,7 @@ export default class ClassCombatController {
         return this.enemies().filter(e => { const x = e.x - origin.x, y = e.y - origin.y; const along = x * d.x + y * d.y; const side = Math.abs(x * d.y - y * d.x), radius = e.radius || 16; return Math.hypot(Math.max(0,-along,along-range),Math.max(0,side-width)) <= radius; }).sort((a,b) => distance(a,origin)-distance(b,origin));
     }
     basic({ aimed = false, x, y } = {}) {
-        if (this.disposed || !alive(this.owner) || this.hooks.paused?.() || this.time < this.basicReady) return false;
+        if (this.disposed || !alive(this.owner) || this.hooks.paused?.() || this.shieldRush || this.time < this.basicReady) return false;
         if (this.classId === 'warrior' && aimed && this.rage < 25) {
             this.hooks.failure?.('분노 강타에는 분노 25가 필요합니다. 짧게 눌렀다 놓으면 연속 베기를 사용합니다.');
             return false;
@@ -248,7 +250,7 @@ export default class ClassCombatController {
         try { return this.castSkill(slot,options); } finally { this.castingSkill=false; }
     }
     castSkill(slot, { x, y, level = 1 } = {}) {
-        if (this.disposed || !alive(this.owner) || this.hooks.paused?.() || (this.cooldowns[slot] || 0) > this.time) return false;
+        if (this.disposed || !alive(this.owner) || this.hooks.paused?.() || (this.cooldowns[slot] || 0) > this.time || this.shieldRush) return false;
         const center = this.combatOrigin();
         const point = { x: x ?? center.x, y: y ?? center.y }; const d = this.direction(point); const reach = distance(point, center);
         if (reach > 450) { point.x = center.x + d.x * 450; point.y = center.y + d.y * 450; }
@@ -281,9 +283,13 @@ export default class ClassCombatController {
             }
         } else if (this.classId === 'warrior') {
             if (slot === 1) {
-                this.guardUntil = this.time + 4;
-                this.area(this.combatOrigin(), WG.challenge.radius).forEach(e => { this.state(e).tauntUntil = this.time + (e.isBoss ? .6 : 4); this.control(e, 'taunt', 4, { target: this.owner }); });
-                this.effect('challenge', { radius: 230 }); cooldown = 10;
+                if(this.hooks.canStartShieldRush?.()===false)return false;
+                const forward=shieldRushDirection(this.owner,d);
+                if(this.hooks.canMoveShieldRush?.(this.owner.x+forward.x*8,this.owner.y+forward.y*8)===false)return false;
+                this.shieldRush={started:this.time,until:this.time+SHIELD_RUSH.duration,remaining:SHIELD_RUSH.distance,
+                    direction:forward,lastX:this.owner.x,lastY:this.owner.y,hit:new Set(),power,weapon,chainState};
+                this.shieldRush.effectId=this.effect('shield_rush',{duration:SHIELD_RUSH.duration,target:{x:center.x+forward.x*SHIELD_RUSH.distance,y:center.y+forward.y*SHIELD_RUSH.distance}});
+                cooldown = 10;
             } else if (slot === 2) {
                 // Swept 20px collision steps: no teleport through walls or missed targets.
                 const origin = this.combatOrigin();
@@ -293,7 +299,7 @@ export default class ClassCombatController {
                     for (const e of this.area(this.combatOrigin(), WG.charge.halfWidth)) {
                         if (hit.has(e)) continue; hit.add(e);
                         if (!this.skillHit(e, power * 1.6, {}, weapon, chainState)) continue;
-                        if (this.state(e).tauntUntil > this.time) refund = true;
+                        if (this.state(e).shieldHitUntil > this.time) refund = true;
                         if (!e.isBoss && this.hooks.move?.(e, e.x + d.x * 80, e.y + d.y * 80) === false) this.control(e, 'stun', 1.5);
                     }
                 }
@@ -336,6 +342,40 @@ export default class ClassCombatController {
         this.hooks.action?.('skill', { slot, level: skillLevel, target: point, cooldown: this.cooldowns[slot] - this.time });
         return true;
     }
+    isShieldRushBlocking() {
+        return !this.disposed && alive(this.owner) && !!this.shieldRush && this.time<this.shieldRush.until
+            && Math.hypot(this.owner.x-this.shieldRush.lastX,this.owner.y-this.shieldRush.lastY)<=4;
+    }
+    shieldBlockFeedback() {
+        if(!this.isShieldRushBlocking() || this.time<(this.shieldFlashReady||0))return;
+        this.shieldFlashReady=this.time+.14;
+        this.effect('shield_block',{duration:.28});
+    }
+    stopShieldRush() {
+        if(!this.shieldRush)return;
+        this.cancelEffect(this.shieldRush.effectId);this.shieldRush=null;
+        this.hooks.shieldRushEnded?.();
+    }
+    advanceShieldRush(dt) {
+        const rush=this.shieldRush;if(!rush)return;
+        if(Math.hypot(this.owner.x-rush.lastX,this.owner.y-rush.lastY)>4){this.stopShieldRush();return;}
+        let travel=Math.min(rush.remaining,SHIELD_RUSH.speed*Math.min(dt,Math.max(0,rush.until-(this.time-dt))));
+        while(travel>1e-8){
+            const step=Math.min(8,travel),d=rush.direction;
+            if(this.hooks.move?.(this.owner,this.owner.x+d.x*step,this.owner.y+d.y*step)!==true){this.stopShieldRush();return;}
+            rush.remaining-=step;travel-=step;rush.lastX=this.owner.x;rush.lastY=this.owner.y;
+            const center=this.combatOrigin();
+            for(const e of this.area(center,SHIELD_RUSH.halfWidth)){
+                if(rush.hit.has(e) || (e.x-center.x)*d.x+(e.y-center.y)*d.y<0)continue;
+                rush.hit.add(e);
+                if(!this.skillHit(e,rush.power,{},rush.weapon,rush.chainState))continue;
+                this.state(e).shieldHitUntil=this.time+SHIELD_RUSH.markSeconds;
+                if(!e.isBoss)this.hooks.move?.(e,e.x+d.x*SHIELD_RUSH.push,e.y+d.y*SHIELD_RUSH.push);
+                this.effect('shield_impact',{x:e.x,y:e.y,duration:.32});
+            }
+        }
+        if(rush.remaining<=1e-8 || this.time>=rush.until)this.stopShieldRush();
+    }
     update(dt) {
         if (this.disposed || !Number.isFinite(dt) || dt <= 0 || this.hooks.paused?.()) return;
         if (!alive(this.owner)) { this.dispose(); return; }
@@ -344,6 +384,7 @@ export default class ClassCombatController {
         this.tasks.sort((a,b) => a.at - b.at);
         while (this.tasks[0]?.at <= end) { const task = this.tasks.shift(); this.time = task.at; task.fn(); this.tasks.sort((a,b) => a.at - b.at); }
         this.time = end;
+        this.advanceShieldRush(Math.min(dt,.25));
         this.summons = this.summons.filter(e => { if (alive(e)) return true; this.hooks.dismiss?.(e); return false; });
         if (this.trap && this.trap.until > this.time) {
             const e = this.area(this.trap, 36)[0];
@@ -428,6 +469,7 @@ export default class ClassCombatController {
     }
     dispose() {
         if (this.disposed) return;
+        this.stopShieldRush();
         this.disposed = true; this.tasks = []; this.projectiles = []; this.trap = null;
         this.summons.forEach(e => this.hooks.dismiss?.(e)); this.summons = [];
         for (const [e] of this.statuses) for (const type of ['berserk', 'mark', 'root', 'taunt']) this.hooks.clearStatus?.(e, type);

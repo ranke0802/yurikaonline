@@ -1,3 +1,4 @@
+import { SHIELD_RUSH } from '../combat/ShieldRush.js';
 import { advanceAuthoredGait, classRuntimePath } from '../combat/AuthoredCharacterFrames.js';
 import { weaponClass } from '../core/ClassWeapons.js';
 import { combatCenter } from '../combat/ClassAnchors.js';
@@ -298,7 +299,7 @@ export default class Player extends CharacterBase {
     }
 
     startClassAction(action, pointer = null) {
-        if (!this.classCombat || this.isDead || this.classCombat.paused() || this.classAim) return;
+        if (!this.classCombat || this.isDead || this.classCombat.paused() || this.classAim || this.classCombat.controller.shieldRush) return;
         if (window.game?.tutorial?.isActionAllowed?.(action) === false) return;
         if (this.classId==='warrior' && action==='ATTACK' && this.classCombat.controller.time<this.classCombat.controller.basicReady) return;
         const center=combatCenter(this);
@@ -348,7 +349,7 @@ export default class Player extends CharacterBase {
         let radius=basic?12:this.classId==='witch'&&a.action==='SKILL_1'?140:this.classId==='archer'&&a.action==='SKILL_3'?165:28,circle=false;
         if(this.classId==='warrior'){
             const growth=basicAttackProfile(this.classId,this.skillLevels);
-            const g=basic?(a.elapsed>=basicChargeSeconds(this)?growth.heavy:growth.tap):a.action==='SKILL_2'?WG.charge:null;
+            const g=basic?(a.elapsed>=basicChargeSeconds(this)?growth.heavy:growth.tap):a.action==='SKILL_2'?WG.charge:a.action==='SKILL_1'?{range:SHIELD_RUSH.distance,halfWidth:SHIELD_RUSH.halfWidth}:null;
             if(g){range=g.range;width=g.halfWidth;radius=0;}
             else {circle=true;radius=a.action==='SKILL_1'?WG.challenge.radius:WG.finale.radius;}
         }
@@ -595,6 +596,7 @@ export default class Player extends CharacterBase {
     }
 
     applyEffect(type, duration, damage) {
+        if(this.classCombat?.controller.isShieldRushBlocking?.())return;
         if (this.isDead) return;
         if (type === 'shock') {
             this.applyElectrocuted(duration, 0.3);
@@ -797,8 +799,19 @@ export default class Player extends CharacterBase {
     }
 
     applyElectrocuted(duration, ratio) {
+        if(this.classCombat?.controller.isShieldRushBlocking?.())return;
         this.electrocutedTimer = Math.max(this.electrocutedTimer || 0, Number(duration) || 1.0);
         this.slowRatio = Math.max(this.slowRatio, Number(ratio) || 0.3);
+    }
+
+    applyKnockback(vx,vy) {
+        if(this.classCombat?.controller.isShieldRushBlocking?.())return;
+        return super.applyKnockback(vx,vy);
+    }
+
+    applyCombustionCollapse(x,y,options={}) {
+        if(this.classCombat?.controller.isShieldRushBlocking?.())return;
+        return super.applyCombustionCollapse(x,y,options);
     }
 
     triggerAction(text) {
@@ -836,6 +849,7 @@ export default class Player extends CharacterBase {
     }
 
     _handleMovement(dt) {
+        if(this.classCombat?.controller.shieldRush){this.vx=0;this.vy=0;this.moveTarget=null;this.state='move';return;}
         if (!this.input) return;
 
         const isManualAttackPressed = !!this.input.isPressed('ATTACK');
@@ -1157,6 +1171,7 @@ export default class Player extends CharacterBase {
 
     takeDamage(amount, fromNetwork = false, isCrit = false, sourceX = null, sourceY = null, attacker = null, effectType = null, effectDuration = 0, effectDamage = 0) {
         if (this.isDead) return 0;
+        if(this.classCombat?.controller.isShieldRushBlocking?.()){this.classCombat.controller.shieldBlockFeedback();return 0;}
         // v0.00.54: Prevent damage while in modals (Character Status, Inventory, etc.)
         if (shouldApplyModalSafetyPause(this.net)) return 0;
         if (this.isProtected()) return 0;

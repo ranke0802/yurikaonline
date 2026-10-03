@@ -6,7 +6,7 @@ export const WEAPON_CLASSES = Object.freeze(['witch', 'warrior', 'archer']);
 const NAMES = { witch: ['위치', '마법서', 'spellbook', '📖'], warrior: ['전사', '검', 'sword', '⚔️'], archer: ['궁수', '활', 'bow', '🏹'] };
 export const CLASS_WEAPON_SKILLS = Object.freeze({
     witch: Object.freeze({ slot: 1, name: '독 물약', effect: 'poison_cloud', radius: 140 }),
-    warrior: Object.freeze({ slot: 2, name: '응징 돌진', effect: 'punishing_charge', radius: 100 }),
+    warrior: Object.freeze({ slot: 1, name: '방패 돌진', effect: 'shield_impact', radius: 100 }),
     archer: Object.freeze({ slot: 3, name: '추적 화살비', effect: 'tracking_rain', radius: 165 })
 });
 export function classWeaponId(mageId, classId) {

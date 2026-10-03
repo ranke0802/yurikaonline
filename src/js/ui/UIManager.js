@@ -9611,11 +9611,12 @@ export class UIManager {
     }
 
     applyClassSkillIcon(element, classId, row, action = false) {
-        const path = '/' + classArtPath(`${classId}-effects`);
+        const shield=classId==='warrior'&&row===1;
+        const path = '/' + classArtPath(shield?'warrior-shield-rush-effects':`${classId}-effects`);
         const url = this.game.resources?.getVersionedResourceUrl?.(path) || path;
         element.style.backgroundImage = `url("${url}")`;
-        element.style.backgroundSize = '400% 400%';
-        element.style.backgroundPosition = `${100 / 3}% ${row * 100 / 3}%`;
+        element.style.backgroundSize = shield?'400% 500%':'400% 400%';
+        element.style.backgroundPosition = shield?'0% 0%':`${100 / 3}% ${row * 100 / 3}%`;
         element.style.backgroundRepeat = 'no-repeat';
         if (action) {
             element.style.width = '32px';

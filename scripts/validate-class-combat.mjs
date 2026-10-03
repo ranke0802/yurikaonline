@@ -52,9 +52,9 @@ test('warrior 3-hit combo grants rage only on hits; aimed smash spends bounded r
     assert.equal(f.c.rage,18); assert.equal(f.c.basic({aimed:true,x:100,y:0}),false); f.c.rage=50;
     assert.equal(f.c.basic({aimed:true,x:100,y:0}),true); assert.equal(f.c.rage,25); assert.equal(f.packets.at(-1).meta.armorPierce,1);
 });
-test('warrior taunt dash refunds once per cast and wall stuns only normal enemies', () => {
-    const f=fixture('warrior'),a=f.add({wall:true}),b=f.add({isBoss:true}); f.c.skill(1); f.c.skill(2,{x:200,y:0});
-    assert.equal(f.c.rage,25); assert.equal(f.events.filter(e=>e.type==='stun').length,1); assert.equal(f.events.find(e=>e.e===b&&e.type==='taunt').duration,.6);
+test('warrior shield-hit dash refunds once per cast and wall stuns only normal enemies', () => {
+    const f=fixture('warrior'),a=f.add({wall:true}),b=f.add({isBoss:true}); f.c.skill(1,{x:200,y:0}); f.advance(1.6); f.c.skill(2,{x:0,y:0});
+    assert.equal(f.c.rage,25); assert.equal(f.events.filter(e=>e.type==='stun').length,1); assert.equal(f.events.some(e=>e.type==='taunt'),false);
     assert.equal(f.c.skill(2,{x:200,y:0}),false); assert.equal(f.c.rage,25);
 });
 test('blood pact heals actual damage and final attack consumes remaining rage once', () => {

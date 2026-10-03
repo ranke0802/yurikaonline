@@ -1,0 +1,71 @@
+{
+  "scope": "Local synthetic account, real Player update/render loop, mobile touch aim and keyboard opposing input; approved shield body and effects loaded",
+  "result": {
+    "accepted": true,
+    "guide": {
+      "originX": 1624,
+      "originY": 1624,
+      "targetX": 1816,
+      "targetY": 1624,
+      "widthRadius": 36,
+      "aoeRadius": 0,
+      "circle": false,
+      "exactWidth": true,
+      "variant": "blue_fireball"
+    },
+    "mpBefore": 30,
+    "mpAfter": 30,
+    "before": 75,
+    "after": 75,
+    "blocked": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "statuses": 0,
+    "knockback": {
+      "vx": 0,
+      "vy": 0
+    },
+    "rejectedAim": true
+  },
+  "end": {
+    "distance": 192.00000000000682,
+    "elapsed": 1.6000000000000012,
+    "blocking": false,
+    "hpLoss": 10
+  },
+  "art": {
+    "body": [
+      720,
+      576
+    ],
+    "effects": [
+      768,
+      960
+    ],
+    "samples": [
+      {
+        "direction": 1,
+        "row": 0,
+        "remoteDuration": 1.6
+      },
+      {
+        "direction": 0,
+        "row": 1,
+        "remoteDuration": 1.6
+      },
+      {
+        "direction": 2,
+        "row": 2,
+        "remoteDuration": 1.6
+      },
+      {
+        "direction": 3,
+        "row": 3,
+        "remoteDuration": 1.6
+      }
+    ]
+  }
+}
