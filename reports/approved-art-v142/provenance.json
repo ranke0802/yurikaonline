@@ -1,0 +1,1512 @@
+{
+  "sourceCommit": "cb46f34edf77122e8ed8db827eaa40603e330a8b",
+  "zipSha256": "4a57cd980d35ecb267a1bb3b974b3ec04c4dec857983fde418bb9884beee6651",
+  "frames": [
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "up",
+      "frame": 0,
+      "source": "witch-animation-frames/frames/walk-up-01.png",
+      "sha256": "ace0084a7a1e9070f238ee496733356c5af2999caf67e4115eb208b4e3979ba0",
+      "rgbaSha256": "14ffab13c83a5c58fcfa516c6c9ad03c26a5a21bda0f0129a3412c8f115dffd8"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "up",
+      "frame": 1,
+      "source": "witch-animation-frames/frames/walk-up-02.png",
+      "sha256": "fce68d74fc02f02bb310784d301e9cbd24dabe8020103255ba191b4fefded962",
+      "rgbaSha256": "03b355a30b1963761f81f250a98fd9a44b8dc84227d8612f5c3ede8a6447779b"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "up",
+      "frame": 2,
+      "source": "witch-animation-frames/frames/walk-up-03.png",
+      "sha256": "565fb27259838a167585598183f87256eeb672154ee4ccc5beedebafd18a60c0",
+      "rgbaSha256": "f17ce1d1ddb9a5fd4e859a2b0060fcc9070c2aa032ac89a8ae112781fba10696"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "up",
+      "frame": 3,
+      "source": "witch-animation-frames/frames/walk-up-04.png",
+      "sha256": "57ccdfb4bb0be4b443c5d483cca4ee704d0ae2f407631d3183cbe8c51baf6981",
+      "rgbaSha256": "d67a575f62ee29a79587450a6c03f93a28d4ca71df9fc1b624ece86f65025501"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "down",
+      "frame": 0,
+      "source": "witch-animation-frames/frames/walk-down-01.png",
+      "sha256": "dffc31962d30124a2fdee8b3ab4afda76efd412c59f97b965a038619752a3a3d",
+      "rgbaSha256": "420ce0b6956abe487def71044cb2214579d1712e16d743e711d93978a6d51d12"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "down",
+      "frame": 1,
+      "source": "witch-animation-frames/frames/walk-down-02.png",
+      "sha256": "4141b33e72dd32cd85a2e6a53269b647d0574b75ba3fb238543a35728f8d38ac",
+      "rgbaSha256": "890e432875af023711053ce145cfab8ca34efe58cacae332183a08cb759fe353"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "down",
+      "frame": 2,
+      "source": "witch-animation-frames/frames/walk-down-03.png",
+      "sha256": "f54c2830d63384841a317a3f589788bb094f935ccc229e20a4f20471b7c7d48b",
+      "rgbaSha256": "8089b99c9486dfcbd8fee39e179d2580cb2c4d868e5835fb72072b2b592315fe"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "down",
+      "frame": 3,
+      "source": "witch-animation-frames/frames/walk-down-04.png",
+      "sha256": "1041bb9d387f3221a52821a3aa52a699ab624414b7e5307af7c97c99308f2111",
+      "rgbaSha256": "655c53252d1b66bca03b30b53c8b5925c7985bbae753db561f387f8e37e34335"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "left",
+      "frame": 0,
+      "source": "witch-animation-frames/frames/walk-left-01.png",
+      "sha256": "92447325883bc076dd01838609574d4bfd0eccb4a2490753c0b09a7b1e6125a9",
+      "rgbaSha256": "3d26e4229a4abaf9969e840c48da6792d88a0c8da1b73d172a5421d00543da07"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "left",
+      "frame": 1,
+      "source": "witch-animation-frames/frames/walk-left-02.png",
+      "sha256": "aeb1ab1749062a7acf6f08c3c0bcbb88ef9a613b91ccd923feea37caf3c43e3b",
+      "rgbaSha256": "223200b0d1b15596000786ee23b3456bc13f81a17c18af1d9eb3e3ad715f9f8d"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "left",
+      "frame": 2,
+      "source": "witch-animation-frames/frames/walk-left-03.png",
+      "sha256": "e03bd95aa8cfdcb87032444f68862c08561864786cefbe2abbb58b382c208c3f",
+      "rgbaSha256": "3ce8f76760f07bcde89b48f5099a0a40c95ae1c25523edb27a582d12ccd3b5ae"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "left",
+      "frame": 3,
+      "source": "witch-animation-frames/frames/walk-left-04.png",
+      "sha256": "c6886d7ca5f5ceba2c13a3d2e452299a3d19776e16203b00d539a635b6515713",
+      "rgbaSha256": "abffb46007f6c37f54387140e3764d86c70cb260019e187e4eef30222f94de9a"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "right",
+      "frame": 0,
+      "source": "witch-animation-frames/frames/walk-right-01.png",
+      "sha256": "b798250b1a1f9ff237901cc7186c7dc81205957aa7dbdaa10e286514cbab349e",
+      "rgbaSha256": "b3aa60ecc2568d7e1ef7cb2800bae2fbc357403c1cd5b503ebf2257d1e3718d9"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "right",
+      "frame": 1,
+      "source": "witch-animation-frames/frames/walk-right-02.png",
+      "sha256": "8941ee6e61da4b28f9c3db35109d2f86bbfc14d7038d85683ca40b208f902006",
+      "rgbaSha256": "9807801680d3f54f3abe895cb1dfacbfdbc2ef5cb82600c18c157a3c7d966a1b"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "right",
+      "frame": 2,
+      "source": "witch-animation-frames/frames/walk-right-03.png",
+      "sha256": "e7b52f17926133e0c55028b727de60531866bf1bc1f1068ab49f55492178c158",
+      "rgbaSha256": "600759f1d24ab8597645383d09273c28955875ece5b47fdb8c3286a9eda7dac9"
+    },
+    {
+      "classId": "witch",
+      "state": "walk",
+      "direction": "right",
+      "frame": 3,
+      "source": "witch-animation-frames/frames/walk-right-04.png",
+      "sha256": "d84c895e97e778f5a4867dda2a169e363187b9a6c73c0a5804f3f79444daa471",
+      "rgbaSha256": "f5c3be7f30088cce5d07ca8ea1f644795066779ba7e1e3950b46b33d990b28cb"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "up",
+      "frame": 0,
+      "source": "witch-animation-frames/frames/stationary-attack-up-01.png",
+      "sha256": "00bb507bf761d203daddf835cdfe04acb317d54cb4c395c3e581884e40f5dc2d",
+      "rgbaSha256": "33c4bc9e1c14e9b476edb6ceafb8bf102e488a4a7fed9e34e688bf8e424243e4"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "up",
+      "frame": 1,
+      "source": "witch-animation-frames/frames/stationary-attack-up-02.png",
+      "sha256": "599394d805639bab3ef66ff557791bababf51badd3de1ce6faf3e494962f7ff7",
+      "rgbaSha256": "255eda7be3802e13b8e72cd04bf98702cad81a625b7da5558de9b0a2f181f80b"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "up",
+      "frame": 2,
+      "source": "witch-animation-frames/frames/stationary-attack-up-03.png",
+      "sha256": "ade8a7b424b706306f3f3851f0e03699d0cea259e37317c38b8f9876678e4e4e",
+      "rgbaSha256": "a0b727ca5435b1d4fc93ccd0a9a84f2706e95cb70c44f4eede76a2418c21835d"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "up",
+      "frame": 3,
+      "source": "witch-animation-frames/frames/stationary-attack-up-04.png",
+      "sha256": "d6de4522331b124134d5b3fe0c6edaf8fbffd81a553f2b7fe4de91c56456fc63",
+      "rgbaSha256": "46795ebaadb1a7857ff1f76820a58577eac8eff623d93274b2af366cf06a57ea"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "down",
+      "frame": 0,
+      "source": "witch-animation-frames/frames/stationary-attack-down-01.png",
+      "sha256": "f634b67e0afbb2dfa6d911c9c77b3c0f0628a1b600517d85f41c37e56762789e",
+      "rgbaSha256": "827e927ac1e04a16fb221155e6dd857c7cde073906d1b341e116aea19e75062d"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "down",
+      "frame": 1,
+      "source": "witch-animation-frames/frames/stationary-attack-down-02.png",
+      "sha256": "5ed5d063db906fefeb91dbcbf4217334407fdd448def6ffbdc43dfd87ead4cf2",
+      "rgbaSha256": "804cec35bdba07051cf4cbab57bab4541aecfd0205e8037eff08a52d1dfed3ac"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "down",
+      "frame": 2,
+      "source": "witch-animation-frames/frames/stationary-attack-down-03.png",
+      "sha256": "1853e6b976c8ceed4169824e103d431a682787f372573957b0293395f8aec368",
+      "rgbaSha256": "1ff10ccf1055cb26b92c1bbacb23fe303327790817bc6891118c160d43372e33"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "down",
+      "frame": 3,
+      "source": "witch-animation-frames/frames/stationary-attack-down-04.png",
+      "sha256": "242d466f781a00043ccdfcbce386edadad12d20f403237c3610af4887089cce1",
+      "rgbaSha256": "7cb3ac59ed512627b421a4aa438f0d49b18bf3dfa6331a5a791ef1bc57f8e3ed"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "left",
+      "frame": 0,
+      "source": "witch-animation-frames/frames/stationary-attack-left-01.png",
+      "sha256": "cf27e0eb84f964772e610dc1ba6ae25d06d6bf93be4d27e976ff06333b7b2f4b",
+      "rgbaSha256": "d5033d5b7fa7282d8ff14b16bbede1d919c184348fa05b3fb712f99847639c4f"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "left",
+      "frame": 1,
+      "source": "witch-animation-frames/frames/stationary-attack-left-02.png",
+      "sha256": "9f5b1a47e671e6afc0aeab2aa423575d655523359046e804fb90a4b3739198eb",
+      "rgbaSha256": "8a67b923dd3ea56f8b84d548a7af84c24f4a6adc97a1aca520f9596d7b64c242"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "left",
+      "frame": 2,
+      "source": "witch-animation-frames/frames/stationary-attack-left-03.png",
+      "sha256": "1b196b9018dc1abe8f0be16e06ab70510ddbd06155ae6d0ceb6908490ed56f86",
+      "rgbaSha256": "c20c1641bd940104134901b6e896382c790f7014d6527d28ac4ceea5f77703fb"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "left",
+      "frame": 3,
+      "source": "witch-animation-frames/frames/stationary-attack-left-04.png",
+      "sha256": "f6adf65c420fb79758e7e320b8c397b565fbd10176aa246d987a87ea9ae42e8a",
+      "rgbaSha256": "caa59c006b0c048f7165d70fe9a739eff44d6139242edd41d4c42b9da2b56d9e"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "right",
+      "frame": 0,
+      "source": "witch-animation-frames/frames/stationary-attack-right-01.png",
+      "sha256": "f3f2608ae99d5f0369b5a3ea5ee354f113e88fa78c7b4181bcdbb9d3b9e94a59",
+      "rgbaSha256": "7cb73fa97d6f81c8580f0aaa292a6be400a6d9f67567b384082bd215a84700ad"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "right",
+      "frame": 1,
+      "source": "witch-animation-frames/frames/stationary-attack-right-02.png",
+      "sha256": "04dea40c9957be7ea55ae95dcfc94f390b115c2d273a730d258312892981c4c3",
+      "rgbaSha256": "e7d121f7085da34ff0989d0578ba50e21f1944ff96a25fbf3e159a07cb2b22fe"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "right",
+      "frame": 2,
+      "source": "witch-animation-frames/frames/stationary-attack-right-03.png",
+      "sha256": "774f56af9714046f79890ab20c982b9591c74d1ddc8b679a70f24aa4a1b022e0",
+      "rgbaSha256": "9f2749d1425e31063360ea939fa55ce5965aa936f8942028256c6b6a23d35769"
+    },
+    {
+      "classId": "witch",
+      "state": "stationary-attack",
+      "direction": "right",
+      "frame": 3,
+      "source": "witch-animation-frames/frames/stationary-attack-right-04.png",
+      "sha256": "6d74a0b0dbb1ce47bfa48d1a49162fa11404e77b716d30de2bb563f2cb1cacf0",
+      "rgbaSha256": "1d8a81722a5a202ff9f33d67f1fb53bc21eb23fe63c5fa3bbf853f40af624163"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "up",
+      "frame": 0,
+      "source": "witch-animation-frames/frames/moving-attack-up-01.png",
+      "sha256": "638da1990a2714527d9eb7cce038d319ca3d76a2863ad5b334d58a63dd02501a",
+      "rgbaSha256": "230fe4385263aea9304028c7cd6cf487a0dc9db07e00cc3ab8f884b66a4b3a3b"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "up",
+      "frame": 1,
+      "source": "witch-animation-frames/frames/moving-attack-up-02.png",
+      "sha256": "73daf92614d0843d3121d9da2889565444907c586d7c3c14007b7b497f997462",
+      "rgbaSha256": "ab4f719f5602d8163f670e62bdae37305b7a1b1041fcbae7c43eb353d041041d"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "up",
+      "frame": 2,
+      "source": "witch-animation-frames/frames/moving-attack-up-03.png",
+      "sha256": "68cc0aa7fdf49e20170666f14ff980ce3dc742e37e82c58b69adc61dd1d22c42",
+      "rgbaSha256": "0a71b84dcbd99d389fa34717bcae32d305e38305675625e3b8af0c42d0791dc5"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "up",
+      "frame": 3,
+      "source": "witch-animation-frames/frames/moving-attack-up-04.png",
+      "sha256": "5bbf4d2aee8a30d6aeee2ea087b317910fd8a80db1c0be9a6260575e5ac5182a",
+      "rgbaSha256": "73479abd221df155e79e7b2b505ec759a1c77707cafd099ae3d6a7c3520ef265"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "down",
+      "frame": 0,
+      "source": "witch-animation-frames/frames/moving-attack-down-01.png",
+      "sha256": "80400dc99c842cf215588bdd8590310b6aaef7fbba38700849227ce61dc190f3",
+      "rgbaSha256": "51bfd5f9af6aad7459cd376664e83ca8f368824f374cb688556a3d1910f1c7ff"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "down",
+      "frame": 1,
+      "source": "witch-animation-frames/frames/moving-attack-down-02.png",
+      "sha256": "2dff1e863adf25af699367f879f099eb347ee9fbb3a245bf012ac207b3432cba",
+      "rgbaSha256": "6d8a71ef971181d873e3b380e40f43dec8f10c0166cb823c857060192a30bca3"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "down",
+      "frame": 2,
+      "source": "witch-animation-frames/frames/moving-attack-down-03.png",
+      "sha256": "aeadeef463e1369282e13c22db25344a6a018667a191789936b37d4373971209",
+      "rgbaSha256": "9eabfd30bdddd46e7193f10cb6455f8340a6e7601da4a62fca419976ec2605a3"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "down",
+      "frame": 3,
+      "source": "witch-animation-frames/frames/moving-attack-down-04.png",
+      "sha256": "43e17e3190c9dc0f684dc2ab596c9fbc2759b1707ccd68e6a91ed41a59ea0085",
+      "rgbaSha256": "d6d79924b1e89da7d12ac29dd97ace4001730e27604510145725c052d6ab326b"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "left",
+      "frame": 0,
+      "source": "witch-animation-frames/frames/moving-attack-left-01.png",
+      "sha256": "1c035e61b0265c5524667b41d87fa015f0d0b76185eae05ba819816c8b44c1c4",
+      "rgbaSha256": "5251b9859aa7a05a195f0adfb76df2a540126d196fbddde6c96a34d840516cca"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "left",
+      "frame": 1,
+      "source": "witch-animation-frames/frames/moving-attack-left-02.png",
+      "sha256": "802697bf2baec321f3884b11016547d2438ac6c60c5e3858b8d3e9836dc2bcbb",
+      "rgbaSha256": "40195baa554b7b668c7410ccf4bdb73d292d0ca3cd484ee1727951ba6d5101ff"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "left",
+      "frame": 2,
+      "source": "witch-animation-frames/frames/moving-attack-left-03.png",
+      "sha256": "44816be8e916a4ed59a9aded8dd5f6291255c5e2efddaf5d7510427b1fc748d5",
+      "rgbaSha256": "630cd8f1507f88dda92c82e937fb21a75fdd635b1836d1e33e45c3bddcca9630"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "left",
+      "frame": 3,
+      "source": "witch-animation-frames/frames/moving-attack-left-04.png",
+      "sha256": "436cd55b3c795a18d4904a6894254e4b1eb8dfd262ea65090fc1dfe519f6a368",
+      "rgbaSha256": "96d34be90a3c070b715833dd1658737cef4725eac78d5acf43bea8fe48ee984a"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "right",
+      "frame": 0,
+      "source": "witch-animation-frames/frames/moving-attack-right-01.png",
+      "sha256": "02567ee6a9a4a0dc5d77d2296d417fd5433603ed9a81fc9f488e8a7c172331bb",
+      "rgbaSha256": "48a054d634ab01e3a20dc920cd6f4c51bd82580d1c012d03bc4016f5a1fb5818"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "right",
+      "frame": 1,
+      "source": "witch-animation-frames/frames/moving-attack-right-02.png",
+      "sha256": "8a330a2d559b4bf3a19f65337f5a3445ae36098cf403464889d7240f03119de5",
+      "rgbaSha256": "b35acff3200720d282a24f3a3b88186e9d5f3ec72a33b2812c45d6ee8f5b20df"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "right",
+      "frame": 2,
+      "source": "witch-animation-frames/frames/moving-attack-right-03.png",
+      "sha256": "bd6fb9925b7f714cbbfee9425116f662a9b0aa9fc74b7d63cbb015c288bf7255",
+      "rgbaSha256": "4475113188522d1bf5febb3e51945726c1e907fb2648c18639677a387e953999"
+    },
+    {
+      "classId": "witch",
+      "state": "moving-attack",
+      "direction": "right",
+      "frame": 3,
+      "source": "witch-animation-frames/frames/moving-attack-right-04.png",
+      "sha256": "9fe395b8e9bf0902afd81cea4f9f2334da8a01c25e429333c1c53193da5dfa8b",
+      "rgbaSha256": "304bbf34415ce5006f02900e168394d65551e90ca17a333875690630d9811dba"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "up",
+      "frame": 0,
+      "source": "warrior-animation-preview-package/frames/walk_back-01.png",
+      "sha256": "c5ee6871539461ce0b1b78e4ea4697048b06384a8a8671ffdb93c1391a46b66a",
+      "rgbaSha256": "77038e3e1752f8c437e251d4054d3edbc40ea90209bb441fc5803f2f97a08348"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "up",
+      "frame": 1,
+      "source": "warrior-animation-preview-package/frames/walk_back-02.png",
+      "sha256": "f2119daf7cbc086ac88785f7e3b2815a0f4c880f22251aec0796e1c8ef5c91aa",
+      "rgbaSha256": "311849c3d26380ff93657b2bf818f13c91fef972700cfe2c6e982c692196e021"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "up",
+      "frame": 2,
+      "source": "warrior-animation-preview-package/frames/walk_back-03.png",
+      "sha256": "a82037b50edb590e29a8e9cf5d69a0d4b57ba599058d2631ed7d3f7170e6da9d",
+      "rgbaSha256": "a2b51cbcda0e9d5ec3e644a17fb4d8991eef3fa1a4964df22c3250a1742b1f68"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "up",
+      "frame": 3,
+      "source": "warrior-animation-preview-package/frames/walk_back-04.png",
+      "sha256": "7f7ab7bcf40a679bd86be4de2466668ff384af2370c9bcd15a3eacc46fb0d560",
+      "rgbaSha256": "ccc4e0f71a1429e0d2754de7702858523292d32680796e7454618ce38e152759"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "down",
+      "frame": 0,
+      "source": "warrior-animation-preview-package/frames/walk_front-01.png",
+      "sha256": "5f28ece46ba164da7c39b40c3edfac3323fbd71ed57fa639ec0babc502aa687c",
+      "rgbaSha256": "c1bb540a0ac78e0e019452d99cefc01310dbd8299b2f1438be5dbcacb8d42ff3"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "down",
+      "frame": 1,
+      "source": "warrior-animation-preview-package/frames/walk_front-02.png",
+      "sha256": "062ba144d83b12d6d16555ce7278a72055a017e47022775a53abc2deafe547fb",
+      "rgbaSha256": "361a4625cc09cb583c1ff608d7c6adb049e672f44d460571fdb9056be1f967ec"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "down",
+      "frame": 2,
+      "source": "warrior-animation-preview-package/frames/walk_front-03.png",
+      "sha256": "304eab293a1b539d1501416085a410589733ea763cd423d7cce325e6a4f55500",
+      "rgbaSha256": "0132f10d2ad2c4d41244357282417c19f22c46c474c47f7ca4e6e85bf2689b55"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "down",
+      "frame": 3,
+      "source": "warrior-animation-preview-package/frames/walk_front-04.png",
+      "sha256": "1c2b85026d2cd17ffcfa4d88b434dacfa77a061651a3ea62417ce8102dd570fa",
+      "rgbaSha256": "f696985dc06c63e0eb1682d69440f9629e3768b40cd05506414a4d81376c0be2"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "left",
+      "frame": 0,
+      "source": "warrior-animation-preview-package/frames/walk_left-01.png",
+      "sha256": "5da09a64749767bccfb714f0adadc3c897dd1ac922a0bde961088c680af273d6",
+      "rgbaSha256": "2ad2a624a5ebf87270040416376573f41e816a5022c0ca6e3d4bd627a0cf9d48"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "left",
+      "frame": 1,
+      "source": "warrior-animation-preview-package/frames/walk_left-02.png",
+      "sha256": "89768e06556b432dfdc39733c28cd19d5a2bb611c52b3beec580d2c18238cbe0",
+      "rgbaSha256": "3f27890f4d8ddf523782f2450b90ecde985353d60add2dbae292fee3aa06e00c"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "left",
+      "frame": 2,
+      "source": "warrior-animation-preview-package/frames/walk_left-03.png",
+      "sha256": "c73daf09e58ee04db5aefc67ea15c816f2449bf9981a8d4c9fc925ce7b48c6e1",
+      "rgbaSha256": "f6f45005cec8a2d6784ad08692b3c5d959a978661dd6eb7ba46f3b6d6d34dc8a"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "left",
+      "frame": 3,
+      "source": "warrior-animation-preview-package/frames/walk_left-04.png",
+      "sha256": "16e1dd121497e3b1114bcb2e2d7ec1c23a005b047667910be15a6959ef96cbb9",
+      "rgbaSha256": "74d86b78600dcfc60c0433d9db34be2ecbb0dbd90e52176daadf3f3a1a4df27f"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "right",
+      "frame": 0,
+      "source": "warrior-animation-preview-package/frames/walk_right-01.png",
+      "sha256": "ec1abac635c3b8b62347ea34495f174ac72683ad06f8284363e9bb919a6018c1",
+      "rgbaSha256": "0e510558269ac6e5c9f1bc4620781174dfdee2816fd90ebd2ace1681eac434d9"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "right",
+      "frame": 1,
+      "source": "warrior-animation-preview-package/frames/walk_right-02.png",
+      "sha256": "4dc860c032ea019d49b90acfacb8e9dc037fbb40e292dd5ee3ec209d87531982",
+      "rgbaSha256": "be16c489e9db7b29185ff3f5affa85ea2df51a6565ce97a7917db004c77df7f6"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "right",
+      "frame": 2,
+      "source": "warrior-animation-preview-package/frames/walk_right-03.png",
+      "sha256": "a01d1724c91f24279a54143a861545698771c375c84c91d2d2cc1f6b24b024ad",
+      "rgbaSha256": "1d1c8e148fabb8e0342b9f72cce402e71220dc2f002aab98507bd97a999e57d8"
+    },
+    {
+      "classId": "warrior",
+      "state": "walk",
+      "direction": "right",
+      "frame": 3,
+      "source": "warrior-animation-preview-package/frames/walk_right-04.png",
+      "sha256": "71f99e5e57cf28f4d030c586287a9132cbe7391e34e0f9221d0e2f2268e95dd5",
+      "rgbaSha256": "ee9b452a90a488c9ec28501edd7e480cc5ae84e9d8bf11d09c6fa36f11ed768e"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "up",
+      "frame": 0,
+      "source": "warrior-animation-preview-package/frames/attack_back-01.png",
+      "sha256": "893dfd5c6e1991d910bfec9c37868c030b6e23c0a2be70a25c01d13c7ce7cd1b",
+      "rgbaSha256": "938195c64b049dac78de7e46d360cd9c5ae566a10640525eb68bdcf1343a5409"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "up",
+      "frame": 1,
+      "source": "warrior-animation-preview-package/frames/attack_back-02.png",
+      "sha256": "bc0116dd8dcd4f462d09fcd228d79248fe4085efe100bd7ea96090920054c274",
+      "rgbaSha256": "5e826fbfbaf744dc20cceb05ab034e7c91a6c9079fcaacd6960bd90a147e13a2"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "up",
+      "frame": 2,
+      "source": "warrior-animation-preview-package/frames/attack_back-03.png",
+      "sha256": "42a13ffbe2d1594e7eea7b5becca4b867ed8b306dc952586c5aab9291f6c2dd7",
+      "rgbaSha256": "f529604637fac3247cb820d3473b7e6f072bf25d2600ebe04bd6789a41358bfa"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "up",
+      "frame": 3,
+      "source": "warrior-animation-preview-package/frames/attack_back-04.png",
+      "sha256": "9527c6ed589c5aa35b1f4163e6f3373d313c9b661611a8f28050fb649881be57",
+      "rgbaSha256": "44a37f383286bed2f381d7a486474e6fac6bbf0a7a07cb9d2864ab3184c054c5"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "down",
+      "frame": 0,
+      "source": "warrior-animation-preview-package/frames/attack_front-01.png",
+      "sha256": "dad1cff2294f73b2506eacce9d828a59c1f6e5661673f9c6bed4402256e00099",
+      "rgbaSha256": "c8e9f084eea3c575e7e6c2bb7632d02f856c82d5709cfabd2f51a458d1eeb372"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "down",
+      "frame": 1,
+      "source": "warrior-animation-preview-package/frames/attack_front-02.png",
+      "sha256": "4b0fe66826eb7e5a7797369fb5638bcac3ab5f46ba8c71d4c996fad4a810a2c4",
+      "rgbaSha256": "e9ba5b9603d4bea1ee35cb9446c02c4f2d0ef0d195ce7240e5b3627a73585de6"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "down",
+      "frame": 2,
+      "source": "warrior-animation-preview-package/frames/attack_front-03.png",
+      "sha256": "12611ac1f491d6b264f4182d36d8d3568e28bfe6c66025ad8092c3edb510e204",
+      "rgbaSha256": "026c63292eb017bf3cd52647aba9c2b52f69abc9425db85a918bb1c70aac4a61"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "down",
+      "frame": 3,
+      "source": "warrior-animation-preview-package/frames/attack_front-04.png",
+      "sha256": "f33c62a982d5325c86414a2792a4d7557b57c60fe8dd39a3c7119a84e075da21",
+      "rgbaSha256": "6fba04b908342204eb071cc2b3429415c2897ccc6ff6864973e7180a86b2b241"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "left",
+      "frame": 0,
+      "source": "warrior-animation-preview-package/frames/attack_left-01.png",
+      "sha256": "ac61c997f58df6fb8a61ab8544535b00985ca3ab646a12cac1795ea056b6f5c3",
+      "rgbaSha256": "26c47a5be89a9da98e0928e08d05054d016bc3607d12a909ae1cac6775d7237b"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "left",
+      "frame": 1,
+      "source": "warrior-animation-preview-package/frames/attack_left-02.png",
+      "sha256": "1fd24ba3b2392c3c18724dd4d32b4ab9474e211ca0374debc7da1cf045074434",
+      "rgbaSha256": "b802468f00f5670189637b7213826cf45fbdc11af44127a5482adb37f648c55d"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "left",
+      "frame": 2,
+      "source": "warrior-animation-preview-package/frames/attack_left-03.png",
+      "sha256": "e94918eeca6627aace85be0daa7d3f298ab26026717603ffdeafefe24b3105c7",
+      "rgbaSha256": "49ac1037efe27b4a413b47a645f86cfbae6420f16fcd07f0809703f03ed99d4f"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "left",
+      "frame": 3,
+      "source": "warrior-animation-preview-package/frames/attack_left-04.png",
+      "sha256": "004aac5a51b34545329e66c4bd72797350a9e74df79f99b21dc2c8e0713d994a",
+      "rgbaSha256": "4ba0116941762ced999ed3fe63b9b37ef324bc74d5e72911f5e364419735beef"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "right",
+      "frame": 0,
+      "source": "warrior-animation-preview-package/frames/attack_right-01.png",
+      "sha256": "91443f5ba275db279e534c1e258a13c2f57c1d5ba67919a74728a4463ab39b5d",
+      "rgbaSha256": "ec7ac4df6a52f34b5d65f9ab5066bb38b3e21696e1fff2a5b2dfaf7f16008b6b"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "right",
+      "frame": 1,
+      "source": "warrior-animation-preview-package/frames/attack_right-02.png",
+      "sha256": "a43223f2623116c647e52fb203d323ad28260b04402e01d9b20a4090ecdec5f1",
+      "rgbaSha256": "dd6a2f66a57a9a3b2990f3b46691a9ffe8942584e67c3465e40722bf92a67c61"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "right",
+      "frame": 2,
+      "source": "warrior-animation-preview-package/frames/attack_right-03.png",
+      "sha256": "a609cb97187014314c5eaf7523ed530f6db2be3f969e7aa5f313f53cd1452321",
+      "rgbaSha256": "c261a564fa672e5486c464b69a53106aa8e3ac5f50ed1413f08593b305801136"
+    },
+    {
+      "classId": "warrior",
+      "state": "stationary-attack",
+      "direction": "right",
+      "frame": 3,
+      "source": "warrior-animation-preview-package/frames/attack_right-04.png",
+      "sha256": "024c808763814caaae2d5755e51f33519198b0b16625e4688fce024592f8f93b",
+      "rgbaSha256": "c7cc88b4eba99ba89383a52aa3870ef51c8ae35832775208d9a4511468f6db0a"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "up",
+      "frame": 0,
+      "source": "warrior-animation-preview-package/frames/moving_attack_back-01.png",
+      "sha256": "ebafe4e916af26d6c92db420a602cf9a8c006b79383f784a692e949bc9ad4c11",
+      "rgbaSha256": "4eb7eae0d8833cd4faf701cb93be539fbc20066c1d0ed425fb8d0af7772637c4"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "up",
+      "frame": 1,
+      "source": "warrior-animation-preview-package/frames/moving_attack_back-02.png",
+      "sha256": "5b2e05066afa7d56fc8ed2a2b2b7d61c9813b325aa84aa632fea9f93c6c376c4",
+      "rgbaSha256": "dec951a69d4040fdebbba6c0c9b34b24f1fc218bd69ab671010dda1270953848"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "up",
+      "frame": 2,
+      "source": "warrior-animation-preview-package/frames/moving_attack_back-03.png",
+      "sha256": "f18f5792648957a21ccb94f5baa68256525bf961cb640e451976d9e6aa5ecb06",
+      "rgbaSha256": "39369863c0a6633738b962e2bd4a85dcb70ba4fdc8bd362734963455e964fb13"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "up",
+      "frame": 3,
+      "source": "warrior-animation-preview-package/frames/moving_attack_back-04.png",
+      "sha256": "141c10dbb9edce2842e7839bfdbe2b22e25a5aa5edf1b4579de31d50793d41a6",
+      "rgbaSha256": "cf036b2de0f76857e079c6a3f927bf475c4c0eb3811aa5f1cafdc2ae80e596c6"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "down",
+      "frame": 0,
+      "source": "warrior-animation-preview-package/frames/moving_attack_front-01.png",
+      "sha256": "8a73d261dfc1e8e458a3462fb7f9748943dc53bfc7d8c8e8ec1a80563770c426",
+      "rgbaSha256": "3b56671bd615f8434039a81949aef7f900eb8012af5c0e3b8e1c45b6ee042201"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "down",
+      "frame": 1,
+      "source": "warrior-animation-preview-package/frames/moving_attack_front-02.png",
+      "sha256": "a4ad232e012fcb7a861f8c9b9798cfdb9c0ae0e51d5f8e38b3b3deec08479a6d",
+      "rgbaSha256": "2706cd2994e5861f53046d80ed6a826e91a1b3785dcfbb663c83fb017a5b8d6d"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "down",
+      "frame": 2,
+      "source": "warrior-animation-preview-package/frames/moving_attack_front-03.png",
+      "sha256": "b9ee010888249f6462a5ce16dfb30582102901b2c787510f1d70956b271bf7d4",
+      "rgbaSha256": "54ed174f8a03e5f37140b6c152d23d6c60a4e25b0679f3929d5e8566715752b0"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "down",
+      "frame": 3,
+      "source": "warrior-animation-preview-package/frames/moving_attack_front-04.png",
+      "sha256": "d5b034006dc72a9e8509f90272bb176c74e119378f2759e68c0128943581051e",
+      "rgbaSha256": "4335696a23b2489d2b918b38ec5fc120d3317d7fc24495459cd71ee1871ffe12"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "left",
+      "frame": 0,
+      "source": "warrior-animation-preview-package/frames/moving_attack_left-01.png",
+      "sha256": "5b9bb50cad747f47e699ca077569e616c7906e010e7759029037c22dec9dfc9e",
+      "rgbaSha256": "a6288f0b1bf3f2c5809795cf7fc3262afc124822cdc4501617b23c56d7f23c0e"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "left",
+      "frame": 1,
+      "source": "warrior-animation-preview-package/frames/moving_attack_left-02.png",
+      "sha256": "71cce6fcd86902890c38c139f38a0bdeae817763666ff75a860fa07d5ecaefdf",
+      "rgbaSha256": "02d873ecd4a9b21f10c01e38c16db0949333b963041130d2a6fdbc86d533a350"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "left",
+      "frame": 2,
+      "source": "warrior-animation-preview-package/frames/moving_attack_left-03.png",
+      "sha256": "2c1c0e2181ed25ccb843ff110abf63a1d5e8f3a7adc5c3becf39e6323f4a719d",
+      "rgbaSha256": "c3c6c7a8c35c24507bce99e4a8e3385516b998372268376d7b747cdd9080d602"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "left",
+      "frame": 3,
+      "source": "warrior-animation-preview-package/frames/moving_attack_left-04.png",
+      "sha256": "3760d155b45ec5b72b97d253e228b0553119d1d962dd11e9d45b0d46acd2068d",
+      "rgbaSha256": "94581204f5c41ac046c8d4f199fdabf5883b285d6342e3d289a91a21bbe76c8f"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "right",
+      "frame": 0,
+      "source": "warrior-animation-preview-package/frames/moving_attack_right-01.png",
+      "sha256": "4bc6ce53b3683aefdb568e443ffa261f3f3035f84a13f3fe8193d3a8a959d907",
+      "rgbaSha256": "a9452c658d6b9de061e80beb404b41dfccc120675aa62575ffeefbfc703007e2"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "right",
+      "frame": 1,
+      "source": "warrior-animation-preview-package/frames/moving_attack_right-02.png",
+      "sha256": "140d5c1a35bba086abd23a3dccf92f0a1b83710481ca9144704b8d99706c6918",
+      "rgbaSha256": "3894dfec1fedf436ca1e9c5bf6d25197374f4f63b883791aafc1c44f118ff407"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "right",
+      "frame": 2,
+      "source": "warrior-animation-preview-package/frames/moving_attack_right-03.png",
+      "sha256": "1b773028bcd7a8d2eb016a80b684d5f0ae5819ac090c0b6a81c824a4776f47cb",
+      "rgbaSha256": "9b8138a6c0d3b754bbdd121d4d707fe1a1e9dcf3c687db77e6233ee5b5587161"
+    },
+    {
+      "classId": "warrior",
+      "state": "moving-attack",
+      "direction": "right",
+      "frame": 3,
+      "source": "warrior-animation-preview-package/frames/moving_attack_right-04.png",
+      "sha256": "037bf4c0eee4cc47a25bbd747b2357ad006f0acee0ceaac5104230ca266a959d",
+      "rgbaSha256": "d7bac427dadd9efdefa905c74d60610b9071edb9817c85e15494b66725cb2417"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "up",
+      "frame": 0,
+      "source": "archer-animation-frames/frames/walk-up-01.png",
+      "sha256": "98b48359f93ac506b8bbcaecf48d3b43f121ae6ff6f917768a74ecfbe1aa45d4",
+      "rgbaSha256": "b83b54674f3adf378a80953beaf767adee4d2085fcf86d0c34ff9df576f3e5a3"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "up",
+      "frame": 1,
+      "source": "archer-animation-frames/frames/walk-up-02.png",
+      "sha256": "e813438fa40084c250406ab36928bd9fc97b9d86b33266d92cd983e49831345c",
+      "rgbaSha256": "fca9c57965e01fedb25c7269d3309f0ea34d8e07ba512c4b06feea193fbb4f53"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "up",
+      "frame": 2,
+      "source": "archer-animation-frames/frames/walk-up-03.png",
+      "sha256": "ea0e6bf0ba944f1562c21c41578805a9be6820146a5e525858af6e70d10fa0cc",
+      "rgbaSha256": "c2cfc47a0931eaa69e6daba3683993cb8830cf4acdfc96e213f5353298b7645d"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "up",
+      "frame": 3,
+      "source": "archer-animation-frames/frames/walk-up-04.png",
+      "sha256": "85e556bb253fbe7be7af67baf1251439b3ada12d7b3a9137c1a05b9a8d538490",
+      "rgbaSha256": "585f37dd6231c88a026a4afc52e733bdb201b1acd7765f69d8716a6e9a7ca4e1"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "down",
+      "frame": 0,
+      "source": "archer-animation-frames/frames/walk-down-01.png",
+      "sha256": "ad3043d7f4c2aeb4d01e7bb3e3bf8ef2a42160ff602e581840b6d9a2fa569fc2",
+      "rgbaSha256": "75405c35e6b41fd82320cfa010be15b467187acbb2810528b53d540f3ce3a852"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "down",
+      "frame": 1,
+      "source": "archer-animation-frames/frames/walk-down-02.png",
+      "sha256": "db20262b8869416ead9f8bbe8b1045f15fca58a7b22c232d9c1a5081d3f7d1ad",
+      "rgbaSha256": "496322b487495f2e72dae158fc5172e2e540b911d3a3a54f372517fd898ecb6b"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "down",
+      "frame": 2,
+      "source": "archer-animation-frames/frames/walk-down-03.png",
+      "sha256": "ef368642b3d0735ac3a3829e2759d8fa2075fcb2e18dcc5bb5b7acd950cd51b6",
+      "rgbaSha256": "aab8851718c06e1d244e596391530eefaf49af00b4264b36f451a5f430ffd99e"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "down",
+      "frame": 3,
+      "source": "archer-animation-frames/frames/walk-down-04.png",
+      "sha256": "92be7922fb112842e276725e134fd6f8a4f13d471516c6f386f27afcf8798f42",
+      "rgbaSha256": "a86ce7d880edc1f25c84e188cc5791e4aa814fc63e614dbbc11b5f968fe5aea0"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "left",
+      "frame": 0,
+      "source": "archer-animation-frames/frames/walk-left-01.png",
+      "sha256": "987350261a37260939061b936e650231d239aeb6d922c913d36df92c7d49f340",
+      "rgbaSha256": "cc6f06a8cc0ef610b19d9e677293fe9f55186a8b201405ead1bea528b5f3b3fa"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "left",
+      "frame": 1,
+      "source": "archer-animation-frames/frames/walk-left-02.png",
+      "sha256": "6167d684e4fe518a6a69476bd270215ff209934d2f905b3843199350a2abb2ac",
+      "rgbaSha256": "6ba03a76f7d24cbf4b8029657d1751f518ae84033eb9ccacd8f6be3465cbc7bb"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "left",
+      "frame": 2,
+      "source": "archer-animation-frames/frames/walk-left-03.png",
+      "sha256": "828921ff6c877eba27d681796f407a2e50d62b523fed3c875aa88dc2807aeef2",
+      "rgbaSha256": "4f0e0d40802a7408b0370c1d5376e97fca651ee05f699922847dcaad8cec8cc6"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "left",
+      "frame": 3,
+      "source": "archer-animation-frames/frames/walk-left-04.png",
+      "sha256": "cb2234b825a91ee5316c4a9f689d3eb123f774523d53f663dbcf018d7c17e9ab",
+      "rgbaSha256": "40b415e585a5656c0b83385cfd3bdf1a3228ba631c03d01fb11211fa730676d7"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "right",
+      "frame": 0,
+      "source": "archer-animation-frames/frames/walk-right-01.png",
+      "sha256": "6ad0e5c907e435adf4717d9066963eb16254c2f21b63711d84ffc4185fdc82cb",
+      "rgbaSha256": "15716e17d1ff08120ea8d573de3d849a0a1d84bcdc4e4038ec63be80a2e85979"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "right",
+      "frame": 1,
+      "source": "archer-animation-frames/frames/walk-right-02.png",
+      "sha256": "c1b7c6c20fa2c8a35f79568768c0e0f49aca8e67b2d7a69f897f9a784b8fb63a",
+      "rgbaSha256": "93336f00745db50eecb82db962601018d7fcd7e6b74b67d2240e044271b69263"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "right",
+      "frame": 2,
+      "source": "archer-animation-frames/frames/walk-right-03.png",
+      "sha256": "3bdb9426e805e2049b1a1b42e17491e331ad483a60e8ee21a742cbcc2e3f87ee",
+      "rgbaSha256": "09229961fb65d17cb4628c122f964da94f639f7c3db9fd4038406f8a66f72c0a"
+    },
+    {
+      "classId": "archer",
+      "state": "walk",
+      "direction": "right",
+      "frame": 3,
+      "source": "archer-animation-frames/frames/walk-right-04.png",
+      "sha256": "a8c6735c5980491a2f5df88102500284483e47e619c78ba59473e760718dac37",
+      "rgbaSha256": "9ce6501a7a469b1ec48fc415ce86a2050613aa9460fd8e8ec66054b6ed22dfbf"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "up",
+      "frame": 0,
+      "source": "archer-animation-frames/frames/stationary-attack-up-01.png",
+      "sha256": "e6d4bf70ebcf8dca27db73e0db29b4785fd3d12eb0b1d522122d031e5f66a6db",
+      "rgbaSha256": "1f2b118855ed26095833af0aa44f03b6ead8444e1edf6f490e28f24f2cf0a2f6"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "up",
+      "frame": 1,
+      "source": "archer-animation-frames/frames/stationary-attack-up-02.png",
+      "sha256": "141e1e447ae5cf150dcc80e60f84b42dfc3d147db0357ee4464b5e19b86006de",
+      "rgbaSha256": "5f113463b34fd6ff7f16b4f0f25ed1e373d8949d1c1db762217dcbe53c021e6a"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "up",
+      "frame": 2,
+      "source": "archer-animation-frames/frames/stationary-attack-up-03.png",
+      "sha256": "e99f15140d47a28c269ccc1c618c6a97aafec93d0f8d1cda3d72fd7b4a400cfe",
+      "rgbaSha256": "6e270082992421589aa7d64214c68301f04c3e63cfaa73fb77612613a9d1dd2a"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "up",
+      "frame": 3,
+      "source": "archer-animation-frames/frames/stationary-attack-up-04.png",
+      "sha256": "24722fc0f483972caa4ac2eca15e894b4f310a24d74419e6cbac2f85fc2b945c",
+      "rgbaSha256": "efe2eb3460ce5616f5a07a532f02475b00ff9b0b2572a32a7c558dc1e02fd550"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "down",
+      "frame": 0,
+      "source": "archer-animation-frames/frames/stationary-attack-down-01.png",
+      "sha256": "60ae181bdfddde8ad6b4a9c75cd6168de5975cfcb2b3897adc985b90ffe87a8b",
+      "rgbaSha256": "09fd12157823f58dce22f1ad701cf561d2aad9fb330eefb8603ed994a40bf98b"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "down",
+      "frame": 1,
+      "source": "archer-animation-frames/frames/stationary-attack-down-02.png",
+      "sha256": "b630752816435a7ffb4ff716c9312dbcfa4cefbd65ecb47a76e0c3a76c468495",
+      "rgbaSha256": "4c98e7a6957c830c43b59c3c29039ae28b0b6764167f9b9918d78da82c3cdf9b"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "down",
+      "frame": 2,
+      "source": "archer-animation-frames/frames/stationary-attack-down-03.png",
+      "sha256": "b1bd35deea5ace14712422487fb29ad6f1b6cb8541ebff8fbc461befa68ac748",
+      "rgbaSha256": "0089bc0ef09676a3e2792476771ce27956818c2ddeac99d088588f8dfdd54bfd"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "down",
+      "frame": 3,
+      "source": "archer-animation-frames/frames/stationary-attack-down-04.png",
+      "sha256": "77b1747e2b7efe222c216dd5036e40f078da80aef28bf31ffd76475d995fc071",
+      "rgbaSha256": "0981c7a780214385a51c47fba9db269abfcca2eba8bf8b8693bab13e2f820268"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "left",
+      "frame": 0,
+      "source": "archer-animation-frames/frames/stationary-attack-left-01.png",
+      "sha256": "55aef3625cfda888b4dee50012763d04c83d5ca3365ab455b55599ad1302de67",
+      "rgbaSha256": "98d44d8e092579ed79a49ced34ce86da210277a57182aaf002c3d0368ddf723b"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "left",
+      "frame": 1,
+      "source": "archer-animation-frames/frames/stationary-attack-left-02.png",
+      "sha256": "d3a7622a8d36305c5db56e609211f7d9f7ea1d44460683ed206ca981324d2cda",
+      "rgbaSha256": "29c0cdc5ac5c214f8d7d6290fd15436d0402bec16c8bf51cc5ad015dbd0ded35"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "left",
+      "frame": 2,
+      "source": "archer-animation-frames/frames/stationary-attack-left-03.png",
+      "sha256": "46796ffa60ee0cc39c1f8f2360050113c2d6cbb8e783d4647d087d9d917d49c2",
+      "rgbaSha256": "0cb749f82068422245e1da197d3768deaafa4426fb4640cb4e9403badbab7437"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "left",
+      "frame": 3,
+      "source": "archer-animation-frames/frames/stationary-attack-left-04.png",
+      "sha256": "ffdc36c29521dd41f59cad0983e00ebf208475deb1f044368fbfce3514ca121c",
+      "rgbaSha256": "c874528ac847fe2dedaf8d713eb0b2cfe61a5eaa5628fa901f1662fb32497627"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "right",
+      "frame": 0,
+      "source": "archer-animation-frames/frames/stationary-attack-right-01.png",
+      "sha256": "647ab91f557dea226d2dbec0d025a42a855e0b091c0f1c655518b3a640551302",
+      "rgbaSha256": "66ec6d0f2992029d263d55df2c2189ba1d09a0b9806c4c2fce2959e4666f4c2a"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "right",
+      "frame": 1,
+      "source": "archer-animation-frames/frames/stationary-attack-right-02.png",
+      "sha256": "0d7a26f0e2a61641cfc0bda157a42900f32b437bcaf73bb4f2758e06fa4bdaaf",
+      "rgbaSha256": "20654eeee57896a44701b394e4e03f9faab6b8855c37d0e69be32726daba3513"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "right",
+      "frame": 2,
+      "source": "archer-animation-frames/frames/stationary-attack-right-03.png",
+      "sha256": "62c8fa508519e1118d03c0e3f3c5016d3c56550aca5b58682a5efa1bd4cb64c1",
+      "rgbaSha256": "fef148b075f161788785b909d0706cc55574c02dc9a75bdb12491ff3cc2e9d52"
+    },
+    {
+      "classId": "archer",
+      "state": "stationary-attack",
+      "direction": "right",
+      "frame": 3,
+      "source": "archer-animation-frames/frames/stationary-attack-right-04.png",
+      "sha256": "a92ad163d24729ae9de6abb8a220c1291acf78f7baafea97c0feb6f3509c31e6",
+      "rgbaSha256": "e0464f521bd1dbffeef37a09735f0ff728bbcbb1e11ee3c1c23ebea10b9b27fd"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "up",
+      "frame": 0,
+      "source": "archer-animation-frames/frames/moving-attack-up-01.png",
+      "sha256": "3c6c7920315c6d37458048eb989b09a25968770add93634baf0c47f98313dd58",
+      "rgbaSha256": "51c86cf5bb98090ec7bf98670d012eff99b27e28422a42f1d2938d40a760d7e5"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "up",
+      "frame": 1,
+      "source": "archer-animation-frames/frames/moving-attack-up-02.png",
+      "sha256": "ad15be6709b8a7258a0c83128471f9e59244789c0a1f8309818d1246483af743",
+      "rgbaSha256": "6a2d1aca9b799fbb8b38fa1642a6438613966d506a2206c418296f7a7b1eeab9"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "up",
+      "frame": 2,
+      "source": "archer-animation-frames/frames/moving-attack-up-03.png",
+      "sha256": "21a1a45515c554651dc11ddddd52bf228ea219ef7879bbfb1a2ef2b3f2e5704b",
+      "rgbaSha256": "09f2a7269ecf0be9386838c59ee0eaae94e5499c9ddb0d8041230b5557052121"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "up",
+      "frame": 3,
+      "source": "archer-animation-frames/frames/moving-attack-up-04.png",
+      "sha256": "ba56a352e4b24856665122943d029cf250cad39938c4a4c235f26356d893ffc6",
+      "rgbaSha256": "2ea9c19ae788ddb89c4fc104935c92d3a9a684a4fcb88de92f4f3cc7413f6ca2"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "down",
+      "frame": 0,
+      "source": "archer-animation-frames/frames/moving-attack-down-01.png",
+      "sha256": "644eb041e9def79fb2f1122d9c34853fb3c83868d547b9bb2fa8b8080562b581",
+      "rgbaSha256": "9845b2eb3d6e50165ab70e99a657ba3ab98b8d74be36f19ab2d9fd898a2b5ff0"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "down",
+      "frame": 1,
+      "source": "archer-animation-frames/frames/moving-attack-down-02.png",
+      "sha256": "f665cc5229fb2b2f3383e227a353797474c25adaefe43efb39412dfa590f55e0",
+      "rgbaSha256": "d1cd1d7558f3affbb444f46d57e65bbc81683e96b0fc5f6cc0fdbc5a1f3fb342"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "down",
+      "frame": 2,
+      "source": "archer-animation-frames/frames/moving-attack-down-03.png",
+      "sha256": "6af0721c331d28bf881aec12e869e0cc46f481f2d47e216db763c1da7dc4a048",
+      "rgbaSha256": "4a7fae1ff4e57483453b514ddde5a2488eba218bde26e8801964596052f208ec"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "down",
+      "frame": 3,
+      "source": "archer-animation-frames/frames/moving-attack-down-04.png",
+      "sha256": "39cd6be5e6dc95c32ed05785510d24c9de056a17b2f27977c805e4299c0a1811",
+      "rgbaSha256": "3a05a807f513fb92f8e1842bfb26390755c12a87418b3c7ddf88cce61c224d05"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "left",
+      "frame": 0,
+      "source": "archer-animation-frames/frames/moving-attack-left-01.png",
+      "sha256": "09d9c6d7aed24c91bd025bd276e09b54e67384e205e0490663f322825b3ff432",
+      "rgbaSha256": "be9f40a803c2324914f14de85d6fa9b1c43a7d2b47a661b95c0792663dde4ee5"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "left",
+      "frame": 1,
+      "source": "archer-animation-frames/frames/moving-attack-left-02.png",
+      "sha256": "a1ee9ad9e53586aa368d908d78146c4ba8897d2acd2b1caf72b894e809be21c1",
+      "rgbaSha256": "2f44d3bf645943321fdd346d5125e2f5ceb8706e7dd30ce658bafaccbd390f93"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "left",
+      "frame": 2,
+      "source": "archer-animation-frames/frames/moving-attack-left-03.png",
+      "sha256": "4dc3e498fdca38367e3bf176d8b56d23eb0a8400d68865843bb6302f8495e993",
+      "rgbaSha256": "bbdcb5e207680268c7e132fd1ae3806a7ecbffd1e6c60d8842da27667daf31bb"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "left",
+      "frame": 3,
+      "source": "archer-animation-frames/frames/moving-attack-left-04.png",
+      "sha256": "616ce46c432f83890d289ed5d812e26e93269c8725bf089f449844b9ec1570d1",
+      "rgbaSha256": "eb897fe9064e810f6fefa0ef38d2c408c3a8e9e7e134bce66fa02ddda0bae469"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "right",
+      "frame": 0,
+      "source": "archer-animation-frames/frames/moving-attack-right-01.png",
+      "sha256": "31eeb51bd6755d171baa0f862a7ef659dd7b32d1ec0948468d553f10348a42aa",
+      "rgbaSha256": "13df7d4d3661db20d1817464e525ea7cd6f4e856dab59dabff4f37118f6bc7fa"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "right",
+      "frame": 1,
+      "source": "archer-animation-frames/frames/moving-attack-right-02.png",
+      "sha256": "282904af224ee47665eca3d85b67c9b969c6e85a212aca0e5f6d16cbe5015727",
+      "rgbaSha256": "2de591f8f1ad5be0235014f5e29c4672bfde905813db3291108f6ddfaa57016d"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "right",
+      "frame": 2,
+      "source": "archer-animation-frames/frames/moving-attack-right-03.png",
+      "sha256": "64d8228ce3c1037d764543f8408123008a22adc9a8cf571a4f0de3a0f54ff969",
+      "rgbaSha256": "660b26463a19a8f392ba58d1fee0d7ed696dcfd83fe87cda4d08ab75ad6aebe6"
+    },
+    {
+      "classId": "archer",
+      "state": "moving-attack",
+      "direction": "right",
+      "frame": 3,
+      "source": "archer-animation-frames/frames/moving-attack-right-04.png",
+      "sha256": "22b343591217903ff7dd366da3aa857b94b2e3ae3470da995ba5b141da635d4c",
+      "rgbaSha256": "604df8ed2d575bf7025f832cf9b0f69efcf904e8c25c874bd2b31a1b1f3c4206"
+    }
+  ],
+  "assets": [
+    {
+      "file": "assets/resource/classes/approved/witch-body.webp",
+      "bytes": 514570,
+      "sha256": "7d4666abde05b7e83003082c45580907cc04a8fc5ac52069a0e87e494221fe48",
+      "width": 480,
+      "height": 1440,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/approved/witch-runtime.webp",
+      "bytes": 226768,
+      "sha256": "ed60b9273fd1a78d30c1954427d388414e2adc37f47962f3480c60b965475aee",
+      "width": 960,
+      "height": 600,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/approved/warrior-body.webp",
+      "bytes": 655204,
+      "sha256": "a84c8b9936f061e26864f4d1ef5af47dc9fce5cc8db426109f8ff3091bb1af77",
+      "width": 720,
+      "height": 1728,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/approved/warrior-runtime.webp",
+      "bytes": 272216,
+      "sha256": "c3bbcad6e32c429e7873809a3240fa261608e8cfd25a3494aab1a2750e668baf",
+      "width": 960,
+      "height": 600,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/approved/archer-body.webp",
+      "bytes": 691532,
+      "sha256": "96f2e55ae7f4d5dab6b18c8c0932c7b89c1158c6183da2825124f200d2e7d65e",
+      "width": 768,
+      "height": 1728,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/approved/archer-runtime.webp",
+      "bytes": 271280,
+      "sha256": "737788d5d6e8909449365ba9b9cca14a605f0dfca81cade0919e7bafacf61544",
+      "width": 960,
+      "height": 600,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/magic_witch.webp",
+      "bytes": 171022,
+      "sha256": "181cb6b082a7e8858c145f5d9e02b36faf0258bddebbf8c277d729e3da6b492c",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/tidal_witch.webp",
+      "bytes": 182200,
+      "sha256": "215ac09479fb97242dbeafef40826ed6fc65734151a39531200766f68b557112",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/storm_witch.webp",
+      "bytes": 184504,
+      "sha256": "875f57e13ab6d09c5332795fc0bce534285a70da3c91a0e854fa32ad6e7d67e5",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/astral_witch.webp",
+      "bytes": 176312,
+      "sha256": "d2cf30c003528c679c349cf60682258b1bf186e821d963bbe66057c78f9b62f5",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/riftcore_witch.webp",
+      "bytes": 183540,
+      "sha256": "226694f04004f72b6415dd4ea0963af6323bc87bf949ab3eb0002a26b20ec314",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/magic_warrior.webp",
+      "bytes": 93432,
+      "sha256": "1eb125b489fc3e89ea77dbda32cda61a2a61fa439983a0edf38d0ff59869c788",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/tidal_warrior.webp",
+      "bytes": 83516,
+      "sha256": "6284070c1993532684935a96f6da357da560d1d17e4ebb650992c444fd0be72a",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/storm_warrior.webp",
+      "bytes": 93960,
+      "sha256": "689a51885a67980efaac5a71d172fd6e36cd39cc1922f50eaf9d1b9908f3a5d4",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/astral_warrior.webp",
+      "bytes": 95154,
+      "sha256": "b4850d8d739a6afab80ec0562be54f701112d4c08f932b43abcfe2669af779f2",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/riftcore_warrior.webp",
+      "bytes": 108278,
+      "sha256": "b87c711140387390a8b833867521d7df54b2c2c8454182a770ab0843c31f904c",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/magic_archer.webp",
+      "bytes": 74892,
+      "sha256": "20848d600c5b2665ad74143cef2166af87e1bf6382a22bfa17c811111480ec4d",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/tidal_archer.webp",
+      "bytes": 77544,
+      "sha256": "af37ce80905ea54aa0772cbcdb3cc398f1996bbee60de2d3ac94f8176c6f4585",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/storm_archer.webp",
+      "bytes": 76962,
+      "sha256": "862bf7b5f9039269a8960e7e289401c7fcc3853f628f256df42008e85075a07c",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/astral_archer.webp",
+      "bytes": 73360,
+      "sha256": "c3eef6abf0b3222d6ae673375b708771756e6cc1495e4612698a32d1f8fbc81f",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/weapons/riftcore_archer.webp",
+      "bytes": 75786,
+      "sha256": "1fe846d40f3ce8cea5f8600f29475df6a8b8c80262de52ceb10076ac0bcde7bc",
+      "width": 512,
+      "height": 512,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/approved/witch-effects.webp",
+      "bytes": 348002,
+      "sha256": "4d14f758c5b4d32dd2a9b94a6e37257e7424e3be86f13cdda49788d4085402b0",
+      "width": 768,
+      "height": 768,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/approved/warrior-effects.webp",
+      "bytes": 343868,
+      "sha256": "3ff62cbb59cdbd74d9503df7cffb52bf4545662af6bde4b5aa5d7dfea1557b12",
+      "width": 768,
+      "height": 768,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/approved/archer-effects.webp",
+      "bytes": 360458,
+      "sha256": "d467a6a69fd8dd4d5f2263095901adb585a57193082f771c68d27edc928814f1",
+      "width": 768,
+      "height": 768,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/approved/life-circle.webp",
+      "bytes": 65114,
+      "sha256": "4847bbe83c9ebdfb342fde4042a5a49d0bee34a396470caf4b9dd837fb9c14db",
+      "width": 768,
+      "height": 192,
+      "alpha": true
+    },
+    {
+      "file": "assets/resource/classes/approved/poison-potion.webp",
+      "bytes": 39846,
+      "sha256": "eee107f5122a093fc90e35523c05aaeddeb94161ac6e0b1cce348d2a5a2efdc1",
+      "width": 512,
+      "height": 128,
+      "alpha": true
+    }
+  ]
+}

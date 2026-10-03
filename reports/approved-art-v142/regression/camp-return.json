@@ -1,0 +1,86 @@
+{
+  "coverage": "Isolated local browser profiles; injected save failure/delay; no live account writes",
+  "cases": [
+    {
+      "id": "wizard",
+      "test": "failed-save-stays-in-field",
+      "passed": true
+    },
+    {
+      "id": "wizard",
+      "test": "delayed-save-repeat-click-one-write-and-retained-progress",
+      "passed": true
+    },
+    {
+      "id": "wizard",
+      "test": "cold-return-no-field-assets",
+      "passed": true
+    },
+    {
+      "id": "wizard",
+      "test": "reentry-after-cold-return-keeps-progress",
+      "passed": true
+    },
+    {
+      "id": "witch",
+      "test": "failed-save-stays-in-field",
+      "passed": true
+    },
+    {
+      "id": "witch",
+      "test": "delayed-save-repeat-click-one-write-and-retained-progress",
+      "passed": true
+    },
+    {
+      "id": "witch",
+      "test": "cold-return-no-field-assets",
+      "passed": true
+    },
+    {
+      "id": "witch",
+      "test": "reentry-after-cold-return-keeps-progress",
+      "passed": true
+    },
+    {
+      "id": "warrior",
+      "test": "failed-save-stays-in-field",
+      "passed": true
+    },
+    {
+      "id": "warrior",
+      "test": "delayed-save-repeat-click-one-write-and-retained-progress",
+      "passed": true
+    },
+    {
+      "id": "warrior",
+      "test": "cold-return-no-field-assets",
+      "passed": true
+    },
+    {
+      "id": "warrior",
+      "test": "reentry-after-cold-return-keeps-progress",
+      "passed": true
+    },
+    {
+      "id": "archer",
+      "test": "failed-save-stays-in-field",
+      "passed": true
+    },
+    {
+      "id": "archer",
+      "test": "delayed-save-repeat-click-one-write-and-retained-progress",
+      "passed": true
+    },
+    {
+      "id": "archer",
+      "test": "cold-return-no-field-assets",
+      "passed": true
+    },
+    {
+      "id": "archer",
+      "test": "reentry-after-cold-return-keeps-progress",
+      "passed": true
+    }
+  ],
+  "errors": []
+}

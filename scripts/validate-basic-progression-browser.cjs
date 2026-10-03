@@ -23,7 +23,7 @@ try{for(const [id,skill] of [['witch','lifeDrain'],['warrior','cleave'],['archer
   await page.reload();await page.locator('[data-camp=character]').first().waitFor();
   assert.equal(await page.evaluate(async({id,skill})=>((await game.net.getPlayerProfile(game.net.playerId)).classProfiles?.[id]?.skillLevels?.[skill] ?? 1),{id,skill}),level,'persisted UI upgrade after reload');
   await page.locator('[data-camp=prepare]').tap();await page.locator('[data-camp=depart]').tap();await page.locator('.camp-return').waitFor();await page.locator('#loading-overlay').waitFor({state:'hidden'});
-  await page.waitForFunction(()=>game.localPlayer.classCombat?.images.actions?.width>0);
+  await page.waitForFunction(()=>game.localPlayer.classCombat?.images.authored?.width>0);
   const result=await page.evaluate(async({id,skill,level})=>{
    const {basicAttackProfile,basicChargeSeconds}=await import('/src/js/combat/BasicAttackProgression.js');
    const p=game.localPlayer,b=p.classCombat,c=b.controller;game.loop.stop();game.monsterManager.monsters.clear();

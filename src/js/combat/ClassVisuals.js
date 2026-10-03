@@ -1,3 +1,4 @@
+import { drawAuthoredClassBody, classArtPath } from './AuthoredCharacterFrames.js';
 import { combatCenter } from './ClassAnchors.js';
 import { drawActionBody } from './ClassActionMotion.js';
 import { getSharedResourceManager } from '../core/ResourceManager.js';
@@ -13,8 +14,8 @@ const DIRECTIONAL = new Set(['warrior_slash','rage_smash','punishing_charge','ar
 export const STATUS_ICONS = ['poison','berserk','rage','mark','root','taunt','bloodPact','empowered'];
 export function loadClassVisualImages(classId, images) {
     const resources=getSharedResourceManager();
-    for(const [key,path] of [['status','status'],...(classId==='wizard'?[]:[['effects',`${classId}-effects`],['actions',`${classId}-actions`]]),...(classId==='witch'?[['lifeCircle','life-circle'],['potion','poison-potion']]:[])])
-        resources?.loadImage(`assets/resource/classes/${path}.webp`).then(image=>{images[key]=image;}).catch(()=>{});
+    for(const [key,path] of [['status','status'],...(classId==='wizard'?[]:[['effects',`${classId}-effects`],['authored',`${classId}-body`]]),...(classId==='witch'?[['lifeCircle','life-circle'],['potion','poison-potion']]:[])])
+        resources?.loadImage(path==='status'?'assets/resource/classes/status.webp':classArtPath(path)).then(image=>{images[key]=image;}).catch(()=>{});
 }
 export function drawClassEffect(renderer,ctx,name,x,y,size,age=0,options={}) {
     const circle=name==='life_circle',potion=name==='poison_potion',img=potion?renderer.images.potion:circle?renderer.images.lifeCircle:renderer.images.effects;if(!img)return;
@@ -94,7 +95,7 @@ export default class RemoteClassVisuals {
         if(this.owner.isDead||this.owner.hp<=0)return true;
         const lag=Math.max(0,(now-packet.ts)/1000),names=(EFFECT_ROWS[this.classId]||[]).flat();
         const m=packet.motion;
-        if(m&&Number.isSafeInteger(m.id)&&Number.isInteger(m.row)&&m.row>=0&&m.row<4&&Number.isFinite(m.age)&&m.age>=0&&Number.isFinite(m.duration)&&m.duration>=.2&&m.duration<=.42&&(m.direction===undefined||(Number.isInteger(m.direction)&&m.direction>=0&&m.direction<=3))) {
+        if(m&&Number.isSafeInteger(m.id)&&Number.isInteger(m.row)&&m.row>=0&&m.row<4&&Number.isFinite(m.age)&&m.age>=0&&Number.isFinite(m.duration)&&m.duration>=.2&&m.duration<=.60&&(m.direction===undefined||(Number.isInteger(m.direction)&&m.direction>=0&&m.direction<=3))) {
             const age=m.age+lag;if(m.held&&lag<.3||!m.held&&age<m.duration)this.motion={id:m.id,row:m.row,direction:m.direction??(Number.isInteger(this.owner.direction)&&this.owner.direction>=0&&this.owner.direction<=3?this.owner.direction:1),held:!!m.held,age,duration:m.duration,receivedAt:now,expiresAt:m.held?packet.ts+300:now+(m.duration-age)*1000};
         }
         for(const f of (Array.isArray(packet.effects)?packet.effects:[]).slice(0,64)){
@@ -125,7 +126,7 @@ export default class RemoteClassVisuals {
         if(this.decoy){this.decoy.remaining-=(now-this.decoy.receivedAt)/1000;this.decoy.receivedAt=now;if(this.decoy.remaining<=0)this.decoy=null;}
         if(now>this.badgesUntil)this.badges=[];
     }
-    drawBody(ctx,x,y,w,h){this.advance();return drawActionBody(this.images.actions,this.motion,ctx,x,y,w,h);}
+    drawBody(ctx,x,y,w,h){this.advance();return drawAuthoredClassBody(this.images.authored,this.owner,this.motion,ctx,x,y) || drawActionBody(this.images.actions,this.motion,ctx,x,y,w,h);}
     drawEffect(...args){drawClassEffect(this,...args);}
     renderGround(ctx){this.advance();renderGroundEffects(this,ctx);}
     render(ctx){

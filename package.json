@@ -51,7 +51,10 @@
     "validate:class-game-audio": "node scripts/audio-tests/validate-class-game-audio.cjs",
     "validate:audio-all": "npm run validate:audio && npm run validate:class-audio",
     "validate:camp-return": "node scripts/validate-camp-return-browser.cjs",
-    "validate:portrait-gait-browser": "node scripts/validate-class-portrait-gait-browser.cjs"
+    "validate:portrait-gait-browser": "node scripts/validate-class-portrait-gait-browser.cjs",
+    "validate:class-weapons": "node --test scripts/validate-class-weapons.mjs",
+    "validate:approved-art": "node --test scripts/validate-approved-class-art.mjs",
+    "validate:approved-art-browser": "node scripts/validate-approved-art-browser.cjs"
   },
   "dependencies": {
     "image-size": "^2.0.2"

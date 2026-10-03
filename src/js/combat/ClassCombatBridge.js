@@ -1,12 +1,12 @@
+import { drawAuthoredClassBody } from './AuthoredCharacterFrames.js';
 import { basicChargeSeconds } from './BasicAttackProgression.js';
 import { actionRow, createActionMotion, drawActionBody } from './ClassActionMotion.js';
 import { combatCenter, attackAnchor, facingDirection } from './ClassAnchors.js';
 import ClassCombatController, { SUMMON_TYPES } from './ClassCombatController.js';
 import Monster from '../entities/Monster.js';
-import { getSharedResourceManager } from '../core/ResourceManager.js';
 import { captureProjectileWorldContext, isProjectileWorldContextCurrent } from '../entities/ProjectileWorldContext.js';
 
-import { EFFECT_ROWS, STATUS_ICONS as ICONS, drawClassEffect, renderGroundEffects, renderForegroundEffects } from './ClassVisuals.js';
+import { EFFECT_ROWS, STATUS_ICONS as ICONS, loadClassVisualImages, drawClassEffect, renderGroundEffects, renderForegroundEffects } from './ClassVisuals.js';
 export { EFFECT_ROWS };
 const alive = e => e && !e.isDead && e.hp > 0;
 export default class ClassCombatBridge {
@@ -39,9 +39,7 @@ export default class ClassCombatBridge {
             decoy: (point,duration) => this.createDecoy(point,duration)
         });
         if (classId === 'witch') for (const id of SUMMON_TYPES) this.game?.monsterData?.loadDefinition(id).then(d => { if(d) this.definitions.set(id,d); }).catch(() => {});
-        const resources = getSharedResourceManager();
-        if(classId === 'witch') for(const [key,name] of [['lifeCircle','life-circle'],['potion','poison-potion']])resources?.loadImage(`assets/resource/classes/${name}.webp`).then(img=>{this.images[key]=img;}).catch(()=>{});
-        for (const name of (classId === 'wizard' ? ['status'] : ['effects','status','actions'])) resources?.loadImage(`assets/resource/classes/${name === 'effects' ? classId + '-effects' : name === 'actions' ? classId + '-actions' : name}.webp`).then(img => {this.images[name] = img;}).catch(() => {});
+        loadClassVisualImages(classId, this.images);
     }
     allies() {
         const ids = this.owner.party?.members || [];
@@ -59,7 +57,11 @@ export default class ClassCombatBridge {
     paused() { return !!this.game?.story?.isStoryActive || !!this.game?.ui?.isPaused && !this.game?.net?.isSharedFieldActive?.(); }
     startActionMotion(kind,data) {
         const direction=this.requestDirection??facingDirection(this.owner,data.target);
+        const previous = this.motion;
         this.motion=createActionMotion(this.controller.classId,kind,{...data,direction},this.controller.time,++this.motionSerial);
+        if (kind==='basic' && previous && this.controller.time-previous.started < previous.duration) {
+            this.motion.started=previous.started; // Fast attacks never pin the body to its first pose.
+        }
         this.owner.direction=direction;
         this.syncVisuals(true);
     }
@@ -70,7 +72,7 @@ export default class ClassCombatBridge {
         const data=aim.action==='ATTACK'?{aimed:aim.elapsed>=basicChargeSeconds(this.owner,this.controller.empowered)}:{slot:Number(aim.action.slice(-1))};
         return {id:0,row:actionRow(this.controller.classId,aim.action==='ATTACK'?'basic':'skill',data),direction:facingDirection(this.owner,aim),held:true,age:0,duration:.4};
     }
-    drawBody(ctx,x,y,w,h) {return drawActionBody(this.images.actions,this.currentMotion(),ctx,x,y,w,h);}
+    drawBody(ctx,x,y,w,h) {return drawAuthoredClassBody(this.images.authored,this.owner,this.currentMotion(),ctx,x,y) || drawActionBody(this.images.actions,this.currentMotion(),ctx,x,y,w,h);}
     basic(options) { return !this.paused() && this.controller.basic(options); }
     skill(slot,options={}) {
         if(this.paused())return false;

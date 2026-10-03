@@ -1,0 +1,26 @@
+(node:49154) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/combat/ClassAnchors.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ class damage sends one packet and predicts one accepted hit; rejects grant zero (1.174389ms)
+✔ poison exact MAX-HP component bypasses armor and armor-piercing scales defense (0.16588ms)
+✔ swept movement rejects intervening wall without teleporting (0.169916ms)
+✔ raster effect and status frame crops use independent4x4 and4x2 grids (1.014859ms)
+✔ status metadata applies no HP loss; stun consumes poison and clamps hostile values (0.636689ms)
+✔ host targets summons through one owner inbox and never damages owner or repeats on guest (0.288765ms)
+✔ summon damage accepts only current living actor; dead/oldest/disposed IDs cannot hit owner (0.168223ms)
+✔ remote Warrior push respects host wall,100px bound and boss immunity (0.208063ms)
+✔ single effect clamps last frame; sustained pingpong never exposes outside atlas (0.33201ms)
+✔ Life Drain circle uses its separate4x1 raster without bleeding other skill rows (0.286802ms)
+✔ Blood Pact follows Warrior only on ground pass, at110px without body overlay (0.658833ms)
+✔ boss summon retains exactly60percent raster dimensions after cached async init (2.092192ms)
+✔ charge body keeps input facing when destination passes its selected target (0.386152ms)
+✔ near forward slash keeps center aim after moving visual origin to sword hand (2.431512ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 99.669866

@@ -1,3 +1,4 @@
+import { CLASS_BODY } from './AuthoredCharacterFrames.js';
 // Authored body poses: preparation, contact/release, follow-through, recovery.
 // Contact is frame 1 immediately: Witch tap must never gain an animation delay.
 export function actionRow(classId, kind, data = {}) {
@@ -8,7 +9,7 @@ export function actionRow(classId, kind, data = {}) {
 }
 export function createActionMotion(classId, kind, data, time, id) {
     return { id, row:actionRow(classId,kind,data), direction:data.direction??1, started:time,
-        duration:Math.max(.20,Math.min(.42,Number(data.interval)||.36)), age:0, held:false };
+        duration:CLASS_BODY[classId] ? CLASS_BODY[classId].frameSeconds*4 : Math.max(.20,Math.min(.42,Number(data.interval)||.36)), age:0, held:false };
 }
 export function sampleActionMotion(motion) {
     if (!motion || !Number.isInteger(motion.row) || motion.row<0 || motion.row>3) return null;

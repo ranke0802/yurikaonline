@@ -1,3 +1,4 @@
+import { CLASS_WEAPONS_ENABLED, registerClassWeapons } from './ClassWeapons.js';
 import Logger from '../utils/Logger.js';
 import {
     resolveDurableBossEntitlementPolicy,
@@ -183,7 +184,8 @@ const DEFAULT_EQUIPMENT_ICON = '🪄';
 const REMOVED_LEGACY_ITEM_IDS = new Set(['slime_gel', 'potion_hp_small', 'royal_jelly', 'king_crown']);
 
 export default class ItemDataManager {
-    constructor(resourceManager) {
+    constructor(resourceManager, { classWeaponsEnabled = CLASS_WEAPONS_ENABLED } = {}) {
+        this.classWeaponsEnabled = classWeaponsEnabled === true;
         this.resourceManager = resourceManager;
         this.itemDefinitions = new Map();
         this.affixPools = new Map();
@@ -264,7 +266,8 @@ export default class ItemDataManager {
                 });
             });
 
-            this.loadedCatalog = catalog;
+            if (this.classWeaponsEnabled) registerClassWeapons(this);
+            this.loadedCatalog = this.classWeaponsEnabled ? { ...catalog, schemaVersion: 3 } : catalog;
         } catch (error) {
             Logger.error('Failed to load item data', error);
         }

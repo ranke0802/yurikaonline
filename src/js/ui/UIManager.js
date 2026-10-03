@@ -1,5 +1,7 @@
+import { classArtPath } from '../combat/AuthoredCharacterFrames.js';
 import AndroidDisplayController from './AndroidDisplayController.js';
 import { CLASS_NAMES } from '../core/ClassProfiles.js';
+import { classWeaponDetailLines } from '../core/ClassWeapons.js';
 import { CLASS_SKILL_UI, MAGE_SKILL_IDS, basicAttackUpgradeDetails, classSkillIds, classSkillMaxLevel } from './ClassSkillUI.js';
 import Logger from '../utils/Logger.js';
 import { getFireballAoeRadius, FIREBALL_BASE_RADIUS, FIREBALL_RADIUS_PER_LEVEL, FIREBALL_AOE_MULTIPLIER } from '../skills/FireballScaling.js';
@@ -8255,6 +8257,7 @@ export class UIManager {
                 tooltipCurrentEffectHtml: `<div class="current-effect">Lv.${level}${maxed ? ' · MAX' : ` · 다음 강화 ${cost} G`}</div>`,
                 modalHtml: this.buildSkillDetailSection('핵심 설명', [data.desc, data.detail].filter(Boolean))
                     + (classSkillIds(p)[0] === skillId ? this.buildSkillDetailSection('기본 공격 성장', basicAttackUpgradeDetails(p)) : '')
+                    + this.buildSkillDetailSection('무기 효과', classWeaponDetailLines(p, p.getEquippedWeapon?.()) || [])
                     + this.buildSkillDetailSection('다음 강화 비용', [maxed ? '최대 레벨입니다.' : `${cost.toLocaleString('ko-KR')} G`]) };
         }
 
@@ -9597,7 +9600,7 @@ export class UIManager {
     }
 
     applyClassSkillIcon(element, classId, row, action = false) {
-        const path = `/assets/resource/classes/${classId}-effects.webp`;
+        const path = '/' + classArtPath(`${classId}-effects`);
         const url = this.game.resources?.getVersionedResourceUrl?.(path) || path;
         element.style.backgroundImage = `url("${url}")`;
         element.style.backgroundSize = '400% 400%';
@@ -10905,7 +10908,9 @@ export class UIManager {
 
             const skillOverrides = affix?.skillOverrides || {};
             const rolledValues = item.rolledValues || {};
-            if (skillOverrides.missileVisualVariant || rolledValues.missileDamageBonus || rolledValues.missileManaCostReduction) {
+            const classLines = classWeaponDetailLines(player, item);
+            if (classLines) { lines.push(...classLines);
+            } else if (skillOverrides.missileVisualVariant || rolledValues.missileDamageBonus || rolledValues.missileManaCostReduction) {
                 lines.push(`별빛 매직 미사일 피해 +${Math.round((player.getWeaponAffixEffectiveValue?.(item, 'missileDamageBonus')
                     ?? (rolledValues.missileDamageBonus || 0)) * 100)}%`);
                 pushEnhancementBonusLine(player.getWeaponAffixEnhancementBonus?.(item, 'missileDamageBonus') || 0);

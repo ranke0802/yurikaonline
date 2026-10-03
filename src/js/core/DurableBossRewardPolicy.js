@@ -1,3 +1,5 @@
+import { CLASS_WEAPON_REWARD_ARCHIVE_V3 } from './ClassWeaponRewardArchiveV3.js';
+
 function deepFreeze(value) {
     if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
     Object.values(value).forEach((entry) => deepFreeze(entry));
@@ -261,7 +263,8 @@ const DURABLE_BOSS_REWARD_ARCHIVED_CATALOG_V2 = {
 
 export const DURABLE_BOSS_REWARD_ARCHIVED_CATALOGS = deepFreeze({
     1: DURABLE_BOSS_REWARD_ARCHIVED_CATALOG_V1,
-    2: DURABLE_BOSS_REWARD_ARCHIVED_CATALOG_V2
+    2: DURABLE_BOSS_REWARD_ARCHIVED_CATALOG_V2,
+    3: CLASS_WEAPON_REWARD_ARCHIVE_V3
 });
 
 export function resolveDurableBossEntitlementPolicy(item) {

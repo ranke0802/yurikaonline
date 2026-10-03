@@ -7,13 +7,13 @@ import CampScene from '../src/js/world/scenes/CampScene.js';
 test('selected class shares preparation, excludes Mage assets, evicts failed bundle and retries',async()=>{
  const resources=new ResourceManager(),paths=[];let release;
  const gate=new Promise(r=>release=r);let fail=true;
- resources.loadImage=async path=>{paths.push(path);await gate;if(fail&&path.includes('actions'))throw Error('decode');return {path}};
+ resources.loadImage=async path=>{paths.push(path);await gate;if(fail&&path.includes('-body'))throw Error('decode');return {path}};
  resources.loadCharacterSpriteSheet=()=>{throw Error('unselected Mage')};
  const first=resources.preparePlayableClassAssets('warrior');
  assert.equal(first,resources.preparePlayableClassAssets('warrior'));
  release();await assert.rejects(first,/decode/);assert.equal(resources.loading.size,0);
  fail=false;const bundle=await resources.preparePlayableClassAssets('warrior');
- assert.ok(bundle.sheet&&bundle.actions&&bundle.effects&&bundle.status);
+ assert.ok(bundle.sheet&&bundle.authored&&bundle.effects&&bundle.status);
  assert.ok(paths.every(p=>p.includes('warrior')||p.endsWith('/status.webp')));
  const count=paths.length;assert.equal(await resources.preparePlayableClassAssets('warrior'),bundle);assert.equal(paths.length,count);
 });

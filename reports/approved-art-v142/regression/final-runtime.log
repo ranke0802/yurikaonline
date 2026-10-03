@@ -1,0 +1,207 @@
+
+> validate:runtime
+> node scripts/validate-runtime-integration.mjs
+
+(node:49205) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/core/NetworkManager.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[runtime-integration] checking solo quiet RTDB listeners...
+[runtime-integration] checking Firebase RTDB rule indexes...
+[runtime-integration] checking PWA version reload profile persistence...
+[runtime-integration] checking attack speed caps...
+[runtime-integration] checking chain lightning scaling...
+[runtime-integration] checking network contracts...
+[ERROR] Monster batch update failed: Error: transient monster snapshot failure
+    at Object.update (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:728:51)
+    at NetworkManager.flushMonsterUpdates (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:12087:27)
+    at NetworkManager.sendMonsterUpdate (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:12197:25)
+    at validateNetworkFieldAndBatchContracts (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:731:48)
+    at async file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9069:1
+[ERROR] Monster batch update failed: Error: late alive flush failure
+    at validateNetworkFieldAndBatchContracts (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:798:22)
+    at async file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9069:1
+[ERROR] Monster batch update failed: Error: temporary full-sync movement failure
+    at Object.update (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:819:23)
+    at NetworkManager.flushMonsterUpdates (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:12087:27)
+    at NetworkManager.sendMonsterUpdate (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:12197:25)
+    at validateNetworkFieldAndBatchContracts (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:826:40)
+    at async file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9069:1
+[ERROR] Monster removal write failed for retry_removed_boss: Error: temporary removal failure
+    at Object.update (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:823:50)
+    at file:///workspace/yurikaonline/src/js/core/NetworkManager.js:11915:34
+    at NetworkManager._attemptMonsterRemovalWrite (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:11926:11)
+    at NetworkManager.removeMonster (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:12281:14)
+    at validateNetworkFieldAndBatchContracts (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:847:21)
+    at async file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9069:1
+[ERROR] Monster removal write failed for failed_handoff_removal: Error: temporary handoff tombstone failure
+    at Object.update (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:918:37)
+    at file:///workspace/yurikaonline/src/js/core/NetworkManager.js:11915:34
+    at NetworkManager._attemptMonsterRemovalWrite (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:11926:11)
+    at NetworkManager.removeMonster (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:12281:14)
+    at validateNetworkFieldAndBatchContracts (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:921:27)
+    at async file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9069:1
+[ERROR] Monster batch update failed: Error: older flush failed late
+    at validateNetworkFieldAndBatchContracts (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:963:37)
+    at async file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9069:1
+[runtime-integration] checking monster generation...
+[WARN] [MonsterManager] Failed to restore the destination field state Error: snapshot read failed
+    at net.readMonsterHostSnapshot (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:1698:15)
+    at file:///workspace/yurikaonline/src/js/world/MonsterManager.js:3353:51
+    at async MonsterManager.restoreAuthoritativeMonstersFromHostSnapshot (file:///workspace/yurikaonline/src/js/world/MonsterManager.js:3455:20)
+    at async Promise.all (index 0)
+[runtime-integration] checking blocked handoff combat...
+[runtime-integration] checking handoff marker fallback...
+[WARN] [MonsterManager] Failed to restore the destination field state Error: handoff marker permission denied
+    at Object.waitForFieldHandoffReady (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:1887:19)
+    at file:///workspace/yurikaonline/src/js/world/MonsterManager.js:388:46
+    at MonsterManager._startHostFieldHandoff (file:///workspace/yurikaonline/src/js/world/MonsterManager.js:416:11)
+    at file:///workspace/yurikaonline/src/js/world/MonsterManager.js:296:22
+    at file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:33:67
+    at Array.forEach (<anonymous>)
+    at Object.emit (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:33:46)
+    at validateHostHandoffMarkerFallback (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:1943:9)
+    at file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9075:7
+[WARN] [MonsterManager] Resident handoff marker timed out for zone_2__party__marker_permission; falling back to strict snapshots.
+[WARN] [MonsterManager] Failed to restore the destination field state Error: resident disconnected
+    at validateHostHandoffMarkerFallback (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:1985:22)
+    at async file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9075:1
+[runtime-integration] checking field boss lifecycle...
+[WARN] [MonsterManager] Failed to publish resident field before host yield Error: Resident field publication for zone_2__party__boss_host did not complete.
+    at file:///workspace/yurikaonline/src/js/world/MonsterManager.js:486:23
+    at async validateFieldBossLifecycleContracts (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:2227:9)
+    at async file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9077:1
+[WARN] [MonsterManager] Failed to publish resident field before host yield Error: Resident handoff readiness for zone_2__party__boss_host was not persisted.
+    at file:///workspace/yurikaonline/src/js/world/MonsterManager.js:490:23
+[WARN] [MonsterManager] Failed to restore the destination field state Error: boss lifecycle read failed
+    at net.readFieldBossState (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:2343:50)
+    at MonsterManager.restoreFieldBossStateFromSnapshot (file:///workspace/yurikaonline/src/js/world/MonsterManager.js:2779:40)
+    at async Promise.all (index 2)
+[runtime-integration] checking scene listener lifecycle...
+[runtime-integration] checking profile exit durability...
+[ERROR] [UIManager] Failed to exit game to character selection Error: save_failed
+    at UIManager.exitGameToCharacterSelection (file:///workspace/yurikaonline/src/js/ui/UIManager.js:7934:27)
+    at async validateProfileExitDurabilityContracts (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:2555:18)
+    at async file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9081:1
+[WARN] [UIManager] Exit profile save did not reach RTDB; continuing with the current durable local checkpoint. { reason: 'writer_session_unavailable' }
+[runtime-integration] checking local profile checkpoints...
+[runtime-integration] checking character selection generations...
+[WARN] [CharacterSelectionScene] Profile auto repair was deferred; continuing with the best available profile snapshot { reason: 'writer_session_superseded', source: 'recovery_profiles' }
+[runtime-integration] checking critical profile persistence triggers...
+[runtime-integration] checking reward dedupe...
+[WARN] [Player] Ignoring duplicate reward monster_reward:zone_4:boss_1:reward_tester:boss_exp
+[runtime-integration] checking quest runtime state sync...
+[runtime-integration] checking profile writer fencing...
+[runtime-integration] checking fail-closed profile contracts...
+[ERROR] Failed to get player profile Error: permission denied while reading profile
+    at validateFailClosedProfileContracts (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:4771:28)
+    at async file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9095:1 {
+  code: 'PERMISSION_DENIED'
+}
+[ERROR] Failed to get latest profile snapshot Error: target profile read denied
+    at validateFailClosedProfileContracts (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:4797:28)
+    at async file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9095:1 {
+  code: 'PERMISSION_DENIED'
+}
+[WARN] Character deleted: delete_drain_profile (Delete Drain Tester)
+[runtime-integration] checking durable boss rewards...
+[WARN] [Network] Durable boss reward write will retry for monster_reward:zone_2__party__departed_host:ruin_boss_instance_1:durable_recipient:boss_items Error: temporary disconnect
+    at Object.transaction (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:305:31)
+    at NetworkManager._attemptDurableBossRewardWrite (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:5729:44) {
+  code: 'NETWORK_ERROR'
+}
+[WARN] [Network] Failed to persist the durable reward outbox Error: simulated durable outbox quota failure
+    at Object.setItem (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:5397:32)
+    at NetworkManager._persistDurableRewardOutbox (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:3914:26)
+    at NetworkManager._enqueueDurableBossReward (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:5644:19)
+    at NetworkManager.sendReward (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:14137:42)
+    at validateDurableBossRewardContracts (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:5417:27)
+    at async file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9097:1
+[ERROR] [Network] Durable boss reward outbox persistence failed for monster_reward:zone_2__party__departed_host:ruin_boss_instance_1_quota:durable_recipient:boss_items
+[ERROR] [Network] Durable reward monster_reward:zone_2__party__departed_host:ruin_boss_instance_1_quota:durable_recipient:boss_items is in degraded volatile retry mode
+[ERROR] [Network] Durable boss reward outbox is full; refusing to discard an older receipt
+[WARN] [Network] Failed to persist the durable reward outbox Error: simulated timestamp-finalize persistence failure
+    at Object.setItem (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:5614:52)
+    at NetworkManager._persistDurableRewardOutbox (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:3914:26)
+    at NetworkManager._attemptDurableBossRewardWrite (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:5713:26)
+[ERROR] [Network] Durable reward key collision for monster_reward:zone_2__party__departed_host:ruin_boss_instance_1:durable_recipient:boss_items
+[WARN] [Network] Failed to acknowledge durable boss reward monster_reward:zone_2__party__departed_host:durable_fifo_boss_000:durable_fifo_129_guest:boss_items Error: temporary disconnect
+    at Object.transaction (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:305:31)
+    at NetworkManager._ackDurableBossReward (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:5556:44)
+    at NetworkManager._consumeDurableBossRewardSnapshot (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:5531:45)
+    at async file:///workspace/yurikaonline/src/js/core/NetworkManager.js:5003:32 {
+  code: 'NETWORK_ERROR'
+}
+[WARN] [Network] Failed to acknowledge normal reward normal_reward_v2:zone_1:cross_normal_then_durable_guest:cross_normal_fifo_head Error: temporary root update disconnect
+    at Object.update (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:384:35)
+    at NetworkManager._ackNormalReward (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:5129:25)
+    at async NetworkManager._consumeNormalRewardV2Snapshot (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:5219:34)
+    at async file:///workspace/yurikaonline/src/js/core/NetworkManager.js:5003:32 {
+  code: 'NETWORK_ERROR'
+}
+[WARN] [Network] Durable reward monster_reward:zone_2__party__departed_host:ruin_boss_instance_1:durable_recipient:boss_items was superseded by a valid first-writer receipt
+[runtime-integration] checking durable normal rewards...
+[WARN] [Network] Normal reward write will retry for normal_reward_v2:zone_1:normal_self_host:nr2_eb8c32d8_b5c8c8a4 Error: temporary disconnect
+    at Object.transaction (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:305:31)
+    at file:///workspace/yurikaonline/src/js/core/NetworkManager.js:3552:48 {
+  code: 'NETWORK_ERROR'
+}
+[WARN] [Network] Normal reward write will retry for normal_reward_v2:zone_1:normal_direct_guest:nr2_bd001c44_ed4c2770 Error: temporary disconnect
+    at Object.transaction (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:305:31)
+    at file:///workspace/yurikaonline/src/js/core/NetworkManager.js:3552:48
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processTimers (node:internal/timers:568:9) {
+  code: 'NETWORK_ERROR'
+}
+[WARN] [Network] Failed to persist the normal reward outbox Error: simulated normal finalize persistence failure
+    at Object.setItem (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:6658:58)
+    at NetworkManager._persistNormalRewardOutbox (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:3308:21)
+    at file:///workspace/yurikaonline/src/js/core/NetworkManager.js:3508:27
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processTimers (node:internal/timers:568:9)
+[WARN] [Network] Normal reward write will retry for normal_reward_v2:zone_1:normal_batch_guest:nr2_8fbdc97a_b78aa856 Error: temporary disconnect
+    at Object.transaction (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:305:31)
+    at file:///workspace/yurikaonline/src/js/core/NetworkManager.js:3552:48 {
+  code: 'NETWORK_ERROR'
+}
+[ERROR] [Network] Normal reward outbox is full; refusing to discard an older reward.
+[runtime-integration] checking option reroll stones...
+[runtime-integration] checking death-settlement durability...
+[runtime-integration] checking deterministic drop and quest boss settlements...
+[WARN] [Network] Deterministic drop spawn will retry for drop_deadbeef_cafebabe Error: temporary disconnect
+    at Object.transaction (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:305:31)
+    at NetworkManager._attemptDropSpawnWrite (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:12892:38) {
+  code: 'NETWORK_ERROR'
+}
+[WARN] [Network] Failed to persist deterministic drop spawn outbox Error: simulated stale journal removal failure
+    at Object.removeItem (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:8067:56)
+    at NetworkManager._persistDropSpawnOutbox (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:12589:25)
+    at NetworkManager._removeDropSpawnOutboxEntry (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:12625:14)
+    at NetworkManager._attemptDropSpawnWrite (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:12931:22)
+[WARN] [Network] Failed to persist deterministic drop spawn outbox Error: simulated authoritative seal persistence failure
+    at Object.setItem (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:8285:50)
+    at NetworkManager._persistDropSpawnOutbox (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:12597:21)
+    at NetworkManager._attemptDropSpawnWrite (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:12847:27)
+[WARN] [Network] Drop collection request will retry locally for drop_collect_push_failure Error: simulated drop collection push failure
+    at Object.push (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:8785:43)
+    at NetworkManager.collectDrop (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:13519:63)
+    at validateDeterministicDropAndQuestBossContracts (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:8790:43)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processTimers (node:internal/timers:568:9)
+    at async file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9105:1
+[WARN] [Network] Quest boss defeat marker will retry for king_slime_2d752c97_30dfe2fb Error: temporary disconnect
+    at Object.transaction (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:305:31)
+    at NetworkManager._attemptQuestBossDefeatWrite (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:13757:38)
+    at NetworkManager.markQuestBossDefeated (file:///workspace/yurikaonline/src/js/core/NetworkManager.js:13810:14)
+    at validateDeterministicDropAndQuestBossContracts (file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:8857:20)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processTimers (node:internal/timers:568:9)
+    at async file:///workspace/yurikaonline/scripts/validate-runtime-integration.mjs:9105:1 {
+  code: 'NETWORK_ERROR'
+}
+[runtime-integration] OK: field, batch, reward, generation, host-migration, hydration, snapshot, and listener contracts.
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

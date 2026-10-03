@@ -1,0 +1,25 @@
+
+> validate:assets
+> node --test scripts/validate-immutable-assets.mjs
+
+(node:42632) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/core/AssetManifest.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ every shipped image/content hash matches its public source and immutable bytes (118.008622ms)
+✔ image identity survives build changes; aliases share one image and decode (3.139418ms)
+✔ account/API documents never enter the resource cache (23.920473ms)
+✔ hosting excludes developer/source assets, keeps immutable cache and hosting-only CI (0.354003ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 214.149443
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

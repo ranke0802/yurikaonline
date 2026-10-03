@@ -698,6 +698,18 @@ export default class MonsterManager {
         });
     }
 
+    _rewardClassForRecipient(monster, uid) {
+        if (!monster || !uid) return null;
+        // Freeze at first authored reward, including retries and delayed claim.
+        const classes = monster.classWeaponRecipients ||= new Map();
+        if (classes.has(uid)) return classes.get(uid);
+        const player = this.game?.localPlayer?.id === uid ? this.game.localPlayer
+            : (this.game?.remotePlayers?.get?.(uid) || this.net?.remotePlayers?.get?.(uid));
+        const classId = player?.classId || player?.activeClassId;
+        if (!['wizard', 'witch', 'warrior', 'archer'].includes(classId)) return null;
+        classes.set(uid, classId); return classId;
+    }
+
     _buildRewardItem(itemId, dropDef = {}, context = {}) {
         if (REMOVED_DROP_ITEM_IDS.has(itemId)) return null;
         const rollSlot = context.rollSlot || `item_${itemId}`;
@@ -739,7 +751,18 @@ export default class MonsterManager {
                     createOptions.prefixId = affixes[affixIndex]?.id || null;
                 }
             }
-            const reward = itemData.createRewardItem(resolvedItemId, createOptions);
+            // Roll the Mage source first: identical deterministic prefix/value rolls,
+            // instance identity and drop probability regardless of recipient class.
+            let reward = itemData.createRewardItem(resolvedItemId, createOptions);
+            if (itemData.classWeaponsEnabled && /^(blessed_)?(magic|tidal|storm|astral|riftcore)_staff$/.test(resolvedItemId)) {
+                const classId = this._rewardClassForRecipient(context.monster, context.targetRecipientId || recipientId);
+                if (!classId) return null; // Defer until recipient presence is available.
+                if (classId !== 'wizard') {
+                    reward = itemData.createRewardItem(resolvedItemId.replace(/_staff$/, `_${classId}`), {
+                        ...createOptions, prefixId: `${reward.prefixId}_${classId}`, rolledValues: reward.rolledValues
+                    });
+                }
+            }
             if (reward && dropDef.uniqueInventory === true) reward.uniqueInventory = true;
             return reward;
         }
@@ -1186,6 +1209,12 @@ export default class MonsterManager {
             ? attackerId
             : (participantIds[0] || attackerId || null);
         if (!rewardTargetId) return true;
+        // Never author a partial receipt: its dedupe ID would prevent later delivery
+        // of a weapon deferred for missing remote class presence.
+        if (this.game.itemData?.classWeaponsEnabled) {
+            const recipients = monster.isBoss ? participantIds : [rewardTargetId];
+            if ((recipients.length ? recipients : [rewardTargetId]).some(uid => !this._rewardClassForRecipient(monster, uid))) return false;
+        }
         const normalDrops = [
             ...(Array.isArray(monster.drops) ? monster.drops : []),
             ...(this.game.itemData?.getGlobalDrops() || []),
@@ -1203,8 +1232,8 @@ export default class MonsterManager {
             if (!this._isDropEligibleForMonster(dropDef, monster)) return;
             const rollSlot = `normal_drop_${dropIndex}_${dropDef.itemId}`;
             if (this._getDeterministicMonsterUnit(monster, `${rollSlot}:chance`) > (dropDef.chance ?? 1)) return;
-            const reward = this._buildRewardItem(dropDef.itemId, dropDef, { monster, rollSlot });
-            if (!reward) return;
+            const reward = this._buildRewardItem(dropDef.itemId, dropDef, { monster, rollSlot, targetRecipientId: rewardTargetId });
+            if (!reward) { acceptedAll = false; return; }
 
             const rewardItemId = reward.id || reward.type;
             if (this._isGroundLootItem(rewardItemId)) {
@@ -1263,7 +1292,7 @@ export default class MonsterManager {
                         recipientId: uid,
                         rollSlot
                     });
-                    if (reward) personalBossItems.push(reward);
+                    if (reward) personalBossItems.push(reward); else acceptedAll = false;
                 });
                 grantItems(uid, personalBossItems, { bossReward: true, rewardKind: 'boss_items' });
 
@@ -1277,7 +1306,7 @@ export default class MonsterManager {
                         recipientId: uid,
                         rollSlot
                     });
-                    if (reward) personalBonusItems.push(reward);
+                    if (reward) personalBonusItems.push(reward); else acceptedAll = false;
                 });
                 grantItems(uid, personalBonusItems, { immediate: true, rewardKind: 'boss_bonus_items' });
             });

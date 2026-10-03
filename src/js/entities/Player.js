@@ -1,3 +1,5 @@
+import { advanceAuthoredGait, classRuntimePath } from '../combat/AuthoredCharacterFrames.js';
+import { weaponClass } from '../core/ClassWeapons.js';
 import { combatCenter } from '../combat/ClassAnchors.js';
 import { WARRIOR_GEOMETRY as WG } from '../combat/ClassGeometry.js';
 import ClassCombatBridge from '../combat/ClassCombatBridge.js';
@@ -370,7 +372,7 @@ export default class Player extends CharacterBase {
         if (this.sprite && this._spriteClassId === classId) return true;
         const bundle = res.preparePlayableClassAssets
             ? await res.preparePlayableClassAssets(classId)
-            : { sheet: classId !== 'wizard' ? await res.loadImage(`assets/resource/classes/${classId}-runtime.webp`) : await res.loadCharacterSpriteSheet() };
+            : { sheet: classId !== 'wizard' ? await res.loadImage(classRuntimePath(classId)) : await res.loadCharacterSpriteSheet() };
         // A slower previous selection must not paint over the current class.
         if (normalizeClassId(this.classId) !== classId) return false;
         this.sprite = new Sprite(bundle.sheet, 8, 5);
@@ -993,16 +995,7 @@ export default class Player extends CharacterBase {
 
     _updateAnimation(dt) {
         if (['witch','warrior','archer'].includes(this.classId)) {
-            const previous=this._classAnimationPosition;
-            const distance=previous ? Math.hypot(this.x-previous.x,this.y-previous.y) : 0;
-            this._classAnimationPosition={x:this.x,y:this.y};
-            // Four authored contact/passing poses. Advance by travelled ground distance,
-            // not run-state multipliers, so slow/buff movement does not skate in place.
-            // Action poses have their own clock. Never restart or accelerate the
-            // walking phase when an attack overlaps movement.
-            if (this.state === 'move' || distance > 0) this.animTimer=(this.animTimer+Math.min(distance,24)/24)%4;
-            else this.animTimer=0;
-            this.animFrame=Math.floor(this.animTimer)%4;
+            advanceAuthoredGait(this, dt);
             return;
         }
         // Determine Row
@@ -4113,6 +4106,8 @@ export default class Player extends CharacterBase {
 
     canEquipWeapon(item) {
         if (!item || item.slot !== 'weapon') return false;
+        const canonicalClass = weaponClass(item.type || item.id);
+        if (canonicalClass) return this.getItemDataManager?.()?.classWeaponsEnabled === true && canonicalClass === this.classId;
         const restricted=item.allowedClasses || item.classes || (item.classId ? [item.classId] : null);
         return Array.isArray(restricted) ? restricted.includes(this.classId) : ['wizard','witch'].includes(this.classId);
     }

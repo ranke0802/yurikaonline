@@ -1,3 +1,4 @@
+import { advanceAuthoredGait, classRuntimePath } from '../combat/AuthoredCharacterFrames.js';
 import RemoteClassVisuals from '../combat/ClassVisuals.js';
 import CharacterBase from './core/CharacterBase.js';
 import Monster from './Monster.js';
@@ -199,8 +200,10 @@ export default class RemotePlayer extends CharacterBase {
         if (!res) return;
         try {
             const classId = this.activeClassId || 'wizard';
-            const sheetCanvas = classId === 'wizard' ? await res.loadCharacterSpriteSheet()
-                : await res.loadImage(`assets/resource/classes/${classId}-runtime.webp`);
+            const bundle = res.preparePlayableClassAssets ? await res.preparePlayableClassAssets(classId) : null;
+            const sheetCanvas = bundle?.sheet || (classId === 'wizard' ? await res.loadCharacterSpriteSheet()
+                : await res.loadImage(classRuntimePath(classId)));
+            if (bundle && this.classVisuals && this.activeClassId === classId) { this.classVisuals.classId=classId; Object.assign(this.classVisuals.images,bundle); }
             if ((this.activeClassId || 'wizard') !== classId) return;
             this.sprite = new Sprite(sheetCanvas, 8, 5);
             this.frameCounts = classId === 'wizard' ? { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 } : {0:4,1:4,2:4,3:4,4:4};
@@ -731,13 +734,7 @@ export default class RemotePlayer extends CharacterBase {
 
     _updateAnimation(dt) {
         if (['witch','warrior','archer'].includes(this.activeClassId)) {
-            const previous=this._classAnimationPosition;
-            const distance=previous ? Math.hypot(this.x-previous.x,this.y-previous.y) : 0;
-            this._classAnimationPosition={x:this.x,y:this.y};
-            // Match local distance-based gait even while attack packets arrive.
-            if(this.state === 'move'||distance>0) this.animTimer=(this.animTimer+Math.min(distance,24)/24)%4;
-            else this.animTimer=0;
-            this.animFrame=Math.floor(this.animTimer)%4;
+            advanceAuthoredGait(this, dt);
             return;
         }
         let row = this.direction;

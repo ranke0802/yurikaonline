@@ -1,7 +1,7 @@
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const OUT=process.env.QA_OUTPUT||'/tmp/class-portrait-gait';fs.mkdirSync(OUT,{recursive:true});
-const report={scope:'Actual local game loop, Chromium mobile/touch emulation; original art unchanged. Captures authored action poses, not proof of revised art anatomy.',cases:[],errors:[]};
+const report={scope:'Actual local game loop, Chromium mobile/touch emulation; approved complete-body art; checks actual walking-to-moving-attack phase continuity.',cases:[],errors:[]};
 (async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
 try{for(const id of ['wizard','witch','warrior','archer']){
  const context=await browser.newContext({viewport:{width:780,height:360},hasTouch:true,isMobile:true,serviceWorkers:'block'});const page=await context.newPage();page.setDefaultTimeout(30000);page.on('pageerror',e=>report.errors.push(e.message));
@@ -19,14 +19,14 @@ try{for(const id of ['wizard','witch','warrior','archer']){
  await page.locator('.portrait').screenshot({path:`${OUT}/${id}-portrait.png`});
  const row={id,portrait,directions:[]};report.cases.push(row);
  if(id!=='wizard'){
-  await page.evaluate(()=>{game.monsterManager.clearAll({preserveNetwork:true});game.sceneManager.currentScene.zoneSpawnRules=[];window.qaFrames=[];});
+  await page.evaluate(()=>{game.monsterManager.monsters.clear();game.sceneManager.currentScene.zoneSpawnRules=[];window.qaFrames=[];});
   for(const [direction,key,dx,dy] of [[0,'ArrowUp',0,-1],[3,'ArrowRight',1,0],[2,'ArrowLeft',-1,0],[1,'ArrowDown',0,1]]){
    await page.keyboard.down(key);await page.waitForTimeout(150);
    const samples=await page.evaluate(async({direction,dx,dy})=>{
-    const p=game.localPlayer;p.classCombat.controller.enemies=()=>[];p.startClassAction('ATTACK');if(p.classAim){p.classAim.x=p.x+p.width/2+dx*200;p.classAim.y=p.y+p.height/2+dy*200;}
+    const {sampleAuthoredBody}=await import('/src/js/combat/AuthoredCharacterFrames.js');const p=game.localPlayer;p.classCombat.controller.enemies=()=>[];p.startClassAction('ATTACK');if(p.classAim){p.classAim.x=p.x+p.width/2+dx*200;p.classAim.y=p.y+p.height/2+dy*200;}
     const before=p.animTimer,accepted=p.releaseClassAction('ATTACK'),after=p.animTimer;const out=[];
     for(let i=0;i<35;i++){
-     await new Promise(requestAnimationFrame);const motion=p.classCombat.currentMotion();out.push({x:p.x,y:p.y,frame:p.animFrame,timer:p.animTimer,direction:p.direction,action:motion?{direction:motion.direction,age:motion.age,duration:motion.duration}:null});
+     await new Promise(requestAnimationFrame);const motion=p.classCombat.currentMotion();out.push({x:p.x,y:p.y,frame:p.animFrame,timer:p.animTimer,direction:p.direction,body:sampleAuthoredBody(p,motion),action:motion?{direction:motion.direction,age:motion.age,duration:motion.duration}:null});
      if([1,9,17,30].includes(i)){const c=document.createElement('canvas');c.width=220;c.height=200;const ctx=c.getContext('2d');ctx.fillStyle='#273240';ctx.fillRect(0,0,220,200);ctx.save();ctx.translate(110-p.x-p.width/2,150-p.y-p.height);p.render(ctx,{x:p.x-500,y:p.y-500,width:1000,height:1000});ctx.restore();qaFrames.push({direction,index:i,image:c.toDataURL()});}
     }
     return{accepted,before,after,samples:out};
@@ -34,6 +34,8 @@ try{for(const id of ['wizard','witch','warrior','archer']){
    await page.keyboard.up(key);await page.waitForTimeout(150);
    assert.equal(samples.accepted,true);if(!process.env.QA_BASELINE_ROOT)assert.equal(samples.before,samples.after,'attack must preserve walking phase');
    assert.ok(samples.samples.some(s=>s.action),'attack poses remain active while walking');
+   assert.ok(samples.samples.some(s=>s.action&&s.body.state===2),'real movement uses moving-attack full-body rows');
+   for(const s of samples.samples.filter(s=>s.action&&s.body.moving))assert.equal(s.body.frame,s.frame,'moving attack follows locomotion phase');
    assert.ok(Math.hypot(samples.samples.at(-1).x-samples.samples[0].x,samples.samples.at(-1).y-samples.samples[0].y)>10,'player keeps moving during attack');
    row.directions.push({direction,...samples});
   }

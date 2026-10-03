@@ -1,0 +1,16 @@
+{
+  "base": "e7c7b7a5e40b0099f8370ef878f838555c0941ba",
+  "featureGate": false,
+  "shipped": false,
+  "candidateTests": 50,
+  "numericParityCases": 462,
+  "classTests": 196,
+  "legacyActionCells": 192,
+  "saveInventoryTests": 41,
+  "runtimeIntegration": "pass",
+  "browserCases": 14,
+  "browserErrors": [],
+  "newArtPixelsVerified": false,
+  "transferRetried": false,
+  "uiAuditTests": 11
+}

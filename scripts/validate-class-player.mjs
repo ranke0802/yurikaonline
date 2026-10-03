@@ -59,7 +59,7 @@ test('touch cancellation emits actual tracked action',()=>{
     Object.assign(t,{joystick:{active:false},stick:null,activeUiActions:new Map(),activeAimAction:{action:'ATTACK'},_hideJoystick(){},emit:(event,data)=>{if(event==='aimCancel')cancelled=data.action;}});
     t.resetState();assert.equal(cancelled,'ATTACK');assert.equal(t.activeAimAction,null);
 });
-test('new class walking phase follows distance and freezes at an obstacle',()=>{
+test('new class walking uses approved cadence only while moving and freezes at an obstacle',()=>{
     const {p}=fixture('warrior');p.state='move';p.isAttacking=false;p.animTimer=0;p.x=100;p.y=100;
     p._updateAnimation(.1);assert.equal(p.animFrame,0);
     p.x+=24;p._updateAnimation(.1);assert.equal(p.animFrame,1);

@@ -17,7 +17,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Validate public assets and local runtime
-        run: npm run validate:assets && npm run validate:resources && npm run validate:ui && npm run validate:local-profile && npm run validate:monster-authority && npm run validate:fireball-impact && npm run validate:inventory-compaction && npm run validate:camp-preparation && npm run validate:adventure-summary && npm run validate:camp-online-save && npm run validate:startup-deadlines && npm run validate:classes
+        run: npm run validate:assets && npm run validate:resources && npm run validate:ui && npm run validate:local-profile && npm run validate:monster-authority && npm run validate:fireball-impact && npm run validate:inventory-compaction && npm run validate:camp-preparation && npm run validate:adventure-summary && npm run validate:camp-online-save && npm run validate:startup-deadlines && npm run validate:classes && npm run validate:class-weapons && npm run validate:approved-art
       - name: Install Chromium for Web Audio synthesis checks
         run: npx playwright install --with-deps chromium
       - name: Validate existing music and all class sound synthesis
@@ -41,6 +41,7 @@ jobs:
           node scripts/validate-class-portrait-gait-browser.cjs
           node scripts/validate-friend-class-browser.cjs
           node scripts/validate-basic-progression-browser.cjs
+          node scripts/validate-approved-art-browser.cjs
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

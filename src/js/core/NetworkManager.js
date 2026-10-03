@@ -4215,7 +4215,11 @@ export default class NetworkManager extends EventEmitter {
 
     _validateDurableBossRewardAgainstArchivedCatalog(data, itemSeeds, itemSnapshots) {
         const archive = DURABLE_BOSS_REWARD_ARCHIVED_CATALOGS[Number(data?.catalogVersion)];
-        const expectedItemIds = archive?.bosses?.[data?.bossTypeId];
+        const choices = archive?.bossChoices?.[data?.bossTypeId];
+        // Each reward slot permits ONE class counterpart, never every alternative.
+        const expectedItemIds = choices
+            ? choices.map((allowed, index) => allowed.includes(itemSeeds?.[index]?.itemId) ? itemSeeds[index].itemId : null)
+            : archive?.bosses?.[data?.bossTypeId];
         if (!archive || !Array.isArray(expectedItemIds)) {
             return { ok: false, reason: 'archived_catalog_unavailable' };
         }
@@ -4511,6 +4515,9 @@ export default class NetworkManager extends EventEmitter {
             return { ok: false, terminal: true, reason: 'invalid_item_seed' };
         }
 
+        if (Number(data.catalogVersion) >= 3 && !Array.isArray(data.itemSnapshots)) {
+            return { ok: false, terminal: true, reason: 'missing_item_snapshot' };
+        }
         const hasItemSnapshots = Object.prototype.hasOwnProperty.call(data, 'itemSnapshots')
             || Object.prototype.hasOwnProperty.call(data, 'itemSnapshotFingerprint');
         if (hasItemSnapshots) {

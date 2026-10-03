@@ -1,3 +1,4 @@
+import { classRuntimePath } from '../../combat/AuthoredCharacterFrames.js';
 import Logger from '../../utils/Logger.js';
 import { normalizeClassId, projectClassProfile } from '../../core/ClassProfiles.js';
 
@@ -1464,7 +1465,7 @@ export default class FriendsUIController {
                 const [sheetCanvas] = await Promise.all([
                     classId === 'wizard'
                         ? this.game.resources?.loadCharacterSpriteSheet?.()
-                        : this.game.resources?.loadImage?.(`assets/resource/classes/${classId}-runtime.webp`),
+                        : this.game.resources?.loadImage?.(classRuntimePath(classId)),
                     this.game.characterData?.loadDefinition?.(classId)
                 ]);
                 if (!sheetCanvas) return '';

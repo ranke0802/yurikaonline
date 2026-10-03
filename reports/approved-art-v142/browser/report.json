@@ -1,0 +1,28 @@
+{
+  "scope": "Local Chromium: enabled weapon UI/equip/save reload plus actual approved body renderer; synthetic accounts, no live accounts",
+  "cases": [
+    {
+      "id": "witch",
+      "equipped": "magic_witch",
+      "saved": true,
+      "magePreserved": true,
+      "bodyPoses": 48
+    },
+    {
+      "id": "warrior",
+      "equipped": "magic_warrior",
+      "saved": true,
+      "magePreserved": true,
+      "bodyPoses": 48
+    },
+    {
+      "id": "archer",
+      "equipped": "magic_archer",
+      "saved": true,
+      "magePreserved": true,
+      "bodyPoses": 48
+    }
+  ],
+  "errors": [],
+  "failedImages": []
+}

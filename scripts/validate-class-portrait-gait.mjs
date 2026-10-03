@@ -18,7 +18,7 @@ for(const id of ['witch','warrior','archer'])for(const [direction,dx,dy] of [[0,
  update.call(player,1/60);remoteUpdate.call(remote,1/60);
  const start=player.animTimer;
  for(let i=0;i<8;i++){player.x+=dx;player.y+=dy;remote.x+=dx;remote.y+=dy;update.call(player,1/60);remoteUpdate.call(remote,1/60);}
- assert.equal(player.animTimer,(start+2)%4);assert.equal(player.animTimer,remote.animTimer);
+ assert.ok(Math.abs(player.animTimer-(start+8/60/(id==='warrior'?.15:.14))%4)<1e-8);assert.equal(player.animTimer,remote.animTimer);
  const motion=createActionMotion(id,'basic',{},0,1),frames=[];
  for(const age of [0,motion.duration*.4,motion.duration*.8])frames.push(sampleActionMotion({...motion,age}).frame);
  assert.deepEqual(frames,[1,2,3],'attack poses continue independently; the attack is not frozen');
