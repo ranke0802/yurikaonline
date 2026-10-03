@@ -1,0 +1,460 @@
+{
+  "monsters": [
+    {
+      "id": "slime",
+      "sourceSha256": "845984d9022bc9690519b9be8e3f5da55a9abcbefc3429f15223d039e164c9b9",
+      "boss": false,
+      "sourceStats": {
+        "level": 1,
+        "hp": 100,
+        "maxHp": 100,
+        "atk": 2,
+        "def": 2,
+        "speed": 50,
+        "exp": 25,
+        "manastone": {
+          "min": 15,
+          "max": 30
+        }
+      },
+      "summonHp": 50.0,
+      "summonAtk": 1.0,
+      "summonSpeed": 100,
+      "nativeSkills": [],
+      "nativeMechanics": null,
+      "nativeCharge": null
+    },
+    {
+      "id": "squirtle",
+      "sourceSha256": "e67d9ff1dc7892913b227dfbc71b27cfbfec951b29e7cafbb7aff9ea5fb62a2f",
+      "boss": false,
+      "sourceStats": {
+        "level": 5,
+        "hp": 280,
+        "maxHp": 280,
+        "atk": 14,
+        "def": 4,
+        "speed": 46,
+        "exp": 90
+      },
+      "summonHp": 140.0,
+      "summonAtk": 7.0,
+      "summonSpeed": 92,
+      "nativeSkills": [
+        {
+          "id": "water_cannon",
+          "trigger": "cooldown",
+          "cooldown": 7200,
+          "data": {
+            "label": "물대포",
+            "pattern": "line",
+            "width": 76,
+            "length": 430,
+            "warningMs": 780,
+            "impactMs": 280,
+            "damageMultiplier": 1.05,
+            "color": "#38bdf8",
+            "secondaryColor": "#e0f7ff",
+            "effect": "water",
+            "castVfx": {
+              "color": "#38bdf8",
+              "glowColor": "#dff9ff"
+            }
+          }
+        }
+      ],
+      "nativeMechanics": null,
+      "nativeCharge": {
+        "enabled": true,
+        "damage": 18,
+        "range": 430,
+        "cooldownMs": 8500,
+        "minDistance": 95,
+        "castSeconds": 1,
+        "speed": 320
+      }
+    },
+    {
+      "id": "emolga",
+      "sourceSha256": "75328fff66d9f27731fb60aa074a60d8a445abe5ee55d7c0ce214e3b0e33e1b4",
+      "boss": false,
+      "sourceStats": {
+        "level": 10,
+        "hp": 620,
+        "maxHp": 620,
+        "mp": 120,
+        "maxMp": 120,
+        "atk": 22,
+        "def": 8,
+        "speed": 112,
+        "exp": 520
+      },
+      "summonHp": 310.0,
+      "summonAtk": 11.0,
+      "summonSpeed": 224,
+      "nativeSkills": [
+        {
+          "id": "missile",
+          "trigger": "cooldown",
+          "cooldown": 8500,
+          "data": {
+            "count": 2
+          }
+        }
+      ],
+      "nativeMechanics": null,
+      "nativeCharge": {
+        "enabled": true,
+        "damage": 28,
+        "range": 520,
+        "cooldownMs": 8200,
+        "minDistance": 110,
+        "castSeconds": 0.9,
+        "speed": 500,
+        "visual": {
+          "fill": "rgba(250, 204, 21, 0.16)",
+          "stroke": "rgba(250, 204, 21, 0.75)",
+          "spark": "#fff7a8",
+          "effect": "thunder"
+        },
+        "landingHazard": {
+          "durationMs": 5000,
+          "tickMs": 500,
+          "radius": 92,
+          "damage": 10,
+          "color": "#facc15",
+          "secondaryColor": "#fff7a8"
+        }
+      }
+    },
+    {
+      "id": "gastly",
+      "sourceSha256": "5c2bf078d5158243af79b0447ad2fbbd369d3c3184f06885e44a229cc1c33986",
+      "boss": false,
+      "sourceStats": {
+        "level": 15,
+        "hp": 1400,
+        "maxHp": 1400,
+        "mp": 300,
+        "maxMp": 300,
+        "atk": 32,
+        "def": 13,
+        "speed": 65,
+        "exp": 4300
+      },
+      "summonHp": 700.0,
+      "summonAtk": 16.0,
+      "summonSpeed": 130,
+      "nativeSkills": [
+        {
+          "id": "shadow_ambush",
+          "trigger": "cooldown",
+          "cooldown": 7600,
+          "data": {
+            "castMs": 1100,
+            "behindDistance": 96,
+            "damageMultiplier": 1.15
+          }
+        }
+      ],
+      "nativeMechanics": null,
+      "nativeCharge": {
+        "enabled": false
+      }
+    },
+    {
+      "id": "king_slime",
+      "sourceSha256": "c85a32ffb24b919407c3226b4450847ef2874145aab59e104feb37bba864d003",
+      "boss": true,
+      "sourceStats": {
+        "level": 4,
+        "hp": 2000,
+        "maxHp": 2000,
+        "mp": 500,
+        "maxMp": 500,
+        "atk": 50,
+        "def": 0,
+        "speed": 40,
+        "exp": 500,
+        "manastone": 2000,
+        "hpRegen": 5
+      },
+      "summonHp": 200.0,
+      "summonAtk": 15.0,
+      "summonSpeed": 120,
+      "nativeSkills": [
+        {
+          "id": "shield",
+          "trigger": "damage_received",
+          "chance": 0.3,
+          "cooldown": 20000,
+          "data": {
+            "duration": 1000
+          }
+        }
+      ],
+      "nativeMechanics": [
+        {
+          "id": "royal_slam",
+          "label": "Royal Slam",
+          "pattern": "circle",
+          "center": "boss",
+          "radius": 185,
+          "range": 560,
+          "warningMs": 1150,
+          "impactMs": 360,
+          "cooldownMs": 7600,
+          "initialCooldownMs": 2600,
+          "damageMultiplier": 1.05,
+          "color": "#9ee96f",
+          "secondaryColor": "#f5ffd2",
+          "effect": "slime"
+        }
+      ],
+      "nativeCharge": null
+    },
+    {
+      "id": "ruin_wobbuffet",
+      "sourceSha256": "312b06e00dee37935324ff77931ef816eb10da0cb2b1df422f9c7a27f0ffda87",
+      "boss": true,
+      "sourceStats": {
+        "level": 9,
+        "hp": 4500,
+        "maxHp": 4500,
+        "mp": 800,
+        "maxMp": 800,
+        "atk": 24,
+        "def": 0,
+        "speed": 34,
+        "exp": 1800,
+        "hpRegen": 3
+      },
+      "summonHp": 450.0,
+      "summonAtk": 7.199999999999999,
+      "summonSpeed": 102,
+      "nativeSkills": [
+        {
+          "id": "shield",
+          "trigger": "cooldown",
+          "cooldown": 10000,
+          "data": {
+            "duration": 1400
+          }
+        }
+      ],
+      "nativeMechanics": [
+        {
+          "id": "mirror_tide",
+          "label": "Mirror Tide",
+          "pattern": "line",
+          "width": 132,
+          "length": 620,
+          "range": 620,
+          "warningMs": 1050,
+          "impactMs": 340,
+          "cooldownMs": 7200,
+          "initialCooldownMs": 2200,
+          "damageMultiplier": 1.15,
+          "color": "#5ce1f2",
+          "secondaryColor": "#dcfbff",
+          "effect": "water"
+        },
+        {
+          "id": "ruin_resonance",
+          "label": "Ruin Resonance",
+          "pattern": "donut",
+          "center": "boss",
+          "innerRadius": 95,
+          "outerRadius": 245,
+          "range": 540,
+          "warningMs": 1200,
+          "impactMs": 360,
+          "cooldownMs": 10800,
+          "initialCooldownMs": 5400,
+          "damageMultiplier": 1.25,
+          "color": "#67e8f9",
+          "secondaryColor": "#ecfeff",
+          "effect": "ripple"
+        }
+      ],
+      "nativeCharge": {
+        "enabled": true,
+        "damage": 50,
+        "range": 800,
+        "cooldownMs": 10000,
+        "minDistance": 140,
+        "castSeconds": 1,
+        "speed": 300
+      }
+    },
+    {
+      "id": "thunder_pikachu",
+      "sourceSha256": "6baa3482a3fed1388145cbc2f281d035fa818beea58bab1e1b65b8dbc88fd961",
+      "boss": true,
+      "sourceStats": {
+        "level": 14,
+        "hp": 12000,
+        "maxHp": 12000,
+        "mp": 1600,
+        "maxMp": 1600,
+        "atk": 38,
+        "def": 0,
+        "speed": 58,
+        "exp": 8500,
+        "hpRegen": 6
+      },
+      "summonHp": 1200.0,
+      "summonAtk": 11.4,
+      "summonSpeed": 174,
+      "nativeSkills": [
+        {
+          "id": "shield",
+          "trigger": "hp_below_70",
+          "chance": 0.25,
+          "cooldown": 12000,
+          "data": {
+            "duration": 1200
+          }
+        }
+      ],
+      "nativeMechanics": [
+        {
+          "id": "storm_lanes",
+          "label": "Storm Lanes",
+          "pattern": "parallel_lines",
+          "lanes": 3,
+          "laneGap": 148,
+          "width": 74,
+          "length": 740,
+          "range": 700,
+          "warningMs": 950,
+          "impactMs": 300,
+          "cooldownMs": 6200,
+          "initialCooldownMs": 1800,
+          "damageMultiplier": 1.1,
+          "color": "#facc15",
+          "secondaryColor": "#fff7ad",
+          "effect": "thunder"
+        },
+        {
+          "id": "static_burst",
+          "label": "Static Burst",
+          "pattern": "circle_cluster",
+          "count": 4,
+          "radius": 72,
+          "ringRadius": 165,
+          "range": 620,
+          "warningMs": 850,
+          "impactMs": 260,
+          "cooldownMs": 9400,
+          "initialCooldownMs": 5200,
+          "damageMultiplier": 0.95,
+          "color": "#fde047",
+          "secondaryColor": "#fef9c3",
+          "effect": "thunder"
+        }
+      ],
+      "nativeCharge": {
+        "enabled": true,
+        "damage": 76,
+        "range": 880,
+        "cooldownMs": 9000,
+        "minDistance": 150,
+        "castSeconds": 0.9,
+        "speed": 380
+      }
+    },
+    {
+      "id": "astral_sylveon",
+      "sourceSha256": "6127498ccd133560db57024a43fcdb41424db7a70a9c42028b2f13577253299d",
+      "boss": true,
+      "sourceStats": {
+        "level": 20,
+        "hp": 32000,
+        "maxHp": 32000,
+        "mp": 3200,
+        "maxMp": 3200,
+        "atk": 60,
+        "def": 0,
+        "speed": 52,
+        "exp": 42000,
+        "hpRegen": 12
+      },
+      "summonHp": 3200.0,
+      "summonAtk": 18.0,
+      "summonSpeed": 156,
+      "nativeSkills": [
+        {
+          "id": "shield",
+          "trigger": "hp_below_70",
+          "chance": 0.3,
+          "cooldown": 10500,
+          "data": {
+            "duration": 1500
+          }
+        }
+      ],
+      "nativeMechanics": [
+        {
+          "id": "astral_bloom",
+          "label": "Astral Bloom",
+          "pattern": "circle_cluster",
+          "count": 6,
+          "radius": 82,
+          "ringRadius": 205,
+          "angleOffset": 30,
+          "range": 760,
+          "warningMs": 1150,
+          "impactMs": 380,
+          "cooldownMs": 6600,
+          "initialCooldownMs": 2000,
+          "damageMultiplier": 1.05,
+          "color": "#d946ef",
+          "secondaryColor": "#fae8ff",
+          "effect": "astral"
+        },
+        {
+          "id": "starfall_ribbon",
+          "label": "Starfall Ribbon",
+          "pattern": "parallel_lines",
+          "lanes": 2,
+          "laneGap": 185,
+          "width": 92,
+          "length": 820,
+          "range": 780,
+          "warningMs": 1300,
+          "impactMs": 420,
+          "cooldownMs": 10200,
+          "initialCooldownMs": 5600,
+          "damageMultiplier": 1.35,
+          "color": "#c084fc",
+          "secondaryColor": "#f5d0fe",
+          "effect": "astral"
+        }
+      ],
+      "nativeCharge": {
+        "enabled": true,
+        "damage": 120,
+        "range": 960,
+        "cooldownMs": 8500,
+        "minDistance": 160,
+        "castSeconds": 0.9,
+        "speed": 360
+      }
+    }
+  ],
+  "preserved": {
+    "mpDefRegenRatio": 0.5,
+    "basicAttackCooldownMultiplier": 2,
+    "nativeSkillCooldownMultiplier": 1,
+    "bossVisualScale": 0.6,
+    "summonMaxHpCost": 0.8,
+    "maxSummons": 3
+  },
+  "adaptations": [
+    "Gastly player confusion/input reversal has no hostile-monster counterpart and is omitted. Shadow ambush uses swept relocation; blocked destination causes no hit.",
+    "Fixed charge and landing damage is divided by original ATK, then multiplied by summon ATK, weapon bonus and berserk once.",
+    "King slime follows actual enemy runtime shield: one second after eligible hit, eight-second cooldown, rather than stale JSON chance/cooldown."
+  ],
+  "scope": "Existing source art and monster data unchanged; local synthetic profile, no production-account or physical-device testing."
+}

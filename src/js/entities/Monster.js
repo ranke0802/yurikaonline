@@ -2022,7 +2022,6 @@ export default class Monster extends CharacterBase {
         if(dmg>0 && this.hp>0 && damageMeta?.classPoisonPulse && (window.game?.net?.isHost !== false || this.isLocalOnly)) {
             if(acceptPoisonPulse(this,this.classCombatTime||0,damageMeta.poisonPulse)) {
                 paintPoisonStatus(this);
-        if(enforceBarrageLock(this)){this._advanceAnimation(safeDt);return;}
                 window.game?.monsterManager?.forceSync?.(this.id);
             }
         }

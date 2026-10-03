@@ -29,7 +29,7 @@ for(const id of ['witch','warrior','archer','wizard']){
     if(!b.effects.some(e=>e.name==='weapon_slash'))throw Error('missing real bridge chain FX');p.equipment.weapon=null;rows.push({realBridgeChain:true});
    }
    if(id==='witch'){
-    const def=await game.monsterData.loadDefinition('astral_sylveon');b.definitions.set(def.id,def);p.hp=p.maxHp;const c=b.controller;c.cooldowns[2]=0;if(!b.skill(2,{level:8}))throw Error('summon cast failed');const actor=c.summons.at(-1);if(actor.maxHp!==def.baseStats.maxHp/2||actor.attackPower!==def.baseStats.atk/2)throw Error('source stats mismatch');rows.push({summon:actor.typeId,maxHp:actor.maxHp,attack:actor.attackPower,interval:actor.attackCooldownSeconds,cost:p.maxHp*.8,hpAfter:p.hp});
+    const def=await game.monsterData.loadDefinition('astral_sylveon');b.definitions.set(def.id,def);p.hp=p.maxHp;const c=b.controller;c.cooldowns[2]=0;if(!b.skill(2,{level:8}))throw Error('summon cast failed');const actor=c.summons.at(-1);if(actor.maxHp!==def.baseStats.maxHp*.1||actor.attackPower!==def.baseStats.atk*.3)throw Error('source stats mismatch');rows.push({summon:actor.typeId,maxHp:actor.maxHp,attack:actor.attackPower,interval:actor.attackCooldownSeconds,cost:p.maxHp*.8,hpAfter:p.hp});
    }
   }else{
    const {preloadPlayerSkillVfx,drawSkillProjectile,drawSkillImpact}=await import('/src/js/effects/PlayerSkillVfxRenderer.js');await preloadPlayerSkillVfx(game.resources);

@@ -2,11 +2,11 @@ import test from 'node:test';import assert from 'node:assert/strict';import fs f
 import Monster from '../src/js/entities/Monster.js';import Bridge from '../src/js/combat/ClassCombatBridge.js';import Controller,{SUMMON_TYPES} from '../src/js/combat/ClassCombatController.js';
 import {summonStats,advanceSummonVitals,damageSummon} from '../src/js/combat/SummonStats.js';
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-9,`${a} != ${b}`);
-for(const [index,id] of SUMMON_TYPES.entries())test(`${id}: source stats 50%, interval 200%, pre-defense DPS 25%; independent of owner and skill rank`,()=>{
+for(const [index,id] of SUMMON_TYPES.entries())test(`${id}: source-specific stats, interval 200%; independent of owner and skill rank`,()=>{
  const definition=JSON.parse(fs.readFileSync(`assets/data/monsters/${id}.json`)),before=structuredClone(definition);globalThis.window={game:{}};
  const source=new Monster(0,0,definition),half=summonStats(source);
- for(const k of ['hp','maxHp','mp','maxMp','atk','def','speed','hpRegen','mpRegen'])near(half[k],source[k]*.5);
- near(half.atk/half.attackCooldownSeconds,source.atk/source.attackCooldownSeconds*.25);
+ for(const k of ['hp','maxHp','mp','maxMp','atk','def','speed','hpRegen','mpRegen']){const ratio=k==='speed'?(source.isBoss?3:2):k==='atk'?(source.isBoss?.3:.5):['hp','maxHp'].includes(k)?(source.isBoss?.1:.5):.5;near(half[k],source[k]*ratio);}
+ near(half.atk/half.attackCooldownSeconds,source.atk/source.attackCooldownSeconds*(source.isBoss?.15:.25));
  assert.equal(half.level,definition.baseStats.level);assert.equal(half.attackRange,source.attackRange);
  const bridge=Object.create(Bridge.prototype);Object.assign(bridge,{definitions:new Map([[id,definition]]),owner:{id:'synthetic',x:0,y:0,hp:999999,maxHp:999999,attackPower:77777},actors:[]});
  const cache=Monster.spriteCache[source.assetPath];Monster.spriteCache[source.assetPath]={sprite:{draw(){}},usesV2Atlas:true};

@@ -1,0 +1,25 @@
+{
+  "relatedUnitTests": 267,
+  "classTests": 196,
+  "newAbilityTests": 39,
+  "browser": {
+    "species": 8,
+    "keyboardAndTouch": true,
+    "nativeSkillHits": true,
+    "localRemoteSerializedPixelParity": true,
+    "naturalBerserkExpiry": true,
+    "campCleanupAndReentry": true,
+    "pageErrors": 0
+  },
+  "regressions": [
+    "v149 summon browser",
+    "v153 barrage browser",
+    "monster authority",
+    "UI",
+    "immutable assets"
+  ],
+  "limits": [
+    "Remote serialized rendering verified locally; no live multi-account session.",
+    "Touch tested using Chromium mobile emulation; no physical handset."
+  ]
+}

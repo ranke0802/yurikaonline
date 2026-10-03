@@ -2067,7 +2067,8 @@ export default class NetworkManager extends EventEmitter {
                 id: String(actor.id), typeId: String(actor.typeId), ownerId: this.playerId,
                 x: Number(actor.x) || 0, y: Number(actor.y) || 0,
                 hp: Math.max(0, Number(actor.hp) || 0), maxHp: Math.max(1, Number(actor.maxHp) || 1),
-                width: Math.max(1, Number(actor.width) || 32), height: Math.max(1, Number(actor.height) || 32)
+                width: Math.max(1, Number(actor.width) || 32), height: Math.max(1, Number(actor.height) || 32),
+                abilities: actor.abilities?.snapshot() || null
             }));
     }
 

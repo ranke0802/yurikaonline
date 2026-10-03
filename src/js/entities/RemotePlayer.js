@@ -1,3 +1,5 @@
+import { preloadMonsterSkillVfxAssets } from '../effects/MonsterSkillVfxRenderer.js';
+import { drawSummonAbilities } from '../combat/SummonAbilityVisuals.js';
 import { advanceAuthoredGait, classRuntimePath } from '../combat/AuthoredCharacterFrames.js';
 import RemoteClassVisuals from '../combat/ClassVisuals.js';
 import CharacterBase from './core/CharacterBase.js';
@@ -761,8 +763,10 @@ export default class RemotePlayer extends CharacterBase {
         const liveIds = new Set((this.classSummons || []).map(e => e.id));
         for (const id of this.summonVisuals.keys()) if(!liveIds.has(id))this.summonVisuals.delete(id);
         for (const actor of this.classSummons || []) {
+            drawSummonAbilities(ctx,actor,actor.abilities);
             if(!this.summonVisuals.has(actor.id)) {
                 this.summonVisuals.set(actor.id,null);
+                if(window.game?.resources)preloadMonsterSkillVfxAssets(window.game.resources).catch(()=>{});
                 window.game?.monsterData?.loadDefinition(actor.typeId).then(def => {
                     if(!def || !this.summonVisuals.has(actor.id))return;
                     const visual=new Monster(actor.x,actor.y,def),scale=visual.isBoss?.6:1;

@@ -1,0 +1,583 @@
+{
+  "report": [
+    {
+      "level": 1,
+      "pixels": {
+        "same": true,
+        "painted": true
+      },
+      "input": "keyboard",
+      "summoned": {
+        "id": "summon:local-player:1",
+        "type": "slime",
+        "hp": 50,
+        "atk": 1,
+        "speed": 100,
+        "boss": false,
+        "ownerHp": 9,
+        "cost": 36
+      },
+      "state": {
+        "hits": [
+          {
+            "target": "summon-target",
+            "actual": 5,
+            "skill": "charge",
+            "actor": "summon:local-player:1"
+          },
+          {
+            "target": "summon-target",
+            "actual": 1,
+            "actor": "summon:local-player:1"
+          }
+        ],
+        "buff": {
+          "move": 1.25,
+          "attackSpeed": 1.7,
+          "attack": 1.2
+        },
+        "snapshot": null,
+        "x": 1828.0000000000002,
+        "y": 1624
+      }
+    },
+    {
+      "level": 2,
+      "pixels": {
+        "same": true,
+        "painted": true
+      },
+      "input": "touch",
+      "summoned": {
+        "id": "summon:local-player:2",
+        "type": "squirtle",
+        "hp": 140,
+        "atk": 7,
+        "speed": 92,
+        "boss": false,
+        "ownerHp": 9,
+        "cost": 36
+      },
+      "state": {
+        "hits": [
+          {
+            "target": "summon-target",
+            "actual": 9,
+            "skill": "charge",
+            "actor": "summon:local-player:2"
+          },
+          {
+            "target": "summon-target",
+            "actual": 7,
+            "actor": "summon:local-player:2"
+          },
+          {
+            "target": "summon-target",
+            "actual": 8,
+            "skill": "water_cannon",
+            "actor": "summon:local-player:2"
+          }
+        ],
+        "buff": {
+          "move": 1.25,
+          "attackSpeed": 1.7,
+          "attack": 1.2
+        },
+        "snapshot": {
+          "ts": 1791039429281,
+          "shield": false,
+          "theme": "water",
+          "casts": [
+            {
+              "kind": "area",
+              "theme": "water",
+              "zones": [
+                {
+                  "shape": "line",
+                  "x1": 1828.000000000003,
+                  "y1": 1624,
+                  "x2": 2258.0000000000027,
+                  "y2": 1624,
+                  "width": 76
+                }
+              ],
+              "x": 1828.000000000003,
+              "y": 1624,
+              "age": 0.8199999999999852,
+              "warning": 0.7800000000000002,
+              "remaining": 0.2400000000000153
+            }
+          ],
+          "projectiles": []
+        },
+        "x": 1828.000000000003,
+        "y": 1624
+      }
+    },
+    {
+      "level": 3,
+      "pixels": {
+        "same": true,
+        "painted": true
+      },
+      "input": "keyboard",
+      "summoned": {
+        "id": "summon:local-player:3",
+        "type": "emolga",
+        "hp": 310,
+        "atk": 11,
+        "speed": 224,
+        "boss": false,
+        "ownerHp": 9,
+        "cost": 36
+      },
+      "state": {
+        "hits": [
+          {
+            "target": "summon-target",
+            "actual": 14,
+            "skill": "charge",
+            "actor": "summon:local-player:3"
+          },
+          {
+            "target": "summon-target",
+            "actual": 11,
+            "actor": "summon:local-player:3"
+          },
+          {
+            "target": "summon-target",
+            "actual": 5,
+            "skill": "lightning_landing",
+            "actor": "summon:local-player:3"
+          },
+          {
+            "target": "summon-target",
+            "actual": 5,
+            "skill": "missile",
+            "actor": "summon:local-player:3"
+          }
+        ],
+        "buff": {
+          "move": 1.25,
+          "attackSpeed": 1.7,
+          "attack": 1.2
+        },
+        "snapshot": {
+          "ts": 1791039431042,
+          "shield": false,
+          "theme": "thunder",
+          "casts": [
+            {
+              "kind": "area",
+              "theme": "thunder",
+              "zones": [
+                {
+                  "shape": "circle",
+                  "x": 1830.99999999999,
+                  "y": 1624,
+                  "radius": 92
+                }
+              ],
+              "x": 1830.99999999999,
+              "y": 1624,
+              "age": 0.27999999999999403,
+              "warning": 0,
+              "remaining": 4.720000000000007
+            }
+          ],
+          "projectiles": [
+            {
+              "x": 1942.2783192704492,
+              "y": 1708.9537265830168,
+              "theme": "thunder"
+            }
+          ]
+        },
+        "x": 1830.99999999999,
+        "y": 1624
+      }
+    },
+    {
+      "level": 4,
+      "pixels": {
+        "same": true,
+        "painted": true
+      },
+      "input": "touch",
+      "summoned": {
+        "id": "summon:local-player:4",
+        "type": "gastly",
+        "hp": 700,
+        "atk": 16,
+        "speed": 130,
+        "boss": false,
+        "ownerHp": 9,
+        "cost": 36
+      },
+      "state": {
+        "hits": [
+          {
+            "target": "summon-target",
+            "actual": 16,
+            "actor": "summon:local-player:4"
+          },
+          {
+            "target": "summon-target",
+            "actual": 19,
+            "skill": "shadow_ambush",
+            "actor": "summon:local-player:4"
+          }
+        ],
+        "buff": {
+          "move": 1.25,
+          "attackSpeed": 1.7,
+          "attack": 1.2
+        },
+        "snapshot": null,
+        "x": 1975.9973753529512,
+        "y": 1624
+      }
+    },
+    {
+      "level": 5,
+      "pixels": {
+        "same": true,
+        "painted": true
+      },
+      "input": "keyboard",
+      "summoned": {
+        "id": "summon:local-player:5",
+        "type": "king_slime",
+        "hp": 200,
+        "atk": 15,
+        "speed": 120,
+        "boss": true,
+        "ownerHp": 9,
+        "cost": 36
+      },
+      "state": {
+        "hits": [
+          {
+            "target": "summon-target",
+            "actual": 15,
+            "skill": "charge",
+            "actor": "summon:local-player:5"
+          },
+          {
+            "target": "summon-target",
+            "actual": 15,
+            "actor": "summon:local-player:5"
+          },
+          {
+            "target": "summon-target",
+            "actual": 32,
+            "skill": "royal_slam",
+            "actor": "summon:local-player:5"
+          }
+        ],
+        "buff": {
+          "move": 1.25,
+          "attackSpeed": 1.7,
+          "attack": 1.2
+        },
+        "snapshot": {
+          "ts": 1791039438773,
+          "shield": false,
+          "theme": "slime",
+          "casts": [
+            {
+              "kind": "area",
+              "theme": "slime",
+              "zones": [
+                {
+                  "shape": "circle",
+                  "x": 1833.9999999999934,
+                  "y": 1624,
+                  "radius": 555
+                }
+              ],
+              "x": 1833.9999999999934,
+              "y": 1624,
+              "age": 1.5599999999999667,
+              "warning": 1.495000000000001,
+              "remaining": 0.2950000000000337
+            }
+          ],
+          "projectiles": []
+        },
+        "x": 1833.9999999999934,
+        "y": 1624
+      }
+    },
+    {
+      "level": 6,
+      "pixels": {
+        "same": true,
+        "painted": true
+      },
+      "input": "touch",
+      "summoned": {
+        "id": "summon:local-player:6",
+        "type": "ruin_wobbuffet",
+        "hp": 450,
+        "atk": 7.199999999999999,
+        "speed": 102,
+        "boss": true,
+        "ownerHp": 9,
+        "cost": 36
+      },
+      "state": {
+        "hits": [
+          {
+            "target": "summon-target",
+            "actual": 15,
+            "skill": "charge",
+            "actor": "summon:local-player:6"
+          },
+          {
+            "target": "summon-target",
+            "actual": 8,
+            "actor": "summon:local-player:6"
+          },
+          {
+            "target": "summon-target",
+            "actual": 17,
+            "skill": "mirror_tide",
+            "actor": "summon:local-player:6"
+          }
+        ],
+        "buff": {
+          "move": 1.25,
+          "attackSpeed": 1.7,
+          "attack": 1.2
+        },
+        "snapshot": {
+          "ts": 1791039442747,
+          "shield": false,
+          "theme": "water",
+          "casts": [
+            {
+              "kind": "area",
+              "theme": "water",
+              "zones": [
+                {
+                  "shape": "line",
+                  "x1": 1833.9999999999934,
+                  "y1": 1624,
+                  "x2": 3693.9999999999936,
+                  "y2": 1624,
+                  "width": 396
+                }
+              ],
+              "x": 1833.9999999999934,
+              "y": 1624,
+              "age": 1.499999999999968,
+              "warning": 1.3649999999999984,
+              "remaining": 0.20500000000003027
+            }
+          ],
+          "projectiles": []
+        },
+        "x": 1833.9999999999934,
+        "y": 1624
+      }
+    },
+    {
+      "level": 7,
+      "pixels": {
+        "same": true,
+        "painted": true
+      },
+      "input": "keyboard",
+      "summoned": {
+        "id": "summon:local-player:7",
+        "type": "thunder_pikachu",
+        "hp": 1200,
+        "atk": 11.4,
+        "speed": 174,
+        "boss": true,
+        "ownerHp": 9,
+        "cost": 36
+      },
+      "state": {
+        "hits": [
+          {
+            "target": "summon-target",
+            "actual": 23,
+            "skill": "charge",
+            "actor": "summon:local-player:7"
+          },
+          {
+            "target": "summon-target",
+            "actual": 12,
+            "actor": "summon:local-player:7"
+          },
+          {
+            "target": "summon-target",
+            "actual": 26,
+            "skill": "storm_lanes",
+            "actor": "summon:local-player:7"
+          }
+        ],
+        "buff": {
+          "move": 1.25,
+          "attackSpeed": 1.7,
+          "attack": 1.2
+        },
+        "snapshot": {
+          "ts": 1791039446194,
+          "shield": false,
+          "theme": "thunder",
+          "casts": [
+            {
+              "kind": "area",
+              "theme": "thunder",
+              "zones": [
+                {
+                  "shape": "line",
+                  "x1": 1833.5999999999908,
+                  "y1": 1180,
+                  "x2": 4053.599999999991,
+                  "y2": 1180,
+                  "width": 222
+                },
+                {
+                  "shape": "line",
+                  "x1": 1833.5999999999908,
+                  "y1": 1624,
+                  "x2": 4053.599999999991,
+                  "y2": 1624,
+                  "width": 222
+                },
+                {
+                  "shape": "line",
+                  "x1": 1833.5999999999908,
+                  "y1": 2068,
+                  "x2": 4053.599999999991,
+                  "y2": 2068,
+                  "width": 222
+                }
+              ],
+              "x": 1833.5999999999908,
+              "y": 1624,
+              "age": 1.2799999999999727,
+              "warning": 1.2349999999999994,
+              "remaining": 0.2550000000000274
+            }
+          ],
+          "projectiles": []
+        },
+        "x": 1833.5999999999908,
+        "y": 1624
+      }
+    },
+    {
+      "level": 8,
+      "pixels": {
+        "same": true,
+        "painted": true
+      },
+      "input": "touch",
+      "summoned": {
+        "id": "summon:local-player:8",
+        "type": "astral_sylveon",
+        "hp": 3200,
+        "atk": 18,
+        "speed": 156,
+        "boss": true,
+        "ownerHp": 9,
+        "cost": 36
+      },
+      "state": {
+        "hits": [
+          {
+            "target": "summon-target",
+            "actual": 36,
+            "skill": "charge",
+            "actor": "summon:local-player:8"
+          },
+          {
+            "target": "summon-target",
+            "actual": 18,
+            "actor": "summon:local-player:8"
+          },
+          {
+            "target": "summon-target",
+            "actual": 18,
+            "actor": "summon:local-player:8"
+          },
+          {
+            "target": "summon-target",
+            "actual": 38,
+            "skill": "astral_bloom",
+            "actor": "summon:local-player:8"
+          }
+        ],
+        "buff": {
+          "move": 1.25,
+          "attackSpeed": 1.7,
+          "attack": 1.2
+        },
+        "snapshot": {
+          "ts": 1791039449993,
+          "shield": false,
+          "theme": "astral",
+          "casts": [
+            {
+              "kind": "area",
+              "theme": "astral",
+              "zones": [
+                {
+                  "shape": "circle",
+                  "x": 1879.78876790049,
+                  "y": 1624,
+                  "radius": 246
+                },
+                {
+                  "shape": "circle",
+                  "x": 2412.39439122792,
+                  "y": 1931.5,
+                  "radius": 246
+                },
+                {
+                  "shape": "circle",
+                  "x": 1751.9230780475682,
+                  "y": 2225.5607744512904,
+                  "radius": 246
+                },
+                {
+                  "shape": "circle",
+                  "x": 1268.157802249002,
+                  "y": 1688.285004909607,
+                  "radius": 246
+                },
+                {
+                  "shape": "circle",
+                  "x": 1629.6457324088728,
+                  "y": 1062.1695435498004,
+                  "radius": 246
+                },
+                {
+                  "shape": "circle",
+                  "x": 2336.8228355690876,
+                  "y": 1212.4846770893023,
+                  "radius": 246
+                }
+              ],
+              "x": 1830.3999999999946,
+              "y": 1624,
+              "age": 1.5799999999999663,
+              "warning": 1.495000000000001,
+              "remaining": 0.2950000000000337
+            }
+          ],
+          "projectiles": []
+        },
+        "x": 1830.3999999999946,
+        "y": 1624
+      }
+    }
+  ],
+  "errors": [],
+  "scope": "Synthetic local profile, real keyboard/touch summon-buff-return flow; no production account"
+}

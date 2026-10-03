@@ -1,3 +1,6 @@
+import SummonAbilities from './SummonAbilities.js';
+import { drawSummonAbilities } from './SummonAbilityVisuals.js';
+import { preloadMonsterSkillVfxAssets } from '../effects/MonsterSkillVfxRenderer.js';
 import { enforceBarrageLock } from './BarrageLock.js';
 import { summonStats, advanceSummonVitals, damageSummon } from './SummonStats.js';
 import { applyAllocatedHealing, healingDisplayAmount } from './SkillHealing.js';
@@ -52,7 +55,7 @@ export default class ClassCombatBridge {
             barrageRelease:(e,id)=>{const barrageLock={id:`${this.owner.id}:${this.visualEpoch}:${id}`,release:true};e.takeDamage?.(0,false,false,0,0,{barrageLock});if(!e.isLocalOnly)this.game?.net?.sendMonsterDamage(e.id,0,{barrageLock});},
             damage: (e,n,m) => this.damage(e,n,m), status: (e,t,d,data) => this.status(e,t,d,data),
             clearStatus: (e,t) => this.clearStatus(e,t), move: (e,x,y) => this.move(e,x,y),
-            summon: (id,level,weapon) => this.summon(id,level,weapon), dismiss: e => { e.isDead = true; this.actors = this.actors.filter(a => a !== e); },
+            summon: (id,level,weapon) => this.summon(id,level,weapon), dismiss: e => { e.isDead = true;e.abilities?.dispose(); this.actors = this.actors.filter(a => a !== e); },
             effect: (name,data) => {
                 this.game?.sound?.playClassEvent?.(name==='gwangcheon'?'punishing_charge':name,{...data,audioId:`${this.visualEpoch}:${data.id}`},{remote:false});
                 const origin=['warrior_slash','rage_smash'].includes(name)?attackAnchor(this.owner,data.target,name):{};
@@ -70,6 +73,10 @@ export default class ClassCombatBridge {
     allies() {
         const ids = this.owner.party?.members || [];
         return [...(this.game?.sceneManager?.currentScene?.remotePlayers?.values?.() || [])].filter(e => ids.includes(e.id) && alive(e));
+    }
+    hostileSummonTargets() {
+        const allies=new Set([this.owner,...this.actors,...this.allies()]),ids=new Set([...allies].map(e=>e.id).filter(Boolean));
+        return this.controller.enemies().filter(e=>!allies.has(e)&&(!e.id||!ids.has(e.id))&&!e.isSummon&&!String(e.id||'').startsWith('summon:'));
     }
     receiveSummonDamage(id,amount) {
         const actor = this.actors.find(e => e.id === id && alive(e));
@@ -127,12 +134,13 @@ export default class ClassCombatBridge {
         const damage = Math.max(1, Math.ceil(meta.poison ? amount : amount - defense));
         if (e.hasEffect?.('shield')) return 0;
         const net = this.game?.net, before = e.hp;
+        const impactX=meta.summon&&Number.isFinite(meta.summonX)?meta.summonX:this.owner.x,impactY=meta.summon&&Number.isFinite(meta.summonY)?meta.summonY:this.owner.y;
         const pulse = meta.poisonPulse ? { ...meta.poisonPulse, castId:`${this.owner.id}:${this.visualEpoch}:${meta.poisonPulse.castId}` } : null;
         const barrageLock=meta.barrageCastId?{id:`${this.owner.id}:${this.visualEpoch}:${meta.barrageCastId}`,until:Date.now()+Math.max(0,meta.barrageRemaining)*1000}:null;
-        const packet = {...meta,...(barrageLock?{barrageLock}:{}), ...(pulse ? {poisonPulse:pulse} : {}), classHitId:`${this.owner.id}:${this.visualEpoch}:${++this.hitSerial}`, impactX:this.owner.x,impactY:this.owner.y,attackerLevel:this.owner.level};
+        const packet = {...meta,...(barrageLock?{barrageLock}:{}), ...(pulse ? {poisonPulse:pulse} : {}), classHitId:`${this.owner.id}:${this.visualEpoch}:${++this.hitSerial}`, impactX,impactY,attackerLevel:this.owner.level};
         if (net && !e.isLocalOnly && net.sendMonsterDamage(e.id,damage,packet) === false) return 0;
         e.lastAttackerId = net?.playerId || this.owner.id;
-        if (e.takeDamage(damage,false,false,this.owner.x,this.owner.y,packet) === false) return 0;
+        if (e.takeDamage(damage,false,false,impactX,impactY,packet) === false) return 0;
         const actual=Math.max(0,before-e.hp);
         if(actual>0&&meta.poison)this.game?.sound?.playClassEvent?.('poison_tick',{targetId:e.id,audioId:`${this.visualEpoch}:poison:${this.hitSerial}`},{remote:false});
         return actual;
@@ -163,9 +171,14 @@ export default class ClassCombatBridge {
     }
     summon(id,level,weapon=null) {
         const definition=this.definitions.get(id); if(!definition) return null;
-        const visual=new Monster(this.owner.x+36,this.owner.y+24,definition);
+        const scene=this.game?.sceneManager?.currentScene;
+        const spawn=[[36,24],[-36,24],[24,36],[24,-36],[0,0]].map(([x,y])=>({x:this.owner.x+x,y:this.owner.y+y})).find(p=>!scene?.checkCollision?.(p.x,p.y,32,32));
+        if(!spawn)return null;
+        const visual=new Monster(spawn.x,spawn.y,definition);
         const actor={id:`summon:${this.owner.id}:${++ClassCombatBridge.serial}`,ownerId:this.owner.id,isSummon:true,typeId:id,x:visual.x,y:visual.y,...summonStats(visual),weaponAttackMultiplier:1+(weapon?.damageBonus||0),isDead:false,width:32,height:32,visual,attackReady:0,classStatuses:{},isLocalOnly:true};
-        actor.takeDamage=n=>damageSummon(actor,n);
+        actor.abilities=new SummonAbilities(actor,this);
+        actor.takeDamage=n=>{if(actor.abilities.shieldUntil>this.controller.time)return 0;const actual=damageSummon(actor,n);if(actor.isDead)actor.abilities.dispose();else if(actual>0)actor.abilities.onDamage();return actual;};
+        if(this.game?.resources)preloadMonsterSkillVfxAssets(this.game.resources).catch(()=>{});
         const scale=visual.isBoss ? .6 : 1;
         visual.width*=scale;visual.height*=scale;if(visual.renderWidth)visual.renderWidth*=scale;if(visual.renderHeight)visual.renderHeight*=scale;
         visual.isBoss=false;visual.init(visual.assetPath);this.actors.push(actor);return actor;
@@ -189,20 +202,26 @@ export default class ClassCombatBridge {
         if(this.decoy){this.decoy.remaining-=delta;if(this.decoy.remaining<=0)this.decoy=null;}
         for(const actor of this.actors) {
             for(const [k,s] of Object.entries(actor.classStatuses)){s.remaining-=delta;if(s.remaining<=0)delete actor.classStatuses[k];}
-            if(!alive(actor))continue;
+            if(!alive(actor)){actor.abilities?.dispose();continue;}
             advanceSummonVitals(actor,delta);
-            const enemy=this.controller.enemies().filter(e=>Math.hypot(e.x-actor.x,e.y-actor.y)<320).sort((a,b)=>Math.hypot(a.x-actor.x,a.y-actor.y)-Math.hypot(b.x-actor.x,b.y-actor.y))[0];
-            const target=enemy || this.owner,dist=Math.hypot(target.x-actor.x,target.y-actor.y),mult=this.multipliers(actor);
-            if(dist>(enemy?actor.attackRange:70)){const step=Math.min(dist,actor.speed*mult.move*delta);this.move(actor,actor.x+(target.x-actor.x)/dist*step,actor.y+(target.y-actor.y)/dist*step);}
-            if(enemy&&dist<=actor.attackRange&&this.controller.time>=actor.attackReady){this.damage(enemy,actor.attackPower*(actor.weaponAttackMultiplier||1)*mult.attack,{summon:true});actor.attackReady=this.controller.time+actor.attackCooldownSeconds/mult.attackSpeed;}
-            actor.visual.x=actor.x;actor.visual.y=actor.y;actor.visual._advanceAnimation(delta);
+            const previousX=actor.x,previousY=actor.y;
+            const enemy=this.hostileSummonTargets().filter(e=>Math.hypot(e.x-actor.x,e.y-actor.y)<Math.max(320,Math.min(2000,Number(actor.visual.aggroRange)||320))).sort((a,b)=>Math.hypot(a.x-actor.x,a.y-actor.y)-Math.hypot(b.x-actor.x,b.y-actor.y))[0];
+            const target=enemy || this.owner,mult=this.multipliers(actor);
+            actor.abilities?.update(delta,enemy);
+            const dist=Math.hypot(target.x-actor.x,target.y-actor.y);
+            const stopped=actor.abilities?.busy||actor.classStatuses.stun?.remaining>0;
+            if(!stopped&&dist>(enemy?actor.attackRange:70)){const step=Math.min(dist-(enemy?actor.attackRange:70),actor.speed*mult.move*delta),x=actor.x+(target.x-actor.x)/dist*step,y=actor.y+(target.y-actor.y)/dist*step;if(actor.abilities)actor.abilities.moveTo(x,y);else this.move(actor,x,y);}
+            if(!stopped&&enemy&&Math.hypot(target.x-actor.x,target.y-actor.y)<=actor.attackRange&&this.controller.time>=actor.attackReady){this.damage(enemy,actor.attackPower*(actor.weaponAttackMultiplier||1)*mult.attack,{summon:true,summonId:actor.id,summonX:actor.x,summonY:actor.y});actor.attackReady=this.controller.time+actor.attackCooldownSeconds/mult.attackSpeed;}
+            actor.visual.x=actor.x;actor.visual.y=actor.y;actor.visual._updateAtlasAnimationFromMovement?.(previousX,previousY);actor.visual._advanceAnimation(delta);
         }
+        this.actors=this.actors.filter(alive);
         this.syncVisuals();
     }
     drawEffect(...args) { drawClassEffect(this,...args); }
     renderGround(ctx) { renderGroundEffects(this,ctx); }
     render(ctx) {
         for(const a of this.actors) if(alive(a)&&a.visual.sprite) {const v=a.visual; v.sprite.draw(ctx,v.usesV2Atlas?v.animationRow:0,v.frame,a.x-(v.renderWidth||v.width)/2,a.y-(v.renderHeight||v.height)/2,v.renderWidth||v.width,v.renderHeight||v.height);}
+        for(const a of this.actors)if(alive(a))drawSummonAbilities(ctx,a,a.abilities?.snapshot());
         renderForegroundEffects(this,ctx);
         for(const a of this.actors) if(alive(a)) {
             const width=40,y=a.y-(a.visual.renderHeight||a.visual.height)/2-8;
@@ -247,6 +266,6 @@ export default class ClassCombatBridge {
             if(count>0){ctx.save();ctx.font='bold 12px sans-serif';ctx.textAlign='right';ctx.lineWidth=3;ctx.strokeStyle='#17212c';ctx.fillStyle='#ffffff';ctx.strokeText(String(count),x+24,y+23);ctx.fillText(String(count),x+24,y+23);ctx.restore();}
         });
     }
-    dispose(){this.owner.classAim=null;this.pendingLifesteal=0;this.motion=null;this.controller.dispose();this.controller.empowered=false;this.effects=[];this.actors=[];this.decoy=null;this.syncVisuals(true);this.game?.net?.syncClassSummons?.({force:true});}
+    dispose(){this.owner.classAim=null;this.pendingLifesteal=0;this.motion=null;this.controller.dispose();this.controller.empowered=false;this.effects=[];for(const a of this.actors||[])a.abilities?.dispose();this.actors=[];this.decoy=null;this.syncVisuals(true);this.game?.net?.syncClassSummons?.({force:true});}
 }
 ClassCombatBridge.serial=0;

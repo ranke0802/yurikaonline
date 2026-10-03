@@ -1,11 +1,15 @@
 /** Snapshot an unscaled source monster once. Level/geometry/range are identities,
- * not capacities. Frequency is halved by doubling the interval: base DPS is 25%.
+ * not capacities. Basic frequency stays halved; native skill cooldowns are separate.
  * Weapon and temporary buffs are separate multipliers, never folded into this base.
  */
 export function summonStats(source) {
     const half=key=>Math.max(0,Number(source[key])||0)*.5;
     const stats=Object.fromEntries(['hp','maxHp','mp','maxMp','atk','def','speed','hpRegen','mpRegen'].map(key=>[key,half(key)]));
-    return {...stats,attackPower:stats.atk,defense:stats.def,
+    const boss=!!source.isBoss;
+    for(const key of ['hp','maxHp'])stats[key]=Math.max(0,Number(source[key])||0)*(boss?.1:.5);
+    stats.atk=Math.max(0,Number(source.atk)||0)*(boss?.3:.5);
+    stats.speed=Math.max(0,Number(source.speed)||0)*(boss?3:2);
+    return {...stats,sourceBoss:boss,attackPower:stats.atk,defense:stats.def,
         level:source.definition?.baseStats?.level??source.level??1,
         attackRange:source.attackRange,attackCooldownSeconds:source.attackCooldownSeconds*2};
 }

@@ -24,7 +24,7 @@ function getDefaultChargeDamage(monster, typeId) {
         : Math.max(10, Math.ceil(atk * 1.25));
 }
 
-function applySlimeCombatOverrides(monster, typeId = monster?.typeId) {
+export function applySlimeCombatOverrides(monster, typeId = monster?.typeId) {
     if (!monster) return;
 
     const normalizedTypeId = typeof typeId === 'string' ? typeId : monster.typeId;
