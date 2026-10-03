@@ -1,4 +1,5 @@
-import { SHIELD_RUSH } from '../combat/ShieldRush.js';
+import { skillHealingBudget, healingDisplayAmount } from '../combat/SkillHealing.js';
+import { SHIELD_RUSH, shieldRushProfile } from '../combat/ShieldRush.js';
 import { advanceAuthoredGait, classRuntimePath } from '../combat/AuthoredCharacterFrames.js';
 import { weaponClass } from '../core/ClassWeapons.js';
 import { combatCenter } from '../combat/ClassAnchors.js';
@@ -275,7 +276,7 @@ export default class Player extends CharacterBase {
         });
 
         bindInput('aimCancel', (data) => {
-            if (this.isClassAction(data?.action)) { this.classAim = null; return; }
+            if (this.isClassAction(data?.action)) { this.classAim = null;window.game?.ui?.updateClassCharge?.(null); return; }
             if (data?.action === 'SKILL_2') this.cancelFireballAim();
         });
 
@@ -294,7 +295,7 @@ export default class Player extends CharacterBase {
     initializeClassCombat() {
         this.classCombat?.dispose();
         this.classCombat = new ClassCombatBridge(this, this.classId);
-        this.classAim = null;
+        this.classAim = null;window.game?.ui?.updateClassCharge?.(null);
         if (normalizeClassId(this.classId) !== 'wizard') this.autoAttackEnabled = false;
     }
 
@@ -325,7 +326,7 @@ export default class Player extends CharacterBase {
     releaseClassAction(action) {
         const aim=this.classAim;
         if (!aim || aim.action !== action) return false;
-        this.classAim=null;
+        this.classAim=null;window.game?.ui?.updateClassCharge?.(null);
         if (this.isDead || this.classCombat?.paused()) return false;
         if(this.classId==='warrior' && action==='ATTACK' && !aim.manual){
             const center=combatCenter(this);
@@ -349,7 +350,7 @@ export default class Player extends CharacterBase {
         let radius=basic?12:this.classId==='witch'&&a.action==='SKILL_1'?140:this.classId==='archer'&&a.action==='SKILL_3'?165:28,circle=false;
         if(this.classId==='warrior'){
             const growth=basicAttackProfile(this.classId,this.skillLevels);
-            const g=basic?(a.elapsed>=basicChargeSeconds(this)?growth.heavy:growth.tap):a.action==='SKILL_2'?WG.charge:a.action==='SKILL_1'?{range:SHIELD_RUSH.distance,halfWidth:SHIELD_RUSH.halfWidth}:null;
+            const g=basic?(a.elapsed>=basicChargeSeconds(this)?growth.heavy:growth.tap):a.action==='SKILL_2'?WG.charge:a.action==='SKILL_1'?{range:shieldRushProfile(this.skillLevels.challenge).distance,halfWidth:SHIELD_RUSH.halfWidth}:null;
             if(g){range=g.range;width=g.halfWidth;radius=0;}
             else {circle=true;radius=a.action==='SKILL_1'?WG.challenge.radius:WG.finale.radius;}
         }
@@ -366,7 +367,7 @@ export default class Player extends CharacterBase {
     getEffectiveClassAttackSpeed() { return this.getEffectiveBasicAttackSpeed(); }
 
     detachInput() {
-        this.classAim = null;
+        this.classAim = null;window.game?.ui?.updateClassCharge?.(null);
         this.classCombat?.dispose();
         this.classCombat = null;
         (this._inputBindings || []).forEach(({ eventName, handler }) => {
@@ -395,7 +396,7 @@ export default class Player extends CharacterBase {
     update(dt) {
         if (this.classCombat?.controller.disposed && !this.isDead && !this.isDying && !window.game?.sceneManager?.currentScene?.isZoneTransitioning) this.initializeClassCombat();
         if (this.classCombat) {
-            if (this.isDead || this.isDying) { this.classAim=null; this.classCombat.dispose(); }
+            if (this.isDead || this.isDying) { this.classAim=null;window.game?.ui?.updateClassCharge?.(null); this.classCombat.dispose(); }
             else if (!this.classCombat.paused()) {
                 if (this.classAim) this.classAim.elapsed += Math.min(.25,Math.max(0,dt));
                 this.classCombat.update(dt);
@@ -1328,7 +1329,7 @@ export default class Player extends CharacterBase {
     }
 
     die() {
-        this.classAim = null;
+        this.classAim = null;window.game?.ui?.updateClassCharge?.(null);
         this.classCombat?.dispose();
         this.isDead = true;
         this.state = 'die';
@@ -2120,6 +2121,7 @@ export default class Player extends CharacterBase {
         const chains = [];
         let totalRecoveredMp = 0;
         let totalRecoveredHp = 0;
+        const healingGroup={};
 
         // Access monsters AND remote players for PvP
         const monstersMap = window.game?.monsterManager?.monsters;
@@ -2193,7 +2195,7 @@ export default class Player extends CharacterBase {
                         totalRecoveredMp += this.recoverMana(1, true);
                     }
                     if (targetDamageAccepted && weaponCombat.restoreHpPerLaserHit > 0) {
-                        totalRecoveredHp += this.recoverHp(weaponCombat.restoreHpPerLaserHit, {
+                        totalRecoveredHp += this.recoverHp(skillHealingBudget(weaponCombat.restoreHpPerLaserHit,healingGroup), {
                             reason: 'laser_hit_recover_hp_patch'
                         }) || 0;
                     }
@@ -2206,8 +2208,8 @@ export default class Player extends CharacterBase {
 
         if (isTick && window.game?.addDamageText) {
             const px = this.x + this.width / 2;
-            if (totalRecoveredHp > 0) {
-                window.game.addDamageText(px, this.y + 12, `+${totalRecoveredHp}`, '#4ade80', false);
+            if (healingDisplayAmount(totalRecoveredHp) > 0) {
+                window.game.addDamageText(px, this.y + 12, `+${healingDisplayAmount(totalRecoveredHp)}`, '#4ade80', false);
             }
             if (totalRecoveredMp > 0) {
                 window.game.addDamageText(px, this.y + 30, `+${totalRecoveredMp}`, '#4FC3F7', false);

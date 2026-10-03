@@ -42,3 +42,13 @@ body:not(.ui-layout-edit-mode):not(.popup-open) .action-buttons .attack-btn {
 .local-save-notice { position: absolute; z-index: 2000; top: max(54px, calc(env(safe-area-inset-top) + 48px)); left: 50%; transform: translateX(-50%); width: min(420px, 62vw); display: flex; gap: 10px; align-items: center; padding: 10px 12px; color: #fff1da; background: #482934f5; border: 1px solid #e8bb88; border-radius: 8px; font: 12px/1.5 system-ui; }
 .local-save-notice[hidden] { display: none; }
 .local-save-notice button { flex-shrink: 0; min-height: 36px; padding: 5px 10px; border: 1px solid #dec58f; border-radius: 5px; color: #fff1da; background: #30283b; font: inherit; cursor: pointer; }
+
+/* Frame-driven charge progress shares the MP bar width; no delayed width transition. */
+.mp-bg { overflow: visible; }
+.mp-bg > .mp-fill { border-radius: inherit; }
+.class-charge-gauge { position:absolute;top:calc(100% + 3px);left:0;right:0;height:5px;border-radius:4px;background:#594719;box-shadow:0 0 0 1px #392c18;overflow:hidden;pointer-events:none; }
+.class-charge-gauge[hidden] { display:none; }
+.class-charge-gauge > span { display:block;height:100%;width:100%;transform-origin:left;transform:scaleX(var(--charge-progress,0));background:linear-gradient(90deg,#dda831,#ffe790); }
+.class-charge-gauge.ready { box-shadow:0 0 0 1px #fff0a3,0 0 7px #ffd451; }
+.class-charge-gauge.ready > span { background:#fff0a3; }
+.stats-container:has(.class-charge-gauge:not([hidden])) .exp-row { margin-top:7px; }

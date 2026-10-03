@@ -136,11 +136,11 @@ for(const c of WEAPON_CLASSES){
   const f=combat(c,'storm'),e=f.enemy(),w=classWeaponBonuses(f.p);assert.equal(f.controller.skill(w.slot,{x:40,y:0}),true);
   const cooldown={witch:9,warrior:10,archer:12}[c];near(f.controller.cooldowns[w.slot],cooldown*(1-w.missileManaCostReduction));
   if(c==='witch')f.tick(1.01);if(c==='archer')f.tick(.61);if(c==='warrior')f.tick(1.6);
-  const base={witch:100+e.maxHp*.05,warrior:100,archer:55}[c];assert.equal(f.hits[0].n,Math.ceil(base*(1+w.missileDamageBonus)));
+  const base={witch:100+e.maxHp*.05,warrior:100,archer:55}[c];assert.equal(c==='warrior'?f.hits.reduce((n,h)=>n+h.n,0):f.hits[0].n,Math.ceil(base*(1+w.missileDamageBonus)));
   const other=c==='archer'?1:3;assert.equal(f.controller.skill(other,{x:40,y:0}),true);near(f.controller.cooldowns[other]-f.controller.time,{witch:16,warrior:20,archer:7}[c]);
  });
  test(`${c} chain is 0.3s, at most 12, single cast trigger, no additional status stacks, stops on dispose`,()=>{
-  const f=combat(c,'tidal'),e=f.enemy();e.hp=e.maxHp=1e9;const w=classWeaponBonuses(f.p);
+  const f=combat(c,'tidal'),e=f.enemy();e.hp=e.maxHp=1e9;if(c==='warrior')e.isBoss=true;const w=classWeaponBonuses(f.p);
   f.controller.skill(w.slot,{x:40,y:0});f.tick(5.01);
   const chains=f.hits.filter(h=>h.meta.weaponChain);assert.equal(chains.length,12);
   assert.ok(chains.every(h=>!h.meta.poison&&!h.meta.classPoisonPulse));
@@ -176,7 +176,7 @@ test('normal and blessed enhancement outcomes and rerolls use identical Mage pat
  }finally{Math.random=originalRandom;}
 });
 test('skill chains respect probability and first 0.3s deadline; pause does not bank time',()=>{
- const f=combat('warrior','tidal'),e=f.enemy();e.isBoss=true;f.controller.skill(1,{x:40,y:0});f.tick(.1);
+ const f=combat('warrior','tidal'),e=f.enemy();e.isBoss=true;f.controller.skill(1,{x:40,y:0});
  f.tick(.29);assert.equal(f.hits.filter(h=>h.meta.weaponChain).length,0);
  f.tick(.02);assert.equal(f.hits.filter(h=>h.meta.weaponChain).length,1);
  f.controller.hooks.paused=()=>true;f.tick(20);assert.equal(f.hits.filter(h=>h.meta.weaponChain).length,1);

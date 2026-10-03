@@ -1,0 +1,98 @@
+{
+  "version": "0.02.148",
+  "baseCommit": "211754ecaced8ed3ce301338b9e04e193d00baa0",
+  "shieldRush": {
+    "levels": [
+      {
+        "level": 1,
+        "hits": 3,
+        "durationSeconds": 1.6,
+        "distancePixels": 192,
+        "totalAttackPercent": 100
+      },
+      {
+        "level": 2,
+        "hits": 4,
+        "durationSeconds": 1.9,
+        "distancePixels": 228,
+        "totalAttackPercent": 108
+      },
+      {
+        "level": 3,
+        "hits": 5,
+        "durationSeconds": 2.2,
+        "distancePixels": 264,
+        "totalAttackPercent": 116
+      },
+      {
+        "level": 4,
+        "hits": 6,
+        "durationSeconds": 2.5,
+        "distancePixels": 300,
+        "totalAttackPercent": 124
+      },
+      {
+        "level": 5,
+        "hits": 7,
+        "durationSeconds": 2.8,
+        "distancePixels": 336,
+        "totalAttackPercent": 132
+      },
+      {
+        "level": 6,
+        "hits": 8,
+        "durationSeconds": 3.1,
+        "distancePixels": 372,
+        "totalAttackPercent": 140
+      },
+      {
+        "level": 7,
+        "hits": 9,
+        "durationSeconds": 3.4,
+        "distancePixels": 408,
+        "totalAttackPercent": 148
+      },
+      {
+        "level": 8,
+        "hits": 10,
+        "durationSeconds": 3.7,
+        "distancePixels": 444,
+        "totalAttackPercent": 156
+      }
+    ],
+    "speed": 120,
+    "stunSeconds": 0.8,
+    "stunThreshold": "three successful knockbacks per target; later rush hits refresh",
+    "bossRule": "no push or stun; damage only while in contact",
+    "damageFloor": "at least one damage per advertised hit",
+    "lateEntry": "remaining time windows only"
+  },
+  "swordWave": {
+    "holdSeconds": 0.5,
+    "rageCost": 25,
+    "speed": 360,
+    "range": "180 to 243 by existing basic level progression",
+    "width": "128 to 172.8 by existing basic level progression",
+    "damage": "existing 300% ATK with basic level and weapon scaling",
+    "art": "existing approved warrior-effects.webp"
+  },
+  "feedback": {
+    "chargeGauge": "per-frame actual charge elapsed / level and empowerment threshold; yellow under MP",
+    "archerTrail": "existing approved raster arrow samples behind actual moving snipe; wall stops projectile",
+    "archerLeap": "160px opposite aim/facing, swept wall collision, decoy/empowered preserved",
+    "monsterStatusIcons": "20px cells, 25px spacing, 4 per row below foot HP bar; separate row after burn/shock"
+  },
+  "healing": {
+    "rule": "ceil positive skill healing budget once per attack/cast/return event; do not re-round transferred excess",
+    "fractionalHp": "clamp actual HP, floor displayed actual gain; suppress popup below 1",
+    "scope": "skill healing only; damage, passive regeneration and ordinary reward healing unchanged"
+  },
+  "validation": {
+    "classSuite": 196,
+    "targetedSuiteBeforeFinalBoundaryAddition": 117,
+    "finalShieldChargeHealingSuite": 47,
+    "weaponNumericParityCases": 462,
+    "browser": "local synthetic accounts; keyboard, mouse, touch; CI reruns all browser scripts"
+  },
+  "art": "no new artwork; original approved sources preserved"
+}

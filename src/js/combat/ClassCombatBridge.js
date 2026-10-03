@@ -1,3 +1,4 @@
+import { applyAllocatedHealing, healingDisplayAmount } from './SkillHealing.js';
 import { drawShieldRushBody, SHIELD_RUSH } from './ShieldRush.js';
 import { drawAuthoredClassBody } from './AuthoredCharacterFrames.js';
 import { basicChargeSeconds } from './BasicAttackProgression.js';
@@ -20,6 +21,14 @@ export default class ClassCombatBridge {
             combatOrigin:()=>combatCenter(this.owner),
             canStartShieldRush:()=>!(this.owner.classStatuses?.stun?.remaining>0 || this.owner.classStatuses?.root?.remaining>0 || Math.hypot(this.owner.knockback?.vx||0,this.owner.knockback?.vy||0)>1),
             canMoveShieldRush:(x,y)=>!this.game?.sceneManager?.currentScene?.checkCollision?.(x,y,this.owner.width||32,this.owner.height||32),
+            pushShieldTarget:(e,d,distance)=>{
+                const scene=this.game?.sceneManager?.currentScene;let accepted=0;
+                for(let next=Math.min(8,distance);next<=distance+1e-8;next=Math.min(distance,next+8)){
+                    if(scene?.checkCollision?.(e.x+d.x*next,e.y+d.y*next,e.width||32,e.height||32))break;
+                    accepted=next;if(next>=distance)break;
+                }
+                return accepted>0&&this.move(e,e.x+d.x*accepted,e.y+d.y*accepted)?accepted:0;
+            },
             shieldRushEnded:()=>{this.motion=null;},
             projectileBlocked:(x,y,r)=>!!this.game?.sceneManager?.currentScene?.checkCollision?.(x-r,y-r,r*2,r*2),
             attackOrigin:(target,kind)=>attackAnchor(this.owner,target,kind),
@@ -30,6 +39,7 @@ export default class ClassCombatBridge {
             enemies: () => [...(this.game?.monsterManager?.monsters?.values?.() || [])],
             allies: () => [...this.actors, ...this.allies()], paused: () => this.paused(),
             heal: (e,n) => this.heal(e,n),
+            healFeedback:(e,n)=>this.showHealing(e,n),
             lifestealFeedback: amount => {
                 if (!(this.pendingLifesteal > 0)) this.lifestealTextAt = this.controller.time + .12;
                 this.pendingLifesteal = (this.pendingLifesteal || 0) + amount;
@@ -62,7 +72,7 @@ export default class ClassCombatBridge {
     }
     receiveSupport(support) {
         if(support?.type === 'berserk') { this.controller.state(this.owner).berserkUntil = this.controller.time + 10; this.owner.classStatuses ||= {}; this.owner.classStatuses.berserk = {remaining:10}; }
-        if(support?.type === 'heal') this.owner.hp = Math.min(this.owner.maxHp,this.owner.hp+Math.max(0,Number(support.amount)||0));
+        if(support?.type === 'heal') this.showHealing(this.owner,applyAllocatedHealing(this.owner,support.amount));
     }
     paused() { return !!this.game?.story?.isStoryActive || !!this.game?.ui?.isPaused && !this.game?.net?.isSharedFieldActive?.(); }
     startActionMotion(kind,data) {
@@ -77,7 +87,7 @@ export default class ClassCombatBridge {
     }
     currentMotion() {
         if(this.controller.disposed||!alive(this.owner))return null;
-        if(this.controller.shieldRush){const r=this.controller.shieldRush;return {id:this.motion?.id||0,row:1,shieldRush:true,direction:this.motion?.direction??this.owner.direction,age:this.controller.time-r.started,duration:SHIELD_RUSH.duration};}
+        if(this.controller.shieldRush){const r=this.controller.shieldRush;return {id:this.motion?.id||0,row:1,shieldRush:true,direction:this.motion?.direction??this.owner.direction,age:this.controller.time-r.started,duration:r.profile.duration};}
         if(this.motion) {const age=this.controller.time-this.motion.started;if(age<this.motion.duration)return {...this.motion,age};}
         const aim=this.owner.classAim;if(!aim)return null;
         if(this.controller.classId==='warrior' && aim.action==='ATTACK'
@@ -96,10 +106,13 @@ export default class ClassCombatBridge {
     }
     modifyIncomingDamage(n) { return this.controller.evadeUntil > this.controller.time ? 0 : this.controller.modifyIncomingDamage(n); }
     multipliers(e = this.owner) { return this.controller.multipliers(e); }
+    showHealing(e,actual) {
+        const label=healingDisplayAmount(actual);if(label>0)this.game?.addDamageText?.(e.x+(e===this.owner?(e.width||48)/2:0),e.y-12,`+${label}`,'#66e38b',false);
+    }
     heal(e,amount) {
-        const accepted=Math.min(Math.max(0,e.maxHp-e.hp),Math.max(0,amount));
+        const accepted=applyAllocatedHealing(e,amount);
         if(this.allies().includes(e)) this.game?.net?.sendPlayerDamage(e.id,0,null,0,0,{classSupport:{type:'heal',amount:accepted}});
-        e.hp+=accepted;return amount-accepted;
+        return amount-accepted;
     }
     damage(e, amount, meta = {}) {
         if (!alive(e) || this.game?.monsterManager?.isMonsterCombatBlocked?.()) return 0;
@@ -159,8 +172,7 @@ export default class ClassCombatBridge {
         this.controller.update(dt);
         if(this.pendingLifesteal>0 && this.controller.time>=this.lifestealTextAt){
             const amount=this.pendingLifesteal;this.pendingLifesteal=0;
-            const label=Number(amount.toFixed(2)) || Number(amount.toPrecision(2));
-            this.game?.addDamageText?.(this.owner.x+(this.owner.width||48)/2,this.owner.y-12,`+${label}`,'#66e38b',false);
+            this.showHealing(this.owner,amount);
         }
         const delta=Math.min(.25,Math.max(0,dt));
         for(const [key,status] of Object.entries(this.owner.classStatuses || {})){status.remaining-=delta;if(status.remaining<=0)delete this.owner.classStatuses[key];}
@@ -198,7 +210,7 @@ export default class ClassCombatBridge {
         return {epoch:this.visualEpoch,sequence:++this.visualSequence,ts:Date.now(),fieldId:this.context.fieldId,classId:c.classId,
             motion:this.currentMotion(),
             effects:this.effects.slice(-64).map(f=>({id:f.id,name:f.name,...point(f),target:f.target?point(f.target):null,radius:f.radius||0,range:f.range||0,halfWidth:f.halfWidth||0,duration:f.duration,age:f.age})),
-            projectiles:c.projectiles.slice(-32).map(p=>{const target=c.attackOrigin(p,'return'),dx=target.x-p.x,dy=target.y-p.y,len=Math.hypot(dx,dy)||1;const d=p.kind==='return'?{x:dx/len,y:dy/len}:p.direction;return{kind:p.kind,...point(p),radius:p.radius||0,direction:d,speed:p.speed,remaining:Number.isFinite(p.remaining)?p.remaining:null,age:p.age??c.time};}),
+            projectiles:c.projectiles.slice(-32).map(p=>{const target=c.attackOrigin(p,'return'),dx=target.x-p.x,dy=target.y-p.y,len=Math.hypot(dx,dy)||1;const d=p.kind==='return'?{x:dx/len,y:dy/len}:p.direction;return{kind:p.kind,...point(p),radius:p.radius||0,halfWidth:p.halfWidth||0,direction:d,speed:p.speed,remaining:Number.isFinite(p.remaining)?p.remaining:null,age:p.age??c.time};}),
             decoy:this.decoy?{...point(this.decoy),remaining:this.decoy.remaining,direction:this.decoy.direction||0,frame:this.decoy.frame||0}:null,badges};
     }
     syncVisuals(force=false) {
@@ -211,6 +223,7 @@ export default class ClassCombatBridge {
         this.game?.net?.sendPlayerAttack?.(this.owner.x,this.owner.y,this.owner.direction,'class_vfx',this.visualSnapshot());
     }
     renderStatus(ctx,e) {
+        if(e.isMonster||e.typeId||e.type==='monster')return; // Monsters draw their own foot badges for every observing class.
         const img=this.images.status;if(!img||!alive(e))return;
         const types=Object.keys(e.classStatuses || {}).filter(t=>ICONS.includes(t));
         if(e===this.owner&&this.controller.rage>0)types.push('rage');
@@ -224,6 +237,6 @@ export default class ClassCombatBridge {
             if(count>0){ctx.save();ctx.font='bold 12px sans-serif';ctx.textAlign='right';ctx.lineWidth=3;ctx.strokeStyle='#17212c';ctx.fillStyle='#ffffff';ctx.strokeText(String(count),x+24,y+23);ctx.fillText(String(count),x+24,y+23);ctx.restore();}
         });
     }
-    dispose(){this.pendingLifesteal=0;this.motion=null;this.controller.dispose();this.controller.empowered=false;this.effects=[];this.actors=[];this.decoy=null;this.syncVisuals(true);this.game?.net?.syncClassSummons?.({force:true});}
+    dispose(){this.owner.classAim=null;this.game?.ui?.updateClassCharge?.(null);this.pendingLifesteal=0;this.motion=null;this.controller.dispose();this.controller.empowered=false;this.effects=[];this.actors=[];this.decoy=null;this.syncVisuals(true);this.game?.net?.syncClassSummons?.({force:true});}
 }
 ClassCombatBridge.serial=0;

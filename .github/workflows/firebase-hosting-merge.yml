@@ -17,7 +17,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Validate public assets and local runtime
-        run: npm run validate:assets && npm run validate:resources && npm run validate:ui && npm run validate:local-profile && npm run validate:monster-authority && npm run validate:fireball-impact && npm run validate:inventory-compaction && npm run validate:camp-preparation && npm run validate:adventure-summary && npm run validate:camp-online-save && npm run validate:startup-deadlines && npm run validate:classes && npm run validate:class-weapons && npm run validate:approved-art && node --test scripts/validate-class-tutorial.mjs scripts/validate-combat-feedback.mjs scripts/validate-witch-ranged.mjs scripts/validate-shield-rush.mjs
+        run: npm run validate:assets && npm run validate:resources && npm run validate:ui && npm run validate:local-profile && npm run validate:monster-authority && npm run validate:fireball-impact && npm run validate:inventory-compaction && npm run validate:camp-preparation && npm run validate:adventure-summary && npm run validate:camp-online-save && npm run validate:startup-deadlines && npm run validate:classes && npm run validate:class-weapons && npm run validate:approved-art && node --test scripts/validate-class-tutorial.mjs scripts/validate-combat-feedback.mjs scripts/validate-witch-ranged.mjs scripts/validate-shield-rush.mjs scripts/validate-class-feedback-v148.mjs scripts/validate-skill-healing.mjs
       - name: Install Chromium for Web Audio synthesis checks
         run: npx playwright install --with-deps chromium
       - name: Validate existing music and all class sound synthesis
@@ -48,6 +48,8 @@ jobs:
           node scripts/validate-witch-ranged-browser.cjs
           node scripts/validate-witch-tutorial-browser.cjs
           node scripts/validate-shield-rush-browser.cjs
+          node scripts/validate-warrior-multihit-browser.cjs
+          node scripts/validate-class-feedback-v148-browser.cjs
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

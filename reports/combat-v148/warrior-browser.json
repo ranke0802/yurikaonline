@@ -1,0 +1,217 @@
+{
+  "rush": [
+    {
+      "level": 1,
+      "hits": [
+        {
+          "id": "front",
+          "n": 33,
+          "time": 0.21999999999999997,
+          "x": 1664
+        },
+        {
+          "id": "front",
+          "n": 33,
+          "time": 0.7533333333333339,
+          "x": 1728
+        },
+        {
+          "id": "front",
+          "n": 34,
+          "time": 1.2866666666666653,
+          "x": 1792
+        }
+      ],
+      "stuns": [
+        {
+          "id": "front",
+          "type": "stun",
+          "duration": 0.8,
+          "time": 1.2866666666666653
+        }
+      ],
+      "distance": 192,
+      "blocking": false
+    },
+    {
+      "level": 8,
+      "hits": [
+        {
+          "id": "front",
+          "n": 15,
+          "time": 1.8400000000000012,
+          "x": 1856
+        },
+        {
+          "id": "front",
+          "n": 16,
+          "time": 2.2150000000000016,
+          "x": 1900.4
+        },
+        {
+          "id": "front",
+          "n": 15,
+          "time": 2.581666666666668,
+          "x": 1944.8000000000002
+        },
+        {
+          "id": "front",
+          "n": 16,
+          "time": 2.956666666666666,
+          "x": 1989.2000000000003
+        },
+        {
+          "id": "front",
+          "n": 16,
+          "time": 3.3233333333333315,
+          "x": 2033.6000000000004
+        },
+        {
+          "id": "front",
+          "n": 15,
+          "time": 3.689999999999997,
+          "x": 2078.0000000000005
+        },
+        {
+          "id": "front",
+          "n": 16,
+          "time": 4.064999999999996,
+          "x": 2122.4000000000005
+        },
+        {
+          "id": "front",
+          "n": 15,
+          "time": 4.431666666666661,
+          "x": 2166.8000000000006
+        },
+        {
+          "id": "front",
+          "n": 16,
+          "time": 4.8066666666666595,
+          "x": 2211.2000000000007
+        },
+        {
+          "id": "front",
+          "n": 16,
+          "time": 5.173333333333325,
+          "x": 2255.600000000001
+        }
+      ],
+      "stuns": [
+        {
+          "id": "front",
+          "type": "stun",
+          "duration": 0.8,
+          "time": 2.581666666666668
+        },
+        {
+          "id": "front",
+          "type": "stun",
+          "duration": 0.8,
+          "time": 2.956666666666666
+        },
+        {
+          "id": "front",
+          "type": "stun",
+          "duration": 0.8,
+          "time": 3.3233333333333315
+        },
+        {
+          "id": "front",
+          "type": "stun",
+          "duration": 0.8,
+          "time": 3.689999999999997
+        },
+        {
+          "id": "front",
+          "type": "stun",
+          "duration": 0.8,
+          "time": 4.064999999999996
+        },
+        {
+          "id": "front",
+          "type": "stun",
+          "duration": 0.8,
+          "time": 4.431666666666661
+        },
+        {
+          "id": "front",
+          "type": "stun",
+          "duration": 0.8,
+          "time": 4.8066666666666595
+        },
+        {
+          "id": "front",
+          "type": "stun",
+          "duration": 0.8,
+          "time": 5.173333333333325
+        }
+      ],
+      "distance": 444,
+      "blocking": false
+    }
+  ],
+  "inputs": [
+    {
+      "tap": {
+        "action": {
+          "kind": "basic",
+          "aimed": false,
+          "target": {
+            "x": 2560,
+            "y": 1624
+          },
+          "interval": 0.5185185185185185,
+          "combo": 1,
+          "empowered": false
+        },
+        "projectiles": 0
+      }
+    },
+    {
+      "keyboardHold": {
+        "age": 0.02,
+        "x": 2267.2,
+        "halfWidth": 64,
+        "remaining": 172.8,
+        "remote": [
+          {
+            "kind": "sword_wave",
+            "halfWidth": 64
+          }
+        ],
+        "action": {
+          "kind": "basic",
+          "aimed": true,
+          "target": {
+            "x": 2560,
+            "y": 1624
+          },
+          "interval": 0.8148148148148149,
+          "combo": 1,
+          "empowered": false
+        }
+      },
+      "moved": 2339.199999999998
+    },
+    {
+      "touchHold": {
+        "action": {
+          "kind": "basic",
+          "aimed": true,
+          "target": {
+            "x": 2684.2640687119283,
+            "y": 1199.7359312880715
+          },
+          "interval": 0.8148148148148149,
+          "combo": 1,
+          "empowered": false
+        },
+        "direction": {
+          "x": 0.7071067811865474,
+          "y": -0.7071067811865477
+        }
+      }
+    }
+  ]
+}

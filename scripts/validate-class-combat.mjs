@@ -50,7 +50,7 @@ test('berserk excludes caster, includes summons, expires without changing base s
 test('warrior 3-hit combo grants rage only on hits; aimed smash spends bounded rage', () => {
     const f=fixture('warrior'),e=f.add(); for(let i=0;i<3;i++) { assert.equal(f.c.basic({x:100,y:0}),true); f.advance(.701); }
     assert.equal(f.c.rage,18); assert.equal(f.c.basic({aimed:true,x:100,y:0}),false); f.c.rage=50;
-    assert.equal(f.c.basic({aimed:true,x:100,y:0}),true); assert.equal(f.c.rage,25); assert.equal(f.packets.at(-1).meta.armorPierce,1);
+    assert.equal(f.c.basic({aimed:true,x:100,y:0}),true); assert.equal(f.c.rage,25); f.advance(.3); assert.equal(f.packets.at(-1).meta.armorPierce,1);
 });
 test('warrior shield-hit dash refunds once per cast and wall stuns only normal enemies', () => {
     const f=fixture('warrior'),a=f.add({wall:true}),b=f.add({isBoss:true}); f.c.skill(1,{x:200,y:0}); f.advance(1.6); f.c.skill(2,{x:0,y:0});

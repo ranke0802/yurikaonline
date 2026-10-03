@@ -1,3 +1,4 @@
+import { drawMonsterStatusBadges } from '../combat/MonsterStatusBadges.js';
 import { acceptPoisonPulse, claimPoisonPulse, paintPoisonStatus } from '../combat/WitchPoison.js';
 import CharacterBase from './core/CharacterBase.js';
 import Logger from '../utils/Logger.js';
@@ -2631,10 +2632,11 @@ export default class Monster extends CharacterBase {
         ctx.fillRect(screenX - 30, uiBaseY, 60 * hpPercent, 6);
 
 
+        drawMonsterStatusBadges(ctx,this);
         // v1.86: Custom Status Icons at the BOTTOM (More fit & Professional)
         if ((burnEffect || this.electrocutedTimer > 0) && !this.isDead) {
             ctx.save();
-            const iconY = screenY + this.height / 2 + 15; // Directly below feet/shadow
+            const iconY = screenY + this.height / 2 + 25; // Below the foot HP bar
             let currentX = screenX;
 
             // Adjust X for multiple icons

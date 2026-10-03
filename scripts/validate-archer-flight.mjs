@@ -37,8 +37,8 @@ test('far/behind targets stay unhit, rejected hits preserve marks, death removes
 });
 test('snipe draws only at moving projectile position, never as a fixed launch arrow',()=>{
  const calls=[],r={owner:{x:100,y:100,width:48,height:48},effects:[{name:'piercing_snipe',x:130,y:100,target:{x:800,y:100},age:.1}],projectiles:[{kind:'snipe',x:250,y:100,direction:{x:1,y:0},age:.1}],drawEffect:(...v)=>calls.push(v)};
- renderGroundEffects(r,{});renderForegroundEffects(r,{});assert.equal(calls.length,1);assert.equal(calls[0][1],'snipe');assert.equal(calls[0][2],250);
- r.projectiles[0].x=328;calls.length=0;renderForegroundEffects(r,{});assert.equal(calls[0][2],328);
+ renderGroundEffects(r,{});renderForegroundEffects(r,{});assert.equal(calls.length,6);assert.equal(calls.at(-1)[1],'snipe');assert.equal(calls.at(-1)[2],250);assert.ok(calls.slice(0,-1).every(a=>a[2]<250&&a[2]>130&&a[6].opacity<1));
+ r.projectiles[0].x=328;calls.length=0;renderForegroundEffects(r,{});assert.equal(calls.at(-1)[2],328);
 });
 test('remote snipe extrapolates, clamps remaining range and clears without applying damage',()=>{
  const previous=globalThis.window,realNow=Date.now;let now=1000,damage=0;Date.now=()=>now;

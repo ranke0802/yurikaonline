@@ -41,6 +41,13 @@ export function drawClassEffect(renderer,ctx,name,x,y,size,age=0,options={}) {
 function renderProjectiles(renderer,ctx,behind) {
     const center=combatCenter(renderer.owner);
     for(const p of renderer.controller?.projectiles||renderer.projectiles||[]) {
+        if(p.kind==='sword_wave'){if(!behind)renderer.drawEffect(ctx,'rage_smash',p.x,p.y,(p.halfWidth||64)*2,p.age||0,{angle:Math.atan2(p.direction.y,p.direction.x),width:48,height:(p.halfWidth||64)*2,sustained:true});continue;}
+        if(p.kind==='snipe' && !behind){
+            const length=Math.min(110,Math.max(0,(p.age||0)*(p.speed||780))),d=p.direction;
+            for(let n=5;n>=1;n--){const offset=length*n/5;
+                renderer.drawEffect(ctx,'snipe',p.x-d.x*offset,p.y-d.y*offset,36,p.age||0,{angle:Math.atan2(d.y,d.x),width:36,height:22,opacity:(1-n/6)*.38});
+            }
+        }
         const isBehind=p.kind==='return'?p.y<center.y:(p.direction?.y||0)<0;
         if(isBehind!==behind)continue;
         renderer.drawEffect(ctx,p.kind,p.x,p.y,p.kind==='snipe'?72:p.kind==='arrow'?48:p.kind==='orb'?58*(p.radius||14)/14:58,p.age??renderer.controller?.time??0,
@@ -112,7 +119,7 @@ export default class RemoteClassVisuals {
         if(this.owner.isDead||this.owner.hp<=0)return true;
         const lag=Math.max(0,(now-packet.ts)/1000),names=(EFFECT_ROWS[this.classId]||[]).flat();
         const m=packet.motion;
-        if(m&&Number.isSafeInteger(m.id)&&Number.isInteger(m.row)&&m.row>=0&&m.row<4&&Number.isFinite(m.age)&&m.age>=0&&Number.isFinite(m.duration)&&m.duration>=.2&&m.duration<=(m.shieldRush===true&&this.classId==='warrior'&&m.row===1?1.6:.60)&&(m.direction===undefined||(Number.isInteger(m.direction)&&m.direction>=0&&m.direction<=3))) {
+        if(m&&Number.isSafeInteger(m.id)&&Number.isInteger(m.row)&&m.row>=0&&m.row<4&&Number.isFinite(m.age)&&m.age>=0&&Number.isFinite(m.duration)&&m.duration>=.2&&m.duration<=(m.shieldRush===true&&this.classId==='warrior'&&m.row===1?3.7:.60)&&(m.direction===undefined||(Number.isInteger(m.direction)&&m.direction>=0&&m.direction<=3))) {
             const age=m.age+lag;if(m.held&&lag<.3||!m.held&&age<m.duration)this.motion={id:m.id,row:m.row,shieldRush:m.shieldRush===true&&this.classId==='warrior'&&m.row===1,direction:m.direction??(Number.isInteger(this.owner.direction)&&this.owner.direction>=0&&this.owner.direction<=3?this.owner.direction:1),held:!!m.held,age,duration:m.duration,receivedAt:now,expiresAt:m.held?packet.ts+300:now+(m.duration-age)*1000};
         }
         for(const f of (Array.isArray(packet.effects)?packet.effects:[]).slice(0,64)){
@@ -123,10 +130,10 @@ export default class RemoteClassVisuals {
                 radius:Math.max(0,Math.min(700,Number(f.radius)||0)),range:Math.max(0,Math.min(243,Number(f.range)||0)),halfWidth:Math.max(0,Math.min(95,Number(f.halfWidth)||0)),duration,age,receivedAt:now});
         }
         for(const p of (Array.isArray(packet.projectiles)?packet.projectiles:[]).slice(0,32)){
-            if(!finitePoint(p)||!['orb','return','arrow','snipe'].includes(p.kind)||!finitePoint(p.direction)||!Number.isFinite(p.speed)||lag>.4)continue;
+            if(!finitePoint(p)||!['orb','return','arrow','snipe','sword_wave'].includes(p.kind)||!finitePoint(p.direction)||!Number.isFinite(p.speed)||lag>.4)continue;
             const speed=Math.max(0,Math.min(p.kind==='snipe'?780:650,p.speed));
             const remaining=Number.isFinite(p.remaining)?Math.max(0,Math.min(650,p.remaining)):speed*.4;
-            this.projectiles.push({...p,radius:p.kind==='orb'?Math.max(14,Math.min(18.9,Number(p.radius)||14)):0,speed,remaining,age:Number(p.age)||0,receivedAt:now,expiresAt:packet.ts+400});
+            this.projectiles.push({...p,halfWidth:p.kind==='sword_wave'?Math.max(64,Math.min(86.4,Number(p.halfWidth)||64)):0,radius:p.kind==='orb'?Math.max(14,Math.min(18.9,Number(p.radius)||14)):0,speed,remaining,age:Number(p.age)||0,receivedAt:now,expiresAt:packet.ts+400});
         }
         const d=packet.decoy;
         if(finitePoint(d)&&Number.isFinite(d.remaining)&&d.remaining>lag)this.decoy={x:d.x,y:d.y,direction:Math.max(0,Math.min(3,d.direction||0)),frame:Math.max(0,Math.min(3,d.frame||0)),remaining:Math.min(2,d.remaining)-lag,receivedAt:now};
