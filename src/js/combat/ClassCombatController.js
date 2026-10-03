@@ -1,3 +1,4 @@
+import { ARROW_RAIN } from './ArrowRain.js';
 import { classWeaponBonuses } from '../core/ClassWeapons.js';
 import { basicAttackProfile } from './BasicAttackProgression.js';
 import { basicAttackInterval } from './AttackCadence.js';
@@ -32,7 +33,12 @@ export default class ClassCombatController {
         const before = e.hp;
         const accepted = this.hooks.damage?.(e, Math.max(1, Math.ceil(amount)), { classId: this.classId, ...meta });
         const actual = clamp(Number(accepted) || 0, 0, before);
-        if (actual && this.bloodUntil > this.time) this.heal(this.owner, actual * .2);
+        if (actual && this.bloodUntil > this.time) {
+            const beforeHeal = this.owner.hp;
+            this.heal(this.owner, actual * .2);
+            const restored = Math.max(0, this.owner.hp - beforeHeal);
+            if (restored > 0) this.hooks.lifestealFeedback?.(restored);
+        }
         return actual;
     }
     basicHit(e, amount, meta = {}, weapon = null, healState = null) {
@@ -91,11 +97,14 @@ export default class ClassCombatController {
     direction(point) { const origin = this.combatOrigin(); const dx = (point.x ?? origin.x + 1) - origin.x, dy = (point.y ?? origin.y) - origin.y; const len = Math.hypot(dx, dy) || 1; return { x: dx / len, y: dy / len }; }
     line(point, range, width) {
         const origin = this.combatOrigin(), d = this.direction(point);
-        return this.enemies().filter(e => { const x = e.x - origin.x, y = e.y - origin.y; const along = x * d.x + y * d.y; return along >= 0 && along <= range && Math.abs(x * d.y - y * d.x) <= width + (e.radius || 16); }).sort((a,b) => distance(a,origin)-distance(b,origin));
+        return this.enemies().filter(e => { const x = e.x - origin.x, y = e.y - origin.y; const along = x * d.x + y * d.y; const side = Math.abs(x * d.y - y * d.x), radius = e.radius || 16; return Math.hypot(Math.max(0,-along,along-range),Math.max(0,side-width)) <= radius; }).sort((a,b) => distance(a,origin)-distance(b,origin));
     }
     basic({ aimed = false, x, y } = {}) {
         if (this.disposed || !alive(this.owner) || this.hooks.paused?.() || this.time < this.basicReady) return false;
-        if (this.classId === 'warrior' && aimed && this.rage < 25) return false;
+        if (this.classId === 'warrior' && aimed && this.rage < 25) {
+            this.hooks.failure?.('분노 강타에는 분노 25가 필요합니다. 짧게 눌렀다 놓으면 연속 베기를 사용합니다.');
+            return false;
+        }
         const interval = basicAttackInterval(this.classId, {
             aimed, empowered: this.classId === 'archer' && this.empowered,
             speed: this.owner.getEffectiveClassAttackSpeed?.() ?? this.owner.attackSpeed ?? 1
@@ -279,7 +288,7 @@ export default class ClassCombatController {
                 this.hooks.decoy?.(origin, 2); this.effect('shadow_leap', { ...visualOrigin, target: this.combatOrigin() }); cooldown = 8;
             } else if (slot === 3) {
                 const transferred = new Set();
-                for (let i = 1; i <= 5; i++) this.schedule(i * .6, () => {
+                for (let i = 1; i <= ARROW_RAIN.waves; i++) this.schedule(i * ARROW_RAIN.interval, () => {
                     for (const e of this.area(point, 165)) {
                         const s = this.state(e), marks = s.markUntil > this.time ? s.marks || 0 : 0;
                         const actual = this.skillHit(e, power * (.55 + (marks ? .45 : 0)), {}, weapon, chainState);
@@ -289,7 +298,7 @@ export default class ClassCombatController {
                         }
                     }
                 });
-                this.effect('tracking_rain', { ...point, duration: 3, radius: 165 }); cooldown = 12;
+                this.effect('tracking_rain', { ...point, duration: ARROW_RAIN.waves * ARROW_RAIN.interval + ARROW_RAIN.impactLife, radius: 165 }); cooldown = 12;
             }
         }
         if (!cooldown) return false;

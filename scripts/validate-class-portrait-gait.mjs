@@ -26,5 +26,5 @@ for(const id of ['witch','warrior','archer'])for(const [direction,dx,dy] of [[0,
 });
 test('accepting a new-class attack leaves the walking phase intact',()=>{
  const previous=globalThis.window;globalThis.window={game:{}};
- try{const player={classId:'warrior',classAim:{action:'ATTACK',x:50,y:0,elapsed:0},animTimer:2.75,classCombat:{paused:()=>false,basic:()=>true,controller:{}}};assert.equal(Player.prototype.releaseClassAction.call(player,'ATTACK'),true);assert.equal(player.animTimer,2.75);assert.equal(player.isAttacking,true);assert.equal(player.skillAttackTimer,.4);}finally{globalThis.window=previous;}
+ try{const player={classId:'warrior',classAim:{action:'ATTACK',x:50,y:0,elapsed:0},animTimer:2.75,classCombat:{paused:()=>false,basic:()=>true,controller:{enemies:()=>[]}}};assert.equal(Player.prototype.releaseClassAction.call(player,'ATTACK'),true);assert.equal(player.animTimer,2.75);assert.equal(player.isAttacking,true);assert.equal(player.skillAttackTimer,.4);}finally{globalThis.window=previous;}
 });

@@ -1,0 +1,19 @@
+(node:56587) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/combat/ClassCombatController.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ rain descends and lands at each of five actual damage deadlines, without damage before impact (4.054409ms)
+✔ warrior level 1 expanded circle/rectangle contact, facing and recovery floor (1.02978ms)
+✔ warrior level 4 expanded circle/rectangle contact, facing and recovery floor (0.285089ms)
+✔ warrior level 8 expanded circle/rectangle contact, facing and recovery floor (0.223937ms)
+✔ blood pact feedback uses only clamped actual HP gain and none for full health or rejected hits (0.31962ms)
+✔ rejected warrior inputs have no aim or new body motion; insufficient rage has a reason (0.747635ms)
+✔ warrior automatic release follows a moving enemy; manual drag direction stays unchanged (0.488986ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 152.580362

@@ -17,7 +17,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Validate public assets and local runtime
-        run: npm run validate:assets && npm run validate:resources && npm run validate:ui && npm run validate:local-profile && npm run validate:monster-authority && npm run validate:fireball-impact && npm run validate:inventory-compaction && npm run validate:camp-preparation && npm run validate:adventure-summary && npm run validate:camp-online-save && npm run validate:startup-deadlines && npm run validate:classes && npm run validate:class-weapons && npm run validate:approved-art && node --test scripts/validate-class-tutorial.mjs
+        run: npm run validate:assets && npm run validate:resources && npm run validate:ui && npm run validate:local-profile && npm run validate:monster-authority && npm run validate:fireball-impact && npm run validate:inventory-compaction && npm run validate:camp-preparation && npm run validate:adventure-summary && npm run validate:camp-online-save && npm run validate:startup-deadlines && npm run validate:classes && npm run validate:class-weapons && npm run validate:approved-art && node --test scripts/validate-class-tutorial.mjs scripts/validate-combat-feedback.mjs
       - name: Install Chromium for Web Audio synthesis checks
         run: npx playwright install --with-deps chromium
       - name: Validate existing music and all class sound synthesis
@@ -44,6 +44,7 @@ jobs:
           node scripts/validate-approved-art-browser.cjs
           node scripts/validate-tutorial-stat-cancel-browser.cjs
           node scripts/validate-class-tutorial-browser.cjs
+          node scripts/validate-combat-feedback-browser.cjs
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

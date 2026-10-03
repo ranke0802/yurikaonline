@@ -87,12 +87,12 @@ test('decoy renders original character for its actual lifetime, not just .65s on
  bridge.render({save(){},restore(){},globalAlpha:1});assert.equal(draws.length,1);assert.equal(draws[0][1],2);
  bridge.decoy.remaining=0;bridge.render({});assert.equal(draws.length,1);
 });
-test('Warrior ground guide uses exact same 150x96 heavy geometry, Mage guide width is untouched',()=>{
+test('Warrior ground guide uses exact same 180x128 heavy geometry, Mage guide width is untouched',()=>{
  const p=Object.create(Player.prototype);Object.assign(p,{x:0,y:0,width:48,height:48,classId:'warrior',classAim:{action:'ATTACK',elapsed:.6,x:324,y:24}});
- const g=p.getClassAimGuide();assert.equal(g.originX,p.x+p.width/2);assert.equal(g.originY,p.y+p.height/2);assert.ok(Math.abs(Math.hypot(g.targetX-g.originX,g.targetY-g.originY)-150)<1e-9);assert.equal(g.widthRadius,48);assert.equal(g.exactWidth,true);
+ const g=p.getClassAimGuide();assert.equal(g.originX,p.x+p.width/2);assert.equal(g.originY,p.y+p.height/2);assert.ok(Math.abs(Math.hypot(g.targetX-g.originX,g.targetY-g.originY)-180)<1e-9);assert.equal(g.widthRadius,64);assert.equal(g.exactWidth,true);
  const moves=[];const ctx={save(){},restore(){},beginPath(){},moveTo(...a){moves.push(a)},lineTo(){},closePath(){},fill(){},arc(){}};
- SkillRenderer.drawFireballAimGuide(ctx,g);assert.equal(moves[0][1]-g.originY,48);
- SkillRenderer.drawFireballAimGuide(ctx,{...g,exactWidth:false});assert.ok(Math.abs(moves[1][1]-g.originY-43.2)<1e-9);
+ SkillRenderer.drawFireballAimGuide(ctx,g);assert.equal(moves[0][1]-g.originY,64);
+ SkillRenderer.drawFireballAimGuide(ctx,{...g,exactWidth:false});assert.ok(Math.abs(moves[1][1]-g.originY-57.6)<1e-9);
 });
 
 test('poison authority metadata survives production compact cell encoding/decoding',()=>{

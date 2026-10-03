@@ -1,0 +1,43 @@
+{
+  "scope": "Actual local Chromium keyboard/mouse/touch inputs, synthetic combat targets; raster game renderer captures",
+  "cases": [
+    {
+      "id": "warrior",
+      "keyboardMouseTouch": true,
+      "spamNoNewMotion": true,
+      "noRageRejected": true,
+      "chargedAccepted": true,
+      "healing": {
+        "after": 100,
+        "firstTexts": [
+          {
+            "x": 1624,
+            "y": 1588,
+            "text": "+3",
+            "color": "#66e38b"
+          }
+        ],
+        "allTexts": [
+          {
+            "x": 1624,
+            "y": 1588,
+            "text": "+3",
+            "color": "#66e38b"
+          }
+        ]
+      }
+    },
+    {
+      "id": "archer",
+      "impactTimes": [
+        0.6,
+        1.2,
+        1.7999999999999998,
+        2.4,
+        3
+      ],
+      "rasterFrames": 8
+    }
+  ],
+  "errors": []
+}

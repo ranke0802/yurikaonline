@@ -24,6 +24,10 @@ export default class ClassCombatBridge {
             enemies: () => [...(this.game?.monsterManager?.monsters?.values?.() || [])],
             allies: () => [...this.actors, ...this.allies()], paused: () => this.paused(),
             heal: (e,n) => this.heal(e,n),
+            lifestealFeedback: amount => {
+                if (!(this.pendingLifesteal > 0)) this.lifestealTextAt = this.controller.time + .12;
+                this.pendingLifesteal = (this.pendingLifesteal || 0) + amount;
+            },
             damage: (e,n,m) => this.damage(e,n,m), status: (e,t,d,data) => this.status(e,t,d,data),
             clearStatus: (e,t) => this.clearStatus(e,t), move: (e,x,y) => this.move(e,x,y),
             summon: (id,level) => this.summon(id,level), dismiss: e => { e.isDead = true; this.actors = this.actors.filter(a => a !== e); },
@@ -69,6 +73,8 @@ export default class ClassCombatBridge {
         if(this.controller.disposed||!alive(this.owner))return null;
         if(this.motion) {const age=this.controller.time-this.motion.started;if(age<this.motion.duration)return {...this.motion,age};}
         const aim=this.owner.classAim;if(!aim)return null;
+        if(this.controller.classId==='warrior' && aim.action==='ATTACK'
+            && (this.controller.time<this.controller.basicReady || aim.elapsed<basicChargeSeconds(this.owner) || this.controller.rage<25)) return null;
         const data=aim.action==='ATTACK'?{aimed:aim.elapsed>=basicChargeSeconds(this.owner,this.controller.empowered)}:{slot:Number(aim.action.slice(-1))};
         return {id:0,row:actionRow(this.controller.classId,aim.action==='ATTACK'?'basic':'skill',data),direction:facingDirection(this.owner,aim),held:true,age:0,duration:.4};
     }
@@ -143,7 +149,13 @@ export default class ClassCombatBridge {
         if (!isProjectileWorldContextCurrent(this.context,this.game)) {this.dispose();return;}
         if(this.paused()) return;
         this.game?.net?.syncClassSummons?.();
-        this.controller.update(dt);const delta=Math.min(.25,Math.max(0,dt));
+        this.controller.update(dt);
+        if(this.pendingLifesteal>0 && this.controller.time>=this.lifestealTextAt){
+            const amount=this.pendingLifesteal;this.pendingLifesteal=0;
+            const label=Number(amount.toFixed(2)) || Number(amount.toPrecision(2));
+            this.game?.addDamageText?.(this.owner.x+(this.owner.width||48)/2,this.owner.y-12,`+${label}`,'#66e38b',false);
+        }
+        const delta=Math.min(.25,Math.max(0,dt));
         for(const [key,status] of Object.entries(this.owner.classStatuses || {})){status.remaining-=delta;if(status.remaining<=0)delete this.owner.classStatuses[key];}
         this.effects=this.effects.filter(f=>{f.age+=delta;return f.age<f.duration;});
         if(this.decoy){this.decoy.remaining-=delta;if(this.decoy.remaining<=0)this.decoy=null;}
@@ -205,6 +217,6 @@ export default class ClassCombatBridge {
             if(count>0){ctx.save();ctx.font='bold 12px sans-serif';ctx.textAlign='right';ctx.lineWidth=3;ctx.strokeStyle='#17212c';ctx.fillStyle='#ffffff';ctx.strokeText(String(count),x+24,y+23);ctx.fillText(String(count),x+24,y+23);ctx.restore();}
         });
     }
-    dispose(){this.motion=null;this.controller.dispose();this.controller.empowered=false;this.effects=[];this.actors=[];this.decoy=null;this.syncVisuals(true);this.game?.net?.syncClassSummons?.({force:true});}
+    dispose(){this.pendingLifesteal=0;this.motion=null;this.controller.dispose();this.controller.empowered=false;this.effects=[];this.actors=[];this.decoy=null;this.syncVisuals(true);this.game?.net?.syncClassSummons?.({force:true});}
 }
 ClassCombatBridge.serial=0;

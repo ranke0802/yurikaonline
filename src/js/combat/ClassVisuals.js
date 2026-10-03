@@ -1,3 +1,4 @@
+import { renderArrowRain } from './ArrowRain.js';
 import { drawAuthoredClassBody, classArtPath } from './AuthoredCharacterFrames.js';
 import { combatCenter } from './ClassAnchors.js';
 import { drawActionBody } from './ClassActionMotion.js';
@@ -50,6 +51,7 @@ export function renderGroundEffects(renderer,ctx) {
     const center=combatCenter(renderer.owner);
     for(const f of renderer.effects) {
         if(f.name==='poison_potion'){renderPotion(renderer,ctx,f,true);continue;}
+        if(f.name==='tracking_rain'){renderArrowRain(renderer,ctx,f,true);continue;}
         if(GROUND.has(f.name))renderer.drawEffect(ctx,f.name,
             f.name==='blood_pact'?center.x:f.x,f.name==='blood_pact'?center.y:f.y,
             f.name==='blood_pact'?110:f.name==='berserk_potion'?140:(f.radius||70)*2,f.age,
@@ -58,7 +60,9 @@ export function renderGroundEffects(renderer,ctx) {
     renderProjectiles(renderer,ctx,true);
 }
 export function renderForegroundEffects(renderer,ctx) {
-    for(const f of renderer.effects)if(!GROUND.has(f.name)){
+    for(const f of renderer.effects){
+        if(f.name==='tracking_rain'){renderArrowRain(renderer,ctx,f,false);continue;}
+        if(GROUND.has(f.name))continue;
         // Launch packets remain useful for audio; moving projectiles own their image.
         if(['archer_shot','drain_orb','piercing_snipe'].includes(f.name))continue;
         if(f.name==='poison_potion'){renderPotion(renderer,ctx,f,false);continue;}
@@ -103,7 +107,7 @@ export default class RemoteClassVisuals {
             const duration=Math.max(0,Math.min(10,f.duration)),age=Math.max(0,f.age)+lag;
             if(age>=duration)continue;
             this.effects.push({id:f.id,name:f.name,x:f.x,y:f.y,target:finitePoint(f.target)?{x:f.target.x,y:f.target.y}:null,
-                radius:Math.max(0,Math.min(700,Number(f.radius)||0)),range:Math.max(0,Math.min(203,Number(f.range)||0)),halfWidth:Math.max(0,Math.min(71,Number(f.halfWidth)||0)),duration,age,receivedAt:now});
+                radius:Math.max(0,Math.min(700,Number(f.radius)||0)),range:Math.max(0,Math.min(243,Number(f.range)||0)),halfWidth:Math.max(0,Math.min(95,Number(f.halfWidth)||0)),duration,age,receivedAt:now});
         }
         for(const p of (Array.isArray(packet.projectiles)?packet.projectiles:[]).slice(0,32)){
             if(!finitePoint(p)||!['orb','return','arrow','snipe'].includes(p.kind)||!finitePoint(p.direction)||!Number.isFinite(p.speed)||lag>.4)continue;

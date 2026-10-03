@@ -42,7 +42,7 @@ for(const level of [1,4,8]) test(`level ${level}: expanded hitboxes and VFX shar
   w.enemy(g.tapRadius+.9);w.enemy(g.tapRadius+1.1);w.c.basic();assert.equal(w.hits.length,1);
   close(w.effects[0].radius,g.tapRadius);
   const s=fixture('warrior',level),sg=basicAttackProfile('warrior',s.owner.skillLevels);
-  s.enemy(sg.tap.range,sg.tap.halfWidth+.9);s.enemy(sg.tap.range+.1);s.c.basic({x:500,y:0});assert.equal(s.hits.length,1);
+  s.enemy(sg.tap.range,sg.tap.halfWidth+.9);s.enemy(sg.tap.range+1.1);s.c.basic({x:500,y:0});assert.equal(s.hits.length,1);
   const calls=[],r={owner:w.owner,effects:w.effects,controller:w.c,drawEffect:(...args)=>calls.push(args)};
   renderGroundEffects(r,{});close(calls[0][4],g.tapRadius*2);
   r.effects=s.effects;r.controller=s.c;calls.length=0;renderForegroundEffects(r,{});

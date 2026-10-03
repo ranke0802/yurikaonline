@@ -1,0 +1,39 @@
+
+> validate:approved-art
+> node --test scripts/validate-approved-class-art.mjs
+
+(node:64662) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/combat/AuthoredCharacterFrames.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ approved 26 assets are alpha WebP with verified provenance and immutable cache entries (49.18893ms)
+✔ witch: all 48 runtime crops match approved pixels exactly; no rescale or direction mirroring (69.75687ms)
+✔ warrior: all 48 runtime crops match approved pixels exactly; no rescale or direction mirroring (68.256857ms)
+✔ archer: all 48 runtime crops match approved pixels exactly; no rescale or direction mirroring (72.524282ms)
+✔ witch/0: walk-moving attack shares every phase at native size and fixed ground pivot (1.686339ms)
+✔ witch/1: walk-moving attack shares every phase at native size and fixed ground pivot (0.313732ms)
+✔ witch/2: walk-moving attack shares every phase at native size and fixed ground pivot (0.169475ms)
+✔ witch/3: walk-moving attack shares every phase at native size and fixed ground pivot (0.093871ms)
+✔ warrior/0: walk-moving attack shares every phase at native size and fixed ground pivot (0.246651ms)
+✔ warrior/1: walk-moving attack shares every phase at native size and fixed ground pivot (0.177317ms)
+✔ warrior/2: walk-moving attack shares every phase at native size and fixed ground pivot (0.084948ms)
+✔ warrior/3: walk-moving attack shares every phase at native size and fixed ground pivot (0.06645ms)
+✔ archer/0: walk-moving attack shares every phase at native size and fixed ground pivot (0.05267ms)
+✔ archer/1: walk-moving attack shares every phase at native size and fixed ground pivot (0.047652ms)
+✔ archer/2: walk-moving attack shares every phase at native size and fixed ground pivot (0.081413ms)
+✔ archer/3: walk-moving attack shares every phase at native size and fixed ground pivot (0.250948ms)
+✔ rapid attacks cannot reset body to preparation on every accepted hit (0.406452ms)
+✔ art-delivery ZIP parts are explicitly excluded from Hosting (0.33255ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 399.001574
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

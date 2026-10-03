@@ -1,0 +1,71 @@
+
+> validate:class-weapons
+> node --test scripts/validate-class-weapons.mjs
+
+(node:58102) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/core/ItemDataManager.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ magic_witch: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (24.181604ms)
+✔ magic_warrior: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (7.150244ms)
+✔ magic_archer: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (10.28218ms)
+✔ blessed_magic_witch: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (10.954462ms)
+✔ blessed_magic_warrior: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (6.861479ms)
+✔ blessed_magic_archer: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (7.017044ms)
+✔ tidal_witch: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (0.694786ms)
+✔ tidal_warrior: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (0.861667ms)
+✔ tidal_archer: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (0.656438ms)
+✔ blessed_tidal_witch: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (0.818052ms)
+✔ blessed_tidal_warrior: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (0.659573ms)
+✔ blessed_tidal_archer: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (1.126607ms)
+✔ storm_witch: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (1.161298ms)
+✔ storm_warrior: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (0.705973ms)
+✔ storm_archer: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (0.856159ms)
+✔ blessed_storm_witch: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (1.711076ms)
+✔ blessed_storm_warrior: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (1.457394ms)
+✔ blessed_storm_archer: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (1.741322ms)
+✔ astral_witch: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (3.190434ms)
+✔ astral_warrior: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (2.183717ms)
+✔ astral_archer: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (2.176757ms)
+✔ blessed_astral_witch: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (1.849245ms)
+✔ blessed_astral_warrior: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (1.797576ms)
+✔ blessed_astral_archer: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (2.229696ms)
+✔ riftcore_witch: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (0.899654ms)
+✔ riftcore_warrior: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (1.170633ms)
+✔ riftcore_archer: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (0.485541ms)
+✔ blessed_riftcore_witch: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (0.426542ms)
+✔ blessed_riftcore_warrior: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (0.628195ms)
+✔ blessed_riftcore_archer: every affix at +0..+10 matches Mage stats, enhancement, rolls, hooks and save roundtrip (0.594275ms)
+✔ release gate has no new definitions, asset requests, equip route or bonuses; old staves survive (1.177272ms)
+✔ recipient class, not host class: normal/blessed rewards keep exact deterministic Mage rolls across all maps (3.31538ms)
+✔ normal route freezes recipient separately from legacy random seed; missing presence defers (0.471821ms)
+✔ all normal and boss drop probabilities remain canonical; real grant routes convert only weapons (1.187729ms)
+✔ v1/v2 archives remain byte-equivalent values; v3 accepts one counterpart and rejects four, cross-map and tampered rolls (3.651297ms)
+✔ class save/reentry preserves legacy Mage gear and class counterpart identities (8.095407ms)
+✔ witch basic damage/restore are applied only on accepted hits; launch snapshots survive equipment change (2.13856ms)
+✔ witch damage skill receives exact multiplier and cooldown reduction; utility slot is unchanged (1.04322ms)
+✔ witch chain is 0.3s, at most 12, single cast trigger, no additional status stacks, stops on dispose (0.870791ms)
+✔ warrior basic damage/restore are applied only on accepted hits; launch snapshots survive equipment change (0.382576ms)
+✔ warrior damage skill receives exact multiplier and cooldown reduction; utility slot is unchanged (0.400523ms)
+✔ warrior chain is 0.3s, at most 12, single cast trigger, no additional status stacks, stops on dispose (0.442406ms)
+✔ archer basic damage/restore are applied only on accepted hits; launch snapshots survive equipment change (0.349436ms)
+✔ archer damage skill receives exact multiplier and cooldown reduction; utility slot is unchanged (0.323707ms)
+✔ archer chain is 0.3s, at most 12, single cast trigger, no additional status stacks, stops on dispose (0.386342ms)
+✔ reports exhaustive numeric comparison count (0.100712ms)
+✔ normal and blessed enhancement outcomes and rerolls use identical Mage paths (5.377776ms)
+✔ skill chains respect probability and first 0.3s deadline; pause does not bank time (0.687926ms)
+✔ prepared Witch renderer keeps 120px cells, (60,112) foot pivot and 140ms timing without silhouette fitting (0.999114ms)
+✔ full v3 receipt survives delayed claim, class/map/host change and live catalog removal (3.510185ms)
+ℹ tests 50
+ℹ suites 0
+ℹ pass 50
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 366.552733
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

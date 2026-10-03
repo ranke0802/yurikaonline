@@ -300,6 +300,7 @@ export default class Player extends CharacterBase {
     startClassAction(action, pointer = null) {
         if (!this.classCombat || this.isDead || this.classCombat.paused() || this.classAim) return;
         if (window.game?.tutorial?.isActionAllowed?.(action) === false) return;
+        if (this.classId==='warrior' && action==='ATTACK' && this.classCombat.controller.time<this.classCombat.controller.basicReady) return;
         const center=combatCenter(this);
         const nearest = this.classCombat.controller.enemies().filter(e => Math.hypot(e.x-center.x,e.y-center.y) <= 650)
             .sort((a,b) => Math.hypot(a.x-center.x,a.y-center.y)-Math.hypot(b.x-center.x,b.y-center.y))[0];
@@ -313,6 +314,7 @@ export default class Player extends CharacterBase {
         if (!aim?.origin) return;
         const dx=pointer.clientX-aim.origin.x,dy=pointer.clientY-aim.origin.y,len=Math.hypot(dx,dy);
         if (len < 10) return;
+        aim.manual=true;
         const range=aim.action === 'ATTACK' ? 600 : Math.min(450,Math.max(60,len*4));
         const center=combatCenter(this);
         aim.x=center.x+dx/len*range;aim.y=center.y+dy/len*range;
@@ -324,6 +326,12 @@ export default class Player extends CharacterBase {
         if (!aim || aim.action !== action) return false;
         this.classAim=null;
         if (this.isDead || this.classCombat?.paused()) return false;
+        if(this.classId==='warrior' && action==='ATTACK' && !aim.manual){
+            const center=combatCenter(this);
+            const target=this.classCombat.controller.enemies().filter(e=>Math.hypot(e.x-center.x,e.y-center.y)<=650)
+                .sort((a,b)=>Math.hypot(a.x-center.x,a.y-center.y)-Math.hypot(b.x-center.x,b.y-center.y))[0];
+            if(target){aim.x=target.x;aim.y=target.y;}
+        }
         const threshold=basicChargeSeconds(this, this.classCombat.controller.empowered);
         const result=action === 'ATTACK'
             ? this.classCombat.basic({x:aim.x,y:aim.y,aimed:aim.elapsed>=threshold})
