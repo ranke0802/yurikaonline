@@ -23,7 +23,7 @@
       "playwright.config.*",
       "**/*.log",
       "**/*.map",
-      "**/*.png",
+      "**/!(621cb39b204e33c9c59a6c92|62bcb94a632daa24e23b76e1|939b21e82d8e0522fb1aec26|a8dc7ce3427c5e775caa6ead|df353f5ab889ca47d521fafe|f30b00707468d2823701a6a4|f7f376d22a0d4b8a52854500).png",
       "src/js/main.old.js",
       "src/modules/**",
       "src/js/modules/**",

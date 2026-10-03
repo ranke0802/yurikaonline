@@ -143,12 +143,8 @@ function syncFiles(version, changedFiles) {
         `window.BOOTSTRAP_VERSION = '${version}';`,
         'index.html bootstrap version'
     );
-    indexHtml = replaceOrThrow(
-        indexHtml,
-        /<link rel="manifest" href="manifest\.json\?v=[^"]+">/,
-        `<link rel="manifest" href="manifest.json?v=${version}">`,
-        'index.html manifest version'
-    );
+    // Keep the installed-app manifest endpoint stable across game releases.
+    indexHtml = indexHtml.replace(/<link rel="manifest" href="manifest\.json(?:\?v=[^"]+)?">/, '<link rel="manifest" href="manifest.json">');
     if (/navigator\.serviceWorker\.register\('\.\/sw\.js\?v=[^']+',\s*\{[^)]*\}\)/.test(indexHtml)) {
         indexHtml = replaceOrThrow(
             indexHtml,

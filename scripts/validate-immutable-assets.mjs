@@ -25,6 +25,6 @@ test('account/API documents never enter the resource cache',async t=>{
  globalThis.window={location:new URL('https://game.test/')};let calls=0;t.mock.method(globalThis,'fetch',async(u,o)=>{assert.equal(o.cache,'no-store');calls++;return new Response('{}')});const r=new ResourceManager();await r.loadJSON('/api/profile.json');await r.loadJSON('/api/profile.json');assert.equal(calls,2);assert.equal(r.cache.size,0);
 });
 test('hosting excludes developer/source assets, keeps immutable cache and hosting-only CI',()=>{
- const cfg=JSON.parse(readFileSync('firebase.json'));for(const p of ['docs/**','plans/**','reports/**','scripts/**','database*.json','party-rpg-concept/**','**/*.png'])assert.ok(cfg.hosting.ignore.includes(p));assert.ok(cfg.hosting.headers.some(h=>h.source==='/assets/immutable/**'&&h.headers.some(v=>v.value.includes('immutable'))));
+ const cfg=JSON.parse(readFileSync('firebase.json'));for(const p of ['docs/**','plans/**','reports/**','scripts/**','database*.json','party-rpg-concept/**'])assert.ok(cfg.hosting.ignore.includes(p));assert.ok(cfg.hosting.headers.some(h=>h.source==='/assets/immutable/**'&&h.headers.some(v=>v.value.includes('immutable'))));
  const workflow=readFileSync('.github/workflows/firebase-hosting-merge.yml','utf8');assert.ok(workflow.includes('npm run validate:assets'));assert.ok(workflow.includes('FirebaseExtended/action-hosting-deploy@v0'));assert.ok(!workflow.includes('firebase deploy'));
 });

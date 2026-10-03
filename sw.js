@@ -1,4 +1,4 @@
-const APP_VERSION = '0.02.156';
+const APP_VERSION = '0.02.157';
 const SHELL_CACHE = `yurika-online-shell-${APP_VERSION}`;
 const STATIC_CACHE = `yurika-online-static-${APP_VERSION}`;
 const IMMUTABLE_CACHE = 'yurika-online-immutable-v1';
@@ -14,9 +14,18 @@ const lastCacheTrimAt = new Map();
 const APP_SHELL = [
     './',
     './index.html',
-    `./manifest.json?v=${APP_VERSION}`,
+    './manifest.json',
     `./src/css/style.css?v=${APP_VERSION}`,
     `./src/js/main.js?v=${APP_VERSION}`,
+];
+
+const PWA_ICON_ASSETS = [
+    // PWA_ICON_PRECACHE_START
+    '/assets/immutable/939b21e82d8e0522fb1aec26.png',
+    '/assets/immutable/f30b00707468d2823701a6a4.png',
+    '/assets/immutable/df353f5ab889ca47d521fafe.png',
+    '/assets/immutable/621cb39b204e33c9c59a6c92.png',
+    // PWA_ICON_PRECACHE_END
 ];
 
 function isFirebaseRequest(url) {
@@ -136,7 +145,10 @@ async function cacheFirst(request, cacheName) {
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL))
+        Promise.all([
+            caches.open(SHELL_CACHE).then((cache) => cache.addAll(APP_SHELL)),
+            caches.open(IMMUTABLE_CACHE).then((cache) => cache.addAll(PWA_ICON_ASSETS))
+        ])
     );
     self.skipWaiting();
 });
@@ -171,7 +183,7 @@ self.addEventListener('fetch', (event) => {
 
     if (event.request.method !== 'GET' || url.origin !== self.location.origin || isFirebaseRequest(url)) return;
     if (url.pathname === '/src/js/firebaseConfig.js') return;
-    if (/^\/assets\/immutable\/[a-f0-9]{24}\.(webp|svg|json)$/.test(url.pathname)) {
+    if (/^\/assets\/immutable\/[a-f0-9]{24}\.(webp|png|svg|json)$/.test(url.pathname)) {
         event.respondWith(cacheFirst(event.request, IMMUTABLE_CACHE));
         return;
     }

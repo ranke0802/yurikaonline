@@ -6,8 +6,8 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json?v=0.02.156">
-    <meta name="theme-color" content="#2d3436">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#110f28">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -21,7 +21,7 @@
     <meta name="x5-page-mode" content="app">
     <script>
         window.YURIKA_LOCAL_MODE = new URLSearchParams(location.search).get('local') === '1';
-        window.BOOTSTRAP_VERSION = '0.02.156';
+        window.BOOTSTRAP_VERSION = '0.02.157';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -436,7 +436,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.156', { updateViaCache: 'none' });
+                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.157', { updateViaCache: 'none' });
                     await registration.update();
                     registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
                     registration.addEventListener('updatefound', () => {
@@ -463,7 +463,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"><\/script>
 
     <!-- Firebase Config -->
-    <script src="src/js/firebaseConfig.js?v=0.02.156"><\/script>
+    <script src="src/js/firebaseConfig.js?v=0.02.157"><\/script>
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Nanum+Gothic:wght@400;700&display=swap"
         rel="stylesheet">
@@ -474,10 +474,11 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.02.156</title>
+    <title>Yurika Online v0.02.157</title>
 
-    <link rel="icon" type="image/webp" href="/assets/immutable/74fad4c76f5d3ee77cdaf0ce.webp">
-    <link rel="apple-touch-icon" href="/assets/immutable/a9473b5fca0aea4459e9b741.webp">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/immutable/62bcb94a632daa24e23b76e1.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="/assets/immutable/f7f376d22a0d4b8a52854500.png">
+    <link rel="apple-touch-icon" href="/assets/immutable/a8dc7ce3427c5e775caa6ead.png">
     <script>
         // v0.29.20+: Prefer the actually loaded client build for UI, and auto-reset caches on mismatch.
         (async function initCacheBusting() {
@@ -498,7 +499,7 @@
             }
         });
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.02.156">
+    <link rel="stylesheet" href="src/css/style.css?v=0.02.157">
     <link rel="stylesheet" href="src/css/camp.css">
     <link rel="stylesheet" href="src/css/opening.css">
     <link rel="stylesheet" href="src/css/combat-polish.css">
@@ -1556,7 +1557,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.02.156"></script>
+    <script type="module" src="./src/js/main.js?v=0.02.157"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

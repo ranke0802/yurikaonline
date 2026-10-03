@@ -1,0 +1,107 @@
+{
+  "name": "Yurika Online native PWA emblem",
+  "created_utc": "2026-10-03",
+  "scope": "Native installed-app icons and OS launch splash; does not modify in-game loading",
+  "background_color": "#110f28",
+  "theme_color": "#110f28",
+  "runtime_files": [
+    {
+      "path": "runtime/apple-touch-icon.png",
+      "width": 180,
+      "height": 180,
+      "mimeType": "image/png",
+      "purpose": "any",
+      "sha256": "a8dc7ce3427c5e775caa6ead9dae425b6317e29857c0d987ed0c26193f18e5da",
+      "bytes": 44362
+    },
+    {
+      "path": "runtime/favicon-32.png",
+      "width": 32,
+      "height": 32,
+      "mimeType": "image/png",
+      "purpose": "any",
+      "sha256": "62bcb94a632daa24e23b76e182b9dd1aed0b8d9e427ea48ea83bf1819cf50179",
+      "bytes": 2009
+    },
+    {
+      "path": "runtime/favicon-48.png",
+      "width": 48,
+      "height": 48,
+      "mimeType": "image/png",
+      "purpose": "any",
+      "sha256": "f7f376d22a0d4b8a528545005573e30453bf8500b96723bc518e2826f53a6ac1",
+      "bytes": 3934
+    },
+    {
+      "path": "runtime/icon-192.png",
+      "width": 192,
+      "height": 192,
+      "mimeType": "image/png",
+      "purpose": "any",
+      "sha256": "939b21e82d8e0522fb1aec26bf1c9f422059a6869afe8c836e71b43e8d2d5d91",
+      "bytes": 50648
+    },
+    {
+      "path": "runtime/icon-512.png",
+      "width": 512,
+      "height": 512,
+      "mimeType": "image/png",
+      "purpose": "any",
+      "sha256": "f30b00707468d2823701a6a4eb3f09596afb46701990b06890fbed3fd5acc6ed",
+      "bytes": 333103
+    },
+    {
+      "path": "runtime/icon-maskable-192.png",
+      "width": 192,
+      "height": 192,
+      "mimeType": "image/png",
+      "purpose": "maskable",
+      "sha256": "df353f5ab889ca47d521fafecf28295d0a354399914a9cf501919aeb03407d91",
+      "bytes": 40561
+    },
+    {
+      "path": "runtime/icon-maskable-512.png",
+      "width": 512,
+      "height": 512,
+      "mimeType": "image/png",
+      "purpose": "maskable",
+      "sha256": "621cb39b204e33c9c59a6c92b962e4f4dce6790a808c8a9375f6860d2cb61123",
+      "bytes": 285682
+    }
+  ],
+  "manifest_icons": [
+    {
+      "src": "runtime/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "runtime/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "runtime/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "runtime/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "preview": "YurikaOnline-PWA-icon-preview.webp",
+  "maskable_preview": "YurikaOnline-PWA-maskable-preview.webp",
+  "qa_preview": "qa/YurikaOnline-PWA-icon-QA.webp",
+  "maskable_safe_zone": {
+    "canvas": 1024,
+    "circle_radius_px": 409.6,
+    "bright_motif_max_radius_px": 407.044,
+    "bright_motif_pixels_outside_safe_circle": 0
+  }
+}

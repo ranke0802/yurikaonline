@@ -1,0 +1,28 @@
+{
+  "unitTests": 9,
+  "loadingPixelsIdentical": [
+    "desktop",
+    "portrait",
+    "landscape"
+  ],
+  "mainRuntimeIdenticalExceptVersion": true,
+  "loginAndCampReturnPassed": true,
+  "appIdentityPreserved": {
+    "id": "./index.html",
+    "start_url": "./index.html",
+    "scope": "./"
+  },
+  "formats": "All 7 delivered PNGs preserved byte-for-byte; no WebP substitution.",
+  "hosting": "Only seven exact hashed PNG basenames added to publication; all other PNGs remain excluded.",
+  "cache": "Stable manifest URL with revalidation, hashed PNG URLs, 4 application icons in immutable precache, offline decoding and worker-update retention verified.",
+  "limitations": [
+    "No physical Android/WebAPK or iOS installation test.",
+    "Existing installed PWA icon refresh depends on browser/WebAPK update schedule; no immediate OS icon update claimed.",
+    "OS splash remains static."
+  ],
+  "sources": [
+    "https://web.dev/learn/pwa/web-app-manifest",
+    "https://web.dev/articles/manifest-updates",
+    "https://web.dev/articles/maskable-icon"
+  ]
+}
