@@ -1,0 +1,27 @@
+{
+  "version": "0.02.150",
+  "location": "Player.drawHUD, directly below world MP bar; same x and width; 3 world pixel gap with identical transform snapping",
+  "classes": [
+    "warrior",
+    "witch",
+    "archer"
+  ],
+  "cases": 18,
+  "viewports": [
+    "1280x800 desktop DPR1",
+    "780x360 landscape mobile DPR2"
+  ],
+  "verified": [
+    "partial progress",
+    "full charge yellow pixels RGBA255/240/163/255",
+    "player movement",
+    "camera movement",
+    "three zoom variants",
+    "no overlap with attack/return/minimap controls",
+    "release/cancel clear",
+    "profile HUD gauge absent"
+  ],
+  "classTests": 196,
+  "chargeAndFeedbackTests": 13,
+  "sourceArtChanged": false
+}

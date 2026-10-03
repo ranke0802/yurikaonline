@@ -239,6 +239,6 @@ export default class ClassCombatBridge {
             if(count>0){ctx.save();ctx.font='bold 12px sans-serif';ctx.textAlign='right';ctx.lineWidth=3;ctx.strokeStyle='#17212c';ctx.fillStyle='#ffffff';ctx.strokeText(String(count),x+24,y+23);ctx.fillText(String(count),x+24,y+23);ctx.restore();}
         });
     }
-    dispose(){this.owner.classAim=null;this.game?.ui?.updateClassCharge?.(null);this.pendingLifesteal=0;this.motion=null;this.controller.dispose();this.controller.empowered=false;this.effects=[];this.actors=[];this.decoy=null;this.syncVisuals(true);this.game?.net?.syncClassSummons?.({force:true});}
+    dispose(){this.owner.classAim=null;this.pendingLifesteal=0;this.motion=null;this.controller.dispose();this.controller.empowered=false;this.effects=[];this.actors=[];this.decoy=null;this.syncVisuals(true);this.game?.net?.syncClassSummons?.({force:true});}
 }
 ClassCombatBridge.serial=0;

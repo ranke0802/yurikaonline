@@ -1656,7 +1656,6 @@ export default class WorldScene extends Scene {
     }
 
     render(ctx) {
-        this.ui?.updateClassCharge?.(this.player);
         if (this._campEntryIncomplete || !this.game.zone.currentZone) {
             // Keep gameplay hidden until the selected character is decoded and initialized.
             ctx.fillStyle = this.game.getRenderBackgroundColor?.() || '#172234';

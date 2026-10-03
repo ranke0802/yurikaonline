@@ -51,6 +51,7 @@ jobs:
           node scripts/validate-warrior-multihit-browser.cjs
           node scripts/validate-class-feedback-v148-browser.cjs
           node scripts/validate-combat-v149-browser.cjs
+          node scripts/validate-world-charge-v150-browser.cjs
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

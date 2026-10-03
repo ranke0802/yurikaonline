@@ -1,4 +1,3 @@
-import { updateClassChargeGauge } from './ClassChargeGauge.js';
 import { classArtPath } from '../combat/AuthoredCharacterFrames.js';
 import AndroidDisplayController from './AndroidDisplayController.js';
 import { CLASS_NAMES } from '../core/ClassProfiles.js';
@@ -11432,10 +11431,6 @@ export class UIManager {
 
         this.positionInventoryItemModal();
         this.refreshDesktopShortcutHints();
-    }
-
-    updateClassCharge(player) {
-        updateClassChargeGauge(player,this.getHudRef('classCharge','class-charge-gauge','id'));
     }
 
     updateStats(hp, mp, level, expPerc) {

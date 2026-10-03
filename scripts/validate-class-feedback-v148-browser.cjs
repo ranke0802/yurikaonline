@@ -5,17 +5,17 @@ const {chromium}=require('playwright');const assert=require('node:assert/strict'
  await page.reload();await page.locator('[data-camp=character]').first().waitFor();await page.locator('[data-camp=prepare]').tap();await page.locator('[data-camp=depart]').tap();await page.locator('.camp-return').waitFor();await page.locator('#loading-overlay').waitFor({state:'hidden'});
 
 
-await page.evaluate(()=>{const p=game.localPlayer,c=p.classCombat.controller;game.monsterManager.monsters.clear();game.sceneManager.currentScene.zoneSpawnRules=[];game.sceneManager.currentScene.checkCollision=()=>false;c.enemies=()=>[];c.rage=100;window.feedbackQA={p,c};});
+await page.evaluate(async()=>{window.chargeState=(await import('/src/js/ui/ClassChargeGauge.js')).classChargeState;const p=game.localPlayer,c=p.classCombat.controller;game.monsterManager.monsters.clear();game.sceneManager.currentScene.zoneSpawnRules=[];game.sceneManager.currentScene.checkCollision=()=>false;c.enemies=()=>[];c.rage=100;window.feedbackQA={p,c};});
 const gauges=[];
 for(const input of ['keyboard','mouse','touch']){
  await page.evaluate(()=>{feedbackQA.c.basicReady=0;feedbackQA.c.rage=100;feedbackQA.p.skillLevels.shot=8;});
  const button=await page.locator('#action-attack-j').boundingBox(),x=button.x+button.width/2,y=button.y+button.height/2;const client=await context.newCDPSession(page);
  if(input==='keyboard')await page.keyboard.down('j');else if(input==='mouse'){await page.mouse.move(x,y);await page.mouse.down();}else await client.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
- await page.waitForTimeout(90);const partial=await page.evaluate(async()=>{const {classChargeState}=await import('/src/js/ui/ClassChargeGauge.js'),g=document.querySelector('#class-charge-gauge'),state=classChargeState(feedbackQA.p);return{state,hidden:g.hidden,fill:Number(g.style.getPropertyValue('--charge-progress')),bar:g.getBoundingClientRect().toJSON(),mp:document.querySelector('.mp-bg').getBoundingClientRect().toJSON()}});
- assert.equal(partial.hidden,false);assert.ok(partial.state.progress>0);assert.ok(Math.abs(partial.fill-partial.state.progress)<.15);assert.ok(partial.bar.y>=partial.mp.bottom);
- await page.waitForTimeout(500);if(input==='keyboard')await page.screenshot({path:`/tmp/class-charge-${id}.png`});assert.equal(await page.locator('#class-charge-gauge').evaluate(e=>e.classList.contains('ready')),true);
+ await page.waitForTimeout(90);const partial=await page.evaluate(()=>({state:chargeState(feedbackQA.p)}));
+ assert.ok(partial.state.progress>0);assert.equal(await page.locator('#class-charge-gauge').count(),0);
+ await page.waitForTimeout(500);if(input==='keyboard')await page.screenshot({path:`/tmp/class-charge-${id}.png`});assert.equal(await page.evaluate(()=>chargeState(feedbackQA.p)?.ready),true);
  if(input==='keyboard')await page.keyboard.up('j');else if(input==='mouse')await page.mouse.up();else await client.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
- await page.waitForFunction(()=>document.querySelector('#class-charge-gauge').hidden);gauges.push({input,partial});
+ await page.waitForFunction(()=>!chargeState(feedbackQA.p));gauges.push({input,partial});
  if(id==='archer'&&input==='keyboard'){await page.screenshot({path:'/tmp/archer-moving-trail.png'});}
  await page.waitForTimeout(800);
 }
@@ -23,12 +23,12 @@ if(id==='warrior'){
  const healing=await page.evaluate(async()=>{const {p,c}=feedbackQA;const texts=[],original=game.addDamageText;game.addDamageText=(x,y,text,...args)=>{texts.push(text);original.call(game,x,y,text,...args)};
  p.hp=20.7;c.bloodUntil=c.time+8;const damage=c.hooks.damage;c.hooks.damage=(e,n)=>{e.hp-=n;return n};const e={hp:1000},group={};for(const n of [33,33,34])c.skillHit(e,n,{},null,group);const hp=p.hp;await new Promise(r=>setTimeout(r,180));game.addDamageText=original;c.hooks.damage=damage;return{hp,texts}});assert.ok(Math.abs(healing.hp-40.7)<1e-8);assert.ok(healing.texts.includes('+20'));assert.ok(healing.texts.filter(t=>t.startsWith('+')).every(t=>/^\+\d+$/.test(t)));
 }
-await page.evaluate(()=>{feedbackQA.c.basicReady=0;feedbackQA.c.rage=100});await page.keyboard.down('j');await page.waitForTimeout(150);await page.evaluate(()=>{feedbackQA.p.classAim=null});await page.waitForFunction(()=>document.querySelector('#class-charge-gauge').hidden);await page.keyboard.up('j');
-await page.evaluate(()=>{feedbackQA.p.startClassAction('ATTACK');feedbackQA.p.isDead=true});await page.waitForFunction(()=>document.querySelector('#class-charge-gauge').hidden);await page.evaluate(()=>{feedbackQA.p.isDead=false;feedbackQA.p.hp=feedbackQA.p.maxHp;feedbackQA.p.initializeClassCombat();feedbackQA.c=feedbackQA.p.classCombat.controller;feedbackQA.c.enemies=()=>[]});
+await page.evaluate(()=>{feedbackQA.c.basicReady=0;feedbackQA.c.rage=100});await page.keyboard.down('j');await page.waitForTimeout(150);await page.evaluate(()=>{feedbackQA.p.classAim=null});await page.waitForFunction(()=>!chargeState(feedbackQA.p));await page.keyboard.up('j');
+await page.evaluate(()=>{feedbackQA.p.startClassAction('ATTACK');feedbackQA.p.isDead=true});await page.waitForFunction(()=>!chargeState(feedbackQA.p));await page.evaluate(()=>{feedbackQA.p.isDead=false;feedbackQA.p.hp=feedbackQA.p.maxHp;feedbackQA.p.initializeClassCombat();feedbackQA.c=feedbackQA.p.classCombat.controller;feedbackQA.c.enemies=()=>[]});
 if(id==='archer'){
  const leap=await page.evaluate(()=>{const {p,c}=feedbackQA;c.cooldowns[2]=0;const from={x:p.x,y:p.y};p.useSkill(2,{x:p.x+p.width/2+200,y:p.y+p.height/2});return{dx:p.x-from.x,dy:p.y-from.y,empowered:c.empowered};});assert.equal(leap.dx,-160);assert.equal(leap.dy,0);assert.equal(leap.empowered,true);
 }
-await page.evaluate(()=>{feedbackQA.p.startClassAction('ATTACK');feedbackQA.p.classCombat.dispose()});assert.equal(await page.locator('#class-charge-gauge').evaluate(e=>e.hidden),true);
+await page.evaluate(()=>{feedbackQA.p.startClassAction('ATTACK');feedbackQA.p.classCombat.dispose()});assert.equal(await page.evaluate(()=>!chargeState(feedbackQA.p)),true);
 if(id==='archer'){
  const trail=await page.evaluate(async()=>{const p=game.localPlayer;p.initializeClassCombat();const c=p.classCombat.controller;c.enemies=()=>[];game.sceneManager.currentScene.checkCollision=()=>false;await game.resources.preparePlayableClassAssets('archer');const b=p.classCombat;await new Promise(r=>setTimeout(r,30));c.basicReady=0;c.basic({aimed:true,x:p.x+500,y:p.y+p.height/2});c.update(.12);const arrow=c.projectiles.find(p=>p.kind==='snipe');if(!arrow)throw Error('missing moving snipe');const canvas=document.createElement('canvas');canvas.width=500;canvas.height=180;const ctx=canvas.getContext('2d');ctx.fillStyle='#26323b';ctx.fillRect(0,0,500,180);ctx.translate(100-arrow.x,90-arrow.y);b.renderGround(ctx);b.render(ctx);return{png:canvas.toDataURL().split(',')[1],age:arrow.age,x:arrow.x,speed:arrow.speed};});fs.writeFileSync('/tmp/archer-trail-detail.png',Buffer.from(trail.png,'base64'));assert.ok(trail.age>0&&trail.speed===780);
  const image=await page.evaluate(async()=>{const {default:Monster}=await import('/src/js/entities/Monster.js');const def=await game.monsterData.loadDefinition('slime');const canvas=document.createElement('canvas');canvas.width=520;canvas.height=240;const ctx=canvas.getContext('2d');ctx.fillStyle='#26323b';ctx.fillRect(0,0,520,240);await game.resources.loadImage('assets/resource/classes/status.webp');

@@ -1,3 +1,4 @@
+import { drawClassChargeGauge } from '../ui/ClassChargeGauge.js';
 import { skillHealingBudget, healingDisplayAmount } from '../combat/SkillHealing.js';
 import { SHIELD_RUSH, shieldRushProfile } from '../combat/ShieldRush.js';
 import { advanceAuthoredGait, classRuntimePath } from '../combat/AuthoredCharacterFrames.js';
@@ -276,7 +277,7 @@ export default class Player extends CharacterBase {
         });
 
         bindInput('aimCancel', (data) => {
-            if (this.isClassAction(data?.action)) { this.classAim = null;window.game?.ui?.updateClassCharge?.(null); return; }
+            if (this.isClassAction(data?.action)) { this.classAim = null; return; }
             if (data?.action === 'SKILL_2') this.cancelFireballAim();
         });
 
@@ -295,7 +296,7 @@ export default class Player extends CharacterBase {
     initializeClassCombat() {
         this.classCombat?.dispose();
         this.classCombat = new ClassCombatBridge(this, this.classId);
-        this.classAim = null;window.game?.ui?.updateClassCharge?.(null);
+        this.classAim = null;
         if (normalizeClassId(this.classId) !== 'wizard') this.autoAttackEnabled = false;
     }
 
@@ -326,7 +327,7 @@ export default class Player extends CharacterBase {
     releaseClassAction(action) {
         const aim=this.classAim;
         if (!aim || aim.action !== action) return false;
-        this.classAim=null;window.game?.ui?.updateClassCharge?.(null);
+        this.classAim=null;
         if (this.isDead || this.classCombat?.paused()) return false;
         if(this.classId==='warrior' && action==='ATTACK' && !aim.manual){
             const center=combatCenter(this);
@@ -367,7 +368,7 @@ export default class Player extends CharacterBase {
     getEffectiveClassAttackSpeed() { return this.getEffectiveBasicAttackSpeed(); }
 
     detachInput() {
-        this.classAim = null;window.game?.ui?.updateClassCharge?.(null);
+        this.classAim = null;
         this.classCombat?.dispose();
         this.classCombat = null;
         (this._inputBindings || []).forEach(({ eventName, handler }) => {
@@ -396,7 +397,7 @@ export default class Player extends CharacterBase {
     update(dt) {
         if (this.classCombat?.controller.disposed && !this.isDead && !this.isDying && !window.game?.sceneManager?.currentScene?.isZoneTransitioning) this.initializeClassCombat();
         if (this.classCombat) {
-            if (this.isDead || this.isDying) { this.classAim=null;window.game?.ui?.updateClassCharge?.(null); this.classCombat.dispose(); }
+            if (this.isDead || this.isDying) { this.classAim=null; this.classCombat.dispose(); }
             else if (!this.classCombat.paused()) {
                 if (this.classAim) this.classAim.elapsed += Math.min(.25,Math.max(0,dt));
                 this.classCombat.update(dt);
@@ -1329,7 +1330,7 @@ export default class Player extends CharacterBase {
     }
 
     die() {
-        this.classAim = null;window.game?.ui?.updateClassCharge?.(null);
+        this.classAim = null;
         this.classCombat?.dispose();
         this.isDead = true;
         this.state = 'die';
@@ -4782,6 +4783,8 @@ export default class Player extends CharacterBase {
         const mpPerc = Math.min(1, Math.max(0, this.mp / this.maxMp));
         ctx.fillStyle = '#48dbfb';
         ctx.fillRect(barX, mpBarY, barWidth * mpPerc, barHeight);
+
+        drawClassChargeGauge(ctx,this,{x:barX,y:mpBarY,width:barWidth,height:barHeight});
 
         // Name Tag (Styled with outline to match screenshot)
         // Name Tag (Styled with outline to match screenshot)
