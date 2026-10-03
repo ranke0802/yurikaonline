@@ -1,0 +1,877 @@
+{
+  "skillId": "shieldRush",
+  "name": "방패 돌진",
+  "generator": "built-in imagegen",
+  "processing": "Whole-generated-sprite isolation, nearest-neighbor uniform cycle scaling, crop/padding/atlas assembly. No procedural body artwork, mirrored directions, or upper/lower-body grafts.",
+  "body": {
+    "file": "warrior-shield-rush-body.webp",
+    "size": [
+      720,
+      576
+    ],
+    "columns": 4,
+    "rows": 4,
+    "cellSize": [
+      180,
+      144
+    ],
+    "pivot": [
+      90,
+      132
+    ],
+    "frameMs": 180,
+    "loop": true,
+    "directions": [
+      "down",
+      "up",
+      "left",
+      "right"
+    ],
+    "targetBodyHeight": 102,
+    "cycles": [
+      {
+        "row": 0,
+        "direction": "down",
+        "source": "source/shield-rush-body-front.png",
+        "uniformScale": 0.21473684210526317,
+        "frames": [
+          {
+            "column": 0,
+            "sourceBounds": [
+              204,
+              121,
+              526,
+              602
+            ],
+            "alphaBounds": [
+              55,
+              29,
+              124,
+              132
+            ],
+            "renderedBodyHeight": 101.79,
+            "sha256": "8bf5102ef13e9a31a4514e79d134e170d3ba9726a9b38344cf436e6ab3600190"
+          },
+          {
+            "column": 1,
+            "sourceBounds": [
+              701,
+              121,
+              1021,
+              602
+            ],
+            "alphaBounds": [
+              55,
+              29,
+              124,
+              132
+            ],
+            "renderedBodyHeight": 102.0,
+            "sha256": "01f435062ae9fce5d442e0dc6b2a956bf9072e4cb9b0168848758077787281e5"
+          },
+          {
+            "column": 2,
+            "sourceBounds": [
+              1148,
+              121,
+              1474,
+              602
+            ],
+            "alphaBounds": [
+              54,
+              29,
+              124,
+              132
+            ],
+            "renderedBodyHeight": 102.0,
+            "sha256": "edac5e915949fcd348934e0687fde91c01098a9cf5a697547c56c198129f86f7"
+          },
+          {
+            "column": 3,
+            "sourceBounds": [
+              1651,
+              121,
+              1970,
+              602
+            ],
+            "alphaBounds": [
+              55,
+              29,
+              124,
+              132
+            ],
+            "renderedBodyHeight": 101.79,
+            "sha256": "39f05f6932bac9cc402adf27bbb298242508d0119f0128aa491b14152551279b"
+          }
+        ]
+      },
+      {
+        "row": 1,
+        "direction": "up",
+        "source": "source/shield-rush-body-back.png",
+        "uniformScale": 0.2,
+        "frames": [
+          {
+            "column": 0,
+            "sourceBounds": [
+              46,
+              103,
+              526,
+              623
+            ],
+            "alphaBounds": [
+              51,
+              28,
+              147,
+              132
+            ],
+            "renderedBodyHeight": 101.4,
+            "sha256": "3b549c80b7dd2eb1e060fa6cf0c05986a5832b9e30246a392189635422c42310"
+          },
+          {
+            "column": 1,
+            "sourceBounds": [
+              591,
+              104,
+              1067,
+              627
+            ],
+            "alphaBounds": [
+              52,
+              27,
+              147,
+              132
+            ],
+            "renderedBodyHeight": 102.0,
+            "sha256": "6590dddae18e9d38085fd32fb56f4e2e9acb8fba0a1731296412a87db9cdd5d1"
+          },
+          {
+            "column": 2,
+            "sourceBounds": [
+              1131,
+              103,
+              1609,
+              627
+            ],
+            "alphaBounds": [
+              52,
+              27,
+              148,
+              132
+            ],
+            "renderedBodyHeight": 102.0,
+            "sha256": "7cfb68434f1c41a192464f63f13998739d48d6ff4c852e45c0d9470e1811ef1d"
+          },
+          {
+            "column": 3,
+            "sourceBounds": [
+              1676,
+              103,
+              2136,
+              623
+            ],
+            "alphaBounds": [
+              52,
+              28,
+              144,
+              132
+            ],
+            "renderedBodyHeight": 101.4,
+            "sha256": "1b0e2eb36d1d64624888402fba6b4c519fd4403155d6a9f878462ef78a618c7b"
+          }
+        ]
+      },
+      {
+        "row": 2,
+        "direction": "left",
+        "source": "source/shield-rush-body-sides.png",
+        "uniformScale": 0.2734584450402145,
+        "frames": [
+          {
+            "column": 0,
+            "sourceBounds": [
+              80,
+              43,
+              434,
+              425
+            ],
+            "alphaBounds": [
+              46,
+              28,
+              143,
+              132
+            ],
+            "renderedBodyHeight": 102.0,
+            "sha256": "46f3090c360a21d460b3729e7a033ecfcf28e274467ea3014d65556474414efd"
+          },
+          {
+            "column": 1,
+            "sourceBounds": [
+              532,
+              44,
+              871,
+              423
+            ],
+            "alphaBounds": [
+              50,
+              28,
+              143,
+              132
+            ],
+            "renderedBodyHeight": 102.0,
+            "sha256": "1482fcab7c6c973896bc734e07dc62c274a7987b29dd4c1298d756964efe22d1"
+          },
+          {
+            "column": 2,
+            "sourceBounds": [
+              974,
+              46,
+              1309,
+              426
+            ],
+            "alphaBounds": [
+              48,
+              28,
+              140,
+              132
+            ],
+            "renderedBodyHeight": 101.73,
+            "sha256": "b40c241b3e1e1d160c95c060a6040689d28f7c73eb0952f32c7c3a205783d2e0"
+          },
+          {
+            "column": 3,
+            "sourceBounds": [
+              1420,
+              46,
+              1745,
+              425
+            ],
+            "alphaBounds": [
+              50,
+              28,
+              139,
+              132
+            ],
+            "renderedBodyHeight": 101.45,
+            "sha256": "367323ef6b43d57fba3e68dc88657b00e15d86e0b4dccd475a9f196d8ae9ce07"
+          }
+        ]
+      },
+      {
+        "row": 3,
+        "direction": "right",
+        "source": "source/shield-rush-body-sides.png",
+        "uniformScale": 0.2734584450402145,
+        "frames": [
+          {
+            "column": 0,
+            "sourceBounds": [
+              48,
+              452,
+              395,
+              832
+            ],
+            "alphaBounds": [
+              37,
+              28,
+              132,
+              132
+            ],
+            "renderedBodyHeight": 101.73,
+            "sha256": "f324b2e4591d922abc4f515d634c01aec4a057a88901ee2dd6a030214693372b"
+          },
+          {
+            "column": 1,
+            "sourceBounds": [
+              497,
+              451,
+              837,
+              830
+            ],
+            "alphaBounds": [
+              39,
+              28,
+              132,
+              132
+            ],
+            "renderedBodyHeight": 101.18,
+            "sha256": "c277b1a217fb59f1ae010837bba61fcb408e4d9eb37ecf50865f9f381da53197"
+          },
+          {
+            "column": 2,
+            "sourceBounds": [
+              945,
+              451,
+              1281,
+              832
+            ],
+            "alphaBounds": [
+              41,
+              28,
+              133,
+              132
+            ],
+            "renderedBodyHeight": 102.0,
+            "sha256": "b5e485d5fc3fe25275ecf75ceec06e53ac43178054cbcda5891ffe4013123775"
+          },
+          {
+            "column": 3,
+            "sourceBounds": [
+              1393,
+              452,
+              1728,
+              830
+            ],
+            "alphaBounds": [
+              40,
+              29,
+              132,
+              132
+            ],
+            "renderedBodyHeight": 101.18,
+            "sha256": "3dc150e4159eee0e8934d32875fd751560656202e4eeaab3d335020b6e19425f"
+          }
+        ]
+      }
+    ],
+    "sha256": "3f37193745a5ad108f1e025766706eb1f041c2ddbfe07425698664104890cfcf"
+  },
+  "effects": {
+    "file": "warrior-shield-rush-effects.webp",
+    "size": [
+      768,
+      960
+    ],
+    "columns": 4,
+    "rows": 5,
+    "cellSize": [
+      192,
+      192
+    ],
+    "pivot": [
+      96,
+      96
+    ],
+    "rows0Based": {
+      "0": "barrier-down",
+      "1": "barrier-up",
+      "2": "barrier-left",
+      "3": "barrier-right",
+      "4": "blocked-hit-flash"
+    },
+    "barrierFrameMs": 180,
+    "blockFrameMs": 70,
+    "barrierLoop": true,
+    "blockLoop": false,
+    "cycles": [
+      {
+        "row": 0,
+        "direction": "down",
+        "uniformScale": 0.6177606177606177,
+        "source": "source/shield-rush-effects-source.png",
+        "frames": [
+          {
+            "column": 0,
+            "sourceCrop": [
+              72,
+              41,
+              298,
+              269
+            ],
+            "alphaBounds": [
+              28,
+              25,
+              166,
+              166
+            ],
+            "sha256": "75e269b6b7e1f8dfa6cef48a8c64c08a859d3234352d7bde3c0839a3ff984b12"
+          },
+          {
+            "column": 1,
+            "sourceCrop": [
+              352,
+              29,
+              599,
+              273
+            ],
+            "alphaBounds": [
+              20,
+              21,
+              172,
+              171
+            ],
+            "sha256": "7f91b0d97f726fe2271049534478209cc6a20d5d5f8bb17f56a545b42e8e4c49"
+          },
+          {
+            "column": 2,
+            "sourceCrop": [
+              649,
+              26,
+              908,
+              273
+            ],
+            "alphaBounds": [
+              17,
+              19,
+              176,
+              172
+            ],
+            "sha256": "16c211197df1bc09f69c15eb379ce59ec819c262d736733c33fad0f5786ea001"
+          },
+          {
+            "column": 3,
+            "sourceCrop": [
+              954,
+              42,
+              1178,
+              269
+            ],
+            "alphaBounds": [
+              27,
+              26,
+              164,
+              166
+            ],
+            "sha256": "07f7de42c8f7a73dac076e8c7f9da0963a0e64df4a9a194a48692b9620043dd6"
+          }
+        ]
+      },
+      {
+        "row": 1,
+        "direction": "up",
+        "uniformScale": 0.6177606177606177,
+        "source": "source/shield-rush-effects-source.png",
+        "frames": [
+          {
+            "column": 0,
+            "sourceCrop": [
+              74,
+              276,
+              308,
+              511
+            ],
+            "alphaBounds": [
+              25,
+              23,
+              167,
+              168
+            ],
+            "sha256": "1ee5cad3082e4719242017efe11bd65bc86a0f6b029679ab4dca7be4b45dcd75"
+          },
+          {
+            "column": 1,
+            "sourceCrop": [
+              353,
+              273,
+              605,
+              512
+            ],
+            "alphaBounds": [
+              18,
+              22,
+              174,
+              170
+            ],
+            "sha256": "fc12455168bd5ec8672ae9c9f211dcaf69f75585b97c5d5b50dbf79d6ac15b1c"
+          },
+          {
+            "column": 2,
+            "sourceCrop": [
+              650,
+              273,
+              909,
+              512
+            ],
+            "alphaBounds": [
+              16,
+              22,
+              173,
+              170
+            ],
+            "sha256": "a93ac3f9104230e0b71a2619eb9202e716b548b728f043f86e53a853eba6b3f5"
+          },
+          {
+            "column": 3,
+            "sourceCrop": [
+              952,
+              275,
+              1181,
+              508
+            ],
+            "alphaBounds": [
+              25,
+              24,
+              166,
+              168
+            ],
+            "sha256": "731bdef2bb846532126c3d7555a400cc46b86d3672fa8a8392d20f4103a8ce54"
+          }
+        ]
+      },
+      {
+        "row": 2,
+        "direction": "left",
+        "uniformScale": 0.6611570247933884,
+        "source": "source/shield-rush-effects-source.png",
+        "frames": [
+          {
+            "column": 0,
+            "sourceCrop": [
+              100,
+              512,
+              245,
+              751
+            ],
+            "alphaBounds": [
+              48,
+              17,
+              144,
+              175
+            ],
+            "sha256": "23ef2e5a657267d986f0b106ee54d080dfed3a46f33cc7d78837313b57392d1a"
+          },
+          {
+            "column": 1,
+            "sourceCrop": [
+              387,
+              512,
+              553,
+              754
+            ],
+            "alphaBounds": [
+              41,
+              16,
+              151,
+              176
+            ],
+            "sha256": "d534e1c06bb24223b42bcd91f6909e21098b4e23d2db2e88ef439a204e4b04b8"
+          },
+          {
+            "column": 2,
+            "sourceCrop": [
+              680,
+              512,
+              850,
+              754
+            ],
+            "alphaBounds": [
+              40,
+              16,
+              148,
+              176
+            ],
+            "sha256": "1c69fc70f7a7edbe3d3b495aedaa4b2ef7a47a658ff7150ca8f8dcc64a71e69c"
+          },
+          {
+            "column": 3,
+            "sourceCrop": [
+              987,
+              512,
+              1126,
+              754
+            ],
+            "alphaBounds": [
+              52,
+              16,
+              142,
+              176
+            ],
+            "sha256": "0d1cbb1f30ee25eb04e826205348e7492085e7fbfb68e307f2e156659a1dfa8f"
+          }
+        ]
+      },
+      {
+        "row": 3,
+        "direction": "right",
+        "uniformScale": 0.6557377049180327,
+        "source": "source/shield-rush-effects-source.png",
+        "frames": [
+          {
+            "column": 0,
+            "sourceCrop": [
+              126,
+              754,
+              267,
+              998
+            ],
+            "alphaBounds": [
+              50,
+              16,
+              142,
+              176
+            ],
+            "sha256": "8ae4c358813313524c038a802a2de721c17a7b46612fe4e5504422ba84f7bb8f"
+          },
+          {
+            "column": 1,
+            "sourceCrop": [
+              414,
+              754,
+              580,
+              997
+            ],
+            "alphaBounds": [
+              41,
+              16,
+              150,
+              175
+            ],
+            "sha256": "487f60d77e3a8fbca02bcd196f623f94ead62352d2838608ff3b9e75fb84bee7"
+          },
+          {
+            "column": 2,
+            "sourceCrop": [
+              707,
+              754,
+              869,
+              998
+            ],
+            "alphaBounds": [
+              43,
+              16,
+              149,
+              176
+            ],
+            "sha256": "7698ef3a4df4529893c449dbc8962c4d1afa0589ad108b937976ab970330650b"
+          },
+          {
+            "column": 3,
+            "sourceCrop": [
+              1009,
+              754,
+              1156,
+              998
+            ],
+            "alphaBounds": [
+              48,
+              16,
+              144,
+              176
+            ],
+            "sha256": "45fdc89645de0749f6e54b5a5754de4350c1106eafb7b4b79a8d6c95d2e60321"
+          }
+        ]
+      },
+      {
+        "row": 4,
+        "direction": "block",
+        "uniformScale": 0.6477732793522267,
+        "source": "source/shield-rush-effects-source.png",
+        "frames": [
+          {
+            "column": 0,
+            "sourceCrop": [
+              109,
+              1032,
+              254,
+              1171
+            ],
+            "alphaBounds": [
+              49,
+              54,
+              143,
+              141
+            ],
+            "sha256": "830179862c8ef9c354d9ef89f6beb4e7a632591f56915cd49cbb4c460858f49b"
+          },
+          {
+            "column": 1,
+            "sourceCrop": [
+              360,
+              998,
+              607,
+              1222
+            ],
+            "alphaBounds": [
+              18,
+              23,
+              176,
+              168
+            ],
+            "sha256": "8f3d8737a000b523e8ab3f7dcf4c2249b44d3bf9a6a141c2ee60ad77921d88a2"
+          },
+          {
+            "column": 2,
+            "sourceCrop": [
+              669,
+              1015,
+              876,
+              1206
+            ],
+            "alphaBounds": [
+              29,
+              34,
+              163,
+              158
+            ],
+            "sha256": "6cc5397250a707438ac28af1549c6784f8f8b920ca269a142775ac2869625528"
+          },
+          {
+            "column": 3,
+            "sourceCrop": [
+              1010,
+              1035,
+              1158,
+              1173
+            ],
+            "alphaBounds": [
+              48,
+              51,
+              144,
+              140
+            ],
+            "sha256": "ce3c25064eacc77ba070d5c42629ece364fd9e7015c1dfc64eb5067c0eec336e"
+          }
+        ]
+      }
+    ],
+    "sha256": "4e5b987f140c6bb6e0ed2fa2f8cfc8a6455a0351f2a7cb994c6d423964bc3dcc"
+  },
+  "icon": {
+    "file": "warrior-shield-rush-icon.webp",
+    "derivedFrom": "effects row0 col0",
+    "size": [
+      192,
+      192
+    ]
+  },
+  "preview": {
+    "file": "warrior-shield-rush-preview.webp",
+    "frameMs": 180,
+    "frames": 4
+  },
+  "integrationPaths": [
+    "assets/resource/classes/approved/warrior-shield-rush-body.webp",
+    "assets/resource/classes/approved/warrior-shield-rush-effects.webp"
+  ],
+  "qa": {
+    "allBodyFramesInBounds": true,
+    "feetBottomY": 132,
+    "allDirectionsAuthoredSeparately": true,
+    "allFramesUnique": true,
+    "noFxBodyParts": true,
+    "frontSwordViewerLeftShieldViewerRight": true,
+    "rearSwordViewerRightShieldViewerLeft": true,
+    "alternatingSideLegs": "near bright silver and far dark gray exchange leading/support roles",
+    "actualAlpha": true,
+    "atlasFormats": "lossless RGBA WebP",
+    "animationChecks": [
+      {
+        "file": "animations/fx-up.webp",
+        "frames": 4,
+        "uniqueFrames": 4,
+        "durationMs": [
+          180,
+          180,
+          180,
+          180
+        ],
+        "loop": 0
+      },
+      {
+        "file": "animations/body-down.webp",
+        "frames": 4,
+        "uniqueFrames": 4,
+        "durationMs": [
+          180,
+          180,
+          180,
+          180
+        ],
+        "loop": 0
+      },
+      {
+        "file": "animations/body-up.webp",
+        "frames": 4,
+        "uniqueFrames": 4,
+        "durationMs": [
+          180,
+          180,
+          180,
+          180
+        ],
+        "loop": 0
+      },
+      {
+        "file": "animations/fx-block.webp",
+        "frames": 4,
+        "uniqueFrames": 4,
+        "durationMs": [
+          70,
+          70,
+          70,
+          70
+        ],
+        "loop": 0
+      },
+      {
+        "file": "animations/body-left.webp",
+        "frames": 4,
+        "uniqueFrames": 4,
+        "durationMs": [
+          180,
+          180,
+          180,
+          180
+        ],
+        "loop": 0
+      },
+      {
+        "file": "animations/fx-right.webp",
+        "frames": 4,
+        "uniqueFrames": 4,
+        "durationMs": [
+          180,
+          180,
+          180,
+          180
+        ],
+        "loop": 0
+      },
+      {
+        "file": "animations/fx-left.webp",
+        "frames": 4,
+        "uniqueFrames": 4,
+        "durationMs": [
+          180,
+          180,
+          180,
+          180
+        ],
+        "loop": 0
+      },
+      {
+        "file": "animations/fx-down.webp",
+        "frames": 4,
+        "uniqueFrames": 4,
+        "durationMs": [
+          180,
+          180,
+          180,
+          180
+        ],
+        "loop": 0
+      },
+      {
+        "file": "animations/body-right.webp",
+        "frames": 4,
+        "uniqueFrames": 4,
+        "durationMs": [
+          180,
+          180,
+          180,
+          180
+        ],
+        "loop": 0
+      }
+    ]
+  },
+  "limitations": [
+    "Four generated key poses per cycle, without rig-based interpolation.",
+    "Small source illustration details vary per frame; identity, equipment sides, cycle body scale and ground pivot are held consistent.",
+    "Body shield is braced at chest height, with the additional barrier FX conveying complete protection.",
+    "FX retains generated red/gold soft-alpha fringe within recorded source crops.",
+    "Hit-flash preview loops for inspection; gameplay should play row4 once.",
+    "Movement, damage immunity, direction locking, hit push, and cooldown are game logic, not encoded by image frames."
+  ]
+}
