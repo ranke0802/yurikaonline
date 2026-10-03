@@ -7,7 +7,7 @@ import Player from '../src/js/entities/Player.js';
 import MonsterManager from '../src/js/world/MonsterManager.js';
 import NetworkManager from '../src/js/core/NetworkManager.js';
 import Controller from '../src/js/combat/ClassCombatController.js';
-import {CLASS_WEAPONS_ENABLED,WEAPON_CLASSES,WEAPON_THEMES,classWeaponId,classWeaponDetailLines,classWeaponBonuses} from '../src/js/core/ClassWeapons.js';
+import {CLASS_WEAPONS_ENABLED,WEAPON_CLASSES,WEAPON_THEMES,classWeaponId,classWeaponDetailLines,classWeaponBonuses,classWeaponRoute,basicWeaponBonuses} from '../src/js/core/ClassWeapons.js';
 import {DURABLE_BOSS_REWARD_ARCHIVED_CATALOGS as archives,resolveDurableBossEntitlementPolicy} from '../src/js/core/DurableBossRewardPolicy.js';
 import {projectClassProfile,attachClassProfile,buildClassProfilePatch} from '../src/js/core/ClassProfiles.js';
 const read=path=>JSON.parse(fs.readFileSync(new URL('../'+path.replace(/^\//,''),import.meta.url)));
@@ -38,7 +38,7 @@ for(const theme of WEAPON_THEMES)for(const tier of ['', 'blessed_'])for(const cl
    assert.deepEqual(live.getEnhancementConfig(item),live.getEnhancementConfig(mage));
    assert.deepEqual(live.normalizeInventoryItem(JSON.parse(JSON.stringify(item))),item);
    for(const id2 of ['wizard',...WEAPON_CLASSES])assert.equal(player(id2,item).canEquipWeapon({...item,allowedClasses:[id2]}),id2===classId);
-   if(classId==='warrior'){const text=classWeaponDetailLines(pc,item).join(' ');assert.doesNotMatch(text,/응징|도발|마나 소모/);if(rolls.missileDamageBonus||rolls.fireballChainChance)assert.match(text,/방패 돌진/);if(rolls.missileManaCostReduction)assert.match(text,/재사용 대기시간/);}
+   assert.ok(classWeaponDetailLines(pc,item).some(line=>line.includes(classWeaponRoute(item).name)));
    assert.ok(classWeaponDetailLines(pc,item).length>0);assert.doesNotMatch(classWeaponDetailLines(pc,item).join(' '),/매직 미사일|파이어볼|체인 라이트닝|지팡이/);
    parityCases++;
   }
@@ -126,18 +126,21 @@ function combat(c,theme='astral',prefix=null){
 }
 for(const c of WEAPON_CLASSES){
  test(`${c} basic damage/restore are applied only on accepted hits; launch snapshots survive equipment change`,()=>{
-  const f=combat(c),e=f.enemy(),bonus=f.p.getWeaponCombatProfile(),power=100*(1+bonus.laserDamageBonus);
+  const f=c==='witch'?combat(c,'riftcore'):combat(c,'magic','crimson_flash_'+c),e=f.enemy(),bonus=f.p.getWeaponCombatProfile(),power=100*(1+bonus.laserDamageBonus);
   if(c==='warrior'){f.controller.basic({x:100,y:0});assert.equal(f.hits[0].n,Math.ceil(power));}
   else {if(c==='witch')f.controller.orb({x:100,y:0});else f.controller.arrow({x:100,y:0});const projectile=f.controller.projectiles[0];f.p.equipment.weapon=null;f.controller.resolveProjectileHit(projectile,e);if(c==='witch')f.tick(3.01);assert.equal(f.hits.reduce((s,h)=>s+h.n,0),Math.ceil(power*(c==='archer'?.85:1)));}
   assert.equal(f.p.hp,500+bonus.restoreHpPerLaserHit+(c==='witch'?Math.ceil(power)*.5:0));
   const blocked=combat(c);blocked.enemy();blocked.controller.hooks.damage=()=>0;blocked.controller.basic({x:100,y:0});blocked.tick(1);assert.equal(blocked.p.hp,500);
  });
- test(`${c} damage skill receives exact multiplier and cooldown reduction; utility slot is unchanged`,()=>{
-  const f=combat(c,'storm'),e=f.enemy(),w=classWeaponBonuses(f.p);assert.equal(f.controller.skill(w.slot,{x:40,y:0}),true);
-  const cooldown={witch:9,warrior:10,archer:12}[c];near(f.controller.cooldowns[w.slot],cooldown*(1-w.missileManaCostReduction));
-  if(c==='witch')f.tick(1.01);if(c==='archer')f.tick(.61);if(c==='warrior')f.tick(1.6);
-  const base={witch:100+e.maxHp*.05,warrior:100,archer:55}[c];assert.equal(c==='warrior'?f.hits.reduce((n,h)=>n+h.n,0):f.hits[0].n,Math.ceil(base*(1+w.missileDamageBonus)));
-  const other=c==='archer'?1:3;assert.equal(f.controller.skill(other,{x:40,y:0}),true);near(f.controller.cooldowns[other]-f.controller.time,{witch:16,warrior:20,archer:7}[c]);
+ test(`${c} storm targets summon, charge or backward leap with canonical numbers`,()=>{
+  const f=combat(c,'storm'),e=f.enemy(),w=classWeaponBonuses(f.p);f.p.hp=1000;
+  let summonWeapon;f.controller.hooks.summon=(id,level,weapon)=>{summonWeapon=weapon;return {id,hp:100,maxHp:100}};
+  assert.equal(w.slot,2);assert.equal(f.controller.skill(2,{x:40,y:0}),true);
+  near(f.controller.cooldowns[2],{witch:1,warrior:7,archer:8}[c]*(1-w.missileManaCostReduction));
+  if(c==='witch'){near(summonWeapon.damageBonus,w.missileDamageBonus);assert.equal(f.p.hp,200);}
+  if(c==='warrior')assert.equal(f.hits[0].n,Math.ceil(160*(1+w.missileDamageBonus)));
+  if(c==='archer'){near(f.p.x,-160*(1+w.missileDamageBonus));assert.equal(f.hits.length,0);}
+  assert.equal(f.controller.skill(3,{x:40,y:0}),true);near(f.controller.cooldowns[3],{witch:16,warrior:20,archer:12}[c]);
  });
  test(`${c} chain is 0.3s, at most 12, single cast trigger, no additional status stacks, stops on dispose`,()=>{
   const f=combat(c,'tidal'),e=f.enemy();e.hp=e.maxHp=1e9;if(c==='warrior')e.isBoss=true;const w=classWeaponBonuses(f.p);
@@ -211,3 +214,33 @@ test('full v3 receipt survives delayed claim, class/map/host change and live cat
   assert.equal(net._validateDurableBossRewardEnvelope(without,key,2015000).reason,'missing_item_snapshot');
  }finally{globalThis.window=previous;}
 });
+
+for(const c of WEAPON_CLASSES){
+ test(`${c}: five themes have unique skill/mode routes; saved IDs resolve at runtime`,()=>{
+  const routes=WEAPON_THEMES.map(t=>classWeaponRoute({type:`blessed_${t}_${c}`}));
+  assert.equal(new Set(routes.map(r=>`${r.slot}:${r.mode}`)).size,5);
+  for(const t of WEAPON_THEMES){const f=combat(c,t);for(const aimed of [false,true])assert.equal(!!basicWeaponBonuses(f.p,aimed),t===(aimed?'riftcore':'magic'));}
+ });
+ test(`${c}: riftcore boosts only held attack and magic only tap, including recovery floor`,()=>{
+  for(const theme of ['magic','riftcore'])for(const aimed of [false,true]){
+   const f=combat(c,theme,theme==='magic'?'starlight_'+c:null),e=f.enemy(100,0),w=classWeaponBonuses(f.p);f.controller.rage=100;
+   f.controller.basic({aimed,x:100,y:0});const applies=aimed===(theme==='riftcore');
+   const projectile=f.controller.projectiles.find(p=>p.kind!=='return');
+   if(projectile)near(projectile.power,100*(1+(applies?w.damageBonus:0))*(c==='warrior'?3:1));
+   else near(f.hits[0].n,Math.ceil(100*(1+(applies?w.damageBonus:0))));
+   assert.ok(f.controller.basicReady>=.2);
+  }
+ });
+ test(`${c}: astral buffs only slot3, consumes heal once per cast and snapshots potency`,()=>{
+  const f=combat(c,'astral'),w=classWeaponBonuses(f.p),e=f.enemy(0,0),ally={hp:100,maxHp:100};f.controller.hooks.allies=()=>[ally];
+  f.controller.skill(3,{x:0,y:0});
+  if(c==='witch'){near(f.controller.multipliers(ally).attack,1+.2*(1+w.damageBonus));near(f.p.hp,500+w.restoreHpPerLaserHit);f.tick(10.01);assert.equal(f.controller.multipliers(ally).attack,1);}
+  if(c==='warrior'){f.controller.basic({x:100,y:0});near(f.p.hp,500+Math.ceil(100*.2*(1+w.damageBonus)));f.tick(8.01);assert.equal(f.hits.at(-1).n,Math.ceil(100*(1+w.damageBonus)));}
+  if(c==='archer'){f.tick(3.01);assert.equal(f.hits.length,5);assert.ok(f.hits.every(h=>h.n===Math.ceil(55*(1+w.damageBonus))));near(f.p.hp,500+w.restoreHpPerLaserHit);}
+ });
+ test(`${c}: first-map chain affix triggers only tap, keeps canonical ratio and 12 limit`,()=>{
+  const f=combat(c,'magic','blue_flame_'+c);f.enemy();f.controller.basic({x:40,y:0});f.tick(5);
+  assert.equal(f.hits.filter(h=>h.meta.weaponChain).length,12);
+  const g=combat(c,'magic','blue_flame_'+c);g.enemy();g.controller.rage=100;g.controller.basic({aimed:true,x:40,y:0});g.tick(5);assert.equal(g.hits.filter(h=>h.meta.weaponChain).length,0);
+ });
+}

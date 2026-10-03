@@ -1,3 +1,4 @@
+import { summonStats, advanceSummonVitals, damageSummon } from './SummonStats.js';
 import { applyAllocatedHealing, healingDisplayAmount } from './SkillHealing.js';
 import { drawShieldRushBody, SHIELD_RUSH } from './ShieldRush.js';
 import { drawAuthoredClassBody } from './AuthoredCharacterFrames.js';
@@ -46,7 +47,7 @@ export default class ClassCombatBridge {
             },
             damage: (e,n,m) => this.damage(e,n,m), status: (e,t,d,data) => this.status(e,t,d,data),
             clearStatus: (e,t) => this.clearStatus(e,t), move: (e,x,y) => this.move(e,x,y),
-            summon: (id,level) => this.summon(id,level), dismiss: e => { e.isDead = true; this.actors = this.actors.filter(a => a !== e); },
+            summon: (id,level,weapon) => this.summon(id,level,weapon), dismiss: e => { e.isDead = true; this.actors = this.actors.filter(a => a !== e); },
             effect: (name,data) => {
                 this.game?.sound?.playClassEvent?.(name,{...data,audioId:`${this.visualEpoch}:${data.id}`},{remote:false});
                 const origin=['warrior_slash','rage_smash'].includes(name)?attackAnchor(this.owner,data.target,name):{};
@@ -71,7 +72,7 @@ export default class ClassCombatBridge {
         actor.takeDamage(amount); return true;
     }
     receiveSupport(support) {
-        if(support?.type === 'berserk') { this.controller.state(this.owner).berserkUntil = this.controller.time + 10; this.owner.classStatuses ||= {}; this.owner.classStatuses.berserk = {remaining:10}; }
+        if(support?.type === 'berserk') { Object.assign(this.controller.state(this.owner),{berserkUntil:this.controller.time+10,berserkPotency:Math.max(1,Math.min(3,Number(support.potency)||1))}); this.owner.classStatuses ||= {}; this.owner.classStatuses.berserk = {remaining:10}; }
         if(support?.type === 'heal') this.showHealing(this.owner,applyAllocatedHealing(this.owner,support.amount));
     }
     paused() { return !!this.game?.story?.isStoryActive || !!this.game?.ui?.isPaused && !this.game?.net?.isSharedFieldActive?.(); }
@@ -131,7 +132,7 @@ export default class ClassCombatBridge {
     }
     status(e,type,duration,data = {}) {
         if(type === 'stun' && e.classStatuses) delete e.classStatuses.poison;
-        if(type === 'berserk' && this.allies().includes(e)) this.game?.net?.sendPlayerDamage(e.id,0,null,0,0,{classSupport:{type:'berserk',duration:10}});
+        if(type === 'berserk' && this.allies().includes(e)) this.game?.net?.sendPlayerDamage(e.id,0,null,0,0,{classSupport:{type:'berserk',duration:10,potency:data.potency||1}});
         const safe = {sourceId:this.owner.id,stacks:data.stacks || 0,slow:data.slow || 0,targetId:data.target?.id || this.owner.id,targetX:data.target?.x ?? this.owner.x,targetY:data.target?.y ?? this.owner.y};
         if (typeof e.applyClassStatus === 'function') {
             const packet = {type,duration,...safe};
@@ -152,11 +153,11 @@ export default class ClassCombatBridge {
         }
         e.x=x;e.y=y;return true;
     }
-    summon(id,level) {
+    summon(id,level,weapon=null) {
         const definition=this.definitions.get(id); if(!definition) return null;
         const visual=new Monster(this.owner.x+36,this.owner.y+24,definition);
-        const actor={id:`summon:${this.owner.id}:${++ClassCombatBridge.serial}`,ownerId:this.owner.id,isSummon:true,typeId:id,x:visual.x,y:visual.y,hp:this.owner.maxHp*.55,maxHp:this.owner.maxHp*.55,isDead:false,width:32,height:32,visual,attackReady:0,classStatuses:{},isLocalOnly:true};
-        actor.takeDamage=n=>{actor.hp=Math.max(0,actor.hp-n);actor.isDead=actor.hp<=0;};
+        const actor={id:`summon:${this.owner.id}:${++ClassCombatBridge.serial}`,ownerId:this.owner.id,isSummon:true,typeId:id,x:visual.x,y:visual.y,...summonStats(visual),weaponAttackMultiplier:1+(weapon?.damageBonus||0),isDead:false,width:32,height:32,visual,attackReady:0,classStatuses:{},isLocalOnly:true};
+        actor.takeDamage=n=>damageSummon(actor,n);
         const scale=visual.isBoss ? .6 : 1;
         visual.width*=scale;visual.height*=scale;if(visual.renderWidth)visual.renderWidth*=scale;if(visual.renderHeight)visual.renderHeight*=scale;
         visual.isBoss=false;visual.init(visual.assetPath);this.actors.push(actor);return actor;
@@ -181,10 +182,11 @@ export default class ClassCombatBridge {
         for(const actor of this.actors) {
             for(const [k,s] of Object.entries(actor.classStatuses)){s.remaining-=delta;if(s.remaining<=0)delete actor.classStatuses[k];}
             if(!alive(actor))continue;
+            advanceSummonVitals(actor,delta);
             const enemy=this.controller.enemies().filter(e=>Math.hypot(e.x-actor.x,e.y-actor.y)<320).sort((a,b)=>Math.hypot(a.x-actor.x,a.y-actor.y)-Math.hypot(b.x-actor.x,b.y-actor.y))[0];
             const target=enemy || this.owner,dist=Math.hypot(target.x-actor.x,target.y-actor.y),mult=this.multipliers(actor);
-            if(dist>(enemy?55:70)){const step=Math.min(dist,125*mult.move*delta);this.move(actor,actor.x+(target.x-actor.x)/dist*step,actor.y+(target.y-actor.y)/dist*step);}
-            if(enemy&&dist<=65&&this.controller.time>=actor.attackReady){this.damage(enemy,this.owner.attackPower*.6*mult.attack,{summon:true});actor.attackReady=this.controller.time+1.2/mult.attackSpeed;}
+            if(dist>(enemy?actor.attackRange:70)){const step=Math.min(dist,actor.speed*mult.move*delta);this.move(actor,actor.x+(target.x-actor.x)/dist*step,actor.y+(target.y-actor.y)/dist*step);}
+            if(enemy&&dist<=actor.attackRange&&this.controller.time>=actor.attackReady){this.damage(enemy,actor.attackPower*(actor.weaponAttackMultiplier||1)*mult.attack,{summon:true});actor.attackReady=this.controller.time+actor.attackCooldownSeconds/mult.attackSpeed;}
             actor.visual.x=actor.x;actor.visual.y=actor.y;actor.visual._advanceAnimation(delta);
         }
         this.syncVisuals();

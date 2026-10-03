@@ -92,7 +92,8 @@ export function drawSkillImpact(ctx, x, y, radius, progress, options = {}) {
     if (!image) return false;
     const phase = clamp(progress, 0, 1);
     const index = 8 + Math.min(7, Math.floor(phase * 8));
-    const size = Math.max(missile ? 58 : 90, radius * 2.7);
+    // Fixed 180px radial envelope across impact frames; radius is the actual AoE.
+    const size = missile ? Math.max(58,radius*2.7) : Math.max(0,radius) * 2 * CELL / 180;
     // The art itself expands then disperses. Do not scale each frame's bounds
     // independently or the impact jumps between ignition and the shockwave.
     return frame(ctx, image, index, x, y, size, size, 0, phase > 0.86 ? (1 - phase) / 0.14 : 1);

@@ -71,8 +71,10 @@ test('support and summon inbox routes require party/host evidence and never dama
    send('ally', { classSupport: { type: 'heal', amount: 300 } });
    send('stranger', { summonId: 's1', monsterId: 'm1' }, 10);
    send('host', { summonId: 's1', monsterId: 'm1' }, 10);
-   assert.deepEqual(supports, [{ type: 'berserk', duration: 10 }, { type: 'heal', amount: 100 }]);
+   assert.deepEqual(supports, [{ type: 'berserk', duration: 10, potency: 1 }, { type: 'heal', amount: 100 }]);
    assert.deepEqual(summons, [['s1', 10]]); assert.equal(damage, 0);
+   send('ally',{classSupport:{type:'berserk',potency:1.82}});assert.equal(supports.at(-1).potency,1.82);
+   send('ally',{classSupport:{type:'berserk',potency:999}});assert.equal(supports.at(-1).potency,3);
  } finally { globalThis.window = oldWindow; }
 });
 

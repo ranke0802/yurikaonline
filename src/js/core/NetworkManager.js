@@ -14536,7 +14536,7 @@ export default class NetworkManager extends EventEmitter {
                                 && player.party?.members?.includes(val.attackerId)
                                 && player.party?.hostId && player.party.hostId === knownRemote.party?.hostId;
                             if (sameParty && val.damage === 0 && val.ts <= Date.now() + 1000) {
-                                if (support.type === 'berserk') player.classCombat?.receiveSupport?.({ type: 'berserk', duration: 10 });
+                                if (support.type === 'berserk') player.classCombat?.receiveSupport?.({ type: 'berserk', duration: 10, potency: Math.max(1, Math.min(3, Number(support.potency) || 1)) });
                                 else if (support.type === 'heal' && Number.isFinite(support.amount) && support.amount > 0) {
                                     player.classCombat?.receiveSupport?.({ type: 'heal', amount: Math.min(player.maxHp, support.amount) });
                                 }

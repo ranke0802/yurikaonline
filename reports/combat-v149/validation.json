@@ -1,0 +1,82 @@
+{
+  "version": "0.02.149",
+  "numericParityCases": 462,
+  "routes": {
+    "magic": [
+      "witch tap drain",
+      "warrior tap melee",
+      "archer tap arrow"
+    ],
+    "tidal": [
+      "poison chain",
+      "shield rush chain",
+      "trap chain"
+    ],
+    "storm": [
+      "summon attack/cooldown",
+      "charge damage/cooldown",
+      "backward leap distance/cooldown"
+    ],
+    "astral": [
+      "berserk attack-bonus potency",
+      "blood leech/finale potency",
+      "rain damage"
+    ],
+    "riftcore": [
+      "held drain orb",
+      "held traveling sword",
+      "held piercing snipe"
+    ]
+  },
+  "compatibility": "Canonical Mage effect keys, rolls, enhancement rules, item/prefix IDs and archived reward catalogs unchanged. Global attack-speed equipment stat preserved. Runtime route selected from saved item identity.",
+  "summons": {
+    "stats": [
+      "hp",
+      "maxHp",
+      "mp",
+      "maxMp",
+      "atk",
+      "def",
+      "speed",
+      "hpRegen",
+      "mpRegen"
+    ],
+    "factor": 0.5,
+    "attackIntervalFactor": 2,
+    "baseDpsFactorBeforeDefenseRoundingWeaponsAndBuffs": 0.25,
+    "levelAndRange": "source identity retained",
+    "bossVisualFactor": 0.6,
+    "hpCost": 0.8,
+    "limit": 3,
+    "berserkSeconds": 10,
+    "stormWeapon": "separate snapshot multiplier; never rewrites the half-strength base"
+  },
+  "vfx": {
+    "method": "Fixed union of alpha >16 pixels per four-frame animation row. Draw complete original cells without cropping soft glow. Same envelope used by local and remote renderer.",
+    "sourceImages": "all original bytes unchanged",
+    "lifeDrainGround": "uniform diameter scaling around authored ground point (96.5,146); elliptical projection and rising flames preserved",
+    "widthGrowth": "Witch orb diameter 28 to 37.8; drain ground diameter 190 to 256.5; Warrior slash width 140 to 189; sword wave width 128 to 172.8",
+    "noWidthGrowth": "Shield Rush level increases time/distance, not body or barrier width. Archer skill level/weapon damage does not increase arrow/rain/trap radius. Leap weapon increases start-stop span only.",
+    "mage": "Existing projectile head radius scaling retained. Fireball impact fixed 180px source envelope mapped to actual AoE diameter; unchanged missile hit spark and lightning/shield rendering."
+  },
+  "tests": {
+    "classSuite": 196,
+    "expandedCombatSuite": 155,
+    "summonSuite": 12,
+    "fireballCases": 24600,
+    "onlineFireballCases": 40,
+    "rasterProvenanceAssets": 26,
+    "browser": "4 classes x levels 1 and 8; local/remote pixels identical; real source-stat boss summon; real bridge tap-chain effect; v148 regression browser scripts",
+    "browserRegressionScriptsPassed": [
+      "combat-feedback",
+      "witch-ranged",
+      "shield-rush",
+      "warrior-multihit",
+      "class-feedback-v148",
+      "basic-progression",
+      "approved-art"
+    ],
+    "releaseFollowupUnitCases": 86
+  },
+  "limitations": "Pixel equality is deterministic local testing of the remote renderer; online deployment validation separately checks actual hosted code hashes. No synthetic tests write remote player accounts."
+}

@@ -3,7 +3,7 @@ import CampScene from './world/scenes/CampScene.js';
 import LocalAuthManager from './local/LocalAuthManager.js';
 import LocalNetworkManager from './local/LocalNetworkManager.js';
 import { getViewportMetrics } from './core/ViewportMetrics.js';
-window.RUNTIME_BUILD_VERSION = '0.02.148'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.149'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';

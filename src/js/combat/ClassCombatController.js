@@ -1,7 +1,7 @@
 import { skillHealingBudget, applyAllocatedHealing } from './SkillHealing.js';
 import { SHIELD_RUSH, shieldRushDirection, shieldRushProfile } from './ShieldRush.js';
 import { ARROW_RAIN } from './ArrowRain.js';
-import { classWeaponBonuses } from '../core/ClassWeapons.js';
+import { classWeaponBonuses, basicWeaponBonuses } from '../core/ClassWeapons.js';
 import { basicAttackProfile } from './BasicAttackProgression.js';
 import { basicAttackInterval } from './AttackCadence.js';
 import { acceptPoisonPulse } from './WitchPoison.js';
@@ -37,7 +37,7 @@ export default class ClassCombatController {
         const actual = clamp(Number(accepted) || 0, 0, before);
         if (actual && this.bloodUntil > this.time) {
             const beforeHeal = this.owner.hp;
-            this.heal(this.owner, skillHealingBudget(actual*.2,healingGroup),false);
+            this.heal(this.owner, skillHealingBudget(actual*.2*(this.bloodPotency||1),healingGroup),false);
             const restored = Math.max(0, this.owner.hp - beforeHeal);
             if (restored > 0) this.hooks.lifestealFeedback?.(restored);
         }
@@ -49,27 +49,30 @@ export default class ClassCombatController {
             this.heal(this.owner, weapon.restoreHpPerLaserHit);
             if (healState) healState.healed = true;
         }
-        if (actual) this.hooks.basicHit?.(e, actual);
+        if (actual) { this.queueWeaponChain(e,amount,weapon,healingGroup||healState||{}); this.hooks.basicHit?.(e, actual); }
         return actual;
     }
-    skillHit(e, amount, meta, weapon, chainState) {
-        const damage = amount * (1 + (weapon?.missileDamageBonus || 0));
+    skillHit(e, amount, meta, weapon, chainState = {}) {
+        const damage = amount * (1 + (weapon?.damageBonus ?? weapon?.missileDamageBonus ?? 0));
         const actual = this.hit(e, damage, meta, chainState);
-        if (actual && weapon?.fireballChainChance > 0 && !chainState.triggered) {
-            chainState.triggered = true;
-            const point = { x: e.x, y: e.y };
-            const chain = index => {
-                if (this.disposed || !alive(this.owner) || index > 12
-                    || (this.hooks.random?.() ?? Math.random()) >= weapon.fireballChainChance) return;
-                this.schedule(.3, () => {
-                    this.area(point, weapon.radius).forEach(target => this.hit(target, damage * weapon.fireballChainDamageRatio, { weaponChain: true },chainState));
-                    this.effect(weapon.effect, { ...point, radius: weapon.radius, duration: .3 });
-                    chain(index + 1);
-                });
-            };
-            chain(1);
+        if (actual) {
+            if(weapon?.restoreHpPerLaserHit && !chainState.healed){this.heal(this.owner,weapon.restoreHpPerLaserHit);chainState.healed=true;}
+            this.queueWeaponChain(e,damage,weapon,chainState);
         }
         return actual;
+    }
+    queueWeaponChain(e, damage, weapon, chainState = {}) {
+        if (!(weapon?.fireballChainChance > 0) || chainState.triggered) return;
+        chainState.triggered = true;
+        const point = { x:e.x, y:e.y };
+        const chain = index => {
+            if(this.disposed || !alive(this.owner) || index>12 || (this.hooks.random?.()??Math.random())>=weapon.fireballChainChance)return;
+            this.schedule(.3,()=>{
+                this.area(point,weapon.radius).forEach(target=>this.hit(target,damage*weapon.fireballChainDamageRatio,{weaponChain:true},chainState));
+                this.effect(weapon.effect,{...point,radius:weapon.radius,duration:.3});chain(index+1);
+            });
+        };
+        chain(1);
     }
     heal(e,amount,round=true) {
         const budget=round?skillHealingBudget(amount):Math.max(0,Number(amount)||0);
@@ -88,7 +91,7 @@ export default class ClassCombatController {
     }
     multipliers(e) {
         const s = this.statuses.get(e);
-        return s?.berserkUntil > this.time ? { move: 1.25, attackSpeed: 1.7, attack: 1.2 } : { move: 1, attackSpeed: 1, attack: 1 };
+        return s?.berserkUntil > this.time ? { move: 1.25, attackSpeed: 1.7, attack: 1 + .2*(s.berserkPotency||1) } : { move: 1, attackSpeed: 1, attack: 1 };
     }
     modifyIncomingDamage(amount) {
         if(this.isShieldRushBlocking())return 0;
@@ -114,17 +117,18 @@ export default class ClassCombatController {
             this.hooks.failure?.('검격 발사에는 분노 25가 필요합니다. 짧게 눌렀다 놓으면 연속 베기를 사용합니다.');
             return false;
         }
-        const interval = basicAttackInterval(this.classId, {
+        const weapon = basicWeaponBonuses(this.owner,aimed),healingGroup={};
+        let interval = basicAttackInterval(this.classId, {
             aimed, empowered: this.classId === 'archer' && this.empowered,
             speed: this.owner.getEffectiveClassAttackSpeed?.() ?? this.owner.attackSpeed ?? 1
         });
         if (interval === null) return false;
+        interval=Math.max(.2,interval*(1-(weapon?.missileManaCostReduction||0)));
         // Reserve before damage/effect hooks: reentrant input cannot spend twice.
         // Schedule from now, never from a stale deadline; low FPS cannot bank bursts.
         this.basicReady = this.time + interval;
         const growth = basicAttackProfile(this.classId, this.owner.skillLevels);
-        const weapon = classWeaponBonuses(this.owner),healingGroup={};
-        const power = this.attack() * growth.damageMultiplier * (1 + (weapon?.laserDamageBonus || 0));
+        const power = this.attack() * growth.damageMultiplier * (1 + (weapon?.damageBonus || 0));
         const center = this.combatOrigin();
         let point = { x: x ?? center.x + 100, y: y ?? center.y };
         if (this.classId === 'witch') {
@@ -177,25 +181,25 @@ export default class ClassCombatController {
         return { from, to: { x: from.x + forward.x * reach, y: from.y + forward.y * reach }, forward };
     }
     arrow(point, growth = basicAttackProfile(this.classId, this.owner.skillLevels)) {
-        const weapon = classWeaponBonuses(this.owner);
+        const weapon = basicWeaponBonuses(this.owner,false);
         const origin = this.attackOrigin(point, 'arrow');
-        this.projectiles.push({ kind: 'arrow', ...origin, direction: this.projectileDirection(origin, point), spawnSweep: this.launchSweep(origin, point), launchPlane: { origin: this.combatOrigin(), forward: this.direction(point) }, speed: 540, remaining: 600, age:0, weapon, power: this.attack() * growth.damageMultiplier * (1 + (weapon?.laserDamageBonus || 0)) });
+        this.projectiles.push({ kind: 'arrow', ...origin, direction: this.projectileDirection(origin, point), spawnSweep: this.launchSweep(origin, point), launchPlane: { origin: this.combatOrigin(), forward: this.direction(point) }, speed: 540, remaining: 600, age:0, weapon, power: this.attack() * growth.damageMultiplier * (1 + (weapon?.damageBonus || 0)) });
         this.effect('archer_shot', { ...origin, target: point });
     }
     orb(point, growth = basicAttackProfile(this.classId, this.owner.skillLevels)) {
-        const weapon = classWeaponBonuses(this.owner);
+        const weapon = basicWeaponBonuses(this.owner,true);
         const origin = this.attackOrigin(point, 'orb');
-        this.projectiles.push({ kind: 'orb', ...origin, direction: this.projectileDirection(origin, point), spawnSweep: this.launchSweep(origin, point), launchPlane: { origin: this.combatOrigin(), forward: this.direction(point) }, speed: 210, remaining: 560, radius: growth.orbRadius, weapon, power: this.attack() * growth.damageMultiplier * (1 + (weapon?.laserDamageBonus || 0)) });
+        this.projectiles.push({ kind: 'orb', ...origin, direction: this.projectileDirection(origin, point), spawnSweep: this.launchSweep(origin, point), launchPlane: { origin: this.combatOrigin(), forward: this.direction(point) }, speed: 210, remaining: 560, radius: growth.orbRadius, weapon, power: this.attack() * growth.damageMultiplier * (1 + (weapon?.damageBonus || 0)) });
         this.effect('drain_orb', { ...origin, target: point });
     }
     homingDrain(fallback, growth) {
         const center=this.combatOrigin();
         const target=this.enemies().filter(e=>distance(e,center)<=560).sort((a,b)=>distance(a,center)-distance(b,center))[0];
         const point=target?{x:target.x,y:target.y}:fallback,origin=this.attackOrigin(point,'orb');
-        const weapon=classWeaponBonuses(this.owner);
+        const weapon=basicWeaponBonuses(this.owner,false);
         this.projectiles.push({kind:'orb',...origin,age:0,homing:true,target,launchCenter:center,
             direction:this.projectileDirection(origin,point),speed:360,remaining:560,radius:growth.orbRadius,
-            impactRadius:growth.tapRadius,weapon,power:this.attack()*growth.damageMultiplier*(1+(weapon?.laserDamageBonus||0))});
+            impactRadius:growth.tapRadius,weapon,power:this.attack()*growth.damageMultiplier*(1+(weapon?.damageBonus||0))});
         this.effect('drain_orb',{...origin,target:point});
         return point;
     }
@@ -224,13 +228,13 @@ export default class ClassCombatController {
         else this.control(e,'poison',5,{stacks:s.stacks,slow:s.stacks*.2},false);
     }
     snipe(point, growth = basicAttackProfile(this.classId, this.owner.skillLevels)) {
-        const weapon = classWeaponBonuses(this.owner);
+        const weapon = basicWeaponBonuses(this.owner,true);
         this.lastEmpowered = this.empowered; this.empowered = false;
         const origin = this.attackOrigin(point, 'snipe');
         this.projectiles.push({kind:'snipe', ...origin, age:0,
             direction:this.projectileDirection(origin,point), spawnSweep:this.launchSweep(origin,point),
             launchPlane:{origin:this.combatOrigin(),forward:this.direction(point)},
-            speed:780, remaining:650, hitTargets:new Set(), healingGroup:{}, weapon, power:this.attack() * growth.damageMultiplier * (1 + (weapon?.laserDamageBonus || 0)), empowered:this.lastEmpowered});
+            speed:780, remaining:650, hitTargets:new Set(), healingGroup:{}, weapon, power:this.attack() * growth.damageMultiplier * (1 + (weapon?.damageBonus || 0)), empowered:this.lastEmpowered});
         // This committed event drives the firing sound; the moving projectile owns
         // the visible arrow. Damage and mark consumption happen only on contact.
         this.effect('piercing_snipe', { ...origin, target:point, empowered:this.lastEmpowered });
@@ -246,7 +250,7 @@ export default class ClassCombatController {
         if(s.trappedUntil>this.time){
             s.trappedUntil=0;
             this.area(e,130).filter(other=>other!==e).forEach(other=>{this.hit(other,p.power);this.mark(other,2);});
-            this.effect('trap_burst',{x:e.x,y:e.y});
+            this.effect('trap_burst',{x:e.x,y:e.y,radius:130});
         }
     }
     skill(slot, options = {}) {
@@ -277,13 +281,15 @@ export default class ClassCombatController {
             } else if (slot === 2) {
                 const cost = this.owner.maxHp * .8;
                 if (this.owner.hp <= cost) { this.hooks.failure?.('소환하려면 최대 HP의 80%보다 많은 현재 HP가 필요합니다.'); return false; }
-                const summon = this.hooks.summon?.(SUMMON_TYPES[clamp(Math.floor(level), 1, 8) - 1], level);
+                const summon = this.hooks.summon?.(SUMMON_TYPES[clamp(Math.floor(level), 1, 8) - 1], level, weapon);
                 if (!summon) return false;
                 this.owner.hp -= cost; this.summons.push(summon);
                 if (this.summons.length > 3) this.hooks.dismiss?.(this.summons.shift());
                 this.effect('summon', { x: summon.x, y: summon.y }); cooldown = 1;
             } else if (slot === 3) {
-                this.allies().forEach(e => { this.state(e).berserkUntil = this.time + 10; this.control(e, 'berserk', 10, {}, false); });
+                const targets=this.allies(),potency=1+(weapon?.damageBonus||0);
+                targets.forEach(e => { Object.assign(this.state(e),{berserkUntil:this.time+10,berserkPotency:potency}); this.control(e,'berserk',10,{potency},false); });
+                if(targets.length&&weapon?.restoreHpPerLaserHit)this.heal(this.owner,weapon.restoreHpPerLaserHit);
                 this.effect('berserk_potion', { radius: 240 }); cooldown = 16;
             }
         } else if (this.classId === 'warrior') {
@@ -294,7 +300,7 @@ export default class ClassCombatController {
                 const profile=shieldRushProfile(skillLevel);
                 this.shieldRush={started:this.time,until:this.time+profile.duration,remaining:profile.distance,profile,
                     elapsed:0,bank:0,direction:forward,lastX:this.owner.x,lastY:this.owner.y,hit:new Map(),
-                    totalDamage:Math.max(profile.hits,Math.ceil(power*(1+(weapon?.missileDamageBonus||0)))),weapon,chainState};
+                    totalDamage:Math.max(profile.hits,Math.ceil(power*(1+(weapon?.damageBonus||0)))),weapon,chainState};
                 this.shieldRush.effectId=this.effect('shield_rush',{duration:profile.duration,target:{x:center.x+forward.x*profile.distance,y:center.y+forward.y*profile.distance}});
                 this.hitShieldRushTargets();
                 cooldown = 10;
@@ -314,19 +320,20 @@ export default class ClassCombatController {
                 if (refund) this.rage = Math.min(100, this.rage + 25);
                 this.effect('punishing_charge', { ...origin, target: this.combatOrigin(), aimTarget: point }); cooldown = 7;
             } else if (slot === 3) {
-                this.bloodUntil = this.time + 8;
-                this.schedule(8, () => { const spent = this.rage; this.rage = 0; this.area(this.combatOrigin(), WG.finale.radius).forEach(e => this.hit(e, power * (1 + spent * .04))); this.effect('blood_finale', { radius: 170, rage: spent }); });
+                this.bloodUntil = this.time + 8; this.bloodPotency=1+(weapon?.damageBonus||0);
+                this.schedule(8, () => { const spent = this.rage; this.rage = 0; this.area(this.combatOrigin(), WG.finale.radius).forEach(e => this.skillHit(e, power * (1 + spent * .04),{},weapon,chainState)); this.effect('blood_finale', { radius: 170, rage: spent }); });
                 this.effect('blood_pact', { duration: 8 }); cooldown = 20;
             }
         } else if (this.classId === 'archer') {
             if (slot === 1) {
                 this.cancelEffect(this.trap?.id);
-                const id=this.effect('hunter_trap', { ...point, duration: 10 }); this.trap = { ...point, id, until: this.time + 10 }; cooldown = 7;
+                const id=this.effect('hunter_trap', { ...point, duration: 10 }); this.trap = { ...point, id, weapon, power, chainState, until: this.time + 10 }; cooldown = 7;
             } else if (slot === 2) {
                 const origin = { x: this.owner.x, y: this.owner.y };
                 const retreat=shieldRushDirection(this.owner,d);
                 const visualOrigin = this.combatOrigin();
-                for (let i = 0; i < 8; i++) if (this.hooks.move?.(this.owner, this.owner.x - retreat.x * 20, this.owner.y - retreat.y * 20) === false) break;
+                const retreatDistance=160*(1+(weapon?.damageBonus||0));
+                for(let traveled=0;traveled<retreatDistance;traveled+=20){const step=Math.min(20,retreatDistance-traveled);if(this.hooks.move?.(this.owner,this.owner.x-retreat.x*step,this.owner.y-retreat.y*step)===false)break;}
                 this.evadeUntil = this.time + .35; this.empowered = true;
                 this.hooks.decoy?.(origin, 2); this.effect('shadow_leap', { ...visualOrigin, target: this.combatOrigin() }); cooldown = 8;
             } else if (slot === 3) {
@@ -375,7 +382,7 @@ export default class ClassCombatController {
             if(record.pulse===pulse)continue;
             record.pulse=pulse;rush.hit.set(e,record);
             const damage=Math.floor(rush.totalDamage*(pulse+1)/profile.hits)-Math.floor(rush.totalDamage*pulse/profile.hits);
-            if(damage<=0 || !this.skillHit(e,damage,{},rush.weapon?{...rush.weapon,missileDamageBonus:0}:null,rush.chainState))continue;
+            if(damage<=0 || !this.skillHit(e,damage,{},rush.weapon?{...rush.weapon,damageBonus:0,missileDamageBonus:0}:null,rush.chainState))continue;
             record.hits++;this.state(e).shieldHitUntil=this.time+SHIELD_RUSH.markSeconds;
             if(!e.isBoss){
                 let pushed=this.hooks.pushShieldTarget?.(e,d,profile.push)||0;
@@ -439,7 +446,7 @@ export default class ClassCombatController {
         this.summons = this.summons.filter(e => { if (alive(e)) return true; this.hooks.dismiss?.(e); return false; });
         if (this.trap && this.trap.until > this.time) {
             const e = this.area(this.trap, 36)[0];
-            if (e) { this.mark(e, 3); this.state(e).trappedUntil = this.time + 4; this.control(e, 'root', 2); this.cancelEffect(this.trap.id); this.effect('trap_trigger', { x:this.trap.x,y:this.trap.y }); this.trap = null; }
+            if (e) { this.queueWeaponChain(e,this.trap.power,this.trap.weapon,this.trap.chainState); this.mark(e, 3); this.state(e).trappedUntil = this.time + 4; this.control(e, 'root', 2); this.cancelEffect(this.trap.id); this.effect('trap_trigger', { x:this.trap.x,y:this.trap.y }); this.trap = null; }
         } else { this.cancelEffect(this.trap?.id); this.trap = null; }
         for (const p of [...this.projectiles]) this.advanceProjectile(p, Math.min(dt, .25));
         for (const [e, s] of this.statuses) if (!alive(e)) this.statuses.delete(e);

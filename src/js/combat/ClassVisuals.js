@@ -1,3 +1,5 @@
+import { WARRIOR_GEOMETRY } from './ClassGeometry.js';
+import { effectEnvelope } from './ClassEffectBounds.js';
 import { drawShieldRushBody } from './ShieldRush.js';
 import { renderArrowRain } from './ArrowRain.js';
 import { drawAuthoredClassBody, classArtPath } from './AuthoredCharacterFrames.js';
@@ -8,11 +10,12 @@ import { captureProjectileWorldContext, isProjectileWorldContextCurrent } from '
 
 export const EFFECT_ROWS = {
     witch: [['life_circle','drain_orb','drain_link','drain_heal','orb','return'], ['poison_cloud','poison_potion'], ['summon'], ['berserk_potion']],
-    warrior: [['warrior_slash','rage_smash'], ['challenge','shield_rush','shield_impact','shield_block'], ['punishing_charge'], ['blood_pact','blood_finale']],
+    warrior: [['warrior_slash','rage_smash','weapon_slash'], ['challenge','shield_rush','shield_impact','shield_block'], ['punishing_charge'], ['blood_pact','blood_finale']],
     archer: [['archer_shot','piercing_snipe','arrow','snipe'], ['hunter_trap','trap_burst','trap_trigger'], ['shadow_leap'], ['tracking_rain']]
 };
 const GROUND = new Set(['life_circle','poison_cloud','summon','hunter_trap','tracking_rain','blood_pact','berserk_potion']);
 const DIRECTIONAL = new Set(['warrior_slash','rage_smash','punishing_charge','archer_shot','piercing_snipe','shadow_leap']);
+const SPATIAL = new Set(['orb','life_circle','poison_cloud','warrior_slash','rage_smash','weapon_slash','punishing_charge','blood_finale','arrow','snipe','tracking_rain','hunter_trap','trap_trigger','trap_burst','shadow_leap']);
 export const STATUS_ICONS = ['poison','berserk','rage','mark','root','taunt','bloodPact','empowered'];
 export function loadClassVisualImages(classId, images) {
     const resources=getSharedResourceManager();
@@ -33,9 +36,11 @@ export function drawClassEffect(renderer,ctx,name,x,y,size,age=0,options={}) {
     const phase=tick%6,frame=options.sustained?(phase<=3?phase:6-phase):Math.min(3,tick);
     const angle=options.angle||0,width=options.width||size,height=options.height||size;
     const pivotX=Number.isFinite(options.pivotX)?options.pivotX:.5;
+    const spatial=SPATIAL.has(name);
+    const envelope=effectEnvelope(spatial?(circle?'lifeCircle':classId):null,row,w,h,width,height,pivotX);
     const transformed=!!angle||options.opacity<1; if(transformed)ctx.save();if(options.opacity<1)ctx.globalAlpha*=options.opacity;
-    if(angle){ctx.translate(x,y);ctx.rotate(angle);ctx.drawImage(img,frame*w,row*h,w,h,-width*pivotX,-height/2,width,height);}
-    else ctx.drawImage(img,frame*w,row*h,w,h,x-width*pivotX,y-height/2,width,height);
+    if(angle){ctx.translate(x,y);ctx.rotate(angle);ctx.drawImage(img,frame*w,row*h,w,h,envelope.x,envelope.y,envelope.width,envelope.height);}
+    else ctx.drawImage(img,frame*w,row*h,w,h,x+envelope.x,y+envelope.y,envelope.width,envelope.height);
     if(transformed)ctx.restore();
 }
 function renderProjectiles(renderer,ctx,behind) {
@@ -50,8 +55,8 @@ function renderProjectiles(renderer,ctx,behind) {
         }
         const isBehind=p.kind==='return'?p.y<center.y:(p.direction?.y||0)<0;
         if(isBehind!==behind)continue;
-        renderer.drawEffect(ctx,p.kind,p.x,p.y,p.kind==='snipe'?72:p.kind==='arrow'?48:p.kind==='orb'?58*(p.radius||14)/14:58,p.age??renderer.controller?.time??0,
-            {angle:p.direction?Math.atan2(p.direction.y,p.direction.x):0,sustained:true});
+        renderer.drawEffect(ctx,p.kind,p.x,p.y,p.kind==='snipe'?72:p.kind==='arrow'?48:p.kind==='orb'?(p.radius||14)*2:58,p.age??renderer.controller?.time??0,
+            {angle:p.direction?Math.atan2(p.direction.y,p.direction.x):0,sustained:true,...(p.kind==='arrow'?{width:48,height:16}:p.kind==='snipe'?{width:72,height:36}:{})});
     }
 }
 function renderPotion(renderer,ctx,f,behind) {
@@ -68,7 +73,7 @@ export function renderGroundEffects(renderer,ctx) {
         if(f.name==='tracking_rain'){renderArrowRain(renderer,ctx,f,true);continue;}
         if(GROUND.has(f.name))renderer.drawEffect(ctx,f.name,
             f.name==='blood_pact'?center.x:f.x,f.name==='blood_pact'?center.y:f.y,
-            f.name==='blood_pact'?110:f.name==='berserk_potion'?140:(f.radius||70)*2,f.age,
+            f.name==='blood_pact'?110:f.name==='berserk_potion'?140:['hunter_trap','trap_trigger'].includes(f.name)?72:(f.radius||70)*2,f.age,
             {angle:0,sustained:f.duration>1,opacity:['poison_cloud','tracking_rain'].includes(f.name)?.7:1});
     }
     renderProjectiles(renderer,ctx,true);
@@ -89,9 +94,9 @@ export function renderForegroundEffects(renderer,ctx) {
         const directional=DIRECTIONAL.has(f.name)&&f.target;
         const angle=directional?Math.atan2(f.target.y-f.y,f.target.x-f.x):0;
         const options={angle,sustained:f.duration>1};
-        let size=f.name==='challenge'?160:f.name==='drain_heal'?44:(f.radius||70)*2;
+        let size=f.name==='challenge'?160:f.name==='drain_heal'?44:f.name==='trap_trigger'?72:(f.radius||70)*2;
         if(['warrior_slash','rage_smash'].includes(f.name)){options.pivotX=.15;options.width=f.range||(f.name==='rage_smash'?150:100);options.height=f.halfWidth?f.halfWidth*2:(f.name==='rage_smash'?96:104);}
-        if(['punishing_charge','shadow_leap'].includes(f.name)&&f.target){options.pivotX=0;options.width=Math.max(1,Math.hypot(f.target.x-f.x,f.target.y-f.y));options.height=80;}
+        if(['punishing_charge','shadow_leap'].includes(f.name)&&f.target){options.pivotX=0;options.width=Math.max(1,Math.hypot(f.target.x-f.x,f.target.y-f.y));options.height=f.name==='punishing_charge'?WARRIOR_GEOMETRY.charge.halfWidth*2:80;}
         renderer.drawEffect(ctx,f.name,f.x,f.y,size,f.age,options);
     }
     renderProjectiles(renderer,ctx,false);
