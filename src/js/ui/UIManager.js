@@ -3018,6 +3018,8 @@ export class UIManager {
                 pushCandidate(centerLeft, margin);
                 break;
             case 'popup-near-right':
+                pushCandidate(leftLeft, bottomTop, 'popup-safe-bottom-left');
+                pushCandidate(rightLeft, bottomTop, 'popup-safe-bottom-right');
                 if (primaryFocusRect || options.popupRect) {
                     const basis = primaryFocusRect || options.popupRect;
                     pushCandidate(basis.right + 18, basis.top + 8, 'popup-near-right');
@@ -3284,7 +3286,9 @@ export class UIManager {
             const clearExitCandidates = campReturn ? candidates.filter(candidate =>
                 this.getRectOverlapArea({ ...candidate, right: candidate.left + width, bottom: candidate.top + height }, campReturn) === 0
             ) : candidates;
-            const bestCandidate = (clearExitCandidates.length ? clearExitCandidates : candidates).reduce((best, candidate, index) => {
+            const availableCandidates=clearExitCandidates.length?clearExitCandidates:candidates;
+            const targetClearCandidates=availableCandidates.filter(candidate=>focusRects.every(focus=>this.getRectOverlapArea({...candidate,right:candidate.left+width,bottom:candidate.top+height},focus)===0));
+            const bestCandidate = (targetClearCandidates.length ? targetClearCandidates : availableCandidates).reduce((best, candidate, index) => {
                 const score = this.scoreTutorialGuideCandidate(candidate, forbiddenZones, focusRects, index);
                 if (!best || score < best.score) {
                     return { ...candidate, score };

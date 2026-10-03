@@ -771,6 +771,7 @@ export default class NetworkManager extends EventEmitter {
     }
 
     async _disconnectNow(options = {}) {
+        window.game?.localPlayer?.classCombat?.controller?.cancelBarrage();
         const departingUid = this.playerId;
         if (departingUid) {
             this._profileDisconnectingUids.add(departingUid);

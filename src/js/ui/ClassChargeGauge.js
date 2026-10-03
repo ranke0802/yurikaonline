@@ -1,6 +1,8 @@
 import { Sprite } from '../core/Sprite.js';
 import { basicChargeSeconds } from '../combat/BasicAttackProgression.js';
 export function classChargeState(player) {
+    const controller=player?.classCombat?.controller,b=controller?.barrage;
+    if(b&&!player.isDead&&!player.isDying&&!controller.disposed)return{progress:Math.min(1,Math.max(0,(controller.time-b.started)/b.profile.duration)),duration:b.profile.duration,ready:false,mode:"channel"};
     const aim=player?.classAim;
     if(!['warrior','witch','archer'].includes(player?.classId)||player.isDead||player.isDying||player.classCombat?.controller?.disposed||aim?.action!=='ATTACK')return null;
     const duration=basicChargeSeconds(player,player.classCombat?.controller.empowered);

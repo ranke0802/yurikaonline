@@ -139,7 +139,7 @@ export default class RemoteClassVisuals {
         if(this.owner.isDead||this.owner.hp<=0)return true;
         const lag=Math.max(0,(now-packet.ts)/1000),names=(EFFECT_ROWS[this.classId]||[]).flat();
         const m=packet.motion;
-        if(m&&Number.isSafeInteger(m.id)&&Number.isInteger(m.row)&&m.row>=0&&m.row<4&&Number.isFinite(m.age)&&m.age>=0&&Number.isFinite(m.duration)&&m.duration>=.2&&m.duration<=(m.shieldRush===true&&this.classId==='warrior'&&m.row===1?3.7:m.barrage===true&&this.classId==='warrior'&&m.row===3?2.4:.60)&&(m.direction===undefined||(Number.isInteger(m.direction)&&m.direction>=0&&m.direction<=3))) {
+        if(m&&Number.isSafeInteger(m.id)&&Number.isInteger(m.row)&&m.row>=0&&m.row<4&&Number.isFinite(m.age)&&m.age>=0&&Number.isFinite(m.duration)&&m.duration>=.2&&m.duration<=(m.shieldRush===true&&this.classId==='warrior'&&m.row===1?3.7:m.barrage===true&&this.classId==='warrior'&&m.row===3?2:.60)&&(m.direction===undefined||(Number.isInteger(m.direction)&&m.direction>=0&&m.direction<=3))) {
             const age=m.age+lag;if(m.held&&lag<.3||!m.held&&age<m.duration)this.motion={id:m.id,row:m.row,barrage:m.barrage===true&&this.classId==='warrior'&&m.row===3,shieldRush:m.shieldRush===true&&this.classId==='warrior'&&m.row===1,direction:m.direction??(Number.isInteger(this.owner.direction)&&this.owner.direction>=0&&this.owner.direction<=3?this.owner.direction:1),held:!!m.held,age,duration:m.duration,receivedAt:now,expiresAt:m.held?packet.ts+300:now+(m.duration-age)*1000};
         }
         for(const f of (Array.isArray(packet.effects)?packet.effects:[]).slice(0,64)){
@@ -147,7 +147,7 @@ export default class RemoteClassVisuals {
             const duration=Math.max(0,Math.min(10,f.duration)),age=Math.max(0,f.age)+lag;
             if(age>=duration)continue;
             this.effects.push({id:f.id,name:f.name,x:f.x,y:f.y,target:finitePoint(f.target)?{x:f.target.x,y:f.target.y}:null,
-                radius:Math.max(0,Math.min(700,Number(f.radius)||0)),range:Math.max(0,Math.min(f.name==='gwangcheon'?740:243,Number(f.range)||0)),halfWidth:Math.max(0,Math.min(95,Number(f.halfWidth)||0)),duration,age,pulseCount:Math.max(24,Math.min(38,Number(f.pulseCount)||24)),receivedAt:now});
+                radius:Math.max(0,Math.min(700,Number(f.radius)||0)),range:Math.max(0,Math.min(f.name==='gwangcheon'?740:243,Number(f.range)||0)),halfWidth:Math.max(0,Math.min(95,Number(f.halfWidth)||0)),duration,age,pulseCount:Math.max(4,Math.min(32,Number(f.pulseCount)||4)),receivedAt:now});
         }
         for(const p of (Array.isArray(packet.projectiles)?packet.projectiles:[]).slice(0,32)){
             if(!finitePoint(p)||!['orb','return','arrow','snipe','sword_wave'].includes(p.kind)||!finitePoint(p.direction)||!Number.isFinite(p.speed)||lag>.4)continue;

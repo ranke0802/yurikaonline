@@ -1,3 +1,4 @@
+import { enforceBarrageLock } from '../combat/BarrageLock.js';
 import Entity from './Entity.js';
 
 export default class Actor extends Entity {
@@ -18,6 +19,8 @@ export default class Actor extends Entity {
     update(dt) {
         if (this.isDead) return;
 
+        if(enforceBarrageLock(this)){super.update(dt);return;}
+
         // Apply movement + knockback
         this.x += (this.vx + this.knockback.vx) * dt;
         this.y += (this.vy + this.knockback.vy) * dt;
@@ -32,6 +35,7 @@ export default class Actor extends Entity {
     }
 
     applyKnockback(vx, vy) {
+        if(enforceBarrageLock(this))return;
         this.knockback.vx = vx;
         this.knockback.vy = vy;
     }

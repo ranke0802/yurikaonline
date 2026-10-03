@@ -852,6 +852,7 @@ export default class Player extends CharacterBase {
     }
 
     _handleMovement(dt) {
+        if(this.classCombat?.controller.barrage){this.vx=this.vy=0;this.isRunning=false;this.state="attack";return;}
         if(this.classCombat?.controller.shieldRush){this.vx=0;this.vy=0;this.moveTarget=null;this.state='move';return;}
         if (!this.input) return;
 

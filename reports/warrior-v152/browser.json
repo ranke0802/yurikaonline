@@ -1,0 +1,1234 @@
+[
+  {
+    "label": "desktop",
+    "level": 1,
+    "launch": {
+      "accepted": true,
+      "range": 960,
+      "span": 1600,
+      "halfWidth": 96,
+      "halfLength": 36,
+      "speed": 720,
+      "rage": 75,
+      "x": 1696
+    },
+    "flight": {
+      "x": 2128,
+      "distance": 504,
+      "remaining": 456
+    },
+    "cast": {
+      "ok": true,
+      "start": {
+        "x": 1600,
+        "y": 1600
+      },
+      "now": {
+        "x": 1600,
+        "y": 1600
+      },
+      "motion": {
+        "id": 2,
+        "row": 3,
+        "barrage": true,
+        "direction": 3,
+        "age": 0.2499999999999999,
+        "duration": 2
+      },
+      "effect": {
+        "name": "gwangcheon",
+        "id": "effect-2",
+        "x": 1624,
+        "y": 1624,
+        "range": 600,
+        "halfWidth": 32,
+        "target": {
+          "x": 2224,
+          "y": 1624
+        },
+        "duration": 2,
+        "pulseCount": 4,
+        "age": 0.2499999999999999
+      },
+      "duplicate": false
+    },
+    "end": {
+      "hits": [
+        {
+          "id": "front",
+          "n": 17,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 0,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-1",
+            "barrageRemaining": 2
+          }
+        },
+        {
+          "id": "front",
+          "n": 17,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 1,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-1",
+            "barrageRemaining": 1.3333333333333335
+          }
+        },
+        {
+          "id": "front",
+          "n": 17,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 2,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-1",
+            "barrageRemaining": 0.6666666666666665
+          }
+        },
+        {
+          "id": "front",
+          "n": 17,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 3,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-1",
+            "barrageRemaining": 0
+          }
+        }
+      ],
+      "rage": 25,
+      "active": false,
+      "effect": false,
+      "remote": {
+        "motion": {
+          "id": 2,
+          "row": 3,
+          "barrage": true,
+          "shieldRush": false,
+          "direction": 3,
+          "held": false,
+          "age": 0.2499999999999999,
+          "duration": 2,
+          "receivedAt": 1791029801107,
+          "expiresAt": 1791029802857
+        },
+        "effect": {
+          "id": "effect-2",
+          "name": "gwangcheon",
+          "x": 1624,
+          "y": 1624,
+          "target": {
+            "x": 2224,
+            "y": 1624
+          },
+          "radius": 0,
+          "range": 600,
+          "halfWidth": 32,
+          "duration": 2,
+          "age": 0.2499999999999999,
+          "pulseCount": 4,
+          "receivedAt": 1791029801107
+        }
+      }
+    }
+  },
+  {
+    "label": "desktop",
+    "level": 8,
+    "launch": {
+      "accepted": true,
+      "range": 1215,
+      "span": 1600,
+      "halfWidth": 129.60000000000002,
+      "halfLength": 48.6,
+      "speed": 720,
+      "rage": 75,
+      "x": 1696
+    },
+    "flight": {
+      "x": 2128,
+      "distance": 504,
+      "remaining": 711
+    },
+    "cast": {
+      "ok": true,
+      "start": {
+        "x": 1600,
+        "y": 1600
+      },
+      "now": {
+        "x": 1600,
+        "y": 1600
+      },
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "barrage": true,
+        "direction": 3,
+        "age": 0.25,
+        "duration": 2
+      },
+      "effect": {
+        "name": "gwangcheon",
+        "id": "effect-4",
+        "x": 1624,
+        "y": 1624,
+        "range": 740,
+        "halfWidth": 39,
+        "target": {
+          "x": 2364,
+          "y": 1624
+        },
+        "duration": 2,
+        "pulseCount": 32,
+        "age": 0.25
+      },
+      "duplicate": false
+    },
+    "end": {
+      "hits": [
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 0,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 2
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 1,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.935483870967742
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 2,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.870967741935484
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 3,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.806451612903226
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 4,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.741935483870968
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 5,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.67741935483871
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 6,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.612903225806452
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 7,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.548387096774194
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 8,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.483870967741936
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 9,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.419354838709678
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 10,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.354838709677419
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 11,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.290322580645161
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 12,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.225806451612903
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 13,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.161290322580645
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 14,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.096774193548387
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 15,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.032258064516129
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 16,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.967741935483871
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 17,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.903225806451613
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 18,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.838709677419355
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 19,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.774193548387097
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 20,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.709677419354839
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 21,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.645161290322581
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 22,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.5806451612903221
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 23,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.5161290322580641
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 24,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.45161290322580605
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 25,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.38709677419354804
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 26,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.32258064516129004
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 27,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.25806451612903203
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 28,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.19354838709677402
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 29,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.12903225806451601
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 30,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.06451612903225801
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 31,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0
+          }
+        }
+      ],
+      "rage": 25,
+      "active": false,
+      "effect": false,
+      "remote": {
+        "motion": {
+          "id": 4,
+          "row": 3,
+          "barrage": true,
+          "shieldRush": false,
+          "direction": 3,
+          "held": false,
+          "age": 0.25,
+          "duration": 2,
+          "receivedAt": 1791029801659,
+          "expiresAt": 1791029803409
+        },
+        "effect": {
+          "id": "effect-4",
+          "name": "gwangcheon",
+          "x": 1624,
+          "y": 1624,
+          "target": {
+            "x": 2364,
+            "y": 1624
+          },
+          "radius": 0,
+          "range": 740,
+          "halfWidth": 39,
+          "duration": 2,
+          "age": 0.25,
+          "pulseCount": 32,
+          "receivedAt": 1791029801659
+        }
+      }
+    }
+  },
+  {
+    "label": "mobile",
+    "level": 1,
+    "launch": {
+      "accepted": true,
+      "range": 900,
+      "span": 1114.2857142857144,
+      "halfWidth": 96,
+      "halfLength": 36,
+      "speed": 720,
+      "rage": 75,
+      "x": 1696
+    },
+    "flight": {
+      "x": 2128,
+      "distance": 504,
+      "remaining": 396
+    },
+    "cast": {
+      "ok": true,
+      "start": {
+        "x": 1600,
+        "y": 1600
+      },
+      "now": {
+        "x": 1600,
+        "y": 1600
+      },
+      "motion": {
+        "id": 2,
+        "row": 3,
+        "barrage": true,
+        "direction": 3,
+        "age": 0.25,
+        "duration": 2
+      },
+      "effect": {
+        "name": "gwangcheon",
+        "id": "effect-2",
+        "x": 1624,
+        "y": 1624,
+        "range": 600,
+        "halfWidth": 32,
+        "target": {
+          "x": 2224,
+          "y": 1624
+        },
+        "duration": 2,
+        "pulseCount": 4,
+        "age": 0.25
+      },
+      "duplicate": false
+    },
+    "end": {
+      "hits": [
+        {
+          "id": "front",
+          "n": 17,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 0,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-1",
+            "barrageRemaining": 2
+          }
+        },
+        {
+          "id": "front",
+          "n": 17,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 1,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-1",
+            "barrageRemaining": 1.3333333333333335
+          }
+        },
+        {
+          "id": "front",
+          "n": 17,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 2,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-1",
+            "barrageRemaining": 0.6666666666666665
+          }
+        },
+        {
+          "id": "front",
+          "n": 17,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 3,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-1",
+            "barrageRemaining": 0
+          }
+        }
+      ],
+      "rage": 25,
+      "active": false,
+      "effect": false,
+      "remote": {
+        "motion": {
+          "id": 2,
+          "row": 3,
+          "barrage": true,
+          "shieldRush": false,
+          "direction": 3,
+          "held": false,
+          "age": 0.25,
+          "duration": 2,
+          "receivedAt": 1791029805770,
+          "expiresAt": 1791029807520
+        },
+        "effect": {
+          "id": "effect-2",
+          "name": "gwangcheon",
+          "x": 1624,
+          "y": 1624,
+          "target": {
+            "x": 2224,
+            "y": 1624
+          },
+          "radius": 0,
+          "range": 600,
+          "halfWidth": 32,
+          "duration": 2,
+          "age": 0.25,
+          "pulseCount": 4,
+          "receivedAt": 1791029805770
+        }
+      }
+    }
+  },
+  {
+    "label": "mobile",
+    "level": 8,
+    "launch": {
+      "accepted": true,
+      "range": 1215,
+      "span": 1114.2857142857144,
+      "halfWidth": 129.60000000000002,
+      "halfLength": 48.6,
+      "speed": 720,
+      "rage": 75,
+      "x": 1696
+    },
+    "flight": {
+      "x": 2128,
+      "distance": 504,
+      "remaining": 711
+    },
+    "cast": {
+      "ok": true,
+      "start": {
+        "x": 1600,
+        "y": 1600
+      },
+      "now": {
+        "x": 1600,
+        "y": 1600
+      },
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "barrage": true,
+        "direction": 3,
+        "age": 0.25,
+        "duration": 2
+      },
+      "effect": {
+        "name": "gwangcheon",
+        "id": "effect-4",
+        "x": 1624,
+        "y": 1624,
+        "range": 740,
+        "halfWidth": 39,
+        "target": {
+          "x": 2364,
+          "y": 1624
+        },
+        "duration": 2,
+        "pulseCount": 32,
+        "age": 0.25
+      },
+      "duplicate": false
+    },
+    "end": {
+      "hits": [
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 0,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 2
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 1,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.935483870967742
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 2,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.870967741935484
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 3,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.806451612903226
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 4,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.741935483870968
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 5,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.67741935483871
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 6,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.612903225806452
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 7,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.548387096774194
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 8,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.483870967741936
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 9,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.419354838709678
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 10,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.354838709677419
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 11,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.290322580645161
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 12,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.225806451612903
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 13,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.161290322580645
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 14,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.096774193548387
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 15,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 1.032258064516129
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 16,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.967741935483871
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 17,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.903225806451613
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 18,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.838709677419355
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 19,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.774193548387097
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 20,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.709677419354839
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 21,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.645161290322581
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 22,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.5806451612903221
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 23,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.5161290322580641
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 24,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.45161290322580605
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 25,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.38709677419354804
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 26,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.32258064516129004
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 27,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.25806451612903203
+          }
+        },
+        {
+          "id": "front",
+          "n": 4,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 28,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.19354838709677402
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 29,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.12903225806451601
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 30,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0.06451612903225801
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 31,
+            "armorPierce": 1,
+            "barrageCastId": "barrage-3",
+            "barrageRemaining": 0
+          }
+        }
+      ],
+      "rage": 25,
+      "active": false,
+      "effect": false,
+      "remote": {
+        "motion": {
+          "id": 4,
+          "row": 3,
+          "barrage": true,
+          "shieldRush": false,
+          "direction": 3,
+          "held": false,
+          "age": 0.25,
+          "duration": 2,
+          "receivedAt": 1791029806021,
+          "expiresAt": 1791029807771
+        },
+        "effect": {
+          "id": "effect-4",
+          "name": "gwangcheon",
+          "x": 1624,
+          "y": 1624,
+          "target": {
+            "x": 2364,
+            "y": 1624
+          },
+          "radius": 0,
+          "range": 740,
+          "halfWidth": 39,
+          "duration": 2,
+          "age": 0.25,
+          "pulseCount": 32,
+          "receivedAt": 1791029806021
+        }
+      }
+    }
+  }
+]

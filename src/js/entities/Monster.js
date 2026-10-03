@@ -1,3 +1,4 @@
+import { enforceBarrageLock, receiveBarrageLock } from '../combat/BarrageLock.js';
 import { drawMonsterStatusBadges } from '../combat/MonsterStatusBadges.js';
 import { acceptPoisonPulse, claimPoisonPulse, paintPoisonStatus } from '../combat/WitchPoison.js';
 import CharacterBase from './core/CharacterBase.js';
@@ -645,7 +646,7 @@ export default class Monster extends CharacterBase {
 
     // v0.00.43: Charge Skill Implementation
     startCharge(targetX, targetY) {
-        if (this.isDead || this.chargeState !== 'idle') return;
+        if (this.isDead || enforceBarrageLock(this) || this.chargeState !== 'idle') return;
         if (!Number.isFinite(targetX) || !Number.isFinite(targetY)) {
             Logger.warn(`[Monster] Ignored invalid charge target for ${this.id || this.typeId}`);
             return;
@@ -1065,6 +1066,7 @@ export default class Monster extends CharacterBase {
     }
 
     startBossTelegraph(payload) {
+        if(enforceBarrageLock(this))return;
         if (this.isDead || !payload) return;
         const id = String(payload.id || `${this.id || this.typeId}:boss_telegraph:${Date.now()}`);
         const now = Date.now();
@@ -1127,6 +1129,7 @@ export default class Monster extends CharacterBase {
     }
 
     startShadowAmbush(payload) {
+        if(enforceBarrageLock(this))return;
         if (!payload || this.isDead) return;
         const id = String(payload.id || `${this.id}:ambush:${Date.now()}`);
         if (this.shadowAmbush?.id === id) return;
@@ -1209,6 +1212,7 @@ export default class Monster extends CharacterBase {
     }
 
     _applyBossTelegraphDamage(telegraph) {
+        if(enforceBarrageLock(this))return;
         const canApplyDamage = !window.game?.net || window.game.net.isHost;
         const isPersistent = Number(telegraph.persistentMs || 0) > 0;
         if (!canApplyDamage || (telegraph.resolved && !isPersistent)) return;
@@ -1424,6 +1428,7 @@ export default class Monster extends CharacterBase {
             if (status.remaining <= 0) delete this.classStatuses[type];
         }
         paintPoisonStatus(this);
+        if(enforceBarrageLock(this)){this._advanceAnimation(safeDt);return;}
         if (!this.isDead && (this.classStatuses?.stun || this.classStatuses?.stagger)) {
             this.vx = this.vy = 0;
             this._advanceAnimation(safeDt);
@@ -1922,6 +1927,7 @@ export default class Monster extends CharacterBase {
     }
 
     takeDamage(amount, triggerFlash = true, isCrit = false, sourceX = null, sourceY = null, damageMeta = null) {
+        if(damageMeta?.barrageLock?.release===true){receiveBarrageLock(this,damageMeta.barrageLock);return true;}
         if (this.isDead || window.game?.monsterManager?.isMonsterCombatBlocked?.()) return false;
         if (damageMeta?.classPoisonPulse && damageMeta.poisonPulse && !claimPoisonPulse(this,this.classCombatTime||0,damageMeta.poisonPulse,window.game?.net?.isHost !== false || this.isLocalOnly)) return false;
         if (typeof damageMeta?.classHitId === 'string') {
@@ -1934,6 +1940,7 @@ export default class Monster extends CharacterBase {
             if(this.classHitIds.size>1024)this.classHitIds.delete(this.classHitIds.keys().next().value);
         }
         if (damageMeta?.classMove && Number(amount) === 0) {
+            if(enforceBarrageLock(this))return false;
             const {x,y}=damageMeta.classMove;
             if(this.isBoss || !Number.isFinite(x) || !Number.isFinite(y) || Math.hypot(x-this.x,y-this.y)>100)return false;
             const scene=window.game?.sceneManager?.currentScene;
@@ -1975,6 +1982,7 @@ export default class Monster extends CharacterBase {
             return; // Completely block
         }
 
+        if(dmg>0&&damageMeta?.barrageLock)receiveBarrageLock(this,damageMeta.barrageLock);
         if (dmg > 0 && this.lastAttackerId) {
             this.damageContributors.add(this.lastAttackerId);
             this._rememberDamageContributorLevel(damageMeta);
@@ -2009,6 +2017,7 @@ export default class Monster extends CharacterBase {
         if(dmg>0 && this.hp>0 && damageMeta?.classPoisonPulse && (window.game?.net?.isHost !== false || this.isLocalOnly)) {
             if(acceptPoisonPulse(this,this.classCombatTime||0,damageMeta.poisonPulse)) {
                 paintPoisonStatus(this);
+        if(enforceBarrageLock(this)){this._advanceAnimation(safeDt);return;}
                 window.game?.monsterManager?.forceSync?.(this.id);
             }
         }
@@ -2100,6 +2109,7 @@ export default class Monster extends CharacterBase {
     }
 
     applyKnockback(vx, vy) {
+        if(enforceBarrageLock(this))return;
         const scale = this.isBoss ? 0.1 : 1;
         this.knockback.vx = vx * scale;
         this.knockback.vy = vy * scale;
@@ -2154,6 +2164,7 @@ export default class Monster extends CharacterBase {
     }
 
     _executeSkill(skill, target) {
+        if(enforceBarrageLock(this))return;
         Logger.log(`[Monster] ${this.id} executing skill: ${skill.id}`);
 
         // 1. Send Network Event (Host sends 'monsterAttack' packet)

@@ -1,3 +1,4 @@
+import { enforceBarrageLock } from './BarrageLock.js';
 import { summonStats, advanceSummonVitals, damageSummon } from './SummonStats.js';
 import { applyAllocatedHealing, healingDisplayAmount } from './SkillHealing.js';
 import { drawShieldRushBody, SHIELD_RUSH } from './ShieldRush.js';
@@ -48,6 +49,7 @@ export default class ClassCombatBridge {
                 if (!(this.pendingLifesteal > 0)) this.lifestealTextAt = this.controller.time + .12;
                 this.pendingLifesteal = (this.pendingLifesteal || 0) + amount;
             },
+            barrageRelease:(e,id)=>{const barrageLock={id:`${this.owner.id}:${this.visualEpoch}:${id}`,release:true};e.takeDamage?.(0,false,false,0,0,{barrageLock});if(!e.isLocalOnly)this.game?.net?.sendMonsterDamage(e.id,0,{barrageLock});},
             damage: (e,n,m) => this.damage(e,n,m), status: (e,t,d,data) => this.status(e,t,d,data),
             clearStatus: (e,t) => this.clearStatus(e,t), move: (e,x,y) => this.move(e,x,y),
             summon: (id,level,weapon) => this.summon(id,level,weapon), dismiss: e => { e.isDead = true; this.actors = this.actors.filter(a => a !== e); },
@@ -126,7 +128,8 @@ export default class ClassCombatBridge {
         if (e.hasEffect?.('shield')) return 0;
         const net = this.game?.net, before = e.hp;
         const pulse = meta.poisonPulse ? { ...meta.poisonPulse, castId:`${this.owner.id}:${this.visualEpoch}:${meta.poisonPulse.castId}` } : null;
-        const packet = {...meta, ...(pulse ? {poisonPulse:pulse} : {}), classHitId:`${this.owner.id}:${this.visualEpoch}:${++this.hitSerial}`, impactX:this.owner.x,impactY:this.owner.y,attackerLevel:this.owner.level};
+        const barrageLock=meta.barrageCastId?{id:`${this.owner.id}:${this.visualEpoch}:${meta.barrageCastId}`,until:Date.now()+Math.max(0,meta.barrageRemaining)*1000}:null;
+        const packet = {...meta,...(barrageLock?{barrageLock}:{}), ...(pulse ? {poisonPulse:pulse} : {}), classHitId:`${this.owner.id}:${this.visualEpoch}:${++this.hitSerial}`, impactX:this.owner.x,impactY:this.owner.y,attackerLevel:this.owner.level};
         if (net && !e.isLocalOnly && net.sendMonsterDamage(e.id,damage,packet) === false) return 0;
         e.lastAttackerId = net?.playerId || this.owner.id;
         if (e.takeDamage(damage,false,false,this.owner.x,this.owner.y,packet) === false) return 0;
@@ -149,6 +152,7 @@ export default class ClassCombatBridge {
         if (typeof e.applyClassStatus === 'function' && !e.isLocalOnly) this.game?.net?.sendMonsterDamage(e.id,0,{classStatus:{type,duration:0,sourceId:this.owner.id}});
     }
     move(e,x,y) {
+        if(enforceBarrageLock(e))return false;
         const scene = this.game?.sceneManager?.currentScene;
         const dx=x-e.x,dy=y-e.y,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/10));
         for(let i=1;i<=steps;i++) if(scene?.checkCollision?.(e.x+dx*i/steps,e.y+dy*i/steps,e.width || 32,e.height || 32)) return false;

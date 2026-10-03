@@ -1,3 +1,4 @@
+import { acquireBarrageLock, enforceBarrageLock, releaseBarrageLock } from './BarrageLock.js';
 import { warriorBarrageProfile, swordWaveProfile, barrageReach } from './WarriorBarrage.js';
 import { skillHealingBudget, applyAllocatedHealing } from './SkillHealing.js';
 import { SHIELD_RUSH, shieldRushDirection, shieldRushProfile } from './ShieldRush.js';
@@ -310,8 +311,10 @@ export default class ClassCombatController {
                 cooldown = 10;
             } else if (slot === 2) {
                 const profile=warriorBarrageProfile(skillLevel),direction=shieldRushDirection(this.owner,d);
-                const totalDamage=Math.max(profile.hits,Math.ceil(this.attack()*profile.damageMultiplier*(1+(weapon?.damageBonus||0))));
-                this.barrage={started:this.time,profile,direction,totalDamage,weapon,chainState,nextPulse:0,refunded:false,lastX:this.owner.x,lastY:this.owner.y};
+                const totalDamage=Math.max(1,Math.ceil(this.attack()*profile.damageMultiplier*(1+(weapon?.damageBonus||0))));
+                this.barrage={started:this.time,profile,direction,totalDamage,weapon,chainState,nextPulse:0,refunded:false,lastX:this.owner.x,lastY:this.owner.y,targets:new Map(),locked:new Set()};
+                const b=this.barrage;b.castId=`barrage-${++this.effectSerial}`;
+                acquireBarrageLock(this.owner,b,{active:()=>this.barrage===b});
                 const geometry=this.barrageGeometry();
                 this.barrage.effectId=this.effect('gwangcheon',{...geometry,duration:profile.duration,pulseCount:profile.hits});
                 this.advanceBarrage();cooldown=7;
@@ -417,16 +420,20 @@ export default class ClassCombatController {
     }
     cancelBarrage() {
         if(!this.barrage)return;
-        this.cancelEffect(this.barrage.effectId);this.barrage=null;this.hooks.barrageEnded?.();
+        const b=this.barrage;this.barrage=null;
+        releaseBarrageLock(this.owner,b);
+        for(const e of b.locked){releaseBarrageLock(e,b);this.hooks.barrageRelease?.(e,b.castId);}
+        this.cancelEffect(b.effectId);this.hooks.barrageEnded?.();
     }
     advanceBarrage() {
         const b=this.barrage;if(!b)return;
-        if(!alive(this.owner)||this.owner.classStatuses?.stun?.remaining>0||Math.hypot(this.owner.x-b.lastX,this.owner.y-b.lastY)>100){this.cancelBarrage();return;}
-        b.lastX=this.owner.x;b.lastY=this.owner.y;
+        if(!alive(this.owner)||this.owner.classStatuses?.stun?.remaining>0){this.cancelBarrage();return;}
+        enforceBarrageLock(this.owner);
+        for(const e of b.locked)enforceBarrageLock(e);
         const geometry=this.barrageGeometry(),end=this.time,elapsed=end-b.started;
         this.hooks.updateEffect?.(b.effectId,{...geometry,age:elapsed});
         while(this.barrage===b && b.nextPulse<b.profile.hits && b.nextPulse*b.profile.interval<=elapsed+1e-8){
-            const index=b.nextPulse++,damage=Math.floor(b.totalDamage*(index+1)/b.profile.hits)-Math.floor(b.totalDamage*index/b.profile.hits);
+            const index=b.nextPulse++;
             this.time=b.started+index*b.profile.interval;
             if(geometry.range<=0)continue;
             const d=b.direction,seen=new Set();
@@ -435,8 +442,12 @@ export default class ClassCombatController {
                 const x=e.x-geometry.x,y=e.y-geometry.y,along=x*d.x+y*d.y,side=Math.abs(x*d.y-y*d.x);
                 if(along<0||along>geometry.range||side>b.profile.halfWidth+(e.radius||16))continue;
                 // Whole corridor stops at the first wall; never hit through it.
-                const accepted=this.skillHit(e,damage,{barrage:true,pulse:index},b.weapon?{...b.weapon,damageBonus:0,missileDamageBonus:0}:null,b.chainState);
+                if(!b.targets.has(key))b.targets.set(key,Math.max(1,Math.ceil(b.totalDamage-Math.max(0,Number(e.defense)||0))));
+                const budget=b.targets.get(key),damage=Math.ceil(budget*(index+1)/b.profile.hits)-Math.ceil(budget*index/b.profile.hits);
+                if(damage<=0)continue;
+                const accepted=this.skillHit(e,damage,{barrage:true,pulse:index,armorPierce:1,barrageCastId:b.castId,barrageRemaining:Math.max(0,b.profile.duration-(this.time-b.started))},b.weapon?{...b.weapon,damageBonus:0,missileDamageBonus:0}:null,b.chainState);
                 if(this.barrage!==b)break;
+                if(accepted&&alive(e)){b.locked.add(e);acquireBarrageLock(e,b,{active:()=>this.barrage===b,blockAttacks:true});}
                 if(accepted&&!b.refunded&&this.state(e).shieldHitUntil>this.time){b.refunded=true;this.rage=Math.min(100,this.rage+25);}
             }
         }

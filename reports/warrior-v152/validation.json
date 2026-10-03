@@ -1,0 +1,40 @@
+{
+  "version": "0.02.152",
+  "contract": {
+    "hitsByLevel": [
+      4,
+      8,
+      12,
+      16,
+      20,
+      24,
+      28,
+      32
+    ],
+    "durationSeconds": 2,
+    "firstHitSeconds": 0,
+    "lastHitSeconds": 2,
+    "totalAtkPercent": [
+      480,
+      748.8
+    ],
+    "damage": "Round total once; subtract target DEF once; allocate integer total across scheduled pulses without per-hit minimum inflation. Very small budgets have zero-damage contacts.",
+    "locks": "Caster and accepted-hit targets only; bosses included. Cancel attack preparation, movement and displacement until this cast ends. Other CC and already fired projectiles unchanged. No caster invulnerability.",
+    "cleanup": "completion/cancel/death/dispose/world change/disconnect; independent overlapping cast leases, remote expiry and release tombstones"
+  },
+  "tests": {
+    "classes": 196,
+    "barrageV152": 133,
+    "warriorAndWeaponsInitial": 96,
+    "tutorial": "3 actual detail-close/upgrade clicks and zero geometric overlap assertions",
+    "browser": [
+      "desktop/mobile Lv1/8 sword flight and barrage count",
+      "held keyboard/joystick fixed and resumes",
+      "world-charge-v150",
+      "shield-rush",
+      "combat-v149"
+    ]
+  },
+  "art": "Existing raster assets unchanged; screenshots inspected.",
+  "liveBeforeRelease": "0.02.150; v151 CI failed before deployment on tutorial guide interception"
+}
