@@ -1,0 +1,27 @@
+{
+  "archive": "YurikaOnline-game-integration.zip",
+  "archive_size": 18585144,
+  "archive_sha256": "4a57cd980d35ecb267a1bb3b974b3ec04c4dec857983fde418bb9884beee6651",
+  "archive_git_blob_sha1": "4443b89d83d9b2f99d077ed9d6d0940daf26cd46",
+  "format": "Concatenate raw binary parts in the listed order. No recompression or file modification.",
+  "parts": [
+    {
+      "file": "YurikaOnline-game-integration.zip.part01",
+      "size": 6291456,
+      "sha256": "db9aab322c911411887263b423c6e2443e6c3c54998675661df0bc1a6f0d2171",
+      "git_blob_sha1": "0969bcbb8276c70aa123afbfe87eb8793dfbb285"
+    },
+    {
+      "file": "YurikaOnline-game-integration.zip.part02",
+      "size": 6291456,
+      "sha256": "8e660da401f9d0318cd98f663add81db28903ca1f6efa113a349ff811bc1c7f2",
+      "git_blob_sha1": "b81ee20313cda35c9388ac82f32fe4c1c540c902"
+    },
+    {
+      "file": "YurikaOnline-game-integration.zip.part03",
+      "size": 6002232,
+      "sha256": "1390dac37ab25c600b0d5c37b5f3d5902a12070d132599827e4f061680442dff",
+      "git_blob_sha1": "077b1d55ff4673ac794a6d7d2fdc27ba9cc0d417"
+    }
+  ]
+}
