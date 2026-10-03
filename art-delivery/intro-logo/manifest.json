@@ -1,0 +1,134 @@
+{
+  "name": "Yurika Online generated raster intro logo",
+  "created_utc": "2026-10-03",
+  "generator": "built-in image_gen",
+  "title": "YURIKA ONLINE",
+  "preview_backdrops": [
+    "#0f1024",
+    "#f3edff"
+  ],
+  "preview_logo_sizes": [
+    640,
+    320,
+    200
+  ],
+  "runtime_total_bytes": 238444,
+  "files": [
+    {
+      "path": "final/yurika-online-intro-glint-128.webp",
+      "bytes": 2090,
+      "sha256": "6dab27cde4a8b3214115f36e80f44433e66aef473d95b9f57b62f61bdc039388",
+      "width": 128,
+      "height": 128,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        253
+      ],
+      "alpha_bbox": [
+        31,
+        10,
+        96,
+        118
+      ],
+      "transparent_pixels": 14700
+    },
+    {
+      "path": "final/yurika-online-intro-logo-512.webp",
+      "bytes": 82698,
+      "sha256": "391670e2c164ac37697ced9a90a4d9579b0f1f6c4f32385db82d51a602a2189b",
+      "width": 512,
+      "height": 512,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_bbox": [
+        9,
+        5,
+        502,
+        506
+      ],
+      "transparent_pixels": 101619
+    },
+    {
+      "path": "final/yurika-online-intro-logo-768.webp",
+      "bytes": 153656,
+      "sha256": "7abf9716cfef0f65d3ede44cb120f26a70e455c64aa4a6f7728d2057ab55c0f0",
+      "width": 768,
+      "height": 768,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_bbox": [
+        0,
+        7,
+        754,
+        758
+      ],
+      "transparent_pixels": 227187
+    },
+    {
+      "path": "preview/yurika-online-logo-dark-mobile.webp",
+      "bytes": 128158,
+      "sha256": "15c51eb46edf8ecb92561547212165ca0466a3c4aafa3cc3c958074d770f9dea",
+      "width": 1100,
+      "height": 730,
+      "mode": "RGB"
+    },
+    {
+      "path": "preview/yurika-online-logo-light-mobile.webp",
+      "bytes": 138826,
+      "sha256": "cc8f26bc23e7051eda79e2eab927d13420e44fe27fb9063378b27716638ec5c3",
+      "width": 1100,
+      "height": 730,
+      "mode": "RGB"
+    },
+    {
+      "path": "source/prompts.txt",
+      "bytes": 3539,
+      "sha256": "03c01957a2ac0c12aa79f134fe25f2a2adce65bab0b5868270489a6a68d614b7"
+    },
+    {
+      "path": "source/yurika-online-glint-generated.png",
+      "bytes": 249173,
+      "sha256": "686851c6b36bcd325627797537331e8af265e8ad6bf63a47daa681b02da415d9",
+      "width": 1312,
+      "height": 1199,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "alpha_bbox": [
+        81,
+        21,
+        1242,
+        1157
+      ],
+      "transparent_pixels": 1456012
+    },
+    {
+      "path": "source/yurika-online-logo-generated.png",
+      "bytes": 2144777,
+      "sha256": "105a3743502a277d0a0b1640e6e02c1088b26c9d27a59d280fef1c381e8fd2d7",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "alpha_bbox": [
+        0,
+        11,
+        1230,
+        1239
+      ],
+      "transparent_pixels": 609172
+    }
+  ]
+}
