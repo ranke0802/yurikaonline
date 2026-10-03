@@ -1,0 +1,14 @@
+{
+  "baselineCommit": "beafd5bd39a2ab3a1baa767a97ff1c24b16598cf",
+  "exactFilesExceptReleaseVersion": [
+    "index.html",
+    "src/js/main.js"
+  ],
+  "screens": [
+    "desktop",
+    "portrait",
+    "landscape"
+  ],
+  "newArtworkRetainedButNotRequested": true,
+  "combatUnchanged": true
+}

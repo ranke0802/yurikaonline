@@ -1,0 +1,20 @@
+[
+  {
+    "name": "desktop",
+    "width": 1280,
+    "height": 720,
+    "pixelsIdentical": true
+  },
+  {
+    "name": "portrait",
+    "width": 390,
+    "height": 844,
+    "pixelsIdentical": true
+  },
+  {
+    "name": "landscape",
+    "width": 780,
+    "height": 360,
+    "pixelsIdentical": true
+  }
+]
