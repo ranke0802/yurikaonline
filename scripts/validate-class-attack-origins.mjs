@@ -33,11 +33,11 @@ test('poison landing and pulse tasks freeze on pause and disappear on dispose',(
 test('charge effect connects original position to actual swept wall stop, not requested endpoint',()=>{
  const f=fixture('warrior');f.c.hooks.move=(actor,x,y)=>{if(x>70)return false;actor.x=x;actor.y=y;return true;};f.c.skill(2,{x:400,y:20});const effect=f.events.find(e=>e.name==='punishing_charge');assert.deepEqual({x:effect.x,y:effect.y},{x:10,y:20});assert.deepEqual(effect.target,{x:70,y:20});assert.deepEqual(effect.aimTarget,{x:400,y:20});
 });
-test('immediate Witch tap and legacy melee hitbox remain unchanged by palm hook',()=>{
- for(const classId of ['witch','warrior']){const f=fixture(classId,{attackOrigin:()=>({x:10000,y:10000})});f.enemies.push({x:30,y:20,hp:1000,maxHp:1000});f.c.basic({x:100,y:20});assert.equal(f.hits.length,1);assert.equal(f.hits[0].at,0);assert.equal(f.hits[0].n,classId==='witch'?60:30);}
+test('Warrior melee hitbox remains unchanged by palm hook',()=>{
+ for(const classId of ['warrior']){const f=fixture(classId,{attackOrigin:()=>({x:10000,y:10000})});f.enemies.push({x:30,y:20,hp:1000,maxHp:1000});f.c.basic({x:100,y:20});assert.equal(f.hits.length,1);assert.equal(f.hits[0].at,0);assert.equal(f.hits[0].n,classId==='witch'?60:30);}
 });
 test('combat center shifts melee/radial queries and self effects, without using the palm origin',()=>{
- for(const classId of ['witch','warrior']){
+ for(const classId of ['warrior']){
   const f=fixture(classId,{combatOrigin:()=>({x:500,y:500}),attackOrigin:()=>({x:900,y:900})});
   f.enemies.push({x:510,y:500,hp:1000,maxHp:1000},{x:30,y:20,hp:1000,maxHp:1000});
   f.c.basic({x:600,y:500});assert.equal(f.hits.length,1);assert.equal(f.enemies[1].hp,1000);assert.equal(f.events[0].x,500);assert.equal(f.events[0].y,500);

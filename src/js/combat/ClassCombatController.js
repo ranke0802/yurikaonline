@@ -117,10 +117,10 @@ export default class ClassCombatController {
         const weapon = classWeaponBonuses(this.owner);
         const power = this.attack() * growth.damageMultiplier * (1 + (weapon?.laserDamageBonus || 0));
         const center = this.combatOrigin();
-        const point = { x: x ?? center.x + 100, y: y ?? center.y };
+        let point = { x: x ?? center.x + 100, y: y ?? center.y };
         if (this.classId === 'witch') {
             if (aimed) this.orb(point, growth);
-            else { this.area(this.combatOrigin(), growth.tapRadius).forEach(e => this.basicHit(e, power * 2, {}, weapon)); this.effect('life_circle', { radius: growth.tapRadius }); }
+            else point = this.homingDrain(point, growth);
         } else if (this.classId === 'warrior') {
             if (aimed) {
                 this.rage -= 25;
@@ -179,6 +179,33 @@ export default class ClassCombatController {
         const origin = this.attackOrigin(point, 'orb');
         this.projectiles.push({ kind: 'orb', ...origin, direction: this.projectileDirection(origin, point), spawnSweep: this.launchSweep(origin, point), launchPlane: { origin: this.combatOrigin(), forward: this.direction(point) }, speed: 210, remaining: 560, radius: growth.orbRadius, weapon, power: this.attack() * growth.damageMultiplier * (1 + (weapon?.laserDamageBonus || 0)) });
         this.effect('drain_orb', { ...origin, target: point });
+    }
+    homingDrain(fallback, growth) {
+        const center=this.combatOrigin();
+        const target=this.enemies().filter(e=>distance(e,center)<=560).sort((a,b)=>distance(a,center)-distance(b,center))[0];
+        const point=target?{x:target.x,y:target.y}:fallback,origin=this.attackOrigin(point,'orb');
+        const weapon=classWeaponBonuses(this.owner);
+        this.projectiles.push({kind:'orb',...origin,age:0,homing:true,target,launchCenter:center,
+            direction:this.projectileDirection(origin,point),speed:360,remaining:560,radius:growth.orbRadius,
+            impactRadius:growth.tapRadius,weapon,power:this.attack()*growth.damageMultiplier*(1+(weapon?.laserDamageBonus||0))});
+        this.effect('drain_orb',{...origin,target:point});
+        return point;
+    }
+    impactHomingDrain(p) {
+        let drained=0;const healState={};
+        for(const target of this.area(p,p.impactRadius)) {
+            if(distance(target,p.launchCenter)>560)continue;
+            // Splash must not reach through walls adjacent to the impact.
+            if(this.drainPathBlocked(p,target,p.radius))continue;
+            drained+=this.basicHit(target,p.power*2,{drain:true},p.weapon,healState);
+        }
+        this.effect('life_circle',{x:p.x,y:p.y,radius:p.impactRadius});
+        if(drained>0)this.projectiles.push({kind:'return',x:p.x,y:p.y,speed:300,remaining:Infinity,age:0,life:5,healing:drained*.5});
+    }
+    drainPathBlocked(from,to,radius) {
+        const count=Math.max(1,Math.ceil(distance(from,to)/12));
+        for(let i=1;i<=count;i++)if(this.hooks.projectileBlocked?.(from.x+(to.x-from.x)*i/count,from.y+(to.y-from.y)*i/count,radius))return true;
+        return false;
     }
     poison(e, pulse = null, weapon = null, chainState = {}) {
         const accepted = this.skillHit(e, this.attack() + e.maxHp * .05, { poison: true, classPoisonPulse: true, ...(pulse ? {poisonPulse:pulse} : {}) }, weapon, chainState);
@@ -325,6 +352,11 @@ export default class ClassCombatController {
         for (const [e, s] of this.statuses) if (!alive(e)) this.statuses.delete(e);
     }
     resolveProjectileHit(p, e) {
+        if(p.homing){
+            if(!this.projectiles.includes(p))return;
+            this.projectiles.splice(this.projectiles.indexOf(p),1);
+            this.impactHomingDrain(p);return;
+        }
         if(p.kind==='snipe'){this.hitSnipe(p,e);return;}
         if (p.kind === 'arrow') { if (this.basicHit(e, (p.power ?? this.attack()) * .85, {}, p.weapon)) this.mark(e); }
         else {
@@ -342,9 +374,19 @@ export default class ClassCombatController {
         if (index >= 0) this.projectiles.splice(index, 1);
     }
     advanceProjectile(p, dt) {
+        if(!this.projectiles.includes(p))return;
+        if(p.homing){
+            p.age+=dt;
+            if(p.age>3 || (p.target && (!alive(p.target) || !this.enemies().includes(p.target)))){this.projectiles.splice(this.projectiles.indexOf(p),1);return;}
+            if(p.target && distance(p.target,p.launchCenter)<=560){
+                const dx=p.target.x-p.x,dy=p.target.y-p.y,len=Math.hypot(dx,dy);
+                if(len>0)p.direction={x:dx/len,y:dy/len};
+            }
+        }
         if(p.kind==='arrow'||p.kind==='snipe')p.age=(p.age||0)+dt;
         const amount = Math.min(p.remaining, p.speed * dt), steps = Math.max(1, Math.ceil(amount / 12));
         if (p.kind === 'return') {
+            if(Number.isFinite(p.life)){p.life-=dt;p.age+=dt;if(p.life<=0){this.projectiles.splice(this.projectiles.indexOf(p),1);return;}}
             const origin = this.attackOrigin(p, 'return');
             const dist = distance(p, origin), step = p.speed * dt;
             if (dist <= step + 12) {
@@ -354,6 +396,7 @@ export default class ClassCombatController {
                 if (healed > 0) this.effect('drain_heal', { ...origin, amount: healed });
                 this.projectiles.splice(this.projectiles.indexOf(p), 1); return;
             }
+            p.direction={x:(origin.x-p.x)/dist,y:(origin.y-p.y)/dist};
             p.x += (origin.x - p.x) / dist * step; p.y += (origin.y - p.y) / dist * step; return;
         }
         if (p.spawnSweep) {
@@ -372,8 +415,9 @@ export default class ClassCombatController {
             }
         }
         for (let i = 0; i < steps; i++) {
+            if(p.homing && this.hooks.projectileBlocked?.(p.x+p.direction.x*amount/steps,p.y+p.direction.y*amount/steps,p.radius)){this.projectiles.splice(this.projectiles.indexOf(p),1);return;}
             p.x += p.direction.x * amount / steps; p.y += p.direction.y * amount / steps;
-            const contacts=this.area(p,p.kind==='orb'?(p.radius ?? 14):p.kind==='snipe'?18:8).filter(e=>!p.launchPlane||(e.x-p.launchPlane.origin.x)*p.launchPlane.forward.x+(e.y-p.launchPlane.origin.y)*p.launchPlane.forward.y>=0);
+            const contacts=this.area(p,p.kind==='orb'?(p.radius ?? 14):p.kind==='snipe'?18:8).filter(e=>(!p.homing || distance(e,p.launchCenter)<=560) && (!p.launchPlane||(e.x-p.launchPlane.origin.x)*p.launchPlane.forward.x+(e.y-p.launchPlane.origin.y)*p.launchPlane.forward.y>=0));
             if(p.kind==='snipe'){contacts.forEach(e=>this.resolveProjectileHit(p,e));continue;}
             if(!contacts.length)continue;
             this.resolveProjectileHit(p,contacts[0]);return;

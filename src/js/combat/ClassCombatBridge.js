@@ -17,6 +17,7 @@ export default class ClassCombatBridge {
         this.controller = new ClassCombatController(owner, classId, {
             managesPoisonStatuses: true,
             combatOrigin:()=>combatCenter(this.owner),
+            projectileBlocked:(x,y,r)=>!!this.game?.sceneManager?.currentScene?.checkCollision?.(x-r,y-r,r*2,r*2),
             attackOrigin:(target,kind)=>attackAnchor(this.owner,target,kind),
             action: (kind,data)=>this.startActionMotion(kind,data),
             failure: text=>this.game?.ui?.logSystemMessage?.(text),

@@ -18,7 +18,7 @@ for(const id of Object.keys(BASIC_SKILL_IDS)) for(const level of [1,4,8]) test(`
   const f=fixture(id,level),g=basicAttackProfile(id,f.owner.skillLevels),e=f.enemy();
   assert.equal(classSkillMaxLevel(f.owner,BASIC_SKILL_IDS[id]),8);
   assert.equal(f.c.basic({x:400,y:0}),true);
-  if(id==='archer') f.advance(.1);
+  if(id==='archer'||id==='witch') f.advance(.1);
   assert.equal(f.hits[0].n,Math.ceil(100*g.damageMultiplier*(id==='witch'?2:id==='archer'?.85:1)));
   close(f.c.basicReady,{witch:.805,warrior:.7,archer:.65}[id]);
   assert.equal(f.c.basic({aimed:true}),false);
@@ -39,8 +39,8 @@ for(const level of [1,4,8]) test(`level ${level}: charged damage and collision s
 });
 for(const level of [1,4,8]) test(`level ${level}: expanded hitboxes and VFX share sizes`,()=>{
   const w=fixture('witch',level),g=basicAttackProfile('witch',w.owner.skillLevels);
-  w.enemy(g.tapRadius+.9);w.enemy(g.tapRadius+1.1);w.c.basic();assert.equal(w.hits.length,1);
-  close(w.effects[0].radius,g.tapRadius);
+  const target=w.enemy(300);w.enemy(300,g.tapRadius+.9);w.enemy(300,g.tapRadius+1.1);w.c.basic();assert.equal(w.hits.length,0);const orb=w.c.projectiles[0];orb.x=300;orb.y=0;w.c.resolveProjectileHit(orb,target);assert.equal(w.hits.length,2);
+  close(w.effects.find(e=>e.name==='life_circle').radius,g.tapRadius);
   const s=fixture('warrior',level),sg=basicAttackProfile('warrior',s.owner.skillLevels);
   s.enemy(sg.tap.range,sg.tap.halfWidth+.9);s.enemy(sg.tap.range+1.1);s.c.basic({x:500,y:0});assert.equal(s.hits.length,1);
   const calls=[],r={owner:w.owner,effects:w.effects,controller:w.c,drawEffect:(...args)=>calls.push(args)};
@@ -79,12 +79,12 @@ for(const id of Object.keys(BASIC_SKILL_IDS)) for(const level of [1,4,8]) test(`
   for(let n=1;n<approvals.length;n++)assert.ok(approvals[n]-approvals[n-1]>=.2-1e-10);
   assert.ok(approvals.length<=15);
 });
-test('Warrior guide uses collision range/width and Witch tap remains centered',()=>{
+test('Warrior guide uses collision range/width and Witch tap shows its ranged impact footprint',()=>{
   for(const level of [1,4,8])for(const id of ['warrior','witch']){
     const owner={classId:id,skillLevels:{[BASIC_SKILL_IDS[id]]:level},x:10,y:20,width:48,height:64,classAim:{action:'ATTACK',x:500,y:52,elapsed:0}};
     const growth=basicAttackProfile(id,owner.skillLevels),guide=Player.prototype.getClassAimGuide.call(owner);
     if(id==='warrior'){close(guide.targetX-guide.originX,growth.tap.range);close(guide.widthRadius,growth.tap.halfWidth);}
-    else{assert.equal(guide.circle,true);close(guide.targetX,guide.originX);close(guide.targetY,guide.originY);close(guide.aoeRadius,growth.tapRadius);}
+    else{assert.equal(guide.circle,false);close(guide.targetX-guide.originX,560);close(guide.widthRadius,growth.orbRadius);close(guide.aoeRadius,growth.tapRadius);}
   }
 });
 test('remote visual packets preserve grown geometry and bound received sizes',t=>{

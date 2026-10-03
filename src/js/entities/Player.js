@@ -354,7 +354,7 @@ export default class Player extends CharacterBase {
         }
         if (this.classId==='witch' && basic) {
             const growth=basicAttackProfile(this.classId,this.skillLevels);
-            if (a.elapsed<basicChargeSeconds(this)) { circle=true;range=0;radius=growth.tapRadius; }
+            if (a.elapsed<basicChargeSeconds(this)) { range=560;width=growth.orbRadius;radius=growth.tapRadius; }
             else { width=growth.orbRadius;radius=growth.orbRadius; }
         }
         return {originX:center.x,originY:center.y,targetX:center.x+Math.cos(angle)*range,targetY:center.y+Math.sin(angle)*range,

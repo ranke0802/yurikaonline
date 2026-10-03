@@ -1,0 +1,51 @@
+{
+  "scope": "Actual local Chromium keyboard/mouse/touch input and game raster renderer; synthetic targets and deterministic collision fixture, no live accounts",
+  "cases": [
+    {
+      "input": "keyboard",
+      "preHits": 0,
+      "hpAtHit": 500,
+      "impactTime": 0.7400000000000004,
+      "hpAfter": 600,
+      "hits": [
+        {
+          "at": 0.7400000000000004,
+          "n": 200
+        }
+      ]
+    },
+    {
+      "input": "mouse",
+      "preHits": 0,
+      "hpAtHit": 500,
+      "impactTime": 0.7400000000000004,
+      "hpAfter": 600,
+      "hits": [
+        {
+          "at": 0.7400000000000004,
+          "n": 200
+        }
+      ]
+    },
+    {
+      "input": "touch",
+      "preHits": 0,
+      "hpAtHit": 500,
+      "impactTime": 0.7400000000000004,
+      "hpAfter": 600,
+      "hits": [
+        {
+          "at": 0.7400000000000004,
+          "n": 200
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "regressions": {
+    "spamBlocked": true,
+    "nextAttackDuringReturn": true,
+    "wallNoDamageNoHeal": true,
+    "heldAimUnchanged": true
+  }
+}

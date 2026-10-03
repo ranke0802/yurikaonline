@@ -1,0 +1,283 @@
+
+> validate:classes
+> node --test scripts/validate-class-combat.mjs scripts/validate-class-player.mjs scripts/validate-class-bridge.mjs scripts/validate-class-profiles.mjs scripts/validate-class-online-routing.mjs scripts/validate-class-audit-fixes.mjs scripts/validate-poison-logical-pulses.mjs scripts/validate-attack-cadence.mjs scripts/validate-class-action-motion.mjs scripts/validate-class-attack-origins.mjs scripts/validate-class-vfx-geometry.mjs scripts/validate-archer-flight.mjs scripts/validate-class-portrait-gait.mjs scripts/validate-friend-class-profiles.mjs scripts/validate-basic-progression.mjs && npm run validate:class-action-art
+
+(node:65128) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/combat/ClassCombatController.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ tap direction0 advances at authored speed and expires at range (5.337264ms)
+✔ tap direction1 advances at authored speed and expires at range (0.626433ms)
+✔ tap direction2 advances at authored speed and expires at range (0.51826ms)
+✔ tap direction3 advances at authored speed and expires at range (1.446377ms)
+✔ tap direction4 advances at authored speed and expires at range (1.709694ms)
+✔ tap direction5 advances at authored speed and expires at range (1.297973ms)
+✔ tap direction6 advances at authored speed and expires at range (3.755203ms)
+✔ tap direction7 advances at authored speed and expires at range (0.94978ms)
+✔ snipe direction0 advances at authored speed and expires at range (1.565667ms)
+✔ snipe direction1 advances at authored speed and expires at range (3.943846ms)
+✔ snipe direction2 advances at authored speed and expires at range (0.547575ms)
+✔ snipe direction3 advances at authored speed and expires at range (0.400543ms)
+✔ snipe direction4 advances at authored speed and expires at range (0.457308ms)
+✔ snipe direction5 advances at authored speed and expires at range (0.377048ms)
+✔ snipe direction6 advances at authored speed and expires at range (0.369917ms)
+✔ snipe direction7 advances at authored speed and expires at range (0.82394ms)
+✔ snipe damage, mark consumption and trap burst wait for contact; pierces each target once (3.536855ms)
+✔ moving target can leave path, new target can enter it, owner movement never tethers arrow (0.80395ms)
+✔ far/behind targets stay unhit, rejected hits preserve marks, death removes airborne snipe (1.361649ms)
+✔ snipe draws only at moving projectile position, never as a fixed launch arrow (0.492872ms)
+✔ remote snipe extrapolates, clamps remaining range and clears without applying damage (1.777065ms)
+(node:65129) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/combat/ClassCombatController.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ class reference intervals, empowered recovery, final floor and invalid speed (2.981488ms)
+✔ witch input flood at 2fps cannot bank attacks or bypass recovery (6.000332ms)
+✔ witch input flood at 10fps cannot bank attacks or bypass recovery (1.124613ms)
+✔ witch input flood at 30fps cannot bank attacks or bypass recovery (3.422702ms)
+✔ witch input flood at 60fps cannot bank attacks or bypass recovery (7.939576ms)
+✔ witch input flood at 120fps cannot bank attacks or bypass recovery (4.964433ms)
+✔ warrior input flood at 2fps cannot bank attacks or bypass recovery (0.799553ms)
+✔ warrior input flood at 10fps cannot bank attacks or bypass recovery (1.077623ms)
+✔ warrior input flood at 30fps cannot bank attacks or bypass recovery (1.432196ms)
+✔ warrior input flood at 60fps cannot bank attacks or bypass recovery (5.078375ms)
+✔ warrior input flood at 120fps cannot bank attacks or bypass recovery (3.667801ms)
+✔ archer input flood at 2fps cannot bank attacks or bypass recovery (0.985894ms)
+✔ archer input flood at 10fps cannot bank attacks or bypass recovery (1.080927ms)
+✔ archer input flood at 30fps cannot bank attacks or bypass recovery (1.483513ms)
+✔ archer input flood at 60fps cannot bank attacks or bypass recovery (4.340033ms)
+✔ archer input flood at 120fps cannot bank attacks or bypass recovery (1.951027ms)
+✔ failed rage action has no cooldown/action; accepted reentrant action spends and damages once (0.396647ms)
+✔ archer rejection preserves empowered state and marks; success consumes each once (0.588646ms)
+✔ pause freezes recovery and rejects basic/skill without resource or action effects (0.990702ms)
+✔ effective speed changes apply at next approval, never retroactively reset recovery (0.310117ms)
+✔ Witch tap travels, flying orbs allow later shots and never reset recovery on return (0.764481ms)
+✔ skills retain independent cooldowns and emit action only after successful approval (0.324007ms)
+✔ synchronous summon callbacks cannot duplicate cost/actors before skill cooldown commits (0.255906ms)
+(node:65130) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/combat/ClassCombatController.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ witch level 1: combat damage and unchanged recovery (5.391686ms)
+✔ witch level 4: combat damage and unchanged recovery (0.394434ms)
+✔ witch level 8: combat damage and unchanged recovery (0.386392ms)
+✔ warrior level 1: combat damage and unchanged recovery (0.574014ms)
+✔ warrior level 4: combat damage and unchanged recovery (0.648566ms)
+✔ warrior level 8: combat damage and unchanged recovery (0.386151ms)
+✔ archer level 1: combat damage and unchanged recovery (0.873445ms)
+✔ archer level 4: combat damage and unchanged recovery (0.475646ms)
+✔ archer level 8: combat damage and unchanged recovery (0.295235ms)
+✔ level 1: charged damage and collision snapshots (2.5114ms)
+✔ level 4: charged damage and collision snapshots (1.057421ms)
+✔ level 8: charged damage and collision snapshots (1.724185ms)
+✔ level 1: expanded hitboxes and VFX share sizes (1.148278ms)
+✔ level 4: expanded hitboxes and VFX share sizes (0.1795ms)
+✔ level 8: expanded hitboxes and VFX share sizes (0.368194ms)
+✔ charge thresholds agree at low/mid/max; empowered threshold and floor (1.682533ms)
+✔ growth clamps corrupt levels; Mage skill behavior remains unchanged (1.179756ms)
+✔ knockback requires accepted damage, does not move bosses or cross blocked walls (0.279481ms)
+✔ witch level 1: flood cannot bypass five-per-second floor (8.127655ms)
+✔ witch level 4: flood cannot bypass five-per-second floor (1.462742ms)
+✔ witch level 8: flood cannot bypass five-per-second floor (1.840941ms)
+✔ warrior level 1: flood cannot bypass five-per-second floor (1.617209ms)
+✔ warrior level 4: flood cannot bypass five-per-second floor (1.478055ms)
+✔ warrior level 8: flood cannot bypass five-per-second floor (1.544845ms)
+✔ archer level 1: flood cannot bypass five-per-second floor (3.931348ms)
+✔ archer level 4: flood cannot bypass five-per-second floor (1.422391ms)
+✔ archer level 8: flood cannot bypass five-per-second floor (2.911713ms)
+✔ Warrior guide uses collision range/width and Witch tap shows its ranged impact footprint (0.509938ms)
+✔ remote visual packets preserve grown geometry and bound received sizes (1.501431ms)
+(node:65149) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/combat/ClassActionMotion.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ witch authored rows and release/recovery/held frames stay within4x4 atlas (2.210768ms)
+✔ warrior authored rows and release/recovery/held frames stay within4x4 atlas (0.279621ms)
+✔ archer authored rows and release/recovery/held frames stay within4x4 atlas (1.50799ms)
+✔ invalid motion cannot sample an outside atlas row or stale release (0.211959ms)
+✔ two real remote visual instances reject duplicates/reordering and expire without combat side effects (3.485356ms)
+✔ witch directional atlas maps each action to four independent authored rows (0.335315ms)
+✔ warrior directional atlas maps each action to four independent authored rows (0.191148ms)
+✔ archer directional atlas maps each action to four independent authored rows (0.221704ms)
+(node:65155) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/combat/ClassAnchors.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ arrow launch effect and collision projectile use the same authored origin and target direction (5.014498ms)
+✔ orb launch effect and collision projectile use the same authored origin and target direction (0.760876ms)
+✔ missing or nonfinite authored origin safely falls back to legacy owner coordinates (0.567935ms)
+✔ drain return follows the moving palm and heals only once at that endpoint (2.704051ms)
+✔ poison potion lands at .45s, then retains five exact t1..5 damage pulses (1.984938ms)
+✔ poison landing and pulse tasks freeze on pause and disappear on dispose (0.386312ms)
+✔ charge effect connects original position to actual swept wall stop, not requested endpoint (0.373191ms)
+✔ Warrior melee hitbox remains unchanged by palm hook (0.515095ms)
+✔ combat center shifts melee/radial queries and self effects, without using the palm origin (0.439482ms)
+✔ skill range clamp starts from combat center, while charge still moves raw actor coordinates (0.665902ms)
+✔ drain heal event occurs once only for actual healing, including ally overflow (0.387043ms)
+✔ eight-way near targets never reverse the hand ray; spawn sweep hits once and rejects behind targets (8.472042ms)
+✔ normal far ray retains the exact hand-to-target vector (0.484529ms)
+✔ actual authored hand offsets hit eight close aim rays without widening their near collision strip (6.212192ms)
+(node:65163) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/combat/WitchPoison.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ two casters share target stacks: max one/second, five-second expiry, no stun extension (3.18876ms)
+✔ host snapshot restores shared poison through cell handoff/host change; delay never extends it (0.921787ms)
+✔ duplicate class damage does not remove HP twice or restack poison; guests cannot author stacks (1.996415ms)
+✔ summoning at or below 80% is atomic, announces failure, and never constructs a summon (1.266857ms)
+✔ trap effect and collision share identity; activation, replacement and expiry cancel the exact effect (1.644015ms)
+✔ visual snapshots cannot invoke gameplay and reject duplicates, old sequence/session, other field and expired packets (1.244823ms)
+✔ delayed lifecycle clear cannot erase newer effect; expired active snapshot never resurrects consumed trap (0.31939ms)
+✔ decoy renders original character for its actual lifetime, not just .65s one-shot (0.679152ms)
+✔ Warrior ground guide uses exact same 180x128 heavy geometry, Mage guide width is untouched (1.041107ms)
+✔ poison authority metadata survives production compact cell encoding/decoding (0.906795ms)
+(node:65169) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/combat/ClassAnchors.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ class damage sends one packet and predicts one accepted hit; rejects grant zero (1.871958ms)
+✔ poison exact MAX-HP component bypasses armor and armor-piercing scales defense (0.196676ms)
+✔ swept movement rejects intervening wall without teleporting (0.211118ms)
+✔ raster effect and status frame crops use independent4x4 and4x2 grids (1.40179ms)
+✔ status metadata applies no HP loss; stun consumes poison and clamps hostile values (0.700754ms)
+✔ host targets summons through one owner inbox and never damages owner or repeats on guest (0.31916ms)
+✔ summon damage accepts only current living actor; dead/oldest/disposed IDs cannot hit owner (0.247813ms)
+✔ remote Warrior push respects host wall,100px bound and boss immunity (0.243566ms)
+✔ single effect clamps last frame; sustained pingpong never exposes outside atlas (0.56456ms)
+✔ Life Drain circle uses its separate4x1 raster without bleeding other skill rows (0.456787ms)
+✔ Blood Pact follows Warrior only on ground pass, at110px without body overlay (0.848197ms)
+✔ boss summon retains exactly60percent raster dimensions after cached async init (2.802409ms)
+✔ charge body keeps input facing when destination passes its selected target (0.566142ms)
+✔ near forward slash keeps center aim after moving visual origin to sword hand (3.451305ms)
+(node:65177) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/combat/ClassCombatController.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Witch tap travels before twice-basic impact and returns half actual damage (3.978459ms)
+✔ orb drains for three seconds then returns actual damage healing and excess to allies (2.335196ms)
+✔ rejected damage grants neither heal nor marks (0.489086ms)
+✔ poison uses enemy MAX HP including bosses, once per second, fifth pulse stuns exactly 3s (2.529758ms)
+✔ summon insufficient HP is atomic; oldest replacement, level mapping, disposal (0.705642ms)
+✔ berserk excludes caster, includes summons, expires without changing base stats (0.621706ms)
+✔ warrior 3-hit combo grants rage only on hits; aimed smash spends bounded rage (0.678992ms)
+✔ warrior taunt dash refunds once per cast and wall stuns only normal enemies (0.570589ms)
+✔ blood pact heals actual damage and final attack consumes remaining rage once (0.640153ms)
+✔ archer trap marks/root then sniper consumes and spreads marks, leap empowers once (1.283712ms)
+✔ rain kill transfers capped marks without recursive damage loop (0.898953ms)
+✔ pause/death/dispose cannot replay pending damage or restore transient summons (0.502997ms)
+✔ level growth preserves explicit Witch damage and reduces only cooldown (0.499572ms)
+✔ rejected poison cannot add slow or stun, no frame-rate stacking (1.00993ms)
+✔ aimed damage distributes integer budget without per-tick inflation at ATK5 (4.532674ms)
+(node:65184) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/core/NetworkManager.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ two clients: only monster host damages remote summon exactly once; owner remains unharmed (2.480884ms)
+✔ two clients: same-party heal crosses one inbox; cross-party/self support rejected (0.444229ms)
+✔ monster damage echo ignores attacker client and applies once on other client (0.784441ms)
+✔ empty Mage writes no summon updates; forced exit clears despite throttle and disabled field (1.64092ms)
+(node:65190) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/entities/Player.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ tap releases exactly once, held attack uses aimed path, cancel clears pending (4.046872ms)
+✔ archer leap has .2-second aimed threshold; touch drag controls direction (3.396653ms)
+✔ new class skill upgrades reject unknown/maxed keys without spending shared currency (0.523337ms)
+✔ legacy staff equipment restriction and explicit class weapon support (0.683228ms)
+✔ profile writer isolates class progression and preserves shared inventory patch (1.279246ms)
+✔ Mage keeps original touch behavior; new classes aim all four action buttons (0.306502ms)
+✔ derived combat buffs restore without accumulation or base stat writes (0.646193ms)
+✔ defensive skill dispatch still handles a zero-HP result from a custom skill hook (1.063461ms)
+✔ touch cancellation emits actual tracked action (0.543788ms)
+✔ new class walking uses approved cadence only while moving and freezes at an obstacle (1.282851ms)
+(node:65197) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/ui/UIManager.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ wizard portrait samples exactly one front-facing cell (2.851853ms)
+✔ witch portrait samples exactly one front-facing cell (0.371699ms)
+✔ warrior portrait samples exactly one front-facing cell (0.364979ms)
+✔ archer portrait samples exactly one front-facing cell (0.319151ms)
+✔ witch direction 0: movement phase survives attack and remote uses the same gait (0.792423ms)
+✔ witch direction 1: movement phase survives attack and remote uses the same gait (0.251598ms)
+✔ witch direction 2: movement phase survives attack and remote uses the same gait (0.23211ms)
+✔ witch direction 3: movement phase survives attack and remote uses the same gait (0.202484ms)
+✔ warrior direction 0: movement phase survives attack and remote uses the same gait (0.171358ms)
+✔ warrior direction 1: movement phase survives attack and remote uses the same gait (0.220752ms)
+✔ warrior direction 2: movement phase survives attack and remote uses the same gait (0.162395ms)
+✔ warrior direction 3: movement phase survives attack and remote uses the same gait (0.130396ms)
+✔ archer direction 0: movement phase survives attack and remote uses the same gait (0.113721ms)
+✔ archer direction 1: movement phase survives attack and remote uses the same gait (0.100381ms)
+✔ archer direction 2: movement phase survives attack and remote uses the same gait (0.089185ms)
+✔ archer direction 3: movement phase survives attack and remote uses the same gait (0.081763ms)
+✔ accepting a new-class attack leaves the walking phase intact (0.483628ms)
+(node:65205) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/core/ClassProfiles.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ legacy and unknown classes preserve Mage without mutation (1.925639ms)
+✔ new class does not inherit Mage equipment, level, skills or saved HP (0.679733ms)
+✔ class switch and reentry isolate progress and preserve shared item ownership (8.605243ms)
+✔ Mage patch stays root and sibling class state is retained by existing merge (0.3052ms)
+✔ presence exposes selected class while canonical Mage stays untouched (0.479902ms)
+✔ inactive equipment cannot be equipped again by switching classes (0.364319ms)
+✔ support and summon inbox routes require party/host evidence and never damage owner (0.776539ms)
+✔ ordinary patches never overwrite active selection; Mage patch shape remains exact (0.335715ms)
+(node:65212) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/combat/ClassVisuals.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ moving arrows/orbs have one image each and split behind/in front of body center (2.217187ms)
+✔ radial effects do not rotate and Blood Pact follows current combat center (0.428836ms)
+✔ slash pivots in front; charge spans exact start-stop distance; snipe launch event has no stationary image (0.390658ms)
+✔ potion follows hand-target arc and reaches target at landing; crops all four cells (0.495606ms)
+✔ remote motion direction is validated; omitted direction inherits owner; packet order guard remains (0.959905ms)
+✔ directional body atlas preserves logical row and authored direction without mirroring (1.807461ms)
+✔ downward shot is foreground from its first palm frame; return keeps relative depth (0.31244ms)
+(node:65219) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/ui/friends/FriendsUIController.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ wizard: friend stats use selected profile, independent of viewer (2.208364ms)
+✔ witch: friend stats use selected profile, independent of viewer (0.542576ms)
+✔ warrior: friend stats use selected profile, independent of viewer (0.500914ms)
+✔ archer: friend stats use selected profile, independent of viewer (0.261293ms)
+✔ missing new-class snapshot cannot inherit root Mage progression or HP (0.228504ms)
+✔ legacy and invalid class IDs use Mage definition, not viewer definition (0.241693ms)
+✔ portrait cache stays class-specific and retains explicit portraits (0.281634ms)
+(node:65226) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/yurikaonline/src/js/combat/WitchPoison.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /workspace/yurikaonline/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ five logical pulses stun with jitter 0,0,0,0,0 (2.533163ms)
+✔ five logical pulses stun with jitter 0,0.12,0,0.12,0 (0.373212ms)
+✔ five logical pulses stun with jitter 0.12,0,0.12,0,0.12 (0.25888ms)
+✔ reverse delivery of two pulses does not discard one or let duplicates damage twice (2.787116ms)
+✔ multiple casters share logical buckets without accelerating or extending stun (0.280813ms)
+✔ handoff keeps cast anchors, used buckets and damage dedupe under a different host clock (0.709828ms)
+✔ real Monster accepts each logical damage once even with changed transport id and host handoff (1.662833ms)
+✔ expiry clears stacks and journal bounds remain finite (20.586298ms)
+✔ guest prediction cannot outrank a newer host status revision (0.580533ms)
+ℹ tests 196
+ℹ suites 0
+ℹ pass 196
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 737.046689
+
+> validate:class-action-art
+> node scripts/validate-class-action-art.cjs
+
+PASS 192 nonempty action cells; margins intact; >=3 authored poses per action row
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

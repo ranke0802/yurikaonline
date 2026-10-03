@@ -54,8 +54,8 @@ test('effective speed changes apply at next approval, never retroactively reset 
     assert.equal(f.c.basic(),true);const ready=f.c.basicReady;effective=1000;assert.equal(f.c.basic(),false);assert.equal(f.c.basicReady,ready);
     f.advance(ready+.001);assert.equal(f.c.basic(),true);assert.equal(f.actions.at(-1).interval,.20);
 });
-test('Witch tap remains immediate, flying orbs allow later shots and never reset recovery on return',()=>{
-    const f=fixture('witch');const hp=f.enemy.hp;f.c.basic();assert.equal(f.enemy.hp,hp-20);assert.equal(f.actions.length,1);
+test('Witch tap travels, flying orbs allow later shots and never reset recovery on return',()=>{
+    const f=fixture('witch');const hp=f.enemy.hp;f.c.basic();assert.equal(f.enemy.hp,hp);f.advance(.2);assert.equal(f.enemy.hp,hp-20);assert.equal(f.actions.length,1);
     f.enemy.x=500;f.advance(.806);f.c.basic({aimed:true,x:500,y:0});const firstDeadline=f.c.basicReady;
     f.advance(1.051);assert.equal(f.c.basic({aimed:true,x:500,y:0}),true);assert.ok(f.c.projectiles.length>=2,'previous orb can remain draining/returning');
     const ready=f.c.basicReady;assert.ok(ready>firstDeadline);f.advance(5);assert.equal(f.c.basicReady,ready,'drain/return task cannot clear recovery');

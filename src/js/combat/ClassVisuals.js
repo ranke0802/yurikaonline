@@ -37,7 +37,7 @@ function renderProjectiles(renderer,ctx,behind) {
         const isBehind=p.kind==='return'?p.y<center.y:(p.direction?.y||0)<0;
         if(isBehind!==behind)continue;
         renderer.drawEffect(ctx,p.kind,p.x,p.y,p.kind==='snipe'?72:p.kind==='arrow'?48:p.kind==='orb'?58*(p.radius||14)/14:58,p.age??renderer.controller?.time??0,
-            {angle:['arrow','snipe'].includes(p.kind)?Math.atan2(p.direction.y,p.direction.x):0,sustained:true});
+            {angle:p.direction?Math.atan2(p.direction.y,p.direction.x):0,sustained:true});
     }
 }
 function renderPotion(renderer,ctx,f,behind) {

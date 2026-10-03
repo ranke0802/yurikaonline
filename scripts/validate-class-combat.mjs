@@ -16,9 +16,9 @@ function fixture(id) {
     const advance = seconds => { for(let t=0;t<seconds-1e-8;t+=.05) c.update(Math.min(.05,seconds-t)); };
     return {c,owner,enemies,allies,events,dismissed,packets,add,advance};
 }
-test('Witch tap immediately deals exactly twice basic drain, once, no tap heal', () => {
+test('Witch tap travels before twice-basic impact and returns half actual damage', () => {
     const f=fixture('witch'), e=f.add(); f.owner.hp=500;
-    assert.equal(f.c.basic(),true); assert.equal(e.hp,9820); f.advance(4); assert.equal(e.hp,9820); assert.equal(f.owner.hp,500);
+    assert.equal(f.c.basic(),true); assert.equal(e.hp,10000); f.advance(4); assert.equal(e.hp,9820); assert.equal(f.owner.hp,590);
 });
 test('orb drains for three seconds then returns actual damage healing and excess to allies', () => {
     const f=fixture('witch'), e=f.add({hp:40}); f.owner.hp=995; const ally={hp:80,maxHp:100}; f.allies.push(ally);
@@ -84,5 +84,5 @@ test('rejected poison cannot add slow or stun, no frame-rate stacking', () => {
 test('aimed damage distributes integer budget without per-tick inflation at ATK5',()=>{
     const f=fixture('witch'),e=f.add();f.owner.attackPower=5;f.c.basic({aimed:true,x:200,y:0});f.advance(4);
     assert.deepEqual(f.packets.map(p=>p.amount),[1,1,3]);assert.equal(10000-e.hp,5);
-    f.c.basic();assert.equal(f.packets.at(-1).amount,10);
+    f.c.basic();f.advance(.3);assert.equal(f.packets.at(-1).amount,10);
 });
