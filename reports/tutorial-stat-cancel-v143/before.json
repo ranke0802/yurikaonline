@@ -1,0 +1,18 @@
+{
+  "scope": "Local Chromium synthetic fresh profiles; fixture advances only prior movement/combat steps; actual status/INT/close/cancel/keyboard clicks",
+  "cases": [
+    {
+      "name": "desktop",
+      "reproducedBlockedCancelAndEscape": true
+    },
+    {
+      "name": "portrait",
+      "reproducedBlockedCancelAndEscape": true
+    },
+    {
+      "name": "landscape",
+      "reproducedBlockedCancelAndEscape": true
+    }
+  ],
+  "errors": []
+}

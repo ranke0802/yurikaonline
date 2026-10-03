@@ -1,3 +1,4 @@
+import { classTutorial } from './ClassTutorial.js';
 import Logger from '../utils/Logger.js';
 
 export default class TutorialManager {
@@ -15,7 +16,8 @@ export default class TutorialManager {
 
     async loadTutorial(id) {
         try {
-            return await this.game.resources.loadJSON(`/assets/data/tutorials/${id}.json`);
+            const source = await this.game.resources.loadJSON(`/assets/data/tutorials/${id}.json`);
+            return classTutorial(source, this.game.localPlayer?.classId);
         } catch (e) {
             Logger.error(`[Tutorial] Failed to load tutorial: ${id}`, e);
             return null;

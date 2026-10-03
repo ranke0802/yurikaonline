@@ -1,0 +1,24 @@
+{
+  "scope": "Local synthetic class profiles; actual tutorial text, detail open/close and upgrade clicks; fixture skips prior combat/stat steps",
+  "cases": [
+    {
+      "id": "witch",
+      "skill": "lifeDrain",
+      "attackText": "기본 공격\n2/12\n::\n기본 공격 라이프 드레인을 사용해 보세요. J 키나 오른쪽 아래 공격 버튼을 짧게 눌렀다 놓으면 주변에 라이프 드레인을 시전합니다. 길게 눌러 조준한 뒤 놓으면 흡수 구체를 발사합니다.",
+      "detailAndUpgrade": true
+    },
+    {
+      "id": "warrior",
+      "skill": "cleave",
+      "attackText": "기본 공격\n2/12\n::\n기본 공격 연속 베기 / 분노 강타을 사용해 보세요. J 키나 오른쪽 아래 공격 버튼을 짧게 눌렀다 놓으면 근처의 허수아비를 연속 베기로 공격합니다. 길게 눌러 조준한 뒤 놓으면 분노 강타를 사용합니다.",
+      "detailAndUpgrade": true
+    },
+    {
+      "id": "archer",
+      "skill": "shot",
+      "attackText": "기본 공격\n2/12\n::\n기본 공격 이동 사격 / 관통 저격을 사용해 보세요. J 키나 오른쪽 아래 공격 버튼을 짧게 눌렀다 놓으면 이동 사격을 합니다. 길게 눌러 조준한 뒤 놓으면 관통 저격을 발사합니다.",
+      "detailAndUpgrade": true
+    }
+  ],
+  "errors": []
+}

@@ -3730,6 +3730,11 @@ export class UIManager {
         }
 
         if (step.trigger === 'stats_saved') {
+            // The highlighted confirmation is guidance, not consent: cancel
+            // must remain reachable without saving or advancing the tutorial.
+            if (this.confirmModal && !this.confirmModal.classList.contains('hidden')) {
+                return ['#confirm-yes', '#confirm-no'];
+            }
             return this.getTutorialRuntimeFocusTargets(step, ['#status-close-btn-top', '#status-close-btn-bottom']);
         }
 
@@ -4375,6 +4380,12 @@ export class UIManager {
     handleDesktopShortcutKeydown(e) {
         const popup = document.querySelector('.game-popup:not(.hidden)');
         const nestedModal = document.querySelector('#generic-modal:not(.hidden), #confirm-modal:not(.hidden), #inventory-item-modal:not(.hidden), #skill-detail-modal:not(.hidden)');
+        if (e.key === 'Escape' && this.isShortcutVisible(this.confirmModal)) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.confirmNo?.click();
+            return;
+        }
         if (popup && !nestedModal && e.key === 'Tab') {
             const controls = this.getPopupFocusTargets(popup);
             const first = controls[0], last = controls[controls.length - 1];

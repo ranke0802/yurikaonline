@@ -1,0 +1,99 @@
+{
+  "scope": "Local Chromium synthetic fresh profiles; desktop uses genuine D/J movement/combat; touch layouts fixture only prior movement/combat; actual status/INT/close/cancel/keyboard clicks",
+  "cases": [
+    {
+      "name": "desktop",
+      "before": {
+        "int": 3,
+        "points": 1,
+        "pending": 0,
+        "step": "preview_status_change",
+        "index": 3,
+        "savedInt": 3
+      },
+      "preview": {
+        "int": 3,
+        "points": 0,
+        "pending": 1,
+        "step": "save_status",
+        "index": 4,
+        "savedInt": 3
+      },
+      "committed": {
+        "int": 4,
+        "points": 0,
+        "pending": 0,
+        "step": "open_skill",
+        "index": 5,
+        "savedInt": 4
+      },
+      "cancel": true,
+      "escape": true,
+      "keyboardCancel": true,
+      "reentry": true
+    },
+    {
+      "name": "portrait",
+      "before": {
+        "int": 3,
+        "points": 1,
+        "pending": 0,
+        "step": "preview_status_change",
+        "index": 3,
+        "savedInt": 3
+      },
+      "preview": {
+        "int": 3,
+        "points": 0,
+        "pending": 1,
+        "step": "save_status",
+        "index": 4,
+        "savedInt": 3
+      },
+      "committed": {
+        "int": 4,
+        "points": 0,
+        "pending": 0,
+        "step": "open_skill",
+        "index": 5,
+        "savedInt": 4
+      },
+      "cancel": true,
+      "escape": true,
+      "keyboardCancel": true,
+      "reentry": true
+    },
+    {
+      "name": "landscape",
+      "before": {
+        "int": 3,
+        "points": 1,
+        "pending": 0,
+        "step": "preview_status_change",
+        "index": 3,
+        "savedInt": 3
+      },
+      "preview": {
+        "int": 3,
+        "points": 0,
+        "pending": 1,
+        "step": "save_status",
+        "index": 4,
+        "savedInt": 3
+      },
+      "committed": {
+        "int": 4,
+        "points": 0,
+        "pending": 0,
+        "step": "open_skill",
+        "index": 5,
+        "savedInt": 4
+      },
+      "cancel": true,
+      "escape": true,
+      "keyboardCancel": true,
+      "reentry": true
+    }
+  ],
+  "errors": []
+}
