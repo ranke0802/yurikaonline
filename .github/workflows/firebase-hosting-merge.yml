@@ -56,6 +56,9 @@ jobs:
           node scripts/validate-combat-review-v153-browser.cjs
           node scripts/validate-cross-input-v153-browser.cjs
           node scripts/validate-summon-abilities-v154-browser.cjs
+          node scripts/validate-startup-logo-v155-browser.cjs
+          node scripts/validate-startup-recovery-browser.cjs
+          node scripts/validate-opening-browser.cjs
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

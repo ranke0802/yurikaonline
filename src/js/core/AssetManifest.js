@@ -99,6 +99,8 @@ export default {
   "/assets/data/zones/zone_5.json": "/assets/immutable/a5aa2d1c53c3257f6eda3e86.json",
   "/assets/data/zones/zone_catalog.json": "/assets/immutable/2247dfc384ac4bd70acb0103.json",
   "/assets/resource/background.webp": "/assets/immutable/1f7d92861941441cbee164bf.webp",
+  "/assets/resource/branding/yurika-online-intro-glint-128.webp": "/assets/immutable/6dab27cde4a8b3214115f36e.webp",
+  "/assets/resource/branding/yurika-online-intro-logo-768.webp": "/assets/immutable/7abf9716cfef0f65d3ede44c.webp",
   "/assets/resource/classes/approved/archer-body.webp": "/assets/immutable/96f2e55ae7f4d5dab6b18c8c.webp",
   "/assets/resource/classes/approved/archer-effects.webp": "/assets/immutable/d467a6a69fd8dd4d5f226309.webp",
   "/assets/resource/classes/approved/archer-runtime.webp": "/assets/immutable/737788d5d6e8909449365ba9.webp",

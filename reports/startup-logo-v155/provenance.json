@@ -1,0 +1,45 @@
+{
+  "artifactCommit": "8c783d70462728d94a6b237300a24bdfcdb1c753",
+  "artifactBranch": "codex/intro-logo-art-20261003",
+  "files": [
+    {
+      "path": "assets/resource/branding/yurika-online-intro-logo-768.webp",
+      "bytes": 153656,
+      "sha256": "7abf9716cfef0f65d3ede44cb120f26a70e455c64aa4a6f7728d2057ab55c0f0",
+      "width": 768,
+      "height": 768,
+      "alpha": true
+    },
+    {
+      "path": "assets/resource/branding/yurika-online-intro-glint-128.webp",
+      "bytes": 2090,
+      "sha256": "6dab27cde4a8b3214115f36e80f44433e66aef473d95b9f57b62f61bdc039388",
+      "width": 128,
+      "height": 128,
+      "alpha": true
+    }
+  ],
+  "scope": "Web preloading #loading-overlay only. Installed app icons, login art and original logo files unchanged.",
+  "animation": {
+    "entranceMs": 500,
+    "scaleFrom": 0.94,
+    "scaleTo": 1,
+    "glintCount": 1,
+    "glintMs": 1100,
+    "reducedMotion": "static"
+  },
+  "startup": "Image loads independently. Existing 300ms ready-state delay removed. SDKs remain in original dependency order after initial UI markup.",
+  "verification": [
+    "Provided full SHA256 and sizes verified before use",
+    "Raster pixels inspected on consumer",
+    "Desktop, portrait, landscape, short landscape and reduced motion",
+    "Single logo transfer despite preload",
+    "Failed and slow image, late arrival does not reopen loading UI",
+    "First paint while external SDK pending",
+    "Startup recovery, login cancellation/retry and camp return regressions"
+  ],
+  "limits": [
+    "OS-managed installed-app splash is static and unchanged.",
+    "Mobile tested with Chromium emulation, not physical devices."
+  ]
+}

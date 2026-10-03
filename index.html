@@ -3,10 +3,12 @@
 
 <head>
     <meta charset="UTF-8">
+    <link id="startup-logo-preload" rel="preload" as="image" type="image/webp" fetchpriority="high" href="/assets/immutable/7abf9716cfef0f65d3ede44c.webp">
+    <style>html,body{margin:0;background:#192d3b}#loading-overlay.yurika-startup{position:fixed;inset:0;z-index:9999;background:#192d3b;color:#f5e8da}.startup-logo{opacity:0}.startup-fallback{font-family:Georgia,serif}</style>
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- PWA Manifest & Settings -->
-    <link rel="manifest" href="manifest.json?v=0.02.154">
+    <link rel="manifest" href="manifest.json?v=0.02.155">
     <meta name="theme-color" content="#2d3436">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,7 +23,7 @@
     <meta name="x5-page-mode" content="app">
     <script>
         window.YURIKA_LOCAL_MODE = new URLSearchParams(location.search).get('local') === '1';
-        window.BOOTSTRAP_VERSION = '0.02.154';
+        window.BOOTSTRAP_VERSION = '0.02.155';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -436,7 +438,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.154', { updateViaCache: 'none' });
+                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.155', { updateViaCache: 'none' });
                     await registration.update();
                     registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
                     registration.addEventListener('updatefound', () => {
@@ -455,26 +457,11 @@
         }
     </script>
 
-    <script>
-        if (!window.YURIKA_LOCAL_MODE) {
-            document.write(`    <!-- Firebase SDKs (Compat version for HTML/JS) -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"><\/script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"><\/script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"><\/script>
 
-    <!-- Firebase Config -->
-    <script src="src/js/firebaseConfig.js?v=0.02.154"><\/script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Nanum+Gothic:wght@400;700&display=swap"
-        rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
-`);
-        }
-    </script>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.02.154</title>
+    <title>Yurika Online v0.02.155</title>
 
     <link rel="icon" type="image/webp" href="/assets/immutable/74fad4c76f5d3ee77cdaf0ce.webp">
     <link rel="apple-touch-icon" href="/assets/immutable/a9473b5fca0aea4459e9b741.webp">
@@ -498,23 +485,39 @@
             }
         });
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.02.154">
+    <link rel="stylesheet" href="src/css/style.css?v=0.02.155">
     <link rel="stylesheet" href="src/css/camp.css">
     <link rel="stylesheet" href="src/css/opening.css">
+    <link rel="stylesheet" href="src/css/startup-logo.css">
     <link rel="stylesheet" href="src/css/combat-polish.css">
 </head>
 
 <body>
     <div id="game-container">
         <!-- Loading Overlay -->
-        <div id="loading-overlay" class="yurika-opening">
-            <div class="opening-art" aria-hidden="true"><img id="opening-loading-art" src="/assets/immutable/7605a962b2b7f0c265fa8546.webp" alt=""></div>
-            <header class="opening-brand"><p>MOONFOREST</p><h1>YURIKA</h1><p class="opening-online">ONLINE</p><h2>달숲에서 시작하는 나의 모험</h2></header>
+        <div id="loading-overlay" class="yurika-opening yurika-startup">
+            <header class="startup-brand" style="--startup-glint:url('/assets/immutable/6dab27cde4a8b3214115f36e.webp')">
+                <h1 class="startup-fallback">YURIKA<br>ONLINE</h1>
+                <img id="startup-logo" class="startup-logo" src="/assets/immutable/7abf9716cfef0f65d3ede44c.webp" width="768" height="768" alt="Yurika Online" fetchpriority="high" decoding="async">
+            </header>
             <div class="opening-footer">
                 <div class="loading-text" role="status" aria-live="polite">달숲으로 가는 길을 준비하고 있어요.</div>
                 <div class="loading-progress-bar"><div id="loading-progress-fill"></div></div>
             </div>
         </div>
+
+        <script>
+            // Cosmetic only: logo loading never gates auth, assets or game readiness.
+            (() => {
+                const logo = document.getElementById('startup-logo');
+                const brand = logo.parentElement;
+                const loaded = () => { if (logo.naturalWidth > 0) { brand.classList.remove('is-failed'); brand.classList.add('is-ready'); } };
+                const failed = () => { brand.classList.remove('is-ready'); brand.classList.add('is-failed'); };
+                logo.addEventListener('load', loaded, { once: true });
+                logo.addEventListener('error', failed, { once: true });
+                if (logo.complete) { if (logo.naturalWidth > 0) loaded(); else failed(); }
+            })();
+        </script>
 
         <div id="game-viewport">
             <!-- Game Canvas -->
@@ -1556,7 +1559,24 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.02.154"></script>
+    <script>
+        if (!window.YURIKA_LOCAL_MODE) {
+            document.write(`    <!-- Firebase SDKs (Compat version for HTML/JS) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"><\/script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"><\/script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"><\/script>
+
+    <!-- Firebase Config -->
+    <script src="src/js/firebaseConfig.js?v=0.02.155"><\/script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Nanum+Gothic:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
+`);
+        }
+    </script>
+
+    <script type="module" src="./src/js/main.js?v=0.02.155"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

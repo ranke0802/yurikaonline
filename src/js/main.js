@@ -3,7 +3,7 @@ import CampScene from './world/scenes/CampScene.js';
 import LocalAuthManager from './local/LocalAuthManager.js';
 import LocalNetworkManager from './local/LocalNetworkManager.js';
 import { getViewportMetrics } from './core/ViewportMetrics.js';
-window.RUNTIME_BUILD_VERSION = '0.02.154'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.155'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -755,10 +755,8 @@ class Game {
 
     _hideLoader() {
         this._clearLoadingRecovery();
-        setTimeout(() => {
-            const loader = document.getElementById('loading-overlay');
-            if (loader) loader.style.display = 'none';
-        }, 300);
+        const loader = document.getElementById('loading-overlay');
+        if (loader) loader.style.display = 'none';
     }
 
 

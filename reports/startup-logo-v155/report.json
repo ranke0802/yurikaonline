@@ -1,0 +1,72 @@
+{
+  "results": [
+    {
+      "name": "desktop",
+      "box": {
+        "x": 460,
+        "y": 145,
+        "width": 360,
+        "height": 360
+      },
+      "images": 1,
+      "errors": []
+    },
+    {
+      "name": "portrait",
+      "box": {
+        "x": 35.09375,
+        "y": 227.09375,
+        "width": 319.796875,
+        "height": 319.796875
+      },
+      "images": 1,
+      "errors": []
+    },
+    {
+      "name": "landscape",
+      "box": {
+        "x": 301.09375,
+        "y": 43.09375,
+        "width": 241.796875,
+        "height": 241.796875
+      },
+      "images": 1,
+      "errors": []
+    },
+    {
+      "name": "small-landscape",
+      "box": {
+        "x": 184.796875,
+        "y": 29.796875,
+        "width": 198.390625,
+        "height": 198.390625
+      },
+      "images": 1,
+      "errors": []
+    },
+    {
+      "name": "reduced",
+      "box": {
+        "x": 35.09375,
+        "y": 227.09375,
+        "width": 319.796875,
+        "height": 319.796875
+      },
+      "images": 1,
+      "errors": []
+    },
+    {
+      "name": "failed-image",
+      "images": 1
+    },
+    {
+      "name": "slow-image-game-ready",
+      "passed": true
+    },
+    {
+      "name": "pending-sdk-first-paint",
+      "passed": true
+    }
+  ],
+  "scope": "Chromium desktop/mobile emulation and local synthetic game; native OS splash/physical device untested."
+}
