@@ -1,0 +1,1486 @@
+[
+  {
+    "label": "desktop",
+    "level": 1,
+    "launch": {
+      "accepted": true,
+      "range": 960,
+      "span": 1600,
+      "halfWidth": 96,
+      "halfLength": 36,
+      "speed": 720,
+      "rage": 75,
+      "x": 1696
+    },
+    "flight": {
+      "x": 2128,
+      "distance": 504,
+      "remaining": 456
+    },
+    "cast": {
+      "ok": true,
+      "start": {
+        "x": 1600,
+        "y": 1600
+      },
+      "now": {
+        "x": 1600,
+        "y": 1600
+      },
+      "motion": {
+        "id": 2,
+        "row": 3,
+        "barrage": true,
+        "direction": 3,
+        "age": 0.2499999999999999,
+        "duration": 2.4
+      },
+      "effect": {
+        "name": "gwangcheon",
+        "id": "effect-1",
+        "x": 1624,
+        "y": 1624,
+        "range": 600,
+        "halfWidth": 32,
+        "target": {
+          "x": 2224,
+          "y": 1624
+        },
+        "duration": 2.4,
+        "pulseCount": 24,
+        "age": 0.2499999999999999
+      },
+      "duplicate": false
+    },
+    "end": {
+      "hits": [
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 0
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 1
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 2
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 3
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 4
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 5
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 6
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 7
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 8
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 9
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 10
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 11
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 12
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 13
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 14
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 15
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 16
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 17
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 18
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 19
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 20
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 21
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 22
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 23
+          }
+        }
+      ],
+      "rage": 25,
+      "active": false,
+      "effect": false,
+      "remote": {
+        "motion": {
+          "id": 2,
+          "row": 3,
+          "barrage": true,
+          "shieldRush": false,
+          "direction": 3,
+          "held": false,
+          "age": 0.2499999999999999,
+          "duration": 2.4,
+          "receivedAt": 1791028392406,
+          "expiresAt": 1791028394556
+        },
+        "effect": {
+          "id": "effect-1",
+          "name": "gwangcheon",
+          "x": 1624,
+          "y": 1624,
+          "target": {
+            "x": 2224,
+            "y": 1624
+          },
+          "radius": 0,
+          "range": 600,
+          "halfWidth": 32,
+          "duration": 2.4,
+          "age": 0.2499999999999999,
+          "pulseCount": 24,
+          "receivedAt": 1791028392406
+        }
+      }
+    }
+  },
+  {
+    "label": "desktop",
+    "level": 8,
+    "launch": {
+      "accepted": true,
+      "range": 1215,
+      "span": 1600,
+      "halfWidth": 129.60000000000002,
+      "halfLength": 48.6,
+      "speed": 720,
+      "rage": 75,
+      "x": 1696
+    },
+    "flight": {
+      "x": 2128,
+      "distance": 504,
+      "remaining": 711
+    },
+    "cast": {
+      "ok": true,
+      "start": {
+        "x": 1600,
+        "y": 1600
+      },
+      "now": {
+        "x": 1600,
+        "y": 1600
+      },
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "barrage": true,
+        "direction": 3,
+        "age": 0.25,
+        "duration": 2.4
+      },
+      "effect": {
+        "name": "gwangcheon",
+        "id": "effect-2",
+        "x": 1624,
+        "y": 1624,
+        "range": 740,
+        "halfWidth": 39,
+        "target": {
+          "x": 2364,
+          "y": 1624
+        },
+        "duration": 2.4,
+        "pulseCount": 38,
+        "age": 0.25
+      },
+      "duplicate": false
+    },
+    "end": {
+      "hits": [
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 0
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 1
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 2
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 3
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 4
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 5
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 6
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 7
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 8
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 9
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 10
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 11
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 12
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 13
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 14
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 15
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 16
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 17
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 18
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 19
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 20
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 21
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 22
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 23
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 24
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 25
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 26
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 27
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 28
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 29
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 30
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 31
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 32
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 33
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 34
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 35
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 36
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 37
+          }
+        }
+      ],
+      "rage": 25,
+      "active": false,
+      "effect": false,
+      "remote": {
+        "motion": {
+          "id": 4,
+          "row": 3,
+          "barrage": true,
+          "shieldRush": false,
+          "direction": 3,
+          "held": false,
+          "age": 0.25,
+          "duration": 2.4,
+          "receivedAt": 1791028393000,
+          "expiresAt": 1791028395150
+        },
+        "effect": {
+          "id": "effect-2",
+          "name": "gwangcheon",
+          "x": 1624,
+          "y": 1624,
+          "target": {
+            "x": 2364,
+            "y": 1624
+          },
+          "radius": 0,
+          "range": 740,
+          "halfWidth": 39,
+          "duration": 2.4,
+          "age": 0.25,
+          "pulseCount": 38,
+          "receivedAt": 1791028393000
+        }
+      }
+    }
+  },
+  {
+    "label": "mobile",
+    "level": 1,
+    "launch": {
+      "accepted": true,
+      "range": 900,
+      "span": 1114.2857142857144,
+      "halfWidth": 96,
+      "halfLength": 36,
+      "speed": 720,
+      "rage": 75,
+      "x": 1696
+    },
+    "flight": {
+      "x": 2128,
+      "distance": 504,
+      "remaining": 396
+    },
+    "cast": {
+      "ok": true,
+      "start": {
+        "x": 1600,
+        "y": 1600
+      },
+      "now": {
+        "x": 1600,
+        "y": 1600
+      },
+      "motion": {
+        "id": 2,
+        "row": 3,
+        "barrage": true,
+        "direction": 3,
+        "age": 0.25,
+        "duration": 2.4
+      },
+      "effect": {
+        "name": "gwangcheon",
+        "id": "effect-1",
+        "x": 1624,
+        "y": 1624,
+        "range": 600,
+        "halfWidth": 32,
+        "target": {
+          "x": 2224,
+          "y": 1624
+        },
+        "duration": 2.4,
+        "pulseCount": 24,
+        "age": 0.25
+      },
+      "duplicate": false
+    },
+    "end": {
+      "hits": [
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 0
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 1
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 2
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 3
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 4
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 5
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 6
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 7
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 8
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 9
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 10
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 11
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 12
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 13
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 14
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 15
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 16
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 17
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 18
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 19
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 20
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 21
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 22
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 23
+          }
+        }
+      ],
+      "rage": 25,
+      "active": false,
+      "effect": false,
+      "remote": {
+        "motion": {
+          "id": 2,
+          "row": 3,
+          "barrage": true,
+          "shieldRush": false,
+          "direction": 3,
+          "held": false,
+          "age": 0.251,
+          "duration": 2.4,
+          "receivedAt": 1791028397566,
+          "expiresAt": 1791028399715
+        },
+        "effect": {
+          "id": "effect-1",
+          "name": "gwangcheon",
+          "x": 1624,
+          "y": 1624,
+          "target": {
+            "x": 2224,
+            "y": 1624
+          },
+          "radius": 0,
+          "range": 600,
+          "halfWidth": 32,
+          "duration": 2.4,
+          "age": 0.251,
+          "pulseCount": 24,
+          "receivedAt": 1791028397566
+        }
+      }
+    }
+  },
+  {
+    "label": "mobile",
+    "level": 8,
+    "launch": {
+      "accepted": true,
+      "range": 1215,
+      "span": 1114.2857142857144,
+      "halfWidth": 129.60000000000002,
+      "halfLength": 48.6,
+      "speed": 720,
+      "rage": 75,
+      "x": 1696
+    },
+    "flight": {
+      "x": 2128,
+      "distance": 504,
+      "remaining": 711
+    },
+    "cast": {
+      "ok": true,
+      "start": {
+        "x": 1600,
+        "y": 1600
+      },
+      "now": {
+        "x": 1600,
+        "y": 1600
+      },
+      "motion": {
+        "id": 4,
+        "row": 3,
+        "barrage": true,
+        "direction": 3,
+        "age": 0.25,
+        "duration": 2.4
+      },
+      "effect": {
+        "name": "gwangcheon",
+        "id": "effect-2",
+        "x": 1624,
+        "y": 1624,
+        "range": 740,
+        "halfWidth": 39,
+        "target": {
+          "x": 2364,
+          "y": 1624
+        },
+        "duration": 2.4,
+        "pulseCount": 38,
+        "age": 0.25
+      },
+      "duplicate": false
+    },
+    "end": {
+      "hits": [
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 0
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 1
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 2
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 3
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 4
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 5
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 6
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 7
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 8
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 9
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 10
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 11
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 12
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 13
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 14
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 15
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 16
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 17
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 18
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 19
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 20
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 21
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 22
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 23
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 24
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 25
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 26
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 27
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 28
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 29
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 30
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 31
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 32
+          }
+        },
+        {
+          "id": "front",
+          "n": 2,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 33
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 34
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 35
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 36
+          }
+        },
+        {
+          "id": "front",
+          "n": 3,
+          "meta": {
+            "classId": "warrior",
+            "barrage": true,
+            "pulse": 37
+          }
+        }
+      ],
+      "rage": 25,
+      "active": false,
+      "effect": false,
+      "remote": {
+        "motion": {
+          "id": 4,
+          "row": 3,
+          "barrage": true,
+          "shieldRush": false,
+          "direction": 3,
+          "held": false,
+          "age": 0.25,
+          "duration": 2.4,
+          "receivedAt": 1791028397867,
+          "expiresAt": 1791028400017
+        },
+        "effect": {
+          "id": "effect-2",
+          "name": "gwangcheon",
+          "x": 1624,
+          "y": 1624,
+          "target": {
+            "x": 2364,
+            "y": 1624
+          },
+          "radius": 0,
+          "range": 740,
+          "halfWidth": 39,
+          "duration": 2.4,
+          "age": 0.25,
+          "pulseCount": 38,
+          "receivedAt": 1791028397867
+        }
+      }
+    }
+  }
+]

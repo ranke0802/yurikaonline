@@ -2,7 +2,7 @@ import { classArtPath } from '../combat/AuthoredCharacterFrames.js';
 import AndroidDisplayController from './AndroidDisplayController.js';
 import { CLASS_NAMES } from '../core/ClassProfiles.js';
 import { classWeaponDetailLines } from '../core/ClassWeapons.js';
-import { CLASS_SKILL_UI, MAGE_SKILL_IDS, basicAttackUpgradeDetails, shieldRushUpgradeDetails, classSkillIds, classSkillMaxLevel } from './ClassSkillUI.js';
+import { CLASS_SKILL_UI, MAGE_SKILL_IDS, basicAttackUpgradeDetails, warriorBarrageUpgradeDetails, shieldRushUpgradeDetails, classSkillIds, classSkillMaxLevel } from './ClassSkillUI.js';
 import Logger from '../utils/Logger.js';
 import { getFireballAoeRadius, FIREBALL_BASE_RADIUS, FIREBALL_RADIUS_PER_LEVEL, FIREBALL_AOE_MULTIPLIER } from '../skills/FireballScaling.js';
 import { getViewportMetrics } from '../core/ViewportMetrics.js';
@@ -8269,6 +8269,7 @@ export class UIManager {
                 modalHtml: this.buildSkillDetailSection('핵심 설명', [data.desc, data.detail].filter(Boolean))
                     + (classSkillIds(p)[0] === skillId ? this.buildSkillDetailSection('기본 공격 성장', basicAttackUpgradeDetails(p)) : '')
                     + (p.classId==='warrior' && skillId==='challenge' ? this.buildSkillDetailSection('방패 돌진 성장', shieldRushUpgradeDetails(p)) : '')
+                    + (p.classId==='warrior' && skillId==='charge' ? this.buildSkillDetailSection('광천격 성장', warriorBarrageUpgradeDetails(p)) : '')
                     + this.buildSkillDetailSection('무기 효과', classWeaponDetailLines(p, p.getEquippedWeapon?.()) || [])
                     + this.buildSkillDetailSection('다음 강화 비용', [maxed ? '최대 레벨입니다.' : `${cost.toLocaleString('ko-KR')} G`]) };
         }

@@ -1,0 +1,97 @@
+{
+  "version": "0.02.151",
+  "sword": {
+    "range": "max(900 * level-area-scale, 60% of longest visible world dimension); remote bound 6000px",
+    "speed": 720,
+    "width": [
+      192,
+      259.2
+    ],
+    "depth": [
+      72,
+      97.2
+    ],
+    "damagePercent": [
+      350,
+      546
+    ],
+    "costRage": 25,
+    "chargeSeconds": 0.5,
+    "attackSpeedRecovery": "existing cadence and .20s floor retained",
+    "travelProof": "0.7 seconds -> 504px, desktop Lv1 range960px; no instantaneous distant damage",
+    "walls": "full blade width and leading edge swept; each target once"
+  },
+  "barrage": {
+    "name": "광천격",
+    "savedSkillKey": "charge",
+    "hits": [
+      24,
+      38
+    ],
+    "duration": 2.4,
+    "range": [
+      600,
+      740
+    ],
+    "width": [
+      64,
+      78
+    ],
+    "totalAttackPercent": [
+      480,
+      748.8
+    ],
+    "damage": "cumulative integer budget split; minimum1 per hit",
+    "cooldownBase": 7,
+    "cooldownGrowth": "existing3% per level, then canonical storm weapon multiplier",
+    "movement": "caster is never displaced; ordinary movement follows caster origin with locked aim direction",
+    "cancel": [
+      "accepted basic/other skill",
+      "aim cancel",
+      "stun",
+      "death",
+      "dispose/world transition",
+      "teleport over100px"
+    ],
+    "shieldSynergy": "25 rage once per cast, accepted hit inside original4s mark window",
+    "walls": "whole narrow corridor stops before first blocking wall",
+    "remote": "render-only persistent corridor and native-size body, bounded snapshot sizes, removed on cancellation"
+  },
+  "art": {
+    "reused": [
+      "approved/warrior-effects.webp row0 crescent",
+      "approved/warrior-effects.webp row2 golden directional streak",
+      "existing warrior body",
+      "existing row2 icon"
+    ],
+    "newImages": false,
+    "bodyResized": false,
+    "noFullScreenFlashOrShake": true,
+    "visualDesign": "continuous .72-opacity raster corridor; no blank flashing pulse frames; low-opacity traveling sword afterimages"
+  },
+  "validation": {
+    "newWarriorUnitTests": 34,
+    "fps": [
+      5,
+      15,
+      30,
+      60,
+      120
+    ],
+    "directions": 8,
+    "classRegressionTests": 196,
+    "relatedCombatTests": 155,
+    "weaponNumericParityCases": 462,
+    "browser": [
+      "desktop and mobile",
+      "levels1 and8",
+      "travel frames at .1 and .7s",
+      "24 and38 exact pulses",
+      "remote channel geometry and duration",
+      "keyboard cast",
+      "moving channel",
+      "attack cancellation"
+    ],
+    "previousVersions": "v148 multihit/charge/healing, v149 weapons/summons/raster, v150 world charge remain enabled"
+  }
+}

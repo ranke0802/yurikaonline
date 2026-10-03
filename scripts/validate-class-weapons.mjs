@@ -138,9 +138,9 @@ for(const c of WEAPON_CLASSES){
   assert.equal(w.slot,2);assert.equal(f.controller.skill(2,{x:40,y:0}),true);
   near(f.controller.cooldowns[2],{witch:1,warrior:7,archer:8}[c]*(1-w.missileManaCostReduction));
   if(c==='witch'){near(summonWeapon.damageBonus,w.missileDamageBonus);assert.equal(f.p.hp,200);}
-  if(c==='warrior')assert.equal(f.hits[0].n,Math.ceil(160*(1+w.missileDamageBonus)));
+  if(c==='warrior'){f.tick(2.4);assert.equal(f.hits.length,24);assert.equal(f.hits.reduce((n,h)=>n+h.n,0),Math.ceil(480*(1+w.missileDamageBonus)));}
   if(c==='archer'){near(f.p.x,-160*(1+w.missileDamageBonus));assert.equal(f.hits.length,0);}
-  assert.equal(f.controller.skill(3,{x:40,y:0}),true);near(f.controller.cooldowns[3],{witch:16,warrior:20,archer:12}[c]);
+  assert.equal(f.controller.skill(3,{x:40,y:0}),true);near(f.controller.cooldowns[3]-f.controller.time,{witch:16,warrior:20,archer:12}[c]);
  });
  test(`${c} chain is 0.3s, at most 12, single cast trigger, no additional status stacks, stops on dispose`,()=>{
   const f=combat(c,'tidal'),e=f.enemy();e.hp=e.maxHp=1e9;if(c==='warrior')e.isBoss=true;const w=classWeaponBonuses(f.p);
@@ -226,7 +226,7 @@ for(const c of WEAPON_CLASSES){
    const f=combat(c,theme,theme==='magic'?'starlight_'+c:null),e=f.enemy(100,0),w=classWeaponBonuses(f.p);f.controller.rage=100;
    f.controller.basic({aimed,x:100,y:0});const applies=aimed===(theme==='riftcore');
    const projectile=f.controller.projectiles.find(p=>p.kind!=='return');
-   if(projectile)near(projectile.power,100*(1+(applies?w.damageBonus:0))*(c==='warrior'?3:1));
+   if(projectile)near(projectile.power,100*(1+(applies?w.damageBonus:0))*(c==='warrior'?3.5:1));
    else near(f.hits[0].n,Math.ceil(100*(1+(applies?w.damageBonus:0))));
    assert.ok(f.controller.basicReady>=.2);
   }

@@ -1,3 +1,4 @@
+import { warriorBarrageProfile } from '../combat/WarriorBarrage.js';
 import { shieldRushProfile } from '../combat/ShieldRush.js';
 import { BASIC_MAX_LEVEL, BASIC_SKILL_IDS, basicAttackProfile } from '../combat/BasicAttackProgression.js';
 // Display metadata only; combat values and cooldowns remain owned by the runtime.
@@ -9,9 +10,9 @@ export const CLASS_SKILL_UI = {
         { id: 'berserk', summary: '자신 제외 아군 / 소환수 10초 강화', name: '버서크 포션', desc: '자신을 제외한 아군과 소환수에게 10초 동안 이동 속도 +25%, 공격 속도 +70%, 공격력 +20%. 재사용해도 배율은 누적되지 않습니다.' }
     ],
     warrior: [
-        { id: 'cleave', summary: '근접 3연타 / 홀드 넓은 검격 발사', name: '연속 베기 / 검격 발사', maxLevel: BASIC_MAX_LEVEL, desc: '탭으로 3연속 베기, 마지막 타격으로 분노를 얻습니다. 0.5초 홀드 조준 후 놓으면 분노 25로 넓은 검격을 발사합니다. 검격은 초당 360px로 이동하며 경로의 적을 각각 1회 관통 타격하고 벽에 막힙니다. 분노를 피의 맹세 종료 공격에 남길지 선택하세요.' },
-        { id: 'challenge', summary: '느린 방패 전진 · 이동 중 전방향 공격 차단', name: '방패 돌진', desc: '방패를 앞세워 초당 120px로 전진합니다. Lv.1은 3회/1.6초, Lv.8은 10회/3.7초입니다. 이동 중 공격 피해와 공격 상태이상을 전방향으로 막습니다. 시간 구간마다 경로의 적을 1회 타격하고 구간 전진 거리만큼 밀어냅니다. 대상별 세 번째 넉백부터 0.8초 기절하며 이후 돌진 타격은 기절을 갱신합니다(보스 넉백·기절 제외). 늦게 진입한 적은 남은 구간만 타격합니다. 총 피해를 타격 수로 나눕니다(회당 최소 1). 벽에 닿거나 전진이 끝나면 블록도 끝납니다. MP·분노 비용은 없습니다. 적중 후 4초 안에 응징의 돌진을 맞히면 분노 25를 돌려받습니다.' },
-        { id: 'charge', summary: '적 밀기 · 벽 충돌 기절 · 방패 타격 연계', name: '응징의 돌진', desc: '지정 방향으로 돌진하며 적을 밀어냅니다. 벽 충돌 시 기절시키고, 방패 돌진으로 맞힌 적을 4초 안에 맞히면 강타에 사용할 분노를 돌려받습니다.' },
+        { id: 'cleave', summary: '근접 3연타 / 홀드 넓은 검격 발사', name: '연속 베기 / 검격 발사', maxLevel: BASIC_MAX_LEVEL, desc: '탭으로 3연속 베기, 마지막 타격으로 분노를 얻습니다. 0.5초 홀드 조준 후 놓으면 분노 25로 넓은 검격을 발사합니다. 검격은 초당 720px로 최소 900px 또는 현재 화면 긴 변의 60% 이상 이동합니다. Lv.1 폭 192px, 피해 ATK 350%에 기본 공격 레벨 성장을 적용하며 경로의 적을 각각 1회 관통 타격하고 벽에 막힙니다. 분노를 피의 맹세 종료 공격에 남길지 선택하세요.' },
+        { id: 'challenge', summary: '느린 방패 전진 · 이동 중 전방향 공격 차단', name: '방패 돌진', desc: '방패를 앞세워 초당 120px로 전진합니다. Lv.1은 3회/1.6초, Lv.8은 10회/3.7초입니다. 이동 중 공격 피해와 공격 상태이상을 전방향으로 막습니다. 시간 구간마다 경로의 적을 1회 타격하고 구간 전진 거리만큼 밀어냅니다. 대상별 세 번째 넉백부터 0.8초 기절하며 이후 돌진 타격은 기절을 갱신합니다(보스 넉백·기절 제외). 늦게 진입한 적은 남은 구간만 타격합니다. 총 피해를 타격 수로 나눕니다(회당 최소 1). 벽에 닿거나 전진이 끝나면 블록도 끝납니다. MP·분노 비용은 없습니다. 적중 후 4초 안에 광천격을 맞히면 분노 25를 돌려받습니다.' },
+        { id: 'charge', summary: '좁고 긴 전방 연사 · 24~38회 · 방패 연계', name: '광천격', desc: '이동 돌진 없이 조준 방향을 고정하고 2.4초 동안 전방에 연속 검격을 발사합니다. Lv.1은 사거리 600px·폭 64px·24회·총 ATK 480%, Lv.8은 740px·78px·38회·총 ATK 748.8%입니다(회당 최소 1). 이동하며 사용할 수 있고 벽에서 막힙니다. 다른 공격·스킬·조준 취소·기절·사망·필드 전환 시 종료합니다. 방패 돌진 적중 후 4초 안에 맞히면 시전당 분노 25를 한 번 돌려받습니다. 기본 쿨다운 7초, MP·분노 비용 0. 뇌광 무기의 피해·쿨다운 옵션을 적용합니다.' },
         { id: 'bloodPact', summary: '흡혈 강화 · 종료 시 남은 분노로 강타', name: '피의 맹세', desc: '일정 시간 흡혈과 생존력을 강화합니다. 종료 시 남아 있는 분노를 소모해 주변을 강타합니다. 지속 중 강타를 사용하면 종료 공격에 남는 분노가 줄어듭니다.' }
     ],
     archer: [
@@ -37,7 +38,7 @@ export function basicAttackUpgradeDetails(player) {
         const damage = Math.round(profile.damageMultiplier * 100);
         const px = value => Number(value.toFixed(2));
         if (player.classId === 'witch') return `Lv.${profile.level}: 기본 피해 ${damage}% · 탭 사거리 560px / 명중 흡수 반경 ${px(profile.tapRadius)}px · 구체 판정 반경 ${px(profile.orbRadius)}px`;
-        if (player.classId === 'warrior') return `Lv.${profile.level}: 기본/검격 피해 ${damage}% · 베기 거리 ${px(profile.tap.range)}px / 폭 ${px(profile.tap.halfWidth * 2)}px · 검격 거리 ${px(profile.heavy.range)}px / 폭 ${px(profile.heavy.halfWidth*2)}px · 밀치기 ${profile.tap.knockback}px (검격 ${profile.heavy.knockback}px, 보스 제외)`;
+        if (player.classId === 'warrior') return `Lv.${profile.level}: 기본 피해 ${damage}% / 검격 ATK ${Math.round(damage*3.5)}% · 베기 거리 ${px(profile.tap.range)}px / 폭 ${px(profile.tap.halfWidth * 2)}px · 검격 최소 거리 ${px(profile.heavy.range)}px (화면 긴 변 60% 보장) / 폭 ${px(profile.heavy.halfWidth*2)}px · 밀치기 ${profile.tap.knockback}px (검격 ${profile.heavy.knockback}px, 보스 제외)`;
         return `Lv.${profile.level}: 일반/저격 피해 ${damage}% · 저격 준비 ${profile.chargeSeconds.toFixed(2)}초 (도약 강화 ${(profile.chargeSeconds * .4).toFixed(3)}초)`;
     };
     const current = basicAttackProfile(player.classId, player.skillLevels);
@@ -51,4 +52,10 @@ export function shieldRushUpgradeDetails(player) {
     const current=shieldRushProfile(player.skillLevels?.challenge);
     const describe=p=>`Lv.${p.level}: ${p.hits}회 · ${p.duration.toFixed(1)}초 · ${Math.round(p.distance)}px · 총 ATK ${100+8*(p.level-1)}% 분할 · 기본 쿨다운 ${(10*(1-.03*(p.level-1))).toFixed(1)}초`;
     return [describe(current),current.level<8?`다음 강화 — ${describe(shieldRushProfile(current.level+1))}`:'최대 레벨 8','넉백 3회부터 기절 0.8초, 이후 방패 돌진 타격만 기절 갱신. MP·분노 비용 0. 무기의 피해/쿨다운 보정은 별도 적용.'];
+}
+
+export function warriorBarrageUpgradeDetails(player) {
+    const p=warriorBarrageProfile(player.skillLevels?.charge);
+    const describe=g=>`Lv.${g.level}: ${g.hits}회 / ${g.duration}초 · 거리 ${g.range}px · 폭 ${g.halfWidth*2}px · 총 ATK ${Number((g.damageMultiplier*100).toFixed(1))}% · 쿨다운 ${(7*(1-.03*(g.level-1))).toFixed(2)}초`;
+    return [describe(p),p.level<8?`다음 강화 — ${describe(warriorBarrageProfile(p.level+1))}`:'최대 레벨 8','총 피해 분할(회당 최소 1). 뇌광 무기의 피해·쿨다운 보정은 별도 적용.'];
 }

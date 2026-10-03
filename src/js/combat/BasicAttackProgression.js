@@ -10,7 +10,7 @@ export function basicAttackProfile(classId, skillLevels = {}) {
         chargeSeconds: classId === 'archer' ? Math.max(.30, Math.round((.50 - .03 * growth) * 1000) / 1000) : .50,
         tapRadius: 95 * areaScale, orbRadius: 14 * areaScale,
         tap: { range: 140 * areaScale, halfWidth: 70 * areaScale, knockback: 4 * growth },
-        heavy: { range: 180 * areaScale, halfWidth: 64 * areaScale, knockback: 6 * growth }
+        heavy: { range: 900 * areaScale, halfWidth: 96 * areaScale, halfLength: 36 * areaScale, knockback: 6 * growth }
     };
 }
 export function basicChargeSeconds(owner, empowered = false) {

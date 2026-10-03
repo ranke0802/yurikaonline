@@ -1,3 +1,4 @@
+import { warriorBarrageProfile, swordWaveProfile, barrageReach } from './WarriorBarrage.js';
 import { skillHealingBudget, applyAllocatedHealing } from './SkillHealing.js';
 import { SHIELD_RUSH, shieldRushDirection, shieldRushProfile } from './ShieldRush.js';
 import { ARROW_RAIN } from './ArrowRain.js';
@@ -117,6 +118,7 @@ export default class ClassCombatController {
             this.hooks.failure?.('검격 발사에는 분노 25가 필요합니다. 짧게 눌렀다 놓으면 연속 베기를 사용합니다.');
             return false;
         }
+        this.cancelBarrage();
         const weapon = basicWeaponBonuses(this.owner,aimed),healingGroup={};
         let interval = basicAttackInterval(this.classId, {
             aimed, empowered: this.classId === 'archer' && this.empowered,
@@ -137,9 +139,9 @@ export default class ClassCombatController {
         } else if (this.classId === 'warrior') {
             if (aimed) {
                 this.rage -= 25;
-                const origin=this.combatOrigin(),direction=this.direction(point);
-                this.projectiles.push({kind:'sword_wave',...origin,direction,speed:360,remaining:growth.heavy.range,
-                    age:0,healingGroup,launchOrigin:origin,halfWidth:growth.heavy.halfWidth,hit:new Set(),power:power*3,weapon,knockback:growth.heavy.knockback});
+                const origin=this.combatOrigin(),direction=shieldRushDirection(this.owner,this.direction(point)),wave=this.getSwordWaveProfile();
+                this.projectiles.push({kind:'sword_wave',...origin,direction,speed:wave.speed,remaining:wave.range,
+                    age:0,healingGroup,launchOrigin:origin,halfWidth:wave.halfWidth,halfLength:wave.halfLength,hit:new Set(),power:power*wave.damageMultiplier,weapon,knockback:growth.heavy.knockback});
             } else {
                 this.combo = this.time - (this.lastCombo || 0) > 1.6 ? 1 : this.combo % 3 + 1; this.lastCombo = this.time;
                 let hits = 0; this.line(point, growth.tap.range, growth.tap.halfWidth).forEach(e => {
@@ -260,6 +262,8 @@ export default class ClassCombatController {
     }
     castSkill(slot, { x, y, level = 1 } = {}) {
         if (this.disposed || !alive(this.owner) || this.hooks.paused?.() || (this.cooldowns[slot] || 0) > this.time || this.shieldRush) return false;
+        if(this.barrage&&slot===2||this.owner.classStatuses?.stun?.remaining>0)return false;
+        this.cancelBarrage();
         const center = this.combatOrigin();
         const point = { x: x ?? center.x, y: y ?? center.y }; const d = this.direction(point); const reach = distance(point, center);
         if (reach > 450) { point.x = center.x + d.x * 450; point.y = center.y + d.y * 450; }
@@ -305,20 +309,12 @@ export default class ClassCombatController {
                 this.hitShieldRushTargets();
                 cooldown = 10;
             } else if (slot === 2) {
-                // Swept 20px collision steps: no teleport through walls or missed targets.
-                const origin = this.combatOrigin();
-                const hit = new Set(); let refund = false;
-                for (let i = 0; i < 12; i++) {
-                    if (this.hooks.move?.(this.owner, this.owner.x + d.x * 20, this.owner.y + d.y * 20) === false) break;
-                    for (const e of this.area(this.combatOrigin(), WG.charge.halfWidth)) {
-                        if (hit.has(e)) continue; hit.add(e);
-                        if (!this.skillHit(e, power * 1.6, {}, weapon, chainState)) continue;
-                        if (this.state(e).shieldHitUntil > this.time) refund = true;
-                        if (!e.isBoss && this.hooks.move?.(e, e.x + d.x * 80, e.y + d.y * 80) === false) this.control(e, 'stun', 1.5);
-                    }
-                }
-                if (refund) this.rage = Math.min(100, this.rage + 25);
-                this.effect('punishing_charge', { ...origin, target: this.combatOrigin(), aimTarget: point }); cooldown = 7;
+                const profile=warriorBarrageProfile(skillLevel),direction=shieldRushDirection(this.owner,d);
+                const totalDamage=Math.max(profile.hits,Math.ceil(this.attack()*profile.damageMultiplier*(1+(weapon?.damageBonus||0))));
+                this.barrage={started:this.time,profile,direction,totalDamage,weapon,chainState,nextPulse:0,refunded:false,lastX:this.owner.x,lastY:this.owner.y};
+                const geometry=this.barrageGeometry();
+                this.barrage.effectId=this.effect('gwangcheon',{...geometry,duration:profile.duration,pulseCount:profile.hits});
+                this.advanceBarrage();cooldown=7;
             } else if (slot === 3) {
                 this.bloodUntil = this.time + 8; this.bloodPotency=1+(weapon?.damageBonus||0);
                 this.schedule(8, () => { const spent = this.rage; this.rage = 0; this.area(this.combatOrigin(), WG.finale.radius).forEach(e => this.skillHit(e, power * (1 + spent * .04),{},weapon,chainState)); this.effect('blood_finale', { radius: 170, rage: spent }); });
@@ -411,6 +407,42 @@ export default class ClassCombatController {
         }
         this.time=end;
     }
+    getSwordWaveProfile() {
+        return swordWaveProfile(basicAttackProfile(this.classId,this.owner.skillLevels),this.hooks.viewportSpan?.());
+    }
+    barrageGeometry() {
+        const b=this.barrage,origin=this.combatOrigin();
+        const range=barrageReach(origin,b.direction,b.profile,this.hooks.projectileBlocked);
+        return {...origin,range,halfWidth:b.profile.halfWidth,target:{x:origin.x+b.direction.x*range,y:origin.y+b.direction.y*range}};
+    }
+    cancelBarrage() {
+        if(!this.barrage)return;
+        this.cancelEffect(this.barrage.effectId);this.barrage=null;this.hooks.barrageEnded?.();
+    }
+    advanceBarrage() {
+        const b=this.barrage;if(!b)return;
+        if(!alive(this.owner)||this.owner.classStatuses?.stun?.remaining>0||Math.hypot(this.owner.x-b.lastX,this.owner.y-b.lastY)>100){this.cancelBarrage();return;}
+        b.lastX=this.owner.x;b.lastY=this.owner.y;
+        const geometry=this.barrageGeometry(),end=this.time,elapsed=end-b.started;
+        this.hooks.updateEffect?.(b.effectId,{...geometry,age:elapsed});
+        while(this.barrage===b && b.nextPulse<b.profile.hits && b.nextPulse*b.profile.interval<=elapsed+1e-8){
+            const index=b.nextPulse++,damage=Math.floor(b.totalDamage*(index+1)/b.profile.hits)-Math.floor(b.totalDamage*index/b.profile.hits);
+            this.time=b.started+index*b.profile.interval;
+            if(geometry.range<=0)continue;
+            const d=b.direction,seen=new Set();
+            for(const e of this.enemies()){
+                const key=e.id??e;if(seen.has(key))continue;seen.add(key);
+                const x=e.x-geometry.x,y=e.y-geometry.y,along=x*d.x+y*d.y,side=Math.abs(x*d.y-y*d.x);
+                if(along<0||along>geometry.range||side>b.profile.halfWidth+(e.radius||16))continue;
+                // Whole corridor stops at the first wall; never hit through it.
+                const accepted=this.skillHit(e,damage,{barrage:true,pulse:index},b.weapon?{...b.weapon,damageBonus:0,missileDamageBonus:0}:null,b.chainState);
+                if(this.barrage!==b)break;
+                if(accepted&&!b.refunded&&this.state(e).shieldHitUntil>this.time){b.refunded=true;this.rage=Math.min(100,this.rage+25);}
+            }
+        }
+        this.time=end;
+        if(this.barrage===b&&elapsed>=b.profile.duration-1e-8)this.cancelBarrage();
+    }
     advanceSwordWave(p,dt) {
         p.age+=dt;
         const distance=Math.min(p.remaining,p.speed*dt),steps=Math.max(1,Math.ceil(distance/4));
@@ -418,15 +450,16 @@ export default class ClassCombatController {
             const x=p.x+p.direction.x*distance/steps,y=p.y+p.direction.y*distance/steps;
             // Sweep the full blade width through walls, not just its center.
             for(let side=-p.halfWidth;side<=p.halfWidth;side+=8){
-                if(this.hooks.projectileBlocked?.(x-p.direction.y*side,y+p.direction.x*side,4)){
+                if(this.hooks.projectileBlocked?.(x+p.direction.x*(p.halfLength||36)-p.direction.y*side,y+p.direction.y*(p.halfLength||36)+p.direction.x*side,4)){
                     this.projectiles.splice(this.projectiles.indexOf(p),1);return;
                 }
             }
             p.x=x;p.y=y;
             for(const e of this.enemies()){
                 const dx=e.x-x,dy=e.y-y,along=dx*p.direction.x+dy*p.direction.y,side=Math.abs(dx*p.direction.y-dy*p.direction.x);
-                if(p.hit.has(e)||(e.x-p.launchOrigin.x)*p.direction.x+(e.y-p.launchOrigin.y)*p.direction.y<0||Math.abs(along)>6+(e.radius||16)||side>p.halfWidth+(e.radius||16))continue;
-                p.hit.add(e);
+                const key=e.id??e;
+                if(p.hit.has(key)||(e.x-p.launchOrigin.x)*p.direction.x+(e.y-p.launchOrigin.y)*p.direction.y<0||Math.abs(along)>(p.halfLength||36)+(e.radius||16)||side>p.halfWidth+(e.radius||16))continue;
+                p.hit.add(key);
                 if(this.basicHit(e,p.power,{armorPierce:1},p.weapon,null,p.healingGroup)&&!e.isBoss&&p.knockback)
                     this.hooks.move?.(e,e.x+p.direction.x*p.knockback,e.y+p.direction.y*p.knockback);
             }
@@ -439,7 +472,7 @@ export default class ClassCombatController {
         if (!alive(this.owner)) { this.dispose(); return; }
         // Process at exact simulation deadlines (including staggered 1s drain ticks).
         const end = this.time + Math.min(dt, .25);
-        this.time=end;this.advanceShieldRush(Math.min(dt,.25));
+        this.time=end;this.advanceShieldRush(Math.min(dt,.25));this.advanceBarrage();
         this.tasks.sort((a,b) => a.at - b.at);
         while (this.tasks[0]?.at <= end) { const task = this.tasks.shift(); this.time = task.at; task.fn(); this.tasks.sort((a,b) => a.at - b.at); }
         this.time = end;
@@ -539,6 +572,7 @@ export default class ClassCombatController {
     dispose() {
         if (this.disposed) return;
         this.stopShieldRush();
+        this.cancelBarrage();
         this.disposed = true; this.tasks = []; this.projectiles = []; this.trap = null;
         this.summons.forEach(e => this.hooks.dismiss?.(e)); this.summons = [];
         for (const [e] of this.statuses) for (const type of ['berserk', 'mark', 'root', 'taunt']) this.hooks.clearStatus?.(e, type);

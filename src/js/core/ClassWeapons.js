@@ -9,7 +9,7 @@ const NAMES = { witch: ['위치', '마법서', 'spellbook', '📖'], warrior: ['
 const route = (slot, name, effect, radius, mode = null, potency = '피해') => Object.freeze({slot,name,effect,radius,mode,potency});
 export const CLASS_WEAPON_ROUTES = Object.freeze({
     witch: Object.freeze({magic:route(0,'생명 흡수 (탭)','life_circle',95,'tap'),tidal:route(1,'독 물약','poison_cloud',140),storm:route(2,'소환수','summon',70,null,'공격력'),astral:route(3,'광폭화 물약','berserk_potion',240,null,'공격력 증가분'),riftcore:route(0,'흡수 구체 (홀드)','life_circle',95,'hold')}),
-    warrior: Object.freeze({magic:route(0,'연속 베기 (탭)','weapon_slash',100,'tap'),tidal:route(1,'방패 돌진','shield_impact',100),storm:route(2,'응징 돌진','punishing_charge',80),astral:route(3,'피의 계약','blood_finale',170,null,'흡혈·종료 피해'),riftcore:route(0,'검격 발사 (홀드)','rage_smash',100,'hold')}),
+    warrior: Object.freeze({magic:route(0,'연속 베기 (탭)','weapon_slash',100,'tap'),tidal:route(1,'방패 돌진','shield_impact',100),storm:route(2,'광천격','gwangcheon',80),astral:route(3,'피의 계약','blood_finale',170,null,'흡혈·종료 피해'),riftcore:route(0,'검격 발사 (홀드)','rage_smash',100,'hold')}),
     archer: Object.freeze({magic:route(0,'일반 화살 (탭)','trap_burst',70,'tap'),tidal:route(1,'사냥꾼 덫','trap_burst',130),storm:route(2,'그림자 도약','shadow_leap',80,null,'후퇴 거리'),astral:route(3,'추적 화살비','tracking_rain',165),riftcore:route(0,'관통 저격 (홀드)','trap_burst',130,'hold')})
 });
 // Compatibility export for callers which only need each class's original chain skill.

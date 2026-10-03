@@ -35,7 +35,7 @@ for(const level of [1,4,8]) test(`level ${level}: charged damage and collision s
   witch.owner.skillLevels.lifeDrain=1;witch.advance(3.4);
   assert.equal(witch.hits.filter(h=>h.m.drain).reduce((n,h)=>n+h.n,0),Math.ceil(100*wg.damageMultiplier));
   const warrior=fixture('warrior',level);warrior.enemy();warrior.c.rage=25;
-  warrior.c.basic({aimed:true,x:400,y:0});assert.equal(warrior.hits.length,0);warrior.advance(.3);assert.equal(warrior.hits[0].n,Math.ceil(300*g.damageMultiplier));assert.equal(warrior.c.rage,0);
+  warrior.c.basic({aimed:true,x:400,y:0});assert.equal(warrior.hits.length,0);warrior.advance(.3);assert.equal(warrior.hits[0].n,Math.ceil(350*g.damageMultiplier));assert.equal(warrior.c.rage,0);
 });
 for(const level of [1,4,8]) test(`level ${level}: expanded hitboxes and VFX share sizes`,()=>{
   const w=fixture('witch',level),g=basicAttackProfile('witch',w.owner.skillLevels);

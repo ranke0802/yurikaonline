@@ -1,3 +1,4 @@
+import { warriorBarrageProfile } from '../combat/WarriorBarrage.js';
 import { drawClassChargeGauge } from '../ui/ClassChargeGauge.js';
 import { skillHealingBudget, healingDisplayAmount } from '../combat/SkillHealing.js';
 import { SHIELD_RUSH, shieldRushProfile } from '../combat/ShieldRush.js';
@@ -277,7 +278,7 @@ export default class Player extends CharacterBase {
         });
 
         bindInput('aimCancel', (data) => {
-            if (this.isClassAction(data?.action)) { this.classAim = null; return; }
+            if (this.isClassAction(data?.action)) { this.classAim = null;this.classCombat?.controller.cancelBarrage(); return; }
             if (data?.action === 'SKILL_2') this.cancelFireballAim();
         });
 
@@ -351,7 +352,7 @@ export default class Player extends CharacterBase {
         let radius=basic?12:this.classId==='witch'&&a.action==='SKILL_1'?140:this.classId==='archer'&&a.action==='SKILL_3'?165:28,circle=false;
         if(this.classId==='warrior'){
             const growth=basicAttackProfile(this.classId,this.skillLevels);
-            const g=basic?(a.elapsed>=basicChargeSeconds(this)?growth.heavy:growth.tap):a.action==='SKILL_2'?WG.charge:a.action==='SKILL_1'?{range:shieldRushProfile(this.skillLevels.challenge).distance,halfWidth:SHIELD_RUSH.halfWidth}:null;
+            const g=basic?(a.elapsed>=basicChargeSeconds(this)?(this.classCombat?.controller.getSwordWaveProfile()||growth.heavy):growth.tap):a.action==='SKILL_2'?warriorBarrageProfile(this.skillLevels.charge):a.action==='SKILL_1'?{range:shieldRushProfile(this.skillLevels.challenge).distance,halfWidth:SHIELD_RUSH.halfWidth}:null;
             if(g){range=g.range;width=g.halfWidth;radius=0;}
             else {circle=true;radius=a.action==='SKILL_1'?WG.challenge.radius:WG.finale.radius;}
         }

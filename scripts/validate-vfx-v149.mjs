@@ -19,7 +19,7 @@ for(const level of [1,8])test(`Lv${level}: physical width/radius changes reach r
  const w=basicAttackProfile('witch',{lifeDrain:level}),s=basicAttackProfile('warrior',{cleave:level});
  const r=renderer('witch');r.projectiles=[{kind:'orb',x:0,y:0,radius:w.orbRadius,direction:{x:1,y:0}}];renderForegroundEffects(r,{});assert.equal(r.calls[0][4],w.orbRadius*2);
  r.calls=[];r.effects=[{name:'life_circle',x:0,y:0,radius:w.tapRadius,age:0}];r.projectiles=[];renderGroundEffects(r,{});assert.equal(r.calls[0][4],w.tapRadius*2);
- const warrior=renderer('warrior');warrior.projectiles=[{kind:'sword_wave',x:0,y:0,halfWidth:s.heavy.halfWidth,direction:{x:1,y:0}}];renderForegroundEffects(warrior,{});assert.equal(warrior.calls[0][6].height,s.heavy.halfWidth*2);assert.equal(warrior.calls[0][6].width,48);
+ const warrior=renderer('warrior');warrior.projectiles=[{kind:'sword_wave',x:0,y:0,halfWidth:s.heavy.halfWidth,direction:{x:1,y:0}}];renderForegroundEffects(warrior,{});assert.equal(warrior.calls[0][6].height,s.heavy.halfWidth*2);assert.equal(warrior.calls.at(-1)[6].width,72);
  const archer=renderer('archer');archer.projectiles=[{kind:'snipe',x:0,y:0,direction:{x:1,y:0},age:.1}];renderForegroundEffects(archer,{});assert.equal(archer.calls.at(-1)[6].height,36);assert.equal(archer.calls.at(-1)[6].width,72);
 });
 test('local/remote row envelope is identical at both levels for every animation phase',async()=>{

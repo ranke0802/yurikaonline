@@ -10,12 +10,12 @@ import { captureProjectileWorldContext, isProjectileWorldContextCurrent } from '
 
 export const EFFECT_ROWS = {
     witch: [['life_circle','drain_orb','drain_link','drain_heal','orb','return'], ['poison_cloud','poison_potion'], ['summon'], ['berserk_potion']],
-    warrior: [['warrior_slash','rage_smash','weapon_slash'], ['challenge','shield_rush','shield_impact','shield_block'], ['punishing_charge'], ['blood_pact','blood_finale']],
+    warrior: [['warrior_slash','rage_smash','weapon_slash'], ['challenge','shield_rush','shield_impact','shield_block'], ['punishing_charge','gwangcheon'], ['blood_pact','blood_finale']],
     archer: [['archer_shot','piercing_snipe','arrow','snipe'], ['hunter_trap','trap_burst','trap_trigger'], ['shadow_leap'], ['tracking_rain']]
 };
 const GROUND = new Set(['life_circle','poison_cloud','summon','hunter_trap','tracking_rain','blood_pact','berserk_potion']);
 const DIRECTIONAL = new Set(['warrior_slash','rage_smash','punishing_charge','archer_shot','piercing_snipe','shadow_leap']);
-const SPATIAL = new Set(['orb','life_circle','poison_cloud','warrior_slash','rage_smash','weapon_slash','punishing_charge','blood_finale','arrow','snipe','tracking_rain','hunter_trap','trap_trigger','trap_burst','shadow_leap']);
+const SPATIAL = new Set(['gwangcheon','orb','life_circle','poison_cloud','warrior_slash','rage_smash','weapon_slash','punishing_charge','blood_finale','arrow','snipe','tracking_rain','hunter_trap','trap_trigger','trap_burst','shadow_leap']);
 export const STATUS_ICONS = ['poison','berserk','rage','mark','root','taunt','bloodPact','empowered'];
 export function loadClassVisualImages(classId, images) {
     const resources=getSharedResourceManager();
@@ -46,7 +46,13 @@ export function drawClassEffect(renderer,ctx,name,x,y,size,age=0,options={}) {
 function renderProjectiles(renderer,ctx,behind) {
     const center=combatCenter(renderer.owner);
     for(const p of renderer.controller?.projectiles||renderer.projectiles||[]) {
-        if(p.kind==='sword_wave'){if(!behind)renderer.drawEffect(ctx,'rage_smash',p.x,p.y,(p.halfWidth||64)*2,p.age||0,{angle:Math.atan2(p.direction.y,p.direction.x),width:48,height:(p.halfWidth||64)*2,sustained:true});continue;}
+        if(p.kind==='sword_wave'){
+            if(!behind){const angle=Math.atan2(p.direction.y,p.direction.x),depth=(p.halfLength||36)*2,width=(p.halfWidth||96)*2;
+                const trail=Math.min(100,(p.age||0)*(p.speed||720));
+                for(let i=3;i>=1;i--)renderer.drawEffect(ctx,'rage_smash',p.x-p.direction.x*trail*i/3,p.y-p.direction.y*trail*i/3,width,p.age||0,{angle,width:depth,height:width,sustained:true,opacity:.06*(4-i)});
+                renderer.drawEffect(ctx,'rage_smash',p.x,p.y,width,p.age||0,{angle,width:depth,height:width,sustained:true});
+            }continue;
+        }
         if(p.kind==='snipe' && !behind){
             const length=Math.min(110,Math.max(0,(p.age||0)*(p.speed||780))),d=p.direction;
             for(let n=5;n>=1;n--){const offset=length*n/5;
@@ -80,6 +86,15 @@ export function renderGroundEffects(renderer,ctx) {
 }
 export function renderForegroundEffects(renderer,ctx) {
     for(const f of renderer.effects){
+        if(f.name==='gwangcheon'){
+            if(!f.target||f.range<1)continue;
+            const angle=Math.atan2(f.target.y-f.y,f.target.x-f.x),width=f.halfWidth*2;
+            // A continuous raster corridor with gently moving streaks. No blank
+            // pulse frames, global flash or camera shake at the damage frequency.
+            const count=Math.max(1,Math.ceil(f.range/150)),span=f.range/count;
+            for(let i=0;i<count;i++)renderer.drawEffect(ctx,f.name,f.x+Math.cos(angle)*span*i,f.y+Math.sin(angle)*span*i,span,f.age,{angle,width:span,height:width,pivotX:0,sustained:true,opacity:.72});
+            continue;
+        }
         if(f.name==='shield_rush'){
             const center=combatCenter(renderer.owner),motion=renderer.currentMotion?.()||renderer.motion;
             if(!motion?.shieldRush)continue;
@@ -124,21 +139,21 @@ export default class RemoteClassVisuals {
         if(this.owner.isDead||this.owner.hp<=0)return true;
         const lag=Math.max(0,(now-packet.ts)/1000),names=(EFFECT_ROWS[this.classId]||[]).flat();
         const m=packet.motion;
-        if(m&&Number.isSafeInteger(m.id)&&Number.isInteger(m.row)&&m.row>=0&&m.row<4&&Number.isFinite(m.age)&&m.age>=0&&Number.isFinite(m.duration)&&m.duration>=.2&&m.duration<=(m.shieldRush===true&&this.classId==='warrior'&&m.row===1?3.7:.60)&&(m.direction===undefined||(Number.isInteger(m.direction)&&m.direction>=0&&m.direction<=3))) {
-            const age=m.age+lag;if(m.held&&lag<.3||!m.held&&age<m.duration)this.motion={id:m.id,row:m.row,shieldRush:m.shieldRush===true&&this.classId==='warrior'&&m.row===1,direction:m.direction??(Number.isInteger(this.owner.direction)&&this.owner.direction>=0&&this.owner.direction<=3?this.owner.direction:1),held:!!m.held,age,duration:m.duration,receivedAt:now,expiresAt:m.held?packet.ts+300:now+(m.duration-age)*1000};
+        if(m&&Number.isSafeInteger(m.id)&&Number.isInteger(m.row)&&m.row>=0&&m.row<4&&Number.isFinite(m.age)&&m.age>=0&&Number.isFinite(m.duration)&&m.duration>=.2&&m.duration<=(m.shieldRush===true&&this.classId==='warrior'&&m.row===1?3.7:m.barrage===true&&this.classId==='warrior'&&m.row===3?2.4:.60)&&(m.direction===undefined||(Number.isInteger(m.direction)&&m.direction>=0&&m.direction<=3))) {
+            const age=m.age+lag;if(m.held&&lag<.3||!m.held&&age<m.duration)this.motion={id:m.id,row:m.row,barrage:m.barrage===true&&this.classId==='warrior'&&m.row===3,shieldRush:m.shieldRush===true&&this.classId==='warrior'&&m.row===1,direction:m.direction??(Number.isInteger(this.owner.direction)&&this.owner.direction>=0&&this.owner.direction<=3?this.owner.direction:1),held:!!m.held,age,duration:m.duration,receivedAt:now,expiresAt:m.held?packet.ts+300:now+(m.duration-age)*1000};
         }
         for(const f of (Array.isArray(packet.effects)?packet.effects:[]).slice(0,64)){
             if(!finitePoint(f)||typeof f.id!=='string'||!names.includes(f.name)||!Number.isFinite(f.duration)||!Number.isFinite(f.age))continue;
             const duration=Math.max(0,Math.min(10,f.duration)),age=Math.max(0,f.age)+lag;
             if(age>=duration)continue;
             this.effects.push({id:f.id,name:f.name,x:f.x,y:f.y,target:finitePoint(f.target)?{x:f.target.x,y:f.target.y}:null,
-                radius:Math.max(0,Math.min(700,Number(f.radius)||0)),range:Math.max(0,Math.min(243,Number(f.range)||0)),halfWidth:Math.max(0,Math.min(95,Number(f.halfWidth)||0)),duration,age,receivedAt:now});
+                radius:Math.max(0,Math.min(700,Number(f.radius)||0)),range:Math.max(0,Math.min(f.name==='gwangcheon'?740:243,Number(f.range)||0)),halfWidth:Math.max(0,Math.min(95,Number(f.halfWidth)||0)),duration,age,pulseCount:Math.max(24,Math.min(38,Number(f.pulseCount)||24)),receivedAt:now});
         }
         for(const p of (Array.isArray(packet.projectiles)?packet.projectiles:[]).slice(0,32)){
             if(!finitePoint(p)||!['orb','return','arrow','snipe','sword_wave'].includes(p.kind)||!finitePoint(p.direction)||!Number.isFinite(p.speed)||lag>.4)continue;
-            const speed=Math.max(0,Math.min(p.kind==='snipe'?780:650,p.speed));
-            const remaining=Number.isFinite(p.remaining)?Math.max(0,Math.min(650,p.remaining)):speed*.4;
-            this.projectiles.push({...p,halfWidth:p.kind==='sword_wave'?Math.max(64,Math.min(86.4,Number(p.halfWidth)||64)):0,radius:p.kind==='orb'?Math.max(14,Math.min(18.9,Number(p.radius)||14)):0,speed,remaining,age:Number(p.age)||0,receivedAt:now,expiresAt:packet.ts+400});
+            const speed=Math.max(0,Math.min(p.kind==='snipe'?780:p.kind==='sword_wave'?720:650,p.speed));
+            const remaining=Number.isFinite(p.remaining)?Math.max(0,Math.min(p.kind==='sword_wave'?6000:650,p.remaining)):speed*.4;
+            this.projectiles.push({...p,halfLength:p.kind==='sword_wave'?Math.max(36,Math.min(48.6,Number(p.halfLength)||36)):0,halfWidth:p.kind==='sword_wave'?Math.max(96,Math.min(129.6,Number(p.halfWidth)||96)):0,radius:p.kind==='orb'?Math.max(14,Math.min(18.9,Number(p.radius)||14)):0,speed,remaining,age:Number(p.age)||0,receivedAt:now,expiresAt:packet.ts+400});
         }
         const d=packet.decoy;
         if(finitePoint(d)&&Number.isFinite(d.remaining)&&d.remaining>lag)this.decoy={x:d.x,y:d.y,direction:Math.max(0,Math.min(3,d.direction||0)),frame:Math.max(0,Math.min(3,d.frame||0)),remaining:Math.min(2,d.remaining)-lag,receivedAt:now};
