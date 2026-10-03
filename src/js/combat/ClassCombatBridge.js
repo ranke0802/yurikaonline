@@ -20,6 +20,7 @@ export default class ClassCombatBridge {
             projectileBlocked:(x,y,r)=>!!this.game?.sceneManager?.currentScene?.checkCollision?.(x-r,y-r,r*2,r*2),
             attackOrigin:(target,kind)=>attackAnchor(this.owner,target,kind),
             action: (kind,data)=>this.startActionMotion(kind,data),
+            basicHit: () => { if(classId==='witch') this.game?.tutorial?.trigger?.('attack',{target:'normal'}); },
             failure: text=>this.game?.ui?.logSystemMessage?.(text),
             cancelEffect: id=>{this.effects=this.effects.filter(f=>f.id!==id);},
             enemies: () => [...(this.game?.monsterManager?.monsters?.values?.() || [])],

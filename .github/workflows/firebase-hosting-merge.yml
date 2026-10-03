@@ -46,6 +46,7 @@ jobs:
           node scripts/validate-class-tutorial-browser.cjs
           node scripts/validate-combat-feedback-browser.cjs
           node scripts/validate-witch-ranged-browser.cjs
+          node scripts/validate-witch-tutorial-browser.cjs
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

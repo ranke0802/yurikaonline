@@ -336,7 +336,7 @@ export default class Player extends CharacterBase {
         const result=action === 'ATTACK'
             ? this.classCombat.basic({x:aim.x,y:aim.y,aimed:aim.elapsed>=threshold})
             : this.useSkill(Number(action.slice(-1)),{x:aim.x,y:aim.y});
-        if (result) { this.skillAttackTimer=.4; this.isAttacking=true; this.state='attack'; window.game?.tutorial?.trigger?.(action === 'ATTACK' ? 'attack' : 'skill_use',{target:action === 'ATTACK' ? 'normal' : classSkillIds(this)[Number(action.slice(-1))]}); }
+        if (result) { this.skillAttackTimer=.4; this.isAttacking=true; this.state='attack'; if(action !== 'ATTACK' || this.classId !== 'witch') window.game?.tutorial?.trigger?.(action === 'ATTACK' ? 'attack' : 'skill_use',{target:action === 'ATTACK' ? 'normal' : classSkillIds(this)[Number(action.slice(-1))]}); }
         return result;
     }
 

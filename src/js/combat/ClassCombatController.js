@@ -47,6 +47,7 @@ export default class ClassCombatController {
             this.heal(this.owner, weapon.restoreHpPerLaserHit);
             if (healState) healState.healed = true;
         }
+        if (actual) this.hooks.basicHit?.(e, actual);
         return actual;
     }
     skillHit(e, amount, meta, weapon, chainState) {
