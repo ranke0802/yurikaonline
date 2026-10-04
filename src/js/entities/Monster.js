@@ -1078,12 +1078,13 @@ export default class Monster extends CharacterBase {
         const zones = Array.isArray(payload.zones) ? payload.zones : [];
         if (zones.length === 0) return;
 
+        const warningMs = payload.warningMs === 0 ? 0 : Math.max(350, Number(payload.warningMs) || 1000);
         this.seenBossTelegraphIds.set(id, now);
         this.activeBossTelegraphs.push({
             id,
             mechanicId: String(payload.mechanicId || 'boss_telegraph'),
             label: String(payload.label || ''),
-            warningMs: Math.max(350, Number(payload.warningMs || 1000)),
+            warningMs,
             impactMs: Math.max(120, Number(payload.impactMs || 320)),
             damage: Math.max(1, Number(payload.damage || this.atk || 10)),
             zones,
@@ -1093,7 +1094,7 @@ export default class Monster extends CharacterBase {
             castVfx: payload.castVfx && typeof payload.castVfx === 'object' ? payload.castVfx : null,
             persistentMs: Math.max(0, Number(payload.persistentMs || 0)),
             tickMs: Math.max(180, Number(payload.tickMs || 500)),
-            nextDamageMs: Math.max(0, Number(payload.warningMs || 0)),
+            nextDamageMs: warningMs,
             elapsedMs: 0,
             resolved: false,
             hitTargetIds: new Set()
@@ -1238,7 +1239,8 @@ export default class Monster extends CharacterBase {
         this.activeBossTelegraphs = this.activeBossTelegraphs.filter((telegraph) => {
             telegraph.elapsedMs += deltaMs;
             if (telegraph.persistentMs > 0) {
-                if (telegraph.elapsedMs >= telegraph.warningMs && telegraph.elapsedMs >= telegraph.nextDamageMs) {
+                const damageEndMs = telegraph.warningMs + telegraph.persistentMs;
+                while (telegraph.elapsedMs >= telegraph.nextDamageMs && telegraph.nextDamageMs < damageEndMs) {
                     this._applyBossTelegraphDamage(telegraph);
                     telegraph.nextDamageMs += Math.max(180, Number(telegraph.tickMs || 500));
                 }
@@ -1252,6 +1254,7 @@ export default class Monster extends CharacterBase {
     _drawBossTelegraphCircle(ctx, zone, telegraph, progress, impactProgress, lowGlareCombat) {
         const radius = Math.max(1, Number(zone.radius || 1));
         const impact = telegraph.elapsedMs >= telegraph.warningMs;
+        const impactFrameProgress = Math.max(0, Math.min(1, (telegraph.elapsedMs - telegraph.warningMs) / Math.max(1, telegraph.impactMs)));
         const alphaScale = lowGlareCombat ? 0.62 : 1;
         ctx.save();
         ctx.globalAlpha = alphaScale * (impact ? 0.24 * (1 - impactProgress) : 0.08 + progress * 0.1);
@@ -1286,7 +1289,7 @@ export default class Monster extends CharacterBase {
             radius * (impact ? 2.3 : 1.9),
             radius * (impact ? 1.48 : 1.18),
             alphaScale * (impact ? 0.94 * (1 - impactProgress) : 0.42 + progress * 0.32),
-            impact ? impactProgress : progress
+            impact ? impactFrameProgress : progress
         );
     }
 
@@ -1300,6 +1303,7 @@ export default class Monster extends CharacterBase {
         const dy = y2 - y1;
         const length = Math.max(1, Math.hypot(dx, dy));
         const impact = telegraph.elapsedMs >= telegraph.warningMs;
+        const impactFrameProgress = Math.max(0, Math.min(1, (telegraph.elapsedMs - telegraph.warningMs) / Math.max(1, telegraph.impactMs)));
         const alphaScale = lowGlareCombat ? 0.6 : 1;
 
         const theme = this._getCombatVfxTheme(telegraph.effect);
@@ -1315,7 +1319,7 @@ export default class Monster extends CharacterBase {
                 this._drawSkillVfx(ctx, 'impact', telegraph.effect,
                     x1 + dx * t, y1 + dy * t,
                     size, size * 0.82,
-                    alphaScale * 0.94 * (1 - impactProgress), impactProgress);
+                    alphaScale * 0.94 * (1 - impactProgress), impactFrameProgress);
             }
         }
     }
@@ -1324,6 +1328,7 @@ export default class Monster extends CharacterBase {
         const innerRadius = Math.max(0, Number(zone.innerRadius || 0));
         const outerRadius = Math.max(innerRadius + 1, Number(zone.outerRadius || innerRadius + 1));
         const impact = telegraph.elapsedMs >= telegraph.warningMs;
+        const impactFrameProgress = Math.max(0, Math.min(1, (telegraph.elapsedMs - telegraph.warningMs) / Math.max(1, telegraph.impactMs)));
         const alphaScale = lowGlareCombat ? 0.58 : 1;
         ctx.save();
         ctx.globalAlpha = alphaScale * (impact ? 0.22 * (1 - impactProgress) : 0.06 + progress * 0.09);
@@ -1354,7 +1359,7 @@ export default class Monster extends CharacterBase {
             outerRadius * (impact ? 2.15 : 1.8),
             outerRadius * (impact ? 1.35 : 1.05),
             alphaScale * (impact ? 0.88 * (1 - impactProgress) : 0.4 + progress * 0.26),
-            impact ? impactProgress : progress
+            impact ? impactFrameProgress : progress
         );
     }
 
@@ -1365,7 +1370,12 @@ export default class Monster extends CharacterBase {
             const warningMs = Math.max(1, Number(telegraph.warningMs || 1));
             const impactMs = Math.max(1, Number(telegraph.impactMs || 1));
             const progress = Math.max(0, Math.min(1, telegraph.elapsedMs / warningMs));
-            const impactProgress = Math.max(0, Math.min(1, (telegraph.elapsedMs - warningMs) / impactMs));
+            // Persistent hazards must remain visible for their whole damage lifetime.
+            // The authored impact animation still finishes promptly; only its residue fades at the end.
+            const impactAge = Math.max(0, telegraph.elapsedMs - warningMs);
+            const impactProgress = telegraph.persistentMs > 0
+                ? Math.max(0, Math.min(1, (impactAge - Math.max(0, telegraph.persistentMs - 350)) / 350))
+                : Math.max(0, Math.min(1, impactAge / impactMs));
             telegraph.zones.forEach((zone) => {
                 if (zone.shape === 'line') {
                     this._drawBossTelegraphLine(ctx, zone, telegraph, progress, impactProgress, lowGlareCombat);
@@ -2792,4 +2802,16 @@ export default class Monster extends CharacterBase {
         }
         ctx.restore();
     }
+}
+
+// Shared visual-only renderer: summoned copies use the same ground geometry,
+// upright authored pixels and timing as their source monster. No AI or damage runs here.
+let sharedTelegraphRenderer;
+export function drawMonsterGroundTelegraph(ctx, telegraph, lowGlare = true) {
+    sharedTelegraphRenderer ||= Object.assign(Object.create(Monster.prototype), {
+        isLowGlareCombatZone() { return this.lowGlare; }
+    });
+    sharedTelegraphRenderer.lowGlare = lowGlare;
+    sharedTelegraphRenderer.activeBossTelegraphs = [telegraph];
+    sharedTelegraphRenderer.renderBossTelegraphs(ctx);
 }

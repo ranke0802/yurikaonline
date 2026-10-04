@@ -1,26 +1,46 @@
 import { drawMonsterSkillVfx, resolveMonsterSkillVfxFrame } from '../effects/MonsterSkillVfxRenderer.js';
+import { drawMonsterGroundTelegraph } from '../entities/Monster.js';
+import { drawSkillProjectile } from '../effects/PlayerSkillVfxRenderer.js';
 const finite=n=>Number.isFinite(n)&&Math.abs(n)<1e7;
-// The same bounded, visual-only packet is used locally and remotely. It cannot
-// create attacks, status effects, entities, timers or damage.
-export function drawSummonAbilities(ctx,actor,snapshot){
+const positive=n=>finite(n)&&n>0&&n<=8000;
+function validZone(z){
+    if(!z)return false;
+    if(z.shape==='line')return [z.x1,z.y1,z.x2,z.y2].every(finite)&&positive(z.width)&&Math.hypot(z.x2-z.x1,z.y2-z.y1)<=8000;
+    if(!finite(z.x)||!finite(z.y))return false;
+    if(z.shape==='circle')return positive(z.radius);
+    return z.shape==='donut'&&finite(z.innerRadius)&&z.innerRadius>=0&&positive(z.outerRadius)&&z.innerRadius<z.outerRadius;
+}
+// Visual-only packets never create attacks, entities, damage or deadlines.
+// Ground casts run before bodies in both local and remote world rendering.
+export function drawSummonAbilities(ctx,actor,snapshot,layer='all'){
     if(!snapshot||!Number.isFinite(snapshot.ts)||Date.now()-snapshot.ts>500||snapshot.ts>Date.now()+1000)return;
-    const draw=(theme,stage,x,y,w,h,progress=0,angle=0)=>{
-        if(!finite(x)||!finite(y)||!finite(w)||!finite(h)||w<=0||h<=0||w>8000||h>8000)return;
-        drawMonsterSkillVfx(ctx,theme,resolveMonsterSkillVfxFrame(stage,progress),x,y,w,h,.65,.5,angle,false,'center');
+    const draw=(theme,stage,x,y,w,h,progress=0,alpha=.65)=>{
+        if(!finite(x)||!finite(y)||!positive(w)||!positive(h))return;
+        drawMonsterSkillVfx(ctx,theme,resolveMonsterSkillVfxFrame(stage,progress),x,y,w,h,alpha,.9,0,false,'ground');
     };
-    if(snapshot.shield)draw(snapshot.theme,'cast',actor.x,actor.y,80,80,.5);
-    for(const c of (Array.isArray(snapshot.casts)?snapshot.casts:[]).slice(0,12)){
-        const stage=c.age<c.warning?'cast':'impact',progress=c.warning>0?Math.min(1,c.age/c.warning):1;
-        if(c.kind==='area')for(const z of (Array.isArray(c.zones)?c.zones:[]).slice(0,8)){
-            if(z.shape==='line'){
-                const len=Math.hypot(z.x2-z.x1,z.y2-z.y1),angle=Math.atan2(z.y2-z.y1,z.x2-z.x1),count=Math.max(1,Math.min(24,Math.ceil(len/150)));
-                for(let i=0;i<count;i++)draw(c.theme,stage,z.x1+(z.x2-z.x1)*(i+.5)/count,z.y1+(z.y2-z.y1)*(i+.5)/count,len/count,z.width,progress,angle);
-            }else if(z.shape==='circle')draw(c.theme,stage,z.x,z.y,z.radius*2,z.radius*2,progress);
-            else if(z.shape==='donut'){
-                const radius=(z.innerRadius+z.outerRadius)/2,size=z.outerRadius-z.innerRadius;
-                for(let i=0;i<16;i++){const angle=i*Math.PI/8;draw(c.theme,stage,z.x+Math.cos(angle)*radius,z.y+Math.sin(angle)*radius,size,size,progress);}
-            }
-        }else draw(c.theme,stage,c.x,c.y,80,80,progress);
+    const foot=finite(snapshot.footOffset)?Math.min(400,Math.max(0,snapshot.footOffset)):16;
+    if(layer!=='foreground')for(const c of (Array.isArray(snapshot.casts)?snapshot.casts:[]).slice(0,12)){
+        if(!finite(c.age)||c.age<0||!finite(c.warning)||c.warning<0||!finite(c.remaining)||c.remaining<=0)continue;
+        const progress=c.warning>0?Math.min(1,c.age/c.warning):1;
+        if(c.kind==='area'){
+            const zones=(Array.isArray(c.zones)?c.zones:[]).slice(0,8).filter(validZone);
+            drawMonsterGroundTelegraph(ctx,{zones,elapsedMs:c.age*1000,warningMs:c.warning*1000,
+                impactMs:Math.max(120,Math.min(5000,(c.impactDuration||.32)*1000)),
+                persistentMs:Math.max(0,Math.min(15000,(c.persistent||0)*1000)),
+                color:c.color||'#88cbdc',secondaryColor:c.secondaryColor||'#effbff',effect:c.theme||snapshot.theme},true);
+        }else if(c.kind==='ambush'){
+            draw(c.theme,'cast',actor.x,actor.y+foot,100,65,progress,.68*(1-progress*.45));
+            draw(c.theme,'cast',c.x,c.y+foot,85,55,progress,.5+progress*.32);
+        }else if(c.kind==='charge'){
+            if(c.age<c.warning)draw(c.theme,'cast',actor.x,actor.y+foot,100,65,progress);
+            else draw(c.theme,'residue',actor.x-(c.dx||0)*24,actor.y-(c.dy||0)*24+foot,70,45,1,.4);
+        }
     }
-    for(const p of (Array.isArray(snapshot.projectiles)?snapshot.projectiles:[]).slice(0,24))draw(p.theme,'charge',p.x,p.y,28,28);
+    if(layer==='ground')return;
+    if(snapshot.shield)draw(snapshot.theme,'cast',actor.x,actor.y+foot,80,80,.5,.45);
+    for(const p of (Array.isArray(snapshot.projectiles)?snapshot.projectiles:[]).slice(0,24)){
+        if(!finite(p.x)||!finite(p.y)||!finite(p.dx)||!finite(p.dy))continue;
+        const trail=(Array.isArray(p.trail)?p.trail:[]).slice(-8).filter(t=>finite(t.x)&&finite(t.y));
+        drawSkillProjectile(ctx,'missile',p.x,p.y,6,Math.atan2(p.dy,p.dx),trail,{age:Math.max(0,Number(p.age)||0),reducedEffects:true});
+    }
 }

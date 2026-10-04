@@ -218,10 +218,10 @@ export default class ClassCombatBridge {
         this.syncVisuals();
     }
     drawEffect(...args) { drawClassEffect(this,...args); }
-    renderGround(ctx) { renderGroundEffects(this,ctx); }
+    renderGround(ctx) { renderGroundEffects(this,ctx);for(const a of this.actors)if(alive(a))drawSummonAbilities(ctx,a,a.abilities?.snapshot(),'ground'); }
     render(ctx) {
         for(const a of this.actors) if(alive(a)&&a.visual.sprite) {const v=a.visual; v.sprite.draw(ctx,v.usesV2Atlas?v.animationRow:0,v.frame,a.x-(v.renderWidth||v.width)/2,a.y-(v.renderHeight||v.height)/2,v.renderWidth||v.width,v.renderHeight||v.height);}
-        for(const a of this.actors)if(alive(a))drawSummonAbilities(ctx,a,a.abilities?.snapshot());
+        for(const a of this.actors)if(alive(a))drawSummonAbilities(ctx,a,a.abilities?.snapshot(),'foreground');
         renderForegroundEffects(this,ctx);
         for(const a of this.actors) if(alive(a)) {
             const width=40,y=a.y-(a.visual.renderHeight||a.visual.height)/2-8;

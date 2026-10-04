@@ -758,12 +758,15 @@ export default class RemotePlayer extends CharacterBase {
         }
     }
 
+    renderClassSummonGround(ctx) {
+        for(const actor of this.classSummons || [])drawSummonAbilities(ctx,actor,actor.abilities,'ground');
+    }
+
     renderClassSummons(ctx) {
         this.summonVisuals ||= new Map();
         const liveIds = new Set((this.classSummons || []).map(e => e.id));
         for (const id of this.summonVisuals.keys()) if(!liveIds.has(id))this.summonVisuals.delete(id);
         for (const actor of this.classSummons || []) {
-            drawSummonAbilities(ctx,actor,actor.abilities);
             if(!this.summonVisuals.has(actor.id)) {
                 this.summonVisuals.set(actor.id,null);
                 if(window.game?.resources)preloadMonsterSkillVfxAssets(window.game.resources).catch(()=>{});
@@ -777,6 +780,7 @@ export default class RemotePlayer extends CharacterBase {
             const v=this.summonVisuals.get(actor.id);if(!v?.sprite)continue;
             const width=v.renderWidth||v.width,height=v.renderHeight||v.height;
             v.sprite.draw(ctx,v.usesV2Atlas?v.animationRow:0,Math.floor(Date.now()/180)%Math.max(1,v.frameCount),actor.x-width/2,actor.y-height/2,width,height);
+            drawSummonAbilities(ctx,actor,actor.abilities,'foreground');
         }
     }
 

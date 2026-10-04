@@ -206,7 +206,19 @@ export default class LocalNetworkManager extends NetworkManager {
     acceptPartyInvite() { return this._unavailableOnlineFeature(); }
     sendHostilityEvent() { return false; }
     sendHostilityRemovalEvent() { return false; }
-    sendPlayerDamage() { return false; }
+    sendPlayerDamage(targetId, damage, effectType = null, effectDuration = 0, effectDamage = 0, meta = null) {
+        // Solo monsters use the same damage route as online quiet-mode monsters.
+        // PvP and packets for any other player remain unavailable in local mode.
+        if (!this.connected || !this.isHost || !this.zoneParticipationEnabled || targetId !== this.playerId
+            || !Number.isFinite(damage) || damage <= 0 || !meta?.monsterId) return false;
+        const player = globalThis.window?.game?.localPlayer;
+        if (player?.id !== this.playerId || typeof player.takeDamage !== 'function') return false;
+        player.takeDamage(damage, false, !!meta.isCrit,
+            Number.isFinite(meta.impactX) ? meta.impactX : null,
+            Number.isFinite(meta.impactY) ? meta.impactY : null,
+            { ...meta, id: meta.monsterId, type: 'monster' }, effectType, effectDuration, effectDamage);
+        return true;
+    }
     async sendDuelRequest() { return this._unavailableOnlineFeature(); }
 
     flushPendingFriendGiftRefunds() {}

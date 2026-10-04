@@ -505,7 +505,8 @@ export class Projectile {
                     if (dist < this.hitRadius) this.hit(rp, monsters);
                 });
             }
-            if (monsters) {
+            // Hostile monster missiles must not collide with their caster or allied monsters.
+            if (monsters && !this.isMonsterAttack) {
                 monsters.forEach(m => {
                     if (m.isDead) return;
                     const dist = Math.sqrt((this.x - m.x) ** 2 + (this.y - m.y) ** 2);

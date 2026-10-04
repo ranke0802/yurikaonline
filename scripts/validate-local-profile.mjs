@@ -261,3 +261,11 @@ test('pending recovery cannot defeat revision fence through position save, flush
     assert.equal(first.getLocalSaveStatus().pending, true);
     assert.equal((await other.getPlayerProfile('local-player')).manastone, 30);
 });
+test('local PvE monster damage reaches only the participating local player and preserves metadata',()=>{
+ const n=new LocalNetworkManager(memory()),calls=[];n.connected=n.isHost=n.zoneParticipationEnabled=true;
+ globalThis.window={game:{localPlayer:{id:n.playerId,takeDamage:(...args)=>calls.push(args)}}};
+ assert.equal(n.sendPlayerDamage(n.playerId,25,'poison',3,2,{monsterId:'emolga-1',impactX:42,impactY:23}),true);
+ assert.deepEqual(calls[0],[25,false,false,42,23,{monsterId:'emolga-1',impactX:42,impactY:23,id:'emolga-1',type:'monster'},'poison',3,2]);
+ for(const args of [[n.playerId,20],[n.playerId,20,null,0,0,{playerId:'pvp'}],['other',20,null,0,0,{monsterId:'m'}],[n.playerId,NaN,null,0,0,{monsterId:'m'}]])assert.equal(n.sendPlayerDamage(...args),false);
+ n.zoneParticipationEnabled=false;assert.equal(n.sendPlayerDamage(n.playerId,20,null,0,0,{monsterId:'m'}),false);assert.equal(calls.length,1);
+});

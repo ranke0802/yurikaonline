@@ -1455,8 +1455,9 @@ export default class WorldScene extends Scene {
         this.remoteOffscreenUpdateInterval = useAggressiveHudOptimization ? 0.22 : (useMobileIntervals ? 0.14 : 0);
 
         if (this.player) {
-            if (this.input.isPressed('SKILL_1')) this.player.useSkill(1);
-            if (this.input.isPressed('SKILL_3')) this.player.useSkill(3);
+            // Aimed class actions commit on release; only legacy wizard skills repeat.
+            if (this.input.isPressed('SKILL_1') && !this.player.isClassAction?.('SKILL_1')) this.player.useSkill(1);
+            if (this.input.isPressed('SKILL_3') && !this.player.isClassAction?.('SKILL_3')) this.player.useSkill(3);
 
             // v2.0: Predictive Collision (Check before update or after?)
             // Player.update() modifies x/y directly based on vx/vy. 
@@ -1680,7 +1681,7 @@ export default class WorldScene extends Scene {
         this.game.zone.render(ctx, this.camera);
 
         this.player?.classCombat?.renderGround(ctx, this.camera);
-        for(const remote of this.remotePlayers.values())remote.classVisuals?.renderGround(ctx);
+        for(const remote of this.remotePlayers.values()){remote.classVisuals?.renderGround(ctx);remote.renderClassSummonGround?.(ctx);}
         // Ground guides share a pass below every character/monster silhouette.
         // Drawing these inside one entity or after the Y-sort covers other bodies.
         this.monsterManager?.monsters.forEach(monster => {

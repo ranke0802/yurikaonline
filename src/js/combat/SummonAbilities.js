@@ -42,7 +42,8 @@ export default class SummonAbilities {
         const warning=Math.max(.35,(mechanic.warningMs||1000)*(special?1:v._getBossMechanicCastScale(mechanic))/1000);
         const persistent=Math.max(0,(mechanic.persistentMs||0)/1000);
         this.casts.push({id:++this.serial,kind:'area',skill:mechanic.id,theme:mechanic.effect||v.effectTheme,zones,
-            start:this.time,impact:this.time+warning,end:this.time+warning+(persistent||(mechanic.impactMs||320)/1000),
+            start:this.time,impact:this.time+warning,end:this.time+warning+(persistent||(mechanic.impactMs||320)/1000),impactDuration:(mechanic.impactMs||320)/1000,
+            color:mechanic.color||v.bossEffects.color||v.bossEffects.auraColor,secondaryColor:mechanic.secondaryColor||v.bossEffects.secondaryColor,
             tick:Math.max(.18,(mechanic.tickMs||500)/1000),next:this.time+warning,persistent,
             power:this.power()*(mechanic.damageMultiplier||1)*(special?1:v._getBossMechanicDamageScale(mechanic))});this.sound();
     }
@@ -86,7 +87,7 @@ export default class SummonAbilities {
             }else if(c.kind==='missile'){
                 while(c.index<c.count&&c.next<=this.time+1e-8){
                     const angle=c.angle+(c.index-(c.count-1)/2)*(Math.PI*4/9/Math.max(1,c.count-1))+(this.random()-.5)*.4;
-                    this.projectiles.push({x:a.x,y:a.y,dx:Math.cos(angle),dy:Math.sin(angle),speed:700,life:2,power:c.power,theme:v.effectTheme,skill:c.skill});c.index++;c.next+=.1;
+                    this.projectiles.push({x:a.x,y:a.y,dx:Math.cos(angle),dy:Math.sin(angle),speed:700,life:2,trail:[],power:c.power,theme:v.effectTheme,skill:c.skill});c.index++;c.next+=.1;
                 }
                 if(c.index===c.count)this.casts=this.casts.filter(s=>s!==c);
             }else if(c.kind==='ambush'&&this.time>=c.impact){
@@ -105,6 +106,7 @@ export default class SummonAbilities {
     }
     advanceProjectiles(dt){
         for(const p of [...this.projectiles]){
+            p.trail ||= [];p.trail.push({x:p.x,y:p.y});if(p.trail.length>8)p.trail.shift();
             p.life-=dt;const steps=Math.max(1,Math.ceil(p.speed*dt/8));
             for(let i=0;i<steps&&p.life>0;i++){
                 const x=p.x+p.dx*p.speed*dt/steps,y=p.y+p.dy*p.speed*dt/steps;
@@ -128,7 +130,7 @@ export default class SummonAbilities {
         const dist=distance(this.actor,target),v=this.source;
         if(v.chargeEnabled&&this.ready('charge')&&dist>v.minChargeDistance&&dist<v.chargeRange)this.startCharge(target);
     }
-    snapshot(){if(this.disposed||(!this.casts.length&&!this.projectiles.length&&this.shieldUntil<=this.time))return null;return {ts:Date.now(),shield:this.shieldUntil>this.time,theme:this.source.effectTheme,
-        casts:this.casts.slice(0,12).map(c=>({kind:c.kind,theme:c.theme||this.source.effectTheme,zones:c.zones||[],x:c.x??this.actor.x,y:c.y??this.actor.y,age:this.time-c.start,warning:Math.max(0,(c.impact??c.start)-c.start),remaining:Math.max(0,(c.end??c.impact??this.time+.2)-this.time)})),
-        projectiles:this.projectiles.slice(0,24).map(p=>({x:p.x,y:p.y,theme:p.theme}))};}
+    snapshot(){if(this.disposed||(!this.casts.length&&!this.projectiles.length&&this.shieldUntil<=this.time))return null;return {ts:Date.now(),shield:this.shieldUntil>this.time,theme:this.source.effectTheme,footOffset:this.source.height/2,
+        casts:this.casts.slice(0,12).map(c=>({kind:c.kind,theme:c.theme||this.source.effectTheme,zones:c.zones||[],impactDuration:c.impactDuration||.32,persistent:c.persistent||0,color:c.color,secondaryColor:c.secondaryColor,dx:c.dx,dy:c.dy,x:c.x??this.actor.x,y:c.y??this.actor.y,age:this.time-c.start,warning:Math.max(0,(c.impact??c.start)-c.start),remaining:Math.max(0,(c.end??c.impact??this.time+.2)-this.time)+(c.kind==='charge'?Math.max(0,c.remaining)/Math.max(1,this.source.chargeSpeed):0)})),
+        projectiles:this.projectiles.slice(0,24).map(p=>({x:p.x,y:p.y,theme:p.theme,dx:p.dx,dy:p.dy,age:2-p.life,trail:p.trail||[]}))};}
 }
