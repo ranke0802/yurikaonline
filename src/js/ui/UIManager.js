@@ -5359,7 +5359,9 @@ export class UIManager {
         });
     }
 
-    showDeathModal() {
+    showDeathModal(causeText = null) {
+        const cause = document.getElementById('death-cause-text');
+        if (cause) cause.textContent = causeText || '사망 원인: 확인 불가';
         const modal = document.getElementById('death-modal');
         const timerText = document.getElementById('death-timer-text');
         const retryBtn = document.getElementById('retry-btn');
@@ -5383,6 +5385,8 @@ export class UIManager {
     }
 
     hideDeathModal() {
+        const cause = document.getElementById('death-cause-text');
+        if (cause) cause.textContent = '';
         const modal = document.getElementById('death-modal');
         if (modal) modal.classList.add('hidden');
     }

@@ -1,0 +1,174 @@
+{
+  "version": "0.02.167",
+  "baselineCommit": "3b827f65d24dca8f57fe368fd4ab6fa457c380bc",
+  "scope": "One death-cause sentence in the existing modal; source captured only on fatal accepted damage, plain text, no combat/network/save/timer changes.",
+  "sourceRules": [
+    "Known monsterId instance takes priority over sender; monsterType mismatch or absent instance is unknown.",
+    "Any unusable monster metadata prevents player fallback. Host-only synthetic sender is unknown.",
+    "No selected/nearest/previous attacker inference. Source-less burn tick is unknown.",
+    "Snapshot keeps the resolved string through duplicate hits and clears on respawn; names use textContent."
+  ],
+  "unitTests": 22,
+  "browserCases": 8,
+  "browserErrors": 0,
+  "browserMatrix": [
+    {
+      "orientation": "portrait",
+      "classId": "witch",
+      "shortPanelHeight": 364.890625,
+      "longPanelHeight": 421.5625,
+      "plainTextChildren": 0
+    },
+    {
+      "orientation": "portrait",
+      "classId": "wizard",
+      "shortPanelHeight": 364.890625,
+      "longPanelHeight": 421.5625,
+      "plainTextChildren": 0
+    },
+    {
+      "orientation": "portrait",
+      "classId": "warrior",
+      "shortPanelHeight": 364.890625,
+      "longPanelHeight": 421.5625,
+      "plainTextChildren": 0
+    },
+    {
+      "orientation": "portrait",
+      "classId": "archer",
+      "shortPanelHeight": 364.890625,
+      "longPanelHeight": 421.5625,
+      "plainTextChildren": 0
+    },
+    {
+      "orientation": "landscape",
+      "classId": "witch",
+      "shortPanelHeight": 287.796875,
+      "longPanelHeight": 306.6875,
+      "plainTextChildren": 0
+    },
+    {
+      "orientation": "landscape",
+      "classId": "wizard",
+      "shortPanelHeight": 287.796875,
+      "longPanelHeight": 306.6875,
+      "plainTextChildren": 0
+    },
+    {
+      "orientation": "landscape",
+      "classId": "warrior",
+      "shortPanelHeight": 287.796875,
+      "longPanelHeight": 306.6875,
+      "plainTextChildren": 0
+    },
+    {
+      "orientation": "landscape",
+      "classId": "archer",
+      "shortPanelHeight": 287.796875,
+      "longPanelHeight": 306.6875,
+      "plainTextChildren": 0
+    }
+  ],
+  "validated": [
+    "Direct monster through local adapter",
+    "Real burn tick without source",
+    "Production online inbox handler with mocked packets",
+    "Shield/spawn/modal/rush/zero-damage protection",
+    "Duplicate fatal hit",
+    "Respawn and later unknown death",
+    "3-second retry gate",
+    "Long HTML-shaped names remain text; no horizontal clipping or hidden retry button",
+    "Fatal source snapshotted before HP synchronization can rename/remove the entity"
+  ],
+  "v166RemainingPhysicalLimits": [
+    {
+      "orientation": "portrait",
+      "scenario": "toolbar-no-room",
+      "footY": 787.8,
+      "usableBottom": 785.2,
+      "availableBelowFeetCSSpx": -2.6,
+      "minimumFooterCSSpx": 25.2,
+      "deficitCSSpx": 27.8,
+      "maxAnchorShiftCSSpx": 16.8,
+      "clippedIcons": 7,
+      "clippedLabels": 2
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "too-shallow",
+      "footY": 771.0000000000006,
+      "usableBottom": 785.2,
+      "availableBelowFeetCSSpx": 14.2,
+      "minimumFooterCSSpx": 25.2,
+      "deficitCSSpx": 11.0,
+      "maxAnchorShiftCSSpx": 16.8,
+      "clippedIcons": 7,
+      "clippedLabels": 2
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "too-shallow",
+      "footY": 349.29999999999995,
+      "usableBottom": 363.20000000000016,
+      "availableBelowFeetCSSpx": 13.9,
+      "minimumFooterCSSpx": 25.2,
+      "deficitCSSpx": 11.3,
+      "maxAnchorShiftCSSpx": 16.8,
+      "clippedIcons": 7,
+      "clippedLabels": 2
+    }
+  ],
+  "v166Disposition": "Three insufficient cases remain documented. No button transparency, monster HUD, camera or input layout change.",
+  "preservedFiles": {
+    "src/css/combat-polish.css": "395cb4e1c9a3f60260f2106f2d6f149162fd5107d67f948bdd65050e0897b36c",
+    "src/js/ui/MonsterHudLayout.js": "fcb8ab31e3a2155e2e8d38c35c59adb373abcafcf4cd5f58762e320ce728eb99",
+    "src/js/ui/MonsterFootPlacement.js": "8bdb22bb013017725346be91a3e427b65917a94329f33c68f6381bed06209c0c",
+    "src/js/ui/MonsterHudSafeViewport.js": "992bd471f2fdb5a67139648cf2a0df2caea017bd9baa13396b0dbbf7106449f4",
+    "src/js/entities/Monster.js": "7ab76ce55b31983c35681ae83314fde0b14f949260ffe51cdeafedc8d7a80314",
+    "src/js/world/Camera.js": "779aea6dead9a0930d2c38fd68743889713de600c6d414e8d750220a2e23923c",
+    "src/js/core/NetworkManager.js": "65000b17907094da8cc4a1802ccaa9b061c8258d2996157ddaf16c8da51d3096",
+    "src/js/combat/ClassCombatController.js": "40fda95357e5934b08b4023047f46fa817ea02268ea7dd43b2c9aa95e9a1d08f",
+    "manifest.json": "695aa5347e3897aa6b95cc80d7adf5100869c1fb4ee5515544e9440e79c9ae48"
+  },
+  "captureSha256": {
+    "landscape-archer-long-name.png": "afd4bf9830ff7bb9f912faa3d55790072cadfefd0ed835153f3a11715adb20de",
+    "landscape-archer-monster.png": "d311e8184e0ed69ced8174ebfc7742598cdccef86066c4e0a7c6c51e9fe327f6",
+    "landscape-warrior-long-name.png": "be1b63fa3f59cbb213d8d8bbb2906eb89ca6a42ac632351c127375fa298bcf3b",
+    "landscape-warrior-monster.png": "f84186e5c4d6a46358684e5675651c8e16b5c40a527a1ce969e98024165c8b13",
+    "landscape-wizard-long-name.png": "736128dda5a4992689e0b3cbb6f14c9cea34a2d8fb7d99631313c5540bdc5084",
+    "landscape-wizard-monster.png": "58b2dd7b2621e8d4db957e6f1a688a48b30335eb3802506e2bad4949fe904699",
+    "landscape-witch-long-name.png": "4df6a44610b627bb1eaac8f04e02c632844b1967d62add5f23ce267d8cf5dd84",
+    "landscape-witch-monster.png": "74f0ce170bb9f01e36881993473e7ffe58f6c347e6385ec446072cabb9f5524e",
+    "portrait-archer-long-name.png": "b68e8ecab6ce58807723efd49a10d7227c66e8ead4ec2898b81b3842262d08dc",
+    "portrait-archer-monster.png": "88227e141daed10a24284838a1ec6eb1bc24d4459640d03580e70e59a6d01a7c",
+    "portrait-warrior-long-name.png": "dae5efce868b0eae6b9c4710c1338dffb57da1f9337f652470d4040d055101b6",
+    "portrait-warrior-monster.png": "08a57bbfe5b04e57b0596519358624e07e124ec3f43ca743908f0d830cd9c996",
+    "portrait-wizard-long-name.png": "2d4789612f220932684319e72419b124f63826649dd7d0ae4b01989cd84192e4",
+    "portrait-wizard-monster.png": "46b3b267e0b3014a417a8758680c0dd8ef28178c82e806719a9fe13560fbb7a0",
+    "portrait-witch-long-name.png": "a4ec76f2ef3070009dcd3d495e3808b3a70f47b7e3ade24c85ea70204177379d",
+    "portrait-witch-monster.png": "7f7db2e512212551a8a85afd3bb18c846ab00fbe64887b4c183dcf2a9d2a2cbe"
+  },
+  "limits": [
+    "Chromium mobile viewport emulation; not physical-device flicker validation.",
+    "Unknown/unavailable source is intentionally not guessed; no full damage history or DoT attribution added.",
+    "Online attribution uses an isolated packet fixture; no production accounts/DB writes."
+  ],
+  "localValidation": {
+    "npmRunValidate": "passed",
+    "ciPublicAssetsAndRuntimeStep": "passed",
+    "audioAll": "passed",
+    "sdkCacheLifecycle": "passed with proxy omitted for loopback-only fixture",
+    "ciNodeTestPasses": 761,
+    "finalDeathBrowserMatrix": "4 classes x 2 viewports passed with exact bootstrap version 0.02.167",
+    "existingCiLoopbackSequence": "35 script commands passed; new 8-case death matrix also passed separately",
+    "logSha256": {
+      "yurika-death-unit": "60019bf972f224fc2e27c3efdf19e3b6c56b96cb98b4cb343681f4044da341ea",
+      "yurika-death-release-browser": "27ef129dea0bfe41b1bc66cbde5b93ccf61fc10377b18c56a27a81c5865e6e36",
+      "yurika-ci-validation-v167-final": "09b9c0f798566ee9954530c1dd308374392e1f4292519be764057118098886ce",
+      "yurika-full-validate-v167-final": "d92d382000eb8780850b093f225f45c68b801619261af1f06554053d1a08274a",
+      "yurika-ci-browser-v167": "679111bede457e60db5bada84c2343708b275a186bc4ad0c708d02858437141b",
+      "yurika-audio-v167": "760641f65a0d420d492d761941aa4a216a527123b4b50cfb09fa778d07c36509"
+    }
+  },
+  "liveVerification": "Existing GitHub Actions deploy workflow checks served file bytes, then runs the death-cause matrix on https://yurika-online.web.app/?local=1 with isolated profiles and other origins blocked."
+}

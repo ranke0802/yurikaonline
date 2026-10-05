@@ -23,6 +23,32 @@ import {
     toProjectileAuthoredOptions
 } from './ProjectileWorldContext.js';
 
+// Presentation only: resolve the fatal packet against entities known at that instant.
+// A network sender can be the monster host, so never fall back from monster metadata
+// to a player name, or infer an attacker from the selected/nearest target.
+function describeDeathCause(attacker, game) {
+    const unknown = '사망 원인: 확인 불가';
+    if (!attacker || typeof attacker !== 'object') return unknown;
+    let source;
+    if ('monsterId' in attacker || 'monsterType' in attacker || attacker.type === 'monster') {
+        const id = 'monsterId' in attacker ? attacker.monsterId : attacker.type === 'monster' ? attacker.id : null;
+        if (typeof id !== 'string' || !id) return unknown;
+        source = game?.monsterManager?.monsters?.get(id);
+        if (!source || source.id !== id || source.type !== 'monster') return unknown;
+        if ('monsterType' in attacker && attacker.monsterType !== source.typeId) return unknown;
+    } else {
+        if (attacker.type !== 'player' || typeof attacker.id !== 'string') return unknown;
+        source = game?.sceneManager?.currentScene?.remotePlayers?.get(attacker.id)
+            || game?.remotePlayers?.get(attacker.id);
+        if (!source || source.id !== attacker.id || source.type !== 'player') return unknown;
+        // A host sender without an identified monster is ambiguous; only an actual
+        // known player entity (not the transport's synthetic player stub) identifies it.
+        if (attacker.id === game?.net?.currentHostId && attacker !== source) return unknown;
+    }
+    const name = typeof source.name === 'string' ? source.name.trim().replace(/\s+/g, ' ') : '';
+    return name ? `사망 원인: ${name}의 공격` : unknown;
+}
+
 function shouldApplyModalSafetyPause(netInstance = null) {
     const ui = window.game?.ui;
     const net = netInstance || window.game?.net;
@@ -62,6 +88,7 @@ export default class Player extends CharacterBase {
     constructor(x, y, name = "유리카", definition = null) {
         super(x, y, definition?.baseStats?.speed || 180); // Speed from JSON or Default 180
         this.name = name;
+        this.deathCauseText = null;
         this.spawnX = x;
         this.spawnY = y;
         this.type = 'player'; // v1.99.38: Explicit type
@@ -1222,6 +1249,7 @@ export default class Player extends CharacterBase {
         if (finalDmg <= 0) return 0; // Minimum 1 damage
 
         this.hp = Math.max(0, this.hp - finalDmg);
+        const fatalCauseText = this.hp <= 0 ? describeDeathCause(attacker, window.game) : null;
         if (window.game && !suppressTransientEffects) {
             // v0.00.40: Show crit message properly
             const color = isCrit ? '#ff9f43' : '#ff4757';
@@ -1258,7 +1286,7 @@ export default class Player extends CharacterBase {
         Logger.log(`[Player] HP: ${this.hp}`);
 
         if (this.hp <= 0 && !this.isDead) {
-            this.die();
+            this.die(fatalCauseText);
         }
 
         // v0.00.19: Automatic Retaliation Removed (Strict PvP)
@@ -1329,7 +1357,8 @@ export default class Player extends CharacterBase {
         return false;
     }
 
-    die() {
+    die(causeText = null) {
+        if (!this.isDead) this.deathCauseText = typeof causeText === 'string' ? causeText : '사망 원인: 확인 불가';
         this.classAim = null;
         this.classCombat?.dispose();
         this.isDead = true;
@@ -1338,7 +1367,7 @@ export default class Player extends CharacterBase {
         // Visual feedback
         if (window.game && window.game.ui) {
             window.game.ui.logSystemMessage('당신은 전사했습니다...');
-            window.game.ui.showDeathModal();
+            window.game.ui.showDeathModal(this.deathCauseText);
         }
         // v0.29.32: Sync death state (HP 0) immediately
         if (this.net) this.net.sendPlayerHp(0, this.maxHp, { force: true });
@@ -4939,6 +4968,7 @@ export default class Player extends CharacterBase {
 
     // v0.00.15: Consolidate Respawn Logic
     async respawn() {
+        this.deathCauseText = null;
         this.initializeClassCombat();
         this.isDead = false;
         this.isDying = false;

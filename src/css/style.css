@@ -5367,6 +5367,14 @@ body.low-power-pwa .minimap-menu {
     margin-bottom: 10px;
 }
 
+#death-cause-text {
+    margin: 0 0 8px;
+    color: #bdc3c7;
+    font-size: 14px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
 #death-timer-text {
     font-size: 14px;
     color: #bdc3c7;
