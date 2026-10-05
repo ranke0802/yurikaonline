@@ -7958,6 +7958,14 @@ export class UIManager {
             callback?.(false);
             return;
         }
+        if (this.gameExitConfirmPending && this.confirmModal && !this.confirmModal.classList.contains('hidden')) {
+            // Cancel the existing settings exit before another prompt can replace
+            // its callback, which owns clearing gameExitConfirmPending.
+            const callback = this.confirmCallback;
+            this.hideConfirm();
+            callback?.(false);
+            return;
+        }
         if (this.browserBackExitConfirmPending || this.gameExitSceneTransitioning) return;
 
         this.browserBackExitConfirmPending = true;
