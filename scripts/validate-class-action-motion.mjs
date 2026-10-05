@@ -23,7 +23,7 @@ test('invalid motion cannot sample an outside atlas row or stale release',()=>{
 test('two real remote visual instances reject duplicates/reordering and expire without combat side effects',async()=>{
  const originalNow=Date.now,originalWindow=globalThis.window;let now=100000,field='field-A',damagePackets=0,hpWrites=0;
  const scene={zoneTransitionToken:1};
- const game={resources:{loadImage:async path=>path.includes('-body')?({width:480,height:1440}):({width:768,height:768})},net:{_getCurrentFieldId:()=>field,sendMonsterDamage(){damagePackets++;},sendPlayerDamage(){damagePackets++;}},sceneManager:{currentScene:scene},zone:{currentZone:{id:'zone1'}},monsterManager:{worldGeneration:1}};
+ const game={resources:{loadImage:async path=>path.includes('-body')?({width:1536,height:3072}):({width:768,height:768})},net:{_getCurrentFieldId:()=>field,sendMonsterDamage(){damagePackets++;},sendPlayerDamage(){damagePackets++;}},sceneManager:{currentScene:scene},zone:{currentZone:{id:'zone1'}},monsterManager:{worldGeneration:1}};
  globalThis.window={game};Date.now=()=>now;
  try{
   const owners=[{x:0,y:0,hp:100,activeClassId:'witch'},{x:20,y:0,hp:100,activeClassId:'witch'}];for(const o of owners)o.takeDamage=()=>hpWrites++;
@@ -31,7 +31,7 @@ test('two real remote visual instances reject duplicates/reordering and expire w
   const packet={classId:'witch',fieldId:field,ts:now,epoch:1,sequence:1,motion:{id:1,row:0,age:0,duration:.36,held:false},effects:[{id:'e1',name:'life_circle',x:0,y:0,age:0,duration:.36}],projectiles:[{kind:'orb',x:0,y:0,direction:{x:1,y:0},speed:210}],badges:[]};
   for(const v of views){assert.equal(v.receive(packet),true);assert.equal(v.receive(packet),false);assert.equal(v.receive({...packet,sequence:0}),false);assert.equal(v.receive({...packet,epoch:0,sequence:99}),false);}
   await Promise.resolve();
-  const draws=views.map(v=>{const calls=[];assert.equal(v.drawBody({drawImage:(...args)=>calls.push(args)},0,0,64,64),true);return calls;});assert.deepEqual(draws[0][0].slice(1),draws[1][0].slice(1));assert.equal(draws[0][0][1],0,'approved full-body cycle starts at phase0; combat hit timing is independent');
+  const draws=views.map(v=>{const calls=[];assert.equal(v.drawBody({drawImage:(...args)=>calls.push(args)},0,0,64,64),true);return calls;});assert.deepEqual(draws[0][0].slice(1),draws[1][0].slice(1));assert.equal(draws[0][0][1],512,'accepted attack displays authored cast pose immediately');
   now+=370;for(const v of views){v.advance();assert.equal(v.motion,null);assert.equal(v.effects.length,0);}
   now+=50;for(const v of views){v.advance();assert.equal(v.projectiles.length,0);assert.equal(v.receive({...packet,ts:now-13000,sequence:2}),false);assert.equal(v.receive({...packet,ts:now+1001,sequence:2}),false);}
   const held={...packet,ts:now,sequence:2,motion:{id:2,row:1,age:0,duration:.4,held:true}};

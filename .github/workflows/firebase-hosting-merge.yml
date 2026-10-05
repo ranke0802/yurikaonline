@@ -17,7 +17,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Validate public assets and local runtime
-        run: npm run validate:assets && npm run validate:resources && npm run validate:ui && npm run validate:local-profile && npm run validate:monster-authority && npm run validate:fireball-impact && npm run validate:inventory-compaction && npm run validate:camp-preparation && npm run validate:adventure-summary && npm run validate:camp-online-save && npm run validate:startup-deadlines && npm run validate:classes && npm run validate:class-weapons && npm run validate:approved-art && node --test scripts/validate-class-tutorial.mjs scripts/validate-combat-feedback.mjs scripts/validate-witch-ranged.mjs scripts/validate-shield-rush.mjs scripts/validate-class-feedback-v148.mjs scripts/validate-skill-healing.mjs scripts/validate-summon-v149.mjs scripts/validate-vfx-v149.mjs scripts/validate-warrior-v151.mjs scripts/validate-barrage-v152.mjs scripts/validate-combat-review-v153.mjs scripts/validate-summon-abilities-v154.mjs scripts/validate-pwa-emblem-v157.mjs scripts/validate-monster-skill-visuals-v158.mjs scripts/validate-monster-missile-v158.mjs
+        run: npm run validate:assets && npm run validate:resources && npm run validate:ui && npm run validate:local-profile && npm run validate:monster-authority && npm run validate:fireball-impact && npm run validate:inventory-compaction && npm run validate:camp-preparation && npm run validate:adventure-summary && npm run validate:camp-online-save && npm run validate:startup-deadlines && npm run validate:classes && npm run validate:class-weapons && npm run validate:approved-art && node --test scripts/validate-class-tutorial.mjs scripts/validate-combat-feedback.mjs scripts/validate-witch-ranged.mjs scripts/validate-shield-rush.mjs scripts/validate-class-feedback-v148.mjs scripts/validate-skill-healing.mjs scripts/validate-summon-v149.mjs scripts/validate-vfx-v149.mjs scripts/validate-warrior-v151.mjs scripts/validate-barrage-v152.mjs scripts/validate-combat-review-v153.mjs scripts/validate-summon-abilities-v154.mjs scripts/validate-pwa-emblem-v157.mjs scripts/validate-monster-skill-visuals-v158.mjs scripts/validate-monster-missile-v158.mjs scripts/validate-mage-style-v159.mjs
       - name: Install Chromium for Web Audio synthesis checks
         run: npx playwright install --with-deps chromium
       - name: Validate existing music and all class sound synthesis
@@ -42,6 +42,8 @@ jobs:
           node scripts/validate-friend-class-browser.cjs
           node scripts/validate-basic-progression-browser.cjs
           node scripts/validate-approved-art-browser.cjs
+          node scripts/validate-mage-style-v159-browser.cjs
+          node scripts/validate-mage-style-remote-v159-browser.cjs
           node scripts/validate-tutorial-stat-cancel-browser.cjs
           node scripts/validate-class-tutorial-browser.cjs
           node scripts/validate-combat-feedback-browser.cjs

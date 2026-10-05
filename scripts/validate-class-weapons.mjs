@@ -186,13 +186,13 @@ test('skill chains respect probability and first 0.3s deadline; pause does not b
  const blocked=combat('warrior','tidal');blocked.enemy().isBoss=true;blocked.controller.hooks.random=()=>1;
  blocked.controller.skill(1,{x:40,y:0});blocked.tick(10);assert.equal(blocked.hits.filter(h=>h.meta.weaponChain).length,0);
 });
-test('prepared Witch renderer keeps 120px cells, (60,112) foot pivot and 140ms timing without silhouette fitting',async()=>{
+test('prepared Witch renderer uses approved 256px six-frame cells at 120px world size without silhouette fitting',async()=>{
  const {drawAuthoredWitchRow:draw,WITCH_AUTHORED_FRAME:m}=await import('../src/js/combat/AuthoredCharacterFrames.js');
- assert.deepEqual(m,{width:120,height:120,pivotX:60,pivotY:112,frames:4,frameSeconds:.14,scale:1});
- const image={width:480,height:480},calls=[],ctx={drawImage:(...args)=>calls.push(args)};
- for(const row of [0,1,2,3])for(const [age,frame] of [[0,0],[.139,0],[.14,1],[.28,2],[.42,3],[.561,0]]){
+ assert.deepEqual(m,{width:256,height:256,pivotX:128,pivotY:236,frames:6,frameSeconds:.14,scale:120/256});
+ const image={width:1536,height:1024},calls=[],ctx={drawImage:(...args)=>calls.push(args)};
+ for(const row of [0,1,2,3])for(const [age,frame] of [[0,0],[.139,0],[.14,1],[.28,2],[.42,3],[.56,4],[.70,5],[.841,0]]){
   assert.equal(draw(image,ctx,{row,age,footX:200,footY:300}),true);
-  assert.deepEqual(calls.at(-1),[image,frame*120,row*120,120,120,140,188,120,120]);
+  assert.deepEqual(calls.at(-1),[image,frame*256,row*256,256,256,140,189.375,120,120]);
  }
  assert.equal(draw({width:1024,height:4096},ctx,{row:0,age:0,footX:0,footY:0}),false);
  assert.equal(draw(image,ctx,{age:0,footX:0,footY:0}),false);

@@ -24,11 +24,11 @@ for(const id of ['witch','warrior','archer']){
  await page.evaluate(()=>game.ui.hideAllPopups());
  const captured=await page.evaluate(async()=>{
   const {CLASS_BODY,sampleAuthoredBody}=await import('/src/js/combat/AuthoredCharacterFrames.js');const p=game.localPlayer,b=p.classCombat,s=CLASS_BODY[p.classId];
-  const c=document.createElement('canvas');c.width=880;c.height=12*170;const ctx=c.getContext('2d'),samples=[];
+  const c=document.createElement('canvas');c.width=1320;c.height=12*170;const ctx=c.getContext('2d'),samples=[];
   const previous={time:b.controller.time,motion:b.motion,animTimer:p.animTimer,animFrame:p.animFrame,moving:p.classArtMoving,direction:p.direction};
-  for(let state=0;state<3;state++)for(let direction=0;direction<4;direction++)for(let frame=0;frame<4;frame++){
+  for(let state=0;state<3;state++)for(let direction=0;direction<4;direction++)for(let frame=0;frame<6;frame++){
    const row=state*4+direction,x=frame*220,y=row*170;ctx.fillStyle='#25323d';ctx.fillRect(x,y,220,170);ctx.fillStyle='#485a65';ctx.fillRect(x,y+147,220,1);ctx.fillStyle='white';ctx.font='12px sans-serif';ctx.fillText(`${['walk','stationary','moving attack'][state]} ${['up','down','left','right'][direction]} ${frame+1}`,x+6,y+16);
-   p.direction=direction;p.classArtMoving=state!==1;p.animTimer=frame;p.animFrame=frame;b.controller.time=frame*s.frameSeconds;b.motion=state?{id:1,row:0,started:0,duration:s.frameSeconds*4,direction,held:false}:null;
+   p.direction=direction;p.classArtMoving=state!==1;p.animTimer=frame;p.animFrame=frame;b.controller.time=1;const age=state===1?(frame<2?frame*.11:(frame-2)*s.frameSeconds+.001):0;b.motion=state?{id:1,row:0,started:1-age,duration:s.frameSeconds*4,direction,held:state===1&&frame<2}:null;
    const assertBody=b.drawBody(ctx,x+50,y+35,120,120);if(!assertBody)throw Error('approved renderer missing');const pose=sampleAuthoredBody(p,b.currentMotion());samples.push({state,direction,frame,row:pose.row,drawnFrame:pose.frame});
   }
   b.controller.time=previous.time;b.motion=previous.motion;p.animTimer=previous.animTimer;p.animFrame=previous.animFrame;p.classArtMoving=previous.moving;p.direction=previous.direction;

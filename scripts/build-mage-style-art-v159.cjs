@@ -1,0 +1,8 @@
+const fs=require('fs'),path=require('path'),sharp=require('sharp'),crypto=require('crypto');
+(async()=>{const out='assets/resource/classes/mage-style-v159',src=process.env.ART_DELIVERY_ROOT||out;const sourceFile=f=>src===out?out+'/'+path.basename(f):src+'/'+f;fs.mkdirSync(out,{recursive:true});const manifest=JSON.parse(fs.readFileSync(src+(src===out?'/source-manifest.json':'/manifest.json')));for(const f of manifest.files){const b=fs.readFileSync(sourceFile(f.path));if(crypto.createHash('sha256').update(b).digest('hex')!==f.sha256)throw Error(f.path);if(src!==out)fs.copyFileSync(sourceFile(f.path),out+'/'+path.basename(f.path));}for(const id of ['witch','warrior','archer']){const decoded=await Promise.all(['walk','attack','movingattack'].map(a=>sharp(sourceFile(`atlases/${id}-${a}-1536x1024.webp`)).ensureAlpha().raw().toBuffer()));
+ const body=Buffer.concat(decoded);await sharp(body,{raw:{width:1536,height:3072,channels:4}}).webp({lossless:true}).toFile(`${out}/${id}-body.webp`);
+ const runtime=Buffer.alloc(2048*1280*4);for(let y=0;y<1024;y++)decoded[0].copy(runtime,y*2048*4,y*1536*4,(y+1)*1536*4);
+ for(let y=0;y<256;y++)decoded[1].copy(runtime,(1024+y)*2048*4,(256+y)*1536*4,(257+y)*1536*4);
+ const front=await sharp(`${out}/${id}-front-256.webp`).ensureAlpha().raw().toBuffer();for(let y=0;y<256;y++)front.copy(runtime,(256+y)*2048*4,y*256*4,(y+1)*256*4);
+ await sharp(runtime,{raw:{width:2048,height:1280,channels:4}}).webp({lossless:true}).toFile(`${out}/${id}-runtime.webp`);
+ }if(src!==out){fs.copyFileSync(src+'/manifest.json',out+'/source-manifest.json');fs.copyFileSync(src+'/integration-contract.json',out+'/integration-contract.json');}console.log('Preserved 13 originals; packed bodies/runtime sheets without resizing source pixels.');})();

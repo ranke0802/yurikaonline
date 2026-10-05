@@ -46,7 +46,7 @@ fs.mkdirSync(out, { recursive: true });
           await ui.selectFriend('fixture-friend');
           await friends.ensureFriendPortraitAsset(id);
           friends.refreshFriendsPopup();
-          const sheet = id === 'wizard' ? await game.resources.loadCharacterSpriteSheet() : await game.resources.loadImage(`assets/resource/classes/approved/${id}-runtime.webp`);
+          const sheet = id === 'wizard' ? await game.resources.loadCharacterSpriteSheet() : await game.resources.loadImage(`assets/resource/classes/mage-style-v159/${id}-runtime.webp`);
           const c = document.createElement('canvas'); c.width = c.height = 96;
           const ctx = c.getContext('2d'); ctx.imageSmoothingEnabled = false;
           ctx.drawImage(sheet, 0, sheet.height / 5, sheet.width / 8, sheet.height / 5, 0, 0, 96, 96);

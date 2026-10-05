@@ -33,12 +33,12 @@ const art=await page.evaluate(async()=>{
  const samples=[];for(const direction of [1,0,2,3]){
   b.motion.direction=direction;const packet=b.visualSnapshot();const remote=new Remote({...p});remote.receive(packet);await Promise.resolve();remote.images=images;
   const calls=[];const mock={drawImage:(...args)=>calls.push(args)};remote.drawBody(mock,0,0,120,120);
-  if(!remote.motion?.shieldRush||calls[0]?.[0]!==images.shieldBody)throw Error('remote dedicated body missing');
+  if(!remote.motion?.shieldRush||calls[0]?.[0]!==images.authored)throw Error('remote approved body missing');
   const index=samples.length;ctx.save();ctx.translate(index*260,0);b.drawBody(ctx,70,75,120,120);b.drawEffect(ctx,'shield_rush',130,135,144,.2,{direction});ctx.fillStyle='white';ctx.fillText(['up','down','left','right'][direction],10,20);ctx.restore();
-  samples.push({direction,row:calls[0][2]/144,remoteDuration:remote.motion.duration});
+  samples.push({direction,row:calls[0][2]/256,remoteDuration:remote.motion.duration});
   remote.receive({...packet,sequence:packet.sequence+1,motion:null,effects:[]});if(remote.motion||remote.effects.length)throw Error('remote end retained shield');
  }
- return{body:[images.shieldBody.width,images.shieldBody.height],effects:[images.shieldEffects.width,images.shieldEffects.height],samples,png:sheet.toDataURL().split(',')[1]};
+ return{body:[images.authored.width,images.authored.height],effects:[images.shieldEffects.width,images.shieldEffects.height],samples,png:sheet.toDataURL().split(',')[1]};
 });fs.writeFileSync('/tmp/shield-rush-directions.png',Buffer.from(art.png,'base64'));delete art.png;
 fs.writeFileSync('/tmp/shield-rush-browser-report.json',JSON.stringify({scope:'Local synthetic account, real Player update/render loop, mobile touch aim and keyboard opposing input; approved shield body and effects loaded',result,end,art},null,2));console.log(JSON.stringify({result,end}));
 }finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});

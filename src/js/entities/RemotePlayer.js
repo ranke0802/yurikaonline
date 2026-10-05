@@ -1,3 +1,4 @@
+import {advanceWizardAttack,drawWizardAttack} from '../combat/WizardAttackFrames.js';
 import { preloadMonsterSkillVfxAssets } from '../effects/MonsterSkillVfxRenderer.js';
 import { drawSummonAbilities } from '../combat/SummonAbilityVisuals.js';
 import { advanceAuthoredGait, classRuntimePath } from '../combat/AuthoredCharacterFrames.js';
@@ -208,7 +209,8 @@ export default class RemotePlayer extends CharacterBase {
             if (bundle && this.classVisuals && this.activeClassId === classId) { this.classVisuals.classId=classId; Object.assign(this.classVisuals.images,bundle); }
             if ((this.activeClassId || 'wizard') !== classId) return;
             this.sprite = new Sprite(sheetCanvas, 8, 5);
-            this.frameCounts = classId === 'wizard' ? { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 } : {0:4,1:4,2:4,3:4,4:4};
+            this.wizardAttackImage = bundle?.wizardAttack || null;
+            this.frameCounts = classId === 'wizard' ? { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 } : {0:6,1:6,2:6,3:6,4:6};
         } catch (e) {
             Logger.error("Failed to load character sprite sheet for RemotePlayer:", e);
         }
@@ -735,6 +737,7 @@ export default class RemotePlayer extends CharacterBase {
     }
 
     _updateAnimation(dt) {
+        if ((this.classId || this.activeClassId || 'wizard') === 'wizard') advanceWizardAttack(this,dt);
         if (['witch','warrior','archer'].includes(this.activeClassId)) {
             advanceAuthoredGait(this, dt);
             return;
@@ -859,7 +862,7 @@ export default class RemotePlayer extends CharacterBase {
             const drawH = 120;
             const drawX = centerX - drawW / 2;
             const drawY = this.y + this.height - drawH + 10;
-            if (!this.classVisuals?.drawBody?.(ctx, drawX, drawY, drawW, drawH))
+            if (!((this.activeClassId || 'wizard') === 'wizard' && drawWizardAttack(ctx,this,drawX,drawY)) && !this.classVisuals?.drawBody?.(ctx, drawX, drawY, drawW, drawH))
                 this.sprite.draw(ctx, row, col, drawX, drawY, drawW, drawH);
         } else {
             // v0.28.7: Restore Fallback (Red Circle) for missing sprite or loading state

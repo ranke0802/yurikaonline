@@ -4,7 +4,7 @@ import { preloadMonsterSkillVfxAssets } from '../effects/MonsterSkillVfxRenderer
 import { enforceBarrageLock } from './BarrageLock.js';
 import { summonStats, advanceSummonVitals, damageSummon } from './SummonStats.js';
 import { applyAllocatedHealing, healingDisplayAmount } from './SkillHealing.js';
-import { drawShieldRushBody, SHIELD_RUSH } from './ShieldRush.js';
+import { SHIELD_RUSH } from './ShieldRush.js';
 import { drawAuthoredClassBody } from './AuthoredCharacterFrames.js';
 import { basicChargeSeconds } from './BasicAttackProgression.js';
 import { actionRow, createActionMotion, drawActionBody } from './ClassActionMotion.js';
@@ -107,9 +107,9 @@ export default class ClassCombatBridge {
         if(this.controller.classId==='warrior' && aim.action==='ATTACK'
             && (this.controller.time<this.controller.basicReady || aim.elapsed<basicChargeSeconds(this.owner) || this.controller.rage<25)) return null;
         const data=aim.action==='ATTACK'?{aimed:aim.elapsed>=basicChargeSeconds(this.owner,this.controller.empowered)}:{slot:Number(aim.action.slice(-1))};
-        return {id:0,row:actionRow(this.controller.classId,aim.action==='ATTACK'?'basic':'skill',data),direction:facingDirection(this.owner,aim),held:true,age:0,duration:.4};
+        return {id:0,row:actionRow(this.controller.classId,aim.action==='ATTACK'?'basic':'skill',data),direction:facingDirection(this.owner,aim),held:true,age:Math.min(.2,aim.elapsed||0),duration:.4};
     }
-    drawBody(ctx,x,y,w,h) {return drawShieldRushBody(this.images.shieldBody,this.currentMotion(),ctx,x,y) || drawAuthoredClassBody(this.images.authored,this.owner,this.currentMotion(),ctx,x,y) || drawActionBody(this.images.actions,this.currentMotion(),ctx,x,y,w,h);}
+    drawBody(ctx,x,y,w,h) {return drawAuthoredClassBody(this.images.authored,this.owner,this.currentMotion(),ctx,x,y) || drawActionBody(this.images.actions,this.currentMotion(),ctx,x,y,w,h);}
     basic(options) { return !this.paused() && this.controller.basic(options); }
     skill(slot,options={}) {
         if(this.paused())return false;

@@ -1,6 +1,5 @@
 import { WARRIOR_GEOMETRY } from './ClassGeometry.js';
 import { effectEnvelope } from './ClassEffectBounds.js';
-import { drawShieldRushBody } from './ShieldRush.js';
 import { renderArrowRain } from './ArrowRain.js';
 import { drawAuthoredClassBody, classArtPath } from './AuthoredCharacterFrames.js';
 import { combatCenter } from './ClassAnchors.js';
@@ -156,7 +155,7 @@ export default class RemoteClassVisuals {
             this.projectiles.push({...p,halfLength:p.kind==='sword_wave'?Math.max(36,Math.min(48.6,Number(p.halfLength)||36)):0,halfWidth:p.kind==='sword_wave'?Math.max(96,Math.min(129.6,Number(p.halfWidth)||96)):0,radius:p.kind==='orb'?Math.max(14,Math.min(18.9,Number(p.radius)||14)):0,speed,remaining,age:Number(p.age)||0,receivedAt:now,expiresAt:packet.ts+400});
         }
         const d=packet.decoy;
-        if(finitePoint(d)&&Number.isFinite(d.remaining)&&d.remaining>lag)this.decoy={x:d.x,y:d.y,direction:Math.max(0,Math.min(3,d.direction||0)),frame:Math.max(0,Math.min(3,d.frame||0)),remaining:Math.min(2,d.remaining)-lag,receivedAt:now};
+        if(finitePoint(d)&&Number.isFinite(d.remaining)&&d.remaining>lag)this.decoy={x:d.x,y:d.y,direction:Math.max(0,Math.min(3,d.direction||0)),frame:Math.max(0,Math.min(5,d.frame||0)),remaining:Math.min(2,d.remaining)-lag,receivedAt:now};
         this.badges=(Array.isArray(packet.badges)?packet.badges:[]).filter(b=>STATUS_ICONS.includes(b.type)).slice(0,8).map(b=>({type:b.type,count:Math.max(0,Math.min(100,Number(b.count)||0))}));
         this.badgesUntil=packet.ts+500;
         return true;
@@ -170,7 +169,7 @@ export default class RemoteClassVisuals {
         if(this.decoy){this.decoy.remaining-=(now-this.decoy.receivedAt)/1000;this.decoy.receivedAt=now;if(this.decoy.remaining<=0)this.decoy=null;}
         if(now>this.badgesUntil)this.badges=[];
     }
-    drawBody(ctx,x,y,w,h){this.advance();return drawShieldRushBody(this.images.shieldBody,this.motion,ctx,x,y) || drawAuthoredClassBody(this.images.authored,this.owner,this.motion,ctx,x,y) || drawActionBody(this.images.actions,this.motion,ctx,x,y,w,h);}
+    drawBody(ctx,x,y,w,h){this.advance();return drawAuthoredClassBody(this.images.authored,this.owner,this.motion,ctx,x,y) || drawActionBody(this.images.actions,this.motion,ctx,x,y,w,h);}
     drawEffect(...args){drawClassEffect(this,...args);}
     renderGround(ctx){this.advance();renderGroundEffects(this,ctx);}
     render(ctx){

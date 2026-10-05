@@ -1,3 +1,4 @@
+import {advanceWizardAttack,drawWizardAttack} from '../combat/WizardAttackFrames.js';
 import { warriorBarrageProfile } from '../combat/WarriorBarrage.js';
 import { drawClassChargeGauge } from '../ui/ClassChargeGauge.js';
 import { skillHealingBudget, healingDisplayAmount } from '../combat/SkillHealing.js';
@@ -388,8 +389,9 @@ export default class Player extends CharacterBase {
         // A slower previous selection must not paint over the current class.
         if (normalizeClassId(this.classId) !== classId) return false;
         this.sprite = new Sprite(bundle.sheet, 8, 5);
+        this.wizardAttackImage = bundle.wizardAttack || null;
         this._spriteClassId = classId;
-        this.frameCounts = classId !== 'wizard' ? {0:4,1:4,2:4,3:4,4:4} : {0:5,1:8,2:7,3:7,4:6};
+        this.frameCounts = classId !== 'wizard' ? {0:6,1:6,2:6,3:6,4:6} : {0:5,1:8,2:7,3:7,4:6};
         if (this.classCombat && classId !== 'wizard') Object.assign(this.classCombat.images, bundle);
         globalThis.window?.game?.ui?.updatePlayerPortraits?.(bundle.sheet, this.sprite);
         return true;
@@ -1020,6 +1022,7 @@ export default class Player extends CharacterBase {
     }
 
     _updateAnimation(dt) {
+        if ((this.classId || this.activeClassId || 'wizard') === 'wizard') advanceWizardAttack(this,dt);
         if (['witch','warrior','archer'].includes(this.classId)) {
             advanceAuthoredGait(this, dt);
             return;
@@ -3317,7 +3320,7 @@ export default class Player extends CharacterBase {
             const burnEffect = this.statusEffects.find(e => e.type === 'burn');
             const isElec = this.electrocutedTimer > 0;
 
-            if (!this.classCombat?.drawBody?.(ctx, drawX, drawY, drawW, drawH))
+            if (!(this.classId === 'wizard' && drawWizardAttack(ctx,this,drawX,drawY)) && !this.classCombat?.drawBody?.(ctx, drawX, drawY, drawW, drawH))
                 this.sprite.draw(ctx, row, col, drawX, drawY, drawW, drawH);
 
             // v0.21.5: Absolute Barrier (Shield) Effect - Centered on body

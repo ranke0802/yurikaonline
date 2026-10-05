@@ -1,0 +1,18 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import sharp from 'sharp';import {createHash} from 'node:crypto';
+import {CLASS_BODY,sampleAuthoredBody,drawAuthoredClassBody,classRuntimePath,classArtPath} from '../src/js/combat/AuthoredCharacterFrames.js';
+import {advanceWizardAttack,sampleWizardAttack,drawWizardAttack} from '../src/js/combat/WizardAttackFrames.js';
+const visible=b=>{for(let i=0;i<b.length;i+=4)if(b[i+3]===0)b[i]=b[i+1]=b[i+2]=0;return b;};
+const root='assets/resource/classes/mage-style-v159',manifest=JSON.parse(fs.readFileSync(root+'/source-manifest.json')),hash=b=>createHash('sha256').update(b).digest('hex');
+test('all 13 delivered images preserve approved SHA256, dimensions and alpha',async()=>{for(const f of manifest.files){const b=fs.readFileSync(root+'/'+f.path.split('/').at(-1)),m=await sharp(b).metadata();assert.equal(hash(b),f.sha256);assert.equal(b.length,f.bytes);assert.deepEqual([m.width,m.height],f.dimensions);assert.equal(m.hasAlpha,true);}});
+for(const id of ['witch','warrior','archer'])test(`${id}: all 72 packed body cells exactly match approved source RGBA, portrait is approved front`,async()=>{
+ for(const [state,action]of ['walk','attack','movingattack'].entries())for(let row=0;row<4;row++)for(let frame=0;frame<6;frame++){
+ const region={left:frame*256,top:row*256,width:256,height:256};const source=await sharp(`${root}/${id}-${action}-1536x1024.webp`).extract(region).ensureAlpha().raw().toBuffer();const packed=await sharp(classArtPath(id+'-body')).extract({...region,top:(state*4+row)*256}).ensureAlpha().raw().toBuffer();assert.equal(hash(visible(packed)),hash(visible(source)),`${id}/${state}/${row}/${frame}`);
+ }assert.equal(hash(visible(await sharp(classRuntimePath(id)).extract({left:0,top:256,width:256,height:256}).ensureAlpha().raw().toBuffer())),hash(visible(await sharp(`${root}/${id}-front-256.webp`).ensureAlpha().raw().toBuffer())));
+});
+test('four classes retain the same fixed ground pivot across every direction and moving frame',()=>{for(let direction=0;direction<4;direction++)for(let frame=0;frame<6;frame++){
+ const mage={direction,state:'attack',wizardArtMoving:true,wizardGaitAge:(frame+.001)*.12,wizardAttackImage:{width:1536,height:2048}};const calls=[],ctx={drawImage:(...x)=>calls.push(x)};assert.equal(drawWizardAttack(ctx,mage,20,30),true);assert.deepEqual(calls[0].slice(1),[frame*256,(4+direction)*256,256,256,20,31.375,120,120]);
+ for(const classId of Object.keys(CLASS_BODY)){const owner={classId,direction,classArtMoving:true,animTimer:frame};const pose=sampleAuthoredBody(owner,{direction});assert.equal(pose.frame,frame);assert.equal(pose.row,8+direction);calls.length=0;drawAuthoredClassBody({width:1536,height:3072},owner,{direction},ctx,20,30);assert.deepEqual(calls[0].slice(5),[20,31.375,120,120]);}
+}});
+test('Mage attack selects back/side/front rows and stationary cast starts at frame2 without changing original gait',()=>{for(let direction=0;direction<4;direction++){const a={x:0,y:0,direction,isAttacking:true,animTimer:3};advanceWizardAttack(a,.016);assert.deepEqual(sampleWizardAttack(a),{row:direction,frame:2,moving:false});a.x=5;advanceWizardAttack(a,.12);assert.equal(sampleWizardAttack(a).row,direction+4);assert.equal(a.animTimer,3);a.isAttacking=false;a.state='idle';advanceWizardAttack(a,.016);assert.equal(sampleWizardAttack(a),null);}});
+
+test('local and remote channeled Mage attacks keep casting rather than resting in recovery',()=>{for(const flag of ['isChanneling','remoteChannelingLocked']){const owner={isAttacking:true,[flag]:true,direction:2};for(let i=0;i<12;i++){owner.wizardAttackAge=i*.12+.001;assert.equal(sampleWizardAttack(owner).frame,2+i%2);}}});

@@ -1,3 +1,4 @@
+import {classPresentationPath} from '../../combat/AuthoredCharacterFrames.js';
 import { normalizeClassId, projectClassProfile, CLASS_IDS, CLASS_NAMES } from '../../core/ClassProfiles.js';
 import Scene from '../../core/Scene.js';
 import AdventureSummary from '../../core/AdventureSummary.js';
@@ -107,7 +108,7 @@ export default class CampScene extends Scene {
     renderUI() {
         if (!this.root) return;
         const p = this.preparation?.player || this.profile;
-        const art = file => escape(this.game.resources.getVersionedResourceUrl(ART + file));
+        const art = file => escape(this.game.resources.getVersionedResourceUrl(classPresentationPath(file) || ART + file));
         this.root.dataset.view = this.view;
         this.root.innerHTML = renderCampPresentation({
             profile: p, view: this.view, message: this.message, summary: this.summary,

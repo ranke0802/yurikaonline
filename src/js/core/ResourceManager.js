@@ -1,4 +1,4 @@
-import { classArtPath, classRuntimePath } from '../combat/AuthoredCharacterFrames.js';
+import { classArtPath, classRuntimePath, wizardAttackPath } from '../combat/AuthoredCharacterFrames.js';
 import Logger from '../utils/Logger.js';
 import assetManifest from './AssetManifest.js';
 
@@ -88,14 +88,14 @@ export default class ResourceManager {
         const key = `playable-class:${id}`;
         if (this.cache.has(key)) return Promise.resolve(this.cache.get(key));
         if (this.loading.has(key)) return this.loading.get(key);
-        const paths = id === 'wizard' ? [] : [
+        const paths = id === 'wizard' ? [['wizardAttack', wizardAttackPath]] : [
             ['authored', `${id}-body`], ['effects', `${id}-effects`], ['status', 'status'],
             ...(id === 'warrior' ? [['shieldBody','warrior-shield-rush-body'],['shieldEffects','warrior-shield-rush-effects']] : []),
             ...(id === 'witch' ? [['lifeCircle', 'life-circle'],['potion','poison-potion']] : [])
         ];
         const promise = Promise.all([
             id === 'wizard' ? this.loadCharacterSpriteSheet() : this.loadImage(classRuntimePath(id)),
-            ...paths.map(([, path]) => this.loadImage(path === 'status' ? 'assets/resource/classes/status.webp' : classArtPath(path)))
+            ...paths.map(([, path]) => this.loadImage(path === wizardAttackPath ? path : path === 'status' ? 'assets/resource/classes/status.webp' : classArtPath(path)))
         ]).then(([sheet, ...images]) => {
             const bundle = { sheet, ...Object.fromEntries(paths.map(([name], i) => [name, images[i]])) };
             this.cache.set(key, bundle);
