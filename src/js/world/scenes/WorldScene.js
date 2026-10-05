@@ -1,3 +1,4 @@
+import { layoutMonsterHud } from '../../ui/MonsterHudLayout.js';
 import MonsterDamageNumbers from '../../ui/MonsterDamageNumbers.js';
 import { enforceBarrageLock } from '../../combat/BarrageLock.js';
 import { projectClassProfile, attachClassProfile } from '../../core/ClassProfiles.js';
@@ -1751,11 +1752,28 @@ export default class WorldScene extends Scene {
         // Sort by Y for depth
         renderList.sort((a, b) => a.y - b.y);
 
+        const hudMonsters = renderList.filter(e => this.monsterManager?.monsters?.get(e.id) === e);
+        const hudBodies = renderList.filter(e => e === this.player || this.remotePlayers.get(e.id) === e)
+            .map(e => ({left:e.x + e.width/2-60, right:e.x+e.width/2+60, top:e.y+e.height-110, bottom:e.y+e.height+10}));
+        for (const a of this.player?.classCombat?.actors || []) {
+            if (a.hp <= 0 || a.isDead) continue;
+            const w=a.visual?.renderWidth||a.width||64,h=a.visual?.renderHeight||a.height||64;
+            hudBodies.push({left:a.x-w/2,right:a.x+w/2,top:a.y-h/2,bottom:a.y+h/2});
+        }
+        for (const remote of this.remotePlayers.values()) for (const a of remote.classSummons || []) {
+            const v=remote.summonVisuals?.get(a.id);
+            if (!v?.sprite || a.hp <= 0) continue;
+            const w=v.renderWidth||v.width,h=v.renderHeight||v.height;
+            hudBodies.push({left:a.x-w/2,right:a.x+w/2,top:a.y-h/2,bottom:a.y+h/2});
+        }
+        const monsterHud = layoutMonsterHud(ctx, hudMonsters, {bodies:hudBodies,selected:this.player?.currentTarget,
+            viewport:{left:camPos.x+4,top:camPos.y+4,right:camPos.x+this.game.canvas.width/scale-4,bottom:camPos.y+this.game.canvas.height/scale-4}});
+
         // Render All
         renderList.forEach(entity => {
             if (this.isOnScreen(entity)) {
                 if (entity.render) {
-                    entity.render(ctx, this.camera);
+                    entity.render(ctx, this.camera, monsterHud.get(entity));
                 } else if (entity.image) {
                     // Simple Object Render
                     const screenX = Math.round(entity.x);

@@ -1,0 +1,97 @@
+{
+  "baselineCommit": "15db6a036db499a8493d0b544cd3c261c9b4ac66",
+  "version": "0.02.165",
+  "scope": "Only monster name, HP and foot-status placement/spacing; existing draw pass and all gameplay/art retained.",
+  "viewports": [
+    [
+      390,
+      844
+    ],
+    [
+      844,
+      390
+    ]
+  ],
+  "snapshots": 36,
+  "hudOverlapPairs": {
+    "before": 216,
+    "after": 74
+  },
+  "warningBoundaryOverlaps": {
+    "before": 190,
+    "after": 104
+  },
+  "allSnapshotsNonIncreasing": [
+    "HUD pairs",
+    "player cover",
+    "selected monster cover",
+    "warning boundary cover"
+  ],
+  "everyOriginalHudDrawRetained": true,
+  "warningAndTargetMarkerDrawRecordsExact": true,
+  "exactEventCalls": 582,
+  "exactEmissions": 714,
+  "aggregateChecks": 5558,
+  "exactAgainstV164": [
+    "events including timestamps/metadata/HP",
+    "emissions",
+    "RNG call count",
+    "monster HP/status",
+    "player HP/MP"
+  ],
+  "edges": {
+    "portrait": {
+      "scenarios": [
+        "mixed",
+        "target-switch",
+        "large-boss",
+        "left-edge",
+        "right-edge",
+        "top-edge",
+        "bottom-edge",
+        "death",
+        "removed"
+      ],
+      "mapChange": {
+        "changed": true,
+        "zone": "zone_2",
+        "oldMonsters": 0,
+        "target": null
+      }
+    },
+    "landscape": {
+      "scenarios": [
+        "mixed",
+        "target-switch",
+        "large-boss",
+        "left-edge",
+        "right-edge",
+        "top-edge",
+        "bottom-edge",
+        "death",
+        "removed"
+      ],
+      "mapChange": {
+        "changed": true,
+        "zone": "zone_2",
+        "oldMonsters": 0,
+        "target": null
+      }
+    }
+  },
+  "localTests": 728,
+  "ciV164Fix": {
+    "failureRun": 37338576619,
+    "successRun": 37340139302,
+    "cause": "Natural regeneration timer was not initialized after variable startup time; warrior HP 9937 vs 9938, MP remained 10000.",
+    "fix": "Fixture initializes regenTimer=0 and lastHitTimer=1; regenerated v163 fixture changed only two warrior ending-player hashes. Strict event/time/meta/RNG/HP assertions retained; no product regen change or tolerance.",
+    "commit": "15db6a036db499a8493d0b544cd3c261c9b4ac66"
+  },
+  "limitations": [
+    "Bounding-box overlap, not exact opaque-pixel occlusion",
+    "Dense crowds and viewport clipping can retain overlap; no labels hidden or unbounded relocation",
+    "Browser mobile viewports, not physical phones",
+    "No monster disappearance fix claim"
+  ],
+  "preservedDirtyReportSha256": "c5992ae8260e81bc5971de85962c22883a13677fc583eff8fb3aa3cd16ecf7f7"
+}

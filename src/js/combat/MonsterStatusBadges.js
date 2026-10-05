@@ -6,8 +6,8 @@ export function monsterStatusBadgeLayout(monster) {
     const legacy=monster.statusEffects?.some(e=>e.type==='burn')||monster.electrocutedTimer>0;
     return types.map((type,i)=>{const row=Math.floor(i/4),count=Math.min(4,types.length-row*4);return {type,index:SLOTS[type],x:monster.x+(i%4-(count-1)/2)*25-10,y:monster.y+(monster.height||64)/2+15+(legacy?25:0)+row*25,size:20,count:monster.classStatuses[type].stacks||0};});
 }
-export function drawMonsterStatusBadges(ctx,monster,image) {
-    const layout=monsterStatusBadgeLayout(monster);if(!layout.length)return;
+export function drawMonsterStatusBadges(ctx,monster,image,placement) {
+    const layout=placement??monsterStatusBadgeLayout(monster);if(!layout.length)return;
     if(!image){const resources=getSharedResourceManager();image=resources?.getImage?.('assets/resource/classes/status.webp');if(!image){resources?.loadImage('assets/resource/classes/status.webp').catch(()=>{});return;}}
     for(const b of layout){const w=image.width/4,h=image.height/2;ctx.drawImage(image,b.index%4*w,Math.floor(b.index/4)*h,w,h,b.x,b.y,b.size,b.size);
         const label=b.type==='stun'?'기절':b.type==='stagger'?'경직':b.count>0?String(b.count):'';

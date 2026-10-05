@@ -2508,7 +2508,7 @@ export default class Monster extends CharacterBase {
         this.renderTelegraph(ctx);
     }
 
-    render(ctx, camera) {
+    render(ctx, camera, hud = null) {
         const useTrainingDummyRender = this.fallbackShape === 'training_dummy' || this.typeId === 'training_dummy';
 
         if (!this.ready && !useTrainingDummyRender) {
@@ -2621,39 +2621,41 @@ export default class Monster extends CharacterBase {
                 ctx.restore();
             }
 
-            ctx.fillText('!', screenX, Math.min(screenY - this.height / 2, hudSpriteTop) - 30);
+            ctx.fillText('!', hud?.aggroX ?? screenX, hud?.aggroY ?? Math.min(screenY - this.height / 2, hudSpriteTop) - 30);
             ctx.restore();
         }
 
         // Monster Name (back to top - adjusted down by 15px)
-        const nameY = Math.min(screenY - this.height / 2, hudSpriteTop) - 5;
+        const nameY = hud?.nameY ?? Math.min(screenY - this.height / 2, hudSpriteTop) - 5;
+        const nameX = hud?.nameX ?? screenX;
         ctx.font = `bold ${this.isBoss ? 16 : 13}px "Outfit", sans-serif`;
         ctx.textAlign = 'center';
 
         // Black Outline
         ctx.strokeStyle = this.isBoss ? 'rgba(23, 9, 40, 0.95)' : '#000000';
         ctx.lineWidth = this.isBoss ? 4 : 2;
-        ctx.strokeText(this.name, screenX, nameY);
+        ctx.strokeText(this.name, nameX, nameY);
 
         ctx.fillStyle = this.isBoss ? (this.bossEffects.secondaryColor || '#fef3c7') : '#ffffff';
         ctx.shadowColor = this.isBoss ? (this.bossEffects.auraColor || '#8b5cf6') : 'rgba(0,0,0,0.5)';
         ctx.shadowBlur = this.isBoss ? 10 : 4;
-        ctx.fillText(this.name, screenX, nameY);
+        ctx.fillText(this.name, nameX, nameY);
         ctx.shadowBlur = 0;
 
         // HP Bar background (below character)
-        const uiBaseY = screenY + this.height / 2 + 5;
+        const uiBaseY = hud?.hpY ?? screenY + this.height / 2 + 5;
+        const hpX = hud?.hpX ?? screenX - 30;
 
         // HP Bar background
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.fillRect(screenX - 30, uiBaseY, 60, 6);
+        ctx.fillRect(hpX, uiBaseY, 60, 6);
         // HP Bar foreground
         const hpPercent = Math.max(0, Math.min(1, this.hp / this.maxHp));
         ctx.fillStyle = hpPercent > 0.3 ? '#4ade80' : '#ef4444';
-        ctx.fillRect(screenX - 30, uiBaseY, 60 * hpPercent, 6);
+        ctx.fillRect(hpX, uiBaseY, 60 * hpPercent, 6);
 
 
-        drawMonsterStatusBadges(ctx,this);
+        drawMonsterStatusBadges(ctx,this,undefined,hud?.statuses);
         // v1.86: Custom Status Icons at the BOTTOM (More fit & Professional)
         if ((burnEffect || this.electrocutedTimer > 0) && !this.isDead) {
             ctx.save();
@@ -2667,7 +2669,8 @@ export default class Monster extends CharacterBase {
 
             const drawStatusBadge = (type) => {
                 ctx.save();
-                ctx.translate(currentX, iconY);
+                const cell = hud?.legacy.find(b => b.type === type);
+                ctx.translate(cell ? cell.x + 10 : currentX, cell ? cell.y + 10 : iconY);
 
                 // 1. Small pill-shaped background
                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';

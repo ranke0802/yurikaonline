@@ -1,0 +1,293 @@
+{
+  "sourceCommit": "15db6a036db499a8493d0b544cd3c261c9b4ac66",
+  "cases": [
+    {
+      "orientation": "portrait",
+      "classId": "witch",
+      "frames": [
+        {
+          "time": 0,
+          "hudPairs": 1,
+          "overPlayer": 3,
+          "overTarget": 4,
+          "labels": 14
+        },
+        {
+          "time": 0.65,
+          "hudPairs": 4,
+          "overPlayer": 3,
+          "overTarget": 5,
+          "labels": 14
+        },
+        {
+          "time": 1.25,
+          "hudPairs": 21,
+          "overPlayer": 2,
+          "overTarget": 5,
+          "labels": 28
+        },
+        {
+          "time": 1.85,
+          "hudPairs": 17,
+          "overPlayer": 1,
+          "overTarget": 3,
+          "labels": 28
+        },
+        {
+          "time": 3.05,
+          "hudPairs": 13,
+          "overPlayer": 1,
+          "overTarget": 3,
+          "labels": 28
+        },
+        {
+          "time": 5.05,
+          "hudPairs": 7,
+          "overPlayer": 1,
+          "overTarget": 3,
+          "labels": 28
+        }
+      ]
+    },
+    {
+      "orientation": "portrait",
+      "classId": "archer",
+      "frames": [
+        {
+          "time": 0,
+          "hudPairs": 1,
+          "overPlayer": 2,
+          "overTarget": 4,
+          "labels": 14
+        },
+        {
+          "time": 0.65,
+          "hudPairs": 4,
+          "overPlayer": 1,
+          "overTarget": 5,
+          "labels": 14
+        },
+        {
+          "time": 1.25,
+          "hudPairs": 4,
+          "overPlayer": 1,
+          "overTarget": 5,
+          "labels": 14
+        },
+        {
+          "time": 1.85,
+          "hudPairs": 8,
+          "overPlayer": 1,
+          "overTarget": 3,
+          "labels": 14
+        },
+        {
+          "time": 3.05,
+          "hudPairs": 4,
+          "overPlayer": 2,
+          "overTarget": 3,
+          "labels": 14
+        },
+        {
+          "time": 5.05,
+          "hudPairs": 1,
+          "overPlayer": 1,
+          "overTarget": 3,
+          "labels": 14
+        }
+      ]
+    },
+    {
+      "orientation": "portrait",
+      "classId": "warrior",
+      "frames": [
+        {
+          "time": 0,
+          "hudPairs": 1,
+          "overPlayer": 2,
+          "overTarget": 4,
+          "labels": 14
+        },
+        {
+          "time": 0.65,
+          "hudPairs": 4,
+          "overPlayer": 2,
+          "overTarget": 5,
+          "labels": 14
+        },
+        {
+          "time": 1.25,
+          "hudPairs": 4,
+          "overPlayer": 2,
+          "overTarget": 5,
+          "labels": 14
+        },
+        {
+          "time": 1.85,
+          "hudPairs": 4,
+          "overPlayer": 2,
+          "overTarget": 5,
+          "labels": 14
+        },
+        {
+          "time": 3.05,
+          "hudPairs": 5,
+          "overPlayer": 2,
+          "overTarget": 4,
+          "labels": 14
+        },
+        {
+          "time": 5.05,
+          "hudPairs": 5,
+          "overPlayer": 4,
+          "overTarget": 5,
+          "labels": 14
+        }
+      ]
+    },
+    {
+      "orientation": "landscape",
+      "classId": "witch",
+      "frames": [
+        {
+          "time": 0,
+          "hudPairs": 1,
+          "overPlayer": 3,
+          "overTarget": 4,
+          "labels": 14
+        },
+        {
+          "time": 0.65,
+          "hudPairs": 4,
+          "overPlayer": 3,
+          "overTarget": 5,
+          "labels": 14
+        },
+        {
+          "time": 1.25,
+          "hudPairs": 21,
+          "overPlayer": 2,
+          "overTarget": 5,
+          "labels": 28
+        },
+        {
+          "time": 1.85,
+          "hudPairs": 17,
+          "overPlayer": 1,
+          "overTarget": 3,
+          "labels": 28
+        },
+        {
+          "time": 3.05,
+          "hudPairs": 13,
+          "overPlayer": 1,
+          "overTarget": 3,
+          "labels": 28
+        },
+        {
+          "time": 5.05,
+          "hudPairs": 7,
+          "overPlayer": 1,
+          "overTarget": 3,
+          "labels": 28
+        }
+      ]
+    },
+    {
+      "orientation": "landscape",
+      "classId": "archer",
+      "frames": [
+        {
+          "time": 0,
+          "hudPairs": 1,
+          "overPlayer": 2,
+          "overTarget": 4,
+          "labels": 14
+        },
+        {
+          "time": 0.65,
+          "hudPairs": 4,
+          "overPlayer": 1,
+          "overTarget": 5,
+          "labels": 14
+        },
+        {
+          "time": 1.25,
+          "hudPairs": 4,
+          "overPlayer": 1,
+          "overTarget": 5,
+          "labels": 14
+        },
+        {
+          "time": 1.85,
+          "hudPairs": 8,
+          "overPlayer": 1,
+          "overTarget": 3,
+          "labels": 14
+        },
+        {
+          "time": 3.05,
+          "hudPairs": 4,
+          "overPlayer": 2,
+          "overTarget": 3,
+          "labels": 14
+        },
+        {
+          "time": 5.05,
+          "hudPairs": 1,
+          "overPlayer": 1,
+          "overTarget": 3,
+          "labels": 14
+        }
+      ]
+    },
+    {
+      "orientation": "landscape",
+      "classId": "warrior",
+      "frames": [
+        {
+          "time": 0,
+          "hudPairs": 1,
+          "overPlayer": 2,
+          "overTarget": 4,
+          "labels": 14
+        },
+        {
+          "time": 0.65,
+          "hudPairs": 4,
+          "overPlayer": 2,
+          "overTarget": 5,
+          "labels": 14
+        },
+        {
+          "time": 1.25,
+          "hudPairs": 4,
+          "overPlayer": 2,
+          "overTarget": 5,
+          "labels": 14
+        },
+        {
+          "time": 1.85,
+          "hudPairs": 4,
+          "overPlayer": 2,
+          "overTarget": 5,
+          "labels": 14
+        },
+        {
+          "time": 3.05,
+          "hudPairs": 5,
+          "overPlayer": 2,
+          "overTarget": 4,
+          "labels": 14
+        },
+        {
+          "time": 5.05,
+          "hudPairs": 5,
+          "overPlayer": 4,
+          "overTarget": 5,
+          "labels": 14
+        }
+      ]
+    }
+  ]
+}
