@@ -1,3 +1,4 @@
+import { monsterNumberSource } from '../ui/MonsterDamageNumbers.js';
 import { enforceBarrageLock, receiveBarrageLock } from '../combat/BarrageLock.js';
 import { drawMonsterStatusBadges } from '../combat/MonsterStatusBadges.js';
 import { acceptPoisonPulse, claimPoisonPulse, paintPoisonStatus } from '../combat/WitchPoison.js';
@@ -2040,7 +2041,7 @@ export default class Monster extends CharacterBase {
 
         // Damage text for ALL clients
         if (!suppressTransientEffects && amount > 0 && window.game && typeof window.game.addDamageText === 'function') {
-            window.game.addDamageText(this.x, this.y - 40, `-${Math.ceil(amount)}`, isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null);
+            window.game.addDamageText(this.x, this.y - 40, `-${Math.ceil(amount)}`, isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null, { target: this, source: monsterNumberSource(this, damageMeta) });
         }
 
         // Routine hits keep the world moving. Damage text, status and attack

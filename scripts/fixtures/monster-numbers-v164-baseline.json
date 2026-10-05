@@ -1,0 +1,92 @@
+{
+  "baseline": "62e1845d4503252a5eff0125831df889f818cb7a",
+  "seed": 163,
+  "dt": 0.016666666666666666,
+  "clock": "controller starts at 0; Date.now=1700000000000+simulation ms; actor id normalized only",
+  "cases": [
+    {
+      "orientation": "portrait",
+      "classId": "witch",
+      "eventCount": 35,
+      "emissionCount": 67,
+      "hashes": {
+        "events": "af45e7677f21638d1bd51c9f98caebf669bb199caa37991db2dc33bac2f21f87",
+        "emissions": "b15f8e11976773bac4a32f18c4481374e52e59c5af835e4d03ada5a75fc9764f",
+        "randomCalls": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451",
+        "hp": "573eafb76b6c036b9430de8a17002371dd111ec59c237e6cc2ae29200cf00daf",
+        "player": "9965f80bea729974812fc9d602a0bdc10001132f332c7c769862d9fd6000382b"
+      },
+      "peak": 27
+    },
+    {
+      "orientation": "portrait",
+      "classId": "archer",
+      "eventCount": 35,
+      "emissionCount": 70,
+      "hashes": {
+        "events": "0f529de7237ab9a75319bd4de68c10ad32061a1b3b6245c40b24ec8efe6804a0",
+        "emissions": "431b3d29043245dc46c9f1c6a1a933734593b9ff75cbd5333129b4d550161407",
+        "randomCalls": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451",
+        "hp": "8190604f16307f631d5fd2d3d19ed94001e1033c2525c24ce0ccf80ece01a26d",
+        "player": "94b781fe9e57d423c398259419fb1e5aa0d97d33387b93f46601ce8750c3c981"
+      },
+      "peak": 34
+    },
+    {
+      "orientation": "portrait",
+      "classId": "warrior",
+      "eventCount": 221,
+      "emissionCount": 220,
+      "hashes": {
+        "events": "cc3cea3d15ade248f3fb687619fa8585b9e02fe4e0e4360909482b8111495b77",
+        "emissions": "8db8683dd3d58bc55bfefd965bb6b539f3081e4cd7b00fc598fefcccf35f9d99",
+        "randomCalls": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451",
+        "hp": "a383e024e16836671579d2344cda92da20fce74dc92c90dc0e04511f20195ebf",
+        "player": "e49e24fa6e55bd933a7225af333ff97aa0f4b0e274497c0e88730e79fb66921e"
+      },
+      "peak": 166
+    },
+    {
+      "orientation": "landscape",
+      "classId": "witch",
+      "eventCount": 35,
+      "emissionCount": 67,
+      "hashes": {
+        "events": "af45e7677f21638d1bd51c9f98caebf669bb199caa37991db2dc33bac2f21f87",
+        "emissions": "b15f8e11976773bac4a32f18c4481374e52e59c5af835e4d03ada5a75fc9764f",
+        "randomCalls": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451",
+        "hp": "573eafb76b6c036b9430de8a17002371dd111ec59c237e6cc2ae29200cf00daf",
+        "player": "9965f80bea729974812fc9d602a0bdc10001132f332c7c769862d9fd6000382b"
+      },
+      "peak": 27
+    },
+    {
+      "orientation": "landscape",
+      "classId": "archer",
+      "eventCount": 35,
+      "emissionCount": 70,
+      "hashes": {
+        "events": "0f529de7237ab9a75319bd4de68c10ad32061a1b3b6245c40b24ec8efe6804a0",
+        "emissions": "431b3d29043245dc46c9f1c6a1a933734593b9ff75cbd5333129b4d550161407",
+        "randomCalls": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451",
+        "hp": "8190604f16307f631d5fd2d3d19ed94001e1033c2525c24ce0ccf80ece01a26d",
+        "player": "94b781fe9e57d423c398259419fb1e5aa0d97d33387b93f46601ce8750c3c981"
+      },
+      "peak": 34
+    },
+    {
+      "orientation": "landscape",
+      "classId": "warrior",
+      "eventCount": 221,
+      "emissionCount": 220,
+      "hashes": {
+        "events": "cc3cea3d15ade248f3fb687619fa8585b9e02fe4e0e4360909482b8111495b77",
+        "emissions": "8db8683dd3d58bc55bfefd965bb6b539f3081e4cd7b00fc598fefcccf35f9d99",
+        "randomCalls": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451",
+        "hp": "a383e024e16836671579d2344cda92da20fce74dc92c90dc0e04511f20195ebf",
+        "player": "e49e24fa6e55bd933a7225af333ff97aa0f4b0e274497c0e88730e79fb66921e"
+      },
+      "peak": 166
+    }
+  ]
+}

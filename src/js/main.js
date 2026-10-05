@@ -3,7 +3,7 @@ import CampScene from './world/scenes/CampScene.js';
 import LocalAuthManager from './local/LocalAuthManager.js';
 import LocalNetworkManager from './local/LocalNetworkManager.js';
 import { getViewportMetrics } from './core/ViewportMetrics.js';
-window.RUNTIME_BUILD_VERSION = '0.02.163'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.164'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -784,9 +784,9 @@ class Game {
         return (this.sceneManager?.currentScene?.explosions) || [];
     }
 
-    addDamageText(x, y, amount, color, isCrit, label) {
+    addDamageText(x, y, amount, color, isCrit, label, monsterNumber = null) {
         if (this.sceneManager?.currentScene?.addDamageText) {
-            this.sceneManager.currentScene.addDamageText(x, y, amount, color, isCrit, label);
+            this.sceneManager.currentScene.addDamageText(x, y, amount, color, isCrit, label, monsterNumber);
         }
     }
 

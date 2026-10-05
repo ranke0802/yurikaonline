@@ -1,3 +1,4 @@
+import MonsterDamageNumbers from '../../ui/MonsterDamageNumbers.js';
 import { enforceBarrageLock } from '../../combat/BarrageLock.js';
 import { projectClassProfile, attachClassProfile } from '../../core/ClassProfiles.js';
 import Scene from '../../core/Scene.js';
@@ -21,6 +22,7 @@ export default class WorldScene extends Scene {
         this.player = null;
         this.remotePlayers = new Map();
         this.floatingTexts = [];
+        this.monsterDamageNumbers = new MonsterDamageNumbers();
         this.sparks = [];
         this.projectiles = [];
         this.explosions = []; // v1.99.15: Visual-only explosions
@@ -924,17 +926,10 @@ export default class WorldScene extends Scene {
     }
 
     // v0.00.55: Floating Text Bridge
-    addDamageText(x, y, text, color, isCrit, label) {
-        this.floatingTexts.push({
-            x: x,
-            y: y,
-            text: text,
-            color: color || '#fff',
-            timer: 1.5,
-            currentY: y,
-            isCrit: isCrit,
-            label: label
-        });
+    addDamageText(x, y, text, color, isCrit, label, monsterNumber = null) {
+        const entry = { x, y, text, color: color || '#fff', timer: 1.5, currentY: y, isCrit, label };
+        if (monsterNumber && this.monsterDamageNumbers.add(this.floatingTexts, entry, monsterNumber.target, monsterNumber.source)) return;
+        this.floatingTexts.push(entry);
     }
 
     _setupNetworkHandlers() {
@@ -1255,6 +1250,7 @@ export default class WorldScene extends Scene {
         this.player?.detachInput?.();
         if (this.game?.localPlayer === this.player) this.game.localPlayer = null;
         this.remotePlayers.clear();
+        this.monsterDamageNumbers.clear(this.floatingTexts, text => this.game.textPool?.release?.(text));
     }
 
     onVisibilityHidden() {
@@ -1316,6 +1312,7 @@ export default class WorldScene extends Scene {
             this.game.textPool?.release?.(text);
         }
 
+        this.monsterDamageNumbers.clear();
         this.projectiles.length = 0;
         this.explosions.length = 0;
         this.monsterMissileQueue.length = 0;
@@ -1569,11 +1566,13 @@ export default class WorldScene extends Scene {
         }
 
         // Update Floating Texts
+        this.monsterDamageNumbers.advance(dt);
         for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
             const ft = this.floatingTexts[i];
             ft.timer -= dt;
             ft.currentY -= 40 * dt;
-            if (ft.timer <= 0) {
+            if (ft.timer <= 0 || this.monsterDamageNumbers.stale(ft, this.monsterManager?.monsters)) {
+                this.monsterDamageNumbers.forget(ft);
                 this.game.textPool.release(ft);
                 this.floatingTexts.splice(i, 1);
             }
@@ -1808,6 +1807,8 @@ export default class WorldScene extends Scene {
 
                 ctx.save();
                 ctx.textAlign = 'center';
+                ctx.globalAlpha *= this.monsterDamageNumbers.alpha(ft);
+                const countLabel = this.monsterDamageNumbers.countLabel(ft);
                 // v0.00.55: Dynamic Font Size based on Critical
                 if (ft.isCrit) {
                     ctx.font = 'bold 24px "Outfit", sans-serif';
@@ -1817,7 +1818,7 @@ export default class WorldScene extends Scene {
                     ctx.fillStyle = ft.color;
                     ctx.fillText(ft.text, screenX, screenY);
 
-                    if (ft.label) {
+                    if (ft.label && !countLabel) {
                         ctx.font = 'bold 12px sans-serif';
                         ctx.fillStyle = '#fff';
                         ctx.fillText(ft.label, screenX, screenY - 20);
@@ -1829,6 +1830,14 @@ export default class WorldScene extends Scene {
                     ctx.strokeText(ft.text, screenX, screenY);
                     ctx.fillStyle = ft.color;
                     ctx.fillText(ft.text, screenX, screenY);
+                }
+                if (countLabel) {
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.fillStyle = '#fff';
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.strokeText(countLabel, screenX, screenY - 20);
+                    ctx.fillText(countLabel, screenX, screenY - 20);
                 }
                 ctx.restore();
             });
