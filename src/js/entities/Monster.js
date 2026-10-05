@@ -2043,13 +2043,8 @@ export default class Monster extends CharacterBase {
             window.game.addDamageText(this.x, this.y - 40, `-${Math.ceil(amount)}`, isCrit ? '#ff9f43' : '#ff4757', isCrit, isCrit ? 'Critical' : null);
         }
 
-        // v2.2: Hit Feedback — Screen Shake on monster hit
-        if (!suppressTransientEffects && !lowGlareCombat && amount > 0 && window.game?.camera?.shake) {
-            window.game.camera.shake(isCrit ? 8 : 3, isCrit ? 0.2 : 0.1);
-        }
-        if (!suppressTransientEffects && !lowGlareCombat && isCrit && window.game?.loop?.hitstop) {
-            window.game.loop.hitstop(60);
-        }
+        // Routine hits keep the world moving. Damage text, status and attack
+        // effects provide feedback without shaking or pausing every monster.
 
         // Play Hit Sound
         if (!suppressTransientEffects && this.sounds.hit && window.game?.sound) {

@@ -46,7 +46,3 @@ export function drawAuthoredWitchRow(image,ctx,{row,age,footX,footY}={}) {
     if(![age,footX,footY].every(Number.isFinite)||age<0)return false;
     return drawRow(image,ctx,CLASS_BODY.witch,row,phaseAt(age,.140),footX,footY);
 }
-
-export function classPresentationPath(file){
-    return /^(idle-|camp-)?(witch|guardian|archer)(-key)?\.webp$/.test(file)?`${MAGE_STYLE_ROOT}/${file}`:null;
-}

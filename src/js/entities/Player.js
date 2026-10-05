@@ -1208,13 +1208,8 @@ export default class Player extends CharacterBase {
         // v0.00.57: Hit SFX
         if (!suppressTransientEffects && window.game?.sound) window.game.sound.playSfx('hit');
 
-        // v2.2: Hit Feedback — Screen Shake + Hitstop
-        if (!suppressTransientEffects && window.game?.camera?.shake) {
-            window.game.camera.shake(isCrit ? 12 : 6, isCrit ? 0.25 : 0.15);
-        }
-        if (!suppressTransientEffects && isCrit && window.game?.loop?.hitstop) {
-            window.game.loop.hitstop(80);
-        }
+        // Routine incoming hits must not freeze the entire combat simulation.
+        // HP, damage text, sound and skill effects retain the hit feedback.
 
         const validAmount = parseFloat(amount);
         if (isNaN(validAmount)) return 0;
