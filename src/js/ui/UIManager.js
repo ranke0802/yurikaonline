@@ -1,3 +1,4 @@
+import { clearTutorialCandidates } from './TutorialGuidePlacement.js';
 import { skillAvailability } from './SkillAvailability.js';
 import { enhancementExplanation } from './EnhancementExplanation.js';
 import { classArtPath } from '../combat/AuthoredCharacterFrames.js';
@@ -2565,10 +2566,11 @@ export class UIManager {
         const offsetY = Number.isFinite(Number(config.offsetY))
             ? Number(config.offsetY)
             : (viewportMode === 'mobile-portrait' ? 34 : 26);
-        const minLeft = Math.max(10, areaRect.left + 10);
-        const maxLeft = Math.max(minLeft, Math.min(viewportW - width - 10, areaRect.right - width - 10));
-        const minTop = Math.max(10, areaRect.top + 10);
-        const maxTop = Math.max(minTop, Math.min(viewportH - height - 10, areaRect.bottom - height - 10));
+        const safe = getViewportMetrics(document.getElementById('game-viewport'));
+        const minLeft = Math.max(10, safe.safeAreaLeft + 10, areaRect.left + 10);
+        const maxLeft = Math.max(minLeft, Math.min(viewportW - width - Math.max(10, safe.safeAreaRight), areaRect.right - width - 10));
+        const minTop = Math.max(10, safe.safeAreaTop + 10, areaRect.top + 10);
+        const maxTop = Math.max(minTop, Math.min(viewportH - height - Math.max(10, safe.safeAreaBottom), areaRect.bottom - height - 10));
         const left = Math.min(maxLeft, Math.max(minLeft, areaRect.left + offsetX));
         const top = Math.min(maxTop, Math.max(minTop, areaRect.bottom - height - offsetY));
 
@@ -2751,12 +2753,68 @@ export class UIManager {
             .filter(Boolean);
     }
 
+    syncTutorialHudPresentation(active) {
+        this._tutorialHudStyles ||= new Map();
+        const set = (el, property, value) => {
+            if (!el) return;
+            let styles = this._tutorialHudStyles.get(el);
+            if (!styles) this._tutorialHudStyles.set(el, styles = new Map());
+            const prior = styles.get(property), current = el.style.getPropertyValue(property);
+            if (!prior || current !== prior.applied) styles.set(property, {
+                original: current, priority: el.style.getPropertyPriority(property), applied: value
+            });
+            else prior.applied = value;
+            el.style.setProperty(property, value, 'important');
+            styles.get(property).applied = el.style.getPropertyValue(property);
+        };
+        for (const [el, styles] of this._tutorialHudStyles) for (const [property, state] of styles) {
+            if (el.style.getPropertyValue(property) === state.applied) {
+                if (state.original) el.style.setProperty(property, state.original, state.priority);
+                else el.style.removeProperty(property);
+            }
+        }
+        this._tutorialHudStyles.clear();
+        document.body.classList.toggle('tutorial-hud-active', active);
+        if (!active) return;
+        const renderedScale = el => el?.offsetWidth ? el.getBoundingClientRect().width / el.offsetWidth : 1;
+        for (const el of document.querySelectorAll('.top-bar, .quest-list-panel, .skill-btn, .attack-btn')) {
+            set(el, '--tutorial-text-scale', String(renderedScale(el) || 1));
+        }
+        const metrics = getViewportMetrics(document.getElementById('game-viewport'));
+        if (metrics.viewportWidth > 1024) return;
+        const quest = document.querySelector('.quest-list-panel');
+        const scale = renderedScale(quest) || 1;
+        set(quest, 'width', `${200 / scale}px`);
+        set(quest, 'max-width', `${200 / scale}px`);
+        const resource = this.getVisibleElementRect('.top-bar');
+        const exit = document.querySelector('.camp-return:not([hidden])');
+        if (metrics.orientation === 'portrait' && resource && exit) {
+            set(exit, 'left', `${resource.left}px`);
+            set(exit, 'top', `${resource.bottom + 8}px`);
+            set(exit, 'transform', 'none');
+        }
+        // Quest/chat positions are viewport based in the existing HUD layout.
+        const exitRect = this.getVisibleElementRect('.camp-return:not([hidden])');
+        const top = metrics.orientation === 'portrait' && exitRect
+            ? Math.max(resource?.bottom || 0, exitRect.bottom) + 8 : (resource?.bottom || 60) + 8;
+        const context = document.querySelector('.left-ui-container');
+        const contextScale = this.getElementComputedScale(context) || 1;
+        const contextTop = context?.getBoundingClientRect().top || 0;
+        set(quest, 'top', `${(top - contextTop) / contextScale}px`);
+        const questRect = quest?.getBoundingClientRect();
+        const chat = document.querySelector('.chat-window');
+        const chatRect = this.getVisibleElementRect('.chat-window');
+        if (metrics.orientation === 'portrait' && questRect && chatRect && chatRect.top < questRect.bottom + 8) {
+            set(chat, 'top', `${(questRect.bottom + 8 - contextTop) / contextScale}px`);
+        }
+    }
+
     clampTutorialGuidePosition(left, top, width, height, margin = 16) {
-        const viewportW = window.innerWidth || document.documentElement.clientWidth || 0;
-        const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+        const metrics = getViewportMetrics(document.getElementById('game-viewport'));
+        const minX = Math.max(margin, metrics.safeAreaLeft), minY = Math.max(margin, metrics.safeAreaTop);
         return {
-            left: Math.round(Math.min(Math.max(margin, left), Math.max(margin, viewportW - width - margin))),
-            top: Math.round(Math.min(Math.max(margin, top), Math.max(margin, viewportH - height - margin)))
+            left: Math.round(Math.min(Math.max(minX, left), Math.max(minX, window.innerWidth - width - Math.max(margin, metrics.safeAreaRight)))),
+            top: Math.round(Math.min(Math.max(minY, top), Math.max(minY, window.innerHeight - height - Math.max(margin, metrics.safeAreaBottom))))
         };
     }
 
@@ -2771,7 +2829,10 @@ export class UIManager {
 
     getTutorialForbiddenZones(focusRects = [], payload = this.tutorialGuideState) {
         const selectors = [
+            '.top-bar',
             '.camp-return:not([hidden])',
+            '#action-skill-h', '#action-skill-u', '#action-skill-k', '#action-attack-j',
+            '.attack-auto-toggle', '.tutorial-highlight-callout',
             '#minimap-container',
             '.minimap-menu',
             '#btn-fullscreen',
@@ -3152,6 +3213,7 @@ export class UIManager {
     applyTutorialGuideLayout(guide, payload = this.tutorialGuideState) {
         if (!guide || !payload) return;
 
+        this.syncTutorialHudPresentation(!this.getActivePopupRect() && !this.uiLayoutEditMode);
         const mode = this.getTutorialViewportMode();
         const focusTargets = this.getTutorialRuntimeFocusTargets(
             this.game?.tutorial?.getCurrentStep?.(),
@@ -3197,6 +3259,10 @@ export class UIManager {
         }
 
         const guideDimensions = this.getTutorialGuideDimensions({ ...payload, mode: guideMode }, { focusInsidePopup, popupRect });
+        const safeViewport = getViewportMetrics(document.getElementById('game-viewport'));
+        guideDimensions.width = Math.min(guideDimensions.width, Math.max(96, window.innerWidth
+            - Math.max(16, safeViewport.safeAreaLeft) - Math.max(16, safeViewport.safeAreaRight)));
+
         const forbiddenZones = this.getTutorialForbiddenZones(focusRects, payload);
         const disableTargetAnchors = guideMode !== 'floating-compact';
         if (focusInsidePopup && mode === 'mobile-landscape' && popupRect) {
@@ -3262,7 +3328,9 @@ export class UIManager {
             )
             : null;
 
-        if (manualPosition) {
+        const manualClear = manualPosition && [...forbiddenZones, ...focusRects].every(zone =>
+            this.getRectOverlapArea({ ...manualPosition, right: manualPosition.left + width, bottom: manualPosition.top + height }, zone) === 0);
+        if (manualClear) {
             guide.style.left = `${manualPosition.left}px`;
             guide.style.top = `${manualPosition.top}px`;
             this.tutorialGuideManualPosition = {
@@ -3270,6 +3338,7 @@ export class UIManager {
                 ...manualPosition
             };
         } else {
+            if (manualPosition) this.tutorialGuideManualPosition = null;
             const candidates = this.buildTutorialGuideCandidates(guideMode, width, height, focusRects, {
                 disableTargetAnchors,
                 popupRect: focusInsidePopup ? popupRect : null,
@@ -3290,7 +3359,16 @@ export class UIManager {
             ) : candidates;
             const availableCandidates=clearExitCandidates.length?clearExitCandidates:candidates;
             const targetClearCandidates=availableCandidates.filter(candidate=>focusRects.every(focus=>this.getRectOverlapArea({...candidate,right:candidate.left+width,bottom:candidate.top+height},focus)===0));
-            const bestCandidate = (targetClearCandidates.length ? targetClearCandidates : availableCandidates).reduce((best, candidate, index) => {
+            const metrics = getViewportMetrics(document.getElementById('game-viewport'));
+            const protectedZones = [...forbiddenZones, ...focusRects];
+            const clearCandidates = clearTutorialCandidates(
+                targetClearCandidates.length ? targetClearCandidates : availableCandidates,
+                protectedZones, width, height, {
+                    left: Math.max(16, metrics.safeAreaLeft), top: Math.max(16, metrics.safeAreaTop),
+                    right: window.innerWidth - Math.max(16, metrics.safeAreaRight),
+                    bottom: window.innerHeight - Math.max(16, metrics.safeAreaBottom)
+                });
+            const bestCandidate = clearCandidates.reduce((best, candidate, index) => {
                 const score = this.scoreTutorialGuideCandidate(candidate, forbiddenZones, focusRects, index);
                 if (!best || score < best.score) {
                     return { ...candidate, score };
@@ -3608,6 +3686,7 @@ export class UIManager {
     }
 
     hideTutorialGuide() {
+        this.syncTutorialHudPresentation(false);
         const guide = document.getElementById('tutorial-guide');
         if (guide) guide.style.display = 'none';
         this.tutorialGuideState = null;

@@ -15202,3 +15202,39 @@ body.is-touch-landscape #ui-layer #btn-fullscreen-exit {
     white-space: normal; word-break: keep-all; pointer-events: none;
 }
 .action-buttons .skill-unavailable-reason[hidden] { display: none; }
+
+/* Field tutorial readability: compensated for saved HUD scale; no control is hidden. */
+body.tutorial-hud-active #ui-layer .quest-list-panel {
+    background: rgba(255, 245, 222, .96) !important;
+}
+body.tutorial-hud-active #ui-layer .quest-title,
+body.tutorial-hud-active #ui-layer .quest-progress {
+    font-size: calc(12px / var(--tutorial-text-scale, 1)) !important;
+    line-height: 1.35 !important; color: #503d31 !important;
+    display: block !important; -webkit-line-clamp: unset !important;
+    overflow: visible !important; word-break: keep-all;
+}
+body.tutorial-hud-active #ui-layer .quest-panel-header h3 {
+    font-size: calc(13px / var(--tutorial-text-scale, 1)) !important;
+}
+body.tutorial-hud-active #ui-layer .quest-content,
+body.tutorial-hud-active #ui-layer .quest-item { padding: 4px !important; }
+body.tutorial-hud-active #ui-layer .top-bar { background: rgba(255, 245, 222, .96) !important; }
+body.tutorial-hud-active #ui-layer .bar-text,
+body.tutorial-hud-active #ui-layer .stat-label {
+    font-size: calc(12px / var(--tutorial-text-scale, 1)) !important;
+}
+body.tutorial-hud-active #ui-layer .skill-unavailable-reason {
+    font-size: calc(12px / var(--tutorial-text-scale, 1)) !important;
+}
+body.tutorial-hud-active #ui-layer .combat-skill-name {
+    font-size: calc(11px / var(--tutorial-text-scale, 1)) !important;
+}
+body.tutorial-hud-active #tutorial-guide .tutorial-guide-step { color: #e4ddce; }
+
+body.tutorial-hud-active #ui-layer .quest-icon,
+body.tutorial-hud-active #quest-reward-display .quest-title { display: none !important; }
+
+body.tutorial-hud-active #ui-layer .quest-panel-header { display: none !important; }
+body.tutorial-hud-active #ui-layer .skill-unavailable-reason { top: 12%; }
+body.tutorial-hud-active #ui-layer .quest-content { gap: 2px !important; }
