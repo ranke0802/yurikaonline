@@ -2,7 +2,7 @@
   "baseline": "62e1845d4503252a5eff0125831df889f818cb7a",
   "seed": 163,
   "dt": 0.016666666666666666,
-  "clock": "controller starts at 0; Date.now=1700000000000+simulation ms; actor id normalized only",
+  "clock": "controller starts at 0; Date.now=1700000000000+simulation ms; actor id normalized only; player regenTimer=0,lastHitTimer=1",
   "cases": [
     {
       "orientation": "portrait",
@@ -42,7 +42,7 @@
         "emissions": "8db8683dd3d58bc55bfefd965bb6b539f3081e4cd7b00fc598fefcccf35f9d99",
         "randomCalls": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451",
         "hp": "a383e024e16836671579d2344cda92da20fce74dc92c90dc0e04511f20195ebf",
-        "player": "e49e24fa6e55bd933a7225af333ff97aa0f4b0e274497c0e88730e79fb66921e"
+        "player": "6a69cc6db4aa400824e340df497926b01cc11a82f1d7fd989b83ed6cdf9c09a8"
       },
       "peak": 166
     },
@@ -84,7 +84,7 @@
         "emissions": "8db8683dd3d58bc55bfefd965bb6b539f3081e4cd7b00fc598fefcccf35f9d99",
         "randomCalls": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451",
         "hp": "a383e024e16836671579d2344cda92da20fce74dc92c90dc0e04511f20195ebf",
-        "player": "e49e24fa6e55bd933a7225af333ff97aa0f4b0e274497c0e88730e79fb66921e"
+        "player": "6a69cc6db4aa400824e340df497926b01cc11a82f1d7fd989b83ed6cdf9c09a8"
       },
       "peak": 166
     }
