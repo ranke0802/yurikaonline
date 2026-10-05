@@ -47,6 +47,7 @@ jobs:
           node scripts/validate-combat-continuity-v160-browser.cjs
           node scripts/validate-skill-explanations-v161-browser.cjs
           node scripts/validate-tutorial-hud-v162-browser.cjs
+          node scripts/validate-field-text-v163-browser.cjs
           node scripts/validate-tutorial-stat-cancel-browser.cjs
           node scripts/validate-class-tutorial-browser.cjs
           node scripts/validate-combat-feedback-browser.cjs

@@ -15238,3 +15238,55 @@ body.tutorial-hud-active #quest-reward-display .quest-title { display: none !imp
 body.tutorial-hud-active #ui-layer .quest-panel-header { display: none !important; }
 body.tutorial-hud-active #ui-layer .skill-unavailable-reason { top: 12%; }
 body.tutorial-hud-active #ui-layer .quest-content { gap: 2px !important; }
+
+/* General mobile field: retain saved transforms and compensate only text/fit. */
+body.field-readable-hud #ui-layer .top-bar {
+    box-sizing: border-box;
+    width: calc(var(--field-resource-width) / var(--field-resource-scale)) !important;
+    min-width: calc(var(--field-resource-width) / var(--field-resource-scale)) !important;
+    max-width: none !important;
+    background: rgba(255, 245, 222, .96) !important;
+}
+body.field-readable-hud #ui-layer .stat-label,
+body.field-readable-hud #ui-layer .bar-text {
+    font-size: calc(12px / var(--field-resource-scale)) !important;
+}
+body.field-readable-hud #ui-layer .top-bar .bar-bg {
+    flex: 1 1 0 !important; width: auto !important; min-width: 0 !important;
+}
+body.field-readable-hud #ui-layer .top-bar .hp-bg,
+body.field-readable-hud #ui-layer .top-bar .mp-bg {
+    height: auto !important; min-height: calc(18px / var(--field-resource-scale)) !important;
+}
+body.field-readable-hud #ui-layer .bar-text {
+    position: relative; inset: auto; transform: none;
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 0 3px;
+    line-height: 1.3; white-space: normal; overflow-wrap: anywhere;
+}
+body.field-readable-hud #ui-layer .hp-fill,
+body.field-readable-hud #ui-layer .mp-fill { position: absolute; top: 0; left: 0; }
+body.field-readable-hud #ui-layer .quest-list-panel {
+    min-width: calc(200px / var(--field-quest-scale)) !important;
+    max-height: var(--field-quest-height) !important;
+    overflow-y: auto !important; overscroll-behavior: contain;
+    translate: 0 var(--field-quest-y);
+    background: rgba(255, 245, 222, .96) !important;
+}
+body.field-readable-hud #ui-layer .quest-title,
+body.field-readable-hud #ui-layer .quest-progress,
+body.field-readable-hud #ui-layer .quest-panel-header h3 {
+    font-size: calc(12px / var(--field-quest-scale)) !important;
+    line-height: 1.35 !important; white-space: normal; overflow-wrap: anywhere;
+    display: block !important; -webkit-line-clamp: unset !important; overflow: visible !important;
+}
+body.field-readable-hud #ui-layer .quest-title,
+body.field-readable-hud #ui-layer .quest-progress { color: #503d31 !important; }
+body.field-readable-hud .camp-return { translate: var(--field-exit-x) var(--field-exit-y); }
+body.field-readable-hud #ui-layer .chat-window { translate: 0 var(--field-chat-y); }
+
+body.field-readable-hud #ui-layer .top-bar .portrait-container { flex-shrink: 0; }
+body.field-readable-hud #ui-layer .top-bar .stats-container { flex: 1; min-width: 0; }
+body.field-readable-hud #ui-layer .top-bar .stat-label {
+    flex: 0 0 calc(20px / var(--field-resource-scale));
+}
+body.field-readable-hud #ui-layer .quest-claim-btn { font-size: calc(12px / var(--field-quest-scale)) !important; }

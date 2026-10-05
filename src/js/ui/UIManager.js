@@ -1,3 +1,4 @@
+import FieldHudReadability from './FieldHudReadability.js';
 import { clearTutorialCandidates } from './TutorialGuidePlacement.js';
 import { skillAvailability } from './SkillAvailability.js';
 import { enhancementExplanation } from './EnhancementExplanation.js';
@@ -1378,6 +1379,7 @@ export class UIManager {
     }
 
     applyActiveUiLayout() {
+        this.fieldHudReadability?.clear();
         this.clearUiLayoutRuntimeStyles();
         const mode = this.getUiLayoutMode();
         const controls = this.getUiLayoutControlsForMode(mode);
@@ -1399,6 +1401,7 @@ export class UIManager {
             : null;
         this.game.touch?.setFixedJoystickLayout?.(joystickLayout);
         this.syncUiLayoutSelectionState();
+        this.fieldHudReadability?.sync(this, true);
     }
 
     captureDefaultUiLayoutForMode(mode = this.getUiLayoutMode()) {
@@ -2754,6 +2757,7 @@ export class UIManager {
     }
 
     syncTutorialHudPresentation(active) {
+        this.fieldHudReadability?.clear();
         this._tutorialHudStyles ||= new Map();
         const set = (el, property, value) => {
             if (!el) return;
@@ -3698,6 +3702,7 @@ export class UIManager {
 
     // v2.3.1: HUD Visibility Control for Cutscenes
     hideHUD() {
+        this.fieldHudReadability?.clear();
         const uiLayer = document.getElementById('ui-layer');
         if (uiLayer) uiLayer.classList.add('hidden');
     }
@@ -7787,6 +7792,7 @@ export class UIManager {
     }
 
     refreshTutorialOverlayState() {
+        this.fieldHudReadability?.sync(this, true);
         if (!this.game?.tutorial?.activeTutorial) return;
         this.refreshTutorialHighlight();
         this.refreshTutorialGuideLayout();
@@ -11580,6 +11586,8 @@ export class UIManager {
         }
 
         this.lastHudSnapshot = nextSnapshot;
+        this.fieldHudReadability ||= new FieldHudReadability();
+        this.fieldHudReadability.sync(this);
         this.game.recordUiTick?.('hud');
 
         const now = performance.now();
