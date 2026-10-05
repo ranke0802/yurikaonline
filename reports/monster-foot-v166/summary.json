@@ -1,0 +1,585 @@
+{
+  "version": "0.02.166",
+  "baselineCommit": "26e96074bbfdb97b4b44996a1ba2f09235df997d",
+  "scope": "Only footer status presentation near viewport/safe-area/bottom-menu edges; full-size cells, original labels, body-relative ownership and max 24px anchor displacement retained.",
+  "boundaryCases": 36,
+  "fullyExposedCases": 33,
+  "physicallyInsufficientCases": 3,
+  "clippedIcons": {
+    "before": 89,
+    "after": 21
+  },
+  "clippedLabels": {
+    "before": 30,
+    "after": 6
+  },
+  "cases": [
+    {
+      "orientation": "portrait",
+      "scenario": "single-room",
+      "icons": 1,
+      "labels": [
+        "12"
+      ],
+      "clippedIconsBefore": 0,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 0,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "seven-room",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 0,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "seven-wrap",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "thirteen-wrap",
+      "icons": 13,
+      "labels": [
+        "12",
+        "기절",
+        "경직"
+      ],
+      "clippedIconsBefore": 5,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "safe-bottom",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "left-corner",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 2,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 0,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "right-corner",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 1,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "large-boss",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "summon-near",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "camera-origin",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "camera-end",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "toolbar-no-room",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 7,
+      "clippedIconsAfter": 7,
+      "clippedLabelsBefore": 2,
+      "clippedLabelsAfter": 2,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true,
+      "insufficientSpace": true,
+      "availableBelowFeetCSSpx": -2.6,
+      "minimumOneRowHpIconsAndLabelCSSpx": 25.2,
+      "constraint": "Full exposure is impossible while keeping HP + all full-size status cells and text below the body, within a 24px anchor bound, without moving the camera or hiding UI."
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "too-shallow",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 7,
+      "clippedIconsAfter": 7,
+      "clippedLabelsBefore": 2,
+      "clippedLabelsAfter": 2,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true,
+      "insufficientSpace": true,
+      "availableBelowFeetCSSpx": 14.2,
+      "minimumOneRowHpIconsAndLabelCSSpx": 25.2,
+      "constraint": "Full exposure is impossible while keeping HP + all full-size status cells and text below the body, within a 24px anchor bound, without moving the camera or hiding UI."
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "target-switch",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 0,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 0,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "death",
+      "icons": 0,
+      "labels": [],
+      "clippedIconsBefore": 0,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 0,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "removed",
+      "icons": 0,
+      "labels": [],
+      "clippedIconsBefore": 0,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 0,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "menu-move",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "portrait",
+      "scenario": "rotation",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "single-room",
+      "icons": 1,
+      "labels": [
+        "12"
+      ],
+      "clippedIconsBefore": 0,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 0,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "seven-room",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 0,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 0,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "seven-wrap",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "thirteen-wrap",
+      "icons": 13,
+      "labels": [
+        "12",
+        "기절",
+        "경직"
+      ],
+      "clippedIconsBefore": 5,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "safe-bottom",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "left-corner",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 2,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "right-corner",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 2,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 2,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "large-boss",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "summon-near",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "camera-origin",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "camera-end",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "toolbar-no-room",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "too-shallow",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 7,
+      "clippedIconsAfter": 7,
+      "clippedLabelsBefore": 2,
+      "clippedLabelsAfter": 2,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true,
+      "insufficientSpace": true,
+      "availableBelowFeetCSSpx": 13.9,
+      "minimumOneRowHpIconsAndLabelCSSpx": 25.2,
+      "constraint": "Full exposure is impossible while keeping HP + all full-size status cells and text below the body, within a 24px anchor bound, without moving the camera or hiding UI."
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "target-switch",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 0,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 0,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "death",
+      "icons": 0,
+      "labels": [],
+      "clippedIconsBefore": 0,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 0,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "removed",
+      "icons": 0,
+      "labels": [],
+      "clippedIconsBefore": 0,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 0,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "menu-move",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    },
+    {
+      "orientation": "landscape",
+      "scenario": "rotation",
+      "icons": 7,
+      "labels": [
+        "12",
+        "기절"
+      ],
+      "clippedIconsBefore": 3,
+      "clippedIconsAfter": 0,
+      "clippedLabelsBefore": 1,
+      "clippedLabelsAfter": 0,
+      "belowBody": true,
+      "combatAndCameraUnchanged": true
+    }
+  ],
+  "exactV165CentralSnapshotsAndDrawRecords": 36,
+  "exactEvents": 582,
+  "exactDamageTextRequests": 714,
+  "aggregateChecks": 5558,
+  "localTests": 739,
+  "untouchedSourceSha256": {
+    "src/js/entities/Monster.js": "7ab76ce55b31983c35681ae83314fde0b14f949260ffe51cdeafedc8d7a80314",
+    "src/js/world/Camera.js": "779aea6dead9a0930d2c38fd68743889713de600c6d414e8d750220a2e23923c",
+    "src/js/combat/MonsterStatusBadges.js": "8f9d560e4bc7c2922b6ff1dc730d4db5bcdb5b070ce22bc3b324344b541eb494",
+    "src/js/ui/MonsterDamageNumbers.js": "eb9220a774fea00d26936712e6760a79c76c5c6a890589845d28ef246f1f8be9",
+    "src/js/combat/ClassCombatController.js": "40fda95357e5934b08b4023047f46fa817ea02268ea7dd43b2c9aa95e9a1d08f"
+  },
+  "transitions": "Both orientations use actual zone_2 -> zone_1 path; no stale monster draw or target remains.",
+  "limits": [
+    "Simulated mobile viewports, 24px bottom / 12px side insets and actual orientation resize; physical notched devices not tested.",
+    "Clipping uses actual Canvas icon/text bounds and bottom-menu rectangle, not an all-overlay opaque-pixel visibility guarantee.",
+    "Three reported physically insufficient cases retain every draw but cannot expose all pixels under the stated constraints."
+  ],
+  "nextCandidate": {
+    "plan": "reports/GAME_DESIGN_CRITIQUE_AND_ROADMAP.md: UI priority / contextual HUD",
+    "audit": "reports/quality-audit-20261004/USER-AUDIT.md D2",
+    "evidence": "boundaries/portrait-foot-safe-bottom.png: the poison action button overlaps the selected monster body/name while footer cells remain below and above the bottom menu.",
+    "proposal": "Independently measure and reduce action-button obstruction of combat information, preserving images and tone. Not started."
+  },
+  "preservedDirtyReportSha256": "c5992ae8260e81bc5971de85962c22883a13677fc583eff8fb3aa3cd16ecf7f7",
+  "fullyExposedLiveStatusCases": 29,
+  "deathOrRemovalCases": 4
+}

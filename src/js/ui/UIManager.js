@@ -1272,6 +1272,7 @@ export class UIManager {
     }
 
     applyUiLayoutControl(controlId, entry, options = {}) {
+        if (controlId === 'quick-menu-panel' && this.game) this.game.monsterHudBoundsDirty = true;
         const element = this.getUiLayoutControlElement(controlId);
         if (!element) return;
         const nodes = [element, element.querySelector('.inner-icon, .paw-icon')].filter(Boolean);
@@ -1379,6 +1380,7 @@ export class UIManager {
     }
 
     applyActiveUiLayout() {
+        if (this.game) this.game.monsterHudBoundsDirty = true;
         this.fieldHudReadability?.clear();
         this.clearUiLayoutRuntimeStyles();
         const mode = this.getUiLayoutMode();

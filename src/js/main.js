@@ -1,9 +1,10 @@
+import { readMonsterHudSafeViewport } from './ui/MonsterHudSafeViewport.js';
 import Logger from './utils/Logger.js';
 import CampScene from './world/scenes/CampScene.js';
 import LocalAuthManager from './local/LocalAuthManager.js';
 import LocalNetworkManager from './local/LocalNetworkManager.js';
 import { getViewportMetrics } from './core/ViewportMetrics.js';
-window.RUNTIME_BUILD_VERSION = '0.02.165'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.166'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -636,6 +637,8 @@ class Game {
         }
 
         this.syncUiForViewportChange(displayWidth, displayHeight);
+        this.monsterHudSafeViewport = readMonsterHudSafeViewport(this.canvas);
+        this.monsterHudBoundsDirty = false;
         return true;
     }
 

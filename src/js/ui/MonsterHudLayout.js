@@ -1,3 +1,4 @@
+import { monsterFootRows, footCandidateOffsets, footClippedArea } from './MonsterFootPlacement.js';
 import { monsterStatusBadgeLayout } from '../combat/MonsterStatusBadges.js';
 
 const rect = (x,y,w,h) => ({left:x,top:y,right:x+w,bottom:y+h});
@@ -47,22 +48,24 @@ function crosses(box,[[x,y],[tx,ty]]) {
 
 // Small, deterministic displacements only. No retained monster state or global
 // label lanes: dense crowds may still overlap rather than detach ownership.
-export function layoutMonsterHud(ctx, monsters, {bodies=[],viewport=null,selected=null}={}) {
+export function layoutMonsterHud(ctx, monsters, {bodies=[],viewport=null,footViewport=viewport,selected=null}={}) {
     const result=new Map(),occupied=[],edges=warningEdges(monsters);
     const ordered=[...monsters].filter(m=>m.deathTimer<m.deathDuration||m.deathTimer==null)
         .sort((a,b)=>(b===selected)-(a===selected)||a.y-b.y||a.x-b.x||String(a.id).localeCompare(String(b.id)));
     const obstacles=monsters.filter(m=>!m.isDead).map(m=>({...monsterHudBody(m),weight:m===selected?16:8}));
     obstacles.push(...bodies.map(b=>({...b,weight:60})));
-    function place(x,y,w,h,below=false) {
+    function place(x,y,w,h,below=false,guarded=false) {
         let best=null;
-        for(const dy of [0,12,24])for(const dx of [0,-12,12,-24,24]){
+        const bounds=guarded?footViewport:viewport;
+        const offsets=guarded?footCandidateOffsets(x,y,w,h,bounds):{dx:[0,-12,12,-24,24],dy:[0,12,24]};
+        for(const dy of offsets.dy)for(const dx of offsets.dx){
             const px=x+dx,py=y+(below?dy:-dy),box=rect(px-w/2,py,w,h);
-            const offscreen=viewport?w*h-intersection(box,viewport):0;
+            const offscreen=guarded?footClippedArea(box,bounds):bounds?Math.max(0,w*h-intersection(box,bounds)):0;
             const body=obstacles.reduce((n,b)=>n+intersection(box,b)*b.weight,0);
             const labels=occupied.reduce((n,b)=>n+intersection(box,{left:b.left-3,top:b.top-3,right:b.right+3,bottom:b.bottom+3}),0);
             const warning=edges.reduce((n,e)=>n+Number(crosses(box,e)),0);
             const score=body+labels*30+offscreen*20+warning*1500+Math.abs(dx)*2+dy*3;
-            if(!best||score<best.score)best={x:px,y:py,box,score};
+            if(!best||(guarded&&offscreen<best.offscreen-.001)||((!guarded||Math.abs(offscreen-best.offscreen)<.001)&&score<best.score))best={x:px,y:py,box,score,offscreen};
         }
         occupied.push(best.box);return best;
     }
@@ -75,8 +78,9 @@ export function layoutMonsterHud(ctx, monsters, {bodies=[],viewport=null,selecte
         const legacy=!m.isDead&&(m.statusEffects?.some(e=>e.type==='burn')||m.electrocutedTimer>0)
             ? [...(m.statusEffects?.some(e=>e.type==='burn')?['burn']:[]),...(m.electrocutedTimer>0?['elec']:[]),...(m.hasEffect?.('shield')?['shield']:[])]:[];
         const statuses=monsterStatusBadgeLayout(m),count=legacy.length+statuses.length;
-        const foot=place(x,Math.max(y+m.height/2,body.bottom)+5,Math.max(60,Math.min(4,count)*25-5),count?10+Math.ceil(count/4)*25-5:6,true);
-        const cells=Array.from({length:count},(_,i)=>{const row=Math.floor(i/4),n=Math.min(4,count-row*4);return{x:foot.x+(i%4-(n-1)/2)*25-10,y:foot.y+10+row*25};});
+        const rows=monsterFootRows(m,body,count,footViewport);
+        const foot=place(x,rows.y,rows.width,rows.height,true,rows.guarded);
+        const cells=Array.from({length:count},(_,i)=>{const row=Math.floor(i/rows.columns),n=Math.min(rows.columns,count-row*rows.columns);return{x:foot.x+(i%rows.columns-(n-1)/2)*25-10,y:foot.y+rows.offset+row*25};});
         result.set(m,{nameX:head.x,nameY:head.y+fontHeight,hpX:foot.x-30,hpY:foot.y,aggroX:head.x,aggroY:head.y-5,
             legacy:legacy.map((type,i)=>({type,...cells[i]})),statuses:statuses.map((s,i)=>({...s,...cells[legacy.length+i]}))});
     }

@@ -1,3 +1,4 @@
+import { monsterHudSafeWorldViewport, readMonsterHudSafeViewport } from '../../ui/MonsterHudSafeViewport.js';
 import { layoutMonsterHud } from '../../ui/MonsterHudLayout.js';
 import MonsterDamageNumbers from '../../ui/MonsterDamageNumbers.js';
 import { enforceBarrageLock } from '../../combat/BarrageLock.js';
@@ -1766,7 +1767,12 @@ export default class WorldScene extends Scene {
             const w=v.renderWidth||v.width,h=v.renderHeight||v.height;
             hudBodies.push({left:a.x-w/2,right:a.x+w/2,top:a.y-h/2,bottom:a.y+h/2});
         }
+        if (this.game.monsterHudBoundsDirty || !this.game.monsterHudSafeViewport) {
+            this.game.monsterHudSafeViewport = readMonsterHudSafeViewport(this.game.canvas);
+            this.game.monsterHudBoundsDirty = false;
+        }
         const monsterHud = layoutMonsterHud(ctx, hudMonsters, {bodies:hudBodies,selected:this.player?.currentTarget,
+            footViewport:monsterHudSafeWorldViewport(this.game.canvas,camPos,scale,this.game.monsterHudSafeViewport),
             viewport:{left:camPos.x+4,top:camPos.y+4,right:camPos.x+this.game.canvas.width/scale-4,bottom:camPos.y+this.game.canvas.height/scale-4}});
 
         // Render All
