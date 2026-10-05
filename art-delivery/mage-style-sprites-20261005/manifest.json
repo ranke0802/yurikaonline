@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "repository_prefix": "art-delivery/mage-style-sprites-20261005",
+  "source_files_preserved": true,
+  "format": "lossless WebP with original alpha",
+  "total_image_bytes": 9641146,
+  "files": [
+    {
+      "path": "atlases/witch-walk-1536x1024.webp",
+      "repository_path": "art-delivery/mage-style-sprites-20261005/atlases/witch-walk-1536x1024.webp",
+      "kind": "new_class_atlas",
+      "class": "witch",
+      "bytes": 810420,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "14ae40edbef589f520a5e485a60b9a58418800e2919440d9f45804b4f3cc8eb2",
+      "git_blob_sha": "88cd703cfd68c70182d4201504359e40e937c13c",
+      "lossless_png_rgba_equal": true,
+      "source": "unified-class-sprites-20261005/witch/final/witch-walk-1536x1024.webp",
+      "action": "walk"
+    },
+    {
+      "path": "atlases/witch-attack-1536x1024.webp",
+      "repository_path": "art-delivery/mage-style-sprites-20261005/atlases/witch-attack-1536x1024.webp",
+      "kind": "new_class_atlas",
+      "class": "witch",
+      "bytes": 852164,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "2fde645e5a6de416fbd1cd6deeaec8c598f3e0e71b609c4d0c22f5294cb763f1",
+      "git_blob_sha": "e20c3bf7750f1d5a5b152b86b29618b2120507de",
+      "lossless_png_rgba_equal": true,
+      "source": "unified-class-sprites-20261005/witch/final/witch-attack-1536x1024.webp",
+      "action": "attack"
+    },
+    {
+      "path": "atlases/witch-movingattack-1536x1024.webp",
+      "repository_path": "art-delivery/mage-style-sprites-20261005/atlases/witch-movingattack-1536x1024.webp",
+      "kind": "new_class_atlas",
+      "class": "witch",
+      "bytes": 843472,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "5c007c2d026866e5bfbc8c881ca2d2c0e7c6f329904bbf2d8213eaf708ce9eba",
+      "git_blob_sha": "8b78eca8ef52ca8363fe7534fc72406b261d5d62",
+      "lossless_png_rgba_equal": true,
+      "source": "unified-class-sprites-20261005/witch/final/witch-movingattack-1536x1024.webp",
+      "action": "movingattack"
+    },
+    {
+      "path": "atlases/warrior-walk-1536x1024.webp",
+      "repository_path": "art-delivery/mage-style-sprites-20261005/atlases/warrior-walk-1536x1024.webp",
+      "kind": "new_class_atlas",
+      "class": "warrior",
+      "bytes": 852002,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "85ae60dcb5668fcc1d006d72e21d5fa1d01814ebd2118c63d7103b14349b35ab",
+      "git_blob_sha": "025b0c9d86a757ba8aae057f7f1ab360d228c7f3",
+      "lossless_png_rgba_equal": true,
+      "source": "unified-class-sprites-20261005/warrior-right-shield-v2/final/warrior-walk-1536x1024.webp",
+      "action": "walk"
+    },
+    {
+      "path": "atlases/warrior-attack-1536x1024.webp",
+      "repository_path": "art-delivery/mage-style-sprites-20261005/atlases/warrior-attack-1536x1024.webp",
+      "kind": "new_class_atlas",
+      "class": "warrior",
+      "bytes": 911918,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "8cd7427e1405e9ddf0a1fd0ac6505b649cfc3304e0e5059047e1e07682b8b375",
+      "git_blob_sha": "79fa5a432c1f9e8cb73a6408a14f5ce239f47b08",
+      "lossless_png_rgba_equal": true,
+      "source": "unified-class-sprites-20261005/warrior-right-shield-v2/final/warrior-attack-1536x1024.webp",
+      "action": "attack"
+    },
+    {
+      "path": "atlases/warrior-movingattack-1536x1024.webp",
+      "repository_path": "art-delivery/mage-style-sprites-20261005/atlases/warrior-movingattack-1536x1024.webp",
+      "kind": "new_class_atlas",
+      "class": "warrior",
+      "bytes": 843558,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "fe48af21df4afac087c68bd5b8952ce7777f1a7194037c493af6a5687eb3a6d1",
+      "git_blob_sha": "6ededec3f6bad6424015ea9510bfa8676c359b28",
+      "lossless_png_rgba_equal": true,
+      "source": "unified-class-sprites-20261005/warrior-right-shield-v2/final/warrior-movingattack-1536x1024.webp",
+      "action": "movingattack"
+    },
+    {
+      "path": "atlases/archer-walk-1536x1024.webp",
+      "repository_path": "art-delivery/mage-style-sprites-20261005/atlases/archer-walk-1536x1024.webp",
+      "kind": "new_class_atlas",
+      "class": "archer",
+      "bytes": 878174,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "27f15de4e46b967680365e0cd95c20d3914ac7304392929fa0020a3ed983f25f",
+      "git_blob_sha": "e687833cb64bccbdbb12db3195390de168de2e72",
+      "lossless_png_rgba_equal": true,
+      "source": "archer-bow-fix-20261005/final/archer-walk-1536x1024.webp",
+      "action": "walk"
+    },
+    {
+      "path": "atlases/archer-attack-1536x1024.webp",
+      "repository_path": "art-delivery/mage-style-sprites-20261005/atlases/archer-attack-1536x1024.webp",
+      "kind": "new_class_atlas",
+      "class": "archer",
+      "bytes": 963354,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "ed759b899bc8cc2822208932670bbb1addfa129a6b5254f385a5fd3c6f95b9ba",
+      "git_blob_sha": "db5c5b807aa9d220b7a89024657eb75ddea9da4b",
+      "lossless_png_rgba_equal": true,
+      "source": "archer-bow-fix-20261005/final/archer-attack-1536x1024.webp",
+      "action": "attack"
+    },
+    {
+      "path": "atlases/archer-movingattack-1536x1024.webp",
+      "repository_path": "art-delivery/mage-style-sprites-20261005/atlases/archer-movingattack-1536x1024.webp",
+      "kind": "new_class_atlas",
+      "class": "archer",
+      "bytes": 924678,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "47f9e232c7820f7855f86cc6171f906807346acb6077428d0ccc663aea298b4e",
+      "git_blob_sha": "38e8fe087e7e404c4aa0568374451bee6978bbe1",
+      "lossless_png_rgba_equal": true,
+      "source": "archer-bow-fix-20261005/final/archer-movingattack-1536x1024.webp",
+      "action": "movingattack"
+    },
+    {
+      "path": "atlases/mage-original-style-attacks-1536x2048.webp",
+      "repository_path": "art-delivery/mage-style-sprites-20261005/atlases/mage-original-style-attacks-1536x2048.webp",
+      "kind": "mage_attack_atlas",
+      "class": "mage",
+      "bytes": 1663080,
+      "dimensions": [
+        1536,
+        2048
+      ],
+      "sha256": "0de728a3ad14d712ec593a4babe57b5184ade6347bc451bac02766cf54fb65c9",
+      "git_blob_sha": "9778d1f5bf190ab2304997d9387132f14c5890da",
+      "lossless_png_rgba_equal": true,
+      "source": "mage-original-style-attacks-20261004/final/mage-original-style-attacks-1536x2048.webp",
+      "action": "attack_and_movingattack"
+    },
+    {
+      "path": "fronts/witch-front-256.webp",
+      "repository_path": "art-delivery/mage-style-sprites-20261005/fronts/witch-front-256.webp",
+      "kind": "front",
+      "class": "witch",
+      "bytes": 28342,
+      "dimensions": [
+        256,
+        256
+      ],
+      "sha256": "0842642d8fb073623e8ca7d4005242bbb2d90112a2d47ede9640a2cd1aa851e3",
+      "git_blob_sha": "3842eceea7a3ce7fa9dd4ef81beac829a594bd3e",
+      "lossless_png_rgba_equal": true,
+      "source": "unified-class-sprites-20261005/reference/witch-front-256.webp"
+    },
+    {
+      "path": "fronts/warrior-front-256.webp",
+      "repository_path": "art-delivery/mage-style-sprites-20261005/fronts/warrior-front-256.webp",
+      "kind": "front",
+      "class": "warrior",
+      "bytes": 33936,
+      "dimensions": [
+        256,
+        256
+      ],
+      "sha256": "aece87bbc6235a0e81389aa6e5a4462d845b4e0f90741d8339cec0aab0865106",
+      "git_blob_sha": "5278b253fdb39456468d0c2882597994c9afd809",
+      "lossless_png_rgba_equal": true,
+      "source": "unified-class-sprites-20261005/reference/warrior-front-256.webp"
+    },
+    {
+      "path": "fronts/archer-front-256.webp",
+      "repository_path": "art-delivery/mage-style-sprites-20261005/fronts/archer-front-256.webp",
+      "kind": "front",
+      "class": "archer",
+      "bytes": 36048,
+      "dimensions": [
+        256,
+        256
+      ],
+      "sha256": "8c72340cdcc76684bb3c84ec5bd9435b3883d94517decbe59e8afde036cbed0f",
+      "git_blob_sha": "6f58e4c29c4ba06cc6a8651f40372ce2f28bf02d",
+      "lossless_png_rgba_equal": true,
+      "source": "archer-bow-fix-20261005/reference/archer-front-256.webp"
+    }
+  ]
+}

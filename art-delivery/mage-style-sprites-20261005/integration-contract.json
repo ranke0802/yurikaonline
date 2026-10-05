@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "status": "Approved for application by user on 2026-10-05; publication package only",
+  "style": "A / original Mage style",
+  "consumer_instructions": [
+    "Copy only files under art-delivery/mage-style-sprites-20261005 from the artifact commit. Do not merge the master-based artifact branch into mmorpg_online.",
+    "Use all 9 new-class atlases plus the approved original-style Mage attack atlas. Preserve existing original Mage walk and front images.",
+    "Use corrected Archer front from this package, superseding the old front reference.",
+    "Do not delete prior local or remote art. No engine code, deployment, or gameplay change is included in this artifact branch."
+  ],
+  "cell": [
+    256,
+    256
+  ],
+  "pivot": [
+    128,
+    236
+  ],
+  "columns": 6,
+  "new_class_atlas": {
+    "dimensions": [
+      1536,
+      1024
+    ],
+    "rows": 4,
+    "row_order": [
+      "up",
+      "down",
+      "left",
+      "right"
+    ],
+    "actions": [
+      "walk",
+      "attack",
+      "movingattack"
+    ],
+    "stationary_action": "attack"
+  },
+  "mage_attack_atlas": {
+    "dimensions": [
+      1536,
+      2048
+    ],
+    "rows": 8,
+    "row_order": [
+      "attack up",
+      "attack down",
+      "attack left",
+      "attack right",
+      "movingattack up",
+      "movingattack down",
+      "movingattack left",
+      "movingattack right"
+    ],
+    "phase_order": [
+      "prepare",
+      "raise",
+      "cast",
+      "recoil",
+      "recover",
+      "return"
+    ],
+    "approved_sha256": "0de728a3ad14d712ec593a4babe57b5184ade6347bc451bac02766cf54fb65c9"
+  },
+  "preview_frame_durations_ms": {
+    "witch": [
+      140,
+      110,
+      150,
+      140,
+      110,
+      150
+    ],
+    "warrior": [
+      140,
+      110,
+      130,
+      140,
+      110,
+      130
+    ],
+    "archer": [
+      130,
+      100,
+      140,
+      110,
+      100,
+      130
+    ],
+    "mage": [
+      140,
+      110,
+      150,
+      120,
+      110,
+      140
+    ]
+  },
+  "timing_note": "Source preview timings, not authority to change gameplay attack cadence or hit timing. Preserve gameplay semantics during integration.",
+  "versions": {
+    "witch": "unified Mage-style final",
+    "warrior": "right-shield-v2; 12 right attack/movingattack frames corrected",
+    "archer": "bow-fix final; 31 animation frames and v3 front corrected",
+    "mage": "approved original-style attacks preserved byte-for-byte"
+  },
+  "validation": {
+    "image_files": 13,
+    "new_class_atlases": 9,
+    "mage_atlases": 1,
+    "fronts": 3,
+    "all_png_webp_rgba_equal": true,
+    "game_runtime_tested_in_this_publication": false
+  },
+  "known_art_limits": [
+    "Warrior side-sword projected blade-length variance of approximately 15–25 percent remains outside shield correction scope.",
+    "Archer side gait/stride timing remains stylized and uneven.",
+    "Archer rear attack cues are subtle after natural torso/hair occlusion.",
+    "Pre-existing Archer right-view purple armband/bow-arm consistency caveat remains.",
+    "Generative contour, shading, hand placement and perspective variations can remain."
+  ]
+}
