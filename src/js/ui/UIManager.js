@@ -1,3 +1,5 @@
+import { skillAvailability } from './SkillAvailability.js';
+import { enhancementExplanation } from './EnhancementExplanation.js';
 import { classArtPath } from '../combat/AuthoredCharacterFrames.js';
 import AndroidDisplayController from './AndroidDisplayController.js';
 import { CLASS_NAMES } from '../core/ClassProfiles.js';
@@ -2250,7 +2252,7 @@ export class UIManager {
 
         if (config.destroyChanceOnFail > 0) {
             this.showConfirm(
-                `+${config.nextLevel} 강화는 실패 시 장비가 파괴될 수 있습니다.<br><small>성공 ${Math.round(config.successRate * 100)}% / 파괴 ${Math.round(config.destroyChanceOnFail * 100)}%</small>`,
+                `+${config.nextLevel} 강화는 실패 시 장비가 파괴될 수 있습니다.<br><small>${enhancementExplanation(config)}</small>`,
                 (confirmed) => {
                     if (confirmed) executeEnhance();
                 },
@@ -10870,7 +10872,7 @@ export class UIManager {
         const dismantleReward = item.slot === 'weapon' ? player.getWeaponDismantleRewardInfo?.(item) : null;
         const baseDescription = item.description || definition?.description || '';
         const enhanceHint = config
-            ? `다음 +${config.nextLevel} | 성공 ${Math.round(config.successRate * 100)}%${config.destroyChanceOnFail > 0 ? ` | 파괴 ${Math.round(config.destroyChanceOnFail * 100)}%` : ' | 안전'}`
+            ? `다음 +${config.nextLevel} | ${enhancementExplanation(config, ' | ')}`
             : '';
         const dismantleHint = dismantleReward
             ? `분해 시 무기 강화석 ${dismantleReward.displayText} 획득`
@@ -11525,6 +11527,21 @@ export class UIManager {
         skillKeys.forEach(key => {
             const { button: btn, overlay, timeText } = this.getCooldownRefs(key);
             if (!btn) return;
+
+            const availability = skillAvailability(p, key, this.game);
+            // A separate, non-interactive label; existing disabled/input behavior is untouched.
+            let reasonText = btn.querySelector('.skill-unavailable-reason');
+            if (!reasonText) {
+                reasonText = document.createElement('span');
+                reasonText.className = 'skill-unavailable-reason';
+                btn.appendChild(reasonText);
+            }
+            const text = availability.code === 'cooldown' ? '' : availability.text;
+            if (reasonText.textContent !== text) reasonText.textContent = text;
+            reasonText.hidden = !text;
+            const name = btn.querySelector('.combat-skill-name')?.textContent || '';
+            const label = availability.text ? `${name}: ${availability.text}` : name;
+            if (btn.getAttribute('aria-label') !== label) btn.setAttribute('aria-label', label);
 
             const cdTime = p.skillCooldowns[key];
             const maxCd = p.skillMaxCooldowns[key];
