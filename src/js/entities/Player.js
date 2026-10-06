@@ -306,6 +306,7 @@ export default class Player extends CharacterBase {
         });
 
         bindInput('aimCancel', (data) => {
+            window.game?.ui?.clearCombatFailure?.();
             if (this.isClassAction(data?.action)) { this.classAim = null;this.classCombat?.controller.cancelBarrage(); return; }
             if (data?.action === 'SKILL_2') this.cancelFireballAim();
         });
@@ -323,6 +324,7 @@ export default class Player extends CharacterBase {
     }
 
     initializeClassCombat() {
+        window.game?.ui?.clearCombatFailure?.();
         this.classCombat?.dispose();
         this.classCombat = new ClassCombatBridge(this, this.classId);
         this.classAim = null;
@@ -397,6 +399,7 @@ export default class Player extends CharacterBase {
     getEffectiveClassAttackSpeed() { return this.getEffectiveBasicAttackSpeed(); }
 
     detachInput() {
+        window.game?.ui?.clearCombatFailure?.();
         this.classAim = null;
         this.classCombat?.dispose();
         this.classCombat = null;
@@ -775,6 +778,9 @@ export default class Player extends CharacterBase {
         }
 
         if (!this.canStartFireballAim()) {
+            if (!this.isDead && !this.isDying && this.isChanneling && this.skillAttackTimer > 0) {
+                window.game?.ui?.logCombatFailure?.('다른 스킬을 시전 중입니다. 시전이 끝난 뒤 파이어볼을 사용할 수 있습니다.');
+            }
             if (
                 !this.isDead
                 && !this.isDying
@@ -2103,6 +2109,7 @@ export default class Player extends CharacterBase {
             this.net.sendChanneling('laser');
         }
         if (!wasChanneling) {
+            window.game?.ui?.clearCombatFailure?.();
             window.game?.tutorial?.trigger?.('attack', { target: 'normal' });
         }
 
@@ -2299,6 +2306,7 @@ export default class Player extends CharacterBase {
         if (skillId === 'missile') {
             const cost = this.getMagicMissileManaCost(lv, weaponCombat);
             if (this.useMana(cost)) {
+                window.game?.ui?.clearCombatFailure?.();
                 this.triggerAction(`${this.name} : 매직 미사일 !!`);
                 if (window.game?.sound) window.game.sound.playSfx('missile_launch');
 
@@ -2400,6 +2408,7 @@ export default class Player extends CharacterBase {
         } else if (skillId === 'fireball') {
             const cost = this.getFireballManaCost(lv); // v1.99.32: 12 base, +4 per level
             if (this.useMana(cost)) {
+                window.game?.ui?.clearCombatFailure?.();
                 window.game?.tutorial?.trigger?.('skill_use', { target: skillId, slot });
                 this.triggerAction(`${this.name} : 파이어볼 !!`);
                 if (window.game?.sound) window.game.sound.playSfx('fireball_cast');
@@ -2529,6 +2538,7 @@ export default class Player extends CharacterBase {
         } else if (skillId === 'shield') {
             // v0.00.42: Adjusted mana cost (20) and cooldown (3s)
             if (this.useMana(20)) {
+                window.game?.ui?.clearCombatFailure?.();
                 window.game?.tutorial?.trigger?.('skill_use', { target: skillId, slot });
                 this.triggerAction(`${this.name} : 앱솔루트 베리어 !!`);
                 if (window.game?.sound) window.game.sound.playSfx('shield_activate');

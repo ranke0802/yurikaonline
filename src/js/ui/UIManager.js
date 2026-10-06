@@ -11644,7 +11644,7 @@ export class UIManager {
             if (reasonText.textContent !== text) reasonText.textContent = text;
             reasonText.hidden = !text;
             const name = btn.querySelector('.combat-skill-name')?.textContent || '';
-            const label = availability.text ? `${name}: ${availability.text}` : name;
+            const label = availability.text ? `${name}: ${availability.detail || availability.text}` : name;
             if (btn.getAttribute('aria-label') !== label) btn.setAttribute('aria-label', label);
 
             const cdTime = p.skillCooldowns[key];
@@ -12023,6 +12023,22 @@ export class UIManager {
             .trim();
     }
 
+    clearCombatFailure() {
+        this.lastCombatFailure = null;
+    }
+
+    logCombatFailure(text) {
+        const normalized = this.sanitizeSystemMessageText(text);
+        if (!normalized) return;
+        const player = this.game?.localPlayer, scene = this.game?.sceneManager?.currentScene;
+        const previous = this.lastCombatFailure;
+        // Normal chat may arrive between retries. Do not append, reorder or scroll it.
+        if (previous && previous.player === player && previous.scene === scene
+            && previous.text === normalized && previous.entry?.isConnected) return;
+        const entry = this.logSystemMessage(normalized);
+        this.lastCombatFailure = { player, scene, text: normalized, entry };
+    }
+
     logSystemMessage(text) {
         const msgArea = document.querySelector('.chat-messages');
         const normalizedText = this.sanitizeSystemMessageText(text);
@@ -12040,6 +12056,7 @@ export class UIManager {
             }
 
             msgArea.scrollTop = msgArea.scrollHeight;
+            return div;
         }
     }
 

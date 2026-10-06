@@ -308,7 +308,10 @@ export default class ClassCombatController {
             if (slot === 1) {
                 if(this.hooks.canStartShieldRush?.()===false)return false;
                 const forward=shieldRushDirection(this.owner,d);
-                if(this.hooks.canMoveShieldRush?.(this.owner.x+forward.x*8,this.owner.y+forward.y*8)===false)return false;
+                if(this.hooks.canMoveShieldRush?.(this.owner.x+forward.x*8,this.owner.y+forward.y*8)===false) {
+                    this.hooks.failure?.('앞이 막혀 있어 방패 돌진을 시작할 수 없습니다.');
+                    return false;
+                }
                 const profile=shieldRushProfile(skillLevel);
                 this.shieldRush={started:this.time,until:this.time+profile.duration,remaining:profile.distance,profile,
                     elapsed:0,bank:0,direction:forward,lastX:this.owner.x,lastY:this.owner.y,hit:new Map(),

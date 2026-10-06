@@ -41,13 +41,14 @@ export default class ClassCombatBridge {
             projectileBlocked:(x,y,r)=>!!this.game?.sceneManager?.currentScene?.checkCollision?.(x-r,y-r,r*2,r*2),
             attackOrigin:(target,kind)=>attackAnchor(this.owner,target,kind),
             action: (kind,data)=>{
+                this.game?.ui?.clearCombatFailure?.();
                 this.startActionMotion(kind,data);
                 // The local controller calls this only after committing the launch.
                 if(classId==='warrior' && kind==='basic' && data.aimed)
                     this.game?.sound?.playClassEvent?.('sword_wave',{audioId:`${this.visualEpoch}:action:${this.motionSerial}`},{remote:false});
             },
             basicHit: () => { if(classId==='witch') this.game?.tutorial?.trigger?.('attack',{target:'normal'}); },
-            failure: text=>this.game?.ui?.logSystemMessage?.(text),
+            failure: text=>this.game?.ui?.logCombatFailure?.(text),
             cancelEffect: id=>{this.effects=this.effects.filter(f=>f.id!==id);},
             enemies: () => [...(this.game?.monsterManager?.monsters?.values?.() || [])],
             allies: () => [...this.actors, ...this.allies()], paused: () => this.paused(),
@@ -175,10 +176,11 @@ export default class ClassCombatBridge {
         e.x=x;e.y=y;return true;
     }
     summon(id,level,weapon=null) {
-        const definition=this.definitions.get(id); if(!definition) return null;
+        const definition=this.definitions.get(id);
+        if(!definition) { this.game?.ui?.logCombatFailure?.('소환 정보를 준비 중입니다. 잠시 후 다시 시도해 주세요.'); return null; }
         const scene=this.game?.sceneManager?.currentScene;
         const spawn=[[36,24],[-36,24],[24,36],[24,-36],[0,0]].map(([x,y])=>({x:this.owner.x+x,y:this.owner.y+y})).find(p=>!scene?.checkCollision?.(p.x,p.y,32,32));
-        if(!spawn)return null;
+        if(!spawn) { this.game?.ui?.logCombatFailure?.('소환할 공간이 없습니다. 주변이 트인 곳에서 다시 시도해 주세요.'); return null; }
         const visual=new Monster(spawn.x,spawn.y,definition);
         const actor={id:`summon:${this.owner.id}:${++ClassCombatBridge.serial}`,ownerId:this.owner.id,isSummon:true,typeId:id,x:visual.x,y:visual.y,...summonStats(visual),weaponAttackMultiplier:1+(weapon?.damageBonus||0),isDead:false,width:32,height:32,visual,attackReady:0,classStatuses:{},isLocalOnly:true};
         actor.abilities=new SummonAbilities(actor,this);

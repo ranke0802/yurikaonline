@@ -1,5 +1,11 @@
 // Presentation only: never call an action, spend resources or change input gates.
 // Direction-dependent collision and target selection remain the cast's responsibility.
+const DAMAGE_KEYS = { wizard: ['j', 'h', 'u'], witch: ['j', 'h'], warrior: ['j', 'h', 'u'], archer: ['j', 'h', 'k'] };
+function authorityHint(player, key, game) {
+    if (!DAMAGE_KEYS[player.classId || 'wizard']?.includes(key) || !game?.monsterManager?.isMonsterCombatBlocked?.()) return null;
+    return { code: 'authority', text: '전투 반영 대기', hint: true,
+        detail: '전투 동기화 중입니다. 몬스터 피해와 상태 반영을 기다리고 있습니다.' };
+}
 export function skillAvailability(player, key, game) {
     const slot = { h: 1, u: 2, k: 3 }[key];
     const action = key === 'j' ? 'ATTACK' : `SKILL_${slot}`;
@@ -9,6 +15,9 @@ export function skillAvailability(player, key, game) {
     if (game?.tutorial?.isActionAllowed?.(action) === false) return reason('tutorial', '안내 진행 중');
     const wizard = !player.classId || player.classId === 'wizard';
     const bridge = player.classCombat, c = bridge?.controller;
+    if (wizard && key === 'u' && player.isDying) return reason('dead', '전투 불가');
+    // Sustained lightning is interrupted by startFireballAim; a short skill cast is not.
+    if (wizard && key === 'u' && player.isChanneling && player.skillAttackTimer > 0) return reason('casting', '시전 중');
     if (!wizard) {
         if (!c || c.disposed) return reason('loading', '준비 중');
         if (player.hp <= 0) return reason('dead', '전투 불가');
@@ -19,7 +28,8 @@ export function skillAvailability(player, key, game) {
     }
     const cooldown = wizard ? player.skillCooldowns?.[key]
         : slot ? (c.cooldowns[slot] || 0) - c.time : c.basicReady - c.time;
-    if (cooldown > 0 && !(wizard && key === 'j' && player.isChanneling)) return reason('cooldown', '재사용 대기');
+    // Keep the wait visible after a cast; the existing numeric cooldown remains separate.
+    if (cooldown > 0 && !(wizard && key === 'j' && player.isChanneling)) return authorityHint(player, key, game) || reason('cooldown', '재사용 대기');
     if (wizard) {
         // Laser has no MP gate. Use the same read-only cost getters as the casts.
         const cost = key === 'h' ? player.getMagicMissileManaCost()
@@ -36,5 +46,6 @@ export function skillAvailability(player, key, game) {
             if (key === 'j' && c.rage < 25) return reason('rage', '차지: 분노 25 필요', true);
         }
     }
-    return reason('', '');
+    // This is a damage-delivery hint, never an input gate. Self/support skills still work.
+    return authorityHint(player, key, game) || reason('', '');
 }
