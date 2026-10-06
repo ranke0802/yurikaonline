@@ -53,7 +53,9 @@ const orientation=process.env.QA_SIZE||'portrait',viewport=orientation==='portra
     const el=document.getElementById(key==='j'?'action-attack-j':'action-skill-'+key),reason=el.querySelector('.skill-unavailable-reason'),name=el.querySelector('.combat-skill-name'),time=el.querySelector('.cooldown-time'),r=reason.hidden?null:rect(reason),n=rect(name),b=rect(el);
     const style=getComputedStyle(reason),range=document.createRange();range.selectNodeContents(reason);
     const textRects=r?[...range.getClientRects()].map(t=>({x:t.x,y:t.y,right:t.right,bottom:t.bottom})):[];
-    return {key,availability:skillAvailability(p,key,game),aria:el.getAttribute('aria-label'),button:b,reason:reason.textContent,reasonStyle:{font:style.font,lineHeight:style.lineHeight,whiteSpace:style.whiteSpace,wordBreak:style.wordBreak},textRects,reasonCount:el.querySelectorAll('.skill-unavailable-reason').length,reasonRect:r,nameRect:n,name:name?.textContent,reasonNameIntersection:intersection(r,n),reasonOutsideButton:!!r&&(r.x<b.x||r.y<b.y||r.right>b.right||r.bottom>b.bottom),reasonOutsideViewport:!!r&&(r.x<0||r.y<0||r.right>innerWidth||r.bottom>innerHeight),chatIntersection:intersection(cr,b),cooldown:time?.textContent||''};
+    if(time)range.selectNodeContents(time);
+    const cooldownTextRects=time?.textContent?[...range.getClientRects()].map(t=>({x:t.x,y:t.y,right:t.right,bottom:t.bottom})):[];
+    return {key,availability:skillAvailability(p,key,game),aria:el.getAttribute('aria-label'),button:b,reason:reason.textContent,compact:reason.classList.contains('is-compact'),reasonStyle:{font:style.font,lineHeight:style.lineHeight,whiteSpace:style.whiteSpace,wordBreak:style.wordBreak},textRects,cooldownTextRects,reasonCount:el.querySelectorAll('.skill-unavailable-reason').length,reasonRect:r,nameRect:n,name:name?.textContent,reasonNameIntersection:intersection(r,n),reasonOutsideButton:!!r&&(r.x<b.x||r.y<b.y||r.right>b.right||r.bottom>b.bottom),reasonOutsideViewport:!!r&&(r.x<0||r.y<0||r.right>innerWidth||r.bottom>innerHeight),chatIntersection:intersection(cr,b),cooldown:time?.textContent||''};
    });
    const visible=[...chat.children].map(el=>({text:el.textContent,rect:rect(el)})).filter(x=>intersection(x.rect,cr)>0);
    return {bodyClass:document.body.className,logs:qa.logs,actions:qa.actions,chat:{all:[...chat.children].map(e=>e.textContent),rect:cr,clientHeight:chat.clientHeight,scrollHeight:chat.scrollHeight,count:chat.children.length,visible,first:chat.firstChild?.textContent,last:chat.lastChild?.textContent},buttons,
@@ -77,6 +79,8 @@ const orientation=process.env.QA_SIZE||'portrait',viewport=orientation==='portra
    assert.equal(b.reasonNameIntersection,0,s.id+' name unobscured '+JSON.stringify(b));
    assert.ok(b.nameRect.y-b.reasonRect.bottom>=2,s.id+' label/name gap '+b.key);
    assert.ok(b.textRects.every(r=>r.x>=b.button.x&&r.right<=b.button.right&&r.y>=b.button.y&&r.bottom<=b.nameRect.y-2),s.id+' full text fits '+JSON.stringify(b));
+   assert.ok(b.cooldownTextRects.every(r=>r.y-b.reasonRect.bottom>=2),s.id+' cooldown unobscured '+JSON.stringify(b));
+   assert.ok(b.cooldownTextRects.every(r=>b.textRects.every(t=>r.y>=t.bottom)),s.id+' cooldown glyphs unobscured '+JSON.stringify(b));
   }
   if(['witch-hp-spam','warrior-rage-spam'].includes(s.id)){
    assert.equal(a.logs.length,1);assert.equal(a.chat.count,2);assert.match(a.chat.first,/진단용 이전 안내/);assert.equal(a.actor.motion,0);
@@ -90,13 +94,18 @@ const orientation=process.env.QA_SIZE||'portrait',viewport=orientation==='portra
   if(s.id==='archer-success-cooldown'){assert.equal(a.actor.motion,1);assert.deepEqual(a.actor.effects,['hunter_trap']);}
   if(s.id==='archer-aim-cancel'){assert.equal(a.cancelBefore.aim,true);assert.equal(a.actor.classAim,false);assert.equal(a.actor.motion,0);}
   if(s.id==='warrior-barrage-cancel'){assert.equal(a.cancelBefore.barrage,true);assert.equal(a.actor.barrage,false);assert.ok(!a.actor.effects.includes('gwangcheon'));assert.equal(a.actor.motion,1);}
+  if(s.id==='wizard-authority-cooldown'){
+   for(const b of a.buttons.filter(b=>b.key!=='k')){assert.equal(b.reason,'동기화 중');assert.equal(b.cooldown,'3.0');assert.equal(b.compact,true);assert.match(b.aria,/몬스터 피해와 상태 반영/);}
+   assert.equal(a.buttons.find(b=>b.key==='k').reasonRect,null);assert.equal(a.actor.mp,1000);
+  }
+  if(s.id==='wizard-casting-cooldown'){assert.equal(button.reason,'시전 중');assert.equal(button.cooldown,'3.0');assert.equal(button.compact,true);assert.equal(a.logs.length,1);assert.equal(a.actor.mp,1000);assert.equal(a.actor.fireballAim,false);}
  }
  // System fallback fonts have different space widths; check wrapping without downloading fonts.
  report.fontLayouts=[];
  for(const [font,spacing] of [['Arial, sans-serif','normal'],['DejaVu Sans, sans-serif','normal'],['serif','normal'],['sans-serif','.3px']]){
   const style=await page.addStyleTag({content:'.skill-unavailable-reason { font-family: '+font+' !important; letter-spacing: '+spacing+'; }'});
-  for(const state of ['hp','authority']){
-   await page.evaluate(async state=>{await qa.reset(state==='hp'?'witch':'wizard');if(state==='hp')qa.p.hp=800;else game.monsterManager._hostSnapshotRestorePromise={fixture:true};},state);
+  for(const state of ['hp','authority','authority-cooldown','casting-cooldown']){
+   await page.evaluate(async state=>{await qa.reset(state==='hp'?'witch':'wizard');if(state==='hp')qa.p.hp=800;else if(state!=='casting-cooldown')game.monsterManager._hostSnapshotRestorePromise={fixture:true};if(state.endsWith('-cooldown')){qa.p.skillCooldowns={j:3,h:3,u:3,k:3};qa.p.skillMaxCooldowns={j:5,h:5,u:5,k:5};}if(state==='casting-cooldown'){qa.p.isChanneling=true;qa.p.skillAttackTimer=.4;}},state);
    const after=await page.evaluate(()=>qa.inspect());report.fontLayouts.push({font,spacing,state,after});
    verify({id:'font-layout-'+state},after);
   }
@@ -113,6 +122,8 @@ const orientation=process.env.QA_SIZE||'portrait',viewport=orientation==='portra
   {id:'wizard-casting-fireball',classId:'wizard',key:'u',count:1,setup:()=>{qa.p.isChanneling=true;qa.p.skillAttackTimer=.4;}},
   {id:'warrior-authority-wait',classId:'warrior',key:'j',count:30,setup:()=>{game.monsterManager._hostSnapshotRestorePromise={fixture:true};}},
   {id:'wizard-authority-wait',classId:'wizard',key:'j',count:0,setup:()=>{game.monsterManager._hostSnapshotRestorePromise={fixture:true};qa.p.performLaserAttack(0);}},
+  {id:'wizard-authority-cooldown',classId:'wizard',key:'h',count:0,setup:()=>{game.monsterManager._hostSnapshotRestorePromise={fixture:true};qa.p.skillCooldowns={j:3,h:3,u:3,k:3};qa.p.skillMaxCooldowns={j:5,h:5,u:5,k:5};}},
+  {id:'wizard-casting-cooldown',classId:'wizard',key:'u',count:1,setup:()=>{qa.p.isChanneling=true;qa.p.skillAttackTimer=.4;qa.p.skillCooldowns.u=3;qa.p.skillMaxCooldowns.u=5;}},
   {id:'archer-aim-cancel',classId:'archer',key:'u',count:0,setup:()=>{game.input.emit('aimStart',{action:'SKILL_2',clientX:50,clientY:50});qa.cancelBefore={aim:!!qa.p.classAim,barrage:!!qa.p.classCombat.controller.barrage};game.input.emit('aimCancel',{action:'SKILL_2'});}},
   {id:'warrior-barrage-cancel',classId:'warrior',key:'u',count:0,setup:()=>{qa.p.useSkill(2,{x:qa.p.x+200,y:qa.p.y+24});qa.cancelBefore={aim:!!qa.p.classAim,barrage:!!qa.p.classCombat.controller.barrage};game.input.emit('aimCancel',{action:'SKILL_2'});}}
  ];
@@ -134,7 +145,7 @@ const orientation=process.env.QA_SIZE||'portrait',viewport=orientation==='portra
  await page.evaluate(()=>{qa.p.hp=800;});await touch('u',1);
  a=await page.evaluate(()=>qa.inspect());assert.equal(a.logs.length,5);assert.match(a.logs[3].text,/공간이 없습니다/);assert.match(a.logs[4].text,/80%/);transitions.push({id:'different-reason-switch',after:a});
  await page.evaluate(()=>{qa.p.hp=1000;qa.scene.checkCollision=()=>false;});await touch('u',1);
- await page.evaluate(()=>{qa.p.classCombat.controller.time=2;});await touch('u',1);
+ await page.evaluate(()=>{qa.p.classCombat.controller.time=2;qa.p._updateCooldowns(2);});await touch('u',1);
  a=await page.evaluate(()=>qa.inspect());assert.equal(a.actor.summons,1);assert.equal(a.actor.hp,200);assert.equal(a.logs.length,6);transitions.push({id:'success-then-rejection',after:a});
  await page.evaluate(()=>game.input.emit('aimCancel',{action:'SKILL_2'}));await touch('u',1);
  a=await page.evaluate(()=>qa.inspect());assert.equal(a.logs.length,7);transitions.push({id:'cancel-then-retry',after:a});
@@ -145,6 +156,10 @@ const orientation=process.env.QA_SIZE||'portrait',viewport=orientation==='portra
  await page.evaluate(()=>{game.monsterManager._hostSnapshotRestorePromise=null;});a=await page.evaluate(()=>qa.inspect());assert.ok(a.buttons.every(b=>b.availability.code!=='authority'));transitions.push({id:'wait-cleared',after:a});
  await page.evaluate(async()=>{await qa.reset('wizard');qa.p.isChanneling=true;qa.p.skillAttackTimer=0;});await touch('u',1);
  await page.waitForTimeout(50);a=await page.evaluate(()=>qa.inspect());assert.equal(a.actor.mp,988);assert.equal(a.logs.length,0);transitions.push({id:'sustained-lightning-still-interruptible',after:a});
+ await page.evaluate(async()=>{await qa.reset('wizard');game.monsterManager._hostSnapshotRestorePromise={fixture:true};qa.p.skillCooldowns.h=3;qa.p.skillMaxCooldowns.h=5;qa.paint();qa.p.skillCooldowns.h=0;});
+ a=await page.evaluate(()=>qa.inspect());let h=a.buttons.find(b=>b.key==='h');assert.equal(h.reason,'전투 반영 대기');assert.equal(h.cooldown,'');assert.equal(h.compact,false);verify({id:'cooldown-ended-still-waiting'},a);transitions.push({id:'cooldown-ended-still-waiting',after:a});
+ await page.evaluate(()=>{qa.p.skillCooldowns.h=3;qa.paint();game.monsterManager._hostSnapshotRestorePromise=null;});
+ a=await page.evaluate(()=>qa.inspect());h=a.buttons.find(b=>b.key==='h');assert.equal(h.reasonRect,null);assert.equal(h.cooldown,'3.0');assert.equal(h.compact,false);transitions.push({id:'wait-ended-during-cooldown',after:a});
  report.transitions=transitions;
  report.skillDetails=await page.evaluate(async()=>{
   const all=[];for(const id of ['wizard','witch','warrior','archer']){await qa.reset(id);for(const skillId of Object.keys(qa.p.skillLevels)){if(!game.ui.skillData?.[skillId])continue;const detail=game.ui.getSkillDetailData(skillId);if(detail){const div=document.createElement('div');div.innerHTML=detail.modalHtml;all.push({classId:id,skillId,name:detail.name,text:div.textContent.replace(/\s+/g,' ').trim()});}}}return all;

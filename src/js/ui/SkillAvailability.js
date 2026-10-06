@@ -3,7 +3,9 @@
 const DAMAGE_KEYS = { wizard: ['j', 'h', 'u'], witch: ['j', 'h'], warrior: ['j', 'h', 'u'], archer: ['j', 'h', 'k'] };
 function authorityHint(player, key, game) {
     if (!DAMAGE_KEYS[player.classId || 'wizard']?.includes(key) || !game?.monsterManager?.isMonsterCombatBlocked?.()) return null;
-    return { code: 'authority', text: '전투 반영 대기', lines: ['전투 반영', '대기'], hint: true,
+    const duringCooldown = player.skillCooldowns?.[key] > 0;
+    return { code: 'authority', hint: true,
+        ...(duringCooldown ? { text: '동기화 중', compact: true } : { text: '전투 반영 대기', lines: ['전투 반영', '대기'] }),
         detail: '전투 동기화 중입니다. 몬스터 피해와 상태 반영을 기다리고 있습니다.' };
 }
 export function skillAvailability(player, key, game) {
@@ -17,7 +19,9 @@ export function skillAvailability(player, key, game) {
     const bridge = player.classCombat, c = bridge?.controller;
     if (wizard && key === 'u' && player.isDying) return reason('dead', '전투 불가');
     // Sustained lightning is interrupted by startFireballAim; a short skill cast is not.
-    if (wizard && key === 'u' && player.isChanneling && player.skillAttackTimer > 0) return reason('casting', '시전 중');
+    if (wizard && key === 'u' && player.isChanneling && player.skillAttackTimer > 0) return {
+        ...reason('casting', '시전 중'), compact: player.skillCooldowns?.[key] > 0
+    };
     if (!wizard) {
         if (!c || c.disposed) return reason('loading', '준비 중');
         if (player.hp <= 0) return reason('dead', '전투 불가');

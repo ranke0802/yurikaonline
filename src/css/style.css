@@ -15211,6 +15211,10 @@ body.is-touch-landscape #ui-layer #btn-fullscreen-exit {
 }
 .action-buttons .skill-unavailable-reason > span { display: block; white-space: nowrap; }
 .action-buttons .skill-unavailable-reason[hidden] { display: none; }
+/* While a numeric cooldown is present, reserve its existing center position. */
+#ui-layer .action-buttons .skill-unavailable-reason.is-compact {
+    top: 0; padding: 0; line-height: 1; white-space: nowrap;
+}
 
 /* Field tutorial readability: compensated for saved HUD scale; no control is hidden. */
 body.tutorial-hud-active #ui-layer .quest-list-panel {

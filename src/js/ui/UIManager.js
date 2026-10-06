@@ -11641,6 +11641,7 @@ export class UIManager {
                 btn.appendChild(reasonText);
             }
             const text = availability.code === 'cooldown' ? '' : availability.text;
+            reasonText.classList.toggle('is-compact', !!availability.compact);
             if (reasonText.textContent !== text) {
                 if (availability.lines && text) {
                     // Keep the full text, with stable semantic lines across fallback fonts.

@@ -64,6 +64,8 @@ test('Fireball busy explanation matches the existing short-cast guard, not inter
     const p = { classId: 'wizard', hp: 100, mp: 100, isChanneling: true, skillAttackTimer: .4,
         skillCooldowns: {}, getMagicMissileManaCost: () => 4, getFireballManaCost: () => 12 };
     assert.equal(skillAvailability(p, 'u').code, 'casting');
+    p.skillCooldowns.u = 3; assert.equal(skillAvailability(p, 'u').compact, true);
+    assert.equal(p.skillCooldowns.u,3); p.skillCooldowns.u=0;
     assert.equal(skillAvailability(p, 'h').code, '');
     p.skillAttackTimer = 0; assert.equal(skillAvailability(p, 'u').code, '');
     p.isChanneling = false; p.mp = 0; assert.equal(skillAvailability(p, 'u').code, 'mp');
@@ -72,8 +74,13 @@ test('the wait remains visible during recovery without changing the numeric cool
     const p = Object.freeze({ classId: 'wizard', mp: 100, skillCooldowns: Object.freeze({j: .4, h: 1, u: 2, k: 3}),
         getMagicMissileManaCost: () => 4, getFireballManaCost: () => 12 });
     const game = { monsterManager: { isMonsterCombatBlocked: () => true } };
-    for (const key of ['j','h','u']) assert.equal(skillAvailability(p,key,game).code,'authority');
+    for (const key of ['j','h','u']) {
+        const label = skillAvailability(p,key,game);
+        assert.equal(label.code,'authority'); assert.equal(label.compact,true);
+        assert.equal(label.text,'동기화 중'); assert.match(label.detail,/몬스터 피해와 상태 반영/);
+    }
     assert.equal(skillAvailability(p,'k',game).code,'cooldown');
+    assert.equal(skillAvailability({...p,isChanneling:true},'j',game).compact,true,'channeling still has an existing numeric cooldown');
     assert.deepEqual(p.skillCooldowns,{j:.4,h:1,u:2,k:3});
 });
 test('actual Fireball busy rejection only emits explanation, preserving mana, cooldown and aim', () => {
