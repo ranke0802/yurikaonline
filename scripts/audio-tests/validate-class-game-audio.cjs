@@ -1,9 +1,10 @@
 const {chromium}=require('@playwright/test');const assert=require('node:assert/strict');const fs=require('node:fs');
-(async()=>{const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox','--autoplay-policy=user-gesture-required']});const report={cases:[],errors:[],external:[]};try{
+(async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox','--autoplay-policy=user-gesture-required']});const report={cases:[],errors:[],external:[]};try{
  const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});const page=await context.newPage();page.on('pageerror',e=>report.errors.push(e.message));const base=process.env.QA_URL||'http://127.0.0.1:8100';await page.route('**/*',r=>{const u=new URL(r.request().url());if(u.origin===base||['data:','blob:'].includes(u.protocol))return r.continue();report.external.push(u.href);return r.abort()});
  await page.goto(base+'/?local=1');await page.locator('#camp-name').fill('Audio fixture');await page.locator('[data-camp=create]').tap();await page.locator('[data-camp=character]').first().tap();await page.locator('[data-camp="select-class:witch"]').tap();await page.waitForFunction(()=>game.localPlayer.classId==='witch'&&!game.sceneManager.currentScene.busy);
  await page.locator('[data-camp=depart]').tap();await page.waitForFunction(()=>document.querySelector('#camp-scene')?.dataset.view==='prepare');await page.locator('[data-camp=depart]').tap();await page.locator('.camp-return').waitFor();await page.locator('#loading-overlay').waitFor({state:'hidden'});
  await page.waitForFunction(()=>game.sound.currentBgmId==='bgm_cabin'&&game.sound.ctx.state==='running');
+ report.audioContextState=await page.evaluate(()=>game.sound.ctx.state);
  report.cases=await page.evaluate(async()=>{
   game.loop.stop();game.monsterManager.monsters.clear();game.projectiles=[];game.tutorial=null;game.input.setEnabled(true);game.input.setAllowedActions(null);const p=game.localPlayer,s=game.sound;s.setBgmVolume(0);const bgm=s.currentBgmId;const out=[];
   const a=s.ctx.createAnalyser();a.fftSize=1024;s.sfxGain.connect(a);const samples=new Float32Array(1024);

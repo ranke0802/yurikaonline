@@ -40,7 +40,12 @@ export default class ClassCombatBridge {
             shieldRushEnded:()=>{this.motion=null;},
             projectileBlocked:(x,y,r)=>!!this.game?.sceneManager?.currentScene?.checkCollision?.(x-r,y-r,r*2,r*2),
             attackOrigin:(target,kind)=>attackAnchor(this.owner,target,kind),
-            action: (kind,data)=>this.startActionMotion(kind,data),
+            action: (kind,data)=>{
+                this.startActionMotion(kind,data);
+                // The local controller calls this only after committing the launch.
+                if(classId==='warrior' && kind==='basic' && data.aimed)
+                    this.game?.sound?.playClassEvent?.('sword_wave',{audioId:`${this.visualEpoch}:action:${this.motionSerial}`},{remote:false});
+            },
             basicHit: () => { if(classId==='witch') this.game?.tutorial?.trigger?.('attack',{target:'normal'}); },
             failure: text=>this.game?.ui?.logSystemMessage?.(text),
             cancelEffect: id=>{this.effects=this.effects.filter(f=>f.id!==id);},

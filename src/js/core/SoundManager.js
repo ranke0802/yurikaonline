@@ -13,6 +13,8 @@ export const CLASS_AUDIO = {
     summon: [['slide',0,'triangle',120,420,.30,.12],['tone',.15,'sine',630,.26,.07]],
     berserk_potion: [['noise',0,1600,.10,.09],['slide',0,'triangle',180,620,.28,.12]],
     warrior_slash: [['noise',0,2800,.12,.15],['slide',0,'triangle',330,150,.11,.08]],
+    sword_wave: [['noise',0,2600,.18,.12],['slide',0,'triangle',520,180,.20,.10]],
+    shield_rush: [['noise',0,1500,.16,.12],['slide',0,'sine',210,75,.22,.15]],
     rage_smash: [['noise',0,1300,.16,.15],['slide',0,'sine',170,48,.26,.22]],
     challenge: [['slide',0,'sawtooth',110,200,.23,.07],['tone',.02,'sine',146,.28,.12]],
     punishing_charge: [['noise',0,1700,.18,.12],['slide',0,'triangle',140,340,.20,.10]],
