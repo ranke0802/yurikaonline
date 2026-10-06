@@ -1,3 +1,4 @@
+import { bindRenderDiagnosticPanel } from './RenderDiagnosticPanel.js';
 import FieldHudReadability from './FieldHudReadability.js';
 import { clearTutorialCandidates } from './TutorialGuidePlacement.js';
 import { skillAvailability } from './SkillAvailability.js';
@@ -5086,6 +5087,8 @@ export class UIManager {
             this.updateSetting('basicAttackSound', nextValue, { refreshGame: false });
             this.game.sound?.playSfx?.(nextValue);
         });
+
+        this.renderDiagnosticPanel = bindRenderDiagnosticPanel(this.game.renderDiagnostics);
 
         const exitGameBtn = document.getElementById('settings-exit-game');
         if (exitGameBtn) {

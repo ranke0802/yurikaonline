@@ -54,7 +54,8 @@
     "validate:portrait-gait-browser": "node scripts/validate-class-portrait-gait-browser.cjs",
     "validate:class-weapons": "node --test scripts/validate-class-weapons.mjs",
     "validate:approved-art": "node --test scripts/validate-approved-class-art.mjs",
-    "validate:approved-art-browser": "node scripts/validate-approved-art-browser.cjs"
+    "validate:approved-art-browser": "node scripts/validate-approved-art-browser.cjs",
+    "validate:render-diagnostics": "node --test scripts/validate-render-diagnostics-v169.mjs && node scripts/validate-render-diagnostics-v169-browser.cjs && node scripts/validate-render-frame-completeness-browser.cjs --mode=matrix && node scripts/validate-render-frame-negative-controls.cjs"
   },
   "dependencies": {
     "image-size": "^2.0.2"

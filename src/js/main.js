@@ -1,10 +1,11 @@
 import { readMonsterHudSafeViewport } from './ui/MonsterHudSafeViewport.js';
 import Logger from './utils/Logger.js';
+import { createRenderDiagnostics } from './diagnostics/RenderDiagnostics.js';
 import CampScene from './world/scenes/CampScene.js';
 import LocalAuthManager from './local/LocalAuthManager.js';
 import LocalNetworkManager from './local/LocalNetworkManager.js';
 import { getViewportMetrics } from './core/ViewportMetrics.js';
-window.RUNTIME_BUILD_VERSION = '0.02.168'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.169'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -46,8 +47,10 @@ class Game {
         };
 
         this.canvas = document.getElementById('gameCanvas');
-        this.ctx = this.canvas.getContext('2d', { alpha: false, desynchronized: true })
-            || this.canvas.getContext('2d');
+        this.ctx = this.canvas.getContext('2d', { alpha: false, desynchronized: true });
+        const contextFallbackUsed = !this.ctx;
+        this.ctx ||= this.canvas.getContext('2d');
+        this.renderDiagnostics = createRenderDiagnostics(this, contextFallbackUsed);
         this.isMobilePerformanceMode = false;
         this.useReducedEffects = false;
         this.useAggressiveHudOptimization = false;
