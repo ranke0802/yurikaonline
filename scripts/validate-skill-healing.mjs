@@ -8,3 +8,15 @@ test('Witch return rounds aggregate once, shares fractional excess with ally and
 test('simultaneous Warrior melee targets share one lifesteal budget and no gain occurs for blocked damage',()=>{const owner={x:0,y:0,hp:50,maxHp:100,attackPower:1},enemies=[1,2,3].map(x=>({x:x*10,y:0,hp:100}));const c=new Controller(owner,'warrior',{enemies:()=>enemies,damage:(e,n)=>{e.hp-=n;return n}});c.bloodUntil=8;c.basic({x:200,y:0});assert.equal(owner.hp,51);c.hooks.damage=()=>0;c.update(1);c.basic({x:200,y:0});assert.equal(owner.hp,51);});
 test('multihit skill lifesteal rounds once for the cast while preserving damage',()=>{const owner={hp:10,maxHp:100},enemy={hp:1000};const c=new Controller(owner,'warrior',{damage:(e,n)=>{e.hp-=n;return n}});c.bloodUntil=8;const group={};for(const n of [33,33,34])c.skillHit(enemy,n,{},null,group);assert.equal(enemy.hp,900);assert.equal(owner.hp,30);});
 test('already allocated network support is not rounded again; displayed recovery is an honest integer',()=>{const texts=[],owner={hp:99.5,maxHp:100,x:0,y:0,width:48};const b=Object.create(Bridge.prototype);Object.assign(b,{owner,game:{addDamageText:(x,y,text)=>texts.push(text)}});b.receiveSupport({type:'heal',amount:.25});assert.equal(owner.hp,99.75);assert.deepEqual(texts,[]);owner.hp=90;b.receiveSupport({type:'heal',amount:1.75});assert.equal(owner.hp,91.75);assert.deepEqual(texts,['+1']);});
+for(const route of ['basic','skill','buff'])for(const hp of [50,98.5,99.7,100])for(const raw of [0,.2,1.2])test(`${route} weapon recovery reports only capped actual HP: hp=${hp}, raw=${raw}`,()=>{
+ const owner={x:0,y:0,hp,maxHp:100,classId:'witch',getEquippedWeapon:()=>({type:'astral_witch'}),getItemDataManager:()=>({classWeaponsEnabled:true}),getWeaponCombatProfile:()=>({restoreHpPerLaserHit:raw})};
+ const enemy={hp:100},feedback=[],texts=[];
+ const bridge=Object.create(Bridge.prototype);Object.assign(bridge,{owner,game:{addDamageText:(x,y,text)=>texts.push(text)},allies:()=>[]});
+ const c=new Controller(owner,'witch',{damage:(e,n)=>{e.hp-=n;return n;},allies:()=>[{hp:10,maxHp:100}],heal:(e,n)=>bridge.heal(e,n),healFeedback:(e,n)=>{feedback.push(n);bridge.showHealing(e,n);}});
+ if(route==='basic')c.basicHit(enemy,1,{}, {restoreHpPerLaserHit:raw});
+ if(route==='skill'){const state={};for(let i=0;i<3;i++)c.skillHit(enemy,1,{}, {restoreHpPerLaserHit:raw},state);}
+ if(route==='buff'){assert.equal(c.skill(3),true);assert.equal(c.skill(3),false);}
+ const actual=Math.min(100-hp,Math.ceil(raw));assert.ok(Math.abs(owner.hp-hp-actual)<1e-8);
+ assert.deepEqual(feedback,actual>0?[actual]:[],'one callback for the allocated weapon recovery');
+ const label=Math.floor(actual);assert.deepEqual(texts,label>0?[`+${label}`]:[],'no zero/overstated/duplicate recovery text');
+});

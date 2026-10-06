@@ -36,6 +36,9 @@ jobs:
           python3 -m http.server 8100 --bind 127.0.0.1 > "$RUNNER_TEMP/camp-http.log" 2>&1 &
           CAMP_HTTP_PID=$!
           trap 'kill "$CAMP_HTTP_PID"' EXIT
+          for CBT03_GROUP in boundaries cooldowns charge healing weapon-routes combined; do
+            QA_GROUP="$CBT03_GROUP" node scripts/validate-cbt03-gaps.cjs
+          done
           node scripts/audio-tests/validate-class-game-audio.cjs
           node scripts/audio-tests/validate-warrior-audio-v170.cjs
           node scripts/validate-camp-return-browser.cjs
@@ -100,3 +103,9 @@ jobs:
         run: |
           export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
           QA_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-warrior-audio-v170-live node scripts/audio-tests/validate-warrior-audio-v170.cjs
+      - name: Verify deployed CBT03 recovery feedback in isolated local-mode profiles
+        run: |
+          export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
+          for CBT03_GROUP in boundaries cooldowns charge healing weapon-routes combined; do
+            QA_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-cbt03-v171-live QA_GROUP="$CBT03_GROUP" node scripts/validate-cbt03-gaps.cjs
+          done

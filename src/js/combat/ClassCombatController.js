@@ -48,7 +48,7 @@ export default class ClassCombatController {
     basicHit(e, amount, meta = {}, weapon = null, healState = null, healingGroup = null) {
         const actual = this.hit(e, amount, meta, healingGroup||healState);
         if (actual && weapon?.restoreHpPerLaserHit && (!healState || !healState.healed)) {
-            this.heal(this.owner, weapon.restoreHpPerLaserHit);
+            this.healWeapon(weapon.restoreHpPerLaserHit);
             if (healState) healState.healed = true;
         }
         if (actual) { this.queueWeaponChain(e,amount,weapon,healingGroup||healState||{}); this.hooks.basicHit?.(e, actual); }
@@ -58,7 +58,7 @@ export default class ClassCombatController {
         const damage = amount * (1 + (weapon?.damageBonus ?? weapon?.missileDamageBonus ?? 0));
         const actual = this.hit(e, damage, meta, chainState);
         if (actual) {
-            if(weapon?.restoreHpPerLaserHit && !chainState.healed){this.heal(this.owner,weapon.restoreHpPerLaserHit);chainState.healed=true;}
+            if(weapon?.restoreHpPerLaserHit && !chainState.healed){this.healWeapon(weapon.restoreHpPerLaserHit);chainState.healed=true;}
             this.queueWeaponChain(e,damage,weapon,chainState);
         }
         return actual;
@@ -81,6 +81,13 @@ export default class ClassCombatController {
         if(!budget)return 0;
         if(this.hooks.heal)return this.hooks.heal(e,budget);
         return budget-applyAllocatedHealing(e,budget);
+    }
+    healWeapon(amount) {
+        const before=this.owner.hp;
+        this.heal(this.owner,amount);
+        const actual=Math.max(0,this.owner.hp-before);
+        // Drain return and blood lifesteal already have their own feedback.
+        if(actual>0)this.hooks.healFeedback?.(this.owner,actual);
     }
     control(e, type, duration, data = {}, bossReduced = true) {
         if (!alive(e)) return;
@@ -294,7 +301,7 @@ export default class ClassCombatController {
             } else if (slot === 3) {
                 const targets=this.allies(),potency=1+(weapon?.damageBonus||0);
                 targets.forEach(e => { Object.assign(this.state(e),{berserkUntil:this.time+10,berserkPotency:potency}); this.control(e,'berserk',10,{potency},false); });
-                if(targets.length&&weapon?.restoreHpPerLaserHit)this.heal(this.owner,weapon.restoreHpPerLaserHit);
+                if(targets.length&&weapon?.restoreHpPerLaserHit)this.healWeapon(weapon.restoreHpPerLaserHit);
                 this.effect('berserk_potion', { radius: 240 }); cooldown = 16;
             }
         } else if (this.classId === 'warrior') {
