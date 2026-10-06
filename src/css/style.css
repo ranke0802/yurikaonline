@@ -15203,12 +15203,13 @@ body.is-touch-landscape #ui-layer #btn-fullscreen-exit {
 
 /* Informational only: preserve every action button hit area and input gate. */
 .action-buttons .skill-unavailable-reason {
-    position: absolute; inset: 4% 2% auto; z-index: 4;
-    padding: 2px 1px; border-radius: 5px;
+    position: absolute; inset: 4% 0 auto; z-index: 4;
+    padding: 2px 0; border-radius: 5px;
     background: rgba(42, 30, 24, .88); color: #fff0cf;
     font-size: 12px; line-height: 1.15; text-align: center;
     white-space: normal; word-break: keep-all; pointer-events: none;
 }
+.action-buttons .skill-unavailable-reason > span { display: block; white-space: nowrap; }
 .action-buttons .skill-unavailable-reason[hidden] { display: none; }
 
 /* Field tutorial readability: compensated for saved HUD scale; no control is hidden. */

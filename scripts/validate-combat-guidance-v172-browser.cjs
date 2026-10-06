@@ -42,16 +42,18 @@ const orientation=process.env.QA_SIZE||'portrait',viewport=orientation==='portra
    p.initializeClassCombat();p.classCombat.controller.rage=100;p.classCombat.definitions.set('slime',definition);await p._loadSpriteSheet(game.resources);
    const e=new Monster(p.x+80,p.y+24,definition);Object.assign(e,{id:'guidance-target',isLocalOnly:true,hp:100000,maxHp:100000,defense:0,radius:16,isDead:false});game.monsterManager.monsters.set(e.id,e);p.currentTarget=e;qa.target=e;
    document.querySelector('.chat-messages').replaceChildren();qa.logs=[];qa.actions=[];qa.packets=[];qa.cancelBefore=null;
-   game.ui.syncClassSkillUI();game.ui.updateStats(p.hp,p.mp,p.level,0);game.ui.updateCooldowns();
+   game.ui.syncClassSkillUI();game.ui.updateStats(100*p.hp/p.maxHp,100*p.mp/p.maxMp,p.level,0);game.ui.updateCooldowns();
   };
-  qa.paint=()=>{game.ui.updateStats(p.hp,p.mp,p.level,0);game.ui.updateCooldowns();game.sceneManager.render(game.ctx)};
+  qa.paint=()=>{game.ui.updateStats(100*p.hp/p.maxHp,100*p.mp/p.maxMp,p.level,0);game.ui.updateCooldowns();game.sceneManager.render(game.ctx)};
   qa.inspect=()=>{
    qa.paint();const rect=e=>{if(!e)return null;const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom}};
    const intersection=(a,b)=>a&&b?Math.max(0,Math.min(a.right,b.right)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.y,b.y)):0;
    const chat=document.querySelector('.chat-messages'),cr=rect(chat),canvas=rect(game.canvas);
    const buttons=['j','h','u','k'].map(key=>{
     const el=document.getElementById(key==='j'?'action-attack-j':'action-skill-'+key),reason=el.querySelector('.skill-unavailable-reason'),name=el.querySelector('.combat-skill-name'),time=el.querySelector('.cooldown-time'),r=reason.hidden?null:rect(reason),n=rect(name),b=rect(el);
-    return {key,availability:skillAvailability(p,key,game),aria:el.getAttribute('aria-label'),button:b,reason:reason.textContent,reasonCount:el.querySelectorAll('.skill-unavailable-reason').length,reasonRect:r,nameRect:n,name:name?.textContent,reasonNameIntersection:intersection(r,n),reasonOutsideButton:!!r&&(r.x<b.x||r.y<b.y||r.right>b.right||r.bottom>b.bottom),reasonOutsideViewport:!!r&&(r.x<0||r.y<0||r.right>innerWidth||r.bottom>innerHeight),chatIntersection:intersection(cr,b),cooldown:time?.textContent||''};
+    const style=getComputedStyle(reason),range=document.createRange();range.selectNodeContents(reason);
+    const textRects=r?[...range.getClientRects()].map(t=>({x:t.x,y:t.y,right:t.right,bottom:t.bottom})):[];
+    return {key,availability:skillAvailability(p,key,game),aria:el.getAttribute('aria-label'),button:b,reason:reason.textContent,reasonStyle:{font:style.font,lineHeight:style.lineHeight,whiteSpace:style.whiteSpace,wordBreak:style.wordBreak},textRects,reasonCount:el.querySelectorAll('.skill-unavailable-reason').length,reasonRect:r,nameRect:n,name:name?.textContent,reasonNameIntersection:intersection(r,n),reasonOutsideButton:!!r&&(r.x<b.x||r.y<b.y||r.right>b.right||r.bottom>b.bottom),reasonOutsideViewport:!!r&&(r.x<0||r.y<0||r.right>innerWidth||r.bottom>innerHeight),chatIntersection:intersection(cr,b),cooldown:time?.textContent||''};
    });
    const visible=[...chat.children].map(el=>({text:el.textContent,rect:rect(el)})).filter(x=>intersection(x.rect,cr)>0);
    return {bodyClass:document.body.className,logs:qa.logs,actions:qa.actions,chat:{all:[...chat.children].map(e=>e.textContent),rect:cr,clientHeight:chat.clientHeight,scrollHeight:chat.scrollHeight,count:chat.children.length,visible,first:chat.firstChild?.textContent,last:chat.lastChild?.textContent},buttons,
@@ -72,8 +74,9 @@ const orientation=process.env.QA_SIZE||'portrait',viewport=orientation==='portra
   const button=a.buttons.find(b=>b.key===s.key);
   assert.ok(a.buttons.every(b=>b.reasonCount===1&&!b.reasonOutsideViewport),s.id+' single in-viewport reason');
   for(const b of a.buttons)if(b.reasonRect){
-   assert.equal(b.reasonNameIntersection,0,s.id+' name unobscured '+b.key);
+   assert.equal(b.reasonNameIntersection,0,s.id+' name unobscured '+JSON.stringify(b));
    assert.ok(b.nameRect.y-b.reasonRect.bottom>=2,s.id+' label/name gap '+b.key);
+   assert.ok(b.textRects.every(r=>r.x>=b.button.x&&r.right<=b.button.right&&r.y>=b.button.y&&r.bottom<=b.nameRect.y-2),s.id+' full text fits '+JSON.stringify(b));
   }
   if(['witch-hp-spam','warrior-rage-spam'].includes(s.id)){
    assert.equal(a.logs.length,1);assert.equal(a.chat.count,2);assert.match(a.chat.first,/진단용 이전 안내/);assert.equal(a.actor.motion,0);
@@ -87,6 +90,17 @@ const orientation=process.env.QA_SIZE||'portrait',viewport=orientation==='portra
   if(s.id==='archer-success-cooldown'){assert.equal(a.actor.motion,1);assert.deepEqual(a.actor.effects,['hunter_trap']);}
   if(s.id==='archer-aim-cancel'){assert.equal(a.cancelBefore.aim,true);assert.equal(a.actor.classAim,false);assert.equal(a.actor.motion,0);}
   if(s.id==='warrior-barrage-cancel'){assert.equal(a.cancelBefore.barrage,true);assert.equal(a.actor.barrage,false);assert.ok(!a.actor.effects.includes('gwangcheon'));assert.equal(a.actor.motion,1);}
+ }
+ // System fallback fonts have different space widths; check wrapping without downloading fonts.
+ report.fontLayouts=[];
+ for(const [font,spacing] of [['Arial, sans-serif','normal'],['DejaVu Sans, sans-serif','normal'],['serif','normal'],['sans-serif','.3px']]){
+  const style=await page.addStyleTag({content:'.skill-unavailable-reason { font-family: '+font+' !important; letter-spacing: '+spacing+'; }'});
+  for(const state of ['hp','authority']){
+   await page.evaluate(async state=>{await qa.reset(state==='hp'?'witch':'wizard');if(state==='hp')qa.p.hp=800;else game.monsterManager._hostSnapshotRestorePromise={fixture:true};},state);
+   const after=await page.evaluate(()=>qa.inspect());report.fontLayouts.push({font,spacing,state,after});
+   verify({id:'font-layout-'+state},after);
+  }
+  await style.evaluate(el=>el.remove());
  }
  const scenarios=[
   {id:'witch-hp-spam',classId:'witch',key:'u',count:60,setup:()=>{qa.p.hp=800;game.ui.logSystemMessage('진단용 이전 안내');qa.logs=[];}},
@@ -106,7 +120,7 @@ const orientation=process.env.QA_SIZE||'portrait',viewport=orientation==='portra
   await page.evaluate(async id=>qa.reset(id),s.classId);await page.evaluate(s.setup);await page.evaluate(()=>qa.paint());await page.waitForTimeout(60);
   const before=await page.evaluate(()=>qa.inspect());if(s.count)await touch(s.key,s.count,s.charged);
   await page.evaluate(()=>qa.paint());await page.waitForTimeout(200);const after=await page.evaluate(()=>qa.inspect());
-  const screenshot=out+'/'+orientation+'-'+s.id+'.png';await page.screenshot({path:screenshot});verify(s,after);report.scenarios.push({id:s.id,classId:s.classId,key:s.key,repeat:s.count,chargedElapsedInjected:!!s.charged,before,after,screenshot});
+  const screenshot=out+'/'+orientation+'-'+s.id+'.png';await page.screenshot({path:screenshot});report.scenarios.push({id:s.id,classId:s.classId,key:s.key,repeat:s.count,chargedElapsedInjected:!!s.charged,before,after,screenshot});verify(s,after);
  }
  // Consecutive reasons, ordinary chat, success and lifecycle transitions use the real UI methods.
  const transitions=[];

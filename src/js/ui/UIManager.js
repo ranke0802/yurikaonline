@@ -11641,7 +11641,16 @@ export class UIManager {
                 btn.appendChild(reasonText);
             }
             const text = availability.code === 'cooldown' ? '' : availability.text;
-            if (reasonText.textContent !== text) reasonText.textContent = text;
+            if (reasonText.textContent !== text) {
+                if (availability.lines && text) {
+                    // Keep the full text, with stable semantic lines across fallback fonts.
+                    reasonText.replaceChildren(...availability.lines.map((line, i) => {
+                        const span = document.createElement('span');
+                        span.textContent = line + (i < availability.lines.length - 1 ? ' ' : '');
+                        return span;
+                    }));
+                } else reasonText.textContent = text;
+            }
             reasonText.hidden = !text;
             const name = btn.querySelector('.combat-skill-name')?.textContent || '';
             const label = availability.text ? `${name}: ${availability.detail || availability.text}` : name;
