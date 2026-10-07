@@ -420,7 +420,7 @@ export default class Player extends CharacterBase {
             : { sheet: classId !== 'wizard' ? await res.loadImage(classRuntimePath(classId)) : await res.loadCharacterSpriteSheet() };
         // A slower previous selection must not paint over the current class.
         if (normalizeClassId(this.classId) !== classId) return false;
-        this.sprite = new Sprite(bundle.sheet, 8, 5);
+        this.sprite = new Sprite(bundle.sheet, 8, 5, { character: true });
         this.wizardAttackImage = bundle.wizardAttack || null;
         this._spriteClassId = classId;
         this.frameCounts = classId !== 'wizard' ? {0:6,1:6,2:6,3:6,4:6} : {0:5,1:8,2:7,3:7,4:6};

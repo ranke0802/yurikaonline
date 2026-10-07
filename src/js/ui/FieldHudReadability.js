@@ -1,11 +1,34 @@
 // Presentation only; CSS variables never replace saved HUD positions or game data.
 export default class FieldHudReadability {
+    syncTextSize(ui, exit) {
+        const active = !!exit && !ui.uiLayoutEditMode
+            && !document.getElementById('ui-layer')?.classList.contains('hidden');
+        document.body.classList.toggle('chat-sized-hud', active);
+        if (!active) return;
+        const renderedScale = element => {
+            let scale = 1;
+            for (let node = element; node; node = node.parentElement) scale *= ui.getElementComputedScale(node);
+            return scale || 1;
+        };
+        const chat = document.querySelector('.chat-messages .chat-text') || document.querySelector('.chat-messages');
+        if (!chat) return;
+        const fontSize = parseFloat(getComputedStyle(chat).fontSize) * renderedScale(chat);
+        if (!Number.isFinite(fontSize) || fontSize <= 0) return;
+        const set = (key, value) => {
+            if (document.body.style.getPropertyValue(key) !== value) document.body.style.setProperty(key, value);
+        };
+        set('--hud-chat-font-size', `${fontSize}px`);
+        for (const [name, selector] of [['resource', '.top-bar'], ['quest', '.quest-list-panel'], ['exit', '.camp-return']]) {
+            set(`--hud-${name}-text-scale`, String(renderedScale(document.querySelector(selector))));
+        }
+    }
     clear() {
         document.body.classList.remove('field-readable-hud');
         this.signature = '';
     }
     sync(ui, force = false) {
         const exit = document.querySelector('.camp-return:not([hidden])');
+        this.syncTextSize(ui, exit);
         const active = window.innerWidth <= 1024 && !!exit && !ui.uiLayoutEditMode
             && !ui.game?.tutorial?.activeTutorial && !ui.tutorialGuideState
             && !document.body.classList.contains('popup-open')
@@ -14,6 +37,7 @@ export default class FieldHudReadability {
         const resource = document.querySelector('.top-bar'), quest = document.querySelector('.quest-list-panel');
         if (!resource || !quest) return;
         const signature = JSON.stringify([window.innerWidth, window.innerHeight, quest.textContent,
+            document.body.style.getPropertyValue('--hud-chat-font-size'),
             [...resource.querySelectorAll('.bar-text')].map(e => e.textContent.length),
             resource.dataset.uiLayoutAppliedScale, quest.dataset.uiLayoutAppliedScale]);
         if (!force && signature === this.signature) return;

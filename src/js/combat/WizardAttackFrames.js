@@ -1,3 +1,4 @@
+import { drawCharacterFrame } from '../core/CharacterFrameRenderer.js';
 // Approved attack pixels only; legacy Mage walking and gameplay timing stay intact.
 export function advanceWizardAttack(owner,dt){
  const previous=owner._wizardArtPosition,dx=previous?owner.x-previous.x:0,dy=previous?owner.y-previous.y:0;
@@ -20,7 +21,7 @@ export function sampleWizardAttack(owner){
 export function drawWizardAttack(ctx,owner,x,y){
  const image=owner.wizardAttackImage,pose=sampleWizardAttack(owner);
  if(!image||image.width!==1536||image.height!==2048||!pose)return false;
- const smoothing=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=false;
- ctx.drawImage(image,pose.frame*256,pose.row*256,256,256,x,y+112-236*120/256,120,120);
- ctx.imageSmoothingEnabled=smoothing;return true;
+
+ drawCharacterFrame(ctx,image,pose.frame*256,pose.row*256,256,256,x,y+112-236*120/256,120,120);
+ return true;
 }

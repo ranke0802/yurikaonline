@@ -137,10 +137,11 @@ export default class ResourceManager {
                 finalCanvas.height = targetH * 5;        // 1280
                 const finalCtx = finalCanvas.getContext('2d');
                 if (finalCtx) {
-                    finalCtx.imageSmoothingEnabled = false;
-                    finalCtx.webkitImageSmoothingEnabled = false;
-                    finalCtx.mozImageSmoothingEnabled = false;
-                    finalCtx.msImageSmoothingEnabled = false;
+                    finalCtx.imageSmoothingEnabled = true;
+                    finalCtx.imageSmoothingQuality = 'high';
+                    finalCtx.webkitImageSmoothingEnabled = true;
+                    finalCtx.mozImageSmoothingEnabled = true;
+                    finalCtx.msImageSmoothingEnabled = true;
                 }
 
                 const loadPromises = [];

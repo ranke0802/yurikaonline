@@ -1,3 +1,4 @@
+import { drawCharacterFrame } from '../core/CharacterFrameRenderer.js';
 // Approved full-body frames. Uniform display scale and fixed foot pivot; no per-frame alpha-fit.
 const bodySpec = seconds => Object.freeze({width:256,height:256,pivotX:128,pivotY:236,frames:6,frameSeconds:seconds,scale:120/256});
 export const CLASS_BODY = Object.freeze({witch:bodySpec(.140),warrior:bodySpec(.150),archer:bodySpec(.140)});
@@ -23,10 +24,10 @@ export function advanceAuthoredGait(owner, dt) {
 function drawRow(image,ctx,spec,row,frame,footX,footY) {
     if(!image || image.width!==spec.width*spec.frames || image.height%spec.height!==0
         || !Number.isInteger(row) || row<0 || (row+1)*spec.height>image.height)return false;
-    const smoothing=ctx.imageSmoothingEnabled;ctx.imageSmoothingEnabled=false;
-    ctx.drawImage(image,frame*spec.width,row*spec.height,spec.width,spec.height,
+
+    drawCharacterFrame(ctx,image,frame*spec.width,row*spec.height,spec.width,spec.height,
         footX-spec.pivotX*spec.scale,footY-spec.pivotY*spec.scale,spec.width*spec.scale,spec.height*spec.scale);
-    ctx.imageSmoothingEnabled=smoothing;return true;
+    return true;
 }
 export function sampleAuthoredBody(owner,motion) {
     const spec=CLASS_BODY[owner.classId || owner.activeClassId];if(!spec)return null;

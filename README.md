@@ -3,13 +3,15 @@
 
 <!-- AUTO_VERSION_BLOCK_START -->
 ## Build Metadata
-- 배포 버전: **0.02.175**
+- 배포 버전: **0.02.176**
 - 마지막 버전 갱신: 2026-10-07
 <!-- AUTO_VERSION_BLOCK_END -->
 
 Yurika Online은 HTML5 Canvas와 Firebase를 기반으로 만든 실시간 웹 MMORPG입니다. 로그인, 캐릭터 성장, 튜토리얼, 멀티플레이어 동기화, 전투 UI를 한 프로젝트 안에서 다루고 있습니다.
 
-현재 버전: **0.02.175**
+현재 버전: **0.02.176**
+
+v0.02.176은 좌측 HUD를 실제 채팅 메시지 크기에 맞추고, 캐릭터 원본 프레임을 화면에 축소할 때 고품질 필터를 적용합니다. 원본 이미지와 WebP 파일은 그대로 사용하며 Canvas 해상도·DPR 제한·전투 계산·위치의 0.5초 조준 표시 조건을 유지합니다. `npm run validate:display-quality-browser`로 4직업·PC/고해상도/모바일 가로·세로 표시를 확인할 수 있습니다. [측정 결과와 성능 범위](docs/display-quality-v176.md)를 참고하세요.
 
 v0.02.175는 공격력에 반영되는 스탯을 직업별로 구분합니다. 마법사·위치는 지능 1당 +1, 지혜 2당 +1(홀수는 버림), 전사는 체력(vitality) 1당 +1, 궁수는 순발력(agility) 1당 +1을 받습니다. 기본 공격력·장비 강화·버프·스킬 계수와 다른 스탯 효과는 유지하며 전투, 상태창, 투자 미리보기, 저장 후 재접속에 같은 계산을 적용합니다. `npm run validate:classes`와 로컬 서버에서 `npm run validate:class-attack-stats-browser`로 검증할 수 있습니다.
 

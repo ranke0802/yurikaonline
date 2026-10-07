@@ -150,9 +150,7 @@ html {
     height: 100%;
     display: block;
     /* Remove inline-block gap */
-    image-rendering: pixelated;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: crisp-edges;
+    image-rendering: auto;
 }
 
 #ui-layer {
@@ -15382,5 +15380,49 @@ body.tutorial-hud-active .quest-list-panel { --hud-quest-scale: var(--tutorial-t
     }
     body:is(.field-readable-hud, .tutorial-hud-active) #ui-layer .quest-icon {
         font-size: calc(16px / var(--hud-quest-scale)) !important;
+    }
+}
+
+/* Match actual chat text after saved HUD/container transforms. On desktop,
+   retain labels already smaller than chat. Keep the existing hit areas. */
+body.chat-sized-hud #ui-layer .top-bar .bar-text {
+    position: relative; inset: auto; transform: none;
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 0 3px;
+    line-height: 1.6; white-space: normal; overflow-wrap: anywhere;
+}
+body.chat-sized-hud #ui-layer .top-bar :is(.hp-bg, .mp-bg) {
+    height: auto !important; min-height: 16px;
+}
+body.chat-sized-hud #ui-layer .top-bar :is(.hp-fill, .mp-fill) {
+    position: absolute; top: 0; left: 0;
+}
+body.chat-sized-hud #ui-layer .quest-list-panel :is(.quest-title, .quest-progress) {
+    white-space: normal; overflow-wrap: anywhere;
+    display: block; -webkit-line-clamp: unset; overflow: visible;
+}
+body.chat-sized-hud #ui-layer .top-bar .stat-label {
+    font-size: min(10px, calc(var(--hud-chat-font-size) / var(--hud-resource-text-scale))) !important;
+}
+body.chat-sized-hud #ui-layer .top-bar :is(.bar-text, .level-badge) {
+    font-size: min(9px, calc(var(--hud-chat-font-size) / var(--hud-resource-text-scale))) !important;
+}
+body.chat-sized-hud #ui-layer .quest-list-panel :is(.quest-title, .quest-claim-btn) {
+    font-size: min(11px, calc(var(--hud-chat-font-size) / var(--hud-quest-text-scale))) !important;
+}
+body.chat-sized-hud #ui-layer .quest-list-panel .quest-progress {
+    font-size: min(10px, calc(var(--hud-chat-font-size) / var(--hud-quest-text-scale))) !important;
+}
+body.chat-sized-hud #ui-layer .quest-panel-header h3 {
+    font-size: min(13px, calc(var(--hud-chat-font-size) / var(--hud-quest-text-scale))) !important;
+}
+body.chat-sized-hud .camp-return {
+    font-size: min(12px, calc(var(--hud-chat-font-size) / var(--hud-exit-text-scale))) !important;
+}
+@media (max-width: 1024px) {
+    body.chat-sized-hud #ui-layer .top-bar :is(.stat-label, .bar-text, .level-badge) {
+        font-size: calc(var(--hud-chat-font-size) / var(--hud-resource-text-scale)) !important;
+    }
+    body.chat-sized-hud #ui-layer .quest-list-panel :is(.quest-title, .quest-progress, .quest-panel-header h3, .quest-claim-btn) {
+        font-size: calc(var(--hud-chat-font-size) / var(--hud-quest-text-scale)) !important;
     }
 }

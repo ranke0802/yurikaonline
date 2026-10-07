@@ -45,6 +45,7 @@ jobs:
           node scripts/validate-camp-return-sdk-browser.cjs
           node scripts/validate-class-portrait-gait-browser.cjs
           node scripts/validate-friend-class-browser.cjs
+          npm run validate:display-quality-browser
           npm run validate:class-attack-stats-browser
           node scripts/validate-basic-progression-browser.cjs
           node scripts/validate-approved-art-browser.cjs

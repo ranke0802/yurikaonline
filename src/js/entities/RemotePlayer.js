@@ -208,7 +208,7 @@ export default class RemotePlayer extends CharacterBase {
                 : await res.loadImage(classRuntimePath(classId)));
             if (bundle && this.classVisuals && this.activeClassId === classId) { this.classVisuals.classId=classId; Object.assign(this.classVisuals.images,bundle); }
             if ((this.activeClassId || 'wizard') !== classId) return;
-            this.sprite = new Sprite(sheetCanvas, 8, 5);
+            this.sprite = new Sprite(sheetCanvas, 8, 5, { character: true });
             this.wizardAttackImage = bundle?.wizardAttack || null;
             this.frameCounts = classId === 'wizard' ? { 0: 5, 1: 8, 2: 7, 3: 7, 4: 6 } : {0:6,1:6,2:6,3:6,4:6};
         } catch (e) {

@@ -1,5 +1,7 @@
+import { drawCharacterFrame } from './CharacterFrameRenderer.js';
 export class Sprite {
-    constructor(image, cols, rows) {
+    constructor(image, cols, rows, { character = false } = {}) {
+        this.character = character;
         this.image = image;
         this.cols = cols;
         this.rows = rows;
@@ -48,6 +50,13 @@ export class Sprite {
         } else {
             sx = (frame % this.cols) * this.sw;
             sy = (dir % this.rows) * this.sh;
+        }
+
+        if (this.character) {
+            drawCharacterFrame(ctx, this.image, sx, sy, this.sw, this.sh,
+                Sprite.snapWorldCoordinate(ctx, x, 'x'), Sprite.snapWorldCoordinate(ctx, y, 'y'),
+                Sprite.snapWorldSize(ctx, width, 'x'), Sprite.snapWorldSize(ctx, height, 'y'));
+            return;
         }
 
         const prevSmoothing = ctx.imageSmoothingEnabled;
