@@ -9,6 +9,7 @@ import { combatCenter } from '../combat/ClassAnchors.js';
 import { WARRIOR_GEOMETRY as WG } from '../combat/ClassGeometry.js';
 import ClassCombatBridge from '../combat/ClassCombatBridge.js';
 import { buildClassProfilePatch, normalizeClassId } from '../core/ClassProfiles.js';
+import { getClassAttackPower } from '../core/ClassAttackStats.js';
 import { basicAttackProfile, basicChargeSeconds } from '../combat/BasicAttackProgression.js';
 import { classSkillIds, classSkillMaxLevel } from '../ui/ClassSkillUI.js';
 import CharacterBase from './core/CharacterBase.js';
@@ -1098,12 +1099,11 @@ export default class Player extends CharacterBase {
         // v2.1: Robust Growth Defaults (Prevent NaN if JSON is partial)
         const gHp = growth.hp ?? 10;
         const gMp = growth.mp ?? 5;
-        const gAtk = growth.atk ?? 1;
         const gDef = growth.def ?? 0;
 
         this.maxHp = baseXp + (this.vitality * gHp);
         this.maxMp = baseMp + (this.wisdom * gMp);
-        this.attackPower = baseAtk + (this.intelligence * gAtk) + Math.floor(this.wisdom / 2);
+        this.attackPower = getClassAttackPower(this.classId, this, baseAtk);
         this.defense = (base.def ?? 0) + (this.vitality * gDef);
         this.hpRegen = this.vitality;
         this.mpRegen = this.wisdom; // v1.1: Wis contributes 1:1 to MP regen

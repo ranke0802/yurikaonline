@@ -1,6 +1,7 @@
 import { classRuntimePath } from '../../combat/AuthoredCharacterFrames.js';
 import Logger from '../../utils/Logger.js';
 import { normalizeClassId, projectClassProfile } from '../../core/ClassProfiles.js';
+import { getClassAttackPower } from '../../core/ClassAttackStats.js';
 
 export const FRIENDS_UI_METHOD_NAMES = [
     'setupFriendsUI',
@@ -3177,15 +3178,15 @@ export default class FriendsUIController {
         const definition = this.game.characterData?.getDefinition?.(classId) || {};
         const base = definition.baseStats || {};
         const growth = definition.growthStats || { hp: 10, mp: 10, atk: 1, def: 1 };
-        const vitality = Number(profile.vitality || 1);
-        const intelligence = Number(profile.intelligence || 3);
-        const wisdom = Number(profile.wisdom || 2);
-        const agility = Number(profile.agility || 1);
+        const vitality = Number(profile.vitality ?? 1);
+        const intelligence = Number(profile.intelligence ?? 3);
+        const wisdom = Number(profile.wisdom ?? 2);
+        const agility = Number(profile.agility ?? 1);
         const hp = Number(profile.hp || 0);
         const mp = Number(profile.mp || 0);
         const maxHp = Number(profile.maxHp ?? ((base.maxHp ?? 30) + (vitality * (growth.hp ?? 10))));
         const maxMp = Number(profile.maxMp ?? ((base.maxMp ?? 50) + (wisdom * (growth.mp ?? 10))));
-        const attackBase = (base.atk ?? 10) + (intelligence * (growth.atk ?? 1)) + Math.floor(wisdom / 2);
+        const attackBase = getClassAttackPower(classId, { vitality, intelligence, wisdom, agility }, base.atk ?? 10);
         const defenseBase = (base.def ?? 1) + (vitality * (growth.def ?? 1));
         const hpRegenBase = (base.hpRegen ?? 1) + vitality;
         const mpRegenBase = (base.mpRegen ?? 2) + wisdom;

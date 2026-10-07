@@ -15,7 +15,7 @@ function fixture(behavior = async()=>({ok:true})) {
 
 test('preparation loads actual stats without mutating original profile or field context',async()=>{
  const {prep,profile,saved,calls}=fixture();const initial=clone(profile);const p=prep.player;
- assert.equal(p.maxHp,170);assert.equal(p.maxMp,75);assert.equal(p.attackPower,34);assert.equal(p.hp,120);assert.equal(p.mp,62);assert.equal(p.level,12);
+ assert.equal(p.maxHp,170);assert.equal(p.maxMp,75);assert.equal(p.attackPower,23);assert.equal(p.hp,120);assert.equal(p.mp,62);assert.equal(p.level,12);
  p.x=0;p.y=0;p.name='should-not-save';p.questData.slimeKills=999;p.currentZoneId='zone_1';
  p.consumeInventoryItem('weapon_upgrade_stone',1);await p.saveState();await prep.flush();
  assert.equal(saved.inventory[1].amount,2);

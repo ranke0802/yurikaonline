@@ -6,6 +6,7 @@ import { enhancementExplanation } from './EnhancementExplanation.js';
 import { classArtPath } from '../combat/AuthoredCharacterFrames.js';
 import AndroidDisplayController from './AndroidDisplayController.js';
 import { CLASS_NAMES } from '../core/ClassProfiles.js';
+import { getClassAttackPower } from '../core/ClassAttackStats.js';
 import { classWeaponDetailLines } from '../core/ClassWeapons.js';
 import { CLASS_SKILL_UI, MAGE_SKILL_IDS, basicAttackUpgradeDetails, warriorBarrageUpgradeDetails, shieldRushUpgradeDetails, classSkillIds, classSkillMaxLevel } from './ClassSkillUI.js';
 import Logger from '../utils/Logger.js';
@@ -6158,36 +6159,7 @@ export class UIManager {
     }
 
     buildFriendDerivedStats(profile = {}) {
-        const definition = this.game.localPlayer?.definition || {};
-        const base = definition.baseStats || {};
-        const growth = definition.growthStats || { hp: 10, mp: 10, atk: 1, def: 1 };
-        const vitality = Number(profile.vitality || 1);
-        const intelligence = Number(profile.intelligence || 3);
-        const wisdom = Number(profile.wisdom || 2);
-        const agility = Number(profile.agility || 1);
-        const hp = Number(profile.hp || 0);
-        const mp = Number(profile.mp || 0);
-        const maxHp = (base.maxHp ?? 30) + (vitality * (growth.hp ?? 10));
-        const maxMp = (base.maxMp ?? 50) + (wisdom * (growth.mp ?? 10));
-        const attack = (base.atk ?? 10) + (intelligence * (growth.atk ?? 1)) + Math.floor(wisdom / 2);
-        const defense = Number(profile.defense ?? ((base.def ?? 1) + (vitality * (growth.def ?? 1))));
-        const attackSpeed = Math.min(2.0, 1.0 + (intelligence * 0.05)) + (agility * 0.1);
-        const critRate = 0.1 + (agility * 0.01) + (intelligence * 0.01);
-        return {
-            level: Number(profile.level || 1),
-            hp,
-            mp,
-            maxHp,
-            maxMp,
-            vitality,
-            intelligence,
-            wisdom,
-            agility,
-            attack,
-            defense,
-            attackSpeed,
-            critRate
-        };
+        return new FriendsUIController(this).buildFriendDerivedStats(profile);
     }
 
     buildFriendWeaponPreview(weapon) {
@@ -9365,7 +9337,6 @@ export class UIManager {
         // v2.1: Robust Growth Defaults
         const gHp = growth.hp ?? 10;
         const gMp = growth.mp ?? 10;
-        const gAtk = growth.atk ?? 1;
         const gDef = growth.def ?? 1;
 
         // HP/MP Range
@@ -9382,12 +9353,15 @@ export class UIManager {
         }
 
         // Derived Stats
-        const predAtk = bAtk + (predInt * gAtk) + Math.floor(predWis / 2);
+        const attackClassId = p.classId || p.activeClassId;
+        const predAtk = getClassAttackPower(attackClassId, {
+            vitality: predVit, intelligence: predInt, wisdom: predWis, agility: predAgi
+        }, bAtk);
         const predDef = bDef + (predVit * gDef);
         const predHpRegen = bHpRegen + (predVit * 1);
         const predMpRegen = bMpRegen + (predWis * 1);
 
-        const currentAtkBase = bAtk + (baseInt * gAtk) + Math.floor(baseWis / 2);
+        const currentAtkBase = getClassAttackPower(attackClassId, p, bAtk);
         const currentDefBase = bDef + (baseVit * gDef);
         const currentHpRegenBase = bHpRegen + (baseVit * 1);
         const currentMpRegenBase = bMpRegen + (baseWis * 1);
