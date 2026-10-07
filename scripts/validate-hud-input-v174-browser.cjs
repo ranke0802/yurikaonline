@@ -77,7 +77,7 @@ const report = { scope: 'Loopback local profiles, actual touch events, determini
                 assert.equal(released.calls[0].aimed, elapsed >= .5);
                 assert.equal(released.projectiles.length, 1);
                 assert.equal(released.projectiles[0].homing, elapsed < .5);
-                assert.equal(released.projectiles[0].speed, elapsed < .5 ? 360 : 210);
+                assert.equal(released.projectiles[0].speed, 180);
                 report.cases.push({ name, elapsed, preview: !!held.guide, release: released.calls[0], projectile: released.projectiles[0] });
             }
 
@@ -101,7 +101,7 @@ const report = { scope: 'Loopback local profiles, actual touch events, determini
             const spam = await page.evaluate(() => qa.inspect());
             assert.equal(spam.calls.length, 5); assert.equal(spam.calls.filter(x => x.result).length, 1);
             assert.equal(spam.projectiles.length, 1); assert.ok(spam.calls.every(x => !x.aimed));
-            report.cases.push({ name, repeatedTaps: 5, acceptedDuringCooldown: 1 });
+            report.cases.push({ name, repeatedTaps: 5, acceptedInOneSlot: 1 });
             await context.close();
         }
         assert.deepEqual(report.errors, []); assert.deepEqual(report.external, []);

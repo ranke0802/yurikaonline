@@ -1,4 +1,5 @@
 import { classArtPath, classRuntimePath, wizardAttackPath } from '../combat/AuthoredCharacterFrames.js';
+import { loadLifeOrbVisuals } from '../combat/LifeOrbVisuals.js';
 import Logger from '../utils/Logger.js';
 import assetManifest from './AssetManifest.js';
 
@@ -95,9 +96,11 @@ export default class ResourceManager {
         ];
         const promise = Promise.all([
             id === 'wizard' ? this.loadCharacterSpriteSheet() : this.loadImage(classRuntimePath(id)),
-            ...paths.map(([, path]) => this.loadImage(path === wizardAttackPath ? path : path === 'status' ? 'assets/resource/classes/status.webp' : classArtPath(path)))
+            ...paths.map(([, path]) => this.loadImage(path === wizardAttackPath ? path : path === 'status' ? 'assets/resource/classes/status.webp' : classArtPath(path))),
+            ...(id === 'witch' ? [loadLifeOrbVisuals(this)] : [])
         ]).then(([sheet, ...images]) => {
-            const bundle = { sheet, ...Object.fromEntries(paths.map(([name], i) => [name, images[i]])) };
+            const lifeOrb = id === 'witch' ? images.pop() : {};
+            const bundle = { sheet, ...Object.fromEntries(paths.map(([name], i) => [name, images[i]])), ...lifeOrb };
             this.cache.set(key, bundle);
             return bundle;
         }).finally(() => { if (this.loading.get(key) === promise) this.loading.delete(key); });

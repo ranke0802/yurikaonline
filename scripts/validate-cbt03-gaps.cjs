@@ -92,7 +92,7 @@ assert.ok(Object.hasOwn(expectedCounts,group),'Unknown CBT03 group: '+group);
     for(const id of ['wizard','witch','warrior','archer'])for(const mode of ['tap','aim','skill1','skill2','skill3'])for(const offset of [-1e-6,0,1e-6]){
      if(id==='wizard'&&mode==='aim')continue;await reset(id);const isSkill=mode.startsWith('skill'),slot=Number(mode.slice(-1));
      if(id==='wizard'){const key=isSkill?{1:'h',2:'u',3:'k'}[slot]:'j';p.skillCooldowns[key]=-offset;}
-     else {const c=p.classCombat.controller;c.time=1;if(isSkill)c.cooldowns[slot]=1-offset;else c.basicReady=1-offset;}
+     else {const c=p.classCombat.controller;c.time=1;if(isSkill)c.cooldowns[slot]=1-offset;else if(id==='witch'){c.basicReady=999;if(offset<0){act(mode);clear();}}else c.basicReady=1-offset;}
      const row={classId:id,mode,offset,checks:[],before:snapshot()};act(mode);await settle();row.first=snapshot();for(let i=0;i<40;i++)act(mode);row.after=snapshot();
      const cues=castCues(id,mode);row.committedCues=row.first.sounds.filter(name=>cues.includes(name));
      check(row,JSON.stringify(row.committedCues)===JSON.stringify(offset>=0?cues:[]),'each committed cast cue exactly once only at/after recovery');
@@ -115,7 +115,7 @@ assert.ok(Object.hasOwn(expectedCounts,group),'Unknown CBT03 group: '+group);
     for(const id of ['witch','warrior'])for(const mode of (id==='witch'?['tap','aim']:['tap','aim','skill1','skill2']))for(const hp of [50,99,99.5,99.75,100])for(const blocked of [false,true]){
      const e=await reset(id);p.maxHp=100;p.hp=hp;p.attackPower=id==='witch'?(mode==='tap'?1.5:3):1;if(id==='warrior')act('skill3');
      if(blocked)e.takeDamage=()=>false;clear();const row={classId:id,mode,hp,blocked,checks:[],before:snapshot()};act(mode);tick(id==='witch'?6:3);row.after=snapshot();row.damage=100000-e.hp;
-     const budget=Math.ceil(row.damage*(id==='witch'?.5:.2)),actual=p.hp-hp;row.budget=budget;row.actual=actual;
+     const budget=id==='witch'?Math.min(Math.ceil(p.attackPower*.12),Math.floor(row.damage*.2)):Math.ceil(row.damage*.2),actual=p.hp-hp;row.budget=budget;row.actual=actual;
      row.labels=recoveryLabels(row);
      check(row,near(actual,Math.min(100-hp,budget)),'actual healing matches one rounded damage budget and HP cap');check(row,row.labels.reduce((a,b)=>a+b,0)===Math.floor(actual+1e-8),'integer labels equal actual integer recovery without overstating fractional HP');if(blocked)check(row,actual===0&&row.labels.length===0,'blocked damage cannot heal or show recovery');rows.push(row);
     }
@@ -128,7 +128,7 @@ assert.ok(Object.hasOwn(expectedCounts,group),'Unknown CBT03 group: '+group);
      if(blocked)e.takeDamage=()=>false;const bonus=p.getWeaponCombatProfile().restoreHpPerLaserHit;clear();
      const row={classId:id,mode:'released-weapon-healing',hp,blocked,bonus,weapon:structuredClone(p.equipment.weapon),checks:[],before:snapshot()};act('tap');if(p.classCombat)tick(3);row.after=snapshot();row.actual=p.hp-hp;row.damage=100000-e.hp;
      row.labels=recoveryLabels(row);
-     const expected=blocked?0:Math.min(100-hp,Math.ceil(bonus)+(id==='witch'?Math.ceil(row.damage*.5):0));
+     const expected=blocked?0:Math.min(100-hp,id==='witch'?Math.min(Math.ceil(p.attackPower*.12),Math.floor(row.damage*.2+bonus)):Math.ceil(bonus));
      check(row,near(row.actual,expected),'released weapon healing actual amount');check(row,row.labels.reduce((a,b)=>a+b,0)===Math.floor(row.actual+1e-8),'visible integer healing matches accepted amount');rows.push(row);
     }
    }
@@ -144,7 +144,7 @@ assert.ok(Object.hasOwn(expectedCounts,group),'Unknown CBT03 group: '+group);
      act(mode);const first=snapshot();for(let i=0;i<40;i++)act(mode);unchanged(row,first,snapshot());
      tick(theme==='riftcore'?6:buff?.3:id==='warrior'?8.2:3.2);row.after=snapshot();row.actual=p.hp-hp;row.damage=100000-e.hp;
      row.labels=recoveryLabels(row);
-     const expected=denied?0:Math.min(100-hp,Math.ceil(bonus)+(id==='witch'&&theme==='riftcore'?Math.ceil(row.damage*.5):0));
+     const expected=denied?0:Math.min(100-hp,id==='witch'&&theme==='riftcore'?Math.min(Math.ceil(p.attackPower*.12),Math.floor(row.damage*.2+bonus)):Math.ceil(bonus));
      check(row,near(row.actual,expected),'routed weapon healing occurs once at accepted hit or eligible buff');
      check(row,row.labels.reduce((a,b)=>a+b,0)===Math.floor(row.actual+1e-8),'routed weapon recovery labels match actual integer healing');rows.push(row);
     }
@@ -165,8 +165,8 @@ assert.ok(Object.hasOwn(expectedCounts,group),'Unknown CBT03 group: '+group);
      tick(id==='witch'?6:3);row.after=snapshot();row.damage=enemies.reduce((n,e)=>n+100000-e.hp,0);row.actual=p.hp-hp;row.acceptedHits=acceptedHits;
      row.labels=recoveryLabels(row);
      const weaponBudget=acceptedHits?Math.ceil(bonus)*(id==='warrior'?acceptedHits:1):0;
-     const drainBudget=Math.ceil(row.damage*(id==='witch'?.5:.2));row.expected=Math.min(100-hp,weaponBudget+drainBudget);
-     check(row,near(row.actual,row.expected),'combined healing keeps separate existing weapon and drain/lifesteal budgets');
+     const drainBudget=Math.ceil(row.damage*.2);row.expected=Math.min(100-hp,id==='witch'?(acceptedHits?Math.min(Math.ceil(p.attackPower*.12),Math.floor(row.damage*.2+bonus)):0):weaponBudget+drainBudget);
+     check(row,near(row.actual,row.expected),'Witch return shares one cap; Warrior preserves weapon and lifesteal budgets');
      check(row,row.labels.reduce((a,b)=>a+b,0)===Math.floor(row.actual+1e-8),'combined labels neither duplicate nor omit accepted integer HP');
      if(blocked||hp===100)check(row,row.actual===0&&row.labels.length===0,'blocked/full HP emits no recovery label');rows.push(row);
     }

@@ -1,12 +1,45 @@
-import test from 'node:test';import assert from 'node:assert/strict';import Controller from '../src/js/combat/ClassCombatController.js';import {basicAttackProfile} from '../src/js/combat/BasicAttackProgression.js';
-function setup(level=1){const owner={classId:'witch',x:0,y:0,hp:500,maxHp:1000,attackPower:100,attackSpeed:1,skillLevels:{lifeDrain:level}},enemies=[],allies=[],hits=[],effects=[];const c=new Controller(owner,'witch',{enemies:()=>enemies,allies:()=>allies,damage(e,n){if(e.blocked)return 0;const actual=Math.min(n,e.hp);e.hp-=actual;hits.push({at:c.time,e,n:actual});return actual;},effect:(name,data)=>effects.push({name,...data})});const enemy=(x=300,y=0,hp=10000)=>{const e={x,y,hp,maxHp:hp,radius:12};enemies.push(e);return e;};const step=t=>{for(let i=0;i<Math.ceil(t/.01);i++)c.update(.01);};return{c,owner,enemies,allies,hits,effects,enemy,step};}
-for(let level=1;level<=8;level++)test(`Lv.${level}: physical ranged impact preserves 200% growth and 50% actual return heal`,()=>{const f=setup(level),e=f.enemy(),g=basicAttackProfile('witch',f.owner.skillLevels);f.c.basic();const p=f.c.projectiles[0];assert.equal(p.target,e);assert.equal(p.radius,g.orbRadius);assert.equal(p.impactRadius,g.tapRadius);assert.equal(f.hits.length,0);f.step(.2);assert.ok(p.x>0&&p.x<e.x);assert.equal(f.hits.length,0);f.step(.6);assert.equal(f.hits.length,1);assert.equal(f.hits[0].n,Math.ceil(200*g.damageMultiplier));assert.equal(f.owner.hp,500);f.step(2);assert.equal(f.owner.hp,500+f.hits[0].n*.5);assert.equal(f.hits.length,1);});
-test('moving target homes, splash occurs at contact not caster, and no duplicate resolution',()=>{const f=setup(),target=f.enemy(),nearCaster=f.enemy(-60);f.c.basic();const p=f.c.projectiles[0];assert.equal(p.target,nearCaster); // nearest selection, independent of supplied aim
- const g=setup(),e=g.enemy();g.c.basic();const orb=g.c.projectiles[0];g.step(.2);e.y=70;g.step(.1);assert.ok(orb.direction.y>0);g.step(1);assert.equal(g.hits.length,1);g.c.resolveProjectileHit(orb,e);assert.equal(g.hits.length,1);});
-test('target death, out-of-range escape, no target, wall and lifetime cause no remote/global damage or healing',()=>{
- for(const mode of ['dead','removed','escape','empty','wall']){const f=setup(),e=mode==='empty'?null:f.enemy();f.c.basic();if(mode==='dead')e.hp=0;if(mode==='removed')f.enemies.length=0;if(mode==='escape')e.x=900;if(mode==='wall')f.c.hooks.projectileBlocked=x=>x>=100;f.step(4);assert.equal(f.hits.length,0,mode);assert.equal(f.owner.hp,500);assert.equal(f.c.projectiles.length,0);}
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import Controller from '../src/js/combat/ClassCombatController.js';
+import {lifeOrbProfile} from '../src/js/combat/LifeOrb.js';
+function setup(level=1){
+ const owner={classId:'witch',x:0,y:0,hp:500,maxHp:1000,attackPower:100,attackSpeed:1,skillLevels:{lifeDrain:level}},enemies=[],hits=[];
+ const c=new Controller(owner,'witch',{enemies:()=>enemies,damage(e,n){if(e.blocked)return 0;const actual=Math.min(n,e.hp);e.hp-=actual;hits.push({at:c.time,e,n:actual});return actual;}});
+ const enemy=(x=300,y=0,hp=10000)=>{const e={x,y,hp,maxHp:hp,radius:12};enemies.push(e);return e;};
+ const step=t=>{for(let elapsed=0;elapsed<t-1e-8;elapsed+=.01)c.update(Math.min(.01,t-elapsed));};
+ return{c,owner,enemies,hits,enemy,step};
+}
+for(let level=1;level<=8;level++)test(`Lv.${level}: slow physical orb grows per-hit damage, slots and capped return healing`,()=>{
+ const f=setup(level),e=f.enemy(),g=lifeOrbProfile(level);f.c.basic();const p=f.c.projectiles[0];
+ assert.equal(p.target,e);assert.equal(p.radius,g.radius);assert.equal(p.speed,180);assert.equal(f.c.orbSlots().maximum,Math.ceil(level/2));
+ f.step(1);assert.ok(p.x>0&&p.x<e.x);assert.equal(f.hits.length,0);assert.equal(f.owner.hp,500);
+ f.step(1.2);assert.equal(f.hits.length,3);assert.ok(f.hits.every(h=>h.n===Math.ceil(100*g.hitMultiplier)));assert.equal(f.owner.hp,500);
+ f.step(3);assert.equal(f.owner.hp,500+Math.ceil(100*g.healMultiplier));assert.equal(f.hits.length,3);assert.equal(f.c.orbSlots().active,0);
 });
-test('splash does not cross a wall or affect a target outside 560px',()=>{const f=setup(),first=f.enemy(500),behindWall=f.enemy(500,70),outside=f.enemy(570);f.c.hooks.projectileBlocked=(x,y)=>y>30;f.c.basic();f.step(2);assert.ok(first.hp<10000);assert.equal(behindWall.hp,10000);assert.equal(outside.hp,10000);});
-test('return carries actual loss, clamps owner healing, passes excess to ally and leaves attack readiness independent',()=>{const f=setup();f.owner.hp=995;const ally={hp:50,maxHp:100};f.allies.push(ally);f.enemy(300,0,40);f.c.basic();f.step(.82);const ready=f.c.basicReady;assert.ok(f.c.projectiles.some(p=>p.kind==='return'));assert.equal(f.c.basic(),true);assert.ok(f.c.basicReady>ready);f.step(2);assert.equal(f.owner.hp,1000);assert.equal(ally.hp,65);});
-test('rejected hit never creates healing return; disposal clears in-flight and delayed work',()=>{const f=setup(),e=f.enemy();e.blocked=true;f.c.basic();f.step(1);assert.equal(f.c.projectiles.length,0);assert.equal(f.owner.hp,500);f.c.basicReady=0;f.c.basic();f.c.dispose();f.step(5);assert.equal(f.c.projectiles.length,0);assert.equal(f.hits.length,0);});
-test('rapid taps retain .20s floor; aimed orb retains 210 speed, three ticks and non-homing path',()=>{const f=setup();f.owner.attackSpeed=1000;f.enemy();f.c.basic();for(let i=0;i<20;i++)assert.equal(f.c.basic(),false);assert.equal(f.c.basicReady,.2);f.step(.21);assert.equal(f.c.basic(),true);const g=setup(),e=g.enemy();g.c.basic({aimed:true,x:300,y:0});assert.equal(g.c.projectiles[0].speed,210);assert.equal(g.c.projectiles[0].homing,undefined);g.step(6);assert.deepEqual(g.hits.map(h=>h.n),[33,33,34]);assert.equal(e.hp,9900);assert.equal(g.owner.hp,550);});
+test('tap homes to the nearest living target; hold retains the chosen straight path',()=>{
+ const f=setup(),near=f.enemy(150);f.enemy(300);f.c.basic();const p=f.c.projectiles[0];assert.equal(p.target,near);
+ f.step(.2);near.y=70;f.step(.1);assert.ok(p.direction.y>0);
+ const g=setup(),e=g.enemy();g.c.basic({aimed:true,x:300,y:0});const orb=g.c.projectiles[0];e.y=200;g.step(.5);assert.equal(orb.homing,false);assert.equal(orb.direction.y,0);g.step(6);assert.equal(g.hits.length,0);
+});
+test('dead, removed, escaped targets, no target and walls return without damage or healing',()=>{
+ for(const mode of ['dead','removed','escape','empty','wall']){const f=setup(),e=mode==='empty'?null:f.enemy();f.c.basic();if(mode==='dead')e.hp=0;if(mode==='removed')f.enemies.length=0;if(mode==='escape')e.x=900;if(mode==='wall')f.c.hooks.projectileBlocked=x=>x>=100;f.step(6);assert.equal(f.hits.length,0,mode);assert.equal(f.owner.hp,500,mode);assert.equal(f.c.projectiles.length,0,mode);}
+});
+test('collision cannot cross a wall or affect a monster beyond 560px',()=>{
+ const f=setup(),first=f.enemy(500),behindWall=f.enemy(500,25),outside=f.enemy(570);f.c.hooks.projectileBlocked=(x,y)=>y>15;
+ f.c.basic();f.step(6);assert.ok(first.hp<10000);assert.equal(behindWall.hp,10000);assert.equal(outside.hp,10000);
+});
+test('return reserves its slot, clamps owner HP and never shares excess with allies',()=>{
+ const f=setup(),ally={hp:50,maxHp:100};f.c.hooks.allies=()=>[ally];f.owner.hp=995;f.enemy(300,0,40);f.c.basic();
+ for(let i=0;i<400&&f.c.projectiles[0]?.phase!=='return';i++)f.step(.01);
+ assert.equal(f.c.projectiles[0].phase,'return');assert.equal(f.c.projectiles[0].speed,540);assert.equal(f.c.basic(),false);
+ f.step(3);assert.equal(f.owner.hp,1000);assert.equal(ally.hp,50);assert.equal(f.c.basic(),true);
+});
+test('rejected damage grants no charge or HP; disposal clears the orb and deferred weapon work',()=>{
+ const f=setup(),e=f.enemy();e.blocked=true;f.c.basic();f.step(2);assert.equal(f.c.projectiles[0].charge,0);f.step(4);assert.equal(f.owner.hp,500);
+ f.c.basic();f.c.dispose();f.step(5);assert.equal(f.c.projectiles.length,0);assert.equal(f.hits.length,0);assert.equal(f.c.basic(),false);
+});
+test('attack-speed and held aim cannot bypass reservations or introduce an attack cooldown',()=>{
+ const f=setup(8);f.owner.attackSpeed=1000;f.enemy();for(let i=0;i<4;i++)assert.equal(f.c.basic({aimed:true,x:300,y:0}),true);
+ for(let i=0;i<100;i++)assert.equal(f.c.basic(),false);assert.equal(f.c.basicReady,0);assert.equal(f.c.orbSlots().active,4);
+ f.step(6);assert.equal(f.c.orbSlots().available,4);assert.equal(f.owner.hp,604);
+});

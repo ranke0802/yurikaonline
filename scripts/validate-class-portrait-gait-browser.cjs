@@ -21,6 +21,7 @@ try{for(const id of ['wizard','witch','warrior','archer']){
  if(id!=='wizard'){
   await page.evaluate(()=>{game.monsterManager.monsters.clear();game.sceneManager.currentScene.zoneSpawnRules=[];window.qaFrames=[];});
   for(const [direction,key,dx,dy] of [[0,'ArrowUp',0,-1],[3,'ArrowRight',1,0],[2,'ArrowLeft',-1,0],[1,'ArrowDown',0,1]]){
+   if(id==='witch')await page.waitForFunction(()=>game.localPlayer.classCombat.controller.orbSlots().available>0);
    await page.keyboard.down(key);await page.waitForTimeout(150);
    const samples=await page.evaluate(async({direction,dx,dy})=>{
     const {sampleAuthoredBody}=await import('/src/js/combat/AuthoredCharacterFrames.js');const p=game.localPlayer;p.classCombat.controller.enemies=()=>[];p.startClassAction('ATTACK');if(p.classAim){p.classAim.x=p.x+p.width/2+dx*200;p.classAim.y=p.y+p.height/2+dy*200;}

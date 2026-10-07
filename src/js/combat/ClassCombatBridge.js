@@ -63,7 +63,7 @@ export default class ClassCombatBridge {
             clearStatus: (e,t) => this.clearStatus(e,t), move: (e,x,y) => this.move(e,x,y),
             summon: (id,level,weapon) => this.summon(id,level,weapon), dismiss: e => { e.isDead = true;e.abilities?.dispose(); this.actors = this.actors.filter(a => a !== e); },
             effect: (name,data) => {
-                this.game?.sound?.playClassEvent?.(name==='gwangcheon'?'punishing_charge':name,{...data,audioId:`${this.visualEpoch}:${data.id}`},{remote:false});
+                this.game?.sound?.playClassEvent?.(name==='gwangcheon'?'punishing_charge':name==='life_orb_heal'?'drain_heal':name,{...data,audioId:`${this.visualEpoch}:${data.id}`},{remote:false});
                 const origin=['warrior_slash','rage_smash'].includes(name)?attackAnchor(this.owner,data.target,name):{};
                 const d=origin.x!==undefined?this.controller.direction(data.target):null;
                 const reach=data.range || (name==='rage_smash'?150:100);
@@ -246,7 +246,7 @@ export default class ClassCombatBridge {
         return {epoch:this.visualEpoch,sequence:++this.visualSequence,ts:Date.now(),fieldId:this.context.fieldId,classId:c.classId,
             motion:this.currentMotion(),
             effects:this.effects.slice(-64).map(f=>({id:f.id,name:f.name,...point(f),target:f.target?point(f.target):null,radius:f.radius||0,range:f.range||0,halfWidth:f.halfWidth||0,pulseCount:f.pulseCount||0,duration:f.duration,age:f.age})),
-            projectiles:c.projectiles.slice(-32).map(p=>{const target=c.attackOrigin(p,'return'),dx=target.x-p.x,dy=target.y-p.y,len=Math.hypot(dx,dy)||1;const d=p.kind==='return'?{x:dx/len,y:dy/len}:p.direction;return{kind:p.kind,...point(p),radius:p.radius||0,halfWidth:p.halfWidth||0,halfLength:p.halfLength||0,direction:d,speed:p.speed,remaining:Number.isFinite(p.remaining)?p.remaining:null,age:p.age??c.time};}),
+            projectiles:c.projectiles.slice(-32).map(p=>{const target=c.attackOrigin(p,'return'),dx=target.x-p.x,dy=target.y-p.y,len=Math.hypot(dx,dy)||1;const d=(p.kind==='return'||p.kind==='life_orb'&&p.phase==='return')?{x:dx/len,y:dy/len}:p.direction;return{kind:p.kind,phase:p.phase,charge:p.charge||0,...point(p),radius:p.radius||0,halfWidth:p.halfWidth||0,halfLength:p.halfLength||0,direction:d,speed:p.speed,remaining:Number.isFinite(p.remaining)?p.remaining:null,age:p.age??c.time};}),
             decoy:this.decoy?{...point(this.decoy),remaining:this.decoy.remaining,direction:this.decoy.direction||0,frame:this.decoy.frame||0}:null,badges};
     }
     syncVisuals(force=false) {

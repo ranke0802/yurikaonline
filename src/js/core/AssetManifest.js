@@ -178,6 +178,8 @@ export default {
   "/assets/resource/classes/witch-runtime.webp": "/assets/immutable/297077115f4d91dbc989c841.webp",
   "/assets/resource/classes/witch-walk.webp": "/assets/immutable/8fcd29c6d4c8fc2068b7ef1e.webp",
   "/assets/resource/classes/witch.webp": "/assets/immutable/578ddc23230fbb697a746cf1.webp",
+  "/assets/resource/effects/life-orb-v177.json": "/assets/immutable/db89905f034b1b1d5aa76668.json",
+  "/assets/resource/effects/life-orb-v177.webp": "/assets/immutable/3874743e40a74fedda87bccb.webp",
   "/assets/resource/effects/monster-combat-vfx.webp": "/assets/immutable/8ceb990305e0be35bb6ec05a.webp",
   "/assets/resource/effects/monster-skill-vfx-atlas.webp": "/assets/immutable/c26d867671234d967e931e88.webp",
   "/assets/resource/effects/player-skills/barrier.webp": "/assets/immutable/2a6a65cac4402e35aa3f72de.webp",

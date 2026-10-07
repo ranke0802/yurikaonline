@@ -1,3 +1,4 @@
+import { loadLifeOrbVisuals, drawLifeOrb } from './LifeOrbVisuals.js';
 import { WARRIOR_GEOMETRY } from './ClassGeometry.js';
 import { effectEnvelope } from './ClassEffectBounds.js';
 import { renderArrowRain } from './ArrowRain.js';
@@ -8,7 +9,7 @@ import { getSharedResourceManager } from '../core/ResourceManager.js';
 import { captureProjectileWorldContext, isProjectileWorldContextCurrent } from '../entities/ProjectileWorldContext.js';
 
 export const EFFECT_ROWS = {
-    witch: [['life_circle','drain_orb','drain_link','drain_heal','orb','return'], ['poison_cloud','poison_potion'], ['summon'], ['berserk_potion']],
+    witch: [['life_orb_heal','life_circle','drain_orb','drain_link','drain_heal','orb','return'], ['poison_cloud','poison_potion'], ['summon'], ['berserk_potion']],
     warrior: [['warrior_slash','rage_smash','weapon_slash'], ['challenge','shield_rush','shield_impact','shield_block'], ['punishing_charge','gwangcheon'], ['blood_pact','blood_finale']],
     archer: [['archer_shot','piercing_snipe','arrow','snipe'], ['hunter_trap','trap_burst','trap_trigger'], ['shadow_leap'], ['tracking_rain']]
 };
@@ -18,10 +19,12 @@ const SPATIAL = new Set(['gwangcheon','orb','life_circle','poison_cloud','warrio
 export const STATUS_ICONS = ['poison','berserk','rage','mark','root','taunt','bloodPact','empowered'];
 export function loadClassVisualImages(classId, images) {
     const resources=getSharedResourceManager();
+    if(classId==='witch'&&resources)loadLifeOrbVisuals(resources).then(bundle=>Object.assign(images,bundle)).catch(()=>{});
     for(const [key,path] of [['status','status'],...(classId==='wizard'?[]:[['effects',`${classId}-effects`],['authored',`${classId}-body`]]),...(classId==='warrior'?[['shieldBody','warrior-shield-rush-body'],['shieldEffects','warrior-shield-rush-effects']]:[]),...(classId==='witch'?[['lifeCircle','life-circle'],['potion','poison-potion']]:[])])
         resources?.loadImage(path==='status'?'assets/resource/classes/status.webp':classArtPath(path)).then(image=>{images[key]=image;}).catch(()=>{});
 }
 export function drawClassEffect(renderer,ctx,name,x,y,size,age=0,options={}) {
+    if(name==='life_orb_heal'){drawLifeOrb(ctx,renderer.images.lifeOrb,{x,y,age,healing:true},renderer.images.lifeOrbMetadata);return;}
     if(['shield_rush','shield_impact','shield_block'].includes(name)){
         const image=renderer.images.shieldEffects;if(!image)return;
         const barrier=name==='shield_rush',row=barrier?[1,0,2,3][options.direction??1]:4;
@@ -45,6 +48,11 @@ export function drawClassEffect(renderer,ctx,name,x,y,size,age=0,options={}) {
 function renderProjectiles(renderer,ctx,behind) {
     const center=combatCenter(renderer.owner);
     for(const p of renderer.controller?.projectiles||renderer.projectiles||[]) {
+        if(p.kind==='life_orb'){
+            const isBehind=p.phase==='return'?p.y<center.y:(p.direction?.y||0)<0;
+            if(isBehind===behind)drawLifeOrb(ctx,renderer.images.lifeOrb,p,renderer.images.lifeOrbMetadata);
+            continue;
+        }
         if(p.kind==='sword_wave'){
             if(!behind){const angle=Math.atan2(p.direction.y,p.direction.x),depth=(p.halfLength||36)*2,width=(p.halfWidth||96)*2;
                 const trail=Math.min(100,(p.age||0)*(p.speed||720));
@@ -149,10 +157,10 @@ export default class RemoteClassVisuals {
                 radius:Math.max(0,Math.min(700,Number(f.radius)||0)),range:Math.max(0,Math.min(f.name==='gwangcheon'?740:243,Number(f.range)||0)),halfWidth:Math.max(0,Math.min(95,Number(f.halfWidth)||0)),duration,age,pulseCount:Math.max(4,Math.min(32,Number(f.pulseCount)||4)),receivedAt:now});
         }
         for(const p of (Array.isArray(packet.projectiles)?packet.projectiles:[]).slice(0,32)){
-            if(!finitePoint(p)||!['orb','return','arrow','snipe','sword_wave'].includes(p.kind)||!finitePoint(p.direction)||!Number.isFinite(p.speed)||lag>.4)continue;
+            if(!finitePoint(p)||!['life_orb','orb','return','arrow','snipe','sword_wave'].includes(p.kind)||!finitePoint(p.direction)||!Number.isFinite(p.speed)||lag>.4)continue;
             const speed=Math.max(0,Math.min(p.kind==='snipe'?780:p.kind==='sword_wave'?720:650,p.speed));
             const remaining=Number.isFinite(p.remaining)?Math.max(0,Math.min(p.kind==='sword_wave'?6000:650,p.remaining)):speed*.4;
-            this.projectiles.push({...p,halfLength:p.kind==='sword_wave'?Math.max(36,Math.min(48.6,Number(p.halfLength)||36)):0,halfWidth:p.kind==='sword_wave'?Math.max(96,Math.min(129.6,Number(p.halfWidth)||96)):0,radius:p.kind==='orb'?Math.max(14,Math.min(18.9,Number(p.radius)||14)):0,speed,remaining,age:Number(p.age)||0,receivedAt:now,expiresAt:packet.ts+400});
+            this.projectiles.push({...p,phase:p.phase==='return'?'return':'outbound',charge:Math.max(0,Math.min(1,Number(p.charge)||0)),halfLength:p.kind==='sword_wave'?Math.max(36,Math.min(48.6,Number(p.halfLength)||36)):0,halfWidth:p.kind==='sword_wave'?Math.max(96,Math.min(129.6,Number(p.halfWidth)||96)):0,radius:['orb','life_orb'].includes(p.kind)?Math.max(14,Math.min(18.9,Number(p.radius)||14)):0,speed,remaining,age:Number(p.age)||0,receivedAt:now,expiresAt:packet.ts+400});
         }
         const d=packet.decoy;
         if(finitePoint(d)&&Number.isFinite(d.remaining)&&d.remaining>lag)this.decoy={x:d.x,y:d.y,direction:Math.max(0,Math.min(3,d.direction||0)),frame:Math.max(0,Math.min(5,d.frame||0)),remaining:Math.min(2,d.remaining)-lag,receivedAt:now};

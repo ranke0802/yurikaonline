@@ -3,6 +3,19 @@ import assert from 'node:assert/strict';
 import ResourceManager from '../src/js/core/ResourceManager.js';
 import LocalNetworkManager,{LOCAL_PROFILE_KEY} from '../src/js/local/LocalNetworkManager.js';
 import CampScene from '../src/js/world/scenes/CampScene.js';
+import {readFileSync} from 'node:fs';
+
+test('Witch preparation requires decoded Life Orb pixels and all frame pivots before entering the field',async()=>{
+ const resources=new ResourceManager(),metadata=JSON.parse(readFileSync(new URL('../assets/resource/effects/life-orb-v177.json',import.meta.url)));
+ let missing=true;
+ resources.loadImage=async path=>{if(path.endsWith('/life-orb-v177.webp')){if(missing)throw Error('missing approved atlas');return{width:1024,height:1536};}return{path};};
+ resources.loadJSON=async()=>metadata;
+ await assert.rejects(resources.preparePlayableClassAssets('witch'),/missing approved atlas/);
+ assert.equal(resources.cache.has('playable-class:witch'),false);assert.equal(resources.loading.size,0);
+ missing=false;const bundle=await resources.preparePlayableClassAssets('witch');
+ assert.equal(bundle.lifeOrb.width,1024);assert.equal(bundle.lifeOrbMetadata.frames.length,24);
+ assert.ok(bundle.authored&&bundle.effects&&bundle.sheet);assert.equal(await resources.preparePlayableClassAssets('witch'),bundle);
+});
 
 test('selected class shares preparation, excludes Mage assets, evicts failed bundle and retries',async()=>{
  const resources=new ResourceManager(),paths=[];let release;

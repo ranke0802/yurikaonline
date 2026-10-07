@@ -16,15 +16,15 @@ function fixture(id) {
     const advance = seconds => { for(let t=0;t<seconds-1e-8;t+=.05) c.update(Math.min(.05,seconds-t)); };
     return {c,owner,enemies,allies,events,dismissed,packets,add,advance};
 }
-test('Witch tap travels before twice-basic impact and returns half actual damage', () => {
+test('Witch orb travels, applies three bounded hits and returns its ATK healing budget', () => {
     const f=fixture('witch'), e=f.add(); f.owner.hp=500;
-    assert.equal(f.c.basic(),true); assert.equal(e.hp,10000); f.advance(4); assert.equal(e.hp,9820); assert.equal(f.owner.hp,590);
+    assert.equal(f.c.basic(),true); assert.equal(e.hp,10000); f.advance(4); assert.equal(e.hp,9811); assert.equal(f.owner.hp,511);
 });
-test('orb drains for three seconds then returns actual damage healing and excess to allies', () => {
+test('orb overkill limits recovery and never distributes excess to allies', () => {
     const f=fixture('witch'), e=f.add({hp:40}); f.owner.hp=995; const ally={hp:80,maxHp:100}; f.allies.push(ally);
-    f.c.basic({aimed:true,x:200,y:0}); f.advance(.3); assert.equal(e.hp,40); f.advance(4);
-    assert.equal(e.hp,0); assert.equal(f.owner.hp,1000); assert.equal(ally.hp,95);
-    assert.equal(f.packets.length,2,'dead enemy cannot contribute a third tick');
+    f.c.basic({aimed:true,x:200,y:0}); f.advance(4);
+    assert.equal(e.hp,0); assert.equal(f.owner.hp,1000); assert.equal(ally.hp,80);
+    assert.equal(f.packets.length,1,'dead enemy cannot contribute more damage');
 });
 test('rejected damage grants neither heal nor marks', () => {
     const f=fixture('archer'),e=f.add({blocked:true}); f.c.basic({x:200,y:0}); f.advance(1); assert.equal(f.c.state(e).marks,undefined);
@@ -81,8 +81,7 @@ test('rejected poison cannot add slow or stun, no frame-rate stacking', () => {
     const f=fixture('witch'),e=f.add({blocked:true});f.c.skill(1,{x:50,y:0});f.advance(5.2);
     assert.equal(f.events.length,0);assert.equal(f.c.state(e).poisonStacks,undefined);assert.equal(f.packets.length,5);
 });
-test('aimed damage distributes integer budget without per-tick inflation at ATK5',()=>{
-    const f=fixture('witch'),e=f.add();f.owner.attackPower=5;f.c.basic({aimed:true,x:200,y:0});f.advance(4);
-    assert.deepEqual(f.packets.map(p=>p.amount),[1,1,3]);assert.equal(10000-e.hp,5);
-    f.c.basic();f.advance(.3);assert.equal(f.packets.at(-1).amount,10);
+test('small ATK uses per-hit damage while the per-orb heal ceiling remains independent',()=>{
+    const f=fixture('witch');f.add();f.owner.attackPower=5;f.owner.hp=500;f.c.basic({aimed:true,x:200,y:0});f.advance(4);
+    assert.deepEqual(f.packets.map(p=>p.amount),[4,4,4]);assert.equal(f.owner.hp,501);
 });

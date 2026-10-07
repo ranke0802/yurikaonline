@@ -1,3 +1,4 @@
+import { lifeOrbProfile } from '../src/js/combat/LifeOrb.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import Controller from '../src/js/combat/ClassCombatController.js';
@@ -18,9 +19,10 @@ for(const id of Object.keys(BASIC_SKILL_IDS)) for(const level of [1,4,8]) test(`
   const f=fixture(id,level),g=basicAttackProfile(id,f.owner.skillLevels),e=f.enemy();
   assert.equal(classSkillMaxLevel(f.owner,BASIC_SKILL_IDS[id]),8);
   assert.equal(f.c.basic({x:400,y:0}),true);
-  if(id==='archer'||id==='witch') f.advance(.1);
-  assert.equal(f.hits[0].n,Math.ceil(100*g.damageMultiplier*(id==='witch'?2:id==='archer'?.85:1)));
-  close(f.c.basicReady,{witch:.805,warrior:.7,archer:.65}[id]);
+  if(id==='archer') f.advance(.1);if(id==='witch')f.advance(.25);
+  assert.equal(f.hits[0].n,Math.ceil(100*(id==='witch'?lifeOrbProfile(level).hitMultiplier:g.damageMultiplier*(id==='archer'?.85:1))));
+  close(f.c.basicReady,{witch:0,warrior:.7,archer:.65}[id]);
+  if(id==='witch')for(let n=1;n<lifeOrbProfile(level).capacity;n++)assert.equal(f.c.basic({aimed:true}),true);
   assert.equal(f.c.basic({aimed:true}),false);
   if(id==='warrior')close(f.moves[0]?.x ?? 40,40+g.tap.knockback);
   if(id==='archer')assert.equal(f.c.state(e).marks,1,'mark increments unchanged');
@@ -30,21 +32,20 @@ for(const level of [1,4,8]) test(`level ${level}: charged damage and collision s
   archer.c.basic({aimed:true,x:500,y:0});archer.owner.skillLevels.shot=1;archer.advance(.1);
   assert.equal(archer.hits[0].n,Math.ceil(100*g.damageMultiplier*1.8));
   const witch=fixture('witch',level),wg=basicAttackProfile('witch',witch.owner.skillLevels);
-  witch.enemy(40,wg.orbRadius-1);witch.c.basic({aimed:true,x:500,y:0});
+  witch.enemy(40,0,{radius:30});witch.c.basic({aimed:true,x:500,y:0});
   close(witch.c.projectiles[0].radius,wg.orbRadius);
   witch.owner.skillLevels.lifeDrain=1;witch.advance(3.4);
-  assert.equal(witch.hits.filter(h=>h.m.drain).reduce((n,h)=>n+h.n,0),Math.ceil(100*wg.damageMultiplier));
+  assert.equal(witch.hits.filter(h=>h.m.lifeOrb).reduce((n,h)=>n+h.n,0),3*Math.ceil(100*lifeOrbProfile(level).hitMultiplier));
   const warrior=fixture('warrior',level);warrior.enemy();warrior.c.rage=25;
   warrior.c.basic({aimed:true,x:400,y:0});assert.equal(warrior.hits.length,0);warrior.advance(.3);assert.equal(warrior.hits[0].n,Math.ceil(350*g.damageMultiplier));assert.equal(warrior.c.rage,0);
 });
 for(const level of [1,4,8]) test(`level ${level}: expanded hitboxes and VFX share sizes`,()=>{
   const w=fixture('witch',level),g=basicAttackProfile('witch',w.owner.skillLevels);
-  const target=w.enemy(300);w.enemy(300,g.tapRadius+.9);w.enemy(300,g.tapRadius+1.1);w.c.basic();assert.equal(w.hits.length,0);const orb=w.c.projectiles[0];orb.x=300;orb.y=0;w.c.resolveProjectileHit(orb,target);assert.equal(w.hits.length,2);
-  close(w.effects.find(e=>e.name==='life_circle').radius,g.tapRadius);
+  w.enemy(300);w.enemy(300,g.orbRadius+1.1);w.c.basic({aimed:true,x:500,y:0});assert.equal(w.hits.length,0);
+  close(w.c.projectiles[0].radius,g.orbRadius);w.advance(4);assert.ok(w.hits.length>0);assert.equal(w.enemies[1].hp,100000);
   const s=fixture('warrior',level),sg=basicAttackProfile('warrior',s.owner.skillLevels);
   s.enemy(sg.tap.range,sg.tap.halfWidth+.9);s.enemy(sg.tap.range+1.1);s.c.basic({x:500,y:0});assert.equal(s.hits.length,1);
-  const calls=[],r={owner:w.owner,effects:w.effects,controller:w.c,drawEffect:(...args)=>calls.push(args)};
-  renderGroundEffects(r,{});close(calls[0][4],g.tapRadius*2);
+  const calls=[],r={owner:w.owner,effects:[],controller:{projectiles:[]},drawEffect:(...args)=>calls.push(args)};
   r.effects=s.effects;r.controller=s.c;calls.length=0;renderForegroundEffects(r,{});
   close(calls[0][6].width,sg.tap.range);close(calls[0][6].height,sg.tap.halfWidth*2);
 });
@@ -69,7 +70,7 @@ test('knockback requires accepted damage, does not move bosses or cross blocked 
   boss.isBoss=false;f.c.basicReady=0;f.c.hooks.damage=()=>0;f.c.basic({x:500,y:0});assert.equal(f.moves.length,0);
   f.c.basicReady=0;f.c.hooks.damage=()=>1;f.c.hooks.move=()=>false;f.c.basic({x:500,y:0});assert.equal(boss.x,40);
 });
-for(const id of Object.keys(BASIC_SKILL_IDS)) for(const level of [1,4,8]) test(`${id} level ${level}: flood cannot bypass five-per-second floor`,()=>{
+for(const id of ['warrior','archer']) for(const level of [1,4,8]) test(`${id} level ${level}: flood cannot bypass five-per-second floor`,()=>{
   const f=fixture(id,level);f.owner.attackSpeed=10000;f.c.rage=100;
   const approvals=[];
   for(let frame=0;frame<180;frame++){

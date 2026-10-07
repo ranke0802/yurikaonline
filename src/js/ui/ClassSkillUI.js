@@ -1,10 +1,11 @@
+import { lifeOrbProfile } from '../combat/LifeOrb.js';
 import { warriorBarrageProfile } from '../combat/WarriorBarrage.js';
 import { shieldRushProfile } from '../combat/ShieldRush.js';
 import { BASIC_MAX_LEVEL, BASIC_SKILL_IDS, basicAttackProfile } from '../combat/BasicAttackProgression.js';
 // Display metadata only; combat values and cooldowns remain owned by the runtime.
 export const CLASS_SKILL_UI = {
     witch: [
-        { id: 'lifeDrain', summary: '유도 구슬 명중 흡수 / 조준 흡수 후 귀환 회복', name: '라이프 드레인', maxLevel: BASIC_MAX_LEVEL, desc: '탭: 560px 안의 적을 자동 선택하는 녹색 유도 구슬을 발사합니다. 명중 지점의 범위에 일반 드레인 피해의 200%(Lv.1 기준)를 주고 영혼이 돌아옵니다. 벽에 막히거나 빗나가면 회복하지 않습니다. 홀드 조준: 느린 녹색 구체가 적에게 닿으면 3초 동안 매초 생명력을 흡수한 뒤 돌아옵니다. 귀환 시 실제 피해의 50% 회복, 남는 회복은 아군과 소환수에게 전달됩니다.' },
+        { id: 'lifeDrain', summary: '다단 타격 후 회수 · 돌아오면 다시 사용', name: '생명의 구슬', maxLevel: BASIC_MAX_LEVEL, desc: '느린 연하늘색 구슬이 최대 3마리를 각각 3회 타격하고 붉게 충전됩니다. 타격 후 조금 더 전진한 뒤 빠르게 돌아오며, 도착하면 주인만 회복합니다. 회복은 구슬별 ATK 상한과 실제 피해의 20% 중 작은 값입니다. 빗나가면 회복하지 않습니다. 별도 쿨다운 없이 귀환한 구슬을 다시 던집니다. 스킬 2레벨마다 구슬 수가 1개씩 늘어 최대 4개입니다.' },
         { id: 'poison', summary: '최대 HP 비례 맹독 · 감속 중첩 후 기절', name: '포이즌 클라우드', desc: '물약을 던져 맹독 지대를 만듭니다. 매초 공격력 + 적 최대 HP의 5% 피해(보스 포함). 중첩당 20% 감속, 5중첩에서 3초 기절. 중첩은 5초 유지됩니다.' },
         { id: 'summon', summary: '최대 HP 80% 비용 · 소환수 최대 3마리', name: '서몬 몬스터', desc: '최대 HP의 80%를 소모합니다. 현재 HP 부족 시 비용과 소환 모두 발생하지 않습니다. 최대 3마리, 추가 소환 시 가장 오래된 소환수 해제. 사망 또는 게임 재입장 시 사라집니다.', detail: '레벨별 소환: 1 슬라임 · 2 꼬북이 · 3 에몽가 · 4 고오스 · 5 대왕슬라임 · 6 마자용 · 7 뇌제 피카츄 · 8 님피아. 일반 소환수는 원본 HP·공격력 50%, 이동속도 2배입니다. 보스 소환수는 원본 HP 10%·공격력 30%·이동속도 3배입니다. MP·방어력·재생량은 원본의 50%, 기본 공격빈도는 50%(주기 2배)를 유지합니다. 원본 고유스킬을 적 몬스터에게 사용하며 고유스킬 쿨다운은 원본을 유지합니다. 방패는 자신에게만 적용합니다. 기습은 벽을 통과하지 않으며 플레이어 전용 조작 반전은 몬스터에게 적용하지 않습니다. 레벨·공격 사거리는 원본을 유지하고 보스 소환수 크기는 원본의 60%입니다.' },
         { id: 'berserk', summary: '자신 제외 아군 / 소환수 10초 강화', name: '버서크 포션', desc: '자신을 제외한 아군과 소환수에게 10초 동안 이동 속도 +25%, 공격 속도 +70%, 공격력 +20%. 재사용해도 배율은 누적되지 않습니다.' }
@@ -37,7 +38,7 @@ export function basicAttackUpgradeDetails(player) {
     const describe = profile => {
         const damage = Math.round(profile.damageMultiplier * 100);
         const px = value => Number(value.toFixed(2));
-        if (player.classId === 'witch') return `Lv.${profile.level}: 기본 피해 ${damage}% · 탭 사거리 560px / 명중 흡수 반경 ${px(profile.tapRadius)}px · 구체 판정 반경 ${px(profile.orbRadius)}px`;
+        if (player.classId === 'witch') { const p=lifeOrbProfile(profile.level); return `Lv.${p.level}: 구슬 ${p.capacity}개 · 타격당 ATK ${Math.round(p.hitMultiplier*100)}% / 대상당 최대 3회 · 회복 상한 ATK ${Math.round(p.healMultiplier*100)}% · 사거리 ${p.range}px`; }
         if (player.classId === 'warrior') return `Lv.${profile.level}: 기본 피해 ${damage}% / 검격 ATK ${Math.round(damage*3.5)}% · 베기 거리 ${px(profile.tap.range)}px / 폭 ${px(profile.tap.halfWidth * 2)}px · 검격 최소 거리 ${px(profile.heavy.range)}px (화면 긴 변 60% 보장) / 폭 ${px(profile.heavy.halfWidth*2)}px · 밀치기 ${profile.tap.knockback}px (검격 ${profile.heavy.knockback}px, 보스 제외)`;
         return `Lv.${profile.level}: 일반/저격 피해 ${damage}% · 저격 준비 ${profile.chargeSeconds.toFixed(2)}초 (도약 강화 ${(profile.chargeSeconds * .4).toFixed(3)}초)`;
     };
@@ -45,7 +46,7 @@ export function basicAttackUpgradeDetails(player) {
     return [describe(current), current.level < BASIC_MAX_LEVEL
         ? `다음 강화 — ${describe(basicAttackProfile(player.classId, { [id]: current.level + 1 }))}`
         : '최대 레벨 8',
-        '피해 배율은 Lv.1 대비입니다. 공격 후 재사용 간격과 중첩 규칙은 유지됩니다.'];
+        player.classId==='witch'?'0.25초 간격 · 최대 3대상 · 귀환 시 슬롯 회복 · 실제 피해가 있어야 회복합니다.':'피해 배율은 Lv.1 대비입니다. 공격 후 재사용 간격과 중첩 규칙은 유지됩니다.'];
 }
 
 export function shieldRushUpgradeDetails(player) {

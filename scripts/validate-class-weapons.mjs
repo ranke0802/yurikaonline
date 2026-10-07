@@ -128,8 +128,9 @@ for(const c of WEAPON_CLASSES){
  test(`${c} basic damage/restore are applied only on accepted hits; launch snapshots survive equipment change`,()=>{
   const f=c==='witch'?combat(c,'riftcore'):combat(c,'magic','crimson_flash_'+c),e=f.enemy(),bonus=f.p.getWeaponCombatProfile(),power=100*(1+bonus.laserDamageBonus);
   if(c==='warrior'){f.controller.basic({x:100,y:0});assert.equal(f.hits[0].n,Math.ceil(power));}
-  else {if(c==='witch')f.controller.orb({x:100,y:0});else f.controller.arrow({x:100,y:0});const projectile=f.controller.projectiles[0];f.p.equipment.weapon=null;f.controller.resolveProjectileHit(projectile,e);if(c==='witch')f.tick(3.01);assert.equal(f.hits.reduce((s,h)=>s+h.n,0),Math.ceil(power*(c==='archer'?.85:1)));}
-  assert.equal(f.p.hp,500+bonus.restoreHpPerLaserHit+(c==='witch'?Math.ceil(power)*.5:0));
+  else if(c==='witch'){f.controller.basic({aimed:true,x:100,y:0});f.p.equipment.weapon=null;f.tick(4);assert.ok(f.hits.length>=1&&f.hits.length<=3);assert.ok(f.hits.every(h=>h.n===Math.ceil(power*.7)));}
+  else {f.controller.arrow({x:100,y:0});const projectile=f.controller.projectiles[0];f.p.equipment.weapon=null;f.controller.resolveProjectileHit(projectile,e);if(c==='witch')f.tick(3.01);assert.equal(f.hits.reduce((s,h)=>s+h.n,0),Math.ceil(power*(c==='archer'?.85:1)));}
+  assert.equal(f.p.hp,c==='witch'?512:500+bonus.restoreHpPerLaserHit);
   const blocked=combat(c);blocked.enemy();blocked.controller.hooks.damage=()=>0;blocked.controller.basic({x:100,y:0});blocked.tick(1);assert.equal(blocked.p.hp,500);
  });
  test(`${c} storm targets summon, charge or backward leap with canonical numbers`,()=>{
@@ -226,9 +227,10 @@ for(const c of WEAPON_CLASSES){
    const f=combat(c,theme,theme==='magic'?'starlight_'+c:null),e=f.enemy(100,0),w=classWeaponBonuses(f.p);f.controller.rage=100;
    f.controller.basic({aimed,x:100,y:0});const applies=aimed===(theme==='riftcore');
    const projectile=f.controller.projectiles.find(p=>p.kind!=='return');
-   if(projectile)near(projectile.power,100*(1+(applies?w.damageBonus:0))*(c==='warrior'?3.5:1));
+   if(projectile)near(projectile.power,100*(1+(applies?w.damageBonus:0))*(c==='warrior'?3.5:c==='witch'?.7:1));
    else near(f.hits[0].n,Math.ceil(100*(1+(applies?w.damageBonus:0))));
-   assert.ok(f.controller.basicReady>=.2);
+   if(c==='witch'){assert.equal(f.controller.basicReady,0);assert.equal(f.controller.orbSlots().available,0);}
+   else assert.ok(f.controller.basicReady>=.2);
   }
  });
  test(`${c}: astral buffs only slot3, consumes heal once per cast and snapshots potency`,()=>{

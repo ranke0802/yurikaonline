@@ -11639,6 +11639,15 @@ export class UIManager {
             const label = availability.text ? `${name}: ${availability.detail || availability.text}` : name;
             if (btn.getAttribute('aria-label') !== label) btn.setAttribute('aria-label', label);
 
+            if (key === 'j' && p.classId === 'witch') {
+                const slots = p.classCombat?.controller.orbSlots();
+                const count = slots ? `${slots.available}/${slots.maximum}` : '0/1';
+                if (timeText && timeText.textContent !== count) timeText.textContent = count;
+                btn.classList.toggle('disabled', !slots?.available);
+                if (overlay) { overlay.style.setProperty('--cd-angle', '0deg'); overlay.dataset.cdAngle = '0'; }
+                btn.setAttribute('aria-label', `생명의 구슬 ${count}`);
+                return;
+            }
             const cdTime = p.skillCooldowns[key];
             const maxCd = p.skillMaxCooldowns[key];
             const nextDisabled = cdTime > 0;

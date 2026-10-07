@@ -13,7 +13,7 @@ const {chromium}=require('@playwright/test');const assert=require('node:assert/s
   for(const classId of ['witch','warrior','archer']){
    p.classId=classId;p.initializeClassCombat();p.hp=p.maxHp=1000;p.isDead=false;p.autoAttackEnabled=false;const c=p.classCombat.controller;c.rage=100;
    for(const mode of ['tap','aim','skill1','skill2','skill3']){
-    await new Promise(r=>setTimeout(r,450));for(let i=0;i<12;i++)p.update(.25);c.rage=100;p.hp=p.maxHp;c.cooldowns={};const start=events.length;const options={aimed:mode==='aim',x:p.x+160,y:p.y};
+    await new Promise(r=>setTimeout(r,450));for(let i=0;i<(classId==='witch'?20:12);i++)p.update(.25);c.rage=100;p.hp=p.maxHp;c.cooldowns={};const start=events.length;const options={aimed:mode==='aim',x:p.x+160,y:p.y};
     const accepted=mode.startsWith('skill')?p.classCombat.skill(Number(mode.slice(-1)),options):p.classCombat.basic(options);
     const rejected=mode.startsWith('skill')?p.classCombat.skill(Number(mode.slice(-1)),options):p.classCombat.basic(options);
     const pcm=await collect();out.push({classId,mode,accepted,rejected,events:events.slice(start),...pcm,bgm:s.currentBgmId,bgmUnchanged:s.currentBgmId===bgm});

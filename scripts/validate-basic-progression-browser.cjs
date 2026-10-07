@@ -34,10 +34,10 @@ try{for(const [id,skill] of [['witch','lifeDrain'],['warrior','cleave'],['archer
    const draws=[];
    const capture=label=>{const canvas=document.createElement('canvas');canvas.width=canvas.height=400;const ctx=canvas.getContext('2d');ctx.fillStyle='#273240';ctx.fillRect(0,0,400,400);ctx.save();ctx.translate(200-center.x,220-center.y);b.renderGround(ctx);p.render(ctx,{x:p.x-500,y:p.y-500,width:1000,height:1000});b.render(ctx);ctx.restore();draws.push({label,image:canvas.toDataURL()})};
    p.startClassAction('ATTACK');const auto={x:p.classAim.x,y:p.classAim.y};const tap=p.releaseClassAction('ATTACK');capture('tap');
-   for(let i=0;i<24;i++)b.update(.05);
+   for(let i=0;i<24||id==='witch'&&c.orbSlots().active>0;i++){if(i>200)throw Error('orb slot did not return');b.update(.05);}
    c.rage=100;p.startClassAction('ATTACK',{clientX:10,clientY:10});p.moveClassAim({clientX:100,clientY:10});p.classAim.elapsed=basicChargeSeconds(p,c.empowered);
    const guide=p.getClassAimGuide(),charged=p.releaseClassAction('ATTACK');capture('charged');
-   const duplicate=p.releaseClassAction('ATTACK');const spam=c.basic({x:enemy.x,y:enemy.y});
+   const duplicate=p.releaseClassAction('ATTACK');if(id==='witch')while(c.orbSlots().available)c.basic({x:enemy.x,y:enemy.y});const spam=c.basic({x:enemy.x,y:enemy.y});
    for(let i=0;i<75;i++)b.update(.05);
    return{id,level,g,tap,charged,duplicate,spam,auto,enemyCenter:{x:enemy.x,y:enemy.y},guide,hits,actions,draws,mage:(await game.net.getPlayerProfile(p.id)).skillLevels};
   },{id,skill,level});

@@ -19,7 +19,7 @@ test('class reference intervals, empowered recovery, final floor and invalid spe
     for(const speed of [10,1e6])assert.equal(basicAttackInterval('witch',{speed}),MIN_BASIC_INTERVAL);
     for(const speed of [NaN,Infinity,-1,0])assert.equal(basicAttackInterval('witch',{speed}),.805);
 });
-for(const classId of ['witch','warrior','archer'])for(const fps of [2,10,30,60,120])test(`${classId} input flood at ${fps}fps cannot bank attacks or bypass recovery`,()=>{
+for(const classId of ['warrior','archer'])for(const fps of [2,10,30,60,120])test(`${classId} input flood at ${fps}fps cannot bank attacks or bypass recovery`,()=>{
     const f=fixture(classId,1000);f.c.rage=100;
     for(let frame=0;frame<fps*3;frame++){
         f.c.update(1/fps);
@@ -44,21 +44,21 @@ test('archer rejection preserves empowered state and marks; success consumes eac
     assert.equal(f.c.basic({aimed:true}),false);assert.equal(f.c.empowered,true);assert.equal(f.c.state(f.enemy).marks,2);assert.equal(f.actions.length,1);
 });
 test('pause freezes recovery and rejects basic/skill without resource or action effects',()=>{
-    const f=fixture('witch');f.pause(true);assert.equal(f.c.basic(),false);assert.equal(f.c.skill(3),false);f.c.update(100);assert.equal(f.c.time,0);assert.equal(f.actions.length,0);
+    const f=fixture('warrior');f.pause(true);assert.equal(f.c.basic(),false);assert.equal(f.c.skill(3),false);f.c.update(100);assert.equal(f.c.time,0);assert.equal(f.actions.length,0);
     f.pause(false);assert.equal(f.c.basic(),true);const ready=f.c.basicReady;
     f.pause(true);f.advance(10);assert.equal(f.c.time,0);assert.equal(f.c.basicReady,ready);assert.equal(f.c.basic({aimed:true}),false);
-    f.pause(false);f.advance(ready+.001);assert.equal(f.c.basic({aimed:true}),true);
+    f.pause(false);f.advance(ready+.001);assert.equal(f.c.basic(),true);
 });
 test('effective speed changes apply at next approval, never retroactively reset recovery',()=>{
-    const f=fixture('witch');let effective=1.7;f.owner.getEffectiveClassAttackSpeed=()=>effective;
+    const f=fixture('warrior');let effective=1.7;f.owner.getEffectiveClassAttackSpeed=()=>effective;
     assert.equal(f.c.basic(),true);const ready=f.c.basicReady;effective=1000;assert.equal(f.c.basic(),false);assert.equal(f.c.basicReady,ready);
     f.advance(ready+.001);assert.equal(f.c.basic(),true);assert.equal(f.actions.at(-1).interval,.20);
 });
-test('Witch tap travels, flying orbs allow later shots and never reset recovery on return',()=>{
-    const f=fixture('witch');const hp=f.enemy.hp;f.c.basic();assert.equal(f.enemy.hp,hp);f.advance(.2);assert.equal(f.enemy.hp,hp-20);assert.equal(f.actions.length,1);
-    f.enemy.x=500;f.advance(.806);f.c.basic({aimed:true,x:500,y:0});const firstDeadline=f.c.basicReady;
-    f.advance(1.051);assert.equal(f.c.basic({aimed:true,x:500,y:0}),true);assert.ok(f.c.projectiles.length>=2,'previous orb can remain draining/returning');
-    const ready=f.c.basicReady;assert.ok(ready>firstDeadline);f.advance(5);assert.equal(f.c.basicReady,ready,'drain/return task cannot clear recovery');
+test('Witch uses returning slots rather than time or attack-speed recovery',()=>{
+    const f=fixture('witch');f.owner.skillLevels={lifeDrain:3};f.enemy.x=500;
+    assert.equal(f.c.basic(),true);assert.equal(f.c.basic(),true);assert.equal(f.c.basic(),false);
+    assert.equal(f.c.orbSlots().active,2);f.advance(.81);assert.equal(f.c.basic(),false);
+    f.advance(8);assert.equal(f.c.orbSlots().available,2);assert.equal(f.c.basic(),true);
 });
 test('skills retain independent cooldowns and emit action only after successful approval',()=>{
     const f=fixture('witch');assert.equal(f.c.skill(3),true);assert.equal(f.c.skill(3),false);assert.equal(f.actions.filter(x=>x.kind==='skill').length,1);

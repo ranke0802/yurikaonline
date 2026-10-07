@@ -479,7 +479,7 @@ export default class Player extends CharacterBase {
         this._updateCooldowns(dt);
         if (this.classCombat && normalizeClassId(this.classId) !== 'wizard') {
             const c=this.classCombat.controller;
-            this.skillCooldowns.j=Math.max(0,c.basicReady-c.time);
+            this.skillCooldowns.j=this.classId==='witch'?0:Math.max(0,c.basicReady-c.time);
             for (const [slot,key] of [[1,'h'],[2,'u'],[3,'k']]) this.skillCooldowns[key]=Math.max(0,(c.cooldowns[slot]||0)-c.time);
         }
         this._updateAnimation(dt);

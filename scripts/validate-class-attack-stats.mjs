@@ -106,8 +106,8 @@ for (const id of ids) {
         } else {
             const c = new Controller(p, id, { enemies: () => [enemy], damage: (_target, amount) => { hits.push(amount); return amount; } });
             assert.equal(c.basic({ x: 400, y: 0 }), true);
-            c.update(.1);
-            assert.equal(hits[0], Math.ceil(expected[id] * 1.2 * { witch: 2, warrior: 1, archer: .85 }[id]));
+            c.update(.25);
+            assert.equal(hits[0], Math.ceil(expected[id] * 1.2 * { witch: .7, warrior: 1, archer: .85 }[id]));
         }
     });
 }

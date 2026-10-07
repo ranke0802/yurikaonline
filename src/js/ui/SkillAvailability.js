@@ -30,8 +30,9 @@ export function skillAvailability(player, key, game) {
         if (player.classAim && player.classAim.action !== action) return reason('aim', '조준 중');
         if (slot && c.castingSkill) return reason('casting', '시전 중');
     }
+    if(player.classId==='witch'&&key==='j'&&c.orbSlots?.().available===0)return reason('orbs','');
     const cooldown = wizard ? player.skillCooldowns?.[key]
-        : slot ? (c.cooldowns[slot] || 0) - c.time : c.basicReady - c.time;
+        : slot ? (c.cooldowns[slot] || 0) - c.time : player.classId==='witch'?0:c.basicReady - c.time;
     // Keep the wait visible after a cast; the existing numeric cooldown remains separate.
     if (cooldown > 0 && !(wizard && key === 'j' && player.isChanneling)) return authorityHint(player, key, game) || reason('cooldown', '재사용 대기');
     if (wizard) {

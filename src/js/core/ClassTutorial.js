@@ -16,7 +16,7 @@ export function classTutorial(source, classId) {
     const data = adapt(source);
     const attack = data.steps.find(step => step.id === 'attack_dummy');
     const action = {
-        witch: '짧게 눌렀다 놓으면 사거리 안의 적에게 유도 흡혈구슬을 발사합니다. 명중 후 영혼이 돌아오면 회복합니다. 길게 눌러 조준한 뒤 놓으면 흡수 구체를 발사합니다.',
+        witch: '짧게 눌렀다 놓으면 가까운 적에게 생명의 구슬을 발사합니다. 길게 눌러 조준할 수도 있습니다. 구슬은 다단 타격 후 돌아오며 주인을 회복합니다. 버튼의 숫자는 사용 가능한 구슬 수입니다.',
         warrior: '짧게 눌렀다 놓으면 근처의 허수아비를 연속 베기로 공격합니다. 길게 눌러 조준한 뒤 놓으면 분노 강타를 사용합니다.',
         archer: '짧게 눌렀다 놓으면 이동 사격을 합니다. 길게 눌러 조준한 뒤 놓으면 관통 저격을 발사합니다.'
     }[classId];

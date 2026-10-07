@@ -8,7 +8,7 @@ const NAMES = { witch: ['위치', '마법서', 'spellbook', '📖'], warrior: ['
 // Resolve the route at use time, including items saved before these routes existed.
 const route = (slot, name, effect, radius, mode = null, potency = '피해') => Object.freeze({slot,name,effect,radius,mode,potency});
 export const CLASS_WEAPON_ROUTES = Object.freeze({
-    witch: Object.freeze({magic:route(0,'생명 흡수 (탭)','life_circle',95,'tap'),tidal:route(1,'독 물약','poison_cloud',140),storm:route(2,'소환수','summon',70,null,'공격력'),astral:route(3,'광폭화 물약','berserk_potion',240,null,'공격력 증가분'),riftcore:route(0,'흡수 구체 (홀드)','life_circle',95,'hold')}),
+    witch: Object.freeze({magic:route(0,'생명의 구슬 (탭)','life_circle',95,'tap'),tidal:route(1,'독 물약','poison_cloud',140),storm:route(2,'소환수','summon',70,null,'공격력'),astral:route(3,'광폭화 물약','berserk_potion',240,null,'공격력 증가분'),riftcore:route(0,'생명의 구슬 (홀드)','life_circle',95,'hold')}),
     warrior: Object.freeze({magic:route(0,'연속 베기 (탭)','weapon_slash',100,'tap'),tidal:route(1,'방패 돌진','shield_impact',100),storm:route(2,'광천격','gwangcheon',80),astral:route(3,'피의 계약','blood_finale',170,null,'흡혈·종료 피해'),riftcore:route(0,'검격 발사 (홀드)','rage_smash',100,'hold')}),
     archer: Object.freeze({magic:route(0,'일반 화살 (탭)','trap_burst',70,'tap'),tidal:route(1,'사냥꾼 덫','trap_burst',130),storm:route(2,'그림자 도약','shadow_leap',80,null,'후퇴 거리'),astral:route(3,'추적 화살비','tracking_rain',165),riftcore:route(0,'관통 저격 (홀드)','trap_burst',130,'hold')})
 });
@@ -81,6 +81,8 @@ export function classWeaponDetailLines(player, item) {
     if (value('laserDamageBonus')) lines.push(`${skill.name} ${skill.potency} +${percent('laserDamageBonus')}%`);
     if (value('attackSpeedBonus')) lines.push(`공격속도 +${percent('attackSpeedBonus')}%`);
     const heal = player.getWeaponCombatHookValue(item, 'restoreHpPerLaserHit');
-    if (heal) lines.push(`${skill.name} ${classId==='witch'&&skill.slot===3?'아군 강화 시':'적중 시'} HP +${heal}`);
+    if (heal) lines.push(classId==='witch'&&skill.slot===0
+        ? `${skill.name} 귀환 추가 회복 +${heal} (구슬별 회복 상한 내)`
+        : `${skill.name} ${classId==='witch'&&skill.slot===3?'아군 강화 시':'적중 시'} HP +${heal}`);
     return lines;
 }

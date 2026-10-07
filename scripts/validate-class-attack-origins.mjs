@@ -10,16 +10,17 @@ function fixture(classId,hooks={}){
 for(const [classId,kind]of[['archer','arrow'],['witch','orb']])test(`${kind} launch effect and collision projectile use the same authored origin and target direction`,()=>{
  const calls=[];const f=fixture(classId,{attackOrigin:(point,k)=>{calls.push({point,k});return{x:34,y:43};}});
  f.c.basic({aimed:kind==='orb',x:154,y:43});const p=f.c.projectiles[0];assert.deepEqual({x:p.x,y:p.y},{x:34,y:43});assert.deepEqual(p.direction,{x:1,y:0});assert.deepEqual({x:f.events[0].x,y:f.events[0].y},{x:p.x,y:p.y});assert.equal(calls[0].k,kind);
- const e={x:100,y:43,hp:10000,maxHp:10000,radius:1};f.enemies.push(e);f.advance(.4);assert.ok(kind==='arrow'?f.hits.length===1:f.c.tasks.length===3,'physical path follows the visible launch ray');
+ const e={x:100,y:43,hp:10000,maxHp:10000,radius:1};f.enemies.push(e);f.advance(.4);assert.ok(kind==='arrow'?f.hits.length===1:f.hits.length>=1&&f.c.projectiles[0]?.kind==='life_orb','physical path follows the visible launch ray');
 });
 test('missing or nonfinite authored origin safely falls back to legacy owner coordinates',()=>{
  for(const value of [undefined,{x:NaN,y:0},{x:0,y:Infinity}]){const f=fixture('archer',{attackOrigin:()=>value});f.c.basic({x:110,y:20});assert.equal(f.c.projectiles[0].x,10);assert.equal(f.c.projectiles[0].y,20);}
 });
-test('drain return follows the moving palm and heals only once at that endpoint',()=>{
- const f=fixture('witch');f.c.hooks.attackOrigin=(_point,kind)=>{assert.equal(kind,'return');return{x:f.owner.x+100,y:f.owner.y};};
- const p={kind:'return',x:110,y:20,speed:300,remaining:Infinity,healing:30};f.c.projectiles.push(p);f.owner.x+=100;
- f.c.advanceProjectile(p,.1);assert.equal(p.x,140);assert.equal(f.owner.hp,500,'old position is not a return destination');
- f.c.advanceProjectile(p,.3);assert.equal(f.owner.hp,530);assert.equal(f.c.projectiles.length,0);f.advance(1);assert.equal(f.owner.hp,530);
+test('life orb return follows the moving palm and heals once at that endpoint',()=>{
+ const f=fixture('witch');f.c.basic({x:300,y:20});const p=f.c.projectiles[0];
+ p.phase='return';p.speed=540;p.x=110;p.y=20;p.actualDamage=100;p.healCap=4;
+ f.c.hooks.attackOrigin=()=>({x:f.owner.x+100,y:f.owner.y});f.owner.x+=100;
+ f.c.advanceProjectile(p,.1);assert.ok(p.x>110&&p.x<210);assert.equal(f.owner.hp,500);
+ f.c.advanceProjectile(p,.3);assert.equal(f.owner.hp,504);assert.equal(f.c.projectiles.length,0);f.advance(1);assert.equal(f.owner.hp,504);
 });
 test('poison potion lands at .45s, then retains five exact t1..5 damage pulses',()=>{
  const f=fixture('witch',{attackOrigin:()=>({x:34,y:43})});f.enemies.push({x:200,y:200,hp:100000,maxHp:100000});f.c.skill(1,{x:200,y:200});
@@ -47,9 +48,8 @@ test('skill range clamp starts from combat center, while barrage leaves raw acto
  const f=fixture('witch',{combatOrigin:()=>({x:100,y:100})});f.c.skill(1,{x:1000,y:100});assert.deepEqual(f.events[0].target,{x:550,y:100});
  const w=fixture('warrior',{combatOrigin:()=>({x:34,y:44})});const moves=[];w.c.hooks.move=(e,x,y)=>{moves.push({x,y});e.x=x;e.y=y;return false;};w.c.skill(2,{x:134,y:44});assert.equal(moves.length,0);
 });
-test('drain heal event occurs once only for actual healing, including ally overflow',()=>{
- for(const ownerHp of [970,1000]){const f=fixture('witch');f.owner.hp=ownerHp;f.c.projectiles.push({kind:'return',x:10,y:20,speed:300,remaining:Infinity,healing:30});f.advance(.05);const events=f.events.filter(e=>e.name==='drain_heal');assert.equal(events.length,ownerHp===970?1:0);if(events.length)assert.equal(events[0].amount,30);}
- const f=fixture('witch');f.owner.hp=1000;const ally={x:0,y:0,hp:80,maxHp:100};f.c.hooks.allies=()=>[ally];f.c.projectiles.push({kind:'return',x:10,y:20,speed:300,remaining:Infinity,healing:30});f.advance(.05);assert.equal(ally.hp,100);assert.equal(f.events.find(e=>e.name==='drain_heal').amount,20);
+test('life orb heal event reports accepted owner healing only and never ally overflow',()=>{
+ for(const ownerHp of [970,1000]){const f=fixture('witch');f.owner.hp=ownerHp;const ally={hp:80,maxHp:100};f.c.hooks.allies=()=>[ally];f.c.basic({x:200,y:20});const p=f.c.projectiles[0];Object.assign(p,{phase:'return',x:10,y:20,actualDamage:100,healCap:4});f.advance(.05);const events=f.events.filter(e=>e.name==='life_orb_heal');assert.equal(events.length,ownerHp===970?1:0);if(events.length)assert.equal(events[0].amount,4);assert.equal(ally.hp,80);}
 });
 test('eight-way near targets never reverse the hand ray; spawn sweep hits once and rejects behind targets',()=>{
  for(const classId of ['archer','witch'])for(let index=0;index<8;index++){
@@ -57,7 +57,7 @@ test('eight-way near targets never reverse the hand ray; spawn sweep hits once a
   const f=fixture(classId,{combatOrigin:()=>center,attackOrigin:()=>({x:100+forward.x*35,y:100+forward.y*35})});
   const near={x:100+forward.x*18,y:100+forward.y*18,hp:1000,maxHp:1000,radius:1};const behind={x:100-forward.x*4,y:100-forward.y*4,hp:1000,maxHp:1000,radius:1};f.enemies.push(behind,near);
   f.c.basic({aimed:classId==='witch',x:near.x,y:near.y});const p=f.c.projectiles[0];assert.ok(p.direction.x*forward.x+p.direction.y*forward.y>.999999);
-  assert.equal(p.x,100+forward.x*35);f.advance(4);assert.equal(behind.hp,1000);assert.equal(near.hp,classId==='witch'?970:974);assert.equal(f.hits.length,classId==='witch'?3:1);
+  assert.equal(p.x,100+forward.x*35);f.advance(4);assert.equal(behind.hp,1000);assert.equal(near.hp,classId==='witch'?979:974);assert.equal(f.hits.length,1);
  }
 });
 test('normal far ray retains the exact hand-to-target vector',()=>{
