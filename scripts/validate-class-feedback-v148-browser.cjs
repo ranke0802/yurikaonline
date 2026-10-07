@@ -20,8 +20,16 @@ for(const input of ['keyboard','mouse','touch']){
  await page.waitForTimeout(800);
 }
 if(id==='warrior'){
- const healing=await page.evaluate(async()=>{const {p,c}=feedbackQA;const texts=[],original=game.addDamageText;game.addDamageText=(x,y,text,...args)=>{texts.push(text);original.call(game,x,y,text,...args)};
- p.hp=20.7;c.bloodUntil=c.time+8;const damage=c.hooks.damage;c.hooks.damage=(e,n)=>{e.hp-=n;return n};const e={hp:1000},group={};for(const n of [33,33,34])c.skillHit(e,n,{},null,group);const hp=p.hp;await new Promise(r=>setTimeout(r,180));game.addDamageText=original;c.hooks.damage=damage;return{hp,texts}});assert.ok(Math.abs(healing.hp-40.7)<1e-8);assert.ok(healing.texts.includes('+20'));assert.ok(healing.texts.filter(t=>t.startsWith('+')).every(t=>/^\+\d+$/.test(t)));
+ // The popup is batched by simulation time, so wall-clock sleeps can race a
+ // slow CI frame. Keep the HP/text assertions and observe the real popup.
+ const healingHp=await page.evaluate(()=>{const {p,c}=feedbackQA;const texts=[],original=game.addDamageText,damage=c.hooks.damage;
+  feedbackQA.healing={texts,restore(){game.addDamageText=original;c.hooks.damage=damage;}};
+  game.addDamageText=(x,y,text,...args)=>{texts.push(text);original.call(game,x,y,text,...args)};
+  p.hp=20.7;c.bloodUntil=c.time+8;c.hooks.damage=(e,n)=>{e.hp-=n;return n};const e={hp:1000},group={};for(const n of [33,33,34])c.skillHit(e,n,{},null,group);return p.hp;});
+ let healingTexts;
+ try{await page.waitForFunction(()=>feedbackQA.healing.texts.includes('+20'),null,{timeout:5000});healingTexts=await page.evaluate(()=>feedbackQA.healing.texts);}
+ finally{await page.evaluate(()=>feedbackQA.healing.restore());}
+ assert.ok(Math.abs(healingHp-40.7)<1e-8);assert.ok(healingTexts.includes('+20'));assert.ok(healingTexts.filter(t=>t.startsWith('+')).every(t=>/^\+\d+$/.test(t)));
 }
 await page.evaluate(()=>{feedbackQA.c.basicReady=0;feedbackQA.c.rage=100});await page.keyboard.down('j');await page.waitForTimeout(150);await page.evaluate(()=>{feedbackQA.p.classAim=null});await page.waitForFunction(()=>!chargeState(feedbackQA.p));await page.keyboard.up('j');
 await page.evaluate(()=>{feedbackQA.p.startClassAction('ATTACK');feedbackQA.p.isDead=true});await page.waitForFunction(()=>!chargeState(feedbackQA.p));await page.evaluate(()=>{feedbackQA.p.isDead=false;feedbackQA.p.hp=feedbackQA.p.maxHp;feedbackQA.p.initializeClassCombat();feedbackQA.c=feedbackQA.p.classCombat.controller;feedbackQA.c.enemies=()=>[]});
