@@ -54,6 +54,7 @@ jobs:
           node scripts/validate-combat-guidance-v172-browser.cjs
           node scripts/validate-tutorial-hud-v162-browser.cjs
           node scripts/validate-field-text-v163-browser.cjs
+          node scripts/validate-hud-input-v174-browser.cjs
           node scripts/validate-monster-foot-v166-browser.cjs
           node scripts/validate-death-cause-v167-browser.cjs
           node scripts/validate-settings-exit-v168-browser.cjs

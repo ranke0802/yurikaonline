@@ -376,6 +376,8 @@ export default class Player extends CharacterBase {
 
     getClassAimGuide() {
         const a=this.classAim;if(!a)return null;
+        // A Witch tap still fires on release; only its held-attack preview waits.
+        if (this.classId === 'witch' && a.action === 'ATTACK' && a.elapsed < basicChargeSeconds(this)) return null;
         const center=combatCenter(this);
         const angle=Math.atan2(a.y-center.y,a.x-center.x),basic=a.action==='ATTACK';
         let range=Math.min(Math.hypot(a.x-center.x,a.y-center.y),basic?(this.classId==='witch'?560:650):450),width=basic?14:10;
@@ -388,8 +390,7 @@ export default class Player extends CharacterBase {
         }
         if (this.classId==='witch' && basic) {
             const growth=basicAttackProfile(this.classId,this.skillLevels);
-            if (a.elapsed<basicChargeSeconds(this)) { range=560;width=growth.orbRadius;radius=growth.tapRadius; }
-            else { width=growth.orbRadius;radius=growth.orbRadius; }
+            width=growth.orbRadius;radius=growth.orbRadius;
         }
         return {originX:center.x,originY:center.y,targetX:center.x+Math.cos(angle)*range,targetY:center.y+Math.sin(angle)*range,
             widthRadius:width,aoeRadius:radius,circle,exactWidth:this.classId==='warrior',variant:'blue_fireball'};

@@ -10,9 +10,14 @@ try{for(const [name,width,height]of [['portrait',390,844],['landscape',844,390],
   const overlap=(a,b)=>Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))*Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top));
   const zones=Object.fromEntries(selectors.map(s=>[s,rect(s)]).filter(([,r])=>r));
   const font=s=>{const e=document.querySelector(s),r=e.getBoundingClientRect();let scale=1;for(let p=e;p;p=p.parentElement)scale*=game.ui.getElementComputedScale(p);return parseFloat(getComputedStyle(e).fontSize)*scale};
-  return {guide,zones,overlaps:Object.entries(zones).filter(([,r])=>overlap(guide,r)>1).map(([s])=>s),hudOverlap:overlap(zones['.top-bar'],zones['.camp-return'])+overlap(zones['.quest-list-panel'],zones['.camp-return']),font:{quest:font('#active-quest-task'),hp:font('.bar-text'),guide:font('.tutorial-guide-body')},step:game.tutorial.getCurrentStep().id};
- });assert.deepEqual(r.overlaps,[],label);assert.equal(r.hudOverlap,0,label);assert.ok(r.font.quest>=11.9&&r.font.hp>=11.9&&r.font.guide>=12.5,JSON.stringify(r.font));await page.screenshot({path:`${out}/${name}-${label}.png`});return r};
+  const barClips=[...document.querySelectorAll('.bar-text')].flatMap(e=>{const range=document.createRange();range.selectNodeContents(e);const b=e.closest('.bar-bg').getBoundingClientRect();return [...range.getClientRects()].filter(r=>r.width&&r.height&&(r.left<b.left-1||r.right>b.right+1||r.top<b.top-1||r.bottom>b.bottom+1)).map(r=>r.toJSON())});
+  return {guide,zones,barClips,overlaps:Object.entries(zones).filter(([,r])=>overlap(guide,r)>1).map(([s])=>s),hudOverlap:overlap(zones['.top-bar'],zones['.camp-return'])+overlap(zones['.quest-list-panel'],zones['.camp-return']),font:{quest:font('#active-quest-task'),hp:font('.bar-text'),guide:font('.tutorial-guide-body')},step:game.tutorial.getCurrentStep().id};
+ });assert.deepEqual(r.overlaps,[],label);assert.equal(r.hudOverlap,0,label);const minHud=page.viewportSize().width<=1024?10.8:11.9;assert.ok(r.font.quest>=minHud&&r.font.hp>=minHud&&r.font.guide>=12.5,JSON.stringify(r.font));if(page.viewportSize().width<=1024)assert.deepEqual(r.barClips,[],label);await page.screenshot({path:`${out}/${name}-${label}.png`});return r};
  const initial=await inspect('initial');
+ if(width<1024){for(const scale of [.65,1,1.8]){
+  await page.evaluate(scale=>{game.ui.applyUiLayoutControl('hud-top-bar',{left:.015,top:.03,scale});game.ui.applyUiLayoutControl('quest-panel',{left:.015,top:.25,scale});game.ui.refreshTutorialGuideLayout()},scale);
+  await inspect('scale-'+scale);
+ }await page.evaluate(()=>game.ui.applyActiveUiLayout());await inspect('scale-restored');}
  await page.evaluate(()=>{const u=game.ui;u.tutorialGuideManualPosition={stepId:u.tutorialGuideState.stepId,left:12,top:12};u.refreshTutorialGuideLayout()});await inspect('manual-reflow');
  const invariant=await page.evaluate(()=>{const t=game.tutorial,p=game.localPlayer;const state=()=>JSON.stringify({index:t.currentStepIndex,progress:t.progress,completed:[...t.completedTutorials],quests:p.questData,inventory:p.inventory,equipment:p.equipment,hp:p.hp,mp:p.mp});const before=state();for(let i=0;i<20;i++)game.ui.refreshTutorialGuideLayout();return before===state()});assert.equal(invariant,true);
  // Cancel is the real tutorial stop path; re-entry uses the actual start path.

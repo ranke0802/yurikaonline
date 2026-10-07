@@ -95,7 +95,7 @@ const orientation=process.env.QA_SIZE||'portrait',viewport=orientation==='portra
   if(s.id==='archer-aim-cancel'){assert.equal(a.cancelBefore.aim,true);assert.equal(a.actor.classAim,false);assert.equal(a.actor.motion,0);}
   if(s.id==='warrior-barrage-cancel'){assert.equal(a.cancelBefore.barrage,true);assert.equal(a.actor.barrage,false);assert.ok(!a.actor.effects.includes('gwangcheon'));assert.equal(a.actor.motion,1);}
   if(s.id==='wizard-authority-cooldown'){
-   for(const b of a.buttons.filter(b=>b.key!=='k')){assert.equal(b.reason,'동기화 중');assert.equal(b.cooldown,'3.0');assert.equal(b.compact,true);assert.match(b.aria,/몬스터 피해와 상태 반영/);}
+   for(const b of a.buttons.filter(b=>b.key!=='k')){assert.equal(b.reason,b.key==='j'?'':'동기화 중');assert.equal(b.cooldown,'3.0');assert.equal(b.compact,true);assert.match(b.aria,/몬스터 피해와 상태 반영/);}
    assert.equal(a.buttons.find(b=>b.key==='k').reasonRect,null);assert.equal(a.actor.mp,1000);
   }
   if(s.id==='wizard-casting-cooldown'){assert.equal(button.reason,'시전 중');assert.equal(button.cooldown,'3.0');assert.equal(button.compact,true);assert.equal(a.logs.length,1);assert.equal(a.actor.mp,1000);assert.equal(a.actor.fireballAim,false);}

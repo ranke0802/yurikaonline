@@ -15,6 +15,29 @@ test('tap releases exactly once, held attack uses aimed path, cancel clears pend
     p.startClassAction('ATTACK');p.classAim.elapsed=.5;p.releaseClassAction('ATTACK');assert.equal(calls[1].aimed,true);
     p.startClassAction('ATTACK');p.classAim=null;p.releaseClassAction('ATTACK');assert.equal(calls.length,2);
 });
+test('Witch guide starts at exactly .5s without changing tap/held release or leaking into the next touch',()=>{
+    for (const level of [1,4,8]) for (const elapsed of [0,.05,.499,.5,.501,1]) {
+        const {p,calls}=fixture();p.skillLevels.lifeDrain=level;
+        p.startClassAction('ATTACK',{clientX:20,clientY:20});
+        p.moveClassAim({clientX:100,clientY:40});p.classAim.elapsed=elapsed;
+        const before=JSON.stringify(p.classAim);
+        assert.equal(!!p.getClassAimGuide(),elapsed>=.5);
+        assert.equal(JSON.stringify(p.classAim),before,'drawing must not change input');
+        assert.equal(p.releaseClassAction('ATTACK'),true);
+        assert.equal(calls.length,1);assert.equal(calls[0].aimed,elapsed>=.5);
+        assert.equal(p.getClassAimGuide(),null);assert.equal(p.releaseClassAction('ATTACK'),false);
+        p.startClassAction('ATTACK');assert.equal(p.getClassAimGuide(),null);
+        p.classAim=null;assert.equal(p.getClassAimGuide(),null);assert.equal(p.releaseClassAction('ATTACK'),false);
+        assert.equal(calls.length,1,'cancel cannot fire or reuse the previous hold');
+    }
+});
+test('Witch skills and other class guides still appear immediately',()=>{
+    for (const id of ['witch','warrior','archer']) for (const action of ['ATTACK','SKILL_1','SKILL_2','SKILL_3']) {
+        if(id==='witch'&&action==='ATTACK')continue;
+        const {p}=fixture(id);p.startClassAction(action);
+        assert.ok(p.getClassAimGuide(),`${id} ${action}`);
+    }
+});
 test('archer leap has .2-second aimed threshold; touch drag controls direction',()=>{
     const {p,calls}=fixture('archer');p.classCombat.controller.empowered=true;p.startClassAction('ATTACK',{clientX:10,clientY:10});
     p.moveClassAim({clientX:10,clientY:-90});p.classAim.elapsed=.2;p.releaseClassAction('ATTACK');

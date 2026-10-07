@@ -79,12 +79,12 @@ for(const id of Object.keys(BASIC_SKILL_IDS)) for(const level of [1,4,8]) test(`
   for(let n=1;n<approvals.length;n++)assert.ok(approvals[n]-approvals[n-1]>=.2-1e-10);
   assert.ok(approvals.length<=15);
 });
-test('Warrior guide uses collision range/width and Witch tap shows its ranged impact footprint',()=>{
+test('Warrior guide uses collision range/width and Witch only previews a held attack',()=>{
   for(const level of [1,4,8])for(const id of ['warrior','witch']){
     const owner={classId:id,skillLevels:{[BASIC_SKILL_IDS[id]]:level},x:10,y:20,width:48,height:64,classAim:{action:'ATTACK',x:500,y:52,elapsed:0}};
     const growth=basicAttackProfile(id,owner.skillLevels),guide=Player.prototype.getClassAimGuide.call(owner);
     if(id==='warrior'){close(guide.targetX-guide.originX,growth.tap.range);close(guide.widthRadius,growth.tap.halfWidth);}
-    else{assert.equal(guide.circle,false);close(guide.targetX-guide.originX,560);close(guide.widthRadius,growth.orbRadius);close(guide.aoeRadius,growth.tapRadius);}
+    else{assert.equal(guide,null);owner.classAim.elapsed=.5;const held=Player.prototype.getClassAimGuide.call(owner);assert.equal(held.circle,false);close(held.widthRadius,growth.orbRadius);close(held.aoeRadius,growth.orbRadius);}
   }
 });
 test('remote visual packets preserve grown geometry and bound received sizes',t=>{

@@ -29,7 +29,7 @@ export default class FieldHudReadability {
         const inset = side => parseFloat(rootStyle.getPropertyValue('--safe-area-' + side)) || 0;
         const safeRight = inset('right');
         const availableRight = minimap?.width ? minimap.left - 8 : window.innerWidth - safeRight - 12;
-        set('resource-width', `${Math.min(254, Math.max(120, availableRight - resourceLeft))}px`);
+        set('resource-width', `${Math.min(224, Math.max(120, availableRight - resourceLeft))}px`);
         for (const key of ['exit-x', 'exit-y', 'quest-y', 'chat-y']) set(key, '0px');
         document.body.classList.add('field-readable-hud');
         const r = resource.getBoundingClientRect(), e = exit.getBoundingClientRect();
@@ -46,7 +46,12 @@ export default class FieldHudReadability {
         const questTop = quest.getBoundingClientRect().top;
         const safeBottom = inset('bottom');
         // Keep the lower left movement area available. Long text remains scrollable.
-        set('quest-height', `${Math.max(64, Math.min(260, window.innerHeight - questTop - 176 - safeBottom)) / questScale}px`);
+        const questRect = quest.getBoundingClientRect();
+        const controls = [...document.querySelectorAll('.action-buttons .skill-btn, .action-buttons .attack-btn')]
+            .filter(el => el.getClientRects().length).map(el => el.getBoundingClientRect())
+            .filter(r => r.top > questTop && r.left < questRect.right && r.right > questRect.left);
+        const bottom = Math.min(window.innerHeight - 176 - safeBottom, ...controls.map(r => r.top - 8));
+        set('quest-height', `${Math.max(48, Math.min(260, bottom - questTop)) / questScale}px`);
         const chat = document.querySelector('.chat-window');
         if (window.innerHeight > window.innerWidth && chat?.getClientRects().length) {
             const delta = quest.getBoundingClientRect().bottom + 8 - chat.getBoundingClientRect().top;

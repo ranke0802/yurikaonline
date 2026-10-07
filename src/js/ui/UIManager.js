@@ -2789,6 +2789,11 @@ export class UIManager {
         }
         const metrics = getViewportMetrics(document.getElementById('game-viewport'));
         if (metrics.viewportWidth > 1024) return;
+        const resourcePanel = document.querySelector('.top-bar');
+        const minimap = this.getVisibleElementRect('#minimap-container');
+        const resourceLeft = resourcePanel?.getBoundingClientRect().left || 0;
+        const right = minimap?.width ? minimap.left - 8 : window.innerWidth - metrics.safeAreaRight - 12;
+        set(resourcePanel, '--tutorial-resource-width', `${Math.min(224, Math.max(120, right - resourceLeft))}px`);
         const quest = document.querySelector('.quest-list-panel');
         const scale = renderedScale(quest) || 1;
         set(quest, 'width', `${200 / scale}px`);
@@ -2808,6 +2813,7 @@ export class UIManager {
         const contextScale = this.getElementComputedScale(context) || 1;
         const contextTop = context?.getBoundingClientRect().top || 0;
         set(quest, 'top', `${(top - contextTop) / contextScale}px`);
+        set(quest, 'max-height', `${Math.max(64, Math.min(260, window.innerHeight - top - 176 - metrics.safeAreaBottom)) / scale}px`);
         const questRect = quest?.getBoundingClientRect();
         const chat = document.querySelector('.chat-window');
         const chatRect = this.getVisibleElementRect('.chat-window');
@@ -11640,7 +11646,9 @@ export class UIManager {
                 reasonText.className = 'skill-unavailable-reason';
                 btn.appendChild(reasonText);
             }
-            const text = availability.code === 'cooldown' ? '' : availability.text;
+            // Keep transient aiming labels off the controls and the basic attack
+            // unobscured. Full availability remains in the accessible button name.
+            const text = key === 'j' || ['cooldown', 'aim'].includes(availability.code) ? '' : availability.text;
             reasonText.classList.toggle('is-compact', !!availability.compact);
             if (reasonText.textContent !== text) {
                 if (availability.lines && text) {

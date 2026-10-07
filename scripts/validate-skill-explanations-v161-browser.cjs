@@ -46,7 +46,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
  for(const [i,key]of ['j','h','u','k'].entries()){assert.equal(result.labels[key].pointer,result.inputBefore[i]);assert.equal(result.labels[key].disabled,false);}
  if(id==='wizard')for(const k of ['h','u','k'])assert.equal(result.labels[k].text,'MP 부족');
  if(id==='witch')assert.equal(result.labels.u.text,'HP 80% 초과 필요');
- if(id==='warrior')assert.equal(result.labels.j.text,'차지: 분노 25 필요');
+ if(id==='warrior'){assert.equal(result.labels.j.text,'');assert.match(result.labels.j.label,/차지: 분노 25 필요/);}
  if(id==='archer')for(const k of ['j','h','u','k'])assert.equal(result.labels[k].text,'');
  await page.screenshot({path:`${out}/${id}-landscape.png`});
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:`${out}/${id}-portrait.png`});await page.setViewportSize({width:844,height:390});
