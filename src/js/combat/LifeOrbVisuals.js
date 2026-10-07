@@ -2,6 +2,9 @@
 // No procedural or legacy-art fallback while the generated asset is unavailable.
 export const LIFE_ORB_ATLAS = 'assets/resource/effects/life-orb-v177.webp';
 export const LIFE_ORB_METADATA = 'assets/resource/effects/life-orb-v177.json';
+// Display sizes include the atlas's transparent margins, not collision geometry.
+export const LIFE_ORB_DRAW_SIZE = Object.freeze({ outbound: 104, return: 112, healing: 120 });
+export const LIFE_ORB_IMPACT_DURATION = .16;
 export function validLifeOrbAtlas(image) { return image?.width === 1024 && image?.height === 1536; }
 export function validLifeOrbMetadata(metadata) {
     return metadata?.schema === 'life-orb-sprite-atlas-metadata-v1'
@@ -19,15 +22,28 @@ export async function loadLifeOrbVisuals(resources) {
     if (!validLifeOrbAtlas(lifeOrb) || !validLifeOrbMetadata(lifeOrbMetadata)) throw Error('Invalid Life Orb atlas or frame metadata');
     return { lifeOrb, lifeOrbMetadata };
 }
-export function drawLifeOrb(ctx, image, { x, y, age = 0, charge = 0, phase = 'outbound', direction, healing = false }, metadata) {
+export function drawLifeOrb(ctx, image, { x, y, age = 0, charge = 0, phase = 'outbound', direction, healing = false,
+    impactAt = null, reducedEffects = !!globalThis.window?.game?.useReducedEffects }, metadata) {
     if (!validLifeOrbAtlas(image) || !validLifeOrbMetadata(metadata)) return false;
     const row = healing ? 5 : phase === 'return' && charge > 0 ? 4 : Math.min(3, Math.floor(Math.max(0, Math.min(1, charge)) * 3 + 1e-8));
-    const frame = healing ? Math.min(3, Math.floor(age / .1)) : Math.floor(age / .1) % 4;
-    const size = healing ? 76 : phase === 'return' ? 58 : 52;
+    const impactAge = Number.isFinite(impactAt) ? age - impactAt : Infinity;
+    const reacting = !healing && phase !== 'return' && !reducedEffects && impactAge >= 0 && impactAge < LIFE_ORB_IMPACT_DURATION;
+    const punch = reacting ? (1 - impactAge / LIFE_ORB_IMPACT_DURATION) ** 2 : 0;
+    // Hold only the raster animation for 60ms. Travel and combat never pause.
+    const animationAge = reacting && impactAge < .06 ? impactAt : age;
+    const frame = healing ? Math.min(3, Math.floor(age / .1)) : Math.floor(Math.max(0, animationAge) / .1) % 4;
+    const size = LIFE_ORB_DRAW_SIZE[healing ? 'healing' : phase === 'return' ? 'return' : 'outbound'] * (1 + .18 * punch);
     const { sourceRect: rect, pivotPx: pivot } = metadata.frames[row * 4 + frame], scale = size / 256;
     ctx.save(); ctx.translate(x, y);
     if (phase === 'return' && direction) ctx.rotate(Math.atan2(direction.y, direction.x));
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    if (punch > 0) {
+        // The approved raster supplies the glow; no generated shapes or full-screen flash.
+        const alpha = ctx.globalAlpha, glowScale = scale * 1.12;
+        ctx.globalAlpha *= .24 * punch;
+        ctx.drawImage(image, rect.x, rect.y, rect.width, rect.height, -pivot.x * glowScale, -pivot.y * glowScale, size * 1.12, size * 1.12);
+        ctx.globalAlpha = alpha;
+    }
     ctx.drawImage(image, rect.x, rect.y, rect.width, rect.height, -pivot.x * scale, -pivot.y * scale, size, size);
     ctx.restore(); return true;
 }

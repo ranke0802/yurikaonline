@@ -21,7 +21,7 @@
     <meta name="x5-page-mode" content="app">
     <script>
         window.YURIKA_LOCAL_MODE = new URLSearchParams(location.search).get('local') === '1';
-        window.BOOTSTRAP_VERSION = '0.02.177';
+        window.BOOTSTRAP_VERSION = '0.02.178';
         window.GAME_VERSION = window.GAME_VERSION || window.BOOTSTRAP_VERSION;
         window.SERVER_VERSION = window.SERVER_VERSION || null;
 
@@ -436,7 +436,7 @@
                     const resetPerformed = await unregisterLegacyYurikaServiceWorkers();
                     if (resetPerformed) return;
 
-                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.177', { updateViaCache: 'none' });
+                    const registration = await navigator.serviceWorker.register('./sw.js?v=0.02.178', { updateViaCache: 'none' });
                     await registration.update();
                     registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
                     registration.addEventListener('updatefound', () => {
@@ -463,7 +463,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"><\/script>
 
     <!-- Firebase Config -->
-    <script src="src/js/firebaseConfig.js?v=0.02.177"><\/script>
+    <script src="src/js/firebaseConfig.js?v=0.02.178"><\/script>
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Nanum+Gothic:wght@400;700&display=swap"
         rel="stylesheet">
@@ -474,7 +474,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Yurika Online v0.02.177</title>
+    <title>Yurika Online v0.02.178</title>
 
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/immutable/62bcb94a632daa24e23b76e1.png">
     <link rel="icon" type="image/png" sizes="48x48" href="/assets/immutable/f7f376d22a0d4b8a52854500.png">
@@ -499,7 +499,7 @@
             }
         });
     </script>
-    <link rel="stylesheet" href="src/css/style.css?v=0.02.177">
+    <link rel="stylesheet" href="src/css/style.css?v=0.02.178">
     <link rel="stylesheet" href="src/css/camp.css">
     <link rel="stylesheet" href="src/css/opening.css">
     <link rel="stylesheet" href="src/css/combat-polish.css">
@@ -1572,7 +1572,7 @@
         </div>
     </div>
 
-    <script type="module" src="./src/js/main.js?v=0.02.177"></script>
+    <script type="module" src="./src/js/main.js?v=0.02.178"></script>
 
     <!-- Developer Overlay -->
     <div id="dev-overlay" class="dev-overlay hidden">

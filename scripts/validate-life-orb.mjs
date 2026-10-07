@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import Controller from '../src/js/combat/ClassCombatController.js';
 import { lifeOrbProfile, advanceLifeOrb } from '../src/js/combat/LifeOrb.js';
-import { drawLifeOrb, validLifeOrbMetadata, loadLifeOrbVisuals } from '../src/js/combat/LifeOrbVisuals.js';
+import { drawLifeOrb, validLifeOrbMetadata, loadLifeOrbVisuals, LIFE_ORB_DRAW_SIZE } from '../src/js/combat/LifeOrbVisuals.js';
 import { launchLifeOrb } from '../src/js/combat/LifeOrb.js';
 import Bridge from '../src/js/combat/ClassCombatBridge.js';
 import RemoteVisuals from '../src/js/combat/ClassVisuals.js';
@@ -84,13 +84,51 @@ test('missing generated atlas paints nothing; valid atlas uses only image frames
     drawLifeOrb(ctx,image,{x:0,y:0,phase:'return',charge:0},atlasMetadata);
     assert.deepEqual(calls.map(a=>a[2]),[0,256,512,768,1024,1280,0],'a missed orb stays blue during return');
 });
+test('impact is a short raster-only punch; reduced effects and return omit the glow',()=>{
+    const image={width:1024,height:1536};
+    for(const options of [{},{reducedEffects:true},{phase:'return'},{age:.4}]){
+        const calls=[],ctx={globalAlpha:.8,save(){},restore(){},translate(){},rotate(){},drawImage(...a){calls.push({args:a,alpha:this.globalAlpha});}};
+        drawLifeOrb(ctx,image,{x:0,y:0,age:.11,impactAt:.1,charge:1,...options},atlasMetadata);
+        const reacting=Object.keys(options).length===0;
+        assert.equal(calls.length,reacting?2:1);assert.equal(ctx.globalAlpha,.8);
+        assert.ok(calls.every(c=>c.args[0]===image),'only approved image pixels are used');
+        if(reacting){assert.ok(calls[0].alpha<.2);assert.ok(calls[1].args[7]>104&&calls[1].args[7]<123);}
+        else assert.equal(calls[0].args[7],options.phase==='return'?112:104);
+    }
+});
+test('only accepted hits trigger feedback and many simultaneous targets share one audio cadence',()=>{
+    const f=fixture(8),sounds=[],bridge=Object.create(Bridge.prototype);
+    Object.assign(bridge,{controller:f.c,visualEpoch:1,game:{sound:{playClassEvent:(name,data)=>sounds.push({name,id:data.audioId,time:f.c.time})}}});
+    f.c.hooks.lifeOrbImpact=p=>bridge.lifeOrbImpact(p);
+    for(let i=0;i<3;i++)f.enemy(60,i*3);for(let i=0;i<4;i++)f.c.basic();f.advance(5,.01);
+    assert.equal(f.hits.length,36);assert.equal(f.owner.hp,204);
+    assert.ok(sounds.length>=1&&sounds.length<=4,'36 accepted hits do not create 36 voices');
+    assert.ok(sounds.every(s=>s.name==='life_circle'));
+    assert.ok(sounds.slice(1).every((s,i)=>s.time-sounds[i].time>=.18-1e-8));
+    const rejected=fixture();rejected.enemy().rejected=true;rejected.c.hooks.lifeOrbImpact=()=>assert.fail('rejected hit emitted impact');rejected.c.basic();rejected.advance(5);
+});
+test('actual bridge impact snapshots survive network delay without negative atlas frames or remote sound',()=>{
+    const previous=globalThis.window,clock=Date.now;let now=100000;
+    try{
+        Date.now=()=>now;const game={net:{_getCurrentFieldId:()=> 'one'},monsterManager:{worldGeneration:1},sceneManager:{currentScene:{}},sound:{playClassEvent(){assert.fail('remote snapshot played owner audio');}}};globalThis.window={game};
+        const f=fixture();f.enemy(10);f.c.basic();f.advance(.01,.01);
+        const bridge=Object.create(Bridge.prototype);Object.assign(bridge,{owner:f.owner,controller:f.c,visualEpoch:1,visualSequence:0,effects:[],context:captureProjectileWorldContext(game),currentMotion:()=>null});
+        const packet=bridge.visualSnapshot();assert.ok(packet.projectiles[0].impactAge>=0);
+        const remote=new RemoteVisuals(f.owner);remote.classId='witch';now+=30;assert.equal(remote.receive(packet),true);
+        const calls=[],ctx={globalAlpha:1,save(){},restore(){},translate(){},rotate(){},drawImage(...a){calls.push(a);}};
+        assert.equal(drawLifeOrb(ctx,{width:1024,height:1536},remote.projectiles[0],atlasMetadata),true);
+        assert.equal(calls.length,2);assert.ok(calls.every(a=>a.slice(1).every(Number.isFinite)));assert.equal(f.owner.hp,100);
+        now+=200;assert.equal(remote.receive({...packet,sequence:2}),true);calls.length=0;
+        drawLifeOrb(ctx,{width:1024,height:1536},remote.projectiles[0],atlasMetadata);assert.equal(calls.length,1,'expired impact is not replayed');
+    }finally{Date.now=clock;globalThis.window=previous;}
+});
 test('all 24 approved metadata pivots anchor the raster core, including the return trail',()=>{
     assert.equal(validLifeOrbMetadata(atlasMetadata),true);
     const calls=[],ctx={save(){},restore(){},translate(){},rotate(){},drawImage(...args){calls.push(args);}},image={width:1024,height:1536};
     for(const f of atlasMetadata.frames){
         const healing=f.row===5,phase=f.row===4?'return':'outbound',age=(f.column+.01)*.1,charge=f.row===4?1:f.row/3;
         assert.equal(drawLifeOrb(ctx,image,{x:20,y:30,age,charge,phase,healing,direction:{x:-1,y:0}},atlasMetadata),true);
-        const call=calls.at(-1),size=healing?76:phase==='return'?58:52;
+        const call=calls.at(-1),size=LIFE_ORB_DRAW_SIZE[healing?'healing':phase==='return'?'return':'outbound'];
         assert.deepEqual(call.slice(1,5),Object.values(f.sourceRect));
         assert.equal(call[5],-f.pivotPx.x*size/256);assert.equal(call[6],-f.pivotPx.y*size/256);
     }

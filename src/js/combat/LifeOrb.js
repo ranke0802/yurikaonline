@@ -71,6 +71,8 @@ function contacts(c, p) {
         if (c.disposed || !alive(c.owner) || !c.projectiles.includes(p)) return;
         if (actual > 0) {
             p.actualDamage += actual; p.acceptedHits++;
+            p.impactAt = p.age; // Presentation only; never changes collision, damage or travel.
+            c.hooks.lifeOrbImpact?.(p);
             c.queueWeaponChain(e, p.power, p.weapon, p.chainState);
             c.hooks.basicHit?.(e, actual);
         }

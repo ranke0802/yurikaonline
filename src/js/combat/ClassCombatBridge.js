@@ -48,6 +48,7 @@ export default class ClassCombatBridge {
                     this.game?.sound?.playClassEvent?.('sword_wave',{audioId:`${this.visualEpoch}:action:${this.motionSerial}`},{remote:false});
             },
             basicHit: () => { if(classId==='witch') this.game?.tutorial?.trigger?.('attack',{target:'normal'}); },
+            lifeOrbImpact: p => this.lifeOrbImpact(p),
             failure: text=>this.game?.ui?.logCombatFailure?.(text),
             cancelEffect: id=>{this.effects=this.effects.filter(f=>f.id!==id);},
             enemies: () => [...(this.game?.monsterManager?.monsters?.values?.() || [])],
@@ -128,6 +129,14 @@ export default class ClassCombatBridge {
     multipliers(e = this.owner) { return this.controller.multipliers(e); }
     showHealing(e,actual) {
         const label=healingDisplayAmount(actual);if(label>0)this.game?.addDamageText?.(e.x+(e===this.owner?(e.width||48)/2:0),e.y-12,`+${label}`,'#66e38b',false);
+    }
+    lifeOrbImpact(orb) {
+        const now = this.controller.time;
+        // One shared cadence for every orb and target: a crowd cannot stack voices.
+        if (now - (this.lastLifeOrbImpactSound ?? -Infinity) < .18) return;
+        this.lastLifeOrbImpactSound = now;
+        this.game?.sound?.playClassEvent?.('life_circle',
+            { audioId: `${this.visualEpoch}:orb-impact:${orb.id}:${orb.acceptedHits}` }, { remote: false });
     }
     heal(e,amount) {
         const accepted=applyAllocatedHealing(e,amount);
@@ -246,7 +255,7 @@ export default class ClassCombatBridge {
         return {epoch:this.visualEpoch,sequence:++this.visualSequence,ts:Date.now(),fieldId:this.context.fieldId,classId:c.classId,
             motion:this.currentMotion(),
             effects:this.effects.slice(-64).map(f=>({id:f.id,name:f.name,...point(f),target:f.target?point(f.target):null,radius:f.radius||0,range:f.range||0,halfWidth:f.halfWidth||0,pulseCount:f.pulseCount||0,duration:f.duration,age:f.age})),
-            projectiles:c.projectiles.slice(-32).map(p=>{const target=c.attackOrigin(p,'return'),dx=target.x-p.x,dy=target.y-p.y,len=Math.hypot(dx,dy)||1;const d=(p.kind==='return'||p.kind==='life_orb'&&p.phase==='return')?{x:dx/len,y:dy/len}:p.direction;return{kind:p.kind,phase:p.phase,charge:p.charge||0,...point(p),radius:p.radius||0,halfWidth:p.halfWidth||0,halfLength:p.halfLength||0,direction:d,speed:p.speed,remaining:Number.isFinite(p.remaining)?p.remaining:null,age:p.age??c.time};}),
+            projectiles:c.projectiles.slice(-32).map(p=>{const target=c.attackOrigin(p,'return'),dx=target.x-p.x,dy=target.y-p.y,len=Math.hypot(dx,dy)||1;const d=(p.kind==='return'||p.kind==='life_orb'&&p.phase==='return')?{x:dx/len,y:dy/len}:p.direction;return{kind:p.kind,phase:p.phase,charge:p.charge||0,impactAge:Number.isFinite(p.impactAt)?Math.max(0,(p.age||0)-p.impactAt):null,...point(p),radius:p.radius||0,halfWidth:p.halfWidth||0,halfLength:p.halfLength||0,direction:d,speed:p.speed,remaining:Number.isFinite(p.remaining)?p.remaining:null,age:p.age??c.time};}),
             decoy:this.decoy?{...point(this.decoy),remaining:this.decoy.remaining,direction:this.decoy.direction||0,frame:this.decoy.frame||0}:null,badges};
     }
     syncVisuals(force=false) {

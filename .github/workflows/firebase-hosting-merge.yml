@@ -68,6 +68,7 @@ jobs:
           node scripts/validate-combat-feedback-browser.cjs
           node scripts/validate-witch-ranged-browser.cjs
           node scripts/validate-life-orb-visual-browser.cjs
+          node scripts/validate-life-orb-impact-browser.cjs
           node scripts/validate-witch-tutorial-browser.cjs
           node scripts/validate-shield-rush-browser.cjs
           node scripts/validate-warrior-multihit-browser.cjs
@@ -97,6 +98,7 @@ jobs:
           export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
           QA_BASE_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-life-orb-live node scripts/validate-life-orb-visual-browser.cjs
           QA_BASE_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-life-orb-controls-live node scripts/validate-witch-ranged-browser.cjs
+          QA_BASE_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-life-orb-impact-live node scripts/validate-life-orb-impact-browser.cjs
       - name: Verify deployed death cause in isolated local-mode browser profiles
         run: |
           export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
