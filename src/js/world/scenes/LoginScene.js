@@ -1,4 +1,5 @@
 import Scene from '../../core/Scene.js';
+import { installGuideButton } from '../../ui/PlatformGuide.js';
 import Logger from '../../utils/Logger.js';
 
 export default class LoginScene extends Scene {
@@ -60,7 +61,7 @@ export default class LoginScene extends Scene {
         this.loginUI.id = 'login-scene-ui';
         this.loginUI.className = 'scene-overlay yurika-opening';
         const art = this.game.resources.getVersionedResourceUrl('/party-rpg-concept/assets/opening.webp');
-        const version = window.GAME_VERSION || '0.02.181';
+        const version = window.GAME_VERSION || '0.02.182';
 
         this.loginUI.innerHTML = `
             <div class="opening-art" aria-hidden="true"><img src="${art}" alt=""></div>
@@ -77,6 +78,7 @@ export default class LoginScene extends Scene {
         this.loginUI.querySelector('.opening-art').style.setProperty('--opening-art', `url("${art}")`);
 
         document.getElementById('game-container').appendChild(this.loginUI);
+        installGuideButton(this.loginUI.querySelector('.opening-footer'), this.game.ui);
 
         // Bind Events
         document.getElementById('google-login-btn').onclick = () => {
@@ -92,7 +94,9 @@ export default class LoginScene extends Scene {
     setLoginPending(pending, message) {
         if (!this.loginUI) return;
         this.loginUI.querySelectorAll('.opening-button').forEach(button => { button.disabled = pending; });
-        this.loginUI.querySelector('.opening-status').textContent = message;
+        const status = this.loginUI.querySelector('.opening-status');
+        status.textContent = message;
+        status.dataset.state = pending ? 'pending' : 'error';
     }
 
     async authenticate(provider) {

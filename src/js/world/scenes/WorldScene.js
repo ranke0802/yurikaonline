@@ -173,7 +173,8 @@ export default class WorldScene extends Scene {
         const accountProfile = params.profile || null;
         const profile = projectClassProfile(accountProfile);
         const localName = params.localName;
-        this.ui?.showHUD();
+        // Do not show placeholder/stale HP while profile and sprite are loading.
+        this.ui?.hideHUD();
         this.remotePlayers.clear();
         this.monsterManager?.clearAll?.({ preserveNetwork: true });
 
@@ -518,6 +519,12 @@ export default class WorldScene extends Scene {
         this._playZoneBgm(zoneData);
         this._resetProfileIdleSaveTracking();
 
+        this.ui?.updateStats?.(
+            this.player.hp / this.player.maxHp * 100,
+            this.player.mp / this.player.maxMp * 100, this.player.level,
+            this.player.exp / this.player.maxExp * 100
+        );
+        this.ui?.showHUD();
         if (shouldDeferZoneParticipation) {
             this.game.tutorial?.startTutorial?.('basic_training');
         } else {

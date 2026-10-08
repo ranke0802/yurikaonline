@@ -1,0 +1,237 @@
+/* Moonforest UI: presentation only. Saved HUD transforms and raster art are owned
+   by their existing controllers; never scale the world canvas or character art. */
+:root {
+    --ui-ink:#253c36; --ui-muted:#626b60; --ui-paper:#f7f2e7;
+    --ui-surface:#fffcf5; --ui-line:#cfbf9f; --ui-forest:#294b41;
+    --ui-gold:#ad854b; --ui-danger:#924843; --ui-focus:#257b73;
+    --ui-radius:14px; --ui-font:system-ui,-apple-system,'Noto Sans KR',sans-serif;
+}
+:is(.game-popup,.confirm-content,.confirm-modal-content,.inventory-item-modal-card,.friends-floating-card,.friend-gift-picker-sheet,.friend-gift-quantity-sheet,.friend-gift-item-detail-frame) {
+    font-family:var(--ui-font); color:var(--ui-ink); background:var(--ui-paper);
+    border:1px solid var(--ui-line); border-radius:var(--ui-radius);
+    box-shadow:0 14px 42px #122c354d; text-shadow:none;
+}
+#popup-overlay { background:#1329278c; }
+#popup-overlay > .game-popup { border-width:1px; padding:16px; }
+.game-popup .popup-header { margin:0 0 12px; padding:0 0 10px; border-bottom:1px solid var(--ui-line); gap:8px; flex-shrink:0; }
+.game-popup .popup-header h2 { color:var(--ui-ink); font:650 19px/1.35 var(--ui-font); margin:0; letter-spacing:-.4px; }
+.game-popup .popup-footer { margin-top:12px; padding-top:10px; border-top:1px solid #cfbf9f80; flex-shrink:0; }
+:is(.game-popup,.confirm-content,.confirm-modal-content,.inventory-item-modal-card,.friends-floating-modal) button {
+    font-family:var(--ui-font); touch-action:manipulation; cursor:pointer;
+}
+:is(.game-popup,.confirm-content,.confirm-modal-content,.inventory-item-modal-card,.friends-floating-modal) :is(button,input,select):focus-visible {
+    outline:3px solid var(--ui-focus); outline-offset:2px;
+}
+:is(.close-btn-bottom,.confirm-btn,#confirm-yes,#generic-modal-yes,#retry-btn,.friends-primary-action) {
+    min-height:44px; border-radius:10px; border:1px solid var(--ui-forest);
+    background:var(--ui-forest); color:#fff7e7; box-shadow:none;
+    font-size:14px; font-weight:600; padding:10px 20px;
+}
+:is(#confirm-no,#generic-modal-no,.friends-secondary-action,.friends-back-btn) {
+    min-height:44px; border-radius:10px; border:1px solid var(--ui-line);
+    background:var(--ui-surface); color:var(--ui-ink); box-shadow:none; padding:10px 18px; font-size:14px;
+}
+.confirm-buttons,.generic-modal-buttons { gap:12px; }
+.confirm-buttons #confirm-no { order:-1; }
+:is(.game-popup .popup-header .close-popup,.inventory-item-modal-close,.skill-detail-modal-close,.close-history,.friends-icon-action,.friends-icon-ghost) {
+    display:inline-grid !important; place-items:center; flex:0 0 44px;
+    width:44px !important; height:44px !important; min-width:44px; min-height:44px;
+    padding:0; border:1px solid var(--ui-line); border-radius:10px;
+    background:var(--ui-surface); color:var(--ui-ink); font:500 22px/1 var(--ui-font); box-shadow:none;
+}
+:is(.confirm-content,.confirm-modal-content) { padding:22px; }
+:is(.confirm-content,.confirm-modal-content) :is(h2,h3) { color:var(--ui-ink); }
+:is(#confirm-message,#generic-modal-message,#reward-message) { font-size:14px; line-height:1.7; color:var(--ui-ink); overflow-wrap:anywhere; }
+:is(.skill-detail-modal-content,.inventory-item-modal-card) { color:var(--ui-ink); background:var(--ui-paper); border:1px solid var(--ui-line); }
+.skill-detail-modal-header,.inventory-detail-head { padding-right:48px; }
+.skill-detail-modal-content :is(h2,h3,.skill-detail-section-title),.inventory-detail-head h3 { color:var(--ui-ink); }
+.inventory-detail-desc,.inventory-detail-stats,.inventory-detail-meta,.skill-detail-modal-body { font-size:13px; line-height:1.65; color:var(--ui-ink); }
+.inventory-detail-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.inventory-detail-actions button { min-height:44px; padding:9px 14px; border:1px solid var(--ui-line); border-radius:9px; background:var(--ui-surface); color:var(--ui-ink); font-size:13px; }
+.inventory-detail-actions #inventory-action-dismantle { color:var(--ui-danger); }
+#inventory-category-tabs { gap:6px; margin-right:0; }
+#inventory-category-tabs button { width:46px; height:46px; padding:4px; flex-direction:column; gap:1px; border-color:var(--ui-line); background:var(--ui-surface); }
+#inventory-category-tabs button[aria-selected=true] { background:#e4ebde; border-color:var(--ui-forest); box-shadow:inset 0 -2px var(--ui-forest); }
+#inventory-category-tabs .inventory-tab-icon { width:21px; height:21px; filter:none; }
+.inventory-tab-label { font-size:10px; line-height:12px; color:var(--ui-ink); }
+.inventory-count-display { color:var(--ui-muted); background:#eee6d6; border-color:var(--ui-line); font-size:12px; }
+.inventory-grid .grid-item { border-color:#d4c7af; background:#fcf9f2; box-shadow:inset 0 1px #fff; }
+.inventory-grid .grid-item.selected { outline:2px solid var(--ui-gold); }
+.skill-item { border:1px solid #ddd3bf; border-radius:12px; background:var(--ui-surface); box-shadow:none; padding:12px; gap:10px; }
+.skill-item .skill-name { color:var(--ui-ink); font-size:14px; line-height:1.4; }
+.skill-item .skill-desc { color:var(--ui-muted); font-size:12px; line-height:1.5; }
+.skill-item .skill-desc small { display:block; margin-top:4px; font-size:11px; color:#86612e; }
+.skill-item .skill-level { background:#e9deca; color:#675130; border-radius:5px; }
+.skill-item .skill-up-btn { flex:0 0 44px; width:44px !important; height:44px !important; min-width:44px; min-height:44px; border-radius:10px; background:var(--ui-forest); color:#fff7e7; border:1px solid var(--ui-forest); box-shadow:none; font-size:20px; }
+.skill-item .skill-up-btn:disabled { background:#e5e2d9; border-color:#d2cdbf; color:#74776f; font-size:12px; opacity:1; }
+.skill-item .skill-icon { flex-shrink:0; border-radius:10px; }
+.skill-manastone-info,.stat-point-info { color:var(--ui-ink); border-color:var(--ui-line); background:#ece6d7; }
+#status-popup .status-stats-grid { border-top:1px solid var(--ui-line); gap:14px; }
+#status-popup .stat-row-ui { height:auto; min-height:54px; padding:5px 8px; gap:8px; background:var(--ui-surface); border:1px solid #e1d7c5; font-size:13px; }
+#status-popup .stat-value-container { gap:8px; }
+#status-popup .stat-controls-row { width:94px; min-width:94px; gap:6px; }
+#status-popup :is(.stat-up-btn,.stat-down-btn) { flex:0 0 44px; width:44px; height:44px; min-width:44px; min-height:44px; padding:0; border:1px solid var(--ui-line); border-radius:9px; font-size:20px; background:var(--ui-forest); color:#fff7e7; box-shadow:none; }
+#status-popup .stat-down-btn { background:var(--ui-surface); color:var(--ui-ink); }
+#status-popup :is(.stat-up-btn,.stat-down-btn).disabled { background:#e5e2d9; border-color:#d2cdbf; color:#82857e; }
+#status-popup :is(.stat-value,.info-name,.exp-label) { color:var(--ui-ink); }
+#status-popup .stat-derived { font-size:12px; line-height:1.7; }
+.settings-section { background:var(--ui-surface); border:1px solid #ddd3bf; border-radius:12px; padding:14px; }
+.settings-section h3 { color:var(--ui-ink); font-size:14px; margin:0 0 12px; }
+.settings-row { min-height:44px; gap:12px; }
+.settings-row :is(label,span),.settings-select { font-family:var(--ui-font); }
+.settings-row > :is(label,span) { font-size:13px; color:var(--ui-ink); }
+.settings-control input[type=range] { min-height:44px; accent-color:var(--ui-forest); }
+.settings-switch { min-height:44px; display:flex; align-items:center; }
+.settings-switch-slider { top:8px; bottom:8px; }
+.settings-help-text { color:var(--ui-muted); font-size:12px; line-height:1.65; }
+.settings-actions button,.settings-section button { min-height:44px; font-size:13px; border-radius:9px; }
+.friends-search-card,.friends-detail-card,.friends-list-card,.friends-message-card,.friends-sidebar,.friends-chat-card { background:var(--ui-surface); border-color:var(--ui-line); color:var(--ui-ink); box-shadow:none; }
+.friends-empty,.friends-status,.friend-thread-empty { color:var(--ui-muted); font-size:13px; line-height:1.6; }
+:is(.friends-small-action,.friends-danger-action,.friend-gift-kind-btn,.friend-gift-claim-btn) { min-height:44px; border-radius:9px; font-size:13px; }
+.friends-danger-action { color:var(--ui-danger); }
+/* Readable field surfaces; retain every existing compact dimension and transform. */
+#ui-layer :is(.top-bar,.quest-list-panel,.chat-window,#minimap-container) { border-color:#cfbd918c; box-shadow:0 2px 8px #112f2850; }
+#ui-layer .chat-window { background:#1d3930e8; }
+#ui-layer .chat-header { background:#183127ed; color:#f4ebd7; border-color:#cfbd9150; }
+#ui-layer .chat-messages { background:transparent; }
+#ui-layer .chat-messages :is(.chat-text,.chat-name) { text-shadow:0 1px 2px #091c16; }
+#ui-layer .minimap-header,#ui-layer .minimap-footer { background:#183127df; color:#fff0cd; text-shadow:0 1px 2px #000; }
+#ui-layer .minimap-menu .menu-btn { border-radius:9px; background:#203f35ee; border-color:#cfbd9180; box-shadow:0 2px 6px #112f2860; color:#fff2d3; }
+.menu-caption { display:block; font:600 10px/1.1 var(--ui-font); color:#fff2d3; text-shadow:0 1px 2px #10291f; }
+body.ui-default-menu #ui-layer .minimap-menu { gap:6px !important; }
+body.ui-default-menu #ui-layer .minimap-menu .menu-btn { box-sizing:border-box; width:54px !important; height:54px !important; min-width:54px; flex:0 0 54px; display:flex; flex-direction:column; justify-content:center; gap:3px; padding:4px; }
+body.ui-default-menu #ui-layer .minimap-menu .menu-icon { font-size:23px; line-height:25px; }
+body:not(.ui-default-menu) .menu-caption { display:none; }
+.camp-sheet { background:var(--ui-paper); border:1px solid var(--ui-line); color:var(--ui-ink); border-radius:var(--ui-radius); }
+#camp-scene :is(.camp-primary,.camp-secondary,.camp-back,.camp-quiet) { min-height:44px; }
+#camp-scene .camp-primary { background:var(--ui-forest); color:#fff3d5; border-color:var(--ui-gold); border-radius:10px; box-shadow:0 3px 10px #152a2530; }
+#camp-scene .camp-secondary,#camp-scene .camp-back { background:var(--ui-surface); color:var(--ui-ink); border-color:var(--ui-line); border-radius:9px; }
+#camp-scene .camp-header p { font-size:12px; }
+#camp-scene .camp-save-label { font-size:11px; line-height:1.5; }
+#camp-scene .camp-quiet { font-size:11px !important; }
+#camp-scene .camp-sheet .camp-management button { min-height:44px; font-size:12px !important; }
+#camp-scene .camp-sheet .camp-profile p,#camp-scene .camp-sheet .camp-detail { font-size:12px; }
+#camp-scene .camp-sheet .camp-stats dt { font-size:11px; }
+#camp-scene .camp-nav { min-height:54px; }
+#camp-scene .camp-nav button { min-height:44px; font-size:12px !important; }
+#camp-scene .camp-nav button small { font-size:10px; }
+.camp-save-state { max-width:min(440px,calc(100% - 24px)); background:#294b41f5; color:#fff4db; border-color:#d8b772; font-size:13px; }
+.camp-save-state button,.local-save-notice button { min-height:44px; }
+.yurika-opening .opening-button { min-height:44px; border-radius:10px; font-family:var(--ui-font); }
+.yurika-opening .opening-status { min-height:20px; padding:8px 10px; border-radius:8px; background:#16322bbf; font-size:13px; }
+.yurika-opening .opening-status[data-state=error] { background:#652e30ed; color:#fff5df; }
+.platform-guide-button { min-height:44px; padding:8px 10px; border:1px solid #c7b38580; border-radius:8px; background:#203e34e6; color:#fff0d0; font:12px/1.4 var(--ui-font); cursor:pointer; }
+.opening-footer .platform-guide-button { margin-top:8px; width:100%; }
+#settings-install-guide .platform-guide-button { background:var(--ui-surface); color:var(--ui-ink); border-color:var(--ui-line); }
+/* Fullscreen feedback is inline in Settings, never above play/login actions. */
+#settings-display-help #android-display-notice { position:static; inset:auto; transform:none; z-index:auto; margin:10px 0 0; width:auto; max-height:none; max-width:none; padding:10px; color:var(--ui-ink); background:#ece5d5; border-color:var(--ui-line); font:12px/1.6 var(--ui-font); pointer-events:auto; }
+#settings-display-help #android-display-notice span { flex-basis:100%; }
+#settings-display-help #android-display-notice button { background:var(--ui-surface); color:var(--ui-ink); border-color:var(--ui-line); }
+.history-unavailable { padding:16px; border:1px solid var(--ui-line); border-radius:10px; background:var(--ui-surface); font-size:14px; line-height:1.7; }
+.history-unavailable button { min-height:44px; padding:8px 16px; border:1px solid var(--ui-line); background:var(--ui-forest); color:#fff7e7; border-radius:9px; }
+@media(max-width:600px) and (orientation:portrait) {
+    #status-popup .status-stats-grid { grid-template-columns:1fr; }
+    #camp-scene .camp-sheet { top:36%; }
+    #camp-scene .camp-character-sheet { top:30%; }
+    #camp-scene .camp-result { top:22%; }
+    #camp-scene .camp-account { max-width:66%; gap:4px; }
+    #camp-scene .camp-save-label { padding:5px 7px; }
+    #camp-scene .camp-header { gap:6px; }
+    .yurika-opening .opening-footer { bottom:max(14px,env(safe-area-inset-bottom)); }
+}
+@media(max-height:500px) and (orientation:landscape) {
+    #popup-overlay > .game-popup { padding:10px 14px; }
+    .game-popup .popup-header { margin-bottom:8px; padding-bottom:6px; }
+    .game-popup .popup-header h2 { font-size:17px; }
+    .game-popup .popup-footer { margin-top:8px; padding-top:6px; }
+    .skill-item { padding:8px; }
+    #camp-scene .camp-sheet { top:max(64px,env(safe-area-inset-top)); bottom:calc(var(--camp-bottom) + 62px); padding:8px 12px; gap:5px; }
+    #camp-scene .camp-character-sheet > .camp-management { flex-shrink:0; }
+    #camp-scene .camp-sheet-header { padding-bottom:4px; }
+    #camp-scene .camp-sheet-actions { padding-top:5px; }
+    #camp-scene .camp-sheet .camp-profile p { font-size:11px; }
+    #camp-scene .camp-sheet .camp-management { gap:5px; }
+    #camp-scene .camp-sheet .camp-management button { font-size:11px !important; }
+    .yurika-opening .opening-footer { left:auto; right:max(20px,env(safe-area-inset-right)); width:min(44vw,340px); bottom:max(12px,env(safe-area-inset-bottom)); }
+    .yurika-opening .opening-brand { max-width:44%; }
+    .yurika-opening .opening-status { margin-bottom:6px; font-size:12px; }
+    .yurika-opening .opening-actions { gap:6px; }
+    .opening-footer .platform-guide-button { margin-top:6px; }
+}
+@media(prefers-reduced-motion:reduce) { .game-popup,.confirm-content,.confirm-modal-content,.camp-sheet { animation:none !important; transition:none !important; } }
+
+/* Keep actual hit areas inside the scrolling sheet, including legacy mobile rules. */
+button,[role=button],.menu-btn { -webkit-tap-highlight-color:transparent; }
+#popup-overlay > .game-popup .popup-header { border-bottom:1px solid var(--ui-line) !important; }
+#popup-overlay > .game-popup .popup-header h2 { font-size:19px !important; }
+#popup-overlay > .game-popup .popup-header .close-popup { width:44px !important; height:44px !important; flex:0 0 44px !important; }
+#popup-overlay > .game-popup .close-btn-bottom { min-height:44px !important; background:var(--ui-forest) !important; color:#fff7e7 !important; box-shadow:none !important; }
+#skill-popup .skill-point-info { color:var(--ui-ink) !important; background:#ece6d7 !important; border:1px solid var(--ui-line) !important; font-size:14px !important; }
+.skill-item .skill-desc small[hidden] { display:none !important; }
+body.ui-default-menu #ui-layer .minimap-menu { display:grid !important; grid-template-columns:repeat(5,54px) !important; width:max-content !important; max-width:none !important; }
+body.ui-default-menu #ui-layer .minimap-menu .menu-btn { background:#203f35f5 !important; border:1px solid #cfbd9180 !important; }
+#status-popup .status-content-wrapper { display:flex !important; flex-direction:column !important; min-height:0 !important; overflow:hidden !important; gap:0 !important; }
+#status-popup .status-scroll-region { min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; flex:1 1 auto; padding-right:3px; }
+#status-popup .status-top { display:grid !important; grid-template-columns:72px minmax(0,1fr) !important; gap:12px !important; margin-bottom:14px; }
+#status-popup .status-portrait { width:72px !important; height:72px !important; }
+#status-popup .status-basic-info p { font-size:12px !important; line-height:1.5 !important; }
+#status-popup :is(#player-name-edit-btn,#player-name-save-btn) { min-width:44px !important; min-height:44px !important; font-size:12px !important; margin-left:0 !important; }
+#status-popup .link-google-btn { min-height:44px !important; font-size:12px !important; color:var(--ui-forest) !important; background:var(--ui-surface) !important; border-color:var(--ui-line) !important; }
+#status-popup :is(.exp-label,.exp-remaining) { font-size:12px !important; line-height:1.5 !important; }
+#status-popup .status-stats-grid { display:grid !important; grid-template-columns:minmax(0,1fr) !important; height:auto !important; min-height:0 !important; overflow:visible !important; gap:12px !important; padding:0 !important; }
+#status-popup :is(.stat-main,.stat-derived) { display:flex !important; flex-direction:column !important; gap:6px !important; height:auto !important; overflow:visible !important; padding:0 !important; background:transparent !important; }
+#status-popup .stat-point-info { font-size:13px !important; padding:9px; border-radius:8px; }
+#status-popup .stat-row-ui { min-height:54px !important; padding:5px 8px !important; gap:6px !important; }
+#status-popup .stat-row-ui label { font-size:12px !important; line-height:1.4 !important; }
+#status-popup .stat-controls-row { width:94px !important; min-width:94px !important; gap:6px !important; }
+#status-popup .stat-controls-row button { width:44px !important; height:44px !important; font-size:20px !important; }
+#status-popup .stat-value { min-width:20px !important; font-size:14px !important; }
+#status-popup .derived-row { min-height:28px !important; font-size:12px !important; padding:3px 6px !important; }
+#status-popup .reset-actions .reset-btn { min-height:44px !important; font-size:12px !important; }
+#status-popup .popup-footer { flex-shrink:0 !important; margin-top:8px !important; padding-top:8px !important; border-top:1px solid var(--ui-line) !important; }
+#camp-scene .camp-sheet .camp-class-choices { grid-template-columns:repeat(4,minmax(0,1fr)); margin:10px 0; }
+#camp-scene .camp-class-choices button[aria-pressed=true] { background:#dce7d9; border-color:var(--ui-forest); color:var(--ui-forest); }
+#camp-scene .camp-sheet-body { flex:1 1 auto; }
+@media(min-width:600px) and (orientation:landscape) {
+    #status-popup .status-scroll-region { display:grid; grid-template-columns:minmax(160px,.7fr) minmax(290px,1fr); align-items:start; gap:16px; }
+    #status-popup .status-top { grid-template-columns:50px minmax(0,1fr) !important; gap:8px !important; }
+    #status-popup .status-portrait { width:50px !important; height:64px !important; }
+    #status-popup .reset-actions { grid-column:1/-1; }
+}
+
+#status-popup :is(.status-top,.status-stats-grid,.stat-main,.stat-derived,.reset-actions) { grid-area:auto !important; width:auto !important; max-width:none !important; min-width:0 !important; }
+#status-popup .status-basic-info { width:auto !important; min-width:0 !important; max-width:none !important; }
+@media(min-width:600px) and (orientation:landscape) { #status-popup .reset-actions { grid-column:1/-1 !important; } }
+
+#status-popup .status-portrait { border:1px solid var(--ui-line) !important; border-radius:10px !important; box-shadow:none !important; image-rendering:pixelated; }
+#status-popup .link-google-btn { box-shadow:none !important; font-weight:500; }
+#skill-popup { height:auto !important; max-height:calc(100dvh - 32px) !important; }
+#skill-popup .skill-content-wrapper { flex:0 1 auto; min-height:0; }
+#skill-popup .skill-list { min-height:0; overflow:auto; overscroll-behavior:contain; }
+
+#popup-overlay > #friends-popup { border-radius:var(--ui-radius) !important; }
+#friends-popup::before { background:var(--ui-paper) !important; border-radius:inherit !important; }
+#friends-popup :is(.friends-app-sidebar,.friends-app-main,.friends-search-result-card) { background:var(--ui-surface); border-color:var(--ui-line); border-radius:10px; }
+#friends-popup :is(.friends-list-title-block strong,.friends-floating-title,.friends-section-label) { color:var(--ui-ink); }
+#friends-popup :is(.friends-app-title-block p,.friends-list-title-block span,.friend-thread-empty,.friends-detail-empty) { color:var(--ui-muted); font-size:13px; line-height:1.6; }
+#friends-popup .friends-list-header { border-color:var(--ui-line); }
+#friends-popup .friends-floating-card { background:var(--ui-paper); border-color:var(--ui-line); border-radius:var(--ui-radius); }
+#friends-popup :is(input,.friends-search-inline input) { min-height:44px; box-sizing:border-box; border:1px solid var(--ui-line); background:var(--ui-surface); color:var(--ui-ink); font-size:14px; }
+#friends-popup :is(.friends-icon-ghost,.friends-icon-action,.friends-back-btn) { min-width:44px !important; min-height:44px !important; width:44px !important; height:44px !important; flex:0 0 44px !important; }
+#friends-popup :is(.friends-primary-action,.friends-secondary-action,.friends-danger-action) { min-height:44px !important; }
+#friends-popup .friends-primary-action { color:#fff7e7; background:var(--ui-forest); border-color:var(--ui-forest); }
+#friends-popup .friends-floating-body { min-height:0; overflow:auto; overscroll-behavior:contain; }
+
+/* Layout controllers measure these synchronously after rotating. Interpolating
+   width/padding while measuring made quest/chat bounds depend on frame timing. */
+body.chat-sized-hud #ui-layer :is(.top-bar,.quest-list-panel,.quest-item,.chat-window) { transition:opacity .15s,background-color .15s !important; }
+#popup-overlay > #friends-popup { background:var(--ui-paper) !important; }
+
+.settings-control select { min-height:44px; min-width:44px; border:1px solid var(--ui-line); color:var(--ui-ink); background:var(--ui-surface); }
+/* Search keeps its confirmation inside short landscape sheets. */
+#friends-add-modal .friends-floating-card { box-sizing:border-box; max-height:calc(100% - 16px); overflow:hidden; }
+#friends-add-modal .friends-floating-body { flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain; }
+#friends-add-modal :is(.friends-floating-header,.friends-floating-actions) { flex-shrink:0; }
+#ui-layer .chat-window { background:#1d3930e8 !important; }
+#ui-layer .chat-messages { color:#fff4df; }
+#ui-layer .chat-messages .chat-text { color:#fff4df; }
