@@ -5,7 +5,7 @@ const {auditFrames,assertFrameAudit}=require('./render-frame-tests/frame-audit.c
 const arg=name=>process.argv.find(a=>a.startsWith(`--${name}=`))?.slice(name.length+3);
 const mode=arg('mode')||'matrix',fault=arg('fault')||'exception';
 assert.ok(['matrix','fault','ab'].includes(mode));
-assert.ok(['exception','omit','state'].includes(fault));
+assert.ok(['exception','omit','state','summon-hp'].includes(fault));
 const root=path.resolve(__dirname,'..'),version=fs.readFileSync(path.join(root,'version.txt'),'utf8').trim();
 const base=process.env.QA_BASE_URL||'http://127.0.0.1:8100';
 assert.ok(['127.0.0.1','localhost','[::1]'].includes(new URL(base).hostname),'Run isolated loopback diagnostics only.');

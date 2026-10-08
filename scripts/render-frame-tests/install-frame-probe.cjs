@@ -15,6 +15,12 @@ function installFrameProbe({fault='none'}={}) {
         finally{entry.after=state();}
     };
     const owned=(owner,fn)=>{const previous=probe.owner;probe.owner=owner;try{return fn()}finally{probe.owner=previous}};
+    // The identity/HP UI is now painted by the shared WorldScene pass, outside
+    // ClassCombatBridge.render. Attribute its actual Canvas calls by geometry.
+    const summonPlate=a=>{
+        const width=Math.ceil(ctx.measureText('내 소환수').width)+24;
+        return{x:Math.round(a.x-width/2),y:Math.round(a.y-(a.visual.renderHeight||a.visual.height||a.height||64)/2-28)};
+    };
     const wrap=(object,method,key,owner,body)=>{const original=object[method];object[method]=function(...args){
         return pass(key,()=>owned(owner,()=>body?body(original,this,args):original.apply(this,args)));
     }};
@@ -45,19 +51,26 @@ function installFrameProbe({fault='none'}={}) {
             const result=original(...args),owner=probe.owner;
             if(owner?.kind==='monster'&&args[0]===owner.entity.name)event(`${owner.key}:name:${method}`);
             if(owner?.kind==='hud'&&args[0]===p.name)event(`player:name:${method}`);
+            if(method==='fillText'&&args[0]==='내 소환수')for(const a of p.classCombat.actors){
+                const plate=summonPlate(a);
+                if(args[1]===plate.x+18&&args[2]===plate.y+9.5)event(`summon:${a.id}:label`);
+            }
             return result;
         };
     }
     const fillRect=ctx.fillRect.bind(ctx);ctx.fillRect=(...args)=>{
+        const summon=p.classCombat.actors.find(a=>{
+            const plate=summonPlate(a);
+            return (args[0]===plate.x&&args[1]===plate.y+21&&args[3]===5)
+                ||(args[0]===plate.x+1&&args[1]===plate.y+22&&args[3]===3);
+        });
+        if(summon&&probe.fault==='summon-hp'&&probe.callbackIndex%2===0)return;
         const result=fillRect(...args),owner=probe.owner;
         if(owner?.kind==='monster'&&owner.hud&&args[0]===owner.hud.hpX&&args[1]===owner.hud.hpY&&args[3]===6)
             event(`${owner.key}:hp`);
         if(owner?.kind==='hud'&&(ctx.fillStyle==='#4ade80'||ctx.fillStyle==='#ef4444'))event('player:hp');
         if(owner?.kind==='hud'&&ctx.fillStyle==='#48dbfb')event('player:mp');
-        if(owner?.kind==='summons')for(const a of p.classCombat.actors){
-            const y=a.y-(a.visual.renderHeight||a.visual.height)/2-8;
-            if(args[0]===a.x-20&&args[1]===y&&args[3]===4)event(`summon:${a.id}:hp`);
-        }
+        if(summon)event(`summon:${summon.id}:hp`);
         return result;
     };
     const monsterOwners=[];
@@ -93,7 +106,7 @@ function installFrameProbe({fault='none'}={}) {
         const events={'player:body':1,'player:name:fillText':1,'player:name:strokeText':1,'player:hp':1,'player:mp':1};
         const monsters=[...g.monsterManager.monsters.values()].filter(m=>visible(m)&&m.deathTimer<m.deathDuration);
         for(const m of monsters){const key=`monster:${m.id}`;passes.push(key);Object.assign(events,{[`${key}:body`]:1,[`${key}:name:fillText`]:1,[`${key}:name:strokeText`]:1,[`${key}:hp`]:2})}
-        for(const a of p.classCombat.actors)if(a.hp>0&&!a.isDead){events[`summon:${a.id}:body`]=1;events[`summon:${a.id}:hp`]=2;}
+        for(const a of p.classCombat.actors)if(a.hp>0&&!a.isDead){events[`summon:${a.id}:body`]=1;events[`summon:${a.id}:hp`]=2;events[`summon:${a.id}:label`]=1;}
         return{passes,events,visibleIds:monsters.map(m=>m.id)};
     };
     const render=g.loop.renderFn;g.loop.renderFn=()=>{
