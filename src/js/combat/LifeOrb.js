@@ -25,7 +25,7 @@ export function launchLifeOrb(c, { aimed = false, x, y } = {}, weapon = null) {
         phase: 'outbound', age: 0, direction: c.projectileDirection(origin, point),
         launchCenter: center, forward: c.direction(point), spawnSweep: c.launchSweep(origin, point),
         target, weapon, chainState: {}, homing: !aimed, radius: profile.radius, speed: profile.speed, remaining: profile.range,
-        hits: new Map(), acceptedHits: 0, actualDamage: 0, charge: 0,
+        hits: new Map(), returnHits: new Set(), acceptedHits: 0, actualDamage: 0, charge: 0,
         power: attack * profile.hitMultiplier * (1 + (weapon?.damageBonus || 0)),
         healCap: Math.ceil(attack * profile.healMultiplier), finished: false };
     // Reserve before notifying UI/tutorial/audio hooks, including reentrant input.
@@ -55,6 +55,34 @@ function finish(c, p, arrived) {
 function recall(p) {
     p.phase = 'return'; p.homing = false; p.speed = p.profile.returnSpeed; p.remaining = Infinity;
 }
+function acceptHit(c, p, e, meta) {
+    const actual = c.hit(e, p.power, { lifeOrb: true, orbId: p.id, ...meta });
+    if (c.disposed || !alive(c.owner) || !c.projectiles.includes(p)) return;
+    if (actual > 0) {
+        // Both legs share the original per-orb healing budget and chain guard.
+        p.actualDamage += actual; p.acceptedHits++;
+        p.impactAt = p.age;
+        c.hooks.lifeOrbImpact?.(p);
+        c.queueWeaponChain(e, p.power, p.weapon, p.chainState);
+        c.hooks.basicHit?.(e, actual);
+    }
+    p.charge = Math.min(1, p.acceptedHits / p.profile.maxHits);
+}
+function returnContacts(c, p, from, to) {
+    const dx = to.x - from.x, dy = to.y - from.y, length2 = dx * dx + dy * dy;
+    // Sweep the entire segment, including the last snap to the owner. Each orb
+    // independently permits one return contact per enemy, separate from outbound caps.
+    for (const e of c.enemies()) {
+        if (c.disposed || !alive(c.owner) || p.finished || !c.projectiles.includes(p)) return;
+        const key = e.id ?? e;
+        if (p.returnHits.has(key) || distance(e, p.launchCenter) > p.profile.range) continue;
+        const t = length2 ? Math.max(0, Math.min(1, ((e.x-from.x)*dx + (e.y-from.y)*dy) / length2)) : 0;
+        const closest = { x: from.x + dx*t, y: from.y + dy*t };
+        if (distance(e, closest) > (e.radius || 16) + p.radius || c.drainPathBlocked(closest, e, p.radius)) continue;
+        p.returnHits.add(key); // Reserve before reentrant damage/audio callbacks.
+        acceptHit(c, p, e, { orbPhase: 'return', orbHit: 1 });
+    }
+}
 function contacts(c, p) {
     for (const e of c.enemies()) {
         if (c.disposed || !alive(c.owner) || p.finished || !c.projectiles.includes(p)) return;
@@ -67,16 +95,7 @@ function contacts(c, p) {
         const hit = record || { count: 0, next: 0 };
         p.hits.set(key, hit); hit.count++; hit.next = p.age + p.profile.hitInterval;
         if (p.afterContact === undefined) { p.afterContact = p.profile.followThrough; p.homing = false; p.speed = p.profile.contactSpeed; }
-        const actual = c.hit(e, p.power, { lifeOrb: true, orbId: p.id, orbHit: hit.count });
-        if (c.disposed || !alive(c.owner) || !c.projectiles.includes(p)) return;
-        if (actual > 0) {
-            p.actualDamage += actual; p.acceptedHits++;
-            p.impactAt = p.age; // Presentation only; never changes collision, damage or travel.
-            c.hooks.lifeOrbImpact?.(p);
-            c.queueWeaponChain(e, p.power, p.weapon, p.chainState);
-            c.hooks.basicHit?.(e, actual);
-        }
-        p.charge = Math.min(1, p.acceptedHits / p.profile.maxHits);
+        acceptHit(c, p, e, { orbPhase: 'outbound', orbHit: hit.count });
     }
 }
 export function advanceLifeOrb(c, p, dt) {
@@ -91,10 +110,13 @@ export function advanceLifeOrb(c, p, dt) {
         p.age += step;
         if (p.phase === 'return') {
             const origin = c.attackOrigin(p, 'return'), dist = distance(p, origin);
-            if (dist <= p.speed * step + 8) { finish(c, p, true); break; }
-            p.direction = { x: (origin.x - p.x) / dist, y: (origin.y - p.y) / dist };
-            p.x += p.direction.x * p.speed * step; p.y += p.direction.y * p.speed * step;
-            continue; // Return passes walls; it never damages anything.
+            const from = { x: p.x, y: p.y }, arrived = dist <= p.speed * step + 8;
+            if (dist) p.direction = { x: (origin.x - p.x) / dist, y: (origin.y - p.y) / dist };
+            p.x = arrived ? origin.x : p.x + p.direction.x * p.speed * step;
+            p.y = arrived ? origin.y : p.y + p.direction.y * p.speed * step;
+            returnContacts(c, p, from, p);
+            if (arrived) { finish(c, p, true); break; }
+            continue; // Travel still passes walls; target contact retains wall checks.
         }
         if (p.spawnSweep) {
             const sweep = p.spawnSweep; delete p.spawnSweep;

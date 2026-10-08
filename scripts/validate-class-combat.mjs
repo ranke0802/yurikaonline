@@ -16,9 +16,9 @@ function fixture(id) {
     const advance = seconds => { for(let t=0;t<seconds-1e-8;t+=.05) c.update(Math.min(.05,seconds-t)); };
     return {c,owner,enemies,allies,events,dismissed,packets,add,advance};
 }
-test('Witch orb travels, applies three bounded hits and returns its ATK healing budget', () => {
+test('Witch orb travels, applies three outbound hits and one return hit and returns its ATK healing budget', () => {
     const f=fixture('witch'), e=f.add(); f.owner.hp=500;
-    assert.equal(f.c.basic(),true); assert.equal(e.hp,10000); f.advance(4); assert.equal(e.hp,9811); assert.equal(f.owner.hp,511);
+    assert.equal(f.c.basic(),true); assert.equal(e.hp,10000); f.advance(4); assert.equal(e.hp,9748); assert.equal(f.owner.hp,511);
 });
 test('orb overkill limits recovery and never distributes excess to allies', () => {
     const f=fixture('witch'), e=f.add({hp:40}); f.owner.hp=995; const ally={hp:80,maxHp:100}; f.allies.push(ally);
@@ -83,5 +83,5 @@ test('rejected poison cannot add slow or stun, no frame-rate stacking', () => {
 });
 test('small ATK uses per-hit damage while the per-orb heal ceiling remains independent',()=>{
     const f=fixture('witch');f.add();f.owner.attackPower=5;f.owner.hp=500;f.c.basic({aimed:true,x:200,y:0});f.advance(4);
-    assert.deepEqual(f.packets.map(p=>p.amount),[4,4,4]);assert.equal(f.owner.hp,501);
+    assert.deepEqual(f.packets.map(p=>p.amount),[4,4,4,4]);assert.equal(f.owner.hp,501);
 });

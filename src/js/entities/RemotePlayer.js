@@ -1,6 +1,7 @@
 import {advanceWizardAttack,drawWizardAttack} from '../combat/WizardAttackFrames.js';
 import { preloadMonsterSkillVfxAssets } from '../effects/MonsterSkillVfxRenderer.js';
 import { drawSummonAbilities } from '../combat/SummonAbilityVisuals.js';
+import { readSummonBerserkDeadline } from '../combat/SummonBerserkStatus.js';
 import { advanceAuthoredGait, classRuntimePath } from '../combat/AuthoredCharacterFrames.js';
 import RemoteClassVisuals from '../combat/ClassVisuals.js';
 import CharacterBase from './core/CharacterBase.js';
@@ -222,7 +223,12 @@ export default class RemotePlayer extends CharacterBase {
             this.activeClassId = packet.activeClassId;
             this._loadSpriteSheet(this.resourceManager);
         }
-        if (Array.isArray(packet.classSummons)) this.classSummons = packet.classSummons.slice(0,3).filter(e => e && typeof e.id === 'string' && e.id.startsWith(`summon:${this.id}:`) && Number.isFinite(e.x) && Number.isFinite(e.y) && e.hp > 0).map(e => ({...e,ownerId:this.id,isSummon:true}));
+        if (Array.isArray(packet.classSummons)) {
+            const serverNow = globalThis.window?.game?.net?.getServerNow?.() ?? Date.now();
+            this.classSummons = packet.classSummons.slice(0,3)
+                .filter(e => e && typeof e.id === 'string' && e.id.startsWith(`summon:${this.id}:`) && Number.isFinite(e.x) && Number.isFinite(e.y) && e.hp > 0)
+                .map(e => ({...e,ownerId:this.id,isSummon:true,berserkUntil:readSummonBerserkDeadline(e.berserkUntil,serverNow)}));
+        }
         const now = Date.now();
 
         // Update profile fields (v0.00.70: 조기 반환 이전에 처리)

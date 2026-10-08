@@ -35,7 +35,7 @@ for(const level of [1,4,8]) test(`level ${level}: charged damage and collision s
   witch.enemy(40,0,{radius:30});witch.c.basic({aimed:true,x:500,y:0});
   close(witch.c.projectiles[0].radius,wg.orbRadius);
   witch.owner.skillLevels.lifeDrain=1;witch.advance(3.4);
-  assert.equal(witch.hits.filter(h=>h.m.lifeOrb).reduce((n,h)=>n+h.n,0),3*Math.ceil(100*lifeOrbProfile(level).hitMultiplier));
+  assert.equal(witch.hits.filter(h=>h.m.lifeOrb).reduce((n,h)=>n+h.n,0),4*Math.ceil(100*lifeOrbProfile(level).hitMultiplier));
   const warrior=fixture('warrior',level);warrior.enemy();warrior.c.rage=25;
   warrior.c.basic({aimed:true,x:400,y:0});assert.equal(warrior.hits.length,0);warrior.advance(.3);assert.equal(warrior.hits[0].n,Math.ceil(350*g.damageMultiplier));assert.equal(warrior.c.rage,0);
 });

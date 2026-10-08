@@ -2,6 +2,7 @@ import { monsterHudSafeWorldViewport, readMonsterHudSafeViewport } from '../../u
 import { layoutMonsterHud } from '../../ui/MonsterHudLayout.js';
 import MonsterDamageNumbers from '../../ui/MonsterDamageNumbers.js';
 import { drawSummonIdentity, summonRelationship } from '../../ui/SummonIdentity.js';
+import { drawSummonBerserk, summonBerserkRemaining } from '../../combat/SummonBerserkStatus.js';
 import { enforceBarrageLock } from '../../combat/BarrageLock.js';
 import { projectClassProfile, attachClassProfile } from '../../core/ClassProfiles.js';
 import Scene from '../../core/Scene.js';
@@ -1797,12 +1798,21 @@ export default class WorldScene extends Scene {
         this.player?.classCombat?.render(ctx, this.camera);
         // A shared UI pass keeps local/remote summon labels above enemy bodies.
         for (const actor of this.player?.classCombat?.actors || []) {
-            if (this.isOnScreen(actor)) drawSummonIdentity(ctx, actor, actor.visual, 'owned');
+            if (this.isOnScreen(actor)) {
+                drawSummonIdentity(ctx, actor, actor.visual, 'owned');
+                drawSummonBerserk(ctx, actor, actor.visual,
+                    summonBerserkRemaining(this.player.classCombat.controller, actor) > 0, this.player.classCombat.images.status);
+            }
         }
+        const summonServerNow = this.game.net?.getServerNow?.() ?? Date.now();
         for (const owner of this.remotePlayers.values()) {
             const relationship = summonRelationship(this.player, owner);
             for (const actor of owner.classSummons || []) {
-                if (this.isOnScreen(actor)) drawSummonIdentity(ctx, actor, owner.summonVisuals?.get(actor.id), relationship);
+                if (this.isOnScreen(actor)) {
+                    const visual = owner.summonVisuals?.get(actor.id);
+                    drawSummonIdentity(ctx, actor, visual, relationship);
+                    drawSummonBerserk(ctx, actor, visual, !owner.isDead && owner.hp > 0 && actor.berserkUntil > summonServerNow, owner.classVisuals?.images.status);
+                }
             }
         }
         this.projectiles.forEach(p => {

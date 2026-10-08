@@ -1,4 +1,5 @@
 import { normalizeClassId, projectClassProfile } from './ClassProfiles.js';
+import { summonBerserkDeadline } from '../combat/SummonBerserkStatus.js';
 import Logger from '../utils/Logger.js';
 import EventEmitter from './EventEmitter.js';
 import { DURABLE_BOSS_REWARD_ARCHIVED_CATALOGS } from './DurableBossRewardPolicy.js';
@@ -2062,13 +2063,15 @@ export default class NetworkManager extends EventEmitter {
     }
 
     _buildClassSummonSnapshot(player) {
+        const now = this.getServerNow?.() ?? Date.now();
         return (Array.isArray(player?.classCombat?.actors) ? player.classCombat.actors : [])
             .filter(actor => !actor.isDead && actor.hp > 0).slice(0, 3).map(actor => ({
                 id: String(actor.id), typeId: String(actor.typeId), ownerId: this.playerId,
                 x: Number(actor.x) || 0, y: Number(actor.y) || 0,
                 hp: Math.max(0, Number(actor.hp) || 0), maxHp: Math.max(1, Number(actor.maxHp) || 1),
                 width: Math.max(1, Number(actor.width) || 32), height: Math.max(1, Number(actor.height) || 32),
-                abilities: actor.abilities?.snapshot() || null
+                abilities: actor.abilities?.snapshot() || null,
+                berserkUntil: summonBerserkDeadline(player.classCombat.controller, actor, now)
             }));
     }
 

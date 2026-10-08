@@ -128,7 +128,7 @@ for(const c of WEAPON_CLASSES){
  test(`${c} basic damage/restore are applied only on accepted hits; launch snapshots survive equipment change`,()=>{
   const f=c==='witch'?combat(c,'riftcore'):combat(c,'magic','crimson_flash_'+c),e=f.enemy(),bonus=f.p.getWeaponCombatProfile(),power=100*(1+bonus.laserDamageBonus);
   if(c==='warrior'){f.controller.basic({x:100,y:0});assert.equal(f.hits[0].n,Math.ceil(power));}
-  else if(c==='witch'){f.controller.basic({aimed:true,x:100,y:0});f.p.equipment.weapon=null;f.tick(4);assert.ok(f.hits.length>=1&&f.hits.length<=3);assert.ok(f.hits.every(h=>h.n===Math.ceil(power*.7)));}
+  else if(c==='witch'){f.controller.basic({aimed:true,x:100,y:0});f.p.equipment.weapon=null;f.tick(4);const outgoing=f.hits.filter(h=>h.meta.orbPhase==='outbound');assert.ok(outgoing.length>=1&&outgoing.length<=3);assert.equal(f.hits.filter(h=>h.meta.orbPhase==='return').length,1);assert.ok(f.hits.every(h=>h.n===Math.ceil(power*.7)));}
   else {f.controller.arrow({x:100,y:0});const projectile=f.controller.projectiles[0];f.p.equipment.weapon=null;f.controller.resolveProjectileHit(projectile,e);if(c==='witch')f.tick(3.01);assert.equal(f.hits.reduce((s,h)=>s+h.n,0),Math.ceil(power*(c==='archer'?.85:1)));}
   assert.equal(f.p.hp,c==='witch'?512:500+bonus.restoreHpPerLaserHit);
   const blocked=combat(c);blocked.enemy();blocked.controller.hooks.damage=()=>0;blocked.controller.basic({x:100,y:0});blocked.tick(1);assert.equal(blocked.p.hp,500);

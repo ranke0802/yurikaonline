@@ -16,7 +16,7 @@ try{for(const [layout,width,height,dpr] of [['desktop',1280,800,1],['portrait',3
   for(let i=0;i<3;i++){const e=new Monster(p.x+p.width/2+150,p.y+p.height/2+(i-1)*10,await game.monsterData.loadDefinition('slime'));await e.init(e.assetPath);e.id=`impact-${i}`;e.isLocalOnly=true;e.defense=0;e.behavior.passive=true;e.update=()=>{};enemies.push(e);game.monsterManager.monsters.set(e.id,e);}
   const originalDamage=c.hooks.damage,originalSound=game.sound.playClassEvent.bind(game.sound),originalDraw=game.ctx.drawImage.bind(game.ctx);
   window.impactTest={p,b,c,enemies,hits:[],sounds:[],draws:0};
-  c.hooks.damage=(e,n,meta)=>{const actual=originalDamage(e,n,meta);if(actual>0&&meta.lifeOrb)impactTest.hits.push({target:e.id,orb:meta.orbId,hit:meta.orbHit,damage:actual,time:c.time});return actual;};
+  c.hooks.damage=(e,n,meta)=>{const actual=originalDamage(e,n,meta);if(actual>0&&meta.lifeOrb)impactTest.hits.push({target:e.id,orb:meta.orbId,hit:meta.orbHit,phase:meta.orbPhase,damage:actual,time:c.time});return actual;};
   game.sound.playClassEvent=(name,data,options)=>{const accepted=originalSound(name,data,options);if(name==='life_circle')impactTest.sounds.push({time:c.time,accepted});return accepted;};
   game.ctx.drawImage=(...args)=>{if(args[0]===b.images.lifeOrb)impactTest.draws++;return originalDraw(...args);};
  });
@@ -32,12 +32,12 @@ try{for(const [layout,width,height,dpr] of [['desktop',1280,800,1],['portrait',3
     const begin=performance.now();game.sceneManager.render(game.ctx);times.push(performance.now()-begin);maxDraws=Math.max(maxDraws,q.draws);const arrivals=b.effects.filter(e=>e.name==='life_orb_heal').length;maxArrivals=Math.max(maxArrivals,arrivals);maxExtraDraws=Math.max(maxExtraDraws,q.draws-c.orbSlots().active-arrivals);
    }
    for(let i=0;i<600&&c.projectiles.length;i++)b.update(1/60);
-   times.sort((a,b)=>a-b);const groups={};for(const h of q.hits)(groups[`${h.orb}:${h.target}`]??=[]).push(h);
+   times.sort((a,b)=>a-b);const groups={};for(const h of q.hits)(groups[`${h.orb}:${h.target}:${h.phase}`]??=[]).push(h);
    return{mode,launches,maxActive,maxDraws,maxExtraDraws,maxArrivals,hits:q.hits,groups,sounds:q.sounds,hp:p.hp,slots:c.orbSlots(),hitstop:game.loop.hitstopTimer,frameP50:times[120],frameP95:times[228],maxFrame:times.at(-1),zoom:game.zoom};
   },mode);
   assert.equal(result.maxActive,4);assert.equal(result.slots.active,0);assert.equal(result.hitstop,0);
   assert.ok(result.launches>=8);assert.ok(result.hits.length>=36);assert.ok(result.hits.every(h=>h.damage===105));
-  for(const hits of Object.values(result.groups)){assert.ok(hits.length<=3);assert.ok(hits.slice(1).every((h,i)=>h.time-hits[i].time>=.24));}
+  for(const hits of Object.values(result.groups)){assert.ok(hits.length<=(hits[0].phase==='return'?1:3));assert.ok(hits.slice(1).every((h,i)=>h.time-hits[i].time>=.24));}
   assert.ok(result.hp<=500+26*result.launches,'enlarged artwork cannot increase the healing budget');
   assert.ok(result.sounds.length>0);assert.ok(result.sounds.slice(1).every((s,i)=>s.time-result.sounds[i].time>=.18-1e-8));
   if(['muted','silent'].includes(mode))assert.ok(result.sounds.every(s=>!s.accepted));

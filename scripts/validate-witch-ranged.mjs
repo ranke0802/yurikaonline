@@ -14,7 +14,7 @@ for(let level=1;level<=8;level++)test(`Lv.${level}: slow physical orb grows per-
  assert.equal(p.target,e);assert.equal(p.radius,g.radius);assert.equal(p.speed,180);assert.equal(f.c.orbSlots().maximum,Math.ceil(level/2));
  f.step(1);assert.ok(p.x>0&&p.x<e.x);assert.equal(f.hits.length,0);assert.equal(f.owner.hp,500);
  f.step(1.2);assert.equal(f.hits.length,3);assert.ok(f.hits.every(h=>h.n===Math.ceil(100*g.hitMultiplier)));assert.equal(f.owner.hp,500);
- f.step(3);assert.equal(f.owner.hp,500+Math.ceil(100*g.healMultiplier));assert.equal(f.hits.length,3);assert.equal(f.c.orbSlots().active,0);
+ f.step(3);assert.equal(f.owner.hp,500+Math.ceil(100*g.healMultiplier));assert.equal(f.hits.length,4);assert.equal(f.c.orbSlots().active,0);
 });
 test('tap homes to the nearest living target; hold retains the chosen straight path',()=>{
  const f=setup(),near=f.enemy(150);f.enemy(300);f.c.basic();const p=f.c.projectiles[0];assert.equal(p.target,near);

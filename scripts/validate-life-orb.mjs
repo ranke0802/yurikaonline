@@ -43,7 +43,7 @@ test('contact pulses at most three times, continues forward, then returns faster
 });
 test('many targets and overkill cannot multiply healing; only the owner receives the budget', () => {
     const f=fixture(8);for(let i=0;i<20;i++)f.enemy(60,i-10);f.c.basic();f.advance(4);
-    assert.ok(f.hits.length<=9);assert.equal(new Set(f.hits.map(h=>h.id)).size,3);assert.equal(f.owner.hp,126);
+    const outgoing=f.hits.filter(h=>h.meta.orbPhase==='outbound'),returning=f.hits.filter(h=>h.meta.orbPhase==='return');assert.ok(outgoing.length<=9);assert.equal(new Set(outgoing.map(h=>h.id)).size,3);assert.equal(returning.length,20);assert.equal(new Set(returning.map(h=>h.id)).size,20);assert.equal(f.owner.hp,126);
     const tiny=fixture();tiny.enemy(60,0,1);tiny.c.basic();tiny.advance(4);assert.equal(tiny.owner.hp,100);
 });
 test('miss, blocked damage, target death, range and wall hits all release without free HP', () => {
@@ -69,7 +69,7 @@ test('simulation pause freezes travel and reservations; a new controller restore
 });
 test('damage and healing are consistent at 20Hz and 4Hz', () => {
     const results=[.05,.25].map(dt=>{const f=fixture(8);f.enemy();f.c.basic({aimed:true,x:300,y:0});f.advance(6,dt);return{damage:f.hits.reduce((n,h)=>n+h.n,0),hp:f.owner.hp,slots:f.c.orbSlots()};});
-    assert.deepEqual(results[0],results[1]);assert.equal(results[0].damage,315);
+    assert.deepEqual(results[0],results[1]);assert.equal(results[0].damage,420);
 });
 test('reservation exists before reentrant launch callbacks, and disposal in damage stops the volley', () => {
     const f=fixture();let nested;f.c.hooks.action=()=>{nested=f.c.basic();};assert.equal(f.c.basic(),true);assert.equal(nested,false);
@@ -101,8 +101,8 @@ test('only accepted hits trigger feedback and many simultaneous targets share on
     Object.assign(bridge,{controller:f.c,visualEpoch:1,game:{sound:{playClassEvent:(name,data)=>sounds.push({name,id:data.audioId,time:f.c.time})}}});
     f.c.hooks.lifeOrbImpact=p=>bridge.lifeOrbImpact(p);
     for(let i=0;i<3;i++)f.enemy(60,i*3);for(let i=0;i<4;i++)f.c.basic();f.advance(5,.01);
-    assert.equal(f.hits.length,36);assert.equal(f.owner.hp,204);
-    assert.ok(sounds.length>=1&&sounds.length<=4,'36 accepted hits do not create 36 voices');
+    assert.equal(f.hits.length,48);assert.equal(f.owner.hp,204);
+    assert.ok(sounds.length>=1&&sounds.length<=4,'48 accepted hits do not create 48 voices');
     assert.ok(sounds.every(s=>s.name==='life_circle'));
     assert.ok(sounds.slice(1).every((s,i)=>s.time-sounds[i].time>=.18-1e-8));
     const rejected=fixture();rejected.enemy().rejected=true;rejected.c.hooks.lifeOrbImpact=()=>assert.fail('rejected hit emitted impact');rejected.c.basic();rejected.advance(5);
@@ -144,7 +144,7 @@ test('invalid or missing frame metadata prevents loading and rendering instead o
     }
 });
 for(const level of [1,4,8])for(const fps of [4,20,60,144])test(`Lv.${level} ${fps}Hz input flood never exceeds capacity or banks releases`,()=>{
-    const f=fixture(level);f.enemy();let launches=0;
+    const f=fixture(level);f.enemy(60,0,1e7);let launches=0;
     for(let frame=0;frame<fps*8;frame++){
         for(let burst=0;burst<20;burst++)if(f.c.basic())launches++;
         assert.ok(f.c.orbSlots().active<=Math.ceil(level/2));f.advance(1/fps,1/fps);
@@ -165,8 +165,8 @@ test('real network damage acceptance sends one unique packet per pulse and rejec
         const packets=[],bridge=Object.create(Bridge.prototype);
         Object.assign(bridge,{owner:f.owner,hitSerial:0,visualEpoch:1,game:{net:{playerId:'owner',sendMonsterDamage:(...args)=>{packets.push(args);return accepted;}},monsterManager:{isMonsterCombatBlocked:()=>false}}});
         f.c.hooks.damage=(...args)=>bridge.damage(...args);f.c.basic();f.advance(5);
-        assert.equal(packets.length,3);assert.equal(new Set(packets.map(p=>p[2].classHitId)).size,3);
-        assert.ok(packets.every(p=>p[2].lifeOrb&&p[2].orbId===1));assert.equal(e.hp,accepted?9790:10000);
+        assert.equal(packets.length,4);assert.equal(new Set(packets.map(p=>p[2].classHitId)).size,4);assert.equal(packets.filter(p=>p[2].orbPhase==='return').length,1);
+        assert.ok(packets.every(p=>p[2].lifeOrb&&p[2].orbId===1));assert.equal(e.hp,accepted?9720:10000);
         assert.equal(f.owner.hp,accepted?112:100);assert.equal(f.heals.length,accepted?1:0);
     }
 });
