@@ -60,7 +60,7 @@ export default class LoginScene extends Scene {
         this.loginUI.id = 'login-scene-ui';
         this.loginUI.className = 'scene-overlay yurika-opening';
         const art = this.game.resources.getVersionedResourceUrl('/party-rpg-concept/assets/opening.webp');
-        const version = window.GAME_VERSION || '0.02.179';
+        const version = window.GAME_VERSION || '0.02.180';
 
         this.loginUI.innerHTML = `
             <div class="opening-art" aria-hidden="true"><img src="${art}" alt=""></div>

@@ -150,7 +150,7 @@ html {
     height: 100%;
     display: block;
     /* Remove inline-block gap */
-    image-rendering: auto;
+    image-rendering: pixelated;
 }
 
 #ui-layer {

@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 const fs = require('node:fs'), cp = require('node:child_process'), assert = require('node:assert/strict');
 const OUT = process.env.QA_OUTPUT || '/tmp/yurika-display-quality';
 const baseline = process.env.QA_BASELINE_REF;
-const changed = new Set(['/src/css/style.css', '/src/js/main.js', '/src/js/core/Sprite.js', '/src/js/core/ResourceManager.js', '/src/js/entities/Player.js', '/src/js/entities/RemotePlayer.js', '/src/js/ui/FieldHudReadability.js', ...['AuthoredCharacterFrames', 'WizardAttackFrames', 'ShieldRush'].map(n => `/src/js/combat/${n}.js`)]);
+const changed = new Set(['/src/css/style.css', '/src/js/main.js', '/src/js/core/CharacterFrameRenderer.js', '/src/js/core/Sprite.js', '/src/js/core/ResourceManager.js', '/src/js/entities/Player.js', '/src/js/entities/RemotePlayer.js', '/src/js/ui/FieldHudReadability.js', ...['AuthoredCharacterFrames', 'WizardAttackFrames', 'ShieldRush'].map(n => `/src/js/combat/${n}.js`)]);
 fs.mkdirSync(OUT, { recursive: true });
 const report = { scope: 'Local Chromium desktop/retina/mobile emulation; screenshots at device DPR, raster-flushed synthetic character load, no live accounts or physical-device FPS claim', baseline: baseline || null, cases: [], errors: [] };
 (async () => {
@@ -62,8 +62,8 @@ const report = { scope: 'Local Chromium desktop/retina/mobile emulation; screens
                 assert.equal(data.canvas.width, Math.round(data.canvas.cssWidth * data.dpr));
                 assert.equal(data.canvas.height, Math.round(data.canvas.cssHeight * data.dpr));
                 if (!baseline) {
-                    assert.equal(data.canvas.imageRendering, 'auto');
-                    assert.ok(data.draws.every(d => d.smoothing && d.quality === 'high'), `${name}/${classId}: character reductions filter original frames`);
+                    assert.equal(data.canvas.imageRendering, 'pixelated');
+                    assert.ok(data.draws.every(d => !d.smoothing), `${name}/${classId}: character pixels retain nearest sampling`);
                     assert.ok(data.hud.fonts.every(f => f.px <= data.hud.chat + .2), JSON.stringify(data.hud));
                     assert.deepEqual(data.hud.clips, [], `${name}/${classId}: default number clipping`);
                 }

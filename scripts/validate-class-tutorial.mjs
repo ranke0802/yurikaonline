@@ -8,4 +8,9 @@ for(const id of ['witch','warrior','archer'])test(`${id}: correct tap/hold guida
  assert.equal(find('inspect_laser_detail').focus.targets[0].skillId,basic.id);assert.equal(find('upgrade_laser').highlightTarget,`#skill-up-${basic.id}`);assert.doesNotMatch(JSON.stringify(result),/체인 라이트닝|#skill-item-laser|#skill-up-laser/);
  assert.deepEqual(result.steps.map(s=>[s.id,s.trigger,s.allowedActions]),source.steps.map(s=>[s.id,s.trigger,s.allowedActions]));
 });
-test('Mage tutorial and unrelated tutorials remain unchanged',()=>{assert.equal(classTutorial(source,'wizard'),source);const other={id:'other'};assert.equal(classTutorial(other,'witch'),other)});
+test('Mage combat teaching and unrelated tutorials remain unchanged',()=>{
+ const result=classTutorial(source,'wizard');
+ assert.deepEqual(result.steps.filter(s=>s.id!=='preview_status_change'),source.steps.filter(s=>s.id!=='preview_status_change'));
+ assert.equal(JSON.stringify(source),original);
+ const other={id:'other'};assert.equal(classTutorial(other,'witch'),other);
+});

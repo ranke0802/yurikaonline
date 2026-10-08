@@ -1,6 +1,7 @@
 import { monsterHudSafeWorldViewport, readMonsterHudSafeViewport } from '../../ui/MonsterHudSafeViewport.js';
 import { layoutMonsterHud } from '../../ui/MonsterHudLayout.js';
 import MonsterDamageNumbers from '../../ui/MonsterDamageNumbers.js';
+import { drawSummonIdentity, summonRelationship } from '../../ui/SummonIdentity.js';
 import { enforceBarrageLock } from '../../combat/BarrageLock.js';
 import { projectClassProfile, attachClassProfile } from '../../core/ClassProfiles.js';
 import Scene from '../../core/Scene.js';
@@ -1671,6 +1672,7 @@ export default class WorldScene extends Scene {
             return;
         }
 
+        this.ui?.syncCombatHud?.();
         ctx.save();
         const scale = this.game.zoom * this.game.dpr;
         ctx.scale(scale, scale);
@@ -1793,6 +1795,16 @@ export default class WorldScene extends Scene {
 
         // Effect Layers
         this.player?.classCombat?.render(ctx, this.camera);
+        // A shared UI pass keeps local/remote summon labels above enemy bodies.
+        for (const actor of this.player?.classCombat?.actors || []) {
+            if (this.isOnScreen(actor)) drawSummonIdentity(ctx, actor, actor.visual, 'owned');
+        }
+        for (const owner of this.remotePlayers.values()) {
+            const relationship = summonRelationship(this.player, owner);
+            for (const actor of owner.classSummons || []) {
+                if (this.isOnScreen(actor)) drawSummonIdentity(ctx, actor, owner.summonVisuals?.get(actor.id), relationship);
+            }
+        }
         this.projectiles.forEach(p => {
             if (this.isOnScreen(p)) {
                 p.render(ctx, this.camera);

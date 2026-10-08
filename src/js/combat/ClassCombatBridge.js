@@ -239,11 +239,7 @@ export default class ClassCombatBridge {
         for(const a of this.actors) if(alive(a)&&a.visual.sprite) {const v=a.visual; v.sprite.draw(ctx,v.usesV2Atlas?v.animationRow:0,v.frame,a.x-(v.renderWidth||v.width)/2,a.y-(v.renderHeight||v.height)/2,v.renderWidth||v.width,v.renderHeight||v.height);}
         for(const a of this.actors)if(alive(a))drawSummonAbilities(ctx,a,a.abilities?.snapshot(),'foreground');
         renderForegroundEffects(this,ctx);
-        for(const a of this.actors) if(alive(a)) {
-            const width=40,y=a.y-(a.visual.renderHeight||a.visual.height)/2-8;
-            ctx.fillStyle='#1c2430';ctx.fillRect(a.x-width/2,y,width,4);
-            ctx.fillStyle='#85dc8d';ctx.fillRect(a.x-width/2,y,width*Math.max(0,a.hp/a.maxHp),4);
-        }
+        // Summon identity/HP is painted after all bodies by WorldScene.
         for(const e of [this.owner,...this.controller.enemies(),...this.actors,...this.allies()])this.renderStatus(ctx,e);
     }
     visualSnapshot() {

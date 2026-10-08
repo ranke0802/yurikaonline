@@ -5,7 +5,7 @@ import CampScene from './world/scenes/CampScene.js';
 import LocalAuthManager from './local/LocalAuthManager.js';
 import LocalNetworkManager from './local/LocalNetworkManager.js';
 import { getViewportMetrics } from './core/ViewportMetrics.js';
-window.RUNTIME_BUILD_VERSION = '0.02.179'; // Synced with version.txt
+window.RUNTIME_BUILD_VERSION = '0.02.180'; // Synced with version.txt
 window.GAME_VERSION = window.RUNTIME_BUILD_VERSION;
 import GameLoop from './core/GameLoop.js';
 import InputManager from './core/InputManager.js';
@@ -57,12 +57,12 @@ class Game {
         this.lowPowerPwaMode = false;
         this.maxMobileDpr = 1.5;
 
-        // World sprites retain their sampling; character renderers filter reductions.
+        // Preserve pixel edges in both the backing canvas and its CSS display.
         this.ctx.imageSmoothingEnabled = false;
         this.ctx.webkitImageSmoothingEnabled = false;
         this.ctx.mozImageSmoothingEnabled = false;
         this.ctx.msImageSmoothingEnabled = false;
-        this.canvas.style.imageRendering = 'auto';
+        this.canvas.style.imageRendering = 'pixelated';
         this.zoom = 1.0;
         this.performanceTelemetry = this.createPerformanceTelemetryState();
         this._backgroundedAt = 0;
@@ -620,13 +620,13 @@ class Game {
         this.canvas.style.width = displayWidth + 'px';
         this.canvas.style.height = displayHeight + 'px';
 
-        // Keep world sampling unchanged. Character renderers choose their own filter;
-        // CSS must not add another nearest-neighbor upscale at a capped mobile DPR.
+        // Resizing resets context state. Restore nearest sampling, including the
+        // final CSS upscale when the mobile backing DPR is capped.
         this.ctx.imageSmoothingEnabled = false;
         this.ctx.webkitImageSmoothingEnabled = false;
         this.ctx.mozImageSmoothingEnabled = false;
         this.ctx.msImageSmoothingEnabled = false;
-        this.canvas.style.imageRendering = 'auto';
+        this.canvas.style.imageRendering = 'pixelated';
         if (backingChanged) this.paintResizeFallback();
 
         if (this.loop) {

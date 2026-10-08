@@ -7,6 +7,7 @@ import { classArtPath } from '../combat/AuthoredCharacterFrames.js';
 import AndroidDisplayController from './AndroidDisplayController.js';
 import { CLASS_NAMES } from '../core/ClassProfiles.js';
 import { getClassAttackPower } from '../core/ClassAttackStats.js';
+import { classStatInsight } from '../core/ClassGrowthGuidance.js';
 import { classWeaponDetailLines } from '../core/ClassWeapons.js';
 import { CLASS_SKILL_UI, MAGE_SKILL_IDS, basicAttackUpgradeDetails, warriorBarrageUpgradeDetails, shieldRushUpgradeDetails, classSkillIds, classSkillMaxLevel } from './ClassSkillUI.js';
 import Logger from '../utils/Logger.js';
@@ -9090,7 +9091,7 @@ export class UIManager {
             { key: 'intelligence', text: '적에게 치명적인 강력한 일격을 가할 수 있을 것 같다' },
             { key: 'wisdom', text: '정신적으로 여유가 생기고 더 빠르게 회복되는게 느껴진다. 침착하게 공격할 수 있게 됐다.' },
             { key: 'agility', text: '몸이 가볍다. 움직임이 민첩해지고, 적의 빈틈을 더 정확하고 빠르게 노릴 수 있게 됐다' }
-        ];
+        ].map(insight => ({ ...insight, text: classStatInsight(this.game.localPlayer?.classId, insight.key) || insight.text }));
     }
 
     getStatInsightLabel(statKey) {
@@ -11545,6 +11546,42 @@ export class UIManager {
         this.refreshDesktopShortcutHints();
     }
 
+    // Called before painting the world. Compare cached display values first:
+    // unchanged frames do no DOM work, while damage/returns are visible that frame.
+    syncCombatHud() {
+        const p = this.game.localPlayer;
+        if (!p) return;
+        const last = this.lastHudSnapshot;
+        const exp = p.maxExp > 0 ? p.exp / p.maxExp * 100 : 0;
+        if (this._combatHudPlayer !== p || !last
+            || last.hpCur !== String(Math.floor(p.hp)) || last.hpMax !== String(p.maxHp)
+            || last.mpCur !== String(Math.floor(p.mp)) || last.mpMax !== String(p.maxMp)
+            || last.level !== String(p.level) || last.exp !== Number(exp).toFixed(2)) {
+            this._combatHudPlayer = p;
+            this.updateStats(p.maxHp > 0 ? p.hp / p.maxHp * 100 : 0,
+                p.maxMp > 0 ? p.mp / p.maxMp * 100 : 0, p.level, exp);
+        }
+        if (p.classId === 'witch') this.updateLifeOrbCount(p);
+        else this._lifeOrbHud = null;
+    }
+
+    updateLifeOrbCount(player, force = false) {
+        const slots = player.classCombat?.controller.orbSlots();
+        const available = slots?.available ?? 0, maximum = slots?.maximum ?? 1;
+        const last = this._lifeOrbHud;
+        if (!force && last?.player === player && last.available === available && last.maximum === maximum) return;
+        const { button, overlay, timeText } = this.getCooldownRefs('j');
+        if (!button) return;
+        this._lifeOrbHud = { player, available, maximum };
+        const count = `${available}/${maximum}`, label = `생명의 구슬 ${count}`;
+        if (timeText && timeText.textContent !== count) timeText.textContent = count;
+        if (button.classList.contains('disabled') !== !available) button.classList.toggle('disabled', !available);
+        if (button.getAttribute('aria-label') !== label) button.setAttribute('aria-label', label);
+        if (overlay && overlay.dataset.cdAngle !== '0') {
+            overlay.style.setProperty('--cd-angle', '0deg'); overlay.dataset.cdAngle = '0';
+        }
+    }
+
     updateStats(hp, mp, level, expPerc) {
         const hpFill = this.getHudRef('hpFill', '.hp-fill');
         const mpFill = this.getHudRef('mpFill', '.mp-fill');
@@ -11658,19 +11695,13 @@ export class UIManager {
                 } else reasonText.textContent = text;
             }
             reasonText.hidden = !text;
+            if (key === 'j' && p.classId === 'witch') {
+                this.updateLifeOrbCount(p, true);
+                return;
+            }
             const name = btn.querySelector('.combat-skill-name')?.textContent || '';
             const label = availability.text ? `${name}: ${availability.detail || availability.text}` : name;
             if (btn.getAttribute('aria-label') !== label) btn.setAttribute('aria-label', label);
-
-            if (key === 'j' && p.classId === 'witch') {
-                const slots = p.classCombat?.controller.orbSlots();
-                const count = slots ? `${slots.available}/${slots.maximum}` : '0/1';
-                if (timeText && timeText.textContent !== count) timeText.textContent = count;
-                btn.classList.toggle('disabled', !slots?.available);
-                if (overlay) { overlay.style.setProperty('--cd-angle', '0deg'); overlay.dataset.cdAngle = '0'; }
-                btn.setAttribute('aria-label', `생명의 구슬 ${count}`);
-                return;
-            }
             const cdTime = p.skillCooldowns[key];
             const maxCd = p.skillMaxCooldowns[key];
             const nextDisabled = cdTime > 0;

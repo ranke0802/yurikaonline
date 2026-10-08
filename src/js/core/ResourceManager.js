@@ -140,11 +140,11 @@ export default class ResourceManager {
                 finalCanvas.height = targetH * 5;        // 1280
                 const finalCtx = finalCanvas.getContext('2d');
                 if (finalCtx) {
-                    finalCtx.imageSmoothingEnabled = true;
-                    finalCtx.imageSmoothingQuality = 'high';
-                    finalCtx.webkitImageSmoothingEnabled = true;
-                    finalCtx.mozImageSmoothingEnabled = true;
-                    finalCtx.msImageSmoothingEnabled = true;
+                    // Keep original Mage pixels crisp in the runtime atlas too.
+                    finalCtx.imageSmoothingEnabled = false;
+                    finalCtx.webkitImageSmoothingEnabled = false;
+                    finalCtx.mozImageSmoothingEnabled = false;
+                    finalCtx.msImageSmoothingEnabled = false;
                 }
 
                 const loadPromises = [];
