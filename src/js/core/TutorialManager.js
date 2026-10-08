@@ -675,6 +675,7 @@ export default class TutorialManager {
         if (!this._matchesTarget(step.target, data.target)) return;
 
         this.progress.count++;
+        this.game.ui?.updateTutorialQuestProgress?.();
 
         if (this.progress.count >= (step.count || 1)) {
             this._scheduleStepCompletion(step);

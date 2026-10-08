@@ -558,8 +558,8 @@ export default class Player extends CharacterBase {
         // Call Actor's update (physics integration)
         super.update(dt);
 
-        // v2.3: Tutorial Move Trigger
-        if (this.isRunning && (this.vx !== 0 || this.vy !== 0)) {
+        // Walking in short bursts also counts toward the movement tutorial.
+        if (this.vx !== 0 || this.vy !== 0) {
             if (window.game?.tutorial) {
                 window.game.tutorial.trigger('move');
             }

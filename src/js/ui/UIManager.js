@@ -4516,6 +4516,20 @@ export class UIManager {
             return;
         }
 
+        // Popup navigation owns these keys; keep combat input blocked by the
+        // KeyboardHandler and use the normal close path (including stat prompts).
+        const togglePopupId = e.code === 'KeyB' ? 'inventory-popup'
+            : e.code === 'KeyI' ? 'status-popup'
+                : e.code === 'KeyS' && e.shiftKey ? 'skill-popup' : null;
+        if (popup?.id === togglePopupId && !nestedModal
+            && !e.ctrlKey && !e.metaKey && !e.altKey
+            && !this.isTextEntryFocused() && !e.repeat) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.togglePopup(popup.id);
+            return;
+        }
+
         if (!this.isDesktopShortcutMode() || this.isTextEntryFocused() || e.repeat) return;
 
         if (e.code === 'KeyQ' && this.tryClaimQuestWithShortcut()) {
@@ -9810,6 +9824,21 @@ export class UIManager {
         this.updateHudAttentionIndicators();
     }
 
+    updateTutorialQuestProgress() {
+        const tutorial = this.game.tutorial;
+        const step = tutorial?.getCurrentStep?.();
+        const rewardText = document.getElementById('active-quest-reward');
+        if (!step || !rewardText) return;
+        const targetCount = step.count || 1;
+        const currentCount = Math.min(targetCount, tutorial.progress?.count || 0);
+        const stepNumber = tutorial.currentStepIndex + 1;
+        const totalSteps = tutorial.activeTutorial.steps.length;
+        const text = targetCount > 1
+            ? `단계 ${stepNumber}/${totalSteps} · 진행도 ${currentCount}/${targetCount}`
+            : `단계 ${stepNumber}/${totalSteps} · 튜토리얼 완료 후 슬라임 퀘스트가 시작됩니다.`;
+        if (rewardText.textContent !== text) rewardText.textContent = text;
+    }
+
     updateQuestUI() {
         const p = this.game.localPlayer;
         if (!p || !p.questData) return;
@@ -9839,8 +9868,6 @@ export class UIManager {
         const tutorial = this.game.tutorial;
         const tutorialStep = tutorial?.activeTutorial?.steps?.[tutorial.currentStepIndex];
         if (tutorialStep) {
-            const targetCount = tutorialStep.count || 1;
-            const currentCount = Math.min(targetCount, tutorial.progress?.count || 0);
             const existingBtn = taskDisplay.querySelector('.quest-claim-btn');
             if (existingBtn) existingBtn.remove();
 
@@ -9852,11 +9879,7 @@ export class UIManager {
             syncQuestAttention(false, false);
             if (rewardIcon) rewardIcon.textContent = 'T';
             if (rewardTitle) rewardTitle.textContent = '진행 안내';
-            const totalSteps = tutorial.activeTutorial.steps.length;
-            const stepNumber = tutorial.currentStepIndex + 1;
-            rewardText.textContent = targetCount > 1
-                ? `단계 ${stepNumber}/${totalSteps} · 진행도 ${currentCount}/${targetCount}`
-                : `단계 ${stepNumber}/${totalSteps} · 튜토리얼 완료 후 슬라임 퀘스트가 시작됩니다.`;
+            this.updateTutorialQuestProgress();
             rewardDisplay.onclick = null;
             this.refreshDesktopShortcutHints();
             return;

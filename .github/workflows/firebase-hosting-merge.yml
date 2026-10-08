@@ -64,6 +64,7 @@ jobs:
           node scripts/validate-render-frame-completeness-browser.cjs --mode=matrix
           node scripts/validate-render-frame-negative-controls.cjs
           node scripts/validate-tutorial-stat-cancel-browser.cjs
+          node scripts/validate-gameplay-entry-browser.cjs
           node scripts/validate-class-tutorial-browser.cjs
           node scripts/validate-combat-feedback-browser.cjs
           node scripts/validate-witch-ranged-browser.cjs
@@ -93,6 +94,10 @@ jobs:
           projectId: yurika-online
       - name: Verify deployed public version and immutable assets
         run: node scripts/verify-hosting-release.mjs
+      - name: Verify deployed first adventure and menu controls in isolated local profiles
+        run: |
+          export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
+          QA_BASE_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-gameplay-entry-live node scripts/validate-gameplay-entry-browser.cjs
       - name: Verify deployed Life Orb assets and isolated local controls
         run: |
           export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
