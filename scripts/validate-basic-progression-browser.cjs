@@ -15,7 +15,9 @@ try{for(const [id,skill] of [['witch','lifeDrain'],['warrior','cleave'],['archer
   const btn=page.locator(`.skill-up-btn[data-skill="${skill}"]`);
   while(await page.evaluate(skill=>game.localPlayer.skillLevels[skill],skill)<level){assert.equal(await btn.isDisabled(),false);await btn.tap();}
   assert.equal(await btn.isDisabled(),level===8);
-  if(level===8)assert.equal((await btn.innerText()).trim(),'MAX');
+  if(level===8)assert.equal((await btn.innerText()).trim(),'최대');
+  assert.equal(await page.locator(`.skill-cost[data-skill="${skill}"]`).isVisible(),level!==8,
+   'upgrade cost is visible before the cap and hidden at the maximum level');
   await page.screenshot({path:`${out}/${id}-level-${level}-skills.png`});
   const cost=300*(Math.pow(2,level-1)-1);
   assert.equal(await page.evaluate(()=>game.localPlayer.manastone),100000-cost,'actual currency deduction');

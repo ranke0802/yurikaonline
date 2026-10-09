@@ -137,7 +137,7 @@ body:not(.ui-default-menu) .menu-caption { display:none; }
     #camp-scene .camp-account { max-width:66%; gap:4px; }
     #camp-scene .camp-save-label { padding:5px 7px; }
     #camp-scene .camp-header { gap:6px; }
-    .yurika-opening .opening-footer { bottom:max(14px,env(safe-area-inset-bottom)); }
+    #login-scene-ui .opening-footer { bottom:max(14px,env(safe-area-inset-bottom)); }
 }
 @media(max-height:500px) and (orientation:landscape) {
     #popup-overlay > .game-popup { padding:10px 14px; }
@@ -152,7 +152,7 @@ body:not(.ui-default-menu) .menu-caption { display:none; }
     #camp-scene .camp-sheet .camp-profile p { font-size:11px; }
     #camp-scene .camp-sheet .camp-management { gap:5px; }
     #camp-scene .camp-sheet .camp-management button { font-size:11px !important; }
-    .yurika-opening .opening-footer { left:auto; right:max(20px,env(safe-area-inset-right)); width:min(44vw,340px); bottom:max(12px,env(safe-area-inset-bottom)); }
+    #login-scene-ui .opening-footer { left:auto; right:max(20px,env(safe-area-inset-right)); width:min(44vw,340px); bottom:max(12px,env(safe-area-inset-bottom)); }
     .yurika-opening .opening-brand { max-width:44%; }
     .yurika-opening .opening-status { margin-bottom:6px; font-size:12px; }
     .yurika-opening .opening-actions { gap:6px; }
