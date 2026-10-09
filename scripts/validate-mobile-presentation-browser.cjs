@@ -40,7 +40,7 @@ const hud=()=>page.evaluate(()=>Object.fromEntries(['.top-bar','.quest-list-pane
 rec.defaultHud=await hud();rec.questBefore=await questDiag();await shot('field');
 await click('#btn-settings');await target('#settings-popup .close-popup.pc-only');await shot('settings');
 await target('#settings-master-volume');await target('#settings-basic-attack-sound');await target('.settings-switch:has(#settings-muted)');
-await page.evaluate(()=>{window.uxUiActions=[];game.input.on('actionDown',a=>uxUiActions.push(a))});
+await page.evaluate(()=>{window.uxUiActions=[];game.input.on('keydown',a=>uxUiActions.push(a))});
 await page.locator('#settings-master-volume').focus();await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowLeft');await page.keyboard.press('Tab');
 assert.deepEqual(await page.evaluate(()=>uxUiActions),[]);rec.checks.push('settings keyboard/touch stays in UI, no combat actions');
 await page.evaluate(()=>game.ui.androidDisplay?.showNotice('전체화면을 사용할 수 없어요. 설정에서 다시 시도할 수 있어요.'));

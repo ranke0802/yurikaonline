@@ -7962,30 +7962,38 @@ export class UIManager {
         }
 
         this.armBrowserBackExitGuard();
+        if (this.browserBackExitConfirmPending || this.gameExitSceneTransitioning) return;
+        // Browser Back cancels the top dialog through its normal close path.
+        // Never replace a pending stat/save callback with the game-exit prompt.
+        const generic = document.querySelector('#generic-modal:not(.hidden)');
+        if (generic) {
+            const cancel = generic.querySelector('#generic-modal-no');
+            if (cancel && cancel.offsetParent !== null) cancel.click();
+            else this.hideGenericModal();
+            return;
+        }
+        if (this.confirmModal && !this.confirmModal.classList.contains('hidden')) {
+            const callback = this.confirmCallback;
+            this.hideConfirm();
+            callback?.(false);
+            return;
+        }
         if (document.querySelector('#history-modal:not(.hidden)')) { this.toggleUpdateHistory(); return; }
-        if (document.querySelector('#generic-modal.inventory-message-centered:not(.hidden)')) { this.hideGenericModal(); return; }
-        const stoneDetail = document.querySelector('#inventory-item-modal.enhancement-item-centered:not(.hidden)');
-        if (stoneDetail && this.confirmModal?.classList.contains('hidden')) {
+        if (document.querySelector('#skill-detail-modal:not(.hidden)')) { this.hideSkillDetailModal(); return; }
+        if (document.querySelector('#inventory-item-modal:not(.hidden)')) {
             this.closeInventoryItemModal(true);
             this.updateInventory();
             return;
         }
-        if (this.confirmModal?.classList.contains('enhancement-confirm-centered')) {
-            const callback = this.confirmCallback;
-            this.hideConfirm();
-            callback?.(false);
+        if (document.querySelector('#friends-popup:not(.hidden) #friends-add-modal:not(.hidden)')) {
+            document.getElementById('friend-search-close-btn')?.click();
             return;
         }
-        if (this.gameExitConfirmPending && this.confirmModal && !this.confirmModal.classList.contains('hidden')) {
-            // Cancel the existing settings exit before another prompt can replace
-            // its callback, which owns clearing gameExitConfirmPending.
-            const callback = this.confirmCallback;
-            this.hideConfirm();
-            callback?.(false);
+        const popup = document.querySelector('.game-popup:not(.hidden)');
+        if (popup) {
+            this.togglePopup(popup.id);
             return;
         }
-        if (this.browserBackExitConfirmPending || this.gameExitSceneTransitioning) return;
-
         this.browserBackExitConfirmPending = true;
         this.showConfirm('게임을 종료하시겠습니까?', (confirmed) => {
             this.browserBackExitConfirmPending = false;
