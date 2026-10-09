@@ -1,6 +1,5 @@
 import { normalizeClassId, projectClassProfile, CLASS_IDS, CLASS_NAMES } from '../../core/ClassProfiles.js';
 import Scene from '../../core/Scene.js';
-import { isInstalled, showInstallationGuide } from '../../ui/PlatformGuide.js';
 import AdventureSummary from '../../core/AdventureSummary.js';
 import CampPreparation from '../../core/CampPreparation.js';
 import renderCampPresentation from '../../ui/CampPresentation.js';
@@ -112,21 +111,12 @@ export default class CampScene extends Scene {
         this.root.dataset.view = this.view;
         this.root.innerHTML = renderCampPresentation({
             profile: p, view: this.view, message: this.message, summary: this.summary,
-            busy: this.busy, failed: this.failed, local: this.game.isLocalMode, installed: isInstalled(), art,
+            busy: this.busy, failed: this.failed, local: this.game.isLocalMode, art,
             regionName: this.regionName, regionArt: this.regionArt, stats: p ? { hp: p.hp, maxHp: p.maxHp, damage: p.attackPower, defense: p.defense } : null
         });
-        // Reuse the selected camp raster; cold camp does not load a combat atlas.
-        const campPortrait = this.root.querySelector('.camp-profile img, .camp-shortcut img');
-        const statusPortrait = document.querySelector('.status-portrait');
-        if (campPortrait && statusPortrait) {
-            statusPortrait.style.backgroundImage = `url("${campPortrait.src}")`;
-            statusPortrait.style.backgroundSize = 'contain';
-            statusPortrait.style.backgroundPosition = 'center';
-            statusPortrait.style.backgroundRepeat = 'no-repeat';
-        }
         if (this.view === 'character' && p) {
             const choices = document.createElement('div');
-            choices.className = 'camp-management camp-class-choices'; choices.setAttribute('aria-label', '조작 캐릭터 선택');
+            choices.className = 'camp-management'; choices.setAttribute('aria-label', '조작 캐릭터 선택');
             for (const id of CLASS_IDS) {
                 const button = document.createElement('button'); button.className = 'camp-secondary';
                 button.dataset.camp = 'select-class:' + id; button.textContent = CLASS_NAMES[id];
@@ -138,7 +128,7 @@ export default class CampScene extends Scene {
                 const cancel = document.createElement('button'); cancel.className = 'camp-secondary';
                 cancel.dataset.camp = 'cancel-class'; cancel.textContent = '선택 취소'; choices.append(cancel);
             }
-            this.root.querySelector('.camp-character-sheet .camp-profile')?.after(choices);
+            this.root.querySelector('.camp-character-sheet')?.prepend(choices);
         }
         if (!this.saveNotice) {
             this.saveNotice = document.createElement('aside');
@@ -290,7 +280,6 @@ export default class CampScene extends Scene {
         if (action.startsWith('select-class:')) return this.selectClass(action.slice('select-class:'.length));
         if (action === 'cancel-class' && this.classSelectionOperation) return this.selectClass(normalizeClassId(this.preparation.player.activeClassId));
         if (this.busy) return;
-        if (action === 'install') return showInstallationGuide(this.game.ui);
         if (action === 'load-latest-local' || action === 'reload' && this.isLocalConflict()) return this.confirmLatestLocal();
         if (action === 'save-retry') {
             this.busy = true;

@@ -5,7 +5,7 @@ const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp
 const number = value => Math.max(0, Number(value) || 0).toLocaleString('ko-KR');
 const signed = value => `${Number(value) > 0 ? '+' : Number(value) < 0 ? '−' : ''}${number(Math.abs(Number(value) || 0))}`;
 
-export default function renderCampPresentation({ profile: p, view = 'camp', message = '', summary, busy = false, failed = false, local = false, installed = true, art, regionName = '저장한 지역', regionArt = 'wind.webp', stats = {} }) {
+export default function renderCampPresentation({ profile: p, view = 'camp', message = '', summary, busy = false, failed = false, local = false, art, regionName = '저장한 지역', regionArt = 'wind.webp', stats = {} }) {
     const disabled = busy || failed || !p ? 'disabled' : '';
     const button = (action, text, className = 'camp-secondary', blocked = disabled) => `<button class="${className}" data-camp="${action}" ${blocked}>${text}</button>`;
     const classId = normalizeClassId(p?.activeClassId);
@@ -18,7 +18,7 @@ export default function renderCampPresentation({ profile: p, view = 'camp', mess
     const background = view === 'character' ? `${artId}-key.webp` : view === 'prepare' ? regionArt : 'camp-background.webp';
     const scenery = `<div class="camp-scenery ${view === 'character' || view === 'prepare' ? 'camp-key-visual' : ''}" style="--camp-art:url('${art(background)}')"><img class="camp-backdrop" src="${art(background)}" alt=""></div>`;
     const layers = `<div class="camp-viewport" aria-hidden="true"><div class="camp-stage"><img class="camp-prop" src="${art('camp-table.webp')}" alt="">${['guardian', 'archer', 'mage', 'witch'].map(id => `<img class="camp-layer camp-layer-${id}" src="${art(`camp-${id}.webp`)}" alt="">`).join('')}</div></div>`;
-    const header = `<header class="camp-header"><div><span class="camp-wordmark">YURIKA</span><p>${view === 'character' ? '캐릭터 관리' : view === 'prepare' ? '원정 준비' : view === 'result' ? '원정 기록' : '달숲 야영지'}</p></div><div class="camp-account"><span class="camp-save-label">${local ? '로컬 모험 · 이 브라우저에 저장' : '계정 모험'}${p ? ` · 마석 ${number(p.manastone)}` : ''}</span>${!local ? button('account', '계정', 'camp-quiet', busy ? 'disabled' : '') : ''}${!installed ? button('install', '설치 안내', 'camp-quiet', busy ? 'disabled' : '') : ''}${button('reload', '새로고침', 'camp-quiet', busy ? 'disabled' : '')}</div></header>`;
+    const header = `<header class="camp-header"><div><span class="camp-wordmark">YURIKA</span><p>${view === 'character' ? '캐릭터 관리' : view === 'prepare' ? '원정 준비' : view === 'result' ? '원정 기록' : '달숲 야영지'}</p></div><div class="camp-account"><span class="camp-save-label">${local ? '로컬 모험 · 이 브라우저에 저장' : '계정 모험'}${p ? ` · 마석 ${number(p.manastone)}` : ''}</span>${!local ? button('account', '계정', 'camp-quiet', busy ? 'disabled' : '') : ''}${button('reload', '새로고침', 'camp-quiet', busy ? 'disabled' : '')}</div></header>`;
     const panel = (title, body, actions, className = '') => `<main class="camp-panel camp-sheet ${className}"><header class="camp-sheet-header"><span>${title}</span>${button('camp', '← 야영지', 'camp-back', busy ? 'disabled' : '')}</header><div class="camp-sheet-body">${body}</div><footer class="camp-sheet-actions">${status}${failed ? button('retry', '다시 불러오기', 'camp-secondary camp-retry', busy ? 'disabled' : '') : actions}</footer></main>`;
     let content = '';
     if (!p) {
@@ -43,14 +43,14 @@ function renderDetails(summary) {
     if (totals.manastoneSpent != null) rows.push(['사용 마석', '−' + number(totals.manastoneSpent)]);
     if (totals.expGained != null) rows.push(['획득 경험치', '+' + number(totals.expGained)]);
     const skillNames = { ...Object.fromEntries(Object.values(CLASS_SKILL_UI).flat().map(skill => [skill.id, skill.name])), laser:'체인 라이트닝',missile:'매직 미사일',fireball:'파이어볼',shield:'앱솔루트 베리어'};
-    const itemNames = {weapon:'무기',weapon_upgrade_stone:'무기 강화석',blessed_weapon_upgrade_stone:'축복받은 무기 강화석',option_reroll_stone:'옵션 변경석',boss_summon_scroll_king_slime:"대왕슬라임 보스 소환주문서",boss_summon_scroll_ruin_wobbuffet:"파도의 수호자 보스 소환주문서",boss_summon_scroll_thunder_pikachu:"뇌제 피카츄 보스 소환주문서",boss_summon_scroll_astral_sylveon:"성작의 님피아 보스 소환주문서",boss_summon_scroll_rift_sentinel:"균열의 감시자 보스 소환주문서"};
+    const itemNames = {weapon:'무기',weapon_upgrade_stone:'무기 강화석',blessed_weapon_upgrade_stone:'축복받은 무기 강화석',option_reroll_stone:'옵션 재설정석'};
     const labels = {vitality:'체력 능력',intelligence:'지능',wisdom:'지혜',agility:'민첩',statPoints:'남은 능력치'};
     for (const kind of ['stats', 'skills', 'items']) {
         const before = summary.before?.[kind] || {}, after = summary.after?.[kind] || {};
         for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
             const delta = (after[key] || 0) - (before[key] || 0);
             if (!delta) continue;
-            const label = kind === 'stats' ? labels[key] || key : kind === 'skills' ? skillNames[key] || `스킬 성장` : itemNames[key] || `아이템`;
+            const label = kind === 'stats' ? labels[key] || key : kind === 'skills' ? skillNames[key] || `스킬 ${key}` : itemNames[key] || `아이템 ${key}`;
             rows.push([label, kind === 'items' ? signed(delta) : `${number(before[key])} → ${number(after[key])}`]);
         }
     }

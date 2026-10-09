@@ -1,5 +1,3 @@
-import { installGuideButton } from './PlatformGuide.js';
-import { optionChangeLines } from './ItemPresentation.js';
 import { bindRenderDiagnosticPanel } from './RenderDiagnosticPanel.js';
 import FieldHudReadability from './FieldHudReadability.js';
 import { clearTutorialCandidates } from './TutorialGuidePlacement.js';
@@ -270,7 +268,6 @@ export class UIManager {
         this.setupLandscapeChatInteractions();
         this.setupInventoryInteractions();
         this.setupFriendsUI();
-        installGuideButton(document.getElementById('settings-install-guide'), this);
     }
 
     getHudRef(key, selector, lookup = 'query') {
@@ -995,8 +992,7 @@ export class UIManager {
         return {
             left: Math.min(0.97, Math.max(0.01, left)),
             top: Math.min(0.97, Math.max(0.01, top)),
-            scale: Math.min(definition.maxScale || 1.8, Math.max(definition.minScale || 0.7, Number.isFinite(scale) ? scale : 1)),
-            ...(definition.selector === '.minimap-menu' && entry.touchSize === true ? { touchSize: true } : {})
+            scale: Math.min(definition.maxScale || 1.8, Math.max(definition.minScale || 0.7, Number.isFinite(scale) ? scale : 1))
         };
     }
 
@@ -1392,9 +1388,6 @@ export class UIManager {
         this.clearUiLayoutRuntimeStyles();
         const mode = this.getUiLayoutMode();
         const controls = this.getUiLayoutControlsForMode(mode);
-        // Saved user menu geometry is preserved. Only defaults use new touch sizing.
-        const menuEntry = this.getStoredUiLayoutModeEntries(this.getResolvedUiLayoutSource(), mode)?.['quick-menu-panel'];
-        document.body?.classList.toggle('ui-default-menu', !menuEntry || menuEntry.touchSize === true);
         const supportsJoystick = controls.some(([controlId]) => controlId === 'joystick');
         const presetEntries = this.getUiLayoutPresetForMode(mode);
         const entries = this.uiLayoutEditMode
@@ -1435,10 +1428,7 @@ export class UIManager {
                 presetDefaults[controlId] || this.captureCurrentUiLayoutEntry(controlId, mode),
                 definition
             );
-            // Remember new touch geometry when a default becomes a saved layout.
-            // Unmarked entries remain legacy geometry without any migration.
-            if (entry) defaults[controlId] = controlId === 'quick-menu-panel'
-                ? { ...entry, touchSize: true } : entry;
+            if (entry) defaults[controlId] = entry;
         });
         this.uiLayoutDefaultCache[mode] = defaults;
         return this.cloneStructuredData(defaults) || {};
@@ -1875,7 +1865,7 @@ export class UIManager {
         const enabled = typeof forceState === 'boolean'
             ? forceState
             : !!this.game.localPlayer?.autoAttackEnabled;
-        const nextText = '자동 공격';
+        const nextText = '[Auto]';
 
         if (button.textContent !== nextText) {
             button.textContent = nextText;
@@ -4490,18 +4480,7 @@ export class UIManager {
 
     handleDesktopShortcutKeydown(e) {
         const popup = document.querySelector('.game-popup:not(.hidden)');
-        const nestedModal = document.querySelector('#generic-modal:not(.hidden), #confirm-modal:not(.hidden), #inventory-item-modal:not(.hidden), #skill-detail-modal:not(.hidden), #history-modal:not(.hidden)');
-        const historyModal = document.querySelector('#history-modal:not(.hidden)');
-        if (historyModal && e.key === 'Escape') {
-            e.preventDefault(); e.stopPropagation(); this.toggleUpdateHistory(); return;
-        }
-        if (historyModal && e.key === 'Tab') {
-            const controls = this.getPopupFocusTargets(historyModal), first = controls[0], last = controls.at(-1);
-            if (!historyModal.contains(document.activeElement) || (e.shiftKey && document.activeElement === first) || (!e.shiftKey && document.activeElement === last)) {
-                e.preventDefault(); (e.shiftKey ? last : first)?.focus();
-            }
-            return;
-        }
+        const nestedModal = document.querySelector('#generic-modal:not(.hidden), #confirm-modal:not(.hidden), #inventory-item-modal:not(.hidden), #skill-detail-modal:not(.hidden)');
         if (e.key === 'Escape' && this.isShortcutVisible(this.confirmModal)) {
             e.preventDefault();
             e.stopPropagation();
@@ -7698,7 +7677,7 @@ export class UIManager {
         if (!isCurrentlyHidden && id === 'status-popup') {
             const totalPending = this.getPendingStatTotal();
             if (totalPending > 0) {
-                this.showConfirm('능력치 변경을 저장할까요?<br><small>한번 저장하면 변경할 수 없습니다.</small>', (result) => {
+                this.showConfirm('스텟을 저장하시겠습니까?<br><small>한번 저장하면 변경할 수 없습니다.</small>', (result) => {
                     if (result) {
                         this.savePendingStats();
                         this.executePopupClose(id);
@@ -7962,38 +7941,29 @@ export class UIManager {
         }
 
         this.armBrowserBackExitGuard();
-        if (this.browserBackExitConfirmPending || this.gameExitSceneTransitioning) return;
-        // Browser Back cancels the top dialog through its normal close path.
-        // Never replace a pending stat/save callback with the game-exit prompt.
-        const generic = document.querySelector('#generic-modal:not(.hidden)');
-        if (generic) {
-            const cancel = generic.querySelector('#generic-modal-no');
-            if (cancel && cancel.offsetParent !== null) cancel.click();
-            else this.hideGenericModal();
+        if (document.querySelector('#generic-modal.inventory-message-centered:not(.hidden)')) { this.hideGenericModal(); return; }
+        const stoneDetail = document.querySelector('#inventory-item-modal.enhancement-item-centered:not(.hidden)');
+        if (stoneDetail && this.confirmModal?.classList.contains('hidden')) {
+            this.closeInventoryItemModal(true);
+            this.updateInventory();
             return;
         }
-        if (this.confirmModal && !this.confirmModal.classList.contains('hidden')) {
+        if (this.confirmModal?.classList.contains('enhancement-confirm-centered')) {
             const callback = this.confirmCallback;
             this.hideConfirm();
             callback?.(false);
             return;
         }
-        if (document.querySelector('#history-modal:not(.hidden)')) { this.toggleUpdateHistory(); return; }
-        if (document.querySelector('#skill-detail-modal:not(.hidden)')) { this.hideSkillDetailModal(); return; }
-        if (document.querySelector('#inventory-item-modal:not(.hidden)')) {
-            this.closeInventoryItemModal(true);
-            this.updateInventory();
+        if (this.gameExitConfirmPending && this.confirmModal && !this.confirmModal.classList.contains('hidden')) {
+            // Cancel the existing settings exit before another prompt can replace
+            // its callback, which owns clearing gameExitConfirmPending.
+            const callback = this.confirmCallback;
+            this.hideConfirm();
+            callback?.(false);
             return;
         }
-        if (document.querySelector('#friends-popup:not(.hidden) #friends-add-modal:not(.hidden)')) {
-            document.getElementById('friend-search-close-btn')?.click();
-            return;
-        }
-        const popup = document.querySelector('.game-popup:not(.hidden)');
-        if (popup) {
-            this.togglePopup(popup.id);
-            return;
-        }
+        if (this.browserBackExitConfirmPending || this.gameExitSceneTransitioning) return;
+
         this.browserBackExitConfirmPending = true;
         this.showConfirm('게임을 종료하시겠습니까?', (confirmed) => {
             this.browserBackExitConfirmPending = false;
@@ -8396,13 +8366,13 @@ export class UIManager {
             const show = this.shouldShowDesktopShortcutText();
             return { name: this.getSkillDisplayName(skillId), level, hotkey: show ? hotkey : '', showHotkeyBadge: show,
                 subtitle: `Lv.${level}${show ? ` · 단축키 ${hotkey}` : ''}`,
-                tooltipCurrentEffectHtml: `<div class="current-effect">Lv.${level}${maxed ? ' · 최대' : ` · 다음 강화 ${cost} 마석`}</div>`,
+                tooltipCurrentEffectHtml: `<div class="current-effect">Lv.${level}${maxed ? ' · MAX' : ` · 다음 강화 ${cost} G`}</div>`,
                 modalHtml: this.buildSkillDetailSection('핵심 설명', [data.desc, data.detail].filter(Boolean))
                     + (classSkillIds(p)[0] === skillId ? this.buildSkillDetailSection('기본 공격 성장', basicAttackUpgradeDetails(p)) : '')
                     + (p.classId==='warrior' && skillId==='challenge' ? this.buildSkillDetailSection('방패 돌진 성장', shieldRushUpgradeDetails(p)) : '')
                     + (p.classId==='warrior' && skillId==='charge' ? this.buildSkillDetailSection('광천격 성장', warriorBarrageUpgradeDetails(p)) : '')
                     + this.buildSkillDetailSection('무기 효과', classWeaponDetailLines(p, p.getEquippedWeapon?.()) || [])
-                    + this.buildSkillDetailSection('다음 강화 비용', [maxed ? '최대 레벨입니다.' : `${cost.toLocaleString('ko-KR')} 마석`]) };
+                    + this.buildSkillDetailSection('다음 강화 비용', [maxed ? '최대 레벨입니다.' : `${cost.toLocaleString('ko-KR')} G`]) };
         }
 
         const lv = p.skillLevels[skillId] || 1;
@@ -8616,7 +8586,7 @@ export class UIManager {
                 currentStats.push(
                     `현재 상태는 <strong>${shieldState}</strong>입니다.`,
                     `마나 소모는 <strong>20</strong>, 재사용 대기시간은 <strong>3.0초</strong>입니다.`,
-                    `실드는 강화되지 않는 고정 성능 스킬이라 현재도 <strong>최대 레벨</strong> 상태입니다.`
+                    `실드는 강화되지 않는 고정 성능 스킬이라 현재도 <strong>MAX</strong> 상태입니다.`
                 );
 
                 summaryMetrics.push(
@@ -8652,7 +8622,7 @@ export class UIManager {
             this.buildSkillDetailSection('핵심 설명', [data.desc]),
             this.buildSkillDetailSection('현재 적용 수치', currentStats),
             this.buildSkillDetailSection('현재 장착 무기 보정', weaponItems),
-            this.buildSkillDetailSection('다음 강화 비용', [upgradeCost == null ? '이 스킬은 추가 강화가 없습니다.' : `현재 다음 레벨 업 비용은 <strong>${upgradeCost.toLocaleString('ko-KR')} 마석</strong>입니다.`])
+            this.buildSkillDetailSection('다음 강화 비용', [upgradeCost == null ? '이 스킬은 추가 강화가 없습니다.' : `현재 다음 레벨 업 비용은 <strong>${upgradeCost.toLocaleString('ko-KR')} G</strong>입니다.`])
         ].filter(Boolean).join('');
 
         return {
@@ -9302,17 +9272,12 @@ export class UIManager {
             const upBtn = document.querySelector(`.stat-up-btn[data-stat="${s}"]`);
             const downBtn = document.querySelector(`.stat-down-btn[data-stat="${s}"]`);
 
-            const statName = { vitality:'체력', intelligence:'지능', wisdom:'지혜', agility:'순발력' }[s];
             if (upBtn) {
-                upBtn.setAttribute('aria-label', `${statName} 올리기`);
-                upBtn.setAttribute('aria-disabled', String(p.statPoints <= 0));
                 if (p.statPoints > 0) upBtn.classList.remove('disabled');
                 else upBtn.classList.add('disabled');
             }
 
             if (downBtn) {
-                downBtn.setAttribute('aria-label', `${statName} 미리보기 취소`);
-                downBtn.setAttribute('aria-disabled', String(this.pendingStats[s] <= 0));
                 if (this.pendingStats[s] > 0) downBtn.classList.remove('disabled');
                 else downBtn.classList.add('disabled');
             }
@@ -9791,7 +9756,7 @@ export class UIManager {
             const level = row.querySelector('.skill-level span');
             if (level) level.id = `lvl-${entry.id}`;
             const desc = row.querySelector('.skill-desc');
-            desc.innerHTML = entry.shortHtml || `${entry.summary || entry.desc}<br><small>필요: <span class="skill-cost" data-skill="${entry.id}">300</span> 마석</small>`;
+            desc.innerHTML = entry.shortHtml || `${entry.summary || entry.desc}<br><small>필요: <span class="skill-cost" data-skill="${entry.id}">300</span>G</small>`;
             const upgrade = row.querySelector('.skill-up-btn');
             upgrade.dataset.skill = entry.id;
             upgrade.id = `skill-up-${entry.id}`;
@@ -9840,15 +9805,12 @@ export class UIManager {
             const cost = p.getSkillUpgradeCost ? p.getSkillUpgradeCost(skillId) : (300 * Math.pow(2, lv - 1));
             const costEl = document.querySelector(`.skill-cost[data-skill="${skillId}"]`);
             const maxed = lv >= classSkillMaxLevel(p, skillId);
-            if (costEl) {
-                costEl.textContent = cost.toLocaleString('ko-KR');
-                if (costEl.parentElement) costEl.parentElement.hidden = maxed;
-            }
+            if (costEl) costEl.textContent = maxed ? '-' : cost;
 
             const btn = document.querySelector(`.skill-up-btn[data-skill="${skillId}"]`);
             if (btn) {
                 if (maxed) {
-                    btn.textContent = '최대';
+                    btn.textContent = 'MAX';
                     btn.classList.add('disabled');
                     btn.disabled = true;
                 } else {
@@ -10438,7 +10400,14 @@ export class UIManager {
                         return;
                     }
 
-                    const changedLines = optionChangeLines(result);
+                    const changedLines = Object.entries(result.rolledValues || {})
+                        .map(([key, value]) => {
+                            const before = Number(result.previousValues?.[key] || 0);
+                            const after = Number(value || 0);
+                            const delta = Math.round((after - before) * 100);
+                            return `${key}: ${Math.round(before * 100)}% → ${Math.round(after * 100)}%${delta > 0 ? ` (+${delta}%)` : ''}`;
+                        })
+                        .join('\n');
 
                     this.showGenericModal(
                         '옵션 변경 완료',
@@ -11201,10 +11170,6 @@ export class UIManager {
             const icon = this.createInventoryIconElement({iconPath, name: ''}, 'inventory-tab-icon');
             icon.alt = '';
             button.appendChild(icon);
-            const caption = document.createElement('span');
-            caption.className = 'inventory-tab-label';
-            caption.textContent = category === 'equipment' ? '장비' : '도구';
-            button.appendChild(caption);
             button.addEventListener('click', () => {
                 if (this.inventoryEnhancementAnimating) return;
                 this.tearDownInventoryDrag();
@@ -12211,15 +12176,12 @@ export class UIManager {
 
         const isHidden = modal.classList.contains('hidden');
         if (isHidden) {
-            this.historyReturnFocus = document.activeElement;
             this.renderHistory();
             modal.classList.remove('hidden');
-            modal.querySelector('.close-history')?.focus();
             this.isPaused = true;
         } else {
             modal.classList.add('hidden');
-            this.isPaused = !!document.querySelector('.game-popup:not(.hidden), [role=dialog]:not(.hidden)');
-            this.historyReturnFocus?.focus?.();
+            this.isPaused = false;
         }
 
         this.refreshDesktopShortcutHints();
@@ -12229,7 +12191,7 @@ export class UIManager {
         const listEl = document.getElementById('history-list');
         if (!listEl) return;
 
-        listEl.innerHTML = '<div class="readme-loading" role="status">업데이트 이력을 불러오고 있어요…</div>';
+        listEl.innerHTML = '<div class="readme-loading">README.md 불러오는 중...</div>';
 
         try {
             const text = await this.game.resources.loadText('./README.md');
@@ -12262,14 +12224,7 @@ export class UIManager {
             return;
         }
 
-        listEl.replaceChildren();
-        const card = document.createElement('div');
-        card.className = 'history-unavailable'; card.setAttribute('role', 'status');
-        const text = document.createElement('p');
-        text.textContent = `현재 버전 ${window.GAME_VERSION || ''}. 업데이트 이력을 지금 불러올 수 없어요. 플레이와 저장에는 영향이 없어요.`;
-        const retry = document.createElement('button'); retry.type = 'button'; retry.textContent = '다시 불러오기';
-        retry.onclick = () => this.renderHistory();
-        card.append(text, retry); listEl.append(card);
+        listEl.innerHTML = '<div class="readme-empty">업데이트 히스토리를 불러오지 못했습니다.</div>';
     }
 
     setDeveloperLookupResult(message = '', color = '#8ff3c5') {
@@ -12445,7 +12400,7 @@ export class UIManager {
         const p = this.game.localPlayer;
         if (!p) return;
 
-        const msg = "레벨을 제외한 마석/스탯/스킬이 초기화됩니다.\n사용된 마석/스탯은 반환됩니다.\n\n계속하시겠습니까?";
+        const msg = "레벨을 제외한 마석/스텟/스킬이 초기화됩니다.\n사용된 마석/스텟은 반환됩니다.\n\n계속하시겠습니까?";
         if (!confirm(msg)) return;
 
         const previousState = {
@@ -12523,7 +12478,7 @@ export class UIManager {
             }
         }
 
-        alert(`초기화 완료!\n반환된 스탯: ${totalRefundedStats}\n반환된 마석: ${totalRefundedManastone}\n\n게임을 다시 불러옵니다.`);
+        alert(`초기화 완료!\n반환된 스텟: ${totalRefundedStats}\n반환된 마석: ${totalRefundedManastone}\n\n게임을 다시 불러옵니다.`);
         window.location.reload();
     }
 

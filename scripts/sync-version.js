@@ -166,8 +166,6 @@ function syncFiles(version, changedFiles) {
         `<link rel="stylesheet" href="src/css/style.css?v=${version}">`,
         'index.html stylesheet version'
     );
-    // Keep every release-versioned UI stylesheet in the same cache generation.
-    indexHtml = indexHtml.replace(/(href="src\/css\/[^"?]+\.css\?v=)[^"]+/g, (_match, prefix) => `${prefix}${version}`);
     indexHtml = replaceOrThrow(
         indexHtml,
         /src="src\/js\/firebaseConfig\.js(?:\?v=[^"]+)?"/,

@@ -81,15 +81,9 @@ const save = () => fs.writeFileSync(`${out}/results.json`, JSON.stringify(report
                 const afterCancel=await state();assertClean(afterCancel);assert.deepEqual(afterCancel.answers,[{id:0,answer:false}]);
                 assert.equal(afterCancel.prompts.length,1);assert.equal(afterCancel.events.filter(e=>e.kind==='save'||e.kind==='scene').length,0);
                 if(action==='back-then-back') {
-                    // v182: after cancelling the confirmation, Back first closes
-                    // Settings. Only another Back from the field requests exit.
-                    await page.goBack();await page.locator('#settings-popup').waitFor({state:'hidden'});
-                    const closed=await state();assertClean(closed);assert.deepEqual(closed.answers,[{id:0,answer:false}]);
-                    assert.equal(closed.events.filter(e=>e.kind==='save'||e.kind==='scene').length,0);
                     await page.goBack();await page.locator('#confirm-no').waitFor();
                     assert.match(await page.locator('#confirm-message').innerText(),/게임을 종료/);
                     await page.locator('#confirm-no').click();const second=await state();assertClean(second);assert.deepEqual(second.answers,[{id:0,answer:false},{id:1,answer:false}]);
-                    await page.locator('#btn-settings').click();
                 }
                 await page.locator('#settings-exit-game').click();assert.equal((await state()).confirm,true);
                 await page.locator('#confirm-no').click();await close();await open();assert.equal((await state()).confirm,true);

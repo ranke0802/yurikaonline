@@ -81,7 +81,6 @@ export default class AuthManager extends EventEmitter {
             await firebase.auth().signInAnonymously();
         } catch (error) {
             Logger.error('Anonymous Login Failed:', error);
-            throw error;
         }
     }
 

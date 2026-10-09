@@ -76,11 +76,6 @@ export default class AndroidDisplayController {
     hideNotice() { this.notice?.remove(); this.notice = null; }
     showNotice(message) {
         this.hideNotice();
-        // An optional display request must never cover login, camp or combat.
-        // Keep feedback beside its setting; installed launch needs no install notice.
-        if (this.ui.isStandaloneDisplayMode()) return;
-        const parent = this.document.getElementById('settings-display-help');
-        if (!parent) return;
         const notice = this.document.createElement('aside');
         notice.id = 'android-display-notice'; notice.setAttribute('aria-label', '화면 전환 안내');
         const text = this.document.createElement('span'); text.textContent = message; text.setAttribute('role', 'status');
@@ -88,6 +83,6 @@ export default class AndroidDisplayController {
         retry.onclick = () => { void this.request(); };
         const dismiss = this.document.createElement('button'); dismiss.type = 'button'; dismiss.textContent = '닫기';
         dismiss.onclick = () => this.hideNotice();
-        notice.append(text, retry, dismiss); parent.append(notice); this.notice = notice;
+        notice.append(text, retry, dismiss); this.document.body.append(notice); this.notice = notice;
     }
 }
