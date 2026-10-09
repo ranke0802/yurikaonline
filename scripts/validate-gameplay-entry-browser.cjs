@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 // Fresh local profiles, genuine keyboard/touch input, no tutorial-step shortcuts.
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');

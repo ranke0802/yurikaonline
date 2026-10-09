@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "start": "npx -y live-server . --host=127.0.0.1 --port=8081 --no-browser",
+    "start": "python3 scripts/serve-local.py",
     "validate:quests": "node scripts/validate-quest-content.js",
     "validate:world": "node scripts/validate-world-content.js",
     "validate:ui": "node scripts/validate-ui-layout.js && node --test scripts/validate-ui-audit-fixes.mjs && node --test scripts/validate-android-display.mjs",
@@ -62,7 +62,11 @@
     "validate:approved-art-browser": "node scripts/validate-approved-art-browser.cjs",
     "validate:render-diagnostics": "node --test scripts/validate-render-diagnostics-v169.mjs && node scripts/validate-render-diagnostics-v169-browser.cjs && node scripts/validate-render-frame-completeness-browser.cjs --mode=matrix && node scripts/validate-render-frame-negative-controls.cjs",
     "validate:return-berserk": "node --test scripts/validate-return-berserk.mjs",
-    "validate:return-berserk-browser": "node scripts/validate-return-berserk-browser.cjs"
+    "validate:return-berserk-browser": "node scripts/validate-return-berserk-browser.cjs",
+    "validate:qa-policy": "node --test scripts/validate-qa-policy.cjs scripts/validate-release-budget.mjs",
+    "validate:qa-network-browser": "node scripts/validate-qa-network-browser.cjs",
+    "validate:cache-lifecycle": "node scripts/validate-cache-lifecycle-browser.cjs",
+    "release:manifest": "node scripts/build-release-manifest.mjs"
   },
   "dependencies": {
     "image-size": "^2.0.2"

@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs');
 const out=process.env.QA_OUTPUT||'/tmp/class-tutorial';fs.mkdirSync(out,{recursive:true});const report={scope:'Local synthetic class profiles; actual tutorial text, detail open/close and upgrade clicks; fixture skips prior combat/stat steps',cases:[],errors:[]};
 (async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});try{for(const [id,skill,name] of [['witch','lifeDrain','생명의 구슬'],['warrior','cleave','연속 베기'],['archer','shot','이동 사격']]){

@@ -1,3 +1,4 @@
+import './lib/qa-preflight.cjs';
 // Production Firebase 10.7.1 and Player.saveState, isolated loopback RTDB wire.
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';

@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs');
 const BASE=process.env.QA_BASE||'http://127.0.0.1:8100',OUT=process.env.QA_OUTPUT||'reports/approved-art-v142/browser';fs.mkdirSync(OUT,{recursive:true});
 const report={scope:'Local Chromium: enabled weapon UI/equip/save reload plus actual approved body renderer; synthetic accounts, no live accounts',cases:[],errors:[],failedImages:[]};

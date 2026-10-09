@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright');const fs=require('node:fs');const assert=require('node:assert/strict');
 const out='/tmp/yurika-online-monster-qa';fs.mkdirSync(out,{recursive:true});
 (async()=>{const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});const errors=[];try{

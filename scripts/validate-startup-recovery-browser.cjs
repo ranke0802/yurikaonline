@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 // All auth/network operations are local fixtures; no account or Firebase writes.
 const { chromium } = require('playwright');
 const fs=require('node:fs');

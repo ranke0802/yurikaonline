@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright');
 const fs=require('node:fs'),assert=require('node:assert/strict');
 const out=process.env.QA_OUTPUT||'/tmp/yurika-death-v167-browser';fs.mkdirSync(out,{recursive:true});

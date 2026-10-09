@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs');const out=process.env.QA_OUTPUT||'/tmp/combat-feedback';fs.mkdirSync(out,{recursive:true});const report={scope:'Actual local Chromium keyboard/mouse/touch inputs, synthetic combat targets; raster game renderer captures',cases:[],errors:[]};
 (async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});try{for(const id of ['warrior','archer']){
  const context=await browser.newContext({viewport:{width:1000,height:700},hasTouch:true,serviceWorkers:'block'}),p=await context.newPage();p.setDefaultTimeout(15000);p.on('pageerror',e=>report.errors.push(e.message));await p.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());

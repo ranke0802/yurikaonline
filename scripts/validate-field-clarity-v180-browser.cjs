@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const { chromium } = require('playwright');
 const fs = require('node:fs'), assert = require('node:assert/strict');
 const base = process.env.QA_BASE_URL || 'http://127.0.0.1:8100';

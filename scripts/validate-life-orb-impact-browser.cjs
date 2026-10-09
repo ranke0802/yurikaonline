@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs');
 const base=(process.env.QA_BASE_URL||'http://127.0.0.1:8100').replace(/\/$/,'');
 const out=process.env.QA_OUTPUT||'/tmp/life-orb-impact';fs.mkdirSync(out,{recursive:true});

@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 // Loopback-only UI fixtures; no production auth or account writes.
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs');
 const base='http://127.0.0.1:8100',out='/tmp/yurika-logo-v155';fs.mkdirSync(out,{recursive:true});

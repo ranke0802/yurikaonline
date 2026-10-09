@@ -1,3 +1,4 @@
+import './lib/qa-preflight.cjs';
 // Actual production-version Firebase SDK, isolated loopback protocol fixture.
 // Install firebase@10.7.1 and ws in an isolated directory, then set
 // YURIKA_FIREBASE_FIXTURE_ROOT to that directory. This is not a full emulator.

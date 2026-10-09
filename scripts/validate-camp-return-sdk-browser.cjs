@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 // Actual browser Firebase SDK + actual exit UI/scenes; RTDB wire is loopback only.
 const {chromium}=require('playwright');
 const {createRequire}=require('node:module');

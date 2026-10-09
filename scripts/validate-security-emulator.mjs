@@ -1,3 +1,4 @@
+import './lib/qa-preflight.cjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const base = 'http://127.0.0.1:9000';

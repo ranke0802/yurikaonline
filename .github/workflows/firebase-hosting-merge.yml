@@ -16,15 +16,20 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Enforce local QA and release traffic policy
+        run: npm run validate:qa-policy
       - name: Validate public assets and local runtime
         run: npm run validate:assets && npm run validate:resources && npm run validate:ui && npm run validate:local-profile && npm run validate:monster-authority && npm run validate:fireball-impact && npm run validate:inventory-compaction && npm run validate:camp-preparation && npm run validate:adventure-summary && npm run validate:camp-online-save && npm run validate:startup-deadlines && npm run validate:classes && npm run validate:class-weapons && npm run validate:approved-art && node --test scripts/validate-class-tutorial.mjs scripts/validate-combat-feedback.mjs scripts/validate-witch-ranged.mjs scripts/validate-shield-rush.mjs scripts/validate-class-feedback-v148.mjs scripts/validate-skill-healing.mjs scripts/validate-summon-v149.mjs scripts/validate-vfx-v149.mjs scripts/validate-warrior-v151.mjs scripts/validate-barrage-v152.mjs scripts/validate-combat-review-v153.mjs scripts/validate-summon-abilities-v154.mjs scripts/validate-pwa-emblem-v157.mjs scripts/validate-monster-skill-visuals-v158.mjs scripts/validate-monster-missile-v158.mjs scripts/validate-mage-style-v159.mjs scripts/validate-skill-explanations-v161.mjs scripts/validate-tutorial-hud-v162.mjs scripts/validate-monster-numbers-v164.mjs scripts/validate-monster-hud-v165.mjs scripts/validate-monster-foot-v166.mjs scripts/validate-death-cause-v167.mjs scripts/validate-settings-exit-v168.mjs scripts/validate-render-diagnostics-v169.mjs scripts/validate-combat-guidance-v172.mjs
       - name: Validate class growth and immediate combat HUD
         run: npm run validate:field-clarity && npm run validate:return-berserk
-      - name: Install Chromium for Web Audio synthesis checks
+      - name: Install Chromium for local browser checks
         run: npx playwright install --with-deps chromium
-      - name: Validate existing music and all class sound synthesis
+      - name: Validate local network policy, cache lifecycle and audio
         run: |
           export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
+          npm run validate:qa-network-browser
+          npm run validate:asset-browser
+          npm run validate:cache-lifecycle
           npm run validate:audio-all
       - name: Verify real Firebase SDK camp cache lifecycle on loopback
         run: |
@@ -35,7 +40,7 @@ jobs:
           export YURIKA_FIREBASE_FIXTURE_ROOT="$RUNNER_TEMP/yurika-sdk-fixture"
           export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
           node scripts/validate-class-exit-sdk.mjs
-          python3 -m http.server 8100 --bind 127.0.0.1 > "$RUNNER_TEMP/camp-http.log" 2>&1 &
+          python3 scripts/serve-local.py > "$RUNNER_TEMP/camp-http.log" 2>&1 &
           CAMP_HTTP_PID=$!
           trap 'kill "$CAMP_HTTP_PID"' EXIT
           for CBT03_GROUP in boundaries cooldowns charge healing weapon-routes combined; do
@@ -91,55 +96,19 @@ jobs:
           node scripts/validate-pwa-emblem-v157-browser.cjs
           node scripts/validate-startup-recovery-browser.cjs
           node scripts/validate-opening-browser.cjs
+      - name: Build release metadata from locally validated hashes
+        run: npm run release:manifest
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_YURIKA_ONLINE }}
           channelId: live
           projectId: yurika-online
-      - name: Verify deployed public version and immutable assets
+      # A reviewed push authorizes ONLY this bounded check, not remote game QA.
+      - name: Verify release metadata and headers within traffic budget
+        env:
+          YURIKA_RELEASE_ORIGIN: https://yurika-online.web.app
+          YURIKA_REMOTE_CHECK_APPROVED: '1'
+          YURIKA_RELEASE_MAX_REQUESTS: '8'
+          YURIKA_RELEASE_MAX_BYTES: '200000'
         run: node scripts/verify-hosting-release.mjs
-      - name: Verify deployed class growth, combat HUD and summon identity
-        run: |
-          export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
-          QA_BASE_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-field-clarity-live npm run validate:field-clarity-browser
-      - name: Verify deployed summon berserk and Life Orb return hits
-        run: |
-          export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
-          QA_BASE_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-return-berserk-live npm run validate:return-berserk-browser
-      - name: Verify deployed first adventure and menu controls in isolated local profiles
-        run: |
-          export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
-          QA_BASE_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-gameplay-entry-live node scripts/validate-gameplay-entry-browser.cjs
-      - name: Verify deployed Life Orb assets and isolated local controls
-        run: |
-          export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
-          QA_BASE_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-life-orb-live node scripts/validate-life-orb-visual-browser.cjs
-          QA_BASE_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-life-orb-controls-live node scripts/validate-witch-ranged-browser.cjs
-          QA_BASE_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-life-orb-impact-live node scripts/validate-life-orb-impact-browser.cjs
-      - name: Verify deployed death cause in isolated local-mode browser profiles
-        run: |
-          export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
-          QA_BASE_URL=https://yurika-online.web.app node scripts/validate-death-cause-v167-browser.cjs
-      - name: Verify deployed settings exit cancellation in isolated local-mode profiles
-        run: |
-          export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
-          QA_BASE_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-settings-exit-v168-live node scripts/validate-settings-exit-v168-browser.cjs
-      - name: Verify deployed user-operated local render diagnostics
-        run: |
-          export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
-          QA_BASE_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-render-diagnostics-v169-live node scripts/validate-render-diagnostics-v169-browser.cjs
-      - name: Verify deployed Warrior audio in isolated local-mode profiles
-        run: |
-          export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
-          QA_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-warrior-audio-v170-live node scripts/audio-tests/validate-warrior-audio-v170.cjs
-      - name: Verify deployed CBT03 recovery feedback in isolated local-mode profiles
-        run: |
-          export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
-          for CBT03_GROUP in boundaries cooldowns charge healing weapon-routes combined; do
-            QA_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-cbt03-v171-live QA_GROUP="$CBT03_GROUP" node scripts/validate-cbt03-gaps.cjs
-          done
-      - name: Verify deployed combat guidance in isolated mobile local-mode profiles
-        run: |
-          export CHROMIUM_PATH="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
-          QA_URL=https://yurika-online.web.app QA_OUTPUT=/tmp/yurika-combat-guidance-v172-live node scripts/validate-combat-guidance-v172-browser.cjs

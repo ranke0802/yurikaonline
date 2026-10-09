@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),assert=require('node:assert/strict');
 const OUT='reports/class-vfx';fs.mkdirSync(OUT,{recursive:true});
 (async()=>{const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});const report={scope:'Local real Player/Bridge/Controller and raster rendering; controlled fixtures, diagnostic target marker; not physical-phone verification.',versions:[]};try{

@@ -1,3 +1,4 @@
+require('../lib/qa-preflight.cjs');
 const { test, expect } = require('@playwright/test');
 
 test('skill atlases decode once, animate in eight directions and render offline without requests', async ({ page, context }) => {

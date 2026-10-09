@@ -1,3 +1,4 @@
+import './lib/qa-preflight.cjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';

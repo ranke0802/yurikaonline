@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const out=process.env.QA_OUTPUT||'/tmp/basic-progression-browser';fs.mkdirSync(out,{recursive:true});

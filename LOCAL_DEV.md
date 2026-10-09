@@ -1,51 +1,63 @@
-# 🛠️ Yurika Online 로컬 개발 가이드
+# Yurika Online 로컬·클라우드 개발
 
-이 문서는 Yurika Online 서비스를 로컬 환경에서 실행하고 개발하는 방법을 안내합니다.
+기본 작업 브랜치는 `mmorpg_online`입니다. 이 브랜치 푸시는 운영 Firebase Hosting
+자동 배포를 유발하므로 로컬 개발 요청만으로 푸시하지 않습니다.
+먼저 [개발 지침](AGENTS.md)과 [운영 트래픽 제한](docs/HOSTING-TRAFFIC.md)을 확인합니다.
 
-## 1. 사전 요구 사항
+## 실행
 
-- **Node.js**: [공식 홈페이지](https://nodejs.org/)에서 설치 가능 (LTS 권장)
-- 브라우저 (Chrome, Edge 등 현대적인 브라우저)
-
-## 2. 로컬 실행 방법
-
-프로젝트 루트 디렉토리에서 아래 명령어를 실행하세요. 별도의 설치 없이 `npx`를 통해 즉시 서버가 실행됩니다.
+Node 22, Python 3, Chromium을 사용합니다. 저장소 루트에서:
 
 ```bash
+npm ci
 npm start
 ```
 
-명령어를 실행하면 자동으로 브라우저가 열리며 `http://127.0.0.1:8080` 주소에서 게임이 실행됩니다.
+`http://127.0.0.1:8100/?local=1`에서 독립 로컬 모험을 엽니다.
+서버는 loopback에만 바인딩하며 기본 페이지를 로컬 모드로 보내고,
+Firebase 설정·숨김 파일·node_modules·디렉터리 목록과 브라우저 외부 연결을 차단합니다.
+운영 계정, 운영 저장 데이터, 멀티플레이를 검증하는 서버가 아닙니다.
+`yurika-online` Firebase 프로젝트는 **운영** 프로젝트입니다.
 
-## 3. 주요 설정 정보
+로컬 저장은 해당 브라우저/origin의 데이터이며 서버 백업이 아닙니다.
+한 탭에서 사용하고, 다른 탭과 저장 충돌이 나면 새로고침합니다.
+브라우저 데이터 삭제 시 로컬 저장도 사라집니다.
 
-- **Firebase**: 현재 개발용 Firebase 프로젝트(`yurika-online`)에 연결되어 있습니다. 로컬 호스트에서도 실시간 멀티플레이어와 데이터 저장이 정상 작동합니다.
-- **Hot Reload**: 파일을 수정하고 저장하면 브라우저가 자동으로 새로고침되어 변경 사항이 즉시 반영됩니다.
+## 클라우드 재개
 
-## 4. 문제 해결
+저장된 환경 기본 ref는 여전히 `master`일 수 있습니다. 체크아웃을 확인합니다.
+기존 변경이 있으면 보존하고 검토한 뒤 진행합니다. 클린 상태에서:
 
-- **권한 오류**: `EACCES` 오류 발생 시 `sudo npm start`(Mac/Linux)를 사용하거나 터미널을 관리자 권한으로 실행하세요.
-- **포트 충돌**: 8080 포트가 이미 사용 중인 경우 자동으로 다음 가용 포트로 할당됩니다.
+```bash
+test -z "$(git status --porcelain)" || exit 1
+git fetch --no-tags origin refs/heads/mmorpg_online:refs/remotes/origin/mmorpg_online
+if git show-ref --verify --quiet refs/heads/mmorpg_online; then
+  git switch mmorpg_online
+else
+  git switch --create mmorpg_online --track origin/mmorpg_online
+fi
+git merge --ff-only origin/mmorpg_online
+git status --short --branch
+git log -1 --format='%H %s'
+```
 
----
-*Developed with Antigravity*
+현재 저장된 환경에서는 `source /workspace/yurika-cloud/env.sh`로 준비된 Node22와
+Chromium을 사용합니다. `/workspace/yurika-cloud/prepare.sh`는 클린 체크아웃 준비와
+의존성 설치만 하며 푸시/배포하지 않습니다. 환경 설정의 기본 ref를 바꾸는 명령은 아닙니다.
+환경 정지 후 서버를 다시 실행해야 합니다. PC가 켜져 있을 필요는 없지만,
+클라우드 작업 세션과 실행 서버를 영구 상시 가동 서비스로 간주하지 않습니다.
 
-## 클라우드 통합 초기 버전 (개발 브랜치)
+## 검증
 
-저장소 루트에서 `python3 -m http.server 8100 --bind 127.0.0.1`을 실행하고
-`http://127.0.0.1:8100/?local=1`을 여세요. Firebase에 연결하지 않는 별도
-로컬 모험입니다. 명시적으로 캐릭터를 만든 뒤 야영지 → 캐릭터 선택 →
-원본 튜토리얼/필드 → 저장 후 야영지로 돌아갈 수 있습니다.
+- `npm run validate:qa-policy`: 원격 URL 거절, CI 예산, 자산 실제 형식, 제한 클라이언트.
+- `npm run validate:qa-network-browser`: 외부 요청/리다이렉트 차단과 HTTP 캐시 유지.
+- `npm run validate:assets`: 원본과 immutable 해시/바이트 일치.
+- `npm run validate:asset-browser`: SW 갱신·중복 다운로드·API 비캐시.
+- `npm run validate:cache-lifecycle`: 자체 서버에서 네 직업 cold/warm/update 본문 바이트 계측.
+- 기능 회귀: `.github/workflows/firebase-hosting-merge.yml`의 배포 **이전** 로컬 명령.
+  Chromium 경로는 `CHROMIUM_PATH`, 결과 폴더는 `QA_OUTPUT`으로 지정합니다.
 
-`?local=1` 없는 원본 URL은 기존 온라인 인증 경로를 사용하므로 실서비스
-검증에 사용하지 마세요. 로컬 모험은 한 브라우저 탭에서 사용하고, 다른
-탭과 저장 충돌이 나면 전체 페이지를 새로고침하세요. 브라우저 데이터
-삭제 시 로컬 기록도 없어집니다. 서버·계정 백업이 아닙니다.
-
-- `npm run validate:local-profile`: 원본 보상 처리와 로컬 저장 검사
-- `npm run validate:camp-browser`: 위 8100 서버 + Chromium 브라우저 QA
-- `CHROMIUM_PATH`로 설치된 Chromium 실행 파일 경로 지정 가능
-- 상세 계획·한계·재개: [docs/CLOUD-INTEGRATION.md](docs/CLOUD-INTEGRATION.md)
-
-기존 `npm start`의 실제 포트는 **8081**입니다. 위 초기 문서의 8080과
-브라우저 자동 실행 안내보다 `package.json`의 현재 실행 설정을 따릅니다.
+실제 Firebase SDK 검사는 `YURIKA_FIREBASE_FIXTURE_ROOT` 아래 Firebase10.7.1/ws8을
+사용하는 loopback fixture입니다. 운영 인증값은 필요하지 않습니다.
+캐시 계측은 자체 HTTP 서버를 사용하므로 개발 서버의 no-store 헤더와 분리됩니다.
+운영 URL을 QA 환경 변수에 넣으면 실행 전에 실패합니다.

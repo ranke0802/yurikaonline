@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright');
 const sharp=require('sharp');
 const fs=require('node:fs');

@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 // Controlled renderer fixtures, not a live multiplayer or natural gameplay test.
 const { chromium } = require('playwright');
 const fs = require('node:fs'), cp = require('node:child_process');

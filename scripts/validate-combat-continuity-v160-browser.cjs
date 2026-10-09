@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright'),fs=require('fs'),assert=require('assert/strict');
 (async()=>{
  const out=process.env.QA_OUTPUT||'reports/regression-v160/verified';fs.mkdirSync(out,{recursive:true});

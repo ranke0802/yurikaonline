@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),{execFileSync}=require('node:child_process');
 const OUT='reports/class-vfx';fs.mkdirSync(OUT,{recursive:true});
 (async()=>{const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});try{for(const [version,port]of [['before',8101],['after',8100]].filter(([v])=>(process.env.QA_VFX_VERSIONS||'before,after').split(',').includes(v))){

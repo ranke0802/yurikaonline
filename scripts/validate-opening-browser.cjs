@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 // Browser-only auth fixtures: never connect Firebase or touch a real account.
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');

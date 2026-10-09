@@ -1,6 +1,7 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs');
 const base=process.env.QA_BASE_URL||'http://127.0.0.1:8100',out=process.env.QA_OUTPUT||'/tmp/yurika-return-berserk';
-assert.ok(['127.0.0.1','localhost','yurika-online.web.app'].includes(new URL(base).hostname),'Use the project origin with isolated local profiles only');
+assert.ok(['127.0.0.1','localhost','[::1]'].includes(new URL(base).hostname),'Use loopback with isolated local profiles only');
 fs.mkdirSync(out,{recursive:true});
 const report={scope:'Local actual clicks/taps; controlled simulation time/targets and remote snapshot fixtures. No production accounts or live multiplayer.',cases:[],errors:[],external:[]};
 (async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});

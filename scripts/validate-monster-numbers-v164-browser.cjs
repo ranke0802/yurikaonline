@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright'),fs=require('fs'),cp=require('node:child_process'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const combatBaseline=JSON.parse(fs.readFileSync(require('node:path').join(__dirname,'fixtures/monster-numbers-v164-baseline.json')));
 const out=process.env.QA_OUTPUT||'reports/damage-numbers-v164/verified';fs.mkdirSync(out,{recursive:true});

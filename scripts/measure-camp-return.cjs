@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 // Actual return button, equal isolated local profiles and viewport; no live writes.
 // First return has field sprites necessarily warmed by departure. "evicted" is
 // an explicit diagnostic intervention, NOT an ordinary first-return measurement.

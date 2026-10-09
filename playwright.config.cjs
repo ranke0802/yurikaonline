@@ -1,3 +1,4 @@
+require('./scripts/lib/qa-preflight.cjs');
 const { defineConfig } = require('@playwright/test');
 module.exports = defineConfig({
     testDir: './scripts/browser-tests', workers: 1,

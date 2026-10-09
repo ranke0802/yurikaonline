@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright');const fs=require('node:fs');const assert=require('node:assert/strict');
 const OUT='/tmp/yurika-polish-qa';fs.mkdirSync(OUT,{recursive:true});const report={cases:[],errors:[],external:[],httpFailures:[]};
 (async()=>{const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});try{for(const [name,width,height]of [['galaxy-s23',780,360],['iphone',852,393]]){

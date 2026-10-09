@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 // Compare the restored document against the exact v154 HTML snapshot; loopback only.
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),sharp=require('sharp');
 const base='http://127.0.0.1:8100',out='/tmp/yurika-loading-restore-v156';fs.mkdirSync(out,{recursive:true});

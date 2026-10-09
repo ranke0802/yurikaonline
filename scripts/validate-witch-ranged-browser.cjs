@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs');const out=process.env.QA_OUTPUT||'/tmp/witch-ranged';fs.mkdirSync(out,{recursive:true});const report={scope:'Actual local Chromium input and life-orb logic; raster validation requires the approved atlas, no live accounts',cases:[],errors:[]};
 const base=(process.env.QA_BASE_URL||'http://127.0.0.1:8100').replace(/\/$/,'');
 (async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});try{

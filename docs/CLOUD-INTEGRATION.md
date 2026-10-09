@@ -1,3 +1,6 @@
+> 현재 운영 QA 정책: 과거 원격 검증/배포 기록은 재실행 지시가 아닙니다.
+> 모든 게임 QA는 localhost에서만 수행하며 [트래픽 지침](HOSTING-TRAFFIC.md)을 따릅니다.
+
 # Camp integration — implementation and resume
 
 Branch: `codex/party-rpg-cloud-setup-20260930`. Base: `c0ae8a8`.

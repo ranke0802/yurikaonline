@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright'),fs=require('node:fs'),{execFileSync}=require('node:child_process');
 const base=process.env.QA_BASE||'http://127.0.0.1:8102',label=process.env.QA_LABEL||'v136-baseline',full=process.env.QA_ARCHER_FULL==='1',OUT=`reports/archer-trajectory/${label}`;fs.mkdirSync(OUT,{recursive:true});
 (async()=>{const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});const report={base,label,scope:'Real running GameLoop and CDP touch input, wall-clock sampling; local fixtures only. No manual controller or Player.update calls.',cases:[],errors:[],external:[]};try{

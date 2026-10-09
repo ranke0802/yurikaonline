@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('@playwright/test');
 const fs=require('node:fs'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const base=(process.env.QA_URL||'http://127.0.0.1:8100').replace(/\/$/,''),out=process.env.QA_OUTPUT||'reports/combat-guidance-v172';

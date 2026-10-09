@@ -1,3 +1,4 @@
+require('../lib/qa-preflight.cjs');
 const {chromium}=require('@playwright/test');const assert=require('node:assert/strict');const fs=require('node:fs');
 (async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox','--autoplay-policy=user-gesture-required']});const report={cases:[],errors:[],external:[]};try{
  const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});const page=await context.newPage();page.on('pageerror',e=>report.errors.push(e.message));const base=process.env.QA_URL||'http://127.0.0.1:8100';await page.route('**/*',r=>{const u=new URL(r.request().url());if(u.origin===base||['data:','blob:'].includes(u.protocol))return r.continue();report.external.push(u.href);return r.abort()});

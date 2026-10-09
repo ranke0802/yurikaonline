@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const { chromium } = require('playwright');
 const fs = require('node:fs'), cp = require('node:child_process'), assert = require('node:assert/strict');
 const OUT = process.env.QA_OUTPUT || '/tmp/yurika-display-quality';

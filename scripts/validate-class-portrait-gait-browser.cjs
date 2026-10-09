@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const OUT=process.env.QA_OUTPUT||'/tmp/class-portrait-gait';fs.mkdirSync(OUT,{recursive:true});

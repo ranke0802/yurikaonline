@@ -1,3 +1,4 @@
+require('./lib/qa-preflight.cjs');
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs');
 const out=process.env.QA_OUTPUT||'/tmp/tutorial-stat-cancel';fs.mkdirSync(out,{recursive:true});
 const report={scope:'Local Chromium synthetic fresh profiles; desktop uses genuine D/J movement/combat; touch layouts fixture only prior movement/combat; actual status/INT/close/cancel/keyboard clicks',cases:[],errors:[]};
