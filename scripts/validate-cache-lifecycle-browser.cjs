@@ -6,6 +6,27 @@ const hash = b => crypto.createHash('sha256').update(b).digest('hex');
 const CACHE = 'yurika-online-immutable-v1';
 const WITCH_PORTRAIT = '/assets/immutable/03be1a085990aefa1341e623.webp';
 
+// Only inspect UI state. The character menu also exists while creation is busy,
+// so its visibility does not mean selectClass() can accept a selection yet.
+function readCampState({ expectedClassId = null, requireImages = false, readyOnly = false } = {}) {
+    const scene = window.game?.sceneManager.currentScene, player = window.game?.localPlayer;
+    const root = document.getElementById('camp-scene');
+    const images = root ? [...root.querySelectorAll('img')].map(i => ({ path: i.currentSrc ? new URL(i.currentSrc).pathname : null, complete: i.complete, width: i.naturalWidth })) : [];
+    const state = { observedAt: Date.now(), scene: scene?.constructor.name, view: scene?.view,
+        busy: !!scene?.busy, failed: !!scene?.failed, classSelectionOperation: !!scene?.classSelectionOperation,
+        requestedClassId: scene?.requestedClassId ?? null, playerClassId: player?.classId ?? null,
+        preparationClassId: scene?.preparation?.player?.activeClassId ?? null, profileClassId: scene?.profile?.activeClassId ?? null,
+        hasPreparation: !!scene?.preparation, loadToken: scene?.loadToken, generation: scene?.generation, images };
+    state.conditions = {
+        campScene: state.scene === 'CampScene' && !!root?.isConnected,
+        idle: !state.busy && !state.classSelectionOperation, healthy: !state.failed,
+        prepared: state.hasPreparation && !!scene.profile && !!player && player === scene.preparation.player,
+        selectedClass: !expectedClassId || [state.playerClassId, state.preparationClassId, state.profileClassId].every(id => id === expectedClassId),
+        imagesReady: !requireImages || images.length > 0 && images.every(i => i.complete && i.width > 0 && i.path)
+    };
+    return readyOnly ? Object.values(state.conditions).every(Boolean) : state;
+}
+
 // Fault injection for the local regression control: defer the first portrait's
 // DOM src assignment, without changing HTTP cache, SW code or CacheStorage.
 function deferFirstPortrait({ target, delay }) {
@@ -29,10 +50,10 @@ function deferFirstPortrait({ target, delay }) {
     } });
 }
 
-async function runCacheLifecycle({ classes = ['wizard', 'witch', 'warrior', 'archer'], out = process.env.QA_OUTPUT || '/tmp/yurika-cache-lifecycle', portraitDelayMs = 0, evictPortraitBeforeWarm = false } = {}) {
+async function runCacheLifecycle({ classes = ['wizard', 'witch', 'warrior', 'archer'], out = process.env.QA_OUTPUT || '/tmp/yurika-cache-lifecycle', portraitDelayMs = 0, evictPortraitBeforeWarm = false, profilePreparationDelayMs = 0 } = {}) {
     const root = process.cwd(), version = fs.readFileSync('version.txt', 'utf8').trim();
-    const report = { scope: 'Loopback response body sizes with request/finish times; not Firebase billing. Unmodified real SW, no route interception. Every warm/update immutable image body must be zero.', status: 'running', phases: [], checkpoints: [], external: [], fixtures: { portraitDelayMs, evictPortraitBeforeWarm } };
-    let phase = 'setup', release = version, browser, activePage, coldCachedPaths = new Set();
+    const report = { scope: 'Loopback response body sizes with request/finish times; not Firebase billing. Unmodified real SW, no route interception. Every warm/update immutable image body must be zero.', status: 'running', phases: [], checkpoints: [], external: [], fixtures: { portraitDelayMs, evictPortraitBeforeWarm, profilePreparationDelayMs } };
+    let phase = 'setup', release = version, browser, activePage, activeClassId, coldCachedPaths = new Set();
     const rows = [], events = [];
     const mark = (event, detail = {}) => events.push({ time: Date.now(), phase, event, ...detail });
     const server = http.createServer((req, res) => {
@@ -81,6 +102,7 @@ async function runCacheLifecycle({ classes = ['wizard', 'witch', 'warrior', 'arc
         report.browserVersion = browser.version();
         for (const id of classes) {
             assert.ok(['wizard', 'witch', 'warrior', 'archer'].includes(id));
+            activeClassId = id;
             release = version; phase = `${id}:install`; mark('phase-start');
             const context = await browser.newContext({ viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true, serviceWorkers: 'allow' });
             if (portraitDelayMs && id === 'witch') await context.addInitScript(deferFirstPortrait, { target: WITCH_PORTRAIT, delay: portraitDelayMs });
@@ -90,6 +112,14 @@ async function runCacheLifecycle({ classes = ['wizard', 'witch', 'warrior', 'arc
                 if (url.origin === base && /\/assets\/immutable\/.*\.(webp|png|svg)$/.test(url.pathname)) mark(event, { path: url.pathname, worker: !!request.serviceWorker?.(), ...(event === 'requestfailed' ? { failure: request.failure()?.errorText } : {}) });
             });
             const page = await context.newPage(); activePage = page; page.setDefaultTimeout(30000);
+            const captureCampState = async event => {
+                const state = await page.evaluate(readCampState, { expectedClassId: id });
+                const stored = await page.evaluate(async () => {
+                    const profile = await game.net.getPlayerProfile(game.net.playerId);
+                    return { hasStoredProfile: !!profile, storedClassId: profile?.activeClassId ?? null };
+                });
+                mark(event, { ...state, ...stored }); return state;
+            };
             // Reading CacheStorage observes committed entries; it never fetches or
             // populates missing assets. Timing is an observation, not cache.put's timestamp.
             const checkpoint = async (label, expectedPaths = []) => {
@@ -108,12 +138,7 @@ async function runCacheLifecycle({ classes = ['wizard', 'witch', 'warrior', 'arc
             };
             const campReady = async label => {
                 mark('camp-image-wait-start', { label, classId: id });
-                await page.waitForFunction(id => {
-                    const scene = window.game?.sceneManager.currentScene, root = document.getElementById('camp-scene');
-                    const images = root ? [...root.querySelectorAll('img')] : [];
-                    return scene?.constructor.name === 'CampScene' && !scene.busy && !scene.classSelectionOperation && game.localPlayer?.classId === id
-                        && images.length > 0 && images.every(i => i.complete && i.naturalWidth > 0 && i.currentSrc);
-                }, id);
+                await page.waitForFunction(readCampState, { expectedClassId: id, requireImages: true, readyOnly: true });
                 const images = await page.evaluate(async () => {
                     const images = [...document.querySelectorAll('#camp-scene img')]; await Promise.all(images.map(i => i.decode()));
                     if (images.some(i => !i.isConnected)) throw Error('Camp replaced its images during readiness check');
@@ -142,12 +167,36 @@ async function runCacheLifecycle({ classes = ['wizard', 'witch', 'warrior', 'arc
             };
             phase = `${id}:cold`; mark('phase-start');
             await page.goto(base + '/?local=1'); await page.locator('#camp-name').fill('캐시 계측');
-            await page.locator('[data-camp=create]').tap(); await page.locator('[data-camp=character]').first().waitFor();
-            await page.evaluate(async id => {
+            if (profilePreparationDelayMs) await page.evaluate(delay => {
+                const scene = game.sceneManager.currentScene, original = scene.prepareProfile;
+                let first = true;
+                scene.prepareProfile = async function(...args) {
+                    // Delay only the first real creation load; leave selection,
+                    // persistence, asset loading and all subsequent loads intact.
+                    if (first) {
+                        first = false;
+                        window.qaCacheCreationDelay = { startedAt: Date.now(), busy: this.busy, hasPreparation: !!this.preparation };
+                        await new Promise(r => setTimeout(r, delay));
+                        window.qaCacheCreationDelay.releasedAt = Date.now();
+                    }
+                    return original.apply(this, args);
+                };
+            }, profilePreparationDelayMs);
+            await page.locator('[data-camp=create]').tap();
+            await captureCampState('creation-wait-start');
+            await page.waitForFunction(readCampState, { readyOnly: true });
+            await captureCampState('creation-ready');
+            if (profilePreparationDelayMs) mark('creation-delay-fixture', await page.evaluate(() => window.qaCacheCreationDelay));
+            const saved = await page.evaluate(async id => {
                 const n = game.net, p = await n.getPlayerProfile(n.playerId);
-                await n.savePlayerData(n.playerId, { ...p, activeClassId: id, questData: { ...p.questData, prologueCompleted: true, basicTrainingCompleted: true } });
+                const result = await n.savePlayerData(n.playerId, { ...p, activeClassId: id, questData: { ...p.questData, prologueCompleted: true, basicTrainingCompleted: true } });
+                return { ok: result?.ok === true, reason: result?.reason };
             }, id);
+            assert.equal(saved.ok, true, `Local profile fixture save failed: ${saved.reason || 'unknown'}`);
+            await captureCampState('before-class-selection');
             await page.evaluate(async id => { await game.sceneManager.currentScene.selectClass(id); }, id);
+            const selected = await captureCampState('after-class-selection');
+            assert.ok(Object.values(selected.conditions).every(Boolean), `Class selection did not finish: ${JSON.stringify(selected)}`);
             const cold = await depart(); coldCachedPaths = new Set(cold.keys.map(k => k.path));
             if (evictPortraitBeforeWarm && id === 'witch') {
                 assert.ok(coldCachedPaths.has(WITCH_PORTRAIT), 'negative control must evict a previously cached image');
@@ -176,11 +225,12 @@ async function runCacheLifecycle({ classes = ['wizard', 'witch', 'warrior', 'arc
     } catch (error) {
         report.status = 'failed'; report.error = { name: error.name, message: error.message };
         try {
-            report.failureSnapshot = await activePage?.evaluate(async cacheName => ({
-                observedAt: Date.now(), scene: window.game?.sceneManager.currentScene?.constructor.name,
-                images: [...document.querySelectorAll('#camp-scene img')].map(i => ({ path: i.currentSrc ? new URL(i.currentSrc).pathname : null, complete: i.complete, width: i.naturalWidth })),
-                cacheKeys: (await (await caches.open(cacheName)).keys()).map(r => new URL(r.url).pathname)
-            }), CACHE);
+            report.failureSnapshot = await activePage?.evaluate(readCampState, { expectedClassId: activeClassId, requireImages: true });
+            Object.assign(report.failureSnapshot, await activePage.evaluate(async cacheName => {
+                const profile = await window.game?.net.getPlayerProfile(game.net.playerId);
+                return { storedClassId: profile?.activeClassId ?? null,
+                    cacheKeys: (await (await caches.open(cacheName)).keys()).map(r => new URL(r.url).pathname) };
+            }, CACHE));
         } catch { report.failureSnapshot = { unavailable: true }; }
         throw error;
     } finally {

@@ -175,3 +175,27 @@ CI는 Chromium 153.0.8010.12, 이 클라우드의 설치 브라우저는 151.0.7
 동일 버전 다운로드는 환경의 `403 Domain forbidden`으로 차단돼 우회하지 않았다.
 로컬 대조 검증과 새 CI 결과를 구분해 보고한다. 진단과 재현 증거는
 `/workspace/yurika-cache-ci-fix/`에 보관한다.
+
+## 후속 CI의 궁수 생성 준비 경계 수정
+
+`e19beba`의 [CI](https://github.com/ranke0802/yurikaonline/actions/runs/38007211442)는
+Chromium 153에서 마법사·마녀·전사 warm/update 0바이트를 통과한 뒤 궁수 cold의
+campReady에서 중단됐다. 배포와 운영 확인은 skipped였다. 보존된 artifact 분석상
+화면 이미지 7개는 모두 완료·캐시 저장됐으며 실패한 이미지 요청도 없었다.
+당시 snapshot에 busy/선택 작업/플레이어 직업이 없어 정확한 거짓 조건은 직접
+확인할 수 없었다.
+
+로컬에서 최초 prepareProfile 실행을 1초 늦추자 동일한 30초 timeout이 재현됐다.
+`[data-camp=character]` 메뉴는 캐릭터 생성 전에도 비활성 상태로 존재한다.
+기존 waitFor는 이 메뉴의 가시성만 확인해, busy=true/preparation 없음 상태에서
+selectClass를 호출했다. 이 호출은 정상적인 제품 방어 조건에 의해 적용되지 않는다.
+저장된 직업은 archer지만 먼저 시작된 생성 로드의 플레이어는 wizard로 남았다.
+이 재현으로 자동화 순서 결함은 확인했으며, 당시 CI의 같은 상태였다고 단정하지 않는다.
+
+검사는 이제 생성 완료와 실제 preparation/player 준비를 먼저 기다리고, fixture 저장
+성공과 직업 선택 결과도 확인한다. timeout을 늘리거나 이미지/캐시 검사를 제거하지
+않았다. 실패 snapshot 및 단계별 이벤트에 busy, 선택 작업, 요청/저장/플레이어 직업,
+preparation 유무와 개별 준비 조건을 추가했다. 전체 프로필은 기록하지 않는다.
+1초 지연 생성 대조는 실제 궁수 선택 및 warm/update 0바이트까지 확인한다.
+게임 런타임·아트·SW와 운영 트래픽 예산은 변경하지 않았다. 재현 로그와 전후 상태는
+`/workspace/yurika-cache-archer-fix/`에 보관한다.
