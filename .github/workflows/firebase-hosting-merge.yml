@@ -31,6 +31,14 @@ jobs:
           npm run validate:asset-browser
           npm run validate:cache-lifecycle
           npm run validate:audio-all
+      - name: Preserve local cache diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cache-lifecycle-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/yurika-cache-lifecycle/**/*.json
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Verify real Firebase SDK camp cache lifecycle on loopback
         run: |
           npm install --prefix "$RUNNER_TEMP/yurika-sdk-fixture" --no-package-lock firebase@10.7.1 ws@8

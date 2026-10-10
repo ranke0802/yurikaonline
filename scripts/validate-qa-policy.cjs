@@ -33,6 +33,9 @@ test('workflows retain local coverage and only allow a single budgeted postdeplo
     assert.equal((after.match(/run:/g) || []).length, 1);
     assert.match(after, /run: node scripts\/verify-hosting-release\.mjs/);
     assert.match(after, /YURIKA_RELEASE_MAX_REQUESTS: '8'/); assert.match(after, /YURIKA_RELEASE_MAX_BYTES: '200000'/);
+    const before = workflow.split('uses: FirebaseExtended/action-hosting-deploy@v0')[0];
+    assert.match(before, /if: failure\(\)\s+uses: actions\/upload-artifact@v4/);
+    assert.match(before, /path: \/tmp\/yurika-cache-lifecycle\/\*\*\/\*\.json/);
     for (const name of ['validate:qa-policy', 'validate:cache-lifecycle', 'validate:qa-network-browser', 'validate:asset-browser', 'validate-field-clarity-browser.cjs']) {
         if (name === 'validate-field-clarity-browser.cjs') assert.match(workflow, /npm run validate:field-clarity-browser/);
         else assert.ok(workflow.includes(name), name);
