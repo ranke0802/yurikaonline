@@ -1,0 +1,9 @@
+/* Local Noto fallback; no Google Fonts or other remote font request. */
+@font-face { font-family: 'Yurika Offline Sans'; src: url('/offline/fonts/noto-kr-regular.woff') format('woff'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Yurika Offline Sans'; src: url('/offline/fonts/noto-kr-bold.woff') format('woff'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Outfit'; src: url('/offline/fonts/noto-kr-regular.woff') format('woff'); font-weight: 100 500; font-display: swap; }
+@font-face { font-family: 'Outfit'; src: url('/offline/fonts/noto-kr-bold.woff') format('woff'); font-weight: 600 900; font-display: swap; }
+@font-face { font-family: 'Nanum Gothic'; src: url('/offline/fonts/noto-kr-regular.woff') format('woff'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Noto Sans KR'; src: url('/offline/fonts/noto-kr-regular.woff') format('woff'); font-weight: 400; font-display: swap; }
+#camp-scene { font-family: 'Yurika Offline Sans', system-ui, sans-serif; }
+#offline-test-badge { position: fixed; left: 50%; top: 0; transform: translateX(-50%); padding: 2px 8px; color: #fff5df; background: #232435dd; font: 10px/1.4 'Yurika Offline Sans', sans-serif; border-radius: 0 0 5px 5px; z-index: 10001; pointer-events: none; white-space: nowrap; }
