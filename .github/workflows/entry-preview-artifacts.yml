@@ -1,0 +1,60 @@
+name: Deliver entry preview files
+
+on:
+  push:
+    branches: [test/entry-preview-4b13716]
+    paths:
+      - previews/**
+      - .github/workflows/entry-preview-artifacts.yml
+
+permissions:
+  contents: read
+
+jobs:
+  preview_artifact:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/test/entry-preview-4b13716'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Verify media hashes and artifact size
+        run: |
+          python3 - <<'PY'
+          import hashlib, io, json, pathlib, zipfile
+          root = pathlib.Path('previews')
+          manifest = json.loads((root / 'manifest.json').read_text())
+          expected = {'manifest.json', 'README.md'}
+          for item in manifest['files']:
+              name = item['name']
+              assert pathlib.Path(name).name == name
+              path = root / name
+              data = path.read_bytes()
+              assert len(data) == item['bytes'], name
+              assert hashlib.sha256(data).hexdigest() == item['sha256'], name
+              if path.suffix == '.webp':
+                  assert data[:4] == b'RIFF' and data[8:12] == b'WEBP', name
+              else:
+                  assert path.suffix == '.mp4' and data[4:8] == b'ftyp', name
+              expected.add(name)
+              print(name, len(data), item['sha256'])
+          assert {p.name for p in root.iterdir()} == expected
+          assert sum((root / n).stat().st_size for n in expected) < 8 * 1024 * 1024
+          assert sorted(str(p) for p in pathlib.Path('.github/workflows').glob('*')) == ['.github/workflows/entry-preview-artifacts.yml']
+          bundle = io.BytesIO()
+          with zipfile.ZipFile(bundle, 'w', compression=zipfile.ZIP_STORED) as archive:
+              for name in sorted(expected):
+                  archive.write(root / name, name)
+          assert len(bundle.getvalue()) < 32 * 1024 * 1024
+          print('Verified artifact payload:', len(bundle.getvalue()), 'bytes')
+          PY
+      - name: Upload entry preview files
+        uses: actions/upload-artifact@v4
+        with:
+          name: yurika-entry-preview-${{ github.sha }}
+          path: previews/
+          if-no-files-found: error
+          retention-days: 2
+          compression-level: 0
