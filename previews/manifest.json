@@ -1,28 +1,35 @@
 {
-  "source_commit": "4b137166ac9dc56724f7721229e9624fa19733ce",
+  "source_commit": "37bc6d8dca100c0e2046e6839878f0581ec2829f",
   "base_commit": "e34456219cbeaa2679625f7e109b10d1377b2706",
   "scope": "Actual browser-rendered entry screens and captured transitions; local mock authentication and profile data; no Firebase service connection. Implementation code is not included.",
   "validation": {
-    "local_workflow_groups_passed": 56,
     "entry_viewports_passed": 5,
+    "entry_wordmark_geometry_max_change_px": 0,
+    "entry_scene_opacity": 1,
+    "recorded_wordmark_frame_bounds_max_change_px": 0,
+    "recorded_entry_frames": {
+      "desktop": 125,
+      "portrait": 126
+    },
     "immutable_assets_unchanged": 279,
-    "warm_update_image_response_bytes": 0
+    "warm_update_image_response_bytes": 0,
+    "full_regression": "Running separately; this preview packages completed entry/bootstrap/frame/cache validation."
   },
   "privacy_review": "Only game art, UI text and the fictional fixture name 달숲모험가 are visible. No real account login popup, personal profile, credentials, developer console or image EXIF/XMP. MP4 metadata contains codec/container tags only.",
   "files": [
     {
       "name": "entry-overview.webp",
-      "bytes": 275310,
-      "sha256": "ca1a891b3ae6131bb22e087243fa70af416a7f84070cdad5f5eca28b1e6293f6",
+      "bytes": 305918,
+      "sha256": "05fbbb9104228798725ae4d0688a720f1ee1a8620d71fa6f3211a0890bf3f5b5",
       "format": "WEBP",
       "width": 1440,
-      "height": 1078,
+      "height": 970,
       "frames": 1
     },
     {
       "name": "desktop-01-logo.webp",
-      "bytes": 38624,
-      "sha256": "3fb55afc63767e686deaf0d7d764cfe33f65e5b4871fb8247780ac92c26b4390",
+      "bytes": 8530,
+      "sha256": "8c2dd93afea17b7146c8401d3695b27c04d0bda78677e350408ae88acad41d9c",
       "format": "WEBP",
       "width": 1280,
       "height": 800,
@@ -30,8 +37,8 @@
     },
     {
       "name": "desktop-02-loading.webp",
-      "bytes": 208236,
-      "sha256": "9b65092eb781265305067e8e19be7489ab767242e67ed35e4f3acbd83386a978",
+      "bytes": 191468,
+      "sha256": "c7eaa8a86d4814bc0244bcf6176918accd747251998aa82284d217dcd29c5508",
       "format": "WEBP",
       "width": 1280,
       "height": 800,
@@ -39,8 +46,17 @@
     },
     {
       "name": "desktop-03-login.webp",
-      "bytes": 211048,
-      "sha256": "9682970a366680138b07bc5544a3facf156dcd7eaff63275cc13cbf44eee1157",
+      "bytes": 193074,
+      "sha256": "079778ad7368f00c13849d8da5f6f8a492e4e2b9f7134898ec6de14ed49a2c8a",
+      "format": "WEBP",
+      "width": 1280,
+      "height": 800,
+      "frames": 1
+    },
+    {
+      "name": "desktop-04-create.webp",
+      "bytes": 142260,
+      "sha256": "245c01d8e3266b47c6b2ef204f2d0e4fd87998f4e5ac027012d013e4cef4cd25",
       "format": "WEBP",
       "width": 1280,
       "height": 800,
@@ -48,8 +64,8 @@
     },
     {
       "name": "desktop-05-camp.webp",
-      "bytes": 225826,
-      "sha256": "a09a317af6d421bb6b60623ac5902ab7b1bc67e643411cd402de03b157920a04",
+      "bytes": 223950,
+      "sha256": "b5e1482fc8aa55bf7e70c5b1501754b8f83408762f8fa927bf58afd8ab9adc98",
       "format": "WEBP",
       "width": 1280,
       "height": 800,
@@ -57,8 +73,17 @@
     },
     {
       "name": "portrait-03-login.webp",
-      "bytes": 64050,
-      "sha256": "829923683de57e2add75ec1b3a1f92f246288e23db857c7b6b3f17f0850fe8c1",
+      "bytes": 48894,
+      "sha256": "2df0abd611cf73b156abfbbb67cb4b4b9bde04fcfcc0f5317b3aac24490e1302",
+      "format": "WEBP",
+      "width": 393,
+      "height": 852,
+      "frames": 1
+    },
+    {
+      "name": "portrait-04-create.webp",
+      "bytes": 42010,
+      "sha256": "00ddb7c75310af0409ffd1ed7af3fb7de3e7c0b49ae7597b79ec1ffd40443cec",
       "format": "WEBP",
       "width": 393,
       "height": 852,
@@ -66,8 +91,8 @@
     },
     {
       "name": "portrait-05-camp.webp",
-      "bytes": 81610,
-      "sha256": "e4ba4fa6cc88fd1c5638929822981ad4080070cddaeb4e3b06240ca521e0b53b",
+      "bytes": 80916,
+      "sha256": "5c3f8ecd5343d7c446ccd41d00fec33707bcb375da0720146d93d3fbd70c065b",
       "format": "WEBP",
       "width": 393,
       "height": 852,
@@ -75,8 +100,8 @@
     },
     {
       "name": "landscape-03-login.webp",
-      "bytes": 98452,
-      "sha256": "545c7bc8e7c6cc2aa68c1addcb7e9bdb49fb9b196dad4d2845186fb55dd26261",
+      "bytes": 95540,
+      "sha256": "95ba7cabea92bd13f59ee935ceb5b56ce18e13d44a9b7dee7bbb7eb93276d6a2",
       "format": "WEBP",
       "width": 852,
       "height": 393,
@@ -84,8 +109,8 @@
     },
     {
       "name": "landscape-05-camp.webp",
-      "bytes": 96910,
-      "sha256": "9ab777fac0d9cc5451124678532b8ac20331917ad7fe675a817d2947483b632f",
+      "bytes": 96514,
+      "sha256": "ed6bc5fc677c8ee0e7f5ab7b0db8ebe434797bb5ac48bd214666b07b5da8493a",
       "format": "WEBP",
       "width": 852,
       "height": 393,
@@ -93,32 +118,41 @@
     },
     {
       "name": "desktop-entry-flow.mp4",
-      "bytes": 1256999,
-      "sha256": "d4b64d58e8226fb33e73a12ab6dfaf5e80b7a05c113438e035213123781ad074"
+      "bytes": 624498,
+      "sha256": "75e1f190afc1cfc5de97e5f70782707ff69f538d08dd5b8be720d09a451581d3",
+      "format": "MP4",
+      "width": 1280,
+      "height": 800,
+      "duration_seconds": 10.208333
     },
     {
       "name": "portrait-entry-flow.mp4",
-      "bytes": 479304,
-      "sha256": "6880ce55f17e612c0de89cb6f49391df75b05a12cbd0856a5f49f73db4beb848"
+      "bytes": 279357,
+      "sha256": "94d22e74566552b2eb822b900190777c15cb43441b44a0f58a0e865719f21126",
+      "format": "MP4",
+      "width": 394,
+      "height": 852,
+      "duration_seconds": 10.208333
     },
     {
       "name": "desktop-entry-flow.webp",
-      "bytes": 685000,
-      "sha256": "6d9faf484b6e63e8ebbec87db18b7b4fc46b4e2baad77d63d3ac976cd6054123",
+      "bytes": 172110,
+      "sha256": "52afb97364b5f8a5d236856b3500a0634af7546cf3aee6095df7ccabad5b938c",
       "format": "WEBP",
       "width": 800,
       "height": 500,
-      "frames": 61
+      "frames": 70,
+      "play_count": 1
     },
     {
       "name": "portrait-entry-flow.webp",
-      "bytes": 447726,
-      "sha256": "a77727ddc8f3c6f156a3e1c21b6677888f3b0b8004204392e47e692edff06a8d",
+      "bytes": 151836,
+      "sha256": "3fb3c14d181c2486fe7e82fa031c661acc46ef2fbcfe7824677bf732238b6193",
       "format": "WEBP",
       "width": 360,
       "height": 778,
-      "frames": 79
+      "frames": 82,
+      "play_count": 1
     }
-  ],
-  "total_media_bytes": 4169095
+  ]
 }
