@@ -1,35 +1,19 @@
 {
-  "source_commit": "37bc6d8dca100c0e2046e6839878f0581ec2829f",
-  "base_commit": "e34456219cbeaa2679625f7e109b10d1377b2706",
-  "scope": "Actual browser-rendered entry screens and captured transitions; local mock authentication and profile data; no Firebase service connection. Implementation code is not included.",
+  "base_commit": "37bc6d8dca100c0e2046e6839878f0581ec2829f",
+  "scope": "Actual Chromium-rendered UI and recorded transitions from local working changes. Fixture account only; no Firebase connection. Source code not included.",
   "validation": {
     "entry_viewports_passed": 5,
-    "entry_wordmark_geometry_max_change_px": 0,
-    "entry_scene_opacity": 1,
-    "recorded_wordmark_frame_bounds_max_change_px": 0,
-    "recorded_entry_frames": {
-      "desktop": 125,
-      "portrait": 126
-    },
+    "entry_state_and_failure_tests": "passed",
+    "full_regression": "56 existing Actions groups passed at 9a5d432; this CSS-only portrait revision preserves runtime JS and original art. Current focused entry/framing/asset/cache checks passed.",
     "immutable_assets_unchanged": 279,
-    "warm_update_image_response_bytes": 0,
-    "full_regression": "Running separately; this preview packages completed entry/bootstrap/frame/cache validation."
+    "warm_update_image_response_bytes": 0
   },
-  "privacy_review": "Only game art, UI text and the fictional fixture name 달숲모험가 are visible. No real account login popup, personal profile, credentials, developer console or image EXIF/XMP. MP4 metadata contains codec/container tags only.",
+  "art_motion": "No Live2D model exists. Existing opening.webp is one painting with all four travelers. The whole painting pans/scales slowly; a CSS light gradient changes independently. No articulated character motion.",
   "files": [
     {
-      "name": "entry-overview.webp",
-      "bytes": 305918,
-      "sha256": "05fbbb9104228798725ae4d0688a720f1ee1a8620d71fa6f3211a0890bf3f5b5",
-      "format": "WEBP",
-      "width": 1440,
-      "height": 970,
-      "frames": 1
-    },
-    {
-      "name": "desktop-01-logo.webp",
-      "bytes": 8530,
-      "sha256": "8c2dd93afea17b7146c8401d3695b27c04d0bda78677e350408ae88acad41d9c",
+      "name": "desktop-01-title.webp",
+      "bytes": 5608,
+      "sha256": "b52df294c30afdcd3ae12b39f84380cb8999b65b667cf02a649a833e76ee43a4",
       "format": "WEBP",
       "width": 1280,
       "height": 800,
@@ -37,122 +21,360 @@
     },
     {
       "name": "desktop-02-loading.webp",
-      "bytes": 191468,
-      "sha256": "c7eaa8a86d4814bc0244bcf6176918accd747251998aa82284d217dcd29c5508",
+      "bytes": 258326,
+      "sha256": "03c765ff6e50e0427128f5bc57e5e8f591ee15c19cb4b71700d61201f9d40fd8",
       "format": "WEBP",
       "width": 1280,
       "height": 800,
       "frames": 1
     },
     {
-      "name": "desktop-03-login.webp",
-      "bytes": 193074,
-      "sha256": "079778ad7368f00c13849d8da5f6f8a492e4e2b9f7134898ec6de14ed49a2c8a",
+      "name": "desktop-03-start.webp",
+      "bytes": 257708,
+      "sha256": "f6cb63f7e17182d337b9dae6d7e9f60d05cc0e82eb5efad7864465760d81b393",
       "format": "WEBP",
       "width": 1280,
       "height": 800,
       "frames": 1
     },
     {
-      "name": "desktop-04-create.webp",
-      "bytes": 142260,
-      "sha256": "245c01d8e3266b47c6b2ef204f2d0e4fd87998f4e5ac027012d013e4cef4cd25",
+      "name": "desktop-04-nickname.webp",
+      "bytes": 132248,
+      "sha256": "975f10c87b018dd6ca8314d78cb1120278cccdc718c4514a2473e8904a60d60f",
       "format": "WEBP",
       "width": 1280,
       "height": 800,
       "frames": 1
     },
     {
-      "name": "desktop-05-camp.webp",
-      "bytes": 223950,
-      "sha256": "b5e1482fc8aa55bf7e70c5b1501754b8f83408762f8fa927bf58afd8ab9adc98",
+      "name": "desktop-05-lobby.webp",
+      "bytes": 229372,
+      "sha256": "bdd5c600f6673a47e82b06ade822e0d1f62f0d20b52ad025fbba4265c2cd3029",
       "format": "WEBP",
       "width": 1280,
       "height": 800,
       "frames": 1
     },
     {
-      "name": "portrait-03-login.webp",
-      "bytes": 48894,
-      "sha256": "2df0abd611cf73b156abfbbb67cb4b4b9bde04fcfcc0f5317b3aac24490e1302",
+      "name": "desktop-06-select.webp",
+      "bytes": 178584,
+      "sha256": "82ac006b54bd3e4ffc5dc6397fc18014dea5b8b6dfed3653da0f2fa6e79099ca",
       "format": "WEBP",
-      "width": 393,
-      "height": 852,
+      "width": 1280,
+      "height": 800,
       "frames": 1
     },
     {
-      "name": "portrait-04-create.webp",
-      "bytes": 42010,
-      "sha256": "00ddb7c75310af0409ffd1ed7af3fb7de3e7c0b49ae7597b79ec1ffd40443cec",
+      "name": "desktop-07-ready.webp",
+      "bytes": 177710,
+      "sha256": "778c0deaa067cce53c81206491e260465dd2443e5e9640e6005a778d9cd948d7",
       "format": "WEBP",
-      "width": 393,
-      "height": 852,
-      "frames": 1
-    },
-    {
-      "name": "portrait-05-camp.webp",
-      "bytes": 80916,
-      "sha256": "5c3f8ecd5343d7c446ccd41d00fec33707bcb375da0720146d93d3fbd70c065b",
-      "format": "WEBP",
-      "width": 393,
-      "height": 852,
-      "frames": 1
-    },
-    {
-      "name": "landscape-03-login.webp",
-      "bytes": 95540,
-      "sha256": "95ba7cabea92bd13f59ee935ceb5b56ce18e13d44a9b7dee7bbb7eb93276d6a2",
-      "format": "WEBP",
-      "width": 852,
-      "height": 393,
-      "frames": 1
-    },
-    {
-      "name": "landscape-05-camp.webp",
-      "bytes": 96514,
-      "sha256": "ed6bc5fc677c8ee0e7f5ab7b0db8ebe434797bb5ac48bd214666b07b5da8493a",
-      "format": "WEBP",
-      "width": 852,
-      "height": 393,
+      "width": 1280,
+      "height": 800,
       "frames": 1
     },
     {
       "name": "desktop-entry-flow.mp4",
-      "bytes": 624498,
-      "sha256": "75e1f190afc1cfc5de97e5f70782707ff69f538d08dd5b8be720d09a451581d3",
+      "bytes": 1920578,
+      "sha256": "ed1fdd8eee44dac1193f8f489b8e4d01c2fd5f88b5763917c052e786eee5191e",
       "format": "MP4",
       "width": 1280,
       "height": 800,
-      "duration_seconds": 10.208333
-    },
-    {
-      "name": "portrait-entry-flow.mp4",
-      "bytes": 279357,
-      "sha256": "94d22e74566552b2eb822b900190777c15cb43441b44a0f58a0e865719f21126",
-      "format": "MP4",
-      "width": 394,
-      "height": 852,
-      "duration_seconds": 10.208333
+      "seconds": 13.208333
     },
     {
       "name": "desktop-entry-flow.webp",
-      "bytes": 172110,
-      "sha256": "52afb97364b5f8a5d236856b3500a0634af7546cf3aee6095df7ccabad5b938c",
+      "bytes": 1390306,
+      "sha256": "bac6638eb5a03b48097c0a1f989f4d1486028c2b947e53f005292fbb4e3424d3",
       "format": "WEBP",
       "width": 800,
       "height": 500,
-      "frames": 70,
-      "play_count": 1
+      "frames": 108
+    },
+    {
+      "name": "landscape-01-title.webp",
+      "bytes": 3402,
+      "sha256": "1b0e208013070b569278ffce84287cb1c932acb2aab0059ac4b67352935873b2",
+      "format": "WEBP",
+      "width": 852,
+      "height": 393,
+      "frames": 1
+    },
+    {
+      "name": "landscape-02-loading.webp",
+      "bytes": 120432,
+      "sha256": "e7c01edc85b230d60ed08e068f00a22bc24074aa6cf87168a7a63db9f0d1f877",
+      "format": "WEBP",
+      "width": 852,
+      "height": 393,
+      "frames": 1
+    },
+    {
+      "name": "landscape-03-start.webp",
+      "bytes": 120150,
+      "sha256": "a7b557951977e2a2092ddb5f9d03f9e54703413c2c3aa45c3474eb62184f7903",
+      "format": "WEBP",
+      "width": 852,
+      "height": 393,
+      "frames": 1
+    },
+    {
+      "name": "landscape-04-nickname.webp",
+      "bytes": 45166,
+      "sha256": "c73938b791d90c2aa01bcc746d7956b06122a4f3683df63ad8ff64897b6eb0aa",
+      "format": "WEBP",
+      "width": 852,
+      "height": 393,
+      "frames": 1
+    },
+    {
+      "name": "landscape-05-lobby.webp",
+      "bytes": 97594,
+      "sha256": "9747eba970e8f33e2d7ddf6dba8510dc60705668a1f462f4bf52c47b158a15fe",
+      "format": "WEBP",
+      "width": 852,
+      "height": 393,
+      "frames": 1
+    },
+    {
+      "name": "landscape-06-select.webp",
+      "bytes": 90406,
+      "sha256": "9daa86a7def038df833bd8936127f06c334e71f82dd031b45c4dc46012805a07",
+      "format": "WEBP",
+      "width": 852,
+      "height": 393,
+      "frames": 1
+    },
+    {
+      "name": "landscape-07-ready.webp",
+      "bytes": 89482,
+      "sha256": "66347bb1d10db1691e26492d1062c84a7550a4955dd2090fb0eee68f0fbe279c",
+      "format": "WEBP",
+      "width": 852,
+      "height": 393,
+      "frames": 1
+    },
+    {
+      "name": "portrait-01-title.webp",
+      "bytes": 2616,
+      "sha256": "78be716a74fb5ab569ff551418ea08eeb4f5f7a13733fba719d59c469c16ac3a",
+      "format": "WEBP",
+      "width": 393,
+      "height": 852,
+      "frames": 1
+    },
+    {
+      "name": "portrait-02-loading.webp",
+      "bytes": 58376,
+      "sha256": "0603ebdef5d31a3f3292fed63a532c72942a96d89fb5ade2a051db8fcaa2ded2",
+      "format": "WEBP",
+      "width": 393,
+      "height": 852,
+      "frames": 1
+    },
+    {
+      "name": "portrait-03-start.webp",
+      "bytes": 55902,
+      "sha256": "a3a6e335dcc23b526321c0354f8a0446b0b539b5936db29ebc58b8076dccc56f",
+      "format": "WEBP",
+      "width": 393,
+      "height": 852,
+      "frames": 1
+    },
+    {
+      "name": "portrait-04-nickname.webp",
+      "bytes": 35378,
+      "sha256": "2519b9ad8ef3bdb4db39c32fc53ffe7b9cbaddb0866b427902667ba422875558",
+      "format": "WEBP",
+      "width": 393,
+      "height": 852,
+      "frames": 1
+    },
+    {
+      "name": "portrait-05-lobby.webp",
+      "bytes": 80022,
+      "sha256": "c25fefad4d5a416b822a12a6984668dbf67d4122880e9f8d8c3409976ed86ecd",
+      "format": "WEBP",
+      "width": 393,
+      "height": 852,
+      "frames": 1
+    },
+    {
+      "name": "portrait-06-select.webp",
+      "bytes": 35164,
+      "sha256": "6718c266a200802837cfb4611846efb2a9c4c97fd52f8ae427a1b9e3f5615a7b",
+      "format": "WEBP",
+      "width": 393,
+      "height": 852,
+      "frames": 1
+    },
+    {
+      "name": "portrait-07-ready.webp",
+      "bytes": 34474,
+      "sha256": "fe6523c7563304e884e2a772f6a38b89e93f2fcda7243688239da570d59725c9",
+      "format": "WEBP",
+      "width": 393,
+      "height": 852,
+      "frames": 1
+    },
+    {
+      "name": "portrait-entry-flow.mp4",
+      "bytes": 305197,
+      "sha256": "f7f77b661e9868c7e828177fa369cdc2a155fefb0b611d4e628d58ef55af34cb",
+      "format": "MP4",
+      "width": 394,
+      "height": 852,
+      "seconds": 8.041667
     },
     {
       "name": "portrait-entry-flow.webp",
-      "bytes": 151836,
-      "sha256": "3fb3c14d181c2486fe7e82fa031c661acc46ef2fbcfe7824677bf732238b6193",
+      "bytes": 314114,
+      "sha256": "f337b3c1056c7872819e5b6bb06d15fb4daf209b13b4ac4d6205ea69b1120ad6",
       "format": "WEBP",
       "width": 360,
       "height": 778,
-      "frames": 82,
-      "play_count": 1
+      "frames": 56
+    },
+    {
+      "name": "small-landscape-01-title.webp",
+      "bytes": 2690,
+      "sha256": "5f150a067d4ca63b86fd707890fab179aea2f8d8899801af36bad14a267d917c",
+      "format": "WEBP",
+      "width": 667,
+      "height": 375,
+      "frames": 1
+    },
+    {
+      "name": "small-landscape-02-loading.webp",
+      "bytes": 88298,
+      "sha256": "d6218dd1e5f7d44af612b432515703a506a8cda76bf3fd55b249975f2f453a53",
+      "format": "WEBP",
+      "width": 667,
+      "height": 375,
+      "frames": 1
+    },
+    {
+      "name": "small-landscape-03-start.webp",
+      "bytes": 87740,
+      "sha256": "ccc883a1b7843f3baef8f84e6c2b5f6ed5a08b1dbf7c006ad5c7ff6ad562e750",
+      "format": "WEBP",
+      "width": 667,
+      "height": 375,
+      "frames": 1
+    },
+    {
+      "name": "small-landscape-04-nickname.webp",
+      "bytes": 31226,
+      "sha256": "186603732d22df1ea1b29210f26f89c1075d5422203177320e5fd9f08a060074",
+      "format": "WEBP",
+      "width": 667,
+      "height": 375,
+      "frames": 1
+    },
+    {
+      "name": "small-landscape-05-lobby.webp",
+      "bytes": 77860,
+      "sha256": "f92a475ee6d2f01ca46cb039d94c577a490f6c0c6c65f56e9d94e26ad8c9640c",
+      "format": "WEBP",
+      "width": 667,
+      "height": 375,
+      "frames": 1
+    },
+    {
+      "name": "small-landscape-06-select.webp",
+      "bytes": 64958,
+      "sha256": "f97596c9d66cb559c51a883af156d2f706332116cadc38e41ff78635be5375ac",
+      "format": "WEBP",
+      "width": 667,
+      "height": 375,
+      "frames": 1
+    },
+    {
+      "name": "small-landscape-07-ready.webp",
+      "bytes": 64304,
+      "sha256": "0f3ea5812bae32b1c2123a458ec1d3761dd2fd13f27d57fbcdddc8dfa2eaaa28",
+      "format": "WEBP",
+      "width": 667,
+      "height": 375,
+      "frames": 1
+    },
+    {
+      "name": "small-portrait-01-title.webp",
+      "bytes": 2148,
+      "sha256": "967c502e19f3c3107d6063e625a92cfde7b90147958d09d5834f4b344242ff67",
+      "format": "WEBP",
+      "width": 320,
+      "height": 568,
+      "frames": 1
+    },
+    {
+      "name": "small-portrait-02-loading.webp",
+      "bytes": 44634,
+      "sha256": "9bb2e4aa9d2bc523cb31e695b58ab1a14ec2a406392b63781fc537197884b9a7",
+      "format": "WEBP",
+      "width": 320,
+      "height": 568,
+      "frames": 1
+    },
+    {
+      "name": "small-portrait-03-start.webp",
+      "bytes": 42702,
+      "sha256": "8ffb8b3bdbcc16b396c0309edfd0c0251c99f0f493eb08c83e1c9482327edded",
+      "format": "WEBP",
+      "width": 320,
+      "height": 568,
+      "frames": 1
+    },
+    {
+      "name": "small-portrait-04-nickname.webp",
+      "bytes": 20170,
+      "sha256": "6f9571e1c401c3ee2ddd0245446337e0cc66c8018b7c98f3a5cc91de39e1c11b",
+      "format": "WEBP",
+      "width": 320,
+      "height": 568,
+      "frames": 1
+    },
+    {
+      "name": "small-portrait-05-lobby.webp",
+      "bytes": 48264,
+      "sha256": "0657ea31c02ba5d6a5316f39848d3d4ead7e52d3e45e8fbda8fe4432e45166b1",
+      "format": "WEBP",
+      "width": 320,
+      "height": 568,
+      "frames": 1
+    },
+    {
+      "name": "small-portrait-06-select.webp",
+      "bytes": 25438,
+      "sha256": "c5d256865d87a313e0392f6c6e03c4419be61675f7e3c0f16e77a4cc5b824c49",
+      "format": "WEBP",
+      "width": 320,
+      "height": 568,
+      "frames": 1
+    },
+    {
+      "name": "small-portrait-07-ready.webp",
+      "bytes": 24762,
+      "sha256": "85cf3e6905bbfe2baabc6d1cedd6ad18760cb0d2ade0df9d917ee25cc36e785d",
+      "format": "WEBP",
+      "width": 320,
+      "height": 568,
+      "frames": 1
     }
-  ]
+  ],
+  "source_commit": "2c304be76cda817c8cc095afaaa7d7ad4d476ebb",
+  "portrait_framing": {
+    "scene_height_at_393x852": 412.640625,
+    "four_travelers_preserved": true,
+    "aspect_ratio_preserved": true,
+    "blur_filter": "none",
+    "sizes_checked": 7,
+    "camera_times_checked_ms": [
+      0,
+      12000,
+      24000,
+      36000,
+      48000
+    ]
+  }
 }
