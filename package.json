@@ -30,6 +30,8 @@
     "validate:online-monster-visibility": "node scripts/validate-online-monster-visibility.cjs",
     "validate:ground-guides": "node scripts/validate-ground-guide-layers.cjs",
     "validate:fireball-impact": "node scripts/validate-fireball-impact.mjs",
+    "validate:missile-facing": "node --test scripts/validate-magic-missile-facing.mjs",
+    "validate:missile-facing-browser": "node scripts/validate-magic-missile-facing-browser.cjs",
     "validate:fireball-touch": "node scripts/validate-fireball-touch.cjs",
     "validate:inventory-compaction": "node --test scripts/validate-inventory-compaction.mjs",
     "validate:inventory-categories": "node scripts/validate-inventory-categories.cjs",

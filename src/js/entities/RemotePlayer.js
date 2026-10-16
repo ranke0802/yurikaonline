@@ -1132,6 +1132,7 @@ export default class RemotePlayer extends CharacterBase {
                     if (isNaN(count) || count < 1) count = 1;
                     if (count > 20) count = 20; // v0.00.32: Increased Cap to 20 for multi-shot
                     this._triggerRemoteMissileVisual(centerX, centerY, count, {
+                        launchAngle: data.extraData?.launchAngle,
                         targetId: data.extraData?.targetId,
                         targetType: data.extraData?.targetType,
                         targetX: data.extraData?.targetX,
@@ -1160,7 +1161,9 @@ export default class RemotePlayer extends CharacterBase {
         const authoredWorldContext = options.authoredWorldContext || captureProjectileWorldContext();
         if (!isProjectileWorldContextCurrent(authoredWorldContext)) return;
         const angles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
-        const baseAngle = angles[this.direction] + Math.PI;
+        const baseAngle = Number.isFinite(options.launchAngle)
+            ? options.launchAngle
+            : angles[this.direction] + Math.PI;
 
         for (let i = 0; i < count; i++) {
             const spread = (Math.PI * 4) / 9;

@@ -2339,10 +2339,25 @@ export default class Player extends CharacterBase {
                     const targetType = nearest.type === 'monster' || nearest.isMonster ? 'monster' : 'player';
                     const targetId = nearest.id || null;
 
+                    // Keep the existing rearward launch fan while turning the cast pose toward its target.
+                    const angles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
+                    const baseAngle = (this.vx !== 0 || this.vy !== 0
+                        ? Math.atan2(this.vy, this.vx)
+                        : angles[this.direction]) + Math.PI;
+                    const dx = targetPoint.x - sourceX;
+                    const dy = targetPoint.y - sourceY;
+                    if (Number.isFinite(dx) && Number.isFinite(dy) && Math.hypot(dx, dy) > 0.001) {
+                        this.facingAngle = Math.atan2(dy, dx);
+                        const angleNorm = (this.facingAngle + Math.PI * 2) % (Math.PI * 2);
+                        this.direction8 = Math.round(angleNorm / (Math.PI / 4)) % 8;
+                        this.direction = [3, 1, 1, 1, 2, 0, 0, 0][this.direction8];
+                    }
+
                     // v0.00.35: Only sync if we have a valid target
                     if (this.net) {
                         this.net.sendPlayerAttack(this.x, this.y, this.direction, 'missile', {
                             count,
+                            launchAngle: baseAngle,
                             targetId,
                             targetType,
                             targetX: targetPoint.x,
@@ -2351,18 +2366,6 @@ export default class Player extends CharacterBase {
                             targetHeight: nearest.height || 0,
                             variant: weaponCombat.missileVariant || null
                         });
-                    }
-
-                    // count is already defined above
-                    // Get base firing angle (opposite of movement/facing)
-                    // If moving, use movement direction. Else use sprite direction.
-                    let baseAngle;
-                    if (this.vx !== 0 || this.vy !== 0) {
-                        baseAngle = Math.atan2(this.vy, this.vx) + Math.PI; // Opposite of move
-                    } else {
-                        // 0:Back, 1:Front, 2:Left, 3:Right
-                        const angles = [-Math.PI / 2, Math.PI / 2, Math.PI, 0];
-                        baseAngle = angles[this.direction] + Math.PI;
                     }
 
                     for (let i = 0; i < count; i++) {
