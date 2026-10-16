@@ -1,5 +1,12 @@
 {
   "projects": {
-    "default": "yurika-online"
+    "default": "project-e2f0a"
+  },
+  "targets": {
+    "project-e2f0a": {
+      "hosting": {
+        "yurika": ["ranke0802-yurika"]
+      }
+    }
   }
 }

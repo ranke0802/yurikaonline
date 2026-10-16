@@ -1,7 +1,7 @@
 'use strict';
 
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
-const RELEASE_ORIGIN = 'https://yurika-online.web.app';
+const RELEASE_ORIGIN = 'https://ranke0802-yurika.web.app';
 const RELEASE_LIMITS = Object.freeze({ requests: 8, bytes: 512 * 1024 });
 
 function assertLoopbackUrl(value, label = 'QA URL', base) {

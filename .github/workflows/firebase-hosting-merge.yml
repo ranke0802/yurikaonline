@@ -109,13 +109,14 @@ jobs:
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_YURIKA_ONLINE }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PROJECT_E2F0A }}
           channelId: live
-          projectId: yurika-online
+          projectId: project-e2f0a
+          target: yurika
       # A reviewed push authorizes ONLY this bounded check, not remote game QA.
       - name: Verify release metadata and headers within traffic budget
         env:
-          YURIKA_RELEASE_ORIGIN: https://yurika-online.web.app
+          YURIKA_RELEASE_ORIGIN: https://ranke0802-yurika.web.app
           YURIKA_REMOTE_CHECK_APPROVED: '1'
           YURIKA_RELEASE_MAX_REQUESTS: '8'
           YURIKA_RELEASE_MAX_BYTES: '200000'

@@ -8,7 +8,7 @@ test('QA origins fail closed; remote release needs explicit origin, approval and
     assert.throws(() => assertLocalQaEnvironment({ QA_URL: 'https://example.invalid' }), /QA_NETWORK_POLICY/);
     assert.throws(() => assertLocalQaEnvironment({ FIREBASE_AUTH_EMULATOR_HOST: 'example.invalid:9099' }), /QA_NETWORK_POLICY/);
     assert.equal(releasePolicy({}).remote, false);
-    const remote = { YURIKA_RELEASE_ORIGIN: 'https://yurika-online.web.app', YURIKA_REMOTE_CHECK_APPROVED: '1', YURIKA_RELEASE_MAX_REQUESTS: '8', YURIKA_RELEASE_MAX_BYTES: '200000' };
+    const remote = { YURIKA_RELEASE_ORIGIN: 'https://ranke0802-yurika.web.app', YURIKA_REMOTE_CHECK_APPROVED: '1', YURIKA_RELEASE_MAX_REQUESTS: '8', YURIKA_RELEASE_MAX_BYTES: '200000' };
     assert.equal(releasePolicy(remote).maxBytes, 200000);
     for (const change of [{ YURIKA_REMOTE_CHECK_APPROVED: '' }, { YURIKA_RELEASE_MAX_BYTES: '' }, { YURIKA_RELEASE_MAX_BYTES: '524289' }, { YURIKA_RELEASE_MAX_REQUESTS: '9' }, { YURIKA_RELEASE_ORIGIN: 'https://example.invalid' }]) assert.throws(() => releasePolicy({ ...remote, ...change }));
 });

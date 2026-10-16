@@ -1,5 +1,8 @@
 # Yurika Online (유리카 온라인)
-> **Service Link:** [https://yurika-online.web.app/](https://yurika-online.web.app/)
+> **Service Link:** [https://ranke0802-yurika.web.app/](https://ranke0802-yurika.web.app/)
+>
+> Firebase 프로젝트: `project-e2f0a` · Hosting 대상: `yurika` · 배포 브랜치: `mmorpg_online`.
+> 계정·DB 이전과 배포 설정은 [Firebase 이전 기록](docs/FIREBASE-MIGRATION-2026-10-16.md)을 참고하세요.
 
 <!-- AUTO_VERSION_BLOCK_START -->
 ## Build Metadata

@@ -2,4 +2,11 @@ node_modules/
 .DS_Store
 dist/
 .env
+.env.*
+.firebase/
+.secrets/
+*-debug.log*
+*service-account*.json
+*serviceAccount*.json
+*firebase-adminsdk*.json
 release-manifest.json
