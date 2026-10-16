@@ -17,6 +17,7 @@ export function createBoundedClient(policy) {
         try {
             if ((path !== '/' && !/^\/(?!\/)[a-zA-Z0-9_./-]+$/.test(path)) || path.includes('..')) throw Error('Invalid release path');
             if (!['GET', 'HEAD'].includes(method)) throw Error('Invalid release method');
+            if (expectedBytes != null && (!Number.isSafeInteger(expectedBytes) || expectedBytes < 0)) throw Error('Invalid expected release length');
             if (method === 'GET' && /\.(webp|png|svg|jpe?g|gif)$/i.test(path)) throw Error('Release image bodies are prohibited');
             if (stats.requests >= policy.maxRequests) throw Error('Release request budget exceeded');
             const remaining = policy.maxBytes - stats.bytes;
@@ -30,16 +31,20 @@ export function createBoundedClient(policy) {
                     if (response.headers['content-encoding'] && response.headers['content-encoding'] !== 'identity') return fail('Unexpected content encoding');
                     const declared = response.headers['content-length'];
                     const length = /^\d+$/.test(declared || '') ? Number(declared) : NaN;
-                    if (method === 'GET' && (!Number.isSafeInteger(length) || length > remaining || (expectedBytes != null && length !== expectedBytes))) return fail('Release response length exceeds budget or differs from local artifact');
+                    // CDN identity responses may be chunked or connection-delimited.
+                    // A known local artifact supplies the exact bound when the header is absent.
+                    // Never trust a malformed/mismatched header or accept an unbounded stream.
+                    const bodyLength = declared == null ? expectedBytes : length;
+                    if (method === 'GET' && (!Number.isSafeInteger(bodyLength) || bodyLength < 0 || bodyLength > remaining || (expectedBytes != null && bodyLength !== expectedBytes))) return fail(`Release response length exceeds budget or differs from local artifact: ${path}, declared=${declared ?? 'absent'}, expected=${expectedBytes ?? 'unknown'}`);
                     const chunks = []; let size = 0;
                     response.on('data', chunk => {
                         size += chunk.length; stats.bytes += chunk.length;
-                        if (stats.bytes > policy.maxBytes || size > length) return fail('Release stream exceeded declared size or budget');
+                        if (stats.bytes > policy.maxBytes || (method === 'GET' && size > bodyLength)) return fail('Release stream exceeded declared/local size or budget');
                         chunks.push(chunk);
                     });
                     response.once('error', reject);
                     response.once('end', () => {
-                        if (method === 'GET' && size !== length) return fail('Truncated release response');
+                        if (method === 'GET' && size !== bodyLength) return fail('Truncated release response');
                         request.destroy();
                         resolve({ bytes: Buffer.concat(chunks), headers: response.headers });
                     });

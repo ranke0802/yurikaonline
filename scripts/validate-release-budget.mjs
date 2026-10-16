@@ -33,8 +33,30 @@ for (const kind of ['http-failure', 'redirect', 'large', 'chunked', 'missing-len
         else if (kind === 'encoding') { res.writeHead(200, { 'Content-Length': 1, 'Content-Encoding': 'gzip' }); res.end('x'); }
         else { res.writeHead(200, { 'Content-Length': 2 }); res.end('xx'); }
     });
-    await assert.rejects(f.client.get('/version.txt', { expectedBytes: 1 }));
+    await assert.rejects(f.client.get('/version.txt', ['chunked', 'missing-length'].includes(kind) ? {} : { expectedBytes: 1 }));
     await assert.rejects(f.client.get('/version.txt'), /first failure/); assert.equal(f.requests(), 1);
+});
+for (const framing of ['chunked', 'connection-close']) test(`${framing}: exact local length bounds a response without Content-Length`, async t => {
+    const f = await fixture(t, (_req,res) => {
+        if (framing === 'connection-close') res.useChunkedEncodingByDefault = false;
+        res.writeHead(200); res.write('a'); res.end('bc');
+    });
+    const result = await f.client.get('/index.html', { expectedBytes: 3 });
+    assert.equal(result.headers['content-length'], undefined);
+    assert.equal(result.bytes.toString(), 'abc'); assert.equal(f.client.stats.bytes, 3);
+});
+for (const bytes of ['ab', 'abcd']) test(`chunked local-length mismatch (${bytes.length} vs 3) stops queued probes`, async t => {
+    const f = await fixture(t, (_req,res) => { res.writeHead(200); res.write(bytes.slice(0, 1)); res.end(bytes.slice(1)); });
+    const results = await Promise.allSettled([f.client.get('/index.html', { expectedBytes: 3 }), f.client.get('/later')]);
+    assert.ok(results.every(r => r.status === 'rejected')); assert.equal(f.requests(), 1);
+    assert.match(results[0].reason.message, /Truncated|exceeded/);
+});
+test('invalid local lengths fail before network I/O', async t => {
+    for (const expectedBytes of [-1, Infinity, NaN, 1.5, '3']) {
+        const f = await fixture(t, () => assert.fail('must not send'));
+        await assert.rejects(f.client.get('/index.html', { expectedBytes }), /Invalid expected/);
+        assert.equal(f.requests(), 0);
+    }
 });
 test('cumulative request and byte ceilings stop before the next request', async t => {
     const f = await fixture(t, (_req,res) => { res.writeHead(200, { 'Content-Length': 2 }); res.end('ok'); }, { maxRequests: 1 });
@@ -85,7 +107,7 @@ test('actual release CLI uses eight local requests; version mismatch stops after
         const path = new URL(req.url, 'http://localhost').pathname; paths.push({ method: req.method, path });
         let bytes = readFileSync(path === '/' ? 'index.html' : '.' + path);
         if (corruptVersion && path === '/version.txt') bytes = Buffer.from('X' + bytes.toString().slice(1));
-        res.writeHead(200, { 'Content-Length': bytes.length, 'Cache-Control': path === '/version.txt' ? 'no-store' : path.startsWith('/assets/immutable/') ? 'public,max-age=31536000,immutable' : 'no-cache' });
+        res.writeHead(200, { ...(path === '/' ? {} : { 'Content-Length': bytes.length }), 'Cache-Control': path === '/version.txt' ? 'no-store' : path.startsWith('/assets/immutable/') ? 'public,max-age=31536000,immutable' : 'no-cache' });
         res.end(req.method === 'HEAD' ? undefined : bytes);
     });
     await new Promise(r => server.listen(0, '127.0.0.1', r));
