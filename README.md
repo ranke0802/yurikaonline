@@ -4,6 +4,17 @@
 > Firebase 프로젝트: `project-e2f0a` · Hosting 대상: `yurika` · 배포 브랜치: `mmorpg_online`.
 > 계정·DB 이전과 배포 설정은 [Firebase 이전 기록](docs/FIREBASE-MIGRATION-2026-10-16.md)을 참고하세요.
 
+일반 푸시는 QA 정책·자산 무결성·매직미사일 방향 검사 후 바로 배포합니다.
+전체 브라우저·캐시·오디오 회귀 검사는 `Full local regression (manual)` 워크플로로
+분리했으며 자동 배포를 지연시키지 않습니다. 수동 전체 검사도 localhost에서만
+실행되고 배포하지 않습니다. 배포 후 운영 확인은 최대 8요청·200,000 응답 본문
+바이트로 제한됩니다.
+
+기본 브랜치가 `master`이므로 수동 검사 파일을 그 브랜치에도 등록하기 전에는
+Actions의 실행 버튼이 표시되지 않을 수 있습니다. 필요할 때 검사할 커밋에
+`qa-local-`로 시작하는 태그를 만들어 해당 태그만 푸시하면 전체 로컬 검사만
+실행할 수 있습니다. 일반 `mmorpg_online` 브랜치 푸시는 이 검사를 시작하지 않습니다.
+
 <!-- AUTO_VERSION_BLOCK_START -->
 ## Build Metadata
 - 배포 버전: **0.02.184**

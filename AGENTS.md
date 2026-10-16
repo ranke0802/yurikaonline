@@ -69,9 +69,16 @@ HEAD를 확인하고 사용자 변경을 보존한다. 클린 상태에서만 �
 
 1. Node 22 / `npm ci`, Chromium 준비 후 `npm start` →
    `http://127.0.0.1:8100/?local=1`. 서버는 외부 연결과 Firebase config를 차단한다.
-2. `npm run validate:qa-policy`, `npm run validate:qa-network-browser`,
-   기존 Actions의 모든 로컬 검증, 위 두 캐시 검증을 통과한다. 테스트를 운영으로
-   옮기거나 기존 기능 검증을 삭제해서 시간을 줄이지 않는다.
+2. 일반 수정은 `npm run validate:qa-policy`, `npm run validate:assets`,
+   `npm run release:manifest`와 변경에 직접 관련된 검사만 실행한다.
+   2026-10-16 사용자 요청에 따라 과도한 전체 회귀 검사를 매 작업·푸시마다
+   반복하지 않는다. 브라우저 확인은 필요한 변경 범위만 localhost에서 수행하고,
+   위 두 캐시 검증은 캐시·자산 로딩 변경 시 실행한다. 전체 검사는
+   `.github/workflows/local-regression.yml`의 수동 `workflow_dispatch` 또는 명시적으로
+   푸시한 `qa-local-*` 태그로 분리했다. 일반 브랜치 푸시에는 실행하지 않는다.
+   전체 검사는 사용자가 요청하거나 광범위한 변경으로 필요성이 명확할 때만
+   실행하며, 일반 배포의 필수 대기 단계로 다시 넣지 않는다. 기존 검사 스크립트와
+   운영 접근 차단·트래픽 예산은 유지한다.
 3. 생성된 오디오/스크린샷/로그는 `/tmp` 또는 별도 작업 폴더에 보관하고,
    실행 전 존재하던 사용자 결과를 덮어쓰지 않는다. 검증 산출물을 게임 변경과 섞지 않는다.
 4. 변경, 실행한 검사, 실제/추정 트래픽, 남은 제한을 구분해 보고한다.

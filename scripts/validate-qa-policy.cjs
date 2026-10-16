@@ -26,19 +26,29 @@ test('every browser/network QA entry imports preflight first and rejects remote 
     assert.ok(count >= 75, `coverage unexpectedly fell to ${count}`);
     console.log(`Guarded ${count} network QA entry scripts`);
 });
-test('workflows retain local coverage and only allow a single budgeted postdeploy command', () => {
+test('deployment stays short; full regression is manual and release verification stays bounded', () => {
     const workflow = fs.readFileSync('.github/workflows/firebase-hosting-merge.yml', 'utf8');
+    const regression = fs.readFileSync('.github/workflows/local-regression.yml', 'utf8');
     assert.doesNotMatch(workflow, /QA_(?:BASE_)?URL[=:]\s*https:/);
+    assert.doesNotMatch(regression, /QA_(?:BASE_)?URL[=:]\s*https:/);
     const after = workflow.split('uses: FirebaseExtended/action-hosting-deploy@v0')[1];
     assert.equal((after.match(/run:/g) || []).length, 1);
     assert.match(after, /run: node scripts\/verify-hosting-release\.mjs/);
     assert.match(after, /YURIKA_RELEASE_MAX_REQUESTS: '8'/); assert.match(after, /YURIKA_RELEASE_MAX_BYTES: '200000'/);
     const before = workflow.split('uses: FirebaseExtended/action-hosting-deploy@v0')[0];
-    assert.match(before, /if: failure\(\)\s+uses: actions\/upload-artifact@v4/);
-    assert.match(before, /path: \/tmp\/yurika-cache-lifecycle\/\*\*\/\*\.json/);
+    assert.doesNotMatch(before, /playwright install|validate:[\w-]*browser|scripts\/[^\s]*browser|validate:cache-lifecycle/);
+    assert.match(before, /npm run validate:qa-policy && npm run validate:assets/);
+    assert.match(before, /npm run validate:missile-facing/);
+    assert.match(before, /npm run release:manifest/);
+    assert.match(regression, /^on:\s*\n  workflow_dispatch:\s*\n/m);
+    assert.doesNotMatch(regression, /^  (?:pull_request|schedule):|^    branches:/m);
+    assert.match(regression, /push:\s+tags:\s+- qa-local-\*/);
+    assert.doesNotMatch(regression, /action-hosting-deploy|verify-hosting-release|FIREBASE_SERVICE_ACCOUNT/);
+    assert.match(regression, /if: failure\(\)\s+uses: actions\/upload-artifact@v4/);
+    assert.match(regression, /path: \/tmp\/yurika-cache-lifecycle\/\*\*\/\*\.json/);
     for (const name of ['validate:qa-policy', 'validate:cache-lifecycle', 'validate:qa-network-browser', 'validate:asset-browser', 'validate-field-clarity-browser.cjs']) {
-        if (name === 'validate-field-clarity-browser.cjs') assert.match(workflow, /npm run validate:field-clarity-browser/);
-        else assert.ok(workflow.includes(name), name);
+        if (name === 'validate-field-clarity-browser.cjs') assert.match(regression, /npm run validate:field-clarity-browser/);
+        else assert.ok(regression.includes(name), name);
     }
     const verifier = fs.readFileSync('scripts/verify-hosting-release.mjs', 'utf8');
     assert.doesNotMatch(verifier, /\bfetch\(|attempt|setTimeout/); assert.match(verifier, /createBoundedClient/);
